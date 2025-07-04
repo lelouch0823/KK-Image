@@ -70,17 +70,18 @@ graph TB
 ### 前端技术栈
 
 **核心框架**:
-- **Vue.js 2.x** - 响应式前端框架
-- **Element UI** - Vue 组件库
-- **Nuxt.js** - Vue 应用框架（用于构建）
+- **Vue.js 3.x** - 现代响应式前端框架，采用 Composition API
+- **Element Plus** - Vue 3 兼容的组件库
+- **Vite** - 现代构建工具，提供快速开发体验
 
 **样式和布局**:
 - **CSS3** - 现代样式特性
 - **响应式设计** - 支持多设备访问
-- **Element UI 主题** - 统一的视觉风格
+- **Element Plus 主题** - 统一的视觉风格
 
 **JavaScript 功能**:
-- **ES6+** - 现代 JavaScript 特性
+- **ES6+ Modules** - 现代 JavaScript 模块系统
+- **Composition API** - Vue 3 组合式 API
 - **Fetch API** - 网络请求处理
 - **File API** - 文件上传处理
 

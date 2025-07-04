@@ -10,9 +10,10 @@ Telegraph-Image 是一个基于 Cloudflare Pages 和 Telegram Bot API 的免费�
 ## 技术栈规范
 
 ### 前端技术栈
-- 使用 **Vue.js 2.x** 作为主要前端框架，不要升级到 Vue 3
-- 使用 **Element UI** 作为 UI 组件库，保持现有的视觉风格
-- 使用原生 JavaScript ES6+ 特性，避免引入额外的前端构建工具
+- 使用 **Vue.js 3.x** 作为主要前端框架，采用 Composition API 进行组件开发
+- 使用 **Element Plus** 作为 UI 组件库，保持现有的视觉风格和用户体验
+- 使用 **Vite** 作为现代构建工具，提供快速的开发体验和优化的生产构建
+- 使用 ES6+ 模块系统和现代 JavaScript 特性
 - 保持响应式设计，确保在移动设备上的良好体验
 
 ### 后端技术栈
@@ -54,6 +55,15 @@ Telegraph-Image 是一个基于 Cloudflare Pages 和 Telegram Bot API 的免费�
 - 函数命名使用动词开头，变量命名使用名词
 - 使用 camelCase 命名约定，常量使用 UPPER_SNAKE_CASE
 - 添加必要的 JSDoc 注释，特别是公共 API 函数
+
+### Vue 3 开发规范
+- 优先使用 **Composition API** 进行组件开发，避免 Options API
+- 使用 `ref()` 和 `reactive()` 管理响应式数据
+- 组件内使用 `setup()` 函数组织逻辑，返回模板需要的数据和方法
+- 生命周期钩子使用 `onMounted()`、`onUnmounted()` 等组合式 API
+- 使用 `computed()` 创建计算属性，`watch()` 监听数据变化
+- Element Plus 组件使用全局注册方式，通过 `app.use(ElementPlus)` 引入
+- 保持向后兼容，确保现有功能在升级后正常工作
 
 ### 文件组织规范
 - Functions 文件放在 `functions/` 目录下，按功能模块组织

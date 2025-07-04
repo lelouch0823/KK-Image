@@ -144,8 +144,10 @@ id = "your-kv-namespace-id"
 {
   "scripts": {
     "dev": "wrangler pages dev .",
-    "deploy": "wrangler pages deploy .",
-    "deploy:staging": "wrangler pages deploy . --env staging",
+    "build": "vite build",
+    "start": "npm run dev",
+    "deploy": "npm run build && wrangler pages deploy .",
+    "deploy:staging": "npm run build && wrangler pages deploy . --env staging",
     "test": "mocha test/**/*.test.js"
   }
 }
