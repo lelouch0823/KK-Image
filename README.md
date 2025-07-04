@@ -4,6 +4,19 @@
 
 [English](README-EN.md)|中文
 
+## 📚 完整文档
+
+我们提供了详细的文档来帮助您快速上手和深入使用 Telegraph-Image：
+
+- **[📖 文档中心](docs/README.md)** - 完整的项目文档导航
+- **[🚀 快速开始](docs/quick-start/README.md)** - 15分钟快速部署指南
+- **[👤 用户手册](docs/user-manual/README.md)** - 详细的使用说明
+- **[👨‍💼 管理员手册](docs/admin-manual/README.md)** - 系统管理和维护
+- **[👨‍💻 开发者指南](docs/developer-guide/README.md)** - 技术实现和开发指南
+- **[🔌 API 文档](docs/api-docs/README.md)** - 完整的 API 接口说明
+- **[🚀 部署指南](docs/deployment/README.md)** - 生产环境部署配置
+- **[🤝 贡献指南](docs/contributing/README.md)** - 参与项目开发
+
 > [!IMPORTANT]
 >
 > 由于原有的Telegraph API接口被官方关闭，需要将上传渠道切换至Telegram Channel，请按照文档中的部署要求设置`TG_Bot_Token`和`TG_Chat_ID`，否则将无法正常使用上传功能。
