@@ -11,7 +11,9 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        'admin-vue3': resolve(__dirname, 'admin-imgtc-vue3.html')
+        'admin-vue3': resolve(__dirname, 'admin-imgtc-vue3.html'),
+        'upload': resolve(__dirname, 'upload.html'),
+        'admin-stats': resolve(__dirname, 'admin-stats.html')
       },
       output: {
         // 代码分割配置
@@ -43,9 +45,23 @@ export default defineConfig({
     terserOptions: {
       compress: {
         drop_console: true,
-        drop_debugger: true
+        drop_debugger: true,
+        pure_funcs: ['console.log'],
+        passes: 2
+      },
+      mangle: {
+        safari10: true
+      },
+      format: {
+        comments: false
       }
-    }
+    },
+    // 启用 gzip 压缩
+    reportCompressedSize: true,
+    // 代码分割阈值
+    chunkSizeWarningLimit: 1000,
+    // 静态资源内联阈值
+    assetsInlineLimit: 4096
   },
   
   // 开发服务器配置

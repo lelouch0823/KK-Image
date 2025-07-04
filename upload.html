@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Telegraph-Image | 文件上传</title>
+
+  <!-- Element Plus CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/element-plus@2.4.0/dist/index.css">
+
+  <!-- 自定义样式 -->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    .header {
+      background: rgba(255, 255, 255, 0.1);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      padding: 16px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .nav-links a {
+      color: rgba(255, 255, 255, 0.8);
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      transition: all 0.3s;
+    }
+
+    .nav-links a:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    .main-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .upload-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
+      color: white;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .card-header h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+      font-weight: 600;
+    }
+
+    .card-header p {
+      margin: 0;
+      opacity: 0.9;
+      font-size: 16px;
+    }
+
+    .card-body {
+      padding: 0;
+    }
+
+    .features {
+      background: #f8f9fa;
+      padding: 24px;
+      border-top: 1px solid #eee;
+    }
+
+    .features h3 {
+      margin: 0 0 16px 0;
+      color: #303133;
+      text-align: center;
+    }
+
+    .feature-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .feature-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .feature-icon.drag {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .feature-icon.batch {
+      background: #f3e5f5;
+      color: #7b1fa2;
+    }
+
+    .feature-icon.progress {
+      background: #e8f5e8;
+      color: #388e3c;
+    }
+
+    .feature-icon.format {
+      background: #fff3e0;
+      color: #f57c00;
+    }
+
+    .feature-text {
+      flex: 1;
+    }
+
+    .feature-title {
+      font-weight: 600;
+      color: #303133;
+      margin: 0 0 4px 0;
+    }
+
+    .feature-desc {
+      font-size: 14px;
+      color: #606266;
+      margin: 0;
+    }
+
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .nav-links {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .main-container {
+        padding: 20px 16px;
+      }
+
+      .card-header h1 {
+        font-size: 24px;
+      }
+
+      .feature-list {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- 头部导航 -->
+    <header class="header">
+      <div class="header-content">
+        <a href="/" class="logo">Telegraph-Image</a>
+        <nav class="nav-links">
+          <a href="/">首页</a>
+          <a href="/upload.html" class="active">上传</a>
+          <a href="/admin">管理</a>
+          <a href="https://github.com/cf-pages/Telegraph-Image" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- 主要内容 -->
+    <main class="main-container">
+      <div class="upload-card">
+        <!-- 卡片头部 -->
+        <div class="card-header">
+          <h1>文件上传</h1>
+          <p>快速、安全、免费的图片托管服务</p>
+        </div>
+
+        <!-- 上传组件 -->
+        <div class="card-body">
+          <drag-upload />
+        </div>
+
+        <!-- 功能特性 -->
+        <div class="features">
+          <h3>功能特性</h3>
+          <div class="feature-list">
+            <div class="feature-item">
+              <div class="feature-icon drag">📁</div>
+              <div class="feature-text">
+                <div class="feature-title">拖拽上传</div>
+                <div class="feature-desc">支持拖拽文件或文件夹到页面直接上传</div>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon batch">⚡</div>
+              <div class="feature-text">
+                <div class="feature-title">批量处理</div>
+                <div class="feature-desc">一次选择多个文件，批量上传更高效</div>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon progress">📊</div>
+              <div class="feature-text">
+                <div class="feature-title">实时进度</div>
+                <div class="feature-desc">实时显示上传进度和状态反馈</div>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon format">🖼️</div>
+              <div class="feature-text">
+                <div class="feature-title">多格式支持</div>
+                <div class="feature-desc">支持 JPG、PNG、GIF、WebP 等主流格式</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Vue 3 和 Element Plus -->
+  <script src="https://unpkg.com/vue@3.4.0/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/element-plus@2.4.0/dist/index.full.js"></script>
+  <script src="https://unpkg.com/@element-plus/icons-vue@2.3.0/dist/index.iife.min.js"></script>
+
+  <script>
+    const { createApp } = Vue;
+    const { ElMessage, ElNotification, ElProgress, ElButton, ElIcon } = ElementPlus;
+
+    // 拖拽上传组件
+    const DragUpload = {
+      template: `
+        <div class="drag-upload-container">
+          <!-- 拖拽区域 -->
+          <div
+            ref="dropZone"
+            class="drop-zone"
+            :class="{
+              'drag-over': isDragOver,
+              'uploading': isUploading
+            }"
+            @drop="handleDrop"
+            @dragover="handleDragOver"
+            @dragenter="handleDragEnter"
+            @dragleave="handleDragLeave"
+            @click="triggerFileInput"
+          >
+            <div class="drop-zone-content">
+              <el-icon class="upload-icon" :size="48">
+                <component :is="'Upload'" />
+              </el-icon>
+              <div class="upload-text">
+                <p class="primary-text">
+                  {{ isDragOver ? '释放文件开始上传' : '拖拽文件到此处上传' }}
+                </p>
+                <p class="secondary-text">
+                  或 <span class="click-text">点击选择文件</span>
+                </p>
+                <p class="hint-text">
+                  支持 JPG、PNG、GIF、WebP 格式，单文件最大 20MB
+                </p>
+              </div>
+            </div>
+
+            <!-- 上传进度覆盖层 -->
+            <div v-if="isUploading" class="upload-overlay">
+              <el-progress
+                :percentage="uploadProgress"
+                :stroke-width="6"
+                status="success"
+              />
+              <p class="upload-status">{{ uploadStatusText }}</p>
+            </div>
+          </div>
+
+          <!-- 隐藏的文件输入 -->
+          <input
+            ref="fileInput"
+            type="file"
+            multiple
+            accept="image/*"
+            style="display: none"
+            @change="handleFileSelect"
+          />
+
+          <!-- 文件列表 -->
+          <div v-if="fileList.length > 0" class="file-list">
+            <h4>上传队列 ({{ fileList.length }} 个文件)</h4>
+            <div class="file-items">
+              <div
+                v-for="(file, index) in fileList"
+                :key="file.uid"
+                class="file-item"
+                :class="file.status"
+              >
+                <div class="file-info">
+                  <el-icon class="file-icon">
+                    <component :is="file.type.startsWith('image/') ? 'Picture' : 'Document'" />
+                  </el-icon>
+                  <div class="file-details">
+                    <span class="file-name">{{ file.name }}</span>
+                    <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                  </div>
+                </div>
+
+                <div class="file-actions">
+                  <el-progress
+                    v-if="file.status === 'uploading'"
+                    :percentage="file.progress"
+                    :stroke-width="4"
+                    :show-text="false"
+                  />
+                  <el-icon
+                    v-else-if="file.status === 'success'"
+                    class="success-icon"
+                    color="#67c23a"
+                  >
+                    <component :is="'Check'" />
+                  </el-icon>
+                  <el-icon
+                    v-else-if="file.status === 'error'"
+                    class="error-icon"
+                    color="#f56c6c"
+                  >
+                    <component :is="'Close'" />
+                  </el-icon>
+                  <el-button
+                    v-if="file.status !== 'uploading'"
+                    type="text"
+                    size="small"
+                    @click="removeFile(index)"
+                  >
+                    移除
+                  </el-button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 批量操作 -->
+            <div class="batch-actions">
+              <el-button
+                type="primary"
+                :disabled="isUploading || !hasReadyFiles"
+                @click="startBatchUpload"
+              >
+                开始上传 ({{ readyFilesCount }})
+              </el-button>
+              <el-button
+                :disabled="isUploading"
+                @click="clearAll"
+              >
+                清空列表
+              </el-button>
+            </div>
+          </div>
+
+          <!-- 上传结果 -->
+          <div v-if="uploadResults.length > 0" class="upload-results">
+            <h4>上传结果</h4>
+            <div class="result-items">
+              <div
+                v-for="result in uploadResults"
+                :key="result.uid"
+                class="result-item"
+                :class="result.success ? 'success' : 'error'"
+              >
+                <div class="result-info">
+                  <span class="result-name">{{ result.name }}</span>
+                  <span v-if="result.success" class="result-url">
+                    {{ result.url }}
+                  </span>
+                  <span v-else class="result-error">
+                    {{ result.error }}
+                  </span>
+                </div>
+                <div class="result-actions">
+                  <el-button
+                    v-if="result.success"
+                    type="text"
+                    size="small"
+                    @click="copyUrl(result.url)"
+                  >
+                    复制链接
+                  </el-button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `,
+      setup() {
+        const { ref, computed, onMounted, onUnmounted } = Vue;
+
+        // 响应式数据
+        const dropZone = ref(null);
+        const fileInput = ref(null);
+        const isDragOver = ref(false);
+        const isUploading = ref(false);
+        const uploadProgress = ref(0);
+        const uploadStatusText = ref('');
+        const fileList = ref([]);
+        const uploadResults = ref([]);
+
+        // 计算属性
+        const hasReadyFiles = computed(() =>
+          fileList.value.some(file => file.status === 'ready')
+        );
+
+        const readyFilesCount = computed(() =>
+          fileList.value.filter(file => file.status === 'ready').length
+        );
+
+        // 拖拽事件处理
+        const handleDragEnter = (e) => {
+          e.preventDefault();
+          isDragOver.value = true;
+        };
+
+        const handleDragOver = (e) => {
+          e.preventDefault();
+          isDragOver.value = true;
+        };
+
+        const handleDragLeave = (e) => {
+          e.preventDefault();
+          if (!dropZone.value.contains(e.relatedTarget)) {
+            isDragOver.value = false;
+          }
+        };
+
+        const handleDrop = (e) => {
+          e.preventDefault();
+          isDragOver.value = false;
+
+          const files = Array.from(e.dataTransfer.files);
+          processFiles(files);
+        };
+
+        // 文件选择处理
+        const triggerFileInput = () => {
+          if (!isUploading.value) {
+            fileInput.value.click();
+          }
+        };
+
+        const handleFileSelect = (e) => {
+          const files = Array.from(e.target.files);
+          processFiles(files);
+          e.target.value = '';
+        };
+
+        // 文件处理
+        const processFiles = (files) => {
+          const validFiles = files.filter(file => {
+            if (!file.type.startsWith('image/')) {
+              ElMessage.warning(\`\${file.name} 不是有效的图片文件\`);
+              return false;
+            }
+
+            if (file.size > 20 * 1024 * 1024) {
+              ElMessage.warning(\`\${file.name} 文件大小超过 20MB\`);
+              return false;
+            }
+
+            return true;
+          });
+
+          validFiles.forEach(file => {
+            const fileItem = {
+              uid: Date.now() + Math.random(),
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              file: file,
+              status: 'ready',
+              progress: 0
+            };
+            fileList.value.push(fileItem);
+          });
+
+          if (validFiles.length > 0) {
+            ElMessage.success(\`已添加 \${validFiles.length} 个文件到上传队列\`);
+          }
+        };
+
+        // 文件上传
+        const startBatchUpload = async () => {
+          const readyFiles = fileList.value.filter(file => file.status === 'ready');
+          if (readyFiles.length === 0) return;
+
+          isUploading.value = true;
+          uploadProgress.value = 0;
+          uploadStatusText.value = '准备上传...';
+
+          let completedCount = 0;
+          const totalCount = readyFiles.length;
+
+          for (const fileItem of readyFiles) {
+            try {
+              fileItem.status = 'uploading';
+              uploadStatusText.value = \`正在上传 \${fileItem.name}...\`;
+
+              const result = await uploadSingleFile(fileItem);
+
+              fileItem.status = 'success';
+              fileItem.progress = 100;
+
+              uploadResults.value.push({
+                uid: fileItem.uid,
+                name: fileItem.name,
+                success: true,
+                url: result.url
+              });
+
+              completedCount++;
+              uploadProgress.value = Math.round((completedCount / totalCount) * 100);
+
+            } catch (error) {
+              fileItem.status = 'error';
+              uploadResults.value.push({
+                uid: fileItem.uid,
+                name: fileItem.name,
+                success: false,
+                error: error.message
+              });
+
+              completedCount++;
+              uploadProgress.value = Math.round((completedCount / totalCount) * 100);
+            }
+          }
+
+          isUploading.value = false;
+          uploadStatusText.value = '上传完成';
+
+          ElNotification({
+            title: '上传完成',
+            message: \`成功上传 \${uploadResults.value.filter(r => r.success).length} 个文件\`,
+            type: 'success'
+          });
+        };
+
+        // 单文件上传
+        const uploadSingleFile = async (fileItem) => {
+          const formData = new FormData();
+          formData.append('file', fileItem.file);
+
+          return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+
+            xhr.upload.addEventListener('progress', (e) => {
+              if (e.lengthComputable) {
+                fileItem.progress = Math.round((e.loaded / e.total) * 100);
+              }
+            });
+
+            xhr.addEventListener('load', () => {
+              if (xhr.status === 200) {
+                try {
+                  const response = JSON.parse(xhr.responseText);
+                  resolve(response);
+                } catch (e) {
+                  reject(new Error('响应格式错误'));
+                }
+              } else {
+                reject(new Error(\`上传失败: \${xhr.status}\`));
+              }
+            });
+
+            xhr.addEventListener('error', () => {
+              reject(new Error('网络错误'));
+            });
+
+            xhr.open('POST', '/upload');
+            xhr.send(formData);
+          });
+        };
+
+        // 工具函数
+        const formatFileSize = (bytes) => {
+          if (bytes === 0) return '0 B';
+          const k = 1024;
+          const sizes = ['B', 'KB', 'MB', 'GB'];
+          const i = Math.floor(Math.log(bytes) / Math.log(k));
+          return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        };
+
+        const removeFile = (index) => {
+          fileList.value.splice(index, 1);
+        };
+
+        const clearAll = () => {
+          fileList.value = [];
+          uploadResults.value = [];
+        };
+
+        const copyUrl = async (url) => {
+          try {
+            await navigator.clipboard.writeText(url);
+            ElMessage.success('链接已复制到剪贴板');
+          } catch (e) {
+            const textarea = document.createElement('textarea');
+            textarea.value = url;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            ElMessage.success('链接已复制到剪贴板');
+          }
+        };
+
+        // 生命周期
+        onMounted(() => {
+          document.addEventListener('dragover', preventDefault);
+          document.addEventListener('drop', preventDefault);
+        });
+
+        onUnmounted(() => {
+          document.removeEventListener('dragover', preventDefault);
+          document.removeEventListener('drop', preventDefault);
+        });
+
+        const preventDefault = (e) => {
+          e.preventDefault();
+        };
+
+        return {
+          dropZone,
+          fileInput,
+          isDragOver,
+          isUploading,
+          uploadProgress,
+          uploadStatusText,
+          fileList,
+          uploadResults,
+          hasReadyFiles,
+          readyFilesCount,
+          handleDragEnter,
+          handleDragOver,
+          handleDragLeave,
+          handleDrop,
+          triggerFileInput,
+          handleFileSelect,
+          startBatchUpload,
+          formatFileSize,
+          removeFile,
+          clearAll,
+          copyUrl
+        };
+      }
+    };
+
+    // 创建应用
+    const app = createApp({
+      components: {
+        DragUpload
+      }
+    });
+
+    // 注册 Element Plus 图标
+    for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+      app.component(key, component);
+    }
+
+    app.use(ElementPlus);
+    app.mount('#app');
+  </script>
+
+  <style>
+    .drag-upload-container {
+      padding: 24px;
+    }
+
+    .drop-zone {
+      border: 2px dashed #d9d9d9;
+      border-radius: 8px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .drop-zone:hover {
+      border-color: #409eff;
+      background-color: #f5f7fa;
+    }
+
+    .drop-zone.drag-over {
+      border-color: #67c23a;
+      background-color: #f0f9ff;
+      transform: scale(1.02);
+    }
+
+    .drop-zone.uploading {
+      pointer-events: none;
+    }
+
+    .drop-zone-content {
+      z-index: 1;
+    }
+
+    .upload-icon {
+      color: #c0c4cc;
+      margin-bottom: 16px;
+    }
+
+    .drag-over .upload-icon {
+      color: #67c23a;
+    }
+
+    .upload-text .primary-text {
+      font-size: 16px;
+      color: #303133;
+      margin: 0 0 8px 0;
+    }
+
+    .upload-text .secondary-text {
+      font-size: 14px;
+      color: #606266;
+      margin: 0 0 8px 0;
+    }
+
+    .upload-text .click-text {
+      color: #409eff;
+      text-decoration: underline;
+    }
+
+    .upload-text .hint-text {
+      font-size: 12px;
+      color: #909399;
+      margin: 0;
+    }
+
+    .upload-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+
+    .upload-status {
+      margin-top: 16px;
+      color: #606266;
+      font-size: 14px;
+    }
+
+    .file-list {
+      margin-top: 24px;
+    }
+
+    .file-list h4 {
+      margin: 0 0 16px 0;
+      color: #303133;
+    }
+
+    .file-items {
+      border: 1px solid #ebeef5;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid #ebeef5;
+      transition: background-color 0.3s;
+    }
+
+    .file-item:last-child {
+      border-bottom: none;
+    }
+
+    .file-item:hover {
+      background-color: #f5f7fa;
+    }
+
+    .file-item.uploading {
+      background-color: #ecf5ff;
+    }
+
+    .file-item.success {
+      background-color: #f0f9ff;
+    }
+
+    .file-item.error {
+      background-color: #fef0f0;
+    }
+
+    .file-info {
+      display: flex;
+      align-items: center;
+      flex: 1;
+    }
+
+    .file-icon {
+      margin-right: 12px;
+      color: #909399;
+    }
+
+    .file-details {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .file-name {
+      font-size: 14px;
+      color: #303133;
+      margin-bottom: 4px;
+    }
+
+    .file-size {
+      font-size: 12px;
+      color: #909399;
+    }
+
+    .file-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .batch-actions {
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    .batch-actions .el-button {
+      margin: 0 8px;
+    }
+
+    .upload-results {
+      margin-top: 24px;
+    }
+
+    .upload-results h4 {
+      margin: 0 0 16px 0;
+      color: #303133;
+    }
+
+    .result-items {
+      border: 1px solid #ebeef5;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .result-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid #ebeef5;
+    }
+
+    .result-item:last-child {
+      border-bottom: none;
+    }
+
+    .result-item.success {
+      background-color: #f0f9ff;
+    }
+
+    .result-item.error {
+      background-color: #fef0f0;
+    }
+
+    .result-info {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .result-name {
+      font-size: 14px;
+      color: #303133;
+      margin-bottom: 4px;
+    }
+
+    .result-url {
+      font-size: 12px;
+      color: #67c23a;
+      word-break: break-all;
+    }
+
+    .result-error {
+      font-size: 12px;
+      color: #f56c6c;
+    }
+
+    .result-actions {
+      margin-left: 16px;
+    }
+  </style>
+</body>
+</html>

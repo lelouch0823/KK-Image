@@ -22,7 +22,9 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.5.0",
     "concurrently": "^8.2.2",
+    "form-data": "^4.0.3",
     "mocha": "^10.6.0",
+    "node-fetch": "^3.3.2",
     "terser": "^5.43.1",
     "vite": "^5.0.0",
     "wait-on": "^7.2.0",

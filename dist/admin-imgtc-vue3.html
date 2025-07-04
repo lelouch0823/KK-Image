@@ -208,6 +208,11 @@
       <el-header>
         <div class="header-content">
           <span class="title" @click="refreshDashboard">Dashboard</span>
+          <div class="nav-links" style="margin-left: 24px;">
+            <a href="/admin-stats.html" style="color: #409eff; text-decoration: none; font-size: 14px; margin-right: 16px;">📊 统计分析</a>
+            <a href="/admin.html" style="color: #409eff; text-decoration: none; font-size: 14px; margin-right: 16px;">📋 列表视图</a>
+            <a href="/upload.html" style="color: #409eff; text-decoration: none; font-size: 14px;">📤 拖拽上传</a>
+          </div>
           <div class="search-card">
             <el-input 
               v-model="search" 
@@ -339,12 +344,7 @@
   <script>
     const { createApp, ref, reactive, computed, onMounted } = Vue;
     const { ElMessage, ElMessageBox, ElNotification } = ElementPlus;
-    
-    // 注册 Element Plus 图标
-    for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-      app.component(key, component);
-    }
-    
+
     const app = createApp({
       setup() {
         // 响应式数据
