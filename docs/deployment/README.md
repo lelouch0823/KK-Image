@@ -124,18 +124,54 @@ const securityHeaders = {
 
 ```toml
 name = "telegraph-image"
-compatibility_date = "2024-07-04"
-pages_build_output_dir = "."
+compatibility_date = "2024-12-01"
+pages_build_output_dir = "dist"
 
-[env.production]
-vars = { ENVIRONMENT = "production" }
+# 兼容性和性能设置
+compatibility_flags = ["nodejs_compat"]
 
-[env.staging]
-vars = { ENVIRONMENT = "staging" }
+# 静态资源优化配置
+[build]
+command = "npm run build"
 
-[[env.production.kv_namespaces]]
+# 全局环境变量（开发和生产环境通用）
+[vars]
+# Telegram 配置（必需）- 请在 Cloudflare Pages 后台设置实际值
+TG_Bot_Token = "YOUR_TELEGRAM_BOT_TOKEN_HERE"
+TG_Chat_ID = "YOUR_TELEGRAM_CHAT_ID_HERE"
+
+# 内容审查配置（可选）
+ModerateContentApiKey = ""
+
+# 管理员认证配置（可选）
+BASIC_USER = ""
+BASIC_PASS = ""
+
+# 功能开关（可选）
+WhiteList_Mode = "false"
+disable_telemetry = "false"
+
+# 生产环境配置
+[env.production.vars]
+COMPRESS_STATIC_ASSETS = "true"
+
+# 开发环境配置
+[env.development]
+compatibility_date = "2024-12-01"
+
+[env.development.vars]
+COMPRESS_STATIC_ASSETS = "false"
+# 开发环境可以使用测试值
+TG_Bot_Token = "123456789:ABCdefGHIjklMNOpqrSTUvwxYZ"
+TG_Chat_ID = "-1001234567890"
+BASIC_USER = "admin"
+BASIC_PASS = "123456"
+
+# KV 命名空间配置
+[[kv_namespaces]]
 binding = "img_url"
-id = "your-kv-namespace-id"
+id = "local-kv-namespace"
+preview_id = "local-kv-namespace"
 ```
 
 ### package.json 脚本

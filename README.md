@@ -4,6 +4,16 @@
 
 [English](README-EN.md)|中文
 
+## ✨ 项目特点
+
+- **🚀 现代化技术栈**: Vue 3.x + Element Plus + Vite
+- **⚡ 高性能**: Cloudflare Pages + Workers 全球 CDN 加速
+- **📦 易于部署**: 一键部署到 Cloudflare Pages
+- **🎯 功能丰富**: 拖拽上传、批量处理、统计分析
+- **🔒 安全可靠**: 多层认证、权限控制、数据保护
+- **🔌 API 支持**: 完整的 RESTful API + Webhook 事件系统
+- **🏢 企业级**: JWT 认证、API Key 管理、权限控制
+
 ## 📚 完整文档
 
 我们提供了详细的文档来帮助您快速上手和深入使用 Telegraph-Image：

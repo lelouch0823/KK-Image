@@ -38,8 +38,11 @@ GET /api/v1/webhooks
   ],
   "supportedEvents": [
     "file.uploaded",
-    "file.updated", 
+    "file.updated",
     "file.deleted",
+    "user.created",
+    "api_key.created",
+    "api_key.deleted",
     "webhook.test"
   ]
 }

@@ -1,4 +1,5 @@
 import { errorHandling, telemetryData } from "./utils/middleware";
+import { triggerWebhook } from "./api/utils/webhook.js";
 
 export async function onRequestPost(context) {
     const { request, env } = context;
@@ -61,6 +62,29 @@ export async function onRequestPost(context) {
                     fileSize: uploadFile.size,
                 }
             });
+        }
+
+        // 构建文件信息用于 Webhook
+        const fileInfo = {
+            id: `${fileId}.${fileExtension}`,
+            filename: fileName,
+            size: uploadFile.size,
+            type: uploadFile.type,
+            uploadTime: new Date().toISOString(),
+            status: 'normal',
+            url: `${new URL(request.url).origin}/file/${fileId}.${fileExtension}`,
+            uploader: 'anonymous'
+        };
+
+        // 触发 Webhook 事件
+        try {
+            await triggerWebhook(env, 'file.uploaded', {
+                file: fileInfo,
+                user: { id: 'anonymous', name: 'anonymous' }
+            });
+        } catch (webhookError) {
+            console.error('Webhook trigger failed:', webhookError);
+            // 不影响主要功能
         }
 
         return new Response(

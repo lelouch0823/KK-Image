@@ -26,9 +26,14 @@ Content-Type: application/json
 **请求参数**
 | 参数 | 类型 | 必需 | 描述 |
 |------|------|------|------|
-| `username` | string | 是 | 用户名 |
-| `password` | string | 是 | 密码 |
+| `username` | string | 是 | 用户名（来自环境变量 `BASIC_USER`） |
+| `password` | string | 是 | 密码（来自环境变量 `BASIC_PASS`） |
 | `expiresIn` | integer | 否 | Token 有效期（秒），默认 3600 |
+
+**环境变量配置**
+认证功能需要在 `wrangler.toml` 或 Cloudflare Pages 后台配置以下环境变量：
+- `BASIC_USER` - 管理员用户名
+- `BASIC_PASS` - 管理员密码
 
 **权限要求**: 无（公开端点）
 

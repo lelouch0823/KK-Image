@@ -9,8 +9,11 @@
     "preview": "vite preview",
     "ci-test": "concurrently --kill-others --success first \"npm run start\" \"wait-on http://localhost:8080 && mocha --exit\"",
     "test": "mocha",
+    "test:webhook": "node test/webhook-test.js",
     "start": "npx wrangler pages dev dist --binding BASIC_USER=admin --binding BASIC_PASS=123 --port 8080 --persist-to ./data",
-    "deploy": "npm run build && wrangler pages deploy dist"
+    "deploy": "npm run build && wrangler pages deploy dist",
+    "deploy:check": "node scripts/deploy-check.js",
+    "deploy:verify": "npm run build && npm run start & sleep 5 && npm run deploy:check && pkill -f wrangler"
   },
   "dependencies": {
     "@cloudflare/pages-plugin-sentry": "^1.1.3",
