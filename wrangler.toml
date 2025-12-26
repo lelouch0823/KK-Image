@@ -25,6 +25,16 @@ disable_telemetry = "false"
 # Sentry 监控配置（可选）
 SENTRY_DSN = ""
 
+# 存储提供者选择：telegram, r2, s3（默认 telegram）
+STORAGE_PROVIDER = "telegram"
+
+# S3 兼容存储配置（当 STORAGE_PROVIDER = "s3"）
+S3_ENDPOINT = ""
+S3_BUCKET = ""
+S3_ACCESS_KEY_ID = ""
+S3_SECRET_ACCESS_KEY = ""
+S3_REGION = "auto"
+
 # 生产环境配置
 [env.production.vars]
 COMPRESS_STATIC_ASSETS = "true"
@@ -38,17 +48,29 @@ TG_Chat_ID = "-1001234567890"
 BASIC_USER = "admin"
 BASIC_PASS = "123456"
 
+# =============================================
+# KV 命名空间配置
+# 通过 wrangler kv namespace create 创建
+# =============================================
+
 [[kv_namespaces]]
 binding = "img_url"
-id = "local-kv-namespace"
-preview_id = "local-kv-namespace"
+id = "7bedbd0e77b64e548b280114c38a5541"
 
 [[kv_namespaces]]
 binding = "WEBHOOKS_KV"
-id = "local-webhooks-namespace"
-preview_id = "local-webhooks-namespace"
+id = "6ae427ac8290406684dcabf2ca4babac"
 
 [[kv_namespaces]]
 binding = "WEBHOOK_LOGS_KV"
-id = "local-webhook-logs-namespace"
-preview_id = "local-webhook-logs-namespace"
+id = "0346979ddffe4b2da2a7ea7e05133167"
+
+# =============================================
+# Cloudflare R2 存储配置
+# 当 STORAGE_PROVIDER = "r2" 时启用
+# 通过 wrangler r2 bucket create 创建
+# =============================================
+
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "kk-image-storage"

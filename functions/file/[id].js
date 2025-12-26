@@ -1,154 +1,133 @@
+/**
+ * @fileoverview 文件访问处理
+ * @module file/[id]
+ * 
+ * 支持多存储后端：根据元数据中的 storageProvider 字段路由到对应存储
+ */
+
+import { getProviderForFile, getStorageProvider, StorageProviderType } from '../storage/index.js';
+
 // Telegram Bot API 上传的文件 ID 最小路径长度
 const TELEGRAM_FILE_ID_MIN_LENGTH = 39;
 
 export async function onRequest(context) {
-    const {
-        request,
-        env,
-        params,
-    } = context;
+    const { request, env, params } = context;
 
     const url = new URL(request.url);
     const pathname = url.pathname;
     const origin = url.origin;
+    const fileId = params.id;
 
-    let fileUrl = 'https://telegra.ph/' + pathname + url.search;
+    // Allow the admin page to directly view the image (bypass checks)
+    const isAdmin = request.headers.get('Referer')?.includes(`${origin}/admin`);
 
-    // 路径长度超过阈值表示是通过 Telegram Bot API 上传的文件
-    if (pathname.length > TELEGRAM_FILE_ID_MIN_LENGTH) {
-        const formdata = new FormData();
-        formdata.append("file_id", pathname);
+    // 检查 KV 存储获取文件元数据
+    let metadata = null;
+    let record = null;
 
-        const requestOptions = {
-            method: "POST",
-            body: formdata,
-            redirect: "follow"
-        };
-
-        const fileId = pathname.split(".")[0].split("/")[2];
-
-        const filePath = await getFilePath(env, fileId);
-
-        fileUrl = `https://api.telegram.org/file/bot${env.TG_Bot_Token}/${filePath}`;
+    if (env.img_url) {
+        record = await env.img_url.getWithMetadata(fileId);
+        metadata = record?.metadata;
     }
 
-    const response = await fetch(fileUrl, {
-        method: request.method,
-        headers: request.headers,
-        body: request.body,
-    });
+    // 根据元数据或文件特征确定存储提供者
+    let storageProvider;
 
-    // 如果响应失败，直接返回
-    if (!response.ok) return response;
+    if (metadata?.storageProvider) {
+        // 使用元数据中记录的存储提供者
+        storageProvider = getProviderForFile(env, metadata);
+    } else if (pathname.length > TELEGRAM_FILE_ID_MIN_LENGTH) {
+        // 旧格式：长路径表示 Telegram 文件
+        storageProvider = getStorageProvider(env, StorageProviderType.TELEGRAM);
+    } else {
+        // 使用默认存储提供者
+        storageProvider = getStorageProvider(env);
+    }
 
-    // Allow the admin page to directly view the image
-    const isAdmin = request.headers.get('Referer')?.includes(`${url.origin}/admin`);
+    // 从存储提供者获取文件
+    const response = await storageProvider.getFile(fileId, request);
+
+    // 如果文件获取失败，直接返回
+    if (!response.ok) {
+        return response;
+    }
+
+    // 管理员直接返回文件内容
     if (isAdmin) {
         return response;
     }
 
-    // 检查 KV 存储是否可用
+    // 如果 KV 不可用，直接返回
     if (!env.img_url) {
-        return response;  // KV 不可用，直接返回图片
+        return response;
     }
 
-    // The following code executes only if KV is available
-    let record = await env.img_url.getWithMetadata(params.id);
-    if (!record || !record.metadata) {
-        // 初始化元数据
-        record = {
-            metadata: {
-                ListType: "None",
-                Label: "None",
-                TimeStamp: Date.now(),
-                liked: false,
-                fileName: params.id,
-                fileSize: 0,
-            }
+    // 初始化或更新元数据
+    if (!metadata) {
+        metadata = {
+            ListType: "None",
+            Label: "None",
+            TimeStamp: Date.now(),
+            liked: false,
+            fileName: fileId,
+            fileSize: 0,
+            storageProvider: storageProvider.name
         };
-        await env.img_url.put(params.id, "", { metadata: record.metadata });
+        await env.img_url.put(fileId, "", { metadata });
     }
 
-    const metadata = {
-        ListType: record.metadata.ListType || "None",
-        Label: record.metadata.Label || "None",
-        TimeStamp: record.metadata.TimeStamp || Date.now(),
-        liked: record.metadata.liked !== undefined ? record.metadata.liked : false,
-        fileName: record.metadata.fileName || params.id,
-        fileSize: record.metadata.fileSize || 0,
+    // 确保元数据字段完整
+    const fullMetadata = {
+        ListType: metadata.ListType || "None",
+        Label: metadata.Label || "None",
+        TimeStamp: metadata.TimeStamp || Date.now(),
+        liked: metadata.liked !== undefined ? metadata.liked : false,
+        fileName: metadata.fileName || fileId,
+        fileSize: metadata.fileSize || 0,
+        storageProvider: metadata.storageProvider || storageProvider.name
     };
 
-    // Handle based on ListType and Label
-    if (metadata.ListType === "White") {
+    // 根据 ListType 和 Label 处理访问控制
+    if (fullMetadata.ListType === "White") {
         return response;
-    } else if (metadata.ListType === "Block" || metadata.Label === "adult") {
+    } else if (fullMetadata.ListType === "Block" || fullMetadata.Label === "adult") {
         const referer = request.headers.get('Referer');
-        const redirectUrl = referer ? "https://static-res.pages.dev/teleimage/img-block-compressed.png" : `${origin}/block-img.html`;
+        const redirectUrl = referer
+            ? "https://static-res.pages.dev/teleimage/img-block-compressed.png"
+            : `${origin}/block-img.html`;
         return Response.redirect(redirectUrl, 302);
     }
 
-    // Check if WhiteList_Mode is enabled
+    // 检查白名单模式
     if (env.WhiteList_Mode === "true") {
         return Response.redirect(`${origin}/whitelist-on.html`, 302);
     }
 
-    // If no metadata or further actions required, moderate content and add to KV if needed
-    if (env.ModerateContentApiKey) {
+    // 内容审查（仅适用于可访问 URL 的存储，如 Telegram）
+    if (env.ModerateContentApiKey && storageProvider.name === 'telegram') {
         try {
-            console.log("Starting content moderation...");
-            const moderateUrl = `https://api.moderatecontent.com/moderate/?key=${env.ModerateContentApiKey}&url=https://telegra.ph${url.pathname}${url.search}`;
+            const moderateUrl = `https://api.moderatecontent.com/moderate/?key=${env.ModerateContentApiKey}&url=https://telegra.ph${pathname}${url.search}`;
             const moderateResponse = await fetch(moderateUrl);
 
-            if (!moderateResponse.ok) {
-                console.error("Content moderation API request failed: " + moderateResponse.status);
-            } else {
+            if (moderateResponse.ok) {
                 const moderateData = await moderateResponse.json();
 
-                if (moderateData && moderateData.rating_label) {
-                    metadata.Label = moderateData.rating_label;
+                if (moderateData?.rating_label) {
+                    fullMetadata.Label = moderateData.rating_label;
 
                     if (moderateData.rating_label === "adult") {
-                        await env.img_url.put(params.id, "", { metadata });
+                        await env.img_url.put(fileId, "", { metadata: fullMetadata });
                         return Response.redirect(`${origin}/block-img.html`, 302);
                     }
                 }
             }
         } catch (error) {
-            console.error("Error during content moderation: " + error.message);
-            // Moderation failure should not affect user experience, continue processing
+            console.error("Content moderation error:", error.message);
         }
     }
 
-    // 保存元数据并返回文件内容
-    await env.img_url.put(params.id, "", { metadata });
+    // 更新元数据
+    await env.img_url.put(fileId, "", { metadata: fullMetadata });
 
-    // Return file content
     return response;
-}
-
-async function getFilePath(env, file_id) {
-    try {
-        const url = `https://api.telegram.org/bot${env.TG_Bot_Token}/getFile?file_id=${file_id}`;
-        const res = await fetch(url, {
-            method: 'GET',
-        });
-
-        if (!res.ok) {
-            console.error(`HTTP error! status: ${res.status}`);
-            return null;
-        }
-
-        const responseData = await res.json();
-        const { ok, result } = responseData;
-
-        if (ok && result) {
-            return result.file_path;
-        } else {
-            console.error('Error in response data:', responseData);
-            return null;
-        }
-    } catch (error) {
-        console.error('Error fetching file path:', error.message);
-        return null;
-    }
 }

@@ -29,15 +29,18 @@ class SimpleJWT {
   }
 
   /**
-   * 恒定时间字符串比较（防止时序攻击）
+   * 恒定时间字符串比较（使用 Cloudflare Workers 原生 API）
+   * 参考: https://developers.cloudflare.com/workers/runtime-apis/web-crypto/#timingsafeequal
    */
   static constantTimeCompare(a, b) {
     if (a.length !== b.length) return false;
-    let result = 0;
-    for (let i = 0; i < a.length; i++) {
-      result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-    }
-    return result === 0;
+
+    const encoder = new TextEncoder();
+    const aBytes = encoder.encode(a);
+    const bBytes = encoder.encode(b);
+
+    // 使用 Cloudflare Workers 原生的 timingSafeEqual API
+    return crypto.subtle.timingSafeEqual(aBytes, bBytes);
   }
 
   /**

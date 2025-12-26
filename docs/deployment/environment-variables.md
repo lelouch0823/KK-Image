@@ -53,6 +53,20 @@ BASIC_PASS = "123456"
 
 ### 🔴 必需变量
 
+#### `STORAGE_PROVIDER`
+- **用途**: 选择文件存储后端
+- **可选值**: `"telegram"` | `"r2"` | `"s3"`
+- **默认值**: `"telegram"`
+- **安全级别**: 🟢 低敏感
+- **示例**: `"telegram"`
+
+**存储选项说明**:
+| 值 | 存储服务 | 特点 |
+|----|----------|------|
+| `telegram` | Telegram Bot API | 无限免费存储，5MB 单文件限制 |
+| `r2` | Cloudflare R2 | 原生集成，无出站费用，需绑定 R2 桶 |
+| `s3` | S3 兼容服务 | 支持 AWS S3、MinIO、阿里云 OSS 等 |
+
 #### `TG_Bot_Token`
 - **用途**: Telegram Bot API 令牌
 - **获取方式**: 通过 [@BotFather](https://t.me/BotFather) 创建 Bot 获得
@@ -138,6 +152,39 @@ BASIC_PASS = "123456"
 - 使用至少 32 个字符的随机字符串
 - 可通过 `openssl rand -base64 32` 生成
 - 定期轮换密钥
+
+### 🟡 S3 存储配置
+
+当 `STORAGE_PROVIDER = "s3"` 时需要配置以下变量：
+
+#### `S3_ENDPOINT`
+- **用途**: S3 兼容服务的 API 端点 URL
+- **示例**: 
+  - AWS S3: `"https://s3.amazonaws.com"`
+  - MinIO: `"https://minio.example.com"`
+  - 阿里云 OSS: `"https://oss-cn-hangzhou.aliyuncs.com"`
+- **安全级别**: 🟢 低敏感
+
+#### `S3_BUCKET`
+- **用途**: S3 桶名称
+- **示例**: `"my-image-bucket"`
+- **安全级别**: 🟢 低敏感
+
+#### `S3_ACCESS_KEY_ID`
+- **用途**: S3 访问密钥 ID
+- **安全级别**: 🟡 中等敏感
+- **示例**: `"AKIAIOSFODNN7EXAMPLE"`
+
+#### `S3_SECRET_ACCESS_KEY`
+- **用途**: S3 访问密钥密码
+- **安全级别**: 🔴 高度敏感
+- **示例**: `"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"`
+
+#### `S3_REGION`
+- **用途**: S3 区域（如 AWS 区域）
+- **默认值**: `"auto"`
+- **安全级别**: 🟢 低敏感
+- **示例**: `"us-east-1"`, `"cn-north-1"`
 
 #### `COMPRESS_STATIC_ASSETS`
 - **用途**: 启用静态资源压缩
