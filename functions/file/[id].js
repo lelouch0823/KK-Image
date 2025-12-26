@@ -1,3 +1,6 @@
+// Telegram Bot API 上传的文件 ID 最小路径长度
+const TELEGRAM_FILE_ID_MIN_LENGTH = 39;
+
 export async function onRequest(context) {
     const {
         request,
@@ -6,21 +9,26 @@ export async function onRequest(context) {
     } = context;
 
     const url = new URL(request.url);
-    let fileUrl = 'https://telegra.ph/' + url.pathname + url.search
-    if (url.pathname.length > 39) { // Path length > 39 indicates file uploaded via Telegram Bot API
+    const pathname = url.pathname;
+    const origin = url.origin;
+
+    let fileUrl = 'https://telegra.ph/' + pathname + url.search;
+
+    // 路径长度超过阈值表示是通过 Telegram Bot API 上传的文件
+    if (pathname.length > TELEGRAM_FILE_ID_MIN_LENGTH) {
         const formdata = new FormData();
-        formdata.append("file_id", url.pathname);
+        formdata.append("file_id", pathname);
 
         const requestOptions = {
             method: "POST",
             body: formdata,
             redirect: "follow"
         };
-        // /file/AgACAgEAAxkDAAMDZt1Gzs4W8dQPWiQJxO5YSH5X-gsAAt-sMRuWNelGOSaEM_9lHHgBAAMCAANtAAM2BA.png
-        //get the AgACAgEAAxkDAAMDZt1Gzs4W8dQPWiQJxO5YSH5X-gsAAt-sMRuWNelGOSaEM_9lHHgBAAMCAANtAAM2BA
-        console.log(url.pathname.split(".")[0].split("/")[2])
-        const filePath = await getFilePath(env, url.pathname.split(".")[0].split("/")[2]);
-        console.log(filePath)
+
+        const fileId = pathname.split(".")[0].split("/")[2];
+
+        const filePath = await getFilePath(env, fileId);
+
         fileUrl = `https://api.telegram.org/file/bot${env.TG_Bot_Token}/${filePath}`;
     }
 
@@ -30,11 +38,8 @@ export async function onRequest(context) {
         body: request.body,
     });
 
-    // If the response is OK, proceed with further checks
+    // 如果响应失败，直接返回
     if (!response.ok) return response;
-
-    // Log response details
-    console.log(response.ok, response.status);
 
     // Allow the admin page to directly view the image
     const isAdmin = request.headers.get('Referer')?.includes(`${url.origin}/admin`);
@@ -42,17 +47,15 @@ export async function onRequest(context) {
         return response;
     }
 
-    // Check if KV storage is available
+    // 检查 KV 存储是否可用
     if (!env.img_url) {
-        console.log("KV storage not available, returning image directly");
-        return response;  // Directly return image response, terminate execution
+        return response;  // KV 不可用，直接返回图片
     }
 
     // The following code executes only if KV is available
     let record = await env.img_url.getWithMetadata(params.id);
     if (!record || !record.metadata) {
-        // Initialize metadata if it doesn't exist
-        console.log("Metadata not found, initializing...");
+        // 初始化元数据
         record = {
             metadata: {
                 ListType: "None",
@@ -80,13 +83,13 @@ export async function onRequest(context) {
         return response;
     } else if (metadata.ListType === "Block" || metadata.Label === "adult") {
         const referer = request.headers.get('Referer');
-        const redirectUrl = referer ? "https://static-res.pages.dev/teleimage/img-block-compressed.png" : `${url.origin}/block-img.html`;
+        const redirectUrl = referer ? "https://static-res.pages.dev/teleimage/img-block-compressed.png" : `${origin}/block-img.html`;
         return Response.redirect(redirectUrl, 302);
     }
 
     // Check if WhiteList_Mode is enabled
     if (env.WhiteList_Mode === "true") {
-        return Response.redirect(`${url.origin}/whitelist-on.html`, 302);
+        return Response.redirect(`${origin}/whitelist-on.html`, 302);
     }
 
     // If no metadata or further actions required, moderate content and add to KV if needed
@@ -100,15 +103,13 @@ export async function onRequest(context) {
                 console.error("Content moderation API request failed: " + moderateResponse.status);
             } else {
                 const moderateData = await moderateResponse.json();
-                console.log("Content moderation results:", moderateData);
 
                 if (moderateData && moderateData.rating_label) {
                     metadata.Label = moderateData.rating_label;
 
                     if (moderateData.rating_label === "adult") {
-                        console.log("Content marked as adult, saving metadata and redirecting");
                         await env.img_url.put(params.id, "", { metadata });
-                        return Response.redirect(`${url.origin}/block-img.html`, 302);
+                        return Response.redirect(`${origin}/block-img.html`, 302);
                     }
                 }
             }
@@ -118,9 +119,7 @@ export async function onRequest(context) {
         }
     }
 
-    // Only save metadata if content is not adult content
-    // Adult content cases are already handled above and will not reach this point
-    console.log("Saving metadata");
+    // 保存元数据并返回文件内容
     await env.img_url.put(params.id, "", { metadata });
 
     // Return file content

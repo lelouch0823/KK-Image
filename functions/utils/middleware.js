@@ -16,8 +16,12 @@ export async function errorHandling(context) {
     } catch (e) { console.log(e) }
     const sampleRate = env.sampleRate || remoteSampleRate;
     console.log("sampleRate", sampleRate);
+
+    // 从环境变量读取 Sentry DSN，如未配置则使用默认值
+    const sentryDsn = env.SENTRY_DSN || "https://219f636ac7bde5edab2c3e16885cb535@o4507041519108096.ingest.us.sentry.io/4507541492727808";
+
     return sentryPlugin({
-      dsn: "https://219f636ac7bde5edab2c3e16885cb535@o4507041519108096.ingest.us.sentry.io/4507541492727808",
+      dsn: sentryDsn,
       tracesSampleRate: sampleRate,
     })(context);;
   }

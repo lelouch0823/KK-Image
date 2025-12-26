@@ -1,13 +1,9 @@
 name = "telegraph-image"
 compatibility_date = "2024-12-01"
-pages_build_output_dir = "dist"
+pages_build_output_dir = "./dist"
 
-# 兼容性和性能设置
+# 兼容性标志 - nodejs_compat 在 2024-09-23 后自动启用 v2 功能
 compatibility_flags = ["nodejs_compat"]
-
-# 静态资源优化配置
-[build]
-command = "npm run build"
 
 # 全局环境变量（开发和生产环境通用）
 [vars]
@@ -26,14 +22,14 @@ BASIC_PASS = ""
 WhiteList_Mode = "false"
 disable_telemetry = "false"
 
+# Sentry 监控配置（可选）
+SENTRY_DSN = ""
+
 # 生产环境配置
 [env.production.vars]
 COMPRESS_STATIC_ASSETS = "true"
 
 # 开发环境配置
-[env.development]
-compatibility_date = "2024-12-01"
-
 [env.development.vars]
 COMPRESS_STATIC_ASSETS = "false"
 # 开发环境可以使用测试值

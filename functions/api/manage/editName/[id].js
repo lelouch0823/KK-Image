@@ -1,22 +1,68 @@
 export async function onRequest(context) {
-    const { params, env } = context;
+    const { request, params, env } = context;
 
-    console.log("Request ID:", params.id);
+    try {
+        const fileId = params.id;
 
-    // 获取元数据
-    const value = await env.img_url.getWithMetadata(params.id);
-    console.log("Current metadata:", value);
+        // 获取元数据
+        const value = await env.img_url.getWithMetadata(fileId);
 
-    // 如果记录不存在
-    if (!value.metadata) return new Response(`Image metadata not found for ID: ${params.id}`, { status: 404 });
+        // 如果记录不存在
+        if (!value || !value.metadata) {
+            return new Response(JSON.stringify({
+                success: false,
+                error: 'File not found'
+            }), {
+                status: 404,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
 
-    // 更新文件名
-    value.metadata.fileName = params.name;
-    await env.img_url.put(params.id, "", { metadata: value.metadata });
+        // 从请求体或查询参数获取新文件名
+        let newFileName;
+        const url = new URL(request.url);
 
-    console.log("Updated metadata:", value.metadata);
+        if (request.method === 'POST') {
+            const body = await request.json().catch(() => ({}));
+            newFileName = body.fileName || body.name;
+        } else {
+            newFileName = url.searchParams.get('name');
+        }
 
-    return new Response(JSON.stringify({ success: true, fileName: value.metadata.fileName }), {
-        headers: { 'Content-Type': 'application/json' },
-    });
+        if (!newFileName) {
+            return new Response(JSON.stringify({
+                success: false,
+                error: 'New file name is required'
+            }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        // 更新文件名
+        const updatedMetadata = {
+            ...value.metadata,
+            fileName: newFileName,
+            updatedAt: Date.now()
+        };
+
+        await env.img_url.put(fileId, '', { metadata: updatedMetadata });
+
+        return new Response(JSON.stringify({
+            success: true,
+            fileName: newFileName
+        }), {
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+    } catch (error) {
+        console.error('Error editing file name:', error);
+        return new Response(JSON.stringify({
+            success: false,
+            error: error.message
+        }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
 }

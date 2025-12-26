@@ -2,30 +2,58 @@
 <html class="no-js" lang="en-US" style="
     height: 100%;
 ">
+
 <head>
-<title>The Image is blocked | Telegraph-Image</title>
-<meta charset="UTF-8">
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta http-equiv="X-UA-Compatible" content="IE=Edge">
-<meta name="robots" content="noindex, nofollow">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>body{margin:0;padding:0}</style>
-<script src="https://js.sentry-cdn.com/219f636ac7bde5edab2c3e16885cb535.min.js" crossorigin="anonymous"></script>
+    <title>图片已被屏蔽 | Telegraph-Image</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .message {
+            color: #666;
+            line-height: 1.6;
+            max-width: 500px;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .footer a {
+            color: #409eff;
+            text-decoration: none;
+        }
+    </style>
 </head>
-<body style="
-    height: 100%;
-">
-    <div style="display: flex;flex-direction: column;align-content: center;justify-content: center;align-items: center;height: 100%;text-align: center;">
-<div>
-    抱歉，当前图片未能通过审查，可能含有不良内容，故无法进行加载。
-    <br>
-    Sorry, the current image failed to pass the review and may contain undesirable content, so it cannot be loaded.
-</div>
-<br>
-<div>Powered By: <span><a style="
-    color: cornflowerblue;"
-    href="https://github.com/cf-pages/Telegraph-Image">Telegraph-Image</a></span></div>
-</div>
 
+<body>
+    <div class="container">
+        <div class="message">
+            抱歉，当前图片未能通过审查，可能含有不良内容，故无法进行加载。<br><br>
+            Sorry, this image failed to pass the review and may contain inappropriate content.
+        </div>
+        <div class="footer">Powered By: <a href="https://github.com/cf-pages/Telegraph-Image">Telegraph-Image</a></div>
+    </div>
+</body>
 
-</body></html>
+</html>

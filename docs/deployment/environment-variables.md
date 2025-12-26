@@ -119,6 +119,26 @@ BASIC_PASS = "123456"
 - **安全级别**: 🟢 低敏感
 - **示例**: `"false"`
 
+#### `SENTRY_DSN`
+- **用途**: Sentry 错误监控服务的 DSN（Data Source Name）
+- **获取方式**: 在 [Sentry](https://sentry.io) 创建项目获得
+- **默认值**: `""` (禁用 Sentry 监控)
+- **安全级别**: 🟡 中等敏感
+- **示例**: `"https://xxx@xxx.ingest.sentry.io/xxx"`
+
+**说明**: 用于收集应用运行时错误，帮助快速定位和修复问题。
+
+#### `JWT_SECRET`
+- **用途**: JWT Token 签名密钥（用于 API 认证）
+- **默认值**: 内置默认值（生产环境强烈建议自定义）
+- **安全级别**: 🔴 高度敏感
+- **示例**: `"your-random-secure-secret-key-at-least-32-chars"`
+
+**安全建议**:
+- 使用至少 32 个字符的随机字符串
+- 可通过 `openssl rand -base64 32` 生成
+- 定期轮换密钥
+
 #### `COMPRESS_STATIC_ASSETS`
 - **用途**: 启用静态资源压缩
 - **可选值**: `"true"` | `"false"`

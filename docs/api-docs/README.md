@@ -174,24 +174,44 @@ curl -X DELETE https://your-domain.pages.dev/api/manage/delete \
 
 ### 错误响应
 
-**通用错误格式**:
+**标准错误格式**:
 ```json
 {
-  "success": false,
-  "error": "Error message",
-  "code": "ERROR_CODE",
-  "details": "Detailed error information"
+  "error": {
+    "code": 400,
+    "message": "Error message description",
+    "type": "VALIDATION_ERROR",
+    "timestamp": "2024-07-04T10:30:00.000Z"
+  }
 }
 ```
 
-**常见错误码**:
-- `400` - 请求参数错误
-- `401` - 认证失败
-- `403` - 权限不足
-- `404` - 资源不存在
-- `413` - 文件过大
-- `429` - 请求频率限制
-- `500` - 服务器内部错误
+**带详情的错误响应**:
+```json
+{
+  "error": {
+    "code": 400,
+    "message": "Validation failed",
+    "type": "VALIDATION_ERROR",
+    "timestamp": "2024-07-04T10:30:00.000Z",
+    "details": {
+      "field": "file",
+      "reason": "File size exceeds limit"
+    }
+  }
+}
+```
+
+**常见错误类型**:
+| HTTP 状态码 | 错误类型 | 说明 |
+|-------------|----------|------|
+| `400` | `VALIDATION_ERROR` | 请求参数验证失败 |
+| `401` | `AUTHENTICATION_ERROR` | 认证失败 |
+| `403` | `AUTHORIZATION_ERROR` | 权限不足 |
+| `404` | `NOT_FOUND` | 资源不存在 |
+| `409` | `CONFLICT` | 资源冲突 |
+| `429` | `RATE_LIMIT_EXCEEDED` | 请求频率超限 |
+| `500` | `INTERNAL_ERROR` | 服务器内部错误 |
 
 ## 🔒 安全和限制
 

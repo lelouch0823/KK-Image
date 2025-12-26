@@ -1,30 +1,25 @@
 export async function onRequest(context) {
-  // Contents of context object
-  const {
-    request, // same as existing Worker API
-    env, // same as existing Worker API
-    params, // if filename includes [id] or [[path]]
-    waitUntil, // same as ctx.waitUntil in existing Worker API
-    next, // used for middleware or to fetch assets
-    data, // arbitrary space for passing data between middlewares
-  } = context;
-  console.log(env)
-  const value = await env.img_url.list();
+  const { env } = context;
 
-  console.log(value)
-  //let res=[]
-  //for (let i in value.keys){
-    //add to res
-    //"metadata":{"TimeStamp":19876541,"ListType":"None","rating_label":"None"}
-    //let tmp = {
-    //  name: value.keys[i].name,
-    //  TimeStamp: value.keys[i].metadata.TimeStamp,
-    //  ListType: value.keys[i].metadata.ListType,
-    //  rating_label: value.keys[i].metadata.rating_label,
-    //}
-    //res.push(tmp)
-  //}
-  const info = JSON.stringify(value.keys);
-  return new Response(info);
+  try {
+    const result = await env.img_url.list();
 
+    return new Response(JSON.stringify({
+      success: true,
+      data: result.keys,
+      total: result.keys.length
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error('Error listing files:', error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 }

@@ -335,7 +335,14 @@ const uploadSingleFile = async (fileItem) => {
       if (xhr.status === 200) {
         try {
           const response = JSON.parse(xhr.responseText)
-          resolve(response)
+          // 处理数组格式的响应 [{ src: '/file/xxx' }]
+          if (Array.isArray(response) && response.length > 0) {
+            resolve({ url: window.location.origin + response[0].src })
+          } else if (response.src) {
+            resolve({ url: window.location.origin + response.src })
+          } else {
+            resolve(response)
+          }
         } catch (e) {
           reject(new Error('响应格式错误'))
         }

@@ -20,50 +20,56 @@ export async function onRequest(context) {
     const oneWeekAgo = currentTime - (7 * 24 * 60 * 60 * 1000);
     const oneMonthAgo = currentTime - (30 * 24 * 60 * 60 * 1000);
 
-    // 解析文件元数据
+    // 初始化统计计数器
+    let todayUploads = 0;
+    let weekUploads = 0;
+    let monthUploads = 0;
+    let totalSize = 0;
+    const statusStats = { normal: 0, blocked: 0, whitelisted: 0, liked: 0 };
+    const fileTypeStats = {};
+
+    // 单次遍历完成所有统计（性能优化）
     const fileStats = files.map(file => {
-      let metadata = {};
-      try {
-        metadata = JSON.parse(file.metadata || '{}');
-      } catch (e) {
-        metadata = {};
-      }
-      
+      // metadata 已经是对象，不需要 JSON.parse
+      const metadata = file.metadata || {};
+
+      const timestamp = metadata.TimeStamp || 0;
+      const listType = metadata.ListType || 'None';
+      const fileSize = metadata.fileSize || 0;
+      const liked = metadata.liked || false;
+      const extension = file.name.split('.').pop()?.toLowerCase() || 'unknown';
+
+      // 时间范围统计（单次遍历中完成）
+      if (timestamp > oneDayAgo) todayUploads++;
+      if (timestamp > oneWeekAgo) weekUploads++;
+      if (timestamp > oneMonthAgo) monthUploads++;
+
+      // 累计文件大小
+      totalSize += fileSize;
+
+      // 状态统计
+      if (listType === 'None') statusStats.normal++;
+      else if (listType === 'Block') statusStats.blocked++;
+      else if (listType === 'White') statusStats.whitelisted++;
+      if (liked) statusStats.liked++;
+
+      // 文件类型统计
+      fileTypeStats[extension] = (fileTypeStats[extension] || 0) + 1;
+
       return {
         name: file.name,
-        timestamp: metadata.TimeStamp || 0,
-        listType: metadata.ListType || 'None',
+        timestamp,
+        listType,
         label: metadata.Label || metadata.rating_label || 'None',
-        liked: metadata.liked || false,
+        liked,
         fileName: metadata.fileName || file.name,
-        fileSize: metadata.fileSize || 0,
+        fileSize,
         expiration: file.expiration
       };
     });
 
-    // 时间范围统计
-    const todayUploads = fileStats.filter(f => f.timestamp > oneDayAgo).length;
-    const weekUploads = fileStats.filter(f => f.timestamp > oneWeekAgo).length;
-    const monthUploads = fileStats.filter(f => f.timestamp > oneMonthAgo).length;
-
-    // 文件类型统计
-    const fileTypeStats = {};
-    fileStats.forEach(file => {
-      const extension = file.name.split('.').pop()?.toLowerCase() || 'unknown';
-      fileTypeStats[extension] = (fileTypeStats[extension] || 0) + 1;
-    });
-
-    // 存储大小统计
-    const totalSize = fileStats.reduce((sum, file) => sum + (file.fileSize || 0), 0);
+    // 计算平均大小
     const averageSize = totalFiles > 0 ? Math.round(totalSize / totalFiles) : 0;
-
-    // 状态统计
-    const statusStats = {
-      normal: fileStats.filter(f => f.listType === 'None').length,
-      blocked: fileStats.filter(f => f.listType === 'Block').length,
-      whitelisted: fileStats.filter(f => f.listType === 'White').length,
-      liked: fileStats.filter(f => f.liked).length
-    };
 
     // 每日上传趋势（最近30天）
     const dailyStats = {};
@@ -72,8 +78,8 @@ export async function onRequest(context) {
       const dateKey = date.toISOString().split('T')[0];
       const dayStart = date.setHours(0, 0, 0, 0);
       const dayEnd = date.setHours(23, 59, 59, 999);
-      
-      dailyStats[dateKey] = fileStats.filter(f => 
+
+      dailyStats[dateKey] = fileStats.filter(f =>
         f.timestamp >= dayStart && f.timestamp <= dayEnd
       ).length;
     }
@@ -85,11 +91,11 @@ export async function onRequest(context) {
       hourStart.setHours(hour, 0, 0, 0);
       const hourEnd = new Date();
       hourEnd.setHours(hour, 59, 59, 999);
-      
+
       hourlyStats[hour] = fileStats.filter(f => {
         const fileDate = new Date(f.timestamp);
-        return fileDate >= hourStart && fileDate <= hourEnd && 
-               fileDate.toDateString() === new Date().toDateString();
+        return fileDate >= hourStart && fileDate <= hourEnd &&
+          fileDate.toDateString() === new Date().toDateString();
       }).length;
     }
 
@@ -124,7 +130,7 @@ export async function onRequest(context) {
 
     // 热门文件类型（按数量排序）
     const topFileTypes = Object.entries(fileTypeStats)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 10)
       .map(([type, count]) => ({ type, count }));
 
@@ -168,9 +174,9 @@ export async function onRequest(context) {
 
   } catch (error) {
     console.error('Stats API error:', error);
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       error: 'Failed to generate statistics',
-      message: error.message 
+      message: error.message
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

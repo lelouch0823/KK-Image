@@ -2,6 +2,7 @@
 import { verifyApiKey, verifyJWT } from '../utils/auth.js';
 import { hasPermission, logPermissionCheck, requirePermission } from '../utils/permissions.js';
 import { getUserById } from '../utils/users.js';
+import { errorToResponse } from '../utils/errors.js';
 
 // CORS 配置
 const corsHeaders = {
@@ -17,45 +18,8 @@ async function errorHandling(context) {
     return await context.next();
   } catch (err) {
     console.error('API Error:', err);
-    
-    // 根据错误类型返回不同的状态码
-    let status = 500;
-    let message = 'Internal Server Error';
-    
-    if (err.name === 'ValidationError') {
-      status = 400;
-      message = err.message;
-    } else if (err.name === 'AuthenticationError') {
-      status = 401;
-      message = 'Authentication required';
-    } else if (err.name === 'AuthorizationError') {
-      status = 403;
-      message = 'Insufficient permissions';
-    } else if (err.name === 'NotFoundError') {
-      status = 404;
-      message = 'Resource not found';
-    } else if (err.name === 'ConflictError') {
-      status = 409;
-      message = err.message;
-    } else if (err.name === 'RateLimitError') {
-      status = 429;
-      message = 'Rate limit exceeded';
-    }
-    
-    return new Response(JSON.stringify({
-      error: {
-        code: status,
-        message: message,
-        timestamp: new Date().toISOString(),
-        path: new URL(context.request.url).pathname
-      }
-    }), {
-      status,
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
-    });
+    // 使用新的错误处理辅助函数
+    return errorToResponse(err, corsHeaders);
   }
 }
 
@@ -68,15 +32,15 @@ async function corsHandler(context) {
       headers: corsHeaders
     });
   }
-  
+
   const response = await context.next();
-  
+
   // 为所有响应添加 CORS 头
   const newHeaders = new Headers(response.headers);
   Object.entries(corsHeaders).forEach(([key, value]) => {
     newHeaders.set(key, value);
   });
-  
+
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -88,20 +52,20 @@ async function corsHandler(context) {
 async function apiAuthentication(context) {
   const { request, env } = context;
   const url = new URL(request.url);
-  
+
   // 跳过公开端点的认证
   const publicEndpoints = ['/api/v1/health', '/api/v1/info', '/api/v1/auth/token', '/api/v1/test', '/api/v1/simple-auth'];
   if (publicEndpoints.some(endpoint => url.pathname === endpoint || url.pathname.startsWith(endpoint + '/'))) {
     return context.next();
   }
-  
+
   // 检查 API Key 或 JWT Token
   const apiKey = request.headers.get('X-API-Key');
   const authHeader = request.headers.get('Authorization');
-  
+
   let authenticated = false;
   let user = null;
-  
+
   // 优先检查 JWT Token
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
@@ -150,39 +114,39 @@ async function apiAuthentication(context) {
       logPermissionCheck(null, 'api_key_authentication', false, { error: error.message });
     }
   }
-  
+
   if (!authenticated) {
     const error = new Error('Authentication required');
     error.name = 'AuthenticationError';
     throw error;
   }
-  
+
   // 将用户信息添加到上下文中
   context.user = user;
-  
+
   return context.next();
 }
 
 // 速率限制中间件
 async function rateLimiting(context) {
   const { request, env } = context;
-  
+
   if (!env.RATE_LIMIT_KV) {
     return context.next();
   }
-  
-  const clientIP = request.headers.get('CF-Connecting-IP') || 
-                   request.headers.get('X-Forwarded-For') || 
-                   'unknown';
-  
+
+  const clientIP = request.headers.get('CF-Connecting-IP') ||
+    request.headers.get('X-Forwarded-For') ||
+    'unknown';
+
   const key = `rate_limit:${clientIP}`;
   const now = Date.now();
   const windowMs = 60 * 1000; // 1分钟窗口
   const maxRequests = 100; // 每分钟最多100个请求
-  
+
   try {
     const existing = await env.RATE_LIMIT_KV.get(key, 'json');
-    
+
     if (existing) {
       if (now - existing.timestamp < windowMs) {
         if (existing.count >= maxRequests) {
@@ -195,7 +159,7 @@ async function rateLimiting(context) {
         existing.timestamp = now;
         existing.count = 1;
       }
-      
+
       await env.RATE_LIMIT_KV.put(key, JSON.stringify(existing), {
         expirationTtl: Math.ceil(windowMs / 1000)
       });
@@ -211,7 +175,7 @@ async function rateLimiting(context) {
     console.error('Rate limiting error:', error);
     // 如果速率限制出错，继续处理请求
   }
-  
+
   return context.next();
 }
 
@@ -219,14 +183,14 @@ async function rateLimiting(context) {
 async function requestLogging(context) {
   const { request } = context;
   const startTime = Date.now();
-  
+
   console.log(`[API] ${request.method} ${new URL(request.url).pathname}`);
-  
+
   const response = await context.next();
-  
+
   const duration = Date.now() - startTime;
   console.log(`[API] ${request.method} ${new URL(request.url).pathname} - ${response.status} (${duration}ms)`);
-  
+
   return response;
 }
 

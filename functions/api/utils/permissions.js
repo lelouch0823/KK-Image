@@ -9,29 +9,29 @@ export const PERMISSIONS = {
   'files:update': '更新文件信息',
   'files:delete': '删除文件',
   'files:download': '下载文件',
-  
+
   // API Key 权限
   'apikeys:read': '查看 API Key',
   'apikeys:create': '创建 API Key',
   'apikeys:update': '更新 API Key',
   'apikeys:delete': '删除 API Key',
-  
+
   // Webhook 权限
   'webhooks:read': '查看 Webhook',
   'webhooks:create': '创建 Webhook',
   'webhooks:update': '更新 Webhook',
   'webhooks:delete': '删除 Webhook',
   'webhooks:test': '测试 Webhook',
-  
+
   // 统计权限
   'stats:read': '查看统计信息',
   'stats:export': '导出统计数据',
-  
+
   // 系统权限
   'system:health': '查看系统健康状态',
   'system:info': '查看系统信息',
   'system:config': '修改系统配置',
-  
+
   // 管理权限
   'admin:full': '完全管理权限'
 };
@@ -93,10 +93,29 @@ export const ROLES = {
   }
 };
 
-// 展开权限组为具体权限
+// 权限展开缓存（使用 Map 存储，避免重复计算）
+const permissionCache = new Map();
+const CACHE_TTL = 60000; // 缓存 60 秒
+
+// 展开权限组为具体权限（带缓存）
 export function expandPermissions(permissionGroups) {
+  if (!permissionGroups || !Array.isArray(permissionGroups)) {
+    return [];
+  }
+
+  // 生成缓存键
+  const cacheKey = permissionGroups.sort().join(',');
+  const now = Date.now();
+
+  // 检查缓存
+  const cached = permissionCache.get(cacheKey);
+  if (cached && (now - cached.timestamp < CACHE_TTL)) {
+    return cached.permissions;
+  }
+
+  // 计算权限
   const expandedPermissions = new Set();
-  
+
   for (const group of permissionGroups) {
     if (PERMISSION_GROUPS[group]) {
       PERMISSION_GROUPS[group].forEach(permission => {
@@ -107,8 +126,25 @@ export function expandPermissions(permissionGroups) {
       expandedPermissions.add(group);
     }
   }
-  
-  return Array.from(expandedPermissions);
+
+  const result = Array.from(expandedPermissions);
+
+  // 存入缓存
+  permissionCache.set(cacheKey, {
+    permissions: result,
+    timestamp: now
+  });
+
+  // 清理过期缓存（防止内存泄漏）
+  if (permissionCache.size > 100) {
+    for (const [key, value] of permissionCache) {
+      if (now - value.timestamp > CACHE_TTL) {
+        permissionCache.delete(key);
+      }
+    }
+  }
+
+  return result;
 }
 
 // 检查用户是否有特定权限
@@ -116,15 +152,15 @@ export function hasPermission(user, requiredPermission) {
   if (!user || !user.permissions) {
     return false;
   }
-  
+
   // 展开用户的权限组
   const userPermissions = expandPermissions(user.permissions);
-  
+
   // 检查是否有完全管理权限
   if (userPermissions.includes('admin:full')) {
     return true;
   }
-  
+
   // 检查具体权限
   return userPermissions.includes(requiredPermission);
 }
@@ -144,13 +180,13 @@ export function getUserPermissions(user) {
   if (!user || !user.permissions) {
     return [];
   }
-  
+
   return expandPermissions(user.permissions);
 }
 
 // 权限中间件工厂
 export function requirePermission(permission) {
-  return function(context) {
+  return function (context) {
     if (!hasPermission(context.user, permission)) {
       const error = new Error(`Permission '${permission}' required`);
       error.name = 'AuthorizationError';
@@ -164,7 +200,7 @@ export function requirePermission(permission) {
 
 // 多权限中间件工厂（需要任意一个权限）
 export function requireAnyPermission(permissions) {
-  return function(context) {
+  return function (context) {
     if (!hasAnyPermission(context.user, permissions)) {
       const error = new Error(`One of these permissions required: ${permissions.join(', ')}`);
       error.name = 'AuthorizationError';
@@ -178,7 +214,7 @@ export function requireAnyPermission(permissions) {
 
 // 多权限中间件工厂（需要所有权限）
 export function requireAllPermissions(permissions) {
-  return function(context) {
+  return function (context) {
     if (!hasAllPermissions(context.user, permissions)) {
       const error = new Error(`All of these permissions required: ${permissions.join(', ')}`);
       error.name = 'AuthorizationError';
@@ -193,21 +229,21 @@ export function requireAllPermissions(permissions) {
 // 验证权限配置
 export function validatePermissions(permissions) {
   const errors = [];
-  
+
   for (const permission of permissions) {
     // 检查是否是有效的权限组
     if (PERMISSION_GROUPS[permission]) {
       continue;
     }
-    
+
     // 检查是否是有效的具体权限
     if (PERMISSIONS[permission]) {
       continue;
     }
-    
+
     errors.push(`Invalid permission: ${permission}`);
   }
-  
+
   return errors;
 }
 
@@ -217,7 +253,7 @@ export function getRolePermissions(roleName) {
   if (!role) {
     throw new Error(`Invalid role: ${roleName}`);
   }
-  
+
   return expandPermissions(role.permissions);
 }
 
@@ -234,9 +270,9 @@ export function logPermissionCheck(user, permission, granted, context = {}) {
     granted: granted,
     context: context
   };
-  
+
   console.log('Permission Check:', JSON.stringify(logEntry));
-  
+
   return logEntry;
 }
 
@@ -261,6 +297,6 @@ export function generatePermissionReport(user) {
     },
     generatedAt: new Date().toISOString()
   };
-  
+
   return report;
 }

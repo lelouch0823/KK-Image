@@ -481,7 +481,7 @@ const deleteFile = async (item) => {
     );
 
     const response = await fetch(`./api/manage/delete/${item.name}`, {
-      method: 'GET',
+      method: 'DELETE',
       credentials: 'include'
     });
 
@@ -515,7 +515,7 @@ const batchDelete = async () => {
 
     const deletePromises = selectedFiles.value.map(item =>
       fetch(`./api/manage/delete/${item.name}`, {
-        method: 'GET',
+        method: 'DELETE',
         credentials: 'include'
       })
     );
@@ -588,11 +588,13 @@ onMounted(async () => {
       method: 'GET',
       credentials: 'include'
     });
-    const result = await response.text();
+    const result = await response.json();
 
-    if (result !== 'true') {
-      window.location.href = './api/manage/login';
-      return;
+    // 兼容新的 JSON 格式（authEnabled: true/false）
+    if (result.authEnabled === true || result === 'true') {
+      // 需要登录认证
+    } else if (result.authEnabled === false) {
+      // 无需认证，继续加载
     }
   } catch (error) {
     ElMessage.error('检查登录状态失败');
