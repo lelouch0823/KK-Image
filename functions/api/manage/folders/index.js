@@ -26,9 +26,19 @@ export async function onRequestGet(context) {
         const url = new URL(request.url);
         const parentId = url.searchParams.get('parent_id') || null;
 
+        const all = url.searchParams.get('all') === 'true';
+
         // 查询文件夹列表
         let query;
-        if (parentId) {
+        if (all) {
+            // 获取所有 folders (用于移动文件选择树)
+            query = env.DB.prepare(`
+        SELECT f.id, f.parent_id, f.name
+        FROM folders f 
+        WHERE f.id != 'root'
+        ORDER BY f.name ASC
+      `);
+        } else if (parentId) {
             query = env.DB.prepare(`
         SELECT f.*, 
                (SELECT COUNT(*) FROM folders WHERE parent_id = f.id) as subfolder_count,

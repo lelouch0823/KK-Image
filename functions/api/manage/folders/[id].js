@@ -161,6 +161,20 @@ export async function onRequestPut(context) {
             values.push(parentId);
         }
 
+        // New: Handle shareExpiresAt
+        const { shareExpiresAt } = body;
+        if (shareExpiresAt !== undefined) {
+            updates.push('share_expires_at = ?');
+            values.push(shareExpiresAt); // Can be null (Permanent) or timestamp
+        }
+
+        // Auto-generate share_token if enabling sharing and none exists
+        if ((isPublic === true || shareExpiresAt !== undefined) && !folder.share_token) {
+            const token = Math.random().toString(36).substring(2, 14); // Simple token
+            updates.push('share_token = ?');
+            values.push(token);
+        }
+
         updates.push('updated_at = ?');
         values.push(Date.now());
         values.push(folderId);

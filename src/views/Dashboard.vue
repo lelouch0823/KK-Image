@@ -25,8 +25,33 @@
         <h3 class="font-semibold text-primary">最近文件</h3>
         <button @click="setView('files')" class="text-sm text-secondary hover:text-primary transition-colors">查看全部 →</button>
       </div>
-      <div class="p-6 text-center text-secondary text-sm">
-        (数据加载功能开发中)
+      <div v-if="recentFiles.length > 0" class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+           <thead class="bg-gray-50 text-secondary border-b border-[var(--border-color)]">
+              <tr>
+                <th class="px-6 py-3 font-medium">名称</th>
+                <th class="px-6 py-3 font-medium">大小</th>
+                <th class="px-6 py-3 font-medium">上传时间</th>
+              </tr>
+           </thead>
+           <tbody class="divide-y divide-[var(--border-color)]">
+              <tr v-for="(file, index) in recentFiles" :key="index" class="hover:bg-gray-50 transition-colors">
+                 <td class="px-6 py-3 text-primary">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-xs text-secondary uppercase border border-[var(--border-color)]">
+                            {{ file.type || getFileExtension(file.name) }}
+                        </div>
+                        <span class="truncate max-w-[200px]" :title="file.name">{{ file.name }}</span>
+                    </div>
+                 </td>
+                 <td class="px-6 py-3 text-secondary">{{ formatSize(file.size) }}</td>
+                 <td class="px-6 py-3 text-secondary">{{ formatDate(file.timestamp) }}</td>
+              </tr>
+           </tbody>
+        </table>
+      </div>
+      <div v-else class="p-6 text-center text-secondary text-sm">
+        暂无最近文件
       </div>
     </div>
   </div>
@@ -52,12 +77,43 @@ const formatSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+const recentFiles = ref([]);
+
+const formatDate = (timestamp) => {
+    if (!timestamp) return '-';
+    // 兼容可能的时间戳格式
+    const date = new Date(Number(timestamp));
+    return date.toLocaleString('zh-CN', {
+        month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit'
+    });
+};
+
+const getFileExtension = (filename) => {
+    if (!filename) return '';
+    return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2).toUpperCase();
+};
+
 onMounted(async () => {
-  // TODO: 从 API 获取 dashboard 数据
-  // const res = await fetch('/api/stats/dashboard')...
-  // Mock data
-  totalFiles.value = 128;
-  todayUploads.value = 12;
-  totalSize.value = 1024 * 1024 * 450;
+    try {
+        const res = await fetch('/api/manage/stats', {
+            headers: {
+                'Authorization': 'Basic ' + btoa('admin:123456')
+            }
+        }).then(r => r.json());
+
+        if (res.overview) {
+            totalFiles.value = res.overview.totalFiles;
+            todayUploads.value = res.overview.todayUploads;
+            totalSize.value = res.overview.totalSize;
+        }
+        
+        if (res.recent) {
+            recentFiles.value = res.recent;
+        }
+    } catch (e) {
+        // error('加载统计失败');
+        console.error('Stats load failed', e);
+    }
 });
 </script>

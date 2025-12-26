@@ -33,14 +33,13 @@ export default defineConfig({
         'admin': resolve(__dirname, 'src/pages/admin.html'),
         'login': resolve(__dirname, 'src/pages/login.html'),
         'upload': resolve(__dirname, 'src/pages/upload.html'),
-        'admin-stats': resolve(__dirname, 'src/pages/admin-stats.html'),
+
         'gallery': resolve(__dirname, 'src/pages/gallery.html')
       },
       output: {
         // 代码分割配置
         manualChunks: {
-          'vue-vendor': ['vue'],
-          'element-plus': ['element-plus', '@element-plus/icons-vue']
+          'vue-vendor': ['vue']
         },
         // 静态资源文件名
         assetFileNames: (assetInfo) => {

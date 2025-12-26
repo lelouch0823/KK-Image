@@ -24,6 +24,14 @@
 
       <!-- 操作按钮 -->
       <div class="flex items-center gap-3">
+        <!-- New: Share Folder Button -->
+        <button v-if="currentFolder" @click="handleShareFolder" class="btn btn-secondary gap-2" title="分享文件夹">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+            </svg>
+            <span class="hidden sm:inline">分享</span>
+        </button>
+
         <input type="file" ref="fileInput" multiple class="hidden" @change="handleFileSelect">
         <button @click="$refs.fileInput.click()" 
           class="btn btn-primary gap-2">
@@ -45,12 +53,12 @@
     <!-- 当前文件夹信息 -->
     <div v-if="currentFolder" class="px-6 py-3 bg-[var(--bg-muted)] border-b border-[var(--border-color)] flex items-center justify-between text-sm">
        <div class="flex items-center gap-4 text-secondary">
-         <span>{{ currentFolder.fileCount }} 个文件</span>
-         <span>{{ currentFolder.subfolderCount }} 个文件夹</span>
+         <!-- Fix: Use local array lengths -->
+         <span>{{ files.length }} 个文件</span>
+         <span>{{ subfolders.length }} 个文件夹</span>
        </div>
        <div class="flex items-center gap-3">
-          <!-- 文件夹操作栏 -->
-          <button class="text-danger hover:text-red-600" @click="handleDeleteFolder(currentFolder)">删除文件夹</button>
+          <!-- 文件夹操作栏 (Red delete text removed) -->
        </div>
     </div>
 
@@ -108,8 +116,19 @@
                 <td class="px-4 py-3 text-sm text-secondary uppercase">{{ getFileExtension(file.name) }}</td>
                 <td class="px-4 py-3 text-sm text-secondary">{{ formatDate(file.createdAt) }}</td>
                 <td class="px-4 py-3 text-right">
-                  <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button @click="deleteFile(file.id)" class="text-xs text-danger hover:underline">删除</button>
+                  <div class="flex items-center justify-end gap-1">
+                    <!-- Share -->
+                    <button @click="handleShareFile(file)" class="p-1.5 text-secondary hover:text-primary hover:bg-gray-100 rounded-lg transition-colors" title="分享链接">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                    </button>
+                    <!-- Move -->
+                    <button @click="handleMoveFile(file)" class="p-1.5 text-secondary hover:text-primary hover:bg-gray-100 rounded-lg transition-colors" title="移动文件">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
+                    </button>
+                    <!-- Delete -->
+                    <button @click="deleteFile(file.id)" class="p-1.5 text-secondary hover:text-danger hover:bg-red-50 rounded-lg transition-colors" title="删除">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -147,12 +166,31 @@
       </div>
     </div>
 
+    <!-- Move File Modal -->
+    <MoveFileModal 
+      v-model="showMoveModal" 
+      :files-to-move="filesToMove" 
+      @moved="handleMoved" 
+    />
+
+    <!-- Share Folder Modal -->
+    <ShareFolderModal
+      v-model="showShareModal"
+      :folder="currentFolder"
+      @updated="handleShareUpdated"
+    />
+
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue';
 import { useFileManager } from '@/composables/useFileManager';
+import MoveFileModal from '@/components/MoveFileModal.vue';
+import ShareFolderModal from '@/components/ShareFolderModal.vue';
+import { useToast } from '@/composables/useToast';
+
+const { addToast } = useToast();
 
 const {
   loading,
@@ -172,7 +210,8 @@ const {
 } = useFileManager();
 
 const showModal = ref(false);
-const folderName = ref('');
+const showMoveModal = ref(false);
+const filesToMove = ref([]);
 
 const navigateTo = (id) => {
   loadFolderData(id);
@@ -199,6 +238,37 @@ const handleFileSelect = (e) => {
   if (files.length) {
     uploadFiles(files);
   }
+};
+
+const handleShareFile = (file) => {
+    const url = `${window.location.origin}${file.url}`;
+    navigator.clipboard.writeText(url).then(() => {
+        addToast({ message: '文件链接已复制', type: 'success' });
+    }).catch(() => {
+        addToast({ message: '复制失败', type: 'error' });
+    });
+};
+
+// New: State for share modal
+const showShareModal = ref(false);
+
+const handleShareFolder = () => {
+    // Open modal instead of direct copy
+    showShareModal.value = true;
+};
+
+const handleShareUpdated = () => {
+    loadFolderData(currentFolder.value?.id);
+};
+
+const handleMoveFile = (file) => {
+    filesToMove.value = [file.id];
+    showMoveModal.value = true;
+};
+
+const handleMoved = () => {
+    // Refresh current folder
+    loadFolderData(currentFolder.value?.id);
 };
 
 onMounted(() => {

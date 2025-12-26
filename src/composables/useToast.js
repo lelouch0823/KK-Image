@@ -27,6 +27,7 @@ export function useToast() {
     return {
         toasts,
         showToast,
+        addToast: showToast,
         removeToast,
         success,
         error,
