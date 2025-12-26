@@ -32,7 +32,6 @@ export default defineConfig({
       input: {
         'admin': resolve(__dirname, 'src/pages/admin.html'),
         'login': resolve(__dirname, 'src/pages/login.html'),
-        'upload': resolve(__dirname, 'src/pages/upload.html'),
 
         'gallery': resolve(__dirname, 'src/pages/gallery.html')
       },
