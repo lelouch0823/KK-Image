@@ -1,0 +1,91 @@
+@import "./variables.css";
+@import "tailwindcss";
+
+/* Tailwind CSS v4 主题配置 */
+@theme {
+    --color-primary: #111827;
+    --color-secondary: #6B7280;
+    --color-success: #10B981;
+    --color-warning: #F59E0B;
+    --color-danger: #EF4444;
+    --color-border: #E5E7EB;
+    --color-muted: #F3F4F6;
+
+    --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+    body {
+        @apply bg-[var(--bg-page)] text-[var(--text-main)] font-sans antialiased;
+    }
+}
+
+@layer components {
+
+    /* 通用滚动条样式 */
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background-color: var(--color-gray-300);
+        border-radius: var(--radius-full);
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background-color: var(--color-gray-400);
+    }
+
+    /* 基础按钮样式 */
+    .btn {
+        @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    .btn-primary {
+        @apply bg-primary text-white hover:bg-gray-800 focus:ring-gray-900;
+    }
+
+    .btn-secondary {
+        @apply bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 focus:ring-gray-200;
+    }
+
+    .btn-danger {
+        @apply bg-red-50 text-red-700 border border-red-100 hover:bg-red-100 focus:ring-red-200;
+    }
+
+    .btn-ghost {
+        @apply text-gray-500 hover:text-gray-900 hover:bg-gray-100;
+    }
+
+    /* 基础输入框 */
+    .input {
+        @apply w-full h-10 px-3 text-sm border border-[var(--border-color)] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-all;
+    }
+}
+
+/* 动画工具类 */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity var(--transition-base);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+    transition: all var(--transition-base);
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+    opacity: 0;
+    transform: translateY(10px);
+}

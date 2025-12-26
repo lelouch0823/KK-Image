@@ -1,0 +1,128 @@
+/**
+ * ============================================
+ * ImgTC Design System - CSS 变量 (Design Tokens)
+ * ============================================
+ * 
+ * 这是整个管理后台的样式基础。所有组件应引用这些变量而非硬编码颜色值。
+ * 通过修改这些变量，可以轻松实现主题切换（如深色模式）。
+ */
+
+:root {
+  /* ============================================
+   * 颜色系统 - Colors
+   * ============================================ */
+  
+  /* 主色调 */
+  --color-primary: #111827;
+  --color-primary-hover: #1F2937;
+  --color-primary-light: #F3F4F6;
+  
+  /* 功能色 */
+  --color-success: #10B981;
+  --color-success-light: #D1FAE5;
+  --color-warning: #F59E0B;
+  --color-warning-light: #FEF3C7;
+  --color-danger: #EF4444;
+  --color-danger-light: #FEE2E2;
+  --color-info: #3B82F6;
+  --color-info-light: #DBEAFE;
+  
+  /* 中性色 - 背景 */
+  --color-bg-base: #FFFFFF;
+  --color-bg-page: #F9FAFB;
+  --color-bg-subtle: #F3F4F6;
+  --color-bg-muted: #E5E7EB;
+  
+  /* 中性色 - 边框 */
+  --color-border: #E5E7EB;
+  --color-border-light: #F3F4F6;
+  --color-border-dark: #D1D5DB;
+  
+  /* 中性色 - 文字 */
+  --color-text-primary: #111827;
+  --color-text-secondary: #6B7280;
+  --color-text-muted: #9CA3AF;
+  --color-text-disabled: #D1D5DB;
+  
+  /* ============================================
+   * 尺寸系统 - Spacing
+   * ============================================ */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  
+  /* ============================================
+   * 圆角系统 - Radius
+   * ============================================ */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+  
+  /* ============================================
+   * 阴影系统 - Shadows
+   * ============================================ */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  /* ============================================
+   * 字体系统 - Typography
+   * ============================================ */
+  --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-mono: 'Fira Code', 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
+  
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 30px;
+  
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+  
+  /* ============================================
+   * 动画系统 - Transitions
+   * ============================================ */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+  
+  /* ============================================
+   * 布局尺寸 - Layout
+   * ============================================ */
+  --sidebar-width: 240px;
+  --header-height: 64px;
+  --content-max-width: 1400px;
+}
+
+/* ============================================
+ * 深色模式 (可选)
+ * ============================================ */
+[data-theme="dark"] {
+  --color-bg-base: #1F2937;
+  --color-bg-page: #111827;
+  --color-bg-subtle: #374151;
+  --color-bg-muted: #4B5563;
+  
+  --color-border: #374151;
+  --color-border-light: #4B5563;
+  --color-border-dark: #1F2937;
+  
+  --color-text-primary: #F9FAFB;
+  --color-text-secondary: #D1D5DB;
+  --color-text-muted: #9CA3AF;
+}

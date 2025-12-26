@@ -50,7 +50,7 @@ export async function onRequest(context) {
     // HTML 文件开发环境不缓存，生产环境适当缓存
     newHeaders.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     newHeaders.set('X-Content-Type-Options', 'nosniff');
-    newHeaders.set('X-Frame-Options', 'DENY');
+    newHeaders.set('X-Frame-Options', 'SAMEORIGIN');
     newHeaders.set('X-XSS-Protection', '1; mode=block');
     newHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   } else if (isAPIRoute(pathname)) {

@@ -1,10 +1,12 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import tailwindcss from '@tailwindcss/vite';
 import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [
     vue(),
+    tailwindcss(),
     // 自定义插件：将 src/pages 下的 HTML 输出到根目录
     {
       name: 'flatten-html',
@@ -31,7 +33,8 @@ export default defineConfig({
         'admin': resolve(__dirname, 'src/pages/admin.html'),
         'login': resolve(__dirname, 'src/pages/login.html'),
         'upload': resolve(__dirname, 'src/pages/upload.html'),
-        'admin-stats': resolve(__dirname, 'src/pages/admin-stats.html')
+        'admin-stats': resolve(__dirname, 'src/pages/admin-stats.html'),
+        'gallery': resolve(__dirname, 'src/pages/gallery.html')
       },
       output: {
         // 代码分割配置
@@ -116,14 +119,6 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
       '~': resolve(__dirname)
     }
-  },
-
-  // CSS 配置
-  css: {
-    preprocessorOptions: {
-      scss: {
-        additionalData: `@import "@/styles/variables.scss";`
-      }
-    }
   }
 });
+

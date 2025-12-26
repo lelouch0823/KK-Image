@@ -132,3 +132,15 @@ id = "0346979ddffe4b2da2a7ea7e05133167"
 [[r2_buckets]]
 binding = "R2_BUCKET"
 bucket_name = "kk-image-storage"
+
+# =============================================================================
+# D1 数据库绑定
+# 通过 `wrangler d1 create <NAME>` 创建
+# =============================================================================
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kk-image-db"
+database_id = "f3234553-417e-9271-5ea5d6686ad5"
+migrations_dir = "migrations"
+

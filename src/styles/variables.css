@@ -1,0 +1,64 @@
+/* Design Tokens & Theme Configuration */
+:root {
+    /* 基础调色板 - Gray */
+    --color-gray-50: #F9FAFB;
+    --color-gray-100: #F3F4F6;
+    --color-gray-200: #E5E7EB;
+    --color-gray-300: #D1D5DB;
+    --color-gray-400: #9CA3AF;
+    --color-gray-500: #6B7280;
+    --color-gray-600: #4B5563;
+    --color-gray-700: #374151;
+    --color-gray-800: #1F2937;
+    --color-gray-900: #111827;
+    --color-gray-950: #030712;
+
+    /* 语义色彩体系 */
+    --color-primary: var(--color-gray-900);
+    --color-primary-hover: var(--color-gray-800);
+    --color-secondary: var(--color-gray-500);
+
+    --color-success: #10B981;
+    --color-success-bg: #D1FAE5;
+    --color-success-text: #065F46;
+
+    --color-warning: #F59E0B;
+    --color-warning-bg: #FEF3C7;
+    --color-warning-text: #92400E;
+
+    --color-danger: #EF4444;
+    --color-danger-bg: #FEE2E2;
+    --color-danger-text: #B91C1C;
+
+    --color-info: #3B82F6;
+
+    /* 背景与边框 */
+    --bg-page: var(--color-gray-50);
+    --bg-card: #FFFFFF;
+    --bg-hover: var(--color-gray-50);
+    --bg-active: var(--color-gray-100);
+    --border-color: var(--color-gray-200);
+
+    /* 文字颜色 */
+    --text-main: var(--color-gray-900);
+    --text-secondary: var(--color-gray-500);
+    --text-muted: var(--color-gray-400);
+
+    /* 布局与形状 */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-full: 9999px;
+
+    /* Header 高度 */
+    --header-height: 4rem;
+    --sidebar-width: 15rem;
+
+    /* 阴影与过渡 */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+    --transition-base: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
