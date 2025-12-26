@@ -2,10 +2,14 @@
  * @fileoverview 文件访问处理
  * @module file/[id]
  * 
- * 支持多存储后端：根据元数据中的 storageProvider 字段路由到对应存储
+ * 支持多存储后端：
+ * - 根据元数据中的存储信息获取文件
+ * - 智能回退：主存储失败时自动切换
  */
 
-import { getProviderForFile, getStorageProvider, StorageProviderType } from '../storage/index.js';
+import { getFileWithFallback } from '../storage/redundancy.js';
+import { getStorageProvider, StorageProviderType } from '../storage/index.js';
+import { isFallbackEnabled } from '../storage/router.js';
 
 // Telegram Bot API 上传的文件 ID 最小路径长度
 const TELEGRAM_FILE_ID_MIN_LENGTH = 39;
@@ -30,22 +34,16 @@ export async function onRequest(context) {
         metadata = record?.metadata;
     }
 
-    // 根据元数据或文件特征确定存储提供者
-    let storageProvider;
+    // 获取文件（支持智能回退）
+    let response;
 
-    if (metadata?.storageProvider) {
-        // 使用元数据中记录的存储提供者
-        storageProvider = getProviderForFile(env, metadata);
-    } else if (pathname.length > TELEGRAM_FILE_ID_MIN_LENGTH) {
-        // 旧格式：长路径表示 Telegram 文件
-        storageProvider = getStorageProvider(env, StorageProviderType.TELEGRAM);
+    if (isFallbackEnabled(env) && (metadata?.storage || env.STORAGE_MODE === 'redundant')) {
+        // 使用智能回退获取文件
+        response = await getFileWithFallback(env, fileId, request, metadata);
     } else {
-        // 使用默认存储提供者
-        storageProvider = getStorageProvider(env);
+        // 使用传统方式获取文件
+        response = await getFileLegacy(env, fileId, request, pathname, metadata);
     }
-
-    // 从存储提供者获取文件
-    const response = await storageProvider.getFile(fileId, request);
 
     // 如果文件获取失败，直接返回
     if (!response.ok) {
@@ -70,8 +68,7 @@ export async function onRequest(context) {
             TimeStamp: Date.now(),
             liked: false,
             fileName: fileId,
-            fileSize: 0,
-            storageProvider: storageProvider.name
+            fileSize: 0
         };
         await env.img_url.put(fileId, "", { metadata });
     }
@@ -84,7 +81,7 @@ export async function onRequest(context) {
         liked: metadata.liked !== undefined ? metadata.liked : false,
         fileName: metadata.fileName || fileId,
         fileSize: metadata.fileSize || 0,
-        storageProvider: metadata.storageProvider || storageProvider.name
+        storage: metadata.storage
     };
 
     // 根据 ListType 和 Label 处理访问控制
@@ -103,8 +100,9 @@ export async function onRequest(context) {
         return Response.redirect(`${origin}/whitelist-on.html`, 302);
     }
 
-    // 内容审查（仅适用于可访问 URL 的存储，如 Telegram）
-    if (env.ModerateContentApiKey && storageProvider.name === 'telegram') {
+    // 内容审查（仅适用于 Telegram 存储）
+    const storageProvider = fullMetadata.storage?.primary || 'telegram';
+    if (env.ModerateContentApiKey && storageProvider === 'telegram') {
         try {
             const moderateUrl = `https://api.moderatecontent.com/moderate/?key=${env.ModerateContentApiKey}&url=https://telegra.ph${pathname}${url.search}`;
             const moderateResponse = await fetch(moderateUrl);
@@ -130,4 +128,24 @@ export async function onRequest(context) {
     await env.img_url.put(fileId, "", { metadata: fullMetadata });
 
     return response;
+}
+
+/**
+ * 传统方式获取文件（向后兼容）
+ */
+async function getFileLegacy(env, fileId, request, pathname, metadata) {
+    let storageProvider;
+
+    if (metadata?.storage?.primary) {
+        // 使用元数据中记录的主存储
+        storageProvider = getStorageProvider(env, metadata.storage.primary);
+    } else if (pathname.length > TELEGRAM_FILE_ID_MIN_LENGTH) {
+        // 旧格式：长路径表示 Telegram 文件
+        storageProvider = getStorageProvider(env, StorageProviderType.TELEGRAM);
+    } else {
+        // 使用默认存储
+        storageProvider = getStorageProvider(env);
+    }
+
+    return await storageProvider.getFile(fileId, request);
 }

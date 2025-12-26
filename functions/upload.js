@@ -2,12 +2,15 @@
  * @fileoverview 文件上传处理
  * @module upload
  * 
- * 支持多存储后端：Telegram、Cloudflare R2、S3 兼容服务
+ * 支持多种存储模式：
+ * - single: 单一存储
+ * - smart: 智能路由（根据规则选择）
+ * - redundant: 冗余存储（多存储同步）
  */
 
 import { errorHandling, telemetryData } from "./utils/middleware";
 import { triggerWebhook } from "./api/utils/webhook.js";
-import { getStorageProvider } from "./storage/index.js";
+import { RedundancyManager } from "./storage/redundancy.js";
 
 export async function onRequestPost(context) {
     const { request, env } = context;
@@ -26,11 +29,9 @@ export async function onRequestPost(context) {
 
         const fileName = uploadFile.name;
 
-        // 获取存储提供者
-        const storageProvider = getStorageProvider(env);
-
-        // 使用存储提供者上传文件
-        const result = await storageProvider.upload(uploadFile, {
+        // 使用冗余管理器处理上传
+        const redundancyManager = new RedundancyManager(env, context);
+        const result = await redundancyManager.upload(uploadFile, {
             fileName: fileName,
             contentType: uploadFile.type
         });
@@ -43,19 +44,21 @@ export async function onRequestPost(context) {
 
         // 将文件信息保存到 KV 存储
         if (env.img_url) {
-            await env.img_url.put(fileId, "", {
-                metadata: {
-                    TimeStamp: Date.now(),
-                    ListType: "None",
-                    Label: "None",
-                    liked: false,
-                    fileName: fileName,
-                    fileSize: uploadFile.size,
-                    // 新增：记录存储提供者信息
-                    storageProvider: storageProvider.name,
-                    storageId: result.metadata?.storageId || fileId
+            const metadata = {
+                TimeStamp: Date.now(),
+                ListType: "None",
+                Label: "None",
+                liked: false,
+                fileName: fileName,
+                fileSize: uploadFile.size,
+                // 存储信息（包含主存储和镜像信息）
+                storage: result.metadata?.storage || {
+                    primary: result.metadata?.storageProvider || 'telegram',
+                    primaryId: result.metadata?.storageId || fileId
                 }
-            });
+            };
+
+            await env.img_url.put(fileId, "", { metadata });
         }
 
         // 构建文件信息用于 Webhook
@@ -68,7 +71,7 @@ export async function onRequestPost(context) {
             status: 'normal',
             url: `${new URL(request.url).origin}/file/${fileId}`,
             uploader: 'anonymous',
-            storageProvider: storageProvider.name
+            storage: result.metadata?.storage
         };
 
         // 触发 Webhook 事件
@@ -79,7 +82,6 @@ export async function onRequestPost(context) {
             });
         } catch (webhookError) {
             console.error('Webhook trigger failed:', webhookError);
-            // 不影响主要功能
         }
 
         return new Response(

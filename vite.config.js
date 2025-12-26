@@ -3,17 +3,35 @@ import vue from '@vitejs/plugin-vue';
 import { resolve } from 'path';
 
 export default defineConfig({
-  plugins: [vue()],
-  
+  plugins: [
+    vue(),
+    // 自定义插件：将 src/pages 下的 HTML 输出到根目录
+    {
+      name: 'flatten-html',
+      enforce: 'post',
+      generateBundle(options, bundle) {
+        for (const [fileName, chunk] of Object.entries(bundle)) {
+          if (fileName.endsWith('.html') && fileName.includes('src/pages/')) {
+            const newName = fileName.split('/').pop();
+            chunk.fileName = newName;
+            delete bundle[fileName];
+            bundle[newName] = chunk;
+          }
+        }
+      }
+    }
+  ],
+
   // 构建配置
   build: {
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        'admin-vue3': resolve(__dirname, 'admin-imgtc-vue3.html'),
-        'upload': resolve(__dirname, 'upload.html'),
-        'admin-stats': resolve(__dirname, 'admin-stats.html')
+        'admin': resolve(__dirname, 'src/pages/admin.html'),
+        'login': resolve(__dirname, 'src/pages/login.html'),
+        'upload': resolve(__dirname, 'src/pages/upload.html'),
+        'admin-stats': resolve(__dirname, 'src/pages/admin-stats.html')
       },
       output: {
         // 代码分割配置
@@ -63,20 +81,35 @@ export default defineConfig({
     // 静态资源内联阈值
     assetsInlineLimit: 4096
   },
-  
+
   // 开发服务器配置
   server: {
     port: 3000,
     open: true,
-    cors: true
+    cors: true,
+    // 代理配置：将 API 请求转发到 Wrangler Pages 服务
+    proxy: {
+      '/upload': {
+        target: 'http://127.0.0.1:8788',
+        changeOrigin: true
+      },
+      '/file': {
+        target: 'http://127.0.0.1:8788',
+        changeOrigin: true
+      },
+      '/api': {
+        target: 'http://127.0.0.1:8788',
+        changeOrigin: true
+      }
+    }
   },
-  
+
   // 预览服务器配置
   preview: {
     port: 4173,
     open: true
   },
-  
+
   // 路径解析
   resolve: {
     alias: {
@@ -84,7 +117,7 @@ export default defineConfig({
       '~': resolve(__dirname)
     }
   },
-  
+
   // CSS 配置
   css: {
     preprocessorOptions: {

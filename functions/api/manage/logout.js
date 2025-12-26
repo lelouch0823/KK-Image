@@ -1,13 +1,15 @@
 export async function onRequest(context) {
-  return new Response(JSON.stringify({
-    success: true,
-    message: 'Logged out successfully'
-  }), {
-    status: 200,
+  const { request } = context;
+  const url = new URL(request.url);
+
+  // 清除 Cookie
+  const cookie = `TELEG_AUTH=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict; Secure`;
+
+  return new Response(null, {
+    status: 302,
     headers: {
-      'Content-Type': 'application/json',
-      // 清除认证缓存
-      'Clear-Site-Data': '"cache", "cookies"'
+      'Location': `${url.origin}/login.html`,
+      'Set-Cookie': cookie
     }
   });
 }

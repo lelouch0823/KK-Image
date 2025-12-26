@@ -75,10 +75,20 @@ function BadRequestException(reason) {
 }
 
 
+import { verifyJWT } from '../utils/auth.js';
+
 function authentication(context) {
   const { env, request } = context;
+  const url = new URL(request.url);
 
-  // 检查 KV 存储是否配置
+  // 1. 跳过登录接口和检查接口的认证，避免死循环
+  // login: 登录本身不需要认证
+  // check: 用于前端检查状态，如果未登录返回特定 JSON
+  if (url.pathname.endsWith('/login') || url.pathname.endsWith('/check')) {
+    return context.next();
+  }
+
+  // 2. 检查 KV 存储是否配置
   if (!env.img_url) {
     return new Response(JSON.stringify({
       error: 'Dashboard disabled',
@@ -89,37 +99,61 @@ function authentication(context) {
     });
   }
 
-  // 如果未配置 Basic Auth，则跳过认证
+  // 3. 如果未配置 Basic Auth（即未启用认证），则直接放行
   if (!env.BASIC_USER) {
     return context.next();
   }
 
-  // 检查是否提供了 Authorization 头
-  if (!request.headers.has('Authorization')) {
+  // 4. 获取 Token (优先从 Cookie 获取，其次从 Authorization Header)
+  let token = null;
+
+  // 从 Cookie 获取
+  const cookieHeader = request.headers.get('Cookie');
+  if (cookieHeader) {
+    const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+      const [name, value] = cookie.trim().split('=');
+      acc[name] = value;
+      return acc;
+    }, {});
+    token = cookies['TELEG_AUTH'];
+  }
+
+  // 从 Authorization Header 获取 (支持 Bearer Token)
+  if (!token && request.headers.has('Authorization')) {
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+  }
+
+  // 5. 如果没有 Token，拒绝访问
+  if (!token) {
     return new Response(JSON.stringify({
       error: 'Authentication required',
-      message: 'Please provide credentials to access this resource.'
+      message: '请先登录以访问此资源'
     }), {
       status: 401,
-      headers: {
-        'Content-Type': 'application/json',
-        'WWW-Authenticate': 'Basic realm="Admin Dashboard", charset="UTF-8"'
-      }
+      headers: { 'Content-Type': 'application/json' }
     });
   }
 
-  // 验证凭据
-  try {
-    const { user, pass } = basicAuthentication(request);
-
-    if (env.BASIC_USER !== user || env.BASIC_PASS !== pass) {
-      return UnauthorizedException('Invalid credentials.');
-    }
-
-    return context.next();
-  } catch (error) {
-    return BadRequestException(error.message || 'Invalid authorization header.');
-  }
+  // 6. 验证 Token
+  return verifyJWT(token, env)
+    .then(payload => {
+      // 验证通过，将用户信息注入 context (可选)
+      context.user = payload;
+      return context.next();
+    })
+    .catch(err => {
+      // 验证失败 (过期或无效)
+      return new Response(JSON.stringify({
+        error: 'Invalid token',
+        message: '登录已过期，请重新登录'
+      }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    });
 }
 
 export const onRequest = [errorHandling, authentication];
