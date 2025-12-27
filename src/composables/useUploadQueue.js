@@ -1,24 +1,28 @@
-
-import { ref, computed } from 'vue';
+import { ref, computed, shallowRef } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
 
+// ============================================================
 // 全局状态 - 保证组件切换时队列不丢失
+// ============================================================
 const queue = ref([]);
 const isUploading = ref(false);
-const concurrency = 3; // 最大并发数
+const isMinimized = ref(false); // 🔧 FIX: 移到全局
+const concurrency = 3;
 let activeUploads = 0;
+
+// 用于通知特定文件夹刷新的回调 Map
+// key = folderId, value = callback function
+const folderRefreshCallbacks = shallowRef(new Map());
 
 export function useUploadQueue() {
     const { addToast } = useToast();
     const { getAuthHeader } = useAuth();
-    const isMinimized = ref(false);
 
     // 计算属性
     const hasItems = computed(() => queue.value.length > 0);
 
-    // 总体进度
     const overallProgress = computed(() => {
         if (queue.value.length === 0) return 0;
         const totalProgress = queue.value.reduce((acc, item) => acc + item.progress, 0);
@@ -29,10 +33,50 @@ export function useUploadQueue() {
     const pendingCount = computed(() => queue.value.filter(item => item.status === 'pending').length);
     const completedCount = computed(() => queue.value.filter(item => item.status === 'success').length);
 
+    // 🔧 NEW: 计算总速度 (所有正在上传文件的速度之和)
+    const totalSpeed = computed(() => {
+        return queue.value
+            .filter(item => item.status === 'uploading' && item.speed > 0)
+            .reduce((acc, item) => acc + item.speed, 0);
+    });
+
+    // 🔧 NEW: 计算预估剩余时间 (秒)
+    const estimatedTimeRemaining = computed(() => {
+        if (totalSpeed.value === 0) return null;
+        const remainingBytes = queue.value
+            .filter(item => item.status === 'uploading' || item.status === 'pending')
+            .reduce((acc, item) => {
+                const uploaded = item.size * (item.progress / 100);
+                return acc + (item.size - uploaded);
+            }, 0);
+        return Math.ceil(remainingBytes / totalSpeed.value);
+    });
+
+    /**
+     * 🔧 NEW: 注册文件夹刷新回调
+     * @param {string} folderId
+     * @param {Function} callback
+     */
+    const registerFolderRefresh = (folderId, callback) => {
+        if (!folderId) return;
+        const newMap = new Map(folderRefreshCallbacks.value);
+        newMap.set(folderId, callback);
+        folderRefreshCallbacks.value = newMap;
+    };
+
+    /**
+     * 🔧 NEW: 注销文件夹刷新回调
+     * @param {string} folderId
+     */
+    const unregisterFolderRefresh = (folderId) => {
+        if (!folderId) return;
+        const newMap = new Map(folderRefreshCallbacks.value);
+        newMap.delete(folderId);
+        folderRefreshCallbacks.value = newMap;
+    };
+
     /**
      * 添加文件到上传队列
-     * @param {Array<File>} files - File 对象数组
-     * @param {string} folderId - 目标文件夹ID
      */
     const addFiles = (files, folderId) => {
         if (!folderId) {
@@ -47,14 +91,17 @@ export function useUploadQueue() {
             size: file.size,
             folderId,
             progress: 0,
-            status: 'pending', // pending, uploading, success, error
+            status: 'pending',
             error: null,
-            xhr: null // 用于取消请求
+            xhr: null,
+            // 🔧 NEW: 速度追踪
+            speed: 0,
+            lastLoaded: 0,
+            lastTime: 0
         }));
 
         queue.value.push(...newItems);
 
-        // 如果面板被最小化了，有新文件时自动展开
         if (isMinimized.value) {
             isMinimized.value = false;
         }
@@ -68,7 +115,6 @@ export function useUploadQueue() {
     const processQueue = () => {
         if (activeUploads >= concurrency) return;
 
-        // 获取下一个等待中的文件
         const nextItem = queue.value.find(item => item.status === 'pending');
         if (!nextItem) {
             if (activeUploads === 0 && pendingCount.value === 0) {
@@ -83,11 +129,13 @@ export function useUploadQueue() {
     };
 
     /**
-     * 上传单个文件 (使用 XMLHttpRequest 以获取进度)
+     * 上传单个文件
      */
     const uploadFile = (item) => {
         item.status = 'uploading';
         item.progress = 0;
+        item.lastLoaded = 0;
+        item.lastTime = Date.now();
 
         const formData = new FormData();
         formData.append('file', item.file);
@@ -95,21 +143,39 @@ export function useUploadQueue() {
         const xhr = new XMLHttpRequest();
         item.xhr = xhr;
 
-        // 进度监听
+        // 🔧 IMPROVED: 进度监听 + 速度计算
         xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {
                 item.progress = Math.round((e.loaded / e.total) * 100);
+
+                // 计算速度 (bytes/second)
+                const now = Date.now();
+                const timeDiff = (now - item.lastTime) / 1000; // seconds
+                if (timeDiff > 0.5) { // 每 500ms 更新一次速度
+                    const bytesDiff = e.loaded - item.lastLoaded;
+                    item.speed = Math.round(bytesDiff / timeDiff);
+                    item.lastLoaded = e.loaded;
+                    item.lastTime = now;
+                }
             }
         };
 
         xhr.onload = () => {
             activeUploads--;
+            item.speed = 0; // 上传完成，重置速度
+
             if (xhr.status >= 200 && xhr.status < 300) {
                 try {
                     const res = JSON.parse(xhr.responseText);
                     if (res.success) {
                         item.status = 'success';
                         item.progress = 100;
+
+                        // 🔧 NEW: 触发该文件夹的刷新回调
+                        const callback = folderRefreshCallbacks.value.get(item.folderId);
+                        if (callback) {
+                            callback();
+                        }
                     } else {
                         item.status = 'error';
                         item.error = res.message || '上传失败';
@@ -122,37 +188,29 @@ export function useUploadQueue() {
                 item.status = 'error';
                 item.error = `HTTP Error ${xhr.status}`;
             }
-            processQueue(); // 触发下一个
+            processQueue();
         };
 
         xhr.onerror = () => {
             activeUploads--;
             item.status = 'error';
             item.error = '网络错误';
+            item.speed = 0;
             processQueue();
         };
 
-        // 获取 Auth Header 并设置
-        const authHeader = getAuthHeader(); // 返回 { Authorization: '...' } 或 {}
-
-        // 这里需要手动构建 API URL
-        // 使用相对路径，假设 API Base URL 是当前域
+        const authHeader = getAuthHeader();
         const url = API.FOLDER_UPLOAD(item.folderId);
 
         xhr.open('POST', url, true);
 
-        // 设置 Headers
         if (authHeader.Authorization) {
             xhr.setRequestHeader('Authorization', authHeader.Authorization);
         }
 
-        // XMLHttpRequest 默认不带 Credentials (Cookie)，如果需要 Cookie 认证需要设置
-        // 我们的 useAuth 中显示 'credentials: include'，所以这里也应该设置
         xhr.withCredentials = true;
-
         xhr.send(formData);
 
-        // 尝试并发处理下一个（如果有空槽）
         processQueue();
     };
 
@@ -164,12 +222,41 @@ export function useUploadQueue() {
         if (index !== -1) {
             const item = queue.value[index];
             if (item.status === 'uploading' && item.xhr) {
-                item.xhr.abort(); // 取消请求
+                item.xhr.abort();
                 activeUploads--;
             }
             queue.value.splice(index, 1);
             processQueue();
         }
+    };
+
+    /**
+     * 🔧 NEW: 重试失败的文件
+     */
+    const retryFile = (id) => {
+        const item = queue.value.find(item => item.id === id);
+        if (item && item.status === 'error') {
+            item.status = 'pending';
+            item.progress = 0;
+            item.error = null;
+            item.speed = 0;
+            processQueue();
+        }
+    };
+
+    /**
+     * 🔧 NEW: 重试所有失败的文件
+     */
+    const retryAllFailed = () => {
+        queue.value
+            .filter(item => item.status === 'error')
+            .forEach(item => {
+                item.status = 'pending';
+                item.progress = 0;
+                item.error = null;
+                item.speed = 0;
+            });
+        processQueue();
     };
 
     /**
@@ -180,7 +267,7 @@ export function useUploadQueue() {
     };
 
     /**
-     * 清空整个队列 (也会取消正在进行的上传)
+     * 清空整个队列
      */
     const clearAll = () => {
         queue.value.forEach(item => {
@@ -195,17 +282,23 @@ export function useUploadQueue() {
 
     return {
         queue,
-        isUploading, // 是否有任务在进行
-        isMinimized, // 是否最小化UI
+        isUploading,
+        isMinimized, // 🔧 FIX: 现在是全局共享的
         overallProgress,
         hasItems,
         activeCount,
         pendingCount,
         completedCount,
+        totalSpeed,              // 🔧 NEW
+        estimatedTimeRemaining,  // 🔧 NEW
 
         addFiles,
         removeFile,
+        retryFile,           // 🔧 NEW
+        retryAllFailed,      // 🔧 NEW
         clearCompleted,
-        clearAll
+        clearAll,
+        registerFolderRefresh,   // 🔧 NEW
+        unregisterFolderRefresh  // 🔧 NEW
     };
 }

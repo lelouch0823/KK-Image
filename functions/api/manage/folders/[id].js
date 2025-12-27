@@ -68,9 +68,9 @@ export async function onRequestGet(context) {
                 createdAt: f.created_at
             }))
         });
-    } catch (error) {
-        console.error('获取文件夹详情失败:', error);
-        return error(error.message, 500);
+    } catch (err) {
+        console.error('获取文件夹详情失败:', err);
+        return error(err.message, 500);
     }
 }
 
@@ -158,9 +158,9 @@ export async function onRequestPut(context) {
             isPublic: Boolean(updated.is_public),
             shareUrl: updated.share_token ? `/gallery/${updated.share_token}` : null
         });
-    } catch (error) {
-        console.error('更新文件夹失败:', error);
-        return error(error.message, 500);
+    } catch (err) {
+        console.error('更新文件夹失败:', err);
+        return error(err.message, 500);
     }
 }
 
@@ -199,8 +199,8 @@ export async function onRequestDelete(context) {
         await env.DB.prepare('DELETE FROM folders WHERE id = ?').bind(folderId).run();
 
         return success(null, '文件夹已删除');
-    } catch (error) {
-        console.error('删除文件夹失败:', error);
-        return error(error.message, 500);
+    } catch (err) {
+        console.error('删除文件夹失败:', err);
+        return error(err.message, 500);
     }
 }

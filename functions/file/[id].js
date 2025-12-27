@@ -2,150 +2,89 @@
  * @fileoverview 文件访问处理
  * @module file/[id]
  * 
- * 支持多存储后端：
- * - 根据元数据中的存储信息获取文件
- * - 智能回退：主存储失败时自动切换
+ * 基于 D1 数据库的文件服务：
+ * - 从 D1 查询文件信息
+ * - 直接从 R2 获取文件
+ * - 设置适当的缓存控制头
  */
-
-import { getFileWithFallback } from '../storage/redundancy.js';
-import { getStorageProvider, StorageProviderType } from '../storage/index.js';
-import { isFallbackEnabled } from '../storage/router.js';
-
-// Telegram Bot API 上传的文件 ID 最小路径长度
-const TELEGRAM_FILE_ID_MIN_LENGTH = 39;
 
 export async function onRequest(context) {
     const { request, env, params } = context;
-
-    const url = new URL(request.url);
-    const pathname = url.pathname;
-    const origin = url.origin;
     const fileId = params.id;
 
-    // Allow the admin page to directly view the image (bypass checks)
-    const isAdmin = request.headers.get('Referer')?.includes(`${origin}/admin`);
-
-    // 检查 KV 存储获取文件元数据
-    let metadata = null;
-    let record = null;
-
-    if (env.img_url) {
-        record = await env.img_url.getWithMetadata(fileId);
-        metadata = record?.metadata;
-    }
-
-    // 获取文件（支持智能回退）
-    let response;
-
-    if (isFallbackEnabled(env) && (metadata?.storage || env.STORAGE_MODE === 'redundant')) {
-        // 使用智能回退获取文件
-        response = await getFileWithFallback(env, fileId, request, metadata);
-    } else {
-        // 使用传统方式获取文件
-        response = await getFileLegacy(env, fileId, request, pathname, metadata);
-    }
-
-    // 如果文件获取失败，直接返回
-    if (!response.ok) {
-        return response;
-    }
-
-    // 管理员直接返回文件内容
-    if (isAdmin) {
-        return response;
-    }
-
-    // 如果 KV 不可用，直接返回
-    if (!env.img_url) {
-        return response;
-    }
-
-    // 初始化或更新元数据
-    if (!metadata) {
-        metadata = {
-            ListType: "None",
-            Label: "None",
-            TimeStamp: Date.now(),
-            liked: false,
-            fileName: fileId,
-            fileSize: 0
-        };
-        await env.img_url.put(fileId, "", { metadata });
-    }
-
-    // 确保元数据字段完整
-    const fullMetadata = {
-        ListType: metadata.ListType || "None",
-        Label: metadata.Label || "None",
-        TimeStamp: metadata.TimeStamp || Date.now(),
-        liked: metadata.liked !== undefined ? metadata.liked : false,
-        fileName: metadata.fileName || fileId,
-        fileSize: metadata.fileSize || 0,
-        storage: metadata.storage
-    };
-
-    // 根据 ListType 和 Label 处理访问控制
-    if (fullMetadata.ListType === "White") {
-        return response;
-    } else if (fullMetadata.ListType === "Block" || fullMetadata.Label === "adult") {
-        const referer = request.headers.get('Referer');
-        const redirectUrl = referer
-            ? "https://static-res.pages.dev/teleimage/img-block-compressed.png"
-            : `${origin}/block-img.html`;
-        return Response.redirect(redirectUrl, 302);
-    }
-
-    // 检查白名单模式
-    if (env.WhiteList_Mode === "true") {
-        return Response.redirect(`${origin}/whitelist-on.html`, 302);
-    }
-
-    // 内容审查（仅适用于 Telegram 存储）
-    const storageProvider = fullMetadata.storage?.primary || 'telegram';
-    if (env.ModerateContentApiKey && storageProvider === 'telegram') {
+    // 从 D1 数据库查询文件信息
+    let fileRecord = null;
+    if (env.DB) {
         try {
-            const moderateUrl = `https://api.moderatecontent.com/moderate/?key=${env.ModerateContentApiKey}&url=https://telegra.ph${pathname}${url.search}`;
-            const moderateResponse = await fetch(moderateUrl);
-
-            if (moderateResponse.ok) {
-                const moderateData = await moderateResponse.json();
-
-                if (moderateData?.rating_label) {
-                    fullMetadata.Label = moderateData.rating_label;
-
-                    if (moderateData.rating_label === "adult") {
-                        await env.img_url.put(fileId, "", { metadata: fullMetadata });
-                        return Response.redirect(`${origin}/block-img.html`, 302);
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("Content moderation error:", error.message);
+            fileRecord = await env.DB.prepare(
+                'SELECT * FROM files WHERE storage_key = ? OR id = ?'
+            ).bind(fileId, fileId).first();
+        } catch (err) {
+            console.error('D1 query error:', err);
+            return new Response('Database error', { status: 500 });
         }
     }
 
-    // 更新元数据
-    await env.img_url.put(fileId, "", { metadata: fullMetadata });
+    // 确定要查找的 key
+    const storageKey = fileRecord?.storage_key || fileId;
 
-    return response;
+    // 从 R2 获取文件
+    if (!env.R2_BUCKET) {
+        return new Response('R2 not configured', { status: 500 });
+    }
+
+    try {
+        // 使用条件请求和 Range 支持
+        const object = await env.R2_BUCKET.get(storageKey, {
+            onlyIf: request.headers,
+            range: request.headers
+        });
+
+        if (object === null) {
+            // 如果没有找到，尝试用原始 fileId
+            if (storageKey !== fileId) {
+                const object2 = await env.R2_BUCKET.get(fileId);
+                if (object2) {
+                    return buildResponse(object2, fileRecord);
+                }
+            }
+            return new Response('File not found', { status: 404 });
+        }
+
+        return buildResponse(object, fileRecord);
+    } catch (err) {
+        console.error('R2 error:', err);
+        return new Response('Storage error', { status: 500 });
+    }
 }
 
 /**
- * 传统方式获取文件（向后兼容）
+ * 构建响应，设置适当的头
  */
-async function getFileLegacy(env, fileId, request, pathname, metadata) {
-    let storageProvider;
+function buildResponse(object, fileRecord) {
+    const headers = new Headers();
 
-    if (metadata?.storage?.primary) {
-        // 使用元数据中记录的主存储
-        storageProvider = getStorageProvider(env, metadata.storage.primary);
-    } else if (pathname.length > TELEGRAM_FILE_ID_MIN_LENGTH) {
-        // 旧格式：长路径表示 Telegram 文件
-        storageProvider = getStorageProvider(env, StorageProviderType.TELEGRAM);
-    } else {
-        // 使用默认存储
-        storageProvider = getStorageProvider(env);
+    // 使用 R2 的 writeHttpMetadata 写入响应头
+    object.writeHttpMetadata(headers);
+    headers.set('etag', object.httpEtag);
+
+    // 设置 Content-Type（优先使用数据库记录的 MIME 类型）
+    if (fileRecord?.mime_type && !headers.has('Content-Type')) {
+        headers.set('Content-Type', fileRecord.mime_type);
     }
 
-    return await storageProvider.getFile(fileId, request);
+    // 🚀 缓存优化：设置长期缓存 + 不可变
+    if (!headers.has('Cache-Control')) {
+        headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+
+    // 条件请求：如果没有 body，返回 304
+    if (!('body' in object)) {
+        return new Response(null, { status: 304, headers });
+    }
+
+    // Range 请求返回 206
+    const status = object.range ? 206 : 200;
+
+    return new Response(object.body, { status, headers });
 }

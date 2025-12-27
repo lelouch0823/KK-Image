@@ -59,3 +59,21 @@ export const getFileExtension = (filename) => {
     if (!filename) return '';
     return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2).toUpperCase();
 };
+
+/**
+ * 判断是否为图片文件
+ * @param {Object|string} file - 文件对象或文件名
+ * @returns {boolean} 是否为图片
+ */
+export const isImage = (file) => {
+    if (!file) return false;
+
+    // 支持传入文件对象或字符串
+    const filename = typeof file === 'string' ? file : (file.name || file.originalName || '');
+    if (!filename) return false;
+
+    const ext = getFileExtension(filename).toLowerCase();
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'];
+    return imageExtensions.includes(ext);
+};
+

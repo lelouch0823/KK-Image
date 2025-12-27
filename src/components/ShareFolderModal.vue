@@ -27,8 +27,27 @@
              </div>
          </div>
 
+         <!-- 🔧 NEW: 显示已有分享链接 -->
+         <div v-if="existingShareUrl && !shareUrl" class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+             <div class="flex items-center justify-between mb-2">
+                 <span class="text-sm font-medium text-blue-800">已有分享链接</span>
+                 <span class="text-xs text-blue-600">{{ formatExpiry(folder?.shareExpiresAt) }}</span>
+             </div>
+             <div class="flex gap-2">
+                 <input type="text" readonly :value="existingShareUrl" class="input flex-1 text-sm bg-white" @click="$event.target.select()">
+                 <button @click="copyExistingLink" class="btn btn-secondary whitespace-nowrap text-sm">
+                     复制
+                 </button>
+             </div>
+             <p class="text-xs text-blue-600 mt-2" v-if="existingCopied">✓ 已复制</p>
+             <div class="mt-3 pt-3 border-t border-blue-100 flex justify-between items-center">
+                 <span class="text-xs text-blue-500">需要更新有效期？</span>
+                 <button @click="showExpiryOptions = true" class="text-xs text-blue-700 hover:underline font-medium">重新生成</button>
+             </div>
+         </div>
+
          <!-- Expiration Options -->
-         <div class="mb-6">
+         <div v-if="!existingShareUrl || showExpiryOptions" class="mb-6">
              <label class="text-sm font-medium text-primary mb-3 block">有效期</label>
              <div class="grid grid-cols-3 gap-3">
                  <button 
@@ -60,10 +79,11 @@
       </div>
 
       <!-- Footer -->
-      <div class="px-6 py-4 border-t border-[var(--border-color)] flex justify-end bg-gray-50 rounded-b-xl">
-        <button v-if="!shareUrl" @click="generateLink" :disabled="loading" class="btn btn-primary w-full sm:w-auto">
+      <div class="px-6 py-4 border-t border-[var(--border-color)] flex justify-end bg-gray-50 rounded-b-xl gap-3">
+        <button v-if="existingShareUrl && !showExpiryOptions && !shareUrl" @click="close" class="btn btn-primary w-full sm:w-auto">完成</button>
+        <button v-else-if="!shareUrl" @click="generateLink" :disabled="loading" class="btn btn-primary w-full sm:w-auto">
             <span v-if="loading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
-            创建分享链接
+            {{ existingShareUrl ? '更新分享链接' : '创建分享链接' }}
         </button>
         <button v-else @click="close" class="btn btn-primary w-full sm:w-auto">完成</button>
       </div>
@@ -73,10 +93,11 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
+import { formatExpiry } from '@/utils/formatters';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -89,9 +110,11 @@ const { success, error } = useToast();
 const { getHeaders } = useAuth();
 
 const loading = ref(false);
-const expiry = ref(7); // Default 7 days
+const expiry = ref(7);
 const shareUrl = ref('');
 const copied = ref(false);
+const existingCopied = ref(false);
+const showExpiryOptions = ref(false);
 
 const options = [
     { label: '7天', value: 7 },
@@ -99,10 +122,18 @@ const options = [
     { label: '永久', value: 0 }
 ];
 
+// 🔧 NEW: 计算已有分享链接
+const existingShareUrl = computed(() => {
+    if (!props.folder?.shareToken) return '';
+    return `${window.location.origin}/gallery/${props.folder.shareToken}`;
+});
+
 const close = () => {
     emit('update:modelValue', false);
     shareUrl.value = '';
     copied.value = false;
+    existingCopied.value = false;
+    showExpiryOptions.value = false;
 };
 
 const generateLink = async () => {
@@ -120,13 +151,13 @@ const generateLink = async () => {
             headers: getHeaders(true),
             body: JSON.stringify({
                 shareExpiresAt: timestamp,
-                isPublic: true // Ensure public is on
+                isPublic: true
             })
         }).then(r => r.json());
 
         if (res.success) {
             shareUrl.value = window.location.origin + res.data.shareUrl;
-            emit('updated'); // Notify parent to refresh folder data
+            emit('updated');
         } else {
             error(res.message || '生成失败');
         }
@@ -146,17 +177,19 @@ const copyLink = () => {
     });
 };
 
+const copyExistingLink = () => {
+    if (!existingShareUrl.value) return;
+    navigator.clipboard.writeText(existingShareUrl.value).then(() => {
+        existingCopied.value = true;
+        setTimeout(() => existingCopied.value = false, 2000);
+        success('链接已复制');
+    });
+};
+
 watch(() => props.modelValue, (val) => {
     if (val) {
-        // Reset state
         shareUrl.value = '';
-        if (props.folder?.shareToken) {
-            // Check if existing token is valid? 
-            // We just show generic "Generate" for now to allow changing expiration?
-            // User requested "Select options -> Generate".
-            // If already has token, we overwriting expiration is fine.
-            // Maybe pre-fill if we knew, but for now simple flow.
-        }
+        showExpiryOptions.value = false;
     }
 });
 </script>

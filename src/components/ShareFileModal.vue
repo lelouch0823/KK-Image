@@ -1,4 +1,3 @@
-
 <template>
   <div v-if="modelValue" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col animate-in fade-in zoom-in duration-200">
@@ -18,15 +17,14 @@
          <!-- File Info -->
          <div class="flex items-center gap-3 mb-6 p-3 bg-gray-50 rounded-lg border border-[var(--border-color)]">
              <div class="p-2 bg-white rounded-md shadow-sm border border-gray-100">
-                 <!-- Image Preview if applicable -->
-                 <img v-if="isImage(file)" :src="file.url" class="w-8 h-8 object-cover rounded" />
+                 <img v-if="fileIsImage" :src="file?.url" class="w-8 h-8 object-cover rounded" />
                  <div v-else class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded text-xs font-bold text-gray-500">
-                    {{ getFileExtension(file?.name) }}
+                    {{ fileExtension }}
                  </div>
              </div>
              <div class="overflow-hidden">
-                 <div class="font-medium text-primary truncate" :title="file?.name">{{ file?.name }}</div>
-                 <div class="text-xs text-secondary">{{ formatSize(file?.size) }}</div>
+                 <div class="font-medium text-primary truncate" :title="file?.name">{{ file?.name || file?.originalName || '未知文件' }}</div>
+                 <div class="text-xs text-secondary">{{ formattedSize }}</div>
              </div>
          </div>
 
@@ -57,10 +55,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { useToast } from '@/composables/useToast';
-import { formatSize, getFileExtension } from '@/utils/formatters';
-import { IMAGE_EXTENSIONS } from '@/utils/constants';
+import { formatSize, getFileExtension, isImage } from '@/utils/formatters';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -72,16 +69,20 @@ const { success } = useToast();
 
 const copied = ref(false);
 
+// 🔧 FIX: 使用 computed 确保响应式 + 空值安全
 const shareUrl = computed(() => {
-    if (!props.file) return '';
+    if (!props.file?.url) return '';
     return `${window.location.origin}${props.file.url}`;
 });
 
-const isImage = (file) => {
-    if (!file) return false;
-    const ext = getFileExtension(file.name).toLowerCase();
-    return IMAGE_EXTENSIONS.includes(ext);
-};
+const fileIsImage = computed(() => isImage(props.file));
+
+const fileExtension = computed(() => {
+    const name = props.file?.name || props.file?.originalName || '';
+    return getFileExtension(name);
+});
+
+const formattedSize = computed(() => formatSize(props.file?.size || 0));
 
 const close = () => {
     emit('update:modelValue', false);

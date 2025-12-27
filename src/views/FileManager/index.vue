@@ -122,7 +122,7 @@
               <tr v-for="file in files" :key="file.id" class="hover:bg-[var(--bg-hover)] group transition-colors">
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-3">
-                    <img v-if="isImage(file)" :src="file.url" class="w-8 h-8 rounded object-cover border border-[var(--border-color)] bg-gray-50">
+                    <img v-if="isImage(file)" :src="file.url" class="w-8 h-8 rounded object-cover border border-[var(--border-color)] bg-gray-50" loading="lazy">
                     <div v-else class="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-xs text-secondary uppercase border border-[var(--border-color)]">
                       {{ getFileExtension(file.name) }}
                     </div>
@@ -211,12 +211,12 @@ import { onMounted, ref, onUnmounted, watch } from 'vue';
 import { useFileManager } from '@/composables/useFileManager';
 import MoveFileModal from '@/components/MoveFileModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
-import ShareFileModal from '@/components/ShareFileModal.vue'; // New Import
+import ShareFileModal from '@/components/ShareFileModal.vue';
 import { useToast } from '@/composables/useToast';
 import { useUploadQueue } from '@/composables/useUploadQueue';
 
 const { addToast } = useToast();
-const { addFiles, completedCount } = useUploadQueue(); // 使用新的上传队列
+const { addFiles, registerFolderRefresh, unregisterFolderRefresh } = useUploadQueue();
 
 const {
   loading,
@@ -228,7 +228,6 @@ const {
   createFolder,
   deleteFolder,
   deleteFile,
-  // uploadFiles, // 不再使用旧的上传方法
   formatSize,
   formatDate,
   getFileExtension,
@@ -237,13 +236,13 @@ const {
 
 const showModal = ref(false);
 const showMoveModal = ref(false);
-const showShareModal = ref(false); // Folder Share
-const showShareFileModal = ref(false); // File Share
+const showShareModal = ref(false);
+const showShareFileModal = ref(false);
 const filesToMove = ref([]);
 const folderName = ref('');
 const isDragging = ref(false);
 const dragCounter = ref(0);
-const currentShareFile = ref(null); // Currently shared file
+const currentShareFile = ref(null);
 
 const navigateTo = (id) => {
   loadFolderData(id);
@@ -266,23 +265,24 @@ const handleDeleteFolder = async (folder) => {
 };
 
 // ----------------------------------------------------------------------
-// SOTA Upload Logic (Drag & Drop + Queue)
+// SOTA Upload Logic (Drag & Drop + Folder-Aware Refresh)
 // ----------------------------------------------------------------------
 
-// 监听上传完成数量，自动刷新列表
-watch(completedCount, (newCount, oldCount) => {
-    if (newCount > oldCount) {
-        // 有新文件完成上传，刷新当前文件夹
-        // 防抖？不，简单起见直接刷新，FileManager的loading状态只影响内容区域
-        // 但为了不打断用户，我们可以静默刷新？
-        // loadFolderData 会设置 loading=true，这会导致界面闪烁。
-        // 我们应该在 useFileManager 中支持 silent reload，或者在这里只是简单的 re-fetch
-        // 考虑到 loadFolderData 逻辑较复杂，我们暂时直接调用，但可能会有 loading 闪烁
-        // 改进：useFileManager 的 loading 应该只在切换文件夹时 true？
-        // 暂时直接调用，确保文件显示出来。
-        loadFolderData(currentFolder.value?.id);
+// 🔧 FIX: 使用 folder-aware 刷新回调替代 completedCount watch
+// 当 currentFolder 变化时，注册/注销刷新回调
+watch(currentFolder, (newFolder, oldFolder) => {
+    // 注销旧文件夹的回调
+    if (oldFolder?.id) {
+        unregisterFolderRefresh(oldFolder.id);
     }
-});
+    // 注册新文件夹的回调
+    if (newFolder?.id) {
+        registerFolderRefresh(newFolder.id, () => {
+            // 🔧 FIX: 使用静默刷新，避免界面闪烁
+            loadFolderData(newFolder.id, { silent: true });
+        });
+    }
+}, { immediate: true });
 
 const handleFileSelect = (e) => {
   const selectedFiles = Array.from(e.target.files);
@@ -352,14 +352,23 @@ const handleMoved = () => {
     loadFolderData(currentFolder.value?.id);
 };
 
+// 🔧 FIX: 使用命名函数以便正确移除事件监听器
+const preventDefaultHandler = (e) => e.preventDefault();
+
 onMounted(() => {
     loadFolderData();
-    window.addEventListener('dragover', (e) => e.preventDefault());
-    window.addEventListener('drop', (e) => e.preventDefault());
+    window.addEventListener('dragover', preventDefaultHandler);
+    window.addEventListener('drop', preventDefaultHandler);
 });
 
 onUnmounted(() => {
-    window.removeEventListener('dragover', (e) => e.preventDefault());
-    window.removeEventListener('drop', (e) => e.preventDefault());
+    // 清理刷新回调
+    if (currentFolder.value?.id) {
+        unregisterFolderRefresh(currentFolder.value.id);
+    }
+    // 🔧 FIX: 正确移除事件监听器
+    window.removeEventListener('dragover', preventDefaultHandler);
+    window.removeEventListener('drop', preventDefaultHandler);
 });
 </script>
+

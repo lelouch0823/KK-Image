@@ -1,8 +1,8 @@
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useToast } from './useToast';
 import { useAuth } from './useAuth';
-import { formatSize, formatDate, getFileExtension } from '@/utils/formatters';
-import { IMAGE_EXTENSIONS, API } from '@/utils/constants';
+import { formatSize, formatDate, getFileExtension, isImage } from '@/utils/formatters';
+import { API } from '@/utils/constants';
 
 export function useFileManager() {
     const { error, success } = useToast();
@@ -16,22 +16,25 @@ export function useFileManager() {
     const breadcrumbs = ref([]);
     const selectedFiles = ref([]);
 
-    // 计算属性
-    const isImage = (file) => {
-        if (file.type === 'image') return true;
-        const ext = getFileExtension(file.name || file.originalName).toLowerCase();
-        return IMAGE_EXTENSIONS.includes(ext);
-    };
+    /**
+     * 加载文件夹数据
+     * @param {string|null} folderId - 文件夹ID，null表示根目录
+     * @param {Object} options - 选项
+     * @param {boolean} options.silent - 静默刷新，不显示loading状态
+     */
+    const loadFolderData = async (folderId = null, options = {}) => {
+        const { silent = false } = options;
 
-    // API 交互
-    const loadFolderData = async (folderId = null) => {
-        loading.value = true;
-        selectedFiles.value = []; // 清空选择
+        // 🔧 FIX: 只有非静默模式才设置loading
+        if (!silent) {
+            loading.value = true;
+            selectedFiles.value = [];
+        }
+
         try {
             const authHeader = getAuthHeader();
 
             if (folderId) {
-                // 单个文件夹
                 const res = await fetch(API.FOLDER_BY_ID(folderId), { headers: authHeader }).then(r => r.json());
                 if (res.success) {
                     currentFolder.value = res.data;
@@ -42,12 +45,11 @@ export function useFileManager() {
                     error(res.message);
                 }
             } else {
-                // 根目录
                 const res = await fetch(API.FOLDERS, { headers: authHeader }).then(r => r.json());
                 if (res.success) {
                     currentFolder.value = null;
                     subfolders.value = res.data;
-                    files.value = []; // Root 不显示文件
+                    files.value = [];
                     breadcrumbs.value = [];
                 } else {
                     error(res.message);
@@ -55,9 +57,13 @@ export function useFileManager() {
             }
         } catch (e) {
             console.error(e);
-            error('加载失败');
+            if (!silent) {
+                error('加载失败');
+            }
         } finally {
-            loading.value = false;
+            if (!silent) {
+                loading.value = false;
+            }
         }
     };
 
@@ -119,7 +125,6 @@ export function useFileManager() {
 
             if (res.success) {
                 success('删除成功');
-                // 如果删除的是当前文件夹，返回上一级
                 if (currentFolder.value && currentFolder.value.id === id) {
                     loadFolderData(currentFolder.value.parentId);
                 } else {
@@ -155,40 +160,7 @@ export function useFileManager() {
         }
     };
 
-    const uploadFiles = async (fileList) => {
-        if (!currentFolder.value) {
-            error('请先选择一个文件夹');
-            return;
-        }
-
-        loading.value = true;
-        let successCount = 0;
-
-        for (const file of fileList) {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            try {
-                const res = await fetch(API.FOLDER_UPLOAD(currentFolder.value.id), {
-                    method: 'POST',
-                    headers: getAuthHeader(),
-                    body: formData
-                }).then(r => r.json());
-
-                if (res.success) successCount++;
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        loading.value = false;
-        if (successCount > 0) {
-            success(`成功上传 ${successCount} 个文件`);
-            loadFolderData(currentFolder.value.id);
-        } else {
-            error('上传失败');
-        }
-    };
+    // 🔧 REMOVED: uploadFiles 函数已被 useUploadQueue 替代
 
     return {
         loading,
@@ -203,8 +175,8 @@ export function useFileManager() {
         updateFolder,
         deleteFolder,
         deleteFile,
-        uploadFiles,
 
+        // 从 utils 导出的辅助函数
         isImage,
         getFileExtension,
         formatSize,

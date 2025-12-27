@@ -1,14 +1,12 @@
-
 <template>
   <transition name="slide-up">
     <div v-if="hasItems" class="fixed bottom-6 right-6 w-96 bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 overflow-hidden z-[60] flex flex-col max-h-[500px] transition-all duration-300 ease-spring"
       :class="{ 'w-auto rounded-full': isMinimized }">
       
       <!-- Header -->
-      <div class="px-4 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between cursor-pointer select-none"
-           @click="toggleMinimize">
+      <div class="px-4 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between select-none">
         <div class="flex items-center gap-3">
-           <!-- Progress Ring (Mini) or Icon -->
+           <!-- Progress Ring or Icon -->
            <div class="relative w-8 h-8 flex items-center justify-center">
              <svg v-if="isUploading" class="animate-spin w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -25,6 +23,11 @@
               </span>
               <span class="text-xs text-gray-500">
                 {{ completedCount }} / {{ queue.length }} 完成
+                <!-- 🔧 NEW: 速度和剩余时间 -->
+                <template v-if="isUploading && totalSpeed > 0">
+                  · {{ formatSpeed(totalSpeed) }}
+                  <template v-if="estimatedTimeRemaining">· 剩余 {{ formatTime(estimatedTimeRemaining) }}</template>
+                </template>
               </span>
            </div>
         </div>
@@ -40,6 +43,13 @@
              <span class="text-xs font-bold">{{ overallProgress }}%</span>
           </button>
           
+          <!-- 🔧 NEW: 重试所有失败 -->
+          <button v-if="!isMinimized && failedCount > 0" @click.stop="retryAllFailed" class="p-1.5 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition-colors" title="重试所有失败">
+             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+             </svg>
+          </button>
+
           <button v-if="!isMinimized && !isUploading" @click.stop="clearCompleted" class="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors" title="清除已完成">
              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -59,12 +69,6 @@
           <transition-group name="list" tag="ul" class="p-2 space-y-2">
             <li v-for="item in queue" :key="item.id" 
                 class="group flex items-center gap-3 p-3 bg-white hover:bg-gray-50 rounded-xl border border-gray-100 shadow-sm transition-all hover:shadow-md relative overflow-hidden">
-                
-               <!-- Progress Bar Background -->
-               <div class="absolute bottom-0 left-0 h-1 bg-blue-500/20 w-full transition-all duration-300"
-                    :style="{ width: item.progress + '%' }"
-                    :class="{ 'bg-green-500/50': item.status === 'success', 'bg-red-500/50': item.status === 'error' }">
-               </div>
 
                <!-- Icon -->
                <div class="w-10 h-10 shrink-0 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-bold uppercase">
@@ -75,20 +79,26 @@
                <div class="flex-1 min-w-0">
                   <div class="flex items-center justify-between mb-1">
                       <h4 class="text-sm font-medium text-gray-700 truncate pr-2" :title="item.name">{{ item.name }}</h4>
-                      <span class="text-xs font-mono" :class="getStatusColor(item.status)">
+                      <span class="text-xs font-mono shrink-0" :class="getStatusColor(item.status)">
                         {{ getStatusText(item) }}
                       </span>
                   </div>
                   <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
                      <div class="h-full rounded-full transition-all duration-300 ease-out"
-                          :class="getStatusBg(item.status)"
+                          :class="getProgressBarClass(item.status)"
                           :style="{ width: item.progress + '%' }">
                      </div>
                   </div>
                </div>
 
-               <!-- Cancel Button -->
-               <button v-if="item.status !== 'success'" @click="removeFile(item.id)" 
+               <!-- Action Button -->
+               <button v-if="item.status === 'error'" @click="retryFile(item.id)" 
+                  class="p-1.5 text-orange-500 hover:text-orange-700 rounded-full hover:bg-orange-50 transition-all bg-white shadow-sm border border-gray-100" title="重试">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                  </svg>
+               </button>
+               <button v-else-if="item.status !== 'success'" @click="removeFile(item.id)" 
                   class="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-all absolute right-2 top-1/2 -translate-y-1/2 bg-white shadow-sm border border-gray-100">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -103,6 +113,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useUploadQueue } from '@/composables/useUploadQueue';
 
 const { 
@@ -113,10 +124,17 @@ const {
     completedCount, 
     overallProgress,
     isMinimized,
+    totalSpeed,
+    estimatedTimeRemaining,
     removeFile,
+    retryFile,
+    retryAllFailed,
     clearCompleted,
     clearAll
 } = useUploadQueue();
+
+// 🔧 NEW: 失败数量
+const failedCount = computed(() => queue.value.filter(item => item.status === 'error').length);
 
 const toggleMinimize = () => {
     isMinimized.value = !isMinimized.value;
@@ -131,7 +149,7 @@ const getStatusColor = (status) => {
     }
 };
 
-const getStatusBg = (status) => {
+const getProgressBarClass = (status) => {
     switch (status) {
         case 'uploading': return 'bg-blue-500';
         case 'success': return 'bg-green-500';
@@ -141,20 +159,38 @@ const getStatusBg = (status) => {
 };
 
 const getStatusText = (item) => {
-    if (item.status === 'uploading') return `${item.progress}%`;
+    if (item.status === 'uploading') {
+        // 🔧 NEW: 显示速度
+        if (item.speed > 0) {
+            return `${item.progress}% · ${formatSpeed(item.speed)}`;
+        }
+        return `${item.progress}%`;
+    }
     if (item.status === 'success') return '完成';
-    if (item.status === 'error') return '失败';
+    if (item.status === 'error') return item.error || '失败';
     return '等待';
+};
+
+// 🔧 NEW: 格式化速度
+const formatSpeed = (bytesPerSecond) => {
+    if (bytesPerSecond < 1024) return `${bytesPerSecond} B/s`;
+    if (bytesPerSecond < 1024 * 1024) return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`;
+    return `${(bytesPerSecond / 1024 / 1024).toFixed(1)} MB/s`;
+};
+
+// 🔧 NEW: 格式化时间
+const formatTime = (seconds) => {
+    if (seconds < 60) return `${seconds}秒`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}分${seconds % 60}秒`;
+    return `${Math.floor(seconds / 3600)}小时${Math.floor((seconds % 3600) / 60)}分`;
 };
 </script>
 
 <style scoped>
-/* Spring Animation for Container */
 .ease-spring {
     transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Slide Up Transition */
 .slide-up-enter-active,
 .slide-up-leave-active {
     transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -165,8 +201,7 @@ const getStatusText = (item) => {
     transform: translateY(20px) scale(0.95);
 }
 
-/* List Item Transitions */
-.list-move, /* apply transition to moving elements */
+.list-move,
 .list-enter-active,
 .list-leave-active {
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -177,12 +212,11 @@ const getStatusText = (item) => {
   transform: translateX(20px);
 }
 .list-leave-active {
-  position: absolute; /* ensure leaving items are taken out of flow */
+  position: absolute;
   right: 12px;
   left: 12px;
 }
 
-/* Expand transition */
 .expand-enter-active,
 .expand-leave-active {
     transition: all 0.3s ease;

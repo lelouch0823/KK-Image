@@ -7,13 +7,9 @@
     ],
     "exclude": [
         "/assets/*",
-        "/*.js",
-        "/*.css",
+        "/js/*",
+        "/css/*",
         "/*.ico",
-        "/*.png",
-        "/*.jpg",
-        "/*.webp",
-        "/*.svg",
-        "/*.woff2"
+        "/favicon.ico"
     ]
 }

@@ -57,9 +57,9 @@ export async function onRequestGet(context) {
             subfolderCount: folder.subfolder_count,
             fileCount: folder.file_count
         })));
-    } catch (error) {
-        console.error('获取文件夹列表失败:', error);
-        return error(error.message, 500);
+    } catch (err) {
+        console.error('获取文件夹列表失败:', err);
+        return error(err.message, 500);
     }
 }
 
@@ -83,7 +83,8 @@ export async function onRequestPost(context) {
         }
 
         const folderId = generateId();
-        const shareToken = generateShareToken();
+        // 🔧 FIX: 仅在 isPublic 为 true 时才生成 shareToken
+        const shareToken = isPublic ? generateShareToken() : null;
         const now = Date.now();
 
         await env.DB.prepare(`
@@ -114,8 +115,8 @@ export async function onRequestPost(context) {
                 createdAt: now
             }
         }, 201);
-    } catch (error) {
-        console.error('创建文件夹失败:', error);
-        return error(error.message, 500);
+    } catch (err) {
+        console.error('创建文件夹失败:', err);
+        return error(err.message, 500);
     }
 }
