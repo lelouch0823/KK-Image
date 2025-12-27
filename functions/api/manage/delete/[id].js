@@ -18,7 +18,7 @@ export async function onRequest(context) {
                     filename: fileData.metadata.fileName || fileId,
                     size: fileData.metadata.fileSize || 0,
                     uploadTime: fileData.metadata.TimeStamp ? new Date(fileData.metadata.TimeStamp).toISOString() : null,
-                    url: `${new URL(request.url).origin}/file/${fileId}`
+                    url: getFileUrl(fileId, new URL(request.url).origin)
                 };
             }
         } catch (error) {

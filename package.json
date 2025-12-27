@@ -21,7 +21,9 @@
     "chart.js": "^4.5.1",
     "chartjs-adapter-date-fns": "^3.0.0",
     "date-fns": "^4.1.0",
-    "vue": "^3.4.0"
+    "jszip": "^3.10.1",
+    "vue": "^3.4.0",
+    "vue-chartjs": "^5.3.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",

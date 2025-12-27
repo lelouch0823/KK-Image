@@ -25,12 +25,12 @@ export function jsonResponse(data, status = 200, headers = {}) {
  * @param {string} [message] - 可选消息
  * @returns {Response}
  */
-export function success(data, message = 'Success') {
+export function success(data, message = 'Success', status = 200, headers = {}) {
     return jsonResponse({
         success: true,
         message,
         data
-    });
+    }, status, headers);
 }
 
 /**

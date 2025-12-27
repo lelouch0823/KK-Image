@@ -1,6 +1,5 @@
 import { ref, computed, shallowRef } from 'vue';
 import { useToast } from '@/composables/useToast';
-import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
 
 // ============================================================
@@ -8,7 +7,7 @@ import { API } from '@/utils/constants';
 // ============================================================
 const queue = ref([]);
 const isUploading = ref(false);
-const isMinimized = ref(false); // 🔧 FIX: 移到全局
+const isMinimized = ref(false);
 const concurrency = 3;
 let activeUploads = 0;
 
@@ -18,7 +17,6 @@ const folderRefreshCallbacks = shallowRef(new Map());
 
 export function useUploadQueue() {
     const { addToast } = useToast();
-    const { getAuthHeader } = useAuth();
 
     // 计算属性
     const hasItems = computed(() => queue.value.length > 0);
@@ -199,15 +197,9 @@ export function useUploadQueue() {
             processQueue();
         };
 
-        const authHeader = getAuthHeader();
         const url = API.FOLDER_UPLOAD(item.folderId);
-
         xhr.open('POST', url, true);
-
-        if (authHeader.Authorization) {
-            xhr.setRequestHeader('Authorization', authHeader.Authorization);
-        }
-
+        // 使用 cookies 认证 (通过 withCredentials)
         xhr.withCredentials = true;
         xhr.send(formData);
 

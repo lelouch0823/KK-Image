@@ -1,6 +1,7 @@
 // 文件管理 API - RESTful 接口
 import { hasPermission } from '../utils/auth.js';
 import { triggerWebhook } from '../utils/webhook.js';
+import { getFileUrl } from '../utils/url.js';
 
 // 获取文件列表
 export async function onRequestGet(context) {
@@ -44,7 +45,7 @@ export async function onRequestGet(context) {
           type: metadata.type || 'unknown',
           uploadTime: metadata.uploadTime || key.name.split('_')[0],
           status: metadata.status || 'normal',
-          url: `${url.origin}/file/${key.name}`,
+          url: getFileUrl(key.name, url.origin),
           thumbnail: metadata.thumbnail || null,
           tags: metadata.tags || [],
           uploader: metadata.uploader || 'anonymous'
@@ -187,7 +188,7 @@ export async function onRequestPost(context) {
       type: metadata.type,
       uploadTime: metadata.uploadTime,
       status: metadata.status,
-      url: `${new URL(request.url).origin}/file/${fileId}`,
+      url: getFileUrl(fileId, new URL(request.url).origin),
       uploader: metadata.uploader,
       tags: metadata.tags
     };
@@ -274,7 +275,7 @@ export async function onRequestPut(context) {
       type: updatedMetadata.type || 'unknown',
       uploadTime: updatedMetadata.uploadTime,
       status: updatedMetadata.status || 'normal',
-      url: `${url.origin}/file/${fileId}`,
+      url: getFileUrl(fileId, url.origin),
       uploader: updatedMetadata.uploader || 'anonymous',
       tags: updatedMetadata.tags || [],
       lastModified: updatedMetadata.lastModified,

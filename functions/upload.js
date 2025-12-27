@@ -69,7 +69,7 @@ export async function onRequestPost(context) {
             type: uploadFile.type,
             uploadTime: new Date().toISOString(),
             status: 'normal',
-            url: `${new URL(request.url).origin}/file/${fileId}`,
+            url: getFileUrl(fileId, new URL(request.url).origin),
             uploader: 'anonymous',
             storage: result.metadata?.storage
         };

@@ -3,6 +3,8 @@
  * GET /api/gallery/:token - 获取公开文件夹信息和文件列表
  */
 
+import { getShareUrl, getFileUrl } from '../utils/url.js';
+
 export async function onRequestGet(context) {
     const { env, params, request } = context;
     const shareToken = params.token;
@@ -83,7 +85,7 @@ export async function onRequestGet(context) {
             data: {
                 name: folder.name,
                 description: folder.description,
-                coverImage: coverFile ? `/file/${coverFile.storage_key}` : null,
+                coverImage: coverFile ? getFileUrl(coverFile.storage_key) : null,
                 fileCount: files.length,
                 createdAt: folder.created_at,
                 files: files.map(f => ({
@@ -91,15 +93,15 @@ export async function onRequestGet(context) {
                     name: f.original_name || f.name,
                     size: f.size,
                     type: getFileType(f.mime_type, f.name),
-                    url: `/file/${f.storage_key}`,
-                    thumbnailUrl: getFileType(f.mime_type, f.name) === 'image' ? `/file/${f.storage_key}` : null,
+                    url: getFileUrl(f.storage_key),
+                    thumbnailUrl: getFileType(f.mime_type, f.name) === 'image' ? getFileUrl(f.storage_key) : null,
                     createdAt: f.created_at
                 })),
                 subfolders: subfolders.map(sf => ({
                     id: sf.id,
                     name: sf.name,
                     fileCount: sf.file_count,
-                    shareUrl: sf.share_token ? `/gallery/${sf.share_token}` : null
+                    shareUrl: getShareUrl(sf.share_token)
                 }))
             }
         }), {

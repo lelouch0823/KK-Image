@@ -48,6 +48,7 @@ import { useAuth } from '@/composables/useAuth';
 // 导入视图组件
 import Dashboard from '@/views/Dashboard.vue';
 import FileManager from '@/views/FileManager/index.vue';
+import SpaceManager from '@/views/SpaceManager/index.vue';
 import Stats from '@/views/Stats.vue';
 
 const { currentView } = useView();
@@ -56,7 +57,8 @@ const { checkAuth, isAuthenticated, isLoading } = useAuth();
 const currentComponent = computed(() => {
   switch (currentView.value) {
     case 'dashboard': return Dashboard;
-    case 'files': return FileManager; // 合并了 albums, files
+    case 'files': return FileManager;
+    case 'spaces': return SpaceManager;
     case 'stats': return Stats;
     default: return Dashboard;
   }

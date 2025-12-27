@@ -3,6 +3,8 @@
  * POST /api/manage/folders/:id/upload - 上传文件到指定文件夹
  */
 
+import { getFileUrl } from '../../../utils/url.js';
+
 // 生成唯一 ID
 function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
@@ -139,7 +141,7 @@ export async function onRequestPost(context) {
                 originalName: originalName,
                 size: size,
                 mimeType: mimeType,
-                url: `/file/${storageKey}`,
+                url: getFileUrl(storageKey),
                 createdAt: now
             }
         }), {

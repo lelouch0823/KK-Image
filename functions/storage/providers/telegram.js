@@ -74,7 +74,7 @@ export class TelegramStorageProvider extends BaseStorageProvider {
         return {
             success: true,
             fileId: fileId,
-            url: `/file/${fileId}`,
+            url: getFileUrl(fileId),
             metadata: {
                 storageProvider: this.name,
                 storageId: telegramFileId,

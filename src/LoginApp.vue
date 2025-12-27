@@ -96,6 +96,7 @@ import { ref, onBeforeMount } from 'vue';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
+import { API } from '@/utils/constants';
 
 const { addToast } = useToast();
 const { checkAuth } = useAuth();
@@ -125,7 +126,7 @@ const handleLogin = async () => {
   error.value = '';
 
   try {
-    const response = await fetch('/api/manage/login', {
+    const response = await fetch(API.LOGIN, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -212,6 +212,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
+import { API } from '@/utils/constants';
 
 const { addToast } = useToast();
 
@@ -240,7 +241,7 @@ const loadAlbum = async (pwd = null) => {
     }
 
     try {
-        let url = `/api/gallery/${token}`;
+        let url = API.PUBLIC_GALLERY(token);
         if (pwd) url += `?password=${encodeURIComponent(pwd)}`;
 
         const response = await fetch(url);

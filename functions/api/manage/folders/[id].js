@@ -5,7 +5,8 @@
  * DELETE /api/manage/folders/:id - 删除文件夹（级联删除）
  */
 
-import { jsonResponse, success, error } from '../../utils/response.js';
+import { success, error } from '../../utils/response.js';
+import { getShareUrl, getFileUrl } from '../../utils/url.js';
 
 export async function onRequestGet(context) {
     const { env, params } = context;
@@ -47,7 +48,7 @@ export async function onRequestGet(context) {
             password: folder.password ? true : false, // 不返回实际密码
             createdAt: folder.created_at,
             updatedAt: folder.updated_at,
-            shareUrl: folder.share_token ? `/gallery/${folder.share_token}` : null,
+            shareUrl: getShareUrl(folder.share_token),
             breadcrumbs,
             subfolders: subfolders.map(f => ({
                 id: f.id,
@@ -64,7 +65,7 @@ export async function onRequestGet(context) {
                 size: f.size,
                 mimeType: f.mime_type,
                 storageKey: f.storage_key,
-                url: `/file/${f.storage_key}`,
+                url: getFileUrl(f.storage_key),
                 createdAt: f.created_at
             }))
         });
@@ -156,7 +157,7 @@ export async function onRequestPut(context) {
         return success({
             ...updated,
             isPublic: Boolean(updated.is_public),
-            shareUrl: updated.share_token ? `/gallery/${updated.share_token}` : null
+            shareUrl: getShareUrl(updated.share_token)
         });
     } catch (err) {
         console.error('更新文件夹失败:', err);

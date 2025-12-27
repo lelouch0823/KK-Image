@@ -5,7 +5,8 @@
  */
 
 import { generateId, generateShareToken } from '../../utils/id.js';
-import { jsonResponse, success, error } from '../../utils/response.js';
+import { success, error } from '../../utils/response.js';
+import { getShareUrl } from '../../utils/url.js';
 
 export async function onRequestGet(context) {
     const { env, request } = context;
@@ -102,18 +103,15 @@ export async function onRequestPost(context) {
             now
         ).run();
 
-        return jsonResponse({
-            success: true,
-            data: {
-                id: folderId,
-                name: name.trim(),
-                description: description.trim(),
-                parentId,
-                shareToken,
-                isPublic,
-                shareUrl: `/gallery/${shareToken}`,
-                createdAt: now
-            }
+        return success({
+            id: folderId,
+            name: name.trim(),
+            description: description.trim(),
+            parentId,
+            shareToken,
+            isPublic,
+            shareUrl: getShareUrl(shareToken),
+            createdAt: now
         }, 201);
     } catch (err) {
         console.error('创建文件夹失败:', err);

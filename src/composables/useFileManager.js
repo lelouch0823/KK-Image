@@ -6,7 +6,7 @@ import { API } from '@/utils/constants';
 
 export function useFileManager() {
     const { error, success } = useToast();
-    const { getAuthHeader, getHeaders } = useAuth();
+    const { authFetch } = useAuth();
 
     // 状态
     const loading = ref(false);
@@ -25,17 +25,14 @@ export function useFileManager() {
     const loadFolderData = async (folderId = null, options = {}) => {
         const { silent = false } = options;
 
-        // 🔧 FIX: 只有非静默模式才设置loading
         if (!silent) {
             loading.value = true;
             selectedFiles.value = [];
         }
 
         try {
-            const authHeader = getAuthHeader();
-
             if (folderId) {
-                const res = await fetch(API.FOLDER_BY_ID(folderId), { headers: authHeader }).then(r => r.json());
+                const res = await authFetch(API.FOLDER_BY_ID(folderId)).then(r => r.json());
                 if (res.success) {
                     currentFolder.value = res.data;
                     subfolders.value = res.data.subfolders;
@@ -45,7 +42,7 @@ export function useFileManager() {
                     error(res.message);
                 }
             } else {
-                const res = await fetch(API.FOLDERS, { headers: authHeader }).then(r => r.json());
+                const res = await authFetch(API.FOLDERS).then(r => r.json());
                 if (res.success) {
                     currentFolder.value = null;
                     subfolders.value = res.data;
@@ -74,9 +71,9 @@ export function useFileManager() {
                 payload.parentId = currentFolder.value.id;
             }
 
-            const res = await fetch(API.FOLDERS, {
+            const res = await authFetch(API.FOLDERS, {
                 method: 'POST',
-                headers: getHeaders(true),
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             }).then(r => r.json());
 
@@ -96,9 +93,9 @@ export function useFileManager() {
 
     const updateFolder = async (id, data) => {
         try {
-            const res = await fetch(API.FOLDER_BY_ID(id), {
+            const res = await authFetch(API.FOLDER_BY_ID(id), {
                 method: 'PUT',
-                headers: getHeaders(true),
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             }).then(r => r.json());
 
@@ -118,9 +115,8 @@ export function useFileManager() {
 
     const deleteFolder = async (id) => {
         try {
-            const res = await fetch(API.FOLDER_BY_ID(id), {
-                method: 'DELETE',
-                headers: getAuthHeader()
+            const res = await authFetch(API.FOLDER_BY_ID(id), {
+                method: 'DELETE'
             }).then(r => r.json());
 
             if (res.success) {
@@ -144,9 +140,8 @@ export function useFileManager() {
     const deleteFile = async (fileId) => {
         if (!currentFolder.value) return;
         try {
-            const res = await fetch(`${API.FOLDER_BY_ID(currentFolder.value.id)}?file_id=${fileId}`, {
-                method: 'DELETE',
-                headers: getAuthHeader()
+            const res = await authFetch(`${API.FOLDER_BY_ID(currentFolder.value.id)}?file_id=${fileId}`, {
+                method: 'DELETE'
             }).then(r => r.json());
 
             if (res.success) {

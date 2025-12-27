@@ -70,7 +70,7 @@ export class S3StorageProvider extends BaseStorageProvider {
             return {
                 success: true,
                 fileId: fileId,
-                url: `/file/${fileId}`,
+                url: getFileUrl(fileId),
                 metadata: {
                     storageProvider: this.name,
                     storageId: fileId,

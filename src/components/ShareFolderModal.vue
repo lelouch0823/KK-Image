@@ -96,7 +96,7 @@
 import { ref, computed, watch } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
-import { API } from '@/utils/constants';
+import { API, ROUTES } from '@/utils/constants';
 import { formatExpiry } from '@/utils/formatters';
 
 const props = defineProps({
@@ -125,7 +125,7 @@ const options = [
 // 🔧 NEW: 计算已有分享链接
 const existingShareUrl = computed(() => {
     if (!props.folder?.shareToken) return '';
-    return `${window.location.origin}/gallery/${props.folder.shareToken}`;
+    return `${window.location.origin}${ROUTES.GALLERY(props.folder.shareToken)}`;
 });
 
 const close = () => {

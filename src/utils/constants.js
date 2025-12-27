@@ -25,6 +25,16 @@ export const API = {
     // 分享
     SHARES: `${API_PREFIX}/shares`,
 
+    // 空间
+    SPACES: `${API_PREFIX}/spaces`,
+    SPACE_BY_ID: (id) => `${API_PREFIX}/spaces/${id}`,
+    SPACE_FILES: (id) => `${API_PREFIX}/spaces/${id}/files`,
+    SPACE_STATS: (id) => `${API_PREFIX}/spaces/${id}/stats`,
+
+    // 公开访问
+    PUBLIC_GALLERY: (token) => `/api/gallery/${token}`,
+    PUBLIC_SPACE: (token) => `/api/space/${token}`,
+
     // 统计
     STATS: `${API_PREFIX}/stats`,
 
@@ -33,7 +43,15 @@ export const API = {
 
     // 认证
     LOGIN: `${API_PREFIX}/login`,
-    LOGOUT: `${API_PREFIX}/logout`
+    LOGOUT: `${API_PREFIX}/logout`,
+    USER: `${API_PREFIX}/user`
+};
+
+// 前端路由 (用于跳转和生成分享链接)
+export const ROUTES = {
+    GALLERY: (token) => `/gallery/${token}`,
+    SPACE: (token) => `/space/${token}`,
+    FILE: (id) => `/file/${id}`
 };
 
 // 分页默认值

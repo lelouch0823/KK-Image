@@ -3,6 +3,8 @@
  * @module storage/base-provider
  */
 
+import { getFileUrl } from '../api/utils/url.js';
+
 /**
  * @typedef {Object} UploadResult
  * @property {boolean} success - 是否成功
@@ -77,7 +79,7 @@ export class BaseStorageProvider {
      * @returns {string}
      */
     getPublicUrl(fileId, origin) {
-        return `${origin}/file/${fileId}`;
+        return getFileUrl(fileId, origin);
     }
 
     /**

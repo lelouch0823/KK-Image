@@ -3,6 +3,7 @@
  * @module composables/useAuth
  */
 import { ref } from 'vue';
+import { API } from '@/utils/constants';
 
 // 全局状态
 const isAuthenticated = ref(false);
@@ -21,7 +22,7 @@ export function useAuth() {
     const checkAuth = async () => {
         try {
             isLoading.value = true;
-            const response = await fetch('/api/manage/user', {
+            const response = await fetch(API.USER, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
@@ -52,29 +53,6 @@ export function useAuth() {
     };
 
     /**
-     * 获取认证头
-     * @returns {Object} 包含 Authorization 头的对象
-     */
-    const getAuthHeader = () => {
-        // 不再需要硬编码的 Basic Auth
-        // 浏览器会自动携带 Cookie
-        return {};
-    };
-
-    /**
-     * 获取完整的请求头
-     * @param {boolean} includeContentType - 是否包含 JSON Content-Type
-     * @returns {Object} 请求头对象
-     */
-    const getHeaders = (includeContentType = false) => {
-        const headers = {};
-        if (includeContentType) {
-            headers['Content-Type'] = 'application/json';
-        }
-        return headers;
-    };
-
-    /**
      * 带认证的 fetch 封装
      * @param {string} url - 请求 URL
      * @param {Object} options - fetch 选项
@@ -86,8 +64,7 @@ export function useAuth() {
             ...options,
             credentials: 'include',
             headers: {
-                ...options.headers,
-                ...getHeaders()
+                ...options.headers
             }
         };
 
@@ -118,8 +95,6 @@ export function useAuth() {
         currentUser,
         isLoading,
         checkAuth,
-        getAuthHeader,
-        getHeaders,
         authFetch,
         authFetchJson
     };

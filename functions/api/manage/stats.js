@@ -1,4 +1,4 @@
-import { jsonResponse, error } from '../utils/response.js';
+import { success, error } from '../utils/response.js';
 
 export async function onRequest(context) {
   const {
@@ -167,11 +167,8 @@ export async function onRequest(context) {
       }
     };
 
-    return new Response(JSON.stringify(stats), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=300' // 缓存5分钟
-      }
+    return success(stats, 'Success', 200, {
+      'Cache-Control': 'public, max-age=300' // 缓存5分钟
     });
 
   } catch (error) {

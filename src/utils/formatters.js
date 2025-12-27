@@ -60,6 +60,8 @@ export const getFileExtension = (filename) => {
     return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2).toUpperCase();
 };
 
+import { IMAGE_EXTENSIONS } from './constants';
+
 /**
  * 判断是否为图片文件
  * @param {Object|string} file - 文件对象或文件名
@@ -73,7 +75,6 @@ export const isImage = (file) => {
     if (!filename) return false;
 
     const ext = getFileExtension(filename).toLowerCase();
-    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'];
-    return imageExtensions.includes(ext);
+    return IMAGE_EXTENSIONS.includes(ext);
 };
 

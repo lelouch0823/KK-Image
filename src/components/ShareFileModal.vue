@@ -69,9 +69,18 @@ const { success } = useToast();
 
 const copied = ref(false);
 
+import { API, ROUTES } from '@/utils/constants';
+
+// ...
+
 // 🔧 FIX: 使用 computed 确保响应式 + 空值安全
 const shareUrl = computed(() => {
+    if (props.file?.storageKey) {
+        return `${window.location.origin}${ROUTES.FILE(props.file.storageKey)}`;
+    }
+    // Fallback if storageKey is not present (e.g. legacy or simple URL)
     if (!props.file?.url) return '';
+    if (props.file.url.startsWith('http')) return props.file.url;
     return `${window.location.origin}${props.file.url}`;
 });
 

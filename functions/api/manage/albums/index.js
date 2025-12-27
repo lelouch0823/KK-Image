@@ -5,7 +5,8 @@
  */
 
 import { generateId, generateShareToken } from '../../utils/id.js';
-import { jsonResponse, success, error } from '../../utils/response.js';
+import { success, error } from '../../utils/response.js';
+import { getShareUrl } from '../../utils/url.js';
 
 export async function onRequestGet(context) {
     const { env } = context;
@@ -27,6 +28,7 @@ export async function onRequestGet(context) {
                     fileCount: albumData.files?.length || 0,
                     isPublic: albumData.isPublic,
                     shareToken: albumData.shareToken,
+                    shareUrl: getShareUrl(albumData.shareToken),
                     createdAt: albumData.createdAt,
                     updatedAt: albumData.updatedAt
                 } : null;
@@ -79,16 +81,13 @@ export async function onRequestPost(context) {
         });
         await env.img_url.put('albums:index', JSON.stringify(indexData));
 
-        return jsonResponse({
-            success: true,
-            data: {
-                id: album.id,
-                name: album.name,
-                description: album.description,
-                shareToken: album.shareToken,
-                shareUrl: `/gallery/${album.shareToken}`,
-                createdAt: album.createdAt
-            }
+        return success({
+            id: album.id,
+            name: album.name,
+            description: album.description,
+            shareToken: album.shareToken,
+            shareUrl: getShareUrl(album.shareToken),
+            createdAt: album.createdAt
         }, 201);
     } catch (error) {
         return error(error.message, 500);

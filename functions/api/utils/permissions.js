@@ -281,7 +281,7 @@ export function logPermissionCheck(user, permission, granted, context = {}) {
     context: context
   };
 
-  console.log('Permission Check:', JSON.stringify(logEntry));
+
 
   return logEntry;
 }
