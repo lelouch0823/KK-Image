@@ -75,6 +75,8 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
+import { API } from '@/utils/constants';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -84,6 +86,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'updated']);
 
 const { success, error } = useToast();
+const { getHeaders } = useAuth();
 
 const loading = ref(false);
 const expiry = ref(7); // Default 7 days
@@ -112,12 +115,9 @@ const generateLink = async () => {
             timestamp = Date.now() + (expiry.value * 24 * 60 * 60 * 1000);
         }
 
-        const res = await fetch(`/api/manage/folders/${props.folder.id}`, {
+        const res = await fetch(API.FOLDER_BY_ID(props.folder.id), {
             method: 'PUT',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': 'Basic ' + btoa('admin:123456')
-            },
+            headers: getHeaders(true),
             body: JSON.stringify({
                 shareExpiresAt: timestamp,
                 isPublic: true // Ensure public is on

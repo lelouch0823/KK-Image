@@ -5,6 +5,8 @@
  * DELETE /api/manage/folders/:id - 删除文件夹（级联删除）
  */
 
+import { jsonResponse, success, error } from '../../utils/response.js';
+
 export async function onRequestGet(context) {
     const { env, params } = context;
     const folderId = params.id;
@@ -15,15 +17,7 @@ export async function onRequestGet(context) {
       SELECT * FROM folders WHERE id = ?
     `).bind(folderId).first();
 
-        if (!folder) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '文件夹不存在'
-            }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
+        if (!folder) return error('文件夹不存在', 404);
 
         // 获取子文件夹
         const { results: subfolders } = await env.DB.prepare(`
@@ -43,51 +37,40 @@ export async function onRequestGet(context) {
         // 获取面包屑路径
         const breadcrumbs = await getBreadcrumbs(env.DB, folderId);
 
-        return new Response(JSON.stringify({
-            success: true,
-            data: {
-                id: folder.id,
-                name: folder.name,
-                description: folder.description,
-                parentId: folder.parent_id,
-                shareToken: folder.share_token,
-                isPublic: Boolean(folder.is_public),
-                password: folder.password ? true : false, // 不返回实际密码
-                createdAt: folder.created_at,
-                updatedAt: folder.updated_at,
-                shareUrl: folder.share_token ? `/gallery/${folder.share_token}` : null,
-                breadcrumbs,
-                subfolders: subfolders.map(f => ({
-                    id: f.id,
-                    name: f.name,
-                    subfolderCount: f.subfolder_count,
-                    fileCount: f.file_count,
-                    isPublic: Boolean(f.is_public),
-                    createdAt: f.created_at
-                })),
-                files: files.map(f => ({
-                    id: f.id,
-                    name: f.name,
-                    originalName: f.original_name,
-                    size: f.size,
-                    mimeType: f.mime_type,
-                    storageKey: f.storage_key,
-                    url: `/file/${f.storage_key}`,
-                    createdAt: f.created_at
-                }))
-            }
-        }), {
-            headers: { 'Content-Type': 'application/json' }
+        return success({
+            id: folder.id,
+            name: folder.name,
+            description: folder.description,
+            parentId: folder.parent_id,
+            shareToken: folder.share_token,
+            isPublic: Boolean(folder.is_public),
+            password: folder.password ? true : false, // 不返回实际密码
+            createdAt: folder.created_at,
+            updatedAt: folder.updated_at,
+            shareUrl: folder.share_token ? `/gallery/${folder.share_token}` : null,
+            breadcrumbs,
+            subfolders: subfolders.map(f => ({
+                id: f.id,
+                name: f.name,
+                subfolderCount: f.subfolder_count,
+                fileCount: f.file_count,
+                isPublic: Boolean(f.is_public),
+                createdAt: f.created_at
+            })),
+            files: files.map(f => ({
+                id: f.id,
+                name: f.name,
+                originalName: f.original_name,
+                size: f.size,
+                mimeType: f.mime_type,
+                storageKey: f.storage_key,
+                url: `/file/${f.storage_key}`,
+                createdAt: f.created_at
+            }))
         });
     } catch (error) {
         console.error('获取文件夹详情失败:', error);
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }
 
@@ -113,15 +96,7 @@ export async function onRequestPut(context) {
     try {
         const folder = await env.DB.prepare('SELECT * FROM folders WHERE id = ?').bind(folderId).first();
 
-        if (!folder) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '文件夹不存在'
-            }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
+        if (!folder) return error('文件夹不存在', 404);
 
         const body = await request.json();
         const { name, description, isPublic, password, parentId } = body;
@@ -148,15 +123,7 @@ export async function onRequestPut(context) {
         }
         if (parentId !== undefined) {
             // 防止循环引用
-            if (parentId === folderId) {
-                return new Response(JSON.stringify({
-                    success: false,
-                    message: '不能将文件夹移动到自身'
-                }), {
-                    status: 400,
-                    headers: { 'Content-Type': 'application/json' }
-                });
-            }
+            if (parentId === folderId) return error('不能将文件夹移动到自身', 400);
             updates.push('parent_id = ?');
             values.push(parentId);
         }
@@ -186,25 +153,14 @@ export async function onRequestPut(context) {
         // 返回更新后的文件夹
         const updated = await env.DB.prepare('SELECT * FROM folders WHERE id = ?').bind(folderId).first();
 
-        return new Response(JSON.stringify({
-            success: true,
-            data: {
-                ...updated,
-                isPublic: Boolean(updated.is_public),
-                shareUrl: updated.share_token ? `/gallery/${updated.share_token}` : null
-            }
-        }), {
-            headers: { 'Content-Type': 'application/json' }
+        return success({
+            ...updated,
+            isPublic: Boolean(updated.is_public),
+            shareUrl: updated.share_token ? `/gallery/${updated.share_token}` : null
         });
     } catch (error) {
         console.error('更新文件夹失败:', error);
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }
 
@@ -214,27 +170,11 @@ export async function onRequestDelete(context) {
 
     try {
         // 禁止删除根文件夹
-        if (folderId === 'root') {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '不能删除根文件夹'
-            }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
+        if (folderId === 'root') return error('不能删除根文件夹', 400);
 
         const folder = await env.DB.prepare('SELECT * FROM folders WHERE id = ?').bind(folderId).first();
 
-        if (!folder) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '文件夹不存在'
-            }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
+        if (!folder) return error('文件夹不存在', 404);
 
         // 级联删除由数据库外键处理
         // 但我们需要先删除 R2 中的文件
@@ -258,20 +198,9 @@ export async function onRequestDelete(context) {
         // 删除文件夹（级联删除子文件夹和文件）
         await env.DB.prepare('DELETE FROM folders WHERE id = ?').bind(folderId).run();
 
-        return new Response(JSON.stringify({
-            success: true,
-            message: '文件夹已删除'
-        }), {
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return success(null, '文件夹已删除');
     } catch (error) {
         console.error('删除文件夹失败:', error);
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }

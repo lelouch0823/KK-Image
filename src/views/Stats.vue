@@ -109,7 +109,7 @@
                 </div>
                 <div class="min-w-0">
                   <div class="text-sm font-medium text-primary truncate max-w-[150px] sm:max-w-[200px]" :title="file.name">{{ file.name }}</div>
-                  <div class="text-xs text-secondary">{{ formatDate(file.timestamp) }}</div>
+                  <div class="text-xs text-secondary">{{ formatRelativeDate(file.timestamp) }}</div>
                 </div>
               </div>
               <span class="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded-full whitespace-nowrap ml-2">
@@ -133,10 +133,14 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted } from 'vue';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
+import { formatSize } from '@/utils/formatters';
+import { API } from '@/utils/constants';
 import Chart from 'chart.js/auto';
 import 'chartjs-adapter-date-fns';
 
 const { addToast } = useToast();
+const { authFetch } = useAuth();
 
 // --- State ---
 const loading = ref(true);
@@ -148,22 +152,15 @@ const typeChartRef = ref(null);
 let trendChartInstance = null;
 let typeChartInstance = null;
 
-// --- Methods ---
+// 格式化数字
 const formatNumber = (num) => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
   return num?.toString() || '0';
 };
 
-const formatSize = (bytes) => {
-  if (!bytes) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-};
-
-const formatDate = (timestamp) => {
+// 格式化相对时间（Stats 页面特有逻辑）
+const formatRelativeDate = (timestamp) => {
   if (!timestamp) return '未知';
   const date = new Date(timestamp);
   const diff = Date.now() - date.getTime();
@@ -172,6 +169,8 @@ const formatDate = (timestamp) => {
   if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
   return date.toLocaleDateString('zh-CN');
 };
+
+
 
 const createCharts = () => {
   if (!stats.value) return;
@@ -251,7 +250,7 @@ const loadStats = async () => {
   loading.value = true;
   error.value = '';
   try {
-    const response = await fetch('/api/manage/stats', { method: 'GET', credentials: 'include' });
+    const response = await authFetch(API.STATS);
     if (!response.ok) throw new Error('API Request Failed');
 
     stats.value = await response.json();

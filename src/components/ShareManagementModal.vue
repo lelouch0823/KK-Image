@@ -73,6 +73,9 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
+import { formatExpiry } from '@/utils/formatters';
+import { API } from '@/utils/constants';
 
 const props = defineProps({
   modelValue: Boolean
@@ -81,6 +84,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'edit']);
 
 const { success, error } = useToast();
+const { getHeaders, authFetchJson } = useAuth();
 
 const loading = ref(false);
 const shares = ref([]);
@@ -91,9 +95,7 @@ const totalPages = ref(1);
 const fetchShares = async () => {
     loading.value = true;
     try {
-        const res = await fetch(`/api/manage/shares?page=${page.value}&limit=20`, {
-            headers: { 'Authorization': 'Basic ' + btoa('admin:123456') }
-        }).then(r => r.json());
+        const res = await authFetchJson(`${API.SHARES}?page=${page.value}&limit=20`);
 
         if (res.success) {
             shares.value = res.data.items;
@@ -107,16 +109,7 @@ const fetchShares = async () => {
     }
 };
 
-const formatExpiry = (ts) => {
-    if (!ts) return '永久有效';
-    const date = new Date(Number(ts));
-    const now = Date.now();
-    const days = Math.ceil((ts - now) / (1000 * 60 * 60 * 24));
-    
-    if (ts < now) return '已过期';
-    return `${date.toLocaleDateString()} (${days}天后)`;
-};
-
+// 格式化过期时间类名
 const getExpiryClass = (ts) => {
     if (!ts) return 'text-green-600';
     if (ts < Date.now()) return 'text-red-500 font-medium';
@@ -133,15 +126,10 @@ const revokeShare = async (item) => {
     if (!confirm(`确定要取消分享 "${item.name}" 吗？取消后链接将失效。`)) return;
     
     try {
-        const res = await fetch(`/api/manage/folders/${item.id}`, {
+        const res = await fetch(API.FOLDER_BY_ID(item.id), {
             method: 'PUT',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': 'Basic ' + btoa('admin:123456')
-            },
-            body: JSON.stringify({ isPublic: false, shareToken: null }) // Revoke by disabling public? Or just null token?
-            // Actually, `isPublic: false` should be enough, but if we want to keep it private but keep token (unlikely).
-            // Let's set isPublic: false.
+            headers: getHeaders(true),
+            body: JSON.stringify({ isPublic: false, shareToken: null })
         }).then(r => r.json());
 
         if (res.success) {

@@ -4,20 +4,8 @@
  * POST /api/manage/folders - 创建新文件夹
  */
 
-// 生成唯一 ID
-function generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
-}
-
-// 生成分享令牌
-function generateShareToken() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let token = '';
-    for (let i = 0; i < 12; i++) {
-        token += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return token;
-}
+import { generateId, generateShareToken } from '../utils/id.js';
+import { jsonResponse, success, error } from '../utils/response.js';
 
 export async function onRequestGet(context) {
     const { env, request } = context;
@@ -61,28 +49,17 @@ export async function onRequestGet(context) {
 
         const { results } = await query.all();
 
-        return new Response(JSON.stringify({
-            success: true,
-            data: results.map(folder => ({
-                ...folder,
-                isPublic: Boolean(folder.is_public),
-                createdAt: folder.created_at,
-                updatedAt: folder.updated_at,
-                subfolderCount: folder.subfolder_count,
-                fileCount: folder.file_count
-            }))
-        }), {
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return success(results.map(folder => ({
+            ...folder,
+            isPublic: Boolean(folder.is_public),
+            createdAt: folder.created_at,
+            updatedAt: folder.updated_at,
+            subfolderCount: folder.subfolder_count,
+            fileCount: folder.file_count
+        })));
     } catch (error) {
         console.error('获取文件夹列表失败:', error);
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }
 
@@ -94,26 +71,14 @@ export async function onRequestPost(context) {
         const { name, description = '', parentId = null, isPublic = false, password = null } = body;
 
         if (!name || name.trim() === '') {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '文件夹名称不能为空'
-            }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('文件夹名称不能为空', 400);
         }
 
         // 如果指定了父文件夹，验证其存在性
         if (parentId) {
             const parent = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(parentId).first();
             if (!parent) {
-                return new Response(JSON.stringify({
-                    success: false,
-                    message: '父文件夹不存在'
-                }), {
-                    status: 400,
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                return error('父文件夹不存在', 400);
             }
         }
 
@@ -136,7 +101,7 @@ export async function onRequestPost(context) {
             now
         ).run();
 
-        return new Response(JSON.stringify({
+        return jsonResponse({
             success: true,
             data: {
                 id: folderId,
@@ -148,18 +113,9 @@ export async function onRequestPost(context) {
                 shareUrl: `/gallery/${shareToken}`,
                 createdAt: now
             }
-        }), {
-            status: 201,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        }, 201);
     } catch (error) {
         console.error('创建文件夹失败:', error);
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }

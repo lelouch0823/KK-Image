@@ -1,3 +1,5 @@
+import { success, error } from '../../utils/response.js';
+
 export async function onRequestGet(context) {
     const { env, request } = context;
     const url = new URL(request.url);
@@ -20,29 +22,21 @@ export async function onRequestGet(context) {
             LIMIT ? OFFSET ?
         `).bind(limit, offset).all();
 
-        return new Response(JSON.stringify({
-            success: true,
-            data: {
-                items: results.map(f => ({
-                    id: f.id,
-                    name: f.name,
-                    shareToken: f.share_token,
-                    shareUrl: `/gallery/${f.share_token}`,
-                    expiresAt: f.share_expires_at,
-                    updatedAt: f.updated_at
-                })),
-                total,
-                page,
-                totalPages: Math.ceil(total / limit)
-            }
-        }), {
-            headers: { 'Content-Type': 'application/json' }
+        return success({
+            items: results.map(f => ({
+                id: f.id,
+                name: f.name,
+                shareToken: f.share_token,
+                shareUrl: `/gallery/${f.share_token}`,
+                expiresAt: f.share_expires_at,
+                updatedAt: f.updated_at
+            })),
+            total,
+            page,
+            totalPages: Math.ceil(total / limit)
         });
 
     } catch (error) {
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), { status: 500 });
+        return error(error.message, 500);
     }
 }

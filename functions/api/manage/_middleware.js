@@ -76,6 +76,7 @@ function BadRequestException(reason) {
 
 
 import { verifyJWT } from '../utils/auth.js';
+import { error } from '../utils/response.js';
 
 function authentication(context) {
   const { env, request } = context;
@@ -90,13 +91,7 @@ function authentication(context) {
 
   // 2. 检查 KV 存储是否配置
   if (!env.img_url) {
-    return new Response(JSON.stringify({
-      error: 'Dashboard disabled',
-      message: 'Please bind a KV namespace to use this feature.'
-    }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return error('Please bind a KV namespace to use this feature.', 503);
   }
 
   // 3. 如果未配置 Basic Auth（即未启用认证），则直接放行
@@ -128,13 +123,7 @@ function authentication(context) {
 
   // 5. 如果没有 Token，拒绝访问
   if (!token) {
-    return new Response(JSON.stringify({
-      error: 'Authentication required',
-      message: '请先登录以访问此资源'
-    }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return error('请先登录以访问此资源', 401);
   }
 
   // 6. 验证 Token
@@ -146,13 +135,7 @@ function authentication(context) {
     })
     .catch(err => {
       // 验证失败 (过期或无效)
-      return new Response(JSON.stringify({
-        error: 'Invalid token',
-        message: '登录已过期，请重新登录'
-      }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return error('登录已过期，请重新登录', 401);
     });
 }
 

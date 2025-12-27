@@ -1,4 +1,5 @@
 import { triggerWebhook } from '../../utils/webhook.js';
+import { success, error } from '../../utils/response.js';
 
 // 支持 GET 和 DELETE 方法（向后兼容）
 export async function onRequest(context) {
@@ -41,23 +42,10 @@ export async function onRequest(context) {
             }
         }
 
-        return new Response(JSON.stringify({
-            success: true,
-            message: 'File deleted successfully',
-            fileId: fileId
-        }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return success({ fileId: fileId }, 'File deleted successfully');
 
     } catch (error) {
         console.error('Error deleting file:', error);
-        return new Response(JSON.stringify({
-            success: false,
-            error: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }

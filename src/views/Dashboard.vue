@@ -117,11 +117,15 @@
 import { ref, onMounted } from 'vue';
 import { useView } from '@/composables/useView';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
 import ShareManagementModal from '@/components/ShareManagementModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
+import { formatSize, formatDate, formatExpiry, getFileExtension } from '@/utils/formatters';
+import { API } from '@/utils/constants';
 
 const { setView } = useView();
 const { error, success } = useToast();
+const { getHeaders, authFetchJson } = useAuth();
 
 const totalFiles = ref(0);
 const todayUploads = ref(0);
@@ -133,44 +137,9 @@ const showShareManager = ref(false);
 const showEditShare = ref(false);
 const editingFolder = ref(null);
 
-const formatSize = (bytes) => {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
-
-const formatDate = (timestamp) => {
-    if (!timestamp) return '-';
-    // 兼容可能的时间戳格式
-    const date = new Date(Number(timestamp));
-    return date.toLocaleString('zh-CN', {
-        month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit'
-    });
-};
-
-const formatExpiry = (ts) => {
-    if (!ts) return '永久有效';
-    const date = new Date(Number(ts));
-    const now = Date.now();
-    const days = Math.ceil((ts - now) / (1000 * 60 * 60 * 24));
-    
-    if (ts < now) return '已过期';
-    return `${days}天后 (${date.toLocaleDateString()})`;
-};
-
-const getFileExtension = (filename) => {
-    if (!filename) return '';
-    return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2).toUpperCase();
-};
-
 const fetchStats = async () => {
     try {
-        const res = await fetch('/api/manage/stats', {
-            headers: { 'Authorization': 'Basic ' + btoa('admin:123456') }
-        }).then(r => r.json());
+        const res = await authFetchJson(API.STATS);
 
         if (res.overview) {
             totalFiles.value = res.overview.totalFiles;
@@ -188,9 +157,7 @@ const fetchStats = async () => {
 
 const fetchRecentShares = async () => {
     try {
-        const res = await fetch('/api/manage/shares?limit=10', {
-            headers: { 'Authorization': 'Basic ' + btoa('admin:123456') }
-        }).then(r => r.json());
+        const res = await authFetchJson(`${API.SHARES}?limit=10`);
 
         if (res.success) {
             recentShares.value = res.data.items;
@@ -224,12 +191,9 @@ const handleManagerEdit = (item) => {
 const revokeShare = async (item) => {
     if (!confirm(`确定要取消分享 "${item.name}" 吗？`)) return;
     try {
-        const res = await fetch(`/api/manage/folders/${item.id}`, {
+        const res = await fetch(API.FOLDER_BY_ID(item.id), {
             method: 'PUT',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': 'Basic ' + btoa('admin:123456')
-            },
+            headers: getHeaders(true),
             body: JSON.stringify({ isPublic: false, shareToken: null })
         }).then(r => r.json());
 

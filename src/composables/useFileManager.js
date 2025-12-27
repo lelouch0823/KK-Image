@@ -1,8 +1,12 @@
 import { ref, computed } from 'vue';
 import { useToast } from './useToast';
+import { useAuth } from './useAuth';
+import { formatSize, formatDate, getFileExtension } from '@/utils/formatters';
+import { IMAGE_EXTENSIONS, API } from '@/utils/constants';
 
 export function useFileManager() {
     const { error, success } = useToast();
+    const { getAuthHeader, getHeaders } = useAuth();
 
     // 状态
     const loading = ref(false);
@@ -16,30 +20,7 @@ export function useFileManager() {
     const isImage = (file) => {
         if (file.type === 'image') return true;
         const ext = getFileExtension(file.name || file.originalName).toLowerCase();
-        return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
-    };
-
-    const getFileExtension = (filename) => {
-        if (!filename) return '';
-        return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2).toUpperCase();
-    };
-
-    const formatSize = (bytes) => {
-        if (bytes === 0) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    };
-
-    const formatDate = (timestamp) => {
-        if (!timestamp) return '-';
-        // 兼容 API 返回可能是一个字符串或数字
-        const date = new Date(Number(timestamp));
-        return date.toLocaleString('zh-CN', {
-            year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit'
-        });
+        return IMAGE_EXTENSIONS.includes(ext);
     };
 
     // API 交互
@@ -47,11 +28,11 @@ export function useFileManager() {
         loading.value = true;
         selectedFiles.value = []; // 清空选择
         try {
-            const authHeader = { 'Authorization': 'Basic ' + btoa('admin:123456') }; // TODO: useAuth
+            const authHeader = getAuthHeader();
 
             if (folderId) {
                 // 单个文件夹
-                const res = await fetch(`/api/manage/folders/${folderId}`, { headers: authHeader }).then(r => r.json());
+                const res = await fetch(API.FOLDER_BY_ID(folderId), { headers: authHeader }).then(r => r.json());
                 if (res.success) {
                     currentFolder.value = res.data;
                     subfolders.value = res.data.subfolders;
@@ -62,7 +43,7 @@ export function useFileManager() {
                 }
             } else {
                 // 根目录
-                const res = await fetch(`/api/manage/folders`, { headers: authHeader }).then(r => r.json());
+                const res = await fetch(API.FOLDERS, { headers: authHeader }).then(r => r.json());
                 if (res.success) {
                     currentFolder.value = null;
                     subfolders.value = res.data;
@@ -87,12 +68,9 @@ export function useFileManager() {
                 payload.parentId = currentFolder.value.id;
             }
 
-            const res = await fetch('/api/manage/folders', {
+            const res = await fetch(API.FOLDERS, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Basic ' + btoa('admin:123456')
-                },
+                headers: getHeaders(true),
                 body: JSON.stringify(payload)
             }).then(r => r.json());
 
@@ -112,12 +90,9 @@ export function useFileManager() {
 
     const updateFolder = async (id, data) => {
         try {
-            const res = await fetch(`/api/manage/folders/${id}`, {
+            const res = await fetch(API.FOLDER_BY_ID(id), {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Basic ' + btoa('admin:123456')
-                },
+                headers: getHeaders(true),
                 body: JSON.stringify(data)
             }).then(r => r.json());
 
@@ -137,9 +112,9 @@ export function useFileManager() {
 
     const deleteFolder = async (id) => {
         try {
-            const res = await fetch(`/api/manage/folders/${id}`, {
+            const res = await fetch(API.FOLDER_BY_ID(id), {
                 method: 'DELETE',
-                headers: { 'Authorization': 'Basic ' + btoa('admin:123456') }
+                headers: getAuthHeader()
             }).then(r => r.json());
 
             if (res.success) {
@@ -164,9 +139,9 @@ export function useFileManager() {
     const deleteFile = async (fileId) => {
         if (!currentFolder.value) return;
         try {
-            const res = await fetch(`/api/manage/folders/${currentFolder.value.id}?file_id=${fileId}`, {
+            const res = await fetch(`${API.FOLDER_BY_ID(currentFolder.value.id)}?file_id=${fileId}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': 'Basic ' + btoa('admin:123456') }
+                headers: getAuthHeader()
             }).then(r => r.json());
 
             if (res.success) {
@@ -194,9 +169,9 @@ export function useFileManager() {
             formData.append('file', file);
 
             try {
-                const res = await fetch(`/api/manage/folders/${currentFolder.value.id}/upload`, {
+                const res = await fetch(API.FOLDER_UPLOAD(currentFolder.value.id), {
                     method: 'POST',
-                    headers: { 'Authorization': 'Basic ' + btoa('admin:123456') },
+                    headers: getAuthHeader(),
                     body: formData
                 }).then(r => r.json());
 

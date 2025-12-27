@@ -42,7 +42,7 @@ const { currentView } = useView();
 const currentComponent = computed(() => {
   switch (currentView.value) {
     case 'dashboard': return Dashboard;
-    case 'files': return FileManager; // 合并了 albums, files, upload
+    case 'files': return FileManager; // 合并了 albums, files
     case 'stats': return Stats;
     default: return Dashboard;
   }

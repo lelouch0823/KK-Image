@@ -145,7 +145,7 @@
             </svg>
          </div>
          <h3 class="text-lg font-medium text-primary">此文件夹为空</h3>
-         <p class="text-secondary text-sm mt-1">拖拽文件到此处上传，或创建新文件夹</p>
+         <p class="text-secondary text-sm mt-1">使用“上传”按钮上传文件，或创建新文件夹</p>
       </div>
     </div>
 
@@ -212,6 +212,7 @@ const {
 const showModal = ref(false);
 const showMoveModal = ref(false);
 const filesToMove = ref([]);
+const folderName = ref('');  // 添加缺失的变量声明
 
 const navigateTo = (id) => {
   loadFolderData(id);

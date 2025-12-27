@@ -1,3 +1,5 @@
+import { jsonResponse, error } from '../utils/response.js';
+
 export async function onRequest(context) {
   const {
     request,
@@ -174,12 +176,6 @@ export async function onRequest(context) {
 
   } catch (error) {
     console.error('Stats API error:', error);
-    return new Response(JSON.stringify({
-      error: 'Failed to generate statistics',
-      message: error.message
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return error(error.message, 500);
   }
 }

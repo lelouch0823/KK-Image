@@ -4,20 +4,8 @@
  * POST /api/manage/albums - 创建新相册
  */
 
-// 生成唯一 ID
-function generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
-}
-
-// 生成分享令牌
-function generateShareToken() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let token = '';
-    for (let i = 0; i < 12; i++) {
-        token += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return token;
-}
+import { generateId, generateShareToken } from '../utils/id.js';
+import { jsonResponse, success, error } from '../utils/response.js';
 
 export async function onRequestGet(context) {
     const { env } = context;
@@ -45,20 +33,9 @@ export async function onRequestGet(context) {
             })
         );
 
-        return new Response(JSON.stringify({
-            success: true,
-            data: albumsWithDetails.filter(Boolean)
-        }), {
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return success(albumsWithDetails.filter(Boolean));
     } catch (error) {
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }
 
@@ -70,13 +47,7 @@ export async function onRequestPost(context) {
         const { name, description = '', isPublic = false, password = null } = body;
 
         if (!name || name.trim() === '') {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '相册名称不能为空'
-            }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('相册名称不能为空', 400);
         }
 
         const albumId = generateId();
@@ -108,7 +79,7 @@ export async function onRequestPost(context) {
         });
         await env.img_url.put('albums:index', JSON.stringify(indexData));
 
-        return new Response(JSON.stringify({
+        return jsonResponse({
             success: true,
             data: {
                 id: album.id,
@@ -118,17 +89,8 @@ export async function onRequestPost(context) {
                 shareUrl: `/gallery/${album.shareToken}`,
                 createdAt: album.createdAt
             }
-        }), {
-            status: 201,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        }, 201);
     } catch (error) {
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }

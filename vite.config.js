@@ -90,10 +90,6 @@ export default defineConfig({
     cors: true,
     // 代理配置：将 API 请求转发到 Wrangler Pages 服务
     proxy: {
-      '/upload': {
-        target: 'http://127.0.0.1:8788',
-        changeOrigin: true
-      },
       '/file': {
         target: 'http://127.0.0.1:8788',
         changeOrigin: true

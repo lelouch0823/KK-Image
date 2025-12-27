@@ -59,7 +59,9 @@ const menuItems = [
 ];
 
 const handleLogout = () => {
-  // TODO: 实现更安全的退出逻辑
+  // Basic Auth 无法通过 JS 彻底登出，通常需要关闭浏览器
+  // 此处仅重定向到首页作为视觉反馈
   window.location.href = '/';
+  // 可选：弹窗提示用户关闭浏览器以确保安全
 };
 </script>

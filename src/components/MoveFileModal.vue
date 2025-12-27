@@ -65,6 +65,8 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
+import { API } from '@/utils/constants';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -74,6 +76,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'moved']);
 
 const { addToast } = useToast();
+const { getAuthHeader, getHeaders } = useAuth();
 
 const loading = ref(false);
 const moving = ref(false);
@@ -128,8 +131,8 @@ const buildTreeAndFlatten = (flatList) => {
 const fetchAllFolders = async () => {
     loading.value = true;
     try {
-        const res = await fetch('/api/manage/folders?all=true', {
-            headers: { 'Authorization': 'Basic ' + btoa('admin:123456') } // Consistent with useFileManager
+        const res = await fetch(`${API.FOLDERS}?all=true`, {
+            headers: getAuthHeader()
         }).then(r => r.json());
         
         if (res.success) {
@@ -147,12 +150,9 @@ const confirmMove = async () => {
     
     moving.value = true;
     try {
-        const res = await fetch('/api/manage/move', {
+        const res = await fetch(API.MOVE, {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': 'Basic ' + btoa('admin:123456')
-            },
+            headers: getHeaders(true),
             body: JSON.stringify({
                 fileIds: props.filesToMove,
                 folderId: selectedId.value === 'root' ? 'root' : selectedId.value

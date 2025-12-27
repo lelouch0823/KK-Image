@@ -1,3 +1,5 @@
+import { success, error } from '../../utils/response.js';
+
 export async function onRequest(context) {
   const { request, env, params } = context;
 
@@ -7,13 +9,7 @@ export async function onRequest(context) {
     // 检查文件是否存在
     const value = await env.img_url.getWithMetadata(fileId);
     if (!value || !value.metadata) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'File not found'
-      }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return error('File not found', 404);
     }
 
     // 更新元数据
@@ -25,22 +21,10 @@ export async function onRequest(context) {
 
     await env.img_url.put(fileId, '', { metadata: updatedMetadata });
 
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'File blocked successfully',
-      metadata: updatedMetadata
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(updatedMetadata, 'File blocked successfully');
 
   } catch (error) {
     console.error('Error blocking file:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return error(error.message, 500);
   }
 }
