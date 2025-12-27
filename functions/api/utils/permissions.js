@@ -147,7 +147,7 @@ export function expandPermissions(permissionGroups) {
   return result;
 }
 
-// 检查用户是否有特定权限
+// 检查用户是否有特定权限（支持层级权限）
 export function hasPermission(user, requiredPermission) {
   if (!user || !user.permissions) {
     return false;
@@ -156,8 +156,15 @@ export function hasPermission(user, requiredPermission) {
   // 展开用户的权限组
   const userPermissions = expandPermissions(user.permissions);
 
-  // 检查是否有完全管理权限
-  if (userPermissions.includes('admin:full')) {
+  // 管理员权限可以访问所有资源
+  // 支持 'admin'、'admin:full'、'admin:*' 等格式
+  const isAdmin = user.permissions.some(p =>
+    p === 'admin' ||
+    p.startsWith('admin:') ||
+    p === '*'
+  ) || userPermissions.includes('admin:full');
+
+  if (isAdmin) {
     return true;
   }
 
@@ -187,12 +194,13 @@ export function getUserPermissions(user) {
 // 权限中间件工厂
 export function requirePermission(permission) {
   return function (context) {
-    if (!hasPermission(context.user, permission)) {
+    const user = context.data?.user || context.user;
+    if (!hasPermission(user, permission)) {
       const error = new Error(`Permission '${permission}' required`);
       error.name = 'AuthorizationError';
       error.code = 'INSUFFICIENT_PERMISSIONS';
       error.requiredPermission = permission;
-      error.userPermissions = getUserPermissions(context.user);
+      error.userPermissions = getUserPermissions(user);
       throw error;
     }
   };
@@ -201,12 +209,13 @@ export function requirePermission(permission) {
 // 多权限中间件工厂（需要任意一个权限）
 export function requireAnyPermission(permissions) {
   return function (context) {
-    if (!hasAnyPermission(context.user, permissions)) {
+    const user = context.data?.user || context.user;
+    if (!hasAnyPermission(user, permissions)) {
       const error = new Error(`One of these permissions required: ${permissions.join(', ')}`);
       error.name = 'AuthorizationError';
       error.code = 'INSUFFICIENT_PERMISSIONS';
       error.requiredPermissions = permissions;
-      error.userPermissions = getUserPermissions(context.user);
+      error.userPermissions = getUserPermissions(user);
       throw error;
     }
   };
@@ -215,12 +224,13 @@ export function requireAnyPermission(permissions) {
 // 多权限中间件工厂（需要所有权限）
 export function requireAllPermissions(permissions) {
   return function (context) {
-    if (!hasAllPermissions(context.user, permissions)) {
+    const user = context.data?.user || context.user;
+    if (!hasAllPermissions(user, permissions)) {
       const error = new Error(`All of these permissions required: ${permissions.join(', ')}`);
       error.name = 'AuthorizationError';
       error.code = 'INSUFFICIENT_PERMISSIONS';
       error.requiredPermissions = permissions;
-      error.userPermissions = getUserPermissions(context.user);
+      error.userPermissions = getUserPermissions(user);
       throw error;
     }
   };

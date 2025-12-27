@@ -5,17 +5,20 @@ import { registerWebhook, deleteWebhook, getWebhooks, WEBHOOK_EVENTS } from '../
 // 获取 Webhook 列表
 export async function onRequestGet(context) {
   const { request, env } = context;
-  
+
+  // 获取用户信息
+  const user = context.data?.user || context.user;
+
   // 检查管理员权限
-  if (!hasPermission(context.user, 'admin')) {
+  if (!hasPermission(user, 'admin')) {
     const error = new Error('Admin permission required');
     error.name = 'AuthorizationError';
     throw error;
   }
-  
+
   try {
     const webhooks = await getWebhooks(env);
-    
+
     return new Response(JSON.stringify({
       success: true,
       data: webhooks,
@@ -23,7 +26,7 @@ export async function onRequestGet(context) {
     }), {
       headers: { 'Content-Type': 'application/json' }
     });
-    
+
   } catch (error) {
     console.error('Error fetching webhooks:', error);
     throw error;
@@ -40,24 +43,27 @@ export async function onRequestDelete(context) {
   const { request, env } = context;
   const url = new URL(request.url);
   const webhookId = url.pathname.split('/').pop();
-  
+
+  // 获取用户信息
+  const user = context.data?.user || context.user;
+
   // 检查管理员权限
-  if (!hasPermission(context.user, 'admin')) {
+  if (!hasPermission(user, 'admin')) {
     const error = new Error('Admin permission required');
     error.name = 'AuthorizationError';
     throw error;
   }
-  
+
   try {
     await deleteWebhook(env, webhookId);
-    
+
     return new Response(JSON.stringify({
       success: true,
       message: 'Webhook deleted successfully'
     }), {
       headers: { 'Content-Type': 'application/json' }
     });
-    
+
   } catch (error) {
     console.error('Error deleting webhook:', error);
     throw error;
@@ -81,8 +87,11 @@ async function handlePostRequest(context) {
 async function createWebhook(context) {
   const { request, env } = context;
 
+  // 获取用户信息
+  const user = context.data?.user || context.user;
+
   // 检查管理员权限
-  if (!hasPermission(context.user, 'admin')) {
+  if (!hasPermission(user, 'admin')) {
     const error = new Error('Admin permission required');
     error.name = 'AuthorizationError';
     throw error;
@@ -111,7 +120,7 @@ async function createWebhook(context) {
     }
 
     // 添加创建者信息
-    webhookConfig.createdBy = context.user.name || context.user.id;
+    webhookConfig.createdBy = user.name || user.id;
 
     const webhook = await registerWebhook(env, webhookConfig);
 
@@ -133,26 +142,29 @@ async function createWebhook(context) {
 async function testWebhook(context) {
   const { request, env } = context;
   const url = new URL(request.url);
-  
+
   const webhookId = url.pathname.split('/')[4]; // /api/v1/webhooks/{id}/test
-  
+
+  // 获取用户信息
+  const user = context.data?.user || context.user;
+
   // 检查管理员权限
-  if (!hasPermission(context.user, 'admin')) {
+  if (!hasPermission(user, 'admin')) {
     const error = new Error('Admin permission required');
     error.name = 'AuthorizationError';
     throw error;
   }
-  
+
   try {
     const webhooks = await getWebhooks(env);
     const webhook = webhooks.find(w => w.id === webhookId);
-    
+
     if (!webhook) {
       const error = new Error('Webhook not found');
       error.name = 'NotFoundError';
       throw error;
     }
-    
+
     // 发送测试载荷
     const testPayload = {
       event: 'webhook.test',
@@ -164,13 +176,13 @@ async function testWebhook(context) {
           url: webhook.url
         },
         user: {
-          id: context.user.id,
-          name: context.user.name
+          id: user.id,
+          name: user.name
         }
       },
       id: 'test_' + Date.now()
     };
-    
+
     const headers = {
       'Content-Type': 'application/json',
       'User-Agent': 'Telegraph-Image-Webhook/1.0',
@@ -178,7 +190,7 @@ async function testWebhook(context) {
       'X-Webhook-ID': testPayload.id,
       'X-Webhook-Timestamp': testPayload.timestamp
     };
-    
+
     // 添加签名（如果配置了密钥）
     if (webhook.secret) {
       const encoder = new TextEncoder();
@@ -189,23 +201,23 @@ async function testWebhook(context) {
         false,
         ['sign']
       );
-      
+
       const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(JSON.stringify(testPayload)));
       headers['X-Webhook-Signature'] = 'sha256=' + btoa(String.fromCharCode(...new Uint8Array(signature)));
     }
-    
+
     // 添加自定义头部
     if (webhook.headers) {
       Object.assign(headers, webhook.headers);
     }
-    
+
     const response = await fetch(webhook.url, {
       method: 'POST',
       headers: headers,
       body: JSON.stringify(testPayload),
       signal: AbortSignal.timeout(10000) // 10秒超时
     });
-    
+
     const result = {
       success: response.ok,
       status: response.status,
@@ -213,21 +225,21 @@ async function testWebhook(context) {
       headers: Object.fromEntries(response.headers.entries()),
       timestamp: new Date().toISOString()
     };
-    
+
     if (!response.ok) {
       result.error = await response.text().catch(() => 'Unable to read response body');
     }
-    
+
     return new Response(JSON.stringify({
       success: true,
       data: result
     }), {
       headers: { 'Content-Type': 'application/json' }
     });
-    
+
   } catch (error) {
     console.error('Error testing webhook:', error);
-    
+
     return new Response(JSON.stringify({
       success: false,
       error: {

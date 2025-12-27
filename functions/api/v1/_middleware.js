@@ -54,7 +54,7 @@ async function apiAuthentication(context) {
   const url = new URL(request.url);
 
   // 跳过公开端点的认证
-  const publicEndpoints = ['/api/v1/health', '/api/v1/info', '/api/v1/auth/token', '/api/v1/test', '/api/v1/simple-auth'];
+  const publicEndpoints = ['/api/v1/health', '/api/v1/info', '/api/v1/auth/token', '/api/v1/test', '/api/v1/simple-auth', '/api/v1/debug'];
   if (publicEndpoints.some(endpoint => url.pathname === endpoint || url.pathname.startsWith(endpoint + '/'))) {
     return context.next();
   }
@@ -72,13 +72,13 @@ async function apiAuthentication(context) {
     try {
       user = await verifyJWT(token, env);
 
-      // 获取完整用户信息
+      // 获取完整用户信息，但保留 JWT 中的权限
       const fullUser = await getUserById(user.id, env);
       if (fullUser) {
         user = {
-          ...user,
-          ...fullUser,
-          type: 'jwt'
+          ...user,      // JWT 基础信息 (iat, exp, type)
+          ...fullUser,  // 数据库信息优先（覆盖 permissions 以确保安全）
+          type: 'jwt'   // 确保 type 字段正确
         };
       }
 
@@ -121,7 +121,13 @@ async function apiAuthentication(context) {
     throw error;
   }
 
-  // 将用户信息添加到上下文中
+  // 将用户信息添加到上下文中 (使用 context.data 以确保持久化)
+  if (!context.data) {
+    context.data = {};
+  }
+  context.data.user = user;
+
+  // 保持向后兼容（尽管似乎在 Pages 中无效）
   context.user = user;
 
   return context.next();

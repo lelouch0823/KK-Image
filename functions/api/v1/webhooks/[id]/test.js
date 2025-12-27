@@ -6,24 +6,27 @@ import { getWebhooks } from '../../../utils/webhook.js';
 export async function onRequestPost(context) {
   const { request, env, params } = context;
   const webhookId = params.id;
-  
+
+  // 获取用户信息
+  const user = context.data?.user || context.user;
+
   // 检查管理员权限
-  if (!hasPermission(context.user, 'admin')) {
+  if (!hasPermission(user, 'admin')) {
     const error = new Error('Admin permission required');
     error.name = 'AuthorizationError';
     throw error;
   }
-  
+
   try {
     const webhooks = await getWebhooks(env);
     const webhook = webhooks.find(w => w.id === webhookId);
-    
+
     if (!webhook) {
       const error = new Error('Webhook not found');
       error.name = 'NotFoundError';
       throw error;
     }
-    
+
     // 获取自定义测试数据（如果提供）
     let customData = {};
     try {
@@ -34,7 +37,7 @@ export async function onRequestPost(context) {
     } catch (error) {
       // 忽略解析错误，使用默认测试数据
     }
-    
+
     // 发送测试载荷
     const testPayload = {
       event: 'webhook.test',
@@ -46,14 +49,14 @@ export async function onRequestPost(context) {
           url: webhook.url
         },
         user: {
-          id: context.user.id,
-          name: context.user.name
+          id: user.id,
+          name: user.name
         },
         ...customData // 合并自定义测试数据
       },
       id: 'test_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15)
     };
-    
+
     const headers = {
       'Content-Type': 'application/json',
       'User-Agent': 'Telegraph-Image-Webhook/1.0',
@@ -61,7 +64,7 @@ export async function onRequestPost(context) {
       'X-Webhook-ID': testPayload.id,
       'X-Webhook-Timestamp': testPayload.timestamp
     };
-    
+
     // 添加签名（如果配置了密钥）
     if (webhook.secret) {
       const encoder = new TextEncoder();
@@ -72,18 +75,18 @@ export async function onRequestPost(context) {
         false,
         ['sign']
       );
-      
+
       const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(JSON.stringify(testPayload)));
       headers['X-Webhook-Signature'] = 'sha256=' + btoa(String.fromCharCode(...new Uint8Array(signature)));
     }
-    
+
     // 添加自定义头部
     if (webhook.headers) {
       Object.assign(headers, webhook.headers);
     }
-    
+
     const startTime = Date.now();
-    
+
     try {
       const response = await fetch(webhook.url, {
         method: 'POST',
@@ -91,9 +94,9 @@ export async function onRequestPost(context) {
         body: JSON.stringify(testPayload),
         signal: AbortSignal.timeout(15000) // 15秒超时
       });
-      
+
       const duration = Date.now() - startTime;
-      
+
       const result = {
         success: response.ok,
         status: response.status,
@@ -102,13 +105,13 @@ export async function onRequestPost(context) {
         duration: duration,
         timestamp: new Date().toISOString()
       };
-      
+
       // 尝试读取响应体
       try {
         const responseText = await response.text();
         if (responseText) {
           result.responseBody = responseText;
-          
+
           // 尝试解析为 JSON
           try {
             result.responseJson = JSON.parse(responseText);
@@ -119,11 +122,11 @@ export async function onRequestPost(context) {
       } catch (e) {
         result.responseBodyError = 'Unable to read response body';
       }
-      
+
       if (!response.ok) {
         result.error = `HTTP ${response.status}: ${response.statusText}`;
       }
-      
+
       return new Response(JSON.stringify({
         success: true,
         data: {
@@ -137,10 +140,10 @@ export async function onRequestPost(context) {
       }), {
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
     } catch (fetchError) {
       const duration = Date.now() - startTime;
-      
+
       return new Response(JSON.stringify({
         success: false,
         error: {
@@ -161,7 +164,7 @@ export async function onRequestPost(context) {
         headers: { 'Content-Type': 'application/json' }
       });
     }
-    
+
   } catch (error) {
     console.error('Error testing webhook:', error);
     throw error;

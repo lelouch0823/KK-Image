@@ -4,8 +4,8 @@
  * POST /api/manage/folders - 创建新文件夹
  */
 
-import { generateId, generateShareToken } from '../utils/id.js';
-import { jsonResponse, success, error } from '../utils/response.js';
+import { generateId, generateShareToken } from '../../utils/id.js';
+import { jsonResponse, success, error } from '../../utils/response.js';
 
 export async function onRequestGet(context) {
     const { env, request } = context;

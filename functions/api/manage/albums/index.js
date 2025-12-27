@@ -4,8 +4,8 @@
  * POST /api/manage/albums - 创建新相册
  */
 
-import { generateId, generateShareToken } from '../utils/id.js';
-import { jsonResponse, success, error } from '../utils/response.js';
+import { generateId, generateShareToken } from '../../utils/id.js';
+import { jsonResponse, success, error } from '../../utils/response.js';
 
 export async function onRequestGet(context) {
     const { env } = context;

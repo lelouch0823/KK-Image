@@ -7,12 +7,12 @@ import { validateUserCredentials, createUser as createUserInDB, getUserStats, ge
 export async function onRequestPost(context) {
   const { request, env } = context;
   const url = new URL(request.url);
-  
+
   // 检查是否是 token 端点
   if (url.pathname.endsWith('/token')) {
     return await generateToken(context);
   }
-  
+
   // 检查是否是 api-keys 端点
   if (url.pathname.includes('/api-keys')) {
     return await createApiKey(context);
@@ -22,7 +22,7 @@ export async function onRequestPost(context) {
   if (url.pathname.includes('/users')) {
     return await createUser(context);
   }
-  
+
   const error = new Error('Endpoint not found');
   error.name = 'NotFoundError';
   throw error;
@@ -31,17 +31,17 @@ export async function onRequestPost(context) {
 // 生成 JWT Token
 async function generateToken(context) {
   const { request, env } = context;
-  
+
   try {
     const credentials = await request.json();
-    
+
     // 这里应该验证用户凭据，为了演示简化处理
     if (!credentials.username || !credentials.password) {
       const error = new Error('Username and password are required');
       error.name = 'ValidationError';
       throw error;
     }
-    
+
     // 使用用户管理系统验证凭据
     let user;
     try {
@@ -51,10 +51,10 @@ async function generateToken(context) {
       authError.name = 'AuthenticationError';
       throw authError;
     }
-    
+
     const expiresIn = credentials.expiresIn || 3600; // 默认1小时
     const token = await generateJWT(user, env, expiresIn);
-    
+
     return new Response(JSON.stringify({
       success: true,
       data: {
@@ -70,7 +70,7 @@ async function generateToken(context) {
     }), {
       headers: { 'Content-Type': 'application/json' }
     });
-    
+
   } catch (error) {
     console.error('Error generating token:', error);
     throw error;
@@ -80,47 +80,51 @@ async function generateToken(context) {
 // 创建 API Key
 async function createApiKey(context) {
   const { request, env } = context;
-  
+
+  // 获取用户信息
+  const user = context.data?.user || context.user;
+
   // 检查管理员权限
-  if (!hasPermission(context.user, 'admin')) {
+  if (!hasPermission(user, 'admin')) {
     const error = new Error('Admin permission required');
     error.name = 'AuthorizationError';
     throw error;
   }
-  
+
   try {
     const keyConfig = await request.json();
-    
+
     // 验证配置
     if (!keyConfig.name) {
       const error = new Error('API Key name is required');
       error.name = 'ValidationError';
       throw error;
     }
-    
+
     // 生成 API Key
     const apiKey = generateApiKey();
-    
+
     const keyInfo = {
       id: 'key_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15),
       key: apiKey,
       name: keyConfig.name,
       permissions: keyConfig.permissions || ['read'],
       createdAt: Date.now(),
-      createdBy: context.user.name || context.user.id,
+      created: Date.now(),
+      createdBy: user.name || user.id,
       expiresAt: keyConfig.expiresAt || null,
       disabled: false
     };
-    
+
     // 保存到 KV 存储
     await saveApiKey(keyInfo, env);
-    
+
     // 返回响应（不包含完整的 key，只显示前几位）
     const responseData = {
       ...keyInfo,
       key: apiKey.substring(0, 8) + '...' + apiKey.substring(apiKey.length - 4)
     };
-    
+
     return new Response(JSON.stringify({
       success: true,
       data: responseData,
@@ -129,7 +133,7 @@ async function createApiKey(context) {
       status: 201,
       headers: { 'Content-Type': 'application/json' }
     });
-    
+
   } catch (error) {
     console.error('Error creating API key:', error);
     throw error;
@@ -140,7 +144,7 @@ async function createApiKey(context) {
 export async function onRequestGet(context) {
   const { request, env } = context;
   const url = new URL(request.url);
-  
+
   // 检查是否是 api-keys 端点
   if (url.pathname.includes('/api-keys')) {
     return await listApiKeys(context);
@@ -166,24 +170,27 @@ export async function onRequestDelete(context) {
   const { request, env } = context;
   const url = new URL(request.url);
   const keyId = url.pathname.split('/').pop();
-  
+
+  // 获取用户信息
+  const user = context.data?.user || context.user;
+
   // 检查管理员权限
-  if (!hasPermission(context.user, 'admin')) {
+  if (!hasPermission(user, 'admin')) {
     const error = new Error('Admin permission required');
     error.name = 'AuthorizationError';
     throw error;
   }
-  
+
   try {
     await deleteApiKey(keyId, env);
-    
+
     return new Response(JSON.stringify({
       success: true,
       message: 'API Key deleted successfully'
     }), {
       headers: { 'Content-Type': 'application/json' }
     });
-    
+
   } catch (error) {
     console.error('Error deleting API key:', error);
     throw error;
@@ -202,7 +209,7 @@ async function getValidApiKeys(env) {
       console.error('Failed to get API keys from KV:', error);
     }
   }
-  
+
   // 如果 KV 中没有，使用环境变量中的默认 API Key
   const defaultApiKey = env.DEFAULT_API_KEY;
   if (defaultApiKey) {
@@ -215,7 +222,7 @@ async function getValidApiKeys(env) {
       disabled: false
     }];
   }
-  
+
   return [];
 }
 

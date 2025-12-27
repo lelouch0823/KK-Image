@@ -129,7 +129,12 @@ function authentication(context) {
   // 6. 验证 Token
   return verifyJWT(token, env)
     .then(payload => {
-      // 验证通过，将用户信息注入 context (可选)
+      // 验证通过，将用户信息注入 context (使用 context.data 以确保持久化)
+      if (!context.data) {
+        context.data = {};
+      }
+      context.data.user = payload;
+      // 保持向后兼容
       context.user = payload;
       return context.next();
     })

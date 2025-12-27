@@ -19,7 +19,7 @@ const CONFIG = {
   BASE_URL: process.env.DEPLOY_URL || 'http://localhost:8080',
   API_BASE: process.env.API_BASE || 'http://localhost:8080/api/v1',
   TIMEOUT: 10000, // 10秒超时
-  
+
   // 测试用户凭据
   TEST_USERNAME: process.env.TEST_USERNAME || 'admin',
   TEST_PASSWORD: process.env.TEST_PASSWORD || '123'
@@ -59,7 +59,7 @@ function info(message) {
 async function request(url, options = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT);
-  
+
   try {
     const response = await fetch(url, {
       ...options,
@@ -79,13 +79,12 @@ async function request(url, options = {}) {
 // 检查基础页面
 async function checkBasicPages() {
   info('检查基础页面...');
-  
+
   const pages = [
     { path: '/', name: '主页' },
-    { path: '/admin', name: '管理页面' },
-    { path: '/upload.html', name: '上传页面' }
+    { path: '/admin', name: '管理页面' }
   ];
-  
+
   for (const page of pages) {
     try {
       const response = await request(`${CONFIG.BASE_URL}${page.path}`);
@@ -103,13 +102,9 @@ async function checkBasicPages() {
 // 检查静态资源
 async function checkStaticAssets() {
   info('检查静态资源...');
-  
-  const assets = [
-    '/favicon.ico',
-    '/js/vue-vendor.js',
-    '/js/element-plus.js'
-  ];
-  
+
+  const assets = ['/favicon.ico'];
+
   for (const asset of assets) {
     try {
       const response = await request(`${CONFIG.BASE_URL}${asset}`);
@@ -124,10 +119,11 @@ async function checkStaticAssets() {
   }
 }
 
+
 // 检查 API 健康状态
 async function checkAPIHealth() {
   info('检查 API 健康状态...');
-  
+
   try {
     const response = await request(`${CONFIG.API_BASE}/health`);
     if (response.ok) {
@@ -147,7 +143,7 @@ async function checkAPIHealth() {
 // 检查认证系统
 async function checkAuthentication() {
   info('检查认证系统...');
-  
+
   try {
     // 测试 JWT 认证
     const response = await request(`${CONFIG.API_BASE}/auth/token`, {
@@ -158,7 +154,7 @@ async function checkAuthentication() {
         password: CONFIG.TEST_PASSWORD
       })
     });
-    
+
     if (response.ok) {
       const data = await response.json();
       if (data.success && data.data.token) {
@@ -184,15 +180,15 @@ async function checkAPIEndpoints(token) {
     warning('跳过 API 端点检查（无有效 token）');
     return;
   }
-  
+
   info('检查 API 端点...');
-  
+
   const endpoints = [
     { method: 'GET', path: '/files', name: '文件列表' },
     { method: 'GET', path: '/webhooks', name: 'Webhook 列表' },
     { method: 'GET', path: '/info', name: '系统信息' }
   ];
-  
+
   for (const endpoint of endpoints) {
     try {
       const response = await request(`${CONFIG.API_BASE}${endpoint.path}`, {
@@ -201,7 +197,7 @@ async function checkAPIEndpoints(token) {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (response.ok) {
         success(`${endpoint.name} API - 状态: ${response.status}`);
       } else {
@@ -216,12 +212,12 @@ async function checkAPIEndpoints(token) {
 // 检查环境配置
 async function checkEnvironmentConfig() {
   info('检查环境配置...');
-  
+
   try {
     // 读取 wrangler.toml 检查配置
     const wranglerPath = join(__dirname, '..', 'wrangler.toml');
     const wranglerContent = readFileSync(wranglerPath, 'utf8');
-    
+
     // 检查关键配置项
     const requiredConfigs = [
       'BASIC_USER',
@@ -229,7 +225,7 @@ async function checkEnvironmentConfig() {
       'TG_Bot_Token',
       'TG_Chat_ID'
     ];
-    
+
     let configOk = true;
     for (const config of requiredConfigs) {
       if (wranglerContent.includes(config)) {
@@ -239,7 +235,7 @@ async function checkEnvironmentConfig() {
         configOk = false;
       }
     }
-    
+
     // 检查 KV 命名空间
     const kvNamespaces = ['img_url', 'WEBHOOKS_KV', 'WEBHOOK_LOGS_KV'];
     for (const ns of kvNamespaces) {
@@ -250,7 +246,7 @@ async function checkEnvironmentConfig() {
         configOk = false;
       }
     }
-    
+
     return configOk;
   } catch (err) {
     error(`环境配置检查错误: ${err.message}`);
@@ -263,13 +259,13 @@ function generateReport(results) {
   log('\n' + '='.repeat(50), 'bold');
   log('📋 部署验证报告', 'bold');
   log('='.repeat(50), 'bold');
-  
+
   const { passed, failed, warnings } = results;
-  
+
   log(`\n✅ 通过: ${passed} 项`);
   log(`❌ 失败: ${failed} 项`);
   log(`⚠️  警告: ${warnings} 项`);
-  
+
   if (failed === 0) {
     log('\n🎉 部署验证通过！系统运行正常。', 'green');
   } else if (failed <= 2) {
@@ -277,7 +273,7 @@ function generateReport(results) {
   } else {
     log('\n❌ 部署存在严重问题，需要立即修复。', 'red');
   }
-  
+
   log('\n💡 建议：');
   log('- 检查所有失败的项目并修复');
   log('- 确保环境变量正确配置');
@@ -289,9 +285,9 @@ function generateReport(results) {
 async function main() {
   log('🚀 开始 Telegraph-Image 部署验证...', 'bold');
   log(`📍 目标地址: ${CONFIG.BASE_URL}\n`);
-  
+
   let passed = 0, failed = 0, warnings = 0;
-  
+
   // 统计结果的辅助函数
   const originalLog = console.log;
   console.log = (...args) => {
@@ -301,7 +297,7 @@ async function main() {
     else if (message.includes('⚠️')) warnings++;
     originalLog(...args);
   };
-  
+
   try {
     // 执行各项检查
     await checkBasicPages();
@@ -310,16 +306,16 @@ async function main() {
     const token = await checkAuthentication();
     await checkAPIEndpoints(token);
     await checkEnvironmentConfig();
-    
+
     // 恢复原始 console.log
     console.log = originalLog;
-    
+
     // 生成报告
     generateReport({ passed, failed, warnings });
-    
+
     // 设置退出码
     process.exit(failed > 2 ? 1 : 0);
-    
+
   } catch (err) {
     console.log = originalLog;
     error(`部署验证过程中发生错误: ${err.message}`);

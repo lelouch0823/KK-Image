@@ -1,4 +1,5 @@
 // 认证工具模块 - 处理 API Key 和 JWT 认证
+import { hasPermission, requirePermission } from './permissions.js';
 
 /**
  * JWT 实现 - 使用 URL-safe Base64 (RFC 4648) 和安全比较
@@ -246,28 +247,8 @@ export async function deleteApiKey(keyId, env) {
   return true;
 }
 
-// 检查权限
-export function hasPermission(user, requiredPermission) {
-  if (!user || !user.permissions) {
-    return false;
-  }
+// export { hasPermission, requirePermission } already handled by top-level import and existing usage? 
+// No, I imported them, but I need to EXPORT them. 
+// Since they are imported as named imports, I can just export them.
 
-  // 管理员权限可以访问所有资源
-  if (user.permissions.includes('admin')) {
-    return true;
-  }
-
-  return user.permissions.includes(requiredPermission);
-}
-
-// 权限装饰器
-export function requirePermission(permission) {
-  return function (context) {
-    if (!hasPermission(context.user, permission)) {
-      const error = new Error(`Permission '${permission}' required`);
-      error.name = 'AuthorizationError';
-      throw error;
-    }
-    return context.next();
-  };
-}
+export { hasPermission, requirePermission };

@@ -1,34 +1,34 @@
 // 权限管理 API
-import { 
-  PERMISSIONS, 
-  PERMISSION_GROUPS, 
-  ROLES, 
-  hasPermission, 
+import {
+  PERMISSIONS,
+  PERMISSION_GROUPS,
+  ROLES,
+  hasPermission,
   getUserPermissions,
   generatePermissionReport,
-  requirePermission 
+  requirePermission
 } from '../utils/permissions.js';
 
 // 获取权限信息
 export async function onRequestGet(context) {
   const { request } = context;
   const url = new URL(request.url);
-  
+
   // 检查是否是权限定义端点
   if (url.pathname.endsWith('/definitions')) {
     return await getPermissionDefinitions(context);
   }
-  
+
   // 检查是否是用户权限端点
   if (url.pathname.includes('/user')) {
     return await getUserPermissionInfo(context);
   }
-  
+
   // 检查是否是角色端点
   if (url.pathname.includes('/roles')) {
     return await getRoles(context);
   }
-  
+
   const error = new Error('Endpoint not found');
   error.name = 'NotFoundError';
   throw error;
@@ -57,9 +57,12 @@ async function getPermissionDefinitions(context) {
 // 获取用户权限信息
 async function getUserPermissionInfo(context) {
   try {
-    const userPermissions = getUserPermissions(context.user);
-    const report = generatePermissionReport(context.user);
-    
+    // 获取用户信息
+    const user = context.data?.user || context.user;
+
+    const userPermissions = getUserPermissions(user);
+    const report = generatePermissionReport(user);
+
     return new Response(JSON.stringify({
       success: true,
       data: {
@@ -94,12 +97,12 @@ async function getRoles(context) {
 export async function onRequestPost(context) {
   const { request } = context;
   const url = new URL(request.url);
-  
+
   // 检查是否是权限验证端点
   if (url.pathname.endsWith('/check')) {
     return await checkPermissions(context);
   }
-  
+
   const error = new Error('Endpoint not found');
   error.name = 'NotFoundError';
   throw error;
@@ -108,29 +111,32 @@ export async function onRequestPost(context) {
 // 检查权限
 async function checkPermissions(context) {
   const { request } = context;
-  
+
+  // 获取用户信息
+  const user = context.data?.user || context.user;
+
   try {
     const { permissions } = await request.json();
-    
+
     if (!Array.isArray(permissions)) {
       const error = new Error('Permissions must be an array');
       error.name = 'ValidationError';
       throw error;
     }
-    
+
     const results = {};
-    
+
     for (const permission of permissions) {
-      results[permission] = hasPermission(context.user, permission);
+      results[permission] = hasPermission(user, permission);
     }
-    
+
     return new Response(JSON.stringify({
       success: true,
       data: {
         user: {
-          id: context.user.id,
-          name: context.user.name,
-          type: context.user.type
+          id: user.id,
+          name: user.name,
+          type: user.type
         },
         permissions: results,
         checkedAt: new Date().toISOString()
@@ -138,7 +144,7 @@ async function checkPermissions(context) {
     }), {
       headers: { 'Content-Type': 'application/json' }
     });
-    
+
   } catch (error) {
     console.error('Error checking permissions:', error);
     throw error;

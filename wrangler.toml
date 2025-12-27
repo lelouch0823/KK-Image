@@ -104,11 +104,57 @@ SENTRY_DSN = ""
 # =============================================================================
 [env.production.vars]
 COMPRESS_STATIC_ASSETS = "true"
+BASIC_USER = "admin"
+BASIC_PASS = "123"
+JWT_SECRET = "kk-image-jwt-secret-change-in-production"
+STORAGE_MODE = "single"
+STORAGE_PROVIDER = "r2"
+STORAGE_PRIMARY = "r2"
+TG_Bot_Token = ""
+TG_Chat_ID = ""
+S3_ENDPOINT = ""
+S3_BUCKET = ""
+S3_ACCESS_KEY_ID = ""
+S3_SECRET_ACCESS_KEY = ""
+S3_REGION = "auto"
+STORAGE_MIRRORS = ""
+STORAGE_MIRROR_ASYNC = "true"
+STORAGE_FALLBACK_ENABLED = "true"
+STORAGE_FALLBACK_CHAIN = "r2,s3,telegram"
+STORAGE_FALLBACK_TIMEOUT = "3000"
+WhiteList_Mode = "false"
+disable_telemetry = "false"
+ModerateContentApiKey = ""
+SENTRY_DSN = ""
+
+# 生产环境 KV 命名空间绑定
+[[env.production.kv_namespaces]]
+binding = "img_url"
+id = "7bedbd0e77b64e548b280114c38a5541"
+
+[[env.production.kv_namespaces]]
+binding = "WEBHOOKS_KV"
+id = "6ae427ac8290406684dcabf2ca4babac"
+
+[[env.production.kv_namespaces]]
+binding = "WEBHOOK_LOGS_KV"
+id = "0346979ddffe4b2da2a7ea7e05133167"
+
+# 生产环境 R2 存储桶绑定
+[[env.production.r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "kk-image-storage"
+
+# 生产环境 D1 数据库绑定
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "kk-image-storage-db"
+database_id = "6de591b2-4241-4469-988c-29f51bb871ad"
 
 # =============================================================================
-# 开发环境配置
+# 预览环境配置
 # =============================================================================
-[env.development.vars]
+[env.preview.vars]
 COMPRESS_STATIC_ASSETS = "false"
 # 开发环境测试值（仅供本地测试）
 TG_Bot_Token = "123456789:ABCdefGHIjklMNOpqrSTUvwxYZ"
@@ -149,7 +195,7 @@ bucket_name = "kk-image-storage"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "kk-image-db"
-database_id = "f3234553-417e-9271-5ea5d6686ad5"
+database_name = "kk-image-storage-db"
+database_id = "6de591b2-4241-4469-988c-29f51bb871ad"
 migrations_dir = "migrations"
 
