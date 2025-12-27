@@ -2,10 +2,12 @@
  * 认证相关 Composable
  * @module composables/useAuth
  */
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 
-// 认证状态
+// 全局状态
 const isAuthenticated = ref(false);
+const currentUser = ref(null);
+const isLoading = ref(true);
 
 /**
  * 获取认证相关功能
@@ -13,23 +15,59 @@ const isAuthenticated = ref(false);
  */
 export function useAuth() {
     /**
-     * 获取认证头
-     * 目前采用 Basic Auth 方式，凭证硬编码在环境变量或代码中
-     * @returns {Object} 包含 Authorization 头的对象
+     * 检查登录状态
+     * @returns {Promise<boolean>} 是否已登录
      */
-    const getAuthHeader = () => {
-        // Basic Auth 凭证 (admin:123456)
-        // 生产环境建议通过环境变量配置，此处保持与 Wrangler 配置一致
-        return { 'Authorization': 'Basic ' + btoa('admin:123456') };
+    const checkAuth = async () => {
+        try {
+            isLoading.value = true;
+            const response = await fetch('/api/manage/user', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    isAuthenticated.value = true;
+                    currentUser.value = result.data;
+                    return true;
+                }
+            }
+
+            // 认证失败
+            isAuthenticated.value = false;
+            currentUser.value = null;
+            return false;
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            isAuthenticated.value = false;
+            currentUser.value = null;
+            return false;
+        } finally {
+            isLoading.value = false;
+        }
     };
 
     /**
-     * 获取完整的请求头（包含认证和 Content-Type）
+     * 获取认证头
+     * @returns {Object} 包含 Authorization 头的对象
+     */
+    const getAuthHeader = () => {
+        // 不再需要硬编码的 Basic Auth
+        // 浏览器会自动携带 Cookie
+        return {};
+    };
+
+    /**
+     * 获取完整的请求头
      * @param {boolean} includeContentType - 是否包含 JSON Content-Type
      * @returns {Object} 请求头对象
      */
     const getHeaders = (includeContentType = false) => {
-        const headers = getAuthHeader();
+        const headers = {};
         if (includeContentType) {
             headers['Content-Type'] = 'application/json';
         }
@@ -43,11 +81,25 @@ export function useAuth() {
      * @returns {Promise<Response>} fetch 响应
      */
     const authFetch = async (url, options = {}) => {
-        const headers = {
-            ...options.headers,
-            ...getAuthHeader()
+        // 确保携带凭证 (Cookie)
+        const opts = {
+            ...options,
+            credentials: 'include',
+            headers: {
+                ...options.headers,
+                ...getHeaders()
+            }
         };
-        return fetch(url, { ...options, headers });
+
+        const response = await fetch(url, opts);
+
+        // 如果遇到 401，更新状态
+        if (response.status === 401) {
+            isAuthenticated.value = false;
+            currentUser.value = null;
+        }
+
+        return response;
     };
 
     /**
@@ -63,6 +115,9 @@ export function useAuth() {
 
     return {
         isAuthenticated,
+        currentUser,
+        isLoading,
+        checkAuth,
         getAuthHeader,
         getHeaders,
         authFetch,

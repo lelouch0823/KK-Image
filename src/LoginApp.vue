@@ -92,17 +92,28 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onBeforeMount } from 'vue';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
 
 const { addToast } = useToast();
+const { checkAuth } = useAuth();
 
 const username = ref('');
 const password = ref('');
 const showPassword = ref(false);
 const loading = ref(false);
 const error = ref('');
+
+// 检查是否已登录
+onBeforeMount(async () => {
+    const isAuth = await checkAuth();
+    if (isAuth) {
+        // 已登录，重定向到后台以避免重复登录
+         window.location.href = '/admin';
+    }
+});
 
 const handleLogin = async () => {
   if (!username.value || !password.value) {

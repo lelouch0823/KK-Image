@@ -4,13 +4,26 @@ const toasts = ref([]);
 
 export function useToast() {
     const showToast = (message, type = 'success', duration = 3000) => {
-        const id = Date.now() + Math.random().toString(36).substr(2, 9);
-        toasts.value.push({ id, message, type });
+        let msg, t, d;
 
-        if (duration > 0) {
+        // 支持对象传参 ({ message, type, duration })
+        if (typeof message === 'object' && message !== null) {
+            msg = message.message;
+            t = message.type || type;
+            d = message.duration || duration;
+        } else {
+            msg = message;
+            t = type;
+            d = duration;
+        }
+
+        const id = Date.now() + Math.random().toString(36).substr(2, 9);
+        toasts.value.push({ id, message: msg, type: t });
+
+        if (d > 0) {
             setTimeout(() => {
                 removeToast(id);
-            }, duration);
+            }, d);
         }
 
         return id;
