@@ -41,7 +41,16 @@
           <!-- 文件夹列表 -->
           <div v-for="folder in currentFolders" :key="'f-' + folder.id"
             @click="navigateTo(folder.id, folder)"
-            class="aspect-square bg-blue-50 hover:bg-blue-100 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors group">
+            class="aspect-square bg-blue-50 hover:bg-blue-100 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors group relative border-2"
+            :class="selectedFolderIds.includes(folder.id) ? 'border-primary ring-2 ring-primary/20' : 'border-transparent'">
+            <div class="absolute top-2 right-2 z-10" @click="(e) => toggleFolderSelect(folder.id, e)">
+                <div class="w-5 h-5 rounded border flex items-center justify-center transition-colors shadow-sm"
+                     :class="selectedFolderIds.includes(folder.id) ? 'bg-primary border-primary' : 'bg-white border-gray-300 hover:border-primary'">
+                    <svg v-if="selectedFolderIds.includes(folder.id)" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+            </div>
             <svg class="w-10 h-10 text-blue-400 group-hover:text-blue-500 mb-2 transition-colors" fill="currentColor" viewBox="0 0 20 20">
               <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
             </svg>
@@ -81,9 +90,9 @@
         <button @click="$emit('close')" class="px-4 py-2 text-sm font-medium text-secondary hover:text-primary">
           取消
         </button>
-        <button @click="confirmSelect" :disabled="selectedIds.length === 0"
+        <button @click="confirmSelect" :disabled="selectedIds.length === 0 && selectedFolderIds.length === 0"
           class="px-6 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
-          添加 {{ selectedIds.length > 0 ? `(${selectedIds.length})` : '' }}
+          添加 {{ (selectedIds.length + selectedFolderIds.length) > 0 ? `(${selectedIds.length + selectedFolderIds.length})` : '' }}
         </button>
       </div>
     </div>
@@ -197,8 +206,24 @@ const toggleSelect = (fileId) => {
   }
 };
 
+const selectedFolderIds = ref([]);
+
+const toggleFolderSelect = (folderId, event) => {
+  event.stopPropagation(); // 防止触发进入文件夹
+  const index = selectedFolderIds.value.indexOf(folderId);
+  if (index >= 0) {
+      selectedFolderIds.value.splice(index, 1);
+  } else {
+      selectedFolderIds.value.push(folderId);
+  }
+};
+
 const confirmSelect = () => {
-  emit('select', selectedIds.value);
+    // 传递对象格式，包含文件和文件夹
+    emit('select', { 
+        fileIds: selectedIds.value, 
+        folderIds: selectedFolderIds.value 
+    });
 };
 
 onMounted(() => {

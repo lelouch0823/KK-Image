@@ -149,11 +149,15 @@ export function useSpaces() {
      */
     const addFilesToSpace = async (spaceId, fileIds, section = 'default') => {
         try {
+            const body = Array.isArray(fileIds)
+                ? { fileIds, section }
+                : { ...fileIds, section }; // 支持传对象 { fileIds, folderIds }
+
             const response = await fetch(API.SPACE_FILES(spaceId), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ fileIds, section })
+                body: JSON.stringify(body)
             });
             const result = await response.json();
 

@@ -138,6 +138,8 @@ const spaceData = ref(null);
 const isPublic = ref(false);
 const showFileSelector = ref(false);
 const activeTab = ref('files');
+const customPassword = ref('');
+const hasPassword = ref(false);
 
 const templateLabels = {
   gallery: '画廊',
@@ -158,7 +160,18 @@ const loadData = async () => {
   const data = await loadSpace(props.space.id);
   if (data) {
     spaceData.value = data;
+    spaceData.value = data;
     isPublic.value = data.isPublic;
+    // 后端返回的详情里应该包含是否有密码的信息 (不需要返回真实密码，或者仅在这里返回)
+    // 假设 API.SPACE_BY_ID 返回的数据里包含 password (如果有权限)
+    // admin 接口通常会返回 password
+    if (data.password) {
+        hasPassword.value = true;
+        customPassword.value = data.password;
+    } else {
+        hasPassword.value = false;
+        customPassword.value = '';
+    }
   }
 };
 
@@ -177,11 +190,29 @@ const copyLink = async () => {
   }
 };
 
-const addFiles = async (fileIds) => {
+const addFiles = async (payload) => {
   showFileSelector.value = false;
-  await addFilesToSpace(props.space.id, fileIds);
+  await addFilesToSpace(props.space.id, payload);
   await loadData();
   emit('updated');
+};
+
+const togglePassword = async () => {
+    if (!hasPassword.value) {
+        // 关闭密码
+        await updateSpace(props.space.id, { password: null });
+        customPassword.value = '';
+        await loadData();
+        emit('updated');
+    }
+};
+
+const updateSpacePassword = async () => {
+    if (!customPassword.value) return;
+    await updateSpace(props.space.id, { password: customPassword.value });
+    addToast({ message: '密码已更新', type: 'success' });
+    await loadData();
+    emit('updated');
 };
 
 const removeFile = async (fileId) => {

@@ -2,194 +2,100 @@
 
 ## 项目概述
 
-Telegraph-Image 是一个基于 Cloudflare Pages 的现代化图片托管服务，支持高性能的图片上传、管理和分享功能。项目采用 Vue.js 3.x + Element Plus 前端框架，配合 Cloudflare Workers 和 KV 存储提供后端服务。
+Telegraph-Image 是一个基于 Cloudflare Pages 的全栈现代化图床/文件存储服务。它利用 Cloudflare 的边缘计算能力（Workers/Pages Functions）和存储服务（D1, R2, KV），提供高性能、低成本的全球化文件托管解决方案。前端采用 Vue 3 + Tailwind CSS v4 构建，追求极致的用户体验 (SOTA UX)。
 
-## 已完成的主要功能
+## 已完成的主要功能 (Current Status)
 
-### 第一阶段：核心技术升级 ✅
+### 1. 核心架构升级 (SOTA Architecture) ✅
+- **前端重构**:
+    - **框架**: Vue 3 (Script Setup) + Vite
+    - **样式**: **Tailwind CSS v4** (替换了 Element Plus)
+    - **视觉**: 精心设计的现代化 UI，拥有流畅的微交互和动画
+    - **组件**: 100% 自研 SOTA UI 组件库 (无第三方庞大依赖)
+- **后端重构**:
+    - **数据库**: **Cloudflare D1 (SQLite)** (用于元数据、文件索引、空间管理)
+    - **存储**: **Cloudflare R2** (主要存储) / S3 / Telegram (可选)
+    - **配置**: Cloudflare KV (用于系统配置和 Webhook 状态)
+- **性能**:
+    - 全局 CDN 加速
+    - D1 Batch 批量操作优化
+    - 懒加载与代码分割
 
-#### 1.1 Vue.js 2.x 到 3.x 升级
-- **依赖升级**: 完成从 Vue 2.x 到 Vue 3.x 的全面升级
-- **构建工具**: 采用 Vite 替代传统构建工具，提升开发体验
-- **组件迁移**: 使用 Composition API 重构核心组件
-- **Element Plus**: 完成从 Element UI 到 Element Plus 的迁移
+### 2. 文件管理与上传 ✅
+- **智能上传中心**:
+    - 队列化上传 (Queue System)
+    - 实时速度与 ETA 估算
+    - 拖拽上传与剪贴板粘贴
+    - 浮动式上传进度面板
+    - 文件夹感知 (上传时保留层级结构)
+- **高级管理**:
+    - 瀑布流/网格/列表视图
+    - 批量删除/移动
+    - 文件夹系统
+    - 强大的筛选与搜索
 
-#### 1.2 静态资源优化
-- **压缩配置**: 启用 Gzip/Brotli 压缩
-- **缓存策略**: 优化浏览器缓存配置
-- **CDN 优化**: 配置 Cloudflare CDN 加速
+### 3. Shared Spaces (共享空间) ✅
+- **概念**: 类似于 Google Drive 的共享文件夹，支持对外公开分享。
+- **特性**:
+    - **空间管理**: 创建、编辑、删除空间
+    - **权限控制**: 密码保护 (Password Protection)、公开/私有切换
+    - **模板系统**:
+        - **画廊 (Gallery)**: 适合摄影作品展示
+        - **清单 (List)**: 适合文件归档
+        - **瀑布流 (Masonry)**: 适合图片墙 (小红书风格)
+    - **交互体验**: 
+        - 独立的访客视图 (`/space/:token`)
+        - 客户端批量打包下载 (Client-side Zip generation)
+        - 空间数据分析 (访客量统计)
 
-#### 1.3 拖拽上传功能
-- **多文件上传**: 支持批量文件上传
-- **拖拽界面**: 直观的拖拽上传体验
-- **进度显示**: 实时上传进度可视化
-- **错误处理**: 完善的错误提示和重试机制
+### 4. 认证与安全 ✅
+- **统一认证系统**:
+    - 支持 Basic Auth (后台管理)
+    - Token Auth (API/Upload 鉴权)
+    - 完善的中间件 (Middleware) 权限校验
+- **API 安全**:
+    - 细粒度的权限控制 (CRUD 权限分离)
+    - 安全的上下文传递 (`context.data`)
 
-#### 1.4 管理统计分析
-- **实时仪表板**: 文件统计和存储分析
-- **上传统计**: 详细的上传记录和趋势
-- **存储分析**: 存储空间使用情况
-- **访问统计**: 文件访问量统计
-
-### 第二阶段：API 扩展和 Webhook 支持 ✅
-
-#### 2.1 RESTful API 系统
-- **标准化接口**: 完整的 RESTful API 设计
-- **文件管理**: 支持文件上传、查询、更新、删除操作
-- **用户管理**: 用户账户和权限管理
-- **API 密钥**: 支持 API Key 认证机制
-
-#### 2.2 认证和授权系统
-- **JWT 认证**: 基于 JWT 的身份验证
-- **API Key**: 支持 API Key 访问控制
-- **权限管理**: 细粒度的权限控制系统
-- **环境变量**: 安全的配置管理
-
-#### 2.3 Webhook 事件系统
-- **事件通知**: 支持文件上传、删除等事件通知
-- **签名验证**: HMAC-SHA256 签名验证机制
-- **重试机制**: 失败重试和指数退避
-- **日志记录**: 完整的 Webhook 执行日志
-- **管理界面**: Webhook 配置和测试功能
-
-#### 2.4 API 文档和测试
-- **完整文档**: 详细的 API 使用文档
-- **测试套件**: 全面的自动化测试
-- **示例代码**: 丰富的使用示例
+### 5. 高级功能 ✅
+- **Webhooks**: 支持上传/删除事件的回调通知
+- **数据迁移**: 支持旧版 KV 数据迁移到 D1
+- **多存储策略**: 支持 R2 作为主存储，Telegram/S3 作为备份或扩展
 
 ## 技术架构
 
 ### 前端技术栈
-- **Vue.js 3.x**: 现代化的前端框架
-- **Element Plus**: 企业级 UI 组件库
-- **Vite**: 快速的构建工具
-- **Composition API**: 更好的代码组织和复用
+- **核心**: Vue 3.x, Vite
+- **UI/样式**: **Tailwind CSS v4**, Headless UI
+- **图标**: Heroicons (SVG)
+- **工具**: VueUse, Chart.js (Analytics)
 
-### 后端技术栈
-- **Cloudflare Pages**: 静态网站托管
-- **Cloudflare Workers**: 边缘计算服务
-- **Cloudflare KV**: 键值存储数据库
-- **Telegram Bot API**: 文件存储后端
+### 后端技术栈 (Cloudflare Stack)
+- **Computing**: Cloudflare Pages Functions (Node.js compat)
+- **Database**: Cloudflare D1 (SQLite) - *Primary Metadata Store*
+- **Object Storage**: Cloudflare R2 - *Primary File Store*
+- **Key-Value**: Cloudflare KV - *Configuration & Cache*
 
-### 开发工具
-- **Wrangler**: Cloudflare 开发工具
-- **Mocha**: 测试框架
-- **ESLint**: 代码质量检查
-- **Git**: 版本控制
-
-## 项目结构
+## 目录结构
 
 ```
 Telegraph-Image/
-├── src/                    # Vue.js 源代码
-│   ├── components/         # Vue 组件
-│   └── composables/        # Composition API 逻辑
-├── functions/              # Cloudflare Workers 函数
-│   ├── api/               # API 端点
-│   │   ├── v1/            # API v1 版本
-│   │   └── utils/         # 工具函数
-│   └── utils/             # 通用工具
-├── docs/                  # 项目文档
-│   ├── api/               # API 文档
-│   ├── deployment/        # 部署文档
-│   └── user-manual/       # 用户手册
-├── test/                  # 测试文件
-└── dist/                  # 构建输出
+├── src/                    # 前端源代码 (Vue 3 + Tailwind)
+│   ├── components/         # SOTA UI 组件
+│   ├── composables/        # 组合式逻辑 (useSpaces, useUploadQueue)
+│   ├── pages/              # 多页应用入口 (admin, gallery, space, login)
+│   └── utils/              # 通用工具
+├── functions/              # 后端源代码 (Cloudflare Functions)
+│   ├── api/                # REST API
+│   │   ├── manage/         # 管理端 API (需鉴权)
+│   │   ├── space/          # 访客端 API
+│   │   └── v1/             # 公共 API
+│   └── storage/            # 存储适配器 (r2, s3, telegram)
+├── migrations/             # D1 数据库迁移文件
+├── docs/                   # 项目文档
+└── public/                 # 静态资源
 ```
-
-## 配置文件
-
-### wrangler.toml
-- **环境变量**: 完整的环境变量配置
-- **KV 命名空间**: 数据存储配置
-- **构建设置**: 构建和部署配置
-
-### package.json
-- **依赖管理**: 现代化的依赖配置
-- **脚本命令**: 开发、构建、测试脚本
-- **版本控制**: 语义化版本管理
-
-## 安全特性
-
-### 认证机制
-- **Basic Auth**: 管理界面基础认证
-- **JWT Token**: API 访问令牌
-- **API Key**: 第三方集成密钥
-
-### 数据保护
-- **环境变量**: 敏感信息环境变量存储
-- **签名验证**: Webhook 签名验证
-- **权限控制**: 细粒度权限管理
-
-## 性能优化
-
-### 前端优化
-- **代码分割**: 按需加载组件
-- **资源压缩**: Gzip/Brotli 压缩
-- **缓存策略**: 浏览器缓存优化
-
-### 后端优化
-- **边缘计算**: Cloudflare Workers 全球分布
-- **KV 存储**: 高性能键值存储
-- **CDN 加速**: 全球 CDN 网络
-
-## 测试覆盖
-
-### 单元测试
-- **API 测试**: 完整的 API 功能测试
-- **组件测试**: Vue 组件单元测试
-- **工具函数**: 工具函数测试
-
-### 集成测试
-- **端到端**: 完整流程测试
-- **Webhook**: Webhook 功能测试
-- **认证**: 认证系统测试
-
-## 部署和运维
-
-### 部署流程
-- **自动构建**: Vite 自动构建
-- **环境配置**: 多环境配置支持
-- **版本管理**: Git 版本控制
-
-### 监控和日志
-- **错误监控**: 完善的错误处理
-- **访问日志**: 详细的访问记录
-- **性能监控**: 性能指标收集
-
-## 文档体系
-
-### 用户文档
-- **快速开始**: 快速上手指南
-- **用户手册**: 详细使用说明
-- **FAQ**: 常见问题解答
-
-### 开发文档
-- **API 文档**: 完整的 API 参考
-- **架构文档**: 系统架构说明
-- **部署指南**: 部署和配置指南
-
-### 管理文档
-- **管理员手册**: 系统管理指南
-- **配置参考**: 配置选项说明
-- **故障排除**: 问题诊断和解决
-
-## 下一步计划
-
-### 第三阶段：生态建设（规划中）
-- **SDK 开发**: 多语言 SDK 支持
-- **第三方集成**: 更多平台集成
-- **高级管理**: 企业级管理功能
-- **性能监控**: 高级监控和分析
 
 ## 总结
 
-Telegraph-Image 项目已成功完成前两个阶段的开发工作，实现了从传统架构到现代化架构的全面升级。项目现在具备：
-
-1. **现代化技术栈**: Vue 3.x + Element Plus + Vite
-2. **完整的 API 系统**: RESTful API + 认证授权
-3. **强大的 Webhook 系统**: 事件通知 + 签名验证
-4. **全面的文档体系**: 用户文档 + 开发文档
-5. **完善的测试覆盖**: 单元测试 + 集成测试
-
-项目已具备生产环境部署的条件，可以为用户提供稳定、高性能的图片托管服务。
+项目已完成从传统的简单图床向**企业级文件管理与共享平台**的转型。通过引入 **D1 数据库** 和 **Shared Spaces**，系统能力得到了质的飞跃，同时保持了 Cloudflare Serverless 架构的低成本和高性能优势。
