@@ -30,6 +30,9 @@
     
     <!-- 全局 Modal 挂载点 -->
     <div id="modal-root"></div>
+
+    <!-- 全局上传进度面板 -->
+    <UploadProgress />
   </div>
 </template>
 
@@ -38,6 +41,7 @@ import { computed, onBeforeMount, watch } from 'vue';
 import Sidebar from '@/components/layout/Sidebar.vue';
 import Header from '@/components/layout/Header.vue';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
+import UploadProgress from '@/components/ui/UploadProgress.vue';
 import { useView } from '@/composables/useView';
 import { useAuth } from '@/composables/useAuth';
 

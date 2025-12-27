@@ -1,5 +1,22 @@
 <template>
-  <div class="bg-white rounded-xl border border-[var(--border-color)] min-h-[calc(100vh-8rem)] flex flex-col">
+  <div class="bg-white rounded-xl border border-[var(--border-color)] min-h-[calc(100vh-8rem)] flex flex-col relative overflow-hidden"
+       @dragenter="onDragEnter"
+       @dragleave="onDragLeave"
+       @dragover="onDragOver"
+       @drop="onDrop">
+
+    <!-- 拖拽上传覆盖层 -->
+    <transition name="fade">
+        <div v-if="isDragging" class="absolute inset-0 z-50 bg-blue-50/90 backdrop-blur-sm border-2 border-dashed border-blue-500 rounded-xl flex flex-col items-center justify-center pointer-events-none">
+            <div class="bg-white p-6 rounded-full shadow-lg mb-4 animate-bounce">
+                <svg class="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-blue-600">释放以开始上传</h3>
+            <p class="text-blue-400 mt-2">支持多文件同时上传</p>
+        </div>
+    </transition>
     <!-- 工具栏 -->
     <div class="px-6 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
       <!-- 面包屑 -->
@@ -180,17 +197,26 @@
       @updated="handleShareUpdated"
     />
 
+    <!-- Share File Modal -->
+    <ShareFileModal
+       v-model="showShareFileModal"
+       :file="currentShareFile"
+    />
+
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, onUnmounted, watch } from 'vue';
 import { useFileManager } from '@/composables/useFileManager';
 import MoveFileModal from '@/components/MoveFileModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
+import ShareFileModal from '@/components/ShareFileModal.vue'; // New Import
 import { useToast } from '@/composables/useToast';
+import { useUploadQueue } from '@/composables/useUploadQueue';
 
 const { addToast } = useToast();
+const { addFiles, completedCount } = useUploadQueue(); // 使用新的上传队列
 
 const {
   loading,
@@ -202,7 +228,7 @@ const {
   createFolder,
   deleteFolder,
   deleteFile,
-  uploadFiles,
+  // uploadFiles, // 不再使用旧的上传方法
   formatSize,
   formatDate,
   getFileExtension,
@@ -211,8 +237,13 @@ const {
 
 const showModal = ref(false);
 const showMoveModal = ref(false);
+const showShareModal = ref(false); // Folder Share
+const showShareFileModal = ref(false); // File Share
 const filesToMove = ref([]);
-const folderName = ref('');  // 添加缺失的变量声明
+const folderName = ref('');
+const isDragging = ref(false);
+const dragCounter = ref(0);
+const currentShareFile = ref(null); // Currently shared file
 
 const navigateTo = (id) => {
   loadFolderData(id);
@@ -234,27 +265,77 @@ const handleDeleteFolder = async (folder) => {
   }
 };
 
+// ----------------------------------------------------------------------
+// SOTA Upload Logic (Drag & Drop + Queue)
+// ----------------------------------------------------------------------
+
+// 监听上传完成数量，自动刷新列表
+watch(completedCount, (newCount, oldCount) => {
+    if (newCount > oldCount) {
+        // 有新文件完成上传，刷新当前文件夹
+        // 防抖？不，简单起见直接刷新，FileManager的loading状态只影响内容区域
+        // 但为了不打断用户，我们可以静默刷新？
+        // loadFolderData 会设置 loading=true，这会导致界面闪烁。
+        // 我们应该在 useFileManager 中支持 silent reload，或者在这里只是简单的 re-fetch
+        // 考虑到 loadFolderData 逻辑较复杂，我们暂时直接调用，但可能会有 loading 闪烁
+        // 改进：useFileManager 的 loading 应该只在切换文件夹时 true？
+        // 暂时直接调用，确保文件显示出来。
+        loadFolderData(currentFolder.value?.id);
+    }
+});
+
 const handleFileSelect = (e) => {
-  const files = Array.from(e.target.files);
-  if (files.length) {
-    uploadFiles(files);
+  const selectedFiles = Array.from(e.target.files);
+  if (selectedFiles.length) {
+    if (!currentFolder.value) {
+        addToast({ message: '请先选择一个文件夹', type: 'warning' });
+        return;
+    }
+    addFiles(selectedFiles, currentFolder.value.id);
+    e.target.value = '';
   }
 };
 
-const handleShareFile = (file) => {
-    const url = `${window.location.origin}${file.url}`;
-    navigator.clipboard.writeText(url).then(() => {
-        addToast({ message: '文件链接已复制', type: 'success' });
-    }).catch(() => {
-        addToast({ message: '复制失败', type: 'error' });
-    });
+const onDragEnter = (e) => {
+    e.preventDefault();
+    dragCounter.value++;
+    if (currentFolder.value) {
+        isDragging.value = true;
+    }
 };
 
-// New: State for share modal
-const showShareModal = ref(false);
+const onDragLeave = (e) => {
+    e.preventDefault();
+    dragCounter.value--;
+    if (dragCounter.value === 0) {
+        isDragging.value = false;
+    }
+};
+
+const onDragOver = (e) => {
+    e.preventDefault();
+};
+
+const onDrop = (e) => {
+    e.preventDefault();
+    isDragging.value = false;
+    dragCounter.value = 0;
+
+    if (!currentFolder.value) return;
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        addFiles(Array.from(e.dataTransfer.files), currentFolder.value.id);
+    }
+};
+
+// ----------------------------------------------------------------------
+
+const handleShareFile = (file) => {
+    currentShareFile.value = file;
+    showShareFileModal.value = true;
+};
 
 const handleShareFolder = () => {
-    // Open modal instead of direct copy
     showShareModal.value = true;
 };
 
@@ -268,11 +349,17 @@ const handleMoveFile = (file) => {
 };
 
 const handleMoved = () => {
-    // Refresh current folder
     loadFolderData(currentFolder.value?.id);
 };
 
 onMounted(() => {
-  loadFolderData();
+    loadFolderData();
+    window.addEventListener('dragover', (e) => e.preventDefault());
+    window.addEventListener('drop', (e) => e.preventDefault());
+});
+
+onUnmounted(() => {
+    window.removeEventListener('dragover', (e) => e.preventDefault());
+    window.removeEventListener('drop', (e) => e.preventDefault());
 });
 </script>
