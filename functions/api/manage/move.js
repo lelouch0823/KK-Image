@@ -22,17 +22,23 @@ export async function onRequestPost(context) {
             return error('请选择目标文件夹', 400);
         }
 
-        // 验证目标文件夹是否存在
-        const targetFolder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(folderId).first();
-        if (!targetFolder) {
-            return error('目标文件夹不存在', 404);
+        // 处理根目录情况
+        let targetId = folderId;
+        if (folderId === 'root') {
+            targetId = null;
+        } else {
+            // 验证目标文件夹是否存在
+            const targetFolder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(folderId).first();
+            if (!targetFolder) {
+                return error('目标文件夹不存在', 404);
+            }
         }
 
         // 执行批量更新
         // D1 不支持 array binding for IN clause explicitly easily, so we construct params
         const placeholders = fileIds.map(() => '?').join(',');
         const query = `UPDATE files SET folder_id = ? WHERE id IN (${placeholders})`;
-        const params = [folderId, ...fileIds];
+        const params = [targetId, ...fileIds];
 
         const result = await env.DB.prepare(query).bind(...params).run();
 

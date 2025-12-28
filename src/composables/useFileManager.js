@@ -42,14 +42,25 @@ export function useFileManager() {
                     error(res.message);
                 }
             } else {
-                const res = await authFetch(API.FOLDERS).then(r => r.json());
-                if (res.success) {
+                // 根目录：并行加载文件夹和文件
+                const [foldersRes, filesRes] = await Promise.all([
+                    authFetch(API.FOLDERS).then(r => r.json()),
+                    authFetch(API.FILES).then(r => r.json())
+                ]);
+
+                if (foldersRes.success) {
                     currentFolder.value = null;
-                    subfolders.value = res.data;
-                    files.value = [];
+                    subfolders.value = foldersRes.data;
                     breadcrumbs.value = [];
                 } else {
-                    error(res.message);
+                    error(foldersRes.message);
+                }
+
+                if (filesRes.success && filesRes.data) {
+                    // /api/v1/files 返回 { data: [...], pagination: {...} }
+                    files.value = Array.isArray(filesRes.data) ? filesRes.data : filesRes.data.data;
+                } else {
+                    files.value = [];
                 }
             }
         } catch (e) {

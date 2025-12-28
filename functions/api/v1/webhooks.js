@@ -2,6 +2,7 @@
 import { hasPermission } from '../utils/auth.js';
 import { getUser } from '../utils/context.js';
 import { registerWebhook, deleteWebhook, getWebhooks, WEBHOOK_EVENTS } from '../utils/webhook.js';
+import { success, error } from '../utils/response.js';
 
 // 获取 Webhook 列表
 export async function onRequestGet(context) {
@@ -20,12 +21,9 @@ export async function onRequestGet(context) {
   try {
     const webhooks = await getWebhooks(env);
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: webhooks,
+    return success({
+      webhooks,
       supportedEvents: Object.values(WEBHOOK_EVENTS)
-    }), {
-      headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
@@ -58,12 +56,7 @@ export async function onRequestDelete(context) {
   try {
     await deleteWebhook(env, webhookId);
 
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'Webhook deleted successfully'
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(null, 'Webhook deleted successfully');
 
   } catch (error) {
     console.error('Error deleting webhook:', error);
@@ -125,13 +118,7 @@ async function createWebhook(context) {
 
     const webhook = await registerWebhook(env, webhookConfig);
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: webhook
-    }), {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(webhook, 'Success', 201);
 
   } catch (error) {
     console.error('Error creating webhook:', error);
@@ -231,25 +218,11 @@ async function testWebhook(context) {
       result.error = await response.text().catch(() => 'Unable to read response body');
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: result
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(result);
 
   } catch (error) {
     console.error('Error testing webhook:', error);
 
-    return new Response(JSON.stringify({
-      success: false,
-      error: {
-        message: error.message,
-        timestamp: new Date().toISOString()
-      }
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return error(err.message, 500);
   }
 }

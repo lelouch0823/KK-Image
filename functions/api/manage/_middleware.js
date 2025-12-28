@@ -2,13 +2,7 @@ async function errorHandling(context) {
   try {
     return await context.next();
   } catch (err) {
-    return new Response(JSON.stringify({
-      error: 'Internal server error',
-      message: err.message
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return error(err.message || 'Internal Server Error', 500);
   }
 }
 

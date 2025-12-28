@@ -6,6 +6,7 @@
  */
 
 import { BaseStorageProvider } from '../base-provider.js';
+import { getFileUrl } from '../../api/utils/url.js';
 
 /**
  * S3 兼容存储提供者

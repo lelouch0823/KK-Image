@@ -4,6 +4,7 @@
  */
 
 import { getShareUrl, getFileUrl } from '../utils/url.js';
+import { success, error } from '../utils/response.js';
 
 export async function onRequestGet(context) {
     const { env, params, request } = context;
@@ -16,24 +17,12 @@ export async function onRequestGet(context) {
     `).bind(shareToken).first();
 
         if (!folder) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '文件夹不存在或链接已失效'
-            }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('文件夹不存在或链接已失效', 404);
         }
 
         // 检查是否公开
         if (!folder.is_public) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '该文件夹未公开'
-            }), {
-                status: 403,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('该文件夹未公开', 403);
         }
 
         // 检查密码保护
@@ -42,14 +31,7 @@ export async function onRequestGet(context) {
             const providedPassword = url.searchParams.get('password');
 
             if (!providedPassword || providedPassword !== folder.password) {
-                return new Response(JSON.stringify({
-                    success: false,
-                    requiresPassword: true,
-                    message: '该文件夹需要密码'
-                }), {
-                    status: 401,
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                return success({ requiresPassword: true }, '该文件夹需要密码', 401);
             }
         }
 
@@ -80,44 +62,32 @@ export async function onRequestGet(context) {
         // 获取封面图片（第一张图片）
         const coverFile = files.find(f => getFileType(f.mime_type, f.name) === 'image');
 
-        return new Response(JSON.stringify({
-            success: true,
-            data: {
-                name: folder.name,
-                description: folder.description,
-                coverImage: coverFile ? getFileUrl(coverFile.storage_key) : null,
-                fileCount: files.length,
-                createdAt: folder.created_at,
-                files: files.map(f => ({
-                    id: f.id,
-                    name: f.original_name || f.name,
-                    size: f.size,
-                    type: getFileType(f.mime_type, f.name),
-                    url: getFileUrl(f.storage_key),
-                    thumbnailUrl: getFileType(f.mime_type, f.name) === 'image' ? getFileUrl(f.storage_key) : null,
-                    createdAt: f.created_at
-                })),
-                subfolders: subfolders.map(sf => ({
-                    id: sf.id,
-                    name: sf.name,
-                    fileCount: sf.file_count,
-                    shareUrl: getShareUrl(sf.share_token)
-                }))
-            }
-        }), {
-            headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'public, max-age=60'
-            }
+        return success({
+            name: folder.name,
+            description: folder.description,
+            coverImage: coverFile ? getFileUrl(coverFile.storage_key) : null,
+            fileCount: files.length,
+            createdAt: folder.created_at,
+            files: files.map(f => ({
+                id: f.id,
+                name: f.original_name || f.name,
+                size: f.size,
+                type: getFileType(f.mime_type, f.name),
+                url: getFileUrl(f.storage_key),
+                thumbnailUrl: getFileType(f.mime_type, f.name) === 'image' ? getFileUrl(f.storage_key) : null,
+                createdAt: f.created_at
+            })),
+            subfolders: subfolders.map(sf => ({
+                id: sf.id,
+                name: sf.name,
+                fileCount: sf.file_count,
+                shareUrl: getShareUrl(sf.share_token)
+            }))
+        }, 'Success', 200, {
+            'Cache-Control': 'public, max-age=60'
         });
     } catch (error) {
         console.error('获取画廊失败:', error);
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }

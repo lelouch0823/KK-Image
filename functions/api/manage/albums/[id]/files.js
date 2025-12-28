@@ -3,6 +3,7 @@
  * POST /api/manage/albums/:id/files - 添加文件到相册
  * DELETE /api/manage/albums/:id/files - 从相册移除文件
  */
+import { success, error } from '../../../utils/response.js';
 
 export async function onRequestPost(context) {
     const { request, env, params } = context;
@@ -12,26 +13,14 @@ export async function onRequestPost(context) {
         const album = await env.img_url.get(`album:${albumId}`, { type: 'json' });
 
         if (!album) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '相册不存在'
-            }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('相册不存在', 404);
         }
 
         const body = await request.json();
         const { fileIds } = body;
 
         if (!Array.isArray(fileIds) || fileIds.length === 0) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '请提供要添加的文件 ID'
-            }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('请提供要添加的文件 ID', 400);
         }
 
         // 验证文件存在性并添加
@@ -53,23 +42,12 @@ export async function onRequestPost(context) {
         album.updatedAt = Date.now();
         await env.img_url.put(`album:${albumId}`, JSON.stringify(album));
 
-        return new Response(JSON.stringify({
-            success: true,
-            data: {
-                addedCount: validFileIds.length,
-                totalFiles: album.files.length
-            }
-        }), {
-            headers: { 'Content-Type': 'application/json' }
+        return success({
+            addedCount: validFileIds.length,
+            totalFiles: album.files.length
         });
     } catch (error) {
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }
 
@@ -81,26 +59,14 @@ export async function onRequestDelete(context) {
         const album = await env.img_url.get(`album:${albumId}`, { type: 'json' });
 
         if (!album) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '相册不存在'
-            }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('相册不存在', 404);
         }
 
         const body = await request.json();
         const { fileIds } = body;
 
         if (!Array.isArray(fileIds) || fileIds.length === 0) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '请提供要移除的文件 ID'
-            }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('请提供要移除的文件 ID', 400);
         }
 
         // 移除文件
@@ -115,22 +81,11 @@ export async function onRequestDelete(context) {
         album.updatedAt = Date.now();
         await env.img_url.put(`album:${albumId}`, JSON.stringify(album));
 
-        return new Response(JSON.stringify({
-            success: true,
-            data: {
-                removedCount: removedCount - album.files.length,
-                totalFiles: album.files.length
-            }
-        }), {
-            headers: { 'Content-Type': 'application/json' }
+        return success({
+            removedCount: removedCount - album.files.length,
+            totalFiles: album.files.length
         });
     } catch (error) {
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }

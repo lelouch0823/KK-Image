@@ -4,6 +4,7 @@
  * PUT /api/manage/albums/:id - 更新相册
  * DELETE /api/manage/albums/:id - 删除相册
  */
+import { success, error } from '../../utils/response.js';
 
 export async function onRequestGet(context) {
     const { env, params } = context;
@@ -13,13 +14,7 @@ export async function onRequestGet(context) {
         const album = await env.img_url.get(`album:${albumId}`, { type: 'json' });
 
         if (!album) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '相册不存在'
-            }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('相册不存在', 404);
         }
 
         // 获取文件详情
@@ -35,24 +30,13 @@ export async function onRequestGet(context) {
             })
         );
 
-        return new Response(JSON.stringify({
-            success: true,
-            data: {
-                ...album,
-                files: filesWithDetails.filter(Boolean),
-                shareUrl: `/gallery/${album.shareToken}`
-            }
-        }), {
-            headers: { 'Content-Type': 'application/json' }
+        return success({
+            ...album,
+            files: filesWithDetails.filter(Boolean),
+            shareUrl: `/gallery/${album.shareToken}`
         });
     } catch (error) {
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }
 
@@ -64,13 +48,7 @@ export async function onRequestPut(context) {
         const album = await env.img_url.get(`album:${albumId}`, { type: 'json' });
 
         if (!album) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '相册不存在'
-            }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('相册不存在', 404);
         }
 
         const body = await request.json();
@@ -96,20 +74,9 @@ export async function onRequestPut(context) {
             }
         }
 
-        return new Response(JSON.stringify({
-            success: true,
-            data: album
-        }), {
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return success(album);
     } catch (error) {
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }
 
@@ -121,13 +88,7 @@ export async function onRequestDelete(context) {
         const album = await env.img_url.get(`album:${albumId}`, { type: 'json' });
 
         if (!album) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '相册不存在'
-            }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('相册不存在', 404);
         }
 
         // 删除相册数据
@@ -140,19 +101,8 @@ export async function onRequestDelete(context) {
             await env.img_url.put('albums:index', JSON.stringify(indexData));
         }
 
-        return new Response(JSON.stringify({
-            success: true,
-            message: '相册已删除'
-        }), {
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return success(null, '相册已删除');
     } catch (error) {
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }

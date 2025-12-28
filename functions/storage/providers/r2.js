@@ -9,6 +9,7 @@
  */
 
 import { BaseStorageProvider } from '../base-provider.js';
+import { getFileUrl } from '../../api/utils/url.js';
 
 /**
  * Cloudflare R2 存储提供者

@@ -22,6 +22,9 @@ export const API = {
     FOLDER_BY_ID: (id) => `${API_PREFIX}/folders/${id}`,
     FOLDER_UPLOAD: (id) => `${API_PREFIX}/folders/${id}/upload`,
 
+    // v1 API (RESTful)
+    FILES: '/api/v1/files',
+
     // 分享
     SHARES: `${API_PREFIX}/shares`,
 

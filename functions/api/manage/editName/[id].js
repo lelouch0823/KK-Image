@@ -1,3 +1,5 @@
+import { success, error } from '../../../utils/response.js';
+
 export async function onRequest(context) {
     const { request, params, env } = context;
 
@@ -9,13 +11,7 @@ export async function onRequest(context) {
 
         // 如果记录不存在
         if (!value || !value.metadata) {
-            return new Response(JSON.stringify({
-                success: false,
-                error: 'File not found'
-            }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('File not found', 404);
         }
 
         // 从请求体或查询参数获取新文件名
@@ -30,13 +26,7 @@ export async function onRequest(context) {
         }
 
         if (!newFileName) {
-            return new Response(JSON.stringify({
-                success: false,
-                error: 'New file name is required'
-            }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('New file name is required', 400);
         }
 
         // 更新文件名
@@ -48,21 +38,10 @@ export async function onRequest(context) {
 
         await env.img_url.put(fileId, '', { metadata: updatedMetadata });
 
-        return new Response(JSON.stringify({
-            success: true,
-            fileName: newFileName
-        }), {
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return success({ fileName: newFileName });
 
     } catch (error) {
         console.error('Error editing file name:', error);
-        return new Response(JSON.stringify({
-            success: false,
-            error: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }

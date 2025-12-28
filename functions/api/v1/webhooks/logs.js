@@ -1,6 +1,7 @@
 // Webhook 日志查看 API
 import { hasPermission } from '../../utils/auth.js';
 import { getUser } from '../../utils/context.js';
+import { success, error } from '../../utils/response.js';
 
 // 获取 Webhook 执行日志
 export async function onRequestGet(context) {
@@ -19,13 +20,7 @@ export async function onRequestGet(context) {
 
   try {
     if (!env.WEBHOOK_LOGS_KV) {
-      return new Response(JSON.stringify({
-        success: true,
-        data: [],
-        message: 'Webhook logs KV namespace not configured'
-      }), {
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return success([], 'Webhook logs KV namespace not configured');
     }
 
     // 获取查询参数
@@ -114,16 +109,13 @@ export async function onRequestGet(context) {
       } : null
     };
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: limitedLogs,
+    return success({
+      logs: limitedLogs,
       stats: stats,
       pagination: {
         limit: limit,
         hasMore: logKeys.keys.length > limit
       }
-    }), {
-      headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
@@ -149,13 +141,7 @@ export async function onRequestDelete(context) {
 
   try {
     if (!env.WEBHOOK_LOGS_KV) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Webhook logs KV namespace not configured'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return error('Webhook logs KV namespace not configured', 400);
     }
 
     // 获取清理参数
@@ -203,13 +189,7 @@ export async function onRequestDelete(context) {
     // 执行删除操作
     await Promise.all(deletePromises);
 
-    return new Response(JSON.stringify({
-      success: true,
-      message: `Deleted ${deletedCount} webhook logs older than ${daysOld} days`,
-      deletedCount: deletedCount
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success({ deletedCount }, `Deleted ${deletedCount} webhook logs older than ${daysOld} days`);
 
   } catch (error) {
     console.error('Error cleaning webhook logs:', error);

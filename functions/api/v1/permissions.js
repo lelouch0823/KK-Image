@@ -9,6 +9,7 @@ import {
   requirePermission
 } from '../utils/permissions.js';
 import { getUser } from '../utils/context.js';
+import { success } from '../utils/response.js';
 
 // 获取权限信息
 export async function onRequestGet(context) {
@@ -39,15 +40,10 @@ export async function onRequestGet(context) {
 async function getPermissionDefinitions(context) {
   // 任何认证用户都可以查看权限定义
   try {
-    return new Response(JSON.stringify({
-      success: true,
-      data: {
-        permissions: PERMISSIONS,
-        permissionGroups: PERMISSION_GROUPS,
-        roles: ROLES
-      }
-    }), {
-      headers: { 'Content-Type': 'application/json' }
+    return success({
+      permissions: PERMISSIONS,
+      permissionGroups: PERMISSION_GROUPS,
+      roles: ROLES
     });
   } catch (error) {
     console.error('Error fetching permission definitions:', error);
@@ -64,14 +60,9 @@ async function getUserPermissionInfo(context) {
     const userPermissions = getUserPermissions(user);
     const report = generatePermissionReport(user);
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: {
-        permissions: userPermissions,
-        report: report
-      }
-    }), {
-      headers: { 'Content-Type': 'application/json' }
+    return success({
+      permissions: userPermissions,
+      report: report
     });
   } catch (error) {
     console.error('Error fetching user permissions:', error);
@@ -82,12 +73,7 @@ async function getUserPermissionInfo(context) {
 // 获取角色信息
 async function getRoles(context) {
   try {
-    return new Response(JSON.stringify({
-      success: true,
-      data: ROLES
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(ROLES);
   } catch (error) {
     console.error('Error fetching roles:', error);
     throw error;
@@ -131,19 +117,14 @@ async function checkPermissions(context) {
       results[permission] = hasPermission(user, permission);
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: {
-        user: {
-          id: user.id,
-          name: user.name,
-          type: user.type
-        },
-        permissions: results,
-        checkedAt: new Date().toISOString()
-      }
-    }), {
-      headers: { 'Content-Type': 'application/json' }
+    return success({
+      user: {
+        id: user.id,
+        name: user.name,
+        type: user.type
+      },
+      permissions: results,
+      checkedAt: new Date().toISOString()
     });
 
   } catch (error) {

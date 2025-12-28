@@ -1,3 +1,5 @@
+import { success } from '../utils/response.js';
+
 export async function onRequest(context) {
   const { request } = context;
   const url = new URL(request.url);
@@ -5,11 +7,8 @@ export async function onRequest(context) {
   // 清除 Cookie
   const cookie = `TELEG_AUTH=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict; Secure`;
 
-  return new Response(null, {
-    status: 302,
-    headers: {
-      'Location': `${url.origin}/login.html`,
-      'Set-Cookie': cookie
-    }
+  return success(null, 'Logged out', 302, {
+    'Location': `${url.origin}/login.html`,
+    'Set-Cookie': cookie
   });
 }

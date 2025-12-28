@@ -3,6 +3,8 @@
  * GET /api/space/:token - 获取公开空间信息
  */
 
+import { success, error } from '../../utils/response.js';
+
 export async function onRequestGet(context) {
     const { env, params, request } = context;
     const shareToken = params.token;
@@ -14,35 +16,17 @@ export async function onRequestGet(context) {
         `).bind(shareToken).first();
 
         if (!space) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '空间不存在或链接已失效'
-            }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('空间不存在或链接已失效', 404);
         }
 
         // 检查是否公开
         if (!space.is_public) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '该空间未公开'
-            }), {
-                status: 403,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('该空间未公开', 403);
         }
 
         // 检查是否过期
         if (space.expires_at && space.expires_at < Date.now()) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '分享链接已过期'
-            }), {
-                status: 410,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('分享链接已过期', 410);
         }
 
         // 检查密码
@@ -51,14 +35,7 @@ export async function onRequestGet(context) {
             const providedPassword = url.searchParams.get('password');
 
             if (!providedPassword || providedPassword !== space.password) {
-                return new Response(JSON.stringify({
-                    success: false,
-                    requiresPassword: true,
-                    message: '该空间需要密码'
-                }), {
-                    status: 401,
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                return success({ requiresPassword: true }, '该空间需要密码', 401);
             }
         }
 
@@ -129,41 +106,29 @@ export async function onRequestGet(context) {
         const allFiles = Object.values(groupedFiles).flat();
         const coverFile = allFiles.find(f => f.type === 'image');
 
-        return new Response(JSON.stringify({
-            success: true,
-            data: {
-                name: space.name,
-                description: space.description,
-                template: space.template,
-                templateData: space.template_data ? JSON.parse(space.template_data) : null,
-                coverImage: coverFile?.url || null,
-                fileCount: allFiles.length,
-                viewCount: space.view_count + 1,
-                files: allFiles,
-                groupedFiles,
-                subspaces: subspaces.map(s => ({
-                    id: s.id,
-                    name: s.name,
-                    description: s.description,
-                    template: s.template,
-                    fileCount: s.file_count,
-                    shareUrl: s.share_token ? `/space/${s.share_token}` : null
-                }))
-            }
-        }), {
-            headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'public, max-age=60'
-            }
+        return success({
+            name: space.name,
+            description: space.description,
+            template: space.template,
+            templateData: space.template_data ? JSON.parse(space.template_data) : null,
+            coverImage: coverFile?.url || null,
+            fileCount: allFiles.length,
+            viewCount: space.view_count + 1,
+            files: allFiles,
+            groupedFiles,
+            subspaces: subspaces.map(s => ({
+                id: s.id,
+                name: s.name,
+                description: s.description,
+                template: s.template,
+                fileCount: s.file_count,
+                shareUrl: s.share_token ? `/space/${s.share_token}` : null
+            }))
+        }, 'Success', 200, {
+            'Cache-Control': 'public, max-age=60'
         });
     } catch (err) {
         console.error('获取空间失败:', err);
-        return new Response(JSON.stringify({
-            success: false,
-            message: err.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(err.message, 500);
     }
 }

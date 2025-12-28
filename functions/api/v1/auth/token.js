@@ -1,6 +1,7 @@
 // Token 生成端点
 import { generateJWT } from '../../utils/auth.js';
 import { validateUserCredentials } from '../../utils/users.js';
+import { success, error } from '../../utils/response.js';
 
 export async function onRequestPost(context) {
     const { request, env } = context;
@@ -10,13 +11,7 @@ export async function onRequestPost(context) {
 
         // 验证请求参数
         if (!credentials.username || !credentials.password) {
-            return new Response(JSON.stringify({
-                success: false,
-                error: 'Username and password are required'
-            }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('Username and password are required', 400);
         }
 
         // 验证用户凭据
@@ -34,43 +29,26 @@ export async function onRequestPost(context) {
                     permissions: ['admin:full']
                 };
             } else {
-                return new Response(JSON.stringify({
-                    success: false,
-                    error: 'Invalid credentials'
-                }), {
-                    status: 401,
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                return error('Invalid credentials', 401);
             }
         }
 
         const expiresIn = credentials.expiresIn || 3600; // 默认1小时
         const token = await generateJWT(user, env, expiresIn);
 
-        return new Response(JSON.stringify({
-            success: true,
-            data: {
-                token: token,
-                tokenType: 'Bearer',
-                expiresIn: expiresIn,
-                user: {
-                    id: user.id,
-                    name: user.name,
-                    permissions: user.permissions
-                }
+        return success({
+            token: token,
+            tokenType: 'Bearer',
+            expiresIn: expiresIn,
+            user: {
+                id: user.id,
+                name: user.name,
+                permissions: user.permissions
             }
-        }), {
-            headers: { 'Content-Type': 'application/json' }
         });
 
     } catch (error) {
         console.error('Error generating token:', error);
-        return new Response(JSON.stringify({
-            success: false,
-            error: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }

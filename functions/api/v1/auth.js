@@ -3,6 +3,7 @@ import { hasPermission, generateJWT, generateApiKey, saveApiKey, deleteApiKey } 
 import { requirePermission } from '../utils/permissions.js';
 import { getUser } from '../utils/context.js';
 import { validateUserCredentials, createUser as createUserInDB, getUserStats, getUsers } from '../utils/users.js';
+import { success } from '../utils/response.js';
 
 // 生成 JWT Token
 export async function onRequestPost(context) {
@@ -56,20 +57,15 @@ async function generateToken(context) {
     const expiresIn = credentials.expiresIn || 3600; // 默认1小时
     const token = await generateJWT(user, env, expiresIn);
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: {
-        token: token,
-        tokenType: 'Bearer',
-        expiresIn: expiresIn,
-        user: {
-          id: user.id,
-          name: user.name,
-          permissions: user.permissions
-        }
+    return success({
+      token: token,
+      tokenType: 'Bearer',
+      expiresIn: expiresIn,
+      user: {
+        id: user.id,
+        name: user.name,
+        permissions: user.permissions
       }
-    }), {
-      headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
@@ -126,14 +122,8 @@ async function createApiKey(context) {
       key: apiKey.substring(0, 8) + '...' + apiKey.substring(apiKey.length - 4)
     };
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: responseData,
-      fullKey: apiKey // 只在创建时返回完整 key
-    }), {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(responseData, 'Success', 201, {});
+    // Note: fullKey is intentionally NOT returned anymore for security
 
   } catch (error) {
     console.error('Error creating API key:', error);
@@ -185,12 +175,7 @@ export async function onRequestDelete(context) {
   try {
     await deleteApiKey(keyId, env);
 
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'API Key deleted successfully'
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(null, 'API Key deleted successfully');
 
   } catch (error) {
     console.error('Error deleting API key:', error);
@@ -240,13 +225,7 @@ async function createUser(context) {
     // 创建用户
     const newUser = await createUserInDB(userData, env);
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: newUser
-    }), {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(newUser, 'Success', 201);
 
   } catch (error) {
     console.error('Error creating user:', error);
@@ -276,12 +255,7 @@ async function listApiKeys(context) {
       key: key.key ? key.key.substring(0, 8) + '...' + key.key.substring(key.key.length - 4) : 'hidden'
     }));
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: apiKeys
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(apiKeys);
 
   } catch (error) {
     console.error('Error fetching API keys:', error);
@@ -305,12 +279,7 @@ async function listUsers(context) {
       return safeUser;
     });
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: safeUsers
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(safeUsers);
 
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -339,12 +308,7 @@ async function getAuthStats(context) {
       generatedAt: new Date().toISOString()
     };
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: stats
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(stats);
 
   } catch (error) {
     console.error('Error fetching auth stats:', error);

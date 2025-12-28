@@ -10,6 +10,7 @@ import {
 } from '../utils/users.js';
 import { requirePermission, hasPermission } from '../utils/permissions.js';
 import { getUser } from '../utils/context.js';
+import { success } from '../utils/response.js';
 
 // 获取用户列表或单个用户
 export async function onRequestGet(context) {
@@ -87,12 +88,7 @@ async function getUserList(context) {
       return safeUser;
     });
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: safeUsers
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(safeUsers);
 
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -122,12 +118,7 @@ async function getSingleUser(context, userId) {
     // 移除敏感信息
     const { passwordHash, ...safeUser } = user;
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: safeUser
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(safeUser);
 
   } catch (error) {
     console.error('Error fetching user:', error);
@@ -151,13 +142,7 @@ async function createNewUser(context) {
 
     const newUser = await createUser(userData, env);
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: newUser
-    }), {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(newUser, 'Success', 201);
 
   } catch (error) {
     console.error('Error creating user:', error);
@@ -199,12 +184,7 @@ async function updateExistingUser(context, userId) {
 
     const updatedUser = await updateUser(userId, updateData, env);
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: updatedUser
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(updatedUser);
 
   } catch (error) {
     console.error('Error updating user:', error);
@@ -235,12 +215,7 @@ async function deleteExistingUser(context, userId) {
   try {
     await deleteUser(userId, env);
 
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'User deleted successfully'
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(null, 'User deleted successfully');
 
   } catch (error) {
     console.error('Error deleting user:', error);
@@ -263,13 +238,7 @@ async function generateApiToken(context, userId) {
   try {
     const tokenInfo = await generateUserApiToken(userId, env);
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: tokenInfo
-    }), {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(tokenInfo, 'Success', 201);
 
   } catch (error) {
     console.error('Error generating API token:', error);
@@ -287,12 +256,7 @@ async function getUserStatsEndpoint(context) {
   try {
     const stats = await getUserStats(env);
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: stats
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(stats);
 
   } catch (error) {
     console.error('Error fetching user stats:', error);

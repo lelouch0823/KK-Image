@@ -3,7 +3,7 @@
     <!-- Loading State -->
     <div v-if="loading" class="h-96 flex flex-col items-center justify-center">
       <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500 mb-4"></div>
-      <span class="text-secondary font-medium">正在分析数据...</span>
+      <span class="text-secondary font-medium">{{ t('stats.analyzing') }}</span>
     </div>
 
     <!-- Error State -->
@@ -13,10 +13,10 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
       </div>
-      <h3 class="text-lg font-medium text-primary mb-2">数据加载失败</h3>
+      <h3 class="text-lg font-medium text-primary mb-2">{{ t('stats.loadFailed') }}</h3>
       <p class="text-secondary mb-6">{{ error }}</p>
       <button @click="loadStats" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-        重新加载
+        {{ t('stats.retry') }}
       </button>
     </div>
 
@@ -25,19 +25,19 @@
       <!-- Top Stats Cards -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-white rounded-xl p-4 border border-[var(--border-color)] flex flex-col justify-center items-center text-center group hover:border-blue-300 transition-colors">
-          <span class="text-secondary text-xs uppercase tracking-wider font-semibold mb-1">总文件数</span>
+          <span class="text-secondary text-xs uppercase tracking-wider font-semibold mb-1">{{ t('stats.totalFiles') }}</span>
           <span class="text-3xl font-bold text-primary group-hover:text-blue-600 transition-colors">{{ formatNumber(stats.overview.totalFiles) }}</span>
         </div>
         <div class="bg-white rounded-xl p-4 border border-[var(--border-color)] flex flex-col justify-center items-center text-center group hover:border-green-300 transition-colors">
-          <span class="text-secondary text-xs uppercase tracking-wider font-semibold mb-1">今日上传</span>
+          <span class="text-secondary text-xs uppercase tracking-wider font-semibold mb-1">{{ t('stats.todayUploads') }}</span>
           <span class="text-3xl font-bold text-primary group-hover:text-green-600 transition-colors">{{ formatNumber(stats.overview.todayUploads) }}</span>
         </div>
         <div class="bg-white rounded-xl p-4 border border-[var(--border-color)] flex flex-col justify-center items-center text-center group hover:border-purple-300 transition-colors">
-          <span class="text-secondary text-xs uppercase tracking-wider font-semibold mb-1">本周上传</span>
+          <span class="text-secondary text-xs uppercase tracking-wider font-semibold mb-1">{{ t('stats.weekUploads') }}</span>
           <span class="text-3xl font-bold text-primary group-hover:text-purple-600 transition-colors">{{ formatNumber(stats.overview.weekUploads) }}</span>
         </div>
         <div class="bg-white rounded-xl p-4 border border-[var(--border-color)] flex flex-col justify-center items-center text-center group hover:border-orange-300 transition-colors">
-          <span class="text-secondary text-xs uppercase tracking-wider font-semibold mb-1">总存储量</span>
+          <span class="text-secondary text-xs uppercase tracking-wider font-semibold mb-1">{{ t('stats.totalStorage') }}</span>
           <span class="text-3xl font-bold text-primary group-hover:text-orange-600 transition-colors">{{ formatSize(stats.overview.totalSize) }}</span>
         </div>
       </div>
@@ -48,7 +48,7 @@
         <div class="lg:col-span-2 bg-white rounded-xl border border-[var(--border-color)] p-6">
           <h3 class="text-lg font-semibold text-primary mb-6 flex items-center gap-2">
             <span class="w-1 h-6 bg-blue-500 rounded-full"></span>
-            近30天上传趋势
+            {{ t('stats.uploadTrend') }}
           </h3>
           <div class="relative h-72">
             <canvas ref="trendChartRef"></canvas>
@@ -59,7 +59,7 @@
         <div class="bg-white rounded-xl border border-[var(--border-color)] p-6">
           <h3 class="text-lg font-semibold text-primary mb-6 flex items-center gap-2">
             <span class="w-1 h-6 bg-green-500 rounded-full"></span>
-            文件类型
+            {{ t('stats.fileTypes') }}
           </h3>
           <div class="relative h-72 flex items-center justify-center">
             <canvas ref="typeChartRef"></canvas>
@@ -73,23 +73,23 @@
         <div class="bg-white rounded-xl border border-[var(--border-color)] p-6">
           <h3 class="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
             <span class="w-1 h-6 bg-purple-500 rounded-full"></span>
-            状态概览
+            {{ t('stats.statusOverview') }}
           </h3>
           <div class="grid grid-cols-2 gap-4">
             <div class="bg-gradient-to-br from-green-50 to-emerald-100 p-4 rounded-xl border border-green-100/50">
-              <span class="block text-green-600 text-sm font-medium mb-1">正常状态</span>
+              <span class="block text-green-600 text-sm font-medium mb-1">{{ t('stats.normal') }}</span>
               <span class="text-2xl font-bold text-green-700">{{ formatNumber(stats.status.normal) }}</span>
             </div>
             <div class="bg-gradient-to-br from-red-50 to-rose-100 p-4 rounded-xl border border-red-100/50">
-              <span class="block text-red-600 text-sm font-medium mb-1">已屏蔽</span>
+              <span class="block text-red-600 text-sm font-medium mb-1">{{ t('stats.blocked') }}</span>
               <span class="text-2xl font-bold text-red-700">{{ formatNumber(stats.status.blocked) }}</span>
             </div>
             <div class="bg-gradient-to-br from-blue-50 to-sky-100 p-4 rounded-xl border border-blue-100/50">
-              <span class="block text-blue-600 text-sm font-medium mb-1">白名单</span>
+              <span class="block text-blue-600 text-sm font-medium mb-1">{{ t('stats.whitelisted') }}</span>
               <span class="text-2xl font-bold text-blue-700">{{ formatNumber(stats.status.whitelisted) }}</span>
             </div>
             <div class="bg-gradient-to-br from-yellow-50 to-amber-100 p-4 rounded-xl border border-yellow-100/50">
-              <span class="block text-amber-600 text-sm font-medium mb-1">已点赞</span>
+              <span class="block text-amber-600 text-sm font-medium mb-1">{{ t('stats.liked') }}</span>
               <span class="text-2xl font-bold text-amber-700">{{ formatNumber(stats.status.liked) }}</span>
             </div>
           </div>
@@ -99,7 +99,7 @@
         <div class="bg-white rounded-xl border border-[var(--border-color)] p-6 flex flex-col h-full">
           <h3 class="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
             <span class="w-1 h-6 bg-orange-500 rounded-full"></span>
-            最近活动
+            {{ t('stats.recentActivity') }}
           </h3>
           <div class="flex-1 overflow-y-auto scrollbar-thin max-h-[250px] pr-2">
             <div v-for="file in stats.recent" :key="file.name" class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 px-2 rounded-lg transition-colors">
@@ -134,6 +134,7 @@
 import { ref, onMounted, nextTick, onUnmounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
+import { useI18n } from '@/composables/useI18n';
 import { formatSize } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import Chart from 'chart.js/auto';
@@ -141,6 +142,7 @@ import 'chartjs-adapter-date-fns';
 
 const { addToast } = useToast();
 const { authFetch } = useAuth();
+const { t } = useI18n();
 
 // --- State ---
 const loading = ref(true);
@@ -161,12 +163,12 @@ const formatNumber = (num) => {
 
 // 格式化相对时间（Stats 页面特有逻辑）
 const formatRelativeDate = (timestamp) => {
-  if (!timestamp) return '未知';
+  if (!timestamp) return t('stats.unknown');
   const date = new Date(timestamp);
   const diff = Date.now() - date.getTime();
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
-  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+  if (diff < 60000) return t('stats.justNow');
+  if (diff < 3600000) return t('stats.minutesAgo', { count: Math.floor(diff / 60000) });
+  if (diff < 86400000) return t('stats.hoursAgo', { count: Math.floor(diff / 3600000) });
   return date.toLocaleDateString('zh-CN');
 };
 
@@ -194,7 +196,7 @@ const createCharts = () => {
       data: {
         labels: Object.keys(dailyData),
         datasets: [{
-          label: '每日上传',
+          label: t('stats.dailyUpload'),
           data: Object.values(dailyData),
           borderColor: '#409eff',
           backgroundColor: gradient,
@@ -256,11 +258,11 @@ const loadStats = async () => {
     stats.value = await response.json();
     await nextTick();
     createCharts();
-    addToast({ message: '统计刷新成功', type: 'success' });
+    addToast({ message: t('stats.refreshSuccess'), type: 'success' });
   } catch (err) {
     console.error(err);
-    if (!stats.value) error.value = "无法加载数据";
-    addToast({ message: '数据加载失败', type: 'error' });
+    if (!stats.value) error.value = t('stats.loadError');
+    addToast({ message: t('stats.loadError'), type: 'error' });
   } finally {
     loading.value = false;
   }

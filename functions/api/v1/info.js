@@ -1,4 +1,6 @@
 // API 信息端点
+import { jsonResponse } from '../utils/response.js';
+
 export async function onRequestGet(context) {
   const { env } = context;
 
@@ -69,7 +71,5 @@ export async function onRequestGet(context) {
     };
   }
 
-  return new Response(JSON.stringify(apiInfo, null, 2), {
-    headers: { 'Content-Type': 'application/json' }
-  });
+  return jsonResponse(apiInfo);
 }

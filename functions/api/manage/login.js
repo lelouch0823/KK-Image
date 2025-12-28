@@ -1,4 +1,5 @@
 import { generateJWT, verifyJWT } from '../utils/auth.js';
+import { success, error } from '../utils/response.js';
 
 /**
  * 验证 Cloudflare Turnstile Token
@@ -32,19 +33,13 @@ export async function onRequest(context) {
 
       // 验证必填字段
       if (!username || !password) {
-        return new Response(JSON.stringify({ error: 'Username and password required', message: '请输入用户名和密码' }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        return error('请输入用户名和密码', 400);
       }
 
       // Turnstile 验证 (如果配置了 Secret Key)
       if (env.TURNSTILE_SECRET_KEY) {
         if (!turnstileToken) {
-          return new Response(JSON.stringify({ error: 'Turnstile token required', message: '请完成人机验证' }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' }
-          });
+          return error('请完成人机验证', 400);
         }
 
         const clientIP = request.headers.get('CF-Connecting-IP');
@@ -52,10 +47,7 @@ export async function onRequest(context) {
 
         if (!turnstileResult.success) {
           console.warn('Turnstile verification failed:', turnstileResult['error-codes']);
-          return new Response(JSON.stringify({ error: 'Turnstile verification failed', message: '人机验证失败，请刷新页面重试' }), {
-            status: 403,
-            headers: { 'Content-Type': 'application/json' }
-          });
+          return error('人机验证失败，请刷新页面重试', 403);
         }
       }
 
@@ -64,10 +56,7 @@ export async function onRequest(context) {
         // 延时防止爆破 (简单实现)
         await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
 
-        return new Response(JSON.stringify({ error: 'Invalid credentials', message: '用户名或密码错误' }), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        return error('用户名或密码错误', 401);
       }
 
       // 登录成功，生成 JWT
@@ -83,17 +72,9 @@ export async function onRequest(context) {
       // 设置 Cookie
       const cookie = `TELEG_AUTH=${token}; HttpOnly; Path=/; Max-Age=86400; SameSite=Strict; Secure`;
 
-      return new Response(JSON.stringify({ success: true, message: '登录成功' }), {
-        headers: {
-          'Content-Type': 'application/json',
-          'Set-Cookie': cookie
-        }
-      });
+      return success(null, '登录成功', 200, { 'Set-Cookie': cookie });
     } catch (err) {
-      return new Response(JSON.stringify({ error: 'Internal Server Error', message: err.message }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return error(err.message, 500);
     }
   }
 

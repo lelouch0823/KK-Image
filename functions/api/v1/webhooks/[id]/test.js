@@ -2,6 +2,7 @@
 import { hasPermission } from '../../../utils/auth.js';
 import { getUser } from '../../../utils/context.js';
 import { getWebhooks } from '../../../utils/webhook.js';
+import { success, error } from '../../../utils/response.js';
 
 // 测试特定 Webhook
 export async function onRequestPost(context) {
@@ -128,42 +129,19 @@ export async function onRequestPost(context) {
         result.error = `HTTP ${response.status}: ${response.statusText}`;
       }
 
-      return new Response(JSON.stringify({
-        success: true,
-        data: {
-          webhook: {
-            id: webhook.id,
-            url: webhook.url
-          },
-          test: result,
-          payload: testPayload
-        }
-      }), {
-        headers: { 'Content-Type': 'application/json' }
+      return success({
+        webhook: {
+          id: webhook.id,
+          url: webhook.url
+        },
+        test: result,
+        payload: testPayload
       });
 
     } catch (fetchError) {
       const duration = Date.now() - startTime;
 
-      return new Response(JSON.stringify({
-        success: false,
-        error: {
-          message: fetchError.message,
-          type: fetchError.name,
-          duration: duration,
-          timestamp: new Date().toISOString()
-        },
-        data: {
-          webhook: {
-            id: webhook.id,
-            url: webhook.url
-          },
-          payload: testPayload
-        }
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return error(fetchError.message, 500);
     }
 
   } catch (error) {

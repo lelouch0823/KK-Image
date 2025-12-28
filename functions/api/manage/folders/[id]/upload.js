@@ -4,6 +4,7 @@
  */
 
 import { getFileUrl } from '../../../utils/url.js';
+import { success, error } from '../../../utils/response.js';
 
 // 生成唯一 ID
 function generateId() {
@@ -51,13 +52,7 @@ export async function onRequestPost(context) {
         // 验证文件夹存在
         const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(folderId).first();
         if (!folder) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '文件夹不存在'
-            }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('文件夹不存在', 404);
         }
 
         // 解析 multipart form data
@@ -65,13 +60,7 @@ export async function onRequestPost(context) {
         const file = formData.get('file');
 
         if (!file) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '未提供文件'
-            }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('未提供文件', 400);
         }
 
         const originalName = file.name;
@@ -98,13 +87,7 @@ export async function onRequestPost(context) {
                 }
             });
         } else {
-            return new Response(JSON.stringify({
-                success: false,
-                message: 'R2 存储未配置'
-            }), {
-                status: 500,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('R2 存储未配置', 500);
         }
 
         // 保存到 D1 数据库
@@ -133,30 +116,18 @@ export async function onRequestPost(context) {
             }));
         }
 
-        return new Response(JSON.stringify({
-            success: true,
-            data: {
-                id: fileId,
-                name: storageKey,
-                originalName: originalName,
-                size: size,
-                mimeType: mimeType,
-                url: getFileUrl(storageKey),
-                createdAt: now
-            }
-        }), {
-            status: 201,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return success({
+            id: fileId,
+            name: storageKey,
+            originalName: originalName,
+            size: size,
+            mimeType: mimeType,
+            url: getFileUrl(storageKey),
+            createdAt: now
+        }, 'Success', 201);
     } catch (error) {
         console.error('上传文件失败:', error);
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }
 
@@ -170,26 +141,14 @@ export async function onRequestDelete(context) {
         const fileId = url.searchParams.get('file_id');
 
         if (!fileId) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '未提供文件 ID'
-            }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('未提供文件 ID', 400);
         }
 
         // 验证文件属于该文件夹
         const file = await env.DB.prepare('SELECT * FROM files WHERE id = ? AND folder_id = ?').bind(fileId, folderId).first();
 
         if (!file) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: '文件不存在'
-            }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('文件不存在', 404);
         }
 
         // 从 R2 删除
@@ -205,20 +164,9 @@ export async function onRequestDelete(context) {
         // 从 D1 删除
         await env.DB.prepare('DELETE FROM files WHERE id = ?').bind(fileId).run();
 
-        return new Response(JSON.stringify({
-            success: true,
-            message: '文件已删除'
-        }), {
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return success(null, '文件已删除');
     } catch (error) {
         console.error('删除文件失败:', error);
-        return new Response(JSON.stringify({
-            success: false,
-            message: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }

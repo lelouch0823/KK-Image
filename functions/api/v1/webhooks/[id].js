@@ -2,6 +2,7 @@
 import { hasPermission } from '../../utils/auth.js';
 import { getUser } from '../../utils/context.js';
 import { deleteWebhook, getWebhooks } from '../../utils/webhook.js';
+import { success } from '../../utils/response.js';
 
 // 获取单个 Webhook 信息
 export async function onRequestGet(context) {
@@ -28,12 +29,7 @@ export async function onRequestGet(context) {
       throw error;
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: webhook
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(webhook);
 
   } catch (error) {
     console.error('Error fetching webhook:', error);
@@ -59,12 +55,7 @@ export async function onRequestDelete(context) {
   try {
     await deleteWebhook(env, webhookId);
 
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'Webhook deleted successfully'
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(null, 'Webhook deleted successfully');
 
   } catch (error) {
     console.error('Error deleting webhook:', error);
@@ -129,12 +120,7 @@ export async function onRequestPut(context) {
     // 保存更新
     await env.WEBHOOKS_KV.put('webhooks', JSON.stringify(webhooks));
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: webhook
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success(webhook);
 
   } catch (error) {
     console.error('Error updating webhook:', error);

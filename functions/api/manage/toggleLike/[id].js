@@ -1,3 +1,5 @@
+import { success, error } from '../../../utils/response.js';
+
 export async function onRequest(context) {
     const { params, env } = context;
 
@@ -9,13 +11,7 @@ export async function onRequest(context) {
 
         // 如果记录不存在
         if (!value || !value.metadata) {
-            return new Response(JSON.stringify({
-                success: false,
-                error: 'File not found'
-            }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return error('File not found', 404);
         }
 
         // 切换 liked 状态并更新
@@ -27,21 +23,10 @@ export async function onRequest(context) {
 
         await env.img_url.put(fileId, '', { metadata: updatedMetadata });
 
-        return new Response(JSON.stringify({
-            success: true,
-            liked: newLikedState
-        }), {
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return success({ liked: newLikedState });
 
     } catch (error) {
         console.error('Error toggling like:', error);
-        return new Response(JSON.stringify({
-            success: false,
-            error: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return error(error.message, 500);
     }
 }
