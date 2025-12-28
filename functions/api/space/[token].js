@@ -3,7 +3,7 @@
  * GET /api/space/:token - 获取公开空间信息
  */
 
-import { success, error } from '../../utils/response.js';
+import { success, error } from '../utils/response.js';
 
 export async function onRequestGet(context) {
     const { env, params, request } = context;

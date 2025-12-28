@@ -60,3 +60,5 @@ export const ROUTES = {
 // 分页默认值
 export const DEFAULT_PAGE_SIZE = 20;
 export const DASHBOARD_LIMIT = 10;
+// 上传限制
+export const MAX_UPLOAD_SIZE = 100 * 1024 * 1024; // 100MB (Cloudflare Workers Limit)

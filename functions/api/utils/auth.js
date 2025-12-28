@@ -1,5 +1,5 @@
 // 认证工具模块 - 处理 API Key 和 JWT 认证
-import { hasPermission, requirePermission } from './permissions.js';
+
 
 /**
  * JWT 实现 - 使用 URL-safe Base64 (RFC 4648) 和安全比较
@@ -251,4 +251,24 @@ export async function deleteApiKey(keyId, env) {
 // No, I imported them, but I need to EXPORT them. 
 // Since they are imported as named imports, I can just export them.
 
-export { hasPermission, requirePermission };
+// 验证 Cloudflare Turnstile
+export async function verifyTurnstile(token, secret) {
+  const url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+  const formData = new FormData();
+  formData.append('secret', secret);
+  formData.append('response', token);
+
+  try {
+    const result = await fetch(url, {
+      body: formData,
+      method: 'POST',
+    });
+    const outcome = await result.json();
+    return outcome.success;
+  } catch (err) {
+    console.error('Turnstile verification failed:', err);
+    return false;
+  }
+}
+
+

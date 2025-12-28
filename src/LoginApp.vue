@@ -9,29 +9,29 @@
           <div class="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-gray-800 to-black flex items-center justify-center text-white font-bold text-2xl shadow-lg">
             KK
           </div>
-          <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ t('login.welcome') }}</h1>
-          <p class="text-secondary text-sm">{{ t('login.subtitle') }}</p>
+          <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ t('auth.welcome') }}</h1>
+          <p class="text-secondary text-sm">{{ t('auth.subtitle') }}</p>
         </div>
 
         <!-- 表单 -->
         <form @submit.prevent="handleLogin" class="px-8 pb-10">
           <!-- 用户名 -->
           <div class="mb-5">
-            <label class="block text-sm font-medium text-[var(--text-main)] mb-2">{{ t('login.username') }}</label>
+            <label class="block text-sm font-medium text-[var(--text-main)] mb-2">{{ t('auth.username') }}</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                 </svg>
               </div>
-              <input v-model="username" type="text" required autocomplete="username" :placeholder="t('login.usernamePlaceholder')"
+              <input v-model="username" type="text" required autocomplete="username" :placeholder="t('auth.usernamePlaceholder')"
                 class="input-focus w-full h-12 pl-12 pr-4 text-sm border border-[var(--border-color)] rounded-xl bg-[var(--bg-muted)] focus:bg-white focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 transition-all" />
             </div>
           </div>
 
           <!-- 密码 -->
           <div class="mb-6">
-            <label class="block text-sm font-medium text-[var(--text-main)] mb-2">{{ t('login.password') }}</label>
+            <label class="block text-sm font-medium text-[var(--text-main)] mb-2">{{ t('auth.password') }}</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,7 +39,7 @@
                 </svg>
               </div>
               <input v-model="password" :type="showPassword ? 'text' : 'password'" required
-                autocomplete="current-password" :placeholder="t('login.passwordPlaceholder')"
+                autocomplete="current-password" :placeholder="t('auth.passwordPlaceholder')"
                 class="input-focus w-full h-12 pl-12 pr-12 text-sm border border-[var(--border-color)] rounded-xl bg-[var(--bg-muted)] focus:bg-white focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 transition-all" />
               <button type="button" @click="showPassword = !showPassword"
                 class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-900 transition-colors">
@@ -72,7 +72,7 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span>{{ loading ? t('login.loggingIn') : t('login.loginButton') }}</span>
+            <span>{{ loading ? t('auth.loggingIn') : t('auth.loginButton') }}</span>
           </button>
         </form>
       </div>
@@ -136,7 +136,7 @@ onBeforeMount(async () => {
 
 const handleLogin = async () => {
   if (!username.value || !password.value) {
-    addToast({ message: t('login.inputRequired'), type: 'warning' });
+    addToast({ message: t('auth.inputRequired'), type: 'warning' });
     return;
   }
 
@@ -158,7 +158,7 @@ const handleLogin = async () => {
     const result = await response.json();
 
     if (response.ok && result.success) {
-      addToast({ message: t('login.loginSuccess'), type: 'success' });
+      addToast({ message: t('auth.loginSuccess'), type: 'success' });
       // Delay slightly for toast visibility
       setTimeout(() => {
         window.location.href = '/admin.html';
@@ -170,8 +170,8 @@ const handleLogin = async () => {
     }
   } catch (err) {
     console.error('Login error:', err);
-    error.value = t('login.loginFailed');
-    addToast({ message: t('login.loginFailed'), type: 'error' });
+    error.value = t('auth.loginFailed');
+    addToast({ message: t('auth.loginFailed'), type: 'error' });
   } finally {
     loading.value = false;
   }
