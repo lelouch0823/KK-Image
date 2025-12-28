@@ -1,210 +1,89 @@
 # 安装部署指南
 
-本指南将详细介绍如何从零开始部署 Telegraph-Image 到 Cloudflare Pages。
+本指南将详细介绍如何部署 **Telegraph-Image (Pro)** 到 Cloudflare Pages。
+本项目基于现代化全栈架构 (Vue 3 + D1 + R2)，请务必完整阅读以下步骤。
 
 ## 📋 部署概览
 
-Telegraph-Image 采用无服务器架构，主要组件包括：
-- **Cloudflare Pages** - 静态网站托管和 Functions 运行环境
-- **Telegram Bot API** - 图片存储后端
-- **Cloudflare KV** - 元数据存储（可选）
+主要组件包括：
+- **Cloudflare Pages**: 托管前端和后端 Functions
+- **Cloudflare D1**: SQL 数据库 (存放空间、文件索引) **(必需)**
+- **Cloudflare R2**: 对象存储 (存放图片文件) **(必需)**
+- **Cloudflare KV**: 配置存储
 
 ## 🔧 详细部署步骤
 
 ### 步骤 1: Fork 项目
 
 1. 访问 [Telegraph-Image GitHub 仓库](https://github.com/cf-pages/Telegraph-Image)
-2. 点击右上角的 **Fork** 按钮
-3. 选择您的 GitHub 账户
-4. 等待 Fork 完成
+2. 点击 **Fork** 按钮到您的账户
 
-> 💡 **注意**: 必须使用 Fork 方式，直接下载代码包无法正常部署。
+### 步骤 2: Cloudflare 资源准备 (关键)
 
-### 步骤 2: Cloudflare Pages 配置
+在部署之前，由于 Cloudflare Pages 部署流程的限制，建议先在 Cloudflare Dashboard 创建好必要的数据库和存储桶。
 
-#### 2.1 创建 Pages 项目
+#### 2.1 创建 D1 数据库
+1. 登录 Cloudflare Dashboard -> **Workers & Pages** -> **D1 SQL Database**.
+2. 点击 **Create**，命名为 `telegraph-image-db`.
+3. 创建成功后，记下 database ID (部署绑定时可能用到，但在 Pages 界面通常只需选择名称)。
 
-1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)
-2. 在左侧菜单中选择 **Pages**
-3. 点击 **创建项目**
-4. 选择 **连接到 Git 提供程序**
+#### 2.2 创建 R2 存储桶
+1. 进入 **R2 Object Storage**.
+2. 点击 **Create bucket**，命名为 `telegraph-image-storage` (或自定义).
+3. 保持默认设置创建。
 
-#### 2.2 连接 GitHub 仓库
+### 步骤 3: Cloudflare Pages 部署
 
-1. 选择 **GitHub** 作为 Git 提供程序
-2. 授权 Cloudflare 访问您的 GitHub 账户
-3. 在仓库列表中找到您 Fork 的 `Telegraph-Image` 项目
-4. 点击 **开始设置**
+1. 进入 **Workers & Pages** -> **Create application** -> **Pages** -> **Connect to Git**.
+2. 选择您 Fork 的 `Telegraph-Image` 仓库。
+3. **构建配置 (Build settings)**:
+    - **Project name**: `telegraph-image` (任意)
+    - **Production branch**: `main`
+    - **Framework preset**: `Vue` (或者 None)
+    - **Build command**: `npm run build`
+    - **Build output directory**: `dist`
 
-#### 2.3 配置构建设置
+4. **不要立即点击部署**，或者等待失败后再去设置绑定。建议先保存项目（如果可以）或在首次部署失败后配置绑定。
 
-使用以下配置：
+### 步骤 4: 绑定资源 (Bindings)
 
-| 设置项 | 值 |
-|--------|-----|
-| 项目名称 | `telegraph-image`（或您喜欢的名称） |
-| 生产分支 | `main` |
-| 构建命令 | `npm run build` |
-| 构建输出目录 | `dist` |
+进入 Pages 项目 -> **Settings** -> **Functions**:
 
-#### 2.4 部署项目
+1. **D1 Database Bindings**:
+    - Variable name: `DB` (必须完全一致)
+    - D1 database: 选择 `telegraph-image-db`
+2. **R2 Bucket Bindings**:
+    - Variable name: `R2_BUCKET` (必须完全一致)
+    - R2 bucket: 选择 `telegraph-image-storage`
+3. **KV Namespace Bindings**:
+    - Variable name: `KV`
+    - Namespace: 创建一个新的 KV 命名空间并绑定
 
-1. 点击 **保存并部署**
-2. 等待首次部署完成（通常需要 2-5 分钟）
-3. 部署成功后，您将获得一个 `*.pages.dev` 域名
+### 步骤 5: 环境变量 (Environment Variables)
 
-### 步骤 3: Telegram 配置
+进入 Pages 项目 -> **Settings** -> **Environment variables**:
 
-#### 3.1 创建 Telegram Bot
-
-1. 在 Telegram 中搜索 [@BotFather](https://t.me/BotFather)
-2. 发送命令 `/newbot`
-3. 按提示输入 Bot 名称和用户名
-4. 保存返回的 `Bot Token`（格式：`123456789:ABCdefGHIjklMNOpqrSTUvwxYZ`）
-
-#### 3.2 创建 Telegram 频道
-
-1. 在 Telegram 中创建一个新频道
-2. 将刚创建的 Bot 添加为频道管理员
-3. 确保 Bot 有发送消息的权限
-
-#### 3.3 获取频道 ID
-
-使用以下方法之一获取频道 ID：
-
-**方法一：使用 @VersaToolsBot**
-1. 搜索 [@VersaToolsBot](https://t.me/VersaToolsBot)
-2. 按照指示获取频道 ID
-
-**方法二：使用 @GetTheirIDBot**
-1. 搜索 [@GetTheirIDBot](https://t.me/GetTheirIDBot)
-2. 转发频道消息给该 Bot
-3. 获取返回的频道 ID（格式：`-1001234567890`）
-
-### 步骤 4: 环境变量配置
-
-#### 4.1 设置必需环境变量
-
-1. 在 Cloudflare Pages 项目页面，点击 **设置**
-2. 选择 **环境变量**
-3. 点击 **添加环境变量**
-
-添加以下变量：
-
-| 变量名 | 值 | 说明 |
+| 变量名 | 必填 | 说明 |
 |--------|-----|------|
-| `TG_Bot_Token` | `123456789:ABCdefGHI...` | 从 BotFather 获取的 Token |
-| `TG_Chat_ID` | `-1001234567890` | 频道 ID |
+| `BASIC_USER` | 是 | 后台管理员用户名 (如 admin) |
+| `BASIC_PASS` | 是 | 后台管理员密码 |
+| `TG_Bot_Token` | 否 | (可选) Telegram Bot Token |
+| `TG_Chat_ID` | 否 | (可选) Telegram Channel ID |
 
-#### 4.2 设置可选环境变量
+### 步骤 6: 初始化数据库
 
-根据需要添加以下可选变量：
+部署完成后，由于 D1 是空的，需要初始化表结构。
+推荐使用 Wrangler 本地操作（需安装 Node.js 和 Wrangler）：
 
-| 变量名 | 值 | 说明 |
-|--------|-----|------|
-| `ModerateContentApiKey` | `your-api-key` | 内容审查 API Key |
-| `BASIC_USER` | `admin` | 后台登录用户名 |
-| `BASIC_PASS` | `your-password` | 后台登录密码 |
-| `WhiteList_Mode` | `true` | 启用白名单模式 |
-| `disable_telemetry` | `true` | 禁用遥测数据 |
+```bash
+# 登录 Cloudflare
+npx wrangler login
 
-### 步骤 5: KV 存储配置（可选）
+# 在本地执行远程迁移 (将 id 替换为您的 D1 ID)
+npx wrangler d1 execute telegraph-image-db --remote --file=./migrations/0002_create_spaces_table.sql
+```
+*(注：如果无法本地操作，可以通过后台提供的数据库初始化 API，或等待后续版本集成的网页端初始化工具)*
 
-如需启用图片管理功能：
+### 步骤 7: 完成
 
-#### 5.1 创建 KV 命名空间
-
-1. 在 Cloudflare Dashboard 中选择 **Workers & Pages**
-2. 点击 **KV**
-3. 点击 **创建命名空间**
-4. 输入名称（如：`telegraph-image-storage`）
-
-#### 5.2 绑定 KV 命名空间
-
-1. 回到 Pages 项目设置
-2. 选择 **函数**
-3. 点击 **KV 命名空间绑定**
-4. 添加绑定：
-   - 变量名称：`img_url`
-   - KV 命名空间：选择刚创建的命名空间
-
-### 步骤 6: 重新部署
-
-1. 在 Pages 项目页面，选择 **部署**
-2. 点击 **重试部署** 或等待自动部署
-3. 确保部署成功完成
-
-## ✅ 部署验证
-
-### 验证清单
-
-- [ ] Cloudflare Pages 部署成功
-- [ ] 可以访问项目域名
-- [ ] Telegram Bot 创建成功
-- [ ] 频道 ID 获取正确
-- [ ] 环境变量配置完成
-- [ ] KV 存储绑定（如需要）
-
-### 功能测试
-
-1. 访问您的项目域名
-2. 尝试上传一张测试图片
-3. 验证图片可以正常访问
-4. 检查后台管理功能（如已配置）
-
-## 🔧 高级配置
-
-### 自定义域名
-
-1. 在 Pages 项目设置中选择 **自定义域**
-2. 点击 **设置自定义域**
-3. 输入您的域名
-4. 按照提示配置 DNS 记录
-
-### 内容审查配置
-
-1. 注册 [ModerateContent](https://moderatecontent.com) 账户
-2. 获取 API Key
-3. 在环境变量中添加 `ModerateContentApiKey`
-
-### 自动更新配置
-
-1. 在您的 Fork 仓库中，进入 **Actions** 页面
-2. 启用 **Workflows**
-3. 启用 **Upstream Sync Action**
-
-## ❗ 常见问题
-
-### 部署失败
-
-**问题**: 部署时出现错误
-**解决方案**:
-1. 检查 GitHub 仓库是否正确 Fork
-2. 确认 Cloudflare 有访问仓库的权限
-3. 查看部署日志中的具体错误信息
-
-### 上传失败
-
-**问题**: 图片上传返回错误
-**解决方案**:
-1. 验证 `TG_Bot_Token` 格式正确
-2. 确认 `TG_Chat_ID` 为负数且正确
-3. 检查 Bot 是否为频道管理员
-
-### 环境变量不生效
-
-**问题**: 修改环境变量后功能未更新
-**解决方案**:
-1. 环境变量修改后需要重新部署
-2. 在部署页面手动触发重新部署
-3. 等待部署完成后再测试
-
-## 🔗 下一步
-
-- [首次上传教程](first-upload.md) - 验证部署结果
-- [用户手册](../user-manual/README.md) - 了解详细功能
-- [管理员手册](../admin-manual/README.md) - 配置后台管理
-
----
-
-🎉 **恭喜！** 您已成功部署 Telegraph-Image！
+访问您的 `*.pages.dev` 域名，使用 `BASIC_USER` 和 `BASIC_PASS` 登录后台。
