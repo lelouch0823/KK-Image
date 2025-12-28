@@ -69,10 +69,13 @@ export function timestampToIso(timestamp) {
 /**
  * 生成密码哈希
  * @param {string} password - 原始密码
- * @param {string} [salt='salt'] - 盐值
+ * @param {string} salt - 盐值（必需，建议使用 JWT_SECRET）
  * @returns {Promise<string>}
  */
-export async function hashPassword(password, salt = 'salt') {
+export async function hashPassword(password, salt) {
+    if (!salt) {
+        throw new Error('Salt is required for password hashing');
+    }
     const encoder = new TextEncoder();
     const data = encoder.encode(password + salt);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);

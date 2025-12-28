@@ -5,7 +5,7 @@
     <div v-if="loading" class="min-h-screen flex items-center justify-center">
         <div class="text-center">
             <div class="w-12 h-12 border-4 border-gray-200 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
-            <p class="text-secondary">加载中...</p>
+            <p class="text-secondary">{{ t('gallery.loading') }}</p>
         </div>
     </div>
 
@@ -19,15 +19,15 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                         </svg>
                     </div>
-                    <h2 class="text-xl font-semibold text-primary">需要密码</h2>
-                    <p class="text-sm text-secondary mt-1">该相册受密码保护</p>
+                    <h2 class="text-xl font-semibold text-primary">{{ t('gallery.passwordRequired') }}</h2>
+                    <p class="text-sm text-secondary mt-1">{{ t('gallery.passwordProtected') }}</p>
                 </div>
                 <form @submit.prevent="submitPassword">
-                    <input v-model="password" type="password" placeholder="请输入密码"
+                    <input v-model="password" type="password" :placeholder="t('gallery.enterPassword')"
                         class="w-full h-12 px-4 text-sm border border-[var(--border-color)] rounded-xl bg-[var(--bg-muted)] focus:bg-white focus:border-primary focus:outline-none mb-4 transition-colors">
                     <button type="submit"
                         class="w-full h-12 bg-primary text-white font-medium rounded-xl hover:bg-gray-800 transition-colors">
-                        确认
+                        {{ t('gallery.confirm') }}
                     </button>
                 </form>
                 <p v-if="passwordError" class="text-red-500 text-sm text-center mt-4">{{ passwordError }}</p>
@@ -43,7 +43,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                 </svg>
             </div>
-            <h2 class="text-xl font-semibold text-primary mb-2">无法加载相册</h2>
+            <h2 class="text-xl font-semibold text-primary mb-2">{{ t('gallery.cannotLoad') }}</h2>
             <p class="text-secondary">{{ error }}</p>
         </div>
     </div>
@@ -55,7 +55,7 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
                 <div>
                     <h1 class="text-xl font-semibold text-primary px-1">{{ album.name }}</h1>
-                    <p class="text-sm text-secondary mt-0.5 px-1">{{ album.fileCount }} 个文件</p>
+                    <p class="text-sm text-secondary mt-0.5 px-1">{{ t('gallery.files', { count: album.fileCount }) }}</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <button @click="shareAlbum"
@@ -63,7 +63,7 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
                         </svg>
-                        分享
+                        {{ t('gallery.share') }}
                     </button>
                 </div>
             </div>
@@ -116,14 +116,14 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                     </svg>
                 </div>
-                <h3 class="text-lg font-medium text-primary">暂无文件</h3>
-                <p class="text-secondary text-sm mt-1">该相册还没有添加任何文件</p>
+                <h3 class="text-lg font-medium text-primary">{{ t('gallery.noFiles') }}</h3>
+                <p class="text-secondary text-sm mt-1">{{ t('gallery.noFilesDesc') }}</p>
             </div>
         </main>
 
         <!-- Footer -->
         <footer class="py-8 text-center text-sm text-secondary border-t border-[var(--border-color)] bg-white">
-            <a href="/" class="hover:text-primary transition-colors">Powered by KK-Image</a>
+            <a href="/" class="hover:text-primary transition-colors">{{ t('gallery.poweredBy') }}</a>
         </footer>
     </template>
 
@@ -146,7 +146,7 @@
                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                      </svg>
-                     下载
+                     {{ t('gallery.download') }}
                  </a>
                  
                  <!-- Close Button -->
@@ -192,14 +192,13 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
                     </svg>
                 </div>
-                <!-- Reuse Toolbar Download is better -->
                 <h3 class="text-lg font-medium mb-4">{{ lightbox.file?.name }}</h3>
-                <p class="text-white/60 mb-6 text-sm">此文件不支持预览</p>
+                <p class="text-white/60 mb-6 text-sm">{{ t('gallery.previewNotSupported') }}</p>
             </div>
         </div>
 
         <div class="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/70 text-sm bg-black/40 px-3 py-1 rounded-full backdrop-blur-md">
-             支持滚轮切换 • ESC 关闭
+             {{ t('gallery.scrollHint') }}
         </div>
     </div>
     
@@ -211,10 +210,12 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
 import { API } from '@/utils/constants';
 
 const { addToast } = useToast();
+const { t } = useI18n();
 
 const loading = ref(true);
 const error = ref('');
@@ -235,7 +236,7 @@ const getShareToken = () => {
 const loadAlbum = async (pwd = null) => {
     const token = getShareToken();
     if (!token) {
-        error.value = '无效的分享链接';
+        error.value = t('gallery.invalidLink');
         loading.value = false;
         return;
     }
@@ -266,10 +267,10 @@ const loadAlbum = async (pwd = null) => {
         } else if (result.requiresPassword) {
             requiresPassword.value = true;
         } else {
-            error.value = result.message || '加载失败';
+            error.value = result.message || t('gallery.loadFailed');
         }
     } catch (e) {
-        error.value = '网络错误，请稍后重试';
+        error.value = t('gallery.networkError');
     } finally {
         loading.value = false;
     }
@@ -277,14 +278,14 @@ const loadAlbum = async (pwd = null) => {
 
 const submitPassword = async () => {
     if (!password.value) {
-        passwordError.value = '请输入密码';
+        passwordError.value = t('gallery.enterPasswordFirst');
         return;
     }
     passwordError.value = '';
     loading.value = true;
     await loadAlbum(password.value);
     if (requiresPassword.value) {
-        passwordError.value = '密码错误';
+        passwordError.value = t('gallery.passwordError');
     }
 };
 
@@ -327,9 +328,9 @@ const handleKeydown = (e) => {
 const shareAlbum = async () => {
     try {
         await navigator.clipboard.writeText(window.location.href);
-        addToast({ message: '链接已复制', type: 'success' });
+        addToast({ message: t('gallery.linkCopied'), type: 'success' });
     } catch {
-        addToast({ message: '复制失败', type: 'error' });
+        addToast({ message: t('gallery.copyFailed'), type: 'error' });
     }
 };
 

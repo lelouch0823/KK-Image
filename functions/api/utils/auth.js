@@ -143,10 +143,12 @@ export async function verifyJWT(token, env) {
     throw new Error('JWT Token is required');
   }
 
-  const jwtSecret = env.JWT_SECRET || 'default-secret-change-in-production';
+  if (!env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
 
   try {
-    const payload = await SimpleJWT.decode(token, jwtSecret);
+    const payload = await SimpleJWT.decode(token, env.JWT_SECRET);
 
     return {
       id: payload.sub,
@@ -163,7 +165,10 @@ export async function verifyJWT(token, env) {
 
 // 生成 JWT Token
 export async function generateJWT(user, env, expiresIn = 3600) {
-  const jwtSecret = env.JWT_SECRET || 'default-secret-change-in-production';
+  if (!env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+
   const now = Math.floor(Date.now() / 1000);
 
   const payload = {
@@ -175,7 +180,7 @@ export async function generateJWT(user, env, expiresIn = 3600) {
     exp: now + expiresIn
   };
 
-  return await SimpleJWT.encode(payload, jwtSecret);
+  return await SimpleJWT.encode(payload, env.JWT_SECRET);
 }
 
 // 生成 API Key

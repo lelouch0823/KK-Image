@@ -5,7 +5,7 @@ import { requirePermission } from '../../middleware/auth.js';
 import { withCache, invalidateCache } from '../../middleware/cache.js';
 import { batchDelete } from '../../../../lib/db/batch.js';
 import { getFileUrl } from '../../../../api/utils/url.js';
-import { now } from '../../../../api/utils/id.js';
+import { generateId, now } from '../../../../api/utils/id.js';
 
 const app = new Hono();
 
@@ -107,7 +107,7 @@ app.post('/',
         const user = c.get('user');
         const { env } = c;
 
-        const id = crypto.randomUUID();
+        const id = generateId();
         const now = Date.now();
 
         await env.DB.prepare(`

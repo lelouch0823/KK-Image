@@ -1,5 +1,7 @@
 // Webhook 工具模块 - 处理事件通知 (D1 版本)
 
+import { generatePrefixedId, generateHmacSignature, isValidUrl } from './id.js';
+
 // 支持的事件类型
 export const WEBHOOK_EVENTS = {
   FILE_UPLOADED: 'file.uploaded',
@@ -31,7 +33,7 @@ export async function triggerWebhook(env, eventType, data) {
       event: eventType,
       timestamp: new Date().toISOString(),
       data: data,
-      id: generateWebhookId()
+      id: generatePrefixedId('wh_')
     };
 
     // 并行发送所有 Webhooks
@@ -81,7 +83,7 @@ async function sendWebhook(env, webhook, payload) {
 
       // 添加签名（如果配置了密钥）
       if (webhook.secret) {
-        const signature = await generateWebhookSignature(JSON.stringify(payload), webhook.secret);
+        const signature = await generateHmacSignature(JSON.stringify(payload), webhook.secret);
         headers['X-Webhook-Signature'] = signature;
       }
 
@@ -130,22 +132,7 @@ async function sendWebhook(env, webhook, payload) {
   }
 }
 
-/**
- * 生成 Webhook 签名
- */
-async function generateWebhookSignature(payload, secret) {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
 
-  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
-  return 'sha256=' + btoa(String.fromCharCode(...new Uint8Array(signature)));
-}
 
 /**
  * 获取已注册的 Webhooks (D1)
@@ -193,7 +180,7 @@ async function logWebhookExecution(env, webhookId, payload, statusCode, duration
   }
 
   try {
-    const logId = 'log_' + crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+    const logId = generatePrefixedId('log_');
 
     await env.DB.prepare(`
       INSERT INTO webhook_logs (id, webhook_id, event, payload, status_code, duration_ms, success, response, created_at)
@@ -214,12 +201,7 @@ async function logWebhookExecution(env, webhookId, payload, statusCode, duration
   }
 }
 
-/**
- * 生成 Webhook ID
- */
-function generateWebhookId() {
-  return 'wh_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
-}
+
 
 /**
  * 注册新的 Webhook (D1)
@@ -247,7 +229,7 @@ export async function registerWebhook(env, webhookConfig) {
     throw new Error('Webhook with this URL already exists');
   }
 
-  const id = generateWebhookId();
+  const id = generatePrefixedId('wh_');
   const now = Date.now();
 
   await env.DB.prepare(`
@@ -321,16 +303,4 @@ export async function getWebhooks(env) {
     updatedBy: row.updated_by,
     updatedAt: row.updated_at
   }));
-}
-
-/**
- * URL 验证
- */
-function isValidUrl(string) {
-  try {
-    const url = new URL(string);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch (_) {
-    return false;
-  }
 }

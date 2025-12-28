@@ -152,7 +152,7 @@ const getTemplateLabel = (key) => {
     portfolio: t('spaceManager.templates.portfolio'),
     document: t('spaceManager.templates.document'),
     collection: t('spaceManager.templates.collection'),
-    custom: '自定义'
+    custom: t('spaceManager.templates.custom')
   };
   return labels[key] || key;
 };
@@ -213,7 +213,7 @@ const togglePassword = async () => {
 const updateSpacePassword = async () => {
     if (!customPassword.value) return;
     await updateSpace(props.space.id, { password: customPassword.value });
-    addToast({ message: t('spaceManager.passwordUpdated') || '密码已更新', type: 'success' });
+    addToast({ message: t('spaceManager.passwordUpdated'), type: 'success' });
     await loadData();
     emit('updated');
 };

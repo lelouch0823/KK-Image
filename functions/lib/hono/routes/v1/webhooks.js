@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
+import { generatePrefixedId, generateHmacSignature } from '../../../../api/utils/id.js';
 
 const app = new Hono();
 
@@ -105,7 +106,7 @@ app.post('/',
         }
 
         try {
-            const id = 'wh_' + crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+            const id = generatePrefixedId('wh_');
             const now = Date.now();
 
             await env.DB.prepare(`
@@ -278,16 +279,7 @@ app.post('/:id/test',
 
             // 添加签名
             if (webhook.secret) {
-                const encoder = new TextEncoder();
-                const key = await crypto.subtle.importKey(
-                    'raw',
-                    encoder.encode(webhook.secret),
-                    { name: 'HMAC', hash: 'SHA-256' },
-                    false,
-                    ['sign']
-                );
-                const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(JSON.stringify(payload)));
-                headers['X-Webhook-Signature'] = 'sha256=' + btoa(String.fromCharCode(...new Uint8Array(signature)));
+                headers['X-Webhook-Signature'] = await generateHmacSignature(JSON.stringify(payload), webhook.secret);
             }
 
             const startTime = Date.now();
@@ -300,7 +292,7 @@ app.post('/:id/test',
             const duration = Date.now() - startTime;
 
             // 记录日志到 D1
-            const logId = 'log_' + crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+            const logId = generatePrefixedId('log_');
             await env.DB.prepare(`
                 INSERT INTO webhook_logs (id, webhook_id, event, payload, status_code, duration_ms, success, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)

@@ -4,7 +4,7 @@
       
       <!-- Header -->
       <div class="px-6 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-primary">分享链接管理</h3>
+        <h3 class="text-lg font-semibold text-primary">{{ t('share.management') }}</h3>
         <button @click="close" class="text-secondary hover:text-primary transition-colors">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -38,8 +38,8 @@
                      <span :class="getExpiryClass(item.expiresAt)">{{ formatExpiry(item.expiresAt) }}</span>
                  </td>
                  <td class="px-6 py-3 text-right">
-                     <button @click="editShare(item)" class="text-primary hover:text-blue-600 mr-3">编辑</button>
-                     <button @click="revokeShare(item)" class="text-red-500 hover:text-red-700">取消分享</button>
+                     <button @click="editShare(item)" class="text-primary hover:text-blue-600 mr-3">{{ t('common.edit') }}</button>
+                     <button @click="revokeShare(item)" class="text-red-500 hover:text-red-700">{{ t('common.cancelShare') }}</button>
                  </td>
               </tr>
            </tbody>
@@ -47,12 +47,12 @@
 
          <!-- Empty State -->
          <div v-if="shares.length === 0 && !loading" class="text-center py-12 text-secondary">
-             暂无分享链接
+             {{ t('common.noData') }}
          </div>
 
          <!-- Loading -->
          <div v-if="loading" class="text-center py-12 text-secondary">
-             加载中...
+             {{ t('common.loading') }}
          </div>
       </div>
 
@@ -73,6 +73,7 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import { formatExpiry } from '@/utils/formatters';
 import { API } from '@/utils/constants';
@@ -84,6 +85,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'edit']);
 
 const { success, error } = useToast();
+const { t } = useI18n();
 const { getHeaders, authFetchJson } = useAuth();
 
 const loading = ref(false);
@@ -103,7 +105,7 @@ const fetchShares = async () => {
             totalPages.value = res.data.totalPages;
         }
     } catch (e) {
-        error('加载失败');
+        error(t('common.loadFailed'));
     } finally {
         loading.value = false;
     }
@@ -119,11 +121,11 @@ const getExpiryClass = (ts) => {
 
 const copyLink = (item) => {
     const url = `${window.location.origin}${item.shareUrl}`;
-    navigator.clipboard.writeText(url).then(() => success('链接已复制'));
+    navigator.clipboard.writeText(url).then(() => success(t('common.copied')));
 };
 
 const revokeShare = async (item) => {
-    if (!confirm(`确定要取消分享 "${item.name}" 吗？取消后链接将失效。`)) return;
+    if (!confirm(t('common.cancelShareConfirm', { name: item.name }))) return;
     
     try {
         const res = await fetch(API.FOLDER_BY_ID(item.id), {
@@ -133,13 +135,13 @@ const revokeShare = async (item) => {
         }).then(r => r.json());
 
         if (res.success) {
-            success('已取消分享');
+            success(t('common.shareRevoked'));
             fetchShares();
         } else {
             error(res.message);
         }
     } catch (e) {
-        error('操作失败');
+        error(t('common.operationFailed'));
     }
 };
 

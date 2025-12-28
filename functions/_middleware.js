@@ -3,61 +3,7 @@
  * 在 Edge 层完成 JWT 验证，未授权用户无法看到任何 Admin HTML
  */
 
-/**
- * 简易 JWT 验证（使用 Web Crypto API）
- * @param {string} token - JWT Token
- * @param {string} secret - JWT Secret
- * @returns {Promise<boolean>}
- */
-async function verifyJWT(token, secret) {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return false;
-
-    const [encodedHeader, encodedPayload, signature] = parts;
-
-    // 验证签名
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-
-    const signatureData = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      encoder.encode(`${encodedHeader}.${encodedPayload}`)
-    );
-
-    // 将签名转换为 Base64 URL 安全格式
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(signatureData)));
-    const expectedSignature = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-    if (signature !== expectedSignature) {
-      return false;
-    }
-
-    // 解码 Payload 并检查过期时间
-    let base64Payload = encodedPayload.replace(/-/g, '+').replace(/_/g, '/');
-    const padding = base64Payload.length % 4;
-    if (padding) base64Payload += '='.repeat(4 - padding);
-
-    const payload = JSON.parse(decodeURIComponent(escape(atob(base64Payload))));
-
-    // 检查过期时间
-    if (payload.exp && Date.now() / 1000 > payload.exp) {
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('[Edge Auth] JWT verification error:', error.message);
-    return false;
-  }
-}
+import { verifyJWT } from './api/utils/auth.js';
 
 export async function onRequest(context) {
   const { request, next, env } = context;
@@ -84,12 +30,13 @@ export async function onRequest(context) {
     return Response.redirect(`${url.origin}/login.html`, 302);
   }
 
-  // 验证 JWT
-  const jwtSecret = env.JWT_SECRET || 'default-secret-change-in-production';
-  const isValid = await verifyJWT(match[1], jwtSecret);
-
-  if (!isValid) {
-    console.log(`[Edge Auth] Invalid/expired token for ${pathname}, redirecting to login`);
+  // 验证 JWT（复用 auth.js 的函数）
+  try {
+    await verifyJWT(match[1], env);
+    // Token 有效，允许访问
+    return next();
+  } catch (error) {
+    console.log(`[Edge Auth] Invalid/expired token for ${pathname}: ${error.message}`);
     // 清除无效的 Cookie
     return new Response(null, {
       status: 302,
@@ -99,7 +46,4 @@ export async function onRequest(context) {
       }
     });
   }
-
-  // Token 有效，允许访问
-  return next();
 }

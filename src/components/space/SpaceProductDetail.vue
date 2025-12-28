@@ -8,7 +8,7 @@
                   <img v-if="currentFile && isImage(currentFile)" :src="currentFile.url" 
                       class="w-full h-full object-contain bg-white" alt="Product Image">
                    <div v-else class="w-full h-full flex items-center justify-center text-secondary">
-                       暂无预览
+                       {{ t('spacePublic.noPreview') }}
                    </div>
                    
                    <!-- Navigation Arrows -->
@@ -53,12 +53,12 @@
 
               <div class="space-y-4 pt-6 border-t border-gray-100">
                   <div v-if="space.description">
-                      <h3 class="text-sm font-medium text-gray-900 mb-2">描述</h3>
+                      <h3 class="text-sm font-medium text-gray-900 mb-2">{{ t('spacePublic.description') }}</h3>
                       <p class="text-secondary leading-relaxed text-sm">{{ space.description }}</p>
                   </div>
                   
                   <div v-if="templateData.material">
-                      <h3 class="text-sm font-medium text-gray-900 mb-2">材质</h3>
+                      <h3 class="text-sm font-medium text-gray-900 mb-2">{{ t('spacePublic.material') }}</h3>
                       <p class="text-secondary text-sm">{{ templateData.material }}</p>
                   </div>
               </div>
@@ -69,7 +69,7 @@
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                       </svg>
-                      下载当前资源
+                      {{ t('spacePublic.downloadCurrent') }}
                   </a>
 
                   <button v-if="hasMultipleFiles" @click="handleDownloadAll" :disabled="downloading"
@@ -79,11 +79,11 @@
                           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
                       <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                      {{ downloading ? `打包中 ${downloadProgress}%` : '批量下载所有' }}
+                      {{ downloading ? `${t('spacePublic.packing')} ${downloadProgress}%` : t('spacePublic.downloadAll') }}
                   </button>
 
                   <p class="text-center text-xs text-gray-400 mt-3">
-                      {{ space.viewCount }} 次浏览 • {{ space.downloadCount }} 次下载
+                      {{ space.viewCount }} {{ t('spacePublic.views') }} • {{ space.downloadCount }} {{ t('spacePublic.downloads') }}
                   </p>
               </div>
           </div>
@@ -96,12 +96,14 @@ import { ref, computed } from 'vue';
 import { isImage } from '@/utils/formatters';
 import { useBatchDownload } from '@/composables/useBatchDownload';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
 
 const props = defineProps({
   space: { type: Object, required: true }
 });
 
 const { addToast } = useToast();
+const { t } = useI18n();
 const { downloading, downloadProgress, downloadAll } = useBatchDownload();
 
 const templateData = computed(() => props.space.templateData || {});

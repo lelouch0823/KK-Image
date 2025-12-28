@@ -164,7 +164,7 @@ const handleLogin = async () => {
         window.location.href = '/admin.html';
       }, 500);
     } else {
-      const msg = result.message || '用户名或密码错误';
+      const msg = result.message || t('common.invalidCredentials');
       error.value = msg;
       addToast({ message: msg, type: 'error' });
     }

@@ -7,8 +7,8 @@
         <p v-if="space.description" class="text-secondary mt-2">{{ space.description }}</p>
         
         <div class="flex items-center gap-4 mt-4 text-sm text-secondary">
-           <span>{{ space.fileCount }} 个文件</span>
-           <span>{{ space.viewCount }} 次访问</span>
+           <span>{{ space.fileCount }} {{ t('spacePublic.files') }}</span>
+           <span>{{ space.viewCount }} {{ t('spacePublic.views') }}</span>
         </div>
       </div>
       
@@ -19,7 +19,7 @@
              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
          </svg>
          <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-         {{ downloading ? `打包中 ${downloadProgress}%` : '下载全部' }}
+         {{ downloading ? `${t('spacePublic.packing')} ${downloadProgress}%` : t('spacePublic.downloadAllSimple') }}
       </button>
     </div>
 
@@ -48,7 +48,7 @@
     
     <!-- Empty State -->
     <div v-if="space.files.length === 0" class="py-20 text-center text-secondary">
-        <p>暂无内容</p>
+        <p>{{ t('spacePublic.noContent') }}</p>
     </div>
 
     <!-- Lightbox (Reusing same logic or component ideally, simplified here) -->
@@ -65,10 +65,13 @@
 import { ref, computed } from 'vue';
 import { isImage } from '@/utils/formatters';
 import { useBatchDownload } from '@/composables/useBatchDownload';
+import { useI18n } from '@/composables/useI18n';
 
 const props = defineProps({
   space: { type: Object, required: true }
 });
+
+const { t } = useI18n();
 
 const { downloading, downloadProgress, downloadAll } = useBatchDownload();
 const lightbox = ref({ visible: false, file: null });

@@ -146,16 +146,7 @@ const { t } = useI18n();
 const showCreateModal = ref(false);
 const selectedSpace = ref(null);
 
-const templateLabels = {
-  gallery: '画廊',
-  product: '商品',
-  portfolio: '作品集',
-  document: '文档库',
-  collection: '合集',
-  custom: '自定义'
-};
-
-const getTemplateLabel = (template) => templateLabels[template] || template;
+const getTemplateLabel = (template) => t(`spaceManager.templates.${template}`) || template;
 
 const openSpaceDetail = (space) => {
   selectedSpace.value = space;
@@ -163,20 +154,20 @@ const openSpaceDetail = (space) => {
 
 const copyShareLink = async (space) => {
   if (!space.shareUrl) {
-    addToast({ message: '该空间未公开', type: 'warning' });
+    addToast({ message: t('spaceManager.pleasePublicFirst'), type: 'warning' });
     return;
   }
   try {
     const url = `${window.location.origin}${space.shareUrl}`;
     await navigator.clipboard.writeText(url);
-    addToast({ message: '链接已复制', type: 'success' });
+    addToast({ message: t('common.copied'), type: 'success' });
   } catch {
-    addToast({ message: '复制失败', type: 'error' });
+    addToast({ message: t('common.copyFailed'), type: 'error' });
   }
 };
 
 const deleteSpaceConfirm = async (space) => {
-  if (confirm(`确定要删除空间"${space.name}"吗？此操作不会删除实际文件。`)) {
+  if (confirm(t('spaceManager.deleteSpaceConfirm', { name: space.name }))) {
     await deleteSpace(space.id);
   }
 };

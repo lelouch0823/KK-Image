@@ -19,14 +19,14 @@
            
            <div v-if="!isMinimized" class="flex flex-col">
               <span class="text-sm font-semibold text-gray-800">
-                {{ isUploading ? `正在上传 ${activeCount} 个文件` : '上传完成' }}
+                {{ isUploading ? t('upload.uploading', { count: activeCount }) : t('upload.complete') }}
               </span>
               <span class="text-xs text-gray-500">
-                {{ completedCount }} / {{ queue.length }} 完成
+                {{ completedCount }} / {{ queue.length }} {{ t('upload.finished') }}
                 <!-- 🔧 NEW: 速度和剩余时间 -->
                 <template v-if="isUploading && totalSpeed > 0">
                   · {{ formatSpeed(totalSpeed) }}
-                  <template v-if="estimatedTimeRemaining">· 剩余 {{ formatTime(estimatedTimeRemaining) }}</template>
+                  <template v-if="estimatedTimeRemaining">· {{ t('upload.remaining') }} {{ formatTime(estimatedTimeRemaining) }}</template>
                 </template>
               </span>
            </div>
@@ -44,7 +44,7 @@
           </button>
           
           <!-- 🔧 NEW: 重试所有失败 -->
-          <button v-if="!isMinimized && failedCount > 0" @click.stop="retryAllFailed" class="p-1.5 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition-colors" title="重试所有失败">
+          <button v-if="!isMinimized && failedCount > 0" @click.stop="retryAllFailed" class="p-1.5 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition-colors" :title="t('common.retryAllFailed')">
              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
              </svg>
@@ -55,7 +55,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
              </svg>
           </button>
-           <button v-if="!isMinimized" @click.stop="clearAll" class="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors" title="全部取消">
+           <button v-if="!isMinimized" @click.stop="clearAll" class="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors" :title="t('common.clearAll')">
              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
              </svg>
@@ -115,6 +115,9 @@
 <script setup>
 import { computed } from 'vue';
 import { useUploadQueue } from '@/composables/useUploadQueue';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const { 
     queue, 
@@ -160,15 +163,14 @@ const getProgressBarClass = (status) => {
 
 const getStatusText = (item) => {
     if (item.status === 'uploading') {
-        // 🔧 NEW: 显示速度
         if (item.speed > 0) {
             return `${item.progress}% · ${formatSpeed(item.speed)}`;
         }
         return `${item.progress}%`;
     }
-    if (item.status === 'success') return '完成';
-    if (item.status === 'error') return item.error || '失败';
-    return '等待';
+    if (item.status === 'success') return t('upload.done');
+    if (item.status === 'error') return item.error || t('common.failed');
+    return t('upload.waiting');
 };
 
 // 🔧 NEW: 格式化速度
@@ -180,9 +182,9 @@ const formatSpeed = (bytesPerSecond) => {
 
 // 🔧 NEW: 格式化时间
 const formatTime = (seconds) => {
-    if (seconds < 60) return `${seconds}秒`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}分${seconds % 60}秒`;
-    return `${Math.floor(seconds / 3600)}小时${Math.floor((seconds % 3600) / 60)}分`;
+    if (seconds < 60) return `${seconds}${t('upload.seconds')}`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}${t('upload.minutes')}${seconds % 60}${t('upload.seconds')}`;
+    return `${Math.floor(seconds / 3600)}${t('upload.hours')}${Math.floor((seconds % 3600) / 60)}${t('upload.minutes')}`;
 };
 </script>
 

@@ -7,7 +7,7 @@
              </svg>
         </div>
         <h1 class="text-2xl font-bold text-primary">{{ space.name }}</h1>
-        <p class="text-secondary mt-2">{{ space.description || '暂无描述' }}</p>
+        <p class="text-secondary mt-2">{{ space.description || t('spacePublic.noDesc') }}</p>
     </div>
 
     <!-- Subspaces Grid -->
@@ -33,13 +33,17 @@
     
     <!-- Empty State -->
     <div v-if="!space.subspaces || space.subspaces.length === 0" class="text-center py-12 text-secondary bg-gray-50 rounded-xl border border-dashed border-gray-200">
-        <p>此合集暂无子空间</p>
+        <p>{{ t('spacePublic.noSubspaces') }}</p>
     </div>
   </div>
 </template>
 
 <script setup>
+import { useI18n } from '@/composables/useI18n';
+
 const props = defineProps({
   space: { type: Object, required: true }
 });
+
+const { t } = useI18n();
 </script>

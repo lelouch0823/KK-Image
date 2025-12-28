@@ -2,20 +2,9 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { CreateUserSchema, UpdateUserSchema } from '../../schemas/user.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { generateId, hashPassword } from '../../../../api/utils/id.js';
 
 const app = new Hono();
-
-/**
- * 密码哈希工具函数
- */
-async function hashPassword(password, salt) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password + (salt || 'salt'));
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hashBuffer))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-}
 
 /**
  * GET /api/v1/users - 获取用户列表（管理员）
@@ -124,7 +113,7 @@ app.post('/',
                 return c.json({ success: false, error: '用户名已存在' }, 409);
             }
 
-            const id = crypto.randomUUID();
+            const id = generateId();
             const passwordHash = await hashPassword(data.password, env.JWT_SECRET);
             const now = Date.now();
             const permissions = JSON.stringify(data.permissions || []);
