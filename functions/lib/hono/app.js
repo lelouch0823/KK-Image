@@ -22,6 +22,7 @@ import manageFilesRoutes from './routes/manage/files.js';
 import manageAlbumsRoutes from './routes/manage/albums.js';
 import manageSpacesRoutes from './routes/manage/spaces.js';
 import manageStatsRoutes from './routes/manage/stats.js';
+import manageUsersRoutes from './routes/manage/user.js';
 
 export const app = new Hono();
 
@@ -77,6 +78,7 @@ app.route('/api/manage/files', manageFilesRoutes);
 app.route('/api/manage/albums', manageAlbumsRoutes);
 app.route('/api/manage/spaces', manageSpacesRoutes);
 app.route('/api/manage/stats', manageStatsRoutes);
+app.route('/api/manage/user', manageUsersRoutes);
 
 // ============================================
 // 通用处理

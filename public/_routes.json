@@ -3,7 +3,9 @@
     "include": [
         "/api/*",
         "/file/*",
-        "/gallery/*"
+        "/gallery/*",
+        "/admin",
+        "/admin.html"
     ],
     "exclude": [
         "/assets/*",

@@ -1,6 +1,6 @@
 import { ref, computed, shallowRef } from 'vue';
 import { useToast } from '@/composables/useToast';
-import { API } from '@/utils/constants';
+import { API, MAX_UPLOAD_SIZE } from '@/utils/constants';
 
 // ============================================================
 // 全局状态 - 保证组件切换时队列不丢失
@@ -82,7 +82,28 @@ export function useUploadQueue() {
             return;
         }
 
-        const newItems = Array.from(files).map(file => ({
+        const validFiles = [];
+        const invalidFiles = [];
+
+        Array.from(files).forEach(file => {
+            if (file.size > MAX_UPLOAD_SIZE) {
+                invalidFiles.push(file.name);
+            } else {
+                validFiles.push(file);
+            }
+        });
+
+        if (invalidFiles.length > 0) {
+            addToast({
+                message: `${invalidFiles.length} 个文件超过限制 (100MB): ${invalidFiles.slice(0, 2).join(', ')}${invalidFiles.length > 2 ? '...' : ''}`,
+                type: 'error',
+                duration: 5000
+            });
+        }
+
+        if (validFiles.length === 0) return;
+
+        const newItems = validFiles.map(file => ({
             id: Date.now() + Math.random().toString(36).substr(2, 9),
             file,
             name: file.name,

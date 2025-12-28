@@ -64,18 +64,10 @@ const currentComponent = computed(() => {
   }
 });
 
-// 全局认证守卫
+// Edge Middleware 已在服务器端验证 JWT
+// 如果用户能看到此页面，说明已通过验证
+// 这里仅用于获取用户信息更新 UI 状态
 onBeforeMount(async () => {
-    console.log('App.vue: Starting auth check...');
-    const isAuth = await checkAuth();
-    console.log('App.vue: Auth check result:', isAuth);
-    
-    if (!isAuth) {
-        console.log('App.vue: Redirecting to login...');
-        // 重定向到登录页
-        window.location.href = '/login';
-    } else {
-        console.log('App.vue: Auth success, rendering admin interface.');
-    }
+    await checkAuth();
 });
 </script>
