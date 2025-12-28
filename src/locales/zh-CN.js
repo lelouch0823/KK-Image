@@ -389,6 +389,7 @@ export default {
         admin: '管理后台',
     },
     formatters: {
+        forever: '永久有效',
         permanent: '永久有效',
         expired: '已过期',
         daysRemaining: '{days}天后',

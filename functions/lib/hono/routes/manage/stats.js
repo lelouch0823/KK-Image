@@ -21,7 +21,8 @@ app.get('/',
                 foldersStats,
                 albumsStats,
                 spacesStats,
-                recentFiles
+                recentFiles,
+                todayStats
             ] = await Promise.all([
                 env.DB.prepare(`
           SELECT 
@@ -40,7 +41,10 @@ app.get('/',
                 env.DB.prepare(`
           SELECT id, name, size, mime_type, created_at 
           FROM files ORDER BY created_at DESC LIMIT 10
-        `).all()
+        `).all(),
+                env.DB.prepare(`
+          SELECT COUNT(*) as count FROM files WHERE created_at >= ?
+        `).bind(new Date().setHours(0, 0, 0, 0)).first()
             ]);
 
             // 获取按类型分组的统计
@@ -71,7 +75,8 @@ app.get('/',
                     files: {
                         total: filesStats?.total || 0,
                         totalSize: filesStats?.total_size || 0,
-                        typeCount: filesStats?.type_count || 0
+                        typeCount: filesStats?.type_count || 0,
+                        todayUploads: todayStats?.count || 0
                     },
                     folders: {
                         total: foldersStats?.total || 0

@@ -143,10 +143,10 @@ const fetchStats = async () => {
     try {
         const res = await authFetchJson(API.STATS);
 
-        if (res.overview) {
-            totalFiles.value = res.overview.totalFiles;
-            todayUploads.value = res.overview.todayUploads;
-            totalSize.value = res.overview.totalSize;
+        if (res.success && res.data) {
+            totalFiles.value = res.data.files?.total || 0;
+            todayUploads.value = res.data.files?.todayUploads || 0;
+            totalSize.value = res.data.files?.totalSize || 0;
         }
         
         if (res.recent) {

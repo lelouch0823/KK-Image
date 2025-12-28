@@ -21,6 +21,88 @@ export class RedundancyManager {
     }
 
     /**
+     * 上传文件（包含冗余处理）
+     * @param {File|Blob} file - 上传的文件
+     * @param {Object} options - 上传选项
+     * @returns {Promise<Object>} 上传结果
+     */
+    async upload(file, options) {
+        // 1. 选择主存储
+        const primaryProviderName = this.router.selectStorage(file);
+        const primaryProvider = getStorageProvider(this.env, primaryProviderName);
+
+        if (!primaryProvider) {
+            throw new Error(`Storage provider '${primaryProviderName}' not found`);
+        }
+
+        // 2. 上传到主存储
+        let result;
+        try {
+            result = await primaryProvider.upload(file, options);
+            if (!result.success) {
+                throw new Error(result.error || 'Upload failed');
+            }
+        } catch (error) {
+            console.error(`Upload to primary storage (${primaryProviderName}) failed:`, error);
+            throw error;
+        }
+
+        // 3. 处理镜像上传
+        const mirrors = this.router.getMirrors();
+        const secondaryMirrors = mirrors.filter(m => m !== primaryProviderName);
+
+        if (secondaryMirrors.length > 0) {
+            const storageMetadata = {
+                primary: primaryProviderName,
+                primaryId: result.fileId,
+                mirrors: []
+            };
+
+            // 如果结果中已有 metadata，合并它
+            if (result.metadata) {
+                result.metadata.storage = storageMetadata;
+            } else {
+                result.metadata = { storage: storageMetadata };
+            }
+
+            if (this.router.isAsyncMirror()) {
+                // 异步镜像
+                this._mirrorAsync(file, options, secondaryMirrors, result.fileId, storageMetadata);
+            } else {
+                // 同步镜像 (即便失败也不影响主上传，但会记录)
+                await Promise.all(secondaryMirrors.map(async mirrorName => {
+                    try {
+                        const provider = getStorageProvider(this.env, mirrorName);
+                        if (!provider) return;
+
+                        const mirrorResult = await provider.upload(file, options);
+                        if (mirrorResult.success) {
+                            storageMetadata.mirrors.push({
+                                provider: mirrorName,
+                                id: mirrorResult.fileId,
+                                status: 'synced'
+                            });
+                            await this._updateMirrorStatus(result.fileId, mirrorName, mirrorResult.fileId, 'synced');
+                        }
+                    } catch (e) {
+                        console.error(`Mirror to ${mirrorName} failed:`, e);
+                        await this._updateMirrorStatus(result.fileId, mirrorName, null, 'failed', e.message);
+                    }
+                }));
+            }
+        } else {
+            // 即使没有镜像，也记录主存储信息
+            if (!result.metadata) result.metadata = {};
+            result.metadata.storage = {
+                primary: primaryProviderName,
+                primaryId: result.fileId
+            };
+        }
+
+        return result;
+    }
+
+    /**
      * 异步镜像上传（后台处理）
      * @private
      */

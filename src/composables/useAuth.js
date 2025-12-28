@@ -91,12 +91,27 @@ export function useAuth() {
         return response.json();
     };
 
+    /**
+     * 退出登录
+     */
+    const logout = async () => {
+        try {
+            await fetch(API.LOGOUT, { method: 'POST', credentials: 'include' });
+        } catch (e) {
+            console.error('Logout failed:', e);
+        } finally {
+            isAuthenticated.value = false;
+            currentUser.value = null;
+        }
+    };
+
     return {
         isAuthenticated,
         currentUser,
         isLoading,
         checkAuth,
         authFetch,
-        authFetchJson
+        authFetchJson,
+        logout
     };
 }
