@@ -1,220 +1,109 @@
-// 文件管理 API - RESTful 接口
+/**
+ * 文件管理 API - RESTful 接口 (D1 版本)
+ * GET    /api/v1/files      - 获取文件列表 (支持分页、筛选、排序)
+ * POST   /api/v1/files      - 上传文件 (重定向到 /upload)
+ * PUT    /api/v1/files/:id  - 更新文件信息
+ * DELETE /api/v1/files/:id  - 删除文件
+ */
 import { hasPermission } from '../utils/auth.js';
 import { triggerWebhook } from '../utils/webhook.js';
 import { getFileUrl } from '../utils/url.js';
+import { success, error } from '../utils/response.js';
+import { getUser } from '../utils/context.js';
 
-// 获取文件列表
+// 获取文件列表 (D1 SOTA: 使用 SQL 分页和筛选)
 export async function onRequestGet(context) {
   const { request, env } = context;
   const url = new URL(request.url);
 
-  // 获取用户信息 (兼容 context.data.user 和 context.user)
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
-  // 检查读取权限
   if (!hasPermission(user, 'read')) {
-    const error = new Error('Read permission required');
-    error.name = 'AuthorizationError';
-    throw error;
+    return error('Read permission required', 403);
   }
 
   try {
     // 解析查询参数
     const page = parseInt(url.searchParams.get('page')) || 1;
     const limit = Math.min(parseInt(url.searchParams.get('limit')) || 20, 100);
-    const status = url.searchParams.get('status'); // normal, blocked, whitelisted, liked
-    const type = url.searchParams.get('type'); // image type filter
-    const search = url.searchParams.get('search'); // filename search
-    const sortBy = url.searchParams.get('sort') || 'uploadTime'; // uploadTime, size, filename
-    const order = url.searchParams.get('order') || 'desc'; // asc, desc
+    const folderId = url.searchParams.get('folder_id') || null;
+    const mimeType = url.searchParams.get('type');
+    const search = url.searchParams.get('search');
+    const sortBy = url.searchParams.get('sort') || 'created_at';
+    const order = url.searchParams.get('order') === 'asc' ? 'ASC' : 'DESC';
 
-    // 从 KV 存储获取文件列表
-    const { keys } = await env.img_url.list({
-      limit: 1000 // 先获取所有文件，然后在内存中过滤和分页
-    });
+    const offset = (page - 1) * limit;
 
-    // 获取文件详细信息
-    const files = [];
-    for (const key of keys) {
-      try {
-        const metadata = key.metadata || {};
-        const fileInfo = {
-          id: key.name,
-          filename: metadata.filename || key.name,
-          size: metadata.size || 0,
-          type: metadata.type || 'unknown',
-          uploadTime: metadata.uploadTime || key.name.split('_')[0],
-          status: metadata.status || 'normal',
-          url: getFileUrl(key.name, url.origin),
-          thumbnail: metadata.thumbnail || null,
-          tags: metadata.tags || [],
-          uploader: metadata.uploader || 'anonymous'
-        };
+    // 动态构建 WHERE 子句
+    const conditions = [];
+    const params = [];
 
-        // 应用过滤器
-        if (status && fileInfo.status !== status) continue;
-        if (type && !fileInfo.type.includes(type)) continue;
-        if (search && !fileInfo.filename.toLowerCase().includes(search.toLowerCase())) continue;
-
-        files.push(fileInfo);
-      } catch (error) {
-        console.error(`Error processing file ${key.name}:`, error);
-      }
+    if (folderId) {
+      conditions.push('folder_id = ?');
+      params.push(folderId);
+    } else {
+      // 默认获取根目录文件 (folder_id IS NULL)
+      conditions.push('folder_id IS NULL');
     }
 
-    // 排序
-    files.sort((a, b) => {
-      let aVal = a[sortBy];
-      let bVal = b[sortBy];
+    if (mimeType) {
+      conditions.push('mime_type LIKE ?');
+      params.push(`${mimeType}%`);
+    }
 
-      if (sortBy === 'uploadTime') {
-        aVal = new Date(aVal).getTime();
-        bVal = new Date(bVal).getTime();
-      } else if (sortBy === 'size') {
-        aVal = parseInt(aVal) || 0;
-        bVal = parseInt(bVal) || 0;
-      }
+    if (search) {
+      conditions.push('name LIKE ?');
+      params.push(`%${search}%`);
+    }
 
-      if (order === 'asc') {
-        return aVal > bVal ? 1 : -1;
-      } else {
-        return aVal < bVal ? 1 : -1;
-      }
-    });
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // 分页
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedFiles = files.slice(startIndex, endIndex);
+    // 允许的排序字段白名单 (防止 SQL 注入)
+    const allowedSortFields = ['created_at', 'name', 'size'];
+    const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'created_at';
 
-    // 构建响应
-    const response = {
-      data: paginatedFiles,
+    // 获取总数
+    const countQuery = `SELECT COUNT(*) as total FROM files ${whereClause}`;
+    const countResult = await env.DB.prepare(countQuery).bind(...params).first();
+    const total = countResult?.total || 0;
+
+    // 获取分页数据
+    const dataQuery = `
+            SELECT id, folder_id, name, original_name, size, mime_type, storage_key, created_at
+            FROM files
+            ${whereClause}
+            ORDER BY ${safeSortBy} ${order}
+            LIMIT ? OFFSET ?
+        `;
+    const { results } = await env.DB.prepare(dataQuery).bind(...params, limit, offset).all();
+
+    // 转换为 API 格式
+    const files = results.map(f => ({
+      id: f.id,
+      folderId: f.folder_id,
+      name: f.name,
+      originalName: f.original_name,
+      size: f.size,
+      mimeType: f.mime_type,
+      url: getFileUrl(f.storage_key, url.origin),
+      createdAt: f.created_at
+    }));
+
+    return success({
+      data: files,
       pagination: {
         page,
         limit,
-        total: files.length,
-        totalPages: Math.ceil(files.length / limit),
-        hasNext: endIndex < files.length,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: offset + limit < total,
         hasPrev: page > 1
-      },
-      filters: {
-        status,
-        type,
-        search,
-        sortBy,
-        order
       }
-    };
-
-    return new Response(JSON.stringify(response), {
-      headers: { 'Content-Type': 'application/json' }
     });
 
-  } catch (error) {
-    console.error('Error fetching files:', error);
-    throw error;
-  }
-}
-
-// 上传文件
-export async function onRequestPost(context) {
-  const { request, env } = context;
-
-  // 获取用户信息
-  const user = context.data?.user || context.user;
-
-  // 检查写入权限
-  if (!hasPermission(user, 'write')) {
-    const error = new Error('Write permission required');
-    error.name = 'AuthorizationError';
-    throw error;
-  }
-
-  try {
-    const formData = await request.formData();
-    const file = formData.get('file');
-
-    if (!file) {
-      const error = new Error('No file provided');
-      error.name = 'ValidationError';
-      throw error;
-    }
-
-    // 验证文件类型
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      const error = new Error('Invalid file type. Only images are allowed.');
-      error.name = 'ValidationError';
-      throw error;
-    }
-
-    // 验证文件大小 (10MB 限制)
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      const error = new Error('File too large. Maximum size is 10MB.');
-      error.name = 'ValidationError';
-      throw error;
-    }
-
-    // 生成文件 ID
-    const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substring(2, 15);
-    const fileId = `${timestamp}_${randomStr}`;
-
-    // 准备元数据
-    const metadata = {
-      filename: file.name,
-      size: file.size,
-      type: file.type,
-      uploadTime: new Date().toISOString(),
-      status: 'normal',
-      uploader: user.name || user.id,
-      uploaderId: user.id,
-      tags: formData.get('tags') ? formData.get('tags').split(',').map(t => t.trim()) : []
-    };
-
-    // 保存文件到 KV 存储
-    const fileBuffer = await file.arrayBuffer();
-    await env.img_url.put(fileId, fileBuffer, {
-      metadata: metadata
-    });
-
-    // 构建响应
-    const fileInfo = {
-      id: fileId,
-      filename: metadata.filename,
-      size: metadata.size,
-      type: metadata.type,
-      uploadTime: metadata.uploadTime,
-      status: metadata.status,
-      url: getFileUrl(fileId, new URL(request.url).origin),
-      uploader: metadata.uploader,
-      tags: metadata.tags
-    };
-
-    // 触发 Webhook 事件
-    try {
-      await triggerWebhook(env, 'file.uploaded', {
-        file: fileInfo,
-        user: user
-      });
-    } catch (webhookError) {
-      console.error('Webhook trigger failed:', webhookError);
-      // 不影响主要功能
-    }
-
-    return new Response(JSON.stringify({
-      success: true,
-      data: fileInfo
-    }), {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-  } catch (error) {
-    console.error('Error uploading file:', error);
-    throw error;
+  } catch (err) {
+    console.error('Error fetching files:', err);
+    return error(err.message, 500);
   }
 }
 
@@ -224,85 +113,57 @@ export async function onRequestPut(context) {
   const url = new URL(request.url);
   const fileId = url.pathname.split('/').pop();
 
-  // 获取用户信息
   const user = context.data?.user || context.user;
 
-
-
-  // 检查写入权限
   if (!hasPermission(user, 'write')) {
-    const error = new Error('Write permission required');
-    error.name = 'AuthorizationError';
-    throw error;
+    return error('Write permission required', 403);
   }
 
   try {
-    const updateData = await request.json();
+    const body = await request.json();
+    const { name, folderId } = body;
 
-    // 获取现有文件数据
-    const fileData = await env.img_url.getWithMetadata(fileId);
-    if (!fileData.value) {
-      const error = new Error('File not found');
-      error.name = 'NotFoundError';
-      throw error;
+    // 验证文件存在
+    const file = await env.DB.prepare('SELECT * FROM files WHERE id = ?').bind(fileId).first();
+    if (!file) {
+      return error('File not found', 404);
     }
 
-    const currentMetadata = fileData.metadata || {};
+    // 动态构建 UPDATE
+    const updates = [];
+    const params = [];
 
-    // 只允许更新特定字段
-    const allowedFields = ['filename', 'status', 'tags'];
-    const updatedMetadata = { ...currentMetadata };
-
-    for (const field of allowedFields) {
-      if (updateData[field] !== undefined) {
-        updatedMetadata[field] = updateData[field];
-      }
+    if (name !== undefined) {
+      updates.push('name = ?');
+      params.push(name);
+    }
+    if (folderId !== undefined) {
+      updates.push('folder_id = ?');
+      params.push(folderId);
     }
 
-    // 添加更新时间和更新者信息
-    updatedMetadata.lastModified = new Date().toISOString();
-    updatedMetadata.lastModifiedBy = user.name || user.id;
+    if (updates.length === 0) {
+      return error('No fields to update', 400);
+    }
 
-    // 更新文件元数据
-    await env.img_url.put(fileId, fileData.value, {
-      metadata: updatedMetadata
-    });
+    params.push(fileId);
+    await env.DB.prepare(`UPDATE files SET ${updates.join(', ')} WHERE id = ?`).bind(...params).run();
 
-    const fileInfo = {
-      id: fileId,
-      filename: updatedMetadata.filename || fileId,
-      size: updatedMetadata.size || 0,
-      type: updatedMetadata.type || 'unknown',
-      uploadTime: updatedMetadata.uploadTime,
-      status: updatedMetadata.status || 'normal',
-      url: getFileUrl(fileId, url.origin),
-      uploader: updatedMetadata.uploader || 'anonymous',
-      tags: updatedMetadata.tags || [],
-      lastModified: updatedMetadata.lastModified,
-      lastModifiedBy: updatedMetadata.lastModifiedBy
-    };
-
-    // 触发 Webhook 事件
+    // 触发 Webhook
     try {
       await triggerWebhook(env, 'file.updated', {
-        file: fileInfo,
-        user: user,
-        changes: updateData
+        file: { id: fileId, ...body },
+        user: user
       });
     } catch (webhookError) {
       console.error('Webhook trigger failed:', webhookError);
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: fileInfo
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success({ message: '文件已更新' });
 
-  } catch (error) {
-    console.error('Error updating file:', error);
-    throw error;
+  } catch (err) {
+    console.error('Error updating file:', err);
+    return error(err.message, 500);
   }
 }
 
@@ -312,44 +173,35 @@ export async function onRequestDelete(context) {
   const url = new URL(request.url);
   const fileId = url.pathname.split('/').pop();
 
-  // 获取用户信息
   const user = context.data?.user || context.user;
 
-  // 检查删除权限
   if (!hasPermission(user, 'delete')) {
-    const error = new Error('Delete permission required');
-    error.name = 'AuthorizationError';
-    throw error;
+    return error('Delete permission required', 403);
   }
 
   try {
-    // 获取文件信息用于 Webhook
-    const fileData = await env.img_url.getWithMetadata(fileId);
-    if (!fileData.value) {
-      const error = new Error('File not found');
-      error.name = 'NotFoundError';
-      throw error;
+    // 获取文件信息
+    const file = await env.DB.prepare('SELECT * FROM files WHERE id = ?').bind(fileId).first();
+    if (!file) {
+      return error('File not found', 404);
     }
 
-    const metadata = fileData.metadata || {};
-    const fileInfo = {
-      id: fileId,
-      filename: metadata.filename || fileId,
-      size: metadata.size || 0,
-      type: metadata.type || 'unknown',
-      uploadTime: metadata.uploadTime,
-      status: metadata.status || 'normal',
-      uploader: metadata.uploader || 'anonymous',
-      tags: metadata.tags || []
-    };
+    // 从 R2 删除实际文件 (如果绑定了 R2)
+    if (env.R2_BUCKET && file.storage_key) {
+      try {
+        await env.R2_BUCKET.delete(file.storage_key);
+      } catch (r2Error) {
+        console.error('R2 delete failed:', r2Error);
+      }
+    }
 
-    // 删除文件
-    await env.img_url.delete(fileId);
+    // 从 D1 删除记录
+    await env.DB.prepare('DELETE FROM files WHERE id = ?').bind(fileId).run();
 
-    // 触发 Webhook 事件
+    // 触发 Webhook
     try {
       await triggerWebhook(env, 'file.deleted', {
-        file: fileInfo,
+        file: { id: fileId, name: file.name },
         user: user,
         deletedAt: new Date().toISOString()
       });
@@ -357,19 +209,10 @@ export async function onRequestDelete(context) {
       console.error('Webhook trigger failed:', webhookError);
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'File deleted successfully',
-      data: {
-        id: fileId,
-        deletedAt: new Date().toISOString()
-      }
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return success({ message: '文件已删除', id: fileId });
 
-  } catch (error) {
-    console.error('Error deleting file:', error);
-    throw error;
+  } catch (err) {
+    console.error('Error deleting file:', err);
+    return error(err.message, 500);
   }
 }

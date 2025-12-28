@@ -1,4 +1,4 @@
-// Telegraph-Image API 测试套件
+// KK-Image API 测试套件
 import assert from 'assert';
 import fetch from 'node-fetch';
 import FormData from 'form-data';
@@ -21,16 +21,16 @@ let testWebhookId = null;
 let testJwtToken = null;
 let testApiKeyId = null;
 
-describe('Telegraph-Image API v1 Tests', function() {
+describe('KK-Image API v1 Tests', function () {
   this.timeout(30000); // 30秒超时
 
   // 系统监控 API 测试
-  describe('System Monitoring API', function() {
-    
-    it('should return health status', async function() {
+  describe('System Monitoring API', function () {
+
+    it('should return health status', async function () {
       const response = await fetch(`${API_BASE_URL}/health`);
       const data = await response.json();
-      
+
       assert.strictEqual(response.status, 200);
       assert.strictEqual(data.success, true);
       assert.ok(data.data.status);
@@ -38,10 +38,10 @@ describe('Telegraph-Image API v1 Tests', function() {
       assert.ok(data.data.services);
     });
 
-    it('should return system info', async function() {
+    it('should return system info', async function () {
       const response = await fetch(`${API_BASE_URL}/info`);
       const data = await response.json();
-      
+
       assert.strictEqual(response.status, 200);
       assert.strictEqual(data.success, true);
       assert.ok(data.data.name);
@@ -53,9 +53,9 @@ describe('Telegraph-Image API v1 Tests', function() {
   });
 
   // 认证 API 测试
-  describe('Authentication API', function() {
-    
-    it('should generate JWT token with valid credentials', async function() {
+  describe('Authentication API', function () {
+
+    it('should generate JWT token with valid credentials', async function () {
       const response = await fetch(`${API_BASE_URL}/auth/token`, {
         method: 'POST',
         headers: {
@@ -67,20 +67,20 @@ describe('Telegraph-Image API v1 Tests', function() {
           expiresIn: 3600
         })
       });
-      
+
       const data = await response.json();
-      
+
       assert.strictEqual(response.status, 200);
       assert.strictEqual(data.success, true);
       assert.ok(data.data.token);
       assert.strictEqual(data.data.tokenType, 'Bearer');
       assert.ok(data.data.user);
-      
+
       // 保存 token 用于后续测试
       testJwtToken = data.data.token;
     });
 
-    it('should reject invalid credentials', async function() {
+    it('should reject invalid credentials', async function () {
       const response = await fetch(`${API_BASE_URL}/auth/token`, {
         method: 'POST',
         headers: {
@@ -91,15 +91,15 @@ describe('Telegraph-Image API v1 Tests', function() {
           password: 'invalid'
         })
       });
-      
+
       const data = await response.json();
-      
+
       assert.strictEqual(response.status, 401);
       assert.strictEqual(data.success, false);
       assert.ok(data.error);
     });
 
-    it('should create API key with admin permission', async function() {
+    it('should create API key with admin permission', async function () {
       if (!testJwtToken) {
         this.skip();
       }
@@ -115,19 +115,19 @@ describe('Telegraph-Image API v1 Tests', function() {
           permissions: ['read', 'write']
         })
       });
-      
+
       const data = await response.json();
-      
+
       assert.strictEqual(response.status, 201);
       assert.strictEqual(data.success, true);
       assert.ok(data.data.id);
       assert.ok(data.fullKey);
-      
+
       // 保存 API Key ID 用于后续测试
       testApiKeyId = data.data.id;
     });
 
-    it('should list API keys', async function() {
+    it('should list API keys', async function () {
       if (!testJwtToken) {
         this.skip();
       }
@@ -137,9 +137,9 @@ describe('Telegraph-Image API v1 Tests', function() {
           'Authorization': `Bearer ${testJwtToken}`
         }
       });
-      
+
       const data = await response.json();
-      
+
       assert.strictEqual(response.status, 200);
       assert.strictEqual(data.success, true);
       assert.ok(Array.isArray(data.data));
@@ -148,39 +148,39 @@ describe('Telegraph-Image API v1 Tests', function() {
   });
 
   // 文件管理 API 测试
-  describe('File Management API', function() {
-    
-    it('should require authentication for file operations', async function() {
+  describe('File Management API', function () {
+
+    it('should require authentication for file operations', async function () {
       const response = await fetch(`${API_BASE_URL}/files`);
       const data = await response.json();
-      
+
       assert.strictEqual(response.status, 401);
       assert.strictEqual(data.success, false);
     });
 
-    it('should list files with valid API key', async function() {
+    it('should list files with valid API key', async function () {
       const response = await fetch(`${API_BASE_URL}/files`, {
         headers: {
           'X-API-Key': TEST_API_KEY
         }
       });
-      
+
       const data = await response.json();
-      
+
       assert.strictEqual(response.status, 200);
       assert.strictEqual(data.success, true);
       assert.ok(Array.isArray(data.data));
     });
 
-    it('should support pagination and filtering', async function() {
+    it('should support pagination and filtering', async function () {
       const response = await fetch(`${API_BASE_URL}/files?page=1&limit=5&type=image`, {
         headers: {
           'X-API-Key': TEST_API_KEY
         }
       });
-      
+
       const data = await response.json();
-      
+
       assert.strictEqual(response.status, 200);
       assert.strictEqual(data.success, true);
       assert.ok(data.pagination);
@@ -188,10 +188,10 @@ describe('Telegraph-Image API v1 Tests', function() {
       assert.strictEqual(data.pagination.limit, 5);
     });
 
-    it('should upload a test image file', async function() {
+    it('should upload a test image file', async function () {
       // 创建测试图片文件
       const testImagePath = path.join(__dirname, 'fixtures', 'test-image.jpg');
-      
+
       // 如果测试图片不存在，创建一个简单的测试文件
       if (!fs.existsSync(testImagePath)) {
         const testDir = path.dirname(testImagePath);
@@ -214,15 +214,15 @@ describe('Telegraph-Image API v1 Tests', function() {
         },
         body: formData
       });
-      
+
       const data = await response.json();
-      
+
       // 注意：在测试环境中可能会失败，因为需要实际的文件上传处理
       if (response.status === 201) {
         assert.strictEqual(data.success, true);
         assert.ok(data.data.id);
         assert.ok(data.data.url);
-        
+
         // 保存文件 ID 用于后续测试
         testFileId = data.data.id;
       } else {
@@ -231,7 +231,7 @@ describe('Telegraph-Image API v1 Tests', function() {
       }
     });
 
-    it('should get single file info', async function() {
+    it('should get single file info', async function () {
       if (!testFileId) {
         this.skip();
       }
@@ -241,15 +241,15 @@ describe('Telegraph-Image API v1 Tests', function() {
           'X-API-Key': TEST_API_KEY
         }
       });
-      
+
       const data = await response.json();
-      
+
       assert.strictEqual(response.status, 200);
       assert.strictEqual(data.success, true);
       assert.strictEqual(data.data.id, testFileId);
     });
 
-    it('should update file metadata', async function() {
+    it('should update file metadata', async function () {
       if (!testFileId) {
         this.skip();
       }
@@ -265,9 +265,9 @@ describe('Telegraph-Image API v1 Tests', function() {
           description: 'Updated description'
         })
       });
-      
+
       const data = await response.json();
-      
+
       assert.strictEqual(response.status, 200);
       assert.strictEqual(data.success, true);
       assert.deepStrictEqual(data.data.tags, ['test', 'updated']);
@@ -276,15 +276,15 @@ describe('Telegraph-Image API v1 Tests', function() {
   });
 
   // Webhook API 测试
-  describe('Webhook API', function() {
-    
-    it('should require admin permission for webhook operations', async function() {
+  describe('Webhook API', function () {
+
+    it('should require admin permission for webhook operations', async function () {
       const response = await fetch(`${API_BASE_URL}/webhooks`, {
         headers: {
           'X-API-Key': TEST_API_KEY
         }
       });
-      
+
       // 如果 TEST_API_KEY 没有 admin 权限，应该返回 403
       if (response.status === 403) {
         const data = await response.json();
@@ -295,7 +295,7 @@ describe('Telegraph-Image API v1 Tests', function() {
       }
     });
 
-    it('should create webhook with admin permission', async function() {
+    it('should create webhook with admin permission', async function () {
       if (!testJwtToken) {
         this.skip();
       }
@@ -312,19 +312,19 @@ describe('Telegraph-Image API v1 Tests', function() {
           secret: 'test-webhook-secret'
         })
       });
-      
+
       const data = await response.json();
-      
+
       assert.strictEqual(response.status, 201);
       assert.strictEqual(data.success, true);
       assert.ok(data.data.id);
       assert.strictEqual(data.data.url, 'https://httpbin.org/post');
-      
+
       // 保存 webhook ID 用于后续测试
       testWebhookId = data.data.id;
     });
 
-    it('should test webhook delivery', async function() {
+    it('should test webhook delivery', async function () {
       if (!testJwtToken || !testWebhookId) {
         this.skip();
       }
@@ -335,9 +335,9 @@ describe('Telegraph-Image API v1 Tests', function() {
           'Authorization': `Bearer ${testJwtToken}`
         }
       });
-      
+
       const data = await response.json();
-      
+
       assert.strictEqual(response.status, 200);
       assert.strictEqual(data.success, true);
       assert.ok(data.data.status);
@@ -346,9 +346,9 @@ describe('Telegraph-Image API v1 Tests', function() {
   });
 
   // 清理测试数据
-  describe('Cleanup', function() {
-    
-    it('should delete test file', async function() {
+  describe('Cleanup', function () {
+
+    it('should delete test file', async function () {
       if (!testFileId) {
         this.skip();
       }
@@ -359,14 +359,14 @@ describe('Telegraph-Image API v1 Tests', function() {
           'X-API-Key': TEST_API_KEY
         }
       });
-      
+
       if (response.status === 200) {
         const data = await response.json();
         assert.strictEqual(data.success, true);
       }
     });
 
-    it('should delete test webhook', async function() {
+    it('should delete test webhook', async function () {
       if (!testJwtToken || !testWebhookId) {
         this.skip();
       }
@@ -377,14 +377,14 @@ describe('Telegraph-Image API v1 Tests', function() {
           'Authorization': `Bearer ${testJwtToken}`
         }
       });
-      
+
       if (response.status === 200) {
         const data = await response.json();
         assert.strictEqual(data.success, true);
       }
     });
 
-    it('should delete test API key', async function() {
+    it('should delete test API key', async function () {
       if (!testJwtToken || !testApiKeyId) {
         this.skip();
       }
@@ -395,7 +395,7 @@ describe('Telegraph-Image API v1 Tests', function() {
           'Authorization': `Bearer ${testJwtToken}`
         }
       });
-      
+
       if (response.status === 200) {
         const data = await response.json();
         assert.strictEqual(data.success, true);

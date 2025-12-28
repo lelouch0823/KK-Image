@@ -7,7 +7,7 @@
         <div class="px-8 pt-10 pb-6 text-center">
           <!-- Logo -->
           <div class="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-gray-800 to-black flex items-center justify-center text-white font-bold text-2xl shadow-lg">
-            TC
+            KK
           </div>
           <h1 class="text-2xl font-bold text-gray-900 mb-2">欢迎回来</h1>
           <p class="text-gray-500 text-sm">登录以管理您的图片和文件</p>
@@ -54,16 +54,19 @@
             </div>
           </div>
 
-          <!-- 错误提示 -->
-<!--          <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-500 flex items-center gap-2">-->
-<!--            <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">-->
-<!--              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>-->
-<!--            </svg>-->
-<!--            <span>{{ error }}</span>-->
-<!--          </div>-->
+          <!-- Cloudflare Turnstile Widget -->
+          <div class="mb-6">
+            <div 
+              ref="turnstileContainer"
+              class="cf-turnstile" 
+              :data-sitekey="turnstileSiteKey"
+              data-callback="onTurnstileSuccess"
+              data-theme="light"
+            ></div>
+          </div>
 
           <!-- 登录按钮 -->
-          <button type="submit" :disabled="loading"
+          <button type="submit" :disabled="loading || !turnstileToken"
             class="w-full h-12 bg-gray-900 hover:bg-black text-white font-medium rounded-xl flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-lg shadow-gray-900/20 hover:shadow-gray-900/30 hover:-translate-y-px active:translate-y-0">
             <svg v-if="loading" class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -76,12 +79,12 @@
 
       <!-- 底部链接 -->
       <div class="mt-8 text-center text-sm text-gray-500">
-        <a href="https://github.com/cf-pages/Telegraph-Image" target="_blank" rel="noopener"
+        <a href="https://github.com/cf-pages/KK-Image" target="_blank" rel="noopener"
           class="inline-flex items-center gap-1 hover:text-gray-900 transition-colors">
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
           </svg>
-          <span>Telegraph-Image</span>
+          <span>KK-Image</span>
         </a>
       </div>
     </div>
@@ -106,6 +109,19 @@ const password = ref('');
 const showPassword = ref(false);
 const loading = ref(false);
 const error = ref('');
+const turnstileToken = ref('');
+const turnstileContainer = ref(null);
+
+// Turnstile Site Key (从环境变量注入或使用默认测试Key)
+// 生产环境请在 Cloudflare Dashboard 设置
+const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'; // 测试Key (始终通过)
+
+// Turnstile 回调 (挂载到 window 供 widget 调用)
+if (typeof window !== 'undefined') {
+  window.onTurnstileSuccess = (token) => {
+    turnstileToken.value = token;
+  };
+}
 
 // 检查是否已登录
 onBeforeMount(async () => {
@@ -131,7 +147,8 @@ const handleLogin = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: username.value,
-        password: password.value
+        password: password.value,
+        'cf-turnstile-response': turnstileToken.value
       }),
       credentials: 'include'
     });

@@ -1,10 +1,10 @@
 # API 文档
 
-欢迎使用 Telegraph-Image API 文档！本文档提供了完整的 API 接口说明，帮助开发者集成和使用 Telegraph-Image 服务。
+欢迎使用 KK-Image API 文档！本文档提供了完整的 API 接口说明，帮助开发者集成和使用 KK-Image 服务。
 
 ## 📖 API 概览
 
-Telegraph-Image 提供了 RESTful API 接口，支持文件上传、访问、管理等核心功能。所有 API 都基于 HTTP/HTTPS 协议，使用 JSON 格式进行数据交换。
+KK-Image 提供了 RESTful API 接口，支持文件上传、访问、管理等核心功能。所有 API 都基于 HTTP/HTTPS 协议，使用 JSON 格式进行数据交换。
 
 ## 🚀 快速开始
 
@@ -278,17 +278,17 @@ Access-Control-Request-Headers: Content-Type
 
 **JavaScript SDK**:
 ```javascript
-import TelegraphImage from 'telegraph-image-sdk';
+import KKImage from 'kk-image-sdk';
 
-const client = new TelegraphImage('https://your-domain.pages.dev');
+const client = new KKImage('https://your-domain.pages.dev');
 const result = await client.upload(file);
 ```
 
 **Python SDK**:
 ```python
-from telegraph_image import TelegraphImageClient
+from kk_image import KKImageClient
 
-client = TelegraphImageClient('https://your-domain.pages.dev')
+client = KKImageClient('https://your-domain.pages.dev')
 result = client.upload('image.jpg')
 ```
 

@@ -123,7 +123,7 @@
 
         <!-- Footer -->
         <footer class="py-8 text-center text-sm text-secondary border-t border-[var(--border-color)] bg-white">
-            <a href="/" class="hover:text-primary transition-colors">Powered by ImgTC</a>
+            <a href="/" class="hover:text-primary transition-colors">Powered by KK-Image</a>
         </footer>
     </template>
 
@@ -261,7 +261,7 @@ const loadAlbum = async (pwd = null) => {
             });
             
             album.value = { ...result.data, files };
-            document.title = `${result.data.name} | ImgTC`;
+            document.title = `${result.data.name} | KK-Image`;
             requiresPassword.value = false;
         } else if (result.requiresPassword) {
             requiresPassword.value = true;

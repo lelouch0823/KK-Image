@@ -1,7 +1,7 @@
 # Wrangler 开发指南 (v3.x+)
 
 **Last Updated**: 2025-12-28
-**Scope**: 适用于 Telegraph-Image 项目的开发与部署。
+**Scope**: 适用于 kk-image 项目的开发与部署。
 
 Wrangler 是 Cloudflare Workers/Pages 的官方命令行工具。本项目使用 Wrangler v3+ 进行本地开发、数据库管理和部署。
 
@@ -35,14 +35,14 @@ wrangler whoami
 
 ### 💾 数据库管理 (D1)
 
-本项目使用 `telegraph-image-db`。
+本项目使用 `kk-image-db`。
 
 | 场景 | 命令 |
 |------|------|
-| **本地**：查看表结构 | `npx wrangler d1 execute telegraph-image-db --local --command="SELECT name FROM sqlite_master WHERE type='table';"` |
-| **本地**：执行 SQL 文件 | `npx wrangler d1 execute telegraph-image-db --local --file=./migrations/xxxx.sql` |
-| **远程**：执行 SQL 文件 | `npx wrangler d1 execute telegraph-image-db --remote --file=./migrations/xxxx.sql` |
-| **远程**：查看数据 (Admin) | `npx wrangler d1 execute telegraph-image-db --remote --command="SELECT * FROM spaces LIMIT 5;"` |
+| **本地**：查看表结构 | `npx wrangler d1 execute kk-image-db --local --command="SELECT name FROM sqlite_master WHERE type='table';"` |
+| **本地**：执行 SQL 文件 | `npx wrangler d1 execute kk-image-db --local --file=./migrations/xxxx.sql` |
+| **远程**：执行 SQL 文件 | `npx wrangler d1 execute kk-image-db --remote --file=./migrations/xxxx.sql` |
+| **远程**：查看数据 (Admin) | `npx wrangler d1 execute kk-image-db --remote --command="SELECT * FROM spaces LIMIT 5;"` |
 
 > **注意**: `--local` 标志用于操作本地 `.wrangler/` 目录下的模拟数据库；`--remote` 用于直接操作真实的 Cloudflare D1 生产数据库。
 
@@ -61,18 +61,18 @@ wrangler whoami
 
 ```toml
 # 示例 wrangler.toml (Project Root)
-name = "telegraph-image"
+name = "kk-image"
 pages_build_output_dir = "dist"
 
 # 本地开发绑定模拟
 [[d1_databases]]
 binding = "DB"
-database_name = "telegraph-image-db"
+database_name = "kk-image-db"
 database_id = "xxxx-xxxx-xxxx" # 本地开发时此 ID 仅作标识，不需要真实匹配
 
 [[r2_buckets]]
 binding = "R2_BUCKET"
-bucket_name = "telegraph-image-storage"
+bucket_name = "kk-image-storage"
 
 [[kv_namespaces]]
 binding = "KV"

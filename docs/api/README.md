@@ -1,8 +1,8 @@
-# Telegraph-Image API v1 文档
+# KK-Image API v1 文档
 
 ## 概述
 
-Telegraph-Image API v1 是一个完整的 RESTful API，提供图片和视频文件的管理功能，支持上传、查询、更新和删除操作。API 采用标准的 HTTP 方法和状态码，支持 JSON 格式的请求和响应。
+KK-Image API v1 是一个完整的 RESTful API，提供图片和视频文件的管理功能，支持上传、查询、更新和删除操作。API 采用标准的 HTTP 方法和状态码，支持 JSON 格式的请求和响应。
 
 ## 基础信息
 

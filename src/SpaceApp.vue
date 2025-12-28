@@ -34,7 +34,7 @@
 
         <!-- Footer -->
         <footer class="py-8 text-center text-sm text-secondary border-t border-[var(--border-color)] bg-white mt-auto">
-            <a href="/" class="hover:text-primary transition-colors">Powered by ImgTC</a>
+            <a href="/" class="hover:text-primary transition-colors">Powered by KK-Image</a>
         </footer>
     </template>
     
@@ -99,7 +99,7 @@ const loadSpace = async (pwd = null) => {
 
         if (result.success) {
             space.value = result.data;
-            document.title = `${result.data.name} | ImgTC`;
+            document.title = `${result.data.name} | KK-Image`;
             requiresPassword.value = false;
         } else if (result.requiresPassword) {
             requiresPassword.value = true;

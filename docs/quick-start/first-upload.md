@@ -1,6 +1,6 @@
 # 首次上传教程
 
-完成部署后，让我们验证 Telegraph-Image 的核心功能是否正常工作。
+完成部署后，让我们验证 KK-Image 的核心功能是否正常工作。
 
 ## 🎯 测试目标
 
@@ -27,7 +27,7 @@
    https://your-project-name.pages.dev
    ```
 
-2. 您应该看到 Telegraph-Image 的主页面，包含：
+2. 您应该看到 KK-Image 的主页面，包含：
    - 项目标题和描述
    - 文件上传区域
    - 上传按钮
@@ -113,7 +113,7 @@
 
 尝试切换不同的管理视图：
 - **列表视图**: `/admin`
-- **网格视图**: `/admin-imgtc.html`
+- **网格视图**: `/admin-kk-image.html`
 - **瀑布流视图**: `/admin-waterfall.html`
 
 ## 🔍 故障排除
@@ -220,4 +220,4 @@
 
 ---
 
-🎉 **恭喜！** 您已成功验证 Telegraph-Image 的功能，现在可以正式使用了！
+🎉 **恭喜！** 您已成功验证 KK-Image 的功能，现在可以正式使用了！

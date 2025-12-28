@@ -1,12 +1,12 @@
 // API 信息端点
 export async function onRequestGet(context) {
   const { env } = context;
-  
+
   const apiInfo = {
-    name: 'Telegraph-Image API',
+    name: 'KK-Image API',
     version: '1.0.0',
-    description: 'RESTful API for Telegraph-Image file management system',
-    documentation: 'https://github.com/x-dr/telegraph-Image',
+    description: 'RESTful API for KK-Image file management system',
+    documentation: 'https://github.com/x-dr/kk-image',
     endpoints: {
       files: {
         'GET /api/v1/files': 'List files with pagination and filtering',
@@ -45,14 +45,14 @@ export async function onRequestGet(context) {
     },
     supportedFileTypes: [
       'image/jpeg',
-      'image/png', 
+      'image/png',
       'image/gif',
       'image/webp'
     ],
     maxFileSize: '10MB',
     webhookEvents: [
       'file.uploaded',
-      'file.updated', 
+      'file.updated',
       'file.deleted',
       'user.created',
       'api_key.created',
@@ -60,7 +60,7 @@ export async function onRequestGet(context) {
     ],
     timestamp: new Date().toISOString()
   };
-  
+
   // 添加运行时信息
   if (env.CF_PAGES_COMMIT_SHA) {
     apiInfo.build = {
@@ -68,7 +68,7 @@ export async function onRequestGet(context) {
       branch: env.CF_PAGES_BRANCH || 'unknown'
     };
   }
-  
+
   return new Response(JSON.stringify(apiInfo, null, 2), {
     headers: { 'Content-Type': 'application/json' }
   });

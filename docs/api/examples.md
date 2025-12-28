@@ -2,21 +2,21 @@
 
 ## 概述
 
-本文档提供了 Telegraph-Image API 的 SDK 和各种编程语言的示例代码，帮助开发者快速集成 API 功能。
+本文档提供了 KK-Image API 的 SDK 和各种编程语言的示例代码，帮助开发者快速集成 API 功能。
 
 ## JavaScript SDK
 
 ### 安装
 ```bash
-npm install telegraph-image-sdk
+npm install kk-image-sdk
 ```
 
 ### 基础用法
 ```javascript
-import TelegraphImageAPI from 'telegraph-image-sdk';
+import KKImageAPI from 'kk-image-sdk';
 
 // 初始化客户端
-const client = new TelegraphImageAPI({
+const client = new KKImageAPI({
   baseURL: 'https://your-domain.com/api/v1',
   apiKey: 'tk_your_api_key_here'
 });
@@ -46,7 +46,7 @@ await client.files.delete('img_1234567890');
 ### 高级用法
 ```javascript
 // 使用 JWT Token 认证
-const client = new TelegraphImageAPI({
+const client = new KKImageAPI({
   baseURL: 'https://your-domain.com/api/v1',
   token: 'your_jwt_token_here'
 });
@@ -91,15 +91,15 @@ const newKey = await client.auth.createApiKey({
 
 ### 安装
 ```bash
-pip install telegraph-image-python
+pip install kk-image-python
 ```
 
 ### 基础用法
 ```python
-from telegraph_image import TelegraphImageAPI
+from kk_image import KKImageAPI
 
 # 初始化客户端
-client = TelegraphImageAPI(
+client = KKImageAPI(
     base_url='https://your-domain.com/api/v1',
     api_key='tk_your_api_key_here'
 )
@@ -151,10 +151,10 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
 ```python
 import asyncio
 import aiohttp
-from telegraph_image.async_client import AsyncTelegraphImageAPI
+from kk_image.async_client import AsyncKKImageAPI
 
 async def main():
-    async with AsyncTelegraphImageAPI(
+    async with AsyncKKImageAPI(
         base_url='https://your-domain.com/api/v1',
         api_key='tk_your_api_key_here'
     ) as client:
@@ -176,7 +176,7 @@ asyncio.run(main())
 
 ### 安装
 ```bash
-composer require telegraph-image/php-sdk
+composer require kk-image/php-sdk
 ```
 
 ### 基础用法
@@ -184,7 +184,7 @@ composer require telegraph-image/php-sdk
 <?php
 require_once 'vendor/autoload.php';
 
-use TelegraphImage\Client;
+use KKImage\Client;
 
 // 初始化客户端
 $client = new Client([
@@ -308,7 +308,7 @@ curl -X DELETE \
 
 ### 安装
 ```bash
-go get github.com/telegraph-image/go-sdk
+go get github.com/kk-image/go-sdk
 ```
 
 ### 基础用法
@@ -320,12 +320,12 @@ import (
     "log"
     "os"
 
-    "github.com/telegraph-image/go-sdk"
+    "github.com/kk-image/go-sdk"
 )
 
 func main() {
     // 初始化客户端
-    client := telegraphimage.NewClient(&telegraphimage.Config{
+    client := kkimage.NewClient(&kkimage.Config{
         BaseURL: "https://your-domain.com/api/v1",
         APIKey:  "tk_your_api_key_here",
     })
@@ -337,7 +337,7 @@ func main() {
     }
     defer file.Close()
 
-    result, err := client.Files.Upload(&telegraphimage.UploadRequest{
+    result, err := client.Files.Upload(&kkimage.UploadRequest{
         File:        file,
         Tags:        []string{"photo", "landscape"},
         Description: "美丽的风景照片",
@@ -349,7 +349,7 @@ func main() {
     fmt.Printf("上传成功: %s\n", result.Data.ID)
 
     // 获取文件列表
-    files, err := client.Files.List(&telegraphimage.ListRequest{
+    files, err := client.Files.List(&kkimage.ListRequest{
         Page:  1,
         Limit: 20,
         Type:  "image",
@@ -368,9 +368,9 @@ func main() {
 ```jsx
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import TelegraphImageAPI from 'telegraph-image-sdk';
+import KKImageAPI from 'kk-image-sdk';
 
-const client = new TelegraphImageAPI({
+const client = new KKImageAPI({
   baseURL: process.env.REACT_APP_API_URL,
   apiKey: process.env.REACT_APP_API_KEY
 });
@@ -480,9 +480,9 @@ export default ImageUploader;
 </template>
 
 <script>
-import TelegraphImageAPI from 'telegraph-image-sdk';
+import KKImageAPI from 'kk-image-sdk';
 
-const client = new TelegraphImageAPI({
+const client = new KKImageAPI({
   baseURL: process.env.VUE_APP_API_URL,
   apiKey: process.env.VUE_APP_API_KEY
 });

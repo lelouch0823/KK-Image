@@ -245,7 +245,7 @@ Webhook 测试时触发
   "event": "webhook.test",
   "timestamp": "2024-01-20T16:00:00Z",
   "data": {
-    "message": "This is a test webhook from Telegraph-Image",
+    "message": "This is a test webhook from KK-Image",
     "webhook": {
       "id": "webhook_1234567890",
       "url": "https://your-app.com/webhook"
@@ -299,7 +299,7 @@ const isValid = verifyWebhookSignature(
 
 ```http
 Content-Type: application/json
-User-Agent: Telegraph-Image-Webhook/1.0
+User-Agent: KK-Image-Webhook/1.0
 X-Webhook-Event: file.uploaded
 X-Webhook-ID: evt_1234567890abcdef
 X-Webhook-Timestamp: 2024-01-15T10:30:00Z

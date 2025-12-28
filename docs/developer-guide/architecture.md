@@ -1,10 +1,10 @@
 # 系统架构详解
 
-本文档详细介绍 Telegraph-Image 的系统架构设计、技术选型和核心组件。
+本文档详细介绍 KK-Image 的系统架构设计、技术选型和核心组件。
 
 ## 🏗️ 架构概览
 
-Telegraph-Image 采用现代化的无服务器架构，充分利用 Cloudflare 生态系统和 Telegram Bot API，实现高可用、低成本的图片托管服务。
+KK-Image 采用现代化的无服务器架构，充分利用 Cloudflare 生态系统和 Telegram Bot API，实现高可用、低成本的图片托管服务。
 
 ## 📊 系统架构图
 
@@ -334,4 +334,4 @@ sequenceDiagram
 
 ---
 
-📚 **深入了解**: 这个架构设计确保了 Telegraph-Image 的高性能、高可用性和可扩展性。
+📚 **深入了解**: 这个架构设计确保了 KK-Image 的高性能、高可用性和可扩展性。

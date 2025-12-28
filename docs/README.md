@@ -1,11 +1,11 @@
-# Telegraph-Image 文档中心
+# KK-Image 文档中心
 
-欢迎来到 Telegraph-Image (Pro) 项目的完整文档中心。
+欢迎来到 KK-Image (Pro) 项目的完整文档中心。
 本项目已升级为全栈现代化文件存储与共享平台，支持 **Cloudflare D1**, **R2**, 和 **Shared Spaces**。
 
 ## 📋 项目概览
 
-Telegraph-Image 是一个基于 Cloudflare Pages 的高性能图床/文件存储解决方案。
+KK-Image 是一个基于 Cloudflare Pages 的高性能图床/文件存储解决方案。
 
 ### 🌟 核心特性 (v2.0+)
 
@@ -28,5 +28,5 @@ Telegraph-Image 是一个基于 Cloudflare Pages 的高性能图床/文件存储
 
 ## 📞 获取帮助
 
-- **GitHub Issues**: [提交问题](https://github.com/cf-pages/Telegraph-Image/issues)
+- **GitHub Issues**: [提交问题](https://github.com/cf-pages/KK-Image/issues)
 - **更新日志**: [查看更新](../README.md#更新日志)

@@ -1,6 +1,6 @@
 # 安装部署指南
 
-本指南将详细介绍如何部署 **Telegraph-Image (Pro)** 到 Cloudflare Pages。
+本指南将详细介绍如何部署 **KK-Image (Pro)** 到 Cloudflare Pages。
 本项目基于现代化全栈架构 (Vue 3 + D1 + R2)，请务必完整阅读以下步骤。
 
 ## 📋 部署概览
@@ -15,7 +15,7 @@
 
 ### 步骤 1: Fork 项目
 
-1. 访问 [Telegraph-Image GitHub 仓库](https://github.com/cf-pages/Telegraph-Image)
+1. 访问 [KK-Image GitHub 仓库](https://github.com/cf-pages/KK-Image)
 2. 点击 **Fork** 按钮到您的账户
 
 ### 步骤 2: Cloudflare 资源准备 (关键)
@@ -24,20 +24,20 @@
 
 #### 2.1 创建 D1 数据库
 1. 登录 Cloudflare Dashboard -> **Workers & Pages** -> **D1 SQL Database**.
-2. 点击 **Create**，命名为 `telegraph-image-db`.
+2. 点击 **Create**，命名为 `kk-image-db`.
 3. 创建成功后，记下 database ID (部署绑定时可能用到，但在 Pages 界面通常只需选择名称)。
 
 #### 2.2 创建 R2 存储桶
 1. 进入 **R2 Object Storage**.
-2. 点击 **Create bucket**，命名为 `telegraph-image-storage` (或自定义).
+2. 点击 **Create bucket**，命名为 `kk-image-storage` (或自定义).
 3. 保持默认设置创建。
 
 ### 步骤 3: Cloudflare Pages 部署
 
 1. 进入 **Workers & Pages** -> **Create application** -> **Pages** -> **Connect to Git**.
-2. 选择您 Fork 的 `Telegraph-Image` 仓库。
+2. 选择您 Fork 的 `KK-Image` 仓库。
 3. **构建配置 (Build settings)**:
-    - **Project name**: `telegraph-image` (任意)
+    - **Project name**: `kk-image` (任意)
     - **Production branch**: `main`
     - **Framework preset**: `Vue` (或者 None)
     - **Build command**: `npm run build`
@@ -51,10 +51,10 @@
 
 1. **D1 Database Bindings**:
     - Variable name: `DB` (必须完全一致)
-    - D1 database: 选择 `telegraph-image-db`
+    - D1 database: 选择 `kk-image-db`
 2. **R2 Bucket Bindings**:
     - Variable name: `R2_BUCKET` (必须完全一致)
-    - R2 bucket: 选择 `telegraph-image-storage`
+    - R2 bucket: 选择 `kk-image-storage`
 3. **KV Namespace Bindings**:
     - Variable name: `KV`
     - Namespace: 创建一个新的 KV 命名空间并绑定
@@ -80,7 +80,7 @@
 npx wrangler login
 
 # 在本地执行远程迁移 (将 id 替换为您的 D1 ID)
-npx wrangler d1 execute telegraph-image-db --remote --file=./migrations/0002_create_spaces_table.sql
+npx wrangler d1 execute kk-image-db --remote --file=./migrations/0002_create_spaces_table.sql
 ```
 *(注：如果无法本地操作，可以通过后台提供的数据库初始化 API，或等待后续版本集成的网页端初始化工具)*
 

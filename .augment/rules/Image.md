@@ -1,9 +1,9 @@
 ---
 type: "always_apply"---
-# Telegraph-Image 项目开发规范
+# KK-Image 项目开发规范
 
 ## 项目概述
-Telegraph-Image 是一个基于 Cloudflare Pages 和 Telegram Bot API 的免费图床解决方案，采用无服务器架构，提供无限图片存储、全球 CDN 加速、智能内容审查等功能。
+KK-Image 是一个基于 Cloudflare Pages 和 Telegram Bot API 的免费图床解决方案，采用无服务器架构，提供无限图片存储、全球 CDN 加速、智能内容审查等功能。
 
 ## 技术栈规范
 

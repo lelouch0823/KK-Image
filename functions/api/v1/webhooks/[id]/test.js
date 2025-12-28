@@ -43,7 +43,7 @@ export async function onRequestPost(context) {
       event: 'webhook.test',
       timestamp: new Date().toISOString(),
       data: {
-        message: 'This is a test webhook from Telegraph-Image',
+        message: 'This is a test webhook from KK-Image',
         webhook: {
           id: webhook.id,
           url: webhook.url
@@ -59,7 +59,7 @@ export async function onRequestPost(context) {
 
     const headers = {
       'Content-Type': 'application/json',
-      'User-Agent': 'Telegraph-Image-Webhook/1.0',
+      'User-Agent': 'KK-Image-Webhook/1.0',
       'X-Webhook-Event': testPayload.event,
       'X-Webhook-ID': testPayload.id,
       'X-Webhook-Timestamp': testPayload.timestamp

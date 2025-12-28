@@ -58,9 +58,9 @@ GET /api/v1/info
 {
   "success": true,
   "data": {
-    "name": "Telegraph-Image API",
+    "name": "KK-Image API",
     "version": "1.0.0",
-    "description": "Telegraph-Image RESTful API for file management",
+    "description": "KK-Image RESTful API for file management",
     "documentation": "https://your-domain.com/docs/api/",
     "contact": {
       "email": "support@your-domain.com",
@@ -235,7 +235,7 @@ fi
 ```yaml
 # prometheus.yml
 scrape_configs:
-  - job_name: 'telegraph-image-api'
+  - job_name: 'kk-image-api'
     static_configs:
       - targets: ['your-domain.com']
     metrics_path: '/api/v1/health'
@@ -246,7 +246,7 @@ scrape_configs:
 ```json
 {
   "dashboard": {
-    "title": "Telegraph-Image API Monitoring",
+    "title": "KK-Image API Monitoring",
     "panels": [
       {
         "title": "API Health Status",
@@ -277,7 +277,7 @@ scrape_configs:
 ```yaml
 # alerting.yml
 groups:
-  - name: telegraph-image-api
+  - name: kk-image-api
     rules:
       - alert: APIHealthCheckFailed
         expr: api_health_status != 1
@@ -285,7 +285,7 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Telegraph-Image API health check failed"
+          summary: "KK-Image API health check failed"
           description: "API health status is {{ $value }}"
       
       - alert: APIResponseTimeTooHigh

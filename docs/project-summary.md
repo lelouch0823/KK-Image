@@ -1,8 +1,8 @@
-# Telegraph-Image 项目开发总结
+# KK-Image 项目开发总结
 
 ## 项目概述
 
-Telegraph-Image 是一个基于 Cloudflare Pages 的全栈现代化图床/文件存储服务。它利用 Cloudflare 的边缘计算能力（Workers/Pages Functions）和存储服务（D1, R2, KV），提供高性能、低成本的全球化文件托管解决方案。前端采用 Vue 3 + Tailwind CSS v4 构建，追求极致的用户体验 (SOTA UX)。
+KK-Image 是一个基于 Cloudflare Pages 的全栈现代化图床/文件存储服务。它利用 Cloudflare 的边缘计算能力（Workers/Pages Functions）和存储服务（D1, R2, KV），提供高性能、低成本的全球化文件托管解决方案。前端采用 Vue 3 + Tailwind CSS v4 构建，追求极致的用户体验 (SOTA UX)。
 
 ## 已完成的主要功能 (Current Status)
 
@@ -79,7 +79,7 @@ Telegraph-Image 是一个基于 Cloudflare Pages 的全栈现代化图床/文件
 ## 目录结构
 
 ```
-Telegraph-Image/
+KK-Image/
 ├── src/                    # 前端源代码 (Vue 3 + Tailwind)
 │   ├── components/         # SOTA UI 组件
 │   ├── composables/        # 组合式逻辑 (useSpaces, useUploadQueue)

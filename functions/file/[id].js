@@ -1,10 +1,10 @@
 /**
- * @fileoverview 文件访问处理
+ * @fileoverview 文件访问处理 (带 Cache API 优化)
  * @module file/[id]
  * 
  * 基于 D1 数据库的文件服务：
  * - 从 D1 查询文件信息
- * - 直接从 R2 获取文件
+ * - 使用 Cache API 缓存 R2 响应 (减少 Class B 操作)
  * - 设置适当的缓存控制头
  */
 
@@ -12,7 +12,25 @@ export async function onRequest(context) {
     const { request, env, params } = context;
     const fileId = params.id;
 
-    // 从 D1 数据库查询文件信息
+    // 1. 尝试从 Cache 获取
+    const cache = caches.default;
+    const cacheKey = new Request(request.url, {
+        method: 'GET',
+        headers: request.headers
+    });
+
+    const cachedResponse = await cache.match(cacheKey);
+    if (cachedResponse) {
+        // 添加 Cache 命中标记
+        const headers = new Headers(cachedResponse.headers);
+        headers.set('X-Cache', 'HIT');
+        return new Response(cachedResponse.body, {
+            status: cachedResponse.status,
+            headers
+        });
+    }
+
+    // 2. Cache 未命中，从 D1 查询文件信息
     let fileRecord = null;
     if (env.DB) {
         try {
@@ -28,7 +46,7 @@ export async function onRequest(context) {
     // 确定要查找的 key
     const storageKey = fileRecord?.storage_key || fileId;
 
-    // 从 R2 获取文件
+    // 3. 从 R2 获取文件
     if (!env.R2_BUCKET) {
         return new Response('R2 not configured', { status: 500 });
     }
@@ -45,13 +63,13 @@ export async function onRequest(context) {
             if (storageKey !== fileId) {
                 const object2 = await env.R2_BUCKET.get(fileId);
                 if (object2) {
-                    return buildResponse(object2, fileRecord);
+                    return buildAndCacheResponse(object2, fileRecord, cache, cacheKey, context);
                 }
             }
             return new Response('File not found', { status: 404 });
         }
 
-        return buildResponse(object, fileRecord);
+        return buildAndCacheResponse(object, fileRecord, cache, cacheKey, context);
     } catch (err) {
         console.error('R2 error:', err);
         return new Response('Storage error', { status: 500 });
@@ -59,9 +77,9 @@ export async function onRequest(context) {
 }
 
 /**
- * 构建响应，设置适当的头
+ * 构建响应并写入 Cache
  */
-function buildResponse(object, fileRecord) {
+async function buildAndCacheResponse(object, fileRecord, cache, cacheKey, context) {
     const headers = new Headers();
 
     // 使用 R2 的 writeHttpMetadata 写入响应头
@@ -78,6 +96,9 @@ function buildResponse(object, fileRecord) {
         headers.set('Cache-Control', 'public, max-age=31536000, immutable');
     }
 
+    // 添加 Cache 未命中标记
+    headers.set('X-Cache', 'MISS');
+
     // 条件请求：如果没有 body，返回 304
     if (!('body' in object)) {
         return new Response(null, { status: 304, headers });
@@ -86,5 +107,13 @@ function buildResponse(object, fileRecord) {
     // Range 请求返回 206
     const status = object.range ? 206 : 200;
 
-    return new Response(object.body, { status, headers });
+    const response = new Response(object.body, { status, headers });
+
+    // 4. 只缓存成功的完整响应 (不缓存 206 Range 响应)
+    if (status === 200) {
+        // 使用 waitUntil 异步写入 Cache，不阻塞响应
+        context.waitUntil(cache.put(cacheKey, response.clone()));
+    }
+
+    return response;
 }

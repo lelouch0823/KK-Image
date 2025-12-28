@@ -1,4 +1,4 @@
-# Telegraph-Image 开发状态报告
+# KK-Image 开发状态报告
 
 ## 项目当前状态
 
@@ -106,7 +106,7 @@
 ## 文件结构
 
 ```
-Telegraph-Image/
+KK-Image/
 ├── 📁 src/                     # Vue.js 前端源码
 │   ├── 📁 components/          # Vue 组件
 │   ├── 📁 composables/         # Composition API 逻辑

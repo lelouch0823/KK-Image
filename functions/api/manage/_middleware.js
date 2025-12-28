@@ -27,9 +27,9 @@ function authentication(context) {
     return context.next();
   }
 
-  // 2. 检查 KV 存储是否配置
-  if (!env.img_url) {
-    return error('Please bind a KV namespace to use this feature.', 503);
+  // 2. 检查 D1 数据库是否配置 (替代旧的 KV 检查)
+  if (!env.DB) {
+    return error('D1 数据库未绑定，请在 Cloudflare Dashboard 配置。', 503);
   }
 
   // 3. 如果未配置 Basic Auth（即未启用认证），则直接放行

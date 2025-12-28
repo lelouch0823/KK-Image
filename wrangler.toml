@@ -3,7 +3,7 @@
 # 参考: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
 # =============================================================================
 
-name = "telegraph-image"
+name = "kk-image"
 compatibility_date = "2025-01-01"
 pages_build_output_dir = "./dist"
 
@@ -148,8 +148,8 @@ bucket_name = "kk-image-storage"
 # 生产环境 D1 数据库绑定
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "kk-image-storage-db"
-database_id = "6de591b2-4241-4469-988c-29f51bb871ad"
+database_name = "kk-image-db"
+database_id = "f3234553-279e-417e-9271-5ea5d6686ad5"
 
 # =============================================================================
 # 预览环境配置
@@ -195,7 +195,7 @@ bucket_name = "kk-image-storage"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "kk-image-storage-db"
-database_id = "6de591b2-4241-4469-988c-29f51bb871ad"
+database_name = "kk-image-db"
+database_id = "f3234553-279e-417e-9271-5ea5d6686ad5"
 migrations_dir = "migrations"
 

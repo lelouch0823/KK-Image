@@ -3,9 +3,9 @@
     <!-- Logo -->
     <div class="h-[var(--header-height)] flex items-center px-5 border-b border-[var(--border-color)]">
       <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-800 to-black flex items-center justify-center text-white font-bold text-sm mr-3">
-        TC
+        KK
       </div>
-      <span class="text-lg font-bold text-primary tracking-tight">ImgTC</span>
+      <span class="text-lg font-bold text-primary tracking-tight">KK-Image</span>
     </div>
 
     <!-- 菜单 -->

@@ -2,7 +2,7 @@
 trigger: always_on
 ---
 
-# Project Context: KK-Image (Telegraph-Image-PRO)
+# Project Context: KK-Image
 
 这是一个基于 Cloudflare Pages 全栈架构的高性能图床/文件存储系统。
 

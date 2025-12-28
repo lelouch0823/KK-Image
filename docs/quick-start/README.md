@@ -1,10 +1,10 @@
 # 快速开始
 
-欢迎使用 Telegraph-Image！本指南将帮助您在 15 分钟内完成部署并开始使用。
+欢迎使用 KK-Image！本指南将帮助您在 15 分钟内完成部署并开始使用。
 
 ## 🎯 概览
 
-Telegraph-Image 是一个免费的图床解决方案，只需要一个 Cloudflare 账户即可开始使用。整个部署过程包括：
+KK-Image 是一个免费的图床解决方案，只需要一个 Cloudflare 账户即可开始使用。整个部署过程包括：
 
 1. **准备工作** - 获取必要的账户和权限
 2. **项目部署** - Fork 项目并部署到 Cloudflare Pages
@@ -32,7 +32,7 @@ Telegraph-Image 是一个免费的图床解决方案，只需要一个 Cloudflar
 ## 🚀 快速部署流程
 
 ### 第一步：项目准备
-1. 访问 [Telegraph-Image GitHub 仓库](https://github.com/cf-pages/Telegraph-Image)
+1. 访问 [KK-Image GitHub 仓库](https://github.com/cf-pages/KK-Image)
 2. 点击右上角的 **Fork** 按钮
 3. 等待 Fork 完成
 
@@ -85,4 +85,4 @@ A: 检查域名是否正确，确认部署已完成且无错误。
 
 ---
 
-🎉 **恭喜！** 完成快速开始后，您就可以开始使用 Telegraph-Image 了！
+🎉 **恭喜！** 完成快速开始后，您就可以开始使用 KK-Image 了！

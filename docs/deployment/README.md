@@ -1,10 +1,10 @@
 # 部署指南
 
-本指南提供了 Telegraph-Image 在各种环境下的详细部署说明，包括生产环境配置、性能优化和故障排除。
+本指南提供了 KK-Image 在各种环境下的详细部署说明，包括生产环境配置、性能优化和故障排除。
 
 ## 📋 部署概览
 
-Telegraph-Image 基于 Cloudflare Pages 的无服务器架构，支持快速部署和自动扩展。本指南涵盖从基础部署到高级配置的完整流程。
+KK-Image 基于 Cloudflare Pages 的无服务器架构，支持快速部署和自动扩展。本指南涵盖从基础部署到高级配置的完整流程。
 
 ## 🎯 部署目标
 
@@ -123,7 +123,7 @@ const securityHeaders = {
 ### wrangler.toml 配置
 
 ```toml
-name = "telegraph-image"
+name = "kk-image"
 compatibility_date = "2024-12-01"
 pages_build_output_dir = "dist"
 
@@ -255,7 +255,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: telegraph-image
+          projectName: kk-image
           directory: .
 ```
 
@@ -277,7 +277,7 @@ jobs:
       - name: Sync upstream changes
         uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
         with:
-          upstream_sync_repo: cf-pages/Telegraph-Image
+          upstream_sync_repo: cf-pages/KK-Image
           upstream_sync_branch: main
           target_sync_branch: main
 ```
@@ -289,19 +289,19 @@ jobs:
 **部署失败**:
 ```bash
 # 检查部署日志
-wrangler pages deployment list --project-name=telegraph-image
+wrangler pages deployment list --project-name=kk-image
 
 # 查看具体错误
-wrangler pages deployment tail --project-name=telegraph-image
+wrangler pages deployment tail --project-name=kk-image
 ```
 
 **环境变量问题**:
 ```bash
 # 列出环境变量
-wrangler pages secret list --project-name=telegraph-image
+wrangler pages secret list --project-name=kk-image
 
 # 更新环境变量
-wrangler pages secret put VARIABLE_NAME --project-name=telegraph-image
+wrangler pages secret put VARIABLE_NAME --project-name=kk-image
 ```
 
 **函数错误**:
@@ -389,4 +389,4 @@ export async function onRequest(context) {
 
 ---
 
-🚀 **生产就绪**: 按照本指南完成部署后，您将拥有一个稳定、安全、高性能的 Telegraph-Image 服务！
+🚀 **生产就绪**: 按照本指南完成部署后，您将拥有一个稳定、安全、高性能的 KK-Image 服务！

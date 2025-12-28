@@ -11,6 +11,9 @@
 import { errorHandling, telemetryData } from "./utils/middleware";
 import { triggerWebhook } from "./api/utils/webhook.js";
 import { RedundancyManager } from "./storage/redundancy.js";
+import { getFileUrl } from "./api/utils/url.js";
+import { getUser } from "./api/utils/context.js";
+import { success } from "./api/utils/response.js";
 
 export async function onRequestPost(context) {
     const { request, env } = context;
@@ -28,8 +31,9 @@ export async function onRequestPost(context) {
         }
 
         const fileName = uploadFile.name;
+        const user = getUser(context);
 
-        // 使用冗余管理器处理上传
+        // 使用冗余管理器处理上传 (R2/S3/Telegram)
         const redundancyManager = new RedundancyManager(env, context);
         const result = await redundancyManager.upload(uploadFile, {
             fileName: fileName,
@@ -41,24 +45,23 @@ export async function onRequestPost(context) {
         }
 
         const fileId = result.fileId;
+        const now = Date.now();
 
-        // 将文件信息保存到 KV 存储
-        if (env.img_url) {
-            const metadata = {
-                TimeStamp: Date.now(),
-                ListType: "None",
-                Label: "None",
-                liked: false,
-                fileName: fileName,
-                fileSize: uploadFile.size,
-                // 存储信息（包含主存储和镜像信息）
-                storage: result.metadata?.storage || {
-                    primary: result.metadata?.storageProvider || 'telegram',
-                    primaryId: result.metadata?.storageId || fileId
-                }
-            };
-
-            await env.img_url.put(fileId, "", { metadata });
+        // 将文件元数据保存到 D1 数据库 (替代 KV)
+        if (env.DB) {
+            await env.DB.prepare(`
+                INSERT INTO files (id, folder_id, name, original_name, size, mime_type, storage_key, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+                fileId,
+                null, // 默认不属于任何文件夹
+                fileName,
+                fileName,
+                uploadFile.size,
+                uploadFile.type,
+                fileId, // storage_key 与 fileId 相同
+                now
+            ).run();
         }
 
         // 构建文件信息用于 Webhook
@@ -68,9 +71,8 @@ export async function onRequestPost(context) {
             size: uploadFile.size,
             type: uploadFile.type,
             uploadTime: new Date().toISOString(),
-            status: 'normal',
             url: getFileUrl(fileId, new URL(request.url).origin),
-            uploader: 'anonymous',
+            uploader: user.name || user.id,
             storage: result.metadata?.storage
         };
 
@@ -78,19 +80,14 @@ export async function onRequestPost(context) {
         try {
             await triggerWebhook(env, 'file.uploaded', {
                 file: fileInfo,
-                user: { id: 'anonymous', name: 'anonymous' }
+                user: user
             });
         } catch (webhookError) {
             console.error('Webhook trigger failed:', webhookError);
         }
 
-        return new Response(
-            JSON.stringify([{ 'src': `/file/${fileId}` }]),
-            {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' }
-            }
-        );
+        // 使用统一的 success 响应格式
+        return success([{ src: `/file/${fileId}` }]);
     } catch (error) {
         console.error('Upload error:', error);
         return new Response(

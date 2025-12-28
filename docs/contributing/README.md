@@ -1,10 +1,10 @@
 # 贡献指南
 
-欢迎参与 Telegraph-Image 项目的开发！本指南将帮助您了解如何为项目做出贡献。
+欢迎参与 KK-Image 项目的开发！本指南将帮助您了解如何为项目做出贡献。
 
 ## 🎯 贡献概览
 
-Telegraph-Image 是一个开源项目，我们欢迎各种形式的贡献，包括代码提交、文档改进、问题报告、功能建议等。
+KK-Image 是一个开源项目，我们欢迎各种形式的贡献，包括代码提交、文档改进、问题报告、功能建议等。
 
 ## 🤝 贡献方式
 
@@ -84,11 +84,11 @@ Telegraph-Image 是一个开源项目，我们欢迎各种形式的贡献，包�
 ```bash
 # 1. Fork 项目到您的 GitHub 账户
 # 2. 克隆您的 Fork
-git clone https://github.com/your-username/Telegraph-Image.git
-cd Telegraph-Image
+git clone https://github.com/your-username/KK-Image.git
+cd KK-Image
 
 # 3. 添加上游仓库
-git remote add upstream https://github.com/cf-pages/Telegraph-Image.git
+git remote add upstream https://github.com/cf-pages/KK-Image.git
 
 # 4. 安装依赖
 npm install
@@ -329,10 +329,10 @@ Closes #123
 - **[API 文档](../api-docs/README.md)** - 接口使用说明
 
 ### 项目资源
-- **[GitHub 仓库](https://github.com/cf-pages/Telegraph-Image)** - 源代码和问题跟踪
+- **[GitHub 仓库](https://github.com/cf-pages/KK-Image)** - 源代码和问题跟踪
 - **[更新日志](../../CHANGELOG.md)** - 版本更新记录
 - **[许可证](../../LICENSE)** - 开源许可证信息
 
 ---
 
-🤝 **加入我们**: 感谢您对 Telegraph-Image 项目的关注和支持！我们期待您的贡献！
+🤝 **加入我们**: 感谢您对 KK-Image 项目的关注和支持！我们期待您的贡献！
