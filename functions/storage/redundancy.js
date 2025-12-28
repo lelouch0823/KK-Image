@@ -1,5 +1,5 @@
 /**
- * @fileoverview 冗余存储管理器 - 管理多存储同步和镜像
+ * @fileoverview 冗余存储管理器 - 管理多存储同步和镜像 (D1 版本)
  * @module storage/redundancy
  */
 
@@ -20,8 +20,6 @@ export class RedundancyManager {
         this.router = new SmartRouter(env);
     }
 
-    // ... (中间代码保持不变) ...
-
     /**
      * 异步镜像上传（后台处理）
      * @private
@@ -34,13 +32,13 @@ export class RedundancyManager {
                     const provider = getStorageProvider(this.env, mirrorName);
                     const result = await provider.upload(file, options);
 
-                    // 更新 KV 中的镜像状态
-                    if (result.success && this.env.img_url) {
+                    // 更新 D1 中的镜像状态
+                    if (result.success && this.env.DB) {
                         await this._updateMirrorStatus(primaryFileId, mirrorName, result.fileId, 'synced');
                     }
                 } catch (error) {
                     console.error(`Async mirror to ${mirrorName} failed:`, error);
-                    if (this.env.img_url) {
+                    if (this.env.DB) {
                         await this._updateMirrorStatus(primaryFileId, mirrorName, null, 'failed', error.message);
                     }
                 }
@@ -58,45 +56,57 @@ export class RedundancyManager {
     }
 
     /**
-     * 更新 KV 中的镜像状态
+     * 更新 D1 中的镜像状态
      * @private
      */
     async _updateMirrorStatus(fileId, mirrorProvider, mirrorId, status, error = null) {
+        if (!this.env.DB) {
+            return;
+        }
+
         try {
-            const record = await this.env.img_url.getWithMetadata(fileId);
-            if (record && record.metadata) {
-                const metadata = record.metadata;
+            const now = Date.now();
 
-                // 确保 storage.mirrors 存在
-                if (!metadata.storage) {
-                    metadata.storage = { mirrors: [] };
-                }
-                if (!metadata.storage.mirrors) {
-                    metadata.storage.mirrors = [];
-                }
-
-                // 更新或添加镜像状态
-                const existingIndex = metadata.storage.mirrors.findIndex(m => m.provider === mirrorProvider);
-                const mirrorInfo = {
-                    provider: mirrorProvider,
-                    id: mirrorId,
-                    status: status,
-                    syncedAt: new Date().toISOString()
-                };
-                if (error) {
-                    mirrorInfo.error = error;
-                }
-
-                if (existingIndex >= 0) {
-                    metadata.storage.mirrors[existingIndex] = mirrorInfo;
-                } else {
-                    metadata.storage.mirrors.push(mirrorInfo);
-                }
-
-                await this.env.img_url.put(fileId, "", { metadata });
-            }
+            // 使用 UPSERT (INSERT OR REPLACE)
+            await this.env.DB.prepare(`
+                INSERT OR REPLACE INTO storage_mirrors (file_id, provider, provider_file_id, status, error, synced_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            `).bind(
+                fileId,
+                mirrorProvider,
+                mirrorId,
+                status,
+                error,
+                now
+            ).run();
         } catch (err) {
             console.error('Failed to update mirror status:', err);
+        }
+    }
+
+    /**
+     * 获取文件的镜像状态
+     */
+    async getMirrorStatus(fileId) {
+        if (!this.env.DB) {
+            return [];
+        }
+
+        try {
+            const { results } = await this.env.DB.prepare(
+                'SELECT * FROM storage_mirrors WHERE file_id = ?'
+            ).bind(fileId).all();
+
+            return results.map(row => ({
+                provider: row.provider,
+                id: row.provider_file_id,
+                status: row.status,
+                error: row.error,
+                syncedAt: row.synced_at
+            }));
+        } catch (err) {
+            console.error('Failed to get mirror status:', err);
+            return [];
         }
     }
 }
@@ -118,6 +128,15 @@ export async function getFileWithFallback(env, fileId, request, metadata) {
         return provider.getFile(fileId, request);
     }
 
+    // 从 D1 获取镜像信息
+    let mirrors = [];
+    if (env.DB) {
+        const { results } = await env.DB.prepare(
+            'SELECT * FROM storage_mirrors WHERE file_id = ? AND status = ?'
+        ).bind(fileId, 'synced').all();
+        mirrors = results;
+    }
+
     const chain = getFallbackChain(env, metadata);
     const timeout = getFallbackTimeout(env);
 
@@ -131,9 +150,10 @@ export async function getFileWithFallback(env, fileId, request, metadata) {
                 if (metadata.storage.primary === providerName) {
                     targetFileId = metadata.storage.primaryId || fileId;
                 } else {
-                    const mirror = metadata.storage.mirrors?.find(m => m.provider === providerName);
-                    if (mirror?.id) {
-                        targetFileId = mirror.id;
+                    // 从 D1 镜像表查找
+                    const mirror = mirrors.find(m => m.provider === providerName);
+                    if (mirror?.provider_file_id) {
+                        targetFileId = mirror.provider_file_id;
                     }
                 }
             }

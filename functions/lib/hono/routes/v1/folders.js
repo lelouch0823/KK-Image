@@ -4,6 +4,7 @@ import { FolderQuerySchema, CreateFolderSchema, UpdateFolderSchema, ShareSetting
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
 import { batchInsert } from '../../../../lib/db/batch.js';
+import { generateId, generateShareToken, now } from '../../../../api/utils/id.js';
 
 const app = new Hono();
 
@@ -116,13 +117,13 @@ app.post('/',
             }
         }
 
-        const id = crypto.randomUUID();
-        const shareToken = crypto.randomUUID().replace(/-/g, '').substring(0, 16);
-        const now = new Date().toISOString();
+        const id = generateId();
+        const shareToken = generateShareToken(16);
+        const timestamp = now();
 
         await env.DB.prepare(`
-      INSERT INTO folders (id, name, parent_id, description, is_public, password, share_token, created_by, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO folders (id, name, parent_id, description, is_public, password, share_token, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
             id,
             data.name,
@@ -131,9 +132,8 @@ app.post('/',
             data.isPublic ? 1 : 0,
             data.password || null,
             shareToken,
-            user.id,
-            now,
-            now
+            timestamp,
+            timestamp
         ).run();
 
         return c.json({
@@ -175,7 +175,7 @@ app.put('/:id',
         }
 
         updates.push('updated_at = ?');
-        values.push(new Date().toISOString());
+        values.push(now());
         values.push(id);
 
         await env.DB.prepare(
@@ -232,14 +232,15 @@ app.put('/:id/share',
         const { isPublic, password, expiresAt } = c.req.valid('json');
         const { env } = c;
 
+        const expiresAtTs = expiresAt ? new Date(expiresAt).getTime() : null;
         await env.DB.prepare(`
-      UPDATE folders SET is_public = ?, password = ?, expires_at = ?, updated_at = ?
+      UPDATE folders SET is_public = ?, password = ?, share_expires_at = ?, updated_at = ?
       WHERE id = ?
-    `).bind(isPublic ? 1 : 0, password || null, expiresAt || null, new Date().toISOString(), id).run();
+    `).bind(isPublic ? 1 : 0, password || null, expiresAtTs, now(), id).run();
 
         // 获取更新后的分享信息
         const folder = await env.DB.prepare(
-            'SELECT share_token, is_public, password, expires_at FROM folders WHERE id = ?'
+            'SELECT share_token, is_public, password, share_expires_at FROM folders WHERE id = ?'
         ).bind(id).first();
 
         return c.json({
@@ -248,7 +249,7 @@ app.put('/:id/share',
                 shareToken: folder?.share_token,
                 isPublic: !!folder?.is_public,
                 hasPassword: !!folder?.password,
-                expiresAt: folder?.expires_at
+                expiresAt: folder?.share_expires_at
             }
         });
     }

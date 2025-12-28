@@ -151,7 +151,7 @@ app.post('/',
             await env.DB.prepare(`
         INSERT INTO spaces (id, name, description, is_public, password, share_token, expires_at, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(spaceId, name.trim(), description.trim(), isPublic ? 1 : 0, password, shareToken, expiresAt, now, now).run();
+      `).bind(spaceId, name.trim(), description.trim(), isPublic ? 1 : 0, password || null, shareToken, expiresAt || null, now, now).run();
 
             return c.json({
                 success: true,

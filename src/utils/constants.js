@@ -45,9 +45,9 @@ export const API = {
     MOVE: `${API_PREFIX}/move`,
 
     // 认证
-    LOGIN: `${API_PREFIX}/login`,
-    LOGOUT: `${API_PREFIX}/logout`,
-    USER: `${API_PREFIX}/user`
+    LOGIN: '/api/v1/auth/login',
+    LOGOUT: '/api/v1/auth/logout',
+    USER: '/api/v1/auth/me'
 };
 
 // 前端路由 (用于跳转和生成分享链接)

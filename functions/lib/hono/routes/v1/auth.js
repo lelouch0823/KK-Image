@@ -30,7 +30,7 @@ app.post('/login', zValidator('json', LoginSchema), async (c) => {
     }
 
     // 生成 JWT
-    const user = { id: username, name: 'Administrator', type: 'admin' };
+    const user = { id: username, name: 'Administrator', type: 'admin', permissions: ['admin:full'] };
     const expiresIn = 7 * 24 * 60 * 60; // 7 天
     const token = await generateJWT(user, env, expiresIn);
 

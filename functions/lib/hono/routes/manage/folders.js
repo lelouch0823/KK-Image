@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
-import { generateId, generateShareToken } from '../../../../api/utils/id.js';
+import { generateId, generateShareToken, now, timestampToIso } from '../../../../api/utils/id.js';
 import { getShareUrl, getFileUrl } from '../../../../api/utils/url.js';
 
 const app = new Hono();
@@ -165,7 +165,7 @@ app.post('/',
             await env.DB.prepare(`
         INSERT INTO folders (id, parent_id, name, description, share_token, is_public, password, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(folderId, parentId, name.trim(), description.trim(), shareToken, isPublic ? 1 : 0, password, now, now).run();
+      `).bind(folderId, parentId || null, name.trim(), description.trim(), shareToken, isPublic ? 1 : 0, password || null, now, now).run();
 
             return c.json({
                 success: true,
@@ -390,8 +390,8 @@ app.post('/:id/upload',
                 fileType,
                 fileId, // storage_key
                 user.id,
-                new Date(now).toISOString(),
-                new Date(now).toISOString()
+                now,
+                now
             ).run();
 
             // 5. 触发 Webhook
@@ -400,7 +400,7 @@ app.post('/:id/upload',
                 filename: fileName,
                 size: fileSize,
                 type: fileType,
-                uploadTime: new Date(now).toISOString(),
+                uploadTime: timestampToIso(now),
                 url: getFileUrl(fileId),
                 uploader: user.name || user.username || user.id,
                 storage: result.metadata?.storage

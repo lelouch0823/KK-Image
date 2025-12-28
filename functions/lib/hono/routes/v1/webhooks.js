@@ -14,6 +14,24 @@ const WEBHOOK_EVENTS = [
 ];
 
 /**
+ * 将数据库行转换为 Webhook 对象
+ */
+function rowToWebhook(row) {
+    return {
+        id: row.id,
+        url: row.url,
+        events: row.events ? JSON.parse(row.events) : WEBHOOK_EVENTS,
+        secret: row.secret,
+        headers: row.headers ? JSON.parse(row.headers) : {},
+        enabled: Boolean(row.enabled),
+        createdBy: row.created_by,
+        createdAt: row.created_at,
+        updatedBy: row.updated_by,
+        updatedAt: row.updated_at
+    };
+}
+
+/**
  * GET /api/v1/webhooks - 获取 Webhook 列表
  */
 app.get('/',
@@ -21,21 +39,20 @@ app.get('/',
     async (c) => {
         const { env } = c;
 
-        if (!env.WEBHOOKS_KV) {
+        try {
+            const { results } = await env.DB.prepare(
+                'SELECT * FROM webhooks ORDER BY created_at DESC'
+            ).all();
+
             return c.json({
                 success: true,
-                data: [],
+                data: results.map(rowToWebhook),
                 supportedEvents: WEBHOOK_EVENTS
             });
+        } catch (err) {
+            console.error('获取 Webhook 列表失败:', err);
+            return c.json({ success: false, error: err.message }, 500);
         }
-
-        const webhooks = await env.WEBHOOKS_KV.get('webhooks', 'json') || [];
-
-        return c.json({
-            success: true,
-            data: webhooks,
-            supportedEvents: WEBHOOK_EVENTS
-        });
     }
 );
 
@@ -48,18 +65,20 @@ app.get('/:id',
         const id = c.req.param('id');
         const { env } = c;
 
-        if (!env.WEBHOOKS_KV) {
-            return c.json({ success: false, error: 'Webhooks KV not configured' }, 503);
+        try {
+            const webhook = await env.DB.prepare(
+                'SELECT * FROM webhooks WHERE id = ?'
+            ).bind(id).first();
+
+            if (!webhook) {
+                return c.json({ success: false, error: 'Webhook 不存在' }, 404);
+            }
+
+            return c.json({ success: true, data: rowToWebhook(webhook) });
+        } catch (err) {
+            console.error('获取 Webhook 失败:', err);
+            return c.json({ success: false, error: err.message }, 500);
         }
-
-        const webhooks = await env.WEBHOOKS_KV.get('webhooks', 'json') || [];
-        const webhook = webhooks.find(w => w.id === id);
-
-        if (!webhook) {
-            return c.json({ success: false, error: 'Webhook 不存在' }, 404);
-        }
-
-        return c.json({ success: true, data: webhook });
     }
 );
 
@@ -77,10 +96,6 @@ app.post('/',
             return c.json({ success: false, error: 'Webhook URL is required' }, 400);
         }
 
-        if (!env.WEBHOOKS_KV) {
-            return c.json({ success: false, error: 'Webhooks KV not configured' }, 503);
-        }
-
         // 验证事件类型
         if (data.events?.length) {
             const invalid = data.events.filter(e => !WEBHOOK_EVENTS.includes(e));
@@ -89,22 +104,40 @@ app.post('/',
             }
         }
 
-        const webhook = {
-            id: 'wh_' + crypto.randomUUID().replace(/-/g, '').substring(0, 16),
-            url: data.url,
-            events: data.events || WEBHOOK_EVENTS,
-            secret: data.secret || null,
-            headers: data.headers || {},
-            enabled: true,
-            createdBy: user.name || user.id,
-            createdAt: new Date().toISOString()
-        };
+        try {
+            const id = 'wh_' + crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+            const now = Date.now();
 
-        const webhooks = await env.WEBHOOKS_KV.get('webhooks', 'json') || [];
-        webhooks.push(webhook);
-        await env.WEBHOOKS_KV.put('webhooks', JSON.stringify(webhooks));
+            await env.DB.prepare(`
+                INSERT INTO webhooks (id, url, events, secret, headers, enabled, created_by, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+                id,
+                data.url,
+                JSON.stringify(data.events || WEBHOOK_EVENTS),
+                data.secret || null,
+                JSON.stringify(data.headers || {}),
+                1,
+                user.name || user.id,
+                now
+            ).run();
 
-        return c.json({ success: true, data: webhook }, 201);
+            const webhook = {
+                id,
+                url: data.url,
+                events: data.events || WEBHOOK_EVENTS,
+                secret: data.secret || null,
+                headers: data.headers || {},
+                enabled: true,
+                createdBy: user.name || user.id,
+                createdAt: now
+            };
+
+            return c.json({ success: true, data: webhook }, 201);
+        } catch (err) {
+            console.error('创建 Webhook 失败:', err);
+            return c.json({ success: false, error: err.message }, 500);
+        }
     }
 );
 
@@ -119,28 +152,58 @@ app.put('/:id',
         const user = c.get('user');
         const { env } = c;
 
-        if (!env.WEBHOOKS_KV) {
-            return c.json({ success: false, error: 'Webhooks KV not configured' }, 503);
+        try {
+            const existing = await env.DB.prepare(
+                'SELECT id FROM webhooks WHERE id = ?'
+            ).bind(id).first();
+
+            if (!existing) {
+                return c.json({ success: false, error: 'Webhook 不存在' }, 404);
+            }
+
+            const updates = [];
+            const values = [];
+
+            if (data.url !== undefined) {
+                updates.push('url = ?');
+                values.push(data.url);
+            }
+            if (data.events !== undefined) {
+                updates.push('events = ?');
+                values.push(JSON.stringify(data.events));
+            }
+            if (data.secret !== undefined) {
+                updates.push('secret = ?');
+                values.push(data.secret);
+            }
+            if (data.headers !== undefined) {
+                updates.push('headers = ?');
+                values.push(JSON.stringify(data.headers));
+            }
+            if (data.enabled !== undefined) {
+                updates.push('enabled = ?');
+                values.push(data.enabled ? 1 : 0);
+            }
+
+            updates.push('updated_by = ?');
+            values.push(user.name || user.id);
+            updates.push('updated_at = ?');
+            values.push(Date.now());
+            values.push(id);
+
+            await env.DB.prepare(
+                `UPDATE webhooks SET ${updates.join(', ')} WHERE id = ?`
+            ).bind(...values).run();
+
+            const updated = await env.DB.prepare(
+                'SELECT * FROM webhooks WHERE id = ?'
+            ).bind(id).first();
+
+            return c.json({ success: true, data: rowToWebhook(updated) });
+        } catch (err) {
+            console.error('更新 Webhook 失败:', err);
+            return c.json({ success: false, error: err.message }, 500);
         }
-
-        const webhooks = await env.WEBHOOKS_KV.get('webhooks', 'json') || [];
-        const index = webhooks.findIndex(w => w.id === id);
-
-        if (index === -1) {
-            return c.json({ success: false, error: 'Webhook 不存在' }, 404);
-        }
-
-        webhooks[index] = {
-            ...webhooks[index],
-            ...data,
-            id, // 保持 ID 不变
-            updatedBy: user.name || user.id,
-            updatedAt: new Date().toISOString()
-        };
-
-        await env.WEBHOOKS_KV.put('webhooks', JSON.stringify(webhooks));
-
-        return c.json({ success: true, data: webhooks[index] });
     }
 );
 
@@ -153,20 +216,22 @@ app.delete('/:id',
         const id = c.req.param('id');
         const { env } = c;
 
-        if (!env.WEBHOOKS_KV) {
-            return c.json({ success: false, error: 'Webhooks KV not configured' }, 503);
+        try {
+            const existing = await env.DB.prepare(
+                'SELECT id FROM webhooks WHERE id = ?'
+            ).bind(id).first();
+
+            if (!existing) {
+                return c.json({ success: false, error: 'Webhook 不存在' }, 404);
+            }
+
+            await env.DB.prepare('DELETE FROM webhooks WHERE id = ?').bind(id).run();
+
+            return c.json({ success: true, message: 'Webhook 已删除' });
+        } catch (err) {
+            console.error('删除 Webhook 失败:', err);
+            return c.json({ success: false, error: err.message }, 500);
         }
-
-        const webhooks = await env.WEBHOOKS_KV.get('webhooks', 'json') || [];
-        const filtered = webhooks.filter(w => w.id !== id);
-
-        if (filtered.length === webhooks.length) {
-            return c.json({ success: false, error: 'Webhook 不存在' }, 404);
-        }
-
-        await env.WEBHOOKS_KV.put('webhooks', JSON.stringify(filtered));
-
-        return c.json({ success: true, message: 'Webhook 已删除' });
     }
 );
 
@@ -180,58 +245,75 @@ app.post('/:id/test',
         const user = c.get('user');
         const { env } = c;
 
-        if (!env.WEBHOOKS_KV) {
-            return c.json({ success: false, error: 'Webhooks KV not configured' }, 503);
-        }
-
-        const webhooks = await env.WEBHOOKS_KV.get('webhooks', 'json') || [];
-        const webhook = webhooks.find(w => w.id === id);
-
-        if (!webhook) {
-            return c.json({ success: false, error: 'Webhook 不存在' }, 404);
-        }
-
-        // 构建测试载荷
-        const payload = {
-            event: 'webhook.test',
-            timestamp: new Date().toISOString(),
-            data: {
-                message: 'This is a test webhook from KK-Image',
-                webhook: { id: webhook.id, url: webhook.url },
-                user: { id: user.id, name: user.name }
-            },
-            id: 'test_' + Date.now()
-        };
-
-        const headers = {
-            'Content-Type': 'application/json',
-            'User-Agent': 'KK-Image-Webhook/2.0',
-            'X-Webhook-Event': payload.event,
-            'X-Webhook-ID': payload.id,
-            ...webhook.headers
-        };
-
-        // 添加签名
-        if (webhook.secret) {
-            const encoder = new TextEncoder();
-            const key = await crypto.subtle.importKey(
-                'raw',
-                encoder.encode(webhook.secret),
-                { name: 'HMAC', hash: 'SHA-256' },
-                false,
-                ['sign']
-            );
-            const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(JSON.stringify(payload)));
-            headers['X-Webhook-Signature'] = 'sha256=' + btoa(String.fromCharCode(...new Uint8Array(signature)));
-        }
-
         try {
+            const row = await env.DB.prepare(
+                'SELECT * FROM webhooks WHERE id = ?'
+            ).bind(id).first();
+
+            if (!row) {
+                return c.json({ success: false, error: 'Webhook 不存在' }, 404);
+            }
+
+            const webhook = rowToWebhook(row);
+
+            // 构建测试载荷
+            const payload = {
+                event: 'webhook.test',
+                timestamp: new Date().toISOString(),
+                data: {
+                    message: 'This is a test webhook from KK-Image',
+                    webhook: { id: webhook.id, url: webhook.url },
+                    user: { id: user.id, name: user.name }
+                },
+                id: 'test_' + Date.now()
+            };
+
+            const headers = {
+                'Content-Type': 'application/json',
+                'User-Agent': 'KK-Image-Webhook/2.0',
+                'X-Webhook-Event': payload.event,
+                'X-Webhook-ID': payload.id,
+                ...webhook.headers
+            };
+
+            // 添加签名
+            if (webhook.secret) {
+                const encoder = new TextEncoder();
+                const key = await crypto.subtle.importKey(
+                    'raw',
+                    encoder.encode(webhook.secret),
+                    { name: 'HMAC', hash: 'SHA-256' },
+                    false,
+                    ['sign']
+                );
+                const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(JSON.stringify(payload)));
+                headers['X-Webhook-Signature'] = 'sha256=' + btoa(String.fromCharCode(...new Uint8Array(signature)));
+            }
+
+            const startTime = Date.now();
             const response = await fetch(webhook.url, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(payload),
                 signal: AbortSignal.timeout(10000)
             });
+            const duration = Date.now() - startTime;
+
+            // 记录日志到 D1
+            const logId = 'log_' + crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+            await env.DB.prepare(`
+                INSERT INTO webhook_logs (id, webhook_id, event, payload, status_code, duration_ms, success, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+                logId,
+                webhook.id,
+                payload.event,
+                JSON.stringify(payload),
+                response.status,
+                duration,
+                response.ok ? 1 : 0,
+                Date.now()
+            ).run();
 
             return c.json({
                 success: true,
@@ -239,10 +321,12 @@ app.post('/:id/test',
                     status: response.status,
                     statusText: response.statusText,
                     ok: response.ok,
+                    durationMs: duration,
                     timestamp: new Date().toISOString()
                 }
             });
         } catch (err) {
+            console.error('测试 Webhook 失败:', err);
             return c.json({
                 success: false,
                 error: err.message,

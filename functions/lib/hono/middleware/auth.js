@@ -4,7 +4,10 @@ import { verifyJWT } from '../../../api/utils/auth.js';
  * 公开路由列表（无需认证）
  */
 export const publicRoutes = [
-    '/api/v1/auth',
+    '/api/v1/auth/login',
+    '/api/v1/auth/check',
+    '/api/v1/auth/logout',
+    '/api/v1/auth/token',
     '/api/v1/health',
     '/api/gallery',
     '/api/space'
@@ -70,7 +73,7 @@ export async function authMiddleware(c, next) {
         console.error('JWT Verification Failed:', err);
         return c.json({
             success: false,
-            error: '登录已过期，请重新登录'
+            error: `登录已过期，请重新登录 (${err.message})`
         }, 401);
     }
 }

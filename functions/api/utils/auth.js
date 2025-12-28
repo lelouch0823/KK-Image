@@ -152,7 +152,7 @@ export async function verifyJWT(token, env) {
       id: payload.sub,
       name: payload.name,
       permissions: payload.permissions || ['read'],
-      type: 'jwt',
+      type: payload.type || 'jwt',
       iat: payload.iat,
       exp: payload.exp
     };
@@ -169,6 +169,7 @@ export async function generateJWT(user, env, expiresIn = 3600) {
   const payload = {
     sub: user.id,
     name: user.name,
+    type: user.type,
     permissions: user.permissions || ['read'],
     iat: now,
     exp: now + expiresIn

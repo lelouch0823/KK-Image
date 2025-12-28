@@ -5,7 +5,7 @@ import { z } from 'zod';
  */
 export const CreateFolderSchema = z.object({
     name: z.string().min(1, '文件夹名不能为空').max(100, '文件夹名过长'),
-    parentId: z.string().uuid('无效的父文件夹 ID').optional().nullable(),
+    parentId: z.string().optional().nullable(),
     description: z.string().max(500).optional(),
     isPublic: z.boolean().default(false),
     password: z.string().min(4).max(50).optional().nullable()
@@ -22,7 +22,7 @@ export const UpdateFolderSchema = CreateFolderSchema.partial();
 export const FolderQuerySchema = z.object({
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(50),
-    parentId: z.string().uuid().optional().nullable(),
+    parentId: z.string().optional().nullable(),
     search: z.string().max(100).optional(),
     includeFiles: z.coerce.boolean().default(false),
     recursive: z.coerce.boolean().default(false)

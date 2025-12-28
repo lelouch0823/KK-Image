@@ -1,4 +1,4 @@
-// Webhook 工具模块 - 处理事件通知
+// Webhook 工具模块 - 处理事件通知 (D1 版本)
 
 // 支持的事件类型
 export const WEBHOOK_EVENTS = {
@@ -10,7 +10,12 @@ export const WEBHOOK_EVENTS = {
   API_KEY_DELETED: 'api_key.deleted'
 };
 
-// 触发 Webhook
+/**
+ * 触发 Webhook
+ * @param {Object} env - 环境变量
+ * @param {string} eventType - 事件类型
+ * @param {Object} data - 事件数据
+ */
 export async function triggerWebhook(env, eventType, data) {
   try {
     // 获取已注册的 Webhooks
@@ -30,7 +35,7 @@ export async function triggerWebhook(env, eventType, data) {
     };
 
     // 并行发送所有 Webhooks
-    const promises = webhooks.map(webhook => sendWebhook(webhook, payload));
+    const promises = webhooks.map(webhook => sendWebhook(env, webhook, payload));
     const results = await Promise.allSettled(promises);
 
     // 记录结果
@@ -49,19 +54,20 @@ export async function triggerWebhook(env, eventType, data) {
 
     console.log(`Webhook summary for ${eventType}: ${successCount} success, ${failureCount} failed`);
 
-    // 记录 Webhook 执行历史
-    await logWebhookExecution(env, eventType, payload, results);
-
   } catch (error) {
     console.error('Error triggering webhooks:', error);
     throw error;
   }
 }
 
-// 发送单个 Webhook
-async function sendWebhook(webhook, payload) {
+/**
+ * 发送单个 Webhook
+ */
+async function sendWebhook(env, webhook, payload) {
   const maxRetries = 3;
   let attempt = 0;
+  let lastError = null;
+  const startTime = Date.now();
 
   while (attempt < maxRetries) {
     try {
@@ -91,6 +97,11 @@ async function sendWebhook(webhook, payload) {
         signal: AbortSignal.timeout(30000) // 30秒超时
       });
 
+      const duration = Date.now() - startTime;
+
+      // 记录日志
+      await logWebhookExecution(env, webhook.id, payload, response.status, duration, response.ok, null);
+
       if (response.ok) {
         return {
           success: true,
@@ -103,9 +114,12 @@ async function sendWebhook(webhook, payload) {
 
     } catch (error) {
       attempt++;
+      lastError = error;
       console.error(`Webhook attempt ${attempt} failed:`, error.message);
 
       if (attempt >= maxRetries) {
+        const duration = Date.now() - startTime;
+        await logWebhookExecution(env, webhook.id, payload, 0, duration, false, error.message);
         throw error;
       }
 
@@ -116,7 +130,9 @@ async function sendWebhook(webhook, payload) {
   }
 }
 
-// 生成 Webhook 签名
+/**
+ * 生成 Webhook 签名
+ */
 async function generateWebhookSignature(payload, secret) {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -131,72 +147,86 @@ async function generateWebhookSignature(payload, secret) {
   return 'sha256=' + btoa(String.fromCharCode(...new Uint8Array(signature)));
 }
 
-// 获取已注册的 Webhooks
+/**
+ * 获取已注册的 Webhooks (D1)
+ */
 async function getRegisteredWebhooks(env, eventType) {
-  if (!env.WEBHOOKS_KV) {
+  if (!env.DB) {
     return [];
   }
 
   try {
-    const webhooks = await env.WEBHOOKS_KV.get('webhooks', 'json') || [];
+    const { results } = await env.DB.prepare(
+      'SELECT * FROM webhooks WHERE enabled = 1'
+    ).all();
 
-    return webhooks.filter(webhook => {
-      // 检查是否启用
-      if (!webhook.enabled) return false;
-
+    return results.filter(webhook => {
       // 检查事件类型匹配
-      if (webhook.events && webhook.events.length > 0) {
-        return webhook.events.includes(eventType);
+      if (webhook.events) {
+        const events = JSON.parse(webhook.events);
+        if (events.length > 0) {
+          return events.includes(eventType);
+        }
       }
-
       // 如果没有指定事件类型，默认接收所有事件
       return true;
-    });
+    }).map(row => ({
+      id: row.id,
+      url: row.url,
+      events: row.events ? JSON.parse(row.events) : [],
+      secret: row.secret,
+      headers: row.headers ? JSON.parse(row.headers) : {},
+      enabled: Boolean(row.enabled)
+    }));
   } catch (error) {
     console.error('Error getting registered webhooks:', error);
     return [];
   }
 }
 
-// 记录 Webhook 执行历史
-async function logWebhookExecution(env, eventType, payload, results) {
-  if (!env.WEBHOOK_LOGS_KV) {
+/**
+ * 记录 Webhook 执行历史 (D1)
+ */
+async function logWebhookExecution(env, webhookId, payload, statusCode, durationMs, success, errorMsg) {
+  if (!env.DB) {
     return;
   }
 
   try {
-    const logEntry = {
-      id: payload.id,
-      event: eventType,
-      timestamp: payload.timestamp,
-      results: results.map((result, index) => ({
-        webhookIndex: index,
-        success: result.status === 'fulfilled',
-        error: result.status === 'rejected' ? result.reason.message : null
-      })),
-      payload: payload
-    };
+    const logId = 'log_' + crypto.randomUUID().replace(/-/g, '').substring(0, 16);
 
-    // 使用时间戳作为 key，便于按时间查询
-    const logKey = `webhook_log_${Date.now()}_${payload.id}`;
-
-    await env.WEBHOOK_LOGS_KV.put(logKey, JSON.stringify(logEntry), {
-      expirationTtl: 30 * 24 * 60 * 60 // 30天后过期
-    });
+    await env.DB.prepare(`
+      INSERT INTO webhook_logs (id, webhook_id, event, payload, status_code, duration_ms, success, response, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      logId,
+      webhookId,
+      payload.event,
+      JSON.stringify(payload),
+      statusCode,
+      durationMs,
+      success ? 1 : 0,
+      errorMsg || null,
+      Date.now()
+    ).run();
   } catch (error) {
     console.error('Error logging webhook execution:', error);
   }
 }
 
-// 生成 Webhook ID
+/**
+ * 生成 Webhook ID
+ */
 function generateWebhookId() {
   return 'wh_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
 }
 
-// 注册新的 Webhook
+/**
+ * 注册新的 Webhook (D1)
+ */
 export async function registerWebhook(env, webhookConfig) {
-  if (!env.WEBHOOKS_KV) {
-    throw new Error('Webhooks KV namespace not configured');
+  if (!env.DB) {
+    throw new Error('Database not configured');
   }
 
   // 验证配置
@@ -208,62 +238,94 @@ export async function registerWebhook(env, webhookConfig) {
     throw new Error('Invalid webhook URL');
   }
 
-  const webhook = {
-    id: generateWebhookId(),
+  // 检查是否已存在相同 URL
+  const existing = await env.DB.prepare(
+    'SELECT id FROM webhooks WHERE url = ?'
+  ).bind(webhookConfig.url).first();
+
+  if (existing) {
+    throw new Error('Webhook with this URL already exists');
+  }
+
+  const id = generateWebhookId();
+  const now = Date.now();
+
+  await env.DB.prepare(`
+    INSERT INTO webhooks (id, url, events, secret, headers, enabled, created_by, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    id,
+    webhookConfig.url,
+    JSON.stringify(webhookConfig.events || []),
+    webhookConfig.secret || null,
+    JSON.stringify(webhookConfig.headers || {}),
+    webhookConfig.enabled !== false ? 1 : 0,
+    webhookConfig.createdBy || 'system',
+    now
+  ).run();
+
+  return {
+    id,
     url: webhookConfig.url,
     events: webhookConfig.events || [],
     secret: webhookConfig.secret || null,
     headers: webhookConfig.headers || {},
     enabled: webhookConfig.enabled !== false,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
     createdBy: webhookConfig.createdBy || 'system'
   };
-
-  // 获取现有 Webhooks
-  const existingWebhooks = await env.WEBHOOKS_KV.get('webhooks', 'json') || [];
-
-  // 检查是否已存在相同 URL
-  const existingWebhook = existingWebhooks.find(w => w.url === webhook.url);
-  if (existingWebhook) {
-    throw new Error('Webhook with this URL already exists');
-  }
-
-  // 添加新 Webhook
-  existingWebhooks.push(webhook);
-
-  await env.WEBHOOKS_KV.put('webhooks', JSON.stringify(existingWebhooks));
-
-  return webhook;
 }
 
-// 删除 Webhook
+/**
+ * 删除 Webhook (D1)
+ */
 export async function deleteWebhook(env, webhookId) {
-  if (!env.WEBHOOKS_KV) {
-    throw new Error('Webhooks KV namespace not configured');
+  if (!env.DB) {
+    throw new Error('Database not configured');
   }
 
-  const existingWebhooks = await env.WEBHOOKS_KV.get('webhooks', 'json') || [];
-  const updatedWebhooks = existingWebhooks.filter(w => w.id !== webhookId);
+  const existing = await env.DB.prepare(
+    'SELECT id FROM webhooks WHERE id = ?'
+  ).bind(webhookId).first();
 
-  if (updatedWebhooks.length === existingWebhooks.length) {
+  if (!existing) {
     throw new Error('Webhook not found');
   }
 
-  await env.WEBHOOKS_KV.put('webhooks', JSON.stringify(updatedWebhooks));
+  await env.DB.prepare('DELETE FROM webhooks WHERE id = ?').bind(webhookId).run();
 
   return true;
 }
 
-// 获取所有 Webhooks
+/**
+ * 获取所有 Webhooks (D1)
+ */
 export async function getWebhooks(env) {
-  if (!env.WEBHOOKS_KV) {
+  if (!env.DB) {
     return [];
   }
 
-  return await env.WEBHOOKS_KV.get('webhooks', 'json') || [];
+  const { results } = await env.DB.prepare(
+    'SELECT * FROM webhooks ORDER BY created_at DESC'
+  ).all();
+
+  return results.map(row => ({
+    id: row.id,
+    url: row.url,
+    events: row.events ? JSON.parse(row.events) : [],
+    secret: row.secret,
+    headers: row.headers ? JSON.parse(row.headers) : {},
+    enabled: Boolean(row.enabled),
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+    updatedBy: row.updated_by,
+    updatedAt: row.updated_at
+  }));
 }
 
-// URL 验证
+/**
+ * URL 验证
+ */
 function isValidUrl(string) {
   try {
     const url = new URL(string);

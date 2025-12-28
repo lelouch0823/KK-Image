@@ -170,17 +170,16 @@ BASIC_PASS = "123456"
 # 通过 `wrangler kv namespace create <NAME>` 创建
 # =============================================================================
 
-[[kv_namespaces]]
-binding = "img_url"
-id = "7bedbd0e77b64e548b280114c38a5541"
+# 注意: 以下 KV 命名空间已迁移至 D1 数据库，不再使用
+# - USERS_KV -> users 表
+# - WEBHOOKS_KV -> webhooks 表
+# - WEBHOOK_LOGS_KV -> webhook_logs 表
+# - img_url (镜像状态) -> storage_mirrors 表
 
-[[kv_namespaces]]
-binding = "WEBHOOKS_KV"
-id = "6ae427ac8290406684dcabf2ca4babac"
-
-[[kv_namespaces]]
-binding = "WEBHOOK_LOGS_KV"
-id = "0346979ddffe4b2da2a7ea7e05133167"
+# 如果仍需 KV 用于其他目的（如遗留兼容），可保留以下配置：
+# [[kv_namespaces]]
+# binding = "img_url"
+# id = "7bedbd0e77b64e548b280114c38a5541"
 
 # =============================================================================
 # R2 存储桶绑定

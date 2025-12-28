@@ -24,6 +24,7 @@ export function useAuth() {
             isLoading.value = true;
             const response = await fetch(API.USER, {
                 method: 'GET',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json'
                 }

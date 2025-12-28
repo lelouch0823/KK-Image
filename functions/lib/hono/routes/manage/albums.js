@@ -125,7 +125,7 @@ app.post('/',
             await env.DB.prepare(`
         INSERT INTO albums (id, name, description, is_public, share_token, cover_file_id, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(albumId, name.trim(), description.trim(), isPublic ? 1 : 0, shareToken, coverFileId, now, now).run();
+      `).bind(albumId, name.trim(), description.trim(), isPublic ? 1 : 0, shareToken, coverFileId || null, now, now).run();
 
             return c.json({
                 success: true,

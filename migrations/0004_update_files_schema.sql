@@ -1,0 +1,4 @@
+-- Migration number: 0004 	 2025-12-28T14:00:00Z
+ALTER TABLE files ADD COLUMN is_public INTEGER DEFAULT 0;
+ALTER TABLE files ADD COLUMN created_by TEXT;
+ALTER TABLE files ADD COLUMN updated_at INTEGER;

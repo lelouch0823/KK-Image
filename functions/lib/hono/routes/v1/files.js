@@ -5,6 +5,7 @@ import { requirePermission } from '../../middleware/auth.js';
 import { withCache, invalidateCache } from '../../middleware/cache.js';
 import { batchDelete } from '../../../../lib/db/batch.js';
 import { getFileUrl } from '../../../../api/utils/url.js';
+import { now } from '../../../../api/utils/id.js';
 
 const app = new Hono();
 
@@ -107,12 +108,12 @@ app.post('/',
         const { env } = c;
 
         const id = crypto.randomUUID();
-        const now = new Date().toISOString();
+        const now = Date.now();
 
         await env.DB.prepare(`
-      INSERT INTO files (id, name, folder_id, is_public, created_by, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).bind(id, data.name, data.folderId || null, data.isPublic ? 1 : 0, user.id, now, now).run();
+      INSERT INTO files (id, name, folder_id, is_public, storage_key, created_by, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(id, data.name, data.folderId || null, data.isPublic ? 1 : 0, id, user.id, now, now).run();
 
         return c.json({
             success: true,
@@ -157,7 +158,7 @@ app.put('/:id',
         }
 
         updates.push('updated_at = ?');
-        values.push(new Date().toISOString());
+        values.push(now());
         values.push(id);
 
         await env.DB.prepare(
@@ -256,7 +257,7 @@ app.post('/batch/move',
         const placeholders = ids.map(() => '?').join(',');
         await env.DB.prepare(
             `UPDATE files SET folder_id = ?, updated_at = ? WHERE id IN (${placeholders})`
-        ).bind(targetFolderId, new Date().toISOString(), ...ids).run();
+        ).bind(targetFolderId, now(), ...ids).run();
 
         return c.json({
             success: true,

@@ -23,6 +23,7 @@ import manageAlbumsRoutes from './routes/manage/albums.js';
 import manageSpacesRoutes from './routes/manage/spaces.js';
 import manageStatsRoutes from './routes/manage/stats.js';
 import manageUsersRoutes from './routes/manage/user.js';
+import manageSharesRoutes from './routes/manage/shares.js';
 
 export const app = new Hono();
 
@@ -55,15 +56,17 @@ app.use('/api/*', rateLimitMiddleware);
 // 公开路由（无需认证）
 // ============================================
 
-app.route('/api/v1/auth', authRoutes);
-app.route('/api/v1/health', healthRoutes);
-
 // ============================================
-// 受保护路由（需要认证）
+// 认证中间件配置
 // ============================================
 
 app.use('/api/v1/*', authMiddleware);
 app.use('/api/manage/*', authMiddleware);
+
+app.route('/api/v1/auth', authRoutes);
+app.route('/api/v1/health', healthRoutes);
+
+
 
 // V1 API 路由
 app.route('/api/v1/files', filesRoutes);
@@ -79,6 +82,7 @@ app.route('/api/manage/albums', manageAlbumsRoutes);
 app.route('/api/manage/spaces', manageSpacesRoutes);
 app.route('/api/manage/stats', manageStatsRoutes);
 app.route('/api/manage/user', manageUsersRoutes);
+app.route('/api/manage/shares', manageSharesRoutes);
 
 // ============================================
 // 通用处理

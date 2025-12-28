@@ -28,18 +28,7 @@ app.get('/', async (c) => {
         healthCheck.services.d1 = 'not_configured';
     }
 
-    // 检查 KV 存储
-    if (env.img_url) {
-        try {
-            await env.img_url.get('_health_check');
-            healthCheck.services.kv = 'healthy';
-        } catch (error) {
-            healthCheck.services.kv = 'unhealthy';
-            healthCheck.status = 'degraded';
-        }
-    } else {
-        healthCheck.services.kv = 'not_configured';
-    }
+    // KV 已迁移至 D1，移除 KV 检查
 
     // 检查 R2 存储
     if (env.R2_BUCKET) {

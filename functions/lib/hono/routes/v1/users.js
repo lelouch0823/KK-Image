@@ -6,6 +6,18 @@ import { requirePermission } from '../../middleware/auth.js';
 const app = new Hono();
 
 /**
+ * 密码哈希工具函数
+ */
+async function hashPassword(password, salt) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password + (salt || 'salt'));
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
+
+/**
  * GET /api/v1/users - 获取用户列表（管理员）
  */
 app.get('/',
@@ -13,20 +25,27 @@ app.get('/',
     async (c) => {
         const { env } = c;
 
-        if (!env.USERS_KV) {
-            return c.json({
-                success: true,
-                data: [],
-                message: 'Users KV not configured'
-            });
+        try {
+            const { results } = await env.DB.prepare(
+                'SELECT id, username, name, email, role, permissions, created_at, updated_at FROM users'
+            ).all();
+
+            const safeUsers = results.map(u => ({
+                id: u.id,
+                username: u.username,
+                name: u.name,
+                email: u.email,
+                role: u.role,
+                permissions: u.permissions ? JSON.parse(u.permissions) : [],
+                createdAt: u.created_at,
+                updatedAt: u.updated_at
+            }));
+
+            return c.json({ success: true, data: safeUsers });
+        } catch (err) {
+            console.error('获取用户列表失败:', err);
+            return c.json({ success: false, error: err.message }, 500);
         }
-
-        const users = await env.USERS_KV.get('users', 'json') || [];
-
-        // 移除敏感信息
-        const safeUsers = users.map(({ passwordHash, ...user }) => user);
-
-        return c.json({ success: true, data: safeUsers });
     }
 );
 
@@ -56,19 +75,32 @@ app.get('/:id',
         const id = c.req.param('id');
         const { env } = c;
 
-        if (!env.USERS_KV) {
-            return c.json({ success: false, error: 'Users KV not configured' }, 503);
+        try {
+            const user = await env.DB.prepare(
+                'SELECT id, username, name, email, role, permissions, created_at, updated_at FROM users WHERE id = ?'
+            ).bind(id).first();
+
+            if (!user) {
+                return c.json({ success: false, error: '用户不存在' }, 404);
+            }
+
+            return c.json({
+                success: true,
+                data: {
+                    id: user.id,
+                    username: user.username,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    permissions: user.permissions ? JSON.parse(user.permissions) : [],
+                    createdAt: user.created_at,
+                    updatedAt: user.updated_at
+                }
+            });
+        } catch (err) {
+            console.error('获取用户失败:', err);
+            return c.json({ success: false, error: err.message }, 500);
         }
-
-        const users = await env.USERS_KV.get('users', 'json') || [];
-        const user = users.find(u => u.id === id);
-
-        if (!user) {
-            return c.json({ success: false, error: '用户不存在' }, 404);
-        }
-
-        const { passwordHash, ...safeUser } = user;
-        return c.json({ success: true, data: safeUser });
     }
 );
 
@@ -82,41 +114,51 @@ app.post('/',
         const data = c.req.valid('json');
         const { env } = c;
 
-        if (!env.USERS_KV) {
-            return c.json({ success: false, error: 'Users KV not configured' }, 503);
+        try {
+            // 检查用户名是否已存在
+            const existing = await env.DB.prepare(
+                'SELECT id FROM users WHERE username = ?'
+            ).bind(data.username).first();
+
+            if (existing) {
+                return c.json({ success: false, error: '用户名已存在' }, 409);
+            }
+
+            const id = crypto.randomUUID();
+            const passwordHash = await hashPassword(data.password, env.JWT_SECRET);
+            const now = Date.now();
+            const permissions = JSON.stringify(data.permissions || []);
+
+            await env.DB.prepare(`
+                INSERT INTO users (id, username, password_hash, name, email, role, permissions, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+                id,
+                data.username,
+                passwordHash,
+                data.name || null,
+                data.email || null,
+                data.role || 'user',
+                permissions,
+                now
+            ).run();
+
+            return c.json({
+                success: true,
+                data: {
+                    id,
+                    username: data.username,
+                    name: data.name,
+                    email: data.email,
+                    role: data.role || 'user',
+                    permissions: data.permissions || [],
+                    createdAt: now
+                }
+            }, 201);
+        } catch (err) {
+            console.error('创建用户失败:', err);
+            return c.json({ success: false, error: err.message }, 500);
         }
-
-        const users = await env.USERS_KV.get('users', 'json') || [];
-
-        // 检查用户名是否已存在
-        if (users.some(u => u.username === data.username)) {
-            return c.json({ success: false, error: '用户名已存在' }, 409);
-        }
-
-        // 哈希密码
-        const encoder = new TextEncoder();
-        const passwordData = encoder.encode(data.password + (env.JWT_SECRET || 'salt'));
-        const hashBuffer = await crypto.subtle.digest('SHA-256', passwordData);
-        const passwordHash = Array.from(new Uint8Array(hashBuffer))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
-
-        const newUser = {
-            id: crypto.randomUUID(),
-            username: data.username,
-            passwordHash,
-            name: data.name,
-            email: data.email,
-            role: data.role,
-            permissions: data.permissions || [],
-            createdAt: new Date().toISOString()
-        };
-
-        users.push(newUser);
-        await env.USERS_KV.put('users', JSON.stringify(users));
-
-        const { passwordHash: _, ...safeUser } = newUser;
-        return c.json({ success: true, data: safeUser }, 201);
     }
 );
 
@@ -131,41 +173,73 @@ app.put('/:id',
         const data = c.req.valid('json');
         const { env } = c;
 
-        if (!env.USERS_KV) {
-            return c.json({ success: false, error: 'Users KV not configured' }, 503);
+        try {
+            const existing = await env.DB.prepare(
+                'SELECT id FROM users WHERE id = ?'
+            ).bind(id).first();
+
+            if (!existing) {
+                return c.json({ success: false, error: '用户不存在' }, 404);
+            }
+
+            const updates = [];
+            const values = [];
+
+            if (data.name !== undefined) {
+                updates.push('name = ?');
+                values.push(data.name);
+            }
+            if (data.email !== undefined) {
+                updates.push('email = ?');
+                values.push(data.email);
+            }
+            if (data.role !== undefined) {
+                updates.push('role = ?');
+                values.push(data.role);
+            }
+            if (data.permissions !== undefined) {
+                updates.push('permissions = ?');
+                values.push(JSON.stringify(data.permissions));
+            }
+            if (data.password) {
+                updates.push('password_hash = ?');
+                values.push(await hashPassword(data.password, env.JWT_SECRET));
+            }
+
+            if (updates.length === 0) {
+                return c.json({ success: false, error: '没有可更新的字段' }, 400);
+            }
+
+            updates.push('updated_at = ?');
+            values.push(Date.now());
+            values.push(id);
+
+            await env.DB.prepare(
+                `UPDATE users SET ${updates.join(', ')} WHERE id = ?`
+            ).bind(...values).run();
+
+            // 获取更新后的用户
+            const user = await env.DB.prepare(
+                'SELECT id, username, name, email, role, permissions, created_at, updated_at FROM users WHERE id = ?'
+            ).bind(id).first();
+
+            return c.json({
+                success: true,
+                data: {
+                    id: user.id,
+                    username: user.username,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    permissions: user.permissions ? JSON.parse(user.permissions) : [],
+                    createdAt: user.created_at,
+                    updatedAt: user.updated_at
+                }
+            });
+        } catch (err) {
+            console.error('更新用户失败:', err);
+            return c.json({ success: false, error: err.message }, 500);
         }
-
-        const users = await env.USERS_KV.get('users', 'json') || [];
-        const index = users.findIndex(u => u.id === id);
-
-        if (index === -1) {
-            return c.json({ success: false, error: '用户不存在' }, 404);
-        }
-
-        // 更新用户
-        const updatedUser = { ...users[index] };
-
-        if (data.name !== undefined) updatedUser.name = data.name;
-        if (data.email !== undefined) updatedUser.email = data.email;
-        if (data.role !== undefined) updatedUser.role = data.role;
-        if (data.permissions !== undefined) updatedUser.permissions = data.permissions;
-
-        if (data.password) {
-            const encoder = new TextEncoder();
-            const passwordData = encoder.encode(data.password + (env.JWT_SECRET || 'salt'));
-            const hashBuffer = await crypto.subtle.digest('SHA-256', passwordData);
-            updatedUser.passwordHash = Array.from(new Uint8Array(hashBuffer))
-                .map(b => b.toString(16).padStart(2, '0'))
-                .join('');
-        }
-
-        updatedUser.updatedAt = new Date().toISOString();
-        users[index] = updatedUser;
-
-        await env.USERS_KV.put('users', JSON.stringify(users));
-
-        const { passwordHash, ...safeUser } = updatedUser;
-        return c.json({ success: true, data: safeUser });
     }
 );
 
@@ -183,20 +257,22 @@ app.delete('/:id',
             return c.json({ success: false, error: '不能删除自己的账户' }, 400);
         }
 
-        if (!env.USERS_KV) {
-            return c.json({ success: false, error: 'Users KV not configured' }, 503);
+        try {
+            const existing = await env.DB.prepare(
+                'SELECT id FROM users WHERE id = ?'
+            ).bind(id).first();
+
+            if (!existing) {
+                return c.json({ success: false, error: '用户不存在' }, 404);
+            }
+
+            await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
+
+            return c.json({ success: true, message: '用户已删除' });
+        } catch (err) {
+            console.error('删除用户失败:', err);
+            return c.json({ success: false, error: err.message }, 500);
         }
-
-        const users = await env.USERS_KV.get('users', 'json') || [];
-        const filteredUsers = users.filter(u => u.id !== id);
-
-        if (filteredUsers.length === users.length) {
-            return c.json({ success: false, error: '用户不存在' }, 404);
-        }
-
-        await env.USERS_KV.put('users', JSON.stringify(filteredUsers));
-
-        return c.json({ success: true, message: '用户已删除' });
     }
 );
 
