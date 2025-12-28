@@ -4,7 +4,7 @@
       
       <!-- Header -->
       <div class="px-6 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-primary">移动到...</h3>
+        <h3 class="text-lg font-semibold text-primary">{{ t('moveFile.title') }}</h3>
         <button @click="close" class="text-secondary hover:text-primary transition-colors">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -27,7 +27,7 @@
                 <svg class="w-5 h-5 text-gray-400" :class="selectedId === rootFolder.id ? 'text-indigo-500' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
-                <span class="font-medium">根目录</span>
+                <span class="font-medium">{{ t('moveFile.root') }}</span>
             </div>
 
             <!-- Recursive Tree -->
@@ -44,17 +44,17 @@
             </div>
             
              <div v-if="flattenedFolders.length === 0 && !loading" class="text-center text-sm text-secondary py-4">
-                暂无其他文件夹
+                {{ t('moveFile.empty') }}
             </div>
         </div>
       </div>
 
       <!-- Footer -->
-      <div class="px-6 py-4 border-t border-[var(--border-color)] flex justify-end gap-3 bg-gray-50 rounded-b-xl">
-        <button @click="close" class="btn btn-secondary">取消</button>
+      <div class="px-6 py-4 border-t border-[var(--border-color)] flex justify-end gap-3 bg-[var(--bg-muted)] rounded-b-xl">
+        <button @click="close" class="btn btn-secondary">{{ t('moveFile.cancel') }}</button>
         <button @click="confirmMove" :disabled="!selectedId || moving" class="btn btn-primary gap-2">
             <span v-if="moving" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-            <span>{{ moving ? '移动中...' : '移动' }}</span>
+            <span>{{ moving ? t('moveFile.moving') : t('moveFile.move') }}</span>
         </button>
       </div>
 
@@ -66,6 +66,7 @@
 import { ref, watch } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
+import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 
 const props = defineProps({
@@ -77,6 +78,7 @@ const emit = defineEmits(['update:modelValue', 'moved']);
 
 const { addToast } = useToast();
 const { getAuthHeader, getHeaders } = useAuth();
+const { t } = useI18n();
 
 const loading = ref(false);
 const moving = ref(false);
@@ -139,7 +141,7 @@ const fetchAllFolders = async () => {
             flattenedFolders.value = buildTreeAndFlatten(res.data);
         }
     } catch (e) {
-        addToast({ message: '加载文件夹列表失败', type: 'error' });
+        addToast({ message: t('moveFile.loadFailed'), type: 'error' });
     } finally {
         loading.value = false;
     }
@@ -160,14 +162,14 @@ const confirmMove = async () => {
         }).then(r => r.json());
 
         if (res.success) {
-            addToast({ message: '文件移动成功', type: 'success' });
+            addToast({ message: t('moveFile.moveSuccess'), type: 'success' });
             emit('moved');
             close();
         } else {
-            addToast({ message: res.message || '移动失败', type: 'error' });
+            addToast({ message: res.message || t('moveFile.moveFailed'), type: 'error' });
         }
     } catch (e) {
-        addToast({ message: '操作失败', type: 'error' });
+        addToast({ message: t('moveFile.opFailed'), type: 'error' });
     } finally {
         moving.value = false;
     }

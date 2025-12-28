@@ -1,46 +1,46 @@
 <template>
-  <div class="min-h-screen bg-gray-50 bg-pattern font-sans antialiased flex items-center justify-center p-4 text-gray-900">
+  <div class="min-h-screen bg-[var(--bg-page)] bg-pattern font-sans antialiased flex items-center justify-center p-4 text-[var(--text-main)]">
     <div class="w-full max-w-md">
       <!-- 登录卡片 -->
-      <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+      <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-[var(--border-color)] overflow-hidden">
         <!-- 头部 -->
         <div class="px-8 pt-10 pb-6 text-center">
           <!-- Logo -->
           <div class="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-gray-800 to-black flex items-center justify-center text-white font-bold text-2xl shadow-lg">
             KK
           </div>
-          <h1 class="text-2xl font-bold text-gray-900 mb-2">欢迎回来</h1>
-          <p class="text-gray-500 text-sm">登录以管理您的图片和文件</p>
+          <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ t('login.welcome') }}</h1>
+          <p class="text-secondary text-sm">{{ t('login.subtitle') }}</p>
         </div>
 
         <!-- 表单 -->
         <form @submit.prevent="handleLogin" class="px-8 pb-10">
           <!-- 用户名 -->
           <div class="mb-5">
-            <label class="block text-sm font-medium text-gray-900 mb-2">用户名</label>
+            <label class="block text-sm font-medium text-[var(--text-main)] mb-2">{{ t('login.username') }}</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                 </svg>
               </div>
-              <input v-model="username" type="text" required autocomplete="username" placeholder="请输入用户名"
-                class="input-focus w-full h-12 pl-12 pr-4 text-sm border border-gray-200 rounded-xl bg-gray-100/50 focus:bg-white focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 transition-all" />
+              <input v-model="username" type="text" required autocomplete="username" :placeholder="t('login.usernamePlaceholder')"
+                class="input-focus w-full h-12 pl-12 pr-4 text-sm border border-[var(--border-color)] rounded-xl bg-[var(--bg-muted)] focus:bg-white focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 transition-all" />
             </div>
           </div>
 
           <!-- 密码 -->
           <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-900 mb-2">密码</label>
+            <label class="block text-sm font-medium text-[var(--text-main)] mb-2">{{ t('login.password') }}</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                 </svg>
               </div>
               <input v-model="password" :type="showPassword ? 'text' : 'password'" required
-                autocomplete="current-password" placeholder="请输入密码"
-                class="input-focus w-full h-12 pl-12 pr-12 text-sm border border-gray-200 rounded-xl bg-gray-100/50 focus:bg-white focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 transition-all" />
+                autocomplete="current-password" :placeholder="t('login.passwordPlaceholder')"
+                class="input-focus w-full h-12 pl-12 pr-12 text-sm border border-[var(--border-color)] rounded-xl bg-[var(--bg-muted)] focus:bg-white focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 transition-all" />
               <button type="button" @click="showPassword = !showPassword"
                 class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-900 transition-colors">
                 <svg v-if="!showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,7 +72,7 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span>{{ loading ? '登录中...' : '登录' }}</span>
+            <span>{{ loading ? t('login.loggingIn') : t('login.loginButton') }}</span>
           </button>
         </form>
       </div>
@@ -99,10 +99,12 @@ import { ref, onBeforeMount } from 'vue';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
+import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 
 const { addToast } = useToast();
 const { checkAuth } = useAuth();
+const { t } = useI18n();
 
 const username = ref('');
 const password = ref('');
@@ -134,7 +136,7 @@ onBeforeMount(async () => {
 
 const handleLogin = async () => {
   if (!username.value || !password.value) {
-    addToast({ message: '请输入用户名和密码', type: 'warning' });
+    addToast({ message: t('login.inputRequired'), type: 'warning' });
     return;
   }
 
@@ -156,7 +158,7 @@ const handleLogin = async () => {
     const result = await response.json();
 
     if (response.ok && result.success) {
-      addToast({ message: '登录成功', type: 'success' });
+      addToast({ message: t('login.loginSuccess'), type: 'success' });
       // Delay slightly for toast visibility
       setTimeout(() => {
         window.location.href = '/admin.html';
@@ -168,8 +170,8 @@ const handleLogin = async () => {
     }
   } catch (err) {
     console.error('Login error:', err);
-    error.value = '登录失败，请稍后重试';
-    addToast({ message: '登录失败，请稍后重试', type: 'error' });
+    error.value = t('login.loginFailed');
+    addToast({ message: t('login.loginFailed'), type: 'error' });
   } finally {
     loading.value = false;
   }

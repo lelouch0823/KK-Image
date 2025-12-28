@@ -1,5 +1,6 @@
 // Webhook 单个操作 API - 处理特定 Webhook ID 的操作
 import { hasPermission } from '../../utils/auth.js';
+import { getUser } from '../../utils/context.js';
 import { deleteWebhook, getWebhooks } from '../../utils/webhook.js';
 
 // 获取单个 Webhook 信息
@@ -8,7 +9,7 @@ export async function onRequestGet(context) {
   const webhookId = params.id;
 
   // 获取用户信息
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   // 检查管理员权限
   if (!hasPermission(user, 'admin')) {
@@ -46,7 +47,7 @@ export async function onRequestDelete(context) {
   const webhookId = params.id;
 
   // 获取用户信息
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   // 检查管理员权限
   if (!hasPermission(user, 'admin')) {
@@ -77,7 +78,7 @@ export async function onRequestPut(context) {
   const webhookId = params.id;
 
   // 获取用户信息
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   // 检查管理员权限
   if (!hasPermission(user, 'admin')) {

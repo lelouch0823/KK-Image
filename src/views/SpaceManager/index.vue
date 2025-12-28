@@ -3,21 +3,22 @@
     <!-- 页面标题 -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-xl font-semibold text-primary">共享空间</h1>
-        <p class="text-sm text-secondary mt-1">创建和管理您的共享空间</p>
+        <h1 class="text-xl font-semibold text-primary">{{ t('spaceManager.title') }}</h1>
+        <p class="text-sm text-secondary mt-1">{{ t('spaceManager.subtitle') }}</p>
       </div>
       <button v-if="spaces.length === 0" disabled class="invisible px-4 py-2">
         <!-- 占位符保持布局 -->
       </button>
       <div v-else class="flex gap-2">
           <!-- 未来可扩展：导入、归档等按钮 -->
-          <button @click="showCreateModal = true"
-            class="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-gray-800 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-            </svg>
-            新建
-          </button>
+          <Tooltip :content="t('spaceManager.create')">
+            <button @click="showCreateModal = true"
+                class="w-9 h-9 flex items-center justify-center bg-primary text-white rounded-lg hover:bg-[var(--color-primary-hover)] transition-colors shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+            </button>
+          </Tooltip>
       </div>
     </div>
 
@@ -48,8 +49,8 @@
           
           <!-- 分享状态 -->
           <span v-if="space.isPublic" 
-            class="absolute top-2 right-2 px-2 py-1 text-xs font-medium bg-green-500 text-white rounded-full">
-            已公开
+            class="absolute top-2 right-2 px-2 py-1 text-xs font-medium bg-[var(--color-success)] text-white rounded-full">
+            {{ t('spaceManager.public') }}
           </span>
         </div>
 
@@ -63,7 +64,7 @@
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
               </svg>
-              {{ space.fileCount }} 文件
+              {{ t('fileManager.totalFiles', { count: space.fileCount }) }}
             </span>
             <span class="flex items-center gap-1">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -76,15 +77,23 @@
         </div>
 
         <!-- 操作菜单 -->
-        <div class="px-4 pb-4 flex gap-2">
-          <button @click.stop="copyShareLink(space)" 
-            class="flex-1 px-3 py-2 text-xs font-medium bg-gray-100 text-secondary rounded-lg hover:bg-gray-200 transition-colors">
-            复制链接
-          </button>
-          <button @click.stop="deleteSpaceConfirm(space)"
-            class="px-3 py-2 text-xs text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
-            删除
-          </button>
+        <div class="px-4 pb-4 flex justify-end gap-2">
+          <Tooltip :content="t('spaceManager.copyLink')">
+            <button @click.stop="copyShareLink(space)" 
+                class="w-8 h-8 flex items-center justify-center bg-gray-100 text-secondary rounded-lg hover:bg-gray-200 transition-colors hover:text-primary">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                </svg>
+            </button>
+          </Tooltip>
+          <Tooltip :content="t('spaceManager.deleteSpace')">
+            <button @click.stop="deleteSpaceConfirm(space)"
+                class="w-8 h-8 flex items-center justify-center text-[var(--color-danger)] bg-[var(--color-danger-bg)] rounded-lg hover:bg-red-100 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+            </button>
+          </Tooltip>
         </div>
       </div>
     </div>
@@ -97,14 +106,14 @@
             d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
         </svg>
       </div>
-      <h3 class="text-lg font-medium text-primary mb-2">暂无共享空间</h3>
-      <p class="text-secondary text-sm mb-6">创建一个空间来整理和分享您的文件</p>
+      <h3 class="text-lg font-medium text-primary mb-2">{{ t('spaceManager.emptyTitle') }}</h3>
+      <p class="text-secondary text-sm mb-6">{{ t('spaceManager.createDesc') }}</p>
       <button @click="showCreateModal = true"
-        class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-gray-800 transition-colors">
+        class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-[var(--color-primary-hover)] transition-colors">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
         </svg>
-        创建第一个空间
+        {{ t('spaceManager.createFirst') }}
       </button>
     </div>
 
@@ -124,12 +133,15 @@
 import { ref, onMounted } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
 import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
 import SpaceDetailModal from '@/components/SpaceDetailModal.vue';
 import SpaceProductEditor from '@/components/SpaceProductEditor.vue';
+import Tooltip from '@/components/ui/Tooltip.vue';
 
 const { spaces, loading, loadSpaces, deleteSpace } = useSpaces();
 const { addToast } = useToast();
+const { t } = useI18n();
 
 const showCreateModal = ref(false);
 const selectedSpace = ref(null);

@@ -1,5 +1,6 @@
 // Webhook 管理 API
 import { hasPermission } from '../utils/auth.js';
+import { getUser } from '../utils/context.js';
 import { registerWebhook, deleteWebhook, getWebhooks, WEBHOOK_EVENTS } from '../utils/webhook.js';
 
 // 获取 Webhook 列表
@@ -7,7 +8,7 @@ export async function onRequestGet(context) {
   const { request, env } = context;
 
   // 获取用户信息
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   // 检查管理员权限
   if (!hasPermission(user, 'admin')) {
@@ -45,7 +46,7 @@ export async function onRequestDelete(context) {
   const webhookId = url.pathname.split('/').pop();
 
   // 获取用户信息
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   // 检查管理员权限
   if (!hasPermission(user, 'admin')) {
@@ -88,7 +89,7 @@ async function createWebhook(context) {
   const { request, env } = context;
 
   // 获取用户信息
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   // 检查管理员权限
   if (!hasPermission(user, 'admin')) {
@@ -146,7 +147,7 @@ async function testWebhook(context) {
   const webhookId = url.pathname.split('/')[4]; // /api/v1/webhooks/{id}/test
 
   // 获取用户信息
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   // 检查管理员权限
   if (!hasPermission(user, 'admin')) {

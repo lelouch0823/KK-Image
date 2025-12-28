@@ -1,6 +1,7 @@
 // 认证管理 API
 import { hasPermission, generateJWT, generateApiKey, saveApiKey, deleteApiKey } from '../utils/auth.js';
 import { requirePermission } from '../utils/permissions.js';
+import { getUser } from '../utils/context.js';
 import { validateUserCredentials, createUser as createUserInDB, getUserStats, getUsers } from '../utils/users.js';
 
 // 生成 JWT Token
@@ -82,7 +83,7 @@ async function createApiKey(context) {
   const { request, env } = context;
 
   // 获取用户信息
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   // 检查管理员权限
   if (!hasPermission(user, 'admin')) {
@@ -172,7 +173,7 @@ export async function onRequestDelete(context) {
   const keyId = url.pathname.split('/').pop();
 
   // 获取用户信息
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   // 检查管理员权限
   if (!hasPermission(user, 'admin')) {

@@ -113,7 +113,7 @@ export async function onRequestPut(context) {
   const url = new URL(request.url);
   const fileId = url.pathname.split('/').pop();
 
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   if (!hasPermission(user, 'write')) {
     return error('Write permission required', 403);
@@ -173,7 +173,7 @@ export async function onRequestDelete(context) {
   const url = new URL(request.url);
   const fileId = url.pathname.split('/').pop();
 
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   if (!hasPermission(user, 'delete')) {
     return error('Delete permission required', 403);

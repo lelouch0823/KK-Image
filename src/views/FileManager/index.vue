@@ -7,14 +7,14 @@
 
     <!-- 拖拽上传覆盖层 -->
     <transition name="fade">
-        <div v-if="isDragging" class="absolute inset-0 z-50 bg-blue-50/90 backdrop-blur-sm border-2 border-dashed border-blue-500 rounded-xl flex flex-col items-center justify-center pointer-events-none">
+        <div v-if="isDragging" class="absolute inset-0 z-50 bg-[var(--color-info-bg)]/90 backdrop-blur-sm border-2 border-dashed border-[var(--color-info)] rounded-xl flex flex-col items-center justify-center pointer-events-none">
             <div class="bg-white p-6 rounded-full shadow-lg mb-4 animate-bounce">
-                <svg class="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-12 h-12 text-[var(--color-info)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                 </svg>
             </div>
-            <h3 class="text-2xl font-bold text-blue-600">释放以开始上传</h3>
-            <p class="text-blue-400 mt-2">支持多文件同时上传</p>
+            <h3 class="text-2xl font-bold text-[var(--color-info-text)]">{{ t('fileManager.dragDropTitle') }}</h3>
+            <p class="text-[var(--color-info)] mt-2">{{ t('fileManager.dragDropDesc') }}</p>
         </div>
     </transition>
     <!-- 工具栏 -->
@@ -27,7 +27,7 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
           </svg>
-          根目录
+          {{ t('fileManager.root') }}
         </button>
         <template v-for="(crumb, index) in breadcrumbs" :key="crumb.id">
           <span class="text-secondary text-sm">/</span>
@@ -41,29 +41,34 @@
 
       <!-- 操作按钮 -->
       <div class="flex items-center gap-3">
-        <!-- New: Share Folder Button -->
-        <button v-if="currentFolder" @click="handleShareFolder" class="btn btn-secondary gap-2" title="分享文件夹">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
-            </svg>
-            <span class="hidden sm:inline">分享</span>
-        </button>
+        <!-- Share Folder Button -->
+        <Tooltip v-if="currentFolder" :content="t('fileManager.shareFolder')">
+            <button @click="handleShareFolder" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-secondary hover:text-primary transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                </svg>
+            </button>
+        </Tooltip>
 
         <input type="file" ref="fileInput" multiple class="hidden" @change="handleFileSelect">
-        <button @click="$refs.fileInput.click()" 
-          class="btn btn-primary gap-2">
-           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-           </svg>
-           上传
-        </button>
-        <button @click="openCreateFolderModal" 
-          class="btn btn-secondary gap-2">
-           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
-           </svg>
-           新建文件夹
-        </button>
+        
+        <Tooltip :content="t('fileManager.upload')">
+            <button @click="$refs.fileInput.click()" 
+              class="w-10 h-10 flex items-center justify-center rounded-xl bg-primary text-white hover:bg-black transition-all shadow-lg shadow-gray-900/10 hover:shadow-gray-900/20 hover:-translate-y-0.5 active:translate-y-0">
+               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+               </svg>
+            </button>
+        </Tooltip>
+
+        <Tooltip :content="t('fileManager.newFolder')">
+            <button @click="openCreateFolderModal" 
+              class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-secondary hover:text-primary transition-all">
+               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+               </svg>
+            </button>
+        </Tooltip>
       </div>
     </div>
 
@@ -71,8 +76,8 @@
     <div v-if="currentFolder" class="px-6 py-3 bg-[var(--bg-muted)] border-b border-[var(--border-color)] flex items-center justify-between text-sm">
        <div class="flex items-center gap-4 text-secondary">
          <!-- Fix: Use local array lengths -->
-         <span>{{ files.length }} 个文件</span>
-         <span>{{ subfolders.length }} 个文件夹</span>
+         <span>{{ t('fileManager.totalFiles', { count: files.length }) }}</span>
+         <span>{{ t('fileManager.totalFolders', { count: subfolders.length }) }}</span>
        </div>
        <div class="flex items-center gap-3">
           <!-- 文件夹操作栏 (Red delete text removed) -->
@@ -92,7 +97,7 @@
           @click="navigateTo(folder.id)"
           class="group bg-white border border-[var(--border-color)] rounded-xl p-4 hover:shadow-md transition-all cursor-pointer relative hover:border-gray-300">
           <div class="flex flex-col items-center">
-             <svg class="w-16 h-16 text-yellow-400 mb-2 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 20 20">
+             <svg class="w-16 h-16 text-[var(--color-warning)] mb-2 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 20 20">
               <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
              </svg>
              <div class="text-sm font-medium text-primary text-center truncate w-full px-2" :title="folder.name">{{ folder.name }}</div>
@@ -106,16 +111,16 @@
 
       <!-- 文件列表 -->
       <div v-if="files.length > 0" class="p-6 pt-0 flex-1">
-        <h3 v-if="subfolders.length > 0" class="text-sm font-semibold text-secondary mb-4 mt-6">文件</h3>
+        <h3 v-if="subfolders.length > 0" class="text-sm font-semibold text-secondary mb-4 mt-6">{{ t('fileManager.filesHeader') }}</h3>
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead>
               <tr class="text-left text-xs font-medium text-secondary uppercase tracking-wider border-b border-[var(--border-color)]">
-                <th class="px-4 py-3">名称</th>
-                <th class="px-4 py-3">大小</th>
-                <th class="px-4 py-3">类型</th>
-                <th class="px-4 py-3">上传时间</th>
-                <th class="px-4 py-3 text-right">操作</th>
+                <th class="px-4 py-3">{{ t('fileManager.table.name') }}</th>
+                <th class="px-4 py-3">{{ t('fileManager.table.size') }}</th>
+                <th class="px-4 py-3">{{ t('fileManager.table.type') }}</th>
+                <th class="px-4 py-3">{{ t('fileManager.table.uploadedAt') }}</th>
+                <th class="px-4 py-3 text-right">{{ t('fileManager.table.actions') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-[var(--border-color)]">
@@ -135,15 +140,15 @@
                 <td class="px-4 py-3 text-right">
                   <div class="flex items-center justify-end gap-1">
                     <!-- Share -->
-                    <button @click="handleShareFile(file)" class="p-1.5 text-secondary hover:text-primary hover:bg-gray-100 rounded-lg transition-colors" title="分享链接">
+                    <button @click="handleShareFile(file)" class="p-1.5 text-secondary hover:text-primary hover:bg-gray-100 rounded-lg transition-colors" :title="t('fileManager.actions.share')">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
                     </button>
                     <!-- Move -->
-                    <button @click="handleMoveFile(file)" class="p-1.5 text-secondary hover:text-primary hover:bg-gray-100 rounded-lg transition-colors" title="移动文件">
+                    <button @click="handleMoveFile(file)" class="p-1.5 text-secondary hover:text-primary hover:bg-gray-100 rounded-lg transition-colors" :title="t('fileManager.actions.move')">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
                     </button>
                     <!-- Delete -->
-                    <button @click="deleteFile(file.id)" class="p-1.5 text-secondary hover:text-danger hover:bg-red-50 rounded-lg transition-colors" title="删除">
+                    <button @click="deleteFile(file.id)" class="p-1.5 text-secondary hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)] rounded-lg transition-colors" :title="t('fileManager.actions.delete')">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
                   </div>
@@ -161,23 +166,23 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"></path>
             </svg>
          </div>
-         <h3 class="text-lg font-medium text-primary">此文件夹为空</h3>
-         <p class="text-secondary text-sm mt-1">使用“上传”按钮上传文件，或创建新文件夹</p>
+         <h3 class="text-lg font-medium text-primary">{{ t('fileManager.emptyFolder') }}</h3>
+         <p class="text-secondary text-sm mt-1">{{ t('fileManager.emptyDesc') }}</p>
       </div>
     </div>
 
     <!-- 创建文件夹 Modal -->
     <div v-if="showModal" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
       <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
-        <h3 class="text-lg font-semibold text-primary mb-4">新建文件夹</h3>
+        <h3 class="text-lg font-semibold text-primary mb-4">{{ t('fileManager.newFolder') }}</h3>
         <form @submit.prevent="handleCreateFolder">
           <div class="mb-4">
-            <label class="block text-sm font-medium text-primary mb-1">名称</label>
-            <input v-model="folderName" type="text" required class="input" placeholder="输入文件夹名称" autofocus>
+            <label class="block text-sm font-medium text-primary mb-1">{{ t('fileManager.table.name') }}</label>
+            <input v-model="folderName" type="text" required class="input" :placeholder="t('fileManager.folderNamePlaceholder')" autofocus>
           </div>
           <div class="flex justify-end gap-3">
-            <button type="button" @click="showModal = false" class="btn btn-secondary">取消</button>
-            <button type="submit" class="btn btn-primary">确定</button>
+            <button type="button" @click="showModal = false" class="btn btn-secondary">{{ t('common.cancel') }}</button>
+            <button type="submit" class="btn btn-primary">{{ t('common.confirm') }}</button>
           </div>
         </form>
       </div>
@@ -208,7 +213,9 @@
 
 <script setup>
 import { onMounted, ref, onUnmounted, watch } from 'vue';
+import Tooltip from '@/components/ui/Tooltip.vue';
 import { useFileManager } from '@/composables/useFileManager';
+import { useI18n } from '@/composables/useI18n';
 import MoveFileModal from '@/components/MoveFileModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
 import ShareFileModal from '@/components/ShareFileModal.vue';
@@ -217,6 +224,7 @@ import { useUploadQueue } from '@/composables/useUploadQueue';
 
 const { addToast } = useToast();
 const { addFiles, registerFolderRefresh, unregisterFolderRefresh } = useUploadQueue();
+const { t } = useI18n();
 
 const {
   loading,
@@ -259,7 +267,7 @@ const handleCreateFolder = async () => {
 };
 
 const handleDeleteFolder = async (folder) => {
-  if (confirm(`确定要删除文件夹 "${folder.name}" 及其内容吗？`)) {
+  if (confirm(t('fileManager.deleteFolderConfirm', { name: folder.name }))) {
     await deleteFolder(folder.id);
   }
 };
@@ -288,7 +296,7 @@ const handleFileSelect = (e) => {
   const selectedFiles = Array.from(e.target.files);
   if (selectedFiles.length) {
     if (!currentFolder.value) {
-        addToast({ message: '请先选择一个文件夹', type: 'warning' });
+        addToast({ message: t('fileManager.selectFolderFirst'), type: 'warning' });
         return;
     }
     addFiles(selectedFiles, currentFolder.value.id);

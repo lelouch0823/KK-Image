@@ -9,12 +9,13 @@ import {
   getUserStats
 } from '../utils/users.js';
 import { requirePermission, hasPermission } from '../utils/permissions.js';
+import { getUser } from '../utils/context.js';
 
 // 获取用户列表或单个用户
 export async function onRequestGet(context) {
   const { request, env } = context;
   // 获取用户信息
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   const url = new URL(request.url);
   const pathParts = url.pathname.split('/');
@@ -102,7 +103,7 @@ async function getUserList(context) {
 // 获取单个用户
 async function getSingleUser(context, userId) {
   const { env } = context;
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   // 用户可以查看自己的信息，管理员可以查看所有用户
   if (user.id !== userId) {
@@ -145,7 +146,7 @@ async function createNewUser(context) {
     const userData = await request.json();
 
     // 添加创建者信息
-    const user = context.data?.user || context.user;
+    const user = getUser(context);
     userData.createdBy = user.id;
 
     const newUser = await createUser(userData, env);
@@ -169,7 +170,7 @@ async function updateExistingUser(context, userId) {
   const { request, env } = context;
 
   // 获取用户信息
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   // 用户可以更新自己的部分信息，管理员可以更新所有信息
   if (user.id !== userId) {
@@ -216,7 +217,7 @@ async function deleteExistingUser(context, userId) {
   const { env } = context;
 
   // 获取用户信息
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   // 检查权限：只能删除自己，除非是管理员
   // 但不能删除自己（为了防止系统由于没有管理员而不可用）
@@ -252,7 +253,7 @@ async function generateApiToken(context, userId) {
   const { env } = context;
 
   // 获取用户信息
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   // 用户可以为自己生成 Token，管理员可以为任何用户生成
   if (user.id !== userId) {

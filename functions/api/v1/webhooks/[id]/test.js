@@ -1,5 +1,6 @@
 // Webhook 测试端点 - 发送测试载荷到指定 Webhook
 import { hasPermission } from '../../../utils/auth.js';
+import { getUser } from '../../../utils/context.js';
 import { getWebhooks } from '../../../utils/webhook.js';
 
 // 测试特定 Webhook
@@ -8,7 +9,7 @@ export async function onRequestPost(context) {
   const webhookId = params.id;
 
   // 获取用户信息
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   // 检查管理员权限
   if (!hasPermission(user, 'admin')) {

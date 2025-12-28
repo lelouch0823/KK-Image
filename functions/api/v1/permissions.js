@@ -8,6 +8,7 @@ import {
   generatePermissionReport,
   requirePermission
 } from '../utils/permissions.js';
+import { getUser } from '../utils/context.js';
 
 // 获取权限信息
 export async function onRequestGet(context) {
@@ -58,7 +59,7 @@ async function getPermissionDefinitions(context) {
 async function getUserPermissionInfo(context) {
   try {
     // 获取用户信息
-    const user = context.data?.user || context.user;
+    const user = getUser(context);
 
     const userPermissions = getUserPermissions(user);
     const report = generatePermissionReport(user);
@@ -113,7 +114,7 @@ async function checkPermissions(context) {
   const { request } = context;
 
   // 获取用户信息
-  const user = context.data?.user || context.user;
+  const user = getUser(context);
 
   try {
     const { permissions } = await request.json();

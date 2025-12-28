@@ -2,12 +2,12 @@
   <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50" @click.self="$emit('close')">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col overflow-hidden">
       <!-- Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] shrink-0">
         <div>
-          <h2 class="text-lg font-semibold text-primary">选择文件</h2>
-          <p class="text-sm text-secondary mt-0.5">已选择 {{ selectedIds.length }} 个文件</p>
+          <h2 class="text-lg font-semibold text-primary">{{ t('fileSelector.title') }}</h2>
+          <p class="text-sm text-secondary mt-0.5">{{ t('fileSelector.selectedCount', { count: selectedIds.length }) }}</p>
         </div>
-        <button @click="$emit('close')" class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+        <button @click="$emit('close')" class="p-2 text-secondary hover:text-primary rounded-lg hover:bg-[var(--bg-hover)]">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
@@ -15,11 +15,11 @@
       </div>
 
       <!-- 路径导航 -->
-      <div class="px-6 py-3 border-b border-gray-100 flex items-center gap-2 text-sm shrink-0 overflow-x-auto whitespace-nowrap">
+      <div class="px-6 py-3 border-b border-[var(--border-color)] flex items-center gap-2 text-sm shrink-0 overflow-x-auto whitespace-nowrap">
         <button @click="navigateTo(null)" 
           class="hover:text-primary transition-colors"
           :class="!currentFolderId ? 'font-semibold text-primary' : 'text-secondary'">
-          全部文件
+          {{ t('fileSelector.allFiles') }}
         </button>
         <template v-for="(folder, index) in breadcrumbs" :key="folder.id">
           <span class="text-gray-300">/</span>
@@ -81,18 +81,18 @@
         </div>
         
         <div v-if="!loading && currentFolders.length === 0 && files.length === 0" class="text-center py-10 text-secondary">
-          <p>此文件夹为空</p>
+          <p>{{ t('fileSelector.empty') }}</p>
         </div>
       </div>
 
       <!-- Footer -->
-      <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0">
+      <div class="px-6 py-4 border-t border-[var(--border-color)] flex justify-end gap-3 shrink-0">
         <button @click="$emit('close')" class="px-4 py-2 text-sm font-medium text-secondary hover:text-primary">
-          取消
+          {{ t('fileSelector.cancel') }}
         </button>
         <button @click="confirmSelect" :disabled="selectedIds.length === 0 && selectedFolderIds.length === 0"
-          class="px-6 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
-          添加 {{ (selectedIds.length + selectedFolderIds.length) > 0 ? `(${selectedIds.length + selectedFolderIds.length})` : '' }}
+          class="px-6 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-[var(--color-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed">
+          {{ t('fileSelector.add') }} {{ (selectedIds.length + selectedFolderIds.length) > 0 ? `(${selectedIds.length + selectedFolderIds.length})` : '' }}
         </button>
       </div>
     </div>
@@ -103,8 +103,10 @@
 import { ref, onMounted, computed } from 'vue';
 import { API } from '@/utils/constants';
 import { isImage } from '@/utils/formatters';
+import { useI18n } from '@/composables/useI18n';
 
 const emit = defineEmits(['close', 'select']);
+const { t } = useI18n();
 
 const allFolders = ref([]); // 所有文件夹扁平列表
 const files = ref([]);

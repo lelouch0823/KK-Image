@@ -4,7 +4,7 @@
       
       <!-- Header -->
       <div class="px-6 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-primary">分享文件</h3>
+        <h3 class="text-lg font-semibold text-primary">{{ t('share.titleFile') }}</h3>
         <button @click="close" class="text-secondary hover:text-primary transition-colors">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -15,39 +15,40 @@
       <!-- Content -->
       <div class="p-6">
          <!-- File Info -->
-         <div class="flex items-center gap-3 mb-6 p-3 bg-gray-50 rounded-lg border border-[var(--border-color)]">
-             <div class="p-2 bg-white rounded-md shadow-sm border border-gray-100">
+         <div class="flex items-center gap-3 mb-6 p-3 bg-[var(--bg-muted)] rounded-lg border border-[var(--border-color)]">
+             <div class="p-2 bg-white rounded-md shadow-sm border border-[var(--border-color)]">
                  <img v-if="fileIsImage" :src="file?.url" class="w-8 h-8 object-cover rounded" />
-                 <div v-else class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded text-xs font-bold text-gray-500">
+                 <div v-else class="w-8 h-8 flex items-center justify-center bg-[var(--bg-muted)] rounded text-xs font-bold text-secondary">
                     {{ fileExtension }}
                  </div>
              </div>
              <div class="overflow-hidden">
-                 <div class="font-medium text-primary truncate" :title="file?.name">{{ file?.name || file?.originalName || '未知文件' }}</div>
+                 <div class="font-medium text-primary truncate" :title="file?.name">{{ file?.name || file?.originalName || t('share.unknownFile') }}</div>
                  <div class="text-xs text-secondary">{{ formattedSize }}</div>
              </div>
          </div>
 
          <!-- Link Section -->
          <div class="mb-4">
-             <label class="text-sm font-medium text-primary mb-2 block">文件直链 (永久有效)</label>
+             <label class="text-sm font-medium text-primary mb-2 block">{{ t('share.directLink') }}</label>
              <div class="flex gap-2">
-                 <input type="text" readonly :value="shareUrl" class="input flex-1 text-sm bg-gray-50" @click="$event.target.select()">
-                 <button @click="copyLink" class="btn btn-secondary whitespace-nowrap">
-                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-                     复制
-                 </button>
+                 <input type="text" readonly :value="shareUrl" class="input flex-1 text-sm bg-[var(--bg-muted)]" @click="$event.target.select()">
+                 <Tooltip :content="t('common.copy')">
+                   <button @click="copyLink" class="w-10 h-10 flex items-center justify-center bg-white border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-hover)] text-secondary hover:text-primary transition-colors">
+                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                   </button>
+                 </Tooltip>
              </div>
-             <p class="text-xs text-green-600 mt-2 flex items-center" v-if="copied">
+             <p class="text-xs text-[var(--color-success)] mt-2 flex items-center" v-if="copied">
                  <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                 已复制到剪贴板
+                 {{ t('share.copiedClipboard') }}
              </p>
          </div>
       </div>
 
       <!-- Footer -->
-      <div class="px-6 py-4 border-t border-[var(--border-color)] flex justify-end bg-gray-50 rounded-b-xl">
-        <button @click="close" class="btn btn-primary w-full sm:w-auto">完成</button>
+      <div class="px-6 py-4 border-t border-[var(--border-color)] flex justify-end bg-[var(--bg-muted)] rounded-b-xl">
+        <button @click="close" class="btn btn-primary w-full sm:w-auto">{{ t('common.complete') }}</button>
       </div>
 
     </div>
@@ -57,7 +58,10 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
 import { formatSize, getFileExtension, isImage } from '@/utils/formatters';
+import Tooltip from '@/components/ui/Tooltip.vue';
+import { API, ROUTES } from '@/utils/constants';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -66,12 +70,9 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue']);
 const { success } = useToast();
+const { t } = useI18n();
 
 const copied = ref(false);
-
-import { API, ROUTES } from '@/utils/constants';
-
-// ...
 
 // 🔧 FIX: 使用 computed 确保响应式 + 空值安全
 const shareUrl = computed(() => {
@@ -103,7 +104,7 @@ const copyLink = () => {
     navigator.clipboard.writeText(shareUrl.value).then(() => {
         copied.value = true;
         setTimeout(() => copied.value = false, 2000);
-        success('链接已复制');
+        success(t('share.linkCopied'));
     });
 };
 </script>

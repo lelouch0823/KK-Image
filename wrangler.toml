@@ -101,12 +101,11 @@ SENTRY_DSN = ""
 
 # =============================================================================
 # 生产环境配置
+# ⚠️ 敏感凭据必须通过 Cloudflare Dashboard -> Settings -> Environment Variables 设置
 # =============================================================================
 [env.production.vars]
 COMPRESS_STATIC_ASSETS = "true"
-BASIC_USER = "admin"
-BASIC_PASS = "123"
-JWT_SECRET = "kk-image-jwt-secret-change-in-production"
+# 注意：BASIC_USER, BASIC_PASS, JWT_SECRET 必须通过 Dashboard 设置，不要在此文件中配置
 STORAGE_MODE = "single"
 STORAGE_PROVIDER = "r2"
 STORAGE_PRIMARY = "r2"

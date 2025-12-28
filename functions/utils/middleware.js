@@ -8,14 +8,12 @@ export async function errorHandling(context) {
     let remoteSampleRate = 0.001;
     try {
       const sampleRate = await fetchSampleRate(context)
-      console.log("sampleRate", sampleRate);
-      //check if the sample rate is not null
+      // sampleRate 获取成功
       if (sampleRate) {
         remoteSampleRate = sampleRate;
       }
-    } catch (e) { console.log(e) }
+    } catch (e) { /* 忽略采样率获取失败 */ }
     const sampleRate = env.sampleRate || remoteSampleRate;
-    console.log("sampleRate", sampleRate);
 
     // 从环境变量读取 Sentry DSN，如未配置则使用默认值
     const sentryDsn = env.SENTRY_DSN || "https://219f636ac7bde5edab2c3e16885cb535@o4507041519108096.ingest.us.sentry.io/4507541492727808";
@@ -72,7 +70,7 @@ export function telemetryData(context) {
       context.data.transaction = transaction;
       return context.next();
     } catch (e) {
-      console.log(e);
+      // Telemetry 数据收集失败，静默忽略
     } finally {
       context.data.transaction.finish();
     }
@@ -84,10 +82,10 @@ export async function traceData(context, span, op, name) {
   const data = context.data
   if (data.telemetry) {
     if (span) {
-      console.log("span finish")
+      // span 完成
       span.finish();
     } else {
-      console.log("span start")
+      // span 开始
       span = await context.data.transaction.startChild(
         { op: op, name: name },
       );

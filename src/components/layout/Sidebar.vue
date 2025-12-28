@@ -11,7 +11,7 @@
     <!-- 菜单 -->
     <nav class="flex-1 overflow-y-auto scrollbar-thin py-4 px-3">
       <div class="mb-6">
-        <div class="px-3 mb-2 text-xs font-semibold text-secondary uppercase tracking-wider">菜单</div>
+        <div class="px-3 mb-2 text-xs font-semibold text-secondary uppercase tracking-wider">{{ t('sidebar.menu') }}</div>
         <button v-for="item in menuItems" :key="item.key" @click="setView(item.key)"
           class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-1"
           :class="currentView === item.key ? 'bg-[var(--bg-active)] text-primary' : 'text-secondary hover:bg-[var(--bg-hover)] hover:text-primary'">
@@ -21,14 +21,14 @@
       </div>
 
       <div>
-        <div class="px-3 mb-2 text-xs font-semibold text-secondary uppercase tracking-wider">管理</div>
+        <div class="px-3 mb-2 text-xs font-semibold text-secondary uppercase tracking-wider">{{ t('sidebar.manage') }}</div>
         <button @click="handleLogout"
-          class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-secondary hover:bg-red-50 hover:text-danger transition-colors">
+          class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-secondary hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger)] transition-colors">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
               d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
           </svg>
-          退出登录
+          {{ t('sidebar.logout') }}
         </button>
       </div>
     </nav>
@@ -36,11 +36,11 @@
     <!-- 用户信息 -->
     <div class="p-4 border-t border-[var(--border-color)]">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold text-gray-600">
+        <div class="w-9 h-9 rounded-full bg-[var(--bg-muted)] flex items-center justify-center text-sm font-semibold text-secondary">
           A</div>
         <div class="flex-1 min-w-0">
           <div class="text-sm font-medium text-primary truncate">Admin</div>
-          <div class="text-xs text-secondary">管理员</div>
+          <div class="text-xs text-secondary">{{ t('sidebar.role') }}</div>
         </div>
       </div>
     </div>
@@ -48,16 +48,19 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useView } from '@/composables/useView';
+import { useI18n } from '@/composables/useI18n';
 
 const { currentView, setView } = useView();
+const { t } = useI18n();
 
-const menuItems = [
-  { key: 'dashboard', label: '概览', icon: '<svg fill="none" class="w-5 h-5" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>' },
-  { key: 'files', label: '文件管理', icon: '<svg fill="none" class="w-5 h-5" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>' },
-  { key: 'spaces', label: '共享空间', icon: '<svg fill="none" class="w-5 h-5" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>' },
-  { key: 'stats', label: '统计', icon: '<svg fill="none" class="w-5 h-5" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>' }
-];
+const menuItems = computed(() => [
+  { key: 'dashboard', label: t('sidebar.dashboard'), icon: '<svg fill="none" class="w-5 h-5" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>' },
+  { key: 'files', label: t('sidebar.files'), icon: '<svg fill="none" class="w-5 h-5" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>' },
+  { key: 'spaces', label: t('sidebar.spaces'), icon: '<svg fill="none" class="w-5 h-5" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>' },
+  { key: 'stats', label: t('sidebar.stats'), icon: '<svg fill="none" class="w-5 h-5" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>' }
+]);
 
 const handleLogout = () => {
   // Basic Auth 无法通过 JS 彻底登出，通常需要关闭浏览器

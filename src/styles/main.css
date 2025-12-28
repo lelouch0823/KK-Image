@@ -3,15 +3,43 @@
 
 /* Tailwind CSS v4 主题配置 */
 @theme {
-    --color-primary: #111827;
-    --color-secondary: #6B7280;
-    --color-success: #10B981;
-    --color-warning: #F59E0B;
-    --color-danger: #EF4444;
-    --color-border: #E5E7EB;
-    --color-muted: #F3F4F6;
+    /* Color Palette Mapping */
+    --color-primary: var(--color-primary);
+    --color-primary-hover: var(--color-primary-hover);
+    --color-primary-light: var(--color-primary-light);
+    --color-primary-bg: var(--color-primary-bg);
 
+    --color-secondary: var(--color-secondary);
+    --color-secondary-hover: var(--color-secondary-hover);
+
+    --color-success: var(--color-success);
+    --color-success-bg: var(--color-success-bg);
+    --color-success-text: var(--color-success-text);
+
+    --color-warning: var(--color-warning);
+    --color-warning-bg: var(--color-warning-bg);
+    --color-warning-text: var(--color-warning-text);
+
+    --color-danger: var(--color-danger);
+    --color-danger-bg: var(--color-danger-bg);
+    --color-danger-text: var(--color-danger-text);
+
+    --color-info: var(--color-info);
+    --color-info-bg: var(--color-info-bg);
+    --color-info-text: var(--color-info-text);
+
+    --color-border: var(--border-color);
+    --color-border-hover: var(--border-hover);
+
+    --color-muted: var(--text-muted);
+
+    /* Spacing & Layout */
     --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+    --radius-sm: var(--radius-sm);
+    --radius-md: var(--radius-md);
+    --radius-lg: var(--radius-lg);
+    --radius-xl: var(--radius-xl);
 }
 
 @layer base {

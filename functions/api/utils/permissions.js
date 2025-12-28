@@ -1,4 +1,5 @@
 // 权限管理系统 - 细粒度权限控制
+import { getUser } from './context.js';
 
 // 权限定义
 export const PERMISSIONS = {
@@ -194,7 +195,7 @@ export function getUserPermissions(user) {
 // 权限中间件工厂
 export function requirePermission(permission) {
   return function (context) {
-    const user = context.data?.user || context.user;
+    const user = getUser(context);
     if (!hasPermission(user, permission)) {
       const error = new Error(`Permission '${permission}' required`);
       error.name = 'AuthorizationError';
@@ -209,7 +210,7 @@ export function requirePermission(permission) {
 // 多权限中间件工厂（需要任意一个权限）
 export function requireAnyPermission(permissions) {
   return function (context) {
-    const user = context.data?.user || context.user;
+    const user = getUser(context);
     if (!hasAnyPermission(user, permissions)) {
       const error = new Error(`One of these permissions required: ${permissions.join(', ')}`);
       error.name = 'AuthorizationError';
@@ -224,7 +225,7 @@ export function requireAnyPermission(permissions) {
 // 多权限中间件工厂（需要所有权限）
 export function requireAllPermissions(permissions) {
   return function (context) {
-    const user = context.data?.user || context.user;
+    const user = getUser(context);
     if (!hasAllPermissions(user, permissions)) {
       const error = new Error(`All of these permissions required: ${permissions.join(', ')}`);
       error.name = 'AuthorizationError';
