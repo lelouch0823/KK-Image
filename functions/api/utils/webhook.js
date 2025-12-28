@@ -1,6 +1,7 @@
 // Webhook 工具模块 - 处理事件通知 (D1 版本)
 
 import { generatePrefixedId, generateHmacSignature, isValidUrl } from './id.js';
+import { MAX_WEBHOOK_RETRIES, WEBHOOK_TIMEOUT_MS } from './constants.js';
 
 // 支持的事件类型
 export const WEBHOOK_EVENTS = {
@@ -66,7 +67,7 @@ export async function triggerWebhook(env, eventType, data) {
  * 发送单个 Webhook
  */
 async function sendWebhook(env, webhook, payload) {
-  const maxRetries = 3;
+  const maxRetries = MAX_WEBHOOK_RETRIES;
   let attempt = 0;
   let lastError = null;
   const startTime = Date.now();
@@ -96,7 +97,7 @@ async function sendWebhook(env, webhook, payload) {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(30000) // 30秒超时
+        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS)
       });
 
       const duration = Date.now() - startTime;

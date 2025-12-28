@@ -6,6 +6,7 @@ import { withCache, invalidateCache } from '../../middleware/cache.js';
 import { batchDelete } from '../../../../lib/db/batch.js';
 import { getFileUrl } from '../../../../api/utils/url.js';
 import { generateId, now } from '../../../../api/utils/id.js';
+import { MSG } from '../../../../api/utils/messages.js';
 
 const app = new Hono();
 
@@ -84,7 +85,7 @@ app.get('/:id', withCache(60), async (c) => {
     ).bind(id).first();
 
     if (!file) {
-        return c.json({ success: false, error: '文件不存在' }, 404);
+        return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
     }
 
     return c.json({
@@ -108,16 +109,16 @@ app.post('/',
         const { env } = c;
 
         const id = generateId();
-        const now = Date.now();
+        const nowMs = Date.now();
 
         await env.DB.prepare(`
       INSERT INTO files (id, name, folder_id, is_public, storage_key, created_by, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(id, data.name, data.folderId || null, data.isPublic ? 1 : 0, id, user.id, now, now).run();
+    `).bind(id, data.name, data.folderId || null, data.isPublic ? 1 : 0, id, user.id, nowMs, nowMs).run();
 
         return c.json({
             success: true,
-            data: { id, ...data, createdAt: now }
+            data: { id, ...data, createdAt: nowMs }
         }, 201);
     }
 );
@@ -134,7 +135,7 @@ app.put('/:id',
 
         const file = await env.DB.prepare('SELECT id FROM files WHERE id = ?').bind(id).first();
         if (!file) {
-            return c.json({ success: false, error: '文件不存在' }, 404);
+            return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
         }
 
         const updates = [];
@@ -154,7 +155,7 @@ app.put('/:id',
         }
 
         if (updates.length === 0) {
-            return c.json({ success: false, error: '没有可更新的字段' }, 400);
+            return c.json({ success: false, error: MSG.COMMON.NO_UPDATE_FIELDS }, 400);
         }
 
         updates.push('updated_at = ?');
@@ -168,7 +169,7 @@ app.put('/:id',
         // 失效缓存
         await invalidateCache(c.req.url);
 
-        return c.json({ success: true, message: '文件已更新' });
+        return c.json({ success: true, message: MSG.FILE.UPDATE_SUCCESS });
     }
 );
 
@@ -183,7 +184,7 @@ app.delete('/:id',
 
         const file = await env.DB.prepare('SELECT storage_key FROM files WHERE id = ?').bind(id).first();
         if (!file) {
-            return c.json({ success: false, error: '文件不存在' }, 404);
+            return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
         }
 
         // 删除存储
@@ -194,7 +195,7 @@ app.delete('/:id',
         // 删除数据库记录
         await env.DB.prepare('DELETE FROM files WHERE id = ?').bind(id).run();
 
-        return c.json({ success: true, message: '文件已删除' });
+        return c.json({ success: true, message: MSG.FILE.DELETE_SUCCESS });
     }
 );
 
@@ -227,7 +228,7 @@ app.post('/batch/delete',
 
         return c.json({
             success: true,
-            message: `已删除 ${results.length} 个文件`
+            message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', results.length)
         });
     }
 );
@@ -249,7 +250,7 @@ app.post('/batch/move',
             ).bind(targetFolderId).first();
 
             if (!folder) {
-                return c.json({ success: false, error: '目标文件夹不存在' }, 404);
+                return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
             }
         }
 
@@ -261,7 +262,7 @@ app.post('/batch/move',
 
         return c.json({
             success: true,
-            message: `已移动 ${ids.length} 个文件`
+            message: MSG.FILE.MOVE_SUCCESS.replace('{count}', ids.length)
         });
     }
 );

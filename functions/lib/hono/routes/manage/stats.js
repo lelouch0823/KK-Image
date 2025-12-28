@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
+import { MSG } from '../../../../api/utils/messages.js';
 
 const app = new Hono();
 
@@ -97,8 +98,8 @@ app.get('/',
                 }
             });
         } catch (err) {
-            console.error('获取统计信息失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -134,8 +135,8 @@ app.get('/uploads',
                 }
             });
         } catch (err) {
-            console.error('获取上传统计失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
         }
     }
 );

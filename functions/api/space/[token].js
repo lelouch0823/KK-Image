@@ -1,9 +1,10 @@
 /**
  * 公开空间访问 API
- * GET /api/space/:token - 获取公开空间信息
+ * GET /api/space/:token - 获取公开空间 information
  */
 
 import { success, error } from '../utils/response.js';
+import { MSG } from '../utils/messages.js';
 
 export async function onRequestGet(context) {
     const { env, params, request } = context;
@@ -16,17 +17,17 @@ export async function onRequestGet(context) {
         `).bind(shareToken).first();
 
         if (!space) {
-            return error('空间不存在或链接已失效', 404);
+            return error(MSG.SPACE.NOT_FOUND, 404);
         }
 
         // 检查是否公开
         if (!space.is_public) {
-            return error('该空间未公开', 403);
+            return error(MSG.SPACE.PRIVATE, 403);
         }
 
         // 检查是否过期
         if (space.expires_at && space.expires_at < Date.now()) {
-            return error('分享链接已过期', 410);
+            return error(MSG.SPACE.EXPIRED, 410);
         }
 
         // 检查密码
@@ -35,7 +36,7 @@ export async function onRequestGet(context) {
             const providedPassword = url.searchParams.get('password');
 
             if (!providedPassword || providedPassword !== space.password) {
-                return success({ requiresPassword: true }, '该空间需要密码', 401);
+                return success({ requiresPassword: true }, MSG.SPACE.PASSWORD_REQUIRED, 401);
             }
         }
 
@@ -128,7 +129,7 @@ export async function onRequestGet(context) {
             'Cache-Control': 'public, max-age=60'
         });
     } catch (err) {
-        console.error('获取空间失败:', err);
-        return error(err.message, 500);
+        console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+        return error(`${MSG.COMMON.LOAD_FAILED}: ${err.message}`, 500);
     }
 }

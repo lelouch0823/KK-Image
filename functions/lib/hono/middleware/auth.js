@@ -1,4 +1,5 @@
 import { verifyJWT } from '../../../api/utils/auth.js';
+import { MSG } from '../../../api/utils/messages.js';
 
 /**
  * 公开路由列表（无需认证）
@@ -60,7 +61,7 @@ export async function authMiddleware(c, next) {
     if (!token) {
         return c.json({
             success: false,
-            error: '请先登录以访问此资源'
+            error: MSG.AUTH.REQUIRED
         }, 401);
     }
 
@@ -73,7 +74,7 @@ export async function authMiddleware(c, next) {
         console.error('JWT Verification Failed:', err);
         return c.json({
             success: false,
-            error: `登录已过期，请重新登录 (${err.message})`
+            error: `${MSG.AUTH.EXPIRED} (${err.message})`
         }, 401);
     }
 }
@@ -102,7 +103,7 @@ export function requirePermission(permission) {
 
         return c.json({
             success: false,
-            error: `权限不足，需要 ${permission} 权限`
+            error: `${MSG.AUTH.FORBIDDEN}: ${permission}`
         }, 403);
     };
 }

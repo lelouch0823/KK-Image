@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth.js';
 import { getFileUrl } from '../../../../api/utils/url.js';
 import { batchDelete } from '../../../../lib/db/batch.js';
+import { MSG } from '../../../../api/utils/messages.js';
 
 const app = new Hono();
 
@@ -67,8 +68,8 @@ app.get('/', async (c) => {
             pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
         });
     } catch (err) {
-        console.error('获取文件列表失败:', err);
-        return c.json({ success: false, error: err.message }, 500);
+        console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+        return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
     }
 });
 
@@ -83,7 +84,7 @@ app.get('/:id', async (c) => {
         const file = await env.DB.prepare('SELECT * FROM files WHERE id = ?').bind(fileId).first();
 
         if (!file) {
-            return c.json({ success: false, error: '文件不存在' }, 404);
+            return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
         }
 
         return c.json({
@@ -102,8 +103,8 @@ app.get('/:id', async (c) => {
             }
         });
     } catch (err) {
-        console.error('获取文件详情失败:', err);
-        return c.json({ success: false, error: err.message }, 500);
+        console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+        return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
     }
 });
 
@@ -121,17 +122,17 @@ app.put('/:id',
         try {
             const file = await env.DB.prepare('SELECT id FROM files WHERE id = ?').bind(fileId).first();
             if (!file) {
-                return c.json({ success: false, error: '文件不存在' }, 404);
+                return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
             }
 
             await env.DB.prepare(
                 'UPDATE files SET name = ?, updated_at = ? WHERE id = ?'
             ).bind(name, Date.now(), fileId).run();
 
-            return c.json({ success: true, message: '文件已重命名' });
+            return c.json({ success: true, message: MSG.FILE.RENAME_SUCCESS });
         } catch (err) {
-            console.error('重命名文件失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.UPDATE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.OP_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -148,7 +149,7 @@ app.delete('/:id',
         try {
             const file = await env.DB.prepare('SELECT storage_key FROM files WHERE id = ?').bind(fileId).first();
             if (!file) {
-                return c.json({ success: false, error: '文件不存在' }, 404);
+                return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
             }
 
             // 从 R2 删除
@@ -158,10 +159,10 @@ app.delete('/:id',
 
             await env.DB.prepare('DELETE FROM files WHERE id = ?').bind(fileId).run();
 
-            return c.json({ success: true, message: '文件已删除' });
+            return c.json({ success: true, message: MSG.FILE.DELETE_SUCCESS });
         } catch (err) {
-            console.error('删除文件失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.DELETE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.DELETE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -194,11 +195,11 @@ app.post('/batch/delete',
 
             return c.json({
                 success: true,
-                message: `已删除 ${results.length} 个文件`
+                message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', results.length)
             });
         } catch (err) {
-            console.error('批量删除文件失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.OP_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.DELETE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -218,7 +219,7 @@ app.post('/batch/move',
             if (targetFolderId) {
                 const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(targetFolderId).first();
                 if (!folder) {
-                    return c.json({ success: false, error: '目标文件夹不存在' }, 404);
+                    return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
                 }
             }
 
@@ -229,11 +230,11 @@ app.post('/batch/move',
 
             return c.json({
                 success: true,
-                message: `已移动 ${ids.length} 个文件`
+                message: MSG.FILE.MOVE_SUCCESS.replace('{count}', ids.length)
             });
         } catch (err) {
-            console.error('批量移动文件失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.OP_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.OP_FAILED}: ${err.message}` }, 500);
         }
     }
 );

@@ -84,7 +84,7 @@ const loading = ref(false);
 const moving = ref(false);
 const selectedId = ref(null);
 const flattenedFolders = ref([]);
-const rootFolder = { id: 'root', name: '根目录' };
+const rootFolder = computed(() => ({ id: 'root', name: t('moveFile.root') }));
 
 const close = () => {
     emit('update:modelValue', false);

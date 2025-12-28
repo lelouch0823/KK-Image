@@ -1,5 +1,6 @@
 import { ref, computed, shallowRef } from 'vue';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
 import { API, MAX_UPLOAD_SIZE } from '@/utils/constants';
 
 // ============================================================
@@ -17,6 +18,7 @@ const folderRefreshCallbacks = shallowRef(new Map());
 
 export function useUploadQueue() {
     const { addToast } = useToast();
+    const { t } = useI18n();
 
     // 计算属性
     const hasItems = computed(() => queue.value.length > 0);
@@ -78,7 +80,7 @@ export function useUploadQueue() {
      */
     const addFiles = (files, folderId) => {
         if (!folderId) {
-            addToast({ message: '请先选择上传目录', type: 'warning' });
+            addToast({ message: t('uploadQueue.selectFolderFirst'), type: 'warning' });
             return;
         }
 
@@ -95,7 +97,7 @@ export function useUploadQueue() {
 
         if (invalidFiles.length > 0) {
             addToast({
-                message: `${invalidFiles.length} 个文件超过限制 (100MB): ${invalidFiles.slice(0, 2).join(', ')}${invalidFiles.length > 2 ? '...' : ''}`,
+                message: t('uploadQueue.fileTooLarge', { count: invalidFiles.length }) + `: ${invalidFiles.slice(0, 2).join(', ')}${invalidFiles.length > 2 ? '...' : ''}`,
                 type: 'error',
                 duration: 5000
             });
@@ -197,11 +199,11 @@ export function useUploadQueue() {
                         }
                     } else {
                         item.status = 'error';
-                        item.error = res.message || '上传失败';
+                        item.error = res.message || t('uploadQueue.uploadFailed');
                     }
                 } catch (e) {
                     item.status = 'error';
-                    item.error = '响应解析失败';
+                    item.error = t('uploadQueue.parseError');
                 }
             } else {
                 item.status = 'error';
@@ -213,7 +215,7 @@ export function useUploadQueue() {
         xhr.onerror = () => {
             activeUploads--;
             item.status = 'error';
-            item.error = '网络错误';
+            item.error = t('uploadQueue.networkError');
             item.speed = 0;
             processQueue();
         };

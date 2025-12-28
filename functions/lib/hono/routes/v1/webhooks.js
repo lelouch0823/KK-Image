@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
 import { generatePrefixedId, generateHmacSignature } from '../../../../api/utils/id.js';
+import { MSG } from '../../../../api/utils/messages.js';
 
 const app = new Hono();
 
@@ -51,8 +52,8 @@ app.get('/',
                 supportedEvents: WEBHOOK_EVENTS
             });
         } catch (err) {
-            console.error('获取 Webhook 列表失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -72,13 +73,13 @@ app.get('/:id',
             ).bind(id).first();
 
             if (!webhook) {
-                return c.json({ success: false, error: 'Webhook 不存在' }, 404);
+                return c.json({ success: false, error: MSG.WEBHOOK.NOT_FOUND }, 404);
             }
 
             return c.json({ success: true, data: rowToWebhook(webhook) });
         } catch (err) {
-            console.error('获取 Webhook 失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -94,20 +95,20 @@ app.post('/',
         const { env } = c;
 
         if (!data.url) {
-            return c.json({ success: false, error: 'Webhook URL is required' }, 400);
+            return c.json({ success: false, error: MSG.WEBHOOK.URL_REQUIRED }, 400);
         }
 
         // 验证事件类型
         if (data.events?.length) {
             const invalid = data.events.filter(e => !WEBHOOK_EVENTS.includes(e));
             if (invalid.length) {
-                return c.json({ success: false, error: `Invalid events: ${invalid.join(', ')}` }, 400);
+                return c.json({ success: false, error: `${MSG.WEBHOOK.INVALID_EVENTS}: ${invalid.join(', ')}` }, 400);
             }
         }
 
         try {
             const id = generatePrefixedId('wh_');
-            const now = Date.now();
+            const nowMs = Date.now();
 
             await env.DB.prepare(`
                 INSERT INTO webhooks (id, url, events, secret, headers, enabled, created_by, created_at)
@@ -120,7 +121,7 @@ app.post('/',
                 JSON.stringify(data.headers || {}),
                 1,
                 user.name || user.id,
-                now
+                nowMs
             ).run();
 
             const webhook = {
@@ -131,13 +132,13 @@ app.post('/',
                 headers: data.headers || {},
                 enabled: true,
                 createdBy: user.name || user.id,
-                createdAt: now
+                createdAt: nowMs
             };
 
             return c.json({ success: true, data: webhook }, 201);
         } catch (err) {
-            console.error('创建 Webhook 失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.CREATE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.CREATE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -159,7 +160,7 @@ app.put('/:id',
             ).bind(id).first();
 
             if (!existing) {
-                return c.json({ success: false, error: 'Webhook 不存在' }, 404);
+                return c.json({ success: false, error: MSG.WEBHOOK.NOT_FOUND }, 404);
             }
 
             const updates = [];
@@ -202,8 +203,8 @@ app.put('/:id',
 
             return c.json({ success: true, data: rowToWebhook(updated) });
         } catch (err) {
-            console.error('更新 Webhook 失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.UPDATE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.UPDATE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -223,15 +224,15 @@ app.delete('/:id',
             ).bind(id).first();
 
             if (!existing) {
-                return c.json({ success: false, error: 'Webhook 不存在' }, 404);
+                return c.json({ success: false, error: MSG.WEBHOOK.NOT_FOUND }, 404);
             }
 
             await env.DB.prepare('DELETE FROM webhooks WHERE id = ?').bind(id).run();
 
-            return c.json({ success: true, message: 'Webhook 已删除' });
+            return c.json({ success: true, message: MSG.WEBHOOK.DELETE_SUCCESS });
         } catch (err) {
-            console.error('删除 Webhook 失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.DELETE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.DELETE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -252,7 +253,7 @@ app.post('/:id/test',
             ).bind(id).first();
 
             if (!row) {
-                return c.json({ success: false, error: 'Webhook 不存在' }, 404);
+                return c.json({ success: false, error: MSG.WEBHOOK.NOT_FOUND }, 404);
             }
 
             const webhook = rowToWebhook(row);
@@ -318,10 +319,10 @@ app.post('/:id/test',
                 }
             });
         } catch (err) {
-            console.error('测试 Webhook 失败:', err);
+            console.error(`${MSG.COMMON.OP_FAILED}:`, err);
             return c.json({
                 success: false,
-                error: err.message,
+                error: `${MSG.WEBHOOK.TEST_FAILED}: ${err.message}`,
                 timestamp: new Date().toISOString()
             }, 500);
         }

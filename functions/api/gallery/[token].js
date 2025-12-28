@@ -5,6 +5,7 @@
 
 import { getShareUrl, getFileUrl } from '../utils/url.js';
 import { success, error } from '../utils/response.js';
+import { MSG } from '../utils/messages.js';
 
 export async function onRequestGet(context) {
     const { env, params, request } = context;
@@ -17,12 +18,12 @@ export async function onRequestGet(context) {
     `).bind(shareToken).first();
 
         if (!folder) {
-            return error('文件夹不存在或链接已失效', 404);
+            return error(MSG.FOLDER.NOT_FOUND, 404);
         }
 
         // 检查是否公开
         if (!folder.is_public) {
-            return error('该文件夹未公开', 403);
+            return error(MSG.SPACE.PRIVATE, 403);
         }
 
         // 检查密码保护
@@ -31,7 +32,7 @@ export async function onRequestGet(context) {
             const providedPassword = url.searchParams.get('password');
 
             if (!providedPassword || providedPassword !== folder.password) {
-                return success({ requiresPassword: true }, '该文件夹需要密码', 401);
+                return success({ requiresPassword: true }, MSG.SPACE.PASSWORD_REQUIRED, 401);
             }
         }
 
@@ -86,8 +87,8 @@ export async function onRequestGet(context) {
         }, 'Success', 200, {
             'Cache-Control': 'public, max-age=60'
         });
-    } catch (error) {
-        console.error('获取画廊失败:', error);
-        return error(error.message, 500);
+    } catch (err) {
+        console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+        return error(`${MSG.COMMON.LOAD_FAILED}: ${err.message}`, 500);
     }
 }

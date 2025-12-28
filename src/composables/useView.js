@@ -1,9 +1,17 @@
 import { ref } from 'vue';
+import { useI18n } from './useI18n';
 
 const currentView = ref('dashboard');
-const viewTitle = ref('概览');
+const viewTitle = ref('');
 
 export function useView() {
+    const { t } = useI18n();
+
+    // 初始化默认标题
+    if (!viewTitle.value) {
+        viewTitle.value = t('views.dashboard');
+    }
+
     const setView = (view, title) => {
         currentView.value = view;
         if (title) {
@@ -11,11 +19,11 @@ export function useView() {
         } else {
             // 默认标题映射
             const titleMap = {
-                'dashboard': '概览',
-                'files': '文件管理',
-                'stats': '统计'
+                'dashboard': t('views.dashboard'),
+                'files': t('views.files'),
+                'stats': t('views.stats')
             };
-            viewTitle.value = titleMap[view] || '管理后台';
+            viewTitle.value = titleMap[view] || t('views.admin');
         }
     };
 

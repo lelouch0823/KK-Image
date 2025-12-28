@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth.js';
 import { generateId, generateShareToken } from '../../../../api/utils/id.js';
 import { getShareUrl, getFileUrl } from '../../../../api/utils/url.js';
+import { MSG } from '../../../../api/utils/messages.js';
 
 const app = new Hono();
 
@@ -53,8 +54,8 @@ app.get('/', async (c) => {
             }))
         });
     } catch (err) {
-        console.error('获取相册列表失败:', err);
-        return c.json({ success: false, error: err.message }, 500);
+        console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+        return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
     }
 });
 
@@ -68,7 +69,7 @@ app.get('/:id', async (c) => {
     try {
         const album = await env.DB.prepare('SELECT * FROM albums WHERE id = ?').bind(albumId).first();
         if (!album) {
-            return c.json({ success: false, error: '相册不存在' }, 404);
+            return c.json({ success: false, error: MSG.ALBUM.NOT_FOUND }, 404);
         }
 
         // 获取相册文件
@@ -102,8 +103,8 @@ app.get('/:id', async (c) => {
             }
         });
     } catch (err) {
-        console.error('获取相册详情失败:', err);
-        return c.json({ success: false, error: err.message }, 500);
+        console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+        return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
     }
 });
 
@@ -120,12 +121,12 @@ app.post('/',
         try {
             const albumId = generateId();
             const shareToken = isPublic ? generateShareToken() : null;
-            const now = Date.now();
+            const nowMs = Date.now();
 
             await env.DB.prepare(`
         INSERT INTO albums (id, name, description, is_public, share_token, cover_file_id, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(albumId, name.trim(), description.trim(), isPublic ? 1 : 0, shareToken, coverFileId || null, now, now).run();
+      `).bind(albumId, name.trim(), description.trim(), isPublic ? 1 : 0, shareToken, coverFileId || null, nowMs, nowMs).run();
 
             return c.json({
                 success: true,
@@ -136,12 +137,12 @@ app.post('/',
                     isPublic,
                     shareToken,
                     shareUrl: getShareUrl(shareToken),
-                    createdAt: now
+                    createdAt: nowMs
                 }
             }, 201);
         } catch (err) {
-            console.error('创建相册失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.CREATE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.CREATE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -160,7 +161,7 @@ app.put('/:id',
         try {
             const album = await env.DB.prepare('SELECT * FROM albums WHERE id = ?').bind(albumId).first();
             if (!album) {
-                return c.json({ success: false, error: '相册不存在' }, 404);
+                return c.json({ success: false, error: MSG.ALBUM.NOT_FOUND }, 404);
             }
 
             const updates = [];
@@ -206,8 +207,8 @@ app.put('/:id',
                 }
             });
         } catch (err) {
-            console.error('更新相册失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.UPDATE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.UPDATE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -224,7 +225,7 @@ app.delete('/:id',
         try {
             const album = await env.DB.prepare('SELECT id FROM albums WHERE id = ?').bind(albumId).first();
             if (!album) {
-                return c.json({ success: false, error: '相册不存在' }, 404);
+                return c.json({ success: false, error: MSG.ALBUM.NOT_FOUND }, 404);
             }
 
             // 删除相册（不删除文件本身）
@@ -233,10 +234,10 @@ app.delete('/:id',
                 env.DB.prepare('DELETE FROM albums WHERE id = ?').bind(albumId)
             ]);
 
-            return c.json({ success: true, message: '相册已删除' });
+            return c.json({ success: true, message: MSG.ALBUM.DELETE_SUCCESS });
         } catch (err) {
-            console.error('删除相册失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.DELETE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.DELETE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -255,7 +256,7 @@ app.post('/:id/files',
         try {
             const album = await env.DB.prepare('SELECT id FROM albums WHERE id = ?').bind(albumId).first();
             if (!album) {
-                return c.json({ success: false, error: '相册不存在' }, 404);
+                return c.json({ success: false, error: MSG.ALBUM.NOT_FOUND }, 404);
             }
 
             // 批量插入
@@ -271,11 +272,11 @@ app.post('/:id/files',
 
             return c.json({
                 success: true,
-                message: `已添加 ${fileIds.length} 个文件到相册`
+                message: MSG.ALBUM.ADD_FILES_SUCCESS.replace('{count}', fileIds.length)
             });
         } catch (err) {
-            console.error('添加文件到相册失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.OP_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.OP_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -292,7 +293,7 @@ app.delete('/:id/files',
 
         try {
             if (!fileIds?.length) {
-                return c.json({ success: false, error: 'fileIds is required' }, 400);
+                return c.json({ success: false, error: MSG.COMMON.INVALID_PARAMS }, 400);
             }
 
             const placeholders = fileIds.map(() => '?').join(',');
@@ -302,11 +303,11 @@ app.delete('/:id/files',
 
             return c.json({
                 success: true,
-                message: `已从相册移除 ${fileIds.length} 个文件`
+                message: MSG.ALBUM.REMOVE_FILES_SUCCESS.replace('{count}', fileIds.length)
             });
         } catch (err) {
-            console.error('从相册移除文件失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.OP_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.OP_FAILED}: ${err.message}` }, 500);
         }
     }
 );

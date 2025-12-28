@@ -42,7 +42,7 @@
                          <span class="text-xs text-secondary font-mono mt-1 select-all cursor-pointer" @click="copyShareLink(item)" :title="t('dashboard.clickToCopy')">{{ item.shareToken }}</span>
                      </div>
                  </td>
-                 <td class="px-6 py-3 text-secondary">{{ formatExpiry(item.expiresAt) }}</td>
+                 <td class="px-6 py-3 text-secondary">{{ formatExpiry(item.expiresAt, t) }}</td>
                  <td class="px-6 py-3 text-right">
                      <div class="flex items-center justify-end gap-2">
                          <button @click="copyShareLink(item)" class="text-xs bg-gray-100 hover:bg-gray-200 text-secondary px-2 py-1 rounded">{{ t('dashboard.copy') }}</button>

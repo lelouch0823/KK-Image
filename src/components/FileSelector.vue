@@ -129,7 +129,8 @@ const loadFoldersStructure = async () => {
       allFolders.value = result.data || [];
     }
   } catch (err) {
-    console.error('加载文件夹失败:', err);
+    console.error(t('moveFile.loadFailed'), err);
+    // addToast({ message: t('fileSelector.loadFoldersFailed'), type: 'error' }); // 可选
   }
 };
 
@@ -192,7 +193,7 @@ const loadFiles = async () => {
       }
     }
   } catch (err) {
-    console.error('加载文件失败:', err);
+    console.error(t('fileManager.loadFailed'), err);
     files.value = [];
   } finally {
     loading.value = false;

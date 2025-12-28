@@ -1,10 +1,11 @@
 import { z } from 'zod';
+import { MSG } from '../../../api/utils/messages.js';
 
 /**
  * 文件夹创建 Schema
  */
 export const CreateFolderSchema = z.object({
-    name: z.string().min(1, '文件夹名不能为空').max(100, '文件夹名过长'),
+    name: z.string().min(1, MSG.FOLDER.NAME_REQUIRED).max(100, MSG.FOLDER.NAME_TOO_LONG),
     parentId: z.string().optional().nullable(),
     description: z.string().max(500).optional(),
     isPublic: z.boolean().default(false),

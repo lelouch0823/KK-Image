@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth.js';
 import { generateId, generateShareToken } from '../../../../api/utils/id.js';
 import { getShareUrl, getFileUrl } from '../../../../api/utils/url.js';
+import { MSG } from '../../../../api/utils/messages.js';
 
 const app = new Hono();
 
@@ -48,8 +49,8 @@ app.get('/', async (c) => {
             }))
         });
     } catch (err) {
-        console.error('获取共享空间列表失败:', err);
-        return c.json({ success: false, error: err.message }, 500);
+        console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+        return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
     }
 });
 
@@ -63,7 +64,7 @@ app.get('/:id', async (c) => {
     try {
         const space = await env.DB.prepare('SELECT * FROM spaces WHERE id = ?').bind(spaceId).first();
         if (!space) {
-            return c.json({ success: false, error: '共享空间不存在' }, 404);
+            return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
         }
 
         // 获取空间文件
@@ -99,8 +100,8 @@ app.get('/:id', async (c) => {
             }
         });
     } catch (err) {
-        console.error('获取共享空间详情失败:', err);
-        return c.json({ success: false, error: err.message }, 500);
+        console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+        return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
     }
 });
 
@@ -129,7 +130,7 @@ app.get('/:id/stats', async (c) => {
             }
         });
     } catch (err) {
-        return c.json({ success: false, error: err.message }, 500);
+        return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
     }
 });
 
@@ -146,12 +147,12 @@ app.post('/',
         try {
             const spaceId = generateId();
             const shareToken = generateShareToken();
-            const now = Date.now();
+            const nowMs = Date.now();
 
             await env.DB.prepare(`
         INSERT INTO spaces (id, name, description, is_public, password, share_token, expires_at, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(spaceId, name.trim(), description.trim(), isPublic ? 1 : 0, password || null, shareToken, expiresAt || null, now, now).run();
+      `).bind(spaceId, name.trim(), description.trim(), isPublic ? 1 : 0, password || null, shareToken, expiresAt || null, nowMs, nowMs).run();
 
             return c.json({
                 success: true,
@@ -163,12 +164,12 @@ app.post('/',
                     shareToken,
                     shareUrl: getShareUrl(shareToken, 'space'),
                     expiresAt,
-                    createdAt: now
+                    createdAt: nowMs
                 }
             }, 201);
         } catch (err) {
-            console.error('创建共享空间失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.CREATE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.CREATE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -187,7 +188,7 @@ app.put('/:id',
         try {
             const space = await env.DB.prepare('SELECT * FROM spaces WHERE id = ?').bind(spaceId).first();
             if (!space) {
-                return c.json({ success: false, error: '共享空间不存在' }, 404);
+                return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
             }
 
             const updates = [];
@@ -232,8 +233,8 @@ app.put('/:id',
                 }
             });
         } catch (err) {
-            console.error('更新共享空间失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.UPDATE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.UPDATE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -250,7 +251,7 @@ app.delete('/:id',
         try {
             const space = await env.DB.prepare('SELECT id FROM spaces WHERE id = ?').bind(spaceId).first();
             if (!space) {
-                return c.json({ success: false, error: '共享空间不存在' }, 404);
+                return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
             }
 
             await env.DB.batch([
@@ -258,10 +259,10 @@ app.delete('/:id',
                 env.DB.prepare('DELETE FROM spaces WHERE id = ?').bind(spaceId)
             ]);
 
-            return c.json({ success: true, message: '共享空间已删除' });
+            return c.json({ success: true, message: MSG.SPACE.DELETE_SUCCESS });
         } catch (err) {
-            console.error('删除共享空间失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.DELETE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.DELETE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -278,12 +279,12 @@ app.post('/:id/files',
 
         try {
             if (!fileIds?.length) {
-                return c.json({ success: false, error: 'fileIds is required' }, 400);
+                return c.json({ success: false, error: MSG.COMMON.INVALID_PARAMS }, 400);
             }
 
             const space = await env.DB.prepare('SELECT id FROM spaces WHERE id = ?').bind(spaceId).first();
             if (!space) {
-                return c.json({ success: false, error: '共享空间不存在' }, 404);
+                return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
             }
 
             const statements = fileIds.map((fileId, index) =>
@@ -296,11 +297,11 @@ app.post('/:id/files',
 
             return c.json({
                 success: true,
-                message: `已添加 ${fileIds.length} 个文件到空间`
+                message: MSG.SPACE.ADD_FILES_SUCCESS.replace('{count}', fileIds.length)
             });
         } catch (err) {
-            console.error('添加文件到空间失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.OP_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.OP_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -317,7 +318,7 @@ app.delete('/:id/files',
 
         try {
             if (!fileIds?.length) {
-                return c.json({ success: false, error: 'fileIds is required' }, 400);
+                return c.json({ success: false, error: MSG.COMMON.INVALID_PARAMS }, 400);
             }
 
             const placeholders = fileIds.map(() => '?').join(',');
@@ -327,11 +328,11 @@ app.delete('/:id/files',
 
             return c.json({
                 success: true,
-                message: `已从空间移除 ${fileIds.length} 个文件`
+                message: MSG.SPACE.REMOVE_FILES_SUCCESS.replace('{count}', fileIds.length)
             });
         } catch (err) {
-            console.error('从空间移除文件失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.OP_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.OP_FAILED}: ${err.message}` }, 500);
         }
     }
 );

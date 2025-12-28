@@ -7,9 +7,11 @@
 import { ref } from 'vue';
 import JSZip from 'jszip';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
 
 export function useBatchDownload() {
     const { addToast } = useToast();
+    const { t } = useI18n();
 
     const downloading = ref(false);
     const downloadProgress = ref(0);
@@ -63,10 +65,10 @@ export function useBatchDownload() {
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
 
-            addToast({ message: '下载已开始', type: 'success' });
+            addToast({ message: t('batchDownload.started'), type: 'success' });
 
         } catch (e) {
-            addToast({ message: '打包下载失败', type: 'error' });
+            addToast({ message: t('batchDownload.failed'), type: 'error' });
         } finally {
             downloading.value = false;
             downloadProgress.value = 0;

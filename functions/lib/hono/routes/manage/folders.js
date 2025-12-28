@@ -5,6 +5,7 @@ import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
 import { generateId, generateShareToken, now, timestampToIso } from '../../../../api/utils/id.js';
 import { getShareUrl, getFileUrl } from '../../../../api/utils/url.js';
+import { MSG } from '../../../../api/utils/messages.js';
 
 const app = new Hono();
 
@@ -69,8 +70,8 @@ app.get('/', async (c) => {
             }))
         });
     } catch (err) {
-        console.error('获取文件夹列表失败:', err);
-        return c.json({ success: false, error: err.message }, 500);
+        console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+        return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
     }
 });
 
@@ -84,7 +85,7 @@ app.get('/:id', withCache(30), async (c) => {
     try {
         const folder = await env.DB.prepare('SELECT * FROM folders WHERE id = ?').bind(folderId).first();
         if (!folder) {
-            return c.json({ success: false, error: '文件夹不存在' }, 404);
+            return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
         }
 
         // 并行获取子文件夹和文件
@@ -135,8 +136,8 @@ app.get('/:id', withCache(30), async (c) => {
             }
         });
     } catch (err) {
-        console.error('获取文件夹详情失败:', err);
-        return c.json({ success: false, error: err.message }, 500);
+        console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+        return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
     }
 });
 
@@ -154,18 +155,18 @@ app.post('/',
             if (parentId) {
                 const parent = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(parentId).first();
                 if (!parent) {
-                    return c.json({ success: false, error: '父文件夹不存在' }, 400);
+                    return c.json({ success: false, error: MSG.FOLDER.PARENT_NOT_FOUND }, 400);
                 }
             }
 
             const folderId = generateId();
             const shareToken = isPublic ? generateShareToken() : null;
-            const now = Date.now();
+            const nowMs = Date.now();
 
             await env.DB.prepare(`
         INSERT INTO folders (id, parent_id, name, description, share_token, is_public, password, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(folderId, parentId || null, name.trim(), description.trim(), shareToken, isPublic ? 1 : 0, password || null, now, now).run();
+      `).bind(folderId, parentId || null, name.trim(), description.trim(), shareToken, isPublic ? 1 : 0, password || null, nowMs, nowMs).run();
 
             return c.json({
                 success: true,
@@ -177,12 +178,12 @@ app.post('/',
                     shareToken,
                     isPublic,
                     shareUrl: getShareUrl(shareToken),
-                    createdAt: now
+                    createdAt: nowMs
                 }
             }, 201);
         } catch (err) {
-            console.error('创建文件夹失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.CREATE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.CREATE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -201,7 +202,7 @@ app.put('/:id',
         try {
             const folder = await env.DB.prepare('SELECT * FROM folders WHERE id = ?').bind(folderId).first();
             if (!folder) {
-                return c.json({ success: false, error: '文件夹不存在' }, 404);
+                return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
             }
 
             const updates = [];
@@ -225,7 +226,7 @@ app.put('/:id',
             }
             if (data.parentId !== undefined) {
                 if (data.parentId === folderId) {
-                    return c.json({ success: false, error: '不能将文件夹移动到自身' }, 400);
+                    return c.json({ success: false, error: MSG.FOLDER.MOVE_TO_SELF }, 400);
                 }
                 updates.push('parent_id = ?');
                 values.push(data.parentId);
@@ -258,8 +259,8 @@ app.put('/:id',
                 }
             });
         } catch (err) {
-            console.error('更新文件夹失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.UPDATE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.UPDATE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -275,12 +276,12 @@ app.delete('/:id',
 
         try {
             if (folderId === 'root') {
-                return c.json({ success: false, error: '不能删除根文件夹' }, 400);
+                return c.json({ success: false, error: MSG.FOLDER.ROOT_CANNOT_DELETE }, 400);
             }
 
             const folder = await env.DB.prepare('SELECT * FROM folders WHERE id = ?').bind(folderId).first();
             if (!folder) {
-                return c.json({ success: false, error: '文件夹不存在' }, 404);
+                return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
             }
 
             // 获取所有子文件的存储键
@@ -301,10 +302,10 @@ app.delete('/:id',
             // 删除文件夹（级联删除）
             await env.DB.prepare('DELETE FROM folders WHERE id = ?').bind(folderId).run();
 
-            return c.json({ success: true, message: '文件夹已删除' });
+            return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
         } catch (err) {
-            console.error('删除文件夹失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.DELETE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.DELETE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -341,7 +342,7 @@ app.post('/:id/upload',
             // 1. 验证文件夹是否存在
             const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(folderId).first();
             if (!folder) {
-                return c.json({ success: false, error: '文件夹不存在' }, 404);
+                return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
             }
 
             // 2. 获取上传文件
@@ -349,7 +350,7 @@ app.post('/:id/upload',
             const uploadFile = formData['file']; // Hono uses ['file'] for file input
 
             if (!uploadFile || !(uploadFile instanceof File)) {
-                return c.json({ success: false, error: '未找到上传文件' }, 400);
+                return c.json({ success: false, error: MSG.COMMON.UPLOAD_NO_FILE }, 400);
             }
 
             const fileName = uploadFile.name;
@@ -375,7 +376,7 @@ app.post('/:id/upload',
             }
 
             const fileId = result.fileId;
-            const now = Date.now();
+            const nowMs = Date.now();
 
             // 4. 保存数据库记录
             await env.DB.prepare(`
@@ -390,8 +391,8 @@ app.post('/:id/upload',
                 fileType,
                 fileId, // storage_key
                 user.id,
-                now,
-                now
+                nowMs,
+                nowMs
             ).run();
 
             // 5. 触发 Webhook
@@ -400,7 +401,7 @@ app.post('/:id/upload',
                 filename: fileName,
                 size: fileSize,
                 type: fileType,
-                uploadTime: timestampToIso(now),
+                uploadTime: timestampToIso(nowMs),
                 url: getFileUrl(fileId),
                 uploader: user.name || user.username || user.id,
                 storage: result.metadata?.storage
@@ -429,9 +430,10 @@ app.post('/:id/upload',
 
         } catch (err) {
             console.error('Upload failed:', err);
-            return c.json({ success: false, error: err.message || '上传失败' }, 500);
+            return c.json({ success: false, error: `${MSG.COMMON.UPLOAD_FAILED}: ${err.message}` }, 500);
         }
     }
 );
+
 
 export default app;

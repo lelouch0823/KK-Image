@@ -3,6 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { CreateUserSchema, UpdateUserSchema } from '../../schemas/user.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { generateId, hashPassword } from '../../../../api/utils/id.js';
+import { MSG } from '../../../../api/utils/messages.js';
 
 const app = new Hono();
 
@@ -32,8 +33,8 @@ app.get('/',
 
             return c.json({ success: true, data: safeUsers });
         } catch (err) {
-            console.error('获取用户列表失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -70,7 +71,7 @@ app.get('/:id',
             ).bind(id).first();
 
             if (!user) {
-                return c.json({ success: false, error: '用户不存在' }, 404);
+                return c.json({ success: false, error: MSG.USER.NOT_FOUND }, 404);
             }
 
             return c.json({
@@ -87,8 +88,8 @@ app.get('/:id',
                 }
             });
         } catch (err) {
-            console.error('获取用户失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -110,12 +111,12 @@ app.post('/',
             ).bind(data.username).first();
 
             if (existing) {
-                return c.json({ success: false, error: '用户名已存在' }, 409);
+                return c.json({ success: false, error: MSG.USER.EXISTS }, 409);
             }
 
             const id = generateId();
             const passwordHash = await hashPassword(data.password, env.JWT_SECRET);
-            const now = Date.now();
+            const nowMs = Date.now();
             const permissions = JSON.stringify(data.permissions || []);
 
             await env.DB.prepare(`
@@ -129,7 +130,7 @@ app.post('/',
                 data.email || null,
                 data.role || 'user',
                 permissions,
-                now
+                nowMs
             ).run();
 
             return c.json({
@@ -141,12 +142,12 @@ app.post('/',
                     email: data.email,
                     role: data.role || 'user',
                     permissions: data.permissions || [],
-                    createdAt: now
+                    createdAt: nowMs
                 }
             }, 201);
         } catch (err) {
-            console.error('创建用户失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.CREATE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.CREATE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -168,7 +169,7 @@ app.put('/:id',
             ).bind(id).first();
 
             if (!existing) {
-                return c.json({ success: false, error: '用户不存在' }, 404);
+                return c.json({ success: false, error: MSG.USER.NOT_FOUND }, 404);
             }
 
             const updates = [];
@@ -196,7 +197,7 @@ app.put('/:id',
             }
 
             if (updates.length === 0) {
-                return c.json({ success: false, error: '没有可更新的字段' }, 400);
+                return c.json({ success: false, error: MSG.COMMON.NO_UPDATE_FIELDS }, 400);
             }
 
             updates.push('updated_at = ?');
@@ -226,8 +227,8 @@ app.put('/:id',
                 }
             });
         } catch (err) {
-            console.error('更新用户失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.UPDATE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.UPDATE_FAILED}: ${err.message}` }, 500);
         }
     }
 );
@@ -243,7 +244,7 @@ app.delete('/:id',
         const { env } = c;
 
         if (currentUser.id === id) {
-            return c.json({ success: false, error: '不能删除自己的账户' }, 400);
+            return c.json({ success: false, error: MSG.USER.CANNOT_DELETE_SELF }, 400);
         }
 
         try {
@@ -252,15 +253,15 @@ app.delete('/:id',
             ).bind(id).first();
 
             if (!existing) {
-                return c.json({ success: false, error: '用户不存在' }, 404);
+                return c.json({ success: false, error: MSG.USER.NOT_FOUND }, 404);
             }
 
             await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
 
-            return c.json({ success: true, message: '用户已删除' });
+            return c.json({ success: true, message: MSG.USER.DELETE_SUCCESS });
         } catch (err) {
-            console.error('删除用户失败:', err);
-            return c.json({ success: false, error: err.message }, 500);
+            console.error(`${MSG.COMMON.DELETE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.DELETE_FAILED}: ${err.message}` }, 500);
         }
     }
 );

@@ -1,35 +1,23 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
+import { MSG } from '../../../../api/utils/messages.js';
 
 const app = new Hono();
 
-// 权限常量
-const PERMISSIONS = {
-    'files:read': '读取文件',
-    'files:write': '创建/编辑文件',
-    'files:delete': '删除文件',
-    'folders:read': '读取文件夹',
-    'folders:write': '创建/编辑文件夹',
-    'folders:delete': '删除文件夹',
-    'users:read': '查看用户',
-    'users:write': '管理用户',
-    'webhooks:read': '查看 Webhooks',
-    'webhooks:write': '管理 Webhooks',
-    'stats:read': '查看统计',
-    'admin:full': '完全管理员权限'
-};
+// 权限常量从 MSG 获取
+const PERMISSIONS = MSG.PERMISSIONS;
 
 const ROLES = {
     admin: {
-        name: '管理员',
+        name: MSG.ROLES.ADMIN,
         permissions: ['admin:full']
     },
     user: {
-        name: '普通用户',
+        name: MSG.ROLES.USER,
         permissions: ['files:read', 'files:write', 'folders:read', 'folders:write']
     },
     viewer: {
-        name: '访客',
+        name: MSG.ROLES.GUEST,
         permissions: ['files:read', 'folders:read']
     }
 };
@@ -78,7 +66,7 @@ app.post('/check', async (c) => {
     const { permissions } = await c.req.json();
 
     if (!Array.isArray(permissions)) {
-        return c.json({ success: false, error: 'permissions must be an array' }, 400);
+        return c.json({ success: false, error: MSG.COMMON.INVALID_PARAMS }, 400);
     }
 
     const userPermissions = user.permissions || [];

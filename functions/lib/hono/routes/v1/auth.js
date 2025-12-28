@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { LoginSchema, TokenSchema, CreateApiKeySchema } from '../../schemas/user.js';
 import { generateJWT, verifyTurnstile } from '../../../../api/utils/auth.js';
+import { MSG } from '../../../../api/utils/messages.js';
 
 const app = new Hono();
 
@@ -16,17 +17,17 @@ app.post('/login', zValidator('json', LoginSchema), async (c) => {
     if (env.TURNSTILE_SECRET_KEY && turnstileToken) {
         const isValid = await verifyTurnstile(turnstileToken, env.TURNSTILE_SECRET_KEY);
         if (!isValid) {
-            return c.json({ success: false, error: '人机验证失败' }, 400);
+            return c.json({ success: false, error: MSG.AUTH.VERIFY_FAILED }, 400);
         }
     }
 
     // 验证凭据
     if (!env.BASIC_USER || !env.BASIC_PASS) {
-        return c.json({ success: false, error: '认证未配置' }, 503);
+        return c.json({ success: false, error: MSG.AUTH.UNCONFIGURED }, 503);
     }
 
     if (username !== env.BASIC_USER || password !== env.BASIC_PASS) {
-        return c.json({ success: false, error: '用户名或密码错误' }, 401);
+        return c.json({ success: false, error: MSG.AUTH.INVALID_CREDENTIALS }, 401);
     }
 
     // 生成 JWT
@@ -54,7 +55,7 @@ app.post('/token', zValidator('json', TokenSchema), async (c) => {
 
     // 验证凭据
     if (username !== env.BASIC_USER || password !== env.BASIC_PASS) {
-        return c.json({ success: false, error: 'Invalid credentials' }, 401);
+        return c.json({ success: false, error: MSG.AUTH.INVALID_CREDENTIALS }, 401);
     }
 
     const user = {
@@ -103,7 +104,7 @@ app.get('/check', async (c) => {
         success: true,
         data: {
             authEnabled: isAuthConfigured,
-            message: isAuthConfigured ? 'Authentication is enabled' : 'Authentication not configured'
+            message: isAuthConfigured ? 'Authentication is enabled' : MSG.AUTH.UNCONFIGURED
         }
     });
 });
@@ -115,7 +116,7 @@ app.get('/me', async (c) => {
     const user = c.get('user');
 
     if (!user) {
-        return c.json({ success: false, error: 'Not authenticated' }, 401);
+        return c.json({ success: false, error: MSG.AUTH.REQUIRED }, 401);
     }
 
     return c.json({

@@ -1,0 +1,119 @@
+/**
+ * 后端 API 统一消息常量
+ * 包含错误提示、成功反馈及权限文案
+ */
+
+export const MSG = {
+    // 认证与权限
+    AUTH: {
+        REQUIRED: '请先登录以访问此资源',
+        EXPIRED: '登录已过期，请重新登录',
+        FORBIDDEN: '权限不足',
+        INVALID_CREDENTIALS: '用户名或密码错误',
+        VERIFY_FAILED: '人机验证失败',
+        UNCONFIGURED: '认证未配置',
+        USERNAME_EXISTS: '用户名已存在',
+        CANNOT_DELETE_SELF: '不能删除自己的账户'
+    },
+
+    // 资源状态
+    FILE: {
+        NOT_FOUND: '文件不存在',
+        ALREADY_EXISTS: '文件已存在',
+        RENAME_SUCCESS: '文件已重命名',
+        DELETE_SUCCESS: '文件已删除',
+        BATCH_DELETE_SUCCESS: '已删除 {count} 个文件',
+        MOVE_SUCCESS: '已移动 {count} 个文件',
+        UPDATE_SUCCESS: '文件已更新',
+        NAME_REQUIRED: '文件名不能为空',
+        NAME_TOO_LONG: '文件名过长'
+    },
+
+    FOLDER: {
+        NOT_FOUND: '文件夹不存在',
+        EMPTY_INVALID: '文件夹不为空，请先删除其中的文件和子文件夹',
+        PARENT_NOT_FOUND: '父文件夹不存在',
+        CREATE_SUCCESS: '文件夹创建成功',
+        DELETE_SUCCESS: '文件夹已删除',
+        ROOT_CANNOT_DELETE: '不能删除根文件夹',
+        MOVE_TO_SELF: '不能将文件夹移动到自身',
+        UPDATE_SUCCESS: '文件夹已更新',
+        NAME_REQUIRED: '文件夹名不能为空',
+        NAME_TOO_LONG: '文件夹名过长'
+    },
+
+    ALBUM: {
+        NOT_FOUND: '相册不存在',
+        CREATE_SUCCESS: '创建相册成功',
+        UPDATE_SUCCESS: '相册已更新',
+        DELETE_SUCCESS: '相册已删除',
+        ADD_FILES_SUCCESS: '已添加 {count} 个文件到相册',
+        REMOVE_FILES_SUCCESS: '已从相册移除 {count} 个文件'
+    },
+
+    SPACE: {
+        NOT_FOUND: '共享空间不存在',
+        CREATE_SUCCESS: '创建共享空间成功',
+        UPDATE_SUCCESS: '共享空间已更新',
+        DELETE_SUCCESS: '共享空间已删除',
+        ADD_FILES_SUCCESS: '已添加 {count} 个文件到空间',
+        REMOVE_FILES_SUCCESS: '已从空间移除 {count} 个文件',
+        PUBLIC_REQUIRED: '该空间未公开',
+        PASSWORD_REQUIRED: '该空间需要密码',
+        LINK_INVALID: '空间不存在或链接已失效',
+        LINK_EXPIRED: '分享链接已过期'
+    },
+
+    USER: {
+        NOT_FOUND: '用户不存在',
+        CREATE_SUCCESS: '创建用户成功',
+        UPDATE_SUCCESS: '更新用户成功',
+        DELETE_SUCCESS: '用户已删除',
+        NAME_REQUIRED: '用户名不能为空',
+        PASSWORD_REQUIRED: '密码不能为空',
+        INVALID_CHARS: '用户名只能包含字母、数字和下划线'
+    },
+
+    WEBHOOK: {
+        NOT_FOUND: 'Webhook 不存在',
+        CREATE_SUCCESS: '创建 Webhook 成功',
+        UPDATE_SUCCESS: '更新 Webhook 成功',
+        DELETE_SUCCESS: 'Webhook 已删除'
+    },
+
+    // 通用错误
+    COMMON: {
+        LOAD_FAILED: '获取数据失败',
+        CREATE_FAILED: '创建失败',
+        UPDATE_FAILED: '更新失败',
+        DELETE_FAILED: '删除失败',
+        OP_FAILED: '操作失败',
+        NETWORK_ERROR: '网络错误',
+        INVALID_PARAMS: '无效参数',
+        NO_UPDATE_FIELDS: '没有可更新的字段',
+        UPLOAD_FAILED: '上传失败',
+        UPLOAD_NO_FILE: '未找到上传文件'
+    },
+
+    // 权限列表描述
+    PERMISSIONS: {
+        'files:read': '读取文件',
+        'files:write': '创建/编辑文件',
+        'files:delete': '删除文件',
+        'folders:read': '读取文件夹',
+        'folders:write': '创建/编辑文件夹',
+        'folders:delete': '删除文件夹',
+        'users:read': '查看用户',
+        'users:write': '管理用户',
+        'webhooks:read': '查看 Webhooks',
+        'webhooks:write': '管理 Webhooks',
+        'stats:read': '查看统计',
+        'admin:full': '完全管理员权限'
+    },
+
+    ROLES: {
+        ADMIN: '管理员',
+        USER: '普通用户',
+        GUEST: '访客'
+    }
+};

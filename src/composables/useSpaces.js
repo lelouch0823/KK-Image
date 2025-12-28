@@ -5,6 +5,7 @@
 import { ref } from 'vue';
 import { API } from '@/utils/constants';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
 
 // 全局状态
 const spaces = ref([]);
@@ -13,6 +14,7 @@ const loading = ref(false);
 
 export function useSpaces() {
     const { addToast } = useToast();
+    const { t } = useI18n();
 
     /**
      * 加载空间列表
@@ -27,11 +29,11 @@ export function useSpaces() {
             if (result.success) {
                 spaces.value = result.data;
             } else {
-                addToast({ message: result.message || '加载失败', type: 'error' });
+                addToast({ message: result.message || t('spaces.loadFailed'), type: 'error' });
             }
         } catch (err) {
-            console.error('加载空间列表失败:', err);
-            addToast({ message: '网络错误', type: 'error' });
+            console.error(t('spaces.loadFailed'), err);
+            addToast({ message: t('spaces.networkError'), type: 'error' });
         } finally {
             loading.value = false;
         }
@@ -50,12 +52,12 @@ export function useSpaces() {
                 currentSpace.value = result.data;
                 return result.data;
             } else {
-                addToast({ message: result.message || '加载失败', type: 'error' });
+                addToast({ message: result.message || t('spaces.loadFailed'), type: 'error' });
                 return null;
             }
         } catch (err) {
-            console.error('加载空间详情失败:', err);
-            addToast({ message: '网络错误', type: 'error' });
+            console.error(t('spaces.loadDetailFailed'), err);
+            addToast({ message: t('spaces.networkError'), type: 'error' });
             return null;
         } finally {
             loading.value = false;
@@ -76,16 +78,16 @@ export function useSpaces() {
             const result = await response.json();
 
             if (result.success) {
-                addToast({ message: '空间创建成功', type: 'success' });
+                addToast({ message: t('spaces.createSuccess'), type: 'success' });
                 await loadSpaces();
                 return result.data;
             } else {
-                addToast({ message: result.message || '创建失败', type: 'error' });
+                addToast({ message: result.message || t('spaces.createFailed'), type: 'error' });
                 return null;
             }
         } catch (err) {
-            console.error('创建空间失败:', err);
-            addToast({ message: '网络错误', type: 'error' });
+            console.error(t('spaces.createFailed'), err);
+            addToast({ message: t('spaces.networkError'), type: 'error' });
             return null;
         }
     };
@@ -104,16 +106,16 @@ export function useSpaces() {
             const result = await response.json();
 
             if (result.success) {
-                addToast({ message: '空间已更新', type: 'success' });
+                addToast({ message: t('spaces.updateSuccess'), type: 'success' });
                 await loadSpaces();
                 return result.data;
             } else {
-                addToast({ message: result.message || '更新失败', type: 'error' });
+                addToast({ message: result.message || t('spaces.updateFailed'), type: 'error' });
                 return null;
             }
         } catch (err) {
-            console.error('更新空间失败:', err);
-            addToast({ message: '网络错误', type: 'error' });
+            console.error(t('spaces.updateFailed'), err);
+            addToast({ message: t('spaces.networkError'), type: 'error' });
             return null;
         }
     };
@@ -130,16 +132,16 @@ export function useSpaces() {
             const result = await response.json();
 
             if (result.success) {
-                addToast({ message: '空间已删除', type: 'success' });
+                addToast({ message: t('spaces.deleteSuccess'), type: 'success' });
                 await loadSpaces();
                 return true;
             } else {
-                addToast({ message: result.message || '删除失败', type: 'error' });
+                addToast({ message: result.message || t('spaces.deleteFailed'), type: 'error' });
                 return false;
             }
         } catch (err) {
-            console.error('删除空间失败:', err);
-            addToast({ message: '网络错误', type: 'error' });
+            console.error(t('spaces.deleteFailed'), err);
+            addToast({ message: t('spaces.networkError'), type: 'error' });
             return false;
         }
     };
@@ -165,12 +167,12 @@ export function useSpaces() {
                 addToast({ message: result.data.message, type: 'success' });
                 return true;
             } else {
-                addToast({ message: result.message || '添加失败', type: 'error' });
+                addToast({ message: result.message || t('spaces.addFileFailed'), type: 'error' });
                 return false;
             }
         } catch (err) {
-            console.error('添加文件失败:', err);
-            addToast({ message: '网络错误', type: 'error' });
+            console.error(t('spaces.addFileFailed'), err);
+            addToast({ message: t('spaces.networkError'), type: 'error' });
             return false;
         }
     };
@@ -189,15 +191,15 @@ export function useSpaces() {
             const result = await response.json();
 
             if (result.success) {
-                addToast({ message: '文件已移除', type: 'success' });
+                addToast({ message: t('spaces.removeFileSuccess'), type: 'success' });
                 return true;
             } else {
-                addToast({ message: result.message || '移除失败', type: 'error' });
+                addToast({ message: result.message || t('spaces.removeFileFailed'), type: 'error' });
                 return false;
             }
         } catch (err) {
-            console.error('移除文件失败:', err);
-            addToast({ message: '网络错误', type: 'error' });
+            console.error(t('spaces.removeFileFailed'), err);
+            addToast({ message: t('spaces.networkError'), type: 'error' });
             return false;
         }
     };

@@ -17,10 +17,10 @@
          <table class="w-full text-left text-sm">
            <thead class="bg-gray-50 text-secondary border-b border-[var(--border-color)] sticky top-0">
               <tr>
-                <th class="px-6 py-3 font-medium">文件夹名称</th>
-                <th class="px-6 py-3 font-medium">链接 / Token</th>
-                <th class="px-6 py-3 font-medium">有效期</th>
-                <th class="px-6 py-3 font-medium text-right">操作</th>
+                <th class="px-6 py-3 font-medium">{{ t('share.folderName') }}</th>
+                <th class="px-6 py-3 font-medium">{{ t('share.linkToken') }}</th>
+                <th class="px-6 py-3 font-medium">{{ t('share.expiry') }}</th>
+                <th class="px-6 py-3 font-medium text-right">{{ t('share.actions') }}</th>
               </tr>
            </thead>
            <tbody class="divide-y divide-[var(--border-color)]">
@@ -29,13 +29,13 @@
                  <td class="px-6 py-3 text-secondary">
                      <div class="flex items-center gap-2">
                          <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded select-all">{{ item.shareToken }}</span>
-                         <button @click="copyLink(item)" class="text-primary hover:text-blue-600" title="复制链接">
+                         <button @click="copyLink(item)" class="text-primary hover:text-blue-600" :title="t('common.copyLink') || '复制链接'">
                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
                          </button>
                      </div>
                  </td>
                  <td class="px-6 py-3">
-                     <span :class="getExpiryClass(item.expiresAt)">{{ formatExpiry(item.expiresAt) }}</span>
+                     <span :class="getExpiryClass(item.expiresAt)">{{ formatExpiry(item.expiresAt, t) }}</span>
                  </td>
                  <td class="px-6 py-3 text-right">
                      <button @click="editShare(item)" class="text-primary hover:text-blue-600 mr-3">{{ t('common.edit') }}</button>
@@ -58,11 +58,11 @@
 
       <!-- Footer / Pagination -->
       <div class="px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-between bg-gray-50 rounded-b-xl">
-         <span class="text-sm text-secondary">共 {{ total }} 条</span>
+         <span class="text-sm text-secondary">{{ t('share.total', { count: total }) }}</span>
          <div class="flex gap-2">
-             <button @click="page--" :disabled="page <= 1" class="btn btn-secondary px-3 py-1 text-sm disabled:opacity-50">上一页</button>
+             <button @click="page--" :disabled="page <= 1" class="btn btn-secondary px-3 py-1 text-sm disabled:opacity-50">{{ t('share.prevPage') }}</button>
              <span class="flex items-center px-2 text-sm text-secondary">{{ page }} / {{ totalPages }}</span>
-             <button @click="page++" :disabled="page >= totalPages" class="btn btn-secondary px-3 py-1 text-sm disabled:opacity-50">下一页</button>
+             <button @click="page++" :disabled="page >= totalPages" class="btn btn-secondary px-3 py-1 text-sm disabled:opacity-50">{{ t('share.nextPage') }}</button>
          </div>
       </div>
 

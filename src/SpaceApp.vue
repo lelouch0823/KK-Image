@@ -5,7 +5,7 @@
     <div v-if="loading" class="min-h-screen flex items-center justify-center">
         <div class="text-center">
             <div class="w-12 h-12 border-4 border-gray-200 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
-            <p class="text-secondary">加载中...</p>
+            <p class="text-secondary">{{ t('common.loading') }}</p>
         </div>
     </div>
 
@@ -22,7 +22,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                 </svg>
             </div>
-            <h2 class="text-xl font-semibold text-primary mb-2">无法加载空间</h2>
+            <h2 class="text-xl font-semibold text-primary mb-2">{{ t('spacePublic.cannotLoad') }}</h2>
             <p class="text-secondary">{{ error }}</p>
         </div>
     </div>
@@ -46,6 +46,7 @@
 <script setup>
 import { ref, onMounted, computed, defineAsyncComponent } from 'vue';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
 import SpacePassword from '@/components/space/SpacePassword.vue';
 import { API } from '@/utils/constants';
@@ -58,6 +59,7 @@ const SpaceCollection = defineAsyncComponent(() => import('@/components/space/Sp
 const SpaceDocument = defineAsyncComponent(() => import('@/components/space/SpaceMasonry.vue')); 
 
 const { addToast } = useToast();
+const { t } = useI18n();
 
 const loading = ref(true);
 const error = ref('');
@@ -85,7 +87,7 @@ const getShareToken = () => {
 const loadSpace = async (pwd = null) => {
     const token = getShareToken();
     if (!token) {
-        error.value = '无效的分享链接';
+        error.value = t('spacePublic.invalidLink');
         loading.value = false;
         return;
     }
@@ -104,10 +106,10 @@ const loadSpace = async (pwd = null) => {
         } else if (result.requiresPassword) {
             requiresPassword.value = true;
         } else {
-            error.value = result.message || '加载失败';
+            error.value = result.message || t('spacePublic.loadFailed');
         }
     } catch (e) {
-        error.value = '网络错误，请稍后重试';
+        error.value = t('common.networkErrorRetry');
     } finally {
         loading.value = false;
     }
@@ -119,7 +121,7 @@ const submitPassword = async (pwd) => {
     loading.value = true;
     await loadSpace(pwd);
     if (requiresPassword.value) {
-        passwordError.value = '密码错误';
+        passwordError.value = t('gallery.passwordError');
     }
 };
 

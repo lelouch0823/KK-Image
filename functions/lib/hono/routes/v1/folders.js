@@ -5,6 +5,7 @@ import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
 import { batchInsert } from '../../../../lib/db/batch.js';
 import { generateId, generateShareToken, now } from '../../../../api/utils/id.js';
+import { MSG } from '../../../../api/utils/messages.js';
 
 const app = new Hono();
 
@@ -79,7 +80,7 @@ app.get('/:id', withCache(60), async (c) => {
     const folder = await env.DB.prepare('SELECT * FROM folders WHERE id = ?').bind(id).first();
 
     if (!folder) {
-        return c.json({ success: false, error: '文件夹不存在' }, 404);
+        return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
     }
 
     // 获取文件和子文件夹
@@ -113,7 +114,7 @@ app.post('/',
         if (data.parentId) {
             const parent = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(data.parentId).first();
             if (!parent) {
-                return c.json({ success: false, error: '父文件夹不存在' }, 404);
+                return c.json({ success: false, error: MSG.FOLDER.PARENT_NOT_FOUND }, 404);
             }
         }
 
@@ -138,7 +139,7 @@ app.post('/',
 
         return c.json({
             success: true,
-            data: { id, shareToken, ...data, createdAt: now }
+            data: { id, shareToken, ...data, createdAt: timestamp }
         }, 201);
     }
 );
@@ -156,7 +157,7 @@ app.put('/:id',
 
         const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(id).first();
         if (!folder) {
-            return c.json({ success: false, error: '文件夹不存在' }, 404);
+            return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
         }
 
         const updates = [];
@@ -171,7 +172,7 @@ app.put('/:id',
         }
 
         if (updates.length === 0) {
-            return c.json({ success: false, error: '没有可更新的字段' }, 400);
+            return c.json({ success: false, error: MSG.COMMON.NO_UPDATE_FIELDS }, 400);
         }
 
         updates.push('updated_at = ?');
@@ -182,7 +183,7 @@ app.put('/:id',
             `UPDATE folders SET ${updates.join(', ')} WHERE id = ?`
         ).bind(...values).run();
 
-        return c.json({ success: true, message: '文件夹已更新' });
+        return c.json({ success: true, message: MSG.FOLDER.UPDATE_SUCCESS });
     }
 );
 
@@ -197,27 +198,27 @@ app.delete('/:id',
 
         const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(id).first();
         if (!folder) {
-            return c.json({ success: false, error: '文件夹不存在' }, 404);
+            return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
         }
 
         // 检查是否有子文件夹或文件
-        const subfolders = await env.DB.prepare(
+        const subfoldersCount = await env.DB.prepare(
             'SELECT COUNT(*) as count FROM folders WHERE parent_id = ?'
         ).bind(id).first();
-        const files = await env.DB.prepare(
+        const filesCount = await env.DB.prepare(
             'SELECT COUNT(*) as count FROM files WHERE folder_id = ?'
         ).bind(id).first();
 
-        if ((subfolders?.count || 0) > 0 || (files?.count || 0) > 0) {
+        if ((subfoldersCount?.count || 0) > 0 || (filesCount?.count || 0) > 0) {
             return c.json({
                 success: false,
-                error: '文件夹不为空，请先删除其中的文件和子文件夹'
+                error: MSG.FOLDER.EMPTY_INVALID
             }, 400);
         }
 
         await env.DB.prepare('DELETE FROM folders WHERE id = ?').bind(id).run();
 
-        return c.json({ success: true, message: '文件夹已删除' });
+        return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
     }
 );
 

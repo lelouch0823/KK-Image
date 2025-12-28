@@ -1,11 +1,12 @@
 import { z } from 'zod';
+import { MSG } from '../../../api/utils/messages.js';
 
 /**
  * 用户登录 Schema
  */
 export const LoginSchema = z.object({
-    username: z.string().min(1, '用户名不能为空').max(50),
-    password: z.string().min(1, '密码不能为空').max(100),
+    username: z.string().min(1, MSG.USER.NAME_REQUIRED).max(50),
+    password: z.string().min(1, MSG.USER.PASSWORD_REQUIRED).max(100),
     turnstileToken: z.string().optional()
 });
 
@@ -13,7 +14,7 @@ export const LoginSchema = z.object({
  * 用户创建 Schema
  */
 export const CreateUserSchema = z.object({
-    username: z.string().min(3).max(50).regex(/^[a-zA-Z0-9_]+$/, '用户名只能包含字母、数字和下划线'),
+    username: z.string().min(3).max(50).regex(/^[a-zA-Z0-9_]+$/, MSG.USER.INVALID_CHARS),
     password: z.string().min(6).max(100),
     name: z.string().min(1).max(100),
     email: z.string().email().optional(),

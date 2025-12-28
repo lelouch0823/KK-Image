@@ -1,12 +1,14 @@
 import { ref } from 'vue';
 import { useToast } from './useToast';
 import { useAuth } from './useAuth';
+import { useI18n } from './useI18n';
 import { formatSize, formatDate, getFileExtension, isImage } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 
 export function useFileManager() {
     const { error, success } = useToast();
     const { authFetch } = useAuth();
+    const { t } = useI18n();
 
     // 状态
     const loading = ref(false);
@@ -66,7 +68,7 @@ export function useFileManager() {
         } catch (e) {
             console.error(e);
             if (!silent) {
-                error('加载失败');
+                error(t('fileOps.loadFailed'));
             }
         } finally {
             if (!silent) {
@@ -89,7 +91,7 @@ export function useFileManager() {
             }).then(r => r.json());
 
             if (res.success) {
-                success('文件夹创建成功');
+                success(t('fileOps.folderCreateSuccess'));
                 loadFolderData(currentFolder.value?.id);
                 return true;
             } else {
@@ -97,7 +99,7 @@ export function useFileManager() {
                 return false;
             }
         } catch (e) {
-            error('创建失败');
+            error(t('fileOps.createFailed'));
             return false;
         }
     };
@@ -111,7 +113,7 @@ export function useFileManager() {
             }).then(r => r.json());
 
             if (res.success) {
-                success('更新成功');
+                success(t('fileOps.updateSuccess'));
                 loadFolderData(currentFolder.value?.id);
                 return true;
             } else {
@@ -119,7 +121,7 @@ export function useFileManager() {
                 return false;
             }
         } catch (e) {
-            error('更新失败');
+            error(t('fileOps.updateFailed'));
             return false;
         }
     };
@@ -131,7 +133,7 @@ export function useFileManager() {
             }).then(r => r.json());
 
             if (res.success) {
-                success('删除成功');
+                success(t('fileOps.deleteSuccess'));
                 if (currentFolder.value && currentFolder.value.id === id) {
                     loadFolderData(currentFolder.value.parentId);
                 } else {
@@ -143,7 +145,7 @@ export function useFileManager() {
                 return false;
             }
         } catch (e) {
-            error('删除失败');
+            error(t('fileOps.deleteFailed'));
             return false;
         }
     };
@@ -156,13 +158,13 @@ export function useFileManager() {
             }).then(r => r.json());
 
             if (res.success) {
-                success('文件已删除');
+                success(t('fileOps.fileDeleted'));
                 loadFolderData(currentFolder.value.id);
             } else {
                 error(res.message);
             }
         } catch (e) {
-            error('删除失败');
+            error(t('fileOps.deleteFailed'));
         }
     };
 

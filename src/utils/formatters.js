@@ -38,16 +38,18 @@ export const formatDate = (timestamp, options = {}) => {
 /**
  * 格式化过期时间
  * @param {number} ts - 过期时间戳
+ * @param {function} t - 国际化翻译函数 (可选)
  * @returns {string} 格式化后的过期时间描述
  */
-export const formatExpiry = (ts) => {
-    if (!ts) return '永久有效';
+export const formatExpiry = (ts, t) => {
+    if (!ts) return t ? t('formatters.forever') : '永久有效';
     const date = new Date(Number(ts));
     const now = Date.now();
     const days = Math.ceil((ts - now) / (1000 * 60 * 60 * 24));
 
-    if (ts < now) return '已过期';
-    return `${days}天后 (${date.toLocaleDateString()})`;
+    if (ts < now) return t ? t('formatters.expired') : '已过期';
+    const dateStr = date.toLocaleDateString();
+    return t ? t('formatters.daysLeft', { days, date: dateStr }) : `${days}天后 (${dateStr})`;
 };
 
 /**
