@@ -4,22 +4,31 @@
           <!-- Left: Media Gallery -->
           <div class="w-full lg:w-2/3 space-y-4">
               <!-- Main Image -->
-              <div class="aspect-video bg-gray-100 rounded-2xl overflow-hidden border border-gray-100 shadow-sm relative group">
+              <div class="aspect-video bg-gray-100 rounded-2xl overflow-hidden border border-gray-100 shadow-sm relative group touch-pan-y"
+                   @touchstart="handleTouchStart"
+                   @touchend="handleTouchEnd">
                   <img v-if="currentFile && isImage(currentFile)" :src="currentFile.url" 
-                      class="w-full h-full object-contain bg-white" alt="Product Image">
+                      class="w-full h-full object-contain bg-white select-none" alt="Product Image">
                    <div v-else class="w-full h-full flex items-center justify-center text-secondary">
                        {{ t('spacePublic.noPreview') }}
                    </div>
                    
-                   <!-- Navigation Arrows -->
+                   <!-- Navigation Arrows (Hidden on mobile) -->
                    <button v-if="hasMultipleFiles" @click="prevImage" 
-                       class="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/80 hover:bg-white rounded-full shadow-md text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                       class="hidden lg:flex absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/80 hover:bg-white rounded-full shadow-md text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                    </button>
                    <button v-if="hasMultipleFiles" @click="nextImage"
-                       class="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/80 hover:bg-white rounded-full shadow-md text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                       class="hidden lg:flex absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/80 hover:bg-white rounded-full shadow-md text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                    </button>
+
+                   <!-- Mobile Indicators -->
+                   <div v-if="hasMultipleFiles" class="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 lg:hidden pointer-events-none">
+                     <span v-for="(file, idx) in space.files" :key="file.id" 
+                           class="w-1.5 h-1.5 rounded-full transition-all"
+                           :class="currentIndex === idx ? 'bg-white w-3' : 'bg-white/50'"></span>
+                   </div>
               </div>
 
               <!-- Thumbnails -->
@@ -63,7 +72,7 @@
                   </div>
               </div>
 
-              <div class="pt-6 border-t border-gray-100 space-y-3">
+              <div class="hidden lg:block pt-6 border-t border-gray-100 space-y-3">
                   <a v-if="currentFile" :href="currentFile.url" download
                       class="flex items-center justify-center gap-2 w-full py-3 bg-primary text-white font-medium rounded-xl hover:bg-gray-800 transition-colors shadow-lg shadow-primary/20">
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,6 +95,30 @@
                       {{ space.viewCount }} {{ t('spacePublic.views') }} • {{ space.downloadCount }} {{ t('spacePublic.downloads') }}
                   </p>
               </div>
+          </div>
+      </div>
+      </div>
+
+      <!-- SOTA Mobile Sticky Bottom Bar -->
+      <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden z-50 flex items-center gap-3">
+          <div class="flex-1 flex gap-2">
+            <a v-if="currentFile" :href="currentFile.url" download
+               class="flex-1 flex items-center justify-center gap-2 py-3 bg-gray-100 text-primary font-medium rounded-xl active:scale-95 transition-transform">
+               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+               </svg>
+               <span class="text-sm">{{ t('spacePublic.download') }}</span>
+            </a>
+
+            <button v-if="hasMultipleFiles" @click="handleDownloadAll" :disabled="downloading"
+               class="flex-1 flex items-center justify-center gap-2 py-3 bg-primary text-white font-medium rounded-xl shadow-lg shadow-primary/20 active:scale-95 transition-transform disabled:opacity-50 disabled:scale-100">
+               <svg v-if="downloading" class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+               </svg>
+               <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+               <span class="text-sm text-nowrap">{{ downloading ? `${downloadProgress}%` : t('spacePublic.downloadAll') }}</span>
+            </button>
           </div>
       </div>
   </div>
@@ -137,5 +170,28 @@ const prevImage = () => {
 
 const formatPrice = (price) => {
     return Number(price).toLocaleString('zh-CN', { minimumFractionDigits: 2 });
+};
+
+// Touch Handling
+let touchStartX = 0;
+let touchEndX = 0;
+
+const handleTouchStart = (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+};
+
+const handleTouchEnd = (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+};
+
+const handleSwipe = () => {
+    const threshold = 50; // Minimum distance for swipe
+    if (touchEndX < touchStartX - threshold) {
+        nextImage(); // Swipe Left -> Next
+    }
+    if (touchEndX > touchStartX + threshold) {
+        prevImage(); // Swipe Right -> Prev
+    }
 };
 </script>
