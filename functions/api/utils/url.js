@@ -14,13 +14,8 @@ export function getFileUrl(storageKey, origin = '') {
     return `${origin}/file/${storageKey}`;
 }
 
-/**
- * 生成分享页面 URL
- * @param {string} token - 分享令牌
- * @param {string} [origin] - 请求源 (可选，用于完整 URL)
- * @returns {string} 分享页面 URL
- */
-export function getShareUrl(token, origin = '') {
+export function getShareUrl(token, type = 'gallery') {
     if (!token) return null;
-    return `${origin}/gallery/${token}`;
+    const path = type === 'space' ? 'space' : 'gallery';
+    return `/${path}/${token}`;
 }

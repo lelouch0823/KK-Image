@@ -14,7 +14,9 @@ const CreateSpaceSchema = z.object({
     description: z.string().max(500).optional().default(''),
     isPublic: z.boolean().optional().default(false),
     password: z.string().min(4).max(50).optional().nullable(),
-    expiresAt: z.number().optional().nullable()
+    expiresAt: z.number().optional().nullable(),
+    template: z.string().optional().default('gallery'),
+    templateData: z.record(z.any()).optional().default({})
 });
 
 const UpdateSpaceSchema = CreateSpaceSchema.partial();
@@ -44,6 +46,7 @@ app.get('/', async (c) => {
                 shareUrl: getShareUrl(space.share_token, 'space'),
                 fileCount: space.file_count,
                 expiresAt: space.expires_at,
+                template: space.template,
                 createdAt: space.created_at,
                 updatedAt: space.updated_at
             }))
@@ -86,6 +89,8 @@ app.get('/:id', async (c) => {
                 shareToken: space.share_token,
                 shareUrl: getShareUrl(space.share_token, 'space'),
                 expiresAt: space.expires_at,
+                template: space.template,
+                templateData: space.template_data ? JSON.parse(space.template_data) : {},
                 createdAt: space.created_at,
                 updatedAt: space.updated_at,
                 files: files.map(f => ({
@@ -142,7 +147,7 @@ app.post('/',
     zValidator('json', CreateSpaceSchema),
     async (c) => {
         const { env } = c;
-        const { name, description, isPublic, password, expiresAt } = c.req.valid('json');
+        const { name, description, isPublic, password, expiresAt, template, templateData } = c.req.valid('json');
 
         try {
             const spaceId = generateId();
@@ -150,9 +155,9 @@ app.post('/',
             const nowMs = Date.now();
 
             await env.DB.prepare(`
-        INSERT INTO spaces (id, name, description, is_public, password, share_token, expires_at, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(spaceId, name.trim(), description.trim(), isPublic ? 1 : 0, password || null, shareToken, expiresAt || null, nowMs, nowMs).run();
+        INSERT INTO spaces (id, name, description, is_public, password, share_token, expires_at, template, template_data, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(spaceId, name.trim(), description.trim(), isPublic ? 1 : 0, password || null, shareToken, expiresAt || null, template, JSON.stringify(templateData), nowMs, nowMs).run();
 
             return c.json({
                 success: true,
@@ -164,6 +169,7 @@ app.post('/',
                     shareToken,
                     shareUrl: getShareUrl(shareToken, 'space'),
                     expiresAt,
+                    template,
                     createdAt: nowMs
                 }
             }, 201);
@@ -288,11 +294,12 @@ app.post('/:id/files',
             }
 
             const statements = fileIds.map((fileId, index) =>
-                env.DB.prepare('INSERT OR IGNORE INTO space_files (space_id, file_id, sort_order) VALUES (?, ?, ?)')
-                    .bind(spaceId, fileId, index)
+                env.DB.prepare('INSERT INTO space_files (space_id, file_id, sort_order, added_at) VALUES (?, ?, ?, ?)')
+                    .bind(spaceId, fileId, index, Date.now())
             );
 
-            await env.DB.batch(statements);
+            const info = await env.DB.batch(statements);
+
             await env.DB.prepare('UPDATE spaces SET updated_at = ? WHERE id = ?').bind(Date.now(), spaceId).run();
 
             return c.json({

@@ -3,9 +3,22 @@
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl mx-4 max-h-[90vh] flex flex-col overflow-hidden">
       <!-- Header -->
       <div class="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] shrink-0">
-        <div>
-          <h2 class="text-lg font-semibold text-primary">{{ spaceData?.name || t('spaceManager.detailTitle') }}</h2>
-          <p class="text-sm text-secondary mt-0.5">{{ getTemplateLabel(spaceData?.template) }} · {{ t('fileManager.totalFiles', { count: spaceData?.files?.length || 0 }) }}</p>
+        <div class="flex items-center gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-semibold text-primary">{{ spaceData?.name || t('spaceManager.detailTitle') }}</h2>
+              <!-- Status Badge -->
+              <span v-if="spaceData?.isPublic" class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-[var(--color-success-bg)] text-[var(--color-success)] rounded-full">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                {{ t('spaceManager.publicOn') }}
+              </span>
+              <span v-else class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-500 rounded-full">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+                {{ t('spaceManager.publicOff') }}
+              </span>
+            </div>
+            <p class="text-sm text-secondary mt-0.5">{{ getTemplateLabel(spaceData?.template) }} · {{ t('fileManager.totalFiles', { count: spaceData?.files?.length || 0 }) }}</p>
+          </div>
         </div>
         <button @click="$emit('close')" class="p-2 text-secondary hover:text-primary rounded-lg hover:bg-[var(--bg-hover)]">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,28 +82,67 @@
         </div>
 
         <!-- CONTENT: SETTINGS -->
-        <div v-show="activeTab === 'settings'" class="flex-1 p-6 overflow-y-auto">
-          <!-- 分享设置 -->
-          <div class="bg-[var(--bg-muted)] rounded-xl p-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="font-medium text-primary">{{ t('spaceManager.shareSettings') }}</div>
-                <div class="text-sm text-secondary mt-1">
-                  {{ spaceData?.isPublic ? t('spaceManager.publicStatus') : t('spaceManager.privateStatus') }}
-                </div>
+        <div v-show="activeTab === 'settings'" class="flex-1 p-6 overflow-y-auto space-y-4">
+          <!-- 分享设置卡片 -->
+          <div class="bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl p-5 border border-primary/20">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                </svg>
               </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" v-model="isPublic" @change="togglePublic" class="sr-only peer">
-                <div class="w-11 h-6 bg-[var(--border-color)] peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5"></div>
-              </label>
+              <div class="flex-1">
+                <h3 class="font-semibold text-primary">{{ t('spaceManager.shareSettings') }}</h3>
+                <p class="text-sm text-secondary">{{ spaceData?.isPublic ? t('spaceManager.publicStatus') : t('spaceManager.shareCard.notPublic') }}</p>
+              </div>
             </div>
             
-            <!-- 分享链接 -->
-            <div v-if="spaceData?.isPublic" class="mt-4 flex gap-2">
-              <input type="text" readonly :value="shareUrl" 
-                class="flex-1 px-3 py-2 text-sm bg-white border border-[var(--border-color)] rounded-lg">
-              <button @click="copyLink" class="px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-[var(--color-primary-hover)]">
-                {{ t('common.copy') }}
+            <!-- 未公开状态 -->
+            <div v-if="!spaceData?.isPublic" class="space-y-4">
+              <button @click="publishSpace" :disabled="publishing" 
+                class="w-full py-3 bg-primary text-white rounded-xl font-medium hover:bg-[var(--color-primary-hover)] transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                <svg v-if="!publishing" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                {{ publishing ? t('common.saving') : t('spaceManager.shareCard.publishNow') }}
+              </button>
+              <p class="text-xs text-center text-secondary">{{ t('spaceManager.shareCard.publishHint') }}</p>
+            </div>
+            
+            <!-- 已公开状态 -->
+            <div v-else class="space-y-4">
+              <!-- 访问统计 -->
+              <div class="flex items-center gap-4 text-sm">
+                <div class="flex items-center gap-1.5 text-secondary">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                  <span>{{ spaceData?.viewCount || 0 }} {{ t('spacePublic.views') }}</span>
+                </div>
+              </div>
+              
+              <!-- 链接显示 -->
+              <div class="flex gap-2">
+                <input type="text" readonly :value="shareUrl" 
+                  class="flex-1 px-4 py-2.5 text-sm bg-white border border-[var(--border-color)] rounded-xl font-mono text-primary">
+                <button @click="copyLink" class="px-4 py-2.5 bg-white border border-[var(--border-color)] rounded-xl text-primary hover:bg-[var(--bg-hover)] transition-colors flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                  </svg>
+                  {{ t('common.copy') }}
+                </button>
+              </div>
+              
+              <!-- 取消公开 -->
+              <button @click="unpublishSpace" :disabled="publishing" 
+                class="w-full py-2.5 text-sm text-secondary hover:text-[var(--color-danger)] border border-[var(--border-color)] rounded-xl hover:border-[var(--color-danger)] transition-colors">
+                {{ t('spaceManager.shareCard.unpublish') }}
               </button>
             </div>
           </div>
@@ -144,6 +196,7 @@ const showFileSelector = ref(false);
 const activeTab = ref('files');
 const customPassword = ref('');
 const hasPassword = ref(false);
+const publishing = ref(false);
 
 const getTemplateLabel = (key) => {
   const labels = {
@@ -176,6 +229,24 @@ const loadData = async () => {
         customPassword.value = '';
     }
   }
+};
+
+const publishSpace = async () => {
+  publishing.value = true;
+  await updateSpace(props.space.id, { isPublic: true });
+  await loadData();
+  publishing.value = false;
+  addToast({ message: t('spaceManager.shareCard.publishSuccess'), type: 'success' });
+  emit('updated');
+};
+
+const unpublishSpace = async () => {
+  publishing.value = true;
+  await updateSpace(props.space.id, { isPublic: false });
+  await loadData();
+  publishing.value = false;
+  addToast({ message: t('spaceManager.shareCard.unpublishSuccess'), type: 'success' });
+  emit('updated');
 };
 
 const togglePublic = async () => {

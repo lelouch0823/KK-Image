@@ -59,9 +59,11 @@ export const MSG = {
         ADD_FILES_SUCCESS: '已添加 {count} 个文件到空间',
         REMOVE_FILES_SUCCESS: '已从空间移除 {count} 个文件',
         PUBLIC_REQUIRED: '该空间未公开',
+        PRIVATE: '该空间未公开分享',
         PASSWORD_REQUIRED: '该空间需要密码',
         LINK_INVALID: '空间不存在或链接已失效',
-        LINK_EXPIRED: '分享链接已过期'
+        LINK_EXPIRED: '分享链接已过期',
+        EXPIRED: '分享链接已过期'
     },
 
     USER: {

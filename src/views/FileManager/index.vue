@@ -76,8 +76,8 @@
     <div v-if="currentFolder" class="px-6 py-3 bg-[var(--bg-muted)] border-b border-[var(--border-color)] flex items-center justify-between text-sm">
        <div class="flex items-center gap-4 text-secondary">
          <!-- Fix: Use local array lengths -->
-         <span>{{ t('fileManager.totalFiles', { count: files.length }) }}</span>
-         <span>{{ t('fileManager.totalFolders', { count: subfolders.length }) }}</span>
+         <span>{{ t('fileManager.totalFiles', { count: displayedFiles.length }) }}</span>
+         <span>{{ t('fileManager.totalFolders', { count: displayedSubfolders.length }) }}</span>
        </div>
        <div class="flex items-center gap-3">
           <!-- 文件夹操作栏 (Red delete text removed) -->
@@ -92,8 +92,8 @@
     <!-- 内容区域 -->
     <div v-else class="flex-1 flex flex-col">
       <!-- 文件夹列表 -->
-      <div v-if="subfolders.length > 0" class="p-6 pb-0 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-        <div v-for="folder in subfolders" :key="folder.id"
+      <div v-if="displayedSubfolders.length > 0" class="p-6 pb-0 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div v-for="folder in displayedSubfolders" :key="folder.id"
           @click="navigateTo(folder.id)"
           class="group bg-white border border-[var(--border-color)] rounded-xl p-4 hover:shadow-md transition-all cursor-pointer relative hover:border-gray-300">
           <div class="flex flex-col items-center">
@@ -107,11 +107,11 @@
       </div>
 
       <!-- 分隔线 -->
-      <div v-if="subfolders.length > 0 && files.length > 0" class="mx-6 h-px bg-[var(--border-color)] my-6"></div>
+      <div v-if="displayedSubfolders.length > 0 && displayedFiles.length > 0" class="mx-6 h-px bg-[var(--border-color)] my-6"></div>
 
       <!-- 文件列表 -->
-      <div v-if="files.length > 0" class="p-6 pt-0 flex-1">
-        <h3 v-if="subfolders.length > 0" class="text-sm font-semibold text-secondary mb-4 mt-6">{{ t('fileManager.filesHeader') }}</h3>
+      <div v-if="displayedFiles.length > 0" class="p-6 pt-0 flex-1">
+        <h3 v-if="displayedSubfolders.length > 0" class="text-sm font-semibold text-secondary mb-4 mt-6">{{ t('fileManager.filesHeader') }}</h3>
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead>
@@ -124,7 +124,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-[var(--border-color)]">
-              <tr v-for="file in files" :key="file.id" class="hover:bg-[var(--bg-hover)] group transition-colors">
+              <tr v-for="file in displayedFiles" :key="file.id" class="hover:bg-[var(--bg-hover)] group transition-colors">
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-3">
                     <img v-if="isImage(file)" :src="file.url" class="w-8 h-8 rounded object-cover border border-[var(--border-color)] bg-gray-50" loading="lazy">
@@ -148,7 +148,7 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
                     </button>
                     <!-- Delete -->
-                    <button @click="deleteFile(file.id)" class="p-1.5 text-secondary hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)] rounded-lg transition-colors" :title="t('fileManager.actions.delete')">
+                    <button @click="handleDeleteFile(file)" class="p-1.5 text-secondary hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)] rounded-lg transition-colors" :title="t('fileManager.actions.delete')">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
                   </div>
@@ -160,7 +160,7 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-if="!loading && subfolders.length === 0 && files.length === 0" class="flex-1 flex flex-col items-center justify-center py-16 text-center">
+      <div v-if="!loading && displayedSubfolders.length === 0 && displayedFiles.length === 0" class="flex-1 flex flex-col items-center justify-center py-16 text-center">
          <div class="w-16 h-16 mb-4 bg-gray-50 rounded-full flex items-center justify-center border-2 border-dashed border-gray-200">
             <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"></path>
@@ -212,10 +212,11 @@
 </template>
 
 <script setup>
-import { onMounted, ref, onUnmounted, watch } from 'vue';
+import { onMounted, ref, onUnmounted, watch, computed } from 'vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import { useFileManager } from '@/composables/useFileManager';
 import { useI18n } from '@/composables/useI18n';
+import { useSearch } from '@/composables/useSearch';
 import MoveFileModal from '@/components/MoveFileModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
 import ShareFileModal from '@/components/ShareFileModal.vue';
@@ -241,6 +242,20 @@ const {
   getFileExtension,
   isImage
 } = useFileManager();
+
+const { searchQuery } = useSearch();
+
+const displayedSubfolders = computed(() => {
+    if (!searchQuery.value) return subfolders.value;
+    const query = searchQuery.value.toLowerCase();
+    return subfolders.value.filter(f => f.name.toLowerCase().includes(query));
+});
+
+const displayedFiles = computed(() => {
+    if (!searchQuery.value) return files.value;
+    const query = searchQuery.value.toLowerCase();
+    return files.value.filter(f => f.name.toLowerCase().includes(query) || (f.originalName && f.originalName.toLowerCase().includes(query)));
+});
 
 const showModal = ref(false);
 const showMoveModal = ref(false);
@@ -270,6 +285,12 @@ const handleDeleteFolder = async (folder) => {
   if (confirm(t('fileManager.deleteFolderConfirm', { name: folder.name }))) {
     await deleteFolder(folder.id);
   }
+};
+
+const handleDeleteFile = async (file) => {
+    if (confirm(t('fileManager.deleteFileConfirm', { name: file.name }) || `Are you sure you want to delete ${file.name}?`)) {
+        await deleteFile(file.id);
+    }
 };
 
 // ----------------------------------------------------------------------

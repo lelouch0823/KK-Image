@@ -34,7 +34,7 @@
 
         <!-- Footer -->
         <footer class="py-8 text-center text-sm text-secondary border-t border-[var(--border-color)] bg-white mt-auto">
-            <a href="/" class="hover:text-primary transition-colors">Powered by KK-Image</a>
+            <a href="/" class="hover:text-primary transition-colors">{{ t('gallery.poweredBy') }}</a>
         </footer>
     </template>
     

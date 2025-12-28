@@ -151,15 +151,15 @@ export function useFileManager() {
     };
 
     const deleteFile = async (fileId) => {
-        if (!currentFolder.value) return;
         try {
-            const res = await authFetch(`${API.FOLDER_BY_ID(currentFolder.value.id)}?file_id=${fileId}`, {
+            const res = await authFetch(`${API.FILES}/${fileId}`, {
                 method: 'DELETE'
             }).then(r => r.json());
 
             if (res.success) {
                 success(t('fileOps.fileDeleted'));
-                loadFolderData(currentFolder.value.id);
+                // Refresh current view (works for root too since id will be null/undefined)
+                loadFolderData(currentFolder.value?.id);
             } else {
                 error(res.message);
             }

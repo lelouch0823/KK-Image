@@ -4,6 +4,7 @@
         "/api/*",
         "/file/*",
         "/gallery/*",
+        "/space/*",
         "/admin",
         "/admin.html"
     ],

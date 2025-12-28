@@ -3,9 +3,15 @@
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-5xl mx-4 h-[90vh] flex overflow-hidden">
       <!-- 左侧：商品属性编辑器 -->
       <div class="w-1/3 border-r border-[var(--border-color)] flex flex-col bg-[var(--bg-muted)]">
-        <div class="px-6 py-4 border-b border-[var(--border-color)]">
-          <h2 class="text-lg font-semibold text-primary">{{ t('spaceManager.productInfo') }}</h2>
-          <p class="text-xs text-secondary mt-1">{{ t('spaceManager.editParams') }}</p>
+        <div class="px-6 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-semibold text-primary">{{ t('spaceManager.productInfo') }}</h2>
+              <span v-if="form.isPublic" class="px-1.5 py-0.5 text-[10px] font-medium bg-[var(--color-success-bg)] text-[var(--color-success)] rounded-full">🌐 {{ t('spaceManager.publicOn') }}</span>
+              <span v-else class="px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 rounded-full">🔒 {{ t('spaceManager.publicOff') }}</span>
+            </div>
+            <p class="text-xs text-secondary mt-1">{{ t('spaceManager.editParams') }}</p>
+          </div>
         </div>
         
         <div class="flex-1 overflow-y-auto p-6 space-y-4">
@@ -46,18 +52,46 @@
               class="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:border-primary outline-none resize-none"></textarea>
           </div>
           
+          <!-- SOTA Share Card -->
           <div class="pt-4 border-t border-[var(--border-color)]">
-             <div class="flex items-center justify-between mb-2">
-               <span class="text-sm font-medium text-primary">{{ t('spaceManager.shareSettings') }}</span>
-               <button @click="togglePublic" 
-                 class="px-2 py-1 text-xs rounded border"
-                 :class="form.isPublic ? 'bg-[var(--color-success-bg)] text-[var(--color-success)] border-[var(--color-success)]' : 'bg-[var(--bg-muted)] text-secondary border-[var(--border-color)]'">
-                 {{ form.isPublic ? t('spaceManager.publicOn') : t('spaceManager.publicOff') }}
-               </button>
-             </div>
-             <div v-if="form.isPublic" class="text-xs text-secondary break-all">
-                {{ shareUrl }}
-             </div>
+            <div class="bg-white rounded-xl border border-[var(--border-color)] p-4 shadow-sm">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-lg" :class="form.isPublic ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-secondary'">
+                    <svg class="w-full h-full p-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-semibold text-primary">{{ t('spaceManager.shareSettings') }}</h4>
+                    <p class="text-[10px]" :class="form.isPublic ? 'text-[var(--color-success)]' : 'text-secondary'">
+                      {{ form.isPublic ? t('spaceManager.publicOn') : t('spaceManager.shareCard.notPublic') }}
+                    </p>
+                  </div>
+                </div>
+                <!-- Toggle Switch -->
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" v-model="form.isPublic" class="sr-only peer">
+                  <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+              
+              <!-- Share Information -->
+              <div v-if="form.isPublic" class="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div class="px-3 py-2 bg-[var(--bg-muted)] rounded-lg text-xs font-mono text-primary break-all border border-[var(--border-color)]">
+                  {{ shareUrl }}
+                </div>
+                <button @click.prevent="copyLink" class="w-full py-1.5 text-xs font-medium text-primary bg-primary/5 hover:bg-primary/10 rounded-lg transition-colors flex items-center justify-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                  </svg>
+                  {{ t('common.copy') }}
+                </button>
+              </div>
+              <div v-else class="text-[10px] text-secondary text-center italic">
+                {{ t('spaceManager.shareCard.publishHint') }}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -211,6 +245,15 @@ const saveChanges = async () => {
 
 const togglePublic = () => {
   form.value.isPublic = !form.value.isPublic;
+};
+
+const copyLink = async () => {
+  try {
+    await navigator.clipboard.writeText(shareUrl.value);
+    addToast({ message: t('share.linkCopied'), type: 'success' });
+  } catch {
+    addToast({ message: t('common.copyFailed'), type: 'error' });
+  }
 };
 
 const addFiles = async (fileIds) => {

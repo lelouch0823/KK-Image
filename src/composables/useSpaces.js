@@ -164,7 +164,7 @@ export function useSpaces() {
             const result = await response.json();
 
             if (result.success) {
-                addToast({ message: result.data.message, type: 'success' });
+                addToast({ message: result.message || t('spaces.addFileSuccess'), type: 'success' });
                 return true;
             } else {
                 addToast({ message: result.message || t('spaces.addFileFailed'), type: 'error' });

@@ -130,7 +130,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onActivated } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
@@ -146,7 +146,7 @@ const { t } = useI18n();
 const showCreateModal = ref(false);
 const selectedSpace = ref(null);
 
-const getTemplateLabel = (template) => t(`spaceManager.templates.${template}`) || template;
+const getTemplateLabel = (template) => t(`spaceManager.templates.${template || 'custom'}`) || template;
 
 const openSpaceDetail = (space) => {
   selectedSpace.value = space;
@@ -178,6 +178,10 @@ const onSpaceCreated = () => {
 };
 
 onMounted(() => {
+  loadSpaces();
+});
+
+onActivated(() => {
   loadSpaces();
 });
 </script>
