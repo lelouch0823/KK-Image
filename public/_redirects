@@ -2,5 +2,5 @@
 # SPA Routes
 /gallery/* /gallery.html 200
 /space/* /space.html 200
-/sales/* /sales-portal.html 200
-/portal/* /sales-portal.html 200
+
+

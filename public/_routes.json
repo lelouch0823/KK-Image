@@ -5,6 +5,7 @@
         "/file/*",
         "/gallery/*",
         "/space/*",
+        "/sales/*",
         "/admin",
         "/admin.html"
     ],
