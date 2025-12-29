@@ -94,6 +94,9 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { formatRelativeTime } from '@/utils/formatters';
+
+import { STATUS_STYLES } from '@/utils/status';
 
 const props = defineProps({
   orders: { type: Array, default: () => [] },
@@ -106,30 +109,8 @@ const { t } = useI18n();
 const isPulling = ref(false);
 
 // 状态样式映射
-const statusClasses = {
-  pending: 'bg-yellow-50 text-yellow-700',
-  confirmed: 'bg-blue-50 text-blue-700',
-  rejected: 'bg-red-50 text-red-700',
-  production: 'bg-purple-50 text-purple-700',
-  shipping: 'bg-cyan-50 text-cyan-700',
-  arrived: 'bg-green-50 text-green-700',
-  delivered: 'bg-gray-100 text-gray-600'
-};
+const statusClasses = STATUS_STYLES;
 
 // 格式化时间
-const formatTime = (timestamp) => {
-  if (!timestamp) return '';
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now - date;
-  
-  // 一分钟内
-  if (diff < 60000) return t('stats.justNow');
-  // 一小时内
-  if (diff < 3600000) return t('stats.minutesAgo', { count: Math.floor(diff / 60000) });
-  // 一天内
-  if (diff < 86400000) return t('stats.hoursAgo', { count: Math.floor(diff / 3600000) });
-  // 超过一天
-  return `${date.getMonth() + 1}/${date.getDate()}`;
-};
+const formatTime = (timestamp) => formatRelativeTime(timestamp, t);
 </script>

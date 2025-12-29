@@ -37,7 +37,7 @@
           <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
         </div>
         
-        <div v-else class="grid grid-cols-4 gap-3 content-start">
+        <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 content-start">
           <!-- 文件夹列表 -->
           <div v-for="folder in currentFolders" :key="'f-' + folder.id"
             @click="navigateTo(folder.id, folder)"

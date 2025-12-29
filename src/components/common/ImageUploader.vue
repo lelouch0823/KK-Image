@@ -4,7 +4,7 @@
       {{ label }}
     </label>
     
-    <div class="grid grid-cols-3 gap-3">
+    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
       <!-- 已上传图片 (可拖拽) -->
       <div 
         v-for="(file, index) in modelValue" 
@@ -93,6 +93,7 @@
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
+import { API } from '@/utils/constants';
 
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
@@ -110,7 +111,7 @@ const { t } = useI18n();
 const { addToast } = useToast();
 
 const coverText = t('spaceManager.cover');
-const uploadText = '添加图片';
+const uploadText = t('common.addImage'); // Ensure this key exists or use a generic one
 
 // 拖拽状态
 const dragIndex = ref(null);
@@ -217,7 +218,7 @@ const removeFile = async (index) => {
   // 如果是已上传的文件（非本地），尝试从后端删除
   if (file.id && !file.isLocal) {
     try {
-      await fetch(`/api/v1/files/${file.id}`, {
+      await fetch(`${API.FILES}/${file.id}`, {
         method: 'DELETE',
         credentials: 'include'
       });

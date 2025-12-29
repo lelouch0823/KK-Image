@@ -152,6 +152,7 @@
 import { ref, reactive, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
+import { API } from '@/utils/constants';
 import ImageUploader from '../common/ImageUploader.vue';
 
 const emit = defineEmits(['submit', 'cancel']);
@@ -175,10 +176,9 @@ const isSubmitting = ref(false);
 
 // 计算上传地址
 const uploadEndpoint = computed(() => {
-  const path = window.location.pathname;
   const match = path.match(/\/sales\/([^\/]+)/);
   const accessToken = match ? match[1] : '';
-  return `/api/sales/${accessToken}/upload`;
+  return API.SALES_UPLOAD(accessToken);
 });
 
 // 提交表单

@@ -80,3 +80,43 @@ export const isImage = (file) => {
     return IMAGE_EXTENSIONS.includes(ext);
 };
 
+/**
+ * 格式化相对时间 (刚刚, x分钟前, x小时前, 或日期)
+ * @param {number|string} timestamp - 时间戳
+ * @param {function} t - i18n t function
+ * @returns {string} Relative time string
+ */
+export const formatRelativeTime = (timestamp, t) => {
+    if (!timestamp) return '';
+    const date = new Date(Number(timestamp));
+    const now = new Date();
+    const diff = now - date;
+
+    // 一分钟内
+    if (diff < 60000) return t ? t('stats.justNow') : '刚刚';
+    // 一小时内
+    if (diff < 3600000) return t ? t('stats.minutesAgo', { count: Math.floor(diff / 60000) }) : `${Math.floor(diff / 60000)}分钟前`;
+    // 一天内
+    if (diff < 86400000) return t ? t('stats.hoursAgo', { count: Math.floor(diff / 3600000) }) : `${Math.floor(diff / 3600000)}小时前`;
+
+    // 超过一天，显示日期 (MM/DD)
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+};
+
+/**
+ * 格式化详细时间 (MM/DD HH:mm) - 用于时间轴
+ * @param {number|string} timestamp 
+ * @returns {string}
+ */
+export const formatTimelineTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(Number(timestamp));
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+
+    const timeStr = `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+    if (isToday) {
+        return timeStr;
+    }
+    return `${date.getMonth() + 1}/${date.getDate()} ${timeStr}`;
+};

@@ -464,7 +464,7 @@ export default {
             uploadHint: '支持多图上传，建议上传清晰的实物照片',
             submit: '提交预定',
             submitting: '提交中...',
-            deadline: '截止时间',
+            deadline: '期望到货日期',
             deadlinePlaceholder: '选择期望到货日期',
             brand: '品牌',
             brandPlaceholder: '如：Nike',

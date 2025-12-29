@@ -218,6 +218,8 @@ import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
+import { STATUS_OPTIONS, STATUS_STYLES } from '@/utils/status';
+import { formatTimelineTime } from '@/utils/formatters';
 import OrderTimeline from './OrderTimeline.vue';
 import OrderEditModal from '../OrderEditModal.vue';
 
@@ -266,7 +268,7 @@ const currentData = computed(() => props.order.currentData || {});
 const originalData = computed(() => props.order.originalData || {});
 
 // 状态流程
-const statusSteps = ['pending', 'confirmed', 'production', 'shipping', 'arrived', 'delivered'];
+const statusSteps = STATUS_OPTIONS.filter(s => s !== 'rejected'); // 排除 rejected
 const currentStepIndex = computed(() => {
   const idx = statusSteps.indexOf(props.order.status);
   return idx >= 0 ? idx : 0;
@@ -277,15 +279,7 @@ const progressWidth = computed(() => {
 });
 
 // 状态样式
-const statusClasses = {
-  pending: 'bg-yellow-50 text-yellow-700',
-  confirmed: 'bg-blue-50 text-blue-700',
-  rejected: 'bg-red-50 text-red-700',
-  production: 'bg-purple-50 text-purple-700',
-  shipping: 'bg-cyan-50 text-cyan-700',
-  arrived: 'bg-green-50 text-green-700',
-  delivered: 'bg-gray-100 text-gray-600'
-};
+const statusClasses = STATUS_STYLES;
 
 // 是否有修正
 const hasCorrection = computed(() => {
@@ -298,13 +292,7 @@ const corrections = computed(() => {
 });
 
 // 格式化时间
-const formatTime = (timestamp) => {
-  if (!timestamp) return '';
-  const date = new Date(timestamp);
-  return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
-};
-
-
+const formatTime = (timestamp) => formatTimelineTime(timestamp);
 
 // 发送留言
 const sendComment = () => {

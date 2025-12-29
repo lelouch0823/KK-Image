@@ -97,7 +97,7 @@
                 <div class="text-xs text-gray-500">{{ order.salesperson?.store }}</div>
               </td>
               <td class="px-4 py-3 text-gray-500 font-mono text-xs">{{ order.orderNo }}</td>
-              <td class="px-4 py-3">
+              <td class="px-4 py-3" @click.stop>
                 <OrderStatusChanger 
                   :status="order.status"
                   :loading="statusChanging[order.id]"
@@ -251,6 +251,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useOrders } from '@/composables/useOrders';
 import { useI18n } from '@/composables/useI18n';
+import { formatDate } from '@/utils/formatters';
 import OrderStatusChanger from './OrderStatusChanger.vue';
 import OrderEditModal from './OrderEditModal.vue';
 import OrderDetail from './order/OrderDetail.vue';
@@ -366,30 +367,15 @@ const handleEditSubmit = async ({ updates, reason }) => {
 };
 
 // 格式化时间
-const formatTime = (timestamp) => {
-  if (!timestamp) return '-';
-  const date = new Date(timestamp);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-};
+const formatTime = (timestamp) => formatDate(timestamp, { hour: undefined, minute: undefined });
 
 // 管理端留言
 const handleAdminComment = async (comment) => {
   if (!viewingOrder.value || !comment.trim()) return;
 
-  try {
-    const res = await fetch(`/api/manage/orders/${viewingOrder.value.id}/comment`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ comment }),
-      credentials: 'include'
-    });
-    const result = await res.json();
-    if (result.success) {
-      // 刷新详情
-      refreshAfterComment();
-    }
-  } catch (e) {
-    console.error('Admin comment error', e);
+  const success = await addComment(viewingOrder.value.id, comment);
+  if (success) {
+    refreshAfterComment();
   }
 };
 

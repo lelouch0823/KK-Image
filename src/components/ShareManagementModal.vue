@@ -14,36 +14,71 @@
 
       <!-- Content -->
       <div class="flex-1 overflow-auto p-6">
-         <table class="w-full text-left text-sm">
-           <thead class="bg-gray-50 text-secondary border-b border-[var(--border-color)] sticky top-0">
-              <tr>
-                <th class="px-6 py-3 font-medium">{{ t('share.folderName') }}</th>
-                <th class="px-6 py-3 font-medium">{{ t('share.linkToken') }}</th>
-                <th class="px-6 py-3 font-medium">{{ t('share.expiry') }}</th>
-                <th class="px-6 py-3 font-medium text-right">{{ t('share.actions') }}</th>
-              </tr>
-           </thead>
-           <tbody class="divide-y divide-[var(--border-color)]">
-              <tr v-for="item in shares" :key="item.id" class="hover:bg-gray-50 transition-colors">
-                 <td class="px-6 py-3 text-primary font-medium">{{ item.name }}</td>
-                 <td class="px-6 py-3 text-secondary">
-                     <div class="flex items-center gap-2">
-                         <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded select-all">{{ item.shareToken }}</span>
-                         <button @click="copyLink(item)" class="text-primary hover:text-blue-600" :title="t('common.copyLink') || '复制链接'">
-                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-                         </button>
-                     </div>
-                 </td>
-                 <td class="px-6 py-3">
-                     <span :class="getExpiryClass(item.expiresAt)">{{ formatExpiry(item.expiresAt, t) }}</span>
-                 </td>
-                 <td class="px-6 py-3 text-right">
-                     <button @click="editShare(item)" class="text-primary hover:text-blue-600 mr-3">{{ t('common.edit') }}</button>
-                     <button @click="revokeShare(item)" class="text-red-500 hover:text-red-700">{{ t('common.cancelShare') }}</button>
-                 </td>
-              </tr>
-           </tbody>
-         </table>
+         <!-- Desktop Table -->
+         <div class="hidden lg:block">
+           <table class="w-full text-left text-sm">
+             <thead class="bg-gray-50 text-secondary border-b border-[var(--border-color)] sticky top-0">
+                <tr>
+                  <th class="px-6 py-3 font-medium">{{ t('share.folderName') }}</th>
+                  <th class="px-6 py-3 font-medium">{{ t('share.linkToken') }}</th>
+                  <th class="px-6 py-3 font-medium">{{ t('share.expiry') }}</th>
+                  <th class="px-6 py-3 font-medium text-right">{{ t('share.actions') }}</th>
+                </tr>
+             </thead>
+             <tbody class="divide-y divide-[var(--border-color)]">
+                <tr v-for="item in shares" :key="item.id" class="hover:bg-gray-50 transition-colors">
+                   <td class="px-6 py-3 text-primary font-medium">{{ item.name }}</td>
+                   <td class="px-6 py-3 text-secondary">
+                       <div class="flex items-center gap-2">
+                           <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded select-all">{{ item.shareToken }}</span>
+                           <button @click="copyLink(item)" class="text-primary hover:text-blue-600" :title="t('common.copyLink') || '复制链接'">
+                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                           </button>
+                       </div>
+                   </td>
+                   <td class="px-6 py-3">
+                       <span :class="getExpiryClass(item.expiresAt)">{{ formatExpiry(item.expiresAt, t) }}</span>
+                   </td>
+                   <td class="px-6 py-3 text-right">
+                       <button @click="editShare(item)" class="text-primary hover:text-blue-600 mr-3">{{ t('common.edit') }}</button>
+                       <button @click="revokeShare(item)" class="text-red-500 hover:text-red-700">{{ t('common.cancelShare') }}</button>
+                   </td>
+                </tr>
+             </tbody>
+           </table>
+         </div>
+
+         <!-- Mobile Cards -->
+         <div class="lg:hidden space-y-4">
+           <div v-for="item in shares" :key="item.id" class="bg-gray-50 rounded-lg p-4 border border-[var(--border-color)]">
+             <div class="flex justify-between items-start mb-3">
+                <div class="font-medium text-primary text-base">{{ item.name }}</div>
+                <div class="flex gap-2">
+                    <button @click="editShare(item)" class="p-1.5 text-primary bg-white rounded border border-gray-200 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    </button>
+                    <button @click="revokeShare(item)" class="p-1.5 text-red-500 bg-white rounded border border-gray-200 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>
+             </div>
+             <div class="flex flex-col gap-2 text-sm text-secondary">
+               <div class="flex items-center justify-between">
+                 <span>{{ t('share.linkToken') }}:</span>
+                 <div class="flex items-center gap-2">
+                   <span class="font-mono bg-white px-2 py-0.5 rounded border border-gray-200">{{ item.shareToken }}</span>
+                   <button @click="copyLink(item)" class="text-primary">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                   </button>
+                 </div>
+               </div>
+               <div class="flex items-center justify-between">
+                 <span>{{ t('share.expiry') }}:</span>
+                 <span :class="getExpiryClass(item.expiresAt)">{{ formatExpiry(item.expiresAt, t) }}</span>
+               </div>
+             </div>
+           </div>
+         </div>
 
          <!-- Empty State -->
          <div v-if="shares.length === 0 && !loading" class="text-center py-12 text-secondary">

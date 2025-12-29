@@ -91,6 +91,8 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { STATUS_STYLES } from '@/utils/status';
+import { formatTimelineTime } from '@/utils/formatters';
 
 const props = defineProps({
   timeline: { type: Array, default: () => [] }
@@ -143,15 +145,7 @@ const iconClasses = {
 };
 
 // 状态样式
-const statusClasses = {
-  pending: 'bg-yellow-50 text-yellow-700',
-  confirmed: 'bg-blue-50 text-blue-700',
-  rejected: 'bg-red-50 text-red-700',
-  production: 'bg-purple-50 text-purple-700',
-  shipping: 'bg-cyan-50 text-cyan-700',
-  arrived: 'bg-green-50 text-green-700',
-  delivered: 'bg-gray-100 text-gray-600'
-};
+const statusClasses = STATUS_STYLES;
 
 // 操作人颜色
 const actorTypeColor = (type) => {
@@ -174,15 +168,5 @@ const getFieldLabel = (fieldName) => {
 };
 
 // 格式化时间
-const formatTime = (timestamp) => {
-  if (!timestamp) return '';
-  const date = new Date(timestamp);
-  const now = new Date();
-  const isToday = date.toDateString() === now.toDateString();
-  
-  if (isToday) {
-    return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
-  }
-  return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
-};
+const formatTime = (timestamp) => formatTimelineTime(timestamp);
 </script>
