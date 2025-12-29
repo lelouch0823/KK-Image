@@ -116,6 +116,7 @@
 import { computed } from 'vue';
 import { useUploadQueue } from '@/composables/useUploadQueue';
 import { useI18n } from '@/composables/useI18n';
+import { formatDuration } from '@/utils/formatters';
 
 const { t } = useI18n();
 
@@ -181,11 +182,7 @@ const formatSpeed = (bytesPerSecond) => {
 };
 
 // 🔧 NEW: 格式化时间
-const formatTime = (seconds) => {
-    if (seconds < 60) return `${seconds}${t('upload.seconds')}`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}${t('upload.minutes')}${seconds % 60}${t('upload.seconds')}`;
-    return `${Math.floor(seconds / 3600)}${t('upload.hours')}${Math.floor((seconds % 3600) / 60)}${t('upload.minutes')}`;
-};
+const formatTime = (seconds) => formatDuration(seconds, t);
 </script>
 
 <style scoped>

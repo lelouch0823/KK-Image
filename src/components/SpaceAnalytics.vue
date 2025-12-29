@@ -66,6 +66,8 @@ const props = defineProps({
   spaceId: { type: String, required: true }
 });
 
+import { getCssVar, getChartBgColor } from '@/utils/formatters';
+
 const { t } = useI18n();
 const loading = ref(true);
 const error = ref('');
@@ -80,8 +82,8 @@ const chartData = computed(() => {
             label: t('spaceAnalytics.visits'),
             data: stats.value.trend.map(d => d.count),
             fill: true,
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderColor: getCssVar('--color-chart-1'),
+            backgroundColor: getChartBgColor(1, 0.1),
             tension: 0.4
         }]
     };
@@ -96,7 +98,7 @@ const chartOptions = {
     scales: {
         y: {
             beginAtZero: true,
-            grid: { color: '#f3f4f6' },
+            grid: { color: getCssVar('--color-chart-grid') },
             ticks: { stepSize: 1 }
         },
         x: {

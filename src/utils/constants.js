@@ -60,17 +60,8 @@ export const API = {
     SALES_ORDER_READ: (token, id) => `/api/sales/${token}/orders/${id}/read`,
     SALES_UPLOAD: (token) => `/api/sales/${token}/upload`,
 
-    // 管理端销售人员 API
-    SALESPERSONS: `${API_PREFIX}/salespersons`,
-    SALESPERSON_BY_ID: (id) => `${API_PREFIX}/salespersons/${id}`,
-    SALESPERSON_RESET_TOKEN: (id) => `${API_PREFIX}/salespersons/${id}/reset-token`,
-
-    // 管理端订单 API
-    MANAGE_ORDERS: `${API_PREFIX}/orders`,
-    MANAGE_ORDER_BY_ID: (id) => `${API_PREFIX}/orders/${id}`,
-    MANAGE_ORDER_UPDATE: (id) => `${API_PREFIX}/orders/${id}/update`,
-    MANAGE_ORDER_STATUS: (id) => `${API_PREFIX}/orders/${id}/status`,
-    MANAGE_ORDER_COMMENT: (id) => `${API_PREFIX}/orders/${id}/comment`
+    // 其他
+    TURNSTILE_VERIFY: '/api/turnstile/verify'
 };
 
 // 前端路由 (用于跳转和生成分享链接)
@@ -78,7 +69,8 @@ export const ROUTES = {
     GALLERY: (token) => `/gallery/${token}`,
     SPACE: (token) => `/space/${token}`,
     FILE: (id) => `/file/${id}`,
-    SALES_PORTAL: (token) => `/sales/${token}`
+    SALES_PORTAL: (token) => `/sales/${token}`,
+    ADMIN: '/admin'
 };
 
 // 分页默认值

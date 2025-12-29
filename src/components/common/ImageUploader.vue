@@ -271,7 +271,7 @@ const replaceFile = async (index, e) => {
       // 删除旧文件（只对已上传的文件）
       if (oldFile.id && !oldFile.isLocal) {
         try {
-          await fetch(`/api/v1/files/${oldFile.id}`, {
+          await fetch(`${API.FILES}/${oldFile.id}`, {
             method: 'DELETE',
             credentials: 'include'
           });

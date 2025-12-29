@@ -57,41 +57,7 @@ function generateOrderNo() {
     return `ORD-${dateStr}-${random}`;
 }
 
-/**
- * 记录时间轴
- */
-async function logTimeline(db, params) {
-    const {
-        orderId,
-        actionType,
-        actorType,
-        actorId,
-        actorName,
-        fieldName = null,
-        oldValue = null,
-        newValue = null,
-        reason = null,
-        comment = null
-    } = params;
 
-    await db.prepare(`
-        INSERT INTO order_timeline (id, order_id, action_type, actor_type, actor_id, actor_name, field_name, old_value, new_value, reason, comment, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-        generateId(),
-        orderId,
-        actionType,
-        actorType,
-        actorId,
-        actorName,
-        fieldName,
-        oldValue,
-        newValue,
-        reason,
-        comment,
-        now()
-    ).run();
-}
 
 /**
  * GET - 获取订单列表
@@ -221,24 +187,48 @@ export async function onRequestPost(context) {
         }
 
         // 创建订单
-        await env.DB.prepare(`
+        // 准备批量操作语句
+        const batchStatements = [];
+
+        // 1. 创建订单
+        batchStatements.push(env.DB.prepare(`
             INSERT INTO orders (id, order_no, salesperson_id, original_data, current_data, status, main_image_id, has_new_feedback, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, 'pending', ?, 0, ?, ?)
-        `).bind(orderId, orderNo, salesperson.id, orderData, orderData, mainImageId, timestamp, timestamp).run();
+        `).bind(orderId, orderNo, salesperson.id, orderData, orderData, mainImageId, timestamp, timestamp));
 
-        // 关联文件
+        // 2. 关联文件
         if (fileIds.length > 0) {
-            const insertStatements = fileIds.map((fileId, index) =>
-                env.DB.prepare(`
+            fileIds.forEach((fileId, index) => {
+                batchStatements.push(env.DB.prepare(`
                     INSERT OR IGNORE INTO order_files (id, order_id, file_id, section, sort_order, added_at)
                     VALUES (?, ?, ?, 'product', ?, ?)
-                `).bind(generateId(), orderId, fileId, index, timestamp)
-            );
-            await env.DB.batch(insertStatements);
+                `).bind(generateId(), orderId, fileId, index, timestamp));
+            });
+        }
 
-            // SOTA: 自动归档文件 (Sales Uploads / Salesperson / OrderNo)
+        // 3. 记录时间轴
+        batchStatements.push(env.DB.prepare(`
+            INSERT INTO order_timeline (id, order_id, action_type, actor_type, actor_id, actor_name, field_name, old_value, new_value, reason, comment, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+            generateId(),
+            orderId,
+            'created',
+            'salesperson',
+            salesperson.id,
+            salesperson.name,
+            null, null, null, null, null, // Optional fields
+            now()
+        ));
+
+        // 执行原子事务
+        await env.DB.batch(batchStatements);
+
+        // 面向未来: 自动归档 (非事务，失败不影响订单创建)
+        if (fileIds.length > 0) {
             try {
                 const { ensureFolder, moveFilesToFolder } = await import('../../../utils/folder-utils.js');
+                // ... logic remains same ...
                 const rootId = await ensureFolder(env, 'Sales Uploads', 'root');
                 const spId = await ensureFolder(env, salesperson.name, rootId);
                 const folderId = await ensureFolder(env, orderNo, spId);
@@ -247,15 +237,6 @@ export async function onRequestPost(context) {
                 console.error('File archiving error:', e);
             }
         }
-
-        // 记录时间轴
-        await logTimeline(env.DB, {
-            orderId,
-            actionType: 'created',
-            actorType: 'salesperson',
-            actorId: salesperson.id,
-            actorName: salesperson.name
-        });
 
         return success({
             id: orderId,

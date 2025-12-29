@@ -27,7 +27,6 @@ export async function onRequest(context) {
   const match = cookieHeader.match(regex);
 
   if (!match) {
-    console.log(`[Edge Auth] No token for ${pathname}, redirecting to login`);
     return Response.redirect(`${url.origin}/login.html`, 302);
   }
 
@@ -37,8 +36,8 @@ export async function onRequest(context) {
     // Token 有效，允许访问
     return next();
   } catch (error) {
-    console.log(`[Edge Auth] Invalid/expired token for ${pathname}: ${error.message}`);
-    // 清除无效的 Cookie
+    // console.log(`[Edge Auth] Invalid/expired token for ${pathname}: ${error.message}`);
+    // Token valid check failed, clear cookie
     return new Response(null, {
       status: 302,
       headers: {

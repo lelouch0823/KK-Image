@@ -135,7 +135,7 @@ import { ref, onMounted, nextTick, onUnmounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
-import { formatSize } from '@/utils/formatters';
+import { formatSize, getCssVar, getChartColors } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import Chart from 'chart.js/auto';
 import 'chartjs-adapter-date-fns';
@@ -213,7 +213,7 @@ const createCharts = () => {
         plugins: { legend: { display: false } },
         scales: {
           x: { grid: { display: false }, ticks: { maxTicksLimit: 7 } },
-          y: { border: { dash: [4, 4] }, grid: { color: '#f3f4f6' }, beginAtZero: true }
+          y: { border: { dash: [4, 4] }, grid: { color: getCssVar('--color-chart-grid') }, beginAtZero: true }
         },
         interaction: { intersect: false, mode: 'index' }
       }
@@ -231,7 +231,7 @@ const createCharts = () => {
         labels: typeData.map(i => i.type.toUpperCase()),
         datasets: [{
           data: typeData.map(i => i.count),
-          backgroundColor: ['#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#909399', '#8e44ad'],
+          backgroundColor: getChartColors(6),
           borderWidth: 0,
           hoverOffset: 4
         }]

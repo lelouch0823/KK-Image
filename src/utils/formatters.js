@@ -17,6 +17,18 @@ export const formatSize = (bytes) => {
 };
 
 /**
+ * 格式化时长 (秒 -> 时:分:秒)
+ * @param {number} seconds - 秒数
+ * @param {Object} t - i18n translate function
+ */
+export const formatDuration = (seconds, t) => {
+    if (!t) return `${seconds}s`;
+    if (seconds < 60) return `${seconds}${t('upload.seconds')}`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}${t('upload.minutes')}${seconds % 60}${t('upload.seconds')}`;
+    return `${Math.floor(seconds / 3600)}${t('upload.hours')}${Math.floor((seconds % 3600) / 60)}${t('upload.minutes')}`;
+};
+
+/**
  * 格式化日期时间
  * @param {number|string} timestamp - 时间戳
  * @param {Object} options - Intl.DateTimeFormat 选项
@@ -119,4 +131,60 @@ export const formatTimelineTime = (timestamp) => {
         return timeStr;
     }
     return `${date.getMonth() + 1}/${date.getDate()} ${timeStr}`;
+};
+
+/**
+ * formatTime 别名 - 用于排序列表的时间显示
+ * @param {number|string} timestamp 
+ * @returns {string}
+ */
+export const formatTime = formatTimelineTime;
+
+/**
+ * 获取 CSS 变量值
+ * @param {string} varName - CSS 变量名 (如 '--color-chart-1')
+ * @returns {string}
+ */
+export const getCssVar = (varName) => {
+    if (typeof document === 'undefined') return '';
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+};
+
+/**
+ * 获取图表颜色数组
+ * @param {number} count - 需要的颜色数量
+ * @returns {string[]}
+ */
+export const getChartColors = (count = 6) => {
+    const colors = [];
+    for (let i = 1; i <= Math.min(count, 6); i++) {
+        colors.push(getCssVar(`--color-chart-${i}`));
+    }
+    return colors;
+};
+
+/**
+ * 将 Hex 颜色转为 RGBA
+ * @param {string} hex - Hex 颜色值
+ * @param {number} alpha - 透明度 (0-1)
+ * @returns {string}
+ */
+export const hexToRgba = (hex, alpha = 1) => {
+    if (!hex) return `rgba(0, 0, 0, ${alpha})`;
+    hex = hex.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+/**
+ * 获取图表背景色 (带透明度)
+ * @param {number} index - 颜色索引 (1-6)
+ * @param {number} alpha - 透明度 (0-1)
+ * @returns {string}
+ */
+export const getChartBgColor = (index = 1, alpha = 0.1) => {
+    const hex = getCssVar(`--color-chart-${index}`);
+    return hexToRgba(hex, alpha);
 };

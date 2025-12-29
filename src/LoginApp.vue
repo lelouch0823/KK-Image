@@ -100,7 +100,7 @@ import ToastContainer from '@/components/ui/ToastContainer.vue';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
-import { API } from '@/utils/constants';
+import { API, ROUTES } from '@/utils/constants';
 
 const { addToast } = useToast();
 const { checkAuth } = useAuth();
@@ -126,15 +126,16 @@ if (typeof window !== 'undefined') {
 // 检查是否已登录 + 加载 Turnstile 配置
 onBeforeMount(async () => {
     // 检查登录状态
+    // 检查登录状态
     const isAuth = await checkAuth();
     if (isAuth) {
-        window.location.href = '/admin';
+        window.location.href = ROUTES.ADMIN;
         return;
     }
     
     // 从 API 获取 Turnstile 配置
     try {
-        const configRes = await fetch('/api/turnstile/verify');
+        const configRes = await fetch(API.TURNSTILE_VERIFY);
         const config = await configRes.json();
         if (config.success && config.data?.enabled) {
             turnstileEnabled.value = true;

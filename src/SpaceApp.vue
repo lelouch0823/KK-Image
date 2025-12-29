@@ -137,7 +137,7 @@ const submitPassword = async (pwd) => {
 // Turnstile 验证回调
 const handleTurnstileVerified = async (token) => {
     // 后端验证 token
-    const response = await fetch('/api/turnstile/verify', {
+    const response = await fetch(API.TURNSTILE_VERIFY, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token })
@@ -158,7 +158,7 @@ const handleTurnstileVerified = async (token) => {
 onMounted(async () => {
     try {
         // 从 API 获取 Turnstile 配置
-        const configRes = await fetch('/api/turnstile/verify');
+        const configRes = await fetch(API.TURNSTILE_VERIFY);
         const config = await configRes.json();
         
         if (config.success && config.data?.enabled) {

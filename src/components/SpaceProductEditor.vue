@@ -77,7 +77,7 @@
           <div>
             <label class="block text-sm font-medium text-primary mb-1">SKU</label>
             <input v-model="form.templateData.sku" type="text" 
-              placeholder="商品编码 (选填)"
+              :placeholder="t('spaceManager.skuPlaceholder')"
               class="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:border-primary outline-none">
           </div>
 

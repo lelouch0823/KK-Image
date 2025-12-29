@@ -305,7 +305,7 @@
             <input 
               v-model="form.password"
               type="text"
-              :placeholder="isEditing ? '不修改请留空' : t('salesperson.passwordPlaceholder')"
+              :placeholder="isEditing ? t('salesperson.leaveBlankToKeep') : t('salesperson.passwordPlaceholder')"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary outline-none transition-shadow"
               :required="!isEditing"
             >

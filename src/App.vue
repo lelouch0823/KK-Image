@@ -3,7 +3,7 @@
   <div v-if="isLoading" class="flex h-screen items-center justify-center bg-gray-50">
     <div class="flex flex-col items-center gap-4">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-      <p class="text-gray-500">正在验证身份...</p>
+      <p class="text-gray-500">{{ t('common.verifying') }}</p>
     </div>
   </div>
 
@@ -44,6 +44,7 @@ import ToastContainer from '@/components/ui/ToastContainer.vue';
 import UploadProgress from '@/components/ui/UploadProgress.vue';
 import { useView } from '@/composables/useView';
 import { useAuth } from '@/composables/useAuth';
+import { useI18n } from '@/composables/useI18n';
 
 // 导入视图组件
 import Dashboard from '@/views/Dashboard.vue';
@@ -54,6 +55,7 @@ import OrderManager from '@/components/OrderManager.vue';
 import SalespersonManager from '@/components/SalespersonManager.vue';
 
 const { currentView } = useView();
+const { t } = useI18n();
 const { checkAuth, isAuthenticated, isLoading } = useAuth();
 
 // Sidebar ref for mobile toggle

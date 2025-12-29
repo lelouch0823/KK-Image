@@ -32,7 +32,9 @@ export default {
         actions: '操作',
         confirmVoid: '确定要作废此订单吗？此操作不可撤销。',
         success: '操作成功',
-        view: '查看'
+        view: '查看',
+        items: '项',
+        verifying: '正在验证身份...'
     },
     upload: {
         uploading: '正在上传 {count} 个文件',
@@ -126,6 +128,7 @@ export default {
         price: '价格',
         material: '材质',
         materialPlaceholder: '如：真皮',
+        skuPlaceholder: '商品编码 (选填)',
         spaceName: '空间名称',
         spaceNamePlaceholder: '如：2025春季新品资料',
         creating: '创建中...',
@@ -578,6 +581,7 @@ export default {
         linkCopied: '链接已复制',
         linkReset: '链接已重置',
         emptyList: '暂无销售人员',
-        emptyHint: '点击上方按钮添加第一个销售'
+        emptyHint: '点击上方按钮添加第一个销售',
+        leaveBlankToKeep: '不修改请留空'
     }
 };
