@@ -28,6 +28,8 @@ export default {
         retryAllFailed: '重试所有失败',
         clearAll: '全部取消',
         failed: '失败',
+        searchPlaceholder: '搜索...',
+        actions: '操作',
     },
     upload: {
         uploading: '正在上传 {count} 个文件',

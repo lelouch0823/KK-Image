@@ -32,10 +32,8 @@ const AddCommentSchema = z.object({
  */
 async function getAdmin(c) {
     const user = c.get('user');
-    console.log('[DEBUG] getAdmin user:', user);
 
     if (!user) {
-        console.error('[DEBUG] getAdmin failed: user is null/undefined');
         throw new Error(MSG.AUTH.REQUIRED);
     }
 

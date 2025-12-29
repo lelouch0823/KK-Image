@@ -6,41 +6,7 @@
 import { success, error } from '../../../../utils/response.js';
 import { MSG } from '../../../../utils/messages.js';
 import { generateId, now } from '../../../../utils/id.js';
-import { verifyJWT } from '../../../../utils/auth.js';
-import { parse as parseCookie } from 'cookie';
-
-/**
- * 验证销售端 JWT 并返回销售信息
- */
-async function authenticateSalesperson(request, env, accessToken) {
-    const cookieHeader = request.headers.get('Cookie') || '';
-    const cookies = parseCookie(cookieHeader);
-    const jwt = cookies.order_token;
-
-    if (!jwt) {
-        throw new Error(MSG.AUTH.REQUIRED);
-    }
-
-    const payload = await verifyJWT(jwt, env);
-    if (payload.type !== 'salesperson') {
-        throw new Error(MSG.AUTH.FORBIDDEN);
-    }
-
-    const salesperson = await env.DB.prepare(`
-        SELECT id, name, store, is_active
-        FROM salespersons WHERE id = ? AND access_token = ?
-    `).bind(payload.id, accessToken).first();
-
-    if (!salesperson) {
-        throw new Error(MSG.SALESPERSON.NOT_FOUND);
-    }
-
-    if (!salesperson.is_active) {
-        throw new Error(MSG.SALESPERSON.DISABLED);
-    }
-
-    return salesperson;
-}
+import { authenticateSalesperson } from '../../../../utils/salesperson-auth.js';
 
 /**
  * POST - 添加留言
@@ -67,25 +33,25 @@ export async function onRequestPost(context) {
             return error(MSG.ORDER.NOT_FOUND, 404);
         }
 
-        // 记录时间轴
-        await env.DB.prepare(`
-            INSERT INTO order_timeline (id, order_id, action_type, actor_type, actor_id, actor_name, comment, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(
-            generateId(),
-            orderId,
-            'comment',
-            'salesperson',
-            salesperson.id,
-            salesperson.name,
-            comment.trim(),
-            now()
-        ).run();
-
-        // 更新订单时间
-        await env.DB.prepare(`
-            UPDATE orders SET updated_at = ? WHERE id = ?
-        `).bind(now(), orderId).run();
+        // 使用 batch() 合并数据库写操作，确保原子性
+        await env.DB.batch([
+            env.DB.prepare(`
+                INSERT INTO order_timeline (id, order_id, action_type, actor_type, actor_id, actor_name, comment, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+                generateId(),
+                orderId,
+                'comment',
+                'salesperson',
+                salesperson.id,
+                salesperson.name,
+                comment.trim(),
+                now()
+            ),
+            env.DB.prepare(`
+                UPDATE orders SET updated_at = ? WHERE id = ?
+            `).bind(now(), orderId)
+        ]);
 
         return success(null, MSG.ORDER.COMMENT_ADDED);
 
