@@ -35,8 +35,9 @@ app.post('/login', zValidator('json', LoginSchema), async (c) => {
     const expiresIn = 7 * 24 * 60 * 60; // 7 天
     const token = await generateJWT(user, env, expiresIn);
 
-    // 设置 Cookie
-    const cookie = `${ADMIN_AUTH_COOKIE}=${token}; HttpOnly; Path=/; Max-Age=${expiresIn}; SameSite=Strict; Secure`;
+    // 设置 Cookie（本地开发时不使用 Secure）
+    const isSecure = c.req.url.startsWith('https://');
+    const cookie = `${ADMIN_AUTH_COOKIE}=${token}; HttpOnly; Path=/; Max-Age=${expiresIn}; SameSite=Lax${isSecure ? '; Secure' : ''}`;
 
     return c.json({
         success: true,

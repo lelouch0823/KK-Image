@@ -1,18 +1,42 @@
 <template>
-  <aside class="w-[var(--sidebar-width)] bg-white border-r border-[var(--border-color)] flex flex-col shrink-0">
+  <!-- 移动端背景遮罩 -->
+  <div 
+    v-if="isOpen" 
+    class="lg:hidden fixed inset-0 bg-black/50 z-40 transition-opacity"
+    @click="closeSidebar"
+  ></div>
+
+  <aside 
+    :class="[
+      'bg-white border-r border-[var(--border-color)] flex flex-col shrink-0 z-50 transition-transform duration-300',
+      // 桌面端：固定宽度
+      'lg:w-[var(--sidebar-width)] lg:relative lg:translate-x-0',
+      // 移动端：抽屉式，默认隐藏
+      'fixed inset-y-0 left-0 w-72',
+      isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+    ]"
+  >
     <!-- Logo -->
-    <div class="h-[var(--header-height)] flex items-center px-5 border-b border-[var(--border-color)]">
-      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-800 to-black flex items-center justify-center text-white font-bold text-sm mr-3">
-        KK
+    <div class="h-[var(--header-height)] flex items-center justify-between px-5 border-b border-[var(--border-color)]">
+      <div class="flex items-center">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-800 to-black flex items-center justify-center text-white font-bold text-sm mr-3">
+          KK
+        </div>
+        <span class="text-lg font-bold text-primary tracking-tight">KK-Image</span>
       </div>
-      <span class="text-lg font-bold text-primary tracking-tight">KK-Image</span>
+      <!-- 移动端关闭按钮 -->
+      <button @click="closeSidebar" class="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
     </div>
 
     <!-- 菜单 -->
     <nav class="flex-1 overflow-y-auto scrollbar-thin py-4 px-3">
       <div class="mb-6">
         <div class="px-3 mb-2 text-xs font-semibold text-secondary uppercase tracking-wider">{{ t('sidebar.menu') }}</div>
-        <button v-for="item in menuItems" :key="item.key" @click="setView(item.key)"
+        <button v-for="item in menuItems" :key="item.key" @click="handleMenuClick(item.key)"
           class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-1"
           :class="currentView === item.key ? 'bg-[var(--bg-active)] text-primary' : 'text-secondary hover:bg-[var(--bg-hover)] hover:text-primary'">
           <span v-html="item.icon" class="w-5 h-5"></span>
@@ -48,7 +72,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, provide, onMounted, onUnmounted } from 'vue';
 import { useView } from '@/composables/useView';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
@@ -58,6 +82,26 @@ const { currentView, setView } = useView();
 const { t } = useI18n();
 const { logout } = useAuth();
 const { addToast } = useToast();
+
+// 移动端侧边栏状态
+const isOpen = ref(false);
+
+const openSidebar = () => {
+  isOpen.value = true;
+};
+
+const closeSidebar = () => {
+  isOpen.value = false;
+};
+
+// 菜单点击：切换视图并关闭侧边栏
+const handleMenuClick = (key) => {
+  setView(key);
+  closeSidebar();
+};
+
+// 暴露给 Header 组件调用
+defineExpose({ openSidebar });
 
 const menuItems = computed(() => [
   { key: 'dashboard', label: t('sidebar.dashboard'), icon: '<svg fill="none" class="w-5 h-5" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>' },
@@ -70,8 +114,7 @@ const menuItems = computed(() => [
 
 const handleLogout = async () => {
     await logout();
-    addToast({ message: t('auth.logout') + ' Success', type: 'success' }); // 简单提示
-    // 强制刷新或跳转以清除状态
+    addToast({ message: t('auth.logout') + ' Success', type: 'success' });
     window.location.reload();
 };
 </script>

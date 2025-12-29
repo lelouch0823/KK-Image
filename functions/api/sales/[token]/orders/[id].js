@@ -209,26 +209,30 @@ export async function onRequestPatch(context) {
 
         // 允许修改的字段
         const allowedFields = ['name', 'brand', 'series', 'size', 'color', 'material', 'remark', 'deadline'];
+        const timelinePromises = [];
 
         for (const field of allowedFields) {
             if (updates[field] !== undefined && updates[field] !== currentData[field]) {
+                // 为每个修改的字段记录时间轴
+                timelinePromises.push(logTimeline(env.DB, {
+                    orderId,
+                    actionType: 'field_updated',
+                    actorType: 'salesperson',
+                    actorId: salesperson.id,
+                    actorName: salesperson.name,
+                    fieldName: field,
+                    oldValue: currentData[field] || '',
+                    newValue: updates[field] || '',
+                    reason: '销售自行修改'
+                }));
                 newData[field] = updates[field];
                 hasChanges = true;
             }
         }
 
-        // 记录时间轴
-        if (hasChanges) {
-            await logTimeline(env.DB, {
-                orderId,
-                actionType: 'field_updated',
-                actorType: 'salesperson',
-                actorId: salesperson.id,
-                actorName: salesperson.name,
-                reason: '销售自行修改',
-                oldValue: 'Multiple Fields',
-                newValue: 'Updated'
-            });
+        // 批量执行时间轴记录
+        if (timelinePromises.length > 0) {
+            await Promise.all(timelinePromises);
         }
 
         // 处理文件更新
