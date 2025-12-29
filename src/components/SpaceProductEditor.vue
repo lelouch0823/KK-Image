@@ -77,7 +77,7 @@
               </div>
               
               <!-- Share Information -->
-              <div v-if="form.isPublic" class="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div v-if="form.isPublic" class="space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
                 <div class="px-3 py-2 bg-[var(--bg-muted)] rounded-lg text-xs font-mono text-primary break-all border border-[var(--border-color)]">
                   {{ shareUrl }}
                 </div>
@@ -87,6 +87,27 @@
                   </svg>
                   {{ t('common.copy') }}
                 </button>
+                
+                <!-- Password Lock -->
+                <div class="border-t border-[var(--border-color)] pt-3">
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-1.5">
+                      <svg class="w-3.5 h-3.5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                      </svg>
+                      <span class="text-xs font-medium text-primary">{{ t('spaceManager.passwordLock') }}</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" v-model="passwordEnabled" class="sr-only peer">
+                      <div class="w-7 h-4 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                  </div>
+                  <div v-if="passwordEnabled" class="flex gap-2">
+                    <input v-model="form.password" type="text" 
+                      class="flex-1 px-3 py-1.5 text-xs border border-[var(--border-color)] rounded-lg focus:border-primary outline-none"
+                      :placeholder="t('spaceManager.setPassword')">
+                  </div>
+                </div>
               </div>
               <div v-else class="text-[10px] text-secondary text-center italic">
                 {{ t('spaceManager.shareCard.publishHint') }}
@@ -103,15 +124,24 @@
         </div>
       </div>
 
-      <!-- 右侧：媒体资源管理 -->
+      <!-- 右侧：媒体资源管理 + 数据分析 -->
       <div class="flex-1 flex flex-col bg-white">
-        <div class="px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center">
-          <div>
-             <h2 class="text-lg font-semibold text-primary">{{ t('spaceManager.media') }}</h2>
-             <p class="text-xs text-secondary mt-1">{{ t('spaceManager.manageMedia') }}</p>
+        <!-- 右侧标签头 -->
+        <div class="px-6 py-3 border-b border-[var(--border-color)] flex justify-between items-center">
+          <div class="flex space-x-4">
+            <button @click="activeRightTab = 'media'"
+              class="px-1 py-2 text-sm font-medium border-b-2 transition-colors duration-200"
+              :class="activeRightTab === 'media' ? 'border-primary text-primary' : 'border-transparent text-secondary hover:text-[var(--text-main)]'">
+              {{ t('spaceManager.media') }}
+            </button>
+            <button @click="activeRightTab = 'analytics'"
+              class="px-1 py-2 text-sm font-medium border-b-2 transition-colors duration-200"
+              :class="activeRightTab === 'analytics' ? 'border-primary text-primary' : 'border-transparent text-secondary hover:text-[var(--text-main)]'">
+              {{ t('spaceManager.tabs.analytics') }}
+            </button>
           </div>
           <div class="flex gap-2">
-            <Tooltip :content="t('spaceManager.addFile')">
+            <Tooltip v-if="activeRightTab === 'media'" :content="t('spaceManager.addFile')">
               <button @click="showFileSelector = true" 
                 class="w-8 h-8 flex items-center justify-center bg-[var(--bg-muted)] text-primary hover:bg-[var(--bg-hover)] rounded-lg text-sm font-medium transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,7 +158,8 @@
           </div>
         </div>
         
-        <div class="flex-1 overflow-y-auto p-6">
+        <!-- 媒体标签内容 -->
+        <div v-show="activeRightTab === 'media'" class="flex-1 overflow-y-auto p-6">
           <div v-if="files.length > 0" class="grid grid-cols-4 gap-4">
             <div v-for="file in files" :key="file.id" 
               class="group relative aspect-square bg-[var(--bg-muted)] rounded-xl border border-[var(--border-color)] overflow-hidden">
@@ -169,6 +200,11 @@
             <button @click="showFileSelector = true" class="mt-4 text-primary text-sm hover:underline">{{ t('spaceManager.addMediaHint') }}</button>
           </div>
         </div>
+        
+        <!-- 数据分析标签内容 -->
+        <div v-show="activeRightTab === 'analytics'" class="flex-1 overflow-y-auto p-6">
+          <SpaceAnalytics :spaceId="space.id" />
+        </div>
       </div>
     </div>
 
@@ -184,6 +220,7 @@ import { useI18n } from '@/composables/useI18n';
 import { isImage } from '@/utils/formatters';
 import FileSelector from '@/components/FileSelector.vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
+import SpaceAnalytics from './SpaceAnalytics.vue';
 
 const props = defineProps({
   space: { type: Object, required: true }
@@ -198,12 +235,15 @@ const { t } = useI18n();
 const showFileSelector = ref(false);
 const saving = ref(false);
 const files = ref([]);
+const activeRightTab = ref('media');
+const passwordEnabled = ref(false);
 
 const form = ref({
   name: '',
   description: '',
   isPublic: false,
   coverFileId: null,
+  password: '',
   templateData: {
     brand: '',
     series: '',
@@ -224,6 +264,8 @@ const initData = async () => {
     form.value.description = data.description;
     form.value.isPublic = data.isPublic;
     form.value.coverFileId = data.coverFileId;
+    form.value.password = data.password || '';
+    passwordEnabled.value = !!data.password;
     form.value.templateData = { ...form.value.templateData, ...(data.templateData || {}) };
     files.value = data.files || [];
   }
@@ -236,6 +278,7 @@ const saveChanges = async () => {
     description: form.value.description,
     isPublic: form.value.isPublic,
     coverFileId: form.value.coverFileId,
+    password: passwordEnabled.value ? form.value.password : null,
     templateData: form.value.templateData
   });
   saving.value = false;

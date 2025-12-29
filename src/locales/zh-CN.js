@@ -131,6 +131,7 @@ export default {
         detailTitle: '空间详情',
         tabs: {
             files: '文件列表',
+            subspaces: '子空间',
             settings: '设置',
             analytics: '数据分析'
         },
@@ -160,6 +161,11 @@ export default {
         publicOff: '私有',
         pleasePublicFirst: '请先公开空间',
         passwordUpdated: '密码已更新',
+        createSubspace: '创建子空间',
+        subspaces: '个子空间',
+        emptySubspaces: '暂无子空间',
+        passwordLock: '密码锁',
+        setPassword: '设置访问密码',
 
         templates: {
             gallery: '画廊',
@@ -203,6 +209,11 @@ export default {
         packing: '打包中',
         downloadAllSimple: '下载全部',
         passwordProtected: '该空间受密码保护',
+        verifyHuman: '安全验证',
+        verifyHint: '请完成验证以继续访问',
+        verifying: '验证中...',
+        verifyFailed: '验证失败，请重试',
+        protectedBy: '由 Cloudflare Turnstile 保护',
     },
     share: {
         management: '分享链接管理',

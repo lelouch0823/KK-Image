@@ -16,7 +16,8 @@ const CreateSpaceSchema = z.object({
     password: z.string().min(4).max(50).optional().nullable(),
     expiresAt: z.number().optional().nullable(),
     template: z.string().optional().default('gallery'),
-    templateData: z.record(z.any()).optional().default({})
+    templateData: z.record(z.any()).optional().default({}),
+    coverFileId: z.string().optional().nullable()
 });
 
 const UpdateSpaceSchema = CreateSpaceSchema.partial();
@@ -30,8 +31,11 @@ app.get('/', async (c) => {
     try {
         const { results } = await env.DB.prepare(`
       SELECT s.*, 
-        (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count
-      FROM spaces s ORDER BY s.updated_at DESC
+        (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
+        f.storage_key as cover_storage_key
+      FROM spaces s
+      LEFT JOIN files f ON s.cover_file_id = f.id
+      ORDER BY s.updated_at DESC
     `).all();
 
         return c.json({
@@ -47,6 +51,9 @@ app.get('/', async (c) => {
                 fileCount: space.file_count,
                 expiresAt: space.expires_at,
                 template: space.template,
+                coverFileId: space.cover_file_id,
+                coverUrl: space.cover_storage_key ? getFileUrl(space.cover_storage_key) : null,
+                viewCount: space.view_count || 0,
                 createdAt: space.created_at,
                 updatedAt: space.updated_at
             }))
@@ -91,6 +98,8 @@ app.get('/:id', async (c) => {
                 expiresAt: space.expires_at,
                 template: space.template,
                 templateData: space.template_data ? JSON.parse(space.template_data) : {},
+                coverFileId: space.cover_file_id,
+                viewCount: space.view_count,
                 createdAt: space.created_at,
                 updatedAt: space.updated_at,
                 files: files.map(f => ({
@@ -220,6 +229,10 @@ app.put('/:id',
                 updates.push('expires_at = ?');
                 values.push(data.expiresAt);
             }
+            if (data.coverFileId !== undefined) {
+                updates.push('cover_file_id = ?');
+                values.push(data.coverFileId || null);
+            }
 
             updates.push('updated_at = ?');
             values.push(Date.now());
@@ -340,6 +353,96 @@ app.delete('/:id/files',
         } catch (err) {
             console.error(`${MSG.COMMON.OP_FAILED}:`, err);
             return c.json({ success: false, error: `${MSG.COMMON.OP_FAILED}: ${err.message}` }, 500);
+        }
+    }
+);
+
+/**
+ * GET /api/manage/spaces/:id/subspaces - 获取子空间列表
+ */
+app.get('/:id/subspaces', async (c) => {
+    const { env } = c;
+    const parentId = c.req.param('id');
+
+    try {
+        const { results } = await env.DB.prepare(`
+            SELECT s.*, 
+                (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
+                f.storage_key as cover_storage_key
+            FROM spaces s
+            LEFT JOIN files f ON s.cover_file_id = f.id
+            WHERE s.parent_id = ?
+            ORDER BY s.sort_order ASC, s.updated_at DESC
+        `).bind(parentId).all();
+
+        return c.json({
+            success: true,
+            data: results.map(space => ({
+                id: space.id,
+                name: space.name,
+                description: space.description,
+                isPublic: Boolean(space.is_public),
+                hasPassword: !!space.password,
+                shareToken: space.share_token,
+                shareUrl: getShareUrl(space.share_token, 'space'),
+                fileCount: space.file_count,
+                template: space.template,
+                coverFileId: space.cover_file_id,
+                coverUrl: space.cover_storage_key ? getFileUrl(space.cover_storage_key) : null,
+                createdAt: space.created_at,
+                updatedAt: space.updated_at
+            }))
+        });
+    } catch (err) {
+        console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+        return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
+    }
+});
+
+/**
+ * POST /api/manage/spaces/:id/subspaces - 创建子空间
+ */
+app.post('/:id/subspaces',
+    requirePermission('files:write'),
+    zValidator('json', CreateSpaceSchema),
+    async (c) => {
+        const { env } = c;
+        const parentId = c.req.param('id');
+        const { name, description, isPublic, password, expiresAt, template, templateData } = c.req.valid('json');
+
+        try {
+            // 验证父空间存在
+            const parent = await env.DB.prepare('SELECT id FROM spaces WHERE id = ?').bind(parentId).first();
+            if (!parent) {
+                return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
+            }
+
+            const spaceId = generateId();
+            const shareToken = generateShareToken();
+            const nowMs = Date.now();
+
+            await env.DB.prepare(`
+                INSERT INTO spaces (id, parent_id, name, description, is_public, password, share_token, expires_at, template, template_data, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(spaceId, parentId, name.trim(), description.trim(), isPublic ? 1 : 0, password || null, shareToken, expiresAt || null, template, JSON.stringify(templateData), nowMs, nowMs).run();
+
+            return c.json({
+                success: true,
+                data: {
+                    id: spaceId,
+                    parentId,
+                    name: name.trim(),
+                    description: description.trim(),
+                    isPublic,
+                    shareToken,
+                    shareUrl: getShareUrl(shareToken, 'space'),
+                    template,
+                    createdAt: nowMs
+                }
+            }, 201);
+        } catch (err) {
+            console.error(`${MSG.COMMON.CREATE_FAILED}:`, err);
+            return c.json({ success: false, error: `${MSG.COMMON.CREATE_FAILED}: ${err.message}` }, 500);
         }
     }
 );

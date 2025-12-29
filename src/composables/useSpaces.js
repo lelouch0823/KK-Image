@@ -204,6 +204,53 @@ export function useSpaces() {
         }
     };
 
+    /**
+     * 加载子空间列表
+     */
+    const loadSubspaces = async (parentId) => {
+        try {
+            const response = await fetch(API.SPACE_SUBSPACES(parentId), { credentials: 'include' });
+            const result = await response.json();
+            if (result.success) {
+                return result.data;
+            } else {
+                addToast({ message: result.message || t('spaces.loadFailed'), type: 'error' });
+                return [];
+            }
+        } catch (err) {
+            console.error(t('spaces.loadFailed'), err);
+            addToast({ message: t('spaces.networkError'), type: 'error' });
+            return [];
+        }
+    };
+
+    /**
+     * 创建子空间
+     */
+    const createSubspace = async (parentId, data) => {
+        try {
+            const response = await fetch(API.SPACE_SUBSPACES(parentId), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                addToast({ message: t('spaces.createSuccess'), type: 'success' });
+                return result.data;
+            } else {
+                addToast({ message: result.message || t('spaces.createFailed'), type: 'error' });
+                return null;
+            }
+        } catch (err) {
+            console.error(t('spaces.createFailed'), err);
+            addToast({ message: t('spaces.networkError'), type: 'error' });
+            return null;
+        }
+    };
+
     return {
         spaces,
         currentSpace,
@@ -214,6 +261,8 @@ export function useSpaces() {
         updateSpace,
         deleteSpace,
         addFilesToSpace,
-        removeFilesFromSpace
+        removeFilesFromSpace,
+        loadSubspaces,
+        createSubspace
     };
 }

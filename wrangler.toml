@@ -130,6 +130,10 @@ disable_telemetry = "false"
 ModerateContentApiKey = ""
 SENTRY_DSN = ""
 
+# Cloudflare Turnstile 防滥用验证
+TURNSTILE_SITE_KEY = "0x4AAAAAACJfZho-HoWMjX2s"
+TURNSTILE_SECRET_KEY = "0x4AAAAAACJfZgVVRfDSbOF7Kf9bU1kmmHI"
+
 # 生产环境 KV 命名空间绑定
 [[env.production.kv_namespaces]]
 binding = "img_url"

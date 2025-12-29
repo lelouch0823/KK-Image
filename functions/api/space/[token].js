@@ -103,16 +103,26 @@ export async function onRequestGet(context) {
             });
         });
 
-        // 封面图片
+        // 封面图片 - 优先使用显式设置的封面，否则回退到第一张图片
         const allFiles = Object.values(groupedFiles).flat();
-        const coverFile = allFiles.find(f => f.type === 'image');
+        let coverImage = null;
+        if (space.cover_file_id) {
+            const coverFile = allFiles.find(f => f.id === space.cover_file_id);
+            coverImage = coverFile?.url || null;
+        }
+        if (!coverImage) {
+            // 回退到第一张图片
+            const firstImage = allFiles.find(f => f.type === 'image');
+            coverImage = firstImage?.url || null;
+        }
 
         return success({
             name: space.name,
             description: space.description,
             template: space.template,
             templateData: space.template_data ? JSON.parse(space.template_data) : null,
-            coverImage: coverFile?.url || null,
+            coverImage,
+            coverFileId: space.cover_file_id,
             fileCount: allFiles.length,
             viewCount: space.view_count + 1,
             files: allFiles,

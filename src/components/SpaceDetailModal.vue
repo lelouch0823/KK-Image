@@ -35,7 +35,7 @@
             <button @click="activeTab = 'files'"
               class="px-1 py-3 text-sm font-medium border-b-2 transition-colors duration-200"
               :class="activeTab === 'files' ? 'border-primary text-primary' : 'border-transparent text-secondary hover:text-[var(--text-main)]'">
-              {{ t('spaceManager.tabs.files') }}
+              {{ isCollectionTemplate ? t('spaceManager.tabs.subspaces') : t('spaceManager.tabs.files') }}
             </button>
             <button @click="activeTab = 'settings'"
               class="px-1 py-3 text-sm font-medium border-b-2 transition-colors duration-200"
@@ -50,8 +50,14 @@
           </div>
         </div>
 
-        <!-- CONTENT: FILES -->
-        <div v-show="activeTab === 'files'" class="flex-1 overflow-hidden flex flex-col min-h-0 bg-[var(--bg-muted)]/50">
+        <!-- CONTENT: SUBSPACES (for collection template) -->
+        <SubspaceList v-if="activeTab === 'files' && isCollectionTemplate"
+          :spaceId="props.space.id"
+          @openSubspace="openSubspaceDetail"
+          @updated="onSubspaceUpdated" />
+
+        <!-- CONTENT: FILES (for non-collection templates) -->
+        <div v-else-if="activeTab === 'files'" class="flex-1 overflow-hidden flex flex-col min-h-0 bg-[var(--bg-muted)]/50">
             <div class="p-4 border-b border-[var(--border-color)] flex items-center justify-between bg-white shrink-0">
               <div class="flex items-center gap-3">
                  <Tooltip :content="t('spaceManager.addFile')">
@@ -61,6 +67,11 @@
                  </Tooltip>
                  <span class="text-xs text-secondary">{{ t('fileManager.totalFiles', { count: spaceData?.files?.length || 0 }) }}</span>
               </div>
+              <!-- Cover Indicator (Option C Lite) -->
+              <div v-if="currentCoverFile" class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-lg border border-amber-200">
+                <svg class="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>
+                <span class="text-xs font-medium text-amber-700 max-w-[100px] truncate">{{ currentCoverFile.originalName || currentCoverFile.name }}</span>
+              </div>
             </div>
             
             <div class="flex-1 overflow-y-auto p-4">
@@ -68,10 +79,20 @@
                     <p>{{ t('spaceManager.emptyFiles') }}</p>
                 </div>
                 <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    <div v-for="file in spaceData.files" :key="file.id" class="group relative aspect-square bg-[var(--bg-muted)] rounded-lg overflow-hidden border border-[var(--border-color)]">
+                    <div v-for="file in spaceData.files" :key="file.id" class="group relative aspect-square bg-[var(--bg-muted)] rounded-lg overflow-hidden border border-[var(--border-color)]" :class="{ 'ring-2 ring-amber-400': spaceData.coverFileId === file.id }">
+                        <!-- Cover Badge -->
+                        <div v-if="spaceData.coverFileId === file.id" class="absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-medium rounded shadow-sm flex items-center gap-0.5">
+                          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>
+                          {{ t('spaceManager.cover') }}
+                        </div>
                         <img v-if="file.mimeType?.startsWith('image/')" :src="file.url" class="w-full h-full object-cover">
                         <div v-else class="w-full h-full flex items-center justify-center text-gray-400 font-bold bg-white text-xs uppercase">{{ file.name?.split('.').pop() }}</div>
-                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <!-- Set as Cover Button (only for images) -->
+                            <button v-if="file.mimeType?.startsWith('image/') && spaceData.coverFileId !== file.id" @click.stop="setCover(file.id)" class="p-1.5 bg-amber-500 rounded-full text-white hover:bg-amber-600 transition-colors" :title="t('spaceManager.setCover')">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>
+                            </button>
+                            <!-- Remove Button -->
                             <button @click.stop="removeFile(file.id)" class="p-1.5 bg-[var(--color-danger)] rounded-full text-white hover:bg-red-600 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </button>
@@ -179,6 +200,7 @@ import { formatSize } from '@/utils/formatters';
 import FileSelector from '@/components/FileSelector.vue';
 import SpaceAnalytics from './SpaceAnalytics.vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
+import SubspaceList from '@/components/SubspaceList.vue';
 
 const props = defineProps({
   space: { type: Object, required: true }
@@ -214,6 +236,34 @@ const shareUrl = computed(() => {
   if (!spaceData.value?.shareToken) return '';
   return `${window.location.origin}/space/${spaceData.value.shareToken}`;
 });
+
+// 判断是否为 Collection 模板
+const isCollectionTemplate = computed(() => spaceData.value?.template === 'collection');
+
+// 打开子空间详情 (用于 SubspaceList 组件)
+const openSubspaceDetail = (subspace) => {
+  // TODO: 可以打开子空间的详细弹窗或跳转
+  window.open(`/space/${subspace.shareToken}`, '_blank');
+};
+
+// 子空间更新回调
+const onSubspaceUpdated = () => {
+  emit('updated');
+};
+
+// 当前封面文件 (Option C Lite indicator)
+const currentCoverFile = computed(() => {
+  if (!spaceData.value?.coverFileId || !spaceData.value?.files) return null;
+  return spaceData.value.files.find(f => f.id === spaceData.value.coverFileId);
+});
+
+// 设置封面
+const setCover = async (fileId) => {
+  await updateSpace(props.space.id, { coverFileId: fileId });
+  await loadData();
+  addToast({ message: t('spaceManager.coverSet'), type: 'success' });
+  emit('updated');
+};
 
 const loadData = async () => {
   const data = await loadSpace(props.space.id);

@@ -9,6 +9,11 @@
         </div>
     </div>
 
+    <!-- Turnstile 验证 -->
+    <SpaceTurnstile v-else-if="requiresTurnstile && !turnstileVerified"
+      :siteKey="turnstileSiteKey"
+      :onVerified="handleTurnstileVerified" />
+
     <!-- 密码验证 -->
     <SpacePassword v-else-if="requiresPassword" 
       :error="passwordError" 
@@ -49,6 +54,7 @@ import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
 import SpacePassword from '@/components/space/SpacePassword.vue';
+import SpaceTurnstile from '@/components/space/SpaceTurnstile.vue';
 import { API } from '@/utils/constants';
 
 // 懒加载不同模版组件
@@ -66,6 +72,9 @@ const error = ref('');
 const space = ref(null);
 const requiresPassword = ref(false);
 const passwordError = ref('');
+const requiresTurnstile = ref(false);
+const turnstileVerified = ref(false);
+const turnstileSiteKey = ref(''); // 从 API 获取
 
 const spaceComponent = computed(() => {
     switch (space.value?.template) {
@@ -125,7 +134,44 @@ const submitPassword = async (pwd) => {
     }
 };
 
-onMounted(() => {
-    loadSpace();
+// Turnstile 验证回调
+const handleTurnstileVerified = async (token) => {
+    // 后端验证 token
+    const response = await fetch('/api/turnstile/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+    });
+    const result = await response.json();
+    
+    if (!result.success) {
+        throw new Error(result.error || result.message || t('spacePublic.verifyFailed'));
+    }
+    
+    turnstileVerified.value = true;
+    // 验证通过后加载空间
+    loading.value = true;
+    await loadSpace();
+};
+
+// 初始化：检查 Turnstile 配置
+onMounted(async () => {
+    try {
+        // 从 API 获取 Turnstile 配置
+        const configRes = await fetch('/api/turnstile/verify');
+        const config = await configRes.json();
+        
+        if (config.success && config.data?.enabled) {
+            requiresTurnstile.value = true;
+            turnstileSiteKey.value = config.data.siteKey;
+            loading.value = false; // 让 Turnstile 组件显示
+        } else {
+            // Turnstile 未配置，直接加载空间
+            await loadSpace();
+        }
+    } catch {
+        // 配置获取失败，直接加载空间
+        await loadSpace();
+    }
 });
 </script>

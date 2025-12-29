@@ -55,7 +55,7 @@
           </div>
 
           <!-- Cloudflare Turnstile Widget -->
-          <div class="mb-6">
+          <div v-if="turnstileEnabled" class="mb-6">
             <div 
               ref="turnstileContainer"
               class="cf-turnstile" 
@@ -66,7 +66,7 @@
           </div>
 
           <!-- 登录按钮 -->
-          <button type="submit" :disabled="loading || !turnstileToken"
+          <button type="submit" :disabled="loading || (turnstileEnabled && !turnstileToken)"
             class="w-full h-12 bg-gray-900 hover:bg-black text-white font-medium rounded-xl flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-lg shadow-gray-900/20 hover:shadow-gray-900/30 hover:-translate-y-px active:translate-y-0">
             <svg v-if="loading" class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -113,10 +113,8 @@ const loading = ref(false);
 const error = ref('');
 const turnstileToken = ref('');
 const turnstileContainer = ref(null);
-
-// Turnstile Site Key (从环境变量注入或使用默认测试Key)
-// 生产环境请在 Cloudflare Dashboard 设置
-const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'; // 测试Key (始终通过)
+const turnstileEnabled = ref(false);
+const turnstileSiteKey = ref('');
 
 // Turnstile 回调 (挂载到 window 供 widget 调用)
 if (typeof window !== 'undefined') {
@@ -125,12 +123,26 @@ if (typeof window !== 'undefined') {
   };
 }
 
-// 检查是否已登录
+// 检查是否已登录 + 加载 Turnstile 配置
 onBeforeMount(async () => {
+    // 检查登录状态
     const isAuth = await checkAuth();
     if (isAuth) {
-        // 已登录，重定向到后台以避免重复登录
-         window.location.href = '/admin';
+        window.location.href = '/admin';
+        return;
+    }
+    
+    // 从 API 获取 Turnstile 配置
+    try {
+        const configRes = await fetch('/api/turnstile/verify');
+        const config = await configRes.json();
+        if (config.success && config.data?.enabled) {
+            turnstileEnabled.value = true;
+            turnstileSiteKey.value = config.data.siteKey;
+        }
+    } catch {
+        // Turnstile 配置获取失败，跳过验证
+        console.warn('Failed to load Turnstile config');
     }
 });
 

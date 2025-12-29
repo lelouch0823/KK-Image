@@ -97,7 +97,6 @@
               </div>
           </div>
       </div>
-      </div>
 
       <!-- SOTA Mobile Sticky Bottom Bar -->
       <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden z-50 flex items-center gap-3">
@@ -140,7 +139,16 @@ const { t } = useI18n();
 const { downloading, downloadProgress, downloadAll } = useBatchDownload();
 
 const templateData = computed(() => props.space.templateData || {});
-const currentIndex = ref(0);
+
+// 初始化索引：优先定位到封面图，否则默认第一张
+const getCoverIndex = () => {
+    if (props.space.coverFileId && props.space.files) {
+        const idx = props.space.files.findIndex(f => f.id === props.space.coverFileId);
+        return idx >= 0 ? idx : 0;
+    }
+    return 0;
+};
+const currentIndex = ref(getCoverIndex());
 
 const hasMultipleFiles = computed(() => props.space.files && props.space.files.length > 1);
 const currentFile = computed(() => {

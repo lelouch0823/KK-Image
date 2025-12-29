@@ -33,6 +33,7 @@ export const API = {
     SPACE_BY_ID: (id) => `${API_PREFIX}/spaces/${id}`,
     SPACE_FILES: (id) => `${API_PREFIX}/spaces/${id}/files`,
     SPACE_STATS: (id) => `${API_PREFIX}/spaces/${id}/stats`,
+    SPACE_SUBSPACES: (id) => `${API_PREFIX}/spaces/${id}/subspaces`,
 
     // 公开访问
     PUBLIC_GALLERY: (token) => `/api/gallery/${token}`,
