@@ -458,7 +458,9 @@ export default {
             uploadImages: '上传实物图',
             uploadHint: '支持多图上传，建议上传清晰的实物照片',
             submit: '提交预定',
-            submitting: '提交中...'
+            submitting: '提交中...',
+            deadline: '截止时间',
+            deadlinePlaceholder: '选择期望到货日期'
         },
 
         // 销售端

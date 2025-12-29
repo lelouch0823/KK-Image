@@ -184,7 +184,7 @@ export async function onRequestPost(context) {
         const salesperson = await authenticateSalesperson(request, env, accessToken);
         const body = await request.json();
 
-        const { name, size, color, material, remark, fileIds = [] } = body;
+        const { name, size, color, material, remark, deadline, fileIds = [] } = body;
 
         if (!name) {
             return error(MSG.COMMON.INVALID_PARAMS + ': 商品名称不能为空', 400);
@@ -200,7 +200,8 @@ export async function onRequestPost(context) {
             size: size || '',
             color: color || '',
             material: material || '',
-            remark: remark || ''
+            remark: remark || '',
+            deadline: deadline || ''
         });
 
         // 确定主图

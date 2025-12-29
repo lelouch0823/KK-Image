@@ -125,6 +125,18 @@
             class="w-full px-4 py-3 text-sm border border-[var(--border-color)] rounded-lg focus:border-primary focus:outline-none resize-none transition-colors"
           ></textarea>
         </div>
+
+        <!-- 截止时间 -->
+        <div>
+          <label class="block text-sm font-medium text-primary mb-2">
+            {{ t('order.form.deadline') }}
+          </label>
+          <input 
+            v-model="form.deadline"
+            type="date"
+            class="w-full h-11 px-4 text-sm border border-[var(--border-color)] rounded-lg focus:border-primary focus:outline-none transition-colors"
+          >
+        </div>
       </div>
 
       <!-- 操作按钮 -->
@@ -138,7 +150,7 @@
         </button>
         <button 
           type="submit"
-          :disabled="!form.name || isSubmitting"
+          :disabled="!form.name || uploadedFiles.length === 0 || isSubmitting"
           class="flex-1 h-12 bg-primary text-white font-medium rounded-xl hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
           <svg v-if="isSubmitting" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,7 +179,8 @@ const form = reactive({
   size: '',
   color: '',
   material: '',
-  remark: ''
+  remark: '',
+  deadline: ''
 });
 
 const uploadedFiles = ref([]);
@@ -211,7 +224,12 @@ const uploadFile = async (file) => {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch('/api/manage/folders/root/upload', {
+  // 从 URL 获取访问令牌
+  const path = window.location.pathname;
+  const match = path.match(/\/sales\/([^\/]+)/);
+  const accessToken = match ? match[1] : '';
+
+  const response = await fetch(`/api/sales/${accessToken}/upload`, {
     method: 'POST',
     body: formData,
     credentials: 'include'
@@ -242,7 +260,8 @@ const handleFileSelect = async (e) => {
       const uploaded = await uploadFile(compressedFile);
       uploadedFiles.value.push({
         id: uploaded.id,
-        url: `/file/${uploaded.storageKey}`
+        id: uploaded.id,
+        url: `/file/${uploaded.storage_key || uploaded.storageKey}`
       });
     } catch (err) {
       addToast({ message: t('uploadQueue.uploadFailed'), type: 'error' });
@@ -260,7 +279,7 @@ const removeFile = (index) => {
 
 // 提交表单
 const handleSubmit = async () => {
-  if (!form.name || isSubmitting.value) return;
+  if (!form.name || uploadedFiles.value.length === 0 || isSubmitting.value) return;
 
   isSubmitting.value = true;
   try {
