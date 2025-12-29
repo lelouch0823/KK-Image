@@ -25,6 +25,8 @@ import manageSpacesRoutes from './routes/manage/spaces.js';
 import manageStatsRoutes from './routes/manage/stats.js';
 import manageUsersRoutes from './routes/manage/user.js';
 import manageSharesRoutes from './routes/manage/shares.js';
+import manageSalespersonsRoutes from './routes/manage/salespersons.js';
+import manageOrdersRoutes from './routes/manage/orders.js';
 
 export const app = new Hono();
 
@@ -84,6 +86,8 @@ app.route('/api/manage/spaces', manageSpacesRoutes);
 app.route('/api/manage/stats', manageStatsRoutes);
 app.route('/api/manage/user', manageUsersRoutes);
 app.route('/api/manage/shares', manageSharesRoutes);
+app.route('/api/manage/salespersons', manageSalespersonsRoutes);
+app.route('/api/manage/orders', manageOrdersRoutes);
 
 // ============================================
 // 通用处理

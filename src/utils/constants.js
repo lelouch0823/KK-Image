@@ -66,6 +66,7 @@ export const API = {
     // 管理端订单 API
     MANAGE_ORDERS: `${API_PREFIX}/orders`,
     MANAGE_ORDER_BY_ID: (id) => `${API_PREFIX}/orders/${id}`,
+    MANAGE_ORDER_UPDATE: (id) => `${API_PREFIX}/orders/${id}/update`,
     MANAGE_ORDER_STATUS: (id) => `${API_PREFIX}/orders/${id}/status`,
     MANAGE_ORDER_COMMENT: (id) => `${API_PREFIX}/orders/${id}/comment`
 };

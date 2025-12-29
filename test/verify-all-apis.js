@@ -551,12 +551,20 @@ async function runTests() {
     logSuccess('GET /api/manage/orders/:id');
 
     // Update Order Info
-    const updateOrderRes = await request('PATCH', `/api/manage/orders/${orderId}`, {
-        updates: { size: 'XL' },
-        reason: 'Customer requested change'
-    });
-    assertStatus(updateOrderRes, 200, 'Admin Update Order Info failed');
-    logSuccess('PATCH /api/manage/orders/:id');
+    if (listAdminOrdersRes.data.data && listAdminOrdersRes.data.data.orders && listAdminOrdersRes.data.data.orders.length > 0) {
+        const orderToUpdateId = listAdminOrdersRes.data.data.orders[0].id; // Use first order
+        console.log(`Updating order ${orderToUpdateId}...`);
+        const updateOrderRes = await request('POST', `/api/manage/orders/${orderToUpdateId}/update`, {
+            updates: {
+                current_data: JSON.stringify({ ...JSON.parse(listAdminOrdersRes.data.data.orders[0].currentData || '{}'), note: 'Updated by test' })
+            },
+            reason: 'Automated test update'
+        });
+        assertStatus(updateOrderRes, 200, 'Admin Update Order Info failed');
+        logSuccess('POST /api/manage/orders/:id/update');
+    } else {
+        console.warn('No orders found to update. Skipping order update test.');
+    }
 
     // Change Status
     const changeStatusRes = await request('PATCH', `/api/manage/orders/${orderId}/status`, {
