@@ -58,8 +58,8 @@ export async function onRequestPost(context) {
 
         // 设置 Cookie
         const cookieOptions = [
-            `order_token=${jwt}`,
-            `Path=/api/order/${accessToken}`,
+            `sales_token=${jwt}`,
+            `Path=/api/sales/${accessToken}`,
             `Max-Age=${TOKEN_EXPIRY}`,
             'HttpOnly',
             'SameSite=Lax'
@@ -94,7 +94,7 @@ export async function onRequestGet(context) {
         // 从 Cookie 获取 JWT
         const cookieHeader = request.headers.get('Cookie') || '';
         const cookies = parseCookie(cookieHeader);
-        const jwt = cookies.order_token;
+        const jwt = cookies.sales_token;
 
         if (!jwt) {
             return error(MSG.AUTH.REQUIRED, 401);

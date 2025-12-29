@@ -34,7 +34,7 @@ export default defineConfig({
         'login': resolve(__dirname, 'src/pages/login.html'),
         'gallery': resolve(__dirname, 'src/pages/gallery.html'),
         'space': resolve(__dirname, 'src/pages/space.html'),
-        'order': resolve(__dirname, 'src/pages/order.html')
+        'sales': resolve(__dirname, 'src/pages/sales-portal.html')
       },
       output: {
         // 代码分割配置

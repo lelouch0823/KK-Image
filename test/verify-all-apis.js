@@ -490,20 +490,20 @@ async function runTests() {
         return { status: res.status, data, res };
     };
 
-    const salesLoginRes = await salesRequest('POST', `/api/order/${salespersonToken}/auth`, {
+    const salesLoginRes = await salesRequest('POST', `/api/sales/${salespersonToken}/auth`, {
         password: 'password123'
     });
     assertStatus(salesLoginRes, 200, 'Salesperson Login failed');
     salesCookie = salesLoginRes.res.headers.get('set-cookie').split(';')[0];
-    logSuccess('POST /api/order/:token/auth');
+    logSuccess('POST /api/sales/:token/auth');
 
     // Verify Sales Auth
-    const salesCheckRes = await salesRequest('GET', `/api/order/${salespersonToken}/auth`);
+    const salesCheckRes = await salesRequest('GET', `/api/sales/${salespersonToken}/auth`);
     assertStatus(salesCheckRes, 200, 'Salesperson Auth Check failed');
-    logSuccess('GET /api/order/:token/auth');
+    logSuccess('GET /api/sales/:token/auth');
 
     // Create Order
-    const createOrderRes = await salesRequest('POST', `/api/order/${salespersonToken}/orders`, {
+    const createOrderRes = await salesRequest('POST', `/api/sales/${salespersonToken}/orders`, {
         name: 'Test Product',
         size: 'L',
         color: 'Black',
@@ -513,29 +513,29 @@ async function runTests() {
     });
     assertStatus(createOrderRes, 201, 'Create Order failed');
     orderId = createOrderRes.data.data.id;
-    logSuccess('POST /api/order/:token/orders');
+    logSuccess('POST /api/sales/:token/orders');
 
     // List Orders (Sales)
-    const listSalesOrdersRes = await salesRequest('GET', `/api/order/${salespersonToken}/orders`);
+    const listSalesOrdersRes = await salesRequest('GET', `/api/sales/${salespersonToken}/orders`);
     assertStatus(listSalesOrdersRes, 200, 'List Sales Orders failed');
-    logSuccess('GET /api/order/:token/orders');
+    logSuccess('GET /api/sales/:token/orders');
 
     // Get Order Detail (Sales)
-    const getSalesOrderRes = await salesRequest('GET', `/api/order/${salespersonToken}/orders/${orderId}`);
+    const getSalesOrderRes = await salesRequest('GET', `/api/sales/${salespersonToken}/orders/${orderId}`);
     assertStatus(getSalesOrderRes, 200, 'Get Sales Order Detail failed');
-    logSuccess('GET /api/order/:token/orders/:id');
+    logSuccess('GET /api/sales/:token/orders/:id');
 
     // Sales Comment
-    const salesCommentRes = await salesRequest('POST', `/api/order/${salespersonToken}/orders/${orderId}/comment`, {
+    const salesCommentRes = await salesRequest('POST', `/api/sales/${salespersonToken}/orders/${orderId}/comment`, {
         comment: 'Customer asking for update'
     });
     assertStatus(salesCommentRes, 200, 'Sales Add Comment failed');
-    logSuccess('POST /api/order/:token/orders/:id/comment');
+    logSuccess('POST /api/sales/:token/orders/:id/comment');
 
     // Read Notification
-    const readOrderRes = await salesRequest('PATCH', `/api/order/${salespersonToken}/orders/${orderId}/read`);
+    const readOrderRes = await salesRequest('PATCH', `/api/sales/${salespersonToken}/orders/${orderId}/read`);
     assertStatus(readOrderRes, 200, 'Sales Mark Read failed');
-    logSuccess('PATCH /api/order/:token/orders/:id/read');
+    logSuccess('PATCH /api/sales/:token/orders/:id/read');
 
     // ==================== Phase 14: Order Management (Admin Side) ====================
     logPhase('Phase 14: Order Management (Admin Side)');

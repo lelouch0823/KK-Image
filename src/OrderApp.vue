@@ -118,7 +118,7 @@ const selectedOrder = ref(null);
 // 从 URL 获取访问令牌
 const getAccessToken = () => {
   const path = window.location.pathname;
-  const match = path.match(/\/order\/([^\/]+)/);
+  const match = path.match(/\/sales\/([^\/]+)/);
   return match ? match[1] : null;
 };
 
@@ -132,7 +132,7 @@ const checkAuth = async () => {
   }
 
   try {
-    const res = await fetch(API.ORDER_AUTH(accessToken), {
+    const res = await fetch(API.SALES_AUTH(accessToken), {
       credentials: 'include'
     });
     const result = await res.json();
@@ -154,7 +154,7 @@ const handleLogin = async (password, rememberMe) => {
   loginError.value = '';
   
   try {
-    const res = await fetch(API.ORDER_AUTH(accessToken), {
+    const res = await fetch(API.SALES_AUTH(accessToken), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -180,7 +180,7 @@ const loadOrders = async () => {
   
   ordersLoading.value = true;
   try {
-    const res = await fetch(API.ORDER_LIST(accessToken), {
+    const res = await fetch(API.SALES_ORDER_LIST(accessToken), {
       credentials: 'include'
     });
     const result = await res.json();
@@ -200,7 +200,7 @@ const loadOrders = async () => {
 // 查看订单详情
 const viewOrder = async (order) => {
   try {
-    const res = await fetch(API.ORDER_DETAIL(accessToken, order.id), {
+    const res = await fetch(API.SALES_ORDER_DETAIL(accessToken, order.id), {
       credentials: 'include'
     });
     const result = await res.json();
@@ -211,7 +211,7 @@ const viewOrder = async (order) => {
       
       // 清除红点
       if (result.data.hasNewFeedback) {
-        await fetch(API.ORDER_READ(accessToken, order.id), {
+        await fetch(API.SALES_ORDER_READ(accessToken, order.id), {
           method: 'PATCH',
           credentials: 'include'
         });
@@ -232,7 +232,7 @@ const viewOrder = async (order) => {
 // 提交订单
 const handleSubmitOrder = async (formData) => {
   try {
-    const res = await fetch(API.ORDER_CREATE(accessToken), {
+    const res = await fetch(API.SALES_ORDER_CREATE(accessToken), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -263,7 +263,7 @@ const handleComment = async (comment) => {
   if (!selectedOrder.value) return;
 
   try {
-    const res = await fetch(API.ORDER_COMMENT(accessToken, selectedOrder.value.id), {
+    const res = await fetch(API.SALES_ORDER_COMMENT(accessToken, selectedOrder.value.id), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',

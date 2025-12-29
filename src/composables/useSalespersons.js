@@ -148,7 +148,7 @@ export function useSalespersons() {
      */
     const copyAccessLink = async (accessToken) => {
         try {
-            const url = `${window.location.origin}/order/${accessToken}`;
+            const url = `${window.location.origin}/sales/${accessToken}`;
             await navigator.clipboard.writeText(url);
             addToast({ message: t('salesperson.linkCopied'), type: 'success' });
             return true;

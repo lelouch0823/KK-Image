@@ -51,12 +51,12 @@ export const API = {
     USER: '/api/v1/auth/me',
 
     // 销售端订单 API (公开，Token 鉴权)
-    ORDER_AUTH: (token) => `/api/order/${token}/auth`,
-    ORDER_LIST: (token) => `/api/order/${token}/orders`,
-    ORDER_CREATE: (token) => `/api/order/${token}/orders`,
-    ORDER_DETAIL: (token, id) => `/api/order/${token}/orders/${id}`,
-    ORDER_COMMENT: (token, id) => `/api/order/${token}/orders/${id}/comment`,
-    ORDER_READ: (token, id) => `/api/order/${token}/orders/${id}/read`,
+    SALES_AUTH: (token) => `/api/sales/${token}/auth`,
+    SALES_ORDER_LIST: (token) => `/api/sales/${token}/orders`,
+    SALES_ORDER_CREATE: (token) => `/api/sales/${token}/orders`,
+    SALES_ORDER_DETAIL: (token, id) => `/api/sales/${token}/orders/${id}`,
+    SALES_ORDER_COMMENT: (token, id) => `/api/sales/${token}/orders/${id}/comment`,
+    SALES_ORDER_READ: (token, id) => `/api/sales/${token}/orders/${id}/read`,
 
     // 管理端销售人员 API
     SALESPERSONS: `${API_PREFIX}/salespersons`,
@@ -76,7 +76,7 @@ export const ROUTES = {
     GALLERY: (token) => `/gallery/${token}`,
     SPACE: (token) => `/space/${token}`,
     FILE: (id) => `/file/${id}`,
-    ORDER_PORTAL: (token) => `/order/${token}`
+    SALES_PORTAL: (token) => `/sales/${token}`
 };
 
 // 分页默认值
