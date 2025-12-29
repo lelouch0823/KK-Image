@@ -3,8 +3,8 @@
  * POST /api/manage/upload - 上传图片
  */
 
-import { success, error } from '../../utils/response.js';
-import { generateId, now } from '../../utils/id.js';
+import { success, error } from '../utils/response.js';
+import { generateId, now } from '../utils/id.js';
 
 /**
  * POST - 上传文件

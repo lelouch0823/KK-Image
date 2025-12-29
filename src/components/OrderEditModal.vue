@@ -124,6 +124,10 @@
                   <span class="text-gray-400 text-xs block mb-1">{{ t('order.form.remark') }}:</span>
                   <p class="whitespace-pre-wrap">{{ originalData.remark || '-' }}</p>
                 </div>
+                 <div class="flex justify-between">
+                  <span class="text-gray-400 text-xs">{{ t('order.form.deadline') }}:</span>
+                  <span>{{ originalData.deadline || '-' }}</span>
+                </div>
               </div>
             </div>
 
@@ -211,7 +215,8 @@ const form = reactive({
   size: '',
   color: '',
   material: '',
-  remark: ''
+  remark: '',
+  deadline: ''
 });
 
 // 初始化数据
@@ -225,6 +230,7 @@ watch(() => props.order, (newOrder) => {
     form.color = current.color || '';
     form.material = current.material || '';
     form.remark = current.remark || '';
+    form.deadline = current.deadline || '';
     
     // 初始化文件
     uploadedFiles.value = (newOrder.files || []).map(f => ({
@@ -249,7 +255,8 @@ const hasChanges = computed(() => {
     form.size !== (currentData.value.size || '') ||
     form.color !== (currentData.value.color || '') ||
     form.material !== (currentData.value.material || '') ||
-    form.remark !== (currentData.value.remark || '')
+    form.remark !== (currentData.value.remark || '') ||
+    form.deadline !== (currentData.value.deadline || '')
   );
 
   if (fieldsChanged) return true;
@@ -289,6 +296,7 @@ const handleSubmit = () => {
   if (form.color !== currentData.value.color) updates.color = form.color;
   if (form.material !== currentData.value.material) updates.material = form.material;
   if (form.remark !== currentData.value.remark) updates.remark = form.remark;
+  if (form.deadline !== currentData.value.deadline) updates.deadline = form.deadline;
 
   // 处理文件变更
   const oldIds = (props.order.files || []).map(f => f.id).sort().join(',');

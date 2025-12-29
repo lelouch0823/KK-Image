@@ -236,6 +236,31 @@ const showCorrectionModal = ref(false);
 const showEditModal = ref(false);
 const submitting = ref(false);
 
+const salesToken = computed(() => {
+  if (props.mode !== 'sales') return null;
+  const match = window.location.pathname.match(/\/sales\/([^\/]+)/);
+  return match ? match[1] : null;
+});
+
+// 清除红点
+const markAsRead = async () => {
+  if (props.mode !== 'sales' || !props.order.hasNewFeedback || !salesToken.value) return;
+  
+  try {
+    await fetch(API.SALES_ORDER_READ(salesToken.value, props.order.id), {
+      method: 'PATCH',
+      credentials: 'include'
+    });
+    // 本地更新状态
+    props.order.hasNewFeedback = false;
+  } catch (e) {
+    console.error('Failed to mark read', e);
+  }
+};
+
+// 初始化
+markAsRead();
+
 // 当前数据
 const currentData = computed(() => props.order.currentData || {});
 const originalData = computed(() => props.order.originalData || {});
@@ -279,12 +304,7 @@ const formatTime = (timestamp) => {
   return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
 };
 
-// 销售 Token
-const salesToken = computed(() => {
-  if (props.mode !== 'sales') return null;
-  const match = window.location.pathname.match(/\/sales\/([^\/]+)/);
-  return match ? match[1] : null;
-});
+
 
 // 发送留言
 const sendComment = () => {

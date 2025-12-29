@@ -242,6 +242,22 @@ export async function onRequestPatch(context) {
 
                     // 更新主图 (第一张)
                     await env.DB.prepare('UPDATE orders SET main_image_id = ? WHERE id = ?').bind(newFileIds[0], id).run();
+
+                    // SOTA: 自动归档 (Admin)
+                    try {
+                        // 获取销售人员信息用于归档
+                        const sp = await env.DB.prepare('SELECT s.name, o.order_no FROM orders o JOIN salespersons s ON o.salesperson_id = s.id WHERE o.id = ?').bind(id).first();
+
+                        if (sp) {
+                            const { ensureFolder, moveFilesToFolder } = await import('../../utils/folder-utils.js');
+                            const rootId = await ensureFolder(env, 'Sales Uploads', 'root');
+                            const spId = await ensureFolder(env, sp.name, rootId);
+                            const folderId = await ensureFolder(env, sp.order_no || id, spId);
+                            await moveFilesToFolder(env, newFileIds, folderId);
+                        }
+                    } catch (e) {
+                        console.error('Admin Archive error', e);
+                    }
                 } else {
                     // 清空主图
                     await env.DB.prepare('UPDATE orders SET main_image_id = NULL WHERE id = ?').bind(id).run();
