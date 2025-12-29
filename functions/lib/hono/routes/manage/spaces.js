@@ -127,20 +127,43 @@ app.get('/:id/stats', async (c) => {
     const spaceId = c.req.param('id');
 
     try {
-        const stats = await env.DB.prepare(`
-      SELECT 
-        COUNT(*) as file_count,
-        COALESCE(SUM(f.size), 0) as total_size
-      FROM files f
-      JOIN space_files sf ON f.id = sf.file_id
-      WHERE sf.space_id = ?
-    `).bind(spaceId).first();
+        // 获取空间基本统计 (view_count 存储在 spaces 表)
+        const space = await env.DB.prepare(`
+            SELECT view_count, download_count FROM spaces WHERE id = ?
+        `).bind(spaceId).first();
+
+        // 获取文件统计
+        const fileStats = await env.DB.prepare(`
+            SELECT 
+                COUNT(*) as file_count,
+                COALESCE(SUM(f.size), 0) as total_size
+            FROM files f
+            JOIN space_files sf ON f.id = sf.file_id
+            WHERE sf.space_id = ?
+        `).bind(spaceId).first();
+
+        // 生成最近7天趋势数据 (从 space_access_logs 表，如果没有则模拟)
+        // 注意：如果没有 space_access_logs 表，这里生成模拟数据
+        const trend = [];
+        const today = new Date();
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toISOString().slice(0, 10);
+            // 目前返回0，后续可接入真实访问日志
+            trend.push({ date: dateStr, count: 0 });
+        }
 
         return c.json({
             success: true,
             data: {
-                fileCount: stats?.file_count || 0,
-                totalSize: stats?.total_size || 0
+                total: {
+                    view_count: space?.view_count || 0,
+                    download_count: space?.download_count || 0
+                },
+                fileCount: fileStats?.file_count || 0,
+                totalSize: fileStats?.total_size || 0,
+                trend
             }
         });
     } catch (err) {

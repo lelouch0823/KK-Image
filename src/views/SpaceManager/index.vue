@@ -129,7 +129,8 @@
       :space="selectedSpace" @close="selectedSpace = null" @updated="loadSpaces" />
       
     <SpaceDetailModal v-else-if="selectedSpace" 
-      :space="selectedSpace" @close="selectedSpace = null" @updated="loadSpaces" />
+      :space="selectedSpace" @close="selectedSpace = null" @updated="loadSpaces" 
+      @openSubspace="onOpenSubspace" />
   </div>
 </template>
 
@@ -179,6 +180,12 @@ const deleteSpaceConfirm = async (space) => {
 const onSpaceCreated = () => {
   showCreateModal.value = false;
   loadSpaces();
+};
+
+// 打开子空间编辑器
+const onOpenSubspace = (subspace) => {
+  // 切换到子空间的编辑器
+  selectedSpace.value = subspace;
 };
 
 onMounted(() => {

@@ -206,7 +206,7 @@ const props = defineProps({
   space: { type: Object, required: true }
 });
 
-const emit = defineEmits(['close', 'updated']);
+const emit = defineEmits(['close', 'updated', 'openSubspace']);
 
 const { loadSpace, updateSpace, addFilesToSpace, removeFilesFromSpace } = useSpaces();
 const { addToast } = useToast();
@@ -242,8 +242,8 @@ const isCollectionTemplate = computed(() => spaceData.value?.template === 'colle
 
 // 打开子空间详情 (用于 SubspaceList 组件)
 const openSubspaceDetail = (subspace) => {
-  // TODO: 可以打开子空间的详细弹窗或跳转
-  window.open(`/space/${subspace.shareToken}`, '_blank');
+  // 将子空间传递给父组件处理，由父组件打开对应的编辑器
+  emit('openSubspace', subspace);
 };
 
 // 子空间更新回调

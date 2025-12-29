@@ -47,6 +47,13 @@
           </div>
 
           <div>
+            <label class="block text-sm font-medium text-primary mb-1">SKU</label>
+            <input v-model="form.templateData.sku" type="text" 
+              placeholder="商品编码 (选填)"
+              class="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:border-primary outline-none">
+          </div>
+
+          <div>
             <label class="block text-sm font-medium text-primary mb-1">{{ t('spaceManager.descLabel') }}</label>
             <textarea v-model="form.description" rows="4" 
               class="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:border-primary outline-none resize-none"></textarea>
@@ -116,9 +123,17 @@
           </div>
         </div>
 
-        <div class="px-6 py-4 border-t border-[var(--border-color)]">
+        <div class="px-6 py-4 border-t border-[var(--border-color)] flex gap-3">
+          <button @click="openPreview" 
+            class="px-4 py-2 border border-[var(--border-color)] text-secondary hover:text-primary rounded-lg transition-colors flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            {{ t('spaceManager.preview') }}
+          </button>
           <button @click="saveChanges" :disabled="saving"
-            class="w-full py-2 bg-primary text-white rounded-lg hover:bg-[var(--color-primary-hover)] transition-colors disabled:opacity-50">
+            class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-[var(--color-primary-hover)] transition-colors disabled:opacity-50">
             {{ saving ? t('spaceManager.saving') : t('spaceManager.save') }}
           </button>
         </div>
@@ -248,7 +263,8 @@ const form = ref({
     brand: '',
     series: '',
     price: '',
-    material: ''
+    material: '',
+    sku: ''
   }
 });
 
@@ -296,6 +312,14 @@ const copyLink = async () => {
     addToast({ message: t('share.linkCopied'), type: 'success' });
   } catch {
     addToast({ message: t('common.copyFailed'), type: 'error' });
+  }
+};
+
+const openPreview = () => {
+  if (props.space.shareToken) {
+    window.open(`/space/${props.space.shareToken}`, '_blank');
+  } else {
+    addToast({ message: t('spaceManager.saveFirst'), type: 'warning' });
   }
 };
 

@@ -91,8 +91,8 @@
       </div>
     </div>
 
-    <!-- Create Subspace Modal -->
-    <SubspaceCreateModal v-if="showCreateModal" 
+    <!-- Create Subspace Modal (reuse SpaceCreateModal with parentId) -->
+    <SpaceCreateModal v-if="showCreateModal" 
       :parentId="spaceId" 
       @close="showCreateModal = false" 
       @created="onSubspaceCreated" />
@@ -105,7 +105,7 @@ import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import Tooltip from '@/components/ui/Tooltip.vue';
-import SubspaceCreateModal from './SubspaceCreateModal.vue';
+import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
 
 const props = defineProps({
   spaceId: { type: String, required: true }

@@ -1,10 +1,27 @@
 /**
  * 公开空间访问 API
  * GET /api/space/:token - 获取公开空间 information
+ * 支持管理员预览模式 (携带有效 JWT 时可访问未公开空间)
  */
 
 import { success, error } from '../utils/response.js';
 import { MSG } from '../utils/messages.js';
+import { verifyJWT } from '../utils/auth.js';
+import { parse as parseCookie } from 'cookie';
+
+// 检查是否为已认证管理员
+async function isAuthenticated(request, env) {
+    try {
+        const cookieHeader = request.headers.get('Cookie') || '';
+        const cookies = parseCookie(cookieHeader);
+        const token = cookies.auth_token;
+        if (!token) return false;
+        await verifyJWT(token, env);
+        return true;
+    } catch {
+        return false;
+    }
+}
 
 export async function onRequestGet(context) {
     const { env, params, request } = context;
@@ -20,8 +37,9 @@ export async function onRequestGet(context) {
             return error(MSG.SPACE.NOT_FOUND, 404);
         }
 
-        // 检查是否公开
-        if (!space.is_public) {
+        // 检查是否公开 (管理员可预览未公开空间)
+        const isAdmin = await isAuthenticated(request, env);
+        if (!space.is_public && !isAdmin) {
             return error(MSG.SPACE.PRIVATE, 403);
         }
 

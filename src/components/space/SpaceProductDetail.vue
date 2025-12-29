@@ -53,6 +53,7 @@
                   </div>
                   <h1 class="text-3xl font-bold text-gray-900 leading-tight">{{ space.name }}</h1>
                   <p v-if="templateData.series" class="text-lg text-secondary mt-1">{{ templateData.series }}</p>
+                  <p v-if="templateData.sku" class="text-xs text-gray-400 mt-2 font-mono">SKU: {{ templateData.sku }}</p>
               </div>
 
               <div v-if="templateData.price" class="flex items-baseline gap-1">

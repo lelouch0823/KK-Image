@@ -50,15 +50,35 @@ export async function onRequestPost(context) {
 /**
  * GET /api/turnstile/verify - 获取 Turnstile 配置
  * 用于前端获取 Site Key，避免硬编码
+ * 已登录管理员自动跳过 Turnstile
  */
 export async function onRequestGet(context) {
-    const { env } = context;
+    const { env, request } = context;
+
+    // 检查是否为已认证管理员
+    let isAdmin = false;
+    try {
+        const { verifyJWT } = await import('../utils/auth.js');
+        const { parse: parseCookie } = await import('cookie');
+        const cookieHeader = request.headers.get('Cookie') || '';
+        const cookies = parseCookie(cookieHeader);
+        const token = cookies.auth_token;
+        if (token) {
+            await verifyJWT(token, env);
+            isAdmin = true;
+        }
+    } catch {
+        // 未登录或 token 无效
+    }
 
     const siteKey = env.TURNSTILE_SITE_KEY || '';
-    const enabled = !!siteKey && !!env.TURNSTILE_SECRET_KEY;
+    const configEnabled = !!siteKey && !!env.TURNSTILE_SECRET_KEY;
+    // 管理员跳过 Turnstile
+    const enabled = configEnabled && !isAdmin;
 
     return success({
         enabled,
-        siteKey: enabled ? siteKey : null
+        siteKey: enabled ? siteKey : null,
+        isAdmin
     });
 }

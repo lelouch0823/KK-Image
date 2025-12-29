@@ -3,7 +3,7 @@
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
       <!-- Header -->
       <div class="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
-        <h2 class="text-lg font-semibold text-primary">{{ t('spaceManager.createModalTitle') }}</h2>
+        <h2 class="text-lg font-semibold text-primary">{{ isSubspace ? t('spaceManager.createSubspace') : t('spaceManager.createModalTitle') }}</h2>
         <button @click="$emit('close')" class="p-2 text-secondary hover:text-primary rounded-lg hover:bg-[var(--bg-hover)]">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -108,10 +108,16 @@ import { ref, computed } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useI18n } from '@/composables/useI18n';
 
+const props = defineProps({
+  parentId: { type: String, default: null } // 如果提供则为创建子空间
+});
+
 const emit = defineEmits(['close', 'created']);
 
-const { createSpace } = useSpaces();
+const { createSpace, createSubspace } = useSpaces();
 const { t } = useI18n();
+
+const isSubspace = computed(() => !!props.parentId);
 
 const form = ref({
   name: '',
@@ -137,6 +143,7 @@ const templates = computed(() => [
 
 const submitButtonText = computed(() => {
   if (submitting.value) return t('spaceManager.creating');
+  if (isSubspace.value) return t('spaceManager.createSubspace');
   return form.value.template === 'product' ? t('spaceManager.createProduct') : t('spaceManager.createSpace');
 });
 
@@ -144,7 +151,16 @@ const handleSubmit = async () => {
   if (!form.value.name.trim()) return;
   
   submitting.value = true;
-  const result = await createSpace(form.value);
+  let result;
+  
+  if (isSubspace.value) {
+    // 创建子空间
+    result = await createSubspace(props.parentId, form.value);
+  } else {
+    // 创建顶级空间
+    result = await createSpace(form.value);
+  }
+  
   submitting.value = false;
   
   if (result) {
