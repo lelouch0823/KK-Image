@@ -218,6 +218,51 @@ export async function onRequestPatch(context) {
             }
         }
 
+        // 处理文件更新 (SOTA: 单独处理关联表)
+        if (updates.fileIds) {
+            const newFileIds = updates.fileIds;
+            // 获取旧文件列表 (用于时间轴对比)
+            const { results: oldFiles } = await env.DB.prepare('SELECT file_id FROM order_files WHERE order_id = ? ORDER BY sort_order').bind(id).all();
+            const oldFileIds = oldFiles.map(f => f.file_id);
+
+            // 简单对比是否变化
+            if (JSON.stringify(newFileIds) !== JSON.stringify(oldFileIds)) {
+                // 删除旧关联
+                await env.DB.prepare('DELETE FROM order_files WHERE order_id = ?').bind(id).run();
+
+                // 插入新关联
+                if (newFileIds.length > 0) {
+                    const insertStatements = newFileIds.map((fileId, index) =>
+                        env.DB.prepare(`
+                            INSERT OR IGNORE INTO order_files (id, order_id, file_id, section, sort_order, added_at)
+                            VALUES (?, ?, ?, 'product', ?, ?)
+                        `).bind(generateId(), id, fileId, index, now())
+                    );
+                    await env.DB.batch(insertStatements);
+
+                    // 更新主图 (第一张)
+                    await env.DB.prepare('UPDATE orders SET main_image_id = ? WHERE id = ?').bind(newFileIds[0], id).run();
+                } else {
+                    // 清空主图
+                    await env.DB.prepare('UPDATE orders SET main_image_id = NULL WHERE id = ?').bind(id).run();
+                }
+
+                // 记录时间轴
+                timelinePromises.push(logTimeline(env.DB, {
+                    orderId: id,
+                    actionType: 'files_updated',
+                    actorType: 'admin',
+                    actorId: admin.id,
+                    actorName: admin.name,
+                    oldValue: `${oldFileIds.length} images`,
+                    newValue: `${newFileIds.length} images`,
+                    reason: reason.trim()
+                }));
+            }
+            // 从 newData 中移除 fileIds (因为它不是 current_data 的一部分)
+            delete newData.fileIds;
+        }
+
         if (timelinePromises.length === 0) {
             return error(MSG.COMMON.NO_UPDATE_FIELDS, 400);
         }

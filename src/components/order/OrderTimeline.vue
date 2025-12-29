@@ -6,7 +6,7 @@
     <!-- 时间轴项目 -->
     <div class="space-y-4">
       <div 
-        v-for="item in timeline" 
+        v-for="item in groupedTimeline" 
         :key="item.id"
         class="relative pl-8"
       >
@@ -44,21 +44,23 @@
             {{ t('order.timeline.created') }}
           </p>
 
-          <!-- 字段修正 -->
-          <div v-else-if="item.actionType === 'field_updated'" class="text-sm">
-            <p class="text-primary">
-              {{ t('order.timeline.fieldUpdated', { field: getFieldLabel(item.fieldName) }) }}
-            </p>
-            <div class="flex items-center gap-2 mt-1 text-xs">
-              <span class="line-through text-red-400">{{ item.oldValue }}</span>
-              <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-              </svg>
-              <span class="text-green-600 font-medium">{{ item.newValue }}</span>
+          <!-- 字段修正 (聚合) -->
+          <div v-else-if="item.actionType === 'field_updated'" class="space-y-3">
+            <div v-for="(update, idx) in item.updates" :key="idx" class="text-sm">
+              <p class="text-primary font-medium">
+                {{ t('order.timeline.fieldUpdated', { field: getFieldLabel(update.fieldName) }) }}
+              </p>
+              <div class="flex items-center gap-2 mt-1 text-xs">
+                <span class="line-through text-red-400">{{ update.oldValue }}</span>
+                <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                </svg>
+                <span class="text-green-600 font-medium">{{ update.newValue }}</span>
+              </div>
+              <p v-if="update.reason" class="text-xs text-secondary mt-1">
+                {{ t('order.timeline.reason') }}: {{ update.reason }}
+              </p>
             </div>
-            <p v-if="item.reason" class="text-xs text-secondary mt-1">
-              {{ t('order.timeline.reason') }}: {{ item.reason }}
-            </p>
           </div>
 
           <!-- 状态变更 -->
@@ -80,13 +82,14 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-if="!timeline || timeline.length === 0" class="text-center py-8 text-secondary text-sm">
+    <div v-if="!groupedTimeline || groupedTimeline.length === 0" class="text-center py-8 text-secondary text-sm">
       {{ t('common.noData') }}
     </div>
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 
 const props = defineProps({
@@ -94,6 +97,42 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
+
+// 聚合时间线数据
+const groupedTimeline = computed(() => {
+  if (!props.timeline?.length) return [];
+  
+  const groups = [];
+  let currentGroup = null;
+
+  props.timeline.forEach((item) => {
+    // 只有 field_updated 才合并
+    if (item.actionType === 'field_updated') {
+      const prev = currentGroup;
+      // 检查是否可以合并到上一组 (相同操作人，相同类型，1分钟内)
+      if (prev && 
+          prev.actionType === 'field_updated' && 
+          prev.actorId === item.actorId &&
+          Math.abs(prev.createdAt - item.createdAt) < 60000) { 
+        prev.updates.push(item);
+        return;
+      }
+      
+      // 开始新组
+      currentGroup = {
+        ...item,
+        updates: [item]
+      };
+      groups.push(currentGroup);
+    } else {
+      // 非合并项，直接添加
+      currentGroup = { ...item };
+      groups.push(currentGroup); // 更新 currentGroup 为最近一项
+    }
+  });
+  
+  return groups;
+});
 
 // 图标样式
 const iconClasses = {
@@ -126,7 +165,10 @@ const getFieldLabel = (fieldName) => {
     size: t('order.form.size'),
     color: t('order.form.color'),
     material: t('order.form.material'),
-    remark: t('order.form.remark')
+    remark: t('order.form.remark'),
+    deadline: t('order.form.deadline'),
+    brand: t('order.form.brand'),
+    series: t('order.form.series')
   };
   return labels[fieldName] || fieldName;
 };

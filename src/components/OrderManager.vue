@@ -106,6 +106,12 @@
                 >
                   {{ t('order.manage.editOrder') }}
                 </button>
+                <button 
+                  @click="openDetailModal(order)"
+                  class="ml-2 text-secondary hover:text-primary font-medium text-xs border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  {{ t('common.view') }}
+                </button>
               </td>
             </tr>
           </template>
@@ -147,6 +153,19 @@
       @close="closeEditModal"
       @submit="handleEditSubmit"
     />
+
+    <!-- 订单详情弹窗 -->
+    <div v-if="showDetailModal && viewingOrder" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" @click.self="closeDetailModal">
+      <div class="bg-white rounded-xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="p-4 overflow-y-auto">
+          <OrderDetail 
+            :order="viewingOrder" 
+            mode="admin"
+            @back="closeDetailModal"
+          />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -156,6 +175,7 @@ import { useOrders } from '@/composables/useOrders';
 import { useI18n } from '@/composables/useI18n';
 import OrderStatusChanger from './OrderStatusChanger.vue';
 import OrderEditModal from './OrderEditModal.vue';
+import OrderDetail from './order/OrderDetail.vue';
 
 const { orders, salespersons, statuses, loading, pagination, loadOrders, getOrder, updateOrder, changeStatus } = useOrders();
 const { t } = useI18n();
@@ -166,7 +186,9 @@ const searchQuery = ref('');
 const statusChanging = reactive({});
 const showEditModal = ref(false);
 const editingOrder = ref(null);
+const viewingOrder = ref(null);
 const isEditing = ref(false);
+const showDetailModal = ref(false);
 
 // 初始化
 onMounted(() => {
@@ -233,6 +255,21 @@ const openEditModal = async (order) => {
 const closeEditModal = () => {
   showEditModal.value = false;
   editingOrder.value = null;
+};
+
+// 打开详情弹窗
+const openDetailModal = async (order) => {
+  const fullOrder = await getOrder(order.id);
+  if (fullOrder) {
+    viewingOrder.value = fullOrder;
+    showDetailModal.value = true;
+  }
+};
+
+// 关闭详情弹窗
+const closeDetailModal = () => {
+  showDetailModal.value = false;
+  viewingOrder.value = null;
 };
 
 // 提交编辑

@@ -184,7 +184,7 @@ export async function onRequestPost(context) {
         const salesperson = await authenticateSalesperson(request, env, accessToken);
         const body = await request.json();
 
-        const { name, size, color, material, remark, deadline, fileIds = [] } = body;
+        const { name, size, color, material, remark, deadline, brand, series, fileIds = [] } = body;
 
         if (!name) {
             return error(MSG.COMMON.INVALID_PARAMS + ': 商品名称不能为空', 400);
@@ -201,7 +201,9 @@ export async function onRequestPost(context) {
             color: color || '',
             material: material || '',
             remark: remark || '',
-            deadline: deadline || ''
+            deadline: deadline || '',
+            brand: brand || '',
+            series: series || ''
         });
 
         // 确定主图
@@ -233,6 +235,17 @@ export async function onRequestPost(context) {
                 `).bind(generateId(), orderId, fileId, index, timestamp)
             );
             await env.DB.batch(insertStatements);
+
+            // SOTA: 自动归档文件 (Sales Uploads / Salesperson / OrderNo)
+            try {
+                const { ensureFolder, moveFilesToFolder } = await import('../../../utils/folder-utils.js');
+                const rootId = await ensureFolder(env, 'Sales Uploads', 'root');
+                const spId = await ensureFolder(env, salesperson.name, rootId);
+                const folderId = await ensureFolder(env, orderNo, spId);
+                await moveFilesToFolder(env, fileIds, folderId);
+            } catch (e) {
+                console.error('File archiving error:', e);
+            }
         }
 
         // 记录时间轴

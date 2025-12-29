@@ -1,15 +1,33 @@
 <template>
   <div class="space-y-6">
     <!-- 返回按钮 -->
-    <button 
-      @click="$emit('back')"
-      class="flex items-center gap-2 text-secondary hover:text-primary transition-colors"
-    >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-      </svg>
-      {{ t('order.portal.myOrders') }}
-    </button>
+    <div class="flex items-center justify-between">
+      <button 
+        @click="$emit('back')"
+        class="flex items-center gap-2 text-secondary hover:text-primary transition-colors"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        {{ t('order.portal.myOrders') }}
+      </button>
+
+      <!-- 销售端操作按钮 -->
+      <div v-if="mode === 'sales' && order.status === 'pending'" class="flex gap-2">
+        <button 
+          @click="showEditModal = true"
+          class="px-3 py-1.5 text-sm font-medium text-primary bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          {{ t('order.manage.editOrder') }}
+        </button>
+        <button 
+          @click="handleVoid"
+          class="px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+        >
+          {{ t('order.statuses.void') }}
+        </button>
+      </div>
+    </div>
 
     <!-- 订单头部 -->
     <div class="bg-white rounded-xl border border-[var(--border-color)] p-4">
@@ -95,6 +113,14 @@
           <span class="text-sm text-primary">{{ currentData.name || '-' }}</span>
         </div>
         <div class="flex">
+          <span class="w-20 text-sm text-secondary flex-shrink-0">{{ t('order.form.brand') }}</span>
+          <span class="text-sm text-primary">{{ currentData.brand || '-' }}</span>
+        </div>
+        <div class="flex">
+          <span class="w-20 text-sm text-secondary flex-shrink-0">{{ t('order.form.series') }}</span>
+          <span class="text-sm text-primary">{{ currentData.series || '-' }}</span>
+        </div>
+        <div class="flex">
           <span class="w-20 text-sm text-secondary flex-shrink-0">{{ t('order.form.size') }}</span>
           <span class="text-sm text-primary">{{ currentData.size || '-' }}</span>
         </div>
@@ -173,24 +199,42 @@
         </div>
       </div>
     </div>
+
+
+    <!-- 编辑弹窗 -->
+    <OrderEditModal
+      v-if="showEditModal"
+      :order="order"
+      :mode="'sales'"
+      :submitting="submitting"
+      @close="showEditModal = false"
+      @submit="handleUpdate"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { useToast } from '@/composables/useToast';
+import { API } from '@/utils/constants';
 import OrderTimeline from './OrderTimeline.vue';
+import OrderEditModal from '../OrderEditModal.vue';
 
 const props = defineProps({
-  order: { type: Object, required: true }
+  order: { type: Object, required: true },
+  mode: { type: String, default: 'sales' }
 });
 
-const emit = defineEmits(['back', 'comment']);
+const emit = defineEmits(['back', 'comment', 'refresh']);
 
 const { t } = useI18n();
+const { addToast } = useToast();
 
 const commentText = ref('');
 const showCorrectionModal = ref(false);
+const showEditModal = ref(false);
+const submitting = ref(false);
 
 // 当前数据
 const currentData = computed(() => props.order.currentData || {});
@@ -235,10 +279,67 @@ const formatTime = (timestamp) => {
   return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
 };
 
+// 销售 Token
+const salesToken = computed(() => {
+  if (props.mode !== 'sales') return null;
+  const match = window.location.pathname.match(/\/sales\/([^\/]+)/);
+  return match ? match[1] : null;
+});
+
 // 发送留言
 const sendComment = () => {
   if (!commentText.value.trim()) return;
   emit('comment', commentText.value.trim());
   commentText.value = '';
+};
+
+const handleVoid = async () => {
+  if (!confirm(t('common.confirmVoid'))) return;
+  if (!salesToken.value) return;
+
+  try {
+    const res = await fetch(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    const result = await res.json();
+    
+    if (result.success) {
+      addToast({ message: t('common.success'), type: 'success' });
+      emit('refresh');
+    } else {
+      addToast({ message: result.message, type: 'error' });
+    }
+  } catch (e) {
+    addToast({ message: t('common.networkError'), type: 'error' });
+  }
+};
+
+// 更新订单
+const handleUpdate = async ({ updates }) => {
+  if (!salesToken.value) return;
+
+  submitting.value = true;
+  try {
+    const res = await fetch(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates }),
+      credentials: 'include'
+    });
+    const result = await res.json();
+    
+    if (result.success) {
+      addToast({ message: t('common.success'), type: 'success' });
+      showEditModal.value = false;
+      emit('refresh');
+    } else {
+      addToast({ message: result.message, type: 'error' });
+    }
+  } catch (e) {
+    addToast({ message: t('common.networkError'), type: 'error' });
+  } finally {
+    submitting.value = false;
+  }
 };
 </script>

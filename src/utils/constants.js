@@ -44,6 +44,7 @@ export const API = {
 
     // 文件操作
     MOVE: `${API_PREFIX}/move`,
+    MANAGE_UPLOAD: `${API_PREFIX}/upload`,
 
     // 认证
     LOGIN: '/api/v1/auth/login',
@@ -57,6 +58,7 @@ export const API = {
     SALES_ORDER_DETAIL: (token, id) => `/api/sales/${token}/orders/${id}`,
     SALES_ORDER_COMMENT: (token, id) => `/api/sales/${token}/orders/${id}/comment`,
     SALES_ORDER_READ: (token, id) => `/api/sales/${token}/orders/${id}/read`,
+    SALES_UPLOAD: (token) => `/api/sales/${token}/upload`,
 
     // 管理端销售人员 API
     SALESPERSONS: `${API_PREFIX}/salespersons`,

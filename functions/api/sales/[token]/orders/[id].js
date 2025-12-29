@@ -168,4 +168,191 @@ export async function onRequestGet(context) {
     }
 }
 
+/**
+ * PATCH - 更新订单 (销售端)
+ */
+export async function onRequestPatch(context) {
+    const { env, params, request } = context;
+    const { token: accessToken, id: orderId } = params;
+    const url = new URL(request.url);
+
+    // 清除红点接口
+    if (url.pathname.endsWith('/read')) {
+        return handleMarkRead(context);
+    }
+
+    try {
+        const salesperson = await authenticateSalesperson(request, env, accessToken);
+        const body = await request.json();
+        const { updates } = body; // 销售端不需要 reason
+
+        if (!updates || Object.keys(updates).length === 0) {
+            return error(MSG.COMMON.NO_UPDATE_FIELDS, 400);
+        }
+
+        // 获取订单
+        const order = await env.DB.prepare(`
+            SELECT id, order_no, current_data, status FROM orders WHERE id = ? AND salesperson_id = ?
+        `).bind(orderId, salesperson.id).first();
+
+        if (!order) {
+            return error(MSG.ORDER.NOT_FOUND, 404);
+        }
+
+        if (order.status !== 'pending') {
+            return error('只能修改待确认状态的订单', 403);
+        }
+
+        const currentData = order.current_data ? JSON.parse(order.current_data) : {};
+        const newData = { ...currentData };
+        let hasChanges = false;
+
+        // 允许修改的字段
+        const allowedFields = ['name', 'brand', 'series', 'size', 'color', 'material', 'remark', 'deadline'];
+
+        for (const field of allowedFields) {
+            if (updates[field] !== undefined && updates[field] !== currentData[field]) {
+                newData[field] = updates[field];
+                hasChanges = true;
+            }
+        }
+
+        // 记录时间轴
+        if (hasChanges) {
+            await logTimeline(env.DB, {
+                orderId,
+                actionType: 'field_updated',
+                actorType: 'salesperson',
+                actorId: salesperson.id,
+                actorName: salesperson.name,
+                reason: '销售自行修改',
+                oldValue: 'Multiple Fields',
+                newValue: 'Updated'
+            });
+        }
+
+        // 处理文件更新
+        if (updates.fileIds) {
+            const newFileIds = updates.fileIds;
+            const { results: oldFiles } = await env.DB.prepare('SELECT file_id FROM order_files WHERE order_id = ?').bind(orderId).all();
+            const oldIds = oldFiles.map(f => f.file_id).sort().join(',');
+            const newIds = [...newFileIds].sort().join(',');
+
+            if (oldIds !== newIds) {
+                // 删除旧关联
+                await env.DB.prepare('DELETE FROM order_files WHERE order_id = ?').bind(orderId).run();
+
+                // 插入新关联
+                if (newFileIds.length > 0) {
+                    const insertStatements = newFileIds.map((fileId, index) =>
+                        env.DB.prepare(`
+                             INSERT OR IGNORE INTO order_files (id, order_id, file_id, section, sort_order, added_at)
+                             VALUES (?, ?, ?, 'product', ?, ?)
+                         `).bind(generateId(), orderId, fileId, index, now())
+                    );
+                    await env.DB.batch(insertStatements);
+
+                    // 更新主图 (第一张)
+                    await env.DB.prepare('UPDATE orders SET main_image_id = ? WHERE id = ?').bind(newFileIds[0], orderId).run();
+
+                    // SOTA: 自动归档
+                    try {
+                        const { ensureFolder, moveFilesToFolder } = await import('../../../utils/folder-utils.js');
+                        const rootId = await ensureFolder(env, 'Sales Uploads', 'root');
+                        const spId = await ensureFolder(env, salesperson.name, rootId);
+                        const folderId = await ensureFolder(env, order.order_no || orderId, spId);
+                        await moveFilesToFolder(env, newFileIds, folderId);
+                    } catch (e) {
+                        console.error('Archive error', e);
+                    }
+                } else {
+                    // 清空主图
+                    await env.DB.prepare('UPDATE orders SET main_image_id = NULL WHERE id = ?').bind(orderId).run();
+                }
+                hasChanges = true;
+            }
+        }
+
+        if (!hasChanges) {
+            return error(MSG.COMMON.NO_UPDATE_FIELDS, 400);
+        }
+
+        // 更新订单
+        await env.DB.prepare(`
+            UPDATE orders SET current_data = ?, updated_at = ? WHERE id = ?
+        `).bind(JSON.stringify(newData), now(), orderId).run();
+
+        return success(null, MSG.ORDER.UPDATE_SUCCESS);
+
+    } catch (err) {
+        if (err.message === MSG.AUTH.REQUIRED || err.message === MSG.AUTH.FORBIDDEN) {
+            return error(err.message, 401);
+        }
+        console.error('Order update error:', err);
+        return error(`${MSG.COMMON.UPDATE_FAILED}: ${err.message}`, 500);
+    }
+}
+
+/**
+ * DELETE - 作废订单
+ */
+export async function onRequestDelete(context) {
+    const { env, params, request } = context;
+    const { token: accessToken, id: orderId } = params;
+
+    try {
+        const salesperson = await authenticateSalesperson(request, env, accessToken);
+
+        const order = await env.DB.prepare(`
+            SELECT id, status FROM orders WHERE id = ? AND salesperson_id = ?
+        `).bind(orderId, salesperson.id).first();
+
+        if (!order) {
+            return error(MSG.ORDER.NOT_FOUND, 404);
+        }
+
+        if (order.status !== 'pending') {
+            return error('只能作废待确认状态的订单', 403);
+        }
+
+        // 软删除 -> void
+        await env.DB.prepare(`
+            UPDATE orders SET status = 'void', updated_at = ? WHERE id = ?
+        `).bind(now(), orderId).run();
+
+        await logTimeline(env.DB, {
+            orderId,
+            actionType: 'status_changed',
+            actorType: 'salesperson',
+            actorId: salesperson.id,
+            actorName: salesperson.name,
+            oldValue: order.status,
+            newValue: 'void',
+            reason: '销售自行作废'
+        });
+
+        return success(null, '订单已作废');
+
+    } catch (err) {
+        if (err.message === MSG.AUTH.REQUIRED || err.message === MSG.AUTH.FORBIDDEN) {
+            return error(err.message, 401);
+        }
+        return error(`操作失败: ${err.message}`, 500);
+    }
+}
+
+async function handleMarkRead(context) {
+    const { env, params, request } = context;
+    const { token: accessToken, id: orderId } = params;
+
+    try {
+        const salesperson = await authenticateSalesperson(request, env, accessToken);
+        await env.DB.prepare('UPDATE orders SET has_new_feedback = 0 WHERE id = ? AND salesperson_id = ?')
+            .bind(orderId, salesperson.id).run();
+        return success();
+    } catch (e) {
+        return error(e.message, 401);
+    }
+}
+
 

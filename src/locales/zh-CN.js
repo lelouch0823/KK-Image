@@ -440,7 +440,9 @@ export default {
             production: '生产中',
             shipping: '在途',
             arrived: '已到货',
-            delivered: '已交付'
+            arrived: '已到货',
+            delivered: '已交付',
+            void: '已作废'
         },
 
         // 表单字段
@@ -460,7 +462,11 @@ export default {
             submit: '提交预定',
             submitting: '提交中...',
             deadline: '截止时间',
-            deadlinePlaceholder: '选择期望到货日期'
+            deadlinePlaceholder: '选择期望到货日期',
+            brand: '品牌',
+            brandPlaceholder: '如：Nike',
+            series: '系列',
+            seriesPlaceholder: '如：Air Force'
         },
 
         // 销售端

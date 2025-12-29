@@ -32,6 +32,24 @@
               >
             </div>
 
+            <!-- 品牌和系列 -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.brand') }}</label>
+                <input 
+                  v-model="form.brand"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none"
+                >
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.series') }}</label>
+                <input 
+                  v-model="form.series"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none"
+                >
+              </div>
+            </div>
+
             <!-- 规格尺寸 -->
             <div>
               <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.size') }}</label>
@@ -83,6 +101,14 @@
                   <span>{{ originalData.name || '-' }}</span>
                 </div>
                 <div class="flex justify-between">
+                  <span class="text-gray-400 text-xs">{{ t('order.form.brand') }}:</span>
+                  <span>{{ originalData.brand || '-' }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400 text-xs">{{ t('order.form.series') }}:</span>
+                  <span>{{ originalData.series || '-' }}</span>
+                </div>
+                <div class="flex justify-between">
                   <span class="text-gray-400 text-xs">{{ t('order.form.size') }}:</span>
                   <span>{{ originalData.size || '-' }}</span>
                 </div>
@@ -101,27 +127,22 @@
               </div>
             </div>
 
-            <!-- 图片预览 -->
-             <div v-if="order.files && order.files.length > 0">
-              <h4 class="text-sm font-medium text-gray-900 border-b border-gray-100 pb-2 mb-3">
+            <!-- 图片管理 -->
+            <div>
+               <h4 class="text-sm font-medium text-gray-900 border-b border-gray-100 pb-2 mb-3">
                 {{ t('order.detail.images') }}
               </h4>
-              <div class="grid grid-cols-3 gap-2">
-                <div 
-                  v-for="file in order.files" 
-                  :key="file.id"
-                  class="aspect-square rounded border border-gray-200 overflow-hidden cursor-zoom-in group relative"
-                  @click="previewImage(file.url)"
-                >
-                  <img :src="file.url" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
-                </div>
-              </div>
+               <ImageUploader
+                v-model="uploadedFiles"
+                :upload-endpoint="uploadEndpoint"
+                :max-files="9"
+              />
             </div>
           </div>
         </div>
 
-        <!-- 修改理由 (必填) -->
-        <div class="mt-6 pt-6 border-t border-gray-100">
+        <!-- 修改理由 (管理端必填) -->
+        <div v-if="mode === 'admin'" class="mt-6 pt-6 border-t border-gray-100">
           <label class="block text-sm font-medium text-gray-900 mb-2">
             {{ t('order.manage.editReason') }} <span class="text-red-500">*</span>
           </label>
@@ -150,7 +171,7 @@
         </button>
         <button 
           @click="handleSubmit"
-          :disabled="!hasChanges || !editReason.trim() || submitting"
+          :disabled="!isValid || submitting"
           class="px-5 py-2 bg-primary text-white font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center shadow-lg shadow-primary/20"
         >
           <svg v-if="submitting" class="w-4 h-4 animate-spin mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,20 +188,26 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { API } from '@/utils/constants';
+import ImageUploader from './common/ImageUploader.vue';
 
 const props = defineProps({
   order: { type: Object, required: true },
-  submitting: Boolean
+  submitting: Boolean,
+  mode: { type: String, default: 'admin' }
 });
 
 const emit = defineEmits(['close', 'submit']);
 
 const { t } = useI18n();
 const editReason = ref('');
+const uploadedFiles = ref([]);
 
 // 表单数据
 const form = reactive({
   name: '',
+  brand: '',
+  series: '',
   size: '',
   color: '',
   material: '',
@@ -192,10 +219,18 @@ watch(() => props.order, (newOrder) => {
   if (newOrder) {
     const current = newOrder.currentData || {};
     form.name = current.name || '';
+    form.brand = current.brand || '';
+    form.series = current.series || '';
     form.size = current.size || '';
     form.color = current.color || '';
     form.material = current.material || '';
     form.remark = current.remark || '';
+    
+    // 初始化文件
+    uploadedFiles.value = (newOrder.files || []).map(f => ({
+      id: f.id,
+      url: f.url
+    }));
   }
 }, { immediate: true });
 
@@ -205,31 +240,62 @@ const currentData = computed(() => props.order.currentData || {});
 // 检查是否有变更
 const hasChanges = computed(() => {
   if (!props.order) return false;
-  return (
+  
+  // 检查字段变更
+  const fieldsChanged = (
     form.name !== (currentData.value.name || '') ||
+    form.brand !== (currentData.value.brand || '') ||
+    form.series !== (currentData.value.series || '') ||
     form.size !== (currentData.value.size || '') ||
     form.color !== (currentData.value.color || '') ||
     form.material !== (currentData.value.material || '') ||
     form.remark !== (currentData.value.remark || '')
   );
+
+  if (fieldsChanged) return true;
+
+  // 检查文件变更
+  const oldIds = (props.order.files || []).map(f => f.id).sort().join(',');
+  const newIds = uploadedFiles.value.map(f => f.id).sort().join(',');
+  return oldIds !== newIds;
 });
 
-// 预览图片
-const previewImage = (url) => {
-  window.open(url, '_blank');
-};
+// 动态上传地址
+const uploadEndpoint = computed(() => {
+  if (props.mode === 'sales') {
+     const match = window.location.pathname.match(/\/sales\/([^\/]+)/);
+     return match ? API.SALES_UPLOAD(match[1]) : '';
+  }
+  return API.MANAGE_UPLOAD;
+});
+
+// 验证逻辑
+const isValid = computed(() => {
+  if (!hasChanges.value) return false;
+  if (props.mode === 'admin' && !editReason.value.trim()) return false;
+  return true;
+});
 
 // 提交
 const handleSubmit = () => {
-  if (!hasChanges.value || !editReason.value.trim()) return;
+  if (!isValid.value) return;
   
   // 仅提取变更字段
   const updates = {};
   if (form.name !== currentData.value.name) updates.name = form.name;
+  if (form.brand !== currentData.value.brand) updates.brand = form.brand;
+  if (form.series !== currentData.value.series) updates.series = form.series;
   if (form.size !== currentData.value.size) updates.size = form.size;
   if (form.color !== currentData.value.color) updates.color = form.color;
   if (form.material !== currentData.value.material) updates.material = form.material;
   if (form.remark !== currentData.value.remark) updates.remark = form.remark;
+
+  // 处理文件变更
+  const oldIds = (props.order.files || []).map(f => f.id).sort().join(',');
+  const newIds = uploadedFiles.value.map(f => f.id).sort().join(',');
+  if (oldIds !== newIds) {
+    updates.fileIds = uploadedFiles.value.map(f => f.id);
+  }
 
   emit('submit', { 
     updates, 
