@@ -3,7 +3,7 @@
  * 在 Edge 层完成 JWT 验证，未授权用户无法看到任何 Admin HTML
  */
 
-import { verifyJWT } from './api/utils/auth.js';
+import { verifyJWT, ADMIN_AUTH_COOKIE } from './api/utils/auth.js';
 
 export async function onRequest(context) {
   const { request, next, env } = context;
@@ -23,7 +23,8 @@ export async function onRequest(context) {
 
   // 从 Cookie 中提取 JWT Token
   const cookieHeader = request.headers.get('Cookie') || '';
-  const match = cookieHeader.match(/TELEG_AUTH=([^;]+)/);
+  const regex = new RegExp(`${ADMIN_AUTH_COOKIE}=([^;]+)`);
+  const match = cookieHeader.match(regex);
 
   if (!match) {
     console.log(`[Edge Auth] No token for ${pathname}, redirecting to login`);
@@ -42,7 +43,7 @@ export async function onRequest(context) {
       status: 302,
       headers: {
         'Location': `${url.origin}/login.html`,
-        'Set-Cookie': 'TELEG_AUTH=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict'
+        'Set-Cookie': `${ADMIN_AUTH_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`
       }
     });
   }

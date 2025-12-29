@@ -1,4 +1,4 @@
-import { verifyJWT } from '../../../api/utils/auth.js';
+import { verifyJWT, ADMIN_AUTH_COOKIE } from '../../../api/utils/auth.js';
 import { MSG } from '../../../api/utils/messages.js';
 
 /**
@@ -42,7 +42,7 @@ export async function authMiddleware(c, next) {
                     return [name, value.join('=')];
                 })
             );
-            token = cookies['TELEG_AUTH'];
+            token = cookies[ADMIN_AUTH_COOKIE];
         }
     }
 

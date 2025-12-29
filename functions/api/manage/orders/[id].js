@@ -9,7 +9,7 @@
 import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
 import { generateId, now } from '../../utils/id.js';
-import { verifyJWT } from '../../utils/auth.js';
+import { verifyJWT, ADMIN_AUTH_COOKIE } from '../../utils/auth.js';
 import { parse as parseCookie } from 'cookie';
 
 // 订单状态列表
@@ -21,7 +21,7 @@ const ORDER_STATUSES = ['pending', 'confirmed', 'rejected', 'production', 'shipp
 async function getAdmin(request, env) {
     const cookieHeader = request.headers.get('Cookie') || '';
     const cookies = parseCookie(cookieHeader);
-    const jwt = cookies.auth_token;
+    const jwt = cookies[ADMIN_AUTH_COOKIE];
 
     if (!jwt) {
         throw new Error(MSG.AUTH.REQUIRED);

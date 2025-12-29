@@ -1,5 +1,7 @@
 // 认证工具模块 - 处理 API Key 和 JWT 认证
 
+// 管理员认证 Cookie 名称
+export const ADMIN_AUTH_COOKIE = 'ADMIN_AUTH';
 
 /**
  * JWT 实现 - 使用 URL-safe Base64 (RFC 4648) 和安全比较

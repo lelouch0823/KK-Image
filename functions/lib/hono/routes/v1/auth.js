@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { LoginSchema, TokenSchema, CreateApiKeySchema } from '../../schemas/user.js';
-import { generateJWT, verifyTurnstile } from '../../../../api/utils/auth.js';
+import { generateJWT, ADMIN_AUTH_COOKIE, verifyTurnstile } from '../../../../api/utils/auth.js';
 import { MSG } from '../../../../api/utils/messages.js';
 
 const app = new Hono();
@@ -36,7 +36,7 @@ app.post('/login', zValidator('json', LoginSchema), async (c) => {
     const token = await generateJWT(user, env, expiresIn);
 
     // 设置 Cookie
-    const cookie = `TELEG_AUTH=${token}; HttpOnly; Path=/; Max-Age=${expiresIn}; SameSite=Strict; Secure`;
+    const cookie = `${ADMIN_AUTH_COOKIE}=${token}; HttpOnly; Path=/; Max-Age=${expiresIn}; SameSite=Strict; Secure`;
 
     return c.json({
         success: true,
@@ -82,7 +82,7 @@ app.post('/token', zValidator('json', TokenSchema), async (c) => {
  * POST /api/v1/auth/logout - 登出
  */
 app.post('/logout', async (c) => {
-    const cookie = `TELEG_AUTH=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict; Secure`;
+    const cookie = `${ADMIN_AUTH_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict; Secure`;
 
     return c.json({
         success: true,
