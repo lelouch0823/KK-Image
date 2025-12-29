@@ -59,7 +59,7 @@ export async function onRequestPost(context) {
         // 设置 Cookie
         const cookieOptions = [
             `sales_token=${jwt}`,
-            `Path=/api/sales/${accessToken}`,
+            `Path=/`,
             `Max-Age=${TOKEN_EXPIRY}`,
             'HttpOnly',
             'SameSite=Lax'

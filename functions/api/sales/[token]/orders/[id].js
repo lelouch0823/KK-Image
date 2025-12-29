@@ -17,7 +17,7 @@ import { parse as parseCookie } from 'cookie';
 async function authenticateSalesperson(request, env, accessToken) {
     const cookieHeader = request.headers.get('Cookie') || '';
     const cookies = parseCookie(cookieHeader);
-    const jwt = cookies.order_token;
+    const jwt = cookies.sales_token;
 
     if (!jwt) {
         throw new Error(MSG.AUTH.REQUIRED);
