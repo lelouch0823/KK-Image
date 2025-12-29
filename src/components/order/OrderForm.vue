@@ -13,6 +13,7 @@
         :label="t('order.form.uploadImages')"
         :hint="t('order.form.uploadHint')"
         :upload-endpoint="uploadEndpoint"
+        :deferred="true"
       />
 
       <!-- 商品信息 -->
@@ -186,9 +187,14 @@ const handleSubmit = async () => {
 
   isSubmitting.value = true;
   try {
+    // 提取本地文件对象用于上传
+    const files = uploadedFiles.value
+      .filter(f => f.isLocal && f.file)
+      .map(f => f.file);
+    
     await emit('submit', {
       ...form,
-      fileIds: uploadedFiles.value.map(f => f.id)
+      files // 传递文件对象而非 fileIds
     });
   } finally {
     isSubmitting.value = false;

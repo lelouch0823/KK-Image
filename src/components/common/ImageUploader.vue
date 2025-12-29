@@ -5,13 +5,26 @@
     </label>
     
     <div class="grid grid-cols-3 gap-3">
-      <!-- 已上传图片 -->
+      <!-- 已上传图片 (可拖拽) -->
       <div 
         v-for="(file, index) in modelValue" 
         :key="file.id"
-        class="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group border border-gray-200"
+        class="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group border-2 transition-all cursor-move"
+        :class="[
+          dragOverIndex === index ? 'border-primary border-dashed scale-105' : 'border-gray-200',
+          dragIndex === index ? 'opacity-50 scale-95' : ''
+        ]"
+        draggable="true"
+        @dragstart="handleDragStart(index, $event)"
+        @dragend="handleDragEnd"
+        @dragover.prevent="handleDragOver(index)"
+        @dragleave="handleDragLeave"
+        @drop.prevent="handleDrop(index)"
+        @touchstart="handleTouchStart(index, $event)"
+        @touchmove="handleTouchMove"
+        @touchend="handleTouchEnd"
       >
-        <img :src="file.url" class="w-full h-full object-cover">
+        <img :src="file.url" class="w-full h-full object-cover pointer-events-none">
         
         <!-- 操作遮罩层 -->
         <div 
@@ -42,9 +55,14 @@
           </button>
         </div>
 
-        <!-- 主图标记 -->
+        <!-- 主图/封面标记 -->
         <div v-if="index === 0" class="absolute bottom-1 left-1 px-1.5 py-0.5 bg-primary text-white text-[10px] rounded shadow-sm">
           {{ coverText }}
+        </div>
+        
+        <!-- 拖拽序号 -->
+        <div class="absolute top-1 right-1 w-5 h-5 bg-black/50 text-white text-[10px] rounded-full flex items-center justify-center">
+          {{ index + 1 }}
         </div>
       </div>
 
@@ -72,6 +90,7 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 
@@ -81,7 +100,8 @@ const props = defineProps({
   hint: String,
   maxFiles: { type: Number, default: 9 },
   readonly: Boolean,
-  uploadEndpoint: { type: String, required: true } // '/api/sales/token/upload' or '/api/manage/upload'
+  uploadEndpoint: { type: String, default: '' }, // '/api/sales/token/upload' or '/api/manage/upload'
+  deferred: { type: Boolean, default: false } // 延迟上传模式：仅缓存本地文件，不立即上传
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -90,7 +110,13 @@ const { t } = useI18n();
 const { addToast } = useToast();
 
 const coverText = t('spaceManager.cover');
-const uploadText = '添加图片'; // Ideally from i18n
+const uploadText = '添加图片';
+
+// 拖拽状态
+const dragIndex = ref(null);
+const dragOverIndex = ref(null);
+let touchStartTimer = null;
+let touchDragIndex = null;
 
 // 压缩图片
 const compressImage = (file, maxWidth = 1920, quality = 0.8) => {
@@ -158,12 +184,23 @@ const handleFileSelect = async (e) => {
       const compressed = await compressImage(file);
       const compressedFile = new File([compressed], file.name, { type: 'image/jpeg' });
       
-      const uploaded = await uploadFile(compressedFile);
-      newFiles.push({
-        id: uploaded.id,
-        url: `/file/${uploaded.storage_key || uploaded.storageKey}`,
-        // Keep other metadata if needed
-      });
+      if (props.deferred) {
+        // 延迟上传模式：仅创建本地预览，不上传
+        const blobUrl = URL.createObjectURL(compressed);
+        newFiles.push({
+          id: `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          url: blobUrl,
+          file: compressedFile, // 保留文件对象供后续上传
+          isLocal: true
+        });
+      } else {
+        // 立即上传模式
+        const uploaded = await uploadFile(compressedFile);
+        newFiles.push({
+          id: uploaded.id,
+          url: `/file/${uploaded.storage_key || uploaded.storageKey}`,
+        });
+      }
     } catch (err) {
       console.error(err);
       addToast({ message: t('uploadQueue.uploadFailed'), type: 'error' });
@@ -176,8 +213,9 @@ const handleFileSelect = async (e) => {
 
 const removeFile = async (index) => {
   const file = props.modelValue[index];
-  // 尝试从后端删除文件
-  if (file.id) {
+  
+  // 如果是已上传的文件（非本地），尝试从后端删除
+  if (file.id && !file.isLocal) {
     try {
       await fetch(`/api/v1/files/${file.id}`, {
         method: 'DELETE',
@@ -187,6 +225,12 @@ const removeFile = async (index) => {
       console.warn('Failed to delete file from server', e);
     }
   }
+  
+  // 如果是本地 blob URL，释放内存
+  if (file.isLocal && file.url.startsWith('blob:')) {
+    URL.revokeObjectURL(file.url);
+  }
+  
   const newFiles = [...props.modelValue];
   newFiles.splice(index, 1);
   emit('update:modelValue', newFiles);
@@ -201,33 +245,132 @@ const replaceFile = async (index, e) => {
   const oldFile = props.modelValue[index];
 
   try {
-    // 上传新文件
     const compressed = await compressImage(file);
     const compressedFile = new File([compressed], file.name, { type: 'image/jpeg' });
-    const uploaded = await uploadFile(compressedFile);
-
-    // 删除旧文件
-    if (oldFile.id) {
-      try {
-        await fetch(`/api/v1/files/${oldFile.id}`, {
-          method: 'DELETE',
-          credentials: 'include'
-        });
-      } catch (e) {
-        console.warn('Failed to delete old file', e);
+    
+    let newFileData;
+    
+    if (props.deferred) {
+      // 延迟上传模式：仅创建本地预览
+      const blobUrl = URL.createObjectURL(compressed);
+      newFileData = {
+        id: `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        url: blobUrl,
+        file: compressedFile,
+        isLocal: true
+      };
+    } else {
+      // 立即上传模式
+      const uploaded = await uploadFile(compressedFile);
+      newFileData = {
+        id: uploaded.id,
+        url: `/file/${uploaded.storage_key || uploaded.storageKey}`
+      };
+      
+      // 删除旧文件（只对已上传的文件）
+      if (oldFile.id && !oldFile.isLocal) {
+        try {
+          await fetch(`/api/v1/files/${oldFile.id}`, {
+            method: 'DELETE',
+            credentials: 'include'
+          });
+        } catch (e) {
+          console.warn('Failed to delete old file', e);
+        }
       }
     }
+    
+    // 释放旧的 blob URL
+    if (oldFile.isLocal && oldFile.url.startsWith('blob:')) {
+      URL.revokeObjectURL(oldFile.url);
+    }
 
-    // 替换
     const newFiles = [...props.modelValue];
-    newFiles[index] = {
-      id: uploaded.id,
-      url: `/file/${uploaded.storage_key || uploaded.storageKey}`
-    };
+    newFiles[index] = newFileData;
     emit('update:modelValue', newFiles);
   } catch (err) {
     console.error(err);
     addToast({ message: t('uploadQueue.uploadFailed'), type: 'error' });
   }
+};
+
+// ========== 拖拽排序功能 ==========
+
+// 桌面端拖拽
+const handleDragStart = (index, e) => {
+  dragIndex.value = index;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', index.toString());
+};
+
+const handleDragEnd = () => {
+  dragIndex.value = null;
+  dragOverIndex.value = null;
+};
+
+const handleDragOver = (index) => {
+  if (dragIndex.value !== null && dragIndex.value !== index) {
+    dragOverIndex.value = index;
+  }
+};
+
+const handleDragLeave = () => {
+  dragOverIndex.value = null;
+};
+
+const handleDrop = (targetIndex) => {
+  if (dragIndex.value === null || dragIndex.value === targetIndex) {
+    handleDragEnd();
+    return;
+  }
+  
+  // 交换位置
+  const newFiles = [...props.modelValue];
+  const [movedItem] = newFiles.splice(dragIndex.value, 1);
+  newFiles.splice(targetIndex, 0, movedItem);
+  emit('update:modelValue', newFiles);
+  
+  handleDragEnd();
+};
+
+// 移动端触摸拖拽 (长按触发)
+const handleTouchStart = (index, e) => {
+  touchStartTimer = setTimeout(() => {
+    touchDragIndex = index;
+    // 添加视觉反馈
+    e.target.closest('[draggable]').classList.add('scale-95', 'opacity-50');
+  }, 300); // 300ms 长按
+};
+
+const handleTouchMove = (e) => {
+  if (touchDragIndex === null) return;
+  
+  e.preventDefault();
+  const touch = e.touches[0];
+  const element = document.elementFromPoint(touch.clientX, touch.clientY);
+  const target = element?.closest('[draggable]');
+  
+  if (target) {
+    const allDraggables = [...document.querySelectorAll('[draggable="true"]')];
+    const targetIndex = allDraggables.indexOf(target);
+    if (targetIndex !== -1 && targetIndex !== touchDragIndex) {
+      dragOverIndex.value = targetIndex;
+    }
+  }
+};
+
+const handleTouchEnd = () => {
+  clearTimeout(touchStartTimer);
+  
+  if (touchDragIndex !== null && dragOverIndex.value !== null) {
+    handleDrop(dragOverIndex.value);
+    touchDragIndex = null;
+  }
+  
+  // 清除视觉反馈
+  document.querySelectorAll('[draggable]').forEach(el => {
+    el.classList.remove('scale-95', 'opacity-50');
+  });
+  dragOverIndex.value = null;
 };
 </script>

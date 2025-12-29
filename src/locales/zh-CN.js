@@ -30,6 +30,9 @@ export default {
         failed: '失败',
         searchPlaceholder: '搜索...',
         actions: '操作',
+        confirmVoid: '确定要作废此订单吗？此操作不可撤销。',
+        success: '操作成功',
+        view: '查看'
     },
     upload: {
         uploading: '正在上传 {count} 个文件',
@@ -521,6 +524,12 @@ export default {
             confirmStatusChange: '确认变更',
             batchConfirm: '批量确认',
             batchReject: '批量驳回'
+        },
+
+        // 操作按钮
+        actions: {
+            void: '作废',
+            edit: '编辑'
         },
 
         // 时间轴

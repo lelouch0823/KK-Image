@@ -44,7 +44,7 @@
           </button>
           <button 
             @click="currentView = 'list'" 
-            v-else
+            v-else-if="currentView === 'form'"
             class="flex items-center gap-1.5 px-3 py-1.5 text-secondary text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,8 +77,10 @@
         <OrderDetail 
           v-else-if="currentView === 'detail' && selectedOrder"
           :order="selectedOrder"
+          mode="sales"
           @back="handleBackToList"
           @comment="handleComment"
+          @refresh="handleRefreshOrder"
         />
       </main>
 
@@ -232,11 +234,40 @@ const viewOrder = async (order) => {
 // 提交订单
 const handleSubmitOrder = async (formData) => {
   try {
+    const { files, ...orderData } = formData;
+    
+    // 先上传所有图片
+    const fileIds = [];
+    if (files && files.length > 0) {
+      for (const file of files) {
+        try {
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', file);
+          
+          const uploadRes = await fetch(API.SALES_UPLOAD(accessToken), {
+            method: 'POST',
+            body: uploadFormData,
+            credentials: 'include'
+          });
+          const uploadResult = await uploadRes.json();
+          
+          if (uploadResult.success) {
+            fileIds.push(uploadResult.data.id);
+          } else {
+            console.warn('Upload failed:', uploadResult.message);
+          }
+        } catch (e) {
+          console.error('Upload error:', e);
+        }
+      }
+    }
+    
+    // 创建订单
     const res = await fetch(API.SALES_ORDER_CREATE(accessToken), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify(formData)
+      body: JSON.stringify({ ...orderData, fileIds })
     });
     const result = await res.json();
 
@@ -281,6 +312,13 @@ const handleComment = async (comment) => {
   } catch (e) {
     addToast({ message: t('common.networkError'), type: 'error' });
   }
+};
+
+// 刷新当前订单详情
+const handleRefreshOrder = async () => {
+  if (!selectedOrder.value) return;
+  await viewOrder(selectedOrder.value);
+  loadOrders(); // 同时刷新列表
 };
 
 onMounted(checkAuth);

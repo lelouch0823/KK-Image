@@ -24,7 +24,7 @@
           @click="handleVoid"
           class="px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
         >
-          {{ t('order.statuses.void') }}
+          {{ t('order.actions.void') }}
         </button>
       </div>
     </div>

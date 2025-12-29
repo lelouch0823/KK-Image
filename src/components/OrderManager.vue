@@ -46,7 +46,8 @@
 
     <!-- 订单列表 -->
     <div class="flex-1 overflow-auto">
-      <table class="w-full text-sm text-left relative">
+      <!-- 桌面表格视图 (lg+) -->
+      <table class="hidden lg:table w-full text-sm text-left relative">
         <thead class="bg-gray-50 text-gray-500 font-medium sticky top-0 z-10 shadow-sm">
           <tr>
             <th class="px-4 py-3">{{ t('order.form.productName') }}</th>
@@ -127,6 +128,82 @@
           </tr>
         </tbody>
       </table>
+
+      <!-- 移动端卡片视图 (<lg) -->
+      <div class="lg:hidden p-4 space-y-3">
+        <!-- 加载状态 -->
+        <div v-if="loading" v-for="i in 5" :key="i" class="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
+          <div class="flex gap-3">
+            <div class="w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0"></div>
+            <div class="flex-1 space-y-2">
+              <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+              <div class="h-3 bg-gray-200 rounded w-1/3"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 订单卡片 -->
+        <template v-else-if="orders.length > 0">
+          <div 
+            v-for="order in orders" 
+            :key="order.id"
+            class="bg-white rounded-xl border border-gray-200 overflow-hidden active:bg-gray-50 transition-colors"
+            @click="openDetailModal(order)"
+          >
+            <div class="p-4 flex gap-3">
+              <!-- 主图 -->
+              <div class="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
+                <img v-if="order.mainImage" :src="order.mainImage" class="w-full h-full object-cover">
+                <div v-else class="w-full h-full flex items-center justify-center">
+                  <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                </div>
+              </div>
+              
+              <!-- 信息 -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="font-medium text-gray-900 truncate flex items-center gap-2">
+                    {{ order.productName || '-' }}
+                    <span v-if="order.hasNewFeedback" class="w-2 h-2 bg-red-500 rounded-full animate-pulse flex-shrink-0"></span>
+                  </div>
+                  <OrderStatusChanger 
+                    :status="order.status"
+                    :loading="statusChanging[order.id]"
+                    @change="(e) => handleStatusChange(order, e)"
+                    @click.stop
+                  />
+                </div>
+                <div class="text-xs text-gray-500 mt-1">{{ order.salesperson?.name }} · {{ order.salesperson?.store }}</div>
+                <div class="text-xs text-gray-400 mt-1 font-mono">{{ order.orderNo }}</div>
+              </div>
+            </div>
+            
+            <!-- 底部操作栏 -->
+            <div class="border-t border-gray-100 px-4 py-2.5 flex items-center justify-between bg-gray-50/50" @click.stop>
+              <span class="text-xs text-gray-400">{{ formatTime(order.createdAt) }}</span>
+              <button 
+                @click="openEditModal(order)"
+                class="text-primary font-medium text-xs px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                {{ t('order.manage.editOrder') }}
+              </button>
+            </div>
+          </div>
+        </template>
+
+        <!-- 空状态 -->
+        <div v-else class="py-16 text-center text-gray-500">
+          <div class="w-16 h-16 mx-auto mb-4 bg-gray-50 rounded-full flex items-center justify-center">
+            <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+          <p>{{ t('order.portal.emptyOrders') }}</p>
+        </div>
+      </div>
     </div>
 
     <!-- 分页 -->
