@@ -65,7 +65,12 @@
           </tr>
           
           <template v-else-if="orders.length > 0">
-            <tr v-for="order in orders" :key="order.id" class="hover:bg-gray-50 transition-colors group">
+            <tr 
+              v-for="order in orders" 
+              :key="order.id" 
+              class="hover:bg-gray-50 transition-colors group cursor-pointer"
+              @click="openDetailModal(order)"
+            >
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
                   <!-- 缩略图 -->
@@ -99,18 +104,12 @@
                 />
               </td>
               <td class="px-4 py-3 text-gray-500 text-xs">{{ formatTime(order.createdAt) }}</td>
-              <td class="px-4 py-3 text-right">
+              <td class="px-4 py-3 text-right" @click.stop>
                 <button 
                   @click="openEditModal(order)"
                   class="text-primary hover:text-gray-900 font-medium text-xs border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   {{ t('order.manage.editOrder') }}
-                </button>
-                <button 
-                  @click="openDetailModal(order)"
-                  class="ml-2 text-secondary hover:text-primary font-medium text-xs border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  {{ t('common.view') }}
                 </button>
               </td>
             </tr>
@@ -162,6 +161,8 @@
             :order="viewingOrder" 
             mode="admin"
             @back="closeDetailModal"
+            @comment="handleAdminComment"
+            @refresh="refreshAfterComment"
           />
         </div>
       </div>
@@ -292,5 +293,35 @@ const formatTime = (timestamp) => {
   if (!timestamp) return '-';
   const date = new Date(timestamp);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+// 管理端留言
+const handleAdminComment = async (comment) => {
+  if (!viewingOrder.value || !comment.trim()) return;
+
+  try {
+    const res = await fetch(`/api/manage/orders/${viewingOrder.value.id}/comment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comment }),
+      credentials: 'include'
+    });
+    const result = await res.json();
+    if (result.success) {
+      // 刷新详情
+      refreshAfterComment();
+    }
+  } catch (e) {
+    console.error('Admin comment error', e);
+  }
+};
+
+// 刷新详情
+const refreshAfterComment = async () => {
+  if (!viewingOrder.value) return;
+  const fullOrder = await getOrder(viewingOrder.value.id);
+  if (fullOrder) {
+    viewingOrder.value = fullOrder;
+  }
 };
 </script>

@@ -13,17 +13,34 @@
       >
         <img :src="file.url" class="w-full h-full object-cover">
         
-        <!-- 删除按钮 -->
-        <button 
+        <!-- 操作遮罩层 -->
+        <div 
           v-if="!readonly"
-          type="button"
-          @click="removeFile(index)"
-          class="absolute top-1 right-1 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+          class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2"
         >
-          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-        </button>
+          <!-- 替换按钮 -->
+          <label class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center cursor-pointer hover:bg-white transition-colors">
+            <input 
+              type="file" 
+              accept="image/*" 
+              class="hidden"
+              @change="(e) => replaceFile(index, e)"
+            >
+            <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+          </label>
+          <!-- 删除按钮 -->
+          <button 
+            type="button"
+            @click="removeFile(index)"
+            class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+          >
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </button>
+        </div>
 
         <!-- 主图标记 -->
         <div v-if="index === 0" class="absolute bottom-1 left-1 px-1.5 py-0.5 bg-primary text-white text-[10px] rounded shadow-sm">
@@ -157,9 +174,60 @@ const handleFileSelect = async (e) => {
   e.target.value = '';
 };
 
-const removeFile = (index) => {
+const removeFile = async (index) => {
+  const file = props.modelValue[index];
+  // 尝试从后端删除文件
+  if (file.id) {
+    try {
+      await fetch(`/api/v1/files/${file.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+    } catch (e) {
+      console.warn('Failed to delete file from server', e);
+    }
+  }
   const newFiles = [...props.modelValue];
   newFiles.splice(index, 1);
   emit('update:modelValue', newFiles);
+};
+
+// 替换文件
+const replaceFile = async (index, e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+
+  const oldFile = props.modelValue[index];
+
+  try {
+    // 上传新文件
+    const compressed = await compressImage(file);
+    const compressedFile = new File([compressed], file.name, { type: 'image/jpeg' });
+    const uploaded = await uploadFile(compressedFile);
+
+    // 删除旧文件
+    if (oldFile.id) {
+      try {
+        await fetch(`/api/v1/files/${oldFile.id}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+      } catch (e) {
+        console.warn('Failed to delete old file', e);
+      }
+    }
+
+    // 替换
+    const newFiles = [...props.modelValue];
+    newFiles[index] = {
+      id: uploaded.id,
+      url: `/file/${uploaded.storage_key || uploaded.storageKey}`
+    };
+    emit('update:modelValue', newFiles);
+  } catch (err) {
+    console.error(err);
+    addToast({ message: t('uploadQueue.uploadFailed'), type: 'error' });
+  }
 };
 </script>
