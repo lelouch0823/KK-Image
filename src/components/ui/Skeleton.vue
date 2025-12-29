@@ -1,0 +1,91 @@
+<template>
+  <div class="animate-pulse" :class="containerClass">
+    <!-- 预设形状 -->
+    <template v-if="type === 'text'">
+      <div class="h-4 bg-gray-200 rounded" :class="widthClass"></div>
+    </template>
+
+    <template v-else-if="type === 'avatar'">
+      <div class="rounded-full bg-gray-200" :class="avatarSizeClass"></div>
+    </template>
+
+    <template v-else-if="type === 'image'">
+      <div class="bg-gray-200 rounded-lg" :class="imageSizeClass"></div>
+    </template>
+
+    <template v-else-if="type === 'card'">
+      <div class="bg-gray-50 rounded-xl p-4 space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-gray-200 rounded-full"></div>
+          <div class="flex-1 space-y-2">
+            <div class="h-4 bg-gray-200 rounded w-24"></div>
+            <div class="h-3 bg-gray-200 rounded w-32"></div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'table-row'">
+      <tr>
+        <td v-for="i in columns" :key="i" class="px-4 py-4">
+          <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+        </td>
+      </tr>
+    </template>
+
+    <!-- 自定义形状 -->
+    <template v-else>
+      <div class="bg-gray-200 rounded" :class="customClass"></div>
+    </template>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue';
+
+const props = defineProps({
+  type: {
+    type: String,
+    default: 'text',
+    validator: (v) => ['text', 'avatar', 'image', 'card', 'table-row', 'custom'].includes(v)
+  },
+  width: {
+    type: String,
+    default: 'full'
+  },
+  height: {
+    type: String,
+    default: ''
+  },
+  count: {
+    type: Number,
+    default: 1
+  },
+  columns: {
+    type: Number,
+    default: 4
+  },
+  containerClass: String,
+  customClass: String
+});
+
+const widthClass = computed(() => {
+  const widths = {
+    full: 'w-full',
+    '3/4': 'w-3/4',
+    '2/3': 'w-2/3',
+    '1/2': 'w-1/2',
+    '1/3': 'w-1/3',
+    '1/4': 'w-1/4'
+  };
+  return widths[props.width] || `w-[${props.width}]`;
+});
+
+const avatarSizeClass = computed(() => {
+  return props.height ? `w-${props.height} h-${props.height}` : 'w-10 h-10';
+});
+
+const imageSizeClass = computed(() => {
+  return props.height ? `h-${props.height}` : 'aspect-square w-full';
+});
+</script>
