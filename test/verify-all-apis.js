@@ -13,6 +13,11 @@ let cookie = '';
 let userId = '';
 let testFolderId = null;
 let testFileId = null;
+// New variables for Order System
+let salespersonId = null;
+let salespersonToken = null;
+let orderId = null;
+let salesCookie = '';
 
 // ==================== Helper Functions ====================
 
@@ -421,12 +426,175 @@ async function runTests() {
     assertStatus(deleteUserRes, 200, 'Delete User failed');
     logSuccess('DELETE /api/v1/users/:id');
 
-    // ==================== Phase 11: Cleanup ====================
-    logPhase('Phase 11: Cleanup');
+
+
+    // ==================== Phase 12: Salesperson Management (Admin) ====================
+    logPhase('Phase 12: Salesperson Management');
+
+    // Create Salesperson
+    const createSalespersonRes = await request('POST', '/api/manage/salespersons', {
+        name: 'Test Salesperson',
+        store: 'Main Store',
+        phone: '13800000000',
+        password: 'password123'
+    });
+    assertStatus(createSalespersonRes, 201, 'Create Salesperson failed');
+    salespersonId = createSalespersonRes.data.data.id;
+    salespersonToken = createSalespersonRes.data.data.accessToken;
+    logSuccess('POST /api/manage/salespersons');
+
+    // List Salespersons
+    const listSalespersonsRes = await request('GET', '/api/manage/salespersons');
+    assertStatus(listSalespersonsRes, 200, 'List Salespersons failed');
+    logSuccess('GET /api/manage/salespersons');
+
+    // Get Salesperson Details
+    const getSalespersonRes = await request('GET', `/api/manage/salespersons/${salespersonId}`);
+    assertStatus(getSalespersonRes, 200, 'Get Salesperson Details failed');
+    logSuccess('GET /api/manage/salespersons/:id');
+
+    // Update Salesperson
+    const updateSalespersonRes = await request('PATCH', `/api/manage/salespersons/${salespersonId}`, {
+        store: 'Updated Store'
+    });
+    assertStatus(updateSalespersonRes, 200, 'Update Salesperson failed');
+    logSuccess('PATCH /api/manage/salespersons/:id');
+
+    // Reset Token
+    const resetTokenRes = await request('POST', `/api/manage/salespersons/${salespersonId}/reset-token`);
+    assertStatus(resetTokenRes, 200, 'Reset Salesperson Token failed');
+    salespersonToken = resetTokenRes.data.data.accessToken; // Update token for next phase
+    logSuccess('POST /api/manage/salespersons/:id/reset-token');
+
+    // ==================== Phase 13: Order Lifecycle (Sales Side) ====================
+    logPhase('Phase 13: Order Lifecycle (Sales Side)');
+
+    // Sales Login
+    // Note: We need to NOT use the admin cookie for these requests.
+    // Helper to request without admin cookie
+    const salesRequest = async (method, path, body = null, headers = {}) => {
+        const opts = {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Cookie': salesCookie,
+                ...headers
+            }
+        };
+        if (body) opts.body = JSON.stringify(body);
+        const res = await fetch(`${BASE_URL}${path}`, opts);
+        let data = null;
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) data = await res.json();
+        else data = await res.text();
+        return { status: res.status, data, res };
+    };
+
+    const salesLoginRes = await salesRequest('POST', `/api/order/${salespersonToken}/auth`, {
+        password: 'password123'
+    });
+    assertStatus(salesLoginRes, 200, 'Salesperson Login failed');
+    salesCookie = salesLoginRes.res.headers.get('set-cookie').split(';')[0];
+    logSuccess('POST /api/order/:token/auth');
+
+    // Verify Sales Auth
+    const salesCheckRes = await salesRequest('GET', `/api/order/${salespersonToken}/auth`);
+    assertStatus(salesCheckRes, 200, 'Salesperson Auth Check failed');
+    logSuccess('GET /api/order/:token/auth');
+
+    // Create Order
+    const createOrderRes = await salesRequest('POST', `/api/order/${salespersonToken}/orders`, {
+        name: 'Test Product',
+        size: 'L',
+        color: 'Black',
+        material: 'Cotton',
+        remark: 'Urgent',
+        fileIds: [] // Assuming no files for simplicity, or we could reuse testFileId if we made it public or handled perms
+    });
+    assertStatus(createOrderRes, 201, 'Create Order failed');
+    orderId = createOrderRes.data.data.id;
+    logSuccess('POST /api/order/:token/orders');
+
+    // List Orders (Sales)
+    const listSalesOrdersRes = await salesRequest('GET', `/api/order/${salespersonToken}/orders`);
+    assertStatus(listSalesOrdersRes, 200, 'List Sales Orders failed');
+    logSuccess('GET /api/order/:token/orders');
+
+    // Get Order Detail (Sales)
+    const getSalesOrderRes = await salesRequest('GET', `/api/order/${salespersonToken}/orders/${orderId}`);
+    assertStatus(getSalesOrderRes, 200, 'Get Sales Order Detail failed');
+    logSuccess('GET /api/order/:token/orders/:id');
+
+    // Sales Comment
+    const salesCommentRes = await salesRequest('POST', `/api/order/${salespersonToken}/orders/${orderId}/comment`, {
+        comment: 'Customer asking for update'
+    });
+    assertStatus(salesCommentRes, 200, 'Sales Add Comment failed');
+    logSuccess('POST /api/order/:token/orders/:id/comment');
+
+    // Read Notification
+    const readOrderRes = await salesRequest('PATCH', `/api/order/${salespersonToken}/orders/${orderId}/read`);
+    assertStatus(readOrderRes, 200, 'Sales Mark Read failed');
+    logSuccess('PATCH /api/order/:token/orders/:id/read');
+
+    // ==================== Phase 14: Order Management (Admin Side) ====================
+    logPhase('Phase 14: Order Management (Admin Side)');
+
+    // List Orders (Admin)
+    const listAdminOrdersRes = await request('GET', '/api/manage/orders');
+    assertStatus(listAdminOrdersRes, 200, 'Admin List Orders failed');
+    logSuccess('GET /api/manage/orders');
+
+    // Get Order Details (Admin)
+    const getAdminOrderRes = await request('GET', `/api/manage/orders/${orderId}`);
+    assertStatus(getAdminOrderRes, 200, 'Admin Get Order Detail failed');
+    logSuccess('GET /api/manage/orders/:id');
+
+    // Update Order Info
+    const updateOrderRes = await request('PATCH', `/api/manage/orders/${orderId}`, {
+        updates: { size: 'XL' },
+        reason: 'Customer requested change'
+    });
+    assertStatus(updateOrderRes, 200, 'Admin Update Order Info failed');
+    logSuccess('PATCH /api/manage/orders/:id');
+
+    // Change Status
+    const changeStatusRes = await request('PATCH', `/api/manage/orders/${orderId}/status`, {
+        status: 'production',
+        note: 'Starting production'
+    });
+    assertStatus(changeStatusRes, 200, 'Admin Change Order Status failed');
+    logSuccess('PATCH /api/manage/orders/:id/status');
+
+    // Admin Comment
+    const adminCommentRes = await request('POST', `/api/manage/orders/${orderId}/comment`, {
+        comment: ' production started'
+    });
+    assertStatus(adminCommentRes, 200, 'Admin Add Comment failed');
+    logSuccess('POST /api/manage/orders/:id/comment');
+
+    // ==================== Cleanup Salesperson ====================
+    // Delete Salesperson (Should fail if orders exist? API logic says check orders. We should probably keep it or clean orders first? 
+    // The current delete API implementation blocks deletion if orders exist: "SELECT COUNT(*) as count FROM orders WHERE salesperson_id = ?".
+    // So we can't delete the salesperson yet. Since we don't have a "Delete Order" API for admins (it wasn't in the spec/tasks), 
+    // we might skip deleting the salesperson or just test that it fails.)
+
+    // Test Delete Salesperson fail
+    const deleteSalespersonFail = await request('DELETE', `/api/manage/salespersons/${salespersonId}`);
+    assertStatus(deleteSalespersonFail, 400, 'Delete Salesperson should fail with orders');
+    logSuccess('DELETE /api/manage/salespersons/:id (Expected 400)');
+
+    // Clean up order manually via DB or leave it? 
+    // The previous script leaves some data. We'll leave it for now as "persistent test data" or until we add an Order Delete API.
+    // Actually, let's keep it simple and just verify the delete rejection.
+
+    // ==================== Phase 15: Cleanup & Final Checks ====================
+    logPhase('Phase 15: Cleanup & Final Checks');
 
     // Delete File
     if (testFileId) {
         const deleteFileRes = await request('DELETE', `/api/v1/files/${testFileId}`);
+        // It might be 200 or 404 if already deleted, just log status
         console.log(`Cleanup File: ${deleteFileRes.status}`);
     }
 

@@ -83,6 +83,35 @@ export const MSG = {
         DELETE_SUCCESS: 'Webhook 已删除'
     },
 
+    // 销售人员管理
+    SALESPERSON: {
+        NOT_FOUND: '销售人员不存在',
+        CREATE_SUCCESS: '销售人员创建成功',
+        UPDATE_SUCCESS: '销售人员信息已更新',
+        DELETE_SUCCESS: '销售人员已删除',
+        TOKEN_RESET: '访问链接已重置',
+        DISABLED: '该账户已被禁用',
+        ENABLED: '该账户已启用',
+        INVALID_PASSWORD: '密码错误',
+        PASSWORD_REQUIRED: '请输入密码',
+        NAME_REQUIRED: '销售姓名不能为空',
+        TOKEN_CONFLICT: '访问令牌冲突，请重试'
+    },
+
+    // 订单管理
+    ORDER: {
+        NOT_FOUND: '订单不存在',
+        CREATE_SUCCESS: '预定申请提交成功',
+        UPDATE_SUCCESS: '订单已更新',
+        DELETE_SUCCESS: '订单已删除',
+        STATUS_CHANGED: '订单状态已更新',
+        REASON_REQUIRED: '修改订单信息时必须填写理由',
+        COMMENT_ADDED: '留言已添加',
+        ALREADY_READ: '已标记为已读',
+        INVALID_STATUS: '无效的订单状态',
+        NO_PERMISSION: '无权访问此订单'
+    },
+
     // 通用错误
     COMMON: {
         LOAD_FAILED: '获取数据失败',

@@ -1,0 +1,255 @@
+<template>
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" @click.self="$emit('close')">
+    <div class="bg-white rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scale-in">
+      <!-- 头部 -->
+      <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">{{ t('order.manage.editOrder') }}</h3>
+          <p class="text-sm text-gray-500 mt-0.5">{{ order?.orderNo }}</p>
+        </div>
+        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- 内容区 (可滚动) -->
+      <div class="flex-1 overflow-y-auto p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- 左侧：表单 -->
+          <div class="space-y-4">
+            <h4 class="text-sm font-medium text-gray-900 border-b border-gray-100 pb-2">
+              {{ t('order.detail.currentInfo') }}
+            </h4>
+
+            <!-- 商品名称 -->
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.productName') }}</label>
+              <input 
+                v-model="form.name"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none"
+              >
+            </div>
+
+            <!-- 规格尺寸 -->
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.size') }}</label>
+              <input 
+                v-model="form.size"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none"
+              >
+            </div>
+
+            <!-- 颜色 -->
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.color') }}</label>
+              <input 
+                v-model="form.color"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none"
+              >
+            </div>
+
+            <!-- 材质 -->
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.material') }}</label>
+              <input 
+                v-model="form.material"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none"
+              >
+            </div>
+
+            <!-- 备注 -->
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.remark') }}</label>
+              <textarea 
+                v-model="form.remark"
+                rows="3"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none resize-none"
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- 右侧：原始信息 & 图片 -->
+          <div class="space-y-6">
+            <!-- 原始信息对比 -->
+            <div>
+              <h4 class="text-sm font-medium text-gray-900 border-b border-gray-100 pb-2 mb-3">
+                {{ t('order.detail.originalInfo') }}
+              </h4>
+              <div class="space-y-3 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
+                <div class="flex justify-between">
+                  <span class="text-gray-400 text-xs">{{ t('order.form.productName') }}:</span>
+                  <span>{{ originalData.name || '-' }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400 text-xs">{{ t('order.form.size') }}:</span>
+                  <span>{{ originalData.size || '-' }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400 text-xs">{{ t('order.form.color') }}:</span>
+                  <span>{{ originalData.color || '-' }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400 text-xs">{{ t('order.form.material') }}:</span>
+                  <span>{{ originalData.material || '-' }}</span>
+                </div>
+                <div class="block">
+                  <span class="text-gray-400 text-xs block mb-1">{{ t('order.form.remark') }}:</span>
+                  <p class="whitespace-pre-wrap">{{ originalData.remark || '-' }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 图片预览 -->
+             <div v-if="order.files && order.files.length > 0">
+              <h4 class="text-sm font-medium text-gray-900 border-b border-gray-100 pb-2 mb-3">
+                {{ t('order.detail.images') }}
+              </h4>
+              <div class="grid grid-cols-3 gap-2">
+                <div 
+                  v-for="file in order.files" 
+                  :key="file.id"
+                  class="aspect-square rounded border border-gray-200 overflow-hidden cursor-zoom-in group relative"
+                  @click="previewImage(file.url)"
+                >
+                  <img :src="file.url" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 修改理由 (必填) -->
+        <div class="mt-6 pt-6 border-t border-gray-100">
+          <label class="block text-sm font-medium text-gray-900 mb-2">
+            {{ t('order.manage.editReason') }} <span class="text-red-500">*</span>
+          </label>
+          <input 
+            v-model="editReason"
+            type="text"
+            :placeholder="t('order.manage.editReasonPlaceholder')"
+            class="w-full px-4 py-2.5 bg-yellow-50 border border-yellow-200 rounded-lg text-sm focus:ring-yellow-400 focus:border-yellow-400 outline-none text-yellow-800 placeholder-yellow-400/70"
+          >
+          <p class="text-xs text-yellow-600 mt-1.5 flex items-center">
+            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            {{ t('order.manage.editReasonRequired') }}
+          </p>
+        </div>
+      </div>
+
+      <!-- 底部按钮 -->
+      <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 flex-shrink-0">
+        <button 
+          @click="$emit('close')"
+          class="px-5 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-white transition-colors"
+        >
+          {{ t('common.cancel') }}
+        </button>
+        <button 
+          @click="handleSubmit"
+          :disabled="!hasChanges || !editReason.trim() || submitting"
+          class="px-5 py-2 bg-primary text-white font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center shadow-lg shadow-primary/20"
+        >
+          <svg v-if="submitting" class="w-4 h-4 animate-spin mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          {{ t('common.save') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, computed, watch } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+
+const props = defineProps({
+  order: { type: Object, required: true },
+  submitting: Boolean
+});
+
+const emit = defineEmits(['close', 'submit']);
+
+const { t } = useI18n();
+const editReason = ref('');
+
+// 表单数据
+const form = reactive({
+  name: '',
+  size: '',
+  color: '',
+  material: '',
+  remark: ''
+});
+
+// 初始化数据
+watch(() => props.order, (newOrder) => {
+  if (newOrder) {
+    const current = newOrder.currentData || {};
+    form.name = current.name || '';
+    form.size = current.size || '';
+    form.color = current.color || '';
+    form.material = current.material || '';
+    form.remark = current.remark || '';
+  }
+}, { immediate: true });
+
+const originalData = computed(() => props.order.originalData || {});
+const currentData = computed(() => props.order.currentData || {});
+
+// 检查是否有变更
+const hasChanges = computed(() => {
+  if (!props.order) return false;
+  return (
+    form.name !== (currentData.value.name || '') ||
+    form.size !== (currentData.value.size || '') ||
+    form.color !== (currentData.value.color || '') ||
+    form.material !== (currentData.value.material || '') ||
+    form.remark !== (currentData.value.remark || '')
+  );
+});
+
+// 预览图片
+const previewImage = (url) => {
+  window.open(url, '_blank');
+};
+
+// 提交
+const handleSubmit = () => {
+  if (!hasChanges.value || !editReason.value.trim()) return;
+  
+  // 仅提取变更字段
+  const updates = {};
+  if (form.name !== currentData.value.name) updates.name = form.name;
+  if (form.size !== currentData.value.size) updates.size = form.size;
+  if (form.color !== currentData.value.color) updates.color = form.color;
+  if (form.material !== currentData.value.material) updates.material = form.material;
+  if (form.remark !== currentData.value.remark) updates.remark = form.remark;
+
+  emit('submit', { 
+    updates, 
+    reason: editReason.value 
+  });
+};
+</script>
+
+<style scoped>
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+</style>

@@ -420,4 +420,145 @@ export default {
         started: '下载已开始',
         failed: '打包下载失败',
     },
+
+    // 订单模块 (销售端 + 管理端)
+    order: {
+        // 通用
+        title: '预定管理',
+        orderNo: '订单编号',
+        status: '状态',
+        createdAt: '提交时间',
+        updatedAt: '更新时间',
+
+        // 状态枚举
+        statuses: {
+            pending: '待处理',
+            confirmed: '已确认',
+            rejected: '已驳回',
+            production: '生产中',
+            shipping: '在途',
+            arrived: '已到货',
+            delivered: '已交付'
+        },
+
+        // 表单字段
+        form: {
+            productName: '商品名称',
+            productNamePlaceholder: '如：实木餐桌',
+            size: '规格尺寸',
+            sizePlaceholder: '如：2000mm × 900mm',
+            color: '颜色属性',
+            colorPlaceholder: '如：原木色、哑光黑',
+            material: '材质说明',
+            materialPlaceholder: '如：北美黑胡桃木',
+            remark: '备注说明',
+            remarkPlaceholder: '客户特殊要求...',
+            uploadImages: '上传实物图',
+            uploadHint: '支持多图上传，建议上传清晰的实物照片',
+            submit: '提交预定',
+            submitting: '提交中...'
+        },
+
+        // 销售端
+        portal: {
+            welcome: '预定申请',
+            subtitle: '提交商品预定需求',
+            myOrders: '我的预定',
+            newOrder: '新建预定',
+            emptyOrders: '暂无预定记录',
+            emptyHint: '点击右上角按钮提交新的预定申请',
+            viewDetail: '查看详情',
+            hasUpdate: '有新反馈',
+            corrected: '已修正',
+            viewCorrection: '查看修正',
+            submitSuccess: '预定申请已提交',
+            loginTitle: '访问验证',
+            loginSubtitle: '请输入访问密码',
+            rememberMe: '7天内免登录',
+            passwordError: '密码错误，请重试'
+        },
+
+        // 详情页
+        detail: {
+            title: '订单详情',
+            originalInfo: '原始信息',
+            currentInfo: '当前信息',
+            timeline: '操作记录',
+            images: '商品图片',
+            noImages: '暂无图片',
+            addComment: '添加留言',
+            commentPlaceholder: '输入留言内容...',
+            sendComment: '发送',
+            correctionCompare: '修正对比',
+            correctionReason: '修正理由'
+        },
+
+        // 管理端
+        manage: {
+            title: '订单管理',
+            subtitle: '审核和管理预定订单',
+            filterBySalesperson: '按销售筛选',
+            filterByStatus: '按状态筛选',
+            allSalespersons: '全部销售',
+            allStatuses: '全部状态',
+            editOrder: '编辑订单',
+            changeStatus: '变更状态',
+            editReason: '编辑理由',
+            editReasonPlaceholder: '请填写修改原因（必填）',
+            editReasonRequired: '修改信息时必须填写理由',
+            statusNote: '状态备注',
+            statusNotePlaceholder: '如：预计3天后到达门店',
+            confirmStatusChange: '确认变更',
+            batchConfirm: '批量确认',
+            batchReject: '批量驳回'
+        },
+
+        // 时间轴
+        timeline: {
+            created: '提交了初始预定申请',
+            fieldUpdated: '修正了【{field}】字段',
+            statusChanged: '订单状态更新为',
+            comment: '留言',
+            by: '由',
+            reason: '理由'
+        }
+    },
+
+    // 销售人员管理
+    salesperson: {
+        title: '销售管理',
+        subtitle: '管理销售人员账户和访问权限',
+        create: '新建销售',
+        edit: '编辑销售',
+        name: '姓名',
+        namePlaceholder: '输入销售姓名',
+        store: '门店/区域',
+        storePlaceholder: '如：北京朝阳店',
+        phone: '联系电话',
+        phonePlaceholder: '输入手机号码',
+        password: '访问密码',
+        passwordPlaceholder: '设置访问密码',
+        passwordHint: '密码用于销售访问专属链接时验证',
+        accessLink: '专属链接',
+        copyLink: '复制链接',
+        resetLink: '重置链接',
+        resetLinkConfirm: '重置后原链接将失效，确定继续？',
+        status: '状态',
+        active: '已启用',
+        disabled: '已禁用',
+        enable: '启用',
+        disable: '禁用',
+        disableConfirm: '禁用后该销售将无法登录，确定继续？',
+        orderCount: '订单数',
+        lastActive: '最后活跃',
+        never: '从未',
+        createSuccess: '销售创建成功',
+        updateSuccess: '销售信息已更新',
+        deleteConfirm: '确定要删除销售 "{name}" 吗？该操作不可恢复。',
+        deleteSuccess: '销售已删除',
+        linkCopied: '链接已复制',
+        linkReset: '链接已重置',
+        emptyList: '暂无销售人员',
+        emptyHint: '点击上方按钮添加第一个销售'
+    }
 };

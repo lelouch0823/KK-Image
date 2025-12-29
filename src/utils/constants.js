@@ -48,14 +48,34 @@ export const API = {
     // 认证
     LOGIN: '/api/v1/auth/login',
     LOGOUT: '/api/v1/auth/logout',
-    USER: '/api/v1/auth/me'
+    USER: '/api/v1/auth/me',
+
+    // 销售端订单 API (公开，Token 鉴权)
+    ORDER_AUTH: (token) => `/api/order/${token}/auth`,
+    ORDER_LIST: (token) => `/api/order/${token}/orders`,
+    ORDER_CREATE: (token) => `/api/order/${token}/orders`,
+    ORDER_DETAIL: (token, id) => `/api/order/${token}/orders/${id}`,
+    ORDER_COMMENT: (token, id) => `/api/order/${token}/orders/${id}/comment`,
+    ORDER_READ: (token, id) => `/api/order/${token}/orders/${id}/read`,
+
+    // 管理端销售人员 API
+    SALESPERSONS: `${API_PREFIX}/salespersons`,
+    SALESPERSON_BY_ID: (id) => `${API_PREFIX}/salespersons/${id}`,
+    SALESPERSON_RESET_TOKEN: (id) => `${API_PREFIX}/salespersons/${id}/reset-token`,
+
+    // 管理端订单 API
+    MANAGE_ORDERS: `${API_PREFIX}/orders`,
+    MANAGE_ORDER_BY_ID: (id) => `${API_PREFIX}/orders/${id}`,
+    MANAGE_ORDER_STATUS: (id) => `${API_PREFIX}/orders/${id}/status`,
+    MANAGE_ORDER_COMMENT: (id) => `${API_PREFIX}/orders/${id}/comment`
 };
 
 // 前端路由 (用于跳转和生成分享链接)
 export const ROUTES = {
     GALLERY: (token) => `/gallery/${token}`,
     SPACE: (token) => `/space/${token}`,
-    FILE: (id) => `/file/${id}`
+    FILE: (id) => `/file/${id}`,
+    ORDER_PORTAL: (token) => `/order/${token}`
 };
 
 // 分页默认值

@@ -1,6 +1,7 @@
 # =============================================================================
 # KK-Image Wrangler 配置文件
 # 参考: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
+# Trigger Reload
 # =============================================================================
 
 name = "kk-image"

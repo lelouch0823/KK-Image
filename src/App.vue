@@ -50,6 +50,8 @@ import Dashboard from '@/views/Dashboard.vue';
 import FileManager from '@/views/FileManager/index.vue';
 import SpaceManager from '@/views/SpaceManager/index.vue';
 import Stats from '@/views/Stats.vue';
+import OrderManager from '@/components/OrderManager.vue';
+import SalespersonManager from '@/components/SalespersonManager.vue';
 
 const { currentView } = useView();
 const { checkAuth, isAuthenticated, isLoading } = useAuth();
@@ -60,6 +62,8 @@ const currentComponent = computed(() => {
     case 'files': return FileManager;
     case 'spaces': return SpaceManager;
     case 'stats': return Stats;
+    case 'salespersons': return SalespersonManager;
+    case 'orders': return OrderManager;
     default: return Dashboard;
   }
 });
