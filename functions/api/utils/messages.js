@@ -11,6 +11,10 @@ export const MSG = {
         FORBIDDEN: '权限不足',
         INVALID_CREDENTIALS: '用户名或密码错误',
         VERIFY_FAILED: '人机验证失败',
+        VERIFY_SKIPPED: '验证已跳过',
+        VERIFY_SUCCESS: '验证通过',
+        VERIFY_ERROR: '验证服务错误',
+        MISSING_TOKEN: '缺少验证令牌',
         UNCONFIGURED: '认证未配置',
         USERNAME_EXISTS: '用户名已存在',
         CANNOT_DELETE_SELF: '不能删除自己的账户',
@@ -27,7 +31,11 @@ export const MSG = {
         MOVE_SUCCESS: '已移动 {count} 个文件',
         UPDATE_SUCCESS: '文件已更新',
         NAME_REQUIRED: '文件名不能为空',
-        NAME_TOO_LONG: '文件名过长'
+        NAME_TOO_LONG: '文件名过长',
+        SELECT_FILE: '请选择要上传的文件',
+        INVALID_TYPE: '仅支持 JPG、PNG、GIF、WebP 格式',
+        SIZE_LIMIT: '文件大小不能超过 10MB',
+        UPLOAD_SUCCESS: '上传成功'
     },
 
     FOLDER: {

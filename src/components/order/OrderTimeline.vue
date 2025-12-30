@@ -51,16 +51,31 @@
                 {{ t('order.timeline.fieldUpdated', { field: getFieldLabel(update.fieldName) }) }}
               </p>
               <div class="flex items-center gap-2 mt-1 text-xs">
-                <span class="line-through text-[var(--color-danger-text)]/60"> {{ update.oldValue }}</span>
+                <span class="line-through text-[var(--color-danger-text)]/60"> {{ formatFieldValue(update.fieldName, update.oldValue) }}</span>
                 <svg class="w-3 h-3 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
                 </svg>
-                <span class="text-[var(--color-success-text)] font-medium">{{ update.newValue }}</span>
+                <span class="text-[var(--color-success-text)] font-medium">{{ formatFieldValue(update.fieldName, update.newValue) }}</span>
               </div>
               <p v-if="update.reason" class="text-xs text-secondary mt-1">
                 {{ t('order.timeline.reason') }}: {{ update.reason }}
               </p>
             </div>
+          </div>
+
+          <!-- 图片更新 -->
+          <div v-else-if="item.actionType === 'files_updated'" class="text-sm">
+            <p class="text-primary font-medium">{{ t('order.timeline.imagesUpdated') }}</p>
+            <div class="flex items-center gap-2 mt-1 text-xs">
+              <span class="line-through text-[var(--color-danger-text)]/60">{{ formatImageCount(item.oldValue) }}</span>
+              <svg class="w-3 h-3 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+              </svg>
+              <span class="text-[var(--color-success-text)] font-medium">{{ formatImageCount(item.newValue) }}</span>
+            </div>
+            <p v-if="item.reason" class="text-xs text-secondary mt-1">
+              {{ t('order.timeline.reason') }}: {{ item.reason }}
+            </p>
           </div>
 
           <!-- 状态变更 -->
@@ -196,11 +211,33 @@ const getFieldLabel = (fieldName) => {
     color: t('order.form.color'),
     material: t('order.form.material'),
     remark: t('order.form.remark'),
-    deadline: t('order.form.deadline'),
+    deadline: t('order.form.expectedArrival'),
     brand: t('order.form.brand'),
-    series: t('order.form.series')
+    series: t('order.form.series'),
+    images: t('order.detail.images')
   };
   return labels[fieldName] || fieldName;
+};
+
+// 格式化字段值 (处理图片数量等特殊显示)
+const formatFieldValue = (fieldName, value) => {
+  if (fieldName === 'images' && value) {
+    const match = value.match(/(\d+)/);
+    if (match) {
+      return t('order.timeline.imageCount', { count: match[1] });
+    }
+  }
+  return value || '-';
+};
+
+// 格式化图片数量
+const formatImageCount = (value) => {
+  if (!value) return '-';
+  const match = value.match(/(\d+)/);
+  if (match) {
+    return t('order.timeline.imageCount', { count: match[1] });
+  }
+  return value;
 };
 
 // 格式化时间

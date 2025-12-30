@@ -33,6 +33,7 @@
 
 <script setup>
 import { ref, onUnmounted, computed, nextTick } from 'vue';
+import { generateRandomId } from '@/utils/common';
 
 const props = defineProps({
   content: {
@@ -42,13 +43,18 @@ const props = defineProps({
   delay: {
     type: Number,
     default: 500
-  } // Reduced delay for better UX
+  }, // Reduced delay for better UX
+  position: {
+    type: String,
+    default: 'top',
+    validator: (value) => ['top', 'bottom', 'left', 'right'].includes(value)
+  }
 });
 
 const isVisible = ref(false);
 const triggerRef = ref(null);
 const contentRef = ref(null);
-const tooltipId = `tooltip-${Math.random().toString(36).substr(2, 9)}`;
+const tooltipId = generateRandomId('tooltip');
 let timer = null;
 
 const position = ref({ top: 0, left: 0 });

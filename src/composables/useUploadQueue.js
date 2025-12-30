@@ -1,4 +1,6 @@
+
 import { ref, computed, shallowRef } from 'vue';
+import { generateRandomId } from '@/utils/common';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { API, MAX_UPLOAD_SIZE } from '@/utils/constants';
@@ -97,7 +99,7 @@ export function useUploadQueue() {
 
         if (invalidFiles.length > 0) {
             addToast({
-                message: t('uploadQueue.fileTooLarge', { count: invalidFiles.length }) + `: ${invalidFiles.slice(0, 2).join(', ')}${invalidFiles.length > 2 ? '...' : ''}`,
+                message: t('uploadQueue.fileTooLarge', { count: invalidFiles.length }) + `: ${invalidFiles.slice(0, 2).join(', ')}${invalidFiles.length > 2 ? '...' : ''} `,
                 type: 'error',
                 duration: 5000
             });
@@ -106,7 +108,7 @@ export function useUploadQueue() {
         if (validFiles.length === 0) return;
 
         const newItems = validFiles.map(file => ({
-            id: Date.now() + Math.random().toString(36).substr(2, 9),
+            id: generateRandomId('upload'),
             file,
             name: file.name,
             size: file.size,
@@ -207,7 +209,7 @@ export function useUploadQueue() {
                 }
             } else {
                 item.status = 'error';
-                item.error = `HTTP Error ${xhr.status}`;
+                item.error = `HTTP Error ${xhr.status} `;
             }
             processQueue();
         };

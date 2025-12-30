@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { generateRandomId } from '@/utils/common';
 
 const toasts = ref([]);
 
@@ -17,7 +18,7 @@ export function useToast() {
             d = duration;
         }
 
-        const id = Date.now() + Math.random().toString(36).substr(2, 9);
+        const id = generateRandomId('toast');
         toasts.value.push({ id, message: msg, type: t });
 
         if (d > 0) {

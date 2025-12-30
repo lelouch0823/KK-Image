@@ -48,14 +48,13 @@ export async function triggerWebhook(env, eventType, data) {
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') {
         successCount++;
-        // console.log(`Webhook ${webhooks[index].id} sent successfully`);
       } else {
         failureCount++;
         console.error(`Webhook ${webhooks[index].id} failed:`, result.reason);
       }
     });
 
-    // console.log(`Webhook summary for ${eventType}: ${successCount} success, ${failureCount} failed`);
+
 
   } catch (error) {
     console.error('Error triggering webhooks:', error);

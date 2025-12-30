@@ -31,7 +31,7 @@
             <div class="text-xs text-secondary truncate">{{ person.store || '-' }}</div>
             <!-- 订单数 -->
             <div class="mt-2 flex items-center justify-center gap-1">
-              <span class="text-xs text-secondary">订单:</span>
+              <span class="text-xs text-secondary">{{ t('salesperson.table.orders') }}:</span>
               <StatusBadge variant="info" size="xs">{{ person.orderCount }}</StatusBadge>
             </div>
             <!-- 状态标签 -->

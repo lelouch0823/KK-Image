@@ -545,6 +545,8 @@ export default {
         timeline: {
             created: '提交了初始预定申请',
             fieldUpdated: '修正了【{field}】字段',
+            imagesUpdated: '更新了商品图片',
+            imageCount: '{count} 张图片',
             statusChanged: '订单状态更新为',
             comment: '留言',
             by: '由',

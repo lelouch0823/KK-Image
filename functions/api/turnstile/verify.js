@@ -3,6 +3,7 @@
  * POST /api/turnstile/verify - 验证 Turnstile token
  */
 import { success, error } from '../utils/response.js';
+import { MSG } from '../utils/messages.js';
 
 export async function onRequestPost(context) {
     const { request, env } = context;
@@ -11,7 +12,7 @@ export async function onRequestPost(context) {
         const { token } = await request.json();
 
         if (!token) {
-            return error('缺少验证令牌', 400);
+            return error(MSG.AUTH.MISSING_TOKEN, 400);
         }
 
         // Get secret key from environment
@@ -19,7 +20,7 @@ export async function onRequestPost(context) {
         if (!secretKey) {
             console.warn('TURNSTILE_SECRET_KEY not configured, skipping verification');
             // Graceful degradation: allow through if not configured
-            return success(null, '验证已跳过');
+            return success(null, MSG.AUTH.VERIFY_SKIPPED);
         }
 
         // Verify with Cloudflare Turnstile API
@@ -36,14 +37,14 @@ export async function onRequestPost(context) {
         const result = await verifyResponse.json();
 
         if (result.success) {
-            return success(null, '验证通过');
+            return success(null, MSG.AUTH.VERIFY_SUCCESS);
         } else {
             console.error('Turnstile verification failed:', result['error-codes']);
-            return error('验证失败，请重试', 403);
+            return error(MSG.AUTH.VERIFY_FAILED, 403);
         }
     } catch (err) {
         console.error('Turnstile verification error:', err);
-        return error('验证服务错误', 500);
+        return error(MSG.AUTH.VERIFY_ERROR, 500);
     }
 }
 
