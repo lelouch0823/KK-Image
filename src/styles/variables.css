@@ -23,7 +23,7 @@
     /* Secondary (Neutral) */
     --color-secondary: var(--color-gray-500);
     --color-secondary-hover: var(--color-gray-700);
-    
+
     /* Functional Colors */
     --color-success: #10B981;
     --color-success-bg: #D1FAE5;
@@ -41,13 +41,22 @@
     --color-info-bg: #DBEAFE;
     --color-info-text: #1E40AF;
 
+    /* Extra Status Colors */
+    --color-purple: #8B5CF6;
+    --color-purple-bg: #EDE9FE;
+    --color-purple-text: #5B21B6;
+
+    --color-cyan: #06B6D4;
+    --color-cyan-bg: #CFFAFE;
+    --color-cyan-text: #164E63;
+
     /* 背景与边框 */
     --bg-page: var(--color-gray-50);
     --bg-card: #FFFFFF;
     --bg-hover: var(--color-gray-50);
     --bg-active: var(--color-gray-100);
     --bg-muted: var(--color-gray-50);
-    
+
     --border-color: var(--color-gray-200);
     --border-hover: var(--color-gray-300);
 
@@ -55,7 +64,7 @@
     --text-main: var(--color-gray-900);
     --text-secondary: var(--color-gray-500);
     --text-muted: var(--color-gray-400);
-    
+
     /* 交互反馈 */
     --ring-offset: 2px;
     --ring-opacity: 0.5;
@@ -77,4 +86,12 @@
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 
     --transition-base: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Chart Colors */
+    --color-chart-1: #3B82F6;
+    --color-chart-2: #8B5CF6;
+    --color-chart-3: #10B981;
+    --color-chart-4: #F59E0B;
+    --color-chart-5: #EF4444;
+    --color-chart-grid: #F3F4F6;
 }

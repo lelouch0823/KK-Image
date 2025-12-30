@@ -21,13 +21,13 @@
         <!-- 商品名称 -->
         <div>
           <label class="block text-sm font-medium text-primary mb-2">
-            {{ t('order.form.productName') }} <span class="text-[var(--color-danger)]">*</span>
+            {{ t('order.form.productName') }} <span class="text-danger">*</span>
           </label>
           <input 
             v-model="form.name"
             type="text"
             :placeholder="t('order.form.productNamePlaceholder')"
-            class="w-full h-11 px-4 text-sm border border-[var(--border-color)] rounded-lg focus:border-primary focus:outline-none transition-colors"
+            class="input h-11"
             required
           >
         </div>
@@ -42,7 +42,7 @@
               v-model="form.brand"
               type="text"
               :placeholder="t('order.form.brandPlaceholder')"
-              class="w-full h-11 px-4 text-sm border border-[var(--border-color)] rounded-lg focus:border-primary focus:outline-none transition-colors"
+              class="input h-11"
             >
           </div>
           <div>
@@ -53,7 +53,7 @@
               v-model="form.series"
               type="text"
               :placeholder="t('order.form.seriesPlaceholder')"
-              class="w-full h-11 px-4 text-sm border border-[var(--border-color)] rounded-lg focus:border-primary focus:outline-none transition-colors"
+              class="input h-11"
             >
           </div>
         </div>
@@ -67,7 +67,7 @@
             v-model="form.size"
             type="text"
             :placeholder="t('order.form.sizePlaceholder')"
-            class="w-full h-11 px-4 text-sm border border-[var(--border-color)] rounded-lg focus:border-primary focus:outline-none transition-colors"
+            class="input h-11"
           >
         </div>
 
@@ -81,7 +81,7 @@
               v-model="form.color"
               type="text"
               :placeholder="t('order.form.colorPlaceholder')"
-              class="w-full h-11 px-4 text-sm border border-[var(--border-color)] rounded-lg focus:border-primary focus:outline-none transition-colors"
+              class="input h-11"
             >
           </div>
           <div>
@@ -92,7 +92,7 @@
               v-model="form.material"
               type="text"
               :placeholder="t('order.form.materialPlaceholder')"
-              class="w-full h-11 px-4 text-sm border border-[var(--border-color)] rounded-lg focus:border-primary focus:outline-none transition-colors"
+              class="input h-11"
             >
           </div>
         </div>
@@ -106,7 +106,7 @@
             v-model="form.remark"
             rows="3"
             :placeholder="t('order.form.remarkPlaceholder')"
-            class="w-full px-4 py-3 text-sm border border-[var(--border-color)] rounded-lg focus:border-primary focus:outline-none resize-none transition-colors"
+            class="input h-auto py-3 resize-none"
           ></textarea>
         </div>
 
@@ -119,8 +119,8 @@
             v-model="form.deadline"
             type="date"
             :min="minDate"
-            class="w-full h-11 px-4 text-sm border border-[var(--border-color)] rounded-lg focus:border-primary focus:outline-none transition-colors appearance-none bg-white"
-            :class="{ 'text-gray-400': !form.deadline }"
+            class="input h-11 appearance-none bg-white"
+            :class="{ 'text-muted': !form.deadline }"
           >
         </div>
       </div>
@@ -130,14 +130,14 @@
         <button 
           type="button"
           @click="$emit('cancel')"
-          class="flex-1 h-12 border border-[var(--border-color)] text-secondary font-medium rounded-xl hover:bg-gray-50 transition-colors"
+          class="flex-1 h-12 border border-[var(--border-color)] text-secondary font-medium rounded-xl hover:bg-[var(--bg-hover)] transition-colors"
         >
           {{ t('common.cancel') }}
         </button>
         <button 
           type="submit"
           :disabled="!form.name || uploadedFiles.length === 0 || isSubmitting"
-          class="flex-1 h-12 bg-primary text-white font-medium rounded-xl hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          class="flex-1 h-12 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
         >
           <svg v-if="isSubmitting" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -155,11 +155,10 @@ import { ref, reactive, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
+import { getTodayISOString } from '@/utils/common';
 import ImageUploader from '../common/ImageUploader.vue';
 
-const minDate = computed(() => {
-  return new Date().toISOString().split('T')[0];
-});
+const minDate = computed(() => getTodayISOString());
 
 const emit = defineEmits(['submit', 'cancel']);
 

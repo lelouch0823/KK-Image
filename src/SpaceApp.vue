@@ -4,7 +4,7 @@
     <!-- 加载状态 -->
     <div v-if="loading" class="min-h-screen flex items-center justify-center">
         <div class="text-center">
-            <div class="w-12 h-12 border-4 border-gray-200 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+            <div class="w-12 h-12 border-4 border-[var(--border-color)] border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
             <p class="text-secondary">{{ t('common.loading') }}</p>
         </div>
     </div>
@@ -22,8 +22,8 @@
     <!-- 错误状态 -->
     <div v-else-if="error" class="min-h-screen flex items-center justify-center px-4">
         <div class="text-center">
-            <div class="w-20 h-20 mx-auto mb-6 bg-red-50 rounded-full flex items-center justify-center">
-                <svg class="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-20 h-20 mx-auto mb-6 bg-[var(--color-danger-bg)] rounded-full flex items-center justify-center">
+                <svg class="w-10 h-10 text-[var(--color-danger-text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                 </svg>
             </div>

@@ -1,6 +1,6 @@
 <template>
-  <div class="bg-white rounded-xl border border-gray-200 p-4">
-    <label v-if="label" class="block text-sm font-medium text-gray-700 mb-3">
+  <div class="bg-white rounded-xl border border-[var(--border-color)] p-4">
+    <label v-if="label" class="block text-sm font-medium text-secondary mb-3">
       {{ label }}
     </label>
     
@@ -9,7 +9,7 @@
       <div 
         v-for="(file, index) in modelValue" 
         :key="file.id"
-        class="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group border-2 transition-all cursor-move"
+        class="relative aspect-square rounded-lg overflow-hidden bg-[var(--bg-muted)] group border-2 transition-all cursor-move"
         :class="getDragClass(index)"
         :data-sortable-index="index"
         draggable="true"
@@ -37,7 +37,7 @@
               class="hidden"
               @change="(e) => replaceFile(index, e)"
             >
-            <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
             </svg>
           </label>
@@ -45,7 +45,7 @@
           <button 
             type="button"
             @click="removeFile(index)"
-            class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+            class="w-8 h-8 bg-danger rounded-full flex items-center justify-center hover:bg-danger/90 transition-colors"
           >
             <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -67,7 +67,7 @@
       <!-- 上传按钮 -->
       <label 
         v-if="!readonly && modelValue.length < maxFiles"
-        class="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-50 transition-colors group"
+        class="aspect-square rounded-lg border-2 border-dashed border-[var(--border-color)] flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-[var(--bg-hover)] transition-colors group"
       >
         <input 
           type="file" 
@@ -76,7 +76,7 @@
           class="hidden"
           @change="handleFileSelect"
         >
-        <svg class="w-6 h-6 text-gray-400 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-6 h-6 text-muted group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
         </svg>
         <span class="text-xs text-secondary mt-1 group-hover:text-primary transition-colors">{{ uploadText }}</span>
@@ -93,6 +93,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useDragSort } from '@/composables/useDragSort';
 import { API } from '@/utils/constants';
+import { generateRandomId } from '@/utils/common';
 
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
@@ -204,7 +205,7 @@ const handleFileSelect = async (e) => {
       if (props.deferred) {
         const blobUrl = URL.createObjectURL(compressed);
         newFiles.push({
-          id: `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: generateRandomId('local'),
           url: blobUrl,
           file: compressedFile,
           isLocal: true
@@ -266,7 +267,7 @@ const replaceFile = async (index, e) => {
     if (props.deferred) {
       const blobUrl = URL.createObjectURL(compressed);
       newFileData = {
-        id: `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: generateRandomId('local'),
         url: blobUrl,
         file: compressedFile,
         isLocal: true

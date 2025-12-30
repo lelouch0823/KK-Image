@@ -8,8 +8,8 @@
   >
     <template #header>
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">{{ t('order.manage.editOrder') }}</h3>
-          <p class="text-sm text-gray-500 mt-0.5">{{ order?.orderNo }}</p>
+          <h3 class="text-lg font-semibold text-primary">{{ t('order.manage.editOrder') }}</h3>
+          <p class="text-sm text-secondary mt-0.5">{{ order?.orderNo }}</p>
         </div>
     </template>
 
@@ -159,17 +159,17 @@
     </div>
 
     <!-- 修改理由 (管理端必填) -->
-    <div v-if="mode === 'admin'" class="mt-6 pt-6 border-t border-gray-100">
-      <label class="block text-sm font-medium text-gray-900 mb-2">
-        {{ t('order.manage.editReason') }} <span class="text-red-500">*</span>
+    <div v-if="mode === 'admin'" class="mt-6 pt-6 border-t border-[var(--border-color)]">
+      <label class="block text-sm font-medium text-primary mb-2">
+        {{ t('order.manage.editReason') }} <span class="text-danger">*</span>
       </label>
       <input 
         v-model="editReason"
         type="text"
         :placeholder="t('order.manage.editReasonPlaceholder')"
-        class="w-full px-4 py-2.5 bg-yellow-50 border border-yellow-200 rounded-lg text-sm focus:ring-yellow-400 focus:border-yellow-400 outline-none text-yellow-800 placeholder-yellow-400/70"
+        class="w-full px-4 py-2.5 bg-warning-bg border border-warning/20 rounded-lg text-sm focus:ring-warning/40 focus:border-warning outline-none text-warning-text placeholder-warning-text/40"
       >
-      <p class="text-xs text-yellow-600 mt-1.5 flex items-center">
+      <p class="text-xs text-warning-text mt-1.5 flex items-center">
         <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
@@ -180,14 +180,14 @@
     <template #footer>
       <button 
         @click="$emit('close')"
-        class="px-5 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-white transition-colors"
+        class="px-5 py-2 border border-[var(--border-color)] text-secondary font-medium rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
       >
         {{ t('common.cancel') }}
       </button>
       <button 
         @click="handleSubmit"
         :disabled="!isValid || submitting"
-        class="px-5 py-2 bg-primary text-white font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center shadow-lg shadow-primary/20"
+        class="px-5 py-2 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center shadow-lg shadow-primary/20"
       >
         <svg v-if="submitting" class="w-4 h-4 animate-spin mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -203,12 +203,11 @@
 import { ref, reactive, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
+import { getTodayISOString } from '@/utils/common';
 import ImageUploader from './common/ImageUploader.vue';
 import Modal from '@/components/ui/Modal.vue';
 
-const minDate = computed(() => {
-  return new Date().toISOString().split('T')[0];
-});
+const minDate = computed(() => getTodayISOString());
 
 const props = defineProps({
   order: { type: Object, required: true },

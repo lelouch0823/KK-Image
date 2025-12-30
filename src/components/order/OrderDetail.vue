@@ -194,14 +194,14 @@
         <p class="text-xs text-secondary mb-2">{{ formatTime(correction.createdAt) }}</p>
         <div class="flex items-center gap-2 text-sm">
           <span class="text-secondary">{{ correction.fieldName }}:</span>
-          <span class="line-through text-[var(--color-danger-text)]/60"> {{ correction.oldValue }}</span>
+          <span class="line-through text-danger/60"> {{ correction.oldValue }}</span>
           <svg class="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
           </svg>
-          <span class="text-[var(--color-success-text)] font-medium">{{ correction.newValue }}</span>
+          <span class="text-success font-medium">{{ correction.newValue }}</span>
         </div>
         <p class="text-xs text-secondary mt-2">
-          <span class="font-medium">{{ t('order.detail.correctionReason') }}:</span> {{ correction.reason }}
+          <span class="font-medium text-primary">{{ t('order.detail.correctionReason') }}:</span> {{ correction.reason }}
         </p>
       </div>
     </Modal>

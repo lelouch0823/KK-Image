@@ -1,23 +1,23 @@
 export const STATUS_OPTIONS = ['pending', 'confirmed', 'rejected', 'production', 'shipping', 'arrived', 'delivered'];
 
 export const STATUS_STYLES = {
-    pending: 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100',
-    confirmed: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100',
-    rejected: 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100',
-    production: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100',
-    shipping: 'bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100',
-    arrived: 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100',
-    delivered: 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+    pending: 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--color-warning)]/20 hover:bg-[var(--color-warning-bg)]/80',
+    confirmed: 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-info)]/20 hover:bg-[var(--color-info-bg)]/80',
+    rejected: 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger)]/20 hover:bg-[var(--color-danger-bg)]/80',
+    production: 'bg-[var(--color-purple-bg)] text-[var(--color-purple-text)] border-[var(--color-purple)]/20 hover:bg-[var(--color-purple-bg)]/80',
+    shipping: 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan-text)] border-[var(--color-cyan)]/20 hover:bg-[var(--color-cyan-bg)]/80',
+    arrived: 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success)]/20 hover:bg-[var(--color-success-bg)]/80',
+    delivered: 'bg-[var(--color-gray-100)] text-[var(--color-gray-600)] border-[var(--color-gray-200)] hover:bg-[var(--color-gray-200)]'
 };
 
 export const STATUS_DOTS = {
-    pending: 'bg-yellow-500',
-    confirmed: 'bg-blue-500',
-    rejected: 'bg-red-500',
-    production: 'bg-purple-500',
-    shipping: 'bg-cyan-500',
-    arrived: 'bg-green-500',
-    delivered: 'bg-gray-500'
+    pending: 'bg-[var(--color-warning)]',
+    confirmed: 'bg-[var(--color-info)]',
+    rejected: 'bg-[var(--color-danger)]',
+    production: 'bg-[var(--color-purple)]',
+    shipping: 'bg-[var(--color-cyan)]',
+    arrived: 'bg-[var(--color-success)]',
+    delivered: 'bg-[var(--color-gray-500)]'
 };
 
 export const getStatusVariant = (status) => {

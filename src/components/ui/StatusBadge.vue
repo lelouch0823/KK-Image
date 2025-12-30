@@ -43,28 +43,28 @@ const sizeClass = computed(() => {
 
 const variantClass = computed(() => {
   const variants = {
-    default: 'bg-gray-100 text-gray-600',
-    success: 'bg-green-100 text-green-700',
-    warning: 'bg-yellow-100 text-yellow-700',
-    error: 'bg-red-100 text-red-700',
-    info: 'bg-blue-100 text-blue-700',
+    default: 'bg-[var(--color-gray-100)] text-[var(--color-gray-600)]',
+    success: 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]',
+    warning: 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]',
+    error: 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]',
+    info: 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]',
     primary: 'bg-primary/10 text-primary',
-    purple: 'bg-purple-100 text-purple-700',
-    cyan: 'bg-cyan-100 text-cyan-700'
+    purple: 'bg-[var(--color-purple-bg)] text-[var(--color-purple-text)]',
+    cyan: 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan-text)]'
   };
   return variants[props.variant] || variants.default;
 });
 
 const dotClass = computed(() => {
   const dots = {
-    default: 'bg-gray-400',
-    success: 'bg-green-500',
-    warning: 'bg-yellow-500',
-    error: 'bg-red-500',
-    info: 'bg-blue-500',
+    default: 'bg-[var(--text-muted)]',
+    success: 'bg-[var(--color-success)]',
+    warning: 'bg-[var(--color-warning)]',
+    error: 'bg-[var(--color-danger)]',
+    info: 'bg-[var(--color-info)]',
     primary: 'bg-primary',
-    purple: 'bg-purple-500',
-    cyan: 'bg-cyan-500'
+    purple: 'bg-[var(--color-purple)]',
+    cyan: 'bg-[var(--color-cyan)]'
   };
   return dots[props.variant] || dots.default;
 });

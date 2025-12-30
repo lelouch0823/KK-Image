@@ -17,7 +17,7 @@
         >{{ t('spaceManager.media') }}</button>
         <button 
           @click="$emit('close')"
-          class="ml-2 p-2 text-gray-400 hover:text-gray-600"
+          class="ml-2 p-2 text-muted hover:text-primary"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -36,7 +36,7 @@
             <div class="flex items-center gap-2">
               <h2 class="text-lg font-semibold text-primary">{{ t('spaceManager.productInfo') }}</h2>
               <span v-if="form.isPublic" class="px-1.5 py-0.5 text-[10px] font-medium bg-[var(--color-success-bg)] text-[var(--color-success)] rounded-full">🌐 {{ t('spaceManager.publicOn') }}</span>
-              <span v-else class="px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 rounded-full">🔒 {{ t('spaceManager.publicOff') }}</span>
+              <span v-else class="px-1.5 py-0.5 text-[10px] font-medium bg-[var(--bg-muted)] text-secondary rounded-full">🔒 {{ t('spaceManager.publicOff') }}</span>
             </div>
             <p class="text-xs text-secondary mt-1">{{ t('spaceManager.editParams') }}</p>
           </div>
@@ -92,7 +92,7 @@
             <div class="bg-white rounded-xl border border-[var(--border-color)] p-4 shadow-sm">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-lg" :class="form.isPublic ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-secondary'">
+                  <div class="w-8 h-8 rounded-lg" :class="form.isPublic ? 'bg-primary/10 text-primary' : 'bg-[var(--bg-muted)] text-secondary'">
                     <svg class="w-full h-full p-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
                     </svg>
@@ -107,7 +107,7 @@
                 <!-- Toggle Switch -->
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" v-model="form.isPublic" class="sr-only peer">
-                  <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                  <div class="w-9 h-5 bg-[var(--color-gray-200)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
                 </label>
               </div>
               
@@ -134,7 +134,7 @@
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" v-model="passwordEnabled" class="sr-only peer">
-                      <div class="w-7 h-4 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
+                      <div class="w-7 h-4 bg-[var(--color-gray-200)] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
                     </label>
                   </div>
                   <div v-if="passwordEnabled" class="flex gap-2">
@@ -207,7 +207,7 @@
         
         <!-- 移动端顶部操作栏 -->
         <div class="lg:hidden px-4 py-3 border-b border-[var(--border-color)] flex justify-between items-center">
-          <span class="text-sm font-medium text-gray-700">{{ t('spaceManager.media') }}</span>
+          <span class="text-sm font-medium text-primary">{{ t('spaceManager.media') }}</span>
           <button @click="showFileSelector = true" 
             class="flex items-center gap-1 px-3 py-1.5 bg-primary text-white text-xs rounded-lg">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,8 +224,8 @@
               class="group relative aspect-square bg-[var(--bg-muted)] rounded-xl border border-[var(--border-color)] overflow-hidden">
                <img v-if="isImage(file)" :src="file.url" class="w-full h-full object-cover" loading="lazy">
                <div v-else class="w-full h-full flex flex-col items-center justify-center p-4">
-                  <span class="text-xs font-bold text-gray-400 uppercase mb-2">{{ file.name?.split('.').pop() }}</span>
-                  <span class="text-xs text-center text-gray-500 line-clamp-2">{{ file.originalName || file.name }}</span>
+                  <span class="text-xs font-bold text-muted uppercase mb-2">{{ file.name?.split('.').pop() }}</span>
+                  <span class="text-xs text-center text-secondary line-clamp-2">{{ file.originalName || file.name }}</span>
                </div>
                
                <!-- 操作遮罩 -->

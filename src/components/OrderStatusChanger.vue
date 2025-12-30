@@ -16,11 +16,11 @@
     <Teleport to="body">
       <div 
         v-if="isOpen" 
-        class="fixed w-56 bg-white rounded-xl shadow-lg border border-gray-100 z-[100] overflow-hidden animate-fade-in ring-1 ring-black ring-opacity-5"
+        class="fixed w-56 bg-white rounded-xl shadow-lg border border-[var(--border-color)] z-[100] overflow-hidden animate-fade-in ring-1 ring-black ring-opacity-5"
         :style="dropdownStyle"
       >
-        <div class="p-2 border-b border-gray-50 bg-gray-50/50">
-          <h4 class="text-xs font-medium text-gray-500 px-2">{{ t('order.manage.changeStatus') }}</h4>
+        <div class="p-2 border-b border-[var(--bg-muted)] bg-[var(--bg-muted)]/50">
+          <h4 class="text-xs font-medium text-secondary px-2">{{ t('order.manage.changeStatus') }}</h4>
         </div>
         
         <div class="py-1 max-h-64 overflow-y-auto">
@@ -28,8 +28,8 @@
             v-for="s in statusOptions"
             :key="s"
             @click="selectStatus(s)"
-            class="w-full text-left px-4 py-2 text-sm flex items-center justify-between hover:bg-gray-50 transition-colors group"
-            :class="{'bg-primary/5 text-primary': s === status}"
+            class="w-full text-left px-4 py-2 text-sm flex items-center justify-between hover:bg-[var(--bg-hover)] transition-colors group"
+            :class="{'bg-primary/5 text-primary font-medium': s === status}"
           >
             <span 
               class="flex items-center gap-2"
@@ -49,10 +49,10 @@
     <!-- 确认弹窗 -->
     <div v-if="pendingStatus" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" @click.self="cancelChange">
       <div class="bg-white rounded-xl w-full max-w-sm shadow-2xl p-6 animate-scale-in">
-        <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ t('order.manage.confirmStatusChange') }}</h3>
-        <p class="text-sm text-gray-600 mb-4">
+        <h3 class="text-lg font-semibold text-primary mb-2">{{ t('order.manage.confirmStatusChange') }}</h3>
+        <p class="text-sm text-secondary mb-4">
           {{ t('order.timeline.statusChanged') }} 
-          <span class="font-medium text-gray-900 mx-1">
+          <span class="font-medium text-primary mx-1">
             {{ t(`order.statuses.${status}`) }}
           </span>
           →
@@ -63,14 +63,14 @@
 
         <!-- 备注 -->
         <div class="mb-6">
-          <label class="block text-xs font-medium text-gray-500 mb-1">
+          <label class="block text-xs font-medium text-secondary mb-1">
             {{ t('order.manage.statusNote') }}
           </label>
           <input 
             v-model="statusNote"
             type="text"
             :placeholder="t('order.manage.statusNotePlaceholder')"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none"
+            class="input"
             @keyup.enter="confirmChange"
           >
         </div>
@@ -78,13 +78,13 @@
         <div class="flex gap-3">
           <button 
             @click="cancelChange" 
-            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+            class="flex-1 px-4 py-2 border border-[var(--border-color)] text-secondary font-medium rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
           >
             {{ t('common.cancel') }}
           </button>
           <button 
             @click="confirmChange"
-            class="flex-1 px-4 py-2 bg-primary text-white font-medium rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+            class="flex-1 px-4 py-2 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
           >
             <svg v-if="submitting" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
