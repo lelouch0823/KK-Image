@@ -10,7 +10,7 @@
     >
       <div 
         v-if="modelValue" 
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6 overflow-hidden"
         @click.self="handleBackdropClick"
       >
         <transition
@@ -23,7 +23,7 @@
         >
           <div 
             v-if="modelValue"
-            class="bg-white rounded-xl shadow-2xl w-full overflow-hidden animate-in"
+            class="bg-white rounded-xl shadow-2xl w-full flex flex-col max-h-full animate-in"
             :class="sizeClass"
           >
             <!-- Header -->
@@ -43,7 +43,7 @@
             </div>
 
             <!-- Body -->
-            <div class="p-6" :class="bodyClass">
+            <div class="p-6 overflow-y-auto" :class="bodyClass">
               <slot></slot>
             </div>
 
@@ -73,7 +73,7 @@ const props = defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: (v) => ['sm', 'md', 'lg', 'xl', '2xl', '3xl', 'full'].includes(v)
+    validator: (v) => ['sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl', 'full'].includes(v)
   },
   closable: {
     type: Boolean,
@@ -100,7 +100,9 @@ const sizeClass = computed(() => {
     '2xl': 'max-w-2xl',
     '3xl': 'max-w-3xl',
     '4xl': 'max-w-4xl',
-    full: 'max-w-4xl'
+    '5xl': 'max-w-5xl',
+    '6xl': 'max-w-6xl',
+    full: 'max-w-full'
   };
   return sizes[props.size];
 });

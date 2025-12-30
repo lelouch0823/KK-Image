@@ -30,10 +30,10 @@
     </div>
 
     <!-- 主要内容区域 Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
       
-      <!-- 左侧：图片区域 (PC端占 7列) -->
-      <div class="lg:col-span-7 space-y-6 order-last lg:order-first">
+      <!-- 左侧：图片区域 (PC端占 8列) -->
+      <div class="lg:col-span-8 space-y-4 order-last lg:order-first">
         <!-- 商品图片 -->
         <div v-if="order.files && order.files.length > 0" class="bg-white rounded-xl border border-[var(--border-color)] p-4">
           <h3 class="text-sm font-medium text-primary mb-3">{{ t('order.detail.images') }}</h3>
@@ -55,8 +55,8 @@
         </div>
       </div>
 
-      <!-- 右侧：信息区域 (PC端占 5列) -->
-      <div class="lg:col-span-5 space-y-6">
+      <!-- 右侧：信息区域 (PC端占 4列) -->
+      <div class="lg:col-span-4 space-y-4">
         <!-- 订单头部 -->
         <div class="bg-white rounded-xl border border-[var(--border-color)] p-4 shadow-sm">
           <div class="flex items-start justify-between">
@@ -143,13 +143,15 @@
               <span class="w-20 text-sm text-secondary flex-shrink-0">{{ t('order.form.material') }}</span>
               <span class="text-sm text-primary truncate">{{ currentData.material || '-' }}</span>
             </div>
-            <div class="flex sm:col-span-2">
-              <span class="w-20 text-sm text-secondary flex-shrink-0">{{ t('order.form.expectedArrival') }}</span>
-              <span class="text-sm text-primary">{{ currentData.deadline || '-' }}</span>
+            <!-- 期望到货时间 (全宽) -->
+            <div class="col-span-1 sm:col-span-2 flex">
+               <span class="w-20 text-sm text-secondary flex-shrink-0 whitespace-nowrap">{{ t('order.form.expectedArrival') }}</span>
+               <span class="text-sm text-primary">{{ formatDeadline(currentData.deadline) }}</span>
             </div>
-            <div class="flex sm:col-span-2">
+            <!-- 备注 (全宽) -->
+            <div class="col-span-1 sm:col-span-2 flex">
               <span class="w-20 text-sm text-secondary flex-shrink-0">{{ t('order.form.remark') }}</span>
-              <span class="text-sm text-primary whitespace-pre-wrap break-all">{{ currentData.remark || '-' }}</span>
+              <p class="text-sm border border-[var(--border-color)] rounded-lg p-2 bg-[var(--bg-muted)] text-primary w-full whitespace-pre-wrap">{{ currentData.remark || '-' }}</p>
             </div>
           </div>
         </div>
@@ -160,23 +162,24 @@
           <OrderTimeline :timeline="order.timeline" />
         </div>
 
-        <!-- 留言输入 -->
-        <div class="bg-white rounded-xl border border-[var(--border-color)] p-4">
-          <h3 class="text-sm font-medium text-primary mb-3">{{ t('order.detail.addComment') }}</h3>
-          <div class="flex gap-2">
+        <!-- 留言输入 - 聊天风格 -->
+        <div class="bg-white rounded-xl border border-[var(--border-color)] overflow-hidden">
+          <div class="flex items-center gap-3 p-3">
             <input 
               v-model="commentText"
               type="text"
               :placeholder="t('order.detail.commentPlaceholder')"
-              class="flex-1 h-10 px-4 text-sm border border-[var(--border-color)] rounded-lg focus:border-primary focus:outline-none"
+              class="flex-1 h-10 px-4 text-sm bg-[var(--bg-muted)] border-0 rounded-full focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all"
               @keyup.enter="sendComment"
             >
             <button 
               @click="sendComment"
               :disabled="!commentText.trim()"
-              class="px-4 h-10 bg-primary text-white text-sm font-medium rounded-lg hover:bg-[var(--color-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="w-10 h-10 flex-shrink-0 rounded-full bg-primary text-white flex items-center justify-center hover:bg-[var(--color-primary-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary/20"
             >
-              {{ t('order.detail.sendComment') }}
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+              </svg>
             </button>
           </div>
         </div>
@@ -225,7 +228,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
 import { STATUS_OPTIONS, STATUS_STYLES, getStatusVariant } from '@/utils/status';
-import { formatTimelineTime } from '@/utils/formatters';
+import { formatRelativeTime, formatDateWithWeekday } from '@/utils/formatters';
 import OrderTimeline from './OrderTimeline.vue';
 import OrderEditModal from '../OrderEditModal.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -301,6 +304,9 @@ const corrections = computed(() => {
 
 // 格式化时间
 const formatTime = (timestamp) => formatTimelineTime(timestamp);
+
+// 格式化截止时间
+const formatDeadline = (date) => formatDateWithWeekday(date);
 
 // 发送留言
 const sendComment = () => {

@@ -20,7 +20,7 @@
     <template v-else>
       <!-- 顶部导航 -->
       <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-[var(--border-color)]">
-        <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div class="max-w-screen-xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 bg-gradient-to-br from-primary to-[var(--color-gray-700)] rounded-lg flex items-center justify-center">
               <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,7 +56,7 @@
       </header>
 
       <!-- 内容区域 -->
-      <main class="max-w-7xl mx-auto px-4 py-6">
+      <main class="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
         <!-- 订单列表 -->
         <OrderList 
           v-if="currentView === 'list'" 

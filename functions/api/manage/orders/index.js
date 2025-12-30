@@ -6,7 +6,7 @@
 import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
 import { verifyJWT } from '../../utils/auth.js';
-import { ORDER_STATUSES } from '../../../../_shared/utils.js';
+import { ORDER_STATUSES } from '../../../_shared/utils.js';
 
 
 /**

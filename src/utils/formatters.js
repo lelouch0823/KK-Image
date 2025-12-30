@@ -188,3 +188,19 @@ export const getChartBgColor = (index = 1, alpha = 0.1) => {
     const hex = getCssVar(`--color-chart-${index}`);
     return hexToRgba(hex, alpha);
 };
+
+/**
+ * 格式化日期+星期
+ * @param {string} dateString YYYY-MM-DD
+ * @returns {string} YYYY-MM-DD (周X)
+ */
+export function formatDateWithWeekday(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    const day = weekdays[date.getDay()];
+
+    return `${dateString} (${day})`;
+}

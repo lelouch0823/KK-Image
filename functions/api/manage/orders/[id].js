@@ -11,7 +11,7 @@ import { MSG } from '../../utils/messages.js';
 import { generateId, now } from '../../utils/id.js';
 import { verifyJWT, ADMIN_AUTH_COOKIE } from '../../utils/auth.js';
 import { parse as parseCookie } from 'cookie';
-import { ORDER_STATUSES } from '../../../../_shared/utils.js';
+import { ORDER_STATUSES } from '../../../_shared/utils.js';
 
 
 /**

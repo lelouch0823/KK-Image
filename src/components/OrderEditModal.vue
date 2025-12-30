@@ -1,7 +1,7 @@
 <template>
   <Modal 
     :modelValue="true" 
-    size="4xl"
+    size="6xl"
     :title="t('order.manage.editOrder')"
     bodyClass="flex-1 overflow-y-auto p-6"
     @update:modelValue="$emit('close')"
@@ -145,9 +145,10 @@
               <span class="text-muted text-xs block">{{ t('order.form.material') }}</span>
               <span class="text-primary">{{ originalData.material || '-' }}</span>
             </div>
-             <div>
-              <span class="text-muted text-xs block">{{ t('order.form.expectedArrival') }}</span>
-              <span class="text-primary">{{ originalData.deadline || '-' }}</span>
+             <!-- 期望到货时间 (全宽) -->
+             <div class="col-span-2">
+              <span class="text-muted text-xs block whitespace-nowrap">{{ t('order.form.expectedArrival') }}</span>
+              <span class="text-primary">{{ formatDateWithWeekday(originalData.deadline) }}</span>
             </div>
             <div class="col-span-2">
               <span class="text-muted text-xs block">{{ t('order.form.remark') }}</span>
@@ -204,6 +205,7 @@ import { ref, reactive, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import { getTodayISOString } from '@/utils/common';
+import { formatDateWithWeekday } from '@/utils/formatters';
 import ImageUploader from './common/ImageUploader.vue';
 import Modal from '@/components/ui/Modal.vue';
 

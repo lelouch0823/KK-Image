@@ -96,7 +96,7 @@
     />
 
     <!-- 订单详情弹窗 -->
-    <Modal v-model="showDetailModal" size="xl" :title="t('order.detail.title')">
+    <Modal v-model="showDetailModal" size="6xl" :title="t('order.detail.title')">
       <OrderDetail 
         v-if="viewingOrder"
         :order="viewingOrder" 

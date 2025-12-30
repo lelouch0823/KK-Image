@@ -6,7 +6,7 @@
     <!-- 时间轴项目 -->
     <div class="space-y-4">
       <div 
-        v-for="item in groupedTimeline" 
+        v-for="item in displayedItems" 
         :key="item.id"
         class="relative pl-8"
       >
@@ -78,6 +78,27 @@
       </div>
     </div>
 
+    <!-- 展开/收起按钮 -->
+    <div v-if="hasMore" class="mt-4 text-center">
+      <button 
+        @click="isExpanded = !isExpanded"
+        class="inline-flex items-center gap-1.5 px-4 py-2 text-sm text-secondary hover:text-primary bg-[var(--bg-muted)] hover:bg-[var(--bg-hover)] rounded-full transition-colors"
+      >
+        <template v-if="isExpanded">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+          </svg>
+          {{ t('order.timeline.collapse') }}
+        </template>
+        <template v-else>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+          {{ t('order.timeline.viewAll', { count: totalCount }) }}
+        </template>
+      </button>
+    </div>
+
     <!-- 空状态 -->
     <div v-if="!groupedTimeline || groupedTimeline.length === 0" class="text-center py-8 text-secondary text-sm">
       {{ t('common.noData') }}
@@ -86,17 +107,20 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { STATUS_STYLES, getStatusVariant } from '@/utils/status';
 import { formatTimelineTime } from '@/utils/formatters';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 
 const props = defineProps({
-  timeline: { type: Array, default: () => [] }
+  timeline: { type: Array, default: () => [] },
+  maxItems: { type: Number, default: 3 }
 });
 
 const { t } = useI18n();
+
+const isExpanded = ref(false);
 
 // 聚合时间线数据
 const groupedTimeline = computed(() => {
@@ -134,6 +158,20 @@ const groupedTimeline = computed(() => {
   return groups;
 });
 
+// 总条目数
+const totalCount = computed(() => groupedTimeline.value.length);
+
+// 是否有更多条目
+const hasMore = computed(() => totalCount.value > props.maxItems);
+
+// 显示的条目
+const displayedItems = computed(() => {
+  if (isExpanded.value || !hasMore.value) {
+    return groupedTimeline.value;
+  }
+  return groupedTimeline.value.slice(0, props.maxItems);
+});
+
 // 图标样式
 const iconClasses = {
   created: 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]',
@@ -168,3 +206,4 @@ const getFieldLabel = (fieldName) => {
 // 格式化时间
 const formatTime = (timestamp) => formatTimelineTime(timestamp);
 </script>
+

@@ -548,7 +548,9 @@ export default {
             statusChanged: '订单状态更新为',
             comment: '留言',
             by: '由',
-            reason: '理由'
+            reason: '理由',
+            viewAll: '查看全部 {count} 条记录',
+            collapse: '收起'
         }
     },
 
