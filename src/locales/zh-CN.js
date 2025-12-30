@@ -682,5 +682,11 @@ export default {
         newContentDesc: '请点击刷新以获取最新功能。',
         reload: '立即刷新',
         close: '关闭'
+    },
+    salesStats: {
+        title: '个人统计',
+        totalOrders: '累计订单',
+        completedOrders: '已完成订单',
+        monthOrders: '本月订单'
     }
 };

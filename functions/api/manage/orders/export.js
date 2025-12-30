@@ -29,8 +29,11 @@ const STATUS_LABELS = {
     pending: '待确认',
     confirmed: '已确认',
     rejected: '已驳回',
-    completed: '已完成',
-    voided: '已作废'
+    production: '生产中',
+    shipping: '已发货',
+    arrived: '已到店',
+    delivered: '已交付',
+    void: '已作废'
 };
 
 /**

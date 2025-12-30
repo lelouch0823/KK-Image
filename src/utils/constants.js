@@ -59,6 +59,7 @@ export const API = {
     SALES_ORDER_COMMENT: (token, id) => `/api/sales/${token}/orders/${id}/comment`,
     SALES_ORDER_READ: (token, id) => `/api/sales/${token}/orders/${id}/read`,
     SALES_UPLOAD: (token) => `/api/sales/${token}/upload`,
+    SALES_STATS: (token) => `/api/sales/${token}/stats`,
 
     // 管理端订单 API
     MANAGE_ORDERS: `/api/manage/orders`,

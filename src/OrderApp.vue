@@ -32,6 +32,18 @@
               <p class="text-xs text-secondary">{{ salesperson?.name }}</p>
             </div>
           </div>
+          <div class="flex items-center gap-2">
+            <button 
+              @click="currentView = 'stats'"
+              v-if="currentView !== 'stats'"
+              class="hidden sm:flex items-center gap-1 px-3 py-1.5 text-secondary text-sm font-medium rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+              title="查看统计"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
+              {{ t('salesStats.title') }}
+            </button>
           <button 
             @click="currentView = 'form'" 
             v-if="currentView === 'list'"
@@ -44,7 +56,7 @@
           </button>
           <button 
             @click="currentView = 'list'" 
-            v-else-if="currentView === 'form'"
+            v-else-if="currentView === 'form' || currentView === 'stats'"
             class="flex items-center gap-1.5 px-3 py-1.5 text-secondary text-sm font-medium rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,6 +64,7 @@
             </svg>
             {{ t('order.portal.myOrders') }}
           </button>
+          </div>
         </div>
       </header>
 
@@ -84,6 +97,12 @@
           @refresh="handleRefreshOrder"
           @duplicate="handleDuplicate"
         />
+
+        <!-- 个人统计 -->
+        <SalesStats 
+          v-else-if="currentView === 'stats'"
+          :token="accessToken"
+        />
       </main>
 
       <!-- 底部安全区域 -->
@@ -109,6 +128,7 @@ import OrderLogin from '@/components/order/OrderLogin.vue';
 import OrderList from '@/components/order/OrderList.vue';
 import OrderForm from '@/components/order/OrderForm.vue';
 import OrderDetail from '@/components/order/OrderDetail.vue';
+import SalesStats from '@/components/order/SalesStats.vue';
 import ReloadPrompt from '@/components/ReloadPrompt.vue';
 
 const {
