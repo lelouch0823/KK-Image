@@ -477,6 +477,12 @@ export default {
         newFeedback: '您有新的订单反馈',
         permissionDenied: '请允许浏览器通知以接收新消息提醒',
         newOrder: '收到新订单',
+        reminder: {
+            pending_order_title: '待处理订单提醒',
+            pending_order_desc: '订单 {orderNo} 已超过 24 小时未处理，请及时审核。',
+            deadline_title: '交货期临近提醒',
+            deadline_desc: '订单 {orderNo} 期望交货日期为 {deadline}，请关注进度。',
+        }
     },
     search: {
         history: '搜索历史',

@@ -206,6 +206,7 @@ import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import { getTodayISOString } from '@/utils/common';
 import { formatDateWithWeekday } from '@/utils/formatters';
+import { useSalesToken } from '@/composables/useSalesToken';
 import ImageUploader from './common/ImageUploader.vue';
 import Modal from '@/components/ui/Modal.vue';
 
@@ -283,11 +284,12 @@ const hasChanges = computed(() => {
   return oldIds !== newIds;
 });
 
+const { token: salesToken } = useSalesToken();
+
 // 动态上传地址
 const uploadEndpoint = computed(() => {
   if (props.mode === 'sales') {
-     const match = window.location.pathname.match(/\/sales\/([^\/]+)/);
-     return match ? API.SALES_UPLOAD(match[1]) : '';
+     return API.SALES_UPLOAD(salesToken.value || '');
   }
   return API.MANAGE_UPLOAD;
 });

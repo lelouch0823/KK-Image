@@ -75,7 +75,7 @@ export function useOrders() {
     const updateOrder = async (id, updates, reason) => {
         try {
             const res = await fetch(API.MANAGE_ORDER_UPDATE(id), {
-                method: 'POST',
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ updates, reason })

@@ -146,13 +146,50 @@ export function useSalespersons() {
     /**
      * 复制访问链接
      */
+    /**
+     * 复制访问链接
+     * (兼容 HTTP 环境)
+     */
     const copyAccessLink = async (accessToken) => {
+        const url = `${window.location.origin}/sales/${accessToken}`;
+
         try {
-            const url = `${window.location.origin}/sales/${accessToken}`;
-            await navigator.clipboard.writeText(url);
-            addToast({ message: t('salesperson.linkCopied'), type: 'success' });
-            return true;
+            // 优先尝试现代 API (需要 HTTPS 或 localhost)
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(url);
+                addToast({ message: t('salesperson.linkCopied'), type: 'success' });
+                return true;
+            }
         } catch (e) {
+            console.warn('Clipboard API failed, trying fallback...');
+        }
+
+        // Fallback: 使用 textarea 选中复制
+        try {
+            const textArea = document.createElement("textarea");
+            textArea.value = url;
+
+            // 避免滚动到底部
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textArea);
+
+            if (successful) {
+                addToast({ message: t('salesperson.linkCopied'), type: 'success' });
+                return true;
+            } else {
+                throw new Error('execCommand returned false');
+            }
+        } catch (err) {
+            console.error('Copy failed', err);
             addToast({ message: t('common.copyFailed'), type: 'error' });
             return false;
         }

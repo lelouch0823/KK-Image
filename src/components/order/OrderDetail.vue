@@ -232,6 +232,31 @@
       @close="showEditModal = false"
       @submit="handleUpdate"
     />
+
+    <!-- 作废确认弹窗 -->
+    <Modal
+      v-model="showConfirmModal"
+      :title="t('common.confirm')"
+      size="sm"
+    >
+      <div class="p-4">
+        <p class="text-secondary">{{ t('common.confirmVoid') }}</p>
+      </div>
+      <template #footer>
+        <button 
+          @click="showConfirmModal = false"
+          class="px-4 py-2 border border-[var(--border-color)] text-secondary rounded-lg hover:bg-[var(--bg-hover)]"
+        >
+          {{ t('common.cancel') }}
+        </button>
+        <button 
+          @click="executeVoid"
+          class="px-4 py-2 bg-[var(--color-danger)] text-white rounded-lg hover:bg-[var(--color-danger-text)] shadow-lg shadow-danger/20"
+        >
+          {{ t('common.confirm') }}
+        </button>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -241,7 +266,8 @@ import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
 import { STATUS_OPTIONS, STATUS_STYLES, getStatusVariant } from '@/utils/status';
-import { formatRelativeTime, formatDateWithWeekday } from '@/utils/formatters';
+import { useSalesToken } from '@/composables/useSalesToken';
+import { formatRelativeTime, formatDateWithWeekday, formatTimelineTime } from '@/utils/formatters';
 import OrderTimeline from './OrderTimeline.vue';
 import OrderEditModal from '../OrderEditModal.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -262,11 +288,8 @@ const showCorrectionModal = ref(false);
 const showEditModal = ref(false);
 const submitting = ref(false);
 
-const salesToken = computed(() => {
-  if (props.mode !== 'sales') return null;
-  const match = window.location.pathname.match(/\/sales\/([^\/]+)/);
-  return match ? match[1] : null;
-});
+const { token: salesToken } = useSalesToken();
+const showConfirmModal = ref(false);
 
 // 清除红点
 const markAsRead = async () => {
@@ -328,9 +351,13 @@ const sendComment = () => {
   commentText.value = '';
 };
 
-const handleVoid = async () => {
-  if (!confirm(t('common.confirmVoid'))) return;
+const handleVoid = () => {
+  showConfirmModal.value = true;
+};
+
+const executeVoid = async () => {
   if (!salesToken.value) return;
+  showConfirmModal.value = false;
 
   try {
     const res = await fetch(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {

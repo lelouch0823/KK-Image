@@ -229,9 +229,9 @@ export async function onRequestPost(context) {
             try {
                 const { ensureFolder, moveFilesToFolder } = await import('../../../utils/folder-utils.js');
                 // ... logic remains same ...
-                const rootId = await ensureFolder(env, 'Sales Uploads', 'root');
-                const spId = await ensureFolder(env, salesperson.name, rootId);
-                const folderId = await ensureFolder(env, orderNo, spId);
+                const rootId = await ensureFolder(env, 'Uploads', 'root');
+                const subId = await ensureFolder(env, 'Orders', rootId);
+                const folderId = await ensureFolder(env, orderNo, subId);
                 await moveFilesToFolder(env, fileIds, folderId);
             } catch (e) {
                 console.error('File archiving error:', e);

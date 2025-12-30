@@ -164,8 +164,9 @@ import { ref, reactive, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useRecentInputs } from '@/composables/useRecentInputs';
-import { API } from '@/utils/constants';
 import { getTodayISOString } from '@/utils/common';
+import { useSalesToken } from '@/composables/useSalesToken';
+import { API } from '@/utils/constants';
 import ImageUploader from '../common/ImageUploader.vue';
 import AutocompleteInput from '../ui/AutocompleteInput.vue';
 
@@ -215,11 +216,11 @@ const seriesSuggestions = computed(() => getRecent('series'));
 const colorSuggestions = computed(() => getRecent('color'));
 const materialSuggestions = computed(() => getRecent('material'));
 
+const { token: salesToken } = useSalesToken();
+
 // 计算上传地址
 const uploadEndpoint = computed(() => {
-  const match = window.location.pathname.match(/\/sales\/([^\/]+)/);
-  const accessToken = match ? match[1] : '';
-  return API.SALES_UPLOAD(accessToken);
+  return API.SALES_UPLOAD(salesToken.value || '');
 });
 
 // 提交表单

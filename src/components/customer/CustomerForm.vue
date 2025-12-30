@@ -4,8 +4,8 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <!-- 客户名称 -->
       <div class="col-span-2 sm:col-span-1">
-        <label class="block text-sm font-medium text-gray-700 mb-1">
-          {{ t('customer.form.name') }} <span class="text-red-500">*</span>
+        <label class="block text-sm font-medium text-secondary mb-1">
+          {{ t('customer.form.name') }} <span class="text-[var(--color-danger)]">*</span>
         </label>
         <input 
           v-model="form.name" 
@@ -24,7 +24,7 @@
         <input 
           v-model="form.phone" 
           type="tel" 
-          class="w-full rounded-lg border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
+          class="w-full rounded-lg border-[var(--border-color)] focus:border-primary focus:ring-primary sm:text-sm"
         >
       </div>
 
@@ -99,17 +99,17 @@
         <textarea 
           v-model="form.remark" 
           rows="3"
-          class="w-full rounded-lg border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
+          class="w-full rounded-lg border-[var(--border-color)] focus:border-primary focus:ring-primary sm:text-sm"
         ></textarea>
       </div>
     </div>
 
     <!-- 底部按钮 -->
-    <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
+    <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-[var(--border-color-light)]">
       <button 
         type="button" 
         @click="$emit('cancel')"
-        class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+        class="px-4 py-2 border border-[var(--border-color)] rounded-lg text-sm font-medium text-secondary hover:bg-[var(--bg-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
       >
         {{ t('common.cancel') }}
       </button>

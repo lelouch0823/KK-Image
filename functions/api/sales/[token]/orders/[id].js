@@ -263,9 +263,9 @@ export async function onRequestPatch(context) {
                     // SOTA: 自动归档
                     try {
                         const { ensureFolder, moveFilesToFolder } = await import('../../../utils/folder-utils.js');
-                        const rootId = await ensureFolder(env, 'Sales Uploads', 'root');
-                        const spId = await ensureFolder(env, salesperson.name, rootId);
-                        const folderId = await ensureFolder(env, order.order_no || orderId, spId);
+                        const rootId = await ensureFolder(env, 'Uploads', 'root');
+                        const subId = await ensureFolder(env, 'Orders', rootId);
+                        const folderId = await ensureFolder(env, order.order_no || orderId, subId);
                         await moveFilesToFolder(env, newFileIds, folderId);
                     } catch (e) {
                         console.error('Archive error', e);

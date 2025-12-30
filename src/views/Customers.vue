@@ -1,10 +1,10 @@
 <template>
-  <div class="h-full flex flex-col bg-white rounded-xl shadow-sm border border-gray-200">
+  <div class="h-full flex flex-col bg-white rounded-xl shadow-sm border border-[var(--border-color)]">
     <!-- 头部操作栏 -->
-    <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
+    <div class="p-4 border-b border-[var(--border-color)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
       <div>
-        <h2 class="text-lg font-semibold text-gray-900">{{ t('customer.manage.title') }}</h2>
-        <p class="text-sm text-gray-500 mt-1">{{ t('customer.manage.subtitle') }}</p>
+        <h2 class="text-lg font-semibold text-primary">{{ t('customer.manage.title') }}</h2>
+        <p class="text-sm text-secondary mt-1">{{ t('customer.manage.subtitle') }}</p>
       </div>
 
       <div class="flex items-center gap-3">
@@ -46,7 +46,7 @@
           <template v-if="loading">
             <tr v-for="i in 5" :key="i" class="animate-pulse">
               <td v-for="j in 6" :key="j" class="px-4 py-4">
-                <div class="h-4 bg-[var(--color-gray-200)] rounded w-2/3"></div>
+                <div class="h-4 bg-[var(--bg-subtle)] rounded w-2/3"></div>
               </td>
             </tr>
           </template>
@@ -97,7 +97,7 @@
     </div>
 
     <!-- 分页 -->
-    <div v-if="pagination.totalPages > 1" class="p-4 border-t border-gray-200 flex-shrink-0">
+    <div v-if="pagination.totalPages > 1" class="p-4 border-t border-[var(--border-color)] flex-shrink-0">
       <Pagination 
         :currentPage="pagination.page" 
         :totalPages="pagination.totalPages"

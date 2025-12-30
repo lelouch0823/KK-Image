@@ -48,9 +48,9 @@ export async function onRequest(context) {
                     VALUES (?, 'order', ?, ?, ?, 0, ?, ?)
                 `).bind(
                     id,
-                    '待处理订单提醒',
-                    `订单 ${order.order_no} 已超过 24 小时未处理，请及时审核。`,
-                    `/manage/orders?id=${order.id}`, // 跳转链接
+                    'notification.reminder.pending_order_title',
+                    JSON.stringify({ key: 'notification.reminder.pending_order_desc', orderNo: order.order_no }),
+                    `/manage/orders?id=${order.id}`,
                     JSON.stringify({ orderId: order.id, subType: 'pending_timeout' }),
                     now
                 ));
@@ -94,8 +94,8 @@ export async function onRequest(context) {
                     VALUES (?, 'deadline', ?, ?, ?, 0, ?, ?)
                 `).bind(
                     id,
-                    '交货期临近提醒',
-                    `订单 ${order.order_no} 期望交货日期为 ${deadline}，请关注进度。`,
+                    'notification.reminder.deadline_title',
+                    JSON.stringify({ key: 'notification.reminder.deadline_desc', orderNo: order.order_no, deadline }),
                     `/manage/orders?id=${order.id}`,
                     JSON.stringify({ orderId: order.id, deadline }),
                     now

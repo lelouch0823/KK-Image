@@ -248,10 +248,9 @@ export async function onRequestPatch(context) {
                         const sp = await env.DB.prepare('SELECT s.name, o.order_no FROM orders o JOIN salespersons s ON o.salesperson_id = s.id WHERE o.id = ?').bind(id).first();
 
                         if (sp) {
-                            const { ensureFolder, moveFilesToFolder } = await import('../../utils/folder-utils.js');
-                            const rootId = await ensureFolder(env, 'Sales Uploads', 'root');
-                            const spId = await ensureFolder(env, sp.name, rootId);
-                            const folderId = await ensureFolder(env, sp.order_no || id, spId);
+                            const rootId = await ensureFolder(env, 'Uploads', 'root');
+                            const subId = await ensureFolder(env, 'Orders', rootId);
+                            const folderId = await ensureFolder(env, sp.order_no || id, subId);
                             await moveFilesToFolder(env, newFileIds, folderId);
                         }
                     } catch (e) {

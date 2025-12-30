@@ -26,7 +26,8 @@
     "hono": "^4.11.3",
     "jszip": "^3.10.1",
     "vue": "^3.4.0",
-    "vue-chartjs": "^5.3.3"
+    "vue-chartjs": "^5.3.3",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",

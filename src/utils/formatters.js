@@ -204,3 +204,24 @@ export function formatDateWithWeekday(dateString) {
 
     return `${dateString} (${day})`;
 }
+
+/**
+ * 格式化金额
+ * @param {number|string} amount - 金额
+ * @param {string} currency - 货币代码 (默认 CNY)
+ * @returns {string} 格式化后的金额字符串
+ */
+export const formatCurrency = (amount, currency = 'CNY') => {
+    if (amount === undefined || amount === null || amount === '') return '-';
+
+    // 确保是数字
+    const num = Number(amount);
+    if (isNaN(num)) return amount;
+
+    return new Intl.NumberFormat('zh-CN', {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(num);
+};
