@@ -176,7 +176,7 @@ const isSubmitting = ref(false);
 
 // 计算上传地址
 const uploadEndpoint = computed(() => {
-  const match = path.match(/\/sales\/([^\/]+)/);
+  const match = window.location.pathname.match(/\/sales\/([^\/]+)/);
   const accessToken = match ? match[1] : '';
   return API.SALES_UPLOAD(accessToken);
 });

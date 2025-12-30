@@ -1,102 +1,103 @@
 <template>
-  <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50" @click.self="$emit('close')">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col overflow-hidden">
-      <!-- Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] shrink-0">
+  <Modal 
+    :modelValue="true" 
+    size="2xl"
+    bodyClass="flex flex-col p-0 h-[80vh] overflow-hidden"
+    @update:modelValue="$emit('close')"
+  >
+    <template #header>
         <div>
           <h2 class="text-lg font-semibold text-primary">{{ t('fileSelector.title') }}</h2>
-          <p class="text-sm text-secondary mt-0.5">{{ t('fileSelector.selectedCount', { count: selectedIds.length }) }}</p>
+          <p class="text-sm text-secondary mt-0.5">{{ t('fileSelector.selectedCount', { count: selectedIds.length + selectedFolderIds.length }) }}</p>
         </div>
-        <button @click="$emit('close')" class="p-2 text-secondary hover:text-primary rounded-lg hover:bg-[var(--bg-hover)]">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-        </button>
-      </div>
+    </template>
 
-      <!-- 路径导航 -->
-      <div class="px-6 py-3 border-b border-[var(--border-color)] flex items-center gap-2 text-sm shrink-0 overflow-x-auto whitespace-nowrap">
-        <button @click="navigateTo(null)" 
+    <!-- 路径导航 (Fixed at top of body) -->
+    <div class="px-6 py-3 border-b border-[var(--border-color)] flex items-center gap-2 text-sm shrink-0 overflow-x-auto whitespace-nowrap bg-[var(--bg-muted)]/30 backdrop-blur-sm">
+      <button @click="navigateTo(null)" 
+        class="hover:text-primary transition-colors flex items-center gap-1"
+        :class="!currentFolderId ? 'font-semibold text-primary' : 'text-secondary'">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+        {{ t('fileSelector.allFiles') }}
+      </button>
+      <template v-for="(folder, index) in breadcrumbs" :key="folder.id">
+        <span class="text-gray-300">/</span>
+        <button @click="navigateTo(folder.id)" 
           class="hover:text-primary transition-colors"
-          :class="!currentFolderId ? 'font-semibold text-primary' : 'text-secondary'">
-          {{ t('fileSelector.allFiles') }}
+          :class="currentFolderId === folder.id ? 'font-semibold text-primary' : 'text-secondary'">
+          {{ folder.name }}
         </button>
-        <template v-for="(folder, index) in breadcrumbs" :key="folder.id">
-          <span class="text-gray-300">/</span>
-          <button @click="navigateTo(folder.id)" 
-            class="hover:text-primary transition-colors"
-            :class="currentFolderId === folder.id ? 'font-semibold text-primary' : 'text-secondary'">
-            {{ folder.name }}
-          </button>
-        </template>
-      </div>
+      </template>
+    </div>
 
-      <!-- 文件列表 -->
-      <div class="flex-1 overflow-y-auto p-4">
-        <div v-if="loading" class="flex justify-center py-10">
-          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+    <!-- 文件列表 (Scrollable) -->
+    <div class="flex-1 overflow-y-auto p-4 content-area">
+      <div v-if="loading" class="flex justify-center py-10">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+      
+      <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 content-start">
+        <!-- 文件夹列表 -->
+        <div v-for="folder in currentFolders" :key="'f-' + folder.id"
+          @click="navigateTo(folder.id, folder)"
+          class="aspect-square bg-blue-50/50 hover:bg-blue-50 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group relative border-2"
+          :class="selectedFolderIds.includes(folder.id) ? 'border-primary ring-2 ring-primary/20 bg-blue-50' : 'border-transparent'">
+          <div class="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity" :class="{'opacity-100': selectedFolderIds.includes(folder.id)}" @click="(e) => toggleFolderSelect(folder.id, e)">
+              <div class="w-6 h-6 rounded-full border flex items-center justify-center transition-all shadow-sm"
+                   :class="selectedFolderIds.includes(folder.id) ? 'bg-primary border-primary' : 'bg-white border-gray-300 hover:border-primary'">
+                  <svg v-if="selectedFolderIds.includes(folder.id)" class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                  </svg>
+              </div>
+          </div>
+          <svg class="w-12 h-12 text-blue-400 group-hover:text-blue-500 mb-2 transition-transform group-hover:scale-110 duration-200" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
+          </svg>
+          <span class="text-xs font-medium text-gray-700 px-2 text-center truncate w-full">{{ folder.name }}</span>
         </div>
-        
-        <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 content-start">
-          <!-- 文件夹列表 -->
-          <div v-for="folder in currentFolders" :key="'f-' + folder.id"
-            @click="navigateTo(folder.id, folder)"
-            class="aspect-square bg-blue-50 hover:bg-blue-100 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors group relative border-2"
-            :class="selectedFolderIds.includes(folder.id) ? 'border-primary ring-2 ring-primary/20' : 'border-transparent'">
-            <div class="absolute top-2 right-2 z-10" @click="(e) => toggleFolderSelect(folder.id, e)">
-                <div class="w-5 h-5 rounded border flex items-center justify-center transition-colors shadow-sm"
-                     :class="selectedFolderIds.includes(folder.id) ? 'bg-primary border-primary' : 'bg-white border-gray-300 hover:border-primary'">
-                    <svg v-if="selectedFolderIds.includes(folder.id)" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                </div>
-            </div>
-            <svg class="w-10 h-10 text-blue-400 group-hover:text-blue-500 mb-2 transition-colors" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
+
+        <!-- 文件列表 -->
+        <div v-for="file in files" :key="file.id"
+          @click="toggleSelect(file.id)"
+          class="relative aspect-square rounded-xl overflow-hidden cursor-pointer border-2 transition-all hover:shadow-lg group"
+          :class="selectedIds.includes(file.id) ? 'border-primary ring-2 ring-primary/20' : 'border-transparent'">
+          <!-- 图片预览 -->
+          <img v-if="isImage(file)" :src="file.url" :alt="file.name" 
+            class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300" loading="lazy">
+          <!-- 非图片 -->
+          <div v-else class="w-full h-full bg-gray-50 flex flex-col items-center justify-center">
+            <span class="text-xs font-bold text-gray-400 uppercase">{{ file.name?.split('.').pop() }}</span>
+            <span class="text-[10px] text-gray-400 mt-1 px-2 truncate w-full text-center">{{ file.originalName || file.name }}</span>
+          </div>
+          <!-- 选中标记 -->
+          <div v-if="selectedIds.includes(file.id)"
+            class="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-md animate-in zoom-in duration-200">
+            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
             </svg>
-            <span class="text-xs font-medium text-gray-700 px-2 text-center truncate w-full">{{ folder.name }}</span>
           </div>
-
-          <!-- 文件列表 -->
-          <div v-for="file in files" :key="file.id"
-            @click="toggleSelect(file.id)"
-            class="relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all hover:opacity-80"
-            :class="selectedIds.includes(file.id) ? 'border-primary ring-2 ring-primary/20' : 'border-transparent'">
-            <!-- 图片预览 -->
-            <img v-if="isImage(file)" :src="file.url" :alt="file.name" 
-              class="w-full h-full object-cover" loading="lazy">
-            <!-- 非图片 -->
-            <div v-else class="w-full h-full bg-gray-100 flex flex-col items-center justify-center">
-              <span class="text-xs font-bold text-gray-400 uppercase">{{ file.name?.split('.').pop() }}</span>
-              <span class="text-[10px] text-gray-400 mt-1 px-2 truncate w-full text-center">{{ file.originalName || file.name }}</span>
-            </div>
-            <!-- 选中标记 -->
-            <div v-if="selectedIds.includes(file.id)"
-              class="absolute top-1 right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-              <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
-              </svg>
-            </div>
-          </div>
-        </div>
-        
-        <div v-if="!loading && currentFolders.length === 0 && files.length === 0" class="text-center py-10 text-secondary">
-          <p>{{ t('fileSelector.empty') }}</p>
         </div>
       </div>
-
-      <!-- Footer -->
-      <div class="px-6 py-4 border-t border-[var(--border-color)] flex justify-end gap-3 shrink-0">
-        <button @click="$emit('close')" class="px-4 py-2 text-sm font-medium text-secondary hover:text-primary">
-          {{ t('fileSelector.cancel') }}
-        </button>
-        <button @click="confirmSelect" :disabled="selectedIds.length === 0 && selectedFolderIds.length === 0"
-          class="px-6 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-[var(--color-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed">
-          {{ t('fileSelector.add') }} {{ (selectedIds.length + selectedFolderIds.length) > 0 ? `(${selectedIds.length + selectedFolderIds.length})` : '' }}
-        </button>
+      
+      <div v-if="!loading && currentFolders.length === 0 && files.length === 0" class="flex flex-col items-center justify-center h-full text-secondary pb-10">
+         <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+             <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+         </div>
+         <p>{{ t('fileSelector.empty') }}</p>
       </div>
     </div>
-  </div>
+
+    <!-- Footer -->
+    <template #footer>
+      <button @click="$emit('close')" class="px-4 py-2 text-sm font-medium text-secondary hover:text-primary transition-colors">
+        {{ t('fileSelector.cancel') }}
+      </button>
+      <button @click="confirmSelect" :disabled="selectedIds.length === 0 && selectedFolderIds.length === 0"
+        class="px-6 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-[var(--color-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20 transition-all active:scale-95">
+        {{ t('fileSelector.add') }} {{ (selectedIds.length + selectedFolderIds.length) > 0 ? `(${selectedIds.length + selectedFolderIds.length})` : '' }}
+      </button>
+    </template>
+  </Modal>
 </template>
 
 <script setup>
@@ -104,6 +105,7 @@ import { ref, onMounted, computed } from 'vue';
 import { API } from '@/utils/constants';
 import { isImage } from '@/utils/formatters';
 import { useI18n } from '@/composables/useI18n';
+import Modal from '@/components/ui/Modal.vue';
 
 const emit = defineEmits(['close', 'select']);
 const { t } = useI18n();

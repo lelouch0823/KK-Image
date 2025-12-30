@@ -45,23 +45,27 @@ const variantClass = computed(() => {
   const variants = {
     default: 'bg-gray-100 text-gray-600',
     success: 'bg-green-100 text-green-700',
-    warning: 'bg-orange-100 text-orange-700',
+    warning: 'bg-yellow-100 text-yellow-700',
     error: 'bg-red-100 text-red-700',
     info: 'bg-blue-100 text-blue-700',
-    primary: 'bg-primary/10 text-primary'
+    primary: 'bg-primary/10 text-primary',
+    purple: 'bg-purple-100 text-purple-700',
+    cyan: 'bg-cyan-100 text-cyan-700'
   };
-  return variants[props.variant];
+  return variants[props.variant] || variants.default;
 });
 
 const dotClass = computed(() => {
   const dots = {
     default: 'bg-gray-400',
     success: 'bg-green-500',
-    warning: 'bg-orange-500',
+    warning: 'bg-yellow-500',
     error: 'bg-red-500',
     info: 'bg-blue-500',
-    primary: 'bg-primary'
+    primary: 'bg-primary',
+    purple: 'bg-purple-500',
+    cyan: 'bg-cyan-500'
   };
-  return dots[props.variant];
+  return dots[props.variant] || dots.default;
 });
 </script>

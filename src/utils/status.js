@@ -19,3 +19,16 @@ export const STATUS_DOTS = {
     arrived: 'bg-green-500',
     delivered: 'bg-gray-500'
 };
+
+export const getStatusVariant = (status) => {
+    const map = {
+        pending: 'warning',
+        confirmed: 'info',
+        rejected: 'error',
+        production: 'purple',
+        shipping: 'cyan',
+        arrived: 'success',
+        delivered: 'default'
+    };
+    return map[status] || 'default';
+};

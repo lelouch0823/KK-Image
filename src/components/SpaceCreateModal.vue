@@ -1,112 +1,109 @@
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="$emit('close')">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
-      <!-- Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
-        <h2 class="text-lg font-semibold text-primary">{{ isSubspace ? t('spaceManager.createSubspace') : t('spaceManager.createModalTitle') }}</h2>
-        <button @click="$emit('close')" class="p-2 text-secondary hover:text-primary rounded-lg hover:bg-[var(--bg-hover)]">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-        </button>
+  <Modal 
+    :modelValue="true" 
+    :title="isSubspace ? t('spaceManager.createSubspace') : t('spaceManager.createModalTitle')"
+    size="md"
+    @update:modelValue="$emit('close')"
+  >
+    <form @submit.prevent="handleSubmit" class="space-y-4">
+      <!-- 模版选择 -->
+      <div>
+        <label class="block text-sm font-medium text-primary mb-2">{{ t('spaceManager.selectTemplate') }}</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button v-for="t in templates" :key="t.key" type="button"
+            @click="form.template = t.key"
+            class="flex items-center gap-2 p-3 border rounded-lg text-left transition-all"
+            :class="form.template === t.key ? 'border-primary bg-[var(--bg-muted)]' : 'border-[var(--border-color)] hover:border-gray-300'">
+            <span v-html="t.icon" class="w-5 h-5 text-secondary shrink-0"></span>
+            <div>
+              <div class="text-sm font-medium text-primary">{{ t.label }}</div>
+              <div class="text-xs text-secondary">{{ t.desc }}</div>
+            </div>
+          </button>
+        </div>
       </div>
 
-      <!-- Form -->
-      <form @submit.prevent="handleSubmit" class="p-6 space-y-4">
-        <!-- 模版选择 -->
+      <!-- 通用字段: 描述 (仅非商品模版显示，商品模版在详情里填) -->
+      <div v-if="form.template !== 'product'">
+        <label class="block text-sm font-medium text-primary mb-1">{{ t('spaceManager.descLabel') }}</label>
+        <textarea v-model="form.description" rows="2"
+          class="w-full px-4 py-2.5 border border-[var(--border-color)] rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
+          :placeholder="t('spaceManager.descPlaceholder')"></textarea>
+      </div>
+
+      <!-- 动态表单: 商品模版 -->
+      <div v-if="form.template === 'product'" class="space-y-4 pt-2 border-t border-[var(--border-color)]">
+         <!-- 商品名称 (覆盖通用名称) -->
         <div>
-          <label class="block text-sm font-medium text-primary mb-2">{{ t('spaceManager.selectTemplate') }}</label>
-          <div class="grid grid-cols-2 gap-2">
-            <button v-for="t in templates" :key="t.key" type="button"
-              @click="form.template = t.key"
-              class="flex items-center gap-2 p-3 border rounded-lg text-left transition-all"
-              :class="form.template === t.key ? 'border-primary bg-[var(--bg-muted)]' : 'border-[var(--border-color)] hover:border-gray-300'">
-              <span v-html="t.icon" class="w-5 h-5 text-secondary shrink-0"></span>
-              <div>
-                <div class="text-sm font-medium text-primary">{{ t.label }}</div>
-                <div class="text-xs text-secondary">{{ t.desc }}</div>
-              </div>
-            </button>
-          </div>
+          <label class="block text-sm font-medium text-primary mb-1">{{ t('spaceManager.productName') }} *</label>
+          <input v-model="form.name" type="text" required
+            class="w-full px-4 py-2.5 border border-[var(--border-color)] rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            :placeholder="t('spaceManager.productNamePlaceholder')">
         </div>
-
-        <!-- 通用字段: 描述 (仅非商品模版显示，商品模版在详情里填) -->
-        <div v-if="form.template !== 'product'">
-          <label class="block text-sm font-medium text-primary mb-1">{{ t('spaceManager.descLabel') }}</label>
-          <textarea v-model="form.description" rows="2"
-            class="w-full px-4 py-2.5 border border-[var(--border-color)] rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
-            :placeholder="t('spaceManager.descPlaceholder')"></textarea>
-        </div>
-
-        <!-- 动态表单: 商品模版 -->
-        <div v-if="form.template === 'product'" class="space-y-4 pt-2 border-t border-[var(--border-color)]">
-           <!-- 商品名称 (覆盖通用名称) -->
+        
+        <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-primary mb-1">{{ t('spaceManager.productName') }} *</label>
-            <input v-model="form.name" type="text" required
-              class="w-full px-4 py-2.5 border border-[var(--border-color)] rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-              :placeholder="t('spaceManager.productNamePlaceholder')">
+            <label class="block text-sm font-medium text-primary mb-1">{{ t('spaceManager.brand') }}</label>
+            <input v-model="form.templateData.brand" type="text"
+              class="w-full px-4 py-2.5 border border-[var(--border-color)] rounded-lg focus:border-primary outline-none"
+              :placeholder="t('spaceManager.brandPlaceholder')">
           </div>
-          
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-primary mb-1">{{ t('spaceManager.brand') }}</label>
-              <input v-model="form.templateData.brand" type="text"
-                class="w-full px-4 py-2.5 border border-[var(--border-color)] rounded-lg focus:border-primary outline-none"
-                :placeholder="t('spaceManager.brandPlaceholder')">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-primary mb-1">{{ t('spaceManager.series') }}</label>
-              <input v-model="form.templateData.series" type="text"
-                class="w-full px-4 py-2.5 border border-[var(--border-color)] rounded-lg focus:border-primary outline-none"
-                :placeholder="t('spaceManager.seriesPlaceholder')">
-            </div>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-primary mb-1">{{ t('spaceManager.price') }}</label>
-              <div class="relative">
-                <span class="absolute left-3 top-2.5 text-secondary">¥</span>
-                <input v-model="form.templateData.price" type="number" step="0.01"
-                  class="w-full pl-8 pr-4 py-2.5 border border-[var(--border-color)] rounded-lg focus:border-primary outline-none"
-                  placeholder="0.00">
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-primary mb-1">{{ t('spaceManager.material') }}</label>
-              <input v-model="form.templateData.material" type="text"
-                class="w-full px-4 py-2.5 border border-[var(--border-color)] rounded-lg focus:border-primary outline-none"
-                :placeholder="t('spaceManager.materialPlaceholder')">
-            </div>
-          </div>
-        </div>
-
-        <!-- 动态表单: 通用模版 -->
-        <div v-else>
-           <!-- 空间名称 -->
           <div>
-            <label class="block text-sm font-medium text-primary mb-1">{{ t('spaceManager.spaceName') }} *</label>
-            <input v-model="form.name" type="text" required
-              class="w-full px-4 py-2.5 border border-[var(--border-color)] rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-              :placeholder="t('spaceManager.spaceNamePlaceholder')">
+            <label class="block text-sm font-medium text-primary mb-1">{{ t('spaceManager.series') }}</label>
+            <input v-model="form.templateData.series" type="text"
+              class="w-full px-4 py-2.5 border border-[var(--border-color)] rounded-lg focus:border-primary outline-none"
+              :placeholder="t('spaceManager.seriesPlaceholder')">
           </div>
         </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-primary mb-1">{{ t('spaceManager.price') }}</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-secondary">¥</span>
+              <input v-model="form.templateData.price" type="number" step="0.01"
+                class="w-full pl-8 pr-4 py-2.5 border border-[var(--border-color)] rounded-lg focus:border-primary outline-none"
+                placeholder="0.00">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-primary mb-1">{{ t('spaceManager.material') }}</label>
+            <input v-model="form.templateData.material" type="text"
+              class="w-full px-4 py-2.5 border border-[var(--border-color)] rounded-lg focus:border-primary outline-none"
+              :placeholder="t('spaceManager.materialPlaceholder')">
+          </div>
+        </div>
+      </div>
 
-        <!-- 提交按钮 -->
-        <button type="submit" :disabled="submitting"
-          class="w-full py-3 bg-primary text-white font-medium rounded-lg hover:bg-[var(--color-primary-hover)] transition-colors disabled:opacity-50 mt-4">
-          {{ submitButtonText }}
-        </button>
-      </form>
-    </div>
-  </div>
+      <!-- 动态表单: 通用模版 -->
+      <div v-else>
+         <!-- 空间名称 -->
+        <div>
+          <label class="block text-sm font-medium text-primary mb-1">{{ t('spaceManager.spaceName') }} *</label>
+          <input v-model="form.name" type="text" required
+            class="w-full px-4 py-2.5 border border-[var(--border-color)] rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            :placeholder="t('spaceManager.spaceNamePlaceholder')">
+        </div>
+      </div>
+    </form>
+
+    <template #footer>
+      <button @click="$emit('close')" class="px-4 py-2 text-secondary hover:bg-gray-100 rounded-lg transition-colors">
+        {{ t('common.cancel') }}
+      </button>
+      <button @click="handleSubmit" :disabled="submitting"
+        class="px-6 py-2 bg-primary text-white font-medium rounded-lg hover:bg-[var(--color-primary-hover)] transition-colors disabled:opacity-50">
+        {{ submitButtonText }}
+      </button>
+    </template>
+  </Modal>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useI18n } from '@/composables/useI18n';
+import Modal from '@/components/ui/Modal.vue';
 
 const props = defineProps({
   parentId: { type: String, default: null } // 如果提供则为创建子空间

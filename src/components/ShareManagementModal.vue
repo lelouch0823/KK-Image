@@ -1,19 +1,13 @@
 <template>
-  <div v-if="modelValue" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl h-[80vh] flex flex-col animate-in fade-in zoom-in duration-200">
-      
-      <!-- Header -->
-      <div class="px-6 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-primary">{{ t('share.management') }}</h3>
-        <button @click="close" class="text-secondary hover:text-primary transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-        </button>
-      </div>
-
-      <!-- Content -->
-      <div class="flex-1 overflow-auto p-6">
+  <Modal 
+    :modelValue="modelValue" 
+    :title="t('share.management')"
+    size="full"
+    bodyClass="flex-1 overflow-auto p-6 flex flex-col h-[80vh]"
+    @update:modelValue="close"
+  >
+    <!-- Content -->
+    <div class="flex-1">
          <!-- Desktop Table -->
          <div class="hidden lg:block">
            <table class="w-full text-left text-sm">
@@ -89,10 +83,11 @@
          <div v-if="loading" class="text-center py-12 text-secondary">
              {{ t('common.loading') }}
          </div>
-      </div>
+    </div>
 
-      <!-- Footer / Pagination -->
-      <div class="px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-between bg-gray-50 rounded-b-xl">
+    <!-- Footer / Pagination -->
+    <template #footer>
+      <div class="flex-1 flex items-center justify-between">
          <span class="text-sm text-secondary">{{ t('share.total', { count: total }) }}</span>
          <div class="flex gap-2">
              <button @click="page--" :disabled="page <= 1" class="btn btn-secondary px-3 py-1 text-sm disabled:opacity-50">{{ t('share.prevPage') }}</button>
@@ -100,9 +95,8 @@
              <button @click="page++" :disabled="page >= totalPages" class="btn btn-secondary px-3 py-1 text-sm disabled:opacity-50">{{ t('share.nextPage') }}</button>
          </div>
       </div>
-
-    </div>
-  </div>
+    </template>
+  </Modal>
 </template>
 
 <script setup>
@@ -112,6 +106,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import { formatExpiry } from '@/utils/formatters';
 import { API } from '@/utils/constants';
+import Modal from '@/components/ui/Modal.vue';
 
 const props = defineProps({
   modelValue: Boolean

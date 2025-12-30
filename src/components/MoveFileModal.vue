@@ -1,71 +1,65 @@
 <template>
-  <div v-if="modelValue" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col max-h-[80vh] animate-in fade-in zoom-in duration-200">
-      
-      <!-- Header -->
-      <div class="px-6 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-primary">{{ t('moveFile.title') }}</h3>
-        <button @click="close" class="text-secondary hover:text-primary transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-        </button>
+  <Modal 
+    :modelValue="modelValue" 
+    :title="t('moveFile.title')"
+    size="md"
+    bodyClass="p-0 flex flex-col h-[60vh] min-h-[300px]"
+    @update:modelValue="close"
+  >
+    <!-- Tree Content -->
+    <div class="flex-1 overflow-y-auto p-4">
+      <div v-if="loading" class="flex justify-center py-8">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
+      <div v-else class="space-y-1">
+          <!-- Root Option -->
+          <div 
+              @click="selectFolder(rootFolder)"
+              class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors"
+              :class="selectedId === rootFolder.id ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-gray-50 text-gray-700'"
+          >
+              <svg class="w-5 h-5 text-gray-400" :class="selectedId === rootFolder.id ? 'text-indigo-500' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              <span class="font-medium">{{ t('moveFile.root') }}</span>
+          </div>
 
-      <!-- Tree Content -->
-      <div class="flex-1 overflow-y-auto p-4 min-h-[300px]">
-        <div v-if="loading" class="flex justify-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-        <div v-else class="space-y-1">
-            <!-- Root Option -->
-            <div 
-                @click="selectFolder(rootFolder)"
-                class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors"
-                :class="selectedId === rootFolder.id ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-gray-50 text-gray-700'"
-            >
-                <svg class="w-5 h-5 text-gray-400" :class="selectedId === rootFolder.id ? 'text-indigo-500' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                <span class="font-medium">{{ t('moveFile.root') }}</span>
-            </div>
-
-            <!-- Recursive Tree -->
-            <div v-for="folder in flattenedFolders" :key="folder.id"
-                @click="selectFolder(folder)"
-                class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors"
-                :class="selectedId === folder.id ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-gray-50 text-gray-700'"
-                :style="{ paddingLeft: (folder.level * 1.5 + 0.75) + 'rem' }"
-            >
-                 <svg class="w-5 h-5 text-yellow-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
-                 </svg>
-                 <span class="truncate block">{{ folder.name }}</span>
-            </div>
-            
-             <div v-if="flattenedFolders.length === 0 && !loading" class="text-center text-sm text-secondary py-4">
-                {{ t('moveFile.empty') }}
-            </div>
-        </div>
+          <!-- Recursive Tree -->
+          <div v-for="folder in flattenedFolders" :key="folder.id"
+              @click="selectFolder(folder)"
+              class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors"
+              :class="selectedId === folder.id ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-gray-50 text-gray-700'"
+              :style="{ paddingLeft: (folder.level * 1.5 + 0.75) + 'rem' }"
+          >
+               <svg class="w-5 h-5 text-yellow-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
+               </svg>
+               <span class="truncate block">{{ folder.name }}</span>
+          </div>
+          
+           <div v-if="flattenedFolders.length === 0 && !loading" class="text-center text-sm text-secondary py-4">
+              {{ t('moveFile.empty') }}
+          </div>
       </div>
-
-      <!-- Footer -->
-      <div class="px-6 py-4 border-t border-[var(--border-color)] flex justify-end gap-3 bg-[var(--bg-muted)] rounded-b-xl">
-        <button @click="close" class="btn btn-secondary">{{ t('moveFile.cancel') }}</button>
-        <button @click="confirmMove" :disabled="!selectedId || moving" class="btn btn-primary gap-2">
-            <span v-if="moving" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-            <span>{{ moving ? t('moveFile.moving') : t('moveFile.move') }}</span>
-        </button>
-      </div>
-
     </div>
-  </div>
+
+    <!-- Footer -->
+    <template #footer>
+      <button @click="close" class="px-4 py-2 text-secondary hover:bg-gray-100 rounded-lg transition-colors">{{ t('moveFile.cancel') }}</button>
+      <button @click="confirmMove" :disabled="!selectedId || moving" 
+        class="px-6 py-2 bg-primary text-white font-medium rounded-lg hover:bg-[var(--color-primary-hover)] transition-colors flex items-center gap-2 disabled:opacity-50">
+          <span v-if="moving" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+          <span>{{ moving ? t('moveFile.moving') : t('moveFile.move') }}</span>
+      </button>
+    </template>
+  </Modal>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
+import Modal from '@/components/ui/Modal.vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 

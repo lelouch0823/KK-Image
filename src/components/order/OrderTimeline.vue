@@ -66,12 +66,9 @@
           <!-- 状态变更 -->
           <p v-else-if="item.actionType === 'status_changed'" class="text-sm text-primary">
             {{ t('order.timeline.statusChanged') }}
-            <span 
-              class="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded ml-1"
-              :class="statusClasses[item.newValue] || 'bg-gray-100 text-gray-600'"
-            >
+            <StatusBadge :variant="getStatusVariant(item.newValue)" size="sm" class="ml-1">
               {{ t(`order.statuses.${item.newValue}`) }}
-            </span>
+            </StatusBadge>
             <span v-if="item.reason" class="text-secondary text-xs block mt-1">{{ item.reason }}</span>
           </p>
 
@@ -91,8 +88,9 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
-import { STATUS_STYLES } from '@/utils/status';
+import { STATUS_STYLES, getStatusVariant } from '@/utils/status';
 import { formatTimelineTime } from '@/utils/formatters';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
 
 const props = defineProps({
   timeline: { type: Array, default: () => [] }

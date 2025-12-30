@@ -73,7 +73,7 @@ const props = defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: (v) => ['sm', 'md', 'lg', 'xl', 'full'].includes(v)
+    validator: (v) => ['sm', 'md', 'lg', 'xl', '2xl', '3xl', 'full'].includes(v)
   },
   closable: {
     type: Boolean,
@@ -97,6 +97,8 @@ const sizeClass = computed(() => {
     md: 'max-w-md',
     lg: 'max-w-lg',
     xl: 'max-w-xl',
+    '2xl': 'max-w-2xl',
+    '3xl': 'max-w-3xl',
     full: 'max-w-4xl'
   };
   return sizes[props.size];

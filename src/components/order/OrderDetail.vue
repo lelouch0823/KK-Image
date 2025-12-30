@@ -36,12 +36,9 @@
           <p class="text-xs text-secondary mb-1">{{ order.orderNo }}</p>
           <h2 class="text-lg font-bold text-primary">{{ currentData.name || t('order.form.productName') }}</h2>
         </div>
-        <span 
-          class="px-3 py-1 text-sm font-medium rounded-full"
-          :class="statusClasses[order.status]"
-        >
+        <StatusBadge :variant="getStatusVariant(order.status)" size="md" dot>
           {{ t(`order.statuses.${order.status}`) }}
-        </span>
+        </StatusBadge>
       </div>
 
       <!-- 状态流程条 -->
@@ -167,38 +164,27 @@
     </div>
 
     <!-- 修正对比弹窗 -->
-    <div 
-      v-if="showCorrectionModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-      @click.self="showCorrectionModal = false"
+    <Modal
+      v-model="showCorrectionModal"
+      :title="t('order.detail.correctionCompare')"
+      size="md"
+      bodyClass="p-4 max-h-[60vh] overflow-y-auto space-y-4"
     >
-      <div class="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden">
-        <div class="px-4 py-3 border-b border-[var(--border-color)] flex items-center justify-between">
-          <h3 class="font-semibold text-primary">{{ t('order.detail.correctionCompare') }}</h3>
-          <button @click="showCorrectionModal = false" class="p-1 text-secondary hover:text-primary">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
+      <div v-for="correction in corrections" :key="correction.id" class="border border-[var(--border-color)] rounded-lg p-3">
+        <p class="text-xs text-secondary mb-2">{{ formatTime(correction.createdAt) }}</p>
+        <div class="flex items-center gap-2 text-sm">
+          <span class="text-secondary">{{ correction.fieldName }}:</span>
+          <span class="line-through text-red-400">{{ correction.oldValue }}</span>
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+          </svg>
+          <span class="text-green-600 font-medium">{{ correction.newValue }}</span>
         </div>
-        <div class="p-4 overflow-y-auto max-h-[60vh] space-y-4">
-          <div v-for="correction in corrections" :key="correction.id" class="border border-[var(--border-color)] rounded-lg p-3">
-            <p class="text-xs text-secondary mb-2">{{ formatTime(correction.createdAt) }}</p>
-            <div class="flex items-center gap-2 text-sm">
-              <span class="text-secondary">{{ correction.fieldName }}:</span>
-              <span class="line-through text-red-400">{{ correction.oldValue }}</span>
-              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-              </svg>
-              <span class="text-green-600 font-medium">{{ correction.newValue }}</span>
-            </div>
-            <p class="text-xs text-secondary mt-2">
-              <span class="font-medium">{{ t('order.detail.correctionReason') }}:</span> {{ correction.reason }}
-            </p>
-          </div>
-        </div>
+        <p class="text-xs text-secondary mt-2">
+          <span class="font-medium">{{ t('order.detail.correctionReason') }}:</span> {{ correction.reason }}
+        </p>
       </div>
-    </div>
+    </Modal>
 
 
     <!-- 编辑弹窗 -->
@@ -218,10 +204,12 @@ import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
-import { STATUS_OPTIONS, STATUS_STYLES } from '@/utils/status';
+import { STATUS_OPTIONS, STATUS_STYLES, getStatusVariant } from '@/utils/status';
 import { formatTimelineTime } from '@/utils/formatters';
 import OrderTimeline from './OrderTimeline.vue';
 import OrderEditModal from '../OrderEditModal.vue';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
+import Modal from '@/components/ui/Modal.vue';
 
 const props = defineProps({
   order: { type: Object, required: true },
