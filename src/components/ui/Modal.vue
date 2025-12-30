@@ -23,7 +23,7 @@
         >
           <div 
             v-if="modelValue"
-            class="bg-white rounded-xl shadow-2xl w-full flex flex-col max-h-full animate-in"
+            class="bg-white rounded-xl shadow-2xl w-full flex flex-col max-h-[90vh] animate-in"
             :class="sizeClass"
           >
             <!-- Header -->

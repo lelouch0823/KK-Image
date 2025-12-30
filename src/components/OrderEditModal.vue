@@ -146,12 +146,12 @@
               <span class="text-primary">{{ originalData.material || '-' }}</span>
             </div>
              <!-- 期望到货时间 (全宽) -->
-             <div class="col-span-2">
-              <span class="text-muted text-xs block whitespace-nowrap">{{ t('order.form.expectedArrival') }}</span>
+             <div class="col-span-2 flex items-start gap-2">
+              <span class="text-muted text-xs block whitespace-nowrap w-24 flex-shrink-0 pt-0.5">{{ t('order.form.expectedArrival') }}</span>
               <span class="text-primary">{{ formatDateWithWeekday(originalData.deadline) }}</span>
             </div>
-            <div class="col-span-2">
-              <span class="text-muted text-xs block">{{ t('order.form.remark') }}</span>
+            <div class="col-span-2 flex items-start gap-2">
+              <span class="text-muted text-xs block w-24 flex-shrink-0 pt-0.5">{{ t('order.form.remark') }}</span>
               <p class="whitespace-pre-wrap text-primary">{{ originalData.remark || '-' }}</p>
             </div>
           </div>

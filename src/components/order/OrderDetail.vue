@@ -145,12 +145,12 @@
             </div>
             <!-- 期望到货时间 (全宽) -->
             <div class="col-span-1 sm:col-span-2 flex">
-               <span class="w-20 text-sm text-secondary flex-shrink-0 whitespace-nowrap">{{ t('order.form.expectedArrival') }}</span>
+               <span class="w-28 text-sm text-secondary flex-shrink-0 whitespace-nowrap">{{ t('order.form.expectedArrival') }}</span>
                <span class="text-sm text-primary">{{ formatDeadline(currentData.deadline) }}</span>
             </div>
             <!-- 备注 (全宽) -->
             <div class="col-span-1 sm:col-span-2 flex">
-              <span class="w-20 text-sm text-secondary flex-shrink-0">{{ t('order.form.remark') }}</span>
+              <span class="w-28 text-sm text-secondary flex-shrink-0">{{ t('order.form.remark') }}</span>
               <p class="text-sm border border-[var(--border-color)] rounded-lg p-2 bg-[var(--bg-muted)] text-primary w-full whitespace-pre-wrap">{{ currentData.remark || '-' }}</p>
             </div>
           </div>
