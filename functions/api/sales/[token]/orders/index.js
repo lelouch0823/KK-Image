@@ -48,13 +48,25 @@ async function authenticateSalesperson(request, env, accessToken) {
 }
 
 /**
- * 生成订单编号
+ * 生成订单编号 (SOTA)
+ * 格式: ORD-YYMMDD-HHmmss-XXX
+ * 示例: ORD-251230-143052-A7K
+ * - 日期部分: 年月日 (6位)
+ * - 时间部分: 时分秒 (6位)
+ * - 随机部分: 3位大写字母/数字，防止同一秒内碰撞
  */
 function generateOrderNo() {
-    const date = new Date();
-    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-    return `ORD-${dateStr}-${random}`;
+    const now = new Date();
+    // 日期: YYMMDD
+    const datePart = now.toISOString().slice(2, 10).replace(/-/g, '');
+    // 时间: HHmmss (使用 UTC 保持一致性)
+    const hours = String(now.getUTCHours()).padStart(2, '0');
+    const mins = String(now.getUTCMinutes()).padStart(2, '0');
+    const secs = String(now.getUTCSeconds()).padStart(2, '0');
+    const timePart = `${hours}${mins}${secs}`;
+    // 随机: 3位 Base36 大写
+    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+    return `ORD-${datePart}-${timePart}-${random}`;
 }
 
 
