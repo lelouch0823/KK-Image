@@ -106,7 +106,7 @@ const { t } = useI18n();
 const isPulling = ref(false);
 
 // 状态样式映射
-const statusClasses = STATUS_STYLES;
+// const statusClasses = STATUS_STYLES;
 
 // 格式化时间
 const formatTime = (timestamp) => formatRelativeTime(timestamp, t);

@@ -118,7 +118,9 @@
           <input 
             v-model="form.deadline"
             type="date"
-            class="w-full h-11 px-4 text-sm border border-[var(--border-color)] rounded-lg focus:border-primary focus:outline-none transition-colors"
+            :min="minDate"
+            class="w-full h-11 px-4 text-sm border border-[var(--border-color)] rounded-lg focus:border-primary focus:outline-none transition-colors appearance-none bg-white"
+            :class="{ 'text-gray-400': !form.deadline }"
           >
         </div>
       </div>
@@ -154,6 +156,10 @@ import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
 import ImageUploader from '../common/ImageUploader.vue';
+
+const minDate = computed(() => {
+  return new Date().toISOString().split('T')[0];
+});
 
 const emit = defineEmits(['submit', 'cancel']);
 

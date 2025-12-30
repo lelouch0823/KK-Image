@@ -1,7 +1,7 @@
 <template>
   <Modal 
     :modelValue="true" 
-    size="2xl"
+    size="4xl"
     :title="t('order.manage.editOrder')"
     bodyClass="flex-1 overflow-y-auto p-6"
     @update:modelValue="$emit('close')"
@@ -13,134 +13,99 @@
         </div>
     </template>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- 左侧：表单 -->
-      <div class="space-y-4">
-        <h4 class="text-sm font-medium text-gray-900 border-b border-gray-100 pb-2">
-          {{ t('order.detail.currentInfo') }}
-        </h4>
-
-        <!-- 商品名称 -->
+      <div class="space-y-6">
         <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.productName') }}</label>
-          <input 
-            v-model="form.name"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none"
-          >
-        </div>
+          <h4 class="text-sm font-medium text-primary border-b border-[var(--border-color)] pb-2 mb-4">
+            {{ t('order.detail.currentInfo') }}
+          </h4>
 
-        <!-- 品牌和系列 -->
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.brand') }}</label>
-            <input 
-              v-model="form.brand"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none"
-            >
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <!-- 商品名称 (全宽) -->
+             <div class="md:col-span-2">
+              <label class="block text-xs font-medium text-secondary mb-1">{{ t('order.form.productName') }}</label>
+              <input 
+                v-model="form.name"
+                class="input"
+              >
+            </div>
+
+            <!-- 品牌 -->
+            <div>
+              <label class="block text-xs font-medium text-secondary mb-1">{{ t('order.form.brand') }}</label>
+              <input 
+                v-model="form.brand"
+                class="input"
+              >
+            </div>
+
+            <!-- 系列 -->
+            <div>
+              <label class="block text-xs font-medium text-secondary mb-1">{{ t('order.form.series') }}</label>
+              <input 
+                v-model="form.series"
+                class="input"
+              >
+            </div>
+
+            <!-- 规格尺寸 -->
+            <div>
+              <label class="block text-xs font-medium text-secondary mb-1">{{ t('order.form.size') }}</label>
+              <input 
+                v-model="form.size"
+                class="input"
+              >
+            </div>
+
+            <!-- 颜色 -->
+            <div>
+              <label class="block text-xs font-medium text-secondary mb-1">{{ t('order.form.color') }}</label>
+              <input 
+                v-model="form.color"
+                class="input"
+              >
+            </div>
+
+            <!-- 材质 -->
+            <div>
+              <label class="block text-xs font-medium text-secondary mb-1">{{ t('order.form.material') }}</label>
+              <input 
+                v-model="form.material"
+                class="input"
+              >
+            </div>
+
+            <!-- 期望到货时间 -->
+            <div>
+              <label class="block text-xs font-medium text-secondary mb-1">{{ t('order.form.expectedArrival') }}</label>
+              <input 
+                v-model="form.deadline"
+                type="date"
+                :min="minDate"
+                class="input appearance-none bg-white"
+                :class="{ 'text-muted': !form.deadline }"
+              >
+            </div>
+
+            <!-- 备注 (全宽) -->
+            <div class="md:col-span-2">
+              <label class="block text-xs font-medium text-secondary mb-1">{{ t('order.form.remark') }}</label>
+              <textarea 
+                v-model="form.remark"
+                rows="3"
+                class="input h-auto resize-none py-2"
+              ></textarea>
+            </div>
           </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.series') }}</label>
-            <input 
-              v-model="form.series"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none"
-            >
-          </div>
-        </div>
-
-        <!-- 规格尺寸 -->
-        <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.size') }}</label>
-          <input 
-            v-model="form.size"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none"
-          >
-        </div>
-
-        <!-- 颜色 -->
-        <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.color') }}</label>
-          <input 
-            v-model="form.color"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none"
-          >
-        </div>
-
-        <!-- 材质 -->
-        <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.material') }}</label>
-          <input 
-            v-model="form.material"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none"
-          >
-        </div>
-
-        <!-- 备注 -->
-        <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.remark') }}</label>
-          <textarea 
-            v-model="form.remark"
-            rows="3"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none resize-none"
-          ></textarea>
-        </div>
-
-        <!-- 期望到货时间 -->
-        <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.expectedArrival') }}</label>
-          <input 
-            v-model="form.deadline"
-            type="date"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none"
-          >
         </div>
       </div>
 
       <!-- 右侧：原始信息 & 图片 -->
       <div class="space-y-6">
-        <!-- 原始信息对比 -->
+        <!-- 图片管理 (放在右侧上方) -->
         <div>
-          <h4 class="text-sm font-medium text-gray-900 border-b border-gray-100 pb-2 mb-3">
-            {{ t('order.detail.originalInfo') }}
-          </h4>
-          <div class="space-y-3 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
-            <div class="flex justify-between">
-              <span class="text-gray-400 text-xs">{{ t('order.form.productName') }}:</span>
-              <span>{{ originalData.name || '-' }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-400 text-xs">{{ t('order.form.brand') }}:</span>
-              <span>{{ originalData.brand || '-' }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-400 text-xs">{{ t('order.form.series') }}:</span>
-              <span>{{ originalData.series || '-' }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-400 text-xs">{{ t('order.form.size') }}:</span>
-              <span>{{ originalData.size || '-' }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-400 text-xs">{{ t('order.form.color') }}:</span>
-              <span>{{ originalData.color || '-' }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-400 text-xs">{{ t('order.form.material') }}:</span>
-              <span>{{ originalData.material || '-' }}</span>
-            </div>
-            <div class="block">
-              <span class="text-gray-400 text-xs block mb-1">{{ t('order.form.remark') }}:</span>
-              <p class="whitespace-pre-wrap">{{ originalData.remark || '-' }}</p>
-            </div>
-             <div class="flex justify-between">
-              <span class="text-gray-400 text-xs">{{ t('order.form.expectedArrival') }}:</span>
-              <span>{{ originalData.deadline || '-' }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 图片管理 -->
-        <div>
-           <h4 class="text-sm font-medium text-gray-900 border-b border-gray-100 pb-2 mb-3">
+           <h4 class="text-sm font-medium text-primary border-b border-[var(--border-color)] pb-2 mb-3">
             {{ t('order.detail.images') }}
           </h4>
            <ImageUploader
@@ -148,6 +113,47 @@
             :upload-endpoint="uploadEndpoint"
             :max-files="9"
           />
+        </div>
+
+        <!-- 原始信息对比 -->
+        <div>
+          <h4 class="text-sm font-medium text-primary border-b border-[var(--border-color)] pb-2 mb-3">
+            {{ t('order.detail.originalInfo') }}
+          </h4>
+          <div class="grid grid-cols-2 gap-3 text-sm text-secondary bg-[var(--bg-muted)] p-4 rounded-lg">
+            <div>
+              <span class="text-muted text-xs block">{{ t('order.form.productName') }}</span>
+              <span class="font-medium text-primary">{{ originalData.name || '-' }}</span>
+            </div>
+            <div>
+              <span class="text-muted text-xs block">{{ t('order.form.brand') }}</span>
+              <span class="text-primary">{{ originalData.brand || '-' }}</span>
+            </div>
+            <div>
+              <span class="text-muted text-xs block">{{ t('order.form.series') }}</span>
+              <span class="text-primary">{{ originalData.series || '-' }}</span>
+            </div>
+            <div>
+              <span class="text-muted text-xs block">{{ t('order.form.size') }}</span>
+              <span class="text-primary">{{ originalData.size || '-' }}</span>
+            </div>
+            <div>
+              <span class="text-muted text-xs block">{{ t('order.form.color') }}</span>
+              <span class="text-primary">{{ originalData.color || '-' }}</span>
+            </div>
+            <div>
+              <span class="text-muted text-xs block">{{ t('order.form.material') }}</span>
+              <span class="text-primary">{{ originalData.material || '-' }}</span>
+            </div>
+             <div>
+              <span class="text-muted text-xs block">{{ t('order.form.expectedArrival') }}</span>
+              <span class="text-primary">{{ originalData.deadline || '-' }}</span>
+            </div>
+            <div class="col-span-2">
+              <span class="text-muted text-xs block">{{ t('order.form.remark') }}</span>
+              <p class="whitespace-pre-wrap text-primary">{{ originalData.remark || '-' }}</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -199,6 +205,10 @@ import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import ImageUploader from './common/ImageUploader.vue';
 import Modal from '@/components/ui/Modal.vue';
+
+const minDate = computed(() => {
+  return new Date().toISOString().split('T')[0];
+});
 
 const props = defineProps({
   order: { type: Object, required: true },
