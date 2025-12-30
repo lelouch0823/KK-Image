@@ -198,7 +198,7 @@ const createCharts = () => {
         datasets: [{
           label: t('stats.dailyUpload'),
           data: Object.values(dailyData),
-          borderColor: '#409eff',
+          borderColor: getCssVar('--color-chart-1'),
           backgroundColor: gradient,
           borderWidth: 3,
           fill: true,

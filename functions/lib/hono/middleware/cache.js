@@ -1,7 +1,11 @@
 /**
  * 边缘缓存中间件
  * 使用 Cloudflare Cache API 缓存 GET 请求响应
+ * 支持 ETag 条件请求
  */
+
+import { sha256Hex } from '../../../_shared/utils.js';
+
 export function withCache(ttlSeconds = 60) {
     return async (c, next) => {
         // 仅缓存 GET 请求
@@ -18,6 +22,15 @@ export function withCache(ttlSeconds = 60) {
         // 尝试从缓存获取
         const cached = await cache.match(cacheKey);
         if (cached) {
+            // 检查 If-None-Match（条件请求）
+            const cachedEtag = cached.headers.get('ETag');
+            const ifNoneMatch = c.req.header('If-None-Match');
+            if (cachedEtag && ifNoneMatch && ifNoneMatch === cachedEtag) {
+                return new Response(null, {
+                    status: 304,
+                    headers: { 'ETag': cachedEtag, 'X-Cache': 'HIT' }
+                });
+            }
             // 添加缓存命中标记
             const response = new Response(cached.body, cached);
             response.headers.set('X-Cache', 'HIT');
@@ -30,7 +43,14 @@ export function withCache(ttlSeconds = 60) {
         // 仅缓存成功响应
         if (c.res && c.res.ok) {
             const response = c.res.clone();
+            const bodyText = await response.clone().text();
+
+            // 生成 ETag（使用共享的哈希函数）
+            const hashHex = await sha256Hex(bodyText);
+            const etag = `"${hashHex.substring(0, 16)}"`;
+
             response.headers.set('Cache-Control', `public, max-age=${ttlSeconds}`);
+            response.headers.set('ETag', etag);
             response.headers.set('X-Cache', 'MISS');
 
             // 异步写入缓存
@@ -38,6 +58,7 @@ export function withCache(ttlSeconds = 60) {
         }
     };
 }
+
 
 /**
  * 缓存失效工具

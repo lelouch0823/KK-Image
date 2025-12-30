@@ -6,12 +6,12 @@
 
 import { success, error } from '../../../utils/response.js';
 import { MSG } from '../../../utils/messages.js';
-import { generateId, generateShareToken, now } from '../../../utils/id.js';
+import { generateId, generateShareToken, now, generateOrderNo } from '../../../utils/id.js';
 import { verifyJWT } from '../../../utils/auth.js';
 import { parse as parseCookie } from 'cookie';
 
-// 订单状态列表
-const ORDER_STATUSES = ['pending', 'confirmed', 'rejected', 'production', 'shipping', 'arrived', 'delivered'];
+import { ORDER_STATUSES } from '../../../../_shared/utils.js';
+
 
 /**
  * 验证销售端 JWT 并返回销售信息
@@ -55,19 +55,7 @@ async function authenticateSalesperson(request, env, accessToken) {
  * - 时间部分: 时分秒 (6位)
  * - 随机部分: 3位大写字母/数字，防止同一秒内碰撞
  */
-function generateOrderNo() {
-    const now = new Date();
-    // 日期: YYMMDD
-    const datePart = now.toISOString().slice(2, 10).replace(/-/g, '');
-    // 时间: HHmmss (使用 UTC 保持一致性)
-    const hours = String(now.getUTCHours()).padStart(2, '0');
-    const mins = String(now.getUTCMinutes()).padStart(2, '0');
-    const secs = String(now.getUTCSeconds()).padStart(2, '0');
-    const timePart = `${hours}${mins}${secs}`;
-    // 随机: 3位 Base36 大写
-    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-    return `ORD-${datePart}-${timePart}-${random}`;
-}
+
 
 
 

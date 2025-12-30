@@ -154,7 +154,7 @@ export async function onRequestGet(context) {
                 shareUrl: s.share_token ? `/space/${s.share_token}` : null
             }))
         }, 'Success', 200, {
-            'Cache-Control': 'public, max-age=60'
+            'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400'
         });
     } catch (err) {
         console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);

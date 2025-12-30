@@ -22,7 +22,9 @@ export {
     hashPassword,
     generateHmacSignature,
     now,
-    timestampToIso
+    timestampToIso,
+    sha256Hex,
+    generateOrderNo
 } from '../api/utils/id.js';
 
 // URL 生成工具
@@ -37,7 +39,7 @@ export {
 } from '../api/utils/auth.js';
 
 // 后端常量
-export { CORS_MAX_AGE } from '../api/utils/constants.js';
+export { CORS_MAX_AGE, ORDER_STATUSES } from '../api/utils/constants.js';
 
 // Webhook 工具
 export { triggerWebhook } from '../api/utils/webhook.js';
@@ -47,3 +49,6 @@ export { ensureFolder, moveFilesToFolder } from '../api/utils/folder-utils.js';
 
 // 销售人员认证
 export { authenticateSalesperson } from '../api/utils/salesperson-auth.js';
+
+// ETag 工具
+export { generateETag, matchesETag } from '../api/utils/etag.js';

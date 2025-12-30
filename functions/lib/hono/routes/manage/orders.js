@@ -8,7 +8,8 @@ import { parse as parseCookie } from 'cookie';
 const app = new Hono();
 
 // 订单状态列表
-const ORDER_STATUSES = ['pending', 'confirmed', 'rejected', 'production', 'shipping', 'arrived', 'delivered'];
+import { ORDER_STATUSES } from '../../../../_shared/utils.js';
+
 
 // Schemas
 const UpdateOrderSchema = z.object({

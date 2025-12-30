@@ -120,3 +120,37 @@ export function isValidUrl(urlString) {
         return false;
     }
 }
+/**
+ * 生成订单编号
+ * 格式: ORD-YYMMDD-HHmmss-XXX
+ * @returns {string}
+ */
+export function generateOrderNo() {
+    const now = new Date();
+    // 日期: YYMMDD
+    const datePart = now.toISOString().slice(2, 10).replace(/-/g, '');
+    // 时间: HHmmss (使用 UTC 保持一致性)
+    const hours = String(now.getUTCHours()).padStart(2, '0');
+    const mins = String(now.getUTCMinutes()).padStart(2, '0');
+    const secs = String(now.getUTCSeconds()).padStart(2, '0');
+    const timePart = `${hours}${mins}${secs}`;
+    // 随机: 3位 Base36 大写
+    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+    return `ORD-${datePart}-${timePart}-${random}`;
+}
+
+// ==================== SHA-256 哈希 ====================
+
+/**
+ * 计算 SHA-256 哈希并返回十六进制字符串
+ * @param {string|ArrayBuffer|Uint8Array} data - 待哈希内容
+ * @returns {Promise<string>} 十六进制哈希值
+ */
+export async function sha256Hex(data) {
+    const encoder = new TextEncoder();
+    const buffer = typeof data === 'string' ? encoder.encode(data) : data;
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    return Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}

@@ -5,9 +5,9 @@
 
 import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
+import { verifyJWT } from '../../utils/auth.js';
+import { ORDER_STATUSES } from '../../../../_shared/utils.js';
 
-// 订单状态列表
-const ORDER_STATUSES = ['pending', 'confirmed', 'rejected', 'production', 'shipping', 'arrived', 'delivered'];
 
 /**
  * GET - 获取订单列表

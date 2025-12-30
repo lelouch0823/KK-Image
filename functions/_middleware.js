@@ -1,6 +1,7 @@
 /**
- * Edge Middleware - SOTA JWT 验证
- * 在 Edge 层完成 JWT 验证，未授权用户无法看到任何 Admin HTML
+ * Edge Middleware - SOTA JWT 验证 + Early Hints
+ * 1. 在 Edge 层完成 JWT 验证，未授权用户无法看到任何 Admin HTML
+ * 2. 为 HTML 页面发送 Early Hints 预加载关键资源
  */
 
 import { verifyJWT, ADMIN_AUTH_COOKIE } from './api/utils/auth.js';
@@ -33,10 +34,20 @@ export async function onRequest(context) {
   // 验证 JWT（复用 auth.js 的函数）
   try {
     await verifyJWT(match[1], env);
-    // Token 有效，允许访问
-    return next();
+
+    // Token 有效，获取下游响应
+    const response = await next();
+
+    // 为 HTML 页面添加 Link 头（配合 Cloudflare Early Hints）
+    if (pathname.endsWith('.html') || pathname === '/admin' || pathname === '/admin/') {
+      const newResponse = new Response(response.body, response);
+      // 预加载关键 CSS（Cloudflare 会自动转为 103 Early Hints）
+      newResponse.headers.append('Link', '</assets/main.css>; rel=preload; as=style');
+      return newResponse;
+    }
+
+    return response;
   } catch (error) {
-    // console.log(`[Edge Auth] Invalid/expired token for ${pathname}: ${error.message}`);
     // Token valid check failed, clear cookie
     return new Response(null, {
       status: 302,
