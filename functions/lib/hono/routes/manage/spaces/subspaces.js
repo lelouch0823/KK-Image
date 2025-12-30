@@ -8,9 +8,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requirePermission } from '../../../middleware/auth.js';
-import { generateId, generateShareToken } from '../../../../../api/utils/id.js';
-import { getShareUrl, getFileUrl } from '../../../../../api/utils/url.js';
-import { MSG } from '../../../../../api/utils/messages.js';
+import { generateId, generateShareToken, MSG, getShareUrl, getFileUrl } from '../../../_shared/utils.js';
 import { transformSpaceListItem } from './transformers.js';
 
 const subspaces = new Hono();

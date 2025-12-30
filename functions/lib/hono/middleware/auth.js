@@ -1,5 +1,4 @@
-import { verifyJWT, ADMIN_AUTH_COOKIE } from '../../../api/utils/auth.js';
-import { MSG } from '../../../api/utils/messages.js';
+import { verifyJWT, ADMIN_AUTH_COOKIE, MSG } from '../_shared/utils.js';
 
 /**
  * 公开路由列表（无需认证）

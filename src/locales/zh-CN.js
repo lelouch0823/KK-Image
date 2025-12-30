@@ -282,7 +282,9 @@ export default {
         stats: '统计',
         logout: '退出登录',
         admin: '管理员',
-        role: '管理员'
+        role: '管理员',
+        collapse: '收起侧边栏',
+        expand: '展开侧边栏'
     },
     auth: {
         loginTitle: '登录',

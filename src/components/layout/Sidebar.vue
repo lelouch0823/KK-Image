@@ -8,21 +8,24 @@
 
   <aside 
     :class="[
-      'bg-white border-r border-[var(--border-color)] flex flex-col shrink-0 z-50 transition-transform duration-300',
-      // 桌面端：固定宽度
-      'lg:w-[var(--sidebar-width)] lg:relative lg:translate-x-0',
+      'bg-white border-r border-[var(--border-color)] flex flex-col shrink-0 z-50 transition-all duration-300',
+      // 桌面端：根据折叠状态切换宽度
+      isCollapsed ? 'lg:w-[72px]' : 'lg:w-[var(--sidebar-width)]',
+      'lg:relative lg:translate-x-0',
       // 移动端：抽屉式，默认隐藏
       'fixed inset-y-0 left-0 w-72',
       isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
     ]"
   >
     <!-- Logo -->
-    <div class="h-[var(--header-height)] flex items-center justify-between px-5 border-b border-[var(--border-color)]">
-      <div class="flex items-center">
-        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-800 to-black flex items-center justify-center text-white font-bold text-sm mr-3">
+    <div class="h-[var(--header-height)] flex items-center justify-between px-4 border-b border-[var(--border-color)]">
+      <div class="flex items-center overflow-hidden">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-800 to-black flex items-center justify-center text-white font-bold text-sm shrink-0">
           KK
         </div>
-        <span class="text-lg font-bold text-primary tracking-tight">KK-Image</span>
+        <transition name="fade-slide">
+          <span v-if="!isCollapsed" class="ml-3 text-lg font-bold text-primary tracking-tight whitespace-nowrap">KK-Image</span>
+        </transition>
       </div>
       <!-- 移动端关闭按钮 -->
       <button @click="closeSidebar" class="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
@@ -35,44 +38,82 @@
     <!-- 菜单 -->
     <nav class="flex-1 overflow-y-auto scrollbar-thin py-4 px-3">
       <div class="mb-6">
-        <div class="px-3 mb-2 text-xs font-semibold text-secondary uppercase tracking-wider">{{ t('sidebar.menu') }}</div>
+        <transition name="fade">
+          <div v-if="!isCollapsed" class="px-3 mb-2 text-xs font-semibold text-secondary uppercase tracking-wider">{{ t('sidebar.menu') }}</div>
+        </transition>
         <button v-for="item in menuItems" :key="item.key" @click="handleMenuClick(item.key)"
+          :title="isCollapsed ? item.label : ''"
           class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-1"
-          :class="currentView === item.key ? 'bg-[var(--bg-active)] text-primary' : 'text-secondary hover:bg-[var(--bg-hover)] hover:text-primary'">
-          <span v-html="item.icon" class="w-5 h-5"></span>
-          {{ item.label }}
+          :class="[
+            currentView === item.key ? 'bg-[var(--bg-active)] text-primary' : 'text-secondary hover:bg-[var(--bg-hover)] hover:text-primary',
+            isCollapsed ? 'justify-center' : ''
+          ]">
+          <span v-html="item.icon" class="w-5 h-5 shrink-0"></span>
+          <transition name="fade-slide">
+            <span v-if="!isCollapsed" class="whitespace-nowrap">{{ item.label }}</span>
+          </transition>
         </button>
       </div>
 
       <div>
-        <div class="px-3 mb-2 text-xs font-semibold text-secondary uppercase tracking-wider">{{ t('sidebar.manage') }}</div>
+        <transition name="fade">
+          <div v-if="!isCollapsed" class="px-3 mb-2 text-xs font-semibold text-secondary uppercase tracking-wider">{{ t('sidebar.manage') }}</div>
+        </transition>
         <button @click="handleLogout"
-          class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-secondary hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger)] transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          :title="isCollapsed ? t('sidebar.logout') : ''"
+          :class="[
+            'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-secondary hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger)] transition-colors',
+            isCollapsed ? 'justify-center' : ''
+          ]">
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
               d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
           </svg>
-          {{ t('sidebar.logout') }}
+          <transition name="fade-slide">
+            <span v-if="!isCollapsed" class="whitespace-nowrap">{{ t('sidebar.logout') }}</span>
+          </transition>
         </button>
       </div>
     </nav>
 
+    <!-- 折叠按钮（桌面端） -->
+    <div class="hidden lg:block border-t border-[var(--border-color)] p-3">
+      <button 
+        @click="toggleCollapse"
+        :title="isCollapsed ? t('sidebar.expand') : t('sidebar.collapse')"
+        class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-secondary hover:bg-[var(--bg-hover)] hover:text-primary transition-colors"
+      >
+        <svg 
+          class="w-5 h-5 transition-transform duration-300" 
+          :class="isCollapsed ? 'rotate-180' : ''"
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+        </svg>
+        <transition name="fade-slide">
+          <span v-if="!isCollapsed" class="whitespace-nowrap">{{ t('sidebar.collapse') }}</span>
+        </transition>
+      </button>
+    </div>
+
     <!-- 用户信息 -->
     <div class="p-4 border-t border-[var(--border-color)]">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-full bg-[var(--bg-muted)] flex items-center justify-center text-sm font-semibold text-secondary">
+      <div class="flex items-center gap-3" :class="isCollapsed ? 'justify-center' : ''">
+        <div class="w-9 h-9 rounded-full bg-[var(--bg-muted)] flex items-center justify-center text-sm font-semibold text-secondary shrink-0">
           A</div>
-        <div class="flex-1 min-w-0">
-          <div class="text-sm font-medium text-primary truncate">Admin</div>
-          <div class="text-xs text-secondary">{{ t('sidebar.role') }}</div>
-        </div>
+        <transition name="fade-slide">
+          <div v-if="!isCollapsed" class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-primary truncate">Admin</div>
+            <div class="text-xs text-secondary">{{ t('sidebar.role') }}</div>
+          </div>
+        </transition>
       </div>
     </div>
   </aside>
 </template>
 
 <script setup>
-import { computed, ref, provide, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useView } from '@/composables/useView';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
@@ -85,6 +126,24 @@ const { addToast } = useToast();
 
 // 移动端侧边栏状态
 const isOpen = ref(false);
+
+// 桌面端折叠状态（持久化到 localStorage）
+const isCollapsed = ref(false);
+
+const STORAGE_KEY = 'sidebar-collapsed';
+
+onMounted(() => {
+  // 从 localStorage 恢复折叠状态
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved !== null) {
+    isCollapsed.value = saved === 'true';
+  }
+});
+
+const toggleCollapse = () => {
+  isCollapsed.value = !isCollapsed.value;
+  localStorage.setItem(STORAGE_KEY, isCollapsed.value.toString());
+};
 
 const openSidebar = () => {
   isOpen.value = true;
@@ -118,3 +177,29 @@ const handleLogout = async () => {
     window.location.reload();
 };
 </script>
+
+<style scoped>
+/* 淡出滑动动画 */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-8px);
+}
+
+/* 淡入淡出动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
+

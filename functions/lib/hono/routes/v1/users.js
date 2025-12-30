@@ -2,8 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { CreateUserSchema, UpdateUserSchema } from '../../schemas/user.js';
 import { requirePermission } from '../../middleware/auth.js';
-import { generateId, hashPassword } from '../../../../api/utils/id.js';
-import { MSG } from '../../../../api/utils/messages.js';
+import { generateId, hashPassword, MSG } from '../../_shared/utils.js';
 
 const app = new Hono();
 

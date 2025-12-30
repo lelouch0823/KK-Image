@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
-import { generatePrefixedId, generateHmacSignature } from '../../../../api/utils/id.js';
-import { MSG } from '../../../../api/utils/messages.js';
+import { generatePrefixedId, generateHmacSignature, MSG } from '../../_shared/utils.js';
 
 const app = new Hono();
 

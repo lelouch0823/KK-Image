@@ -1,8 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { LoginSchema, TokenSchema, CreateApiKeySchema } from '../../schemas/user.js';
-import { generateJWT, ADMIN_AUTH_COOKIE, verifyTurnstile } from '../../../../api/utils/auth.js';
-import { MSG } from '../../../../api/utils/messages.js';
+import { generateJWT, ADMIN_AUTH_COOKIE, verifyTurnstile, MSG } from '../../_shared/utils.js';
 
 const app = new Hono();
 

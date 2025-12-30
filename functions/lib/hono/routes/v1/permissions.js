@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
-import { MSG } from '../../../../api/utils/messages.js';
+import { MSG } from '../../_shared/utils.js';
 
 const app = new Hono();
 

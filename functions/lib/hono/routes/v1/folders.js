@@ -4,8 +4,7 @@ import { FolderQuerySchema, CreateFolderSchema, UpdateFolderSchema, ShareSetting
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
 import { batchInsert } from '../../../../lib/db/batch.js';
-import { generateId, generateShareToken, now } from '../../../../api/utils/id.js';
-import { MSG } from '../../../../api/utils/messages.js';
+import { generateId, generateShareToken, now, MSG } from '../../_shared/utils.js';
 
 const app = new Hono();
 

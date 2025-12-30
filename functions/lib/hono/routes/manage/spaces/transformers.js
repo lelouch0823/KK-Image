@@ -3,7 +3,7 @@
  * 将数据库记录转换为 API 响应格式
  */
 
-import { getShareUrl, getFileUrl } from '../../../../../api/utils/url.js';
+import { getShareUrl, getFileUrl } from '../../../_shared/utils.js';
 
 /**
  * 转换空间列表项

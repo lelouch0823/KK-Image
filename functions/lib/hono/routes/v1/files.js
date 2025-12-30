@@ -4,9 +4,7 @@ import { FileQuerySchema, CreateFileSchema, BatchFileSchema, MoveFileSchema } fr
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache, invalidateCache } from '../../middleware/cache.js';
 import { batchDelete } from '../../../../lib/db/batch.js';
-import { getFileUrl } from '../../../../api/utils/url.js';
-import { generateId, now } from '../../../../api/utils/id.js';
-import { MSG } from '../../../../api/utils/messages.js';
+import { getFileUrl, generateId, now, MSG } from '../../_shared/utils.js';
 
 const app = new Hono();
 

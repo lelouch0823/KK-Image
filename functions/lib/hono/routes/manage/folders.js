@@ -3,9 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
-import { generateId, generateShareToken, now, timestampToIso } from '../../../../api/utils/id.js';
-import { getShareUrl, getFileUrl } from '../../../../api/utils/url.js';
-import { MSG } from '../../../../api/utils/messages.js';
+import { generateId, generateShareToken, now, timestampToIso, MSG, getShareUrl, getFileUrl } from '../../_shared/utils.js';
 
 const app = new Hono();
 
@@ -326,7 +324,7 @@ async function getBreadcrumbs(db, folderId) {
 }
 
 import { RedundancyManager } from '../../../../storage/redundancy.js';
-import { triggerWebhook } from '../../../../api/utils/webhook.js';
+import { triggerWebhook } from '../../_shared/utils.js';
 
 /**
  * POST /api/manage/folders/:id/upload - 上传文件到文件夹

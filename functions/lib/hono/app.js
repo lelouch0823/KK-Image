@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { secureHeaders } from 'hono/secure-headers';
-import { CORS_MAX_AGE } from '../../api/utils/constants.js';
+import { CORS_MAX_AGE } from '../_shared/utils.js';
 
 import { authMiddleware, publicRoutes } from './middleware/auth.js';
 import { rateLimitMiddleware } from './middleware/rateLimit.js';

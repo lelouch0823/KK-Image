@@ -2,10 +2,8 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth.js';
-import { generateId, now } from '../../../../api/utils/id.js';
-import { MSG } from '../../../../api/utils/messages.js';
+import { generateId, now, MSG, verifyJWT } from '../../_shared/utils.js';
 import { parse as parseCookie } from 'cookie';
-import { verifyJWT } from '../../../../api/utils/auth.js';
 
 const app = new Hono();
 

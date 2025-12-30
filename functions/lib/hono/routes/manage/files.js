@@ -2,9 +2,8 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth.js';
-import { getFileUrl } from '../../../../api/utils/url.js';
+import { getFileUrl, MSG } from '../../_shared/utils.js';
 import { batchDelete } from '../../../../lib/db/batch.js';
-import { MSG } from '../../../../api/utils/messages.js';
 
 const app = new Hono();
 
