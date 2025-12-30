@@ -16,13 +16,13 @@
       <div v-if="mode === 'sales' && order.status === 'pending'" class="flex gap-2">
         <button 
           @click="showEditModal = true"
-          class="px-3 py-1.5 text-sm font-medium text-primary bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          class="px-3 py-1.5 text-sm font-medium text-primary bg-white border border-[var(--border-hover)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
         >
           {{ t('order.manage.editOrder') }}
         </button>
         <button 
           @click="handleVoid"
-          class="px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+          class="px-3 py-1.5 text-sm font-medium text-[var(--color-danger-text)] bg-white border border-[var(--color-danger-bg)] rounded-lg hover:bg-[var(--color-danger-bg)] transition-colors"
         >
           {{ t('order.actions.void') }}
         </button>
@@ -43,7 +43,7 @@
 
       <!-- 状态流程条 -->
       <div class="mt-6 relative">
-        <div class="absolute top-3 left-0 right-0 h-0.5 bg-gray-200"></div>
+        <div class="absolute top-3 left-0 right-0 h-0.5 bg-[var(--border-color)]"></div>
         <div 
           class="absolute top-3 left-0 h-0.5 bg-primary transition-all"
           :style="{ width: progressWidth }"
@@ -58,7 +58,7 @@
               class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium border-2 transition-all"
               :class="index <= currentStepIndex 
                 ? 'bg-primary border-primary text-white' 
-                : 'bg-white border-gray-300 text-gray-400'"
+                : 'bg-white border-[var(--border-hover)] text-secondary'"
             >
               <svg v-if="index < currentStepIndex" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
@@ -83,7 +83,7 @@
         <div 
           v-for="file in order.files" 
           :key="file.id"
-          class="aspect-square rounded-lg overflow-hidden bg-gray-100"
+          class="aspect-square rounded-lg overflow-hidden bg-[var(--bg-muted)]"
         >
           <img :src="file.url" class="w-full h-full object-cover" loading="lazy">
         </div>
@@ -97,7 +97,7 @@
         <!-- 修正标记 -->
         <span 
           v-if="hasCorrection"
-          class="text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full cursor-pointer hover:bg-orange-100"
+          class="text-xs text-[var(--color-warning-text)] bg-[var(--color-warning-bg)] px-2 py-0.5 rounded-full cursor-pointer hover:bg-[var(--color-warning)] hover:text-white"
           @click="showCorrectionModal = true"
         >
           {{ t('order.portal.viewCorrection') }}
@@ -156,7 +156,7 @@
         <button 
           @click="sendComment"
           :disabled="!commentText.trim()"
-          class="px-4 h-10 bg-primary text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="px-4 h-10 bg-primary text-white text-sm font-medium rounded-lg hover:bg-[var(--color-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {{ t('order.detail.sendComment') }}
         </button>
@@ -174,11 +174,11 @@
         <p class="text-xs text-secondary mb-2">{{ formatTime(correction.createdAt) }}</p>
         <div class="flex items-center gap-2 text-sm">
           <span class="text-secondary">{{ correction.fieldName }}:</span>
-          <span class="line-through text-red-400">{{ correction.oldValue }}</span>
-          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <span class="line-through text-[var(--color-danger-text)]/60"> {{ correction.oldValue }}</span>
+          <svg class="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
           </svg>
-          <span class="text-green-600 font-medium">{{ correction.newValue }}</span>
+          <span class="text-[var(--color-success-text)] font-medium">{{ correction.newValue }}</span>
         </div>
         <p class="text-xs text-secondary mt-2">
           <span class="font-medium">{{ t('order.detail.correctionReason') }}:</span> {{ correction.reason }}

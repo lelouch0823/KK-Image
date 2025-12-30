@@ -60,6 +60,18 @@ export const API = {
     SALES_ORDER_READ: (token, id) => `/api/sales/${token}/orders/${id}/read`,
     SALES_UPLOAD: (token) => `/api/sales/${token}/upload`,
 
+    // 管理端订单 API
+    MANAGE_ORDERS: `/api/manage/orders`,
+    MANAGE_ORDER_BY_ID: (id) => `/api/manage/orders/${id}`,
+    MANAGE_ORDER_UPDATE: (id) => `/api/manage/orders/${id}`,
+    MANAGE_ORDER_STATUS: (id) => `/api/manage/orders/${id}/status`,
+    MANAGE_ORDER_COMMENT: (id) => `/api/manage/orders/${id}/comment`,
+
+    // 销售人员管理 API
+    SALESPERSONS: `${API_PREFIX}/salespersons`,
+    SALESPERSON_BY_ID: (id) => `${API_PREFIX}/salespersons/${id}`,
+    SALESPERSON_RESET_TOKEN: (id) => `${API_PREFIX}/salespersons/${id}/reset-token`,
+
     // 其他
     TURNSTILE_VERIFY: '/api/turnstile/verify'
 };

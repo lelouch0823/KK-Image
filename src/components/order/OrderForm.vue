@@ -21,7 +21,7 @@
         <!-- 商品名称 -->
         <div>
           <label class="block text-sm font-medium text-primary mb-2">
-            {{ t('order.form.productName') }} <span class="text-red-500">*</span>
+            {{ t('order.form.productName') }} <span class="text-[var(--color-danger)]">*</span>
           </label>
           <input 
             v-model="form.name"

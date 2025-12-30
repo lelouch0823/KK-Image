@@ -299,6 +299,9 @@ export default {
         loginFailed: '登录失败，请稍后重试',
         logout: '退出登录',
         copyright: '© {year} KK-Image used for file storage',
+        passwordRequired: '需要密码',
+        passwordSubtitle: '此内容受密码保护',
+        passwordAccessPlaceholder: '请输入访问密码',
     },
     dashboard: {
         totalFiles: '文件总数',

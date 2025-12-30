@@ -73,7 +73,7 @@ export async function onRequestPost(context) {
             id: salesperson.id,
             name: salesperson.name,
             store: salesperson.store
-        }, MSG.AUTH.REQUIRED.replace('请先登录以访问此资源', '登录成功'), 200, {
+        }, MSG.AUTH.LOGIN_SUCCESS, 200, {
             'Set-Cookie': cookieOptions.join('; ')
         });
 

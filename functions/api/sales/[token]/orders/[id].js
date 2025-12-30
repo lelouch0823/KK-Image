@@ -200,7 +200,7 @@ export async function onRequestPatch(context) {
         }
 
         if (order.status !== 'pending') {
-            return error('只能修改待确认状态的订单', 403);
+            return error(MSG.ORDER.ONLY_PENDING_CAN_EDIT, 403);
         }
 
         const currentData = order.current_data ? JSON.parse(order.current_data) : {};
@@ -223,7 +223,7 @@ export async function onRequestPatch(context) {
                     fieldName: field,
                     oldValue: currentData[field] || '',
                     newValue: updates[field] || '',
-                    reason: '销售自行修改'
+                    reason: MSG.ORDER.REASON_SALES_EDIT
                 }));
                 newData[field] = updates[field];
                 hasChanges = true;
@@ -316,7 +316,7 @@ export async function onRequestDelete(context) {
         }
 
         if (order.status !== 'pending') {
-            return error('只能作废待确认状态的订单', 403);
+            return error(MSG.ORDER.ONLY_PENDING_CAN_VOID, 403);
         }
 
         // 软删除 -> void
@@ -332,16 +332,16 @@ export async function onRequestDelete(context) {
             actorName: salesperson.name,
             oldValue: order.status,
             newValue: 'void',
-            reason: '销售自行作废'
+            reason: MSG.ORDER.REASON_SALES_VOID
         });
 
-        return success(null, '订单已作废');
+        return success(null, MSG.ORDER.VOID_SUCCESS);
 
     } catch (err) {
         if (err.message === MSG.AUTH.REQUIRED || err.message === MSG.AUTH.FORBIDDEN) {
             return error(err.message, 401);
         }
-        return error(`操作失败: ${err.message}`, 500);
+        return error(`${MSG.COMMON.OP_FAILED}: ${err.message}`, 500);
     }
 }
 

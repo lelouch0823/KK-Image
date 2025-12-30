@@ -153,7 +153,7 @@ export async function onRequestPost(context) {
         const { name, size, color, material, remark, deadline, brand, series, fileIds = [] } = body;
 
         if (!name) {
-            return error(MSG.COMMON.INVALID_PARAMS + ': 商品名称不能为空', 400);
+            return error(MSG.ORDER.NAME_REQUIRED, 400);
         }
 
         const orderId = generateId();
