@@ -199,10 +199,11 @@ export async function onRequestPatch(context) {
             return error(MSG.ORDER.NOT_FOUND, 404);
         }
 
-        if (order.status !== 'pending') {
+        if (order.status !== 'pending' && order.status !== 'rejected') {
             return error(MSG.ORDER.ONLY_PENDING_CAN_EDIT, 403);
         }
 
+        const wasRejected = order.status === 'rejected';
         const currentData = order.current_data ? JSON.parse(order.current_data) : {};
         const newData = { ...currentData };
         let hasChanges = false;
@@ -281,10 +282,25 @@ export async function onRequestPatch(context) {
             return error(MSG.COMMON.NO_UPDATE_FIELDS, 400);
         }
 
-        // 更新订单
+        // 更新订单（如果原状态是 rejected，则重置为 pending）
+        const newStatus = wasRejected ? 'pending' : order.status;
         await env.DB.prepare(`
-            UPDATE orders SET current_data = ?, updated_at = ? WHERE id = ?
-        `).bind(JSON.stringify(newData), now(), orderId).run();
+            UPDATE orders SET current_data = ?, status = ?, updated_at = ? WHERE id = ?
+        `).bind(JSON.stringify(newData), newStatus, now(), orderId).run();
+
+        // 如果从 rejected 变为 pending，记录状态变更
+        if (wasRejected) {
+            await logTimeline(env.DB, {
+                orderId,
+                actionType: 'status_changed',
+                actorType: 'salesperson',
+                actorId: salesperson.id,
+                actorName: salesperson.name,
+                oldValue: 'rejected',
+                newValue: 'pending',
+                reason: MSG.ORDER.REASON_RESUBMIT
+            });
+        }
 
         return success(null, MSG.ORDER.UPDATE_SUCCESS);
 

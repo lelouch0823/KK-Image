@@ -83,6 +83,16 @@
             class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none resize-none"
           ></textarea>
         </div>
+
+        <!-- 期望到货时间 -->
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">{{ t('order.form.expectedArrival') }}</label>
+          <input 
+            v-model="form.deadline"
+            type="date"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none"
+          >
+        </div>
       </div>
 
       <!-- 右侧：原始信息 & 图片 -->
@@ -122,7 +132,7 @@
               <p class="whitespace-pre-wrap">{{ originalData.remark || '-' }}</p>
             </div>
              <div class="flex justify-between">
-              <span class="text-gray-400 text-xs">{{ t('order.form.deadline') }}:</span>
+              <span class="text-gray-400 text-xs">{{ t('order.form.expectedArrival') }}:</span>
               <span>{{ originalData.deadline || '-' }}</span>
             </div>
           </div>

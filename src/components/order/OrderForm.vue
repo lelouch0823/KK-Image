@@ -110,10 +110,10 @@
           ></textarea>
         </div>
 
-        <!-- 截止时间 -->
+        <!-- 期望到货时间 -->
         <div>
           <label class="block text-sm font-medium text-primary mb-2">
-            {{ t('order.form.deadline') }}
+            {{ t('order.form.expectedArrival') }}
           </label>
           <input 
             v-model="form.deadline"

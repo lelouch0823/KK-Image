@@ -34,7 +34,8 @@ export default {
         success: '操作成功',
         view: '查看',
         items: '项',
-        verifying: '正在验证身份...'
+        verifying: '正在验证身份...',
+        addImage: '添加图片'
     },
     upload: {
         uploading: '正在上传 {count} 个文件',
@@ -472,8 +473,8 @@ export default {
             uploadHint: '支持多图上传，建议上传清晰的实物照片',
             submit: '提交预定',
             submitting: '提交中...',
-            deadline: '期望到货日期',
-            deadlinePlaceholder: '选择期望到货日期',
+            expectedArrival: '期望到货时间',
+            expectedArrivalPlaceholder: '选择期望到货日期',
             brand: '品牌',
             brandPlaceholder: '如：Nike',
             series: '系列',

@@ -112,10 +112,11 @@ export const MSG = {
         INVALID_STATUS: '无效的订单状态',
         NO_PERMISSION: '无权访问此订单',
         NAME_REQUIRED: '商品名称不能为空',
-        ONLY_PENDING_CAN_EDIT: '只能修改待确认状态的订单',
+        ONLY_PENDING_CAN_EDIT: '只能修改待确认或已驳回的订单',
         ONLY_PENDING_CAN_VOID: '只能作废待确认状态的订单',
         REASON_SALES_EDIT: '销售自行修改',
         REASON_SALES_VOID: '销售自行作废',
+        REASON_RESUBMIT: '修改后重新提交',
         VOID_SUCCESS: '订单已作废'
     },
 

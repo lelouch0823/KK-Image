@@ -13,7 +13,7 @@
       </button>
 
       <!-- 销售端操作按钮 -->
-      <div v-if="mode === 'sales' && order.status === 'pending'" class="flex gap-2">
+      <div v-if="mode === 'sales' && (order.status === 'pending' || order.status === 'rejected')" class="flex gap-2">
         <button 
           @click="showEditModal = true"
           class="px-3 py-1.5 text-sm font-medium text-primary bg-white border border-[var(--border-hover)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
@@ -104,33 +104,37 @@
         </span>
       </div>
       
-      <div class="space-y-3">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
         <div class="flex">
-          <span class="w-20 text-sm text-secondary flex-shrink-0">{{ t('order.form.productName') }}</span>
+          <span class="w-24 text-sm text-secondary flex-shrink-0">{{ t('order.form.productName') }}</span>
           <span class="text-sm text-primary">{{ currentData.name || '-' }}</span>
         </div>
         <div class="flex">
-          <span class="w-20 text-sm text-secondary flex-shrink-0">{{ t('order.form.brand') }}</span>
+          <span class="w-24 text-sm text-secondary flex-shrink-0">{{ t('order.form.brand') }}</span>
           <span class="text-sm text-primary">{{ currentData.brand || '-' }}</span>
         </div>
         <div class="flex">
-          <span class="w-20 text-sm text-secondary flex-shrink-0">{{ t('order.form.series') }}</span>
+          <span class="w-24 text-sm text-secondary flex-shrink-0">{{ t('order.form.series') }}</span>
           <span class="text-sm text-primary">{{ currentData.series || '-' }}</span>
         </div>
         <div class="flex">
-          <span class="w-20 text-sm text-secondary flex-shrink-0">{{ t('order.form.size') }}</span>
+          <span class="w-24 text-sm text-secondary flex-shrink-0">{{ t('order.form.size') }}</span>
           <span class="text-sm text-primary">{{ currentData.size || '-' }}</span>
         </div>
         <div class="flex">
-          <span class="w-20 text-sm text-secondary flex-shrink-0">{{ t('order.form.color') }}</span>
+          <span class="w-24 text-sm text-secondary flex-shrink-0">{{ t('order.form.color') }}</span>
           <span class="text-sm text-primary">{{ currentData.color || '-' }}</span>
         </div>
         <div class="flex">
-          <span class="w-20 text-sm text-secondary flex-shrink-0">{{ t('order.form.material') }}</span>
+          <span class="w-24 text-sm text-secondary flex-shrink-0">{{ t('order.form.material') }}</span>
           <span class="text-sm text-primary">{{ currentData.material || '-' }}</span>
         </div>
         <div class="flex">
-          <span class="w-20 text-sm text-secondary flex-shrink-0">{{ t('order.form.remark') }}</span>
+          <span class="w-24 text-sm text-secondary flex-shrink-0">{{ t('order.form.expectedArrival') }}</span>
+          <span class="text-sm text-primary">{{ currentData.deadline || '-' }}</span>
+        </div>
+        <div class="flex md:col-span-2 lg:col-span-3">
+          <span class="w-24 text-sm text-secondary flex-shrink-0">{{ t('order.form.remark') }}</span>
           <span class="text-sm text-primary whitespace-pre-wrap">{{ currentData.remark || '-' }}</span>
         </div>
       </div>
