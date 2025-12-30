@@ -35,7 +35,8 @@ export default {
         view: '查看',
         items: '项',
         verifying: '正在验证身份...',
-        addImage: '添加图片'
+        addImage: '添加图片',
+        createdAt: '创建时间'
     },
     upload: {
         uploading: '正在上传 {count} 个文件',
@@ -624,7 +625,7 @@ export default {
         // 时间轴
         timeline: {
             created: '提交了初始预定申请',
-            fieldUpdated: '修正了【{field}】字段',
+            fieldUpdated: '修改了 【{field}】',
             imagesUpdated: '更新了商品图片',
             imageCount: '{count} 张图片',
             statusChanged: '订单状态更新为',
