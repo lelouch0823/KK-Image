@@ -21,7 +21,8 @@ export function useView() {
             const titleMap = {
                 'dashboard': t('views.dashboard'),
                 'files': t('views.files'),
-                'stats': t('views.stats')
+                'stats': t('views.stats'),
+                'customers': t('views.customers')
             };
             viewTitle.value = titleMap[view] || t('views.admin');
         }

@@ -107,6 +107,11 @@ export const MSG = {
         TOKEN_CONFLICT: '访问令牌冲突，请重试'
     },
 
+    // 客户管理
+    CUSTOMER: {
+        CANNOT_DELETE_HAS_ORDERS: '无法删除：该客户有关联订单'
+    },
+
     // 订单管理
     ORDER: {
         NOT_FOUND: '订单不存在',

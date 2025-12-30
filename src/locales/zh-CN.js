@@ -422,7 +422,43 @@ export default {
         dashboard: '概览',
         files: '文件管理',
         stats: '统计',
+        customers: '客户管理',
         admin: '管理后台',
+    },
+
+    // 客户管理
+    customer: {
+        manage: {
+            title: '客户管理',
+            subtitle: '管理客户档案及查看历史订单',
+            searchPlaceholder: '搜索客户名称/电话/公司...',
+            addCustomer: '新建客户',
+            editTitle: '编辑客户',
+            createTitle: '新建客户',
+            empty: '暂无客户数据',
+            deleteConfirm: '确定要删除该客户吗？此操作不可恢复。'
+        },
+        form: {
+            name: '客户名称',
+            contact: '联系方式',
+            company: '公司/单位',
+            phone: '电话号码',
+            email: '电子邮箱',
+            address: '详细地址',
+            tags: '标签',
+            remark: '备注信息',
+            namePlaceholder: '请输入客户姓名',
+            basicInfo: '基本信息',
+            moreInfo: '更多信息',
+            tagInputPlaceholder: '输入标签后回车'
+        },
+        detail: {
+            historyOrders: '历史订单',
+            totalSpent: '总消费',
+            orderCount: '订单数',
+            lastOrder: '最近下单',
+            noOrders: '暂无订单记录'
+        }
     },
     formatters: {
         forever: '永久有效',
@@ -433,6 +469,19 @@ export default {
     batchDownload: {
         started: '下载已开始',
         failed: '打包下载失败',
+    },
+    notification: {
+        title: '通知中心',
+        markAllRead: '全部已读',
+        empty: '暂无通知',
+        newFeedback: '您有新的订单反馈',
+        permissionDenied: '请允许浏览器通知以接收新消息提醒',
+        newOrder: '收到新订单',
+    },
+    search: {
+        history: '搜索历史',
+        clearHistory: '清除历史',
+        noHistory: '暂无搜索记录',
     },
 
     // 订单模块 (销售端 + 管理端)
@@ -478,7 +527,8 @@ export default {
             brand: '品牌',
             brandPlaceholder: '如：Nike',
             series: '系列',
-            seriesPlaceholder: '如：Air Force'
+            seriesPlaceholder: '如：Air Force',
+            recentInputs: '最近使用',
         },
 
         // 销售端
@@ -532,13 +582,37 @@ export default {
             statusNotePlaceholder: '如：预计3天后到达门店',
             confirmStatusChange: '确认变更',
             batchConfirm: '批量确认',
-            batchReject: '批量驳回'
+            batchReject: '批量驳回',
+            batchVoid: '批量作废',
+            selectAll: '全选',
+            selectedCount: '已选择 {count} 项',
+            cancelSelect: '取消选择',
+            export: '导出',
+            exporting: '导出中...',
+            exportSuccess: '导出成功',
+            exportFailed: '导出失败',
+            dateRange: '日期范围',
+            startDate: '开始日期',
+            endDate: '结束日期'
+        },
+
+        // 仪表盘
+        dashboard: {
+            todayOrders: '今日订单',
+            pendingOrders: '待处理',
+            weekOrders: '本周订单',
+            monthOrders: '本月订单',
+            orderTrend: '订单趋势',
+            statusDistribution: '状态分布',
+            recentOrders: '最近订单'
         },
 
         // 操作按钮
         actions: {
             void: '作废',
-            edit: '编辑'
+            edit: '编辑',
+            duplicate: '复制订单',
+            duplicateSuccess: '订单已复制，请修改后提交',
         },
 
         // 时间轴
@@ -593,5 +667,13 @@ export default {
         emptyList: '暂无销售人员',
         emptyHint: '点击上方按钮添加第一个销售',
         leaveBlankToKeep: '不修改请留空'
+    },
+    pwa: {
+        offlineReady: '应用已准备好离线使用',
+        newContent: '发现新版本',
+        offlineReadyDesc: '您可以随时在没有网络的情况下访问此应用。',
+        newContentDesc: '请点击刷新以获取最新功能。',
+        reload: '立即刷新',
+        close: '关闭'
     }
 };

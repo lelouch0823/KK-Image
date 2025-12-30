@@ -13,19 +13,32 @@
       </button>
 
       <!-- 销售端操作按钮 -->
-      <div v-if="mode === 'sales' && (order.status === 'pending' || order.status === 'rejected')" class="flex gap-2">
+      <div v-if="mode === 'sales'" class="flex gap-2">
+        <!-- 复制订单按钮 (始终显示) -->
         <button 
-          @click="showEditModal = true"
-          class="px-3 py-1.5 text-sm font-medium text-primary bg-white border border-[var(--border-hover)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+          @click="$emit('duplicate', order)"
+          class="px-3 py-1.5 text-sm font-medium text-primary bg-white border border-[var(--border-hover)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors flex items-center gap-1.5"
         >
-          {{ t('order.manage.editOrder') }}
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+          </svg>
+          {{ t('order.actions.duplicate') }}
         </button>
-        <button 
-          @click="handleVoid"
-          class="px-3 py-1.5 text-sm font-medium text-[var(--color-danger-text)] bg-white border border-[var(--color-danger-bg)] rounded-lg hover:bg-[var(--color-danger-bg)] transition-colors"
-        >
-          {{ t('order.actions.void') }}
-        </button>
+        <!-- 编辑和作废按钮 (仅pending/rejected显示) -->
+        <template v-if="order.status === 'pending' || order.status === 'rejected'">
+          <button 
+            @click="showEditModal = true"
+            class="px-3 py-1.5 text-sm font-medium text-primary bg-white border border-[var(--border-hover)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+          >
+            {{ t('order.manage.editOrder') }}
+          </button>
+          <button 
+            @click="handleVoid"
+            class="px-3 py-1.5 text-sm font-medium text-[var(--color-danger-text)] bg-white border border-[var(--color-danger-bg)] rounded-lg hover:bg-[var(--color-danger-bg)] transition-colors"
+          >
+            {{ t('order.actions.void') }}
+          </button>
+        </template>
       </div>
     </div>
 
@@ -239,7 +252,7 @@ const props = defineProps({
   mode: { type: String, default: 'sales' }
 });
 
-const emit = defineEmits(['back', 'comment', 'refresh']);
+const emit = defineEmits(['back', 'comment', 'refresh', 'duplicate']);
 
 const { t } = useI18n();
 const { addToast } = useToast();

@@ -23,13 +23,14 @@
           <label class="block text-sm font-medium text-primary mb-2">
             {{ t('order.form.productName') }} <span class="text-danger">*</span>
           </label>
-          <input 
+          <AutocompleteInput
             v-model="form.name"
-            type="text"
+            :suggestions="nameSuggestions"
             :placeholder="t('order.form.productNamePlaceholder')"
-            class="input h-11"
-            required
-          >
+            :label="t('order.form.recentInputs')"
+            :filter-mode="false"
+            input-class="input h-11"
+          />
         </div>
 
         <!-- 品牌和系列 -->
@@ -38,23 +39,27 @@
             <label class="block text-sm font-medium text-primary mb-2">
               {{ t('order.form.brand') }}
             </label>
-            <input 
+            <AutocompleteInput
               v-model="form.brand"
-              type="text"
+              :suggestions="brandSuggestions"
               :placeholder="t('order.form.brandPlaceholder')"
-              class="input h-11"
-            >
+              :label="t('order.form.recentInputs')"
+              :filter-mode="false"
+              input-class="input h-11"
+            />
           </div>
           <div>
             <label class="block text-sm font-medium text-primary mb-2">
               {{ t('order.form.series') }}
             </label>
-            <input 
+            <AutocompleteInput
               v-model="form.series"
-              type="text"
+              :suggestions="seriesSuggestions"
               :placeholder="t('order.form.seriesPlaceholder')"
-              class="input h-11"
-            >
+              :label="t('order.form.recentInputs')"
+              :filter-mode="false"
+              input-class="input h-11"
+            />
           </div>
         </div>
 
@@ -77,23 +82,27 @@
             <label class="block text-sm font-medium text-primary mb-2">
               {{ t('order.form.color') }}
             </label>
-            <input 
+            <AutocompleteInput
               v-model="form.color"
-              type="text"
+              :suggestions="colorSuggestions"
               :placeholder="t('order.form.colorPlaceholder')"
-              class="input h-11"
-            >
+              :label="t('order.form.recentInputs')"
+              :filter-mode="false"
+              input-class="input h-11"
+            />
           </div>
           <div>
             <label class="block text-sm font-medium text-primary mb-2">
               {{ t('order.form.material') }}
             </label>
-            <input 
+            <AutocompleteInput
               v-model="form.material"
-              type="text"
+              :suggestions="materialSuggestions"
               :placeholder="t('order.form.materialPlaceholder')"
-              class="input h-11"
-            >
+              :label="t('order.form.recentInputs')"
+              :filter-mode="false"
+              input-class="input h-11"
+            />
           </div>
         </div>
 
@@ -151,14 +160,20 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
+import { useRecentInputs } from '@/composables/useRecentInputs';
 import { API } from '@/utils/constants';
 import { getTodayISOString } from '@/utils/common';
 import ImageUploader from '../common/ImageUploader.vue';
+import AutocompleteInput from '../ui/AutocompleteInput.vue';
 
 const minDate = computed(() => getTodayISOString());
+
+const props = defineProps({
+  prefill: { type: Object, default: null }
+});
 
 const emit = defineEmits(['submit', 'cancel']);
 
@@ -176,8 +191,29 @@ const form = reactive({
   deadline: ''
 });
 
+// 监听预填充数据变化 (用于复制订单)
+watch(() => props.prefill, (data) => {
+  if (data) {
+    Object.keys(form).forEach(key => {
+      if (data[key] !== undefined) {
+        form[key] = data[key];
+      }
+    });
+  }
+}, { immediate: true });
+
 const uploadedFiles = ref([]);
 const isSubmitting = ref(false);
+
+// 最近输入历史
+const { getRecent, saveMultiple } = useRecentInputs('order');
+
+// 各字段的建议列表
+const nameSuggestions = computed(() => getRecent('name'));
+const brandSuggestions = computed(() => getRecent('brand'));
+const seriesSuggestions = computed(() => getRecent('series'));
+const colorSuggestions = computed(() => getRecent('color'));
+const materialSuggestions = computed(() => getRecent('material'));
 
 // 计算上传地址
 const uploadEndpoint = computed(() => {
@@ -200,6 +236,15 @@ const handleSubmit = async () => {
     await emit('submit', {
       ...form,
       files // 传递文件对象而非 fileIds
+    });
+
+    // 提交成功后保存历史
+    saveMultiple({
+      name: form.name,
+      brand: form.brand,
+      series: form.series,
+      color: form.color,
+      material: form.material
     });
   } finally {
     isSubmitting.value = false;

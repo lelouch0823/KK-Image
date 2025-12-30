@@ -69,8 +69,9 @@
         <!-- 新建订单表单 -->
         <OrderForm 
           v-else-if="currentView === 'form'"
+          :prefill="prefillData"
           @submit="handleSubmitOrder"
-          @cancel="currentView = 'list'"
+          @cancel="handleCancelForm"
         />
 
         <!-- 订单详情 -->
@@ -81,6 +82,7 @@
           @back="handleBackToList"
           @comment="handleComment"
           @refresh="handleRefreshOrder"
+          @duplicate="handleDuplicate"
         />
       </main>
 
@@ -90,18 +92,24 @@
 
     <!-- Toast -->
     <ToastContainer />
+    
+    <!-- PWA 更新提示 -->
+    <ReloadPrompt />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { useNotification } from '@/composables/useNotification';
+import { useToast } from '@/composables/useToast';
 import { useOrders } from '@/composables/useOrders';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
 import OrderLogin from '@/components/order/OrderLogin.vue';
 import OrderList from '@/components/order/OrderList.vue';
 import OrderForm from '@/components/order/OrderForm.vue';
 import OrderDetail from '@/components/order/OrderDetail.vue';
+import ReloadPrompt from '@/components/ReloadPrompt.vue';
 
 const {
   loading: ordersLoading,
@@ -111,10 +119,13 @@ const {
   loadSalesOrders,
   getSalesOrder,
   createSalesOrder,
-  addSalesComment
+  addSalesComment,
+  duplicateOrder
 } = useOrders();
 
 const { t } = useI18n();
+const { requestPermission, showOrderFeedbackNotification } = useNotification();
+const { addToast } = useToast();
 
 // 状态
 const loading = ref(true);
@@ -123,6 +134,11 @@ const loginError = ref('');
 const salesperson = ref(null);
 const currentView = ref('list'); // list | form | detail
 const selectedOrder = ref(null);
+const prefillData = ref(null); // 预填充数据 (复制订单用)
+const pollIntervalId = ref(null);
+
+// 轮询间隔 (60秒)
+const POLL_INTERVAL = 60 * 1000;
 
 // 从 URL 获取访问令牌
 const getAccessToken = () => {
@@ -214,5 +230,66 @@ const handleRefreshOrder = async () => {
   loadOrders(); // 同时刷新列表
 };
 
-onMounted(checkAuth);
+// 复制订单 (预填充表单)
+const handleDuplicate = async (order) => {
+  const data = await duplicateOrder(accessToken, order.id);
+  if (data) {
+    prefillData.value = data;
+    currentView.value = 'form';
+    addToast({ message: t('order.actions.duplicateSuccess'), type: 'success' });
+  }
+};
+
+// 取消表单 (清除预填充)
+const handleCancelForm = () => {
+  prefillData.value = null;
+  currentView.value = 'list';
+};
+
+// 轮询检查新消息
+const checkNewFeedback = async () => {
+  if (!isAuthenticated.value || !accessToken) return;
+  
+  // 记录当前有反馈的订单ID
+  const prevFeedbackIds = new Set(
+    orders.value.filter(o => o.hasNewFeedback).map(o => o.id)
+  );
+  
+  // 静默刷新订单列表
+  await loadSalesOrders(accessToken);
+  
+  // 检测新增的反馈
+  orders.value.forEach(order => {
+    if (order.hasNewFeedback && !prevFeedbackIds.has(order.id)) {
+      showOrderFeedbackNotification(order, () => {
+        viewOrder(order);
+      });
+    }
+  });
+};
+
+// 启动轮询
+const startPolling = () => {
+  if (pollIntervalId.value) return;
+  pollIntervalId.value = setInterval(checkNewFeedback, POLL_INTERVAL);
+};
+
+// 停止轮询
+const stopPolling = () => {
+  if (pollIntervalId.value) {
+    clearInterval(pollIntervalId.value);
+    pollIntervalId.value = null;
+  }
+};
+
+onMounted(async () => {
+  await checkAuth();
+  // 登录成功后请求通知权限并启动轮询
+  if (isAuthenticated.value) {
+    requestPermission();
+    startPolling();
+  }
+});
+
+onUnmounted(stopPolling);
 </script>

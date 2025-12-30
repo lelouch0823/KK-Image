@@ -33,6 +33,9 @@
 
     <!-- 全局上传进度面板 -->
     <UploadProgress />
+
+    <!-- PWA 更新提示 -->
+    <ReloadPrompt />
   </div>
 </template>
 
@@ -42,6 +45,7 @@ import Sidebar from '@/components/layout/Sidebar.vue';
 import Header from '@/components/layout/Header.vue';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
 import UploadProgress from '@/components/ui/UploadProgress.vue';
+import ReloadPrompt from '@/components/ReloadPrompt.vue';
 import { useView } from '@/composables/useView';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
@@ -53,6 +57,7 @@ import SpaceManager from '@/views/SpaceManager/index.vue';
 import Stats from '@/views/Stats.vue';
 import OrderManager from '@/components/OrderManager.vue';
 import SalespersonManager from '@/components/SalespersonManager.vue';
+import Customers from '@/views/Customers.vue';
 
 const { currentView } = useView();
 const { t } = useI18n();
@@ -69,6 +74,7 @@ const currentComponent = computed(() => {
     case 'stats': return Stats;
     case 'salespersons': return SalespersonManager;
     case 'orders': return OrderManager;
+    case 'customers': return Customers;
     default: return Dashboard;
   }
 });

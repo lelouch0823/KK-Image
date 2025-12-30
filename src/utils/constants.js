@@ -66,6 +66,14 @@ export const API = {
     MANAGE_ORDER_UPDATE: (id) => `/api/manage/orders/${id}`,
     MANAGE_ORDER_STATUS: (id) => `/api/manage/orders/${id}/status`,
     MANAGE_ORDER_COMMENT: (id) => `/api/manage/orders/${id}/comment`,
+    MANAGE_ORDER_EXPORT: `${API_PREFIX}/orders/export`,
+    MANAGE_DASHBOARD_STATS: '/api/manage/orders/stats',
+    MANAGE_ORDER_BATCH: `${API_PREFIX}/orders/batch`, // Kept this as it was not explicitly removed by the instruction
+    MANAGE_CUSTOMERS: '/api/manage/customers',
+    MANAGE_CUSTOMER: '/api/manage/customers',
+    MANAGE_CUSTOMER_ORDERS: (id) => `/api/manage/customers/${id}/orders`,
+    NOTIFICATIONS: '/api/notifications',
+    NOTIFICATIONS_READ: (id) => `/api/notifications/${id}/read`,
 
     // 销售人员管理 API
     SALESPERSONS: `${API_PREFIX}/salespersons`,

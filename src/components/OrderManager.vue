@@ -35,7 +35,28 @@
           @search="handleSearch"
           class="w-full sm:w-48"
         />
+
+        <!-- 导出按钮 -->
+        <button
+          @click="exportOrders"
+          :disabled="exporting"
+          class="h-9 px-4 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center gap-2"
+        >
+          <svg v-if="exporting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          {{ exporting ? t('order.manage.exporting') : t('order.manage.export') }}
+        </button>
       </div>
+    </div>
+
+    <!-- 订单统计仪表盘 -->
+    <div class="px-4 pt-4">
+      <OrderDashboard />
     </div>
 
     <!-- 订单列表 -->
@@ -45,6 +66,8 @@
         <OrderTable 
           :data="orders" 
           :loading="loading"
+          :selectable="true"
+          v-model:selectedIds="selectedIds"
           @detail="openDetailModal"
           @edit="openEditModal"
         >
@@ -76,6 +99,59 @@
         </OrderCards>
       </div>
     </div>
+
+    <!-- 批量操作浮动栏 -->
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="transform translate-y-4 opacity-0"
+      enter-to-class="transform translate-y-0 opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="transform translate-y-0 opacity-100"
+      leave-to-class="transform translate-y-4 opacity-0"
+    >
+      <div 
+        v-if="selectedIds.length > 0" 
+        class="sticky bottom-0 left-0 right-0 bg-white border-t border-[var(--border-color)] shadow-lg px-4 py-3 flex items-center justify-between gap-4 z-20"
+      >
+        <div class="flex items-center gap-3">
+          <span class="text-sm text-primary font-medium">
+            {{ t('order.manage.selectedCount', { count: selectedIds.length }) }}
+          </span>
+          <button 
+            @click="selectedIds = []"
+            class="text-sm text-secondary hover:text-primary transition-colors"
+          >
+            {{ t('order.manage.cancelSelect') }}
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button 
+            @click="handleBatchAction('confirm')"
+            :disabled="batchProcessing"
+            class="h-8 px-4 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            {{ t('order.manage.batchConfirm') }}
+          </button>
+          <button 
+            @click="handleBatchAction('reject')"
+            :disabled="batchProcessing"
+            class="h-8 px-4 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            {{ t('order.manage.batchReject') }}
+          </button>
+          <button 
+            @click="handleBatchAction('void')"
+            :disabled="batchProcessing"
+            class="h-8 px-4 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            {{ t('order.manage.batchVoid') }}
+          </button>
+        </div>
+      </div>
+    </Transition>
 
     <!-- 分页 -->
     <div v-if="pagination.totalPages > 1" class="p-4 border-t border-gray-200 flex-shrink-0">
@@ -113,6 +189,8 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useOrders } from '@/composables/useOrders';
 import { useI18n } from '@/composables/useI18n';
+import { useToast } from '@/composables/useToast';
+import { API } from '@/utils/constants';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import Modal from '@/components/ui/Modal.vue';
@@ -121,9 +199,11 @@ import OrderCards from './order/OrderCards.vue';
 import OrderStatusChanger from './OrderStatusChanger.vue';
 import OrderEditModal from './OrderEditModal.vue';
 import OrderDetail from './order/OrderDetail.vue';
+import OrderDashboard from './order/OrderDashboard.vue';
 
-const { orders, salespersons, statuses, loading, pagination, loadOrders, getOrder, updateOrder, changeStatus, addComment } = useOrders();
+const { orders, salespersons, statuses, loading, pagination, loadOrders, getOrder, updateOrder, changeStatus, addComment, batchAction } = useOrders();
 const { t } = useI18n();
+const { addToast } = useToast();
 
 const filterSalesperson = ref('');
 const filterStatus = ref('');
@@ -134,6 +214,9 @@ const editingOrder = ref(null);
 const viewingOrder = ref(null);
 const isEditing = ref(false);
 const showDetailModal = ref(false);
+const exporting = ref(false);
+const selectedIds = ref([]);
+const batchProcessing = ref(false);
 
 // 初始化
 onMounted(() => {
@@ -242,6 +325,67 @@ const refreshAfterComment = async () => {
   const fullOrder = await getOrder(viewingOrder.value.id);
   if (fullOrder) {
     viewingOrder.value = fullOrder;
+  }
+};
+
+// 导出订单
+const exportOrders = async () => {
+  if (exporting.value) return;
+  exporting.value = true;
+  
+  try {
+    // 构建查询参数
+    const params = new URLSearchParams();
+    if (filterSalesperson.value) params.set('salesperson', filterSalesperson.value);
+    if (filterStatus.value) params.set('status', filterStatus.value);
+    if (searchQuery.value) params.set('search', searchQuery.value);
+    
+    const url = `${API.MANAGE_ORDER_EXPORT}?${params.toString()}`;
+    const response = await fetch(url, { credentials: 'include' });
+    
+    if (!response.ok) {
+      throw new Error('Export failed');
+    }
+    
+    // 获取 blob 并触发下载
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    
+    // 从 Content-Disposition 获取文件名
+    const disposition = response.headers.get('Content-Disposition');
+    const filenameMatch = disposition && disposition.match(/filename="?(.+)"?/);
+    link.download = filenameMatch ? filenameMatch[1] : `orders_${new Date().toISOString().slice(0, 10)}.csv`;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+    
+    addToast({ message: t('order.manage.exportSuccess'), type: 'success' });
+  } catch (e) {
+    console.error('Export error:', e);
+    addToast({ message: t('order.manage.exportFailed'), type: 'error' });
+  } finally {
+    exporting.value = false;
+  }
+};
+
+// 批量操作处理
+const handleBatchAction = async (action) => {
+  if (batchProcessing.value || selectedIds.value.length === 0) return;
+  batchProcessing.value = true;
+  
+  try {
+    const result = await batchAction(selectedIds.value, action);
+    if (result) {
+      // 清空选择并刷新列表
+      selectedIds.value = [];
+      await loadOrders({ page: pagination.value.page });
+    }
+  } finally {
+    batchProcessing.value = false;
   }
 };
 </script>
