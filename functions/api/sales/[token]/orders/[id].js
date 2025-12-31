@@ -108,11 +108,12 @@ export async function onRequestPatch(context) {
             return error(MSG.ORDER.NOT_FOUND, 404);
         }
 
-        if (order.status !== 'pending' && order.status !== 'rejected') {
+        const editableStatuses = ['pending', 'rejected', 'void'];
+        if (!editableStatuses.includes(order.status)) {
             return error(MSG.ORDER.ONLY_PENDING_CAN_EDIT, 403);
         }
 
-        const wasRejected = order.status === 'rejected';
+        const shouldResetStatus = ['rejected', 'void'].includes(order.status);
         const currentData = order.current_data ? JSON.parse(order.current_data) : {};
 
         // 允许销售端修改的字段
@@ -140,8 +141,8 @@ export async function onRequestPatch(context) {
             return error(MSG.COMMON.NO_UPDATE_FIELDS, 400);
         }
 
-        // 如果从 rejected 变为 pending，更新状态并记录
-        if (wasRejected) {
+        // 如果从 rejected/void 变为 pending，更新状态并记录
+        if (shouldResetStatus) {
             const orderRepo = new OrderRepository(env.DB);
             await orderRepo.updateStatus(orderId, 'pending', 'sales');
 
@@ -151,7 +152,7 @@ export async function onRequestPatch(context) {
                 actorType: 'salesperson',
                 actorId: salesperson.id,
                 actorName: salesperson.name,
-                oldValue: 'rejected',
+                oldValue: order.status,
                 newValue: 'pending',
                 reason: MSG.ORDER.REASON_RESUBMIT
             });

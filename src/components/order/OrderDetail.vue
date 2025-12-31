@@ -27,21 +27,24 @@
             </svg>
             {{ t('order.actions.duplicate') }}
           </button>
-          <!-- 编辑和作废按钮 (仅pending/rejected显示) -->
-          <template v-if="order.status === 'pending' || order.status === 'rejected'">
-            <button 
-              @click="showEditModal = true"
-              class="px-3 py-1.5 text-sm font-medium text-primary bg-white border border-[var(--border-hover)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
-            >
-              {{ t('order.manage.editOrder') }}
-            </button>
-            <button 
-              @click="handleVoid"
-              class="px-3 py-1.5 text-sm font-medium text-[var(--color-danger-text)] bg-white border border-[var(--color-danger-bg)] rounded-lg hover:bg-[var(--color-danger-bg)] transition-colors"
-            >
-              {{ t('order.actions.void') }}
-            </button>
-          </template>
+          <!-- 编辑和作废按钮 -->
+          <!-- 编辑: pending, rejected, void -->
+          <button 
+            v-if="['pending', 'rejected', 'void'].includes(order.status)"
+            @click="showEditModal = true"
+            class="px-3 py-1.5 text-sm font-medium text-primary bg-white border border-[var(--border-hover)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+          >
+            {{ t('order.manage.editOrder') }}
+          </button>
+          
+          <!-- 作废: 仅 pending -->
+          <button 
+            v-if="order.status === 'pending'"
+            @click="handleVoid"
+            class="px-3 py-1.5 text-sm font-medium text-[var(--color-danger-text)] bg-white border border-[var(--color-danger-bg)] rounded-lg hover:bg-[var(--color-danger-bg)] transition-colors"
+          >
+            {{ t('order.actions.void') }}
+          </button>
         </div>
 
          <!-- 管理端操作按钮 -->
