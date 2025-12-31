@@ -50,7 +50,11 @@ export default {
         minutes: '分',
         hours: '小时',
         clearCompleted: '清除已完成',
-        retry: '重试'
+        retry: '重试',
+        compressing: '压缩中...',
+        checkingDuplicate: '检查重复...',
+        instantUpload: '秒传成功',
+        compressionSaved: '已压缩 {percent}%'
     },
     fileManager: {
         title: '文件管理',

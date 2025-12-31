@@ -48,6 +48,16 @@
   --color-card-purple-accent: #a855f7;
   --color-card-purple-border: #e9d5ff;
 
+  /* 上传状态色 - Upload State Colors */
+  --color-upload-compressing: #8b5cf6;
+  /* 紫色 - 压缩中 */
+  --color-upload-checking: #6366f1;
+  /* 靛色 - 检查中 */
+  --color-upload-instant: #10b981;
+  /* 绿色 - 秒传成功 */
+  --color-upload-progress: #3b82f6;
+  /* 蓝色 - 上传中 */
+
   /* 图表色板 */
   --color-chart-1: #3B82F6;
   /* blue */

@@ -45,6 +45,7 @@ export const API = {
     // 文件操作
     MOVE: `${API_PREFIX}/move`,
     MANAGE_UPLOAD: `${API_PREFIX}/upload`,
+    CHECK_HASH: `${API_PREFIX}/check-hash`,
 
     // 认证
     LOGIN: '/api/v1/auth/login',

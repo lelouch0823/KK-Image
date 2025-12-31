@@ -3,12 +3,14 @@
  * POST /api/manage/upload - 上传图片
  * Query params:
  *   - orderId: 订单ID (可选，如果提供则直接归档到订单文件夹)
+ *   - contentHash: SHA-256 哈希 (可选，用于秒传检测)
  */
 
 import { success, error } from '../utils/response.js';
 import { generateId, now } from '../utils/id.js';
 import { MSG } from '../utils/messages.js';
 import { ensureFolder } from '../utils/folder-utils.js';
+import { getBlobByHash, createBlob, incrementRefCount } from '../utils/blob-utils.js';
 
 /**
  * POST - 上传文件
@@ -20,6 +22,7 @@ export async function onRequestPost(context) {
         // 解析查询参数
         const url = new URL(request.url);
         const orderId = url.searchParams.get('orderId');
+        const contentHash = url.searchParams.get('contentHash');
 
         // 解析 FormData
         const formData = await request.formData();
@@ -41,24 +44,10 @@ export async function onRequestPost(context) {
             return error(MSG.FILE.SIZE_LIMIT, 400);
         }
 
-        // 生成存储 key
-        const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-        const storageKey = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}.${ext}`;
-
-        // 上传到 R2
-        await env.R2_BUCKET.put(storageKey, file.stream(), {
-            httpMetadata: {
-                contentType: file.type,
-            },
-        });
-
         // 确定目标文件夹
         let folderId = 'root';
-
-        // 如果提供了 orderId，归档到订单文件夹
         if (orderId) {
             try {
-                // 获取订单号
                 const order = await env.DB.prepare(
                     'SELECT order_no FROM orders WHERE id = ?'
                 ).bind(orderId).first();
@@ -70,7 +59,36 @@ export async function onRequestPost(context) {
                 }
             } catch (e) {
                 console.error('Archive folder creation error:', e);
-                // 失败时回退到 root
+            }
+        }
+
+        let storageKey;
+        let isInstantUpload = false;
+
+        // 检查是否可以秒传（blob 已存在）
+        if (contentHash) {
+            const existingBlob = await getBlobByHash(env, contentHash);
+            if (existingBlob) {
+                // 秒传：增加引用计数，复用已有 blob
+                await incrementRefCount(env, contentHash);
+                storageKey = contentHash;
+                isInstantUpload = true;
+            }
+        }
+
+        // 如果不是秒传，需要实际上传
+        if (!storageKey) {
+            // 使用 content_hash 作为 storage_key（如果提供），否则生成随机 key
+            storageKey = contentHash || `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+
+            // 上传到 R2
+            await env.R2_BUCKET.put(storageKey, file.stream(), {
+                httpMetadata: { contentType: file.type },
+            });
+
+            // 如果提供了 hash，创建 blob 记录
+            if (contentHash) {
+                await createBlob(env, contentHash, file.size, file.type);
             }
         }
 
@@ -79,23 +97,23 @@ export async function onRequestPost(context) {
         const timestamp = now();
 
         await env.DB.prepare(`
-            INSERT INTO files (id, name, storage_key, original_name, mime_type, size, folder_id, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(fileId, file.name, storageKey, file.name, file.type, file.size, folderId, timestamp, timestamp).run();
+            INSERT INTO files (id, name, storage_key, original_name, mime_type, size, folder_id, content_hash, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(fileId, file.name, storageKey, file.name, file.type, file.size, folderId, contentHash || null, timestamp, timestamp).run();
 
         return success({
             id: fileId,
             storage_key: storageKey,
-            storageKey: storageKey, // 兼容前端字段
+            storageKey: storageKey,
             name: file.name,
             size: file.size,
             type: file.type,
-            url: `/file/${storageKey}`
-        }, MSG.FILE.UPLOAD_SUCCESS);
+            url: `/file/${storageKey}`,
+            instantUpload: isInstantUpload
+        }, isInstantUpload ? '秒传成功' : MSG.FILE.UPLOAD_SUCCESS);
 
     } catch (err) {
         console.error('Admin upload error:', err);
         return error(`上传失败: ${err.message}`, 500);
     }
 }
-

@@ -66,7 +66,7 @@
 
       <!-- 上传按钮 -->
       <label 
-        v-if="!readonly && modelValue.length < maxFiles"
+        v-if="!readonly && modelValue.length < maxFiles && !isProcessing"
         class="aspect-square rounded-lg border-2 border-dashed border-[var(--border-color)] flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-[var(--bg-hover)] transition-colors group"
       >
         <input 
@@ -81,6 +81,18 @@
         </svg>
         <span class="text-xs text-secondary mt-1 group-hover:text-primary transition-colors">{{ uploadText }}</span>
       </label>
+
+      <!-- 处理中状态 -->
+      <div 
+        v-if="isProcessing"
+        class="aspect-square rounded-lg border-2 border-dashed border-[var(--color-upload-compressing)] bg-[var(--color-upload-compressing)]/5 flex flex-col items-center justify-center animate-pulse"
+      >
+        <svg class="w-6 h-6 text-[var(--color-upload-compressing)] animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span class="text-[10px] text-[var(--color-upload-compressing)] mt-1 font-medium">{{ processingStatus }}</span>
+      </div>
     </div>
     
     <p v-if="hint" class="text-xs text-secondary mt-3">{{ hint }}</p>
@@ -92,6 +104,7 @@ import { ref, toRef } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useDragSort } from '@/composables/useDragSort';
+import { useImageCompression } from '@/composables/useImageCompression';
 import { API } from '@/utils/constants';
 import { generateRandomId } from '@/utils/common';
 
@@ -109,6 +122,10 @@ const emit = defineEmits(['update:modelValue']);
 
 const { t } = useI18n();
 const { addToast } = useToast();
+
+// 处理状态
+const isProcessing = ref(false);
+const processingStatus = ref('');
 
 const coverText = t('spaceManager.cover');
 const uploadText = t('common.addImage');
@@ -136,45 +153,22 @@ const handleDrop = (targetIndex) => {
   originalHandleDrop(targetIndex);
 };
 
-// 压缩图片
-const compressImage = (file, maxWidth = 1920, quality = 0.8) => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
+// 使用 SOTA 图片压缩 composable
+const { compressImage } = useImageCompression();
 
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob(
-          (blob) => resolve(blob),
-          'image/jpeg',
-          quality
-        );
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
-};
-
-// 上传图片
-const uploadFile = async (file) => {
+// 上传图片 (支持 CAS 秒传)
+const uploadFile = async (file, hash) => {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(props.uploadEndpoint, {
+  // 构建 URL，附加 contentHash 参数用于秒传
+  let uploadUrl = props.uploadEndpoint;
+  if (hash) {
+    const separator = uploadUrl.includes('?') ? '&' : '?';
+    uploadUrl = `${uploadUrl}${separator}contentHash=${hash}`;
+  }
+
+  const response = await fetch(uploadUrl, {
     method: 'POST',
     body: formData,
     credentials: 'include'
@@ -194,33 +188,60 @@ const handleFileSelect = async (e) => {
   if (!files.length) return;
 
   const newFiles = [...props.modelValue];
+  let instantCount = 0;
 
   for (const file of files) {
     if (newFiles.length >= props.maxFiles) break;
     
     try {
-      const compressed = await compressImage(file);
-      const compressedFile = new File([compressed], file.name, { type: 'image/jpeg' });
+      // 显示压缩状态
+      isProcessing.value = true;
+      processingStatus.value = t('upload.compressing');
+      
+      const { file: compressedFile, hash } = await compressImage(file, (progress) => {
+        processingStatus.value = `${t('upload.compressing')} ${progress}%`;
+      });
       
       if (props.deferred) {
-        const blobUrl = URL.createObjectURL(compressed);
+        const blobUrl = URL.createObjectURL(compressedFile);
         newFiles.push({
           id: generateRandomId('local'),
           url: blobUrl,
           file: compressedFile,
+          hash,
           isLocal: true
         });
       } else {
-        const uploaded = await uploadFile(compressedFile);
+        processingStatus.value = t('upload.checkingDuplicate');
+        const uploaded = await uploadFile(compressedFile, hash);
+        
+        if (uploaded.instantUpload) {
+          instantCount++;
+        }
+        
         newFiles.push({
           id: uploaded.id,
           url: `/file/${uploaded.storage_key || uploaded.storageKey}`,
+          hash,
+          instantUpload: uploaded.instantUpload
         });
       }
     } catch (err) {
       console.error(err);
       addToast({ message: t('uploadQueue.uploadFailed'), type: 'error' });
     }
+  }
+
+  isProcessing.value = false;
+  processingStatus.value = '';
+  
+  // 秒传成功提示
+  if (instantCount > 0) {
+    addToast({ 
+      message: `⚡ ${instantCount} ${t('upload.instantUpload')}`, 
+      type: 'success',
+      duration: 2000
+    });
   }
 
   emit('update:modelValue', newFiles);
@@ -259,24 +280,26 @@ const replaceFile = async (index, e) => {
   const oldFile = props.modelValue[index];
 
   try {
-    const compressed = await compressImage(file);
-    const compressedFile = new File([compressed], file.name, { type: 'image/jpeg' });
+    const { file: compressedFile, hash } = await compressImage(file);
     
     let newFileData;
     
     if (props.deferred) {
-      const blobUrl = URL.createObjectURL(compressed);
+      const blobUrl = URL.createObjectURL(compressedFile);
       newFileData = {
         id: generateRandomId('local'),
         url: blobUrl,
         file: compressedFile,
+        hash,
         isLocal: true
       };
     } else {
-      const uploaded = await uploadFile(compressedFile);
+      const uploaded = await uploadFile(compressedFile, hash);
       newFileData = {
         id: uploaded.id,
-        url: `/file/${uploaded.storage_key || uploaded.storageKey}`
+        url: `/file/${uploaded.storage_key || uploaded.storageKey}`,
+        hash,
+        instantUpload: uploaded.instantUpload
       };
       
       if (oldFile.id && !oldFile.isLocal) {

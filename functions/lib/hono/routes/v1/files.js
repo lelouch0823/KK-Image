@@ -5,6 +5,7 @@ import { requirePermission } from '../../middleware/auth.js';
 import { withCache, invalidateCache } from '../../middleware/cache.js';
 import { batchDelete } from '../../../../lib/db/batch.js';
 import { getFileUrl, generateId, now, MSG } from '../../_shared/utils.js';
+import { decrementRefCount } from '../../../../api/utils/blob-utils.js';
 
 const app = new Hono();
 
@@ -180,13 +181,15 @@ app.delete('/:id',
         const id = c.req.param('id');
         const { env } = c;
 
-        const file = await env.DB.prepare('SELECT storage_key FROM files WHERE id = ?').bind(id).first();
+        const file = await env.DB.prepare('SELECT storage_key, content_hash FROM files WHERE id = ?').bind(id).first();
         if (!file) {
             return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
         }
 
-        // 删除存储
-        if (file.storage_key && env.R2_BUCKET) {
+        // CAS: 如果有 content_hash，使用引用计数；否则直接删除 R2
+        if (file.content_hash) {
+            await decrementRefCount(env, file.content_hash);
+        } else if (file.storage_key && env.R2_BUCKET) {
             await env.R2_BUCKET.delete(file.storage_key);
         }
 
@@ -207,17 +210,18 @@ app.post('/batch/delete',
         const { ids } = c.req.valid('json');
         const { env } = c;
 
-        // 获取存储键
+        // 获取存储键和内容哈希
         const placeholders = ids.map(() => '?').join(',');
         const { results } = await env.DB.prepare(
-            `SELECT id, storage_key FROM files WHERE id IN (${placeholders})`
+            `SELECT id, storage_key, content_hash FROM files WHERE id IN (${placeholders})`
         ).bind(...ids).all();
 
-        // 删除 R2 文件
-        if (env.R2_BUCKET) {
-            const keys = results.map(f => f.storage_key).filter(Boolean);
-            if (keys.length > 0) {
-                await Promise.all(keys.map(key => env.R2_BUCKET.delete(key)));
+        // CAS: 分别处理有 content_hash 和没有的文件
+        for (const f of results) {
+            if (f.content_hash) {
+                await decrementRefCount(env, f.content_hash);
+            } else if (f.storage_key && env.R2_BUCKET) {
+                await env.R2_BUCKET.delete(f.storage_key).catch(() => { });
             }
         }
 
