@@ -36,7 +36,8 @@ export default {
         items: '项',
         verifying: '正在验证身份...',
         addImage: '添加图片',
-        createdAt: '创建时间'
+        createdAt: '创建时间',
+        print: '打印'
     },
     upload: {
         uploading: '正在上传 {count} 个文件',

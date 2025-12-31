@@ -163,7 +163,6 @@ export class OrderRepository {
         const { results } = await this.db.prepare(`
             SELECT 
                 o.id, o.order_no, o.salesperson_id, o.current_data, o.status, 
-                o.total_amount, o.currency,
                 o.has_new_feedback, o.main_image_id, o.created_at, o.updated_at,
                 s.name as salesperson_name, s.store as salesperson_store,
                 f.storage_key as main_image_key
@@ -178,8 +177,6 @@ export class OrderRepository {
         return {
             items: results.map(order => ({
                 ...this._mapOrderListItem(order),
-                totalAmount: order.total_amount,
-                currency: order.currency,
                 salespersonName: order.salesperson_name,
                 store: order.salesperson_store
             })),

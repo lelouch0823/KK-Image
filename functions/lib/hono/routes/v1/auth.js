@@ -82,7 +82,8 @@ app.post('/token', zValidator('json', TokenSchema), async (c) => {
  * POST /api/v1/auth/logout - 登出
  */
 app.post('/logout', async (c) => {
-    const cookie = `${ADMIN_AUTH_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict; Secure`;
+    const isSecure = c.req.url.startsWith('https://');
+    const cookie = `${ADMIN_AUTH_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax${isSecure ? '; Secure' : ''}`;
 
     return c.json({
         success: true,
