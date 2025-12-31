@@ -13,6 +13,7 @@
  */
 
 import { generateId, now } from '../api/utils/id.js';
+import { OrderTimelineRepository } from './OrderTimelineRepository.js';
 
 export class OrderRepository {
     /**
@@ -21,6 +22,7 @@ export class OrderRepository {
      */
     constructor(db) {
         this.db = db;
+        this.timelineRepo = new OrderTimelineRepository(db);
     }
 
     // ========================================
@@ -61,33 +63,6 @@ export class OrderRepository {
 
         if (!order) return null;
         return this._mapOrderDetail(order);
-    }
-
-    /**
-     * 获取最近的待处理订单
-     * 用于仪表盘展示
-     * @param {number} limit - 返回数量，默认 5
-     * @returns {Promise<Array>}
-     */
-    async getRecentPending(limit = 5) {
-        const result = await this.db.prepare(`
-            SELECT id, order_no, current_data, created_at, status 
-            FROM orders 
-            WHERE status = 'pending'
-            ORDER BY created_at DESC 
-            LIMIT ?
-        `).bind(limit).all();
-
-        return result.results.map(order => {
-            const data = this._parseJson(order.current_data);
-            return {
-                id: order.id,
-                orderNo: order.order_no,
-                name: data.name || '',
-                createdAt: order.created_at,
-                status: order.status
-            };
-        });
     }
 
     /**
@@ -148,7 +123,7 @@ export class OrderRepository {
      * @param {number} [options.page=1] - 页码
      * @param {number} [options.limit=20] - 每页数量
      */
-    async listForAdmin({ salespersonId, status, search, startTime, endTime, page = 1, limit = 20 } = {}) {
+    async listForAdmin({ salespersonId, customerId, status, search, startTime, endTime, page = 1, limit = 20 } = {}) {
         const offset = (page - 1) * limit;
         let whereClause = '1=1';
         const bindParams = [];
@@ -156,6 +131,10 @@ export class OrderRepository {
         if (salespersonId) {
             whereClause += ' AND o.salesperson_id = ?';
             bindParams.push(salespersonId);
+        }
+        if (customerId) {
+            whereClause += ' AND o.customer_id = ?';
+            bindParams.push(customerId);
         }
         if (status) {
             whereClause += ' AND o.status = ?';
@@ -184,6 +163,7 @@ export class OrderRepository {
         const { results } = await this.db.prepare(`
             SELECT 
                 o.id, o.order_no, o.salesperson_id, o.current_data, o.status, 
+                o.total_amount, o.currency,
                 o.has_new_feedback, o.main_image_id, o.created_at, o.updated_at,
                 s.name as salesperson_name, s.store as salesperson_store,
                 f.storage_key as main_image_key
@@ -198,158 +178,15 @@ export class OrderRepository {
         return {
             items: results.map(order => ({
                 ...this._mapOrderListItem(order),
-                salesperson: {
-                    id: order.salesperson_id,
-                    name: order.salesperson_name,
-                    store: order.salesperson_store
-                }
+                totalAmount: order.total_amount,
+                currency: order.currency,
+                salespersonName: order.salesperson_name,
+                store: order.salesperson_store
             })),
             total: countResult.total,
             page,
             limit,
             totalPages: Math.ceil(countResult.total / limit)
-        };
-    }
-
-    // ========================================
-    // 统计方法 (Statistics)
-    // ========================================
-
-    /**
-     * 统计指定时间之后创建的订单数
-     * @param {number} timestamp - 时间戳 (毫秒)
-     * @returns {Promise<number>}
-     */
-    async countCreatedAfter(timestamp) {
-        const result = await this.db.prepare(`
-            SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
-        `).bind(timestamp).first();
-        return result.count;
-    }
-
-    /**
-     * 按状态统计订单数
-     * @param {string} status - 订单状态
-     * @returns {Promise<number>}
-     */
-    async countByStatus(status) {
-        const result = await this.db.prepare(`
-            SELECT COUNT(*) as count FROM orders WHERE status = ?
-        `).bind(status).first();
-        return result.count;
-    }
-
-    /**
-     * 获取销售员的订单统计
-     * 用于销售端个人中心
-     * @param {string} salespersonId - 销售 ID
-     * @param {number} todayStart - 今日开始时间戳
-     */
-    async getSalesStats(salespersonId, todayStart) {
-        const [totalResult, todayResult, pendingResult] = await Promise.all([
-            this.db.prepare(`
-                SELECT COUNT(*) as count FROM orders WHERE salesperson_id = ?
-            `).bind(salespersonId).first(),
-            this.db.prepare(`
-                SELECT COUNT(*) as count FROM orders 
-                WHERE salesperson_id = ? AND created_at >= ?
-            `).bind(salespersonId, todayStart).first(),
-            this.db.prepare(`
-                SELECT COUNT(*) as count FROM orders 
-                WHERE salesperson_id = ? AND status = 'pending'
-            `).bind(salespersonId).first()
-        ]);
-
-        return {
-            total: totalResult.count,
-            today: todayResult.count,
-            pending: pendingResult.count
-        };
-    }
-
-    /**
-     * 获取销售员完整统计（含趋势）
-     * 用于销售端统计页面
-     * @param {string} salespersonId - 销售 ID
-     * @param {number} monthStart - 30天前时间戳
-     */
-    async getSalesFullStats(salespersonId, monthStart) {
-        const [totalResult, completedResult, monthResult, trendResult] = await Promise.all([
-            // 累计订单
-            this.db.prepare(`
-                SELECT COUNT(*) as count FROM orders WHERE salesperson_id = ?
-            `).bind(salespersonId).first(),
-            // 已完成订单
-            this.db.prepare(`
-                SELECT COUNT(*) as count FROM orders 
-                WHERE salesperson_id = ? AND status = 'delivered'
-            `).bind(salespersonId).first(),
-            // 本月订单
-            this.db.prepare(`
-                SELECT COUNT(*) as count FROM orders 
-                WHERE salesperson_id = ? AND created_at >= ?
-            `).bind(salespersonId, monthStart).first(),
-            // 近30天趋势
-            this.db.prepare(`
-                SELECT DATE(created_at / 1000, 'unixepoch', 'localtime') as date, COUNT(*) as count
-                FROM orders 
-                WHERE salesperson_id = ? AND created_at >= ?
-                GROUP BY DATE(created_at / 1000, 'unixepoch', 'localtime')
-                ORDER BY date ASC
-            `).bind(salespersonId, monthStart).all()
-        ]);
-
-        return {
-            total: totalResult.count,
-            completed: completedResult.count,
-            month: monthResult.count,
-            trend: trendResult.results
-        };
-    }
-
-    /**
-     * 获取管理端订单统计（含状态分布）
-     * @param {number} todayStart - 今日开始时间戳
-     * @param {number} weekStart - 本周开始时间戳
-     * @param {number} monthStart - 本月开始时间戳
-     */
-    async getAdminStats(todayStart, weekStart, monthStart) {
-        const [
-            todayResult,
-            weekResult,
-            monthResult,
-            statusDistribution,
-            recentTrend
-        ] = await Promise.all([
-            this.db.prepare(`
-                SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
-            `).bind(todayStart).first(),
-            this.db.prepare(`
-                SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
-            `).bind(weekStart).first(),
-            this.db.prepare(`
-                SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
-            `).bind(monthStart).first(),
-            this.db.prepare(`
-                SELECT status, COUNT(*) as count FROM orders GROUP BY status
-            `).all(),
-            this.db.prepare(`
-                SELECT DATE(created_at / 1000, 'unixepoch') as date, COUNT(*) as count
-                FROM orders 
-                WHERE created_at >= ?
-                GROUP BY date ORDER BY date
-            `).bind(monthStart).all()
-        ]);
-
-        return {
-            today: todayResult.count,
-            week: weekResult.count,
-            month: monthResult.count,
-            statusDistribution: statusDistribution.results.reduce((acc, row) => {
-                acc[row.status] = row.count;
-                return acc;
-            }, {}),
-            recentTrend: recentTrend.results
         };
     }
 
@@ -390,7 +227,8 @@ export class OrderRepository {
 
         // 3. 记录时间轴
         if (timeline) {
-            batchStatements.push(this._buildTimelineInsert(id, timeline));
+            const stmt = this.timelineRepo.createInsertStatement(id, timeline);
+            if (stmt) batchStatements.push(stmt);
         }
 
         // 执行原子批量操作
@@ -448,7 +286,8 @@ export class OrderRepository {
 
             // 记录时间轴
             if (timeline) {
-                batchStatements.push(this._buildTimelineInsert(id, { ...timeline, orderId: id }));
+                const stmt = this.timelineRepo.createInsertStatement(id, { ...timeline, orderId: id });
+                if (stmt) batchStatements.push(stmt);
             }
         }
 
@@ -549,61 +388,6 @@ export class OrderRepository {
         } else {
             await this.updateMainImage(orderId, null);
         }
-    }
-
-    // ========================================
-    // 时间轴相关
-    // ========================================
-
-    /**
-     * 获取订单时间轴
-     * @param {string} orderId - 订单 ID
-     */
-    async getTimeline(orderId) {
-        const { results } = await this.db.prepare(`
-            SELECT id, action_type, actor_type, actor_name, field_name, old_value, new_value, reason, comment, created_at
-            FROM order_timeline
-            WHERE order_id = ?
-            ORDER BY created_at DESC
-        `).bind(orderId).all();
-
-        return results.map(t => ({
-            id: t.id,
-            actionType: t.action_type,
-            actorType: t.actor_type,
-            actorName: t.actor_name,
-            fieldName: t.field_name,
-            oldValue: t.old_value,
-            newValue: t.new_value,
-            reason: t.reason,
-            comment: t.comment,
-            createdAt: t.created_at
-        }));
-    }
-
-    /**
-     * 添加时间轴记录
-     * @param {string} orderId - 订单 ID
-     * @param {Object} entry - 时间轴条目
-     */
-    async addTimelineEntry(orderId, entry) {
-        await this.db.prepare(`
-            INSERT INTO order_timeline (id, order_id, action_type, actor_type, actor_id, actor_name, field_name, old_value, new_value, reason, comment, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(
-            generateId(),
-            orderId,
-            entry.actionType,
-            entry.actorType,
-            entry.actorId || null,
-            entry.actorName,
-            entry.fieldName || null,
-            entry.oldValue || null,
-            entry.newValue || null,
-            entry.reason || null,
-            entry.comment || null,
-            now()
-        ).run();
     }
 
     // ========================================
@@ -709,28 +493,5 @@ export class OrderRepository {
             updatedAt: order.updated_at
         };
     }
-
-    /**
-     * 构建时间轴插入语句
-     * @private
-     */
-    _buildTimelineInsert(orderId, entry) {
-        return this.db.prepare(`
-            INSERT INTO order_timeline (id, order_id, action_type, actor_type, actor_id, actor_name, field_name, old_value, new_value, reason, comment, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(
-            generateId(),
-            orderId,
-            entry.actionType,
-            entry.actorType,
-            entry.actorId || null,
-            entry.actorName,
-            entry.fieldName || null,
-            entry.oldValue || null,
-            entry.newValue || null,
-            entry.reason || null,
-            entry.comment || null,
-            now()
-        );
-    }
 }
+

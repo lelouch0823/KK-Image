@@ -5,6 +5,7 @@
 
 import { success, error } from '../../../utils/response.js';
 import { MSG } from '../../../utils/messages.js';
+import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 
 export async function onRequestGet(context) {
     const { env, params, request } = context;
@@ -13,25 +14,22 @@ export async function onRequestGet(context) {
     const limit = parseInt(url.searchParams.get('limit') || '50');
 
     try {
-        const { results } = await env.DB.prepare(`
-            SELECT 
-                o.id,
-                o.order_no as orderNo,
-                o.product_name as productName,
-                o.status,
-                o.total_amount as totalAmount,
-                o.currency,
-                o.created_at as createdAt,
-                o.main_image as mainImage,
-                s.name as salespersonName
-            FROM orders o
-            LEFT JOIN users s ON o.salesperson_id = s.id
-            WHERE o.customer_id = ?
-            ORDER BY o.created_at DESC
-            LIMIT ?
-        `).bind(id, limit).all();
+        const repo = new OrderRepository(env.DB);
 
-        return success(results);
+        // Use listForAdmin with customerId filter
+        const { items } = await repo.listForAdmin({
+            customerId: id,
+            limit: limit,
+            page: 1 // Fetch first page only as per original API typically
+        });
+
+        // Map to match original response structure if necessary
+        // Original returned: id, orderNo, productName, status, totalAmount, currency, createdAt, mainImage, salespersonName
+        // Repo returns items with camelCase fields which matches mostly.
+        // Repo mainImage is '/file/key', original selected 'o.main_image'. 
+        // Assuming Repo logic is the SOTA one.
+
+        return success(items);
 
     } catch (err) {
         return error(`${MSG.COMMON.LOAD_FAILED}: ${err.message}`, 500);

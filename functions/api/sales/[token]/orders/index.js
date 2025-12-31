@@ -7,55 +7,9 @@
 import { success, error } from '../../../utils/response.js';
 import { MSG } from '../../../utils/messages.js';
 import { generateId, generateOrderNo } from '../../../utils/id.js';
-import { verifyJWT } from '../../../utils/auth.js';
-import { parse as parseCookie } from 'cookie';
 import { ORDER_STATUSES } from '../../../../_shared/utils.js';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
-
-
-/**
- * 验证销售端 JWT 并返回销售信息
- */
-async function authenticateSalesperson(request, env, accessToken) {
-    const cookieHeader = request.headers.get('Cookie') || '';
-    const cookies = parseCookie(cookieHeader);
-    const jwt = cookies.sales_token;
-
-    if (!jwt) {
-        throw new Error(MSG.AUTH.REQUIRED);
-    }
-
-    const payload = await verifyJWT(jwt, env);
-    if (payload.type !== 'salesperson') {
-        throw new Error(MSG.AUTH.FORBIDDEN);
-    }
-
-    // 验证 token 匹配
-    const salesperson = await env.DB.prepare(`
-        SELECT id, name, store, is_active
-        FROM salespersons WHERE id = ? AND access_token = ?
-    `).bind(payload.id, accessToken).first();
-
-    if (!salesperson) {
-        throw new Error(MSG.SALESPERSON.NOT_FOUND);
-    }
-
-    if (!salesperson.is_active) {
-        throw new Error(MSG.SALESPERSON.DISABLED);
-    }
-
-    return salesperson;
-}
-
-/**
- * 生成订单编号 (SOTA)
- * 格式: ORD-YYMMDD-HHmmss-XXX
- * 示例: ORD-251230-143052-A7K
- * - 日期部分: 年月日 (6位)
- * - 时间部分: 时分秒 (6位)
- * - 随机部分: 3位大写字母/数字，防止同一秒内碰撞
- */
-
+import { authenticateSalesperson } from '../../../utils/salesperson-auth.js';
 
 
 

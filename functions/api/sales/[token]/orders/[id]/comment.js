@@ -7,6 +7,7 @@ import { success, error } from '../../../../utils/response.js';
 import { MSG } from '../../../../utils/messages.js';
 import { authenticateSalesperson } from '../../../../utils/salesperson-auth.js';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
+import { OrderTimelineRepository } from '../../../../../repositories/OrderTimelineRepository.js';
 
 /**
  * POST - 添加留言
@@ -18,6 +19,7 @@ export async function onRequestPost(context) {
     try {
         const salesperson = await authenticateSalesperson(request, env, accessToken);
         const orderRepo = new OrderRepository(env.DB);
+        const timelineRepo = new OrderTimelineRepository(env.DB);
         const body = await request.json();
         const { comment } = body;
 
@@ -32,7 +34,7 @@ export async function onRequestPost(context) {
         }
 
         // 使用 Repository 添加时间轴记录
-        await orderRepo.addTimelineEntry(orderId, {
+        await timelineRepo.addTimelineEntry(orderId, {
             actionType: 'comment',
             actorType: 'salesperson',
             actorId: salesperson.id,

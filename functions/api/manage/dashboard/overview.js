@@ -7,7 +7,7 @@ import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
 import { authenticateAdmin } from '../../utils/auth.js';
 
-import { OrderRepository } from '../../../repositories/OrderRepository.js';
+import { OrderStatsRepository } from '../../../repositories/OrderStatsRepository.js';
 
 export async function onRequestGet(context) {
     const { env, request } = context;
@@ -16,7 +16,7 @@ export async function onRequestGet(context) {
         await authenticateAdmin(request, env);
 
         // Init Repo
-        const orderRepo = new OrderRepository(env.DB);
+        const statsRepo = new OrderStatsRepository(env.DB);
 
         // SOTA Timezone handling: Default to UTC+8 (China Standard Time)
         // Correctly calculate "Start of Today" in UTC+8
@@ -38,11 +38,11 @@ export async function onRequestGet(context) {
             recentPendingOrders
         ] = await Promise.all([
             // 今日订单
-            orderRepo.countCreatedAfter(todayStartTimestamp),
+            statsRepo.countCreatedAfter(todayStartTimestamp),
             // 待处理订单总数
-            orderRepo.countByStatus('pending'),
+            statsRepo.countByStatus('pending'),
             // 最近待处理订单 (Limit 5)
-            orderRepo.getRecentPending(5)
+            statsRepo.getRecentPending(5)
         ]);
 
         return success({

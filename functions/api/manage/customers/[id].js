@@ -7,22 +7,19 @@
 
 import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
+import { CustomerRepository } from '../../../repositories/CustomerRepository.js';
 
 export async function onRequestGet(context) {
     const { env, params } = context;
     const { id } = params;
 
     try {
-        const customer = await env.DB.prepare(`
-            SELECT * FROM customers WHERE id = ?
-        `).bind(id).first();
+        const repo = new CustomerRepository(env.DB);
+        const customer = await repo.findById(id);
 
         if (!customer) {
             return error(MSG.COMMON.NOT_FOUND, 404);
         }
-
-        // 解析 tags
-        customer.tags = customer.tags ? JSON.parse(customer.tags) : [];
 
         return success(customer);
     } catch (err) {
@@ -35,34 +32,19 @@ export async function onRequestPut(context) {
     const { id } = params;
 
     try {
-        const existing = await env.DB.prepare(`SELECT id FROM customers WHERE id = ?`).bind(id).first();
+        const repo = new CustomerRepository(env.DB);
+        const existing = await repo.findById(id);
+
         if (!existing) {
             return error(MSG.COMMON.NOT_FOUND, 404);
         }
 
         const body = await request.json();
         const { name, phone, company, email, address, tags, remark } = body;
-        const now = Date.now();
 
-        // 动态构建更新语句
-        const updates = [];
-        const bindings = [];
-
-        if (name !== undefined) { updates.push('name = ?'); bindings.push(name); }
-        if (phone !== undefined) { updates.push('phone = ?'); bindings.push(phone); }
-        if (company !== undefined) { updates.push('company = ?'); bindings.push(company); }
-        if (email !== undefined) { updates.push('email = ?'); bindings.push(email); }
-        if (address !== undefined) { updates.push('address = ?'); bindings.push(address); }
-        if (tags !== undefined) { updates.push('tags = ?'); bindings.push(JSON.stringify(tags)); }
-        if (remark !== undefined) { updates.push('remark = ?'); bindings.push(remark); }
-
-        updates.push('updated_at = ?');
-        bindings.push(now);
-        bindings.push(id); // WHERE clause binding
-
-        await env.DB.prepare(`
-            UPDATE customers SET ${updates.join(', ')} WHERE id = ?
-        `).bind(...bindings).run();
+        await repo.update(id, {
+            name, phone, company, email, address, tags, remark
+        });
 
         return success({ id }, MSG.COMMON.UPDATE_SUCCESS);
 
@@ -76,18 +58,23 @@ export async function onRequestDelete(context) {
     const { id } = params;
 
     try {
-        // 检查是否有关联订单
-        const { count } = await env.DB.prepare(`
-            SELECT COUNT(*) as count FROM orders WHERE customer_id = ?
-        `).bind(id).first();
+        const repo = new CustomerRepository(env.DB);
 
-        if (count > 0) {
+        // 检查是否有关联订单
+        const hasOrders = await repo.hasOrders(id);
+
+        if (hasOrders) {
             return error(MSG.CUSTOMER.CANNOT_DELETE_HAS_ORDERS, 400);
         }
 
-        await env.DB.prepare(`
-            DELETE FROM customers WHERE id = ?
-        `).bind(id).run();
+        const deleted = await repo.delete(id);
+        if (!deleted) {
+            // Maybe not found? But repo.delete returns success if delete executed.
+            // If changes=0, it means not found or already deleted.
+            // My repo delete returns success && changes > 0.
+            // So if !deleted, effectively not found.
+            return error(MSG.COMMON.NOT_FOUND, 404);
+        }
 
         return success(null, MSG.COMMON.DELETE_SUCCESS);
 

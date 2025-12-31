@@ -6,9 +6,8 @@
 
 import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
-import { generateId, generateShareToken, hashPassword, now } from '../../utils/id.js';
-
 import { authenticateAdmin } from '../../utils/auth.js';
+import { SalespersonRepository } from '../../../repositories/SalespersonRepository.js';
 
 /**
  * GET - 获取销售列表
@@ -22,36 +21,12 @@ export async function onRequestGet(context) {
         const page = parseInt(url.searchParams.get('page') || '1', 10);
         const limit = parseInt(url.searchParams.get('limit') || '50', 10);
         const search = url.searchParams.get('search') || '';
-        const offset = (page - 1) * limit;
 
-        // 构建查询
-        let whereClause = '1=1';
-        const bindParams = [];
-
-        if (search) {
-            whereClause += ' AND (name LIKE ? OR store LIKE ? OR phone LIKE ?)';
-            const searchPattern = `%${search}%`;
-            bindParams.push(searchPattern, searchPattern, searchPattern);
-        }
-
-        // 获取总数
-        const countResult = await env.DB.prepare(`
-            SELECT COUNT(*) as total FROM salespersons WHERE ${whereClause}
-        `).bind(...bindParams).first();
-
-        // 获取销售列表 + 订单数
-        const { results: salespersons } = await env.DB.prepare(`
-            SELECT 
-                s.*,
-                (SELECT COUNT(*) FROM orders WHERE salesperson_id = s.id) as order_count
-            FROM salespersons s
-            WHERE ${whereClause}
-            ORDER BY s.created_at DESC
-            LIMIT ? OFFSET ?
-        `).bind(...bindParams, limit, offset).all();
+        const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
+        const { results, total, pages } = await repo.list({ page, limit, search });
 
         return success({
-            salespersons: salespersons.map(s => ({
+            salespersons: results.map(s => ({
                 id: s.id,
                 name: s.name,
                 store: s.store,
@@ -65,8 +40,8 @@ export async function onRequestGet(context) {
             pagination: {
                 page,
                 limit,
-                total: countResult.total,
-                totalPages: Math.ceil(countResult.total / limit)
+                total,
+                totalPages: pages
             }
         });
 
@@ -95,37 +70,15 @@ export async function onRequestPost(context) {
             return error(MSG.SALESPERSON.PASSWORD_REQUIRED, 400);
         }
 
-        const id = generateId();
-        const accessToken = generateShareToken(12);
-        const passwordHash = await hashPassword(password, env.JWT_SECRET);
-        const timestamp = now();
-
-        // 尝试插入（处理 token 冲突）
-        let retries = 3;
-        while (retries > 0) {
-            try {
-                await env.DB.prepare(`
-                    INSERT INTO salespersons (id, name, store, phone, access_token, password_hash, is_active, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
-                `).bind(id, name.trim(), store || null, phone || null, accessToken, passwordHash, timestamp, timestamp).run();
-                break;
-            } catch (e) {
-                if (e.message.includes('UNIQUE constraint failed') && retries > 1) {
-                    retries--;
-                    continue;
-                }
-                throw e;
-            }
-        }
-
-        return success({
-            id,
+        const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
+        const salesperson = await repo.create({
             name: name.trim(),
-            store,
-            phone,
-            accessToken,
-            accessUrl: `/order/${accessToken}`
-        }, MSG.SALESPERSON.CREATE_SUCCESS, 201);
+            store: store || null,
+            phone: phone || null,
+            password
+        });
+
+        return success(salesperson, MSG.SALESPERSON.CREATE_SUCCESS, 201);
 
     } catch (err) {
         console.error('Salesperson create error:', err);

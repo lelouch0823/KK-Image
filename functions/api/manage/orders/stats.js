@@ -6,7 +6,7 @@
 import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
 import { authenticateAdmin } from '../../utils/auth.js';
-import { OrderRepository } from '../../../repositories/OrderRepository.js';
+import { OrderStatsRepository } from '../../../repositories/OrderStatsRepository.js';
 
 /**
  * GET - 获取订单统计
@@ -16,7 +16,7 @@ export async function onRequestGet(context) {
 
     try {
         await authenticateAdmin(request, env);
-        const orderRepo = new OrderRepository(env.DB);
+        const statsRepo = new OrderStatsRepository(env.DB);
 
         // SOTA Timezone handling: UTC+8
         const now = new Date();
@@ -30,7 +30,7 @@ export async function onRequestGet(context) {
         const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000; // 30天前
 
         // 使用 Repository 获取统计数据
-        const stats = await orderRepo.getAdminStats(todayStart, weekStart, monthStart);
+        const stats = await statsRepo.getAdminStats(todayStart, weekStart, monthStart);
 
         // 补全趋势数据中缺失的日期
         const trendMap = new Map();

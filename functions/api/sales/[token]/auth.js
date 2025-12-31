@@ -6,9 +6,10 @@
 
 import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
-import { hashPassword, generateShareToken } from '../../utils/id.js';
+import { hashPassword } from '../../utils/id.js';
 import { generateJWT, verifyJWT } from '../../utils/auth.js';
 import { parse as parseCookie } from 'cookie';
+import { SalespersonRepository } from '../../../repositories/SalespersonRepository.js';
 
 // Token 有效期：7 天
 const TOKEN_EXPIRY = 7 * 24 * 60 * 60;
@@ -28,11 +29,10 @@ export async function onRequestPost(context) {
             return error(MSG.SALESPERSON.PASSWORD_REQUIRED, 400);
         }
 
+        const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
+
         // 查找销售人员
-        const salesperson = await env.DB.prepare(`
-            SELECT id, name, store, password_hash, is_active
-            FROM salespersons WHERE access_token = ?
-        `).bind(accessToken).first();
+        const salesperson = await repo.findByToken(accessToken);
 
         if (!salesperson) {
             return error(MSG.SALESPERSON.NOT_FOUND, 404);
@@ -106,13 +106,16 @@ export async function onRequestGet(context) {
             return error(MSG.AUTH.FORBIDDEN, 403);
         }
 
-        // 获取销售信息
-        const salesperson = await env.DB.prepare(`
-            SELECT id, name, store, phone, is_active
-            FROM salespersons WHERE id = ? AND access_token = ?
-        `).bind(payload.id, accessToken).first();
+        const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
 
-        if (!salesperson) {
+        // 获取销售信息 (验证 token 和 id 匹配)
+        // Repo findByToken returns salesperson. We check if id matches.
+        const salesperson = await repo.findByToken(accessToken);
+
+        if (!salesperson || salesperson.id !== payload.id) {
+            // Access token mismatched or user not found
+            // Wait, the logic was: WHERE id = ? AND access_token = ?
+            // If I use findByToken, and check ID, it ensures same consistency.
             return error(MSG.SALESPERSON.NOT_FOUND, 404);
         }
 

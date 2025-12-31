@@ -6,7 +6,7 @@
 import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
 import { authenticateSalesperson } from '../../utils/salesperson-auth.js';
-import { OrderRepository } from '../../../repositories/OrderRepository.js';
+import { OrderStatsRepository } from '../../../repositories/OrderStatsRepository.js';
 
 export async function onRequestGet(context) {
     const { env, params, request } = context;
@@ -15,13 +15,13 @@ export async function onRequestGet(context) {
     try {
         // 鉴权
         const salesperson = await authenticateSalesperson(request, env, token);
-        const orderRepo = new OrderRepository(env.DB);
+        const statsRepo = new OrderStatsRepository(env.DB);
 
         const todayStart = new Date().setHours(0, 0, 0, 0);
         const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000; // 30天前
 
         // 使用 Repository 获取统计
-        const stats = await orderRepo.getSalesFullStats(salesperson.id, monthStart);
+        const stats = await statsRepo.getSalesFullStats(salesperson.id, monthStart);
 
         // 格式化趋势数据 (补全缺失日期)
         const trendMap = new Map();

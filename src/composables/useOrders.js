@@ -287,12 +287,20 @@ export function useOrders() {
 
                 // 合并已有文件ID和新上传的文件ID
                 const allFileIds = [...existingFileIds, ...newFileIds];
-                await fetch(API.SALES_ORDER_DETAIL(token, orderId), {
+                const patchRes = await fetch(API.SALES_ORDER_DETAIL(token, orderId), {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify({ fileIds: allFileIds })
+                    body: JSON.stringify({ updates: { fileIds: allFileIds } })
                 });
+
+                const patchResult = await patchRes.json();
+                if (!patchResult.success) {
+                    console.error('Link files failed:', patchResult);
+                    // 不中断流程，但提示用户? 或者抛出错误
+                    // 鉴于订单已创建，图片已上传，只是关联失败。
+                    // 暂不抛出错误，但记录日志。
+                }
             }
 
             onProgress('done', 0, 0);

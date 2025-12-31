@@ -7,78 +7,17 @@
 
 import { success, error } from '../../../utils/response.js';
 import { MSG } from '../../../utils/messages.js';
-import { generateId, now } from '../../../utils/id.js';
-import { verifyJWT } from '../../../utils/auth.js';
-import { parse as parseCookie } from 'cookie';
+import { now } from '../../../utils/id.js';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
-
-/**
- * 验证销售端 JWT 并返回销售信息
- */
-async function authenticateSalesperson(request, env, accessToken) {
-    const cookieHeader = request.headers.get('Cookie') || '';
-    const cookies = parseCookie(cookieHeader);
-    const jwt = cookies.sales_token;
-
-    if (!jwt) {
-        throw new Error(MSG.AUTH.REQUIRED);
-    }
-
-    const payload = await verifyJWT(jwt, env);
-    if (payload.type !== 'salesperson') {
-        throw new Error(MSG.AUTH.FORBIDDEN);
-    }
-
-    const salesperson = await env.DB.prepare(`
-        SELECT id, name, store, is_active
-        FROM salespersons WHERE id = ? AND access_token = ?
-    `).bind(payload.id, accessToken).first();
-
-    if (!salesperson) {
-        throw new Error(MSG.SALESPERSON.NOT_FOUND);
-    }
-
-    if (!salesperson.is_active) {
-        throw new Error(MSG.SALESPERSON.DISABLED);
-    }
-
-    return salesperson;
-}
+import { OrderTimelineRepository } from '../../../../repositories/OrderTimelineRepository.js';
+import { authenticateSalesperson } from '../../../utils/salesperson-auth.js';
 
 /**
  * 记录时间轴
  */
 async function logTimeline(db, params) {
-    const {
-        orderId,
-        actionType,
-        actorType,
-        actorId,
-        actorName,
-        fieldName = null,
-        oldValue = null,
-        newValue = null,
-        reason = null,
-        comment = null
-    } = params;
-
-    await db.prepare(`
-        INSERT INTO order_timeline (id, order_id, action_type, actor_type, actor_id, actor_name, field_name, old_value, new_value, reason, comment, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-        generateId(),
-        orderId,
-        actionType,
-        actorType,
-        actorId,
-        actorName,
-        fieldName,
-        oldValue,
-        newValue,
-        reason,
-        comment,
-        now()
-    ).run();
+    const timelineRepo = new OrderTimelineRepository(db);
+    await timelineRepo.addTimelineEntry(params.orderId, params);
 }
 
 /**
@@ -94,14 +33,16 @@ export async function onRequestGet(context) {
 
         // 使用 Repository 获取订单详情
         const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
+
         if (!order) {
             return error(MSG.ORDER.NOT_FOUND, 404);
         }
 
         // 使用 Repository 获取文件和时间轴
+        const timelineRepo = new OrderTimelineRepository(env.DB);
         const [files, timeline] = await Promise.all([
             orderRepo.getFiles(orderId),
-            orderRepo.getTimeline(orderId)
+            timelineRepo.getTimeline(orderId)
         ]);
 
         return success({
@@ -204,35 +145,18 @@ export async function onRequestPatch(context) {
             const newIds = [...newFileIds].sort().join(',');
 
             if (oldIds !== newIds) {
-                // 删除旧关联
-                await env.DB.prepare('DELETE FROM order_files WHERE order_id = ?').bind(orderId).run();
+                const orderRepo = new OrderRepository(env.DB);
+                await orderRepo.updateFiles(orderId, newFileIds);
 
-                // 插入新关联
-                if (newFileIds.length > 0) {
-                    const insertStatements = newFileIds.map((fileId, index) =>
-                        env.DB.prepare(`
-                             INSERT OR IGNORE INTO order_files (id, order_id, file_id, section, sort_order, added_at)
-                             VALUES (?, ?, ?, 'product', ?, ?)
-                         `).bind(generateId(), orderId, fileId, index, now())
-                    );
-                    await env.DB.batch(insertStatements);
-
-                    // 更新主图 (第一张)
-                    await env.DB.prepare('UPDATE orders SET main_image_id = ? WHERE id = ?').bind(newFileIds[0], orderId).run();
-
-                    // SOTA: 自动归档
-                    try {
-                        const { ensureFolder, moveFilesToFolder } = await import('../../../utils/folder-utils.js');
-                        const rootId = await ensureFolder(env, 'Uploads', 'root');
-                        const subId = await ensureFolder(env, 'Orders', rootId);
-                        const folderId = await ensureFolder(env, order.order_no || orderId, subId);
-                        await moveFilesToFolder(env, newFileIds, folderId);
-                    } catch (e) {
-                        console.error('Archive error', e);
-                    }
-                } else {
-                    // 清空主图
-                    await env.DB.prepare('UPDATE orders SET main_image_id = NULL WHERE id = ?').bind(orderId).run();
+                // SOTA: 自动归档
+                try {
+                    const { ensureFolder, moveFilesToFolder } = await import('../../../utils/folder-utils.js');
+                    const rootId = await ensureFolder(env, 'Uploads', 'root');
+                    const subId = await ensureFolder(env, 'Orders', rootId);
+                    const folderId = await ensureFolder(env, order.order_no || orderId, subId);
+                    await moveFilesToFolder(env, newFileIds, folderId);
+                } catch (e) {
+                    console.error('Archive error', e);
                 }
                 hasChanges = true;
             }

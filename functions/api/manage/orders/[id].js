@@ -13,6 +13,7 @@ import { verifyJWT, ADMIN_AUTH_COOKIE } from '../../utils/auth.js';
 import { parse as parseCookie } from 'cookie';
 import { ORDER_STATUSES } from '../../../_shared/utils.js';
 import { OrderRepository } from '../../../repositories/OrderRepository.js';
+import { OrderTimelineRepository } from '../../../repositories/OrderTimelineRepository.js';
 
 
 /**
@@ -39,36 +40,8 @@ async function getAdmin(request, env) {
  * 记录时间轴
  */
 async function logTimeline(db, params) {
-    const {
-        orderId,
-        actionType,
-        actorType,
-        actorId,
-        actorName,
-        fieldName = null,
-        oldValue = null,
-        newValue = null,
-        reason = null,
-        comment = null
-    } = params;
-
-    await db.prepare(`
-        INSERT INTO order_timeline (id, order_id, action_type, actor_type, actor_id, actor_name, field_name, old_value, new_value, reason, comment, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-        generateId(),
-        orderId,
-        actionType,
-        actorType,
-        actorId,
-        actorName,
-        fieldName,
-        oldValue,
-        newValue,
-        reason,
-        comment,
-        now()
-    ).run();
+    const timelineRepo = new OrderTimelineRepository(db);
+    await timelineRepo.addTimelineEntry(params.orderId, params);
 }
 
 /**
@@ -93,9 +66,10 @@ export async function onRequestGet(context) {
         `).bind(order.salespersonId).first();
 
         // 使用 Repository 获取文件和时间轴
+        const timelineRepo = new OrderTimelineRepository(env.DB);
         const [files, timeline] = await Promise.all([
             orderRepo.getFiles(id),
-            orderRepo.getTimeline(id)
+            timelineRepo.getTimeline(id)
         ]);
 
         return success({
@@ -193,44 +167,29 @@ export async function onRequestPatch(context) {
 
             // 简单对比是否变化
             if (JSON.stringify(newFileIds) !== JSON.stringify(oldFileIds)) {
-                // 删除旧关联
-                await env.DB.prepare('DELETE FROM order_files WHERE order_id = ?').bind(id).run();
+                // Check if updateFiles exists in OrderRepository (it does)
+                const orderRepo = new OrderRepository(env.DB);
+                await orderRepo.updateFiles(id, newFileIds);
 
-                // 插入新关联
-                if (newFileIds.length > 0) {
-                    const insertStatements = newFileIds.map((fileId, index) =>
-                        env.DB.prepare(`
-                            INSERT OR IGNORE INTO order_files (id, order_id, file_id, section, sort_order, added_at)
-                            VALUES (?, ?, ?, 'product', ?, ?)
-                        `).bind(generateId(), id, fileId, index, now())
-                    );
-                    await env.DB.batch(insertStatements);
+                // SOTA: 自动归档 (Admin)
+                try {
+                    // 获取销售人员信息用于归档
+                    const sp = await env.DB.prepare('SELECT s.name, o.order_no FROM orders o JOIN salespersons s ON o.salesperson_id = s.id WHERE o.id = ?').bind(id).first();
 
-                    // 更新主图 (第一张)
-                    await env.DB.prepare('UPDATE orders SET main_image_id = ? WHERE id = ?').bind(newFileIds[0], id).run();
-
-                    // SOTA: 自动归档 (Admin)
-                    try {
-                        // 获取销售人员信息用于归档
-                        const sp = await env.DB.prepare('SELECT s.name, o.order_no FROM orders o JOIN salespersons s ON o.salesperson_id = s.id WHERE o.id = ?').bind(id).first();
-
-                        if (sp) {
-                            const rootId = await ensureFolder(env, 'Uploads', 'root');
-                            const subId = await ensureFolder(env, 'Orders', rootId);
-                            const folderId = await ensureFolder(env, sp.order_no || id, subId);
-                            await moveFilesToFolder(env, newFileIds, folderId);
-                        }
-                    } catch (e) {
-                        console.error('Admin Archive error', e);
+                    if (sp) {
+                        const { ensureFolder, moveFilesToFolder } = await import('../../../utils/folder-utils.js');
+                        const rootId = await ensureFolder(env, 'Uploads', 'root');
+                        const subId = await ensureFolder(env, 'Orders', rootId);
+                        const folderId = await ensureFolder(env, sp.order_no || id, subId);
+                        await moveFilesToFolder(env, newFileIds, folderId);
                     }
-                } else {
-                    // 清空主图
-                    await env.DB.prepare('UPDATE orders SET main_image_id = NULL WHERE id = ?').bind(id).run();
+                } catch (e) {
+                    console.error('Admin Archive error', e);
                 }
 
                 // 记录时间轴
-                timelinePromises.push(logTimeline(env.DB, {
-                    orderId: id,
+                const timelineRepo = new OrderTimelineRepository(env.DB);
+                await timelineRepo.addTimelineEntry(id, {
                     actionType: 'files_updated',
                     actorType: 'admin',
                     actorId: admin.id,
@@ -238,7 +197,7 @@ export async function onRequestPatch(context) {
                     oldValue: `${oldFileIds.length} images`,
                     newValue: `${newFileIds.length} images`,
                     reason: reason.trim()
-                }));
+                });
             }
             // 从 newData 中移除 fileIds (因为它不是 current_data 的一部分)
             delete newData.fileIds;
@@ -298,7 +257,8 @@ async function handleStatusChange(context) {
         await orderRepo.updateStatus(id, status, true);
 
         // 使用 Repository 记录时间轴
-        await orderRepo.addTimelineEntry(id, {
+        const timelineRepo = new OrderTimelineRepository(env.DB);
+        await timelineRepo.addTimelineEntry(id, {
             actionType: 'status_changed',
             actorType: 'admin',
             actorId: admin.id,
@@ -348,7 +308,8 @@ export async function onRequestPost(context) {
         }
 
         // 使用 Repository 添加时间轴记录
-        await orderRepo.addTimelineEntry(id, {
+        const timelineRepo = new OrderTimelineRepository(env.DB);
+        await timelineRepo.addTimelineEntry(id, {
             actionType: 'comment',
             actorType: 'admin',
             actorId: admin.id,
