@@ -25,6 +25,7 @@
     "chartjs-adapter-date-fns": "^3.0.0",
     "date-fns": "^4.1.0",
     "hono": "^4.11.3",
+    "html2pdf.js": "^0.12.1",
     "jszip": "^3.10.1",
     "vue": "^3.4.0",
     "vue-chartjs": "^5.3.3",

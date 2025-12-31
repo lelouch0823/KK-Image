@@ -37,7 +37,8 @@ export default {
         verifying: '正在验证身份...',
         addImage: '添加图片',
         createdAt: '创建时间',
-        print: '打印'
+        print: '打印',
+        savePdf: '保存 PDF'
     },
     upload: {
         uploading: '正在上传 {count} 个文件',
@@ -580,7 +581,8 @@ export default {
             commentPlaceholder: '输入留言内容...',
             sendComment: '发送',
             correctionCompare: '修正对比',
-            correctionReason: '修正理由'
+            correctionReason: '修正理由',
+            submittedBy: '提交人信息'
         },
 
         // 管理端

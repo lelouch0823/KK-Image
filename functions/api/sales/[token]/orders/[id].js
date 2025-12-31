@@ -45,6 +45,9 @@ export async function onRequestGet(context) {
             timelineRepo.getTimeline(orderId)
         ]);
 
+        // SOTA: Mark as read for Sales
+        await orderRepo.markAsRead(orderId, 'sales');
+
         return success({
             id: order.id,
             orderNo: order.orderNo,
@@ -166,11 +169,22 @@ export async function onRequestPatch(context) {
             return error(MSG.COMMON.NO_UPDATE_FIELDS, 400);
         }
 
+        // ...
+        // SOTA: Use Repository for updates to ensure consistency and correct unread logic
+        const orderRepo = new OrderRepository(env.DB);
+
+        // ... (timeline logic same) ...
+
         // 更新订单（如果原状态是 rejected，则重置为 pending）
         const newStatus = wasRejected ? 'pending' : order.status;
-        await env.DB.prepare(`
-            UPDATE orders SET current_data = ?, status = ?, updated_at = ? WHERE id = ?
-        `).bind(JSON.stringify(newData), newStatus, now(), orderId).run();
+
+        // Update Data + Unread (Actor: sales)
+        await orderRepo.updateData(orderId, newData, 'sales');
+
+        // If status changes (e.g. resubmit), update status too
+        if (newStatus !== order.status) {
+            await orderRepo.updateStatus(orderId, newStatus, 'sales');
+        }
 
         // 如果从 rejected 变为 pending，记录状态变更
         if (wasRejected) {
