@@ -83,6 +83,7 @@
         <OrderForm 
           v-else-if="currentView === 'form'"
           :prefill="prefillData"
+          :submitProgress="submitProgress"
           @submit="handleSubmitOrder"
           @cancel="handleCancelForm"
         />
@@ -156,6 +157,7 @@ const currentView = ref('list'); // list | form | detail
 const selectedOrder = ref(null);
 const prefillData = ref(null); // 预填充数据 (复制订单用)
 const pollIntervalId = ref(null);
+const submitProgress = ref({ step: '', current: 0, total: 0 }); // 提交进度
 
 // 轮询间隔 (60秒)
 const POLL_INTERVAL = 60 * 1000;
@@ -220,8 +222,16 @@ const viewOrder = async (order) => {
 
 // 提交订单
 const handleSubmitOrder = async (formData) => {
-  const success = await createSalesOrder(accessToken, formData);
-  if (success) {
+  const handleProgress = (step, current, total) => {
+    submitProgress.value = { step, current, total };
+  };
+  
+  const result = await createSalesOrder(accessToken, formData, handleProgress);
+  
+  // 重置进度
+  submitProgress.value = { step: '', current: 0, total: 0 };
+  
+  if (result) {
     currentView.value = 'list';
     await loadOrders();
   }

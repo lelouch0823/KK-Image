@@ -308,6 +308,9 @@ export default {
         passwordAccessPlaceholder: '请输入访问密码',
     },
     dashboard: {
+        todayOrders: '今日订单',
+        pendingOrders: '待处理订单',
+        noPendingOrders: '暂无待处理订单',
         totalFiles: '文件总数',
         todayUploads: '今日上传',
         totalStorage: '总存储',
@@ -529,6 +532,9 @@ export default {
             uploadHint: '支持多图上传，建议上传清晰的实物照片',
             submit: '提交预定',
             submitting: '提交中...',
+            stepCreating: '正在创建订单...',
+            stepUploading: '正在上传图片 ({current}/{total})...',
+            stepLinking: '正在关联文件...',
             expectedArrival: '期望到货时间',
             expectedArrivalPlaceholder: '选择期望到货日期',
             brand: '品牌',
@@ -581,6 +587,7 @@ export default {
             allSalespersons: '全部销售',
             allStatuses: '全部状态',
             editOrder: '编辑订单',
+            orderStatus: '订单状态',
             changeStatus: '变更状态',
             editReason: '编辑理由',
             editReasonPlaceholder: '请填写修改原因（必填）',
@@ -617,6 +624,8 @@ export default {
         // 操作按钮
         actions: {
             void: '作废',
+            voidConfirm: '确定要作废此订单吗？此操作不可撤销。',
+            voidSuccess: '订单已作废',
             edit: '编辑',
             duplicate: '复制订单',
             duplicateSuccess: '订单已复制，请修改后提交',

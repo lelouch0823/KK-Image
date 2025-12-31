@@ -8,6 +8,8 @@ import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
 import { generateId, generateShareToken, hashPassword, now } from '../../utils/id.js';
 
+import { authenticateAdmin } from '../../utils/auth.js';
+
 /**
  * GET - 获取销售列表
  */
@@ -15,6 +17,7 @@ export async function onRequestGet(context) {
     const { env, request } = context;
 
     try {
+        await authenticateAdmin(request, env);
         const url = new URL(request.url);
         const page = parseInt(url.searchParams.get('page') || '1', 10);
         const limit = parseInt(url.searchParams.get('limit') || '50', 10);
@@ -80,6 +83,7 @@ export async function onRequestPost(context) {
     const { env, request } = context;
 
     try {
+        await authenticateAdmin(request, env);
         const body = await request.json();
         const { name, store, phone, password } = body;
 

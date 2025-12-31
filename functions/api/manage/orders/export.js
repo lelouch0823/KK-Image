@@ -97,10 +97,16 @@ function generateCSV(orders) {
 /**
  * GET - 导出订单列表为 CSV
  */
+import { authenticateAdmin } from '../../utils/auth.js';
+
+/**
+ * GET - 导出订单列表为 CSV
+ */
 export async function onRequestGet(context) {
     const { env, request } = context;
 
     try {
+        await authenticateAdmin(request, env);
         const url = new URL(request.url);
         const salespersonId = url.searchParams.get('salesperson');
         const status = url.searchParams.get('status');
@@ -186,6 +192,9 @@ export async function onRequestGet(context) {
         });
 
     } catch (err) {
+        if (err.message === MSG.AUTH.REQUIRED || err.message === MSG.AUTH.EXPIRED) {
+            return error(err.message, 401);
+        }
         console.error('Order export error:', err);
         return error(`${MSG.COMMON.OP_FAILED}: ${err.message}`, 500);
     }

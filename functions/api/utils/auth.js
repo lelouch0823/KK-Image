@@ -280,3 +280,30 @@ export async function verifyTurnstile(token, secret) {
 }
 
 
+
+import { parse as parseCookie } from 'cookie';
+import { MSG } from './messages.js';
+
+/**
+ * 验证管理员权限 (Middleware Helper)
+ * @param {Request} request 
+ * @param {Object} env 
+ * @returns {Promise<Object>} User payload
+ */
+export async function authenticateAdmin(request, env) {
+  const cookieHeader = request.headers.get('Cookie') || '';
+  const cookies = parseCookie(cookieHeader);
+  const token = cookies[ADMIN_AUTH_COOKIE];
+
+  if (!token) {
+    throw new Error(MSG.AUTH.REQUIRED);
+  }
+
+  try {
+    const user = await verifyJWT(token, env);
+    // 这里可以扩展权限检查，例如 user.permissions.includes('admin')
+    return user;
+  } catch (e) {
+    throw new Error(MSG.AUTH.EXPIRED);
+  }
+}

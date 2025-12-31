@@ -4,18 +4,22 @@
  * POST /api/manage/customers - 创建新客户
  */
 
-import { success, error, jsonResponse } from '../../utils/response.js';
+import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
+import { authenticateAdmin } from '../../utils/auth.js';
 
 export async function onRequestGet(context) {
     const { env, request } = context;
-    const url = new URL(request.url);
-    const search = url.searchParams.get('search') || '';
-    const page = parseInt(url.searchParams.get('page') || '1');
-    const limit = parseInt(url.searchParams.get('limit') || '20');
-    const offset = (page - 1) * limit;
 
     try {
+        await authenticateAdmin(request, env);
+
+        const url = new URL(request.url);
+        const search = url.searchParams.get('search') || '';
+        const page = parseInt(url.searchParams.get('page') || '1');
+        const limit = parseInt(url.searchParams.get('limit') || '20');
+        const offset = (page - 1) * limit;
+
         let whereClause = '1 = 1';
         const bindParams = [];
 
@@ -53,6 +57,9 @@ export async function onRequestGet(context) {
         });
 
     } catch (err) {
+        if (err.message === MSG.AUTH.REQUIRED || err.message === MSG.AUTH.EXPIRED) {
+            return error(err.message, 401);
+        }
         return error(`${MSG.COMMON.LOAD_FAILED}: ${err.message}`, 500);
     }
 }
@@ -61,6 +68,7 @@ export async function onRequestPost(context) {
     const { env, request } = context;
 
     try {
+        const user = await authenticateAdmin(request, env);
         const body = await request.json();
         const { name, phone = '', company = '', email = '', address = '', tags = [], remark = '' } = body;
 
@@ -70,8 +78,7 @@ export async function onRequestPost(context) {
 
         const id = crypto.randomUUID();
         const now = Date.now();
-        // 假设通过中间件 context.data.user 获取当前用户，暂未实现中间件注入 user id 到 context
-        const createdBy = 'admin'; // TODO: Get from auth context
+        const createdBy = user.name || 'admin';
 
         await env.DB.prepare(`
             INSERT INTO customers (id, name, phone, company, email, address, tags, remark, created_by, created_at, updated_at)
@@ -84,6 +91,9 @@ export async function onRequestPost(context) {
         return success({ id, name }, MSG.COMMON.CREATE_SUCCESS);
 
     } catch (err) {
+        if (err.message === MSG.AUTH.REQUIRED || err.message === MSG.AUTH.EXPIRED) {
+            return error(err.message, 401);
+        }
         return error(`${MSG.COMMON.OP_FAILED}: ${err.message}`, 500);
     }
 }

@@ -1,13 +1,15 @@
 <template>
   <div class="space-y-6">
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-white rounded-xl border border-[var(--border-color)] p-5 flex items-center justify-between">
-        <div>
-          <div class="text-sm text-secondary mb-1">{{ t('dashboard.totalFiles') }}</div>
-          <div class="text-3xl font-bold text-primary">{{ totalFiles }}<span class="text-sm font-normal text-secondary ml-1">/ ∞</span></div>
-        </div>
-        <div class="w-20 h-12 bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg"></div>
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-xl border border-[var(--border-color)] p-5">
+        <div class="text-sm text-secondary mb-1">{{ t('dashboard.todayOrders') }}</div>
+        <div class="text-3xl font-bold text-primary">{{ orderStats.todayCount }}</div>
+      </div>
+      <div class="bg-white rounded-xl border border-[var(--border-color)] p-5">
+        <div class="text-sm text-secondary mb-1">{{ t('dashboard.pendingOrders') }}</div>
+        <div class="text-3xl font-bold text-danger">{{ orderStats.pendingCount }}</div>
       </div>
       <div class="bg-white rounded-xl border border-[var(--border-color)] p-5">
         <div class="text-sm text-secondary mb-1">{{ t('dashboard.todayUploads') }}</div>
@@ -19,8 +21,40 @@
       </div>
     </div>
 
-    <!-- 主要内容区域：双栏布局 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- 主要内容区域：布局优化 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- 待处理订单 (新增) -->
+      <div class="bg-white rounded-xl border border-[var(--border-color)] flex flex-col lg:col-span-1">
+        <div class="px-6 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
+          <h3 class="font-semibold text-primary">{{ t('dashboard.pendingOrders') }}</h3>
+          <span v-if="orderStats.pendingCount > 0" class="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs font-medium">{{ orderStats.pendingCount }}</span>
+        </div>
+        <div v-if="orderStats.recentPendingOrders.length > 0" class="flex-1 overflow-y-auto max-h-[400px]">
+          <div class="divide-y divide-[var(--border-color)]">
+            <div 
+              v-for="order in orderStats.recentPendingOrders" 
+              :key="order.id"
+              class="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
+              @click="viewOrder(order)"
+            >
+              <div class="flex items-start justify-between mb-1">
+                <div class="font-medium text-primary group-hover:text-[var(--color-primary)] transition-colors">{{ order.orderNo }}</div>
+                <div class="text-xs text-secondary">{{ formatDate(order.createdAt) }}</div>
+              </div>
+              <div class="text-sm text-secondary truncate">{{ order.name }}</div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="p-6 text-center text-secondary text-sm flex-1 flex items-center justify-center">
+          {{ t('dashboard.noPendingOrders') }}
+        </div>
+        <div class="p-3 border-t border-[var(--border-color)] text-center mt-auto">
+            <button @click="setView('orders')" class="text-sm text-primary hover:underline">{{ t('dashboard.viewMore') }}</button>
+        </div>
+      </div>
+
+      <!-- 右侧双栏：最近分享 + 最近文件 -->
+      <div class="lg:col-span-2 space-y-6">
       <!-- 已分享链接 -->
       <div class="bg-white rounded-xl border border-[var(--border-color)] flex flex-col">
         <div class="px-6 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
@@ -160,6 +194,7 @@
              <button @click="setView('files')" class="text-sm text-primary hover:underline">{{ t('dashboard.viewAll') }}</button>
         </div>
       </div>
+      </div>
     </div>
 
     <!-- Modals -->
@@ -198,10 +233,34 @@ const todayUploads = ref(0);
 const totalSize = ref(0);
 const recentFiles = ref([]);
 const recentShares = ref([]);
+const orderStats = ref({
+    todayCount: 0,
+    pendingCount: 0,
+    recentPendingOrders: []
+});
 
 const showShareManager = ref(false);
 const showEditShare = ref(false);
 const editingFolder = ref(null);
+
+const viewOrder = (order) => {
+    // 导航到订单管理并显示详情 (需要配合 OrderManager 的逻辑，这里先简单切换视图)
+    // 理想做法是 passing params via generic store or query params
+    // 这里我们就切换 view 到 orders，具体的详情打开可能需要 event bus 或者 url state
+    // MV: 简单处理，切换到 orders, 用户自己去找. SOTA: 应该能直接打开
+    setView('orders'); 
+};
+
+const fetchOrderStats = async () => {
+    try {
+        const res = await authFetchJson(API.MANAGE_DASHBOARD_OVERVIEW);
+        if (res.success && res.data) {
+            orderStats.value = res.data;
+        }
+    } catch (e) {
+        console.error('Order stats load failed', e);
+    }
+};
 
 const fetchStats = async () => {
     try {
@@ -278,10 +337,12 @@ const revokeShare = async (item) => {
 onMounted(() => {
     fetchStats();
     fetchRecentShares();
+    fetchOrderStats();
 });
 
 onActivated(() => {
     fetchStats();
     fetchRecentShares();
+    fetchOrderStats();
 });
 </script>

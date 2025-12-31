@@ -152,7 +152,7 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
           </svg>
-          {{ isSubmitting ? t('order.form.submitting') : t('order.form.submit') }}
+          {{ progressText }}
         </button>
       </div>
     </form>
@@ -173,7 +173,8 @@ import AutocompleteInput from '../ui/AutocompleteInput.vue';
 const minDate = computed(() => getTodayISOString());
 
 const props = defineProps({
-  prefill: { type: Object, default: null }
+  prefill: { type: Object, default: null },
+  submitProgress: { type: Object, default: () => ({ step: '', current: 0, total: 0 }) }
 });
 
 const emit = defineEmits(['submit', 'cancel']);
@@ -205,6 +206,16 @@ watch(() => props.prefill, (data) => {
 
 const uploadedFiles = ref([]);
 const isSubmitting = ref(false);
+
+// 根据进度步骤生成提示文字
+const progressText = computed(() => {
+  const { step, current, total } = props.submitProgress;
+  if (step === 'creating') return t('order.form.stepCreating');
+  if (step === 'uploading') return t('order.form.stepUploading', { current, total });
+  if (step === 'linking') return t('order.form.stepLinking');
+  if (isSubmitting.value) return t('order.form.submitting');
+  return t('order.form.submit');
+});
 
 // 最近输入历史
 const { getRecent, saveMultiple } = useRecentInputs('order');

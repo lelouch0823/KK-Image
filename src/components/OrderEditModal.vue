@@ -7,9 +7,18 @@
     @update:modelValue="$emit('close')"
   >
     <template #header>
-        <div>
-          <h3 class="text-lg font-semibold text-primary">{{ t('order.manage.editOrder') }}</h3>
-          <p class="text-sm text-secondary mt-0.5">{{ order?.orderNo }}</p>
+        <div class="flex items-center gap-3">
+          <div>
+            <h3 class="text-lg font-semibold text-primary">{{ t('order.manage.editOrder') }}</h3>
+            <p class="text-sm text-secondary mt-0.5">{{ order?.orderNo }}</p>
+          </div>
+          <span 
+            v-if="form.status"
+            class="px-2.5 py-0.5 rounded-full text-xs font-medium border"
+            :class="getStatusClass(form.status)"
+          >
+            {{ t(`order.statuses.${form.status}`) }}
+          </span>
         </div>
     </template>
 
@@ -22,6 +31,18 @@
           </h4>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- 状态修改 (仅如有权限) -->
+            <div class="md:col-span-2" v-if="mode === 'admin'">
+               <label class="block text-xs font-medium text-secondary mb-1">{{ t('order.manage.orderStatus') }}</label>
+               <select 
+                 v-model="form.status"
+                 class="input h-10"
+               >
+                 <option v-for="s in statuses" :key="s" :value="s">
+                   {{ t(`order.statuses.${s}`) }}
+                 </option>
+               </select>
+            </div>
              <!-- 商品名称 (全宽) -->
              <div class="md:col-span-2">
               <label class="block text-xs font-medium text-secondary mb-1">{{ t('order.form.productName') }}</label>
@@ -215,7 +236,8 @@ const minDate = computed(() => getTodayISOString());
 const props = defineProps({
   order: { type: Object, required: true },
   submitting: Boolean,
-  mode: { type: String, default: 'admin' }
+  mode: { type: String, default: 'admin' },
+  statuses: { type: Array, default: () => ['pending', 'confirmed', 'production', 'shipping', 'completed', 'rejected', 'void'] }
 });
 
 const emit = defineEmits(['close', 'submit']);
@@ -226,6 +248,7 @@ const uploadedFiles = ref([]);
 
 // 表单数据
 const form = reactive({
+  status: '',
   name: '',
   brand: '',
   series: '',
@@ -240,6 +263,7 @@ const form = reactive({
 watch(() => props.order, (newOrder) => {
   if (newOrder) {
     const current = newOrder.currentData || {};
+    form.status = newOrder.status || 'pending';
     form.name = current.name || '';
     form.brand = current.brand || '';
     form.series = current.series || '';
@@ -275,6 +299,9 @@ const hasChanges = computed(() => {
     form.remark !== (currentData.value.remark || '') ||
     form.deadline !== (currentData.value.deadline || '')
   );
+
+  // 检查状态变更
+  if (props.mode === 'admin' && form.status !== props.order.status) return true;
 
   if (fieldsChanged) return true;
 
@@ -316,6 +343,11 @@ const handleSubmit = () => {
   if (form.remark !== currentData.value.remark) updates.remark = form.remark;
   if (form.deadline !== currentData.value.deadline) updates.deadline = form.deadline;
 
+  // 状态变更
+  if (props.mode === 'admin' && form.status !== props.order.status) {
+    updates.status = form.status;
+  }
+
   // 处理文件变更
   const oldIds = (props.order.files || []).map(f => f.id).sort().join(',');
   const newIds = uploadedFiles.value.map(f => f.id).sort().join(',');
@@ -327,6 +359,18 @@ const handleSubmit = () => {
     updates, 
     reason: editReason.value 
   });
+};
+const getStatusClass = (status) => {
+  const map = {
+    pending: 'bg-yellow-50 text-yellow-600 border-yellow-200',
+    confirmed: 'bg-blue-50 text-blue-600 border-blue-200',
+    production: 'bg-indigo-50 text-indigo-600 border-indigo-200',
+    shipping: 'bg-purple-50 text-purple-600 border-purple-200',
+    completed: 'bg-green-50 text-green-600 border-green-200',
+    rejected: 'bg-red-50 text-red-600 border-red-200',
+    void: 'bg-gray-50 text-gray-600 border-gray-200'
+  };
+  return map[status] || 'bg-gray-50 text-gray-600 border-gray-200';
 };
 </script>
 

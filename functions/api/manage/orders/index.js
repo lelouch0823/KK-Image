@@ -22,6 +22,8 @@ export async function onRequestGet(context) {
         const salespersonId = url.searchParams.get('salesperson');
         const status = url.searchParams.get('status');
         const search = url.searchParams.get('search');
+        const startTime = parseInt(url.searchParams.get('startTime') || '0', 10);
+        const endTime = parseInt(url.searchParams.get('endTime') || '0', 10);
         const offset = (page - 1) * limit;
 
         // 构建查询
@@ -36,6 +38,16 @@ export async function onRequestGet(context) {
         if (status && ORDER_STATUSES.includes(status)) {
             whereClause += ' AND o.status = ?';
             bindParams.push(status);
+        }
+
+        if (startTime > 0) {
+            whereClause += ' AND o.created_at >= ?';
+            bindParams.push(startTime);
+        }
+
+        if (endTime > 0) {
+            whereClause += ' AND o.created_at <= ?';
+            bindParams.push(endTime);
         }
 
         if (search) {

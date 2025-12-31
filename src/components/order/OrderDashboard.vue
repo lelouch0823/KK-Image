@@ -1,13 +1,16 @@
 <template>
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <!-- 今日订单 -->
-    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-100/50">
+    <div 
+      @click="$emit('filter', 'today')"
+      class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-100/50 cursor-pointer hover:shadow-md transition-shadow"
+    >
       <div class="flex items-center justify-between">
         <div>
-          <div class="text-sm text-blue-600 font-medium">{{ t('order.dashboard.todayOrders') }}</div>
+          <div class="text-sm text-blue-600 font-medium">{{ t('dashboard.todayOrders') }}</div>
           <div class="text-2xl font-bold text-blue-700 mt-1">
-            <span v-if="loading" class="inline-block w-8 h-6 bg-blue-200 rounded animate-pulse"></span>
-            <span v-else>{{ stats.todayCount }}</span>
+             <span v-if="loading" class="inline-block w-8 h-6 bg-blue-200 rounded animate-pulse"></span>
+             <span v-else>{{ stats.todayCount }}</span>
           </div>
         </div>
         <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
@@ -19,13 +22,16 @@
     </div>
 
     <!-- 待处理 -->
-    <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-100/50">
+    <div 
+      @click="$emit('filter', 'pending')"
+      class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-100/50 cursor-pointer hover:shadow-md transition-shadow"
+    >
       <div class="flex items-center justify-between">
         <div>
-          <div class="text-sm text-orange-600 font-medium">{{ t('order.dashboard.pendingOrders') }}</div>
+          <div class="text-sm text-orange-600 font-medium">{{ t('dashboard.pendingOrders') }}</div>
           <div class="text-2xl font-bold text-orange-700 mt-1">
-            <span v-if="loading" class="inline-block w-8 h-6 bg-orange-200 rounded animate-pulse"></span>
-            <span v-else>{{ stats.pendingCount }}</span>
+             <span v-if="loading" class="inline-block w-8 h-6 bg-orange-200 rounded animate-pulse"></span>
+             <span v-else>{{ stats.pendingCount }}</span>
           </div>
         </div>
         <div class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
@@ -54,8 +60,11 @@
       </div>
     </div>
 
-    <!-- 状态分布 (迷你饼图替代为数字展示) -->
-    <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-100/50">
+    <!-- 状态分布 (点击查看饼图) -->
+    <div 
+      @click="showChartModal = true"
+      class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-100/50 cursor-pointer hover:shadow-md transition-shadow"
+    >
       <div class="flex items-center justify-between">
         <div>
           <div class="text-sm text-purple-600 font-medium">{{ t('order.dashboard.statusDistribution') }}</div>
@@ -86,16 +95,27 @@
       </div>
     </div>
   </div>
+
+
+  <!-- 状态分布图表弹窗 -->
+  <StatusChartModal
+    v-model="showChartModal"
+    :distribution="stats.statusDistribution"
+  />
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
+import StatusChartModal from './StatusChartModal.vue';
+
+const emit = defineEmits(['filter']);
 
 const { t } = useI18n();
 
 const loading = ref(true);
+const showChartModal = ref(false);
 const stats = ref({
   todayCount: 0,
   pendingCount: 0,
@@ -106,7 +126,7 @@ const stats = ref({
 const loadStats = async () => {
   loading.value = true;
   try {
-    const res = await fetch(API.MANAGE_ORDER_STATS, { credentials: 'include' });
+    const res = await fetch(API.MANAGE_DASHBOARD_STATS, { credentials: 'include' });
     const result = await res.json();
     if (result.success) {
       stats.value = result.data;

@@ -9,13 +9,26 @@ import { MSG } from '../../utils/messages.js';
 /**
  * GET - 获取订单统计
  */
+import { authenticateAdmin } from '../../utils/auth.js';
+
+/**
+ * GET - 获取订单统计
+ */
 export async function onRequestGet(context) {
-    const { env } = context;
+    const { env, request } = context;
 
     try {
-        const now = Date.now();
-        const todayStart = new Date().setHours(0, 0, 0, 0);
-        const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000; // 7天前
+        await authenticateAdmin(request, env);
+
+        // SOTA Timezone handling: UTC+8
+        const now = new Date();
+        const utcNow = now.getTime();
+        const offset = 8 * 60 * 60 * 1000;
+        const localNow = utcNow + offset;
+        const localTodayStart = Math.floor(localNow / 86400000) * 86400000;
+        const todayStart = localTodayStart - offset;
+
+        const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000; // 7天前 (Inclusive of today)
         const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000; // 30天前
 
         // 并行查询统计数据
@@ -93,6 +106,9 @@ export async function onRequestGet(context) {
         });
 
     } catch (err) {
+        if (err.message === MSG.AUTH.REQUIRED || err.message === MSG.AUTH.EXPIRED) {
+            return error(err.message, 401);
+        }
         console.error('Order stats error:', err);
         return error(`${MSG.COMMON.LOAD_FAILED}: ${err.message}`, 500);
     }

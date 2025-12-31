@@ -69,6 +69,7 @@ export const API = {
     MANAGE_ORDER_COMMENT: (id) => `/api/manage/orders/${id}/comment`,
     MANAGE_ORDER_EXPORT: `${API_PREFIX}/orders/export`,
     MANAGE_DASHBOARD_STATS: '/api/manage/orders/stats',
+    MANAGE_DASHBOARD_OVERVIEW: '/api/manage/dashboard/overview',
     MANAGE_ORDER_BATCH: `${API_PREFIX}/orders/batch`, // Kept this as it was not explicitly removed by the instruction
     MANAGE_CUSTOMERS: '/api/manage/customers',
     MANAGE_CUSTOMER: '/api/manage/customers',

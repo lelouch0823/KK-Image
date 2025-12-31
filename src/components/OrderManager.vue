@@ -56,7 +56,7 @@
 
     <!-- 订单统计仪表盘 -->
     <div class="px-4 pt-4">
-      <OrderDashboard />
+      <OrderDashboard @filter="handleDashboardFilter" />
     </div>
 
     <!-- 订单列表 -->
@@ -70,6 +70,7 @@
           v-model:selectedIds="selectedIds"
           @detail="openDetailModal"
           @edit="openEditModal"
+          @void="handleVoidOrder"
         >
           <template #status="{ order }">
             <OrderStatusChanger 
@@ -166,7 +167,8 @@
     <OrderEditModal 
       v-if="showEditModal && editingOrder"
       :order="editingOrder"
-      :submitting="isEditing"
+      :submitting="editingSubmitting"
+      :statuses="statuses" 
       @close="closeEditModal"
       @submit="handleEditSubmit"
     />
@@ -207,6 +209,7 @@ const { addToast } = useToast();
 
 const filterSalesperson = ref('');
 const filterStatus = ref('');
+const filterDateRange = ref({ start: 0, end: 0 }); // Timestamp range
 const searchQuery = ref('');
 const statusChanging = reactive({});
 const showEditModal = ref(false);
@@ -229,6 +232,8 @@ const handleFilterChange = () => {
     salesperson: filterSalesperson.value,
     status: filterStatus.value,
     search: searchQuery.value,
+    startTime: filterDateRange.value.start,
+    endTime: filterDateRange.value.end,
     page: 1
   });
 };
@@ -244,6 +249,8 @@ const changePage = (page) => {
     salesperson: filterSalesperson.value,
     status: filterStatus.value,
     search: searchQuery.value,
+    startTime: filterDateRange.value.start,
+    endTime: filterDateRange.value.end,
     page
   });
 };
@@ -263,6 +270,34 @@ const handleStatusChange = async (order, { status, note }) => {
   } finally {
     statusChanging[order.id] = false;
   }
+};
+
+// 仪表盘筛选
+const handleDashboardFilter = (type) => {
+  if (type === 'today') {
+    // SOTA Timezone: Beijing Time (UTC+8)
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const offset = 8 * 60 * 60 * 1000;
+    
+    // Beijing 'Today' Start (00:00:00)
+    const beijingNow = new Date(utc + offset);
+    beijingNow.setHours(0, 0, 0, 0);
+    const start = beijingNow.getTime() - offset; // Convert back to UTC timestamp
+    
+    // Beijing 'Today' End (23:59:59)
+    beijingNow.setHours(23, 59, 59, 999);
+    const end = beijingNow.getTime() - offset;
+
+    filterDateRange.value = { start, end };
+    filterStatus.value = ''; // Clear status filter to show all today's orders
+  } else if (type === 'pending') {
+    filterStatus.value = 'pending';
+    filterDateRange.value = { start: 0, end: 0 }; // Clear date filter
+  }
+  
+  // Reload
+  handleFilterChange();
 };
 
 // 打开编辑弹窗
@@ -286,6 +321,12 @@ const openDetailModal = async (order) => {
   if (fullOrder) {
     viewingOrder.value = fullOrder;
     showDetailModal.value = true;
+    
+    // Clear red dot locally (SOTA: immediate feedback)
+    const idx = orders.value.findIndex(o => o.id === order.id);
+    if (idx !== -1 && orders.value[idx].hasNewFeedback) {
+      orders.value[idx].hasNewFeedback = false;
+    }
   }
 };
 
@@ -293,6 +334,22 @@ const openDetailModal = async (order) => {
 const closeDetailModal = () => {
   showDetailModal.value = false;
   viewingOrder.value = null;
+};
+
+// 作废订单
+const handleVoidOrder = async (order) => {
+  if (confirm(t('order.actions.voidConfirm'))) {
+    statusChanging[order.id] = true;
+    try {
+      const success = await changeStatus(order.id, 'void');
+      if (success) {
+        order.status = 'void';
+        addToast({ message: t('order.actions.voidSuccess'), type: 'success' });
+      }
+    } finally {
+      statusChanging[order.id] = false;
+    }
+  }
 };
 
 // 提交编辑

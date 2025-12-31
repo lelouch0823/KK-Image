@@ -38,14 +38,8 @@ export async function onRequest(context) {
     // Token 有效，获取下游响应
     const response = await next();
 
-    // 为 HTML 页面添加 Link 头（配合 Cloudflare Early Hints）
-    if (pathname.endsWith('.html') || pathname === '/admin' || pathname === '/admin/') {
-      const newResponse = new Response(response.body, response);
-      // 预加载关键 CSS（Cloudflare 会自动转为 103 Early Hints）
-      newResponse.headers.append('Link', '</assets/main.css>; rel=preload; as=style');
-      return newResponse;
-    }
-
+    // Early Hints 需要动态获取 CSS 文件名，暂时移除静态配置
+    // Vite 构建的 CSS 文件名包含 hash，无法硬编码
     return response;
   } catch (error) {
     // Token valid check failed, clear cookie

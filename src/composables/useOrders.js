@@ -29,6 +29,8 @@ export function useOrders() {
             if (params.salesperson) query.set('salesperson', params.salesperson);
             if (params.status) query.set('status', params.status);
             if (params.search) query.set('search', params.search);
+            if (params.startTime) query.set('startTime', params.startTime);
+            if (params.endTime) query.set('endTime', params.endTime);
 
             const url = `${API.MANAGE_ORDERS}?${query.toString()}`;
             const res = await fetch(url, { credentials: 'include' });
@@ -230,19 +232,44 @@ export function useOrders() {
     };
 
     /**
-     * 销售端: 创建订单
+     * 销售端: 创建订单 (先创建订单，再上传图片)
+     * @param {string} token - 销售访问令牌
+     * @param {Object} data - 订单数据
+     * @param {Function} onProgress - 进度回调 (step, current, total)
      */
-    const createSalesOrder = async (token, data) => {
+    const createSalesOrder = async (token, data, onProgress = () => { }) => {
         try {
             const { files, ...orderData } = data;
-            const fileIds = [];
 
-            // 处理文件上传
+            // Step 1: 创建订单 (不含图片)
+            onProgress('creating', 0, files?.length || 0);
+
+            const res = await fetch(API.SALES_ORDER_CREATE(token), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ ...orderData, fileIds: [] })
+            });
+            const result = await res.json();
+
+            if (!result.success) {
+                addToast({ message: result.message, type: 'error' });
+                return false;
+            }
+
+            const { id: orderId, orderNo } = result.data;
+
+            // Step 2: 上传图片 (带 orderId，直接归档)
+            const fileIds = [];
             if (files && files.length > 0) {
-                for (const file of files) {
+                for (let i = 0; i < files.length; i++) {
+                    onProgress('uploading', i + 1, files.length);
+
                     const formData = new FormData();
-                    formData.append('file', file);
-                    const uploadRes = await fetch(API.SALES_UPLOAD(token), {
+                    formData.append('file', files[i]);
+
+                    // 带上 orderId 参数，后端会直接归档到订单文件夹
+                    const uploadRes = await fetch(`${API.SALES_UPLOAD(token)}?orderId=${orderId}`, {
                         method: 'POST',
                         body: formData,
                         credentials: 'include'
@@ -254,19 +281,21 @@ export function useOrders() {
                 }
             }
 
-            const res = await fetch(API.SALES_ORDER_CREATE(token), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ ...orderData, fileIds })
-            });
-            const result = await res.json();
-            if (result.success) {
-                addToast({ message: t('order.portal.submitSuccess'), type: 'success' });
-                return true;
+            // Step 3: 更新订单关联图片
+            if (fileIds.length > 0) {
+                onProgress('linking', 0, 0);
+
+                await fetch(API.SALES_ORDER_DETAIL(token, orderId), {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ fileIds })
+                });
             }
-            addToast({ message: result.message, type: 'error' });
-            return false;
+
+            onProgress('done', 0, 0);
+            addToast({ message: t('order.portal.submitSuccess'), type: 'success' });
+            return true;
         } catch (e) {
             addToast({ message: t('common.networkError'), type: 'error' });
             return false;
