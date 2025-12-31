@@ -191,9 +191,36 @@
 <script setup>
 import { ref, reactive, onMounted, onActivated } from 'vue';
 import { useOrders } from '@/composables/useOrders';
-// ... (imports)
+import { useI18n } from '@/composables/useI18n';
+import { useToast } from '@/composables/useToast';
+import { API } from '@/utils/constants';
+import SearchInput from '@/components/ui/SearchInput.vue';
+import Pagination from '@/components/ui/Pagination.vue';
+import Modal from '@/components/ui/Modal.vue';
+import OrderTable from './order/OrderTable.vue';
+import OrderCards from './order/OrderCards.vue';
+import OrderStatusChanger from './OrderStatusChanger.vue';
+import OrderEditModal from './OrderEditModal.vue';
+import OrderDetail from './order/OrderDetail.vue';
+import OrderDashboard from './order/OrderDashboard.vue';
 
-// ... (setup)
+const { orders, salespersons, statuses, loading, pagination, loadOrders, getOrder, updateOrder, changeStatus, addComment, batchAction } = useOrders();
+const { t } = useI18n();
+const { addToast } = useToast();
+
+const filterSalesperson = ref('');
+const filterStatus = ref('');
+const filterDateRange = ref({ start: 0, end: 0 }); // Timestamp range
+const searchQuery = ref('');
+const statusChanging = reactive({});
+const showEditModal = ref(false);
+const editingOrder = ref(null);
+const viewingOrder = ref(null);
+const isEditing = ref(false);
+const showDetailModal = ref(false);
+const exporting = ref(false);
+const selectedIds = ref([]);
+const batchProcessing = ref(false);
 
 // 初始化
 onMounted(() => {

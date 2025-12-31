@@ -140,6 +140,18 @@ onBeforeMount(async () => {
         if (config.success && config.data?.enabled) {
             turnstileEnabled.value = true;
             turnstileSiteKey.value = config.data.siteKey;
+            
+            // Explicitly render Turnstile after DOM update
+            setTimeout(() => {
+                if (window.turnstile && turnstileContainer.value) {
+                    window.turnstile.render(turnstileContainer.value, {
+                        sitekey: turnstileSiteKey.value,
+                        callback: (token) => {
+                            turnstileToken.value = token;
+                        }
+                    });
+                }
+            }, 100);
         }
     } catch {
         // Turnstile 配置获取失败，跳过验证
@@ -163,7 +175,7 @@ const handleLogin = async () => {
       body: JSON.stringify({
         username: username.value,
         password: password.value,
-        'cf-turnstile-response': turnstileToken.value
+        turnstileToken: turnstileToken.value
       }),
       credentials: 'include'
     });

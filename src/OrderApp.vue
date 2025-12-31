@@ -119,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useNotification } from '@/composables/useNotification';
 import { useToast } from '@/composables/useToast';

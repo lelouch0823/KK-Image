@@ -56,7 +56,7 @@ export function useNotifications() {
     };
 
     // 轮询 (单例模式)
-    const startPolling = (interval = 30000) => {
+    const startPolling = (interval = 10000) => {
         if (pollInterval) return;
 
         const checkAndFetch = () => {

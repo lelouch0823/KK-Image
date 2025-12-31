@@ -25,6 +25,19 @@ export class OrderRepository {
         this.timelineRepo = new OrderTimelineRepository(db);
     }
 
+    /**
+     * Parse JSON string safely
+     * @private
+     */
+    _parseJson(jsonStr) {
+        try {
+            return jsonStr ? JSON.parse(jsonStr) : {};
+        } catch (e) {
+            console.warn('JSON parse failed:', e);
+            return {};
+        }
+    }
+
     // ========================================
     // 查询方法 (READ Operations)
     // ========================================
@@ -41,6 +54,24 @@ export class OrderRepository {
             LEFT JOIN files f ON o.main_image_id = f.id
             WHERE o.id = ?
         `).bind(id).first();
+
+        if (!order) return null;
+        return this._mapOrderDetail(order);
+    }
+
+    /**
+     * 根据 ID 和销售员 ID 获取订单（用于销售端权限校验）
+     * @param {string} id - 订单 ID
+     * @param {string} salespersonId - 销售员 ID
+     * @returns {Promise<Object|null>} 订单对象或 null
+     */
+    async findByIdAndSalesperson(id, salespersonId) {
+        const order = await this.db.prepare(`
+            SELECT o.*, f.storage_key as main_image_key
+            FROM orders o
+            LEFT JOIN files f ON o.main_image_id = f.id
+            WHERE o.id = ? AND o.salesperson_id = ?
+        `).bind(id, salespersonId).first();
 
         if (!order) return null;
         return this._mapOrderDetail(order);
@@ -234,6 +265,63 @@ export class OrderRepository {
             SET status = ?, ${updateField} = 1, updated_at = ? 
             WHERE id = ?
         `).bind(newStatus, timestamp, id).run();
+    }
+
+    /**
+     * 获取订单关联的文件列表
+     * @param {string} orderId - 订单 ID
+     * @returns {Promise<Array>} 文件列表
+     */
+    async getFiles(orderId) {
+        const result = await this.db.prepare(`
+            SELECT f.id, f.name, f.original_name, f.mime_type, f.size, f.storage_key, f.created_at
+            FROM order_files of
+            JOIN files f ON of.file_id = f.id
+            WHERE of.order_id = ?
+            ORDER BY of.sort_order ASC, f.created_at ASC
+        `).bind(orderId).all();
+
+        return result.results.map(f => ({
+            id: f.id,
+            filename: f.original_name || f.name,
+            mimeType: f.mime_type,
+            size: f.size,
+            url: `/file/${f.storage_key}`,
+            createdAt: f.created_at
+        }));
+    }
+
+    /**
+     * 更新订单关联的文件列表
+     * @param {string} orderId - 订单 ID
+     * @param {Array<string>} fileIds - 新的文件 ID 列表
+     */
+    async updateFiles(orderId, fileIds) {
+        // 删除原有关联
+        await this.db.prepare(`DELETE FROM order_files WHERE order_id = ?`).bind(orderId).run();
+
+        // 批量插入新关联
+        if (fileIds && fileIds.length > 0) {
+            const timestamp = now();
+            const statements = fileIds.map((fileId, index) =>
+                this.db.prepare(`
+                    INSERT INTO order_files (id, order_id, file_id, section, sort_order, added_at) 
+                    VALUES (?, ?, ?, 'product', ?, ?)
+                `).bind(generateId(), orderId, fileId, index, timestamp)
+            );
+            await this.db.batch(statements);
+        }
+    }
+
+    /**
+     * 清除订单的新反馈标记（销售端已读）
+     * @deprecated 请使用 markAsRead(id, 'sales')
+     * @param {string} orderId 
+     * @param {string} salespersonId - 用于验证权限（可选）
+     */
+    async clearNewFeedback(orderId, salespersonId) {
+        // Legacy method - just mark as read for sales
+        await this.markAsRead(orderId, 'sales');
     }
 
     // Batch update (Admin only usually)

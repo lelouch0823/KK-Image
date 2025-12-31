@@ -1,5 +1,5 @@
 /  /admin  302
 # SPA Routes
 /gallery/* /gallery.html 200
-
-
+/sales/* /sales.html 200
+/space/* /space.html 200
