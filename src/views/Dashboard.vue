@@ -39,7 +39,7 @@
             >
               <div class="flex items-start justify-between mb-1">
                 <div class="font-medium text-primary group-hover:text-[var(--color-primary)] transition-colors">{{ order.orderNo }}</div>
-                <div class="text-xs text-secondary">{{ formatDate(order.createdAt) }}</div>
+                <div class="text-xs text-secondary">{{ formatRelativeTime(order.createdAt, t) }}</div>
               </div>
               <div class="text-sm text-secondary truncate">{{ order.name }}</div>
             </div>
@@ -207,7 +207,16 @@
         :folder="editingFolder"
         @updated="handleEditUpdated"
     />
-
+    <!-- 订单详情弹窗 -->
+    <Modal v-model="showDetailModal" size="6xl" :title="t('order.detail.title')">
+      <OrderDetail 
+        v-if="viewingOrder"
+        :order="viewingOrder" 
+        mode="admin"
+        @back="closeDetailModal"
+        @refresh="refreshOrderDetail"
+      />
+    </Modal>
   </div>
 </template>
 
@@ -218,15 +227,19 @@ import { useView } from '@/composables/useView';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
+import { useOrders } from '@/composables/useOrders';
 import ShareManagementModal from '@/components/ShareManagementModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
-import { formatSize, formatDate, formatExpiry, getFileExtension } from '@/utils/formatters';
+import Modal from '@/components/ui/Modal.vue';
+import OrderDetail from '@/components/order/OrderDetail.vue';
+import { formatSize, formatDate, formatExpiry, getFileExtension, formatRelativeTime } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 
 const { setView } = useView();
 const { error, success } = useToast();
 const { getHeaders, authFetchJson } = useAuth();
 const { t } = useI18n();
+const { getOrder } = useOrders();
 
 const totalFiles = ref(0);
 const todayUploads = ref(0);
@@ -243,12 +256,33 @@ const showShareManager = ref(false);
 const showEditShare = ref(false);
 const editingFolder = ref(null);
 
-const viewOrder = (order) => {
-    // 导航到订单管理并显示详情 (需要配合 OrderManager 的逻辑，这里先简单切换视图)
-    // 理想做法是 passing params via generic store or query params
-    // 这里我们就切换 view 到 orders，具体的详情打开可能需要 event bus 或者 url state
-    // MV: 简单处理，切换到 orders, 用户自己去找. SOTA: 应该能直接打开
-    setView('orders'); 
+const showDetailModal = ref(false);
+const viewingOrder = ref(null);
+
+const viewOrder = async (order) => {
+    const fullOrder = await getOrder(order.id);
+    if (fullOrder) {
+        viewingOrder.value = fullOrder;
+        showDetailModal.value = true;
+    }
+};
+
+const closeDetailModal = () => {
+    showDetailModal.value = false;
+    viewingOrder.value = null;
+    
+    // 刷新统计数据，以防状态变更
+    fetchOrderStats();
+};
+
+const refreshOrderDetail = async () => {
+    if (viewingOrder.value) {
+        const fullOrder = await getOrder(viewingOrder.value.id);
+        if (fullOrder) {
+            viewingOrder.value = fullOrder;
+        }
+    }
+    fetchOrderStats();
 };
 
 const fetchOrderStats = async () => {

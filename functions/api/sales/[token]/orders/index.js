@@ -59,6 +59,8 @@ async function authenticateSalesperson(request, env, accessToken) {
 
 
 
+import { OrderRepository } from '../../../../repositories/OrderRepository.js';
+
 /**
  * GET - 获取订单列表
  */
@@ -68,62 +70,26 @@ export async function onRequestGet(context) {
 
     try {
         const salesperson = await authenticateSalesperson(request, env, accessToken);
+        const orderRepo = new OrderRepository(env.DB);
 
         const url = new URL(request.url);
         const page = parseInt(url.searchParams.get('page') || '1', 10);
         const limit = parseInt(url.searchParams.get('limit') || '20', 10);
         const status = url.searchParams.get('status');
-        const offset = (page - 1) * limit;
 
-        // 构建查询
-        let whereClause = 'WHERE salesperson_id = ?';
-        const bindParams = [salesperson.id];
-
-        if (status && ORDER_STATUSES.includes(status)) {
-            whereClause += ' AND status = ?';
-            bindParams.push(status);
-        }
-
-        // 获取总数
-        const countResult = await env.DB.prepare(`
-            SELECT COUNT(*) as total FROM orders ${whereClause}
-        `).bind(...bindParams).first();
-
-        // 获取订单列表
-        const { results: orders } = await env.DB.prepare(`
-            SELECT 
-                o.id, o.order_no, o.current_data, o.status, o.has_new_feedback,
-                o.main_image_id, o.created_at, o.updated_at,
-                f.storage_key as main_image_key
-            FROM orders o
-            LEFT JOIN files f ON o.main_image_id = f.id
-            ${whereClause}
-            ORDER BY o.created_at DESC
-            LIMIT ? OFFSET ?
-        `).bind(...bindParams, limit, offset).all();
-
-        // 格式化返回数据
-        const formattedOrders = orders.map(order => {
-            const currentData = order.current_data ? JSON.parse(order.current_data) : {};
-            return {
-                id: order.id,
-                orderNo: order.order_no,
-                productName: currentData.name || '',
-                status: order.status,
-                hasNewFeedback: !!order.has_new_feedback,
-                mainImage: order.main_image_key ? `/file/${order.main_image_key}` : null,
-                createdAt: order.created_at,
-                updatedAt: order.updated_at
-            };
+        const result = await orderRepo.listBySalesperson(salesperson.id, {
+            status: status && ORDER_STATUSES.includes(status) ? status : null,
+            page,
+            limit
         });
 
         return success({
-            orders: formattedOrders,
+            orders: result.items,
             pagination: {
-                page,
-                limit,
-                total: countResult.total,
-                totalPages: Math.ceil(countResult.total / limit)
+                page: result.page,
+                limit: result.limit,
+                total: result.total,
+                totalPages: result.totalPages
             }
         });
 

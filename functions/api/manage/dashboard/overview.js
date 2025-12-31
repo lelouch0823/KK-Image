@@ -7,11 +7,16 @@ import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
 import { authenticateAdmin } from '../../utils/auth.js';
 
+import { OrderRepository } from '../../../repositories/OrderRepository.js';
+
 export async function onRequestGet(context) {
     const { env, request } = context;
 
     try {
         await authenticateAdmin(request, env);
+
+        // Init Repo
+        const orderRepo = new OrderRepository(env.DB);
 
         // SOTA Timezone handling: Default to UTC+8 (China Standard Time)
         // Correctly calculate "Start of Today" in UTC+8
@@ -28,42 +33,22 @@ export async function onRequestGet(context) {
         const todayStartTimestamp = localTodayStart - offset;
 
         const [
-            todayResult,
-            pendingResult,
+            todayCount,
+            pendingCount,
             recentPendingOrders
         ] = await Promise.all([
-            // 今日订单 (Created after todayStartTimestamp)
-            env.DB.prepare(`
-                SELECT COUNT(*) as count FROM orders 
-                WHERE created_at >= ?
-            `).bind(todayStartTimestamp).first(),
-
+            // 今日订单
+            orderRepo.countCreatedAfter(todayStartTimestamp),
             // 待处理订单总数
-            env.DB.prepare(`
-                SELECT COUNT(*) as count FROM orders 
-                WHERE status = 'pending'
-            `).first(),
-
+            orderRepo.countByStatus('pending'),
             // 最近待处理订单 (Limit 5)
-            env.DB.prepare(`
-                SELECT id, order_no, name, created_at, status 
-                FROM orders 
-                WHERE status = 'pending'
-                ORDER BY created_at DESC 
-                LIMIT 5
-            `).all()
+            orderRepo.getRecentPending(5)
         ]);
 
         return success({
-            todayCount: todayResult.count,
-            pendingCount: pendingResult.count,
-            recentPendingOrders: recentPendingOrders.results.map(order => ({
-                id: order.id,
-                orderNo: order.order_no,
-                name: order.name,
-                createdAt: order.created_at,
-                status: order.status
-            }))
+            todayCount,
+            pendingCount,
+            recentPendingOrders
         });
 
     } catch (err) {
