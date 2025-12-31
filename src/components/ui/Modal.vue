@@ -43,7 +43,7 @@
             </div>
 
             <!-- Body -->
-            <div class="p-6 overflow-y-auto" :class="bodyClass">
+            <div class="p-6 overflow-y-auto flex-1 min-h-0" :class="bodyClass">
               <slot></slot>
             </div>
 
