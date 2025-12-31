@@ -116,9 +116,12 @@ export async function onRequestPatch(context) {
     try {
         const admin = await getAdmin(request, env);
         const body = await request.json();
-        const { updates, reason } = body;
+        const { updates, reason, fileIds } = body;
 
-        if (!updates || Object.keys(updates).length === 0) {
+        const hasUpdates = updates && Object.keys(updates).length > 0;
+        const hasFileIds = fileIds && Array.isArray(fileIds) && fileIds.length > 0;
+
+        if (!hasUpdates && !hasFileIds) {
             return error(MSG.COMMON.NO_UPDATE_FIELDS, 400);
         }
 
@@ -140,27 +143,29 @@ export async function onRequestPatch(context) {
         const timelinePromises = [];
 
         // 逐字段更新并记录时间轴
-        for (const [field, value] of Object.entries(updates)) {
-            if (currentData[field] !== value) {
-                // 记录时间轴
-                timelinePromises.push(logTimeline(env.DB, {
-                    orderId: id,
-                    actionType: 'field_updated',
-                    actorType: 'admin',
-                    actorId: admin.id,
-                    actorName: admin.name,
-                    fieldName: field,
-                    oldValue: currentData[field] || '',
-                    newValue: value || '',
-                    reason: reason.trim()
-                }));
-                newData[field] = value;
+        if (hasUpdates) {
+            for (const [field, value] of Object.entries(updates)) {
+                if (currentData[field] !== value) {
+                    // 记录时间轴
+                    timelinePromises.push(logTimeline(env.DB, {
+                        orderId: id,
+                        actionType: 'field_updated',
+                        actorType: 'admin',
+                        actorId: admin.id,
+                        actorName: admin.name,
+                        fieldName: field,
+                        oldValue: currentData[field] || '',
+                        newValue: value || '',
+                        reason: reason.trim()
+                    }));
+                    newData[field] = value;
+                }
             }
         }
 
         // 处理文件更新 (SOTA: 单独处理关联表)
-        if (updates.fileIds) {
-            const newFileIds = updates.fileIds;
+        if (fileIds) {
+            const newFileIds = fileIds;
             // 获取旧文件列表 (用于时间轴对比)
             const { results: oldFiles } = await env.DB.prepare('SELECT file_id FROM order_files WHERE order_id = ? ORDER BY sort_order').bind(id).all();
             const oldFileIds = oldFiles.map(f => f.file_id);

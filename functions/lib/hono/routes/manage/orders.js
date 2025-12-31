@@ -14,8 +14,8 @@ import { ORDER_STATUSES } from '../../../../_shared/utils.js';
 
 // Schemas
 const UpdateOrderSchema = z.object({
-    updates: z.record(z.string()).optional(),
-    fileIds: z.array(z.string()).optional(),
+    updates: z.record(z.string()).nullable().optional(),
+    fileIds: z.array(z.string()).nullable().optional(),
     reason: z.string().min(1).max(500)
 });
 
@@ -268,7 +268,12 @@ app.get('/:id', async (c) => {
  */
 app.post('/:id/update',
     requirePermission('orders:write'),
-    zValidator('json', UpdateOrderSchema),
+    zValidator('json', UpdateOrderSchema, (result, c) => {
+        if (!result.success) {
+            console.error('Validation Failed:', JSON.stringify(result.error, null, 2));
+            return c.json({ success: false, error: 'Validation Failed', details: result.error }, 400);
+        }
+    }),
     async (c) => {
         const { env } = c;
         const id = c.req.param('id');
