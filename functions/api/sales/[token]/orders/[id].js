@@ -10,6 +10,7 @@ import { MSG } from '../../../utils/messages.js';
 import { generateId, now } from '../../../utils/id.js';
 import { verifyJWT } from '../../../utils/auth.js';
 import { parse as parseCookie } from 'cookie';
+import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 
 /**
  * 验证销售端 JWT 并返回销售信息
@@ -89,74 +90,33 @@ export async function onRequestGet(context) {
 
     try {
         const salesperson = await authenticateSalesperson(request, env, accessToken);
+        const orderRepo = new OrderRepository(env.DB);
 
-        // 获取订单
-        const order = await env.DB.prepare(`
-            SELECT o.*, f.storage_key as main_image_key
-            FROM orders o
-            LEFT JOIN files f ON o.main_image_id = f.id
-            WHERE o.id = ? AND o.salesperson_id = ?
-        `).bind(orderId, salesperson.id).first();
-
+        // 使用 Repository 获取订单详情
+        const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
         if (!order) {
             return error(MSG.ORDER.NOT_FOUND, 404);
         }
 
-        // 获取订单图片
-        const { results: files } = await env.DB.prepare(`
-            SELECT of.section, of.sort_order, f.id, f.original_name, f.storage_key, f.mime_type, f.size
-            FROM order_files of
-            JOIN files f ON of.file_id = f.id
-            WHERE of.order_id = ?
-            ORDER BY of.section, of.sort_order
-        `).bind(orderId).all();
-
-        // 获取时间轴
-        const { results: timeline } = await env.DB.prepare(`
-            SELECT id, action_type, actor_type, actor_name, field_name, old_value, new_value, reason, comment, created_at
-            FROM order_timeline
-            WHERE order_id = ?
-            ORDER BY created_at DESC
-        `).bind(orderId).all();
-
-        // 解析数据
-        const originalData = order.original_data ? JSON.parse(order.original_data) : {};
-        const currentData = order.current_data ? JSON.parse(order.current_data) : {};
-
-        // 格式化文件
-        const formattedFiles = files.map(f => ({
-            id: f.id,
-            name: f.original_name,
-            url: `/file/${f.storage_key}`,
-            mimeType: f.mime_type,
-            size: f.size,
-            section: f.section
-        }));
+        // 使用 Repository 获取文件和时间轴
+        const [files, timeline] = await Promise.all([
+            orderRepo.getFiles(orderId),
+            orderRepo.getTimeline(orderId)
+        ]);
 
         return success({
             id: order.id,
-            orderNo: order.order_no,
+            orderNo: order.orderNo,
             status: order.status,
-            hasNewFeedback: !!order.has_new_feedback,
-            originalData,
-            currentData,
-            mainImage: order.main_image_key ? `/file/${order.main_image_key}` : null,
-            mainImageId: order.main_image_id,
-            files: formattedFiles,
-            timeline: timeline.map(t => ({
-                id: t.id,
-                actionType: t.action_type,
-                actorType: t.actor_type,
-                actorName: t.actor_name,
-                fieldName: t.field_name,
-                oldValue: t.old_value,
-                newValue: t.new_value,
-                reason: t.reason,
-                comment: t.comment,
-                createdAt: t.created_at
-            })),
-            createdAt: order.created_at,
-            updatedAt: order.updated_at
+            hasNewFeedback: order.hasNewFeedback,
+            originalData: order.originalData,
+            currentData: order.currentData,
+            mainImage: order.mainImage,
+            mainImageId: order.mainImageId,
+            files,
+            timeline,
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt
         });
 
     } catch (err) {

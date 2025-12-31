@@ -31,19 +31,19 @@ export async function onRequestPost(context) {
         const file = formData.get('file');
 
         if (!file || !(file instanceof File)) {
-            return error('请选择要上传的文件', 400);
+            return error(MSG.FILE.SELECT_FILE, 400);
         }
 
         // 验证文件类型
         const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.type)) {
-            return error('仅支持 JPG、PNG、GIF、WebP 格式', 400);
+            return error(MSG.FILE.INVALID_TYPE, 400);
         }
 
         // 验证文件大小 (10MB)
         const maxSize = 10 * 1024 * 1024;
         if (file.size > maxSize) {
-            return error('文件大小不能超过 10MB', 400);
+            return error(MSG.FILE.SIZE_LIMIT, 400);
         }
 
         // 生成存储 key

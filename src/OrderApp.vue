@@ -45,7 +45,7 @@
               {{ t('salesStats.title') }}
             </button>
           <button 
-            @click="currentView = 'form'" 
+            @click="handleNewOrder" 
             v-if="currentView === 'list'"
             class="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-[var(--color-primary-hover)] transition-colors"
           >
@@ -261,13 +261,40 @@ const handleRefreshOrder = async () => {
 };
 
 // 复制订单 (预填充表单)
-const handleDuplicate = async (order) => {
-  const data = await duplicateOrder(accessToken, order.id);
-  if (data) {
-    prefillData.value = data;
-    currentView.value = 'form';
-    addToast({ message: t('order.actions.duplicateSuccess'), type: 'success' });
-  }
+const handleDuplicate = (order) => {
+  // 直接使用订单数据填充表单，无需重新请求 API
+  const currentData = order.currentData || {};
+  
+  // 复制已有的图片 (转换为预填充格式)
+  const prefillFiles = (order.files || []).map(f => ({
+    id: f.id,
+    name: f.name,
+    url: f.url,
+    mimeType: f.mimeType,
+    size: f.size,
+    isLocal: false // 标记为服务端已有文件
+  }));
+  
+  prefillData.value = {
+    name: currentData.name || '',
+    brand: currentData.brand || '',
+    series: currentData.series || '',
+    size: currentData.size || '',
+    color: currentData.color || '',
+    material: currentData.material || '',
+    remark: currentData.remark || '',
+    deadline: currentData.deadline || '', // 复制期望到货时间
+    files: prefillFiles // 复制图片列表
+  };
+  
+  currentView.value = 'form';
+  addToast({ message: t('order.actions.duplicateSuccess'), type: 'success' });
+};
+
+// 新建订单 (清除预填充)
+const handleNewOrder = () => {
+  prefillData.value = null;
+  currentView.value = 'form';
 };
 
 // 取消表单 (清除预填充)

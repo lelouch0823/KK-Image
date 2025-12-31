@@ -268,6 +268,46 @@ export class OrderRepository {
     }
 
     /**
+     * 获取销售员完整统计（含趋势）
+     * 用于销售端统计页面
+     * @param {string} salespersonId - 销售 ID
+     * @param {number} monthStart - 30天前时间戳
+     */
+    async getSalesFullStats(salespersonId, monthStart) {
+        const [totalResult, completedResult, monthResult, trendResult] = await Promise.all([
+            // 累计订单
+            this.db.prepare(`
+                SELECT COUNT(*) as count FROM orders WHERE salesperson_id = ?
+            `).bind(salespersonId).first(),
+            // 已完成订单
+            this.db.prepare(`
+                SELECT COUNT(*) as count FROM orders 
+                WHERE salesperson_id = ? AND status = 'delivered'
+            `).bind(salespersonId).first(),
+            // 本月订单
+            this.db.prepare(`
+                SELECT COUNT(*) as count FROM orders 
+                WHERE salesperson_id = ? AND created_at >= ?
+            `).bind(salespersonId, monthStart).first(),
+            // 近30天趋势
+            this.db.prepare(`
+                SELECT DATE(created_at / 1000, 'unixepoch', 'localtime') as date, COUNT(*) as count
+                FROM orders 
+                WHERE salesperson_id = ? AND created_at >= ?
+                GROUP BY DATE(created_at / 1000, 'unixepoch', 'localtime')
+                ORDER BY date ASC
+            `).bind(salespersonId, monthStart).all()
+        ]);
+
+        return {
+            total: totalResult.count,
+            completed: completedResult.count,
+            month: monthResult.count,
+            trend: trendResult.results
+        };
+    }
+
+    /**
      * 获取管理端订单统计（含状态分布）
      * @param {number} todayStart - 今日开始时间戳
      * @param {number} weekStart - 本周开始时间戳

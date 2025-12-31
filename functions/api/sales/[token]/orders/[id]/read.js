@@ -6,6 +6,7 @@
 import { success, error } from '../../../../utils/response.js';
 import { MSG } from '../../../../utils/messages.js';
 import { authenticateSalesperson } from '../../../../utils/salesperson-auth.js';
+import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 
 /**
  * PATCH - 清除红点
@@ -16,15 +17,10 @@ export async function onRequestPatch(context) {
 
     try {
         const salesperson = await authenticateSalesperson(request, env, accessToken);
+        const orderRepo = new OrderRepository(env.DB);
 
-        // 验证订单归属并清除红点
-        const result = await env.DB.prepare(`
-            UPDATE orders SET has_new_feedback = 0 WHERE id = ? AND salesperson_id = ?
-        `).bind(orderId, salesperson.id).run();
-
-        if (result.meta.changes === 0) {
-            return error(MSG.ORDER.NOT_FOUND, 404);
-        }
+        // 使用 Repository 清除红点
+        await orderRepo.clearNewFeedback(orderId, salesperson.id);
 
         return success(null, MSG.ORDER.ALREADY_READ);
 

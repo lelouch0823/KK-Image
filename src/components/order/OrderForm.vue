@@ -145,7 +145,7 @@
         </button>
         <button 
           type="submit"
-          :disabled="!form.name || uploadedFiles.length === 0 || isSubmitting"
+          :disabled="!isValid || isSubmitting"
           class="flex-1 h-12 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
         >
           <svg v-if="isSubmitting" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,17 +160,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue';
+import { watch, toRef } from 'vue';
 import { useI18n } from '@/composables/useI18n';
-import { useToast } from '@/composables/useToast';
-import { useRecentInputs } from '@/composables/useRecentInputs';
-import { getTodayISOString } from '@/utils/common';
-import { useSalesToken } from '@/composables/useSalesToken';
-import { API } from '@/utils/constants';
+import { useOrderForm } from '@/composables/useOrderForm';
 import ImageUploader from '../common/ImageUploader.vue';
 import AutocompleteInput from '../ui/AutocompleteInput.vue';
-
-const minDate = computed(() => getTodayISOString());
 
 const props = defineProps({
   prefill: { type: Object, default: null },
@@ -180,86 +174,44 @@ const props = defineProps({
 const emit = defineEmits(['submit', 'cancel']);
 
 const { t } = useI18n();
-const { addToast } = useToast();
 
-const form = reactive({
-  name: '',
-  brand: '',
-  series: '',
-  size: '',
-  color: '',
-  material: '',
-  remark: '',
-  deadline: ''
+// 使用 composable 管理表单逻辑
+const {
+  form,
+  uploadedFiles,
+  isSubmitting,
+  minDate,
+  isValid,
+  progressText,
+  uploadEndpoint,
+  nameSuggestions,
+  brandSuggestions,
+  seriesSuggestions,
+  colorSuggestions,
+  materialSuggestions,
+  fillForm,
+  getSubmitData,
+  saveHistory,
+  setSubmitting
+} = useOrderForm({
+  submitProgress: toRef(props, 'submitProgress')
 });
 
-// 监听预填充数据变化 (用于复制订单)
+// 监听预填充数据变化
 watch(() => props.prefill, (data) => {
-  if (data) {
-    Object.keys(form).forEach(key => {
-      if (data[key] !== undefined) {
-        form[key] = data[key];
-      }
-    });
-  }
+  fillForm(data);
 }, { immediate: true });
-
-const uploadedFiles = ref([]);
-const isSubmitting = ref(false);
-
-// 根据进度步骤生成提示文字
-const progressText = computed(() => {
-  const { step, current, total } = props.submitProgress;
-  if (step === 'creating') return t('order.form.stepCreating');
-  if (step === 'uploading') return t('order.form.stepUploading', { current, total });
-  if (step === 'linking') return t('order.form.stepLinking');
-  if (isSubmitting.value) return t('order.form.submitting');
-  return t('order.form.submit');
-});
-
-// 最近输入历史
-const { getRecent, saveMultiple } = useRecentInputs('order');
-
-// 各字段的建议列表
-const nameSuggestions = computed(() => getRecent('name'));
-const brandSuggestions = computed(() => getRecent('brand'));
-const seriesSuggestions = computed(() => getRecent('series'));
-const colorSuggestions = computed(() => getRecent('color'));
-const materialSuggestions = computed(() => getRecent('material'));
-
-const { token: salesToken } = useSalesToken();
-
-// 计算上传地址
-const uploadEndpoint = computed(() => {
-  return API.SALES_UPLOAD(salesToken.value || '');
-});
 
 // 提交表单
 const handleSubmit = async () => {
-  if (!form.name || uploadedFiles.value.length === 0 || isSubmitting.value) return;
+  if (!isValid.value || isSubmitting.value) return;
 
-  isSubmitting.value = true;
+  setSubmitting(true);
   try {
-    // 提取本地文件对象用于上传
-    const files = uploadedFiles.value
-      .filter(f => f.isLocal && f.file)
-      .map(f => f.file);
-    
-    await emit('submit', {
-      ...form,
-      files // 传递文件对象而非 fileIds
-    });
-
-    // 提交成功后保存历史
-    saveMultiple({
-      name: form.name,
-      brand: form.brand,
-      series: form.series,
-      color: form.color,
-      material: form.material
-    });
+    await emit('submit', getSubmitData());
+    saveHistory();
   } finally {
-    isSubmitting.value = false;
+    setSubmitting(false);
   }
 };
 </script>

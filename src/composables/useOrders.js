@@ -239,16 +239,16 @@ export function useOrders() {
      */
     const createSalesOrder = async (token, data, onProgress = () => { }) => {
         try {
-            const { files, ...orderData } = data;
+            const { files, existingFileIds = [], ...orderData } = data;
 
-            // Step 1: 创建订单 (不含图片)
+            // Step 1: 创建订单 (如果有已有文件ID，直接传入)
             onProgress('creating', 0, files?.length || 0);
 
             const res = await fetch(API.SALES_ORDER_CREATE(token), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ ...orderData, fileIds: [] })
+                body: JSON.stringify({ ...orderData, fileIds: existingFileIds })
             });
             const result = await res.json();
 
@@ -259,8 +259,8 @@ export function useOrders() {
 
             const { id: orderId, orderNo } = result.data;
 
-            // Step 2: 上传图片 (带 orderId，直接归档)
-            const fileIds = [];
+            // Step 2: 上传新图片 (带 orderId，直接归档)
+            const newFileIds = [];
             if (files && files.length > 0) {
                 for (let i = 0; i < files.length; i++) {
                     onProgress('uploading', i + 1, files.length);
@@ -276,20 +276,22 @@ export function useOrders() {
                     });
                     const uploadResult = await uploadRes.json();
                     if (uploadResult.success) {
-                        fileIds.push(uploadResult.data.id);
+                        newFileIds.push(uploadResult.data.id);
                     }
                 }
             }
 
-            // Step 3: 更新订单关联图片
-            if (fileIds.length > 0) {
+            // Step 3: 如果有新上传的图片，追加到订单
+            if (newFileIds.length > 0) {
                 onProgress('linking', 0, 0);
 
+                // 合并已有文件ID和新上传的文件ID
+                const allFileIds = [...existingFileIds, ...newFileIds];
                 await fetch(API.SALES_ORDER_DETAIL(token, orderId), {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify({ fileIds })
+                    body: JSON.stringify({ fileIds: allFileIds })
                 });
             }
 

@@ -104,7 +104,8 @@ export const MSG = {
         INVALID_PASSWORD: '密码错误',
         PASSWORD_REQUIRED: '请输入密码',
         NAME_REQUIRED: '销售姓名不能为空',
-        TOKEN_CONFLICT: '访问令牌冲突，请重试'
+        TOKEN_CONFLICT: '访问令牌冲突，请重试',
+        HAS_ORDERS: '该销售人员有关联订单，无法删除'
     },
 
     // 客户管理
@@ -119,6 +120,7 @@ export const MSG = {
         UPDATE_SUCCESS: '订单已更新',
         DELETE_SUCCESS: '订单已删除',
         STATUS_CHANGED: '订单状态已更新',
+        STATUS_UNCHANGED: '状态未变更',
         REASON_REQUIRED: '为了便于追溯，请填写修改理由',
         COMMENT_ADDED: '留言已添加',
         ALREADY_READ: '已标记为已读',
@@ -130,7 +132,9 @@ export const MSG = {
         REASON_SALES_EDIT: '销售端发起的修改',
         REASON_SALES_VOID: '销售端发起的作废',
         REASON_RESUBMIT: '修改后重新提交',
-        VOID_SUCCESS: '订单已作废'
+        VOID_SUCCESS: '订单已作废',
+        BATCH_LIMIT: '批量操作最多支持 100 条订单',
+        BATCH_NO_VALID: '没有可以执行此操作的订单'
     },
 
     // 通用错误

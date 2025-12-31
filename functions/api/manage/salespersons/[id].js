@@ -133,7 +133,7 @@ export async function onRequestDelete(context) {
         `).bind(id).first();
 
         if (orderCount.count > 0) {
-            return error('该销售人员有关联订单，无法删除', 400);
+            return error(MSG.SALESPERSON.HAS_ORDERS, 400);
         }
 
         const result = await env.DB.prepare(`

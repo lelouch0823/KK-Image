@@ -6,11 +6,11 @@
 
 import { success, error } from '../../../utils/response.js';
 import { MSG } from '../../../utils/messages.js';
-import { generateId, generateShareToken, now, generateOrderNo } from '../../../utils/id.js';
+import { generateId, generateOrderNo } from '../../../utils/id.js';
 import { verifyJWT } from '../../../utils/auth.js';
 import { parse as parseCookie } from 'cookie';
-
 import { ORDER_STATUSES } from '../../../../_shared/utils.js';
+import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 
 
 /**
@@ -59,7 +59,7 @@ async function authenticateSalesperson(request, env, accessToken) {
 
 
 
-import { OrderRepository } from '../../../../repositories/OrderRepository.js';
+
 
 /**
  * GET - 获取订单列表
@@ -114,6 +114,7 @@ export async function onRequestPost(context) {
 
     try {
         const salesperson = await authenticateSalesperson(request, env, accessToken);
+        const orderRepo = new OrderRepository(env.DB);
         const body = await request.json();
 
         const { name, size, color, material, remark, deadline, brand, series, fileIds = [] } = body;
@@ -124,10 +125,9 @@ export async function onRequestPost(context) {
 
         const orderId = generateId();
         const orderNo = generateOrderNo();
-        const timestamp = now();
 
         // 构建订单数据
-        const orderData = JSON.stringify({
+        const orderData = {
             name: name || '',
             size: size || '',
             color: color || '',
@@ -136,7 +136,7 @@ export async function onRequestPost(context) {
             deadline: deadline || '',
             brand: brand || '',
             series: series || ''
-        });
+        };
 
         // 确定主图
         let mainImageId = null;
@@ -152,49 +152,26 @@ export async function onRequestPost(context) {
             }
         }
 
-        // 创建订单
-        // 准备批量操作语句
-        const batchStatements = [];
-
-        // 1. 创建订单
-        batchStatements.push(env.DB.prepare(`
-            INSERT INTO orders (id, order_no, salesperson_id, original_data, current_data, status, main_image_id, has_new_feedback, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, 'pending', ?, 0, ?, ?)
-        `).bind(orderId, orderNo, salesperson.id, orderData, orderData, mainImageId, timestamp, timestamp));
-
-        // 2. 关联文件
-        if (fileIds.length > 0) {
-            fileIds.forEach((fileId, index) => {
-                batchStatements.push(env.DB.prepare(`
-                    INSERT OR IGNORE INTO order_files (id, order_id, file_id, section, sort_order, added_at)
-                    VALUES (?, ?, ?, 'product', ?, ?)
-                `).bind(generateId(), orderId, fileId, index, timestamp));
-            });
-        }
-
-        // 3. 记录时间轴
-        batchStatements.push(env.DB.prepare(`
-            INSERT INTO order_timeline (id, order_id, action_type, actor_type, actor_id, actor_name, field_name, old_value, new_value, reason, comment, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(
-            generateId(),
-            orderId,
-            'created',
-            'salesperson',
-            salesperson.id,
-            salesperson.name,
-            null, null, null, null, null, // Optional fields
-            now()
-        ));
-
-        // 执行原子事务
-        await env.DB.batch(batchStatements);
+        // 使用 Repository 创建订单（原子事务）
+        await orderRepo.create({
+            id: orderId,
+            orderNo,
+            salespersonId: salesperson.id,
+            data: orderData,
+            mainImageId,
+            fileIds,
+            timeline: {
+                actionType: 'created',
+                actorType: 'salesperson',
+                actorId: salesperson.id,
+                actorName: salesperson.name
+            }
+        });
 
         // 面向未来: 自动归档 (非事务，失败不影响订单创建)
         if (fileIds.length > 0) {
             try {
                 const { ensureFolder, moveFilesToFolder } = await import('../../../utils/folder-utils.js');
-                // ... logic remains same ...
                 const rootId = await ensureFolder(env, 'Uploads', 'root');
                 const subId = await ensureFolder(env, 'Orders', rootId);
                 const folderId = await ensureFolder(env, orderNo, subId);
@@ -220,3 +197,4 @@ export async function onRequestPost(context) {
         return error(`${MSG.COMMON.CREATE_FAILED}: ${err.message}`, 500);
     }
 }
+

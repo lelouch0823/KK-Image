@@ -5,6 +5,7 @@
  */
 
 import { success, error } from '../utils/response.js';
+import { OrderRepository } from '../../repositories/OrderRepository.js';
 
 export async function onRequest(context) {
     const { env, request } = context;
@@ -17,29 +18,25 @@ export async function onRequest(context) {
     }
 
     try {
+        const orderRepo = new OrderRepository(env.DB);
         const now = Date.now();
         const ONE_DAY = 24 * 60 * 60 * 1000;
         const THREE_DAYS = 3 * ONE_DAY;
 
         const notifications = [];
 
-        // 2. 检查超时未处理订单 (Pending > 24h)
+        // 2. 检查超时未处理订单 (Pending > 24h) - 使用 Repository
         const pendingThreshold = now - ONE_DAY;
-        const { results: pendingOrders } = await env.DB.prepare(`
-            SELECT id, order_no, created_at FROM orders 
-            WHERE status = 'pending' AND created_at < ?
-        `).bind(pendingThreshold).all();
+        const pendingOrders = await orderRepo.findStalePending(pendingThreshold);
 
         for (const order of pendingOrders) {
             // 检查是否已发送过提醒 (避免重复)
-            // 简单策略：检查是否存在关联该订单且类型为 'order' 的通知
-            // 注意：这里假设 metadata 存储格式为 {"orderId": "..."}
             const exists = await env.DB.prepare(`
                 SELECT 1 FROM notifications 
                 WHERE type = 'order' 
                 AND json_extract(metadata, '$.orderId') = ?
                 AND created_at > ?
-            `).bind(order.id, now - ONE_DAY).first(); // 24小时内不重复提醒
+            `).bind(order.id, now - ONE_DAY).first();
 
             if (!exists) {
                 const id = crypto.randomUUID();
@@ -49,7 +46,7 @@ export async function onRequest(context) {
                 `).bind(
                     id,
                     'notification.reminder.pending_order_title',
-                    JSON.stringify({ key: 'notification.reminder.pending_order_desc', orderNo: order.order_no }),
+                    JSON.stringify({ key: 'notification.reminder.pending_order_desc', orderNo: order.orderNo }),
                     `/manage/orders?id=${order.id}`,
                     JSON.stringify({ orderId: order.id, subType: 'pending_timeout' }),
                     now
@@ -57,21 +54,17 @@ export async function onRequest(context) {
             }
         }
 
-        // 3. 检查临近交货期 (3天内)
-        // 需查询所有 confirmed/production 订单，解析 JSON 检查 deadline
-        // D1 支持 json_extract，尝试直接 SQL 过滤 (假设 deadline 格式为 YYYY-MM-DD)
-        // SQLite 比较日期字符串：'2025-01-01' > '2024-12-31'
-
-        // 计算目标日期范围
+        // 3. 检查临近交货期 (3天内) - 使用 Repository
         const today = new Date();
         const targetDate = new Date(today.getTime() + THREE_DAYS);
         const todayStr = today.toISOString().split('T')[0];
         const targetStr = targetDate.toISOString().split('T')[0];
 
-        // 查询 deadline 在 [today, targetDate] 之间的订单
+        // 注意：findApproachingDeadline 使用 LIKE 查询单个日期，这里需要扩展为范围查询
+        // 暂时保留直接 SQL，后续可升级 Repository
         const { results: deadlineOrders } = await env.DB.prepare(`
             SELECT id, order_no, current_data FROM orders 
-            WHERE status IN ('confirmed', 'production')
+            WHERE status IN ('confirmed', 'in_progress')
             AND json_extract(current_data, '$.deadline') BETWEEN ? AND ?
         `).bind(todayStr, targetStr).all();
 
@@ -79,7 +72,6 @@ export async function onRequest(context) {
             const data = JSON.parse(order.current_data);
             const deadline = data.deadline;
 
-            // 检查是否已提醒 (类型 deadline, orderId 相同, 24小时内)
             const exists = await env.DB.prepare(`
                 SELECT 1 FROM notifications 
                 WHERE type = 'deadline' 

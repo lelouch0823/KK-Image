@@ -5,8 +5,8 @@
 
 import { success, error } from '../../../../utils/response.js';
 import { MSG } from '../../../../utils/messages.js';
-import { generateId, now } from '../../../../utils/id.js';
 import { authenticateSalesperson } from '../../../../utils/salesperson-auth.js';
+import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 
 /**
  * POST - 添加留言
@@ -17,6 +17,7 @@ export async function onRequestPost(context) {
 
     try {
         const salesperson = await authenticateSalesperson(request, env, accessToken);
+        const orderRepo = new OrderRepository(env.DB);
         const body = await request.json();
         const { comment } = body;
 
@@ -25,33 +26,19 @@ export async function onRequestPost(context) {
         }
 
         // 验证订单归属
-        const order = await env.DB.prepare(`
-            SELECT id FROM orders WHERE id = ? AND salesperson_id = ?
-        `).bind(orderId, salesperson.id).first();
-
+        const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
         if (!order) {
             return error(MSG.ORDER.NOT_FOUND, 404);
         }
 
-        // 使用 batch() 合并数据库写操作，确保原子性
-        await env.DB.batch([
-            env.DB.prepare(`
-                INSERT INTO order_timeline (id, order_id, action_type, actor_type, actor_id, actor_name, comment, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `).bind(
-                generateId(),
-                orderId,
-                'comment',
-                'salesperson',
-                salesperson.id,
-                salesperson.name,
-                comment.trim(),
-                now()
-            ),
-            env.DB.prepare(`
-                UPDATE orders SET updated_at = ? WHERE id = ?
-            `).bind(now(), orderId)
-        ]);
+        // 使用 Repository 添加时间轴记录
+        await orderRepo.addTimelineEntry(orderId, {
+            actionType: 'comment',
+            actorType: 'salesperson',
+            actorId: salesperson.id,
+            actorName: salesperson.name,
+            comment: comment.trim()
+        });
 
         return success(null, MSG.ORDER.COMMENT_ADDED);
 

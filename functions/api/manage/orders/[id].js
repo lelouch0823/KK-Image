@@ -12,6 +12,7 @@ import { generateId, now } from '../../utils/id.js';
 import { verifyJWT, ADMIN_AUTH_COOKIE } from '../../utils/auth.js';
 import { parse as parseCookie } from 'cookie';
 import { ORDER_STATUSES } from '../../../_shared/utils.js';
+import { OrderRepository } from '../../../repositories/OrderRepository.js';
 
 
 /**
@@ -78,78 +79,44 @@ export async function onRequestGet(context) {
     const { id } = params;
 
     try {
-        // 获取订单
-        const order = await env.DB.prepare(`
-            SELECT o.*, 
-                   s.name as salesperson_name, s.store as salesperson_store, s.phone as salesperson_phone,
-                   f.storage_key as main_image_key
-            FROM orders o
-            LEFT JOIN salespersons s ON o.salesperson_id = s.id
-            LEFT JOIN files f ON o.main_image_id = f.id
-            WHERE o.id = ?
-        `).bind(id).first();
+        const orderRepo = new OrderRepository(env.DB);
 
+        // 使用 Repository 获取订单详情
+        const order = await orderRepo.findById(id);
         if (!order) {
             return error(MSG.ORDER.NOT_FOUND, 404);
         }
 
-        // 获取订单图片
-        const { results: files } = await env.DB.prepare(`
-            SELECT of.section, of.sort_order, f.id, f.original_name, f.storage_key, f.mime_type, f.size
-            FROM order_files of
-            JOIN files f ON of.file_id = f.id
-            WHERE of.order_id = ?
-            ORDER BY of.section, of.sort_order
-        `).bind(id).all();
+        // 获取销售信息
+        const salesperson = await env.DB.prepare(`
+            SELECT id, name, store, phone FROM salespersons WHERE id = ?
+        `).bind(order.salespersonId).first();
 
-        // 获取时间轴
-        const { results: timeline } = await env.DB.prepare(`
-            SELECT id, action_type, actor_type, actor_name, field_name, old_value, new_value, reason, comment, created_at
-            FROM order_timeline
-            WHERE order_id = ?
-            ORDER BY created_at DESC
-        `).bind(id).all();
-
-        const originalData = order.original_data ? JSON.parse(order.original_data) : {};
-        const currentData = order.current_data ? JSON.parse(order.current_data) : {};
+        // 使用 Repository 获取文件和时间轴
+        const [files, timeline] = await Promise.all([
+            orderRepo.getFiles(id),
+            orderRepo.getTimeline(id)
+        ]);
 
         return success({
             id: order.id,
-            orderNo: order.order_no,
+            orderNo: order.orderNo,
             status: order.status,
-            hasNewFeedback: !!order.has_new_feedback,
-            originalData,
-            currentData,
-            mainImage: order.main_image_key ? `/file/${order.main_image_key}` : null,
-            mainImageId: order.main_image_id,
-            salesperson: {
-                id: order.salesperson_id,
-                name: order.salesperson_name,
-                store: order.salesperson_store,
-                phone: order.salesperson_phone
-            },
-            files: files.map(f => ({
-                id: f.id,
-                name: f.original_name,
-                url: `/file/${f.storage_key}`,
-                mimeType: f.mime_type,
-                size: f.size,
-                section: f.section
-            })),
-            timeline: timeline.map(t => ({
-                id: t.id,
-                actionType: t.action_type,
-                actorType: t.actor_type,
-                actorName: t.actor_name,
-                fieldName: t.field_name,
-                oldValue: t.old_value,
-                newValue: t.new_value,
-                reason: t.reason,
-                comment: t.comment,
-                createdAt: t.created_at
-            })),
-            createdAt: order.created_at,
-            updatedAt: order.updated_at
+            hasNewFeedback: order.hasNewFeedback,
+            originalData: order.originalData,
+            currentData: order.currentData,
+            mainImage: order.mainImage,
+            mainImageId: order.mainImageId,
+            salesperson: salesperson ? {
+                id: salesperson.id,
+                name: salesperson.name,
+                store: salesperson.store,
+                phone: salesperson.phone
+            } : null,
+            files,
+            timeline,
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt
         });
 
     } catch (err) {
@@ -309,6 +276,7 @@ async function handleStatusChange(context) {
 
     try {
         const admin = await getAdmin(request, env);
+        const orderRepo = new OrderRepository(env.DB);
         const body = await request.json();
         const { status, note } = body;
 
@@ -316,27 +284,21 @@ async function handleStatusChange(context) {
             return error(MSG.ORDER.INVALID_STATUS, 400);
         }
 
-        // 获取当前订单
-        const order = await env.DB.prepare(`
-            SELECT id, status FROM orders WHERE id = ?
-        `).bind(id).first();
-
+        // 使用 Repository 获取当前订单
+        const order = await orderRepo.findById(id);
         if (!order) {
             return error(MSG.ORDER.NOT_FOUND, 404);
         }
 
         if (order.status === status) {
-            return error('状态未变更', 400);
+            return error(MSG.ORDER.STATUS_UNCHANGED, 400);
         }
 
-        // 更新状态
-        await env.DB.prepare(`
-            UPDATE orders SET status = ?, has_new_feedback = 1, updated_at = ? WHERE id = ?
-        `).bind(status, now(), id).run();
+        // 使用 Repository 更新状态
+        await orderRepo.updateStatus(id, status, true);
 
-        // 记录时间轴
-        await logTimeline(env.DB, {
-            orderId: id,
+        // 使用 Repository 记录时间轴
+        await orderRepo.addTimelineEntry(id, {
             actionType: 'status_changed',
             actorType: 'admin',
             actorId: admin.id,
@@ -371,6 +333,7 @@ export async function onRequestPost(context) {
 
     try {
         const admin = await getAdmin(request, env);
+        const orderRepo = new OrderRepository(env.DB);
         const body = await request.json();
         const { comment } = body;
 
@@ -379,17 +342,13 @@ export async function onRequestPost(context) {
         }
 
         // 验证订单存在
-        const order = await env.DB.prepare(`
-            SELECT id FROM orders WHERE id = ?
-        `).bind(id).first();
-
+        const order = await orderRepo.findById(id);
         if (!order) {
             return error(MSG.ORDER.NOT_FOUND, 404);
         }
 
-        // 记录时间轴
-        await logTimeline(env.DB, {
-            orderId: id,
+        // 使用 Repository 添加时间轴记录
+        await orderRepo.addTimelineEntry(id, {
             actionType: 'comment',
             actorType: 'admin',
             actorId: admin.id,
@@ -397,10 +356,8 @@ export async function onRequestPost(context) {
             comment: comment.trim()
         });
 
-        // 更新订单（设置红点）
-        await env.DB.prepare(`
-            UPDATE orders SET has_new_feedback = 1, updated_at = ? WHERE id = ?
-        `).bind(now(), id).run();
+        // 设置红点
+        await orderRepo.setNewFeedback(id);
 
         return success(null, MSG.ORDER.COMMENT_ADDED);
 

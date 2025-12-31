@@ -6,6 +6,7 @@
 import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
 import { authenticateSalesperson } from '../../utils/salesperson-auth.js';
+import { OrderRepository } from '../../../repositories/OrderRepository.js';
 
 export async function onRequestGet(context) {
     const { env, params, request } = context;
@@ -14,51 +15,17 @@ export async function onRequestGet(context) {
     try {
         // 鉴权
         const salesperson = await authenticateSalesperson(request, env, token);
+        const orderRepo = new OrderRepository(env.DB);
 
-        const now = Date.now();
         const todayStart = new Date().setHours(0, 0, 0, 0);
         const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000; // 30天前
 
-        // 并行查询
-        const [
-            totalResult,
-            completedResult,
-            monthResult,
-            trendResult
-        ] = await Promise.all([
-            // 累计订单
-            env.DB.prepare(`
-                SELECT COUNT(*) as count FROM orders 
-                WHERE salesperson_id = ?
-            `).bind(salesperson.id).first(),
+        // 使用 Repository 获取统计
+        const stats = await orderRepo.getSalesFullStats(salesperson.id, monthStart);
 
-            // 已完成订单 (已交付)
-            env.DB.prepare(`
-                SELECT COUNT(*) as count FROM orders 
-                WHERE salesperson_id = ? AND status = 'delivered'
-            `).bind(salesperson.id).first(),
-
-            // 本月订单
-            env.DB.prepare(`
-                SELECT COUNT(*) as count FROM orders 
-                WHERE salesperson_id = ? AND created_at >= ?
-            `).bind(salesperson.id, monthStart).first(),
-
-            // 近30天趋势
-            env.DB.prepare(`
-                SELECT 
-                    DATE(created_at / 1000, 'unixepoch', 'localtime') as date,
-                    COUNT(*) as count
-                FROM orders 
-                WHERE salesperson_id = ? AND created_at >= ?
-                GROUP BY DATE(created_at / 1000, 'unixepoch', 'localtime')
-                ORDER BY date ASC
-            `).bind(salesperson.id, monthStart).all()
-        ]);
-
-        // 格式化趋势数据
+        // 格式化趋势数据 (补全缺失日期)
         const trendMap = new Map();
-        trendResult.results.forEach(row => {
+        stats.trend.forEach(row => {
             trendMap.set(row.date, row.count);
         });
 
@@ -73,9 +40,9 @@ export async function onRequestGet(context) {
         }
 
         return success({
-            totalOrders: totalResult.count,
-            completedOrders: completedResult.count,
-            monthOrders: monthResult.count,
+            totalOrders: stats.total,
+            completedOrders: stats.completed,
+            monthOrders: stats.month,
             monthlyTrend
         });
 

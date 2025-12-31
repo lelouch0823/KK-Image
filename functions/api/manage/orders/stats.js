@@ -5,11 +5,8 @@
 
 import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
-
-/**
- * GET - 获取订单统计
- */
 import { authenticateAdmin } from '../../utils/auth.js';
+import { OrderRepository } from '../../../repositories/OrderRepository.js';
 
 /**
  * GET - 获取订单统计
@@ -19,6 +16,7 @@ export async function onRequestGet(context) {
 
     try {
         await authenticateAdmin(request, env);
+        const orderRepo = new OrderRepository(env.DB);
 
         // SOTA Timezone handling: UTC+8
         const now = new Date();
@@ -31,59 +29,12 @@ export async function onRequestGet(context) {
         const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000; // 7天前 (Inclusive of today)
         const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000; // 30天前
 
-        // 并行查询统计数据
-        const [
-            todayResult,
-            pendingResult,
-            weekResult,
-            statusResult,
-            trendResult
-        ] = await Promise.all([
-            // 今日订单数
-            env.DB.prepare(`
-                SELECT COUNT(*) as count FROM orders 
-                WHERE created_at >= ?
-            `).bind(todayStart).first(),
+        // 使用 Repository 获取统计数据
+        const stats = await orderRepo.getAdminStats(todayStart, weekStart, monthStart);
 
-            // 待处理订单数
-            env.DB.prepare(`
-                SELECT COUNT(*) as count FROM orders 
-                WHERE status = 'pending'
-            `).first(),
-
-            // 本周订单数
-            env.DB.prepare(`
-                SELECT COUNT(*) as count FROM orders 
-                WHERE created_at >= ?
-            `).bind(weekStart).first(),
-
-            // 状态分布
-            env.DB.prepare(`
-                SELECT status, COUNT(*) as count FROM orders 
-                GROUP BY status
-            `).all(),
-
-            // 近30天趋势
-            env.DB.prepare(`
-                SELECT 
-                    DATE(created_at / 1000, 'unixepoch', 'localtime') as date,
-                    COUNT(*) as count
-                FROM orders 
-                WHERE created_at >= ?
-                GROUP BY DATE(created_at / 1000, 'unixepoch', 'localtime')
-                ORDER BY date ASC
-            `).bind(monthStart).all()
-        ]);
-
-        // 格式化状态分布
-        const statusDistribution = {};
-        statusResult.results.forEach(row => {
-            statusDistribution[row.status] = row.count;
-        });
-
-        // 格式化趋势数据 (补全缺失日期)
+        // 补全趋势数据中缺失的日期
         const trendMap = new Map();
-        trendResult.results.forEach(row => {
+        stats.recentTrend.forEach(row => {
             trendMap.set(row.date, row.count);
         });
 
@@ -98,10 +49,10 @@ export async function onRequestGet(context) {
         }
 
         return success({
-            todayCount: todayResult.count,
-            pendingCount: pendingResult.count,
-            weekCount: weekResult.count,
-            statusDistribution,
+            todayCount: stats.today,
+            pendingCount: stats.statusDistribution['pending'] || 0,
+            weekCount: stats.week,
+            statusDistribution: stats.statusDistribution,
             monthTrend
         });
 
