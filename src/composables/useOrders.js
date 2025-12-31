@@ -216,13 +216,7 @@ export function useOrders() {
             const res = await fetch(API.SALES_ORDER_DETAIL(token, id), { credentials: 'include' });
             const result = await res.json();
             if (result.success) {
-                // 如果有新消息，异步标记为已读
-                if (result.data.hasNewFeedback) {
-                    fetch(API.SALES_ORDER_READ(token, id), {
-                        method: 'PATCH',
-                        credentials: 'include'
-                    }).catch(e => console.warn('Mark read failed:', e));
-                }
+                // SOTA: Auto-read handled by backend GET request
                 return result.data;
             } else {
                 addToast({ message: result.message, type: 'error' });

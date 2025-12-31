@@ -297,6 +297,13 @@ const handleNewOrder = () => {
   currentView.value = 'form';
 };
 
+// 监听视图切换，自动刷新列表
+watch(currentView, (newVal) => {
+  if (newVal === 'list' && isAuthenticated.value) {
+    loadOrders();
+  }
+});
+
 // 取消表单 (清除预填充)
 const handleCancelForm = () => {
   prefillData.value = null;

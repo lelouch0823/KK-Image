@@ -6,6 +6,7 @@ const notifications = ref([]);
 const unreadCount = ref(0);
 const loading = ref(false);
 const initialized = ref(false);
+let pollInterval = null;
 
 export function useNotifications() {
 
@@ -54,12 +55,18 @@ export function useNotifications() {
         }
     };
 
-    // 轮询 (可选，可以在 Header 挂载时启动)
-    let pollInterval = null;
+    // 轮询 (单例模式)
     const startPolling = (interval = 30000) => {
         if (pollInterval) return;
+
+        const checkAndFetch = () => {
+            if (!document.hidden) {
+                fetchNotifications();
+            }
+        };
+
         fetchNotifications(); // Initial fetch
-        pollInterval = setInterval(fetchNotifications, interval);
+        pollInterval = setInterval(checkAndFetch, interval);
     };
 
     const stopPolling = () => {
