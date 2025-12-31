@@ -185,8 +185,7 @@ const uploadFile = async (file, hash) => {
 // 处理选择
 const handleFileSelect = async (e) => {
   const files = Array.from(e.target.files);
-  console.log('[ImageUploader] handleFileSelect called, files:', files.length);
-  console.log('[ImageUploader] uploadEndpoint:', props.uploadEndpoint);
+  console.log('[ImageUploader] handleFileSelect called. Deferred mode:', props.deferred);
   
   if (!files.length) return;
 
@@ -273,7 +272,8 @@ const handleFileSelect = async (e) => {
 const removeFile = async (index) => {
   const file = props.modelValue[index];
   
-  if (file.id && !file.isLocal) {
+  // 在非延迟模式下，且文件已上传，才物理删除
+  if (!props.deferred && file.id && !file.isLocal) {
     try {
       await fetch(`${API.FILES}/${file.id}`, {
         method: 'DELETE',
@@ -324,7 +324,8 @@ const replaceFile = async (index, e) => {
         instantUpload: uploaded.instantUpload
       };
       
-      if (oldFile.id && !oldFile.isLocal) {
+      // 非延迟模式下才物理删除旧文件
+      if (!props.deferred && oldFile.id && !oldFile.isLocal) {
         try {
           await fetch(`${API.FILES}/${oldFile.id}`, {
             method: 'DELETE',

@@ -502,15 +502,21 @@ const executeVoid = async () => {
 };
 
 // 更新订单
-const handleUpdate = async ({ updates }) => {
+const handleUpdate = async (payload) => {
   if (!salesToken.value) return;
+  
+  const { updates, fileIds } = payload;
+  const updatesToSend = { ...updates };
+  if (fileIds) {
+    updatesToSend.fileIds = fileIds;
+  }
 
   submitting.value = true;
   try {
     const res = await fetch(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ updates }),
+      body: JSON.stringify({ updates: updatesToSend }),
       credentials: 'include'
     });
     const result = await res.json();

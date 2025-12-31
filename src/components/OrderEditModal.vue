@@ -224,7 +224,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue';
+import { ref, reactive, computed, watch, nextTick } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import { getTodayISOString } from '@/utils/common';
@@ -343,6 +343,9 @@ const handleSubmit = async () => {
   if (uploaderRef.value) {
     const uploadSuccess = await uploaderRef.value.uploadPendingFiles();
     if (!uploadSuccess) return; // 上传失败终止提交
+    
+    // 等待 Vue 更新 uploadedFiles
+    await nextTick();
   }
   
   // 仅提取变更字段
@@ -361,9 +364,10 @@ const handleSubmit = async () => {
     updates.status = form.status;
   }
 
-  // 处理文件变更
-  const oldIds = (props.order.files || []).map(f => f.id).join(',');
-  const newIds = uploadedFiles.value.filter(f => !f.isLocal).map(f => f.id).join(',');
+  // 处理文件变更 - 过滤掉仍在本地的文件（不应该有，因为已上传完成）
+  const oldIds = (props.order.files || []).map(f => f.id).sort().join(',');
+  const currentFiles = uploadedFiles.value.filter(f => f.id && !f.isLocal);
+  const newIds = currentFiles.map(f => f.id).sort().join(',');
   
   const payload = {
     updates,
@@ -372,7 +376,7 @@ const handleSubmit = async () => {
 
   // 只有当文件列表真正变化时才包含 fileIds
   if (oldIds !== newIds) {
-    payload.fileIds = uploadedFiles.value.map(f => f.id);
+    payload.fileIds = currentFiles.map(f => f.id);
   }
 
   emit('submit', payload);
