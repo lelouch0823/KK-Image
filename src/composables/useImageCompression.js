@@ -17,7 +17,7 @@ import imageCompression from 'browser-image-compression';
 const DEFAULT_OPTIONS = {
     maxSizeMB: 1,                    // 最大 1MB
     maxWidthOrHeight: 1920,          // 最大边 1920px
-    useWebWorker: true,              // Web Worker 不阻塞 UI
+    useWebWorker: true,              // 启用 Web Worker (失败会自动降级)
     fileType: 'image/webp',          // 输出 WebP 格式
     preserveExif: true,              // 保留 EXIF 方向
     initialQuality: 0.8,             // 初始质量 80%
@@ -29,10 +29,31 @@ const DEFAULT_OPTIONS = {
  * @returns {Promise<string>} 十六进制哈希字符串
  */
 async function computeSHA256(file) {
-    const buffer = await file.arrayBuffer();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    // 优先使用 Web Crypto API (仅 HTTPS/localhost 可用)
+    if (window.crypto && window.crypto.subtle) {
+        try {
+            const buffer = await file.arrayBuffer();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        } catch (e) {
+            console.warn('[SHA256] Web Crypto API failed, falling back to simple hash', e);
+        }
+    } else {
+        console.warn('[SHA256] Web Crypto API unavailable (Secure Context required), using simple hash fallback');
+    }
+
+    // Fallback: 简单的伪哈希 (仅用于非安全环境开发测试)
+    // 格式: fallback-{size}-{lastModified}-{filenameHash}
+    const str = file.name + file.size + file.lastModified;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    const hex = (hash >>> 0).toString(16).padStart(8, '0');
+    return `fallback-${file.size}-${hex}`;
 }
 
 /**
@@ -75,10 +96,28 @@ export function useImageCompression(customOptions = {}) {
         }
 
         // 执行压缩
-        const compressedBlob = await imageCompression(file, {
-            ...options,
-            onProgress: (progress) => onProgress(Math.round(progress))
-        });
+        let compressedBlob;
+        try {
+            console.log(`[Compression] Starting compression for ${file.name} (Size: ${file.size})`);
+            compressedBlob = await imageCompression(file, {
+                ...options,
+                onProgress: (progress) => onProgress(Math.round(progress))
+            });
+        } catch (err) {
+            console.warn('[Compression] Web Worker compression failed, falling back to main thread:', err);
+            // Fallback: 禁用 Web Worker 重试
+            try {
+                compressedBlob = await imageCompression(file, {
+                    ...options,
+                    useWebWorker: false,
+                    onProgress: (progress) => onProgress(Math.round(progress))
+                });
+                console.log('[Compression] Main thread compression successful');
+            } catch (fallbackErr) {
+                console.error('[Compression] All compression attempts failed:', fallbackErr);
+                throw fallbackErr;
+            }
+        }
 
         // 保持原始文件名，改为 .webp 扩展名
         const baseName = file.name.replace(/\.[^.]+$/, '');
@@ -90,6 +129,8 @@ export function useImageCompression(customOptions = {}) {
 
         // 计算哈希
         const hash = await computeSHA256(compressedFile);
+
+        console.log(`[Compression] Success: ${newFileName} (Size: ${compressedFile.size}, Ratio: ${(compressedFile.size / originalSize).toFixed(2)})`);
 
         return {
             file: compressedFile,

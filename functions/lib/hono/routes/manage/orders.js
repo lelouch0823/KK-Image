@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth.js';
 import { generateId, now, MSG, verifyJWT } from '../../_shared/utils.js';
 import { parse as parseCookie } from 'cookie';
+import { ensureFolder, moveFilesToFolder } from '../../../../api/utils/folder-utils.js';
 
 const app = new Hono();
 
@@ -14,6 +15,7 @@ import { ORDER_STATUSES } from '../../../../_shared/utils.js';
 // Schemas
 const UpdateOrderSchema = z.object({
     updates: z.record(z.string()).optional(),
+    fileIds: z.array(z.string()).optional(),
     reason: z.string().min(1).max(500)
 });
 
@@ -270,16 +272,16 @@ app.post('/:id/update',
     async (c) => {
         const { env } = c;
         const id = c.req.param('id');
-        const { updates, reason } = c.req.valid('json');
+        const { updates, fileIds, reason } = c.req.valid('json');
 
         try {
             const admin = await getAdmin(c);
 
-            if (!updates || Object.keys(updates).length === 0) {
+            if ((!updates || Object.keys(updates).length === 0) && !fileIds) {
                 return c.json({ success: false, error: MSG.COMMON.NO_UPDATE_FIELDS }, 400);
             }
 
-            const order = await env.DB.prepare('SELECT id, current_data FROM orders WHERE id = ?').bind(id).first();
+            const order = await env.DB.prepare('SELECT id, order_no, current_data FROM orders WHERE id = ?').bind(id).first();
             if (!order) {
                 return c.json({ success: false, error: MSG.ORDER.NOT_FOUND }, 404);
             }
@@ -287,30 +289,80 @@ app.post('/:id/update',
             const currentData = order.current_data ? JSON.parse(order.current_data) : {};
             const newData = { ...currentData };
             const timelinePromises = [];
+            let hasFieldUpdates = false;
 
-            for (const [field, value] of Object.entries(updates)) {
-                if (currentData[field] !== value) {
-                    timelinePromises.push(logTimeline(env.DB, {
-                        orderId: id,
-                        actionType: 'field_updated',
-                        actorType: 'admin',
-                        actorId: admin.id,
-                        actorName: admin.name,
-                        fieldName: field,
-                        oldValue: currentData[field] || '',
-                        newValue: value || '',
-                        reason: reason.trim()
-                    }));
-                    newData[field] = value;
+            if (updates) {
+                for (const [field, value] of Object.entries(updates)) {
+                    if (currentData[field] !== value) {
+                        timelinePromises.push(logTimeline(env.DB, {
+                            orderId: id,
+                            actionType: 'field_updated',
+                            actorType: 'admin',
+                            actorId: admin.id,
+                            actorName: admin.name,
+                            fieldName: field,
+                            oldValue: currentData[field] || '',
+                            newValue: value || '',
+                            reason: reason.trim()
+                        }));
+                        newData[field] = value;
+                        hasFieldUpdates = true;
+                    }
                 }
             }
 
-            if (timelinePromises.length === 0) {
+            // 处理文件更新 (如果有)
+            if (fileIds) {
+                // 1. 获取旧文件列表用于记录日志
+                const { results: oldFiles } = await env.DB.prepare(
+                    'SELECT f.original_name FROM order_files of JOIN files f ON of.file_id = f.id WHERE of.order_id = ?'
+                ).bind(id).all();
+                const oldNames = oldFiles.map(f => f.original_name).join(', ');
+
+                // 2. 删除旧关联
+                await env.DB.prepare('DELETE FROM order_files WHERE order_id = ?').bind(id).run();
+
+                // 3. 插入新关联 (如果有)
+                if (fileIds.length > 0) {
+                    const insertStmt = env.DB.prepare('INSERT INTO order_files (id, order_id, file_id, section, sort_order) VALUES (?, ?, ?, ?, ?)');
+                    const batch = fileIds.map((fileId, index) => insertStmt.bind(generateId(), id, fileId, 'default', index));
+                    await env.DB.batch(batch);
+
+                    // 4. 归档文件到 Uploads/Orders/<OrderNo>
+                    try {
+                        const rootId = await ensureFolder(env, 'Uploads', 'root');
+                        const subId = await ensureFolder(env, 'Orders', rootId);
+                        const folderId = await ensureFolder(env, order.order_no, subId);
+                        await moveFilesToFolder(env, fileIds, folderId);
+                    } catch (e) {
+                        console.error('Failed to move files to archive folder:', e);
+                    }
+                }
+
+                // 5. 记录日志
+                timelinePromises.push(logTimeline(env.DB, {
+                    orderId: id,
+                    actionType: 'files_updated',
+                    actorType: 'admin',
+                    actorId: admin.id,
+                    actorName: admin.name,
+                    oldValue: oldNames,
+                    newValue: `${fileIds.length} files`,
+                    reason: reason.trim()
+                }));
+            }
+
+            if (!hasFieldUpdates && !fileIds) {
                 return c.json({ success: false, error: MSG.COMMON.NO_UPDATE_FIELDS }, 400);
             }
 
-            await env.DB.prepare('UPDATE orders SET current_data = ?, has_new_feedback = 1, updated_at = ? WHERE id = ?')
-                .bind(JSON.stringify(newData), now(), id).run();
+            if (hasFieldUpdates) {
+                await env.DB.prepare('UPDATE orders SET current_data = ?, has_new_feedback = 1, updated_at = ? WHERE id = ?')
+                    .bind(JSON.stringify(newData), now(), id).run();
+            } else {
+                await env.DB.prepare('UPDATE orders SET has_new_feedback = 1, updated_at = ? WHERE id = ?')
+                    .bind(now(), id).run();
+            }
 
             await Promise.all(timelinePromises);
 

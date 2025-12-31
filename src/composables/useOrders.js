@@ -74,13 +74,16 @@ export function useOrders() {
     /**
      * 更新订单信息
      */
-    const updateOrder = async (id, updates, reason) => {
+    const updateOrder = async (id, updates, reason, fileIds) => {
         try {
+            const body = { updates, reason };
+            if (fileIds) body.fileIds = fileIds;
+
             const res = await fetch(API.MANAGE_ORDER_UPDATE(id), {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ updates, reason })
+                body: JSON.stringify(body)
             });
             const result = await res.json();
 

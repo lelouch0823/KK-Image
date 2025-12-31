@@ -185,6 +185,9 @@ const uploadFile = async (file, hash) => {
 // 处理选择
 const handleFileSelect = async (e) => {
   const files = Array.from(e.target.files);
+  console.log('[ImageUploader] handleFileSelect called, files:', files.length);
+  console.log('[ImageUploader] uploadEndpoint:', props.uploadEndpoint);
+  
   if (!files.length) return;
 
   const newFiles = [...props.modelValue];
@@ -193,16 +196,32 @@ const handleFileSelect = async (e) => {
   for (const file of files) {
     if (newFiles.length >= props.maxFiles) break;
     
+    isProcessing.value = true;
+    processingStatus.value = t('upload.compressing');
+    console.log('[ImageUploader] Starting compression for:', file.name);
+    
+    let compressedFile, hash;
+    
+    // 压缩步骤
     try {
-      // 显示压缩状态
-      isProcessing.value = true;
-      processingStatus.value = t('upload.compressing');
-      
-      const { file: compressedFile, hash } = await compressImage(file, (progress) => {
+      const result = await compressImage(file, (progress) => {
         processingStatus.value = `${t('upload.compressing')} ${progress}%`;
       });
-      
+      compressedFile = result.file;
+      hash = result.hash;
+      console.log('[ImageUploader] Compression complete:', compressedFile.name, 'hash:', hash);
+    } catch (compressErr) {
+      console.error('[ImageUploader] Compression failed:', compressErr);
+      addToast({ message: `压缩失败: ${compressErr.message}`, type: 'error' });
+      isProcessing.value = false;
+      processingStatus.value = '';
+      continue;
+    }
+    
+    // 上传步骤
+    try {
       if (props.deferred) {
+        console.log('[ImageUploader] Deferred mode, creating blob URL');
         const blobUrl = URL.createObjectURL(compressedFile);
         newFiles.push({
           id: generateRandomId('local'),
@@ -213,7 +232,10 @@ const handleFileSelect = async (e) => {
         });
       } else {
         processingStatus.value = t('upload.checkingDuplicate');
+        console.log('[ImageUploader] Uploading to:', props.uploadEndpoint);
+        
         const uploaded = await uploadFile(compressedFile, hash);
+        console.log('[ImageUploader] Upload success:', uploaded);
         
         if (uploaded.instantUpload) {
           instantCount++;
@@ -226,16 +248,16 @@ const handleFileSelect = async (e) => {
           instantUpload: uploaded.instantUpload
         });
       }
-    } catch (err) {
-      console.error(err);
-      addToast({ message: t('uploadQueue.uploadFailed'), type: 'error' });
+    } catch (uploadErr) {
+      console.error('[ImageUploader] Upload failed:', uploadErr);
+      addToast({ message: `上传失败: ${uploadErr.message}`, type: 'error' });
     }
   }
 
+  console.log('[ImageUploader] Processing complete, newFiles:', newFiles.length);
   isProcessing.value = false;
   processingStatus.value = '';
   
-  // 秒传成功提示
   if (instantCount > 0) {
     addToast({ 
       message: `⚡ ${instantCount} ${t('upload.instantUpload')}`, 

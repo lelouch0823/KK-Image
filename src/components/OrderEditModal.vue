@@ -354,14 +354,17 @@ const handleSubmit = () => {
   // 处理文件变更
   const oldIds = (props.order.files || []).map(f => f.id).sort().join(',');
   const newIds = uploadedFiles.value.map(f => f.id).sort().join(',');
+  
+  const payload = {
+    updates,
+    reason: editReason.value
+  };
+
   if (oldIds !== newIds) {
-    updates.fileIds = uploadedFiles.value.map(f => f.id);
+    payload.fileIds = uploadedFiles.value.map(f => f.id);
   }
 
-  emit('submit', { 
-    updates, 
-    reason: editReason.value 
-  });
+  emit('submit', payload);
 };
 </script>
 

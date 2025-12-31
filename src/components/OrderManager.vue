@@ -354,11 +354,13 @@ const handleVoidOrder = async (order) => {
 };
 
 // 提交编辑
-const handleEditSubmit = async ({ updates, reason }) => {
+// 提交编辑
+const handleEditSubmit = async ({ updates, reason, fileIds }) => {
   if (isEditing.value) return;
   isEditing.value = true;
   try {
-    const success = await updateOrder(editingOrder.value.id, updates, reason);
+    // 传入 fileIds (如果有)
+    const success = await updateOrder(editingOrder.value.id, updates, reason, fileIds);
     if (success) {
       closeEditModal();
       loadOrders({ page: pagination.value.page });
