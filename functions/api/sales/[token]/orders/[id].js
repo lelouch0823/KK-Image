@@ -88,9 +88,14 @@ export async function onRequestPatch(context) {
     try {
         const salesperson = await authenticateSalesperson(request, env, accessToken);
         const body = await request.json();
-        const { updates } = body; // 销售端不需要 reason
 
-        if (!updates || Object.keys(updates).length === 0) {
+        // 销售端：分离 fileIds 和 updates
+        const { fileIds, ...updates } = body.updates || body;
+
+        const hasUpdates = updates && Object.keys(updates).length > 0;
+        const hasFileIds = fileIds && Array.isArray(fileIds);
+
+        if (!hasUpdates && !hasFileIds) {
             return error(MSG.COMMON.NO_UPDATE_FIELDS, 400);
         }
 
@@ -109,85 +114,37 @@ export async function onRequestPatch(context) {
 
         const wasRejected = order.status === 'rejected';
         const currentData = order.current_data ? JSON.parse(order.current_data) : {};
-        const newData = { ...currentData };
-        let hasChanges = false;
 
-        // 允许修改的字段
+        // 允许销售端修改的字段
         const allowedFields = ['name', 'brand', 'series', 'size', 'color', 'material', 'remark', 'deadline'];
-        const timelinePromises = [];
 
-        for (const field of allowedFields) {
-            if (updates[field] !== undefined && updates[field] !== currentData[field]) {
-                // 为每个修改的字段记录时间轴
-                timelinePromises.push(logTimeline(env.DB, {
-                    orderId,
-                    actionType: 'field_updated',
-                    actorType: 'salesperson',
-                    actorId: salesperson.id,
-                    actorName: salesperson.name,
-                    fieldName: field,
-                    oldValue: currentData[field] || '',
-                    newValue: updates[field] || '',
-                    reason: MSG.ORDER.REASON_SALES_EDIT
-                }));
-                newData[field] = updates[field];
-                hasChanges = true;
-            }
-        }
+        // 使用共享工具函数处理更新
+        const { processOrderUpdate } = await import('../../../utils/order-utils.js');
+        const result = await processOrderUpdate({
+            env,
+            orderId,
+            orderNo: order.order_no,
+            currentData,
+            updates,
+            fileIds: hasFileIds ? fileIds : undefined,
+            allowedFields,
+            actor: {
+                type: 'salesperson',
+                id: salesperson.id,
+                name: salesperson.name
+            },
+            reason: MSG.ORDER.REASON_SALES_EDIT
+        });
 
-        // 批量执行时间轴记录
-        if (timelinePromises.length > 0) {
-            await Promise.all(timelinePromises);
-        }
-
-        // 处理文件更新
-        if (updates.fileIds) {
-            const newFileIds = updates.fileIds;
-            const { results: oldFiles } = await env.DB.prepare('SELECT file_id FROM order_files WHERE order_id = ?').bind(orderId).all();
-            const oldIds = oldFiles.map(f => f.file_id).sort().join(',');
-            const newIds = [...newFileIds].sort().join(',');
-
-            if (oldIds !== newIds) {
-                const orderRepo = new OrderRepository(env.DB);
-                await orderRepo.updateFiles(orderId, newFileIds);
-
-                // SOTA: 自动归档
-                try {
-                    const { ensureFolder, moveFilesToFolder } = await import('../../../utils/folder-utils.js');
-                    const rootId = await ensureFolder(env, 'Uploads', 'root');
-                    const subId = await ensureFolder(env, 'Orders', rootId);
-                    const folderId = await ensureFolder(env, order.order_no || orderId, subId);
-                    await moveFilesToFolder(env, newFileIds, folderId);
-                } catch (e) {
-                    console.error('Archive error', e);
-                }
-                hasChanges = true;
-            }
-        }
-
-        if (!hasChanges) {
+        if (!result.hasChanges) {
             return error(MSG.COMMON.NO_UPDATE_FIELDS, 400);
         }
 
-        // ...
-        // SOTA: Use Repository for updates to ensure consistency and correct unread logic
-        const orderRepo = new OrderRepository(env.DB);
-
-        // ... (timeline logic same) ...
-
-        // 更新订单（如果原状态是 rejected，则重置为 pending）
-        const newStatus = wasRejected ? 'pending' : order.status;
-
-        // Update Data + Unread (Actor: sales)
-        await orderRepo.updateData(orderId, newData, 'sales');
-
-        // If status changes (e.g. resubmit), update status too
-        if (newStatus !== order.status) {
-            await orderRepo.updateStatus(orderId, newStatus, 'sales');
-        }
-
-        // 如果从 rejected 变为 pending，记录状态变更
+        // 如果从 rejected 变为 pending，更新状态并记录
         if (wasRejected) {
+            const orderRepo = new OrderRepository(env.DB);
+            await orderRepo.updateStatus(orderId, 'pending', 'sales');
+
             await logTimeline(env.DB, {
                 orderId,
                 actionType: 'status_changed',

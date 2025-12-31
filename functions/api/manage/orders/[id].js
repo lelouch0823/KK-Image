@@ -136,7 +136,7 @@ export async function onRequestPatch(context) {
 
         // 获取当前订单
         const order = await env.DB.prepare(`
-            SELECT id, current_data FROM orders WHERE id = ?
+            SELECT id, order_no, current_data FROM orders WHERE id = ?
         `).bind(id).first();
 
         if (!order) {
@@ -144,104 +144,31 @@ export async function onRequestPatch(context) {
         }
 
         const currentData = order.current_data ? JSON.parse(order.current_data) : {};
-        const newData = { ...currentData };
-        const timelinePromises = [];
-        let filesChanged = false; // Declared once here
 
-        // 逐字段更新并记录时间轴
-        if (hasUpdates) {
-            for (const [field, value] of Object.entries(updates)) {
-                if (currentData[field] !== value) {
-                    // 记录时间轴
-                    timelinePromises.push(logTimeline(env.DB, {
-                        orderId: id,
-                        actionType: 'field_updated',
-                        actorType: 'admin',
-                        actorId: admin.id,
-                        actorName: admin.name,
-                        fieldName: field,
-                        oldValue: currentData[field] || '',
-                        newValue: value || '',
-                        reason: reason.trim()
-                    }));
-                    newData[field] = value;
-                }
-            }
-        }
+        // 管理端允许修改的所有字段
+        const allowedFields = ['name', 'brand', 'series', 'size', 'color', 'material', 'remark', 'deadline'];
 
-        // 更新订单数据 (使用 Repository)
-        // 注意：fileIds 单独处理，这里只处理 current_data 部分
+        // 使用共享工具函数处理更新
+        const { processOrderUpdate } = await import('../../utils/order-utils.js');
+        const result = await processOrderUpdate({
+            env,
+            orderId: id,
+            orderNo: order.order_no,
+            currentData,
+            updates,
+            fileIds: hasFileIds ? fileIds : undefined,
+            allowedFields,
+            actor: {
+                type: 'admin',
+                id: admin.id,
+                name: admin.name
+            },
+            reason: reason.trim()
+        });
 
-        // 1. 处理文件更新 (SOTA: 单独处理关联表)
-
-        if (fileIds) {
-            const newFileIds = fileIds;
-            const { results: oldFiles } = await env.DB.prepare('SELECT file_id FROM order_files WHERE order_id = ? ORDER BY sort_order').bind(id).all();
-            const oldFileIds = oldFiles.map(f => f.file_id);
-
-            if (JSON.stringify(newFileIds) !== JSON.stringify(oldFileIds)) {
-                const orderRepo = new OrderRepository(env.DB);
-                await orderRepo.updateFiles(id, newFileIds);
-
-                // SOTA: 自动归档 (Admin context)
-                try {
-                    const sp = await env.DB.prepare('SELECT s.name, o.order_no FROM orders o JOIN salespersons s ON o.salesperson_id = s.id WHERE o.id = ?').bind(id).first();
-                    if (sp) {
-                        const { ensureFolder, moveFilesToFolder } = await import('../../../utils/folder-utils.js');
-                        const rootId = await ensureFolder(env, 'Uploads', 'root');
-                        const subId = await ensureFolder(env, 'Orders', rootId);
-                        const folderId = await ensureFolder(env, sp.order_no || id, subId);
-                        await moveFilesToFolder(env, newFileIds, folderId);
-                    }
-                } catch (e) {
-                    console.error('Admin Archive error', e);
-                }
-
-                // 记录文件变更时间轴
-                const timelineRepo = new OrderTimelineRepository(env.DB);
-                await timelineRepo.addTimelineEntry(id, {
-                    actionType: 'field_updated', // Correct action type
-                    fieldName: 'files',
-                    actorType: 'admin',
-                    actorId: admin.id,
-                    actorName: admin.name,
-                    oldValue: `${oldFileIds.length} images`,
-                    newValue: `${newFileIds.length} images`,
-                    reason: reason.trim()
-                });
-                filesChanged = true;
-            }
-            // 从 newData 中移除 fileIds
-            delete newData.fileIds;
-        }
-
-        // 2. 更新数据 (如果有)
-        // 使用 Repository 更新数据，并设置 SALES 未读 (Admin updated)
-        if (Object.keys(newData).length > 0) {
-            // 合并数据 (注意: Repository updateData 替换 current_data，但我们需要合并逻辑吗？
-            // 原逻辑是 fetch -> modify -> update. 这里我们有 currentData 对象)
-            // 之前的代码已获取 order 和 currentData
-            // Repository.updateData 接受完整 json
-
-            // 重新获取 orderRepo (block scope issue if defined inside if?)
-            // updateData expects (id, newData, actorType)
-            const orderRepo = new OrderRepository(env.DB); // Ensure instance
-            await orderRepo.updateData(id, newData, 'admin');
-        } else if (filesChanged) {
-            // 如果只有文件变更，也需要更新 updated_at 和 unread 标记
-            const orderRepo = new OrderRepository(env.DB);
-            // 虽然数据没变，但状态变了。我们可以调用 updateData 传入原有数据来触发 updated_at + unread
-            // 或者增加一个 touch 方法。
-            // 简单做法：调用 updateData 传入 currentData。
-            await orderRepo.updateData(id, currentData, 'admin');
-        }
-
-        if (timelinePromises.length === 0 && !filesChanged) {
+        if (!result.hasChanges) {
             return error(MSG.COMMON.NO_UPDATE_FIELDS, 400);
         }
-
-        // 等待时间轴记录完成
-        await Promise.all(timelinePromises);
 
         return success(null, MSG.ORDER.UPDATE_SUCCESS);
 

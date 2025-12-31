@@ -134,7 +134,8 @@ export const MSG = {
         REASON_RESUBMIT: '修改后重新提交',
         VOID_SUCCESS: '订单已作废',
         BATCH_LIMIT: '批量操作最多支持 100 条订单',
-        BATCH_NO_VALID: '没有可以执行此操作的订单'
+        BATCH_NO_VALID: '没有可以执行此操作的订单',
+        IMAGES: '张图片'
     },
 
     // 通用错误
