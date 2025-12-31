@@ -141,6 +141,7 @@ export async function onRequestPatch(context) {
         const currentData = order.current_data ? JSON.parse(order.current_data) : {};
         const newData = { ...currentData };
         const timelinePromises = [];
+        let filesChanged = false;
 
         // 逐字段更新并记录时间轴
         if (hasUpdates) {
@@ -195,7 +196,8 @@ export async function onRequestPatch(context) {
                 // 记录时间轴
                 const timelineRepo = new OrderTimelineRepository(env.DB);
                 await timelineRepo.addTimelineEntry(id, {
-                    actionType: 'files_updated',
+                    actionType: 'field_updated',
+                    fieldName: 'files',
                     actorType: 'admin',
                     actorId: admin.id,
                     actorName: admin.name,
@@ -203,12 +205,14 @@ export async function onRequestPatch(context) {
                     newValue: `${newFileIds.length} images`,
                     reason: reason.trim()
                 });
+
+                filesChanged = true;
             }
             // 从 newData 中移除 fileIds (因为它不是 current_data 的一部分)
             delete newData.fileIds;
         }
 
-        if (timelinePromises.length === 0) {
+        if (timelinePromises.length === 0 && !filesChanged) {
             return error(MSG.COMMON.NO_UPDATE_FIELDS, 400);
         }
 

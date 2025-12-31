@@ -348,4 +348,54 @@ const replaceFile = async (index, e) => {
     addToast({ message: t('uploadQueue.uploadFailed'), type: 'error' });
   }
 };
+// 批量上传待处理文件 (供父组件调用)
+const uploadPendingFiles = async () => {
+  const pendingFiles = items.value.filter(f => f.isLocal && f.file);
+  if (pendingFiles.length === 0) return true;
+
+  isProcessing.value = true;
+  let successCount = 0;
+  
+  try {
+    const newFiles = [...items.value];
+    
+    for (let i = 0; i < newFiles.length; i++) {
+      const fileObj = newFiles[i];
+      if (fileObj.isLocal && fileObj.file) {
+        processingStatus.value = `${t('upload.uploading')} ${i + 1}/${newFiles.length}`;
+        try {
+          const uploaded = await uploadFile(fileObj.file, fileObj.hash);
+          
+          if (fileObj.url.startsWith('blob:')) {
+            URL.revokeObjectURL(fileObj.url);
+          }
+          
+          newFiles[i] = {
+            id: uploaded.id,
+            url: `/file/${uploaded.storage_key || uploaded.storageKey}`,
+            hash: fileObj.hash,
+            instantUpload: uploaded.instantUpload
+          };
+          successCount++;
+        } catch (e) {
+          console.error(`Upload failed for file index ${i}`, e);
+          throw new Error(`${fileObj.file.name} ${t('uploadQueue.uploadFailed')}`);
+        }
+      }
+    }
+    
+    emit('update:modelValue', newFiles);
+    return true;
+  } catch (err) {
+    addToast({ message: err.message, type: 'error' });
+    return false;
+  } finally {
+    isProcessing.value = false;
+    processingStatus.value = '';
+  }
+};
+
+defineExpose({
+  uploadPendingFiles
+});
 </script>

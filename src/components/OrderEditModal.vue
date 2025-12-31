@@ -130,9 +130,11 @@
             {{ t('order.detail.images') }}
           </h4>
            <ImageUploader
+            ref="uploaderRef"
             v-model="uploadedFiles"
             :upload-endpoint="uploadEndpoint"
             :max-files="9"
+            deferred
           />
         </div>
 
@@ -307,8 +309,8 @@ const hasChanges = computed(() => {
   if (fieldsChanged) return true;
 
   // 检查文件变更
-  const oldIds = (props.order.files || []).map(f => f.id).sort().join(',');
-  const newIds = uploadedFiles.value.map(f => f.id).sort().join(',');
+  const oldIds = (props.order.files || []).map(f => f.id).join(',');
+  const newIds = uploadedFiles.value.map(f => f.id).join(',');
   return oldIds !== newIds;
 });
 
@@ -331,9 +333,17 @@ const isValid = computed(() => {
   return true;
 });
 
+const uploaderRef = ref(null);
+
 // 提交
-const handleSubmit = () => {
+const handleSubmit = async () => {
   if (!isValid.value) return;
+  
+  // 1. 先触发图片上传 (延迟上传模式)
+  if (uploaderRef.value) {
+    const uploadSuccess = await uploaderRef.value.uploadPendingFiles();
+    if (!uploadSuccess) return; // 上传失败终止提交
+  }
   
   // 仅提取变更字段
   const updates = {};
@@ -352,14 +362,15 @@ const handleSubmit = () => {
   }
 
   // 处理文件变更
-  const oldIds = (props.order.files || []).map(f => f.id).sort().join(',');
-  const newIds = uploadedFiles.value.map(f => f.id).sort().join(',');
+  const oldIds = (props.order.files || []).map(f => f.id).join(',');
+  const newIds = uploadedFiles.value.filter(f => !f.isLocal).map(f => f.id).join(',');
   
   const payload = {
     updates,
     reason: editReason.value
   };
 
+  // 只有当文件列表真正变化时才包含 fileIds
   if (oldIds !== newIds) {
     payload.fileIds = uploadedFiles.value.map(f => f.id);
   }
