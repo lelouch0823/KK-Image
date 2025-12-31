@@ -314,12 +314,14 @@ const hasChanges = computed(() => {
 
 const { token: salesToken } = useSalesToken();
 
-// 动态上传地址
+// 动态上传地址 (包含 orderId 以便归档)
 const uploadEndpoint = computed(() => {
+  const orderId = props.order?.id;
   if (props.mode === 'sales') {
-     return API.SALES_UPLOAD(salesToken.value || '');
+     const base = API.SALES_UPLOAD(salesToken.value || '');
+     return orderId ? `${base}?orderId=${orderId}` : base;
   }
-  return API.MANAGE_UPLOAD;
+  return orderId ? `${API.MANAGE_UPLOAD}?orderId=${orderId}` : API.MANAGE_UPLOAD;
 });
 
 // 验证逻辑
