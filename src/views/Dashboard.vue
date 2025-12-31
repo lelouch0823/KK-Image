@@ -60,40 +60,6 @@
         <div class="px-6 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
           <h3 class="font-semibold text-primary">{{ t('dashboard.recentShares') }}</h3>
         </div>
-        <div v-if="recentShares.length > 0" class="overflow-x-auto flex-1">
-          <table class="w-full text-left text-sm">
-             <thead class="bg-gray-50 text-secondary border-b border-[var(--border-color)]">
-                <tr>
-                  <th class="px-6 py-3 font-medium">{{ t('dashboard.folder') }}</th>
-                  <th class="px-6 py-3 font-medium">{{ t('dashboard.expiry') }}</th>
-                </tr>
-             </thead>
-             <tbody class="divide-y divide-[var(--border-color)]">
-                <tr v-for="item in recentShares" :key="item.id" class="hover:bg-gray-50 transition-colors">
-                   <td class="px-6 py-3 text-primary">
-                       <div class="flex flex-col">
-                           <span class="font-medium truncate max-w-[150px]">{{ item.name }}</span>
-                           <span class="text-xs text-secondary font-mono mt-1 select-all cursor-pointer" @click="copyShareLink(item)" :title="t('dashboard.clickToCopy')">{{ item.shareToken }}</span>
-                       </div>
-                   </td>
-                   <td class="px-6 py-3 text-secondary">{{ formatExpiry(item.expiresAt, t) }}</td>
-                </tr>
-             </tbody>
-          </table>
-        </div>
-        <div v-else class="p-6 text-center text-secondary text-sm flex-1 flex items-center justify-center">
-          {{ t('dashboard.noActiveShares') }}
-        </div>
-        <div class="p-3 border-t border-[var(--border-color)] text-center mt-auto">
-            <button @click="showShareManager = true" class="text-sm text-primary hover:underline">{{ t('dashboard.viewMore') }}</button>
-        </div>
-      </div>
-
-      <!-- 已分享链接 -->
-      <div class="bg-white rounded-xl border border-[var(--border-color)] flex flex-col">
-        <div class="px-6 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
-          <h3 class="font-semibold text-primary">{{ t('dashboard.recentShares') }}</h3>
-        </div>
         <div v-if="recentShares.length > 0" class="flex-1">
           <!-- 桌面端表格 -->
           <div class="hidden lg:block overflow-x-auto">

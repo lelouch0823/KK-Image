@@ -2,28 +2,28 @@
   <div class="space-y-6">
     <!-- 统计卡片 -->
     <div class="grid grid-cols-2 gap-4">
-      <div class="bg-blue-50 rounded-xl p-4 border border-blue-100">
-        <div class="text-sm text-blue-600 font-medium">{{ t('salesStats.totalOrders') }}</div>
-        <div class="text-2xl font-bold text-blue-700 mt-1">
-          <span v-if="loading" class="inline-block w-8 h-6 bg-blue-200 rounded animate-pulse"></span>
+      <div class="bg-[var(--color-card-blue-bg)] rounded-xl p-4 border border-[var(--color-card-blue-border)]">
+        <div class="text-sm text-[var(--color-card-blue-text)] font-medium">{{ t('salesStats.totalOrders') }}</div>
+        <div class="text-2xl font-bold text-[var(--color-card-blue-accent)] mt-1">
+          <span v-if="loading" class="inline-block w-8 h-6 bg-[var(--color-card-blue-border)] rounded animate-pulse"></span>
           <span v-else>{{ stats.totalOrders }}</span>
         </div>
       </div>
       
-      <div class="bg-green-50 rounded-xl p-4 border border-green-100">
-        <div class="text-sm text-green-600 font-medium">{{ t('salesStats.completedOrders') }}</div>
-        <div class="text-2xl font-bold text-green-700 mt-1">
-          <span v-if="loading" class="inline-block w-8 h-6 bg-green-200 rounded animate-pulse"></span>
+      <div class="bg-[var(--color-card-green-bg)] rounded-xl p-4 border border-[var(--color-card-green-border)]">
+        <div class="text-sm text-[var(--color-card-green-text)] font-medium">{{ t('salesStats.completedOrders') }}</div>
+        <div class="text-2xl font-bold text-[var(--color-card-green-accent)] mt-1">
+          <span v-if="loading" class="inline-block w-8 h-6 bg-[var(--color-card-green-border)] rounded animate-pulse"></span>
           <span v-else>{{ stats.completedOrders }}</span>
         </div>
       </div>
 
-      <div class="bg-purple-50 rounded-xl p-4 border border-purple-100 col-span-2">
+      <div class="bg-[var(--color-card-purple-bg)] rounded-xl p-4 border border-[var(--color-card-purple-border)] col-span-2">
         <div class="flex items-center justify-between">
           <div>
-            <div class="text-sm text-purple-600 font-medium">{{ t('salesStats.monthOrders') }}</div>
-            <div class="text-2xl font-bold text-purple-700 mt-1">
-              <span v-if="loading" class="inline-block w-8 h-6 bg-purple-200 rounded animate-pulse"></span>
+            <div class="text-sm text-[var(--color-card-purple-text)] font-medium">{{ t('salesStats.monthOrders') }}</div>
+            <div class="text-2xl font-bold text-[var(--color-card-purple-accent)] mt-1">
+              <span v-if="loading" class="inline-block w-8 h-6 bg-[var(--color-card-purple-border)] rounded animate-pulse"></span>
               <span v-else>{{ stats.monthOrders }}</span>
             </div>
           </div>
@@ -33,7 +33,7 @@
                <div 
                  v-for="(day, index) in stats.monthlyTrend.slice(-15)" 
                  :key="index"
-                 class="flex-1 bg-purple-300 rounded-t-sm transition-all hover:bg-purple-500"
+                 class="flex-1 bg-[var(--color-card-purple-accent)]/40 rounded-t-sm transition-all hover:bg-[var(--color-card-purple-accent)]"
                  :style="{ height: `${Math.max(10, (day.count / maxCount) * 100)}%` }"
                  :title="`${day.date}: ${day.count}`"
                ></div>

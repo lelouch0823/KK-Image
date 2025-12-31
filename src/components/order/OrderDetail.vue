@@ -435,8 +435,29 @@ const printOrder = () => {
 
 <style scoped>
 @media print {
-  /* Hide non-printable areas */
-  button, input, .order-timeline-container, .comment-input-area {
+  /* Hide all action buttons */
+  button {
+    display: none !important;
+  }
+  
+  /* Hide input areas */
+  input, .flex.items-center.gap-3:has(input) {
+    display: none !important;
+  }
+  
+  /* Remove card shadows and borders for clean printing */
+  .bg-white.rounded-xl {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important; /* Light border for readability */
+  }
+  
+  /* Remove image hover effects and shadows */
+  .aspect-square.rounded-lg {
+    box-shadow: none !important;
+  }
+  
+  /* Hide modals that shouldn't print */
+  .fixed.inset-0 {
     display: none !important;
   }
 }

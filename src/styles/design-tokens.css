@@ -27,6 +27,27 @@
   --color-info: #3B82F6;
   --color-info-light: #DBEAFE;
 
+  /* 仪表盘卡片色 - Dashboard Card Colors */
+  --color-card-blue-bg: #eff6ff;
+  --color-card-blue-text: #2563eb;
+  --color-card-blue-accent: #3b82f6;
+  --color-card-blue-border: #dbeafe;
+
+  --color-card-orange-bg: #fff7ed;
+  --color-card-orange-text: #ea580c;
+  --color-card-orange-accent: #f97316;
+  --color-card-orange-border: #fed7aa;
+
+  --color-card-green-bg: #f0fdf4;
+  --color-card-green-text: #16a34a;
+  --color-card-green-accent: #22c55e;
+  --color-card-green-border: #bbf7d0;
+
+  --color-card-purple-bg: #faf5ff;
+  --color-card-purple-text: #9333ea;
+  --color-card-purple-accent: #a855f7;
+  --color-card-purple-border: #e9d5ff;
+
   /* 图表色板 */
   --color-chart-1: #3B82F6;
   /* blue */
@@ -140,4 +161,42 @@
   --color-text-primary: #F9FAFB;
   --color-text-secondary: #D1D5DB;
   --color-text-muted: #9CA3AF;
+}
+
+/* ============================================
+ * 打印样式优化 - Print Styles
+ * ============================================ */
+@media print {
+
+  /* Hide modal backdrop (black overlay) */
+  body>div[class*="fixed"][class*="inset-0"][class*="bg-black"] {
+    background: transparent !important;
+    position: static !important;
+  }
+
+  /* Remove modal card shadows */
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg,
+  .shadow-xl,
+  .shadow-2xl {
+    box-shadow: none !important;
+  }
+
+  /* Hide close buttons in modals */
+  button:has(svg path[d="M6 18L18 6M6 6l12 12"]) {
+    display: none !important;
+  }
+
+  /* Ensure content is visible and not clipped */
+  .overflow-hidden,
+  .overflow-y-auto {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  /* Remove rounded corners for cleaner print */
+  .rounded-xl {
+    border-radius: 4px !important;
+  }
 }

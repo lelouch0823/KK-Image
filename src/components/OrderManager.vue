@@ -167,7 +167,7 @@
     <OrderEditModal 
       v-if="showEditModal && editingOrder"
       :order="editingOrder"
-      :submitting="editingSubmitting"
+      :submitting="isEditing"
       :statuses="statuses" 
       @close="closeEditModal"
       @submit="handleEditSubmit"
@@ -182,6 +182,7 @@
         @back="closeDetailModal"
         @comment="handleAdminComment"
         @refresh="refreshAfterComment"
+        @edit="handleEditFromDetail"
       />
     </Modal>
   </div>
@@ -383,6 +384,13 @@ const refreshAfterComment = async () => {
   if (fullOrder) {
     viewingOrder.value = fullOrder;
   }
+};
+
+// 从详情页打开编辑
+const handleEditFromDetail = (order) => {
+  showDetailModal.value = false;
+  editingOrder.value = order;
+  showEditModal.value = true;
 };
 
 // 导出订单

@@ -144,3 +144,29 @@ onUnmounted(() => {
   document.body.style.overflow = '';
 });
 </script>
+
+<style scoped>
+@media print {
+  /* Remove dark backdrop */
+  :deep(.fixed.inset-0) {
+    background: transparent !important;
+    position: static !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  
+  /* Remove modal card shadow and border */
+  :deep(.bg-white.rounded-xl.shadow-2xl) {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    max-height: none !important;
+  }
+  
+  /* Hide close button */
+  button[aria-label], 
+  .text-gray-400:has(svg) {
+    display: none !important;
+  }
+}
+</style>

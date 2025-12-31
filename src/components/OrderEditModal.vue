@@ -15,7 +15,7 @@
           <span 
             v-if="form.status"
             class="px-2.5 py-0.5 rounded-full text-xs font-medium border"
-            :class="getStatusClass(form.status)"
+            :class="getStatusBadgeClass(form.status)"
           >
             {{ t(`order.statuses.${form.status}`) }}
           </span>
@@ -227,6 +227,7 @@ import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import { getTodayISOString } from '@/utils/common';
 import { formatDateWithWeekday } from '@/utils/formatters';
+import { getStatusBadgeClass } from '@/utils/status';
 import { useSalesToken } from '@/composables/useSalesToken';
 import ImageUploader from './common/ImageUploader.vue';
 import Modal from '@/components/ui/Modal.vue';
@@ -359,18 +360,6 @@ const handleSubmit = () => {
     updates, 
     reason: editReason.value 
   });
-};
-const getStatusClass = (status) => {
-  const map = {
-    pending: 'bg-yellow-50 text-yellow-600 border-yellow-200',
-    confirmed: 'bg-blue-50 text-blue-600 border-blue-200',
-    production: 'bg-indigo-50 text-indigo-600 border-indigo-200',
-    shipping: 'bg-purple-50 text-purple-600 border-purple-200',
-    completed: 'bg-green-50 text-green-600 border-green-200',
-    rejected: 'bg-red-50 text-red-600 border-red-200',
-    void: 'bg-gray-50 text-gray-600 border-gray-200'
-  };
-  return map[status] || 'bg-gray-50 text-gray-600 border-gray-200';
 };
 </script>
 
