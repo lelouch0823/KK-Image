@@ -192,6 +192,7 @@
       :title="confirmData.title"
       :message="confirmData.message"
       :type="confirmData.type"
+      :loading="confirmData.loading"
       @confirm="confirmData.onConfirm"
     />
   </div>
@@ -238,6 +239,7 @@ const confirmData = ref({
   title: '',
   message: '',
   type: 'primary',
+  loading: false,
   onConfirm: () => {}
 });
 
@@ -368,16 +370,18 @@ const handleVoidOrder = (order) => {
     title: t('common.confirm'),
     message: t('order.actions.voidConfirm'),
     type: 'danger',
+    loading: false,
     onConfirm: async () => {
-      statusChanging[order.id] = true;
+      confirmData.value.loading = true;
       try {
         const success = await changeStatus(order.id, 'void');
         if (success) {
           order.status = 'void';
           addToast({ message: t('order.actions.voidSuccess'), type: 'success' });
+          confirmData.value.show = false;
         }
       } finally {
-        statusChanging[order.id] = false;
+        confirmData.value.loading = false;
       }
     }
   };
@@ -470,19 +474,46 @@ const exportOrders = async () => {
 };
 
 // 批量操作处理
-const handleBatchAction = async (action) => {
+const handleBatchAction = (action) => {
   if (batchProcessing.value || selectedIds.value.length === 0) return;
-  batchProcessing.value = true;
-  
-  try {
-    const result = await batchAction(selectedIds.value, action);
-    if (result) {
-      // 清空选择并刷新列表
-      selectedIds.value = [];
-      await loadOrders({ page: pagination.value.page });
-    }
-  } finally {
-    batchProcessing.value = false;
+
+  const count = selectedIds.value.length;
+  let title = '';
+  let message = '';
+  let type = 'primary';
+
+  if (action === 'confirm') {
+    title = t('order.manage.batchConfirm');
+    message = t('order.manage.batchConfirmConfirm', { count });
+    type = 'primary';
+  } else if (action === 'reject') {
+    title = t('order.manage.batchReject');
+    message = t('order.manage.batchRejectConfirm', { count });
+    type = 'warning';
+  } else if (action === 'void') {
+    title = t('order.manage.batchVoid');
+    message = t('order.manage.batchVoidConfirm', { count });
+    type = 'danger';
   }
+
+  confirmData.value = {
+    show: true,
+    title,
+    message,
+    type,
+    onConfirm: async () => {
+      confirmData.value.loading = true;
+      try {
+        const result = await batchAction(selectedIds.value, action);
+        if (result) {
+          selectedIds.value = [];
+          await loadOrders({ page: pagination.value.page });
+          confirmData.value.show = false;
+        }
+      } finally {
+        confirmData.value.loading = false;
+      }
+    }
+  };
 };
 </script>

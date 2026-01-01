@@ -102,6 +102,7 @@
       :title="confirmData.title"
       :message="confirmData.message"
       :type="confirmData.type"
+      :loading="confirmData.loading"
       @confirm="confirmData.onConfirm"
     />
   </div>
@@ -136,6 +137,7 @@ const confirmData = ref({
   title: '',
   message: '',
   type: 'primary',
+  loading: false,
   onConfirm: () => {}
 });
 
@@ -171,10 +173,17 @@ const deleteSubspace = (sub) => {
     title: t('common.delete'),
     message: t('spaceManager.deleteSpaceConfirm', { name: sub.name }),
     type: 'danger',
+    loading: false,
     onConfirm: async () => {
-      await deleteSpace(sub.id);
-      await loadData();
-      emit('updated');
+      confirmData.value.loading = true;
+      try {
+        await deleteSpace(sub.id);
+        await loadData();
+        emit('updated');
+        confirmData.value.show = false;
+      } finally {
+        confirmData.value.loading = false;
+      }
     }
   };
 };

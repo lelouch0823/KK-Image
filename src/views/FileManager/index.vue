@@ -168,6 +168,7 @@
       :title="confirmData.title"
       :message="confirmData.message"
       :type="confirmData.type"
+      :loading="confirmData.loading"
       @confirm="confirmData.onConfirm"
     />
   </div>
@@ -237,6 +238,7 @@ const confirmData = ref({
   title: '',
   message: '',
   type: 'primary',
+  loading: false,
   onConfirm: () => {}
 });
 
@@ -260,8 +262,15 @@ const handleDeleteFile = (file) => {
     title: t('common.delete'),
     message: t('fileManager.deleteFileConfirm', { name: file.name }),
     type: 'danger',
+    loading: false,
     onConfirm: async () => {
-      await deleteFile(file.id);
+      confirmData.value.loading = true;
+      try {
+        await deleteFile(file.id);
+        confirmData.value.show = false;
+      } finally {
+        confirmData.value.loading = false;
+      }
     }
   };
 };
@@ -272,8 +281,15 @@ const handleDeleteFolder = (folder) => {
     title: t('common.delete'),
     message: t('fileManager.deleteFolderConfirm', { name: folder.name }),
     type: 'danger',
+    loading: false,
     onConfirm: async () => {
-      await deleteFolder(folder.id);
+      confirmData.value.loading = true;
+      try {
+        await deleteFolder(folder.id);
+        confirmData.value.show = false;
+      } finally {
+        confirmData.value.loading = false;
+      }
     }
   };
 };

@@ -275,6 +275,7 @@
       :title="confirmData.title"
       :message="confirmData.message"
       :type="confirmData.type"
+      :loading="confirmData.loading"
       @confirm="confirmData.onConfirm"
     />
   </div>
@@ -316,6 +317,7 @@ const confirmData = ref({
   title: '',
   message: '',
   type: 'primary',
+  loading: false,
   onConfirm: () => {}
 });
 
@@ -367,10 +369,17 @@ const removeFile = (fileId) => {
     title: t('common.confirm'),
     message: t('spaceManager.removeFileConfirm'),
     type: 'danger',
+    loading: false,
     onConfirm: async () => {
-      await removeFilesFromSpace(props.space.id, [fileId]);
-      await initData();
-      emit('updated');
+      confirmData.value.loading = true;
+      try {
+        await removeFilesFromSpace(props.space.id, [fileId]);
+        await initData();
+        emit('updated');
+        confirmData.value.show = false;
+      } finally {
+        confirmData.value.loading = false;
+      }
     }
   };
 };

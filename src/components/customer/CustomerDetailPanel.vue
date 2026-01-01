@@ -172,6 +172,7 @@
     :title="confirmData.title"
     :message="confirmData.message"
     :type="confirmData.type"
+    :loading="confirmData.loading"
     @confirm="confirmData.onConfirm"
   />
 </template>
@@ -207,6 +208,7 @@ const confirmData = ref({
   title: '',
   message: '',
   type: 'primary',
+  loading: false,
   onConfirm: () => {}
 });
 
@@ -249,7 +251,7 @@ const handleDelete = () => {
 const confirmDelete = async () => {
   if (!props.customer?.id) return;
   
-  deleting.value = true;
+  confirmData.value.loading = true;
   try {
     const res = await fetch(`${API.MANAGE_CUSTOMER}/${props.customer.id}`, {
       method: 'DELETE'
@@ -258,17 +260,16 @@ const confirmDelete = async () => {
     
     if (result.success) {
       addToast({ message: t('common.deleteSuccess'), type: 'success' });
-      showDeleteConfirm.value = false;
+      confirmData.value.show = false;
       close();
       emit('refresh');
     } else {
       addToast({ message: result.message, type: 'error' });
-      showDeleteConfirm.value = false;
     }
   } catch (e) {
     addToast({ message: t('common.networkError'), type: 'error' });
   } finally {
-    deleting.value = false;
+    confirmData.value.loading = false;
   }
 };
 

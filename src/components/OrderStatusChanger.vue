@@ -85,6 +85,7 @@
       :title="confirmData.title"
       :message="confirmData.message"
       :type="confirmData.type"
+      :loading="confirmData.loading"
       @confirm="confirmData.onConfirm"
     />
   </div>
@@ -121,6 +122,7 @@ const confirmData = ref({
   title: '',
   message: '',
   type: 'primary',
+  loading: false,
   onConfirm: () => {}
 });
 
@@ -168,6 +170,7 @@ const selectStatus = (s) => {
       onConfirm: () => {
         pendingStatus.value = s;
         showNoteModal.value = true;
+        confirmData.value.show = false;
       }
     };
   } else {

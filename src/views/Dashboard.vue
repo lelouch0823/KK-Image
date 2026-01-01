@@ -190,6 +190,7 @@
       :title="confirmData.title"
       :message="confirmData.message"
       :type="confirmData.type"
+      :loading="confirmData.loading"
       @confirm="confirmData.onConfirm"
     />
   </div>
@@ -241,6 +242,7 @@ const confirmData = ref({
   title: '',
   message: '',
   type: 'primary',
+  loading: false,
   onConfirm: () => {}
 });
 
@@ -340,6 +342,7 @@ const revokeShare = (item) => {
         message: t('dashboard.confirmRevoke', { name: item.name }),
         type: 'danger',
         onConfirm: async () => {
+            confirmData.value.loading = true;
             try {
                 const res = await fetch(API.FOLDER_BY_ID(item.id), {
                     method: 'PUT',
@@ -350,11 +353,14 @@ const revokeShare = (item) => {
                 if (res.success) {
                     success(t('dashboard.shareRevoked'));
                     fetchRecentShares();
+                    confirmData.value.show = false;
                 } else {
                     error(res.message);
                 }
             } catch (e) {
                 error(t('dashboard.operationFailed'));
+            } finally {
+                confirmData.value.loading = false;
             }
         }
     };

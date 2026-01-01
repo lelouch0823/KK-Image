@@ -78,6 +78,7 @@
       :title="confirmData.title"
       :message="confirmData.message"
       :type="confirmData.type"
+      :loading="confirmData.loading"
       @confirm="confirmData.onConfirm"
     />
   </div>
@@ -119,6 +120,7 @@ const confirmData = ref({
   title: '',
   message: '',
   type: 'primary',
+  loading: false,
   onConfirm: () => {}
 });
 
@@ -183,10 +185,17 @@ const confirmDelete = (person) => {
     title: t('common.delete'),
     message: t('salesperson.deleteConfirm').replace('{name}', person.name),
     type: 'danger',
+    loading: false,
     onConfirm: async () => {
-      const success = await deleteSalesperson(person.id);
-      if (success) {
-        loadSalespersons({ page: pagination.value.page });
+      confirmData.value.loading = true;
+      try {
+        const success = await deleteSalesperson(person.id);
+        if (success) {
+          loadSalespersons({ page: pagination.value.page });
+          confirmData.value.show = false;
+        }
+      } finally {
+        confirmData.value.loading = false;
       }
     }
   };
@@ -201,8 +210,15 @@ const handleResetToken = () => {
     title: t('salesperson.resetLink'),
     message: t('salesperson.resetLinkConfirm'),
     type: 'danger',
+    loading: false,
     onConfirm: async () => {
-      await resetToken(editingSalesperson.value.id);
+      confirmData.value.loading = true;
+      try {
+        await resetToken(editingSalesperson.value.id);
+        confirmData.value.show = false;
+      } finally {
+        confirmData.value.loading = false;
+      }
     }
   };
 };

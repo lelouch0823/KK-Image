@@ -283,29 +283,14 @@
       />
 
       <!-- 作废确认弹窗 -->
-      <Modal
-        v-model="showConfirmModal"
-        :title="t('common.confirm')"
-        size="sm"
-      >
-        <div class="p-4">
-          <p class="text-secondary">{{ t('common.confirmVoid') }}</p>
-        </div>
-        <template #footer>
-          <button 
-            @click="showConfirmModal = false"
-            class="px-4 py-2 border border-[var(--border-color)] text-secondary rounded-lg hover:bg-[var(--bg-hover)]"
-          >
-            {{ t('common.cancel') }}
-          </button>
-          <button 
-            @click="executeVoid"
-            class="px-4 py-2 bg-[var(--color-danger)] text-white rounded-lg hover:bg-[var(--color-danger-text)] shadow-lg shadow-danger/20"
-          >
-            {{ t('common.confirm') }}
-          </button>
-        </template>
-      </Modal>
+      <ConfirmDialog
+        v-model="confirmData.show"
+        :title="confirmData.title"
+        :message="confirmData.message"
+        :type="confirmData.type"
+        :loading="confirmData.loading"
+        @confirm="confirmData.onConfirm"
+      />
     </div>
 
     <!-- Print View (文档模式 - A4 SOTA) -->
@@ -399,6 +384,7 @@ import OrderTimeline from './OrderTimeline.vue';
 import OrderEditModal from '../OrderEditModal.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import Modal from '@/components/ui/Modal.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const props = defineProps({
   order: { type: Object, required: true },
@@ -416,7 +402,16 @@ const showEditModal = ref(false);
 const submitting = ref(false);
 
 const { token: salesToken } = useSalesToken();
-const showConfirmModal = ref(false);
+
+// 确认弹窗状态
+const confirmData = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'primary',
+  loading: false,
+  onConfirm: () => {}
+});
 
 // 清除红点
 const markAsRead = async () => {
@@ -479,13 +474,19 @@ const sendComment = () => {
 };
 
 const handleVoid = () => {
-  showConfirmModal.value = true;
+  confirmData.value = {
+    show: true,
+    title: t('common.confirm'),
+    message: t('common.confirmVoid'),
+    type: 'danger',
+    onConfirm: executeVoid
+  };
 };
 
 const executeVoid = async () => {
   if (!salesToken.value) return;
-  showConfirmModal.value = false;
 
+  confirmData.value.loading = true;
   try {
     const res = await fetch(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {
       method: 'DELETE',
@@ -495,12 +496,15 @@ const executeVoid = async () => {
     
     if (result.success) {
       addToast({ message: t('common.success'), type: 'success' });
+      confirmData.value.show = false;
       emit('refresh');
     } else {
       addToast({ message: result.message, type: 'error' });
     }
   } catch (e) {
     addToast({ message: t('common.networkError'), type: 'error' });
+  } finally {
+    confirmData.value.loading = false;
   }
 };
 
