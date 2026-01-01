@@ -58,6 +58,7 @@ import Stats from '@/views/Stats.vue';
 import OrderManager from '@/components/OrderManager.vue';
 import SalespersonManager from '@/components/SalespersonManager.vue';
 import Customers from '@/views/Customers.vue';
+import Settings from '@/views/Settings.vue';
 
 const { currentView } = useView();
 const { t } = useI18n();
@@ -75,6 +76,7 @@ const currentComponent = computed(() => {
     case 'salespersons': return SalespersonManager;
     case 'orders': return OrderManager;
     case 'customers': return Customers;
+    case 'settings': return Settings;
     default: return Dashboard;
   }
 });

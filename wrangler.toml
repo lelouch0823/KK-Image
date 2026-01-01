@@ -153,6 +153,10 @@ id = "0346979ddffe4b2da2a7ea7e05133167"
 binding = "R2_BUCKET"
 bucket_name = "kk-image-storage"
 
+[[env.production.r2_buckets]]
+binding = "R2_BACKUP_BUCKET"
+bucket_name = "kk-image-backup"
+
 # 生产环境 D1 数据库绑定
 [[env.production.d1_databases]]
 binding = "DB"
@@ -194,6 +198,10 @@ BASIC_PASS = "123456"
 [[r2_buckets]]
 binding = "R2_BUCKET"
 bucket_name = "kk-image-storage"
+
+[[r2_buckets]]
+binding = "R2_BACKUP_BUCKET"
+bucket_name = "kk-image-backup"
 
 # =============================================================================
 # D1 数据库绑定

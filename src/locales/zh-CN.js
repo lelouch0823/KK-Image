@@ -38,7 +38,8 @@ export default {
         addImage: '添加图片',
         createdAt: '创建时间',
         print: '打印',
-        savePdf: '保存 PDF'
+        savePdf: '保存 PDF',
+        admin: '管理员'
     },
     upload: {
         uploading: '正在上传 {count} 个文件',
@@ -704,5 +705,22 @@ export default {
         totalOrders: '累计订单',
         completedOrders: '已完成订单',
         monthOrders: '本月订单'
+    },
+    settings: {
+        title: '系统设置',
+        subtitle: '管理系统全局配置和数据维护',
+        backup: {
+            title: '数据库备份',
+            description: '手动触发全量数据库备份（D1 -> R2），用于灾难恢复。',
+            create: '立即备份',
+            creating: '备份中...',
+            filename: '文件名',
+            size: '大小',
+            date: '备份时间',
+            empty: '暂无备份记录',
+            createSuccess: '备份任务已提交',
+            createFailed: '备份失败',
+            loadFailed: '加载备份列表失败'
+        }
     }
 };

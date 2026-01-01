@@ -6,29 +6,8 @@
 import { success, error } from '../../../utils/response.js';
 import { MSG } from '../../../utils/messages.js';
 import { now } from '../../../utils/id.js';
-import { verifyJWT, ADMIN_AUTH_COOKIE } from '../../../utils/auth.js';
-import { parse as parseCookie } from 'cookie';
+import { authenticateAdmin } from '../../../utils/auth.js';
 import { OrderTimelineRepository } from '../../../../repositories/OrderTimelineRepository.js';
-
-/**
- * 获取当前管理员信息
- */
-async function getAdmin(request, env) {
-    const cookieHeader = request.headers.get('Cookie') || '';
-    const cookies = parseCookie(cookieHeader);
-    const jwt = cookies[ADMIN_AUTH_COOKIE];
-
-    if (!jwt) {
-        throw new Error(MSG.AUTH.REQUIRED);
-    }
-
-    const payload = await verifyJWT(jwt, env);
-    return {
-        id: payload.sub,
-        name: payload.name || 'Admin',
-        type: 'admin'
-    };
-}
 
 /**
  * PATCH - 变更订单状态
@@ -38,7 +17,7 @@ export async function onRequestPatch(context) {
     const { id: orderId } = params;
 
     try {
-        const admin = await getAdmin(request, env);
+        const admin = await authenticateAdmin(request, env);
         const body = await request.json();
         const { status, note } = body;
 
@@ -58,9 +37,9 @@ export async function onRequestPatch(context) {
             return error(MSG.ORDER.STATUS_UNCHANGED, 400);
         }
 
-        // 更新状态
+        // 更新状态 (SOTA: Admin 操作 -> Sales 标红)
         await env.DB.prepare(`
-            UPDATE orders SET status = ?, has_new_feedback = 1, updated_at = ? WHERE id = ?
+            UPDATE orders SET status = ?, unread_by_sales = 1, updated_at = ? WHERE id = ?
         `).bind(status, now(), orderId).run();
 
         // 记录时间轴
