@@ -19,10 +19,15 @@ graph TB
     end
     
     subgraph "应用服务层"
-        subgraph "Pages Functions"
-            UF[上传函数<br/>upload.js]
-            FF[文件访问函数<br/>file/[id].js]
-            MF[管理函数<br/>api/manage/*]
+        subgraph "Hybrid Runtime"
+            PF[Pages Functions<br/>Filesystem Routing]
+            Hono[Hono Framework<br/>Middleware Engine]
+        end
+        
+        subgraph "核心功能"
+            UF[上传模块<br/>upload.js]
+            FF[文件服务<br/>file/*]
+            API[业务 API<br/>manage/*, sales/*]
         end
         
         subgraph "静态资源"
@@ -46,10 +51,14 @@ graph TB
     U2 --> CDN
     U3 --> CDN
     CDN --> CF
+    CF --> PF
+    CF --> Hono
+    PF --> UF
+    PF --> API
+    Hono --> API
     CF --> HTML
-    CF --> UF
-    CF --> FF
-    CF --> MF
+    
+    PF --> FF
     UF --> TG
     FF --> TG
     MF --> KV
@@ -111,26 +120,36 @@ graph TB
 - 配置信息管理
 - 毫秒级读取性能
 
-### 3. 应用服务层
+### 3. 应用服务层 (Hybrid Architecture)
 
-**Pages Functions**:
+系统采用 **Pages Functions + Hono** 的混合架构，结合了文件系统路由的便捷性和 Hono 框架的中间件能力。
+
+**A. Cloudflare Pages Functions (Primary API)**:
+基于文件系统的路由，处理绝大多数业务逻辑。遵循 SOTA 标准。
 ```
 functions/
-├── upload.js              # 处理文件上传请求
-├── file/[id].js           # 处理文件访问请求
-├── api/manage/            # 管理 API 接口
-│   ├── list.js           # 文件列表查询
-│   ├── delete.js         # 文件删除操作
-│   └── stats.js          # 统计信息获取
-└── utils/
-    └── middleware.js      # 通用中间件
+├── api/
+│   ├── manage/              # 管理端 API (Admin)
+│   │   ├── orders/          # 订单管理
+│   │   ├── customers/       # CRM
+│   │   └── upload.js        # 文件上传
+│   ├── sales/               # 销售端 API
+│   ├── gallery/             # 公开画廊 API
+│   └── cron/                # 定时任务
+└── utils/                   # 共享工具函数
 ```
+
+**B. Hono Framework (Middleware & Compat)**:
+处理部分中间件逻辑、复杂路由和 V1 兼容接口。
+- **Entry**: `functions/[[path]].js` (Catch-all)
+- **Features**: 全局错误处理、CORS、JWT 校验中间件复用。
 
 **静态资源**:
 - **index.html** - 主上传页面
-- **admin.html** - 管理后台界面
-- **admin-kk-image.html** - 网格视图管理页面
-- **admin-waterfall.html** - 瀑布流视图管理页面
+- **admin.html** - 管理后台界面 (Vue3 SPA)
+- **sales.html** - 销售端界面 (Vue3 SPA)
+- **gallery.html** - 公开画廊界面
+
 
 ### 4. 存储层
 

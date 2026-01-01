@@ -35,6 +35,33 @@
 | `content_hash`| TEXT | PK, SHA-256 |
 | `ref_count` | INTEGER | 引用计数 |
 
+| `created_at` | INTEGER | 创建时间 |
+| `updated_at` | INTEGER | 更新时间 (Added in v2) |
+| `created_by` | TEXT | 创建人ID (Added in migration 0006) |
+| `width` | INTEGER | 宽 (px) |
+| `height` | INTEGER | 高 (px) |
+| `blurhash` | TEXT | 模糊占位符 |
+
+### `blobs` (物理存储/CAS)
+内容寻址存储表，实现文件去重。
+| Column | Type | Description |
+|--------|------|-------------|
+| `content_hash`| TEXT | PK, SHA-256 |
+| `ref_count` | INTEGER | 引用计数 |
+| `size` | INTEGER | 文件大小 |
+| `mime_type` | TEXT | 媒体类型 |
+| `created_at` | INTEGER | 创建时间 |
+
+### `albums` (虚拟相册) (SOTA Feature)
+支持多文件逻辑分组的虚拟相册，不改变物理文件结构。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `name` | TEXT | 相册名称 |
+| `share_token`| TEXT | 分享 Token |
+| `is_public` | INTEGER | 0/1 |
+| `cover_file_id`| TEXT | FK -> files.id |
+
 ---
 
 ## 2. 共享空间 (Shared Spaces)
