@@ -70,7 +70,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -154,6 +154,22 @@ const handleConfirm = () => {
   if (props.loading) return;
   emit('confirm');
 };
+
+// ESC key to close
+const handleKeyDown = (e) => {
+  if (!props.modelValue) return;
+  if (e.key === 'Escape' && !props.loading) {
+    handleCancel();
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown);
+});
 </script>
 
 <style scoped>
