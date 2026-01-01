@@ -11,7 +11,7 @@
           <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
         </svg>
         <div class="text-sm font-medium text-primary text-center truncate w-full px-2" :title="folder.name">{{ folder.name }}</div>
-        <div class="text-xs text-secondary mt-1">{{ folder.fileCount }} {{ t('common.items') }}</div>
+        <div class="text-xs text-secondary mt-1">{{ (folder.fileCount || 0) + (folder.subfolderCount || 0) }} {{ t('common.items') }}</div>
       </div>
     </div>
   </div>

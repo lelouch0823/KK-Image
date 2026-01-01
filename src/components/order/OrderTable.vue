@@ -70,8 +70,8 @@
             </div>
           </td>
           <td class="px-4 py-3">
-            <div class="text-primary">{{ order.salesperson?.name }}</div>
-            <div class="text-xs text-secondary">{{ order.salesperson?.store }}</div>
+            <div class="text-primary">{{ order.salespersonName || '-' }}</div>
+            <div class="text-xs text-secondary">{{ order.store }}</div>
           </td>
           <td class="px-4 py-3 text-secondary font-mono text-xs">{{ order.orderNo }}</td>
           <td class="px-4 py-3" @click.stop>
