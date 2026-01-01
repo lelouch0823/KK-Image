@@ -47,9 +47,8 @@ export async function updateOrderFiles(env, orderId, orderNo, newFileIds, actor,
 
     // SOTA: 自动归档到文件夹
     try {
-        const rootId = await ensureFolder(env, 'Uploads', 'root');
-        const subId = await ensureFolder(env, 'Orders', rootId);
-        const folderId = await ensureFolder(env, orderNo || orderId, subId);
+        const { ensureOrderFolder, moveFilesToFolder } = await import('./folder-utils.js');
+        const folderId = await ensureOrderFolder(env, orderNo || orderId);
         await moveFilesToFolder(env, newFileIds, folderId);
     } catch (e) {
         console.error('File archiving error:', e);

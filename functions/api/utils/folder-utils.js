@@ -41,3 +41,21 @@ export async function moveFilesToFolder(env, fileIds, folderId) {
         `UPDATE files SET folder_id = ? WHERE id IN (${placeholders})`
     ).bind(folderId, ...fileIds).run();
 }
+
+/**
+ * 确保订单文件夹结构存在
+ * Uploads -> Orders -> [OrderNo]
+ * @param {Object} env
+ * @param {string} orderNoOrId 订单编号或ID
+ * @returns {Promise<string>} 订单专属文件夹ID
+ */
+export async function ensureOrderFolder(env, orderNoOrId) {
+    try {
+        const rootId = await ensureFolder(env, 'Uploads', 'root');
+        const subId = await ensureFolder(env, 'Orders', rootId);
+        return await ensureFolder(env, orderNoOrId, subId);
+    } catch (e) {
+        console.error('Ensure order folder error:', e);
+        return 'root'; // Fallback
+    }
+}

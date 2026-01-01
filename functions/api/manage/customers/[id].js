@@ -10,10 +10,12 @@ import { MSG } from '../../utils/messages.js';
 import { CustomerRepository } from '../../../repositories/CustomerRepository.js';
 
 export async function onRequestGet(context) {
-    const { env, params } = context;
+    const { env, params, request } = context;
     const { id } = params;
 
     try {
+        const { authenticateAdmin } = await import('../../utils/auth.js');
+        await authenticateAdmin(request, env);
         const repo = new CustomerRepository(env.DB);
         const customer = await repo.findById(id);
 
@@ -32,6 +34,8 @@ export async function onRequestPut(context) {
     const { id } = params;
 
     try {
+        const { authenticateAdmin } = await import('../../utils/auth.js');
+        await authenticateAdmin(request, env);
         const repo = new CustomerRepository(env.DB);
         const existing = await repo.findById(id);
 
@@ -54,10 +58,12 @@ export async function onRequestPut(context) {
 }
 
 export async function onRequestDelete(context) {
-    const { env, params } = context;
+    const { env, params, request } = context;
     const { id } = params;
 
     try {
+        const { authenticateAdmin } = await import('../../utils/auth.js');
+        await authenticateAdmin(request, env);
         const repo = new CustomerRepository(env.DB);
 
         // 检查是否有关联订单

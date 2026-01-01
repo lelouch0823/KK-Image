@@ -20,42 +20,16 @@ export async function onRequestPost(context) {
 
     try {
         // 验证销售身份
-        await authenticateSalesperson(request, env, accessToken);
+        const salesperson = await authenticateSalesperson(request, env, accessToken);
 
         // 解析查询参数
         const url = new URL(request.url);
         const orderId = url.searchParams.get('orderId');
+        const contentHash = url.searchParams.get('contentHash'); // SOTA: 支持 Sales 端传 Hash
 
         // 解析 FormData
         const formData = await request.formData();
         const file = formData.get('file');
-
-        if (!file || !(file instanceof File)) {
-            return error(MSG.FILE.SELECT_FILE, 400);
-        }
-
-        // 验证文件类型
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        if (!allowedTypes.includes(file.type)) {
-            return error(MSG.FILE.INVALID_TYPE, 400);
-        }
-
-        // 验证文件大小 (10MB)
-        const maxSize = 10 * 1024 * 1024;
-        if (file.size > maxSize) {
-            return error(MSG.FILE.SIZE_LIMIT, 400);
-        }
-
-        // 生成存储 key
-        const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-        const storageKey = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}.${ext}`;
-
-        // 上传到 R2
-        await env.R2_BUCKET.put(storageKey, file.stream(), {
-            httpMetadata: {
-                contentType: file.type,
-            },
-        });
 
         // 确定目标文件夹
         let folderId = 'root';
@@ -69,9 +43,8 @@ export async function onRequestPost(context) {
                 ).bind(orderId).first();
 
                 if (order && order.order_no) {
-                    const rootId = await ensureFolder(env, 'Uploads', 'root');
-                    const subId = await ensureFolder(env, 'Orders', rootId);
-                    folderId = await ensureFolder(env, order.order_no, subId);
+                    const { ensureOrderFolder } = await import('../../utils/folder-utils.js');
+                    folderId = await ensureOrderFolder(env, order.order_no);
                 }
             } catch (e) {
                 console.error('Archive folder creation error:', e);
@@ -79,22 +52,16 @@ export async function onRequestPost(context) {
             }
         }
 
-        // 保存到数据库
-        const fileId = generateId();
-        const timestamp = now();
+        // 使用通用工具存储文件 (支持 CAS)
+        const { storeFile } = await import('../../utils/file-utils.js');
+        const result = await storeFile(env, file, {
+            contentHash,
+            folderId,
+            createdBy: salesperson.id
+        });
 
-        await env.DB.prepare(`
-            INSERT INTO files (id, name, storage_key, original_name, mime_type, size, folder_id, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(fileId, file.name, storageKey, file.name, file.type, file.size, folderId, timestamp, timestamp).run();
-
-        return success({
-            id: fileId,
-            storage_key: storageKey,
-            name: file.name,
-            size: file.size,
-            type: file.type
-        }, '上传成功');
+        // 统一返回格式
+        return success(result, result.instantUpload ? MSG.FILE.INSTANT_UPLOAD : MSG.FILE.UPLOAD_SUCCESS);
 
     } catch (err) {
         if (err.message === MSG.AUTH.REQUIRED || err.message === MSG.AUTH.FORBIDDEN) {
@@ -104,7 +71,12 @@ export async function onRequestPost(context) {
             return error(err.message, 403);
         }
         console.error('Sales upload error:', err);
-        return error(`上传失败: ${err.message}`, 500);
+        // 如果是已知业务错误，返回 400
+        const isClientError = Object.values(MSG.FILE).includes(err.message);
+        return error(
+            isClientError ? err.message : `上传失败: ${err.message}`,
+            isClientError ? 400 : 500
+        );
     }
 }
 

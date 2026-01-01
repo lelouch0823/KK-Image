@@ -9,15 +9,17 @@
 import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
 import { SalespersonRepository } from '../../../repositories/SalespersonRepository.js';
+import { authenticateAdmin } from '../../utils/auth.js';
 
 /**
  * GET - 获取销售详情
  */
 export async function onRequestGet(context) {
-    const { env, params } = context;
+    const { env, params, request } = context;
     const { id } = params;
 
     try {
+        await authenticateAdmin(request, env);
         const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
         // Repository's findById doesn't include order_count currently, need to update repo or fetch separately?
         // Wait, I didn't verify findById includes order_count in my repo implementation. 
@@ -79,6 +81,7 @@ export async function onRequestPatch(context) {
     const { id } = params;
 
     try {
+        await authenticateAdmin(request, env);
         const body = await request.json();
         const { name, store, phone, password, isActive } = body;
 
@@ -127,6 +130,7 @@ export async function onRequestDelete(context) {
     const { id } = params;
 
     try {
+        await authenticateAdmin(request, env);
         const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
 
         // 检查是否有关联订单
@@ -159,6 +163,7 @@ export async function onRequestPost(context) {
     // 判断是重置链接操作
     if (url.pathname.endsWith('/reset-token')) {
         try {
+            await authenticateAdmin(request, env);
             const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
             const newToken = await repo.resetToken(id);
 

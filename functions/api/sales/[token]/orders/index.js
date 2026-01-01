@@ -125,10 +125,8 @@ export async function onRequestPost(context) {
         // 面向未来: 自动归档 (非事务，失败不影响订单创建)
         if (fileIds.length > 0) {
             try {
-                const { ensureFolder, moveFilesToFolder } = await import('../../../utils/folder-utils.js');
-                const rootId = await ensureFolder(env, 'Uploads', 'root');
-                const subId = await ensureFolder(env, 'Orders', rootId);
-                const folderId = await ensureFolder(env, orderNo, subId);
+                const { ensureOrderFolder, moveFilesToFolder } = await import('../../../utils/folder-utils.js');
+                const folderId = await ensureOrderFolder(env, orderNo);
                 await moveFilesToFolder(env, fileIds, folderId);
             } catch (e) {
                 console.error('File archiving error:', e);

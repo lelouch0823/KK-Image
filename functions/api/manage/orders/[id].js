@@ -48,10 +48,11 @@ async function logTimeline(db, params) {
  * GET - 获取订单详情
  */
 export async function onRequestGet(context) {
-    const { env, params } = context;
+    const { env, params, request } = context;
     const { id } = params;
 
     try {
+        await getAdmin(request, env);
         const orderRepo = new OrderRepository(env.DB);
 
         // 使用 Repository 获取订单详情

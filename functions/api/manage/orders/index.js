@@ -16,6 +16,8 @@ export async function onRequestGet(context) {
     const { env, request } = context;
 
     try {
+        const { authenticateAdmin } = await import('../../utils/auth.js');
+        await authenticateAdmin(request, env);
         const orderRepo = new OrderRepository(env.DB);
 
         const url = new URL(request.url);

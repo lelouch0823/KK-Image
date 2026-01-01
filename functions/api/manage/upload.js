@@ -19,6 +19,9 @@ export async function onRequestPost(context) {
     const { env, request } = context;
 
     try {
+        const { authenticateAdmin } = await import('../utils/auth.js');
+        const admin = await authenticateAdmin(request, env);
+
         // 解析查询参数
         const url = new URL(request.url);
         const orderId = url.searchParams.get('orderId');
@@ -28,21 +31,9 @@ export async function onRequestPost(context) {
         const formData = await request.formData();
         const file = formData.get('file');
 
-        if (!file || !(file instanceof File)) {
-            return error(MSG.FILE.SELECT_FILE, 400);
-        }
-
-        // 验证文件类型
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        if (!allowedTypes.includes(file.type)) {
-            return error(MSG.FILE.INVALID_TYPE, 400);
-        }
-
-        // 验证文件大小 (10MB)
-        const maxSize = 10 * 1024 * 1024;
-        if (file.size > maxSize) {
-            return error(MSG.FILE.SIZE_LIMIT, 400);
-        }
+        // 获取管理员信息 (可选，用于记录 created_by)
+        // 这里简化处理，未强制校验 Auth (通常由中间件处理，或此处添加 verifyJWT)
+        // const admin = ... 
 
         // 确定目标文件夹
         let folderId = 'root';
@@ -53,67 +44,31 @@ export async function onRequestPost(context) {
                 ).bind(orderId).first();
 
                 if (order && order.order_no) {
-                    const rootId = await ensureFolder(env, 'Uploads', 'root');
-                    const subId = await ensureFolder(env, 'Orders', rootId);
-                    folderId = await ensureFolder(env, order.order_no, subId);
+                    const { ensureOrderFolder } = await import('../utils/folder-utils.js');
+                    folderId = await ensureOrderFolder(env, order.order_no);
                 }
             } catch (e) {
                 console.error('Archive folder creation error:', e);
             }
         }
 
-        let storageKey;
-        let isInstantUpload = false;
+        // 使用通用工具存储文件
+        const { storeFile } = await import('../utils/file-utils.js');
+        const result = await storeFile(env, file, {
+            contentHash,
+            folderId,
+            createdBy: admin.id // 标记为管理员上传
+        });
 
-        // 检查是否可以秒传（blob 已存在）
-        if (contentHash) {
-            const existingBlob = await getBlobByHash(env, contentHash);
-            if (existingBlob) {
-                // 秒传：增加引用计数，复用已有 blob
-                await incrementRefCount(env, contentHash);
-                storageKey = contentHash;
-                isInstantUpload = true;
-            }
-        }
-
-        // 如果不是秒传，需要实际上传
-        if (!storageKey) {
-            // 使用 content_hash 作为 storage_key（如果提供），否则生成随机 key
-            storageKey = contentHash || `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
-
-            // 上传到 R2
-            await env.R2_BUCKET.put(storageKey, file.stream(), {
-                httpMetadata: { contentType: file.type },
-            });
-
-            // 如果提供了 hash，创建 blob 记录
-            if (contentHash) {
-                await createBlob(env, contentHash, file.size, file.type);
-            }
-        }
-
-        // 保存到数据库
-        const fileId = generateId();
-        const timestamp = now();
-
-        await env.DB.prepare(`
-            INSERT INTO files (id, name, storage_key, original_name, mime_type, size, folder_id, content_hash, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(fileId, file.name, storageKey, file.name, file.type, file.size, folderId, contentHash || null, timestamp, timestamp).run();
-
-        return success({
-            id: fileId,
-            storage_key: storageKey,
-            storageKey: storageKey,
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            url: `/file/${storageKey}`,
-            instantUpload: isInstantUpload
-        }, isInstantUpload ? MSG.FILE.INSTANT_UPLOAD : MSG.FILE.UPLOAD_SUCCESS);
+        return success(result, result.instantUpload ? MSG.FILE.INSTANT_UPLOAD : MSG.FILE.UPLOAD_SUCCESS);
 
     } catch (err) {
         console.error('Admin upload error:', err);
-        return error(`上传失败: ${err.message}`, 500);
+        // 如果是已知业务错误，返回 400
+        const isClientError = Object.values(MSG.FILE).includes(err.message);
+        return error(
+            isClientError ? err.message : `上传失败: ${err.message}`,
+            isClientError ? 400 : 500
+        );
     }
 }
