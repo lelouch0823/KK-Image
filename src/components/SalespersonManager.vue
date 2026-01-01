@@ -71,6 +71,15 @@
       @submit="handleSubmit"
       @resetToken="handleResetToken"
     />
+
+    <!-- 确认弹窗 -->
+    <ConfirmDialog
+      v-model="confirmData.show"
+      :title="confirmData.title"
+      :message="confirmData.message"
+      :type="confirmData.type"
+      @confirm="confirmData.onConfirm"
+    />
   </div>
 </template>
 
@@ -80,6 +89,7 @@ import { useSalespersons } from '@/composables/useSalespersons';
 import { useI18n } from '@/composables/useI18n';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import Pagination from '@/components/ui/Pagination.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import SalespersonTable from './salesperson/SalespersonTable.vue';
 import SalespersonCards from './salesperson/SalespersonCards.vue';
 import SalespersonForm from './salesperson/SalespersonForm.vue';
@@ -102,6 +112,15 @@ const searchQuery = ref('');
 const showModal = ref(false);
 const submitting = ref(false);
 const editingSalesperson = ref(null);
+
+// 确认弹窗状态
+const confirmData = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'primary',
+  onConfirm: () => {}
+});
 
 const currentPage = computed({
   get: () => pagination.value.page,
@@ -156,21 +175,35 @@ const handleSubmit = async (formData) => {
 };
 
 // 删除确认
-const confirmDelete = async (person) => {
+const confirmDelete = (person) => {
   if (person.orderCount > 0) return;
-  if (!confirm(t('salesperson.deleteConfirm').replace('{name}', person.name))) return;
   
-  const success = await deleteSalesperson(person.id);
-  if (success) {
-    loadSalespersons({ page: pagination.value.page });
-  }
+  confirmData.value = {
+    show: true,
+    title: t('common.delete'),
+    message: t('salesperson.deleteConfirm').replace('{name}', person.name),
+    type: 'danger',
+    onConfirm: async () => {
+      const success = await deleteSalesperson(person.id);
+      if (success) {
+        loadSalespersons({ page: pagination.value.page });
+      }
+    }
+  };
 };
 
 // 重置访问链接
-const handleResetToken = async () => {
+const handleResetToken = () => {
   if (!editingSalesperson.value) return;
-  if (!confirm(t('salesperson.resetLinkConfirm'))) return;
   
-  await resetToken(editingSalesperson.value.id);
+  confirmData.value = {
+    show: true,
+    title: t('salesperson.resetLink'),
+    message: t('salesperson.resetLinkConfirm'),
+    type: 'danger',
+    onConfirm: async () => {
+      await resetToken(editingSalesperson.value.id);
+    }
+  };
 };
 </script>

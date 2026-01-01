@@ -183,6 +183,15 @@
         @refresh="refreshOrderDetail"
       />
     </Modal>
+
+    <!-- Confirm Dialog -->
+    <ConfirmDialog
+      v-model="confirmData.show"
+      :title="confirmData.title"
+      :message="confirmData.message"
+      :type="confirmData.type"
+      @confirm="confirmData.onConfirm"
+    />
   </div>
 </template>
 
@@ -198,6 +207,7 @@ import ShareManagementModal from '@/components/ShareManagementModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
 import Modal from '@/components/ui/Modal.vue';
 import OrderDetail from '@/components/order/OrderDetail.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import { formatSize, formatDate, formatExpiry, getFileExtension, formatRelativeTime } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 
@@ -224,6 +234,15 @@ const editingFolder = ref(null);
 
 const showDetailModal = ref(false);
 const viewingOrder = ref(null);
+
+// 确认弹窗状态
+const confirmData = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'primary',
+  onConfirm: () => {}
+});
 
 const viewOrder = async (order) => {
     const fullOrder = await getOrder(order.id);
@@ -314,24 +333,31 @@ const handleManagerEdit = (item) => {
     showEditShare.value = true;
 };
 
-const revokeShare = async (item) => {
-    if (!confirm(t('dashboard.confirmRevoke', { name: item.name }))) return;
-    try {
-        const res = await fetch(API.FOLDER_BY_ID(item.id), {
-            method: 'PUT',
-            headers: getHeaders(true),
-            body: JSON.stringify({ isPublic: false, shareToken: null })
-        }).then(r => r.json());
+const revokeShare = (item) => {
+    confirmData.value = {
+        show: true,
+        title: t('dashboard.revokeShareTitle') || t('common.confirm'),
+        message: t('dashboard.confirmRevoke', { name: item.name }),
+        type: 'danger',
+        onConfirm: async () => {
+            try {
+                const res = await fetch(API.FOLDER_BY_ID(item.id), {
+                    method: 'PUT',
+                    headers: getHeaders(true),
+                    body: JSON.stringify({ isPublic: false, shareToken: null })
+                }).then(r => r.json());
 
-        if (res.success) {
-            success(t('dashboard.shareRevoked'));
-            fetchRecentShares();
-        } else {
-            error(res.message);
+                if (res.success) {
+                    success(t('dashboard.shareRevoked'));
+                    fetchRecentShares();
+                } else {
+                    error(res.message);
+                }
+            } catch (e) {
+                error(t('dashboard.operationFailed'));
+            }
         }
-    } catch (e) {
-        error(t('dashboard.operationFailed'));
-    }
+    };
 };
 
 onMounted(() => {

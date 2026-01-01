@@ -97,6 +97,15 @@
       </div>
     </template>
   </Modal>
+
+  <!-- Confirm Dialog -->
+  <ConfirmDialog
+    v-model="confirmData.show"
+    :title="confirmData.title"
+    :message="confirmData.message"
+    :type="confirmData.type"
+    @confirm="confirmData.onConfirm"
+  />
 </template>
 
 <script setup>
@@ -107,6 +116,7 @@ import { useAuth } from '@/composables/useAuth';
 import { formatExpiry } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import Modal from '@/components/ui/Modal.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const props = defineProps({
   modelValue: Boolean
@@ -123,6 +133,15 @@ const shares = ref([]);
 const page = ref(1);
 const total = ref(0);
 const totalPages = ref(1);
+
+// 确认弹窗状态
+const confirmData = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'primary',
+  onConfirm: () => {}
+});
 
 const fetchShares = async () => {
     loading.value = true;
@@ -154,25 +173,31 @@ const copyLink = (item) => {
     navigator.clipboard.writeText(url).then(() => success(t('common.copied')));
 };
 
-const revokeShare = async (item) => {
-    if (!confirm(t('common.cancelShareConfirm', { name: item.name }))) return;
-    
-    try {
-        const res = await fetch(API.FOLDER_BY_ID(item.id), {
-            method: 'PUT',
-            headers: getHeaders(true),
-            body: JSON.stringify({ isPublic: false, shareToken: null })
-        }).then(r => r.json());
+const revokeShare = (item) => {
+    confirmData.value = {
+        show: true,
+        title: t('common.confirm'),
+        message: t('common.cancelShareConfirm', { name: item.name }),
+        type: 'danger',
+        onConfirm: async () => {
+            try {
+                const res = await fetch(API.FOLDER_BY_ID(item.id), {
+                    method: 'PUT',
+                    headers: getHeaders(true),
+                    body: JSON.stringify({ isPublic: false, shareToken: null })
+                }).then(r => r.json());
 
-        if (res.success) {
-            success(t('common.shareRevoked'));
-            fetchShares();
-        } else {
-            error(res.message);
+                if (res.success) {
+                    success(t('common.shareRevoked'));
+                    fetchShares();
+                } else {
+                    error(res.message);
+                }
+            } catch (e) {
+                error(t('common.operationFailed'));
+            }
         }
-    } catch (e) {
-        error(t('common.operationFailed'));
-    }
+    };
 };
 
 const editShare = (item) => {

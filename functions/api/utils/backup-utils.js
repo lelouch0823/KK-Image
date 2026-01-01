@@ -1,12 +1,17 @@
 /**
  * 数据库备份核心工具
- * 提供流式数据导出、压缩以及自动清理旧备份的功能。
+ * 提供数据导出、压缩以及自动清理旧备份的功能。
+ * 
+ * SOTA 说明：
+ * 本地 Wrangler 不支持未知长度的流式上传到 R2。
+ * 因此采用"先收集全部数据 -> 压缩 -> 上传"的策略，
+ * 兼容本地开发和生产环境。
  */
 
 import { now } from './id.js';
 
 /**
- * 执行流式备份到 R2
+ * 执行备份到 R2
  * @param {Object} env - Cloudflare 环境变量
  * @returns {Promise<Object>} 备份结果
  */
@@ -14,85 +19,83 @@ export async function performStreamingBackup(env) {
     // 1. 获取所有表名
     const { results: tables } = await env.DB.prepare(`
         SELECT name FROM sqlite_schema 
-        WHERE type ='table' AND name NOT LIKE 'sqlite_%' AND name != '_cf_KV'
+        WHERE type ='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'
     `).all();
     const tableNames = tables.map(t => t.name);
 
-    // 2. 创建流转换器
-    const { readable, writable } = new TransformStream();
-    const writer = writable.getWriter();
-    const encoder = new TextEncoder();
+    // 2. 构建完整的备份对象
+    const backup = {
+        metadata: {
+            timestamp: now(),
+            createdAt: new Date().toISOString(),
+            version: '1.1'
+        },
+        data: {}
+    };
 
-    // 3. 异步生成数据并写入流
-    (async () => {
-        try {
-            const metadata = {
-                timestamp: now(),
-                createdAt: new Date().toISOString(),
-                version: '1.1'
-            };
-            await writer.write(encoder.encode(`{"metadata":${JSON.stringify(metadata)},"data":{`));
+    // 3. 逐表导出数据
+    for (const table of tableNames) {
+        const schemaRes = await env.DB.prepare(`SELECT sql FROM sqlite_schema WHERE name = ?`).bind(table).first();
+        const schema = schemaRes?.sql || '';
 
-            for (let i = 0; i < tableNames.length; i++) {
-                const table = tableNames[i];
-                const schemaRes = await env.DB.prepare(`SELECT sql FROM sqlite_schema WHERE name = ?`).bind(table).first();
-                const schema = schemaRes?.sql || '';
+        // 分页获取所有数据
+        const allRows = [];
+        const LIMIT = 500;
+        let offset = 0;
 
-                const prefix = i === 0 ? '"' : ',"';
-                await writer.write(encoder.encode(`${prefix}${table}":{"schema":${JSON.stringify(schema)},"rows":[ `));
+        while (true) {
+            const { results } = await env.DB.prepare(`SELECT * FROM "${table}" LIMIT ? OFFSET ?`)
+                .bind(LIMIT, offset)
+                .all();
 
-                const LIMIT = 500;
-                let offset = 0;
-                let firstRowInTable = true;
-
-                while (true) {
-                    const { results } = await env.DB.prepare(`SELECT * FROM "${table}" LIMIT ? OFFSET ?`)
-                        .bind(LIMIT, offset)
-                        .all();
-
-                    if (!results || results.length === 0) break;
-
-                    const chunkString = results.map(row => JSON.stringify(row)).join(',');
-                    if (!firstRowInTable) {
-                        await writer.write(encoder.encode(','));
-                    }
-                    await writer.write(encoder.encode(chunkString));
-
-                    firstRowInTable = false;
-                    offset += LIMIT;
-                    if (results.length < LIMIT) break;
-                }
-                await writer.write(encoder.encode(']}'));
-            }
-
-            await writer.write(encoder.encode('}}'));
-            await writer.close();
-        } catch (streamErr) {
-            console.error('Stream processing error:', streamErr);
-            await writer.abort(streamErr);
+            if (!results || results.length === 0) break;
+            allRows.push(...results);
+            offset += LIMIT;
+            if (results.length < LIMIT) break;
         }
-    })();
 
-    // 4. 构建压缩流管道
-    const gzipStream = readable.pipeThrough(new CompressionStream('gzip'));
+        backup.data[table] = {
+            schema,
+            rows: allRows
+        };
+    }
 
-    // 5. 上传到 R2
+    // 4. 序列化并压缩
+    const jsonString = JSON.stringify(backup);
+    const encoder = new TextEncoder();
+    const jsonBytes = encoder.encode(jsonString);
+
+    // 使用 CompressionStream 压缩
+    const compressedStream = new Blob([jsonBytes]).stream().pipeThrough(new CompressionStream('gzip'));
+    const compressedBlob = await new Response(compressedStream).blob();
+    const compressedBuffer = await compressedBlob.arrayBuffer();
+
+    // 5. 上传到 R2 (使用 ArrayBuffer，有确定长度)
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `backup_${timestamp}.json.gz`;
     const key = filename;
 
-    await env.R2_BACKUP_BUCKET.put(key, gzipStream, {
+    await env.R2_BACKUP_BUCKET.put(key, compressedBuffer, {
         httpMetadata: {
             contentType: 'application/gzip',
             contentDisposition: `attachment; filename="${filename}"`
         },
         customMetadata: {
             type: 'auto-backup',
-            timestamp: String(now())
+            timestamp: String(now()),
+            tables: String(tableNames.length),
+            originalSize: String(jsonBytes.length),
+            compressedSize: String(compressedBuffer.byteLength)
         }
     });
 
-    return { filename, key };
+    return {
+        filename,
+        key,
+        tables: tableNames.length,
+        originalSize: jsonBytes.length,
+        compressedSize: compressedBuffer.byteLength
+    };
 }
 
 /**

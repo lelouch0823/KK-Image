@@ -42,11 +42,14 @@
 | `height` | INTEGER | 高 (px) |
 | `blurhash` | TEXT | 模糊占位符 |
 
+
 ### `blobs` (物理存储/CAS)
+
 内容寻址存储表，实现文件去重。
+
 | Column | Type | Description |
-|--------|------|-------------|
-| `content_hash`| TEXT | PK, SHA-256 |
+| --- | --- | --- |
+| `content_hash` | TEXT | PK, SHA-256 |
 | `ref_count` | INTEGER | 引用计数 |
 | `size` | INTEGER | 文件大小 |
 | `mime_type` | TEXT | 媒体类型 |
@@ -54,8 +57,9 @@
 
 ### `albums` (虚拟相册) (SOTA Feature)
 支持多文件逻辑分组的虚拟相册，不改变物理文件结构。
+
 | Column | Type | Description |
-|--------|------|-------------|
+| --- | --- | --- |
 | `id` | TEXT | PK |
 | `name` | TEXT | 相册名称 |
 | `share_token`| TEXT | 分享 Token |

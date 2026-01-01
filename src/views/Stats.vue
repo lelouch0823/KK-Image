@@ -161,15 +161,9 @@ const formatNumber = (num) => {
   return num?.toString() || '0';
 };
 
-// 格式化相对时间（Stats 页面特有逻辑）
+// 格式化相对时间 (已迁移至 utils/formatters，这里保持调用)
 const formatRelativeDate = (timestamp) => {
-  if (!timestamp) return t('stats.unknown');
-  const date = new Date(timestamp);
-  const diff = Date.now() - date.getTime();
-  if (diff < 60000) return t('stats.justNow');
-  if (diff < 3600000) return t('stats.minutesAgo', { count: Math.floor(diff / 60000) });
-  if (diff < 86400000) return t('stats.hoursAgo', { count: Math.floor(diff / 3600000) });
-  return date.toLocaleDateString('zh-CN');
+  return formatRelativeTime(timestamp, t);
 };
 
 

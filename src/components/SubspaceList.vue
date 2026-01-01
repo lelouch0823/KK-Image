@@ -92,10 +92,18 @@
     </div>
 
     <!-- Create Subspace Modal (reuse SpaceCreateModal with parentId) -->
-    <SpaceCreateModal v-if="showCreateModal" 
       :parentId="spaceId" 
       @close="showCreateModal = false" 
       @created="onSubspaceCreated" />
+
+    <!-- Confirm Dialog -->
+    <ConfirmDialog
+      v-model="confirmData.show"
+      :title="confirmData.title"
+      :message="confirmData.message"
+      :type="confirmData.type"
+      @confirm="confirmData.onConfirm"
+    />
   </div>
 </template>
 
@@ -106,6 +114,7 @@ import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const props = defineProps({
   spaceId: { type: String, required: true }
@@ -120,6 +129,15 @@ const { t } = useI18n();
 const subspaces = ref([]);
 const loading = ref(false);
 const showCreateModal = ref(false);
+
+// 确认弹窗状态
+const confirmData = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'primary',
+  onConfirm: () => {}
+});
 
 const getTemplateLabel = (template) => t(`spaceManager.templates.${template || 'custom'}`) || template;
 
@@ -147,12 +165,18 @@ const copyLink = async (sub) => {
   }
 };
 
-const deleteSubspace = async (sub) => {
-  if (confirm(t('spaceManager.deleteSpaceConfirm', { name: sub.name }))) {
-    await deleteSpace(sub.id);
-    await loadData();
-    emit('updated');
-  }
+const deleteSubspace = (sub) => {
+  confirmData.value = {
+    show: true,
+    title: t('common.delete'),
+    message: t('spaceManager.deleteSpaceConfirm', { name: sub.name }),
+    type: 'danger',
+    onConfirm: async () => {
+      await deleteSpace(sub.id);
+      await loadData();
+      emit('updated');
+    }
+  };
 };
 
 const onSubspaceCreated = async () => {

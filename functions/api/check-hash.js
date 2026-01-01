@@ -47,6 +47,6 @@ export async function onRequestPost(context) {
 
     } catch (err) {
         console.error('Check hash error:', err);
-        return error(`检查失败: ${err.message}`, 500);
+        return error(`${MSG.COMMON.CHECK_FAILED}: ${err.message}`, 500);
     }
 }

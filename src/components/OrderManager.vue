@@ -185,6 +185,15 @@
         @edit="handleEditFromDetail"
       />
     </Modal>
+
+    <!-- Confirm Dialog -->
+    <ConfirmDialog
+      v-model="confirmData.show"
+      :title="confirmData.title"
+      :message="confirmData.message"
+      :type="confirmData.type"
+      @confirm="confirmData.onConfirm"
+    />
   </div>
 </template>
 
@@ -203,6 +212,7 @@ import OrderStatusChanger from './OrderStatusChanger.vue';
 import OrderEditModal from './OrderEditModal.vue';
 import OrderDetail from './order/OrderDetail.vue';
 import OrderDashboard from './order/OrderDashboard.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const { orders, salespersons, statuses, loading, pagination, loadOrders, getOrder, updateOrder, changeStatus, addComment, batchAction } = useOrders();
 const { t } = useI18n();
@@ -221,6 +231,15 @@ const showDetailModal = ref(false);
 const exporting = ref(false);
 const selectedIds = ref([]);
 const batchProcessing = ref(false);
+
+// 确认弹窗状态
+const confirmData = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'primary',
+  onConfirm: () => {}
+});
 
 // 初始化
 onMounted(() => {
@@ -343,19 +362,25 @@ const closeDetailModal = () => {
 };
 
 // 作废订单
-const handleVoidOrder = async (order) => {
-  if (confirm(t('order.actions.voidConfirm'))) {
-    statusChanging[order.id] = true;
-    try {
-      const success = await changeStatus(order.id, 'void');
-      if (success) {
-        order.status = 'void';
-        addToast({ message: t('order.actions.voidSuccess'), type: 'success' });
+const handleVoidOrder = (order) => {
+  confirmData.value = {
+    show: true,
+    title: t('common.confirm'),
+    message: t('order.actions.voidConfirm'),
+    type: 'danger',
+    onConfirm: async () => {
+      statusChanging[order.id] = true;
+      try {
+        const success = await changeStatus(order.id, 'void');
+        if (success) {
+          order.status = 'void';
+          addToast({ message: t('order.actions.voidSuccess'), type: 'success' });
+        }
+      } finally {
+        statusChanging[order.id] = false;
       }
-    } finally {
-      statusChanging[order.id] = false;
     }
-  }
+  };
 };
 
 // 提交编辑

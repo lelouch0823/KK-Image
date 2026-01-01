@@ -39,7 +39,27 @@ export default {
         createdAt: '创建时间',
         print: '打印',
         savePdf: '保存 PDF',
-        admin: '管理员'
+        admin: '管理员',
+        download: '下载',
+        unknown: '未知',
+        justNow: '刚刚',
+        minutesAgo: '{count} 分钟前',
+        hoursAgo: '{count} 小时前'
+    },
+    formatters: {
+        forever: '永久有效',
+        expired: '已过期',
+        daysLeft: '{days} 天后 ({date})',
+        seconds: '秒',
+        minutes: '分',
+        hours: '小时',
+        units: {
+            B: 'B',
+            KB: 'KB',
+            MB: 'MB',
+            GB: 'GB',
+            TB: 'TB'
+        }
     },
     upload: {
         uploading: '正在上传 {count} 个文件',

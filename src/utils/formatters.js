@@ -6,14 +6,19 @@
 /**
  * 格式化文件大小
  * @param {number} bytes - 字节数
+ * @param {Object} t - i18n translate function (可选)
  * @returns {string} 格式化后的大小字符串
  */
-export const formatSize = (bytes) => {
+export const formatSize = (bytes, t) => {
     if (bytes === 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+
+    const value = parseFloat((bytes / Math.pow(k, i)).toFixed(2));
+    const unit = t ? t(`formatters.units.${sizes[i]}`) : sizes[i];
+
+    return `${value} ${unit}`;
 };
 
 /**
@@ -23,9 +28,9 @@ export const formatSize = (bytes) => {
  */
 export const formatDuration = (seconds, t) => {
     if (!t) return `${seconds}s`;
-    if (seconds < 60) return `${seconds}${t('upload.seconds')}`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}${t('upload.minutes')}${seconds % 60}${t('upload.seconds')}`;
-    return `${Math.floor(seconds / 3600)}${t('upload.hours')}${Math.floor((seconds % 3600) / 60)}${t('upload.minutes')}`;
+    if (seconds < 60) return `${seconds}${t('formatters.seconds')}`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}${t('formatters.minutes')}${seconds % 60}${t('formatters.seconds')}`;
+    return `${Math.floor(seconds / 3600)}${t('formatters.hours')}${Math.floor((seconds % 3600) / 60)}${t('formatters.minutes')}`;
 };
 
 /**
@@ -50,18 +55,20 @@ export const formatDate = (timestamp, options = {}) => {
 /**
  * 格式化过期时间
  * @param {number} ts - 过期时间戳
- * @param {function} t - 国际化翻译函数 (可选)
+ * @param {function} t - 国际化翻译函数
  * @returns {string} 格式化后的过期时间描述
  */
 export const formatExpiry = (ts, t) => {
-    if (!ts) return t ? t('formatters.forever') : '永久有效';
+    if (!t) return ts ? new Date(Number(ts)).toLocaleDateString() : '永久有效';
+
+    if (!ts) return t('formatters.forever');
     const date = new Date(Number(ts));
     const now = Date.now();
     const days = Math.ceil((ts - now) / (1000 * 60 * 60 * 24));
 
-    if (ts < now) return t ? t('formatters.expired') : '已过期';
+    if (ts < now) return t('formatters.expired');
     const dateStr = date.toLocaleDateString();
-    return t ? t('formatters.daysLeft', { days, date: dateStr }) : `${days}天后 (${dateStr})`;
+    return t('formatters.daysLeft', { days, date: dateStr });
 };
 
 /**
@@ -99,17 +106,23 @@ export const isImage = (file) => {
  * @returns {string} Relative time string
  */
 export const formatRelativeTime = (timestamp, t) => {
-    if (!timestamp) return '';
+    if (!timestamp) return t ? t('common.unknown') : '';
     const date = new Date(Number(timestamp));
     const now = new Date();
     const diff = now - date;
 
     // 一分钟内
-    if (diff < 60000) return t ? t('stats.justNow') : '刚刚';
+    if (diff < 60000) return t ? t('common.justNow') : '刚刚';
     // 一小时内
-    if (diff < 3600000) return t ? t('stats.minutesAgo', { count: Math.floor(diff / 60000) }) : `${Math.floor(diff / 60000)}分钟前`;
+    if (diff < 3600000) {
+        const count = Math.floor(diff / 60000);
+        return t ? t('common.minutesAgo', { count }) : `${count}分钟前`;
+    }
     // 一天内
-    if (diff < 86400000) return t ? t('stats.hoursAgo', { count: Math.floor(diff / 3600000) }) : `${Math.floor(diff / 3600000)}小时前`;
+    if (diff < 86400000) {
+        const count = Math.floor(diff / 3600000);
+        return t ? t('common.hoursAgo', { count }) : `${count}小时前`;
+    }
 
     // 超过一天，显示日期 (MM/DD)
     return `${date.getMonth() + 1}/${date.getDate()}`;

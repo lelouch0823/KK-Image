@@ -209,7 +209,7 @@ const uploadFile = async (file, hash, originalHash) => {
 // 处理选择
 const handleFileSelect = async (e) => {
   const files = Array.from(e.target.files);
-  console.log('[ImageUploader] handleFileSelect called. Deferred mode:', props.deferred);
+
   
   if (!files.length) return;
 
@@ -226,12 +226,12 @@ const handleFileSelect = async (e) => {
     let originalHash;
     try {
       originalHash = await getFileHash(file);
-      console.log('[ImageUploader] Original hash:', originalHash);
+
       
       // 预检查：如果原始文件已存在，直接秒传
       const checkResult = await checkOriginalHash(originalHash);
       if (checkResult.exists && checkResult.file) {
-        console.log('[ImageUploader] Pre-check hit! Instant upload from original hash');
+
         instantCount++;
         newFiles.push({
           id: checkResult.file.id,
@@ -249,7 +249,7 @@ const handleFileSelect = async (e) => {
     
     // 预检查未命中，继续压缩流程
     processingStatus.value = t('upload.compressing');
-    console.log('[ImageUploader] Starting compression for:', file.name);
+
     
     let compressedFile, hash;
     
@@ -261,7 +261,7 @@ const handleFileSelect = async (e) => {
       compressedFile = result.file;
       hash = result.hash;
       originalHash = result.originalHash; // 压缩时已计算的原始 hash
-      console.log('[ImageUploader] Compression complete:', compressedFile.name, 'hash:', hash);
+
     } catch (compressErr) {
       console.error('[ImageUploader] Compression failed:', compressErr);
       addToast({ message: `压缩失败: ${compressErr.message}`, type: 'error' });
@@ -273,7 +273,7 @@ const handleFileSelect = async (e) => {
     // 上传步骤
     try {
       if (props.deferred) {
-        console.log('[ImageUploader] Deferred mode, creating blob URL');
+
         const blobUrl = URL.createObjectURL(compressedFile);
         newFiles.push({
           id: generateRandomId('local'),
@@ -285,10 +285,10 @@ const handleFileSelect = async (e) => {
         });
       } else {
         processingStatus.value = t('upload.uploading');
-        console.log('[ImageUploader] Uploading to:', props.uploadEndpoint);
+
         
         const uploaded = await uploadFile(compressedFile, hash, originalHash);
-        console.log('[ImageUploader] Upload success:', uploaded);
+
         
         if (uploaded.instantUpload) {
           instantCount++;
@@ -308,7 +308,7 @@ const handleFileSelect = async (e) => {
     }
   }
 
-  console.log('[ImageUploader] Processing complete, newFiles:', newFiles.length);
+
   isProcessing.value = false;
   processingStatus.value = '';
   

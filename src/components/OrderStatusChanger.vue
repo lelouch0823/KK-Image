@@ -46,55 +46,47 @@
       </div>
     </Teleport>
 
-    <!-- 确认弹窗 -->
-    <div v-if="pendingStatus" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" @click.self="cancelChange">
-      <div class="bg-white rounded-xl w-full max-w-sm shadow-2xl p-6 animate-scale-in">
-        <h3 class="text-lg font-semibold text-primary mb-2">{{ t('order.manage.confirmStatusChange') }}</h3>
+    <!-- 备注输入弹窗 -->
+    <Modal v-model="showNoteModal" :title="t('order.manage.statusNote')" size="sm">
+      <div class="py-2">
         <p class="text-sm text-secondary mb-4">
           {{ t('order.timeline.statusChanged') }} 
-          <span class="font-medium text-primary mx-1">
-            {{ t(`order.statuses.${status}`) }}
-          </span>
+          <span class="font-medium text-primary mx-1">{{ t(`order.statuses.${status}`) }}</span>
           →
-          <span class="font-medium text-primary mx-1">
-            {{ t(`order.statuses.${pendingStatus}`) }}
-          </span>
+          <span class="font-medium text-primary mx-1">{{ t(`order.statuses.${pendingStatus}`) }}</span>
         </p>
-
-        <!-- 备注 -->
-        <div class="mb-6">
-          <label class="block text-xs font-medium text-secondary mb-1">
-            {{ t('order.manage.statusNote') }}
-          </label>
-          <input 
-            v-model="statusNote"
-            type="text"
-            :placeholder="t('order.manage.statusNotePlaceholder')"
-            class="input"
-            @keyup.enter="confirmChange"
-          >
-        </div>
-
-        <div class="flex gap-3">
-          <button 
-            @click="cancelChange" 
-            class="flex-1 px-4 py-2 border border-[var(--border-color)] text-secondary font-medium rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
-          >
-            {{ t('common.cancel') }}
-          </button>
-          <button 
-            @click="confirmChange"
-            class="flex-1 px-4 py-2 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-          >
-            <svg v-if="submitting" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-            </svg>
-            {{ t('common.confirm') }}
-          </button>
-        </div>
+        <label class="block text-xs font-medium text-secondary mb-1">
+          {{ t('order.manage.statusNote') }}
+        </label>
+        <input 
+          v-model="statusNote"
+          type="text"
+          :placeholder="t('order.manage.statusNotePlaceholder')"
+          class="input"
+          @keyup.enter="confirmChange"
+          autofocus
+        >
       </div>
-    </div>
+      <template #footer>
+        <button @click="cancelChange" class="btn btn-secondary">{{ t('common.cancel') }}</button>
+        <button @click="confirmChange" :disabled="submitting" class="btn btn-primary">
+          <svg v-if="submitting" class="w-4 h-4 animate-spin mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          {{ t('common.confirm') }}
+        </button>
+      </template>
+    </Modal>
+
+    <!-- Confirm Dialog (用于重要状态变更提示) -->
+    <ConfirmDialog
+      v-model="confirmData.show"
+      :title="confirmData.title"
+      :message="confirmData.message"
+      :type="confirmData.type"
+      @confirm="confirmData.onConfirm"
+    />
   </div>
 </template>
 
@@ -102,6 +94,8 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { STATUS_OPTIONS, STATUS_STYLES, STATUS_DOTS } from '@/utils/status';
+import Modal from '@/components/ui/Modal.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const props = defineProps({
   status: { type: String, required: true },
@@ -118,7 +112,17 @@ const triggerRef = ref(null);
 const pendingStatus = ref(null);
 const statusNote = ref('');
 const submitting = ref(false);
+const showNoteModal = ref(false);
 const dropdownPosition = ref({ top: 0, right: 0 });
+
+// 确认弹窗状态
+const confirmData = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'primary',
+  onConfirm: () => {}
+});
 
 const statusOptions = STATUS_OPTIONS;
 
@@ -153,7 +157,24 @@ const toggle = () => {
 
 const selectStatus = (s) => {
   if (s === props.status) return;
-  pendingStatus.value = s;
+  
+  // 对于重要状态变更（如作废、退款），使用 ConfirmDialog
+  if (s === 'void' || s === 'refunded') {
+    confirmData.value = {
+      show: true,
+      title: t('order.manage.confirmStatusChange'),
+      message: t('order.manage.confirmStatusChangeDesc', { status: t(`order.statuses.${s}`) }),
+      type: 'danger',
+      onConfirm: () => {
+        pendingStatus.value = s;
+        showNoteModal.value = true;
+      }
+    };
+  } else {
+    pendingStatus.value = s;
+    showNoteModal.value = true;
+  }
+  
   isOpen.value = false;
   statusNote.value = '';
 };
@@ -161,6 +182,7 @@ const selectStatus = (s) => {
 const cancelChange = () => {
   pendingStatus.value = null;
   statusNote.value = '';
+  showNoteModal.value = false;
 };
 
 const confirmChange = async () => {
@@ -172,6 +194,7 @@ const confirmChange = async () => {
       note: statusNote.value
     });
     pendingStatus.value = null;
+    showNoteModal.value = false;
   } finally {
     submitting.value = false;
   }

@@ -167,34 +167,13 @@
   </div>
 
   <!-- 删除确认弹窗 -->
-  <Modal
-    v-model="showDeleteConfirm"
-    :title="t('common.deleteConfirm')"
-    size="sm"
-  >
-    <div class="py-2">
-      <p class="text-sm text-gray-500">{{ t('customer.manage.deleteConfirm') }}</p>
-    </div>
-    <template #footer>
-      <button 
-        @click="showDeleteConfirm = false"
-        class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 bg-white"
-      >
-        {{ t('common.cancel') }}
-      </button>
-      <button 
-        @click="confirmDelete"
-        :disabled="deleting"
-        class="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center"
-      >
-        <svg v-if="deleting" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-        </svg>
-        {{ t('common.delete') }}
-      </button>
-    </template>
-  </Modal>
+  <ConfirmDialog
+    v-model="confirmData.show"
+    :title="confirmData.title"
+    :message="confirmData.message"
+    :type="confirmData.type"
+    @confirm="confirmData.onConfirm"
+  />
 </template>
 
 <script setup>
@@ -205,6 +184,7 @@ import { formatDate, formatCurrency } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import Modal from '@/components/ui/Modal.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -219,8 +199,16 @@ const { addToast } = useToast();
 const currentTab = ref('info');
 const orders = ref([]);
 const loadingOrders = ref(false);
-const showDeleteConfirm = ref(false);
 const deleting = ref(false);
+
+// 确认弹窗状态
+const confirmData = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'primary',
+  onConfirm: () => {}
+});
 
 const tabs = computed(() => [
   { key: 'info', name: t('customer.form.basicInfo') },
@@ -249,7 +237,13 @@ const loadOrders = async () => {
 };
 
 const handleDelete = () => {
-  showDeleteConfirm.value = true;
+  confirmData.value = {
+    show: true,
+    title: t('common.delete'),
+    message: t('customer.manage.deleteConfirm'),
+    type: 'danger',
+    onConfirm: confirmDelete
+  };
 };
 
 const confirmDelete = async () => {

@@ -268,6 +268,15 @@
     </div>
 
     <FileSelector v-if="showFileSelector" @close="showFileSelector = false" @select="addFiles" />
+
+    <!-- Confirm Dialog -->
+    <ConfirmDialog
+      v-model="confirmData.show"
+      :title="confirmData.title"
+      :message="confirmData.message"
+      :type="confirmData.type"
+      @confirm="confirmData.onConfirm"
+    />
   </div>
 </template>
 
@@ -281,6 +290,7 @@ import { ROUTES } from '@/utils/constants';
 import FileSelector from '@/components/FileSelector.vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import SpaceAnalytics from './SpaceAnalytics.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const props = defineProps({
   space: { type: Object, required: true }
@@ -299,6 +309,15 @@ const activeRightTab = ref('media');
 const passwordEnabled = ref(false);
 const mobileTab = ref('info');
 const isDesktop = ref(window.innerWidth >= 1024);
+
+// 确认弹窗状态
+const confirmData = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'primary',
+  onConfirm: () => {}
+});
 
 const form = ref({
   name: '',
@@ -342,12 +361,18 @@ const addFiles = async (fileIds) => {
   emit('updated');
 };
 
-const removeFile = async (fileId) => {
-  if(confirm(t('spaceManager.removeFileConfirm'))) {
-    await removeFilesFromSpace(props.space.id, [fileId]);
-    await initData();
-    emit('updated');
-  }
+const removeFile = (fileId) => {
+  confirmData.value = {
+    show: true,
+    title: t('common.confirm'),
+    message: t('spaceManager.removeFileConfirm'),
+    type: 'danger',
+    onConfirm: async () => {
+      await removeFilesFromSpace(props.space.id, [fileId]);
+      await initData();
+      emit('updated');
+    }
+  };
 };
 
 const setCover = (file) => {

@@ -131,6 +131,15 @@
     <SpaceDetailModal v-else-if="selectedSpace" 
       :space="selectedSpace" @close="selectedSpace = null" @updated="loadSpaces" 
       @openSubspace="onOpenSubspace" />
+
+    <!-- Confirm Dialog -->
+    <ConfirmDialog
+      v-model="confirmData.show"
+      :title="confirmData.title"
+      :message="confirmData.message"
+      :type="confirmData.type"
+      @confirm="confirmData.onConfirm"
+    />
   </div>
 </template>
 
@@ -143,6 +152,7 @@ import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
 import SpaceDetailModal from '@/components/SpaceDetailModal.vue';
 import SpaceProductEditor from '@/components/SpaceProductEditor.vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const { spaces, loading, loadSpaces, deleteSpace } = useSpaces();
 const { addToast } = useToast();
@@ -150,6 +160,15 @@ const { t } = useI18n();
 
 const showCreateModal = ref(false);
 const selectedSpace = ref(null);
+
+// 确认弹窗状态
+const confirmData = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'primary',
+  onConfirm: () => {}
+});
 
 const getTemplateLabel = (template) => t(`spaceManager.templates.${template || 'custom'}`) || template;
 
@@ -171,10 +190,16 @@ const copyShareLink = async (space) => {
   }
 };
 
-const deleteSpaceConfirm = async (space) => {
-  if (confirm(t('spaceManager.deleteSpaceConfirm', { name: space.name }))) {
-    await deleteSpace(space.id);
-  }
+const deleteSpaceConfirm = (space) => {
+  confirmData.value = {
+    show: true,
+    title: t('common.delete'),
+    message: t('spaceManager.deleteSpaceConfirm', { name: space.name }),
+    type: 'danger',
+    onConfirm: async () => {
+      await deleteSpace(space.id);
+    }
+  };
 };
 
 const onSpaceCreated = () => {
@@ -201,6 +226,7 @@ onActivated(() => {
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

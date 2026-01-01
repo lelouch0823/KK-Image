@@ -102,7 +102,7 @@ export function useImageCompression(customOptions = {}) {
         // 执行压缩
         let compressedBlob;
         try {
-            console.log(`[Compression] Starting compression for ${file.name} (Size: ${file.size})`);
+
             compressedBlob = await imageCompression(file, {
                 ...options,
                 onProgress: (progress) => onProgress(Math.round(progress))
@@ -116,7 +116,7 @@ export function useImageCompression(customOptions = {}) {
                     useWebWorker: false,
                     onProgress: (progress) => onProgress(Math.round(progress))
                 });
-                console.log('[Compression] Main thread compression successful');
+
             } catch (fallbackErr) {
                 console.error('[Compression] All compression attempts failed:', fallbackErr);
                 throw fallbackErr;
@@ -134,7 +134,7 @@ export function useImageCompression(customOptions = {}) {
         // 计算压缩后文件的哈希 (用于 CAS 存储)
         const hash = await computeSHA256(compressedFile);
 
-        console.log(`[Compression] Success: ${newFileName} (Size: ${compressedFile.size}, Ratio: ${(compressedFile.size / originalSize).toFixed(2)})`);
+
 
         return {
             file: compressedFile,

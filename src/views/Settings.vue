@@ -87,16 +87,15 @@
                 {{ formatDate(backup.uploadedAt) }}
               </td>
               <td class="px-6 py-4 text-right">
-                <a 
-                  :href="`/api/manage/backups/${backup.name}`" 
-                  download
+                <button 
+                  @click="downloadBackup(backup)"
                   class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-white border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-hover)] hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm"
                 >
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                   </svg>
                   {{ t('common.download') }}
-                </a>
+                </button>
               </td>
             </tr>
           </tbody>
@@ -156,6 +155,25 @@ const createBackup = async () => {
     addToast({ type: 'error', message: e.message });
   } finally {
     creating.value = false;
+  }
+};
+
+const downloadBackup = async (backup) => {
+  try {
+    const res = await fetch(`/api/manage/backups/${backup.name}`);
+    if (!res.ok) throw new Error(t('common.loadFailed'));
+    
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = backup.name;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (e) {
+    addToast({ type: 'error', message: e.message });
   }
 };
 

@@ -37,6 +37,7 @@ export async function onRequestGet(context) {
         const headers = new Headers();
         object.writeHttpMetadata(headers);
         headers.set('etag', object.httpEtag);
+        headers.set('Content-Length', object.size);
 
         // 强制下载 header
         headers.set('Content-Disposition', `attachment; filename="${filename}"`);

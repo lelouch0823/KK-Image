@@ -89,7 +89,7 @@
     <div v-else class="flex-1 flex flex-col">
       <!-- 文件夹列表 -->
       <div v-if="displayedSubfolders.length > 0" class="p-6 pb-0">
-        <FolderGrid :folders="displayedSubfolders" @navigate="navigateTo" />
+        <FolderGrid :folders="displayedSubfolders" @navigate="navigateTo" @delete="handleDeleteFolder" />
       </div>
 
       <!-- 分隔线 -->
@@ -156,10 +156,19 @@
       @updated="handleShareUpdated"
     />
 
-    <!-- Share File Modal -->
+     <!-- Share File Modal -->
     <ShareFileModal
        v-model="showShareFileModal"
        :file="currentShareFile"
+    />
+
+    <!-- Confirm Dialog -->
+    <ConfirmDialog
+      v-model="confirmData.show"
+      :title="confirmData.title"
+      :message="confirmData.message"
+      :type="confirmData.type"
+      @confirm="confirmData.onConfirm"
     />
   </div>
 </template>
@@ -178,6 +187,7 @@ import { useSearch } from '@/composables/useSearch';
 import MoveFileModal from '@/components/MoveFileModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
 import ShareFileModal from '@/components/ShareFileModal.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import { useToast } from '@/composables/useToast';
 import { useUploadQueue } from '@/composables/useUploadQueue';
 
@@ -193,6 +203,7 @@ const {
   breadcrumbs,
   loadFolderData,
   createFolder,
+  deleteFolder,
   deleteFile
 } = useFileManager();
 
@@ -220,6 +231,15 @@ const isDragging = ref(false);
 const dragCounter = ref(0);
 const currentShareFile = ref(null);
 
+// 确认弹窗状态
+const confirmData = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'primary',
+  onConfirm: () => {}
+});
+
 const navigateTo = (id) => {
   loadFolderData(id);
 };
@@ -234,10 +254,28 @@ const handleCreateFolder = async () => {
   if (success) showModal.value = false;
 };
 
-const handleDeleteFile = async (file) => {
-  if (confirm(t('fileManager.deleteFileConfirm', { name: file.name }) || `Are you sure you want to delete ${file.name}?`)) {
-    await deleteFile(file.id);
-  }
+const handleDeleteFile = (file) => {
+  confirmData.value = {
+    show: true,
+    title: t('common.delete'),
+    message: t('fileManager.deleteFileConfirm', { name: file.name }),
+    type: 'danger',
+    onConfirm: async () => {
+      await deleteFile(file.id);
+    }
+  };
+};
+
+const handleDeleteFolder = (folder) => {
+  confirmData.value = {
+    show: true,
+    title: t('common.delete'),
+    message: t('fileManager.deleteFolderConfirm', { name: folder.name }),
+    type: 'danger',
+    onConfirm: async () => {
+      await deleteFolder(folder.id);
+    }
+  };
 };
 
 // Folder-aware upload refresh

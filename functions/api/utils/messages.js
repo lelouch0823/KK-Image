@@ -150,7 +150,8 @@ export const MSG = {
         INVALID_PARAMS: '请求信息有误',
         NO_UPDATE_FIELDS: '未检测到信息变更',
         UPLOAD_FAILED: '上传失败',
-        UPLOAD_NO_FILE: '未找到上传文件'
+        UPLOAD_NO_FILE: '未找到上传文件',
+        CHECK_FAILED: '检查失败'
     },
 
     // 权限列表描述
