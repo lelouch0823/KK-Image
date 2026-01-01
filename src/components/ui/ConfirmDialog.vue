@@ -36,6 +36,19 @@
           <p class="text-gray-500 text-sm leading-relaxed">
             <slot>{{ message }}</slot>
           </p>
+
+          <!-- Input verification -->
+          <div v-if="showInput" class="mt-4">
+            <p v-if="inputLabel" class="text-xs font-medium text-gray-400 mb-2 text-left">{{ inputLabel }}</p>
+            <input 
+              ref="inputField"
+              v-model="inputValue"
+              :type="inputType"
+              :placeholder="inputPlaceholder"
+              class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              @keyup.enter="handleConfirm"
+            >
+          </div>
         </div>
 
         <!-- 操作按钮 -->
@@ -49,13 +62,14 @@
           </button>
           <button 
             @click="handleConfirm"
-            :disabled="loading"
+            :disabled="isConfirmDisabled"
             :class="[
               'flex-1 py-2.5 px-4 text-sm font-semibold text-white rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2',
               typeClasses.btn,
-              loading ? 'opacity-70 cursor-not-allowed' : ''
+              isConfirmDisabled ? 'opacity-70 cursor-not-allowed' : ''
             ]"
           >
+
             <svg v-if="loading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
@@ -70,7 +84,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -97,10 +111,40 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
-  }
+  },
+  // Input verification
+  showInput: Boolean,
+  inputPlaceholder: String,
+  inputLabel: String,
+  inputType: {
+    type: String,
+    default: 'text'
+  },
+  verifyText: String // If provided, confirm button disabled until input matches
 });
 
 const emit = defineEmits(['update:modelValue', 'confirm', 'cancel']);
+
+// Input verification state
+const inputValue = ref('');
+const inputField = ref(null);
+
+// Reset input when dialog opens
+watch(() => props.modelValue, (val) => {
+  if (val) {
+    inputValue.value = '';
+    if (props.showInput) {
+      nextTick(() => inputField.value?.focus());
+    }
+  }
+});
+
+// Confirm button disabled state
+const isConfirmDisabled = computed(() => {
+  if (props.loading) return true;
+  if (props.showInput && props.verifyText && inputValue.value !== props.verifyText) return true;
+  return false;
+});
 
 // Type-based styling
 const typeClasses = computed(() => {
@@ -151,8 +195,8 @@ const handleCancel = () => {
 };
 
 const handleConfirm = () => {
-  if (props.loading) return;
-  emit('confirm');
+  if (isConfirmDisabled.value) return;
+  emit('confirm', inputValue.value);
 };
 
 // ESC key to close
