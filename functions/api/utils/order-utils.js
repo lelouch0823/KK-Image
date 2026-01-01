@@ -39,6 +39,12 @@ export async function updateOrderFiles(env, orderId, orderNo, newFileIds, actor,
     const orderRepo = new OrderRepository(env.DB);
     await orderRepo.updateFiles(orderId, newFileIds);
 
+    // SOTA: 同步更新 main_image_id 为第一个文件
+    const newMainImageId = newFileIds.length > 0 ? newFileIds[0] : null;
+    await env.DB.prepare(
+        'UPDATE orders SET main_image_id = ?, updated_at = ? WHERE id = ?'
+    ).bind(newMainImageId, Date.now(), orderId).run();
+
     // SOTA: 自动归档到文件夹
     try {
         const rootId = await ensureFolder(env, 'Uploads', 'root');

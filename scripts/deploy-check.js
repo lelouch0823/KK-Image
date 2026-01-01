@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * KK-Image 部署验证脚本
+ * kk-life 部署验证脚本
  * 用于验证项目部署后的基本功能是否正常
  */
 
@@ -283,7 +283,7 @@ function generateReport(results) {
 
 // 主函数
 async function main() {
-  log('🚀 开始 KK-Image 部署验证...', 'bold');
+  log('🚀 开始 kk-life 部署验证...', 'bold');
   log(`📍 目标地址: ${CONFIG.BASE_URL}\n`);
 
   let passed = 0, failed = 0, warnings = 0;

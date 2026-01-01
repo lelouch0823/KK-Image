@@ -110,7 +110,7 @@ export async function onRequestPost(context) {
             type: file.type,
             url: `/file/${storageKey}`,
             instantUpload: isInstantUpload
-        }, isInstantUpload ? '秒传成功' : MSG.FILE.UPLOAD_SUCCESS);
+        }, isInstantUpload ? MSG.FILE.INSTANT_UPLOAD : MSG.FILE.UPLOAD_SUCCESS);
 
     } catch (err) {
         console.error('Admin upload error:', err);

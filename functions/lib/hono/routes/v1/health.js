@@ -49,10 +49,10 @@ app.get('/info', async (c) => {
     const { env } = c;
 
     const apiInfo = {
-        name: 'KK-Image API',
+        name: 'kk-life API',
         version: '2.0.0',
         framework: 'Hono',
-        description: 'RESTful API for KK-Image file management system',
+        description: 'RESTful API for kk-life file management system',
         documentation: 'https://github.com/x-dr/kk-image',
         endpoints: {
             files: '/api/v1/files',

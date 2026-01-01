@@ -13,9 +13,9 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'KK-Image Order System',
+        name: 'kk-life Order System',
         short_name: 'KK Order',
-        description: 'KK-Image 订单管理系统',
+        description: 'kk-life 订单管理系统',
         theme_color: '#ffffff',
         icons: [
           {

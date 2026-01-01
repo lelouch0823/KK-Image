@@ -1,10 +1,10 @@
 # =============================================================================
-# KK-Image Wrangler 配置文件
+# kk-life Wrangler 配置文件
 # 参考: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
 # Trigger Reload
 # =============================================================================
 
-name = "kk-image"
+name = "kk-life"
 compatibility_date = "2025-01-01"
 pages_build_output_dir = "./dist"
 
@@ -151,16 +151,16 @@ id = "0346979ddffe4b2da2a7ea7e05133167"
 # 生产环境 R2 存储桶绑定
 [[env.production.r2_buckets]]
 binding = "R2_BUCKET"
-bucket_name = "kk-image-storage"
+bucket_name = "kk-life-storage"
 
 [[env.production.r2_buckets]]
 binding = "R2_BACKUP_BUCKET"
-bucket_name = "kk-image-backup"
+bucket_name = "kk-life-backup"
 
 # 生产环境 D1 数据库绑定
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "kk-image-db"
+database_name = "kk-life-db"
 database_id = "f3234553-279e-417e-9271-5ea5d6686ad5"
 
 # =============================================================================
@@ -197,11 +197,11 @@ BASIC_PASS = "123456"
 
 [[r2_buckets]]
 binding = "R2_BUCKET"
-bucket_name = "kk-image-storage"
+bucket_name = "kk-life-storage"
 
 [[r2_buckets]]
 binding = "R2_BACKUP_BUCKET"
-bucket_name = "kk-image-backup"
+bucket_name = "kk-life-backup"
 
 # =============================================================================
 # D1 数据库绑定
@@ -210,7 +210,7 @@ bucket_name = "kk-image-backup"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "kk-image-db"
-database_id = "f3234553-279e-417e-9271-5ea5d6686ad5"
+database_name = "kk-life-db"
+database_id = "98401861-5d57-4cb8-b092-ba707f8257a3"
 migrations_dir = "migrations"
 

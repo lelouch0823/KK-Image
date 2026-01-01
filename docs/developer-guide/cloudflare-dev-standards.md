@@ -3,7 +3,7 @@
 **Last Updated**: 2025-12-28
 **Scope**: 适用于基于 Cloudflare Pages Functions, D1, R2 的应用开发。
 
-本文档定义了在 KK-Image 项目中遵循的 Cloudflare 开发标准。
+本文档定义了在 kk-life 项目中遵循的 Cloudflare 开发标准。
 
 ## 1. 架构与目录结构
 

@@ -1,6 +1,6 @@
 import assert from 'assert';
 
-describe('KK-Image Local Testing', function () {
+describe('kk-life Local Testing', function () {
     const baseUrl = 'http://127.0.0.1:8080';
 
     describe('Basic Endpoints', function () {

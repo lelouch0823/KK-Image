@@ -24,7 +24,7 @@
           KK
         </div>
         <transition name="fade-slide">
-          <span v-if="!isCollapsed" class="ml-3 text-lg font-bold text-primary tracking-tight whitespace-nowrap">KK-Image</span>
+          <span v-if="!isCollapsed" class="ml-3 text-lg font-bold text-primary tracking-tight whitespace-nowrap">kk-life</span>
         </transition>
       </div>
       <div class="flex items-center gap-1">

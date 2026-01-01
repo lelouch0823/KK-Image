@@ -1,32 +1,38 @@
-# KK-Image 文档中心
+# kk-life 文档中心
 
-欢迎来到 KK-Image (Pro) 项目的完整文档中心。
-本项目已升级为全栈现代化文件存储与共享平台，支持 **Cloudflare D1**, **R2**, 和 **Shared Spaces**。
+欢迎查阅 **kk-life** (前 KK-Image) 的官方文档。这是一个高性能、低成本的企业级文件存储与业务管理平台。
 
-## 📋 项目概览
+## 📚 核心文档
 
-KK-Image 是一个基于 Cloudflare Pages 的高性能图床/文件存储解决方案。
+### 🚀 快速入门
+- **[项目总结与架构](project-summary.md)** (强烈推荐阅读)
+  - 了解系统的 SOTA 架构 (Tailwind v4 + D1 + R2) 和业务模块 (订单/CRM/共享空间)。
+- **[快速安装部署](quick-start/installation.md)**
+  - 15分钟内部署自己的 kk-life 实例。
 
-### 🌟 核心特性 (v2.0+)
+### 💾 数据库与 API
+- **[数据库架构 (Schema)](DATABASE_SCHEMA.md)**
+  - 完整的 D1 数据库表结构定义 (Orders, Files, Blobs, CRM)。
+- **[API 文档](api/README.md)**
+  - 了解如何与 kk-life 后端交互。
 
-- **全栈架构**: Vue 3 + Tailwind CSS v4 + Cloudflare D1/R2/KV。
-- **多存储支持**: 支持 R2, S3, Telegram Bot API 作为后端存储。
-- **Shared Spaces (共享空间)**: 创建类似 Google Drive 的分享链接，支持密码保护、过期时间、多种展示模板（画廊、清单、瀑布流）。
-- **SOTA UX**: 极致的上传体验，队列管理，实时速度显示。
-- **智能管理**: 文件夹支持，批量文件操作，数据统计分析。
+### 📖 用户手册
+- [用户手册](user-manual/README.md)
+  - 学习如何管理文件、创建共享空间和使用订单系统。
 
-## 📚 文档导航
+---
 
-### 🚀 快速开始
-- [📖 项目总结与架构](../docs/project-summary.md) (推荐阅读)
-- [⚡ 安装部署指南](../docs/quick-start/installation.md) (需更新：主要使用 Wrangler)
+## 🏗 模块导航
 
-### 👨‍💻 开发者指南
-- [🏗️ Cloudflare Context 上下文指南](../docs/developer-guide/cloudflare-pages-context.md)
+- **共享空间 (Shared Spaces)**
+- **文件管理 (File Manager)**
+- **订单系统 (Order Management)**
+- **客户管理 (CRM)**
+- **Webhooks & Integrations**
 
-*(注：部分旧文档可能尚未完全更新以反映 D1 数据库架构，请以 project-summary.md 为准)*
+---
 
 ## 📞 获取帮助
 
-- **GitHub Issues**: [提交问题](https://github.com/cf-pages/KK-Image/issues)
-- **更新日志**: [查看更新](../README.md#更新日志)
+- **GitHub Issues**: [提交反馈](https://github.com/cf-pages/KK-Image/issues)
+- **更新日志**: 查看根目录 [CHANGELOG](../README.md)

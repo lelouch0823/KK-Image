@@ -1,4 +1,4 @@
-// KK-Image API 测试套件
+// kk-life API 测试套件
 import assert from 'assert';
 import fetch from 'node-fetch';
 import FormData from 'form-data';
@@ -21,7 +21,7 @@ let testWebhookId = null;
 let testJwtToken = null;
 let testApiKeyId = null;
 
-describe('KK-Image API v1 Tests', function () {
+describe('kk-life API v1 Tests', function () {
   this.timeout(30000); // 30秒超时
 
   // 系统监控 API 测试

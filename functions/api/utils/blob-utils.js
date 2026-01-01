@@ -116,8 +116,7 @@ export async function createFileReference(env, options) {
 export async function uploadToBlobStorage(env, hash, stream, mimeType, size) {
     // 上传到 R2，使用哈希作为 key
     await env.R2_BUCKET.put(hash, stream, {
-        httpMetadata: { contentType: mimeType },
-        sha256: hash  // R2 验证完整性（注意：R2 期望的是 base64，这里可能需要转换）
+        httpMetadata: { contentType: mimeType }
     });
 
     // 创建 blob 记录

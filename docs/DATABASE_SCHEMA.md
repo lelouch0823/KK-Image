@@ -1,144 +1,131 @@
-# KK-Image Database Schema
+# Database Schema (SOTA)
 
-## 1. Overview
-Current Architecture: **SOTA Hybrid Relational-Document Store**
-Using **Cloudflare D1 (SQLite)** with **Generated Columns** to combine the flexibility of NoSQL (JSON storage) with the performance of SQL (Indexed Virtual Columns).
+> **Last Updated**: 2026-01-01
+> **Database Engine**: Cloudflare D1 (SQLite)
 
-## 2. Tables
+本文档描述 **kk-life** 的核心数据库结构。所有表结构定义源自 `scripts/init-database.sql`。
 
-### `spaces` (Core Table)
-Stores all space/album information. Uses a hybrid schema strategy.
+## 1. 核心文件系统 (Core File System)
 
-| Column | Type | Description | Index |
-|--------|------|-------------|-------|
-| `id` | TEXT | Primary Key (NanoID), e.g. `s_a1b2c3d4` | PK |
-| `name` | TEXT | Space Name | |
-| `description` | TEXT | Description | |
-| `is_public` | INTEGER | 0=Private, 1=Public | |
-| `password` | TEXT | Access password (optional) | |
-| `share_token` | TEXT | Public access token | UNIQUE |
-| `expires_at` | INTEGER | Expiration Timestamp (ms) | |
-| `template` | TEXT | `product`, `gallery`, `portfolio`, `collection` | |
-| `template_data` | TEXT | **JSON Blob** storing dynamic fields | |
-| `created_at` | INTEGER | Creation Timestamp (ms) | |
-| `updated_at` | INTEGER | Update Timestamp (ms) | |
-| `view_count` | INTEGER | Total views | |
-| `download_count` | INTEGER | Total downloads | |
-| `parent_id` | TEXT | Parent Space ID (for Subspaces) | FK |
+### `folders` (文件夹)
+支持无限层级嵌套的文件目录结构。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK, UUID/NanoID |
+| `parent_id` | TEXT | FK -> folders.id (Null for root) |
+| `name` | TEXT | 文件夹名称 |
+| `is_public` | INTEGER | 0/1 是否公开 |
 
-#### 🚀 Virtual Generated Columns (Auto-Extracted from `template_data`)
-These columns DO NOT occupy extra storage but are INDEXED for O(log n) search performance.
+### `files` (文件元数据)
+存储文件的业务元数据，通过 `storage_key` 关联 R2 对象，通过 `content_hash` 关联物理存储 blob（去重）。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `folder_id` | TEXT | FK -> folders.id |
+| `name` | TEXT | 显示文件名 |
+| `storage_key`| TEXT | R2 中的 Key |
+| `content_hash`| TEXT | SHA-256 哈希 (用于 CAS 去重) |
+| `size` | INTEGER | 字节大小 |
+| `mime_type` | TEXT | e.g. image/jpeg |
 
-| Virtual Column | Source JSON Key | Type | Use Case |
-|----------------|-----------------|------|----------|
-| `sku` | `$.sku` | TEXT | Product Search |
-| `brand` | `$.brand` | TEXT | Brand Filtering |
-| `series` | `$.series` | TEXT | Series Grouping |
-| `price` | `$.price` | REAL | Price Range Sorting |
-| `material` | `$.material` | TEXT | Material Filtering |
-| `category` | `$.category` | TEXT | General Categorization |
-| `author` | `$.author` | TEXT | Author filtering (Portfolio) |
-| `tags` | `$.tags` | TEXT | Tag Search |
-
-```sql
--- Definition Example
-ALTER TABLE spaces ADD COLUMN sku TEXT 
-  GENERATED ALWAYS AS (json_extract(template_data, '$.sku')) VIRTUAL;
-```
+### `blobs` (物理存储/CAS)
+内容寻址存储表，实现文件去重。
+| Column | Type | Description |
+|--------|------|-------------|
+| `content_hash`| TEXT | PK, SHA-256 |
+| `ref_count` | INTEGER | 引用计数 |
 
 ---
 
-### `files` (Asset Table)
-Stores file metadata mapped to R2 objects.
+## 2. 共享空间 (Shared Spaces)
 
-| Column | Type | Description | Index |
-|--------|------|-------------|-------|
-| `id` | TEXT | Primary Key (NanoID) | PK |
-| `name` | TEXT | Original Filename | |
-| `r2_key` | TEXT | Cloudflare R2 Key | UNIQUE |
-| `size` | INTEGER | File size in bytes | |
-| `mime_type` | TEXT | MIME type (e.g. `image/jpeg`) | |
-| `width` | INTEGER | Image Width (px) | |
-| `height` | INTEGER | Image Height (px) | |
-| `blurhash` | TEXT | BlurHash string for placeholders | |
-| `created_by` | TEXT | Uploader User ID | IDX |
-| `created_at` | INTEGER | Timestamp | |
+### `spaces`
+类似于网盘分享链接的逻辑实体，支持多种视图模板。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `share_token`| TEXT | Unique, 用于公开访问 URL |
+| `template` | TEXT | `gallery`, `product`, `portfolio` 等 |
+| `template_data`| TEXT | JSON, 存储 SKU、价格等扩展字段 |
+| `password` | TEXT | 访问密码 (明文/简单哈希) |
+| `expires_at` | INTEGER | 过期时间戳 |
 
----
-
-### `folders` (File Organization)
-Hierarchical folder structure for file management.
-
-| Column | Type | Description | Index |
-|--------|------|-------------|-------|
-| `id` | TEXT | Primary Key | PK |
-| `name` | TEXT | Folder Name | |
-| `parent_id` | TEXT | Parent Folder ID (NULL = Root) | IDX |
-| `created_by` | TEXT | Creator User ID | IDX |
-| `created_at` | INTEGER | Timestamp | |
+### `space_files` (关联表)
+多对多关联 Space 和 Files。
 
 ---
 
-### `space_files` (Junction Table)
-Many-to-Many relationship between Spaces and Files.
+## 3. 订单与 CRM 系统 (Order & CRM)
 
-| Column | Type | Description | Index |
-|--------|------|-------------|-------|
-| `space_id` | TEXT | Foreign Key -> `spaces.id` | PK(Composite) |
-| `file_id` | TEXT | Foreign Key -> `files.id` | PK(Composite) |
-| `sort_order` | INTEGER | Display order in space | |
-| `created_at` | INTEGER | Timestamp | |
+### `salespersons` (销售人员)
+独立的销售端账户体系，基于 Access Token 登录。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `name` | TEXT | 销售姓名 |
+| `access_token`| TEXT | 登录凭证 (Unique) |
+| `store` | TEXT | 所属门店/区域 |
+
+### `customers` (客户)
+简易 CRM 客户档案。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `name` | TEXT | 客户姓名 |
+| `phone` | TEXT | 联系电话 |
+| `tags` | TEXT | JSON Array |
+
+### `orders` (订单)
+核心业务表。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `order_no` | TEXT | 唯一订单号 (ORD-Date-Seq) |
+| `salesperson_id`| TEXT | FK |
+| `customer_id`| TEXT | FK |
+| `status` | TEXT | `pending`, `confirmed`, `production`, `shipping`, `delivered`, `void` |
+| `original_data` | TEXT | JSON, 原始提交数据 (不可变) |
+| `current_data` | TEXT | JSON, 当前有效数据 |
+| `unread_by_admin`| INT | 1 = 管理员未读 |
+
+### `order_timeline` (时间轴)
+记录订单的所有操作日志。
+| Column | Type | Description |
+|--------|------|-------------|
+| `action_type` | TEXT | `created`, `field_updated`, `status_changed`, `comment` |
+| `actor_type` | TEXT | `salesperson` / `admin` |
+| `old_value` / `new_value` | TEXT | 变更前后的值 |
 
 ---
 
-## 3. Operations & Performance
+## 4. 系统模块
 
-### Read Optimization
-*   **Filters**: `SELECT * FROM spaces WHERE brand = 'Nike'` uses the functional index `idx_spaces_brand`.
-*   **Search**: `SELECT * FROM spaces WHERE sku = '12345'` uses `idx_spaces_sku`.
-*   **Sorting**: `SELECT * FROM spaces ORDER BY price DESC` uses `idx_spaces_price`.
+### `users` (管理员)
+后台通过用户名/密码登录。
 
-### Write Simplicity
-Application logic simply writes JSON to `template_data`:
-```js
-// Backend Insert
-const templateData = { sku: "A001", brand: "Sony", price: 299.99 };
-await env.DB.prepare("INSERT INTO spaces (..., template_data) VALUES(?, ?)")
-  .bind(..., JSON.stringify(templateData)).run();
-```
-SQLite automatically populates the virtual columns and updates indexes. No separate column logic needed.
+### `notifications` (通知)
+站内消息通知。
+| Column | Type | Description |
+|--------|------|-------------|
+| `type` | TEXT | `system`, `order`, `deadline` |
+| `is_read` | INTEGER | 0/1 |
 
-## 4. Entity Relationship Diagram (ERD)
+### `webhooks` & `webhook_logs`
+外部系统集成回调配置及日志。
+
+---
+
+## ER Diagram (Simplified)
 
 ```mermaid
 erDiagram
-    SPACES ||--o{ SPACE_FILES : contains
-    FILES ||--o{ SPACE_FILES : belongs_to
-    FOLDERS ||--o{ FILES : organizes
-    FOLDERS ||--o{ FOLDERS : parent
-
-    SPACES {
-        string id PK
-        string name
-        json template_data "Contains SKU, Price..."
-        string sku "Virtual (Indexed)"
-        string brand "Virtual (Indexed)"
-        real price "Virtual (Indexed)"
-        string category "Virtual (Indexed)"
-    }
-
-    FILES {
-        string id PK
-        string r2_key
-        int size
-        int width
-        int height
-        string blurhash
-    }
-
-    SPACE_FILES {
-        string space_id FK
-        string file_id FK
-        int sort_order
-    }
+    FOLDERS ||--o{ FILES : contains
+    FILES }o--|| BLOBS : refers_to
+    
+    SPACES }o--o{ FILES : highlights
+    
+    SALESPERSONS ||--o{ ORDERS : submits
+    CUSTOMERS ||--o{ ORDERS : owns
+    ORDERS ||--o{ ORDER_TIMELINE : logs
+    ORDERS }o--o{ FILES : attachments
 ```

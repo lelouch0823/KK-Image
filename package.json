@@ -1,5 +1,5 @@
 {
-  "name": "kk-image",
+  "name": "kk-life",
   "version": "2.0.0",
   "description": "Free image hosting solution using Cloudflare Pages and Telegram Bot API",
   "type": "module",

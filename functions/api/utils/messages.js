@@ -35,7 +35,8 @@ export const MSG = {
         SELECT_FILE: '请选择要上传的文件',
         INVALID_TYPE: '仅支持 JPG、PNG、GIF、WebP 格式',
         SIZE_LIMIT: '文件大小不能超过 10MB',
-        UPLOAD_SUCCESS: '上传成功'
+        UPLOAD_SUCCESS: '上传成功',
+        INSTANT_UPLOAD: '秒传成功'
     },
 
     FOLDER: {

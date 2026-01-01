@@ -262,7 +262,7 @@ app.post('/:id/test',
                 event: 'webhook.test',
                 timestamp: new Date().toISOString(),
                 data: {
-                    message: 'This is a test webhook from KK-Image',
+                    message: 'This is a test webhook from kk-life',
                     webhook: { id: webhook.id, url: webhook.url },
                     user: { id: user.id, name: user.name }
                 },
@@ -271,7 +271,7 @@ app.post('/:id/test',
 
             const headers = {
                 'Content-Type': 'application/json',
-                'User-Agent': 'KK-Image-Webhook/2.0',
+                'User-Agent': 'kk-life-Webhook/2.0',
                 'X-Webhook-Event': payload.event,
                 'X-Webhook-ID': payload.id,
                 ...webhook.headers

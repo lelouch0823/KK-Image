@@ -75,7 +75,7 @@ async function sendWebhook(env, webhook, payload) {
     try {
       const headers = {
         'Content-Type': 'application/json',
-        'User-Agent': 'KK-Image-Webhook/1.0',
+        'User-Agent': 'kk-life-Webhook/1.0',
         'X-Webhook-Event': payload.event,
         'X-Webhook-ID': payload.id,
         'X-Webhook-Timestamp': payload.timestamp

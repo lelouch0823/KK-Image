@@ -1,10 +1,10 @@
 # 部署指南
 
-本指南提供了 KK-Image 在各种环境下的详细部署说明，包括生产环境配置、性能优化和故障排除。
+本指南提供了 kk-life 在各种环境下的详细部署说明，包括生产环境配置、性能优化和故障排除。
 
 ## 📋 部署概览
 
-KK-Image 基于 Cloudflare Pages 的无服务器架构，支持快速部署和自动扩展。本指南涵盖从基础部署到高级配置的完整流程。
+kk-life 基于 Cloudflare Pages 的无服务器架构，支持快速部署和自动扩展。本指南涵盖从基础部署到高级配置的完整流程。
 
 ## 🎯 部署目标
 
@@ -277,7 +277,7 @@ jobs:
       - name: Sync upstream changes
         uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
         with:
-          upstream_sync_repo: cf-pages/KK-Image
+          upstream_sync_repo: cf-pages/kk-life
           upstream_sync_branch: main
           target_sync_branch: main
 ```
@@ -389,4 +389,4 @@ export async function onRequest(context) {
 
 ---
 
-🚀 **生产就绪**: 按照本指南完成部署后，您将拥有一个稳定、安全、高性能的 KK-Image 服务！
+🚀 **生产就绪**: 按照本指南完成部署后，您将拥有一个稳定、安全、高性能的 kk-life 服务！

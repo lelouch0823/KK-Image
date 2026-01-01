@@ -1,4 +1,4 @@
-# KK-Image
+# kk-life
 
 免费图片托管解决方案，Flickr/imgur 替代品。使用 Cloudflare Pages 和 Telegraph。
 
@@ -16,7 +16,7 @@
 
 ## 📚 完整文档
 
-我们提供了详细的文档来帮助您快速上手和深入使用 KK-Image：
+我们提供了详细的文档来帮助您快速上手和深入使用 kk-life：
 
 - **[📖 文档中心](docs/README.md)** - 完整的项目文档导航
 - **[🚀 快速开始](docs/quick-start/README.md)** - 15分钟快速部署指南

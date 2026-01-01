@@ -309,7 +309,7 @@ export default {
         loginSuccess: '登录成功',
         loginFailed: '登录失败，请稍后重试',
         logout: '退出登录',
-        copyright: '© {year} KK-Image used for file storage',
+        copyright: '© {year} kk-life',
         passwordRequired: '需要密码',
         passwordSubtitle: '此内容受密码保护',
         passwordAccessPlaceholder: '请输入访问密码',
@@ -396,7 +396,7 @@ export default {
         copyFailed: '复制失败',
         passwordError: '密码错误',
         enterPasswordFirst: '请输入密码',
-        poweredBy: 'Powered by KK-Image',
+        poweredBy: 'Powered by kk-life',
     },
     // Composables 翻译
     spaces: {
