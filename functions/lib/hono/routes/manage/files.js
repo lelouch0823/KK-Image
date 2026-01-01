@@ -40,7 +40,8 @@ app.get('/', async (c) => {
             sql += ' WHERE folder_id = ?';
             bindings.push(folderId);
         } else {
-            sql += ' WHERE folder_id IS NULL';
+            // 兼容 folder_id = 'root' 和 folder_id IS NULL 两种情况
+            sql += " WHERE (folder_id = 'root' OR folder_id IS NULL)";
         }
 
         // 获取总数

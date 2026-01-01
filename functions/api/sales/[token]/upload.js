@@ -34,6 +34,9 @@ export async function onRequestPost(context) {
         // 确定目标文件夹
         let folderId = 'root';
 
+        // DEBUG: 临时日志 - 排查归档问题
+        console.log('[Sales Upload] orderId from query:', orderId);
+
         // 如果提供了 orderId，直接归档到订单文件夹
         if (orderId) {
             try {
@@ -42,14 +45,21 @@ export async function onRequestPost(context) {
                     'SELECT order_no FROM orders WHERE id = ?'
                 ).bind(orderId).first();
 
+                console.log('[Sales Upload] Found order:', order);
+
                 if (order && order.order_no) {
                     const { ensureOrderFolder } = await import('../../utils/folder-utils.js');
                     folderId = await ensureOrderFolder(env, order.order_no);
+                    console.log('[Sales Upload] ensureOrderFolder returned folderId:', folderId);
+                } else {
+                    console.warn('[Sales Upload] Order not found or missing order_no for orderId:', orderId);
                 }
             } catch (e) {
                 console.error('Archive folder creation error:', e);
                 // 失败时回退到 root
             }
+        } else {
+            console.log('[Sales Upload] No orderId provided, using root folder');
         }
 
         // 使用通用工具存储文件 (支持 CAS)

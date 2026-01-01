@@ -25,6 +25,10 @@ app.get('/',
         if (folderId) {
             sql += ' AND folder_id = ?';
             bindings.push(folderId);
+        } else {
+            // 没有指定 folderId 时，只返回根目录文件
+            // 兼容 folder_id = 'root' 和 folder_id IS NULL 两种情况
+            sql += " AND (folder_id = 'root' OR folder_id IS NULL)";
         }
 
         if (search) {
