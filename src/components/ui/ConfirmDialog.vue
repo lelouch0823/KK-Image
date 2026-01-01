@@ -1,6 +1,7 @@
 <template>
-  <transition name="fade-scale">
-    <div v-if="modelValue" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+  <Teleport to="body">
+    <transition name="fade-scale">
+      <div v-if="modelValue" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div 
         class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-gray-100"
         @click.stop
@@ -63,8 +64,9 @@
           </button>
         </div>
       </div>
-    </div>
-  </transition>
+      </div>
+    </transition>
+  </Teleport>
 </template>
 
 <script setup>
