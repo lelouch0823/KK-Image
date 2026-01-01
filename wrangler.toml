@@ -110,6 +110,14 @@ COMPRESS_STATIC_ASSETS = "true"
 STORAGE_MODE = "single"
 STORAGE_PROVIDER = "r2"
 STORAGE_PRIMARY = "r2"
+# ⚠️ SOTA 安全最佳实践说明：
+# 虽然在此文件中直接定义 Secrets (如 JWT_SECRET) 可以工作，但这会将密码暴露在代码库中。
+# 推荐做法：
+# 1. 在此文件中将敏感值留空或仅设为开发默认值。
+# 2. 生产环境密码请使用命令行上传：`npx wrangler pages secret put JWT_SECRET`
+# 3. 或在 Cloudflare Dashboard -> Settings -> Environment Variables 中手动添加。
+# Cloudflare 后台设置的 Secret 优先级高于此文件。
+
 BASIC_USER = "admin"
 BASIC_PASS = "123"
 JWT_SECRET = "kk-image-jwt-secret-change-in-production"
@@ -140,13 +148,6 @@ TURNSTILE_SECRET_KEY = "0x4AAAAAACJfZgVVRfDSbOF7Kf9bU1kmmHI"
 binding = "img_url"
 id = "7bedbd0e77b64e548b280114c38a5541"
 
-[[env.production.kv_namespaces]]
-binding = "WEBHOOKS_KV"
-id = "6ae427ac8290406684dcabf2ca4babac"
-
-[[env.production.kv_namespaces]]
-binding = "WEBHOOK_LOGS_KV"
-id = "0346979ddffe4b2da2a7ea7e05133167"
 
 # 生产环境 R2 存储桶绑定
 [[env.production.r2_buckets]]
