@@ -165,7 +165,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, onUnmounted, watch, computed } from 'vue';
+import { onMounted, ref, onUnmounted, onActivated, watch, computed } from 'vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import Modal from '@/components/ui/Modal.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
@@ -324,6 +324,10 @@ onMounted(() => {
   loadFolderData();
   window.addEventListener('dragover', preventDefaultHandler);
   window.addEventListener('drop', preventDefaultHandler);
+});
+
+onActivated(() => {
+  loadFolderData(currentFolder.value?.id);
 });
 
 onUnmounted(() => {

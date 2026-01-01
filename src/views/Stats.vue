@@ -131,7 +131,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, onUnmounted } from 'vue';
+import { ref, onMounted, onActivated, nextTick, onUnmounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
@@ -273,5 +273,9 @@ onMounted(() => {
   // Auto refresh
   const timer = setInterval(loadStats, 300000); // 5 min
   onUnmounted(() => clearInterval(timer));
+});
+
+onActivated(() => {
+  loadStats();
 });
 </script>

@@ -127,7 +127,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, onActivated } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { formatDate } from '@/utils/formatters';
@@ -243,6 +243,10 @@ const handleFormSubmit = async (formData) => {
 };
 
 onMounted(() => {
+  loadCustomers();
+});
+
+onActivated(() => {
   loadCustomers();
 });
 </script>

@@ -75,7 +75,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onActivated } from 'vue';
 import { useSalespersons } from '@/composables/useSalespersons';
 import { useI18n } from '@/composables/useI18n';
 import SearchInput from '@/components/ui/SearchInput.vue';
@@ -110,6 +110,10 @@ const currentPage = computed({
 
 // 初始化
 onMounted(() => {
+  loadSalespersons();
+});
+
+onActivated(() => {
   loadSalespersons();
 });
 
