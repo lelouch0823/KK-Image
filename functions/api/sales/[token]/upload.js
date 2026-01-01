@@ -25,7 +25,8 @@ export async function onRequestPost(context) {
         // 解析查询参数
         const url = new URL(request.url);
         const orderId = url.searchParams.get('orderId');
-        const contentHash = url.searchParams.get('contentHash'); // SOTA: 支持 Sales 端传 Hash
+        const contentHash = url.searchParams.get('contentHash'); // 压缩后 hash
+        const originalHash = url.searchParams.get('originalHash'); // 原始文件 hash
 
         // 解析 FormData
         const formData = await request.formData();
@@ -33,9 +34,6 @@ export async function onRequestPost(context) {
 
         // 确定目标文件夹
         let folderId = 'root';
-
-        // DEBUG: 临时日志 - 排查归档问题
-        console.log('[Sales Upload] orderId from query:', orderId);
 
         // 如果提供了 orderId，直接归档到订单文件夹
         if (orderId) {
@@ -45,27 +43,21 @@ export async function onRequestPost(context) {
                     'SELECT order_no FROM orders WHERE id = ?'
                 ).bind(orderId).first();
 
-                console.log('[Sales Upload] Found order:', order);
-
                 if (order && order.order_no) {
                     const { ensureOrderFolder } = await import('../../utils/folder-utils.js');
                     folderId = await ensureOrderFolder(env, order.order_no);
-                    console.log('[Sales Upload] ensureOrderFolder returned folderId:', folderId);
-                } else {
-                    console.warn('[Sales Upload] Order not found or missing order_no for orderId:', orderId);
                 }
             } catch (e) {
                 console.error('Archive folder creation error:', e);
                 // 失败时回退到 root
             }
-        } else {
-            console.log('[Sales Upload] No orderId provided, using root folder');
         }
 
-        // 使用通用工具存储文件 (支持 CAS)
+        // 使用通用工具存储文件 (支持 CAS + 原始 Hash 去重)
         const { storeFile } = await import('../../utils/file-utils.js');
         const result = await storeFile(env, file, {
             contentHash,
+            originalHash,  // 传递原始文件 hash
             folderId,
             createdBy: salesperson.id
         });

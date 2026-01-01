@@ -69,7 +69,8 @@ export function useImageCompression(customOptions = {}) {
      * @param {Function} onProgress - 进度回调 (0-100)
      * @returns {Promise<{
      *   file: File,
-     *   hash: string,
+     *   hash: string,         // 压缩后文件的 SHA-256 (用于 CAS)
+     *   originalHash: string, // 原始文件的 SHA-256 (用于跨设备去重)
      *   originalSize: number,
      *   compressedSize: number,
      *   ratio: number
@@ -82,12 +83,15 @@ export function useImageCompression(customOptions = {}) {
 
         const originalSize = file.size;
 
+        // ⚡ SOTA: 先计算原始文件 hash (用于预检查去重)
+        const originalHash = await computeSHA256(file);
+
         // 如果是 GIF，跳过压缩（保留动画）
         if (file.type === 'image/gif') {
-            const hash = await computeSHA256(file);
             return {
                 file,
-                hash,
+                hash: originalHash,  // GIF 不压缩，所以 hash 相同
+                originalHash,
                 originalSize,
                 compressedSize: file.size,
                 ratio: 1,
@@ -127,14 +131,15 @@ export function useImageCompression(customOptions = {}) {
             type: options.fileType || compressedBlob.type
         });
 
-        // 计算哈希
+        // 计算压缩后文件的哈希 (用于 CAS 存储)
         const hash = await computeSHA256(compressedFile);
 
         console.log(`[Compression] Success: ${newFileName} (Size: ${compressedFile.size}, Ratio: ${(compressedFile.size / originalSize).toFixed(2)})`);
 
         return {
             file: compressedFile,
-            hash,
+            hash,             // 压缩后 hash
+            originalHash,     // 原始文件 hash
             originalSize,
             compressedSize: compressedFile.size,
             ratio: compressedFile.size / originalSize

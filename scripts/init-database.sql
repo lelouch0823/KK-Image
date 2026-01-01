@@ -50,7 +50,8 @@ CREATE TABLE IF NOT EXISTS files (
     size INTEGER DEFAULT 0,                 -- 文件大小
     mime_type TEXT,                         -- MIME 类型
     storage_key TEXT NOT NULL,              -- 存储 Key (通常是 content_hash，或者是随机 ID)
-    content_hash TEXT,                      -- 内容哈希 (关联 blobs 表，支持秒传)
+    content_hash TEXT,                      -- 压缩后内容哈希 (关联 blobs 表，支持 CAS)
+    original_hash TEXT,                     -- 原始文件哈希 (用于跨设备/浏览器去重)
     is_public INTEGER DEFAULT 0,            -- 是否公开
     created_by TEXT,                        -- 上传人
     width INTEGER,                          -- 图片宽度 (像素)
@@ -64,6 +65,7 @@ CREATE TABLE IF NOT EXISTS files (
 CREATE INDEX IF NOT EXISTS idx_files_folder ON files(folder_id);
 CREATE INDEX IF NOT EXISTS idx_files_created ON files(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_files_content_hash ON files(content_hash);
+CREATE INDEX IF NOT EXISTS idx_files_original_hash ON files(original_hash);
 CREATE INDEX IF NOT EXISTS idx_files_created_by ON files(created_by);
 
 -- ===========================================================================

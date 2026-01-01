@@ -154,18 +154,42 @@ const handleDrop = (targetIndex) => {
 };
 
 // 使用 SOTA 图片压缩 composable
-const { compressImage } = useImageCompression();
+const { compressImage, getFileHash } = useImageCompression();
 
-// 上传图片 (支持 CAS 秒传)
-const uploadFile = async (file, hash) => {
+/**
+ * 预检查原始文件 hash 是否已存在
+ * @param {string} originalHash - 原始文件的 SHA-256
+ * @returns {Promise<{exists: boolean, file?: object}>}
+ */
+const checkOriginalHash = async (originalHash) => {
+  try {
+    const response = await fetch(API.CHECK_HASH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ original_hash: originalHash }),
+      credentials: 'include'
+    });
+    const result = await response.json();
+    return result.success ? result.data : { exists: false };
+  } catch (e) {
+    console.warn('[ImageUploader] Pre-check failed, will proceed with upload:', e);
+    return { exists: false };
+  }
+};
+
+// 上传图片 (支持 CAS + 原始 Hash 去重)
+const uploadFile = async (file, hash, originalHash) => {
   const formData = new FormData();
   formData.append('file', file);
 
-  // 构建 URL，附加 contentHash 参数用于秒传
+  // 构建 URL，附加 contentHash 和 originalHash 参数
   let uploadUrl = props.uploadEndpoint;
-  if (hash) {
+  const params = [];
+  if (hash) params.push(`contentHash=${hash}`);
+  if (originalHash) params.push(`originalHash=${originalHash}`);
+  if (params.length) {
     const separator = uploadUrl.includes('?') ? '&' : '?';
-    uploadUrl = `${uploadUrl}${separator}contentHash=${hash}`;
+    uploadUrl = `${uploadUrl}${separator}${params.join('&')}`;
   }
 
   const response = await fetch(uploadUrl, {
@@ -196,6 +220,34 @@ const handleFileSelect = async (e) => {
     if (newFiles.length >= props.maxFiles) break;
     
     isProcessing.value = true;
+    processingStatus.value = t('upload.checkingDuplicate');
+    
+    // ⚡ SOTA: 先计算原始文件 hash 并预检查
+    let originalHash;
+    try {
+      originalHash = await getFileHash(file);
+      console.log('[ImageUploader] Original hash:', originalHash);
+      
+      // 预检查：如果原始文件已存在，直接秒传
+      const checkResult = await checkOriginalHash(originalHash);
+      if (checkResult.exists && checkResult.file) {
+        console.log('[ImageUploader] Pre-check hit! Instant upload from original hash');
+        instantCount++;
+        newFiles.push({
+          id: checkResult.file.id,
+          url: checkResult.file.url,
+          hash: null,
+          originalHash,
+          instantUpload: true
+        });
+        addToast({ message: t('upload.instantUploadSuccess'), type: 'success' });
+        continue; // 跳过压缩和上传
+      }
+    } catch (e) {
+      console.warn('[ImageUploader] Pre-check error:', e);
+    }
+    
+    // 预检查未命中，继续压缩流程
     processingStatus.value = t('upload.compressing');
     console.log('[ImageUploader] Starting compression for:', file.name);
     
@@ -208,6 +260,7 @@ const handleFileSelect = async (e) => {
       });
       compressedFile = result.file;
       hash = result.hash;
+      originalHash = result.originalHash; // 压缩时已计算的原始 hash
       console.log('[ImageUploader] Compression complete:', compressedFile.name, 'hash:', hash);
     } catch (compressErr) {
       console.error('[ImageUploader] Compression failed:', compressErr);
@@ -227,13 +280,14 @@ const handleFileSelect = async (e) => {
           url: blobUrl,
           file: compressedFile,
           hash,
+          originalHash,
           isLocal: true
         });
       } else {
-        processingStatus.value = t('upload.checkingDuplicate');
+        processingStatus.value = t('upload.uploading');
         console.log('[ImageUploader] Uploading to:', props.uploadEndpoint);
         
-        const uploaded = await uploadFile(compressedFile, hash);
+        const uploaded = await uploadFile(compressedFile, hash, originalHash);
         console.log('[ImageUploader] Upload success:', uploaded);
         
         if (uploaded.instantUpload) {
@@ -244,6 +298,7 @@ const handleFileSelect = async (e) => {
           id: uploaded.id,
           url: `/file/${uploaded.storage_key || uploaded.storageKey}`,
           hash,
+          originalHash,
           instantUpload: uploaded.instantUpload
         });
       }

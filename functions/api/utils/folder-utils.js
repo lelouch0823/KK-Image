@@ -4,14 +4,24 @@ import { generateId, now } from './id.js';
  * 确保文件夹存在，不存在则创建
  * @param {Object} env 
  * @param {string} name 文件夹名称
- * @param {string} parentId 父文件夹 ID
+ * @param {string|null} parentId 父文件夹 ID，'root' 或 null 表示根目录
  * @returns {Promise<string>} 文件夹 ID
  */
-export async function ensureFolder(env, name, parentId = 'root') {
+export async function ensureFolder(env, name, parentId = null) {
+    // 将 'root' 转换为 null，与数据库约定一致
+    const normalizedParentId = (parentId === 'root' || parentId === null) ? null : parentId;
+
     // 查找是否存在
-    const folder = await env.DB.prepare(
-        'SELECT id FROM folders WHERE name = ? AND parent_id = ?'
-    ).bind(name, parentId).first();
+    let folder;
+    if (normalizedParentId === null) {
+        folder = await env.DB.prepare(
+            'SELECT id FROM folders WHERE name = ? AND parent_id IS NULL'
+        ).bind(name).first();
+    } else {
+        folder = await env.DB.prepare(
+            'SELECT id FROM folders WHERE name = ? AND parent_id = ?'
+        ).bind(name, normalizedParentId).first();
+    }
 
     if (folder) {
         return folder.id;
@@ -22,7 +32,7 @@ export async function ensureFolder(env, name, parentId = 'root') {
     const timestamp = now();
     await env.DB.prepare(
         'INSERT INTO folders (id, parent_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
-    ).bind(id, parentId, name, timestamp, timestamp).run();
+    ).bind(id, normalizedParentId, name, timestamp, timestamp).run();
 
     return id;
 }

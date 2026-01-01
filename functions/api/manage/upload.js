@@ -25,7 +25,8 @@ export async function onRequestPost(context) {
         // 解析查询参数
         const url = new URL(request.url);
         const orderId = url.searchParams.get('orderId');
-        const contentHash = url.searchParams.get('contentHash');
+        const contentHash = url.searchParams.get('contentHash'); // 压缩后 hash
+        const originalHash = url.searchParams.get('originalHash'); // 原始文件 hash
 
         // 解析 FormData
         const formData = await request.formData();
@@ -38,35 +39,26 @@ export async function onRequestPost(context) {
         // 确定目标文件夹
         let folderId = 'root';
 
-        // DEBUG: 临时日志 - 排查归档问题
-        console.log('[Admin Upload] orderId from query:', orderId);
-
         if (orderId) {
             try {
                 const order = await env.DB.prepare(
                     'SELECT order_no FROM orders WHERE id = ?'
                 ).bind(orderId).first();
 
-                console.log('[Admin Upload] Found order:', order);
-
                 if (order && order.order_no) {
                     const { ensureOrderFolder } = await import('../utils/folder-utils.js');
                     folderId = await ensureOrderFolder(env, order.order_no);
-                    console.log('[Admin Upload] ensureOrderFolder returned folderId:', folderId);
-                } else {
-                    console.warn('[Admin Upload] Order not found or missing order_no for orderId:', orderId);
                 }
             } catch (e) {
                 console.error('Archive folder creation error:', e);
             }
-        } else {
-            console.log('[Admin Upload] No orderId provided, using root folder');
         }
 
-        // 使用通用工具存储文件
+        // 使用通用工具存储文件 (支持 CAS + 原始 Hash 去重)
         const { storeFile } = await import('../utils/file-utils.js');
         const result = await storeFile(env, file, {
             contentHash,
+            originalHash,  // 传递原始文件 hash
             folderId,
             createdBy: admin.id // 标记为管理员上传
         });

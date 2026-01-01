@@ -13,13 +13,14 @@ import { getBlobByHash, createBlob, incrementRefCount } from './blob-utils.js';
  * @param {Object} env 环境对象
  * @param {File} file 文件对象
  * @param {Object} options 选项
- * @param {string} [options.contentHash] 文件内容的 SHA-256 哈希（用于去重）
+ * @param {string} [options.contentHash] 压缩后文件的 SHA-256 哈希（用于 CAS 去重）
+ * @param {string} [options.originalHash] 原始文件的 SHA-256 哈希（用于跨设备/浏览器去重）
  * @param {string} [options.folderId='root'] 目标文件夹 ID
  * @param {string} [options.createdBy] 创建者信息（可选）
  * @returns {Promise<Object>} 上传结果 { id, storage_key, url, ... }
  */
 export async function storeFile(env, file, options = {}) {
-    const { contentHash, folderId = 'root', createdBy } = options;
+    const { contentHash, originalHash, folderId = 'root', createdBy } = options;
 
     if (!file || !(file instanceof File)) {
         throw new Error(MSG.FILE.SELECT_FILE);
@@ -40,7 +41,7 @@ export async function storeFile(env, file, options = {}) {
     let storageKey;
     let isInstantUpload = false;
 
-    // 3. CAS 秒传检测
+    // 3. CAS 秒传检测 (基于 contentHash)
     if (contentHash) {
         const existingBlob = await getBlobByHash(env, contentHash);
         if (existingBlob) {
@@ -55,7 +56,7 @@ export async function storeFile(env, file, options = {}) {
     if (!storageKey) {
         // 使用 content_hash 作为 storage_key（如果提供），否则生成随机 key
         // 为了最大化去重，建议前端即使第一传也计算 Hash
-        storageKey = contentHash || `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+        storageKey = contentHash || `fallback-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
 
         // 上传到 R2
         await env.R2_BUCKET.put(storageKey, file.stream(), {
@@ -75,8 +76,8 @@ export async function storeFile(env, file, options = {}) {
     await env.DB.prepare(`
         INSERT INTO files (
             id, name, storage_key, original_name, mime_type, size, 
-            folder_id, content_hash, created_by, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            folder_id, content_hash, original_hash, created_by, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
         fileId,
         file.name,
@@ -86,6 +87,7 @@ export async function storeFile(env, file, options = {}) {
         file.size,
         folderId,
         contentHash || null,
+        originalHash || null,  // 存储原始文件 hash
         createdBy || null,
         timestamp,
         timestamp
