@@ -161,7 +161,7 @@ bucket_name = "kk-life-backup"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "kk-life-db"
-database_id = "f3234553-279e-417e-9271-5ea5d6686ad5"
+database_id = "98401861-5d57-4cb8-b092-ba707f8257a3"
 
 # =============================================================================
 # 预览环境配置
