@@ -1,9 +1,10 @@
 <template>
+  <!-- 移动端全屏，桌面端 6xl -->
   <Modal 
     :modelValue="true" 
-    size="6xl"
+    :size="isMobile ? 'full' : '6xl'"
     :title="t('order.manage.editOrder')"
-    bodyClass="flex-1 overflow-y-auto p-6"
+    :bodyClass="isMobile ? 'flex-1 overflow-y-auto p-4' : 'flex-1 overflow-y-auto p-6'"
     @update:modelValue="$emit('close')"
   >
     <template #header>
@@ -22,26 +23,27 @@
         </div>
     </template>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
       <!-- 左侧：表单 -->
-      <div class="space-y-6">
+      <div class="space-y-5">
         <div>
           <h4 class="text-sm font-medium text-primary border-b border-[var(--border-color)] pb-2 mb-4">
             {{ t('order.detail.currentInfo') }}
           </h4>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- 状态修改 (仅如有权限) -->
-            <div class="md:col-span-2" v-if="mode === 'admin'">
-               <label class="block text-xs font-medium text-secondary mb-1">{{ t('order.manage.orderStatus') }}</label>
+            <div class="sm:col-span-2" v-if="mode === 'admin'">
+               <label class="block text-xs font-medium text-secondary mb-1.5">{{ t('order.manage.orderStatus') }}</label>
                <select 
                  v-model="form.status"
-                 class="input h-10"
+                 class="input h-11"
                >
                  <option v-for="s in statuses" :key="s" :value="s">
                    {{ t(`order.statuses.${s}`) }}
                  </option>
                </select>
+
             </div>
              <!-- 商品名称 (全宽) -->
              <div class="md:col-span-2">
@@ -224,7 +226,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, nextTick } from 'vue';
+import { ref, reactive, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import { getTodayISOString } from '@/utils/common';
@@ -235,6 +237,22 @@ import ImageUploader from './common/ImageUploader.vue';
 import Modal from '@/components/ui/Modal.vue';
 
 const minDate = computed(() => getTodayISOString());
+
+// 移动端检测
+const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
+const isMobile = computed(() => windowWidth.value < 768);
+
+const handleResize = () => {
+  windowWidth.value = window.innerWidth;
+};
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
+});
 
 const props = defineProps({
   order: { type: Object, required: true },

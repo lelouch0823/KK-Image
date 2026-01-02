@@ -105,7 +105,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onActivated } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import StatusChartModal from './StatusChartModal.vue';
@@ -139,4 +139,8 @@ const loadStats = async () => {
 };
 
 onMounted(loadStats);
+
+// 每次模块可见时刷新数据
+onActivated(loadStats);
 </script>
+
