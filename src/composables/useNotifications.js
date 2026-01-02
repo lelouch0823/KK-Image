@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { API } from '@/utils/constants';
 
 // Global state to share across components (e.g. Header and List)

@@ -425,12 +425,13 @@ const revokeShare = (item) => {
         if (res.success) {
           success(t('dashboard.shareRevoked'));
           fetchRecentShares();
+          await fetchOrderStats();
           confirmData.value.show = false;
         } else {
           error(res.message);
         }
-      } catch (e) {
-        error(t('dashboard.operationFailed'));
+      } catch (_e) {
+        error(t('common.operationFailed'));
       } finally {
         confirmData.value.loading = false;
       }

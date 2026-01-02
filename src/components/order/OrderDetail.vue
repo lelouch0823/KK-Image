@@ -501,7 +501,7 @@ import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
 import { STATUS_OPTIONS, STATUS_STYLES, getStatusVariant } from '@/utils/status';
 import { useSalesToken } from '@/composables/useSalesToken';
-import { formatRelativeTime, formatDateWithWeekday, formatTimelineTime } from '@/utils/formatters';
+import { formatDateWithWeekday, formatTimelineTime } from '@/utils/formatters';
 import OrderTimeline from './OrderTimeline.vue';
 import OrderEditModal from '../OrderEditModal.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -513,7 +513,7 @@ const props = defineProps({
   mode: { type: String, default: 'sales' },
 });
 
-const emit = defineEmits(['back', 'comment', 'refresh', 'duplicate']);
+const emit = defineEmits(['back', 'comment', 'refresh', 'duplicate', 'edit']);
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -546,8 +546,8 @@ const markAsRead = async () => {
     });
     // Notify parent to refresh data
     emit('refresh');
-  } catch (e) {
-    console.error('Failed to mark read', e);
+  } catch (_e) {
+    console.error('Failed to mark read', _e);
   }
 };
 
@@ -556,7 +556,7 @@ markAsRead();
 
 // 当前数据
 const currentData = computed(() => props.order.currentData || {});
-const originalData = computed(() => props.order.originalData || {});
+const _originalData = computed(() => props.order.originalData || {});
 
 // 状态流程
 const statusSteps = STATUS_OPTIONS.filter((s) => s !== 'rejected'); // 排除 rejected
@@ -570,7 +570,7 @@ const progressWidth = computed(() => {
 });
 
 // 状态样式
-const statusClasses = STATUS_STYLES;
+const _statusClasses = STATUS_STYLES;
 
 // 是否有修正
 const hasCorrection = computed(() => {
@@ -623,7 +623,7 @@ const executeVoid = async () => {
     } else {
       addToast({ message: result.message, type: 'error' });
     }
-  } catch (e) {
+  } catch (_e) {
     addToast({ message: t('common.networkError'), type: 'error' });
   } finally {
     confirmData.value.loading = false;
@@ -657,7 +657,7 @@ const handleUpdate = async (payload) => {
     } else {
       addToast({ message: result.message, type: 'error' });
     }
-  } catch (e) {
+  } catch (_e) {
     addToast({ message: t('common.networkError'), type: 'error' });
   } finally {
     submitting.value = false;
@@ -666,8 +666,6 @@ const handleUpdate = async (payload) => {
 
 // 引入 html2pdf
 import html2pdf from 'html2pdf.js';
-
-// ... (other code)
 
 const handleSavePdf = () => {
   // 1. 获取打印视图元素

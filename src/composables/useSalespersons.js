@@ -36,7 +36,7 @@ export function useSalespersons() {
       } else {
         addToast({ message: result.message || t('common.loadFailed'), type: 'error' });
       }
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
     } finally {
       loading.value = false;
@@ -63,7 +63,7 @@ export function useSalespersons() {
         addToast({ message: result.message, type: 'error' });
         return null;
       }
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
       return null;
     }
@@ -89,7 +89,7 @@ export function useSalespersons() {
         addToast({ message: result.message, type: 'error' });
         return false;
       }
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
       return false;
     }
@@ -113,7 +113,7 @@ export function useSalespersons() {
         addToast({ message: result.message, type: 'error' });
         return false;
       }
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
       return false;
     }
@@ -137,7 +137,7 @@ export function useSalespersons() {
         addToast({ message: result.message, type: 'error' });
         return null;
       }
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
       return null;
     }
@@ -160,7 +160,7 @@ export function useSalespersons() {
         addToast({ message: t('salesperson.linkCopied'), type: 'success' });
         return true;
       }
-    } catch (e) {
+    } catch (_e) {
       console.warn('Clipboard API failed, trying fallback...');
     }
 

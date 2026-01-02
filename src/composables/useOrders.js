@@ -44,7 +44,7 @@ export function useOrders() {
       } else {
         addToast({ message: result.message || t('common.loadFailed'), type: 'error' });
       }
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
     } finally {
       loading.value = false;
@@ -65,7 +65,7 @@ export function useOrders() {
         addToast({ message: result.message, type: 'error' });
         return null;
       }
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
       return null;
     }
@@ -94,7 +94,7 @@ export function useOrders() {
         addToast({ message: result.message, type: 'error' });
         return false;
       }
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
       return false;
     }
@@ -120,7 +120,7 @@ export function useOrders() {
         addToast({ message: result.message, type: 'error' });
         return false;
       }
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
       return false;
     }
@@ -146,7 +146,7 @@ export function useOrders() {
         addToast({ message: result.message, type: 'error' });
         return false;
       }
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
       return false;
     }
@@ -161,7 +161,7 @@ export function useOrders() {
       const res = await fetch(API.SALES_AUTH(token), { credentials: 'include' });
       const result = await res.json();
       return result.success ? result.data : null;
-    } catch (e) {
+    } catch (_e) {
       return null;
     }
   };
@@ -182,7 +182,7 @@ export function useOrders() {
         return { success: true, data: result.data };
       }
       return { success: false, message: result.message || t('order.portal.passwordError') };
-    } catch (e) {
+    } catch (_e) {
       return { success: false, message: t('common.networkError') };
     }
   };
@@ -201,7 +201,7 @@ export function useOrders() {
       } else {
         addToast({ message: result.message || t('common.loadFailed'), type: 'error' });
       }
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
     } finally {
       loading.value = false;
@@ -222,7 +222,7 @@ export function useOrders() {
         addToast({ message: result.message, type: 'error' });
         return null;
       }
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
       return null;
     }
@@ -234,7 +234,7 @@ export function useOrders() {
    * @param {Object} data - 订单数据
    * @param {Function} onProgress - 进度回调 (step, current, total)
    */
-  const createSalesOrder = async (token, data, onProgress = () => {}) => {
+  const createSalesOrder = async (token, data, onProgress = () => { }) => {
     try {
       const { files, existingFileIds = [], ...orderData } = data;
 
@@ -303,7 +303,7 @@ export function useOrders() {
       onProgress('done', 0, 0);
       addToast({ message: t('order.portal.submitSuccess'), type: 'success' });
       return true;
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
       return false;
     }
@@ -327,7 +327,7 @@ export function useOrders() {
       }
       addToast({ message: result.message, type: 'error' });
       return false;
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
       return false;
     }
@@ -357,7 +357,7 @@ export function useOrders() {
         remark: currentData.remark || '',
         deadline: '', // 不复制截止日期，让用户重新选择
       };
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
       return null;
     }
@@ -387,7 +387,7 @@ export function useOrders() {
         addToast({ message: result.message, type: 'error' });
         return null;
       }
-    } catch (e) {
+    } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
       return null;
     }

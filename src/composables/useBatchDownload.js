@@ -40,8 +40,8 @@ export function useBatchDownload() {
 
           completed++;
           downloadProgress.value = Math.floor((completed / files.length) * 50);
-        } catch (e) {
-          console.error('Download failed for', file.name, e);
+        } catch (_e) {
+          console.error('Download failed for', file.name, _e);
         }
       });
 
@@ -66,8 +66,8 @@ export function useBatchDownload() {
       URL.revokeObjectURL(url);
 
       addToast({ message: t('batchDownload.started'), type: 'success' });
-    } catch (e) {
-      addToast({ message: t('batchDownload.failed'), type: 'error' });
+    } catch (_e) {
+      addToast({ message: t('common.downloadFailed'), type: 'error' });
     } finally {
       downloading.value = false;
       downloadProgress.value = 0;

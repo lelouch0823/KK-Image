@@ -180,8 +180,8 @@ import Tooltip from '@/components/ui/Tooltip.vue';
 import Modal from '@/components/ui/Modal.vue';
 
 const props = defineProps({
-  modelValue: Boolean,
-  folder: Object,
+  modelValue: { type: Boolean, default: false },
+  folder: { type: Object, default: () => ({}) },
 });
 
 const emit = defineEmits(['update:modelValue', 'updated']);
@@ -243,7 +243,7 @@ const generateLink = async () => {
     } else {
       error(res.message || t('share.generateFailed'));
     }
-  } catch (e) {
+  } catch (_e) {
     error(t('share.networkError') || '网络错误');
   } finally {
     loading.value = false;

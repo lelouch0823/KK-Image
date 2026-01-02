@@ -211,7 +211,7 @@ export function useUploadQueue() {
             item.status = 'error';
             item.error = res.message || t('uploadQueue.uploadFailed');
           }
-        } catch (e) {
+        } catch (_e) {
           item.status = 'error';
           item.error = t('uploadQueue.parseError');
         }

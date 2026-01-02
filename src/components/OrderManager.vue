@@ -243,7 +243,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onActivated, nextTick } from 'vue';
+import { ref, reactive, onMounted, onActivated } from 'vue';
 import { useOrders } from '@/composables/useOrders';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';

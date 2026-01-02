@@ -91,8 +91,8 @@ import Modal from '@/components/ui/Modal.vue';
 import { ROUTES } from '@/utils/constants';
 
 const props = defineProps({
-  modelValue: Boolean,
-  file: Object,
+  modelValue: { type: Boolean, default: false },
+  file: { type: Object, default: () => ({}) },
 });
 
 const emit = defineEmits(['update:modelValue']);

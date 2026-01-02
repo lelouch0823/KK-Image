@@ -65,8 +65,8 @@ export function useFileManager() {
           files.value = [];
         }
       }
-    } catch (e) {
-      console.error(e);
+    } catch (_e) {
+      console.error(_e);
       if (!silent) {
         error(t('fileOps.loadFailed'));
       }
@@ -98,7 +98,7 @@ export function useFileManager() {
         error(res.message);
         return false;
       }
-    } catch (e) {
+    } catch (_e) {
       error(t('fileOps.createFailed'));
       return false;
     }
@@ -120,7 +120,7 @@ export function useFileManager() {
         error(res.message);
         return false;
       }
-    } catch (e) {
+    } catch (_e) {
       error(t('fileOps.updateFailed'));
       return false;
     }
@@ -144,7 +144,7 @@ export function useFileManager() {
         error(res.message);
         return false;
       }
-    } catch (e) {
+    } catch (_e) {
       error(t('fileOps.deleteFailed'));
       return false;
     }

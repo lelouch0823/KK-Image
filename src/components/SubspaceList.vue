@@ -173,7 +173,12 @@
     </div>
 
     <!-- Create Subspace Modal (reuse SpaceCreateModal with parentId) -->
-    :parentId="spaceId" @close="showCreateModal = false" @created="onSubspaceCreated" />
+    <SpaceCreateModal
+      v-if="showCreateModal"
+      :parent-id="spaceId"
+      @close="showCreateModal = false"
+      @created="onSubspaceCreated"
+    />
 
     <!-- Confirm Dialog -->
     <ConfirmDialog
@@ -194,6 +199,7 @@ import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useClipboard } from '@/composables/useClipboard';
 import Tooltip from '@/components/ui/Tooltip.vue';
+import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const props = defineProps({

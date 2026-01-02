@@ -104,7 +104,7 @@ import { formatDate } from '@/utils/formatters';
 import { useRouter } from 'vue-router';
 
 const props = defineProps({
-  close: Function,
+  close: { type: Function, default: () => {} },
 });
 
 const { notifications, unreadCount, loading, markAsRead, markAllAsRead, fetchNotifications } =
@@ -129,7 +129,7 @@ const renderText = (val) => {
       if (data.key) {
         return t(data.key, data);
       }
-    } catch (e) {
+    } catch (_e) {
       return val;
     }
   }

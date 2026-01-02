@@ -508,7 +508,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, computed } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
@@ -569,10 +569,42 @@ const shareUrl = computed(() => {
 
 const initData = async () => {
   const data = await loadSpace(props.space.id);
-  // ... (rest of initData)
+  if (data) {
+    form.value = {
+      name: data.name || '',
+      description: data.description || '',
+      isPublic: data.isPublic || false,
+      coverFileId: data.coverFileId || null,
+      password: data.password || '',
+      templateData: {
+        brand: data.templateData?.brand || '',
+        series: data.templateData?.series || '',
+        price: data.templateData?.price || '',
+        material: data.templateData?.material || '',
+        sku: data.templateData?.sku || '',
+      },
+    };
+    files.value = data.files || [];
+    passwordEnabled.value = !!data.password;
+  }
 };
 
-// ...
+const saveChanges = async () => {
+  saving.value = true;
+  try {
+    const success = await updateSpace(props.space.id, {
+      ...form.value,
+      password: passwordEnabled.value ? form.value.password : '',
+    });
+    if (success) {
+      addToast({ message: t('common.saveSuccess'), type: 'success' });
+      emit('updated');
+    }
+  } finally {
+    saving.value = false;
+  }
+};
+
 
 const openPreview = () => {
   if (props.space.shareToken) {
