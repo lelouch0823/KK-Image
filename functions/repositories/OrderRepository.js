@@ -120,16 +120,31 @@ export class OrderRepository {
             SELECT COUNT(*) as total FROM orders ${where}
         `).bind(...params).first();
 
+        // SOTA: 多级优先排序 - 未读优先 > 状态优先级 > 时间倒序
         const { results } = await this.db.prepare(`
             SELECT 
                 o.id, o.order_no, o.current_data, o.status, 
-                o.unread_by_sales as is_unread, -- Map specific flag
+                o.unread_by_sales as is_unread,
                 o.main_image_id, o.created_at, o.updated_at,
-                f.storage_key as main_image_key
+                f.storage_key as main_image_key,
+                CASE o.status
+                    WHEN 'pending' THEN 1
+                    WHEN 'production' THEN 2
+                    WHEN 'shipping' THEN 3
+                    WHEN 'confirmed' THEN 4
+                    WHEN 'arrived' THEN 5
+                    WHEN 'delivered' THEN 6
+                    WHEN 'rejected' THEN 7
+                    WHEN 'void' THEN 99
+                    ELSE 50
+                END as status_priority
             FROM orders o
             LEFT JOIN files f ON o.main_image_id = f.id
             ${where}
-            ORDER BY o.created_at DESC
+            ORDER BY 
+                o.unread_by_sales DESC,
+                status_priority ASC,
+                o.created_at DESC
             LIMIT ? OFFSET ?
         `).bind(...params, limit, offset).all();
 
@@ -178,18 +193,33 @@ export class OrderRepository {
             SELECT COUNT(*) as total FROM orders o WHERE ${whereClause}
         `).bind(...bindParams).first();
 
+        // SOTA: 多级优先排序 - 未读优先 > 状态优先级 > 时间倒序
         const { results } = await this.db.prepare(`
             SELECT 
                 o.id, o.order_no, o.salesperson_id, o.current_data, o.status, 
-                o.unread_by_admin as is_unread, -- Map specific flag
+                o.unread_by_admin as is_unread,
                 o.main_image_id, o.created_at, o.updated_at,
                 s.name as salesperson_name, s.store as salesperson_store,
-                f.storage_key as main_image_key
+                f.storage_key as main_image_key,
+                CASE o.status
+                    WHEN 'pending' THEN 1
+                    WHEN 'production' THEN 2
+                    WHEN 'shipping' THEN 3
+                    WHEN 'confirmed' THEN 4
+                    WHEN 'arrived' THEN 5
+                    WHEN 'delivered' THEN 6
+                    WHEN 'rejected' THEN 7
+                    WHEN 'void' THEN 99
+                    ELSE 50
+                END as status_priority
             FROM orders o
             LEFT JOIN salespersons s ON o.salesperson_id = s.id
             LEFT JOIN files f ON o.main_image_id = f.id
             WHERE ${whereClause}
-            ORDER BY o.created_at DESC
+            ORDER BY 
+                o.unread_by_admin DESC,
+                status_priority ASC,
+                o.created_at DESC
             LIMIT ? OFFSET ?
         `).bind(...bindParams, limit, offset).all();
 

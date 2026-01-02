@@ -10,8 +10,8 @@
     >
       <div 
         v-if="modelValue" 
-        class="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 py-6 overflow-hidden"
-        :class="zClass"
+        :class="backdropClass"
+        :style="zStyle"
         @click.self="handleBackdropClick"
       >
         <transition
@@ -24,7 +24,7 @@
         >
           <div 
             v-if="modelValue"
-            class="bg-white rounded-xl shadow-2xl w-full flex flex-col max-h-[90vh] animate-in"
+            class="bg-white rounded-xl shadow-2xl w-full flex flex-col max-h-[90vh] animate-in overflow-hidden"
             :class="sizeClass"
           >
             <!-- Header -->
@@ -60,7 +60,8 @@
 </template>
 
 <script setup>
-import { computed, watch, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { useModalStack } from '@/composables/useModalStack';
 
 const props = defineProps({
   modelValue: {
@@ -90,13 +91,36 @@ const props = defineProps({
   },
   zIndex: {
     type: [Number, String],
-    default: 100
+    default: null
   }
 });
 
-const zClass = computed(() => `z-[${props.zIndex}]`);
-
 const emit = defineEmits(['update:modelValue', 'close']);
+
+// 智能堆叠管理
+const { generateModalId, register, unregister, shouldShowBlur, isTopModal, getZIndex } = useModalStack();
+const modalId = ref(generateModalId());
+
+// 动态 z-index 样式
+// SOTA: 使用 inline style 而不是 Tailwind class，因为动态数值类名在生产构建中无法被正确提取
+const zStyle = computed(() => {
+  // 如果传入了有效的 zIndex prop，优先使用
+  if (props.zIndex !== null && props.zIndex !== undefined) {
+    return { zIndex: props.zIndex };
+  }
+  // 否则使用自动计算的层级
+  return { zIndex: getZIndex(modalId.value) };
+});
+
+// 背景样式类（只有最顶层显示毛玻璃）
+const backdropClass = computed(() => {
+  const base = 'fixed inset-0 flex items-center justify-center px-4 py-6 overflow-hidden';
+  // 最顶层：半透明 + 毛玻璃；底层：更透明无毛玻璃
+  if (shouldShowBlur(modalId.value)) {
+    return `${base} bg-black/50 backdrop-blur-sm`;
+  }
+  return `${base} bg-black/30`;
+});
 
 const sizeClass = computed(() => {
   const sizes = {
@@ -125,28 +149,28 @@ const handleBackdropClick = () => {
   }
 };
 
-// ESC 键关闭
+// ESC 键关闭（仅最顶层响应）
 const handleKeydown = (e) => {
-  if (e.key === 'Escape' && props.modelValue && props.closable) {
+  if (e.key === 'Escape' && props.modelValue && props.closable && isTopModal(modalId.value)) {
     close();
   }
 };
 
-// 锁定 body 滚动
-watch(() => props.modelValue, (visible) => {
-  document.body.style.overflow = visible ? 'hidden' : '';
-});
-
-// 注册/注销键盘事件
+// 注册/注销 Modal
 watch(() => props.modelValue, (visible) => {
   if (visible) {
+    register(modalId.value);
+    document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', handleKeydown);
   } else {
+    unregister(modalId.value);
+    document.body.style.overflow = '';
     document.removeEventListener('keydown', handleKeydown);
   }
 }, { immediate: true });
 
 onUnmounted(() => {
+  unregister(modalId.value);
   document.removeEventListener('keydown', handleKeydown);
   document.body.style.overflow = '';
 });

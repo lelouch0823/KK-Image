@@ -163,17 +163,6 @@
       />
     </div>
 
-    <!-- 订单编辑弹窗 (z-60 堆叠在详情之上) -->
-    <OrderEditModal 
-      v-if="showEditModal && editingOrder"
-      :order="editingOrder"
-      :submitting="isEditing"
-      :statuses="statuses"
-      :zIndex="110"
-      @close="closeEditModal"
-      @submit="handleEditSubmit"
-    />
-
     <!-- 订单详情弹窗 -->
     <Modal v-model="showDetailModal" size="6xl" :title="t('order.detail.title')">
       <OrderDetail 
@@ -186,6 +175,16 @@
         @edit="handleEditFromDetail"
       />
     </Modal>
+
+    <!-- 订单编辑弹窗（z-index 根据打开顺序自动计算）-->
+    <OrderEditModal 
+      v-if="showEditModal && editingOrder"
+      :order="editingOrder"
+      :submitting="isEditing"
+      :statuses="statuses"
+      @close="closeEditModal"
+      @submit="handleEditSubmit"
+    />
 
     <!-- Confirm Dialog -->
     <ConfirmDialog
