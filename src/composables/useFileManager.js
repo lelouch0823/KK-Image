@@ -163,7 +163,7 @@ export function useFileManager() {
       } else {
         error(res.message);
       }
-    } catch (e) {
+    } catch (_e) {
       error(t('fileOps.deleteFailed'));
     }
   };

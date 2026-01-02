@@ -13,21 +13,21 @@
         }}</label>
         <div class="grid grid-cols-2 gap-2">
           <button
-            v-for="t in templates"
-            :key="t.key"
+            v-for="tpl in templates"
+            :key="tpl.key"
             type="button"
             class="flex items-center gap-2 rounded-lg border p-3 text-left transition-all"
             :class="
-              form.template === t.key
+              form.template === tpl.key
                 ? 'border-primary bg-[var(--bg-muted)]'
                 : 'border-[var(--border-color)] hover:border-gray-300'
             "
-            @click="form.template = t.key"
+            @click="form.template = tpl.key"
           >
-            <span class="text-secondary size-5 shrink-0" v-html="t.icon"></span>
+            <span class="text-secondary size-5 shrink-0" v-html="tpl.icon"></span>
             <div>
-              <div class="text-primary text-sm font-medium">{{ t.label }}</div>
-              <div class="text-secondary text-xs">{{ t.desc }}</div>
+              <div class="text-primary text-sm font-medium">{{ tpl.label }}</div>
+              <div class="text-secondary text-xs">{{ tpl.desc }}</div>
             </div>
           </button>
         </div>

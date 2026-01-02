@@ -75,7 +75,7 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
-  containerClass: String,
+  containerClass: { type: String, default: '' },
 });
 
 const emit = defineEmits(['update:currentPage', 'change']);

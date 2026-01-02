@@ -58,7 +58,7 @@ export function useDragSort(items, options = {}) {
 
   // ========== 移动端触摸拖拽 ==========
 
-  const handleTouchStart = (index, e) => {
+  const handleTouchStart = (index, _e) => {
     // 长按 500ms 触发拖拽
     touchStartTimer = setTimeout(() => {
       touchDragIndex = index;

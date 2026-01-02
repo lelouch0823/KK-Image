@@ -54,7 +54,7 @@ defineProps({
   },
 });
 
-defineEmits(['navigate']);
+defineEmits(['navigate', 'select', 'delete']);
 
 const { t } = useI18n();
 </script>

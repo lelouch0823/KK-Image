@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth.js';
-import { withCache } from '../../middleware/cache.js';
+
 import {
   generateId,
   generateShareToken,
@@ -85,7 +85,7 @@ app.get('/', async (c) => {
 /**
  * GET /api/manage/folders/:id - 获取文件夹详情
  */
-app.get('/:id', withCache(30), async (c) => {
+app.get('/:id', async (c) => {
   const { env } = c;
   const folderId = c.req.param('id');
 

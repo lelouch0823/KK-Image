@@ -63,10 +63,10 @@ const props = defineProps({
     default: 'md',
     validator: (v) => ['sm', 'md', 'lg'].includes(v),
   },
-  containerClass: String,
-  iconClass: String,
-  titleClass: String,
-  descriptionClass: String,
+  containerClass: { type: String, default: '' },
+  iconClass: { type: String, default: '' },
+  titleClass: { type: String, default: '' },
+  descriptionClass: { type: String, default: '' },
 });
 
 const iconPaths = {

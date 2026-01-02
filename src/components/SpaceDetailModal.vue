@@ -379,7 +379,7 @@ import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useClipboard } from '@/composables/useClipboard';
-import { formatSize } from '@/utils/formatters';
+import { formatSize as _formatSize } from '@/utils/formatters';
 import FileSelector from '@/components/FileSelector.vue';
 import SpaceAnalytics from './SpaceAnalytics.vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
@@ -485,7 +485,7 @@ const unpublishSpace = async () => {
   emit('updated');
 };
 
-const togglePublic = async () => {
+const _togglePublic = async () => {
   await updateSpace(props.space.id, { isPublic: isPublic.value });
   await loadData();
   emit('updated');
@@ -505,17 +505,12 @@ const addFiles = async (payload) => {
   emit('updated');
 };
 
-const togglePassword = async () => {
-  if (!hasPassword.value) {
-    // 关闭密码
-    await updateSpace(props.space.id, { password: null });
-    customPassword.value = '';
-    await loadData();
-    emit('updated');
-  }
+const _updateSpacePassword = async () => {
+  if (!customPassword.value) return;
+  await updateSpace(props.space.id, { password: customPassword.value });
 };
 
-const updateSpacePassword = async () => {
+const _togglePassword = async () => {
   if (!customPassword.value) return;
   await updateSpace(props.space.id, { password: customPassword.value });
   addToast({ message: t('spaceManager.passwordUpdated'), type: 'success' });

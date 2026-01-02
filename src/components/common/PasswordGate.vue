@@ -74,11 +74,11 @@ import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
 
-const props = defineProps({
-  title: String,
-  subtitle: String,
-  placeholder: String,
-  buttonText: String,
+defineProps({
+  title: { type: String, default: '' },
+  subtitle: { type: String, default: '' },
+  placeholder: { type: String, default: '' },
+  buttonText: { type: String, default: '' },
   loading: {
     type: Boolean,
     default: false,

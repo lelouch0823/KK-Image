@@ -37,7 +37,7 @@
         </svg>
         {{ t('fileSelector.allFiles') }}
       </button>
-      <template v-for="(folder, index) in breadcrumbs" :key="folder.id">
+      <template v-for="folder in breadcrumbs" :key="folder.id">
         <span class="text-gray-300">/</span>
         <button
           class="hover:text-primary transition-colors"
@@ -241,7 +241,7 @@ const loadFoldersStructure = async () => {
   }
 };
 
-const navigateTo = (folderId, folderObj = null) => {
+const navigateTo = (folderId, _folderObj = null) => {
   currentFolderId.value = folderId;
 
   if (folderId === null) {

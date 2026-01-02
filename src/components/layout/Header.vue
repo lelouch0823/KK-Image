@@ -102,7 +102,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useView } from '@/composables/useView';
 import { useI18n } from '@/composables/useI18n';
 import { useSearch } from '@/composables/useSearch';
@@ -112,7 +112,7 @@ import { onClickOutside } from '@vueuse/core';
 
 defineEmits(['openSidebar']);
 
-const { viewTitle, setView } = useView(); // setView unused here but destructured
+const { viewTitle } = useView(); // setView unused here but destructured
 const { t } = useI18n();
 const { searchQuery } = useSearch();
 const { unreadCount, startPolling, stopPolling } = useNotifications();

@@ -166,7 +166,7 @@ const fetchAllFolders = async () => {
     if (res.success) {
       flattenedFolders.value = buildTreeAndFlatten(res.data);
     }
-  } catch (e) {
+  } catch (_e) {
     addToast({ message: t('moveFile.loadFailed'), type: 'error' });
   } finally {
     loading.value = false;
@@ -194,7 +194,7 @@ const confirmMove = async () => {
     } else {
       addToast({ message: res.message || t('moveFile.moveFailed'), type: 'error' });
     }
-  } catch (e) {
+  } catch (_e) {
     addToast({ message: t('moveFile.opFailed'), type: 'error' });
   } finally {
     moving.value = false;

@@ -59,7 +59,7 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
-  inputClass: String,
+  inputClass: { type: String, default: '' },
 });
 
 const emit = defineEmits(['update:modelValue', 'search', 'clear']);

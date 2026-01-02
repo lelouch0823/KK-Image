@@ -254,7 +254,7 @@ export function useOrders() {
         return false;
       }
 
-      const { id: orderId, orderNo } = result.data;
+      const { success: _success, orderNo: _orderNo } = result.data;
 
       // Step 2: 上传新图片 (带 orderId，直接归档)
       const newFileIds = [];

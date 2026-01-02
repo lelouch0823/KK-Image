@@ -227,7 +227,7 @@ const fetchShares = async () => {
       total.value = res.data.total;
       totalPages.value = res.data.totalPages;
     }
-  } catch (e) {
+  } catch (_e) {
     error(t('common.loadFailed'));
   } finally {
     loading.value = false;
@@ -269,7 +269,7 @@ const revokeShare = (item) => {
         } else {
           error(res.message);
         }
-      } catch (e) {
+      } catch (_e) {
         error(t('common.operationFailed'));
       } finally {
         confirmData.value.loading = false;

@@ -168,10 +168,10 @@ const inputField = ref(null);
 
 const props = defineProps({
   modelValue: Boolean,
-  title: String,
-  message: String,
-  confirmText: String,
-  cancelText: String,
+  title: { type: String, default: '' },
+  message: { type: String, default: '' },
+  confirmText: { type: String, default: '' },
+  cancelText: { type: String, default: '' },
   type: {
     type: String, // 'primary' | 'danger' | 'warning' | 'success' | 'info'
     default: 'primary',
@@ -182,13 +182,13 @@ const props = defineProps({
   },
   // Input verification
   showInput: Boolean,
-  inputPlaceholder: String,
-  inputLabel: String,
+  inputPlaceholder: { type: String, default: '' },
+  inputLabel: { type: String, default: '' },
   inputType: {
     type: String,
     default: 'text',
   },
-  verifyText: String, // If provided, confirm button disabled until input matches
+  verifyText: { type: String, default: '' }, // If provided, confirm button disabled until input matches
 });
 
 const emit = defineEmits(['update:modelValue', 'confirm', 'cancel']);

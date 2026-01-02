@@ -65,8 +65,8 @@ const props = defineProps({
     type: Number,
     default: 4,
   },
-  containerClass: String,
-  customClass: String,
+  containerClass: { type: String, default: '' },
+  customClass: { type: String, default: '' },
 });
 
 const widthClass = computed(() => {

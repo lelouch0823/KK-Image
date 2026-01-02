@@ -135,7 +135,7 @@ onMounted(async () => {
     } else {
       error.value = result.message;
     }
-  } catch (e) {
+  } catch (_e) {
     error.value = t('spaceAnalytics.loadFailed');
   } finally {
     loading.value = false;

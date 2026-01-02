@@ -208,7 +208,7 @@ const loadCustomers = async (params = {}) => {
       pagination.totalPages = result.data.totalPages;
       pagination.page = result.data.page;
     }
-  } catch (e) {
+  } catch (_e) {
     addToast({ message: t('common.loadFailed'), type: 'error' });
   } finally {
     loading.value = false;
@@ -270,7 +270,7 @@ const handleFormSubmit = async (formData) => {
     } else {
       addToast({ message: result.message, type: 'error' });
     }
-  } catch (e) {
+  } catch (_e) {
     addToast({ message: t('common.networkError'), type: 'error' });
   }
 };

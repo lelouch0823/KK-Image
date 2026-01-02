@@ -257,12 +257,11 @@ import { useToast } from '@/composables/useToast';
 import { formatDate, formatCurrency } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
-import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const props = defineProps({
   modelValue: Boolean,
-  customer: Object,
+  customer: { type: Object, default: () => ({}) },
 });
 
 const emit = defineEmits(['update:modelValue', 'refresh', 'edit']);
@@ -273,7 +272,6 @@ const { addToast } = useToast();
 const currentTab = ref('info');
 const orders = ref([]);
 const loadingOrders = ref(false);
-const deleting = ref(false);
 
 // 确认弹窗状态
 const confirmData = ref({
@@ -304,7 +302,7 @@ const loadOrders = async () => {
     if (result.success) {
       orders.value = result.data;
     }
-  } catch (e) {
+  } catch (_e) {
     addToast({ message: t('common.loadFailed'), type: 'error' });
   } finally {
     loadingOrders.value = false;
@@ -339,7 +337,7 @@ const confirmDelete = async () => {
     } else {
       addToast({ message: result.message, type: 'error' });
     }
-  } catch (e) {
+  } catch (_e) {
     addToast({ message: t('common.networkError'), type: 'error' });
   } finally {
     confirmData.value.loading = false;

@@ -155,8 +155,8 @@ import { generateRandomId } from '@/utils/common';
 
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
-  label: String,
-  hint: String,
+  label: { type: String, default: '' },
+  hint: { type: String, default: '' },
   maxFiles: { type: Number, default: 9 },
   readonly: Boolean,
   uploadEndpoint: { type: String, default: '' },
@@ -446,7 +446,7 @@ const uploadPendingFiles = async () => {
   if (pendingFiles.length === 0) return true;
 
   isProcessing.value = true;
-  let successCount = 0;
+  let _successCount = 0;
 
   try {
     const newFiles = [...items.value];
@@ -468,7 +468,7 @@ const uploadPendingFiles = async () => {
             hash: fileObj.hash,
             instantUpload: uploaded.instantUpload,
           };
-          successCount++;
+          _successCount++;
         } catch (e) {
           console.error(`Upload failed for file index ${i}`, e);
           throw new Error(`${fileObj.file.name} ${t('uploadQueue.uploadFailed')}`);

@@ -48,8 +48,8 @@ import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 
 const props = defineProps({
-  error: String,
-  onSubmit: Function,
+  error: { type: String, default: '' },
+  onSubmit: { type: Function, default: () => {} },
 });
 
 const { t } = useI18n();
