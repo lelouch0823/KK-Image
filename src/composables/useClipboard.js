@@ -76,8 +76,30 @@ export function useClipboard() {
     }
   };
 
+  /**
+   * 复制分享链接到剪贴板
+   * 自动构建完整 URL 并显示成功提示
+   * @param {string} path 分享路径 (如 /space/xxx 或 /gallery/xxx)
+   * @param {object} options 配置选项
+   * @param {string} options.successMessage 成功消息 (默认使用 i18n)
+   * @returns {Promise<boolean>} 是否成功
+   */
+  const copyShareLink = async (path, options = {}) => {
+    if (!path) {
+      addToast({ message: t('common.copyFailed'), type: 'error' });
+      return false;
+    }
+    // 构建完整 URL
+    const url = path.startsWith('http') ? path : `${window.location.origin}${path}`;
+    return copy(url, {
+      successMessage: options.successMessage || t('share.linkCopied'),
+      ...options,
+    });
+  };
+
   return {
     copy,
     paste,
+    copyShareLink,
   };
 }

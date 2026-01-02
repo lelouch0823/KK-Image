@@ -17,7 +17,6 @@ import {
   transformSpaceListItem,
   transformSpaceDetail,
   transformSpaceStats,
-  transformFile,
 } from './transformers.js';
 
 const crud = new Hono();

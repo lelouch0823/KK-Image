@@ -180,10 +180,11 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
+import { useClipboard } from '@/composables/useClipboard';
 import { formatExpiry } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import Modal from '@/components/ui/Modal.vue';
@@ -198,6 +199,7 @@ const emit = defineEmits(['update:modelValue', 'edit']);
 const { success, error } = useToast();
 const { t } = useI18n();
 const { getHeaders, authFetchJson } = useAuth();
+const { copy } = useClipboard();
 
 const loading = ref(false);
 const shares = ref([]);
@@ -240,9 +242,9 @@ const getExpiryClass = (ts) => {
   return 'text-secondary';
 };
 
-const copyLink = (item) => {
+const copyLink = async (item) => {
   const url = `${window.location.origin}${item.shareUrl}`;
-  navigator.clipboard.writeText(url).then(() => success(t('common.copied')));
+  await copy(url, { successMessage: t('common.copied') });
 };
 
 const revokeShare = (item) => {

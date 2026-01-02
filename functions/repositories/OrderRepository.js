@@ -424,7 +424,7 @@ export class OrderRepository {
    * @param {string} orderId
    * @param {string} salespersonId - 用于验证权限（可选）
    */
-  async clearNewFeedback(orderId, salespersonId) {
+  async clearNewFeedback(orderId, _salespersonId) {
     // Legacy method - just mark as read for sales
     await this.markAsRead(orderId, 'sales');
   }
@@ -457,7 +457,7 @@ export class OrderRepository {
 
   // Deprecated methods adaptation
   // setNewFeedback -> use setUnread(id, actorType) instead
-  async setNewFeedback(id) {
+  async setNewFeedback(_id) {
     // Legacy fallback, assume it notifies everyone? Or deprecate.
     // Let's assume Admin is system default for legacy calls?
     // Better to fix call sites.

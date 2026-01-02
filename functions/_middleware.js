@@ -41,7 +41,7 @@ export async function onRequest(context) {
     // Early Hints 需要动态获取 CSS 文件名，暂时移除静态配置
     // Vite 构建的 CSS 文件名包含 hash，无法硬编码
     return response;
-  } catch (error) {
+  } catch (_error) {
     // Token valid check failed, clear cookie
     return new Response(null, {
       status: 302,

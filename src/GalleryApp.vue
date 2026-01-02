@@ -194,7 +194,6 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useClipboard } from '@/composables/useClipboard';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
@@ -203,7 +202,6 @@ import PasswordGate from '@/components/common/PasswordGate.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import { API } from '@/utils/constants';
 
-const { addToast } = useToast();
 const { t } = useI18n();
 const { copy } = useClipboard();
 
@@ -260,7 +258,7 @@ const loadAlbum = async (pwd = null) => {
     } else {
       error.value = result.message || t('gallery.loadFailed');
     }
-  } catch (e) {
+  } catch (_e) {
     error.value = t('gallery.networkError');
   } finally {
     loading.value = false;

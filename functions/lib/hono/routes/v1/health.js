@@ -20,7 +20,7 @@ app.get('/', async (c) => {
     try {
       await env.DB.prepare('SELECT 1').first();
       healthCheck.services.d1 = 'healthy';
-    } catch (error) {
+    } catch (_error) {
       healthCheck.services.d1 = 'unhealthy';
       healthCheck.status = 'degraded';
     }

@@ -8,7 +8,6 @@ import {
 } from '../../schemas/folder.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
-import { batchInsert } from '../../../../lib/db/batch.js';
 import { generateId, generateShareToken, now, MSG } from '../../_shared/utils.js';
 
 const app = new Hono();
@@ -17,7 +16,7 @@ const app = new Hono();
  * GET /api/v1/folders - 获取文件夹列表
  */
 app.get('/', zValidator('query', FolderQuerySchema), withCache(30), async (c) => {
-  const { page, limit, parentId, search, includeFiles } = c.req.valid('query');
+  const { page, limit, parentId, search, includeFiles: _includeFiles } = c.req.valid('query');
   const { env } = c;
 
   let sql = 'SELECT * FROM folders WHERE 1=1';
@@ -120,7 +119,7 @@ app.post(
   zValidator('json', CreateFolderSchema),
   async (c) => {
     const data = c.req.valid('json');
-    const user = c.get('user');
+    const _user = c.get('user');
     const { env } = c;
 
     // 验证父文件夹存在

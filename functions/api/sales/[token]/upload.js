@@ -7,9 +7,7 @@
 
 import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
-import { generateId, now } from '../../utils/id.js';
 import { authenticateSalesperson } from '../../utils/salesperson-auth.js';
-import { ensureFolder, moveFilesToFolder } from '../../utils/folder-utils.js';
 
 /**
  * POST - 上传文件

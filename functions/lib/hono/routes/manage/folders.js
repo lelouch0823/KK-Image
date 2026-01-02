@@ -6,7 +6,6 @@ import { withCache } from '../../middleware/cache.js';
 import {
   generateId,
   generateShareToken,
-  now,
   timestampToIso,
   MSG,
   getShareUrl,
@@ -343,7 +342,7 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
 
     // 从 R2 删除文件
     if (env.R2_BUCKET && files.length > 0) {
-      await Promise.all(files.map((f) => env.R2_BUCKET.delete(f.storage_key).catch(() => {})));
+      await Promise.all(files.map((f) => env.R2_BUCKET.delete(f.storage_key).catch(() => { })));
     }
 
     // 删除文件夹（级联删除）

@@ -172,6 +172,7 @@
 import { ref, computed, watch } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
+import { useClipboard } from '@/composables/useClipboard';
 import { API, ROUTES } from '@/utils/constants';
 import { formatExpiry } from '@/utils/formatters';
 import { useI18n } from '@/composables/useI18n';
@@ -188,6 +189,7 @@ const emit = defineEmits(['update:modelValue', 'updated']);
 const { success, error } = useToast();
 const { getHeaders } = useAuth();
 const { t } = useI18n();
+const { copy: clipboardCopy } = useClipboard();
 
 const loading = ref(false);
 const expiry = ref(7);
@@ -248,22 +250,24 @@ const generateLink = async () => {
   }
 };
 
-const copyLink = () => {
+const copyLink = async () => {
   if (!shareUrl.value) return;
-  navigator.clipboard.writeText(shareUrl.value).then(() => {
+  const ok = await clipboardCopy(shareUrl.value, { showToast: false });
+  if (ok) {
     copied.value = true;
     setTimeout(() => (copied.value = false), 2000);
     success(t('share.linkCopied'));
-  });
+  }
 };
 
-const copyExistingLink = () => {
+const copyExistingLink = async () => {
   if (!existingShareUrl.value) return;
-  navigator.clipboard.writeText(existingShareUrl.value).then(() => {
+  const ok = await clipboardCopy(existingShareUrl.value, { showToast: false });
+  if (ok) {
     existingCopied.value = true;
     setTimeout(() => (existingCopied.value = false), 2000);
     success(t('share.linkCopied'));
-  });
+  }
 };
 
 watch(

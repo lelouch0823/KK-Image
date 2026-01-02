@@ -7,10 +7,7 @@
  */
 
 import { success, error } from '../utils/response.js';
-import { generateId, now } from '../utils/id.js';
 import { MSG } from '../utils/messages.js';
-import { ensureFolder } from '../utils/folder-utils.js';
-import { getBlobByHash, createBlob, incrementRefCount } from '../utils/blob-utils.js';
 
 /**
  * POST - 上传文件

@@ -84,10 +84,11 @@
 import { ref, computed } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
+import { useClipboard } from '@/composables/useClipboard';
 import { formatSize, getFileExtension, isImage } from '@/utils/formatters';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import Modal from '@/components/ui/Modal.vue';
-import { API, ROUTES } from '@/utils/constants';
+import { ROUTES } from '@/utils/constants';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -97,6 +98,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 const { success } = useToast();
 const { t } = useI18n();
+const { copy: clipboardCopy } = useClipboard();
 
 const copied = ref(false);
 
@@ -125,12 +127,13 @@ const close = () => {
   copied.value = false;
 };
 
-const copyLink = () => {
+const copyLink = async () => {
   if (!shareUrl.value) return;
-  navigator.clipboard.writeText(shareUrl.value).then(() => {
+  const ok = await clipboardCopy(shareUrl.value, { showToast: false });
+  if (ok) {
     copied.value = true;
     setTimeout(() => (copied.value = false), 2000);
     success(t('share.linkCopied'));
-  });
+  }
 };
 </script>

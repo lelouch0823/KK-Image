@@ -49,7 +49,7 @@ export class BaseStorageProvider {
    * @param {UploadOptions} [options] - 上传选项
    * @returns {Promise<UploadResult>}
    */
-  async upload(file, options = {}) {
+  async upload(_file, _options = {}) {
     throw new Error('Method not implemented: upload()');
   }
 
@@ -59,7 +59,7 @@ export class BaseStorageProvider {
    * @param {Request} [request] - 原始请求（用于传递 headers）
    * @returns {Promise<Response>}
    */
-  async getFile(fileId, request) {
+  async getFile(_fileId, _request) {
     throw new Error('Method not implemented: getFile()');
   }
 
@@ -68,7 +68,7 @@ export class BaseStorageProvider {
    * @param {string} fileId - 文件 ID
    * @returns {Promise<boolean>}
    */
-  async deleteFile(fileId) {
+  async deleteFile(_fileId) {
     throw new Error('Method not implemented: deleteFile()');
   }
 

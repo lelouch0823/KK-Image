@@ -192,8 +192,8 @@ import { ref, onMounted } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
+import { useClipboard } from '@/composables/useClipboard';
 import Tooltip from '@/components/ui/Tooltip.vue';
-import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const props = defineProps({
@@ -205,6 +205,7 @@ const emit = defineEmits(['openSubspace', 'updated']);
 const { loadSubspaces, deleteSpace } = useSpaces();
 const { addToast } = useToast();
 const { t } = useI18n();
+const { copyShareLink } = useClipboard();
 
 const subspaces = ref([]);
 const loading = ref(false);
@@ -238,13 +239,7 @@ const copyLink = async (sub) => {
     addToast({ message: t('spaceManager.pleasePublicFirst'), type: 'warning' });
     return;
   }
-  try {
-    const url = `${window.location.origin}${sub.shareUrl}`;
-    await navigator.clipboard.writeText(url);
-    addToast({ message: t('common.copied'), type: 'success' });
-  } catch {
-    addToast({ message: t('common.copyFailed'), type: 'error' });
-  }
+  await copyShareLink(sub.shareUrl);
 };
 
 const deleteSubspace = (sub) => {

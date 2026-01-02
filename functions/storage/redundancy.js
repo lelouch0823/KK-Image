@@ -113,7 +113,7 @@ export class RedundancyManager {
    * 异步镜像上传（后台处理）
    * @private
    */
-  _mirrorAsync(file, options, mirrors, primaryFileId, storageInfo) {
+  _mirrorAsync(file, options, mirrors, primaryFileId, _storageInfo) {
     // 后台镜像任务
     const mirrorTask = async () => {
       for (const mirrorName of mirrors) {

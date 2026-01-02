@@ -97,7 +97,7 @@ export class S3StorageProvider extends BaseStorageProvider {
    * @param {Request} [request]
    * @returns {Promise<Response>}
    */
-  async getFile(fileId, request) {
+  async getFile(fileId, _request) {
     if (!this.isConfigured()) {
       return new Response('S3 not configured', { status: 500 });
     }

@@ -8,7 +8,6 @@
 
 import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
-import { generateId, now } from '../../utils/id.js';
 import { verifyJWT, ADMIN_AUTH_COOKIE } from '../../utils/auth.js';
 import { parse as parseCookie } from 'cookie';
 import { ORDER_STATUSES } from '../../../_shared/utils.js';
@@ -33,14 +32,6 @@ async function getAdmin(request, env) {
     name: payload.name || 'Admin',
     type: 'admin',
   };
-}
-
-/**
- * 记录时间轴
- */
-async function logTimeline(db, params) {
-  const timelineRepo = new OrderTimelineRepository(db);
-  await timelineRepo.addTimelineEntry(params.orderId, params);
 }
 
 /**

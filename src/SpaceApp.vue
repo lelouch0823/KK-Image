@@ -69,7 +69,6 @@
 
 <script setup>
 import { ref, onMounted, computed, defineAsyncComponent } from 'vue';
-import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
 import SpacePassword from '@/components/space/SpacePassword.vue';
@@ -87,7 +86,6 @@ const SpaceCollection = defineAsyncComponent(
 // Document, Portfolio 等暂复用 Masonry 或开发简易版
 const SpaceDocument = defineAsyncComponent(() => import('@/components/space/SpaceMasonry.vue'));
 
-const { addToast } = useToast();
 const { t } = useI18n();
 
 const loading = ref(true);
@@ -144,7 +142,7 @@ const loadSpace = async (pwd = null) => {
     } else {
       error.value = result.message || t('spacePublic.loadFailed');
     }
-  } catch (e) {
+  } catch (_e) {
     error.value = t('common.networkErrorRetry');
   } finally {
     loading.value = false;

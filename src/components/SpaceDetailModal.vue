@@ -378,6 +378,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
+import { useClipboard } from '@/composables/useClipboard';
 import { formatSize } from '@/utils/formatters';
 import FileSelector from '@/components/FileSelector.vue';
 import SpaceAnalytics from './SpaceAnalytics.vue';
@@ -395,6 +396,7 @@ const emit = defineEmits(['close', 'updated', 'openSubspace']);
 const { loadSpace, updateSpace, addFilesToSpace, removeFilesFromSpace } = useSpaces();
 const { addToast } = useToast();
 const { t } = useI18n();
+const { copy } = useClipboard();
 
 const spaceData = ref(null);
 const isPublic = ref(false);
@@ -490,12 +492,10 @@ const togglePublic = async () => {
 };
 
 const copyLink = async () => {
-  try {
-    await navigator.clipboard.writeText(shareUrl.value);
-    addToast({ message: t('share.linkCopied'), type: 'success' });
-  } catch {
-    addToast({ message: t('common.copyFailed'), type: 'error' });
-  }
+  await copy(shareUrl.value, {
+    successMessage: t('share.linkCopied'),
+    errorMessage: t('common.copyFailed'),
+  });
 };
 
 const addFiles = async (payload) => {

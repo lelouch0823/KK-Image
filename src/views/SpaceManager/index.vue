@@ -130,7 +130,7 @@
           <Tooltip :content="t('spaceManager.copyLink')">
             <button
               class="text-secondary flex size-8 items-center justify-center rounded-lg bg-gray-100 transition-colors hover:text-primary hover:bg-gray-200"
-              @click.stop="copyShareLink(space)"
+              @click.stop="handleCopyShareLink(space)"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -233,6 +233,7 @@ import { ref, onMounted, onActivated } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
+import { useClipboard } from '@/composables/useClipboard';
 import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
 import SpaceDetailModal from '@/components/SpaceDetailModal.vue';
 import SpaceProductEditor from '@/components/SpaceProductEditor.vue';
@@ -242,6 +243,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 const { spaces, loading, loadSpaces, deleteSpace } = useSpaces();
 const { addToast } = useToast();
 const { t } = useI18n();
+const { copyShareLink } = useClipboard();
 
 const showCreateModal = ref(false);
 const selectedSpace = ref(null);
@@ -263,18 +265,12 @@ const openSpaceDetail = (space) => {
   selectedSpace.value = space;
 };
 
-const copyShareLink = async (space) => {
+const handleCopyShareLink = async (space) => {
   if (!space.shareUrl) {
     addToast({ message: t('spaceManager.pleasePublicFirst'), type: 'warning' });
     return;
   }
-  try {
-    const url = `${window.location.origin}${space.shareUrl}`;
-    await navigator.clipboard.writeText(url);
-    addToast({ message: t('common.copied'), type: 'success' });
-  } catch {
-    addToast({ message: t('common.copyFailed'), type: 'error' });
-  }
+  await copyShareLink(space.shareUrl);
 };
 
 const deleteSpaceConfirm = (space) => {

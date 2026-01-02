@@ -106,7 +106,7 @@
                         <span
                           class="text-secondary mt-1 cursor-pointer font-mono text-xs select-all"
                           :title="t('dashboard.clickToCopy')"
-                          @click="copyShareLink(item)"
+                          @click="handleCopyShareLink(item)"
                           >{{ item.shareToken }}</span
                         >
                       </div>
@@ -269,6 +269,7 @@ import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
 import { useOrders } from '@/composables/useOrders';
+import { useClipboard } from '@/composables/useClipboard';
 import ShareManagementModal from '@/components/ShareManagementModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
 import Modal from '@/components/ui/Modal.vue';
@@ -288,6 +289,7 @@ const { error, success } = useToast();
 const { getHeaders, authFetchJson } = useAuth();
 const { t } = useI18n();
 const { getOrder } = useOrders();
+const { copyShareLink } = useClipboard();
 
 const totalFiles = ref(0);
 const todayUploads = ref(0);
@@ -385,9 +387,8 @@ const fetchRecentShares = async () => {
   }
 };
 
-const copyShareLink = (item) => {
-  const url = `${window.location.origin}${item.shareUrl}`;
-  navigator.clipboard.writeText(url).then(() => success(t('dashboard.linkCopied')));
+const handleCopyShareLink = async (item) => {
+  await copyShareLink(item.shareUrl, { successMessage: t('dashboard.linkCopied') });
 };
 
 const editShare = (item) => {

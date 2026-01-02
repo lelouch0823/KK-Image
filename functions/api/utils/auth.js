@@ -303,7 +303,7 @@ export async function authenticateAdmin(request, env) {
     const user = await verifyJWT(token, env);
     // 这里可以扩展权限检查，例如 user.permissions.includes('admin')
     return user;
-  } catch (e) {
+  } catch (_e) {
     throw new Error(MSG.AUTH.EXPIRED);
   }
 }

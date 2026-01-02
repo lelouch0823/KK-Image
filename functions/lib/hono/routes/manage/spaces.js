@@ -374,7 +374,7 @@ app.post('/:id/files', requirePermission('files:write'), async (c) => {
       ).bind(spaceId, fileId, index, Date.now())
     );
 
-    const info = await env.DB.batch(statements);
+    const _info = await env.DB.batch(statements);
 
     await env.DB.prepare('UPDATE spaces SET updated_at = ? WHERE id = ?')
       .bind(Date.now(), spaceId)

@@ -114,7 +114,7 @@ export class TelegramStorageProvider extends BaseStorageProvider {
    * @param {string} fileId
    * @returns {Promise<boolean>}
    */
-  async deleteFile(fileId) {
+  async deleteFile(_fileId) {
     // Telegram 不支持删除已上传的文件
     // 但我们可以从 KV 元数据中移除记录
     console.warn('Telegram does not support file deletion');

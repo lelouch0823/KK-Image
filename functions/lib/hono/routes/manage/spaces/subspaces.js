@@ -13,7 +13,6 @@ import {
   generateShareToken,
   MSG,
   getShareUrl,
-  getFileUrl,
 } from '../../../_shared/utils.js';
 import { transformSpaceListItem } from './transformers.js';
 

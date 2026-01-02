@@ -159,7 +159,6 @@ const {
   getSalesOrder,
   createSalesOrder,
   addSalesComment,
-  duplicateOrder,
 } = useOrders();
 
 const { t } = useI18n();

@@ -41,15 +41,8 @@ export async function triggerWebhook(env, eventType, data) {
     const promises = webhooks.map((webhook) => sendWebhook(env, webhook, payload));
     const results = await Promise.allSettled(promises);
 
-    // 记录结果
-    let successCount = 0;
-    let failureCount = 0;
-
     results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        successCount++;
-      } else {
-        failureCount++;
+      if (result.status !== 'fulfilled') {
         console.error(`Webhook ${webhooks[index].id} failed:`, result.reason);
       }
     });
@@ -65,7 +58,6 @@ export async function triggerWebhook(env, eventType, data) {
 async function sendWebhook(env, webhook, payload) {
   const maxRetries = MAX_WEBHOOK_RETRIES;
   let attempt = 0;
-  let lastError = null;
   const startTime = Date.now();
 
   while (attempt < maxRetries) {
@@ -120,7 +112,6 @@ async function sendWebhook(env, webhook, payload) {
       }
     } catch (error) {
       attempt++;
-      lastError = error;
       console.error(`Webhook attempt ${attempt} failed:`, error.message);
 
       if (attempt >= maxRetries) {

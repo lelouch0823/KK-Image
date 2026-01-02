@@ -124,7 +124,11 @@ export default [
         },
         rules: {
             // 禁止未使用变量
-            "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+            "no-unused-vars": ["warn", {
+                argsIgnorePattern: "^_",
+                varsIgnorePattern: "^_",
+                caughtErrorsIgnorePattern: "^_"
+            }],
             // 禁止 console（生产代码）
             "no-console": ["warn", { allow: ["warn", "error"] }],
             // 禁止 debugger
@@ -140,7 +144,11 @@ export default [
         },
         rules: {
             // 禁止未使用变量
-            "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+            "no-unused-vars": ["warn", {
+                argsIgnorePattern: "^_",
+                varsIgnorePattern: "^_",
+                caughtErrorsIgnorePattern: "^_"
+            }],
             // 允许 console（后端调试需要）
             "no-console": "off",
             // 禁止 debugger

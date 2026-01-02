@@ -43,7 +43,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onBeforeMount, watch } from 'vue';
+import { computed, ref, onBeforeMount } from 'vue';
 import Sidebar from '@/components/layout/Sidebar.vue';
 import Header from '@/components/layout/Header.vue';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
@@ -65,7 +65,7 @@ import Settings from '@/views/Settings.vue';
 
 const { currentView } = useView();
 const { t } = useI18n();
-const { checkAuth, isAuthenticated, isLoading } = useAuth();
+const { checkAuth, isLoading } = useAuth();
 
 // Sidebar ref for mobile toggle
 const sidebarRef = ref(null);
