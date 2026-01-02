@@ -60,6 +60,14 @@
     --border-color: var(--color-gray-200);
     --border-hover: var(--color-gray-300);
 
+    /* Modal 遮罩层 - Modal Overlay */
+    --color-overlay-blur: rgba(0, 0, 0, 0.5);
+    /* 顶层 Modal 背景（带毛玻璃） */
+    --color-overlay-dim: rgba(0, 0, 0, 0.3);
+    /* 底层 Modal 背景（无毛玻璃） */
+    --color-modal-bg: #FFFFFF;
+    /* Modal 卡片背景 */
+
     /* 文字颜色 */
     --text-main: var(--color-gray-900);
     --text-secondary: var(--color-gray-500);

@@ -11,7 +11,7 @@
       <div 
         v-if="modelValue" 
         :class="backdropClass"
-        :style="zStyle"
+        :style="backdropStyle"
         @click.self="handleBackdropClick"
       >
         <transition
@@ -24,8 +24,9 @@
         >
           <div 
             v-if="modelValue"
-            class="bg-white rounded-xl shadow-2xl w-full flex flex-col max-h-[90vh] animate-in overflow-hidden"
+            class="rounded-xl shadow-2xl w-full flex flex-col max-h-[90vh] animate-in overflow-hidden"
             :class="sizeClass"
+            style="background-color: var(--color-modal-bg)"
           >
             <!-- Header -->
             <div v-if="title || $slots.header" class="px-6 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
@@ -115,11 +116,22 @@ const zStyle = computed(() => {
 // 背景样式类（只有最顶层显示毛玻璃）
 const backdropClass = computed(() => {
   const base = 'fixed inset-0 flex items-center justify-center px-4 py-6 overflow-hidden';
-  // 最顶层：半透明 + 毛玻璃；底层：更透明无毛玻璃
+  // 最顶层添加毛玻璃效果
   if (shouldShowBlur(modalId.value)) {
-    return `${base} bg-black/50 backdrop-blur-sm`;
+    return `${base} backdrop-blur-sm`;
   }
-  return `${base} bg-black/30`;
+  return base;
+});
+
+// 背景色样式（使用 inline style 因为 Tailwind 无法解析 rgba CSS 变量）
+const backdropStyle = computed(() => {
+  const bgColor = shouldShowBlur(modalId.value) 
+    ? 'var(--color-overlay-blur)' 
+    : 'var(--color-overlay-dim)';
+  return { 
+    ...zStyle.value,
+    backgroundColor: bgColor 
+  };
 });
 
 const sizeClass = computed(() => {
