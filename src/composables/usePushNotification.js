@@ -1,6 +1,6 @@
 /**
  * 桌面通知封装
- * @module composables/useNotification
+ * @module composables/usePushNotification
  */
 import { ref } from 'vue';
 import { useI18n } from './useI18n';
@@ -9,7 +9,7 @@ import { useI18n } from './useI18n';
  * 桌面通知 composable
  * @returns {Object}
  */
-export function useNotification() {
+export function usePushNotification() {
     const { t } = useI18n();
 
     // 通知权限状态

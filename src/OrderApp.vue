@@ -121,7 +121,7 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
-import { useNotification } from '@/composables/useNotification';
+import { usePushNotification } from '@/composables/usePushNotification';
 import { useToast } from '@/composables/useToast';
 import { useOrders } from '@/composables/useOrders';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
@@ -145,7 +145,7 @@ const {
 } = useOrders();
 
 const { t } = useI18n();
-const { requestPermission, showOrderFeedbackNotification } = useNotification();
+const { requestPermission, showOrderFeedbackNotification } = usePushNotification();
 const { addToast } = useToast();
 
 // 状态
