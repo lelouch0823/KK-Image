@@ -163,12 +163,13 @@
       />
     </div>
 
-    <!-- 订单编辑弹窗 -->
+    <!-- 订单编辑弹窗 (z-60 堆叠在详情之上) -->
     <OrderEditModal 
       v-if="showEditModal && editingOrder"
       :order="editingOrder"
       :submitting="isEditing"
-      :statuses="statuses" 
+      :statuses="statuses"
+      :zIndex="110"
       @close="closeEditModal"
       @submit="handleEditSubmit"
     />
@@ -336,10 +337,16 @@ const openEditModal = async (order) => {
   }
 };
 
-// 关闭编辑弹窗
-const closeEditModal = () => {
+// 关闭编辑弹窗（堆叠模式：刷新详情数据）
+const closeEditModal = async () => {
   showEditModal.value = false;
   editingOrder.value = null;
+  
+  // 若详情仍在显示，刷新其数据
+  if (showDetailModal.value && viewingOrder.value) {
+    const updated = await getOrder(viewingOrder.value.id);
+    if (updated) viewingOrder.value = updated;
+  }
 };
 
 // 打开详情弹窗
@@ -422,18 +429,9 @@ const refreshAfterComment = async () => {
   }
 };
 
-// 从详情页打开编辑
-// SOTA: 等待详情模态框完全关闭后再打开编辑模态框，避免过渡动画冲突
-const handleEditFromDetail = async (order) => {
-  // 1. 先关闭详情模态框
-  showDetailModal.value = false;
-  viewingOrder.value = null;
-  
-  // 2. 等待 Vue 更新 DOM + 过渡动画完成 (Modal 过渡时长约 200ms)
-  await nextTick();
-  await new Promise(resolve => setTimeout(resolve, 250));
-  
-  // 3. 再打开编辑模态框
+// 从详情页打开编辑（堆叠模式：详情保持打开）
+const handleEditFromDetail = (order) => {
+  // 详情 Modal 保持打开，直接弹出编辑
   editingOrder.value = order;
   showEditModal.value = true;
 };

@@ -5,6 +5,7 @@
     :size="isMobile ? 'full' : '6xl'"
     :title="t('order.manage.editOrder')"
     :bodyClass="isMobile ? 'flex-1 overflow-y-auto p-4' : 'flex-1 overflow-y-auto p-6'"
+    :zIndex="zIndex"
     @update:modelValue="$emit('close')"
   >
     <template #header>
@@ -258,7 +259,8 @@ const props = defineProps({
   order: { type: Object, required: true },
   submitting: Boolean,
   mode: { type: String, default: 'admin' },
-  statuses: { type: Array, default: () => ['pending', 'confirmed', 'production', 'shipping', 'completed', 'rejected', 'void'] }
+  statuses: { type: Array, default: () => ['pending', 'confirmed', 'production', 'shipping', 'completed', 'rejected', 'void'] },
+  zIndex: { type: [Number, String], default: 100 }
 });
 
 const emit = defineEmits(['close', 'submit']);

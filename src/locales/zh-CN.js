@@ -44,7 +44,8 @@ export default {
         unknown: '未知',
         justNow: '刚刚',
         minutesAgo: '{count} 分钟前',
-        hoursAgo: '{count} 小时前'
+        hoursAgo: '{count} 小时前',
+        optional: '选填'
     },
     formatters: {
         forever: '永久有效',
@@ -638,7 +639,9 @@ export default {
             exportFailed: '导出失败',
             dateRange: '日期范围',
             startDate: '开始日期',
-            endDate: '结束日期'
+            endDate: '结束日期',
+            currentStatus: '当前状态',
+            dangerousStatusWarning: '此操作将把订单标记为不可逆状态，请确认后再提交。'
         },
 
         // 仪表盘

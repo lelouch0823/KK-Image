@@ -10,7 +10,8 @@
     >
       <div 
         v-if="modelValue" 
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6 overflow-hidden"
+        class="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 py-6 overflow-hidden"
+        :class="zClass"
         @click.self="handleBackdropClick"
       >
         <transition
@@ -86,8 +87,14 @@ const props = defineProps({
   bodyClass: {
     type: String,
     default: ''
+  },
+  zIndex: {
+    type: [Number, String],
+    default: 100
   }
 });
+
+const zClass = computed(() => `z-[${props.zIndex}]`);
 
 const emit = defineEmits(['update:modelValue', 'close']);
 
