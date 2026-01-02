@@ -118,21 +118,29 @@ const breadcrumbs = ref([]);
 const selectedIds = ref([]);
 
 // 计算当前目录下的子文件夹
+// 计算当前目录下的子文件夹
 const currentFolders = computed(() => {
-  return allFolders.value.filter(f => f.parent_id == currentFolderId.value);
+  // 确保类型一致性，parentId 为 null 或 'root' 时处理根目录
+  const currentId = currentFolderId.value;
+  return allFolders.value.filter(f => {
+    if (currentId === null || currentId === 'root') {
+      return !f.parent_id || f.parent_id === 'root';
+    }
+    return f.parent_id === currentId;
+  });
 });
 
 // 加载所有文件夹结构
 const loadFoldersStructure = async () => {
   try {
-    const response = await fetch(API.FOLDERS, { credentials: 'include' });
+    // 使用 ?all=true 获取完整文件夹树
+    const response = await fetch(`${API.FOLDERS}?all=true`, { credentials: 'include' });
     const result = await response.json();
     if (result.success) {
       allFolders.value = result.data || [];
     }
   } catch (err) {
     console.error(t('moveFile.loadFailed'), err);
-    // addToast({ message: t('fileSelector.loadFoldersFailed'), type: 'error' }); // 可选
   }
 };
 
@@ -142,17 +150,19 @@ const navigateTo = (folderId, folderObj = null) => {
   if (folderId === null) {
     breadcrumbs.value = [];
   } else {
-    // 简单面包屑逻辑：如果直接点击子文件夹，追加；如果是导航条点击...这里简化处理，实际应递归查找
-    // 假设是点击子文件夹进入：
-    if (folderObj) {
-      breadcrumbs.value.push(folderObj);
-    } else {
-      // 导航条回跳：找到该ID在breadcrumbs中的位置，截断后续
-      const index = breadcrumbs.value.findIndex(b => b.id === folderId);
-      if (index !== -1) {
-        breadcrumbs.value = breadcrumbs.value.slice(0, index + 1);
+    // 鲁棒的面包屑逻辑：根据当前文件夹回溯所有父级
+    const crumbs = [];
+    let tempId = folderId;
+    while (tempId) {
+      const folder = allFolders.value.find(f => f.id === tempId);
+      if (folder) {
+        crumbs.unshift({ id: folder.id, name: folder.name });
+        tempId = folder.parent_id;
+      } else {
+        break;
       }
     }
+    breadcrumbs.value = crumbs;
   }
   loadFiles();
 };

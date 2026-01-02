@@ -199,7 +199,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onActivated } from 'vue';
+import { ref, reactive, onMounted, onActivated, nextTick } from 'vue';
 import { useOrders } from '@/composables/useOrders';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
@@ -423,8 +423,17 @@ const refreshAfterComment = async () => {
 };
 
 // 从详情页打开编辑
-const handleEditFromDetail = (order) => {
+// SOTA: 等待详情模态框完全关闭后再打开编辑模态框，避免过渡动画冲突
+const handleEditFromDetail = async (order) => {
+  // 1. 先关闭详情模态框
   showDetailModal.value = false;
+  viewingOrder.value = null;
+  
+  // 2. 等待 Vue 更新 DOM + 过渡动画完成 (Modal 过渡时长约 200ms)
+  await nextTick();
+  await new Promise(resolve => setTimeout(resolve, 250));
+  
+  // 3. 再打开编辑模态框
   editingOrder.value = order;
   showEditModal.value = true;
 };
