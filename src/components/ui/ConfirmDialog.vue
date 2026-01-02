@@ -1,9 +1,14 @@
 <template>
   <Teleport to="body">
     <transition name="fade-scale">
-      <div v-if="modelValue" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div 
-        class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-gray-100"
+        v-if="modelValue" 
+        :class="backdropClass"
+        :style="backdropStyle"
+        @click.self="handleCancel"
+      >
+      <div 
+        class="bg-[var(--bg-card)] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-[var(--border-color)]"
         @click.stop
       >
         <!-- 图标/背景装饰 -->
@@ -32,20 +37,20 @@
 
         <!-- 内容 -->
         <div class="px-6 py-6 text-center">
-          <h3 class="text-xl font-bold text-gray-900 mb-2">{{ title }}</h3>
-          <p class="text-gray-500 text-sm leading-relaxed">
-            <slot>{{ message }}</slot>
+          <h3 class="text-xl font-bold text-[var(--text-main)] mb-2">{{ title || t('common.confirmTitle') }}</h3>
+          <p class="text-[var(--text-secondary)] text-sm leading-relaxed">
+            <slot>{{ message || t('common.confirmMessageDefault') }}</slot>
           </p>
 
           <!-- Input verification -->
           <div v-if="showInput" class="mt-4">
-            <p v-if="inputLabel" class="text-xs font-medium text-gray-400 mb-2 text-left">{{ inputLabel }}</p>
+            <p v-if="inputLabel" class="text-xs font-medium text-[var(--text-muted)] mb-2 text-left">{{ inputLabel }}</p>
             <input 
               ref="inputField"
               v-model="inputValue"
               :type="inputType"
               :placeholder="inputPlaceholder"
-              class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              class="w-full px-4 py-2.5 bg-[var(--bg-muted)] border border-[var(--border-color)] rounded-xl text-sm transition-all focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none text-[var(--text-main)] placeholder-[var(--text-muted)]"
               @keyup.enter="handleConfirm"
             >
           </div>
@@ -56,9 +61,9 @@
           <button 
             @click="handleCancel"
             :disabled="loading"
-            class="flex-1 py-2.5 px-4 text-sm font-semibold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all active:scale-95 disabled:opacity-50"
+            class="flex-1 py-2.5 px-4 text-sm font-semibold text-[var(--text-secondary)] bg-[var(--bg-muted)] rounded-xl hover:bg-[var(--bg-hover)] transition-all active:scale-95 disabled:opacity-50"
           >
-            {{ cancelText }}
+            {{ cancelText || t('common.cancel') }}
           </button>
           <button 
             @click="handleConfirm"
@@ -74,7 +79,7 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
-            {{ confirmText }}
+            {{ confirmText || t('common.confirm') }}
           </button>
         </div>
       </div>
@@ -85,25 +90,17 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { useModalStack } from '@/composables/useModalStack';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   modelValue: Boolean,
-  title: {
-    type: String,
-    default: '确认操作'
-  },
-  message: {
-    type: String,
-    default: '确定要执行此操作吗？'
-  },
-  confirmText: {
-    type: String,
-    default: '确定'
-  },
-  cancelText: {
-    type: String,
-    default: '取消'
-  },
+  title: String,
+  message: String,
+  confirmText: String,
+  cancelText: String,
   type: {
     type: String, // 'primary' | 'danger' | 'warning' | 'success' | 'info'
     default: 'primary'
@@ -125,19 +122,47 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'confirm', 'cancel']);
 
-// Input verification state
-const inputValue = ref('');
-const inputField = ref(null);
+// Modal Stack Integration
+const { register, unregister, getZIndex, isTopModal, generateModalId } = useModalStack();
+const modalId = ref(generateModalId('confirm'));
 
-// Reset input when dialog opens
+// 动态 Z-Index 样式
+const zStyle = computed(() => ({
+  zIndex: getZIndex(modalId.value)
+}));
+
+// 背景色样式（复用 Modal.vue 逻辑）
+const backdropStyle = computed(() => {
+  const bgColor = isTopModal(modalId.value) 
+    ? 'var(--color-overlay-blur)' 
+    : 'var(--color-overlay-dim)';
+  return { 
+    ...zStyle.value,
+    backgroundColor: bgColor 
+  };
+});
+
+// 背景样式类 (顶层模糊)
+const backdropClass = computed(() => {
+  const base = 'fixed inset-0 flex items-center justify-center p-4 overflow-hidden';
+  if (isTopModal(modalId.value)) {
+    return `${base} backdrop-blur-sm`;
+  }
+  return base;
+});
+
+// 监听打开状态注册/注销到栈
 watch(() => props.modelValue, (val) => {
   if (val) {
+    register(modalId.value);
     inputValue.value = '';
     if (props.showInput) {
       nextTick(() => inputField.value?.focus());
     }
+  } else {
+    unregister(modalId.value);
   }
-});
+}, { immediate: true });
 
 // Confirm button disabled state
 const isConfirmDisabled = computed(() => {
@@ -146,43 +171,43 @@ const isConfirmDisabled = computed(() => {
   return false;
 });
 
-// Type-based styling
+// Type-based styling using CSS variables
 const typeClasses = computed(() => {
   const types = {
     primary: {
-      bg: 'bg-primary/5',
-      accent: 'bg-primary',
-      iconBg: 'bg-primary/10',
-      iconText: 'text-primary',
-      btn: 'bg-primary hover:bg-primary-hover shadow-primary/20'
+      bg: 'bg-[var(--color-primary-bg)]',
+      accent: 'bg-[var(--color-primary)]',
+      iconBg: 'bg-[var(--color-primary-bg)]',
+      iconText: 'text-[var(--color-primary)]',
+      btn: 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] shadow-[var(--color-primary)]/20'
     },
     danger: {
-      bg: 'bg-red-50',
-      accent: 'bg-red-500',
-      iconBg: 'bg-red-100',
-      iconText: 'text-red-600',
-      btn: 'bg-red-500 hover:bg-red-600 shadow-red-500/20'
+      bg: 'bg-[var(--color-danger-bg)]',
+      accent: 'bg-[var(--color-danger)]',
+      iconBg: 'bg-[var(--color-danger-bg)]',
+      iconText: 'text-[var(--color-danger)]',
+      btn: 'bg-[var(--color-danger)] hover:bg-[var(--color-danger-text)] shadow-[var(--color-danger)]/20'
     },
     warning: {
-      bg: 'bg-orange-50',
-      accent: 'bg-orange-500',
-      iconBg: 'bg-orange-100',
-      iconText: 'text-orange-600',
-      btn: 'bg-orange-500 hover:bg-orange-600 shadow-orange-500/20'
+      bg: 'bg-[var(--color-warning-bg)]',
+      accent: 'bg-[var(--color-warning)]',
+      iconBg: 'bg-[var(--color-warning-bg)]',
+      iconText: 'text-[var(--color-warning-text)]',
+      btn: 'bg-[var(--color-warning)] hover:bg-[var(--color-warning-text)] shadow-[var(--color-warning)]/20'
     },
     success: {
-      bg: 'bg-green-50',
-      accent: 'bg-green-500',
-      iconBg: 'bg-green-100',
-      iconText: 'text-green-600',
-      btn: 'bg-green-500 hover:bg-green-600 shadow-green-500/20'
+      bg: 'bg-[var(--color-success-bg)]',
+      accent: 'bg-[var(--color-success)]',
+      iconBg: 'bg-[var(--color-success-bg)]',
+      iconText: 'text-[var(--color-success-text)]',
+      btn: 'bg-[var(--color-success)] hover:bg-[var(--color-success-text)] shadow-[var(--color-success)]/20'
     },
     info: {
-      bg: 'bg-blue-50',
-      accent: 'bg-blue-500',
-      iconBg: 'bg-blue-100',
-      iconText: 'text-blue-600',
-      btn: 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/20'
+      bg: 'bg-[var(--color-info-bg)]',
+      accent: 'bg-[var(--color-info)]',
+      iconBg: 'bg-[var(--color-info-bg)]',
+      iconText: 'text-[var(--color-info-text)]',
+      btn: 'bg-[var(--color-info)] hover:bg-[var(--color-info-text)] shadow-[var(--color-info)]/20'
     }
   };
   return types[props.type] || types.primary;

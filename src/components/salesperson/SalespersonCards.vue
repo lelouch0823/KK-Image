@@ -4,9 +4,9 @@
     <template v-if="loading">
       <div class="grid grid-cols-2 gap-3">
         <div v-for="i in 4" :key="i" class="bg-[var(--bg-muted)] rounded-xl p-3 animate-pulse">
-          <div class="w-10 h-10 bg-[var(--color-gray-200)] rounded-full mx-auto mb-2"></div>
-          <div class="h-4 bg-[var(--color-gray-200)] rounded w-16 mx-auto mb-1"></div>
-          <div class="h-3 bg-[var(--color-gray-200)] rounded w-12 mx-auto"></div>
+          <div class="w-10 h-10 bg-[var(--border-color)] rounded-full mx-auto mb-2 opacity-50"></div>
+          <div class="h-4 bg-[var(--border-color)] rounded w-16 mx-auto mb-1 opacity-50"></div>
+          <div class="h-3 bg-[var(--border-color)] rounded w-12 mx-auto opacity-50"></div>
         </div>
       </div>
     </template>
@@ -17,18 +17,18 @@
         <div 
           v-for="person in data" 
           :key="person.id"
-          class="bg-[var(--bg-muted)] rounded-xl overflow-hidden hover:shadow-md transition-shadow"
+          class="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group"
         >
           <!-- 卡片主体 -->
-          <div class="p-3 text-center">
+          <div class="p-4 text-center">
             <!-- 头像 -->
-            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-[var(--color-gray-700)] flex items-center justify-center text-white font-semibold text-lg mx-auto mb-2">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] flex items-center justify-center text-white font-semibold text-lg mx-auto mb-3 shadow-inner shadow-black/5 group-hover:scale-110 transition-transform">
               {{ person.name?.charAt(0) || '?' }}
             </div>
             <!-- 姓名 -->
-            <div class="font-medium text-primary text-sm truncate">{{ person.name }}</div>
+            <div class="font-bold text-[var(--text-main)] text-sm truncate">{{ person.name }}</div>
             <!-- 门店 -->
-            <div class="text-xs text-secondary truncate">{{ person.store || '-' }}</div>
+            <div class="text-xs text-[var(--text-secondary)] truncate mt-0.5">{{ person.store || '-' }}</div>
             <!-- 订单数 -->
             <div class="mt-2 flex items-center justify-center gap-1">
               <span class="text-xs text-secondary">{{ t('salesperson.table.orders') }}:</span>
@@ -43,11 +43,11 @@
           </div>
           
           <!-- 图标操作栏 -->
-          <div class="border-t border-[var(--border-color)] px-2 py-2 flex items-center justify-center gap-4 bg-white">
+          <div class="border-t border-[var(--border-color)] px-2 py-2.5 flex items-center justify-center gap-4 bg-[var(--bg-muted)]/50">
             <!-- 复制链接 -->
             <button 
               @click="$emit('copy', person.accessToken)"
-              class="p-2 rounded-lg text-secondary hover:text-primary hover:bg-[var(--bg-hover)] transition-colors"
+              class="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/5 transition-all active:scale-90"
               :title="t('salesperson.copyLink')"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,7 +57,7 @@
             <!-- 编辑 -->
             <button 
               @click="$emit('edit', person)"
-              class="p-2 rounded-lg text-[var(--color-info-text)] hover:bg-[var(--color-info-bg)] transition-colors"
+              class="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--color-info-text)] hover:bg-[var(--color-info-bg)] transition-all active:scale-90"
               :title="t('salesperson.edit')"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,7 +67,7 @@
             <!-- 删除 -->
             <button 
               @click="$emit('delete', person)"
-              class="p-2 rounded-lg text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              class="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--color-danger-text)] hover:bg-[var(--color-danger-bg)] transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed"
               :title="t('common.delete')"
               :disabled="person.orderCount > 0"
             >

@@ -9,7 +9,7 @@
             :checked="isAllSelected" 
             :indeterminate="isPartialSelected"
             @change="toggleSelectAll"
-            class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+            class="w-4 h-4 rounded-lg border-[var(--border-color)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20 cursor-pointer bg-[var(--bg-muted)] transition-all"
           >
         </th>
         <th class="px-4 py-3">{{ t('order.form.productName') }}</th>
@@ -24,9 +24,9 @@
       <!-- 加载骨架屏 -->
       <template v-if="loading">
         <tr v-for="i in 5" :key="i" class="animate-pulse">
-          <td v-if="selectable" class="px-4 py-4"><div class="h-4 w-4 bg-[var(--color-gray-200)] rounded"></div></td>
+          <td v-if="selectable" class="px-4 py-4"><div class="h-4 w-4 bg-[var(--bg-muted)] rounded"></div></td>
           <td v-for="j in 6" :key="j" class="px-4 py-4">
-            <div class="h-4 bg-[var(--color-gray-200)] rounded w-2/3"></div>
+            <div class="h-4 bg-[var(--bg-muted)] rounded w-2/3"></div>
           </td>
         </tr>
       </template>
@@ -36,8 +36,8 @@
         <tr 
           v-for="order in data" 
           :key="order.id" 
-          class="hover:bg-[var(--bg-hover)] transition-colors group cursor-pointer"
-          :class="{ 'bg-primary/5': isSelected(order.id) }"
+          class="hover:bg-[var(--bg-hover)] transition-all group cursor-pointer active:scale-[0.995]"
+          :class="{ 'bg-[var(--color-primary)]/5': isSelected(order.id) }"
           @click="$emit('detail', order)"
         >
           <!-- 批量选择 checkbox -->
@@ -46,7 +46,7 @@
               type="checkbox" 
               :checked="isSelected(order.id)"
               @change="toggleSelect(order.id)"
-              class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+              class="w-4 h-4 rounded-lg border-[var(--border-color)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20 cursor-pointer bg-[var(--bg-muted)] transition-all"
             >
           </td>
           <td class="px-4 py-3">
@@ -55,23 +55,23 @@
               <div class="w-10 h-10 rounded bg-[var(--bg-muted)] flex-shrink-0 overflow-hidden border border-[var(--border-color)]">
                 <img v-if="order.mainImage" :src="order.mainImage" class="w-full h-full object-cover">
                 <div v-else class="w-full h-full flex items-center justify-center">
-                  <svg class="w-4 h-4 text-[var(--color-gray-300)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4 text-[var(--text-secondary)]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                   </svg>
                 </div>
               </div>
               <div>
-                <div class="font-medium text-primary flex items-center gap-2">
+                <div class="font-bold text-[var(--text-main)] flex items-center gap-2">
                   {{ order.productName || '-' }}
                   <!-- 红点 -->
-                  <span v-if="order.hasNewFeedback" class="w-2 h-2 bg-[var(--color-danger)] rounded-full animate-pulse" :title="t('order.portal.hasUpdate')"></span>
+                  <span v-if="order.hasNewFeedback" class="w-2.5 h-2.5 bg-[var(--color-danger)] rounded-full animate-pulse border-2 border-[var(--bg-card)]" :title="t('order.portal.hasUpdate')"></span>
                 </div>
               </div>
             </div>
           </td>
           <td class="px-4 py-3">
-            <div class="text-primary">{{ order.salespersonName || '-' }}</div>
-            <div class="text-xs text-secondary">{{ order.store }}</div>
+            <div class="text-[var(--text-main)] font-medium">{{ order.salespersonName || '-' }}</div>
+            <div class="text-xs text-[var(--text-secondary)]">{{ order.store }}</div>
           </td>
           <td class="px-4 py-3 text-secondary font-mono text-xs">{{ order.orderNo }}</td>
           <td class="px-4 py-3" @click.stop>
@@ -105,10 +105,10 @@
               <button 
                 v-if="order.status !== 'void'"
                 @click="$emit('void', order)"
-                class="p-1.5 rounded-lg text-secondary hover:text-[var(--color-danger)] hover:bg-red-50 transition-colors"
+                class="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)] transition-all active:scale-90"
                 :title="t('order.actions.void')"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                 </svg>
               </button>

@@ -1,10 +1,10 @@
 <template>
-  <div class="h-full flex flex-col bg-white rounded-xl shadow-sm border border-gray-200">
+  <div class="h-full flex flex-col bg-[var(--bg-card)] rounded-xl shadow-sm border border-[var(--border-color)]">
     <!-- 头部操作栏 -->
-    <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
+    <div class="p-4 border-b border-[var(--border-color)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
       <div>
-        <h2 class="text-lg font-semibold text-gray-900">{{ t('order.manage.title') }}</h2>
-        <p class="text-sm text-gray-500 mt-1">{{ t('order.manage.subtitle') }}</p>
+        <h2 class="text-lg font-semibold text-[var(--text-main)]">{{ t('order.manage.title') }}</h2>
+        <p class="text-sm text-[var(--text-secondary)] mt-1">{{ t('order.manage.subtitle') }}</p>
       </div>
 
       <div class="flex items-center gap-3">
@@ -12,7 +12,7 @@
         <select 
           v-model="filterSalesperson"
           @change="handleFilterChange"
-          class="h-9 px-3 border border-gray-300 rounded-lg text-sm bg-white focus:ring-primary focus:border-primary outline-none"
+          class="h-9 px-3 bg-[var(--bg-muted)] border-[var(--border-color)] text-[var(--text-main)] text-sm rounded-lg focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] outline-none transition-all"
         >
           <option value="">{{ t('order.manage.allSalespersons') }}</option>
           <option v-for="s in salespersons" :key="s.id" :value="s.id">{{ s.name }}</option>
@@ -22,7 +22,7 @@
         <select 
           v-model="filterStatus"
           @change="handleFilterChange"
-          class="h-9 px-3 border border-gray-300 rounded-lg text-sm bg-white focus:ring-primary focus:border-primary outline-none"
+          class="h-9 px-3 bg-[var(--bg-muted)] border-[var(--border-color)] text-[var(--text-main)] text-sm rounded-lg focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] outline-none transition-all"
         >
           <option value="">{{ t('order.manage.allStatuses') }}</option>
           <option v-for="s in statuses" :key="s" :value="s">{{ t(`order.statuses.${s}`) }}</option>
@@ -40,7 +40,7 @@
         <button
           @click="exportOrders"
           :disabled="exporting"
-          class="h-9 px-4 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center gap-2"
+          class="h-9 px-4 bg-[var(--color-primary)] text-white text-sm font-medium rounded-lg hover:bg-[var(--color-primary-hover)] transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 shadow-sm shadow-[var(--color-primary)]/10"
         >
           <svg v-if="exporting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -112,7 +112,7 @@
     >
       <div 
         v-if="selectedIds.length > 0" 
-        class="sticky bottom-0 left-0 right-0 bg-white border-t border-[var(--border-color)] shadow-lg px-4 py-3 flex items-center justify-between gap-4 z-20"
+        class="sticky bottom-0 left-0 right-0 bg-[var(--bg-card)] border-t border-[var(--border-color)] shadow-xl shadow-black/10 px-4 py-3.5 flex items-center justify-between gap-4 z-20 backdrop-blur-md bg-[var(--bg-card)]/90"
       >
         <div class="flex items-center gap-3">
           <span class="text-sm text-primary font-medium">
@@ -129,23 +129,23 @@
           <button 
             @click="handleBatchAction('confirm')"
             :disabled="batchProcessing"
-            class="h-8 px-4 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            class="h-9 px-4 bg-[var(--color-primary)] text-white text-sm font-bold rounded-xl hover:bg-[var(--color-primary-hover)] transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-[var(--color-primary)]/10"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             {{ t('order.manage.batchConfirm') }}
           </button>
           <button 
             @click="handleBatchAction('reject')"
             :disabled="batchProcessing"
-            class="h-8 px-4 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            class="h-9 px-4 bg-[var(--color-warning)] text-white text-sm font-bold rounded-xl hover:bg-[var(--color-warning)]/90 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-[var(--color-warning)]/10"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             {{ t('order.manage.batchReject') }}
           </button>
           <button 
             @click="handleBatchAction('void')"
             :disabled="batchProcessing"
-            class="h-8 px-4 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            class="h-9 px-4 bg-[var(--color-danger)] text-white text-sm font-bold rounded-xl hover:bg-[var(--color-danger)]/90 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-[var(--color-danger)]/10"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             {{ t('order.manage.batchVoid') }}
@@ -155,7 +155,7 @@
     </Transition>
 
     <!-- 分页 -->
-    <div v-if="pagination.totalPages > 1" class="p-4 border-t border-gray-200 flex-shrink-0">
+    <div v-if="pagination.totalPages > 1" class="p-4 border-t border-[var(--border-color)] flex-shrink-0">
       <Pagination 
         v-model:currentPage="pagination.page"
         :totalPages="pagination.totalPages"

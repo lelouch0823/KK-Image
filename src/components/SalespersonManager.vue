@@ -1,10 +1,10 @@
 <template>
-  <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+  <div class="bg-[var(--bg-card)] rounded-xl shadow-sm border border-[var(--border-color)]">
     <!-- 头部操作栏 -->
-    <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div class="p-4 border-b border-[var(--border-color)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <h2 class="text-lg font-semibold text-gray-900">{{ t('salesperson.title') }}</h2>
-        <p class="text-sm text-gray-500 mt-1">{{ t('salesperson.subtitle') }}</p>
+        <h2 class="text-lg font-semibold text-[var(--text-main)]">{{ t('salesperson.title') }}</h2>
+        <p class="text-sm text-[var(--text-secondary)] mt-1">{{ t('salesperson.subtitle') }}</p>
       </div>
 
       <div class="flex items-center gap-3">
@@ -19,7 +19,7 @@
         <!-- 新建按钮 -->
         <button 
           @click="openModal()"
-          class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+          class="flex items-center gap-2 px-4 py-2 bg-[var(--color-primary)] text-white text-sm font-medium rounded-lg hover:bg-[var(--color-primary-hover)] transition-all active:scale-95 shadow-lg shadow-[var(--color-primary)]/10"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -55,7 +55,7 @@
     </div>
 
     <!-- 分页 -->
-    <div class="p-4 border-t border-gray-200">
+    <div class="p-4 border-t border-[var(--border-color)]">
       <Pagination 
         v-model:currentPage="currentPage"
         :totalPages="pagination.totalPages"

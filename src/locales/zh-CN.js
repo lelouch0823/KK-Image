@@ -1,6 +1,8 @@
 export default {
     common: {
         confirm: '确认',
+        confirmTitle: '操作确认',
+        confirmMessageDefault: '您确定要执行此操作吗？',
         cancel: '取消',
         save: '保存',
         saving: '保存中...',

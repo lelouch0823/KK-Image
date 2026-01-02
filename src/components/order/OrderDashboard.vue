@@ -3,7 +3,7 @@
     <!-- 今日订单 -->
     <div 
       @click="$emit('filter', 'today')"
-      class="group relative bg-gradient-to-br from-[var(--color-card-blue-bg)] to-white rounded-2xl p-5 border border-[var(--color-card-blue-border)]/60 cursor-pointer shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
+      class="group relative bg-gradient-to-br from-[var(--color-card-blue-bg)] to-[var(--bg-card)] rounded-2xl p-5 border border-[var(--color-card-blue-border)]/60 cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden active:scale-95"
     >
       <!-- 装饰背景 -->
       <div class="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-[var(--color-card-blue-accent)]/10 blur-xl group-hover:scale-125 transition-transform duration-300"></div>
@@ -27,7 +27,7 @@
     <!-- 待处理 -->
     <div 
       @click="$emit('filter', 'pending')"
-      class="group relative bg-gradient-to-br from-[var(--color-card-orange-bg)] to-white rounded-2xl p-5 border border-[var(--color-card-orange-border)]/60 cursor-pointer shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
+      class="group relative bg-gradient-to-br from-[var(--color-card-orange-bg)] to-[var(--bg-card)] rounded-2xl p-5 border border-[var(--color-card-orange-border)]/60 cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden active:scale-95"
     >
       <!-- 装饰背景 -->
       <div class="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-[var(--color-card-orange-accent)]/10 blur-xl group-hover:scale-125 transition-transform duration-300"></div>
@@ -49,7 +49,7 @@
     </div>
 
     <!-- 本周订单 -->
-    <div class="group relative bg-gradient-to-br from-[var(--color-card-green-bg)] to-white rounded-2xl p-5 border border-[var(--color-card-green-border)]/60 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 overflow-hidden">
+    <div class="group relative bg-gradient-to-br from-[var(--color-card-green-bg)] to-[var(--bg-card)] rounded-2xl p-5 border border-[var(--color-card-green-border)]/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
       <!-- 装饰背景 -->
       <div class="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-[var(--color-card-green-accent)]/10 blur-xl group-hover:scale-125 transition-transform duration-300"></div>
       
@@ -72,7 +72,7 @@
     <!-- 状态分布 (点击查看饼图) -->
     <div 
       @click="showChartModal = true"
-      class="group relative bg-gradient-to-br from-[var(--color-card-purple-bg)] to-white rounded-2xl p-5 border border-[var(--color-card-purple-border)]/60 cursor-pointer shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
+      class="group relative bg-gradient-to-br from-[var(--color-card-purple-bg)] to-[var(--bg-card)] rounded-2xl p-5 border border-[var(--color-card-purple-border)]/60 cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden active:scale-95"
     >
       <!-- 装饰背景 -->
       <div class="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-[var(--color-card-purple-accent)]/10 blur-xl group-hover:scale-125 transition-transform duration-300"></div>
