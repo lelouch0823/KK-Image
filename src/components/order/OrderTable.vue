@@ -1,16 +1,16 @@
 <template>
-  <table class="w-full text-sm text-left relative">
-    <thead class="bg-[var(--bg-muted)] text-secondary font-medium sticky top-0 z-10 shadow-sm">
+  <table class="relative w-full text-left text-sm">
+    <thead class="text-secondary sticky top-0 z-10 bg-[var(--bg-muted)] font-medium shadow-sm">
       <tr>
         <!-- 批量选择 checkbox -->
-        <th v-if="selectable" class="px-4 py-3 w-10">
-          <input 
-            type="checkbox" 
-            :checked="isAllSelected" 
+        <th v-if="selectable" class="w-10 px-4 py-3">
+          <input
+            type="checkbox"
+            :checked="isAllSelected"
             :indeterminate="isPartialSelected"
+            class="size-4 cursor-pointer rounded-lg border-[var(--border-color)] bg-[var(--bg-muted)] text-[var(--color-primary)] transition-all focus:ring-[var(--color-primary)]/20"
             @change="toggleSelectAll"
-            class="w-4 h-4 rounded-lg border-[var(--border-color)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20 cursor-pointer bg-[var(--bg-muted)] transition-all"
-          >
+          />
         </th>
         <th class="px-4 py-3">{{ t('order.form.productName') }}</th>
         <th class="px-4 py-3">{{ t('salesperson.name') }}</th>
@@ -24,92 +24,132 @@
       <!-- 加载骨架屏 -->
       <template v-if="loading">
         <tr v-for="i in 5" :key="i" class="animate-pulse">
-          <td v-if="selectable" class="px-4 py-4"><div class="h-4 w-4 bg-[var(--bg-muted)] rounded"></div></td>
-          <td v-for="j in 6" :key="j" class="px-4 py-4">
-            <div class="h-4 bg-[var(--bg-muted)] rounded w-2/3"></div>
+          <td v-if="selectable" class="p-4">
+            <div class="size-4 rounded bg-[var(--bg-muted)]"></div>
+          </td>
+          <td v-for="j in 6" :key="j" class="p-4">
+            <div class="h-4 w-2/3 rounded bg-[var(--bg-muted)]"></div>
           </td>
         </tr>
       </template>
-      
+
       <!-- 数据行 -->
       <template v-else-if="data.length > 0">
-        <tr 
-          v-for="order in data" 
-          :key="order.id" 
-          class="hover:bg-[var(--bg-hover)] transition-all group cursor-pointer active:scale-[0.995]"
+        <tr
+          v-for="order in data"
+          :key="order.id"
+          class="group cursor-pointer transition-all hover:bg-[var(--bg-hover)] active:scale-[0.995]"
           :class="{ 'bg-[var(--color-primary)]/5': isSelected(order.id) }"
           @click="$emit('detail', order)"
         >
           <!-- 批量选择 checkbox -->
           <td v-if="selectable" class="px-4 py-3" @click.stop>
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               :checked="isSelected(order.id)"
+              class="size-4 cursor-pointer rounded-lg border-[var(--border-color)] bg-[var(--bg-muted)] text-[var(--color-primary)] transition-all focus:ring-[var(--color-primary)]/20"
               @change="toggleSelect(order.id)"
-              class="w-4 h-4 rounded-lg border-[var(--border-color)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20 cursor-pointer bg-[var(--bg-muted)] transition-all"
-            >
+            />
           </td>
           <td class="px-4 py-3">
             <div class="flex items-center gap-3">
               <!-- 缩略图 -->
-              <div class="w-10 h-10 rounded bg-[var(--bg-muted)] flex-shrink-0 overflow-hidden border border-[var(--border-color)]">
-                <img v-if="order.mainImage" :src="order.mainImage" class="w-full h-full object-cover">
-                <div v-else class="w-full h-full flex items-center justify-center">
-                  <svg class="w-4 h-4 text-[var(--text-secondary)]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              <div
+                class="size-10 flex-shrink-0 overflow-hidden rounded border border-[var(--border-color)] bg-[var(--bg-muted)]"
+              >
+                <img v-if="order.mainImage" :src="order.mainImage" class="size-full object-cover" />
+                <div v-else class="flex size-full items-center justify-center">
+                  <svg
+                    class="size-4 text-[var(--text-secondary)]/30"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.5"
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    ></path>
                   </svg>
                 </div>
               </div>
               <div>
-                <div class="font-bold text-[var(--text-main)] flex items-center gap-2">
+                <div class="flex items-center gap-2 font-bold text-[var(--text-main)]">
                   {{ order.productName || '-' }}
                   <!-- 红点 -->
-                  <span v-if="order.hasNewFeedback" class="w-2.5 h-2.5 bg-[var(--color-danger)] rounded-full animate-pulse border-2 border-[var(--bg-card)]" :title="t('order.portal.hasUpdate')"></span>
+                  <span
+                    v-if="order.hasNewFeedback"
+                    class="size-2.5 animate-pulse rounded-full border-2 border-[var(--bg-card)] bg-[var(--color-danger)]"
+                    :title="t('order.portal.hasUpdate')"
+                  ></span>
                 </div>
               </div>
             </div>
           </td>
           <td class="px-4 py-3">
-            <div class="text-[var(--text-main)] font-medium">{{ order.salespersonName || '-' }}</div>
+            <div class="font-medium text-[var(--text-main)]">
+              {{ order.salespersonName || '-' }}
+            </div>
             <div class="text-xs text-[var(--text-secondary)]">{{ order.store }}</div>
           </td>
-          <td class="px-4 py-3 text-secondary font-mono text-xs">{{ order.orderNo }}</td>
+          <td class="text-secondary px-4 py-3 font-mono text-xs">{{ order.orderNo }}</td>
           <td class="px-4 py-3" @click.stop>
             <slot name="status" :order="order"></slot>
           </td>
-          <td class="px-4 py-3 text-secondary text-xs">{{ formatTime(order.createdAt) }}</td>
+          <td class="text-secondary px-4 py-3 text-xs">{{ formatTime(order.createdAt) }}</td>
           <td class="px-4 py-3 text-right" @click.stop>
             <div class="flex items-center justify-end gap-1">
               <!-- 查看 -->
-              <button 
-                @click="$emit('detail', order)"
-                class="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-[var(--bg-hover)] transition-colors"
+              <button
+                class="text-secondary rounded-lg p-1.5 transition-colors hover:text-primary hover:bg-[var(--bg-hover)]"
                 :title="t('common.view')"
+                @click="$emit('detail', order)"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                  />
                 </svg>
               </button>
               <!-- 编辑 -->
-              <button 
-                @click="$emit('edit', order)"
-                class="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-[var(--bg-hover)] transition-colors"
+              <button
+                class="text-secondary rounded-lg p-1.5 transition-colors hover:text-primary hover:bg-[var(--bg-hover)]"
                 :title="t('common.edit')"
+                @click="$emit('edit', order)"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
                 </svg>
               </button>
               <!-- 作废 -->
-              <button 
+              <button
                 v-if="order.status !== 'void'"
-                @click="$emit('void', order)"
-                class="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)] transition-all active:scale-90"
+                class="rounded-xl p-2 text-[var(--text-secondary)] transition-all hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger)] active:scale-90"
                 :title="t('order.actions.void')"
+                @click="$emit('void', order)"
               >
-                <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                <svg class="size-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
               </button>
             </div>
@@ -136,20 +176,20 @@ import EmptyState from '@/components/ui/EmptyState.vue';
 const props = defineProps({
   data: {
     type: Array,
-    required: true
+    required: true,
   },
   loading: {
     type: Boolean,
-    default: false
+    default: false,
   },
   selectable: {
     type: Boolean,
-    default: false
+    default: false,
   },
   selectedIds: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(['detail', 'edit', 'void', 'update:selectedIds']);
@@ -176,14 +216,20 @@ const toggleSelectAll = () => {
   if (isAllSelected.value) {
     emit('update:selectedIds', []);
   } else {
-    emit('update:selectedIds', props.data.map(o => o.id));
+    emit(
+      'update:selectedIds',
+      props.data.map((o) => o.id)
+    );
   }
 };
 
 // 切换单个选中
 const toggleSelect = (id) => {
   if (isSelected(id)) {
-    emit('update:selectedIds', props.selectedIds.filter(i => i !== id));
+    emit(
+      'update:selectedIds',
+      props.selectedIds.filter((i) => i !== id)
+    );
   } else {
     emit('update:selectedIds', [...props.selectedIds, id]);
   }

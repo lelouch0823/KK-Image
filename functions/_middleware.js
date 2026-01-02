@@ -46,9 +46,9 @@ export async function onRequest(context) {
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': `${url.origin}/login.html`,
-        'Set-Cookie': `${ADMIN_AUTH_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`
-      }
+        Location: `${url.origin}/login.html`,
+        'Set-Cookie': `${ADMIN_AUTH_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`,
+      },
     });
   }
 }

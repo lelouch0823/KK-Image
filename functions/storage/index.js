@@ -12,9 +12,9 @@ import { S3StorageProvider } from './providers/s3.js';
  * @enum {string}
  */
 export const StorageProviderType = {
-    TELEGRAM: 'telegram',
-    R2: 'r2',
-    S3: 's3'
+  TELEGRAM: 'telegram',
+  R2: 'r2',
+  S3: 's3',
 };
 
 /**
@@ -22,9 +22,9 @@ export const StorageProviderType = {
  * @type {Object<string, typeof import('./base-provider.js').BaseStorageProvider>}
  */
 const providerRegistry = {
-    [StorageProviderType.TELEGRAM]: TelegramStorageProvider,
-    [StorageProviderType.R2]: R2StorageProvider,
-    [StorageProviderType.S3]: S3StorageProvider
+  [StorageProviderType.TELEGRAM]: TelegramStorageProvider,
+  [StorageProviderType.R2]: R2StorageProvider,
+  [StorageProviderType.S3]: S3StorageProvider,
 };
 
 /**
@@ -40,38 +40,38 @@ const providerCache = new Map();
  * @returns {import('./base-provider.js').BaseStorageProvider}
  */
 export function getStorageProvider(env, providerType = null) {
-    // 确定使用的存储类型
-    const type = providerType || env.STORAGE_PROVIDER || StorageProviderType.TELEGRAM;
+  // 确定使用的存储类型
+  const type = providerType || env.STORAGE_PROVIDER || StorageProviderType.TELEGRAM;
 
-    // 检查缓存
-    const cacheKey = `${type}`;
-    if (providerCache.has(cacheKey)) {
-        return providerCache.get(cacheKey);
+  // 检查缓存
+  const cacheKey = `${type}`;
+  if (providerCache.has(cacheKey)) {
+    return providerCache.get(cacheKey);
+  }
+
+  // 创建提供者实例
+  const ProviderClass = providerRegistry[type.toLowerCase()];
+  if (!ProviderClass) {
+    console.warn(`Unknown storage provider: ${type}, falling back to Telegram`);
+    return getStorageProvider(env, StorageProviderType.TELEGRAM);
+  }
+
+  const provider = new ProviderClass(env);
+
+  // 检查配置是否有效
+  if (!provider.isConfigured()) {
+    console.warn(`Storage provider ${type} is not properly configured`);
+    // 如果不是 Telegram，尝试回退到 Telegram
+    if (type !== StorageProviderType.TELEGRAM) {
+      console.warn('Falling back to Telegram storage');
+      return getStorageProvider(env, StorageProviderType.TELEGRAM);
     }
+  }
 
-    // 创建提供者实例
-    const ProviderClass = providerRegistry[type.toLowerCase()];
-    if (!ProviderClass) {
-        console.warn(`Unknown storage provider: ${type}, falling back to Telegram`);
-        return getStorageProvider(env, StorageProviderType.TELEGRAM);
-    }
+  // 缓存实例
+  providerCache.set(cacheKey, provider);
 
-    const provider = new ProviderClass(env);
-
-    // 检查配置是否有效
-    if (!provider.isConfigured()) {
-        console.warn(`Storage provider ${type} is not properly configured`);
-        // 如果不是 Telegram，尝试回退到 Telegram
-        if (type !== StorageProviderType.TELEGRAM) {
-            console.warn('Falling back to Telegram storage');
-            return getStorageProvider(env, StorageProviderType.TELEGRAM);
-        }
-    }
-
-    // 缓存实例
-    providerCache.set(cacheKey, provider);
-
-    return provider;
+  return provider;
 }
 
 /**
@@ -81,13 +81,13 @@ export function getStorageProvider(env, providerType = null) {
  * @returns {import('./base-provider.js').BaseStorageProvider}
  */
 export function getProviderForFile(env, metadata) {
-    // 如果元数据中有存储提供者信息，使用该提供者
-    if (metadata?.storageProvider) {
-        return getStorageProvider(env, metadata.storageProvider);
-    }
+  // 如果元数据中有存储提供者信息，使用该提供者
+  if (metadata?.storageProvider) {
+    return getStorageProvider(env, metadata.storageProvider);
+  }
 
-    // 否则使用默认提供者（Telegram，保持向后兼容）
-    return getStorageProvider(env, StorageProviderType.TELEGRAM);
+  // 否则使用默认提供者（Telegram，保持向后兼容）
+  return getStorageProvider(env, StorageProviderType.TELEGRAM);
 }
 
 /**
@@ -96,21 +96,21 @@ export function getProviderForFile(env, metadata) {
  * @returns {Array<{type: string, name: string, configured: boolean}>}
  */
 export function listAvailableProviders(env) {
-    return Object.entries(providerRegistry).map(([type, ProviderClass]) => {
-        const provider = new ProviderClass(env);
-        return {
-            type,
-            name: provider.name,
-            configured: provider.isConfigured()
-        };
-    });
+  return Object.entries(providerRegistry).map(([type, ProviderClass]) => {
+    const provider = new ProviderClass(env);
+    return {
+      type,
+      name: provider.name,
+      configured: provider.isConfigured(),
+    };
+  });
 }
 
 /**
  * 清除提供者缓存
  */
 export function clearProviderCache() {
-    providerCache.clear();
+  providerCache.clear();
 }
 
 // 导出基类和提供者类以便扩展

@@ -2,21 +2,24 @@
   <!-- Loading 状态 -->
   <div v-if="isLoading" class="flex h-screen items-center justify-center bg-gray-50">
     <div class="flex flex-col items-center gap-4">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      <div class="size-12 animate-spin rounded-full border-b-2 border-gray-900"></div>
       <p class="text-gray-500">{{ t('common.verifying') }}</p>
     </div>
   </div>
 
-  <div v-else class="flex h-screen overflow-hidden bg-[var(--bg-page)] font-sans text-[var(--text-main)]">
+  <div
+    v-else
+    class="flex h-screen overflow-hidden bg-[var(--bg-page)] font-sans text-[var(--text-main)]"
+  >
     <!-- 侧边栏 -->
     <Sidebar ref="sidebarRef" />
 
     <!-- 主内容区 -->
-    <main class="flex-1 flex flex-col overflow-hidden relative">
-      <Header @openSidebar="sidebarRef?.openSidebar?.()" />
-      
+    <main class="relative flex flex-1 flex-col overflow-hidden">
+      <Header @open-sidebar="sidebarRef?.openSidebar?.()" />
+
       <!-- 动态组件视图 -->
-      <div class="flex-1 overflow-y-auto scrollbar-thin p-6 relative">
+      <div class="scrollbar-thin relative flex-1 overflow-y-auto p-6">
         <transition name="fade" mode="out-in">
           <keep-alive>
             <component :is="currentComponent" />
@@ -27,7 +30,7 @@
 
     <!-- 全局 Toast -->
     <ToastContainer />
-    
+
     <!-- 全局 Modal 挂载点 -->
     <div id="modal-root"></div>
 
@@ -69,15 +72,24 @@ const sidebarRef = ref(null);
 
 const currentComponent = computed(() => {
   switch (currentView.value) {
-    case 'dashboard': return Dashboard;
-    case 'files': return FileManager;
-    case 'spaces': return SpaceManager;
-    case 'stats': return Stats;
-    case 'salespersons': return SalespersonManager;
-    case 'orders': return OrderManager;
-    case 'customers': return Customers;
-    case 'settings': return Settings;
-    default: return Dashboard;
+    case 'dashboard':
+      return Dashboard;
+    case 'files':
+      return FileManager;
+    case 'spaces':
+      return SpaceManager;
+    case 'stats':
+      return Stats;
+    case 'salespersons':
+      return SalespersonManager;
+    case 'orders':
+      return OrderManager;
+    case 'customers':
+      return Customers;
+    case 'settings':
+      return Settings;
+    default:
+      return Dashboard;
   }
 });
 
@@ -85,6 +97,6 @@ const currentComponent = computed(() => {
 // 如果用户能看到此页面，说明已通过验证
 // 这里仅用于获取用户信息更新 UI 状态
 onBeforeMount(async () => {
-    await checkAuth();
+  await checkAuth();
 });
 </script>

@@ -1,6 +1,6 @@
 <template>
-  <table class="w-full text-sm text-left">
-    <thead class="bg-[var(--bg-muted)] text-[var(--text-secondary)] font-medium">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-[var(--bg-muted)] font-medium text-[var(--text-secondary)]">
       <tr>
         <th class="px-4 py-3">{{ t('salesperson.name') }}</th>
         <th class="px-4 py-3">{{ t('salesperson.store') }}</th>
@@ -14,15 +14,19 @@
       <!-- 加载骨架屏 -->
       <template v-if="loading">
         <tr v-for="i in 3" :key="i" class="animate-pulse">
-          <td v-for="j in 6" :key="j" class="px-4 py-4">
-            <div class="h-4 bg-[var(--bg-muted)] rounded w-2/3"></div>
+          <td v-for="j in 6" :key="j" class="p-4">
+            <div class="h-4 w-2/3 rounded bg-[var(--bg-muted)]"></div>
           </td>
         </tr>
       </template>
-      
+
       <!-- 数据行 -->
       <template v-else-if="data.length > 0">
-        <tr v-for="person in data" :key="person.id" class="hover:bg-[var(--bg-hover)] transition-colors">
+        <tr
+          v-for="person in data"
+          :key="person.id"
+          class="transition-colors hover:bg-[var(--bg-hover)]"
+        >
           <td class="px-4 py-3">
             <div class="font-medium text-[var(--text-main)]">{{ person.name }}</div>
           </td>
@@ -38,32 +42,47 @@
           </td>
           <td class="px-4 py-3 text-right">
             <div class="flex items-center justify-end gap-2">
-              <button 
-                @click="$emit('copy', person.accessToken)"
-                class="p-1.5 text-[var(--text-secondary)] hover:text-[var(--color-primary)] hover:bg-[var(--bg-hover)] rounded-lg transition-colors active:scale-90"
+              <button
+                class="rounded-lg p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)] active:scale-90"
                 :title="t('salesperson.copyLink')"
+                @click="$emit('copy', person.accessToken)"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  ></path>
                 </svg>
               </button>
-              <button 
-                @click="$emit('edit', person)"
-                class="p-1.5 text-[var(--text-secondary)] hover:text-[var(--color-info-text)] hover:bg-[var(--color-info-bg)] rounded-lg transition-colors active:scale-90"
+              <button
+                class="rounded-lg p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] active:scale-90"
                 :title="t('salesperson.edit')"
+                @click="$emit('edit', person)"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  ></path>
                 </svg>
               </button>
-              <button 
-                @click="$emit('delete', person)"
-                class="p-1.5 text-[var(--text-secondary)] hover:text-[var(--color-danger-text)] hover:bg-[var(--color-danger-bg)] rounded-lg transition-colors active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed"
+              <button
+                class="rounded-lg p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)] active:scale-90 disabled:cursor-not-allowed disabled:opacity-30"
                 :title="t('common.delete')"
                 :disabled="person.orderCount > 0"
+                @click="$emit('delete', person)"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  ></path>
                 </svg>
               </button>
             </div>
@@ -74,10 +93,7 @@
       <!-- 空状态 -->
       <tr v-else>
         <td colspan="6" class="px-4 py-12 text-center">
-          <EmptyState 
-            icon="user" 
-            :title="t('salesperson.emptyList')"
-          />
+          <EmptyState icon="user" :title="t('salesperson.emptyList')" />
         </td>
       </tr>
     </tbody>
@@ -92,12 +108,12 @@ import EmptyState from '@/components/ui/EmptyState.vue';
 defineProps({
   data: {
     type: Array,
-    required: true
+    required: true,
   },
   loading: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
 defineEmits(['edit', 'delete', 'copy']);

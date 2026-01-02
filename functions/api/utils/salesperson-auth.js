@@ -16,31 +16,35 @@ import { parse as parseCookie } from 'cookie';
  * @throws {Error} 鉴权失败时抛出错误
  */
 export async function authenticateSalesperson(request, env, accessToken) {
-    const cookieHeader = request.headers.get('Cookie') || '';
-    const cookies = parseCookie(cookieHeader);
-    const jwt = cookies.sales_token;
+  const cookieHeader = request.headers.get('Cookie') || '';
+  const cookies = parseCookie(cookieHeader);
+  const jwt = cookies.sales_token;
 
-    if (!jwt) {
-        throw new Error(MSG.AUTH.REQUIRED);
-    }
+  if (!jwt) {
+    throw new Error(MSG.AUTH.REQUIRED);
+  }
 
-    const payload = await verifyJWT(jwt, env);
-    if (payload.type !== 'salesperson') {
-        throw new Error(MSG.AUTH.FORBIDDEN);
-    }
+  const payload = await verifyJWT(jwt, env);
+  if (payload.type !== 'salesperson') {
+    throw new Error(MSG.AUTH.FORBIDDEN);
+  }
 
-    const salesperson = await env.DB.prepare(`
+  const salesperson = await env.DB.prepare(
+    `
         SELECT id, name, store, is_active
         FROM salespersons WHERE id = ? AND access_token = ?
-    `).bind(payload.id, accessToken).first();
+    `
+  )
+    .bind(payload.id, accessToken)
+    .first();
 
-    if (!salesperson) {
-        throw new Error(MSG.SALESPERSON.NOT_FOUND);
-    }
+  if (!salesperson) {
+    throw new Error(MSG.SALESPERSON.NOT_FOUND);
+  }
 
-    if (!salesperson.is_active) {
-        throw new Error(MSG.SALESPERSON.DISABLED);
-    }
+  if (!salesperson.is_active) {
+    throw new Error(MSG.SALESPERSON.DISABLED);
+  }
 
-    return salesperson;
+  return salesperson;
 }

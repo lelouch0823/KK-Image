@@ -10,16 +10,20 @@
  * @param {string} className - 高亮 CSS 类名
  * @returns {string} 包含 <mark> 标签的 HTML
  */
-export function highlightText(text, keyword, className = 'bg-yellow-200 text-yellow-900 rounded px-0.5') {
-    if (!text || !keyword) return text || '';
+export function highlightText(
+  text,
+  keyword,
+  className = 'bg-yellow-200 text-yellow-900 rounded px-0.5'
+) {
+  if (!text || !keyword) return text || '';
 
-    // 转义正则特殊字符
-    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // 转义正则特殊字符
+  const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-    // 使用 flags 'gi' 进行全局、不区分大小写匹配
-    const regex = new RegExp(`(${escapedKeyword})`, 'gi');
+  // 使用 flags 'gi' 进行全局、不区分大小写匹配
+  const regex = new RegExp(`(${escapedKeyword})`, 'gi');
 
-    return text.replace(regex, `<mark class="${className}">$1</mark>`);
+  return text.replace(regex, `<mark class="${className}">$1</mark>`);
 }
 
 /**
@@ -30,7 +34,7 @@ export function highlightText(text, keyword, className = 'bg-yellow-200 text-yel
  * @returns {string}
  */
 export function createHighlightedHtml(text, keyword) {
-    return highlightText(text, keyword);
+  return highlightText(text, keyword);
 }
 
 /**
@@ -40,6 +44,6 @@ export function createHighlightedHtml(text, keyword) {
  * @returns {boolean}
  */
 export function textContainsKeyword(text, keyword) {
-    if (!text || !keyword) return false;
-    return text.toLowerCase().includes(keyword.toLowerCase());
+  if (!text || !keyword) return false;
+  return text.toLowerCase().includes(keyword.toLowerCase());
 }

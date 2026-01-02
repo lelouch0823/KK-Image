@@ -4,47 +4,47 @@ import { generateRandomId } from '@/utils/common';
 const toasts = ref([]);
 
 export function useToast() {
-    const showToast = (message, type = 'success', duration = 3000) => {
-        let msg, t, d;
+  const showToast = (message, type = 'success', duration = 3000) => {
+    let msg, t, d;
 
-        // 支持对象传参 ({ message, type, duration })
-        if (typeof message === 'object' && message !== null) {
-            msg = message.message;
-            t = message.type || type;
-            d = message.duration || duration;
-        } else {
-            msg = message;
-            t = type;
-            d = duration;
-        }
+    // 支持对象传参 ({ message, type, duration })
+    if (typeof message === 'object' && message !== null) {
+      msg = message.message;
+      t = message.type || type;
+      d = message.duration || duration;
+    } else {
+      msg = message;
+      t = type;
+      d = duration;
+    }
 
-        const id = generateRandomId('toast');
-        toasts.value.push({ id, message: msg, type: t });
+    const id = generateRandomId('toast');
+    toasts.value.push({ id, message: msg, type: t });
 
-        if (d > 0) {
-            setTimeout(() => {
-                removeToast(id);
-            }, d);
-        }
+    if (d > 0) {
+      setTimeout(() => {
+        removeToast(id);
+      }, d);
+    }
 
-        return id;
-    };
+    return id;
+  };
 
-    const removeToast = (id) => {
-        toasts.value = toasts.value.filter(t => t.id !== id);
-    };
+  const removeToast = (id) => {
+    toasts.value = toasts.value.filter((t) => t.id !== id);
+  };
 
-    const success = (message, duration) => showToast(message, 'success', duration);
-    const error = (message, duration) => showToast(message, 'error', duration);
-    const warning = (message, duration) => showToast(message, 'warning', duration);
+  const success = (message, duration) => showToast(message, 'success', duration);
+  const error = (message, duration) => showToast(message, 'error', duration);
+  const warning = (message, duration) => showToast(message, 'warning', duration);
 
-    return {
-        toasts,
-        showToast,
-        addToast: showToast,
-        removeToast,
-        success,
-        error,
-        warning
-    };
+  return {
+    toasts,
+    showToast,
+    addToast: showToast,
+    removeToast,
+    success,
+    error,
+    warning,
+  };
 }

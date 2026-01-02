@@ -2,11 +2,11 @@
   <div class="space-y-6">
     <!-- 标题 -->
     <div class="text-center">
-      <h2 class="text-xl font-bold text-primary">{{ t('order.portal.newOrder') }}</h2>
-      <p class="text-sm text-secondary mt-1">{{ t('order.portal.subtitle') }}</p>
+      <h2 class="text-primary text-xl font-bold">{{ t('order.portal.newOrder') }}</h2>
+      <p class="text-secondary mt-1 text-sm">{{ t('order.portal.subtitle') }}</p>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="space-y-4">
+    <form class="space-y-4" @submit.prevent="handleSubmit">
       <!-- 图片上传 -->
       <ImageUploader
         v-model="uploadedFiles"
@@ -17,10 +17,10 @@
       />
 
       <!-- 商品信息 -->
-      <div class="bg-white rounded-xl border border-[var(--border-color)] p-4 space-y-4">
+      <div class="space-y-4 rounded-xl border border-[var(--border-color)] bg-white p-4">
         <!-- 商品名称 -->
         <div>
-          <label class="block text-sm font-medium text-primary mb-2">
+          <label class="text-primary mb-2 block text-sm font-medium">
             {{ t('order.form.productName') }} <span class="text-danger">*</span>
           </label>
           <AutocompleteInput
@@ -36,7 +36,7 @@
         <!-- 品牌和系列 -->
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm font-medium text-primary mb-2">
+            <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('order.form.brand') }}
             </label>
             <AutocompleteInput
@@ -49,7 +49,7 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-primary mb-2">
+            <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('order.form.series') }}
             </label>
             <AutocompleteInput
@@ -65,21 +65,21 @@
 
         <!-- 规格尺寸 -->
         <div>
-          <label class="block text-sm font-medium text-primary mb-2">
+          <label class="text-primary mb-2 block text-sm font-medium">
             {{ t('order.form.size') }}
           </label>
-          <input 
+          <input
             v-model="form.size"
             type="text"
             :placeholder="t('order.form.sizePlaceholder')"
             class="input h-11"
-          >
+          />
         </div>
 
         <!-- 颜色材质 -->
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm font-medium text-primary mb-2">
+            <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('order.form.color') }}
             </label>
             <AutocompleteInput
@@ -92,7 +92,7 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-primary mb-2">
+            <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('order.form.material') }}
             </label>
             <AutocompleteInput
@@ -108,49 +108,66 @@
 
         <!-- 备注 -->
         <div>
-          <label class="block text-sm font-medium text-primary mb-2">
+          <label class="text-primary mb-2 block text-sm font-medium">
             {{ t('order.form.remark') }}
           </label>
-          <textarea 
+          <textarea
             v-model="form.remark"
             rows="3"
             :placeholder="t('order.form.remarkPlaceholder')"
-            class="input h-auto py-3 resize-none"
+            class="input h-auto resize-none py-3"
           ></textarea>
         </div>
 
         <!-- 期望到货时间 -->
         <div>
-          <label class="block text-sm font-medium text-primary mb-2">
+          <label class="text-primary mb-2 block text-sm font-medium">
             {{ t('order.form.expectedArrival') }}
           </label>
-          <input 
+          <input
             v-model="form.deadline"
             type="date"
             :min="minDate"
             class="input h-11 appearance-none bg-white"
             :class="{ 'text-muted': !form.deadline }"
-          >
+          />
         </div>
       </div>
 
       <!-- 操作按钮 -->
       <div class="flex gap-3">
-        <button 
+        <button
           type="button"
+          class="text-secondary h-12 flex-1 rounded-xl border border-[var(--border-color)] font-medium transition-colors hover:bg-[var(--bg-hover)]"
           @click="$emit('cancel')"
-          class="flex-1 h-12 border border-[var(--border-color)] text-secondary font-medium rounded-xl hover:bg-[var(--bg-hover)] transition-colors"
         >
           {{ t('common.cancel') }}
         </button>
-        <button 
+        <button
           type="submit"
           :disabled="!isValid || isSubmitting"
-          class="flex-1 h-12 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+          class="bg-primary shadow-primary/20 flex h-12 flex-1 items-center justify-center gap-2 rounded-xl font-medium text-white shadow-lg transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <svg v-if="isSubmitting" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          <svg
+            v-if="isSubmitting"
+            class="size-5 animate-spin"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            ></path>
           </svg>
           {{ progressText }}
         </button>
@@ -168,7 +185,7 @@ import AutocompleteInput from '../ui/AutocompleteInput.vue';
 
 const props = defineProps({
   prefill: { type: Object, default: null },
-  submitProgress: { type: Object, default: () => ({ step: '', current: 0, total: 0 }) }
+  submitProgress: { type: Object, default: () => ({ step: '', current: 0, total: 0 }) },
 });
 
 const emit = defineEmits(['submit', 'cancel']);
@@ -192,15 +209,19 @@ const {
   fillForm,
   getSubmitData,
   saveHistory,
-  setSubmitting
+  setSubmitting,
 } = useOrderForm({
-  submitProgress: toRef(props, 'submitProgress')
+  submitProgress: toRef(props, 'submitProgress'),
 });
 
 // 监听预填充数据变化
-watch(() => props.prefill, (data) => {
-  fillForm(data);
-}, { immediate: true });
+watch(
+  () => props.prefill,
+  (data) => {
+    fillForm(data);
+  },
+  { immediate: true }
+);
 
 // 提交表单
 const handleSubmit = async () => {

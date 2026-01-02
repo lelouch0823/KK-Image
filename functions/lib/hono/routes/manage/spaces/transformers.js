@@ -11,23 +11,23 @@ import { getShareUrl, getFileUrl } from '../../../_shared/utils.js';
  * @returns {Object} API 响应格式
  */
 export function transformSpaceListItem(space) {
-    return {
-        id: space.id,
-        name: space.name,
-        description: space.description,
-        isPublic: Boolean(space.is_public),
-        hasPassword: !!space.password,
-        shareToken: space.share_token,
-        shareUrl: getShareUrl(space.share_token, 'space'),
-        fileCount: space.file_count || 0,
-        expiresAt: space.expires_at,
-        template: space.template,
-        coverFileId: space.cover_file_id,
-        coverUrl: space.cover_storage_key ? getFileUrl(space.cover_storage_key) : null,
-        viewCount: space.view_count || 0,
-        createdAt: space.created_at,
-        updatedAt: space.updated_at
-    };
+  return {
+    id: space.id,
+    name: space.name,
+    description: space.description,
+    isPublic: Boolean(space.is_public),
+    hasPassword: !!space.password,
+    shareToken: space.share_token,
+    shareUrl: getShareUrl(space.share_token, 'space'),
+    fileCount: space.file_count || 0,
+    expiresAt: space.expires_at,
+    template: space.template,
+    coverFileId: space.cover_file_id,
+    coverUrl: space.cover_storage_key ? getFileUrl(space.cover_storage_key) : null,
+    viewCount: space.view_count || 0,
+    createdAt: space.created_at,
+    updatedAt: space.updated_at,
+  };
 }
 
 /**
@@ -37,23 +37,23 @@ export function transformSpaceListItem(space) {
  * @returns {Object} API 响应格式
  */
 export function transformSpaceDetail(space, files = []) {
-    return {
-        id: space.id,
-        name: space.name,
-        description: space.description,
-        isPublic: Boolean(space.is_public),
-        hasPassword: !!space.password,
-        shareToken: space.share_token,
-        shareUrl: getShareUrl(space.share_token, 'space'),
-        expiresAt: space.expires_at,
-        template: space.template,
-        templateData: space.template_data ? JSON.parse(space.template_data) : {},
-        coverFileId: space.cover_file_id,
-        viewCount: space.view_count,
-        createdAt: space.created_at,
-        updatedAt: space.updated_at,
-        files: files.map(transformFile)
-    };
+  return {
+    id: space.id,
+    name: space.name,
+    description: space.description,
+    isPublic: Boolean(space.is_public),
+    hasPassword: !!space.password,
+    shareToken: space.share_token,
+    shareUrl: getShareUrl(space.share_token, 'space'),
+    expiresAt: space.expires_at,
+    template: space.template,
+    templateData: space.template_data ? JSON.parse(space.template_data) : {},
+    coverFileId: space.cover_file_id,
+    viewCount: space.view_count,
+    createdAt: space.created_at,
+    updatedAt: space.updated_at,
+    files: files.map(transformFile),
+  };
 }
 
 /**
@@ -62,15 +62,15 @@ export function transformSpaceDetail(space, files = []) {
  * @returns {Object} API 响应格式
  */
 export function transformFile(file) {
-    return {
-        id: file.id,
-        name: file.name,
-        originalName: file.original_name,
-        size: file.size,
-        mimeType: file.mime_type,
-        url: getFileUrl(file.storage_key),
-        createdAt: file.created_at
-    };
+  return {
+    id: file.id,
+    name: file.name,
+    originalName: file.original_name,
+    size: file.size,
+    mimeType: file.mime_type,
+    url: getFileUrl(file.storage_key),
+    createdAt: file.created_at,
+  };
 }
 
 /**
@@ -81,13 +81,13 @@ export function transformFile(file) {
  * @returns {Object} API 响应格式
  */
 export function transformSpaceStats(space, fileStats, trend = []) {
-    return {
-        total: {
-            view_count: space?.view_count || 0,
-            download_count: space?.download_count || 0
-        },
-        fileCount: fileStats?.file_count || 0,
-        totalSize: fileStats?.total_size || 0,
-        trend
-    };
+  return {
+    total: {
+      view_count: space?.view_count || 0,
+      download_count: space?.download_count || 0,
+    },
+    fileCount: fileStats?.file_count || 0,
+    totalSize: fileStats?.total_size || 0,
+    trend,
+  };
 }

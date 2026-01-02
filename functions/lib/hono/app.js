@@ -39,13 +39,16 @@ app.use('*', errorHandler);
 app.use('*', logger());
 
 // 3. CORS
-app.use('*', cors({
+app.use(
+  '*',
+  cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
     exposeHeaders: ['X-Request-Id'],
-    maxAge: CORS_MAX_AGE
-}));
+    maxAge: CORS_MAX_AGE,
+  })
+);
 
 // 4. 安全头
 app.use('*', secureHeaders());
@@ -66,8 +69,6 @@ app.use('/api/manage/*', authMiddleware);
 
 app.route('/api/v1/auth', authRoutes);
 app.route('/api/v1/health', healthRoutes);
-
-
 
 // V1 API 路由
 app.route('/api/v1/files', filesRoutes);
@@ -91,11 +92,14 @@ app.route('/api/manage/shares', manageSharesRoutes);
 
 // 404 处理
 app.notFound((c) => {
-    return c.json({
-        success: false,
-        error: 'Not Found',
-        path: c.req.path
-    }, 404);
+  return c.json(
+    {
+      success: false,
+      error: 'Not Found',
+      path: c.req.path,
+    },
+    404
+  );
 });
 
 export default app;

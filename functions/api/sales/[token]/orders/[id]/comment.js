@@ -13,42 +13,41 @@ import { OrderTimelineRepository } from '../../../../../repositories/OrderTimeli
  * POST - 添加留言
  */
 export async function onRequestPost(context) {
-    const { env, params, request } = context;
-    const { token: accessToken, id: orderId } = params;
+  const { env, params, request } = context;
+  const { token: accessToken, id: orderId } = params;
 
-    try {
-        const salesperson = await authenticateSalesperson(request, env, accessToken);
-        const orderRepo = new OrderRepository(env.DB);
-        const timelineRepo = new OrderTimelineRepository(env.DB);
-        const body = await request.json();
-        const { comment } = body;
+  try {
+    const salesperson = await authenticateSalesperson(request, env, accessToken);
+    const orderRepo = new OrderRepository(env.DB);
+    const timelineRepo = new OrderTimelineRepository(env.DB);
+    const body = await request.json();
+    const { comment } = body;
 
-        if (!comment || !comment.trim()) {
-            return error(MSG.COMMON.INVALID_PARAMS + ': 留言内容不能为空', 400);
-        }
-
-        // 验证订单归属
-        const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
-        if (!order) {
-            return error(MSG.ORDER.NOT_FOUND, 404);
-        }
-
-        // 使用 Repository 添加时间轴记录
-        await timelineRepo.addTimelineEntry(orderId, {
-            actionType: 'comment',
-            actorType: 'salesperson',
-            actorId: salesperson.id,
-            actorName: salesperson.name,
-            comment: comment.trim()
-        });
-
-        return success(null, MSG.ORDER.COMMENT_ADDED);
-
-    } catch (err) {
-        if (err.message === MSG.AUTH.REQUIRED || err.message === MSG.AUTH.FORBIDDEN) {
-            return error(err.message, 401);
-        }
-        console.error('Order comment error:', err);
-        return error(`${MSG.COMMON.OP_FAILED}: ${err.message}`, 500);
+    if (!comment || !comment.trim()) {
+      return error(MSG.COMMON.INVALID_PARAMS + ': 留言内容不能为空', 400);
     }
+
+    // 验证订单归属
+    const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
+    if (!order) {
+      return error(MSG.ORDER.NOT_FOUND, 404);
+    }
+
+    // 使用 Repository 添加时间轴记录
+    await timelineRepo.addTimelineEntry(orderId, {
+      actionType: 'comment',
+      actorType: 'salesperson',
+      actorId: salesperson.id,
+      actorName: salesperson.name,
+      comment: comment.trim(),
+    });
+
+    return success(null, MSG.ORDER.COMMENT_ADDED);
+  } catch (err) {
+    if (err.message === MSG.AUTH.REQUIRED || err.message === MSG.AUTH.FORBIDDEN) {
+      return error(err.message, 401);
+    }
+    console.error('Order comment error:', err);
+    return error(`${MSG.COMMON.OP_FAILED}: ${err.message}`, 500);
+  }
 }

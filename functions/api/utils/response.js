@@ -10,13 +10,13 @@
  * @returns {Response}
  */
 export function jsonResponse(data, status = 200, headers = {}) {
-    return new Response(JSON.stringify(data), {
-        status,
-        headers: {
-            'Content-Type': 'application/json;charset=UTF-8',
-            ...headers
-        }
-    });
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json;charset=UTF-8',
+      ...headers,
+    },
+  });
 }
 
 /**
@@ -26,11 +26,15 @@ export function jsonResponse(data, status = 200, headers = {}) {
  * @returns {Response}
  */
 export function success(data, message = 'Success', status = 200, headers = {}) {
-    return jsonResponse({
-        success: true,
-        message,
-        data
-    }, status, headers);
+  return jsonResponse(
+    {
+      success: true,
+      message,
+      data,
+    },
+    status,
+    headers
+  );
 }
 
 /**
@@ -40,8 +44,11 @@ export function success(data, message = 'Success', status = 200, headers = {}) {
  * @returns {Response}
  */
 export function error(message, status = 400) {
-    return jsonResponse({
-        success: false,
-        message
-    }, status);
+  return jsonResponse(
+    {
+      success: false,
+      message,
+    },
+    status
+  );
 }

@@ -114,7 +114,12 @@ export default [
                 AbortController: "readonly",
                 Headers: "readonly",
                 Request: "readonly",
-                Response: "readonly"
+                Response: "readonly",
+                URLSearchParams: "readonly",
+                Notification: "readonly",
+                XMLHttpRequest: "readonly",
+                getComputedStyle: "readonly",
+                crypto: "readonly"
             }
         },
         rules: {

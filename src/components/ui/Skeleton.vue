@@ -2,7 +2,7 @@
   <div class="animate-pulse" :class="containerClass">
     <!-- 预设形状 -->
     <template v-if="type === 'text'">
-      <div class="h-4 bg-gray-200 rounded" :class="widthClass"></div>
+      <div class="h-4 rounded bg-gray-200" :class="widthClass"></div>
     </template>
 
     <template v-else-if="type === 'avatar'">
@@ -10,16 +10,16 @@
     </template>
 
     <template v-else-if="type === 'image'">
-      <div class="bg-gray-200 rounded-lg" :class="imageSizeClass"></div>
+      <div class="rounded-lg bg-gray-200" :class="imageSizeClass"></div>
     </template>
 
     <template v-else-if="type === 'card'">
-      <div class="bg-gray-50 rounded-xl p-4 space-y-3">
+      <div class="space-y-3 rounded-xl bg-gray-50 p-4">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-gray-200 rounded-full"></div>
+          <div class="size-10 rounded-full bg-gray-200"></div>
           <div class="flex-1 space-y-2">
-            <div class="h-4 bg-gray-200 rounded w-24"></div>
-            <div class="h-3 bg-gray-200 rounded w-32"></div>
+            <div class="h-4 w-24 rounded bg-gray-200"></div>
+            <div class="h-3 w-32 rounded bg-gray-200"></div>
           </div>
         </div>
       </div>
@@ -27,15 +27,15 @@
 
     <template v-else-if="type === 'table-row'">
       <tr>
-        <td v-for="i in columns" :key="i" class="px-4 py-4">
-          <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+        <td v-for="i in columns" :key="i" class="p-4">
+          <div class="h-4 w-2/3 rounded bg-gray-200"></div>
         </td>
       </tr>
     </template>
 
     <!-- 自定义形状 -->
     <template v-else>
-      <div class="bg-gray-200 rounded" :class="customClass"></div>
+      <div class="rounded bg-gray-200" :class="customClass"></div>
     </template>
   </div>
 </template>
@@ -47,26 +47,26 @@ const props = defineProps({
   type: {
     type: String,
     default: 'text',
-    validator: (v) => ['text', 'avatar', 'image', 'card', 'table-row', 'custom'].includes(v)
+    validator: (v) => ['text', 'avatar', 'image', 'card', 'table-row', 'custom'].includes(v),
   },
   width: {
     type: String,
-    default: 'full'
+    default: 'full',
   },
   height: {
     type: String,
-    default: ''
+    default: '',
   },
   count: {
     type: Number,
-    default: 1
+    default: 1,
   },
   columns: {
     type: Number,
-    default: 4
+    default: 4,
   },
   containerClass: String,
-  customClass: String
+  customClass: String,
 });
 
 const widthClass = computed(() => {
@@ -76,7 +76,7 @@ const widthClass = computed(() => {
     '2/3': 'w-2/3',
     '1/2': 'w-1/2',
     '1/3': 'w-1/3',
-    '1/4': 'w-1/4'
+    '1/4': 'w-1/4',
   };
   return widths[props.width] || `w-[${props.width}]`;
 });

@@ -5,12 +5,12 @@ import { computed } from 'vue';
  * Pattern: /sales/:token
  */
 export function useSalesToken() {
-    const token = computed(() => {
-        const match = window.location.pathname.match(/\/sales\/([^\/]+)/);
-        return match ? match[1] : null;
-    });
+  const token = computed(() => {
+    const match = window.location.pathname.match(/\/sales\/([^/]+)/);
+    return match ? match[1] : null;
+  });
 
-    return {
-        token
-    };
+  return {
+    token,
+  };
 }

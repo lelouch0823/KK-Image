@@ -3,171 +3,205 @@
  * 处理客户的 CRUD 和数据转换
  */
 export class CustomerRepository {
-    constructor(db) {
-        this.db = db;
-    }
+  constructor(db) {
+    this.db = db;
+  }
 
-    /**
-     * 根据 ID 查找客户
-     * @param {string} id 
-     * @returns {Promise<Object|null>}
-     */
-    async findById(id) {
-        const customer = await this.db.prepare(`
+  /**
+   * 根据 ID 查找客户
+   * @param {string} id
+   * @returns {Promise<Object|null>}
+   */
+  async findById(id) {
+    const customer = await this.db
+      .prepare(
+        `
             SELECT * FROM customers WHERE id = ?
-        `).bind(id).first();
+        `
+      )
+      .bind(id)
+      .first();
 
-        if (customer) {
-            customer.tags = customer.tags ? JSON.parse(customer.tags) : [];
-        }
-        return customer;
+    if (customer) {
+      customer.tags = customer.tags ? JSON.parse(customer.tags) : [];
+    }
+    return customer;
+  }
+
+  /**
+   * 获取客户列表 (分页)
+   * @param {Object} params
+   * @param {number} params.page
+   * @param {number} params.limit
+   * @param {string} [params.search]
+   * @returns {Promise<{results: Array, total: number, pages: number}>}
+   */
+  async list({ page = 1, limit = 20, search = '' }) {
+    const offset = (page - 1) * limit;
+    let whereClause = '1=1';
+    const bindings = [];
+
+    if (search) {
+      whereClause += ' AND (name LIKE ? OR phone LIKE ? OR company LIKE ?)';
+      const term = `%${search}%`;
+      bindings.push(term, term, term);
     }
 
-    /**
-     * 获取客户列表 (分页)
-     * @param {Object} params 
-     * @param {number} params.page 
-     * @param {number} params.limit 
-     * @param {string} [params.search] 
-     * @returns {Promise<{results: Array, total: number, pages: number}>}
-     */
-    async list({ page = 1, limit = 20, search = '' }) {
-        const offset = (page - 1) * limit;
-        let whereClause = '1=1';
-        const bindings = [];
-
-        if (search) {
-            whereClause += ' AND (name LIKE ? OR phone LIKE ? OR company LIKE ?)';
-            const term = `%${search}%`;
-            bindings.push(term, term, term);
-        }
-
-        const [countResult, listResult] = await Promise.all([
-            this.db.prepare(`
+    const [countResult, listResult] = await Promise.all([
+      this.db
+        .prepare(
+          `
                 SELECT COUNT(*) as total FROM customers WHERE ${whereClause}
-            `).bind(...bindings).first(),
-            this.db.prepare(`
+            `
+        )
+        .bind(...bindings)
+        .first(),
+      this.db
+        .prepare(
+          `
                 SELECT * FROM customers 
                 WHERE ${whereClause} 
                 ORDER BY created_at DESC 
                 LIMIT ? OFFSET ?
-            `).bind(...bindings, limit, offset).all()
-        ]);
+            `
+        )
+        .bind(...bindings, limit, offset)
+        .all(),
+    ]);
 
-        const results = listResult.results.map(c => ({
-            ...c,
-            tags: c.tags ? JSON.parse(c.tags) : []
-        }));
+    const results = listResult.results.map((c) => ({
+      ...c,
+      tags: c.tags ? JSON.parse(c.tags) : [],
+    }));
 
-        return {
-            results,
-            total: countResult.total,
-            pages: Math.ceil(countResult.total / limit)
-        };
-    }
+    return {
+      results,
+      total: countResult.total,
+      pages: Math.ceil(countResult.total / limit),
+    };
+  }
 
-    /**
-     * 创建客户
-     * @param {Object} data 
-     * @param {string} data.name 
-     * @param {string} [data.phone] 
-     * @param {string} [data.company] 
-     * @param {string} [data.email] 
-     * @param {string} [data.address] 
-     * @param {Array} [data.tags] 
-     * @param {string} [data.remark] 
-     * @param {string} [data.createdBy] 
-     * @returns {Promise<Object>} Created customer
-     */
-    async create(data) {
-        const id = crypto.randomUUID();
-        const now = Date.now();
-        const tags = data.tags ? JSON.stringify(data.tags) : '[]';
+  /**
+   * 创建客户
+   * @param {Object} data
+   * @param {string} data.name
+   * @param {string} [data.phone]
+   * @param {string} [data.company]
+   * @param {string} [data.email]
+   * @param {string} [data.address]
+   * @param {Array} [data.tags]
+   * @param {string} [data.remark]
+   * @param {string} [data.createdBy]
+   * @returns {Promise<Object>} Created customer
+   */
+  async create(data) {
+    const id = crypto.randomUUID();
+    const now = Date.now();
+    const tags = data.tags ? JSON.stringify(data.tags) : '[]';
 
-        await this.db.prepare(`
+    await this.db
+      .prepare(
+        `
             INSERT INTO customers (id, name, phone, company, email, address, tags, remark, created_by, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(
-            id,
-            data.name,
-            data.phone || '',
-            data.company || '',
-            data.email || '',
-            data.address || '',
-            tags,
-            data.remark || '',
-            data.createdBy || 'admin',
-            now,
-            now
-        ).run();
+        `
+      )
+      .bind(
+        id,
+        data.name,
+        data.phone || '',
+        data.company || '',
+        data.email || '',
+        data.address || '',
+        tags,
+        data.remark || '',
+        data.createdBy || 'admin',
+        now,
+        now
+      )
+      .run();
 
-        return {
-            id,
-            ...data,
-            tags: data.tags || [],
-            created_at: now,
-            updated_at: now
-        };
+    return {
+      id,
+      ...data,
+      tags: data.tags || [],
+      created_at: now,
+      updated_at: now,
+    };
+  }
+
+  /**
+   * 更新客户信息
+   * @param {string} id
+   * @param {Object} data
+   * @returns {Promise<boolean>}
+   */
+  async update(id, data) {
+    const updates = [];
+    const bindings = [];
+
+    const fields = ['name', 'phone', 'company', 'email', 'address', 'remark'];
+    fields.forEach((field) => {
+      if (data[field] !== undefined) {
+        updates.push(`${field} = ?`);
+        bindings.push(data[field]);
+      }
+    });
+
+    if (data.tags !== undefined) {
+      updates.push('tags = ?');
+      bindings.push(JSON.stringify(data.tags));
     }
 
-    /**
-     * 更新客户信息
-     * @param {string} id 
-     * @param {Object} data 
-     * @returns {Promise<boolean>}
-     */
-    async update(id, data) {
-        const updates = [];
-        const bindings = [];
+    if (updates.length === 0) return false;
 
-        const fields = ['name', 'phone', 'company', 'email', 'address', 'remark'];
-        fields.forEach(field => {
-            if (data[field] !== undefined) {
-                updates.push(`${field} = ?`);
-                bindings.push(data[field]);
-            }
-        });
+    updates.push('updated_at = ?');
+    bindings.push(Date.now());
+    bindings.push(id);
 
-        if (data.tags !== undefined) {
-            updates.push('tags = ?');
-            bindings.push(JSON.stringify(data.tags));
-        }
-
-        if (updates.length === 0) return false;
-
-        updates.push('updated_at = ?');
-        bindings.push(Date.now());
-        bindings.push(id);
-
-        const result = await this.db.prepare(`
+    const result = await this.db
+      .prepare(
+        `
             UPDATE customers SET ${updates.join(', ')} WHERE id = ?
-        `).bind(...bindings).run();
+        `
+      )
+      .bind(...bindings)
+      .run();
 
-        return result.success;
-    }
+    return result.success;
+  }
 
-    /**
-     * 删除客户
-     * @param {string} id 
-     * @returns {Promise<boolean>}
-     */
-    async delete(id) {
-        const result = await this.db.prepare(`
+  /**
+   * 删除客户
+   * @param {string} id
+   * @returns {Promise<boolean>}
+   */
+  async delete(id) {
+    const result = await this.db
+      .prepare(
+        `
             DELETE FROM customers WHERE id = ?
-        `).bind(id).run();
-        return result.success && result.meta.changes > 0;
-    }
+        `
+      )
+      .bind(id)
+      .run();
+    return result.success && result.meta.changes > 0;
+  }
 
-    /**
-     * 检查是否有关联订单
-     * @param {string} id 
-     * @returns {Promise<boolean>}
-     */
-    async hasOrders(id) {
-        const result = await this.db.prepare(`
+  /**
+   * 检查是否有关联订单
+   * @param {string} id
+   * @returns {Promise<boolean>}
+   */
+  async hasOrders(id) {
+    const result = await this.db
+      .prepare(
+        `
             SELECT COUNT(*) as count FROM orders WHERE customer_id = ?
-        `).bind(id).first();
-        return result.count > 0;
-    }
+        `
+      )
+      .bind(id)
+      .first();
+    return result.count > 0;
+  }
 }
-

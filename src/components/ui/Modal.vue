@@ -8,8 +8,8 @@
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div 
-        v-if="modelValue" 
+      <div
+        v-if="modelValue"
         :class="backdropClass"
         :style="backdropStyle"
         @click.self="handleBackdropClick"
@@ -22,35 +22,46 @@
           leave-from-class="opacity-100 scale-100 translate-y-0"
           leave-to-class="opacity-0 scale-95 translate-y-4"
         >
-          <div 
+          <div
             v-if="modelValue"
-            class="rounded-xl shadow-2xl w-full flex flex-col max-h-[90vh] animate-in overflow-hidden"
+            class="animate-in flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl shadow-2xl"
             :class="sizeClass"
             style="background-color: var(--color-modal-bg)"
           >
             <!-- Header -->
-            <div v-if="title || $slots.header" class="px-6 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
+            <div
+              v-if="title || $slots.header"
+              class="flex items-center justify-between border-b border-[var(--border-color)] px-6 py-4"
+            >
               <slot name="header">
-                <h3 class="text-lg font-semibold text-primary">{{ title }}</h3>
+                <h3 class="text-primary text-lg font-semibold">{{ title }}</h3>
               </slot>
-              <button 
+              <button
                 v-if="closable"
-                @click="close" 
-                class="text-gray-400 hover:text-gray-600 transition-colors p-1 -mr-1"
+                class="-mr-1 p-1 text-gray-400 transition-colors hover:text-gray-600"
+                @click="close"
               >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  ></path>
                 </svg>
               </button>
             </div>
 
             <!-- Body -->
-            <div class="p-6 overflow-y-auto flex-1 min-h-0" :class="bodyClass">
+            <div class="min-h-0 flex-1 overflow-y-auto p-6" :class="bodyClass">
               <slot></slot>
             </div>
 
             <!-- Footer -->
-            <div v-if="$slots.footer" class="px-6 py-4 border-t border-[var(--border-color)] flex justify-end gap-3 bg-[var(--bg-muted)]">
+            <div
+              v-if="$slots.footer"
+              class="flex justify-end gap-3 border-t border-[var(--border-color)] bg-[var(--bg-muted)] px-6 py-4"
+            >
               <slot name="footer"></slot>
             </div>
           </div>
@@ -67,39 +78,41 @@ import { useModalStack } from '@/composables/useModalStack';
 const props = defineProps({
   modelValue: {
     type: Boolean,
-    default: false
+    default: false,
   },
   title: {
     type: String,
-    default: ''
+    default: '',
   },
   size: {
     type: String,
     default: 'md',
-    validator: (v) => ['sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl', 'full'].includes(v)
+    validator: (v) =>
+      ['sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl', 'full'].includes(v),
   },
   closable: {
     type: Boolean,
-    default: true
+    default: true,
   },
   closeOnBackdrop: {
     type: Boolean,
-    default: true
+    default: true,
   },
   bodyClass: {
     type: String,
-    default: ''
+    default: '',
   },
   zIndex: {
     type: [Number, String],
-    default: null
-  }
+    default: null,
+  },
 });
 
 const emit = defineEmits(['update:modelValue', 'close']);
 
 // 智能堆叠管理
-const { generateModalId, register, unregister, shouldShowBlur, isTopModal, getZIndex } = useModalStack();
+const { generateModalId, register, unregister, shouldShowBlur, isTopModal, getZIndex } =
+  useModalStack();
 const modalId = ref(generateModalId());
 
 // 动态 z-index 样式
@@ -125,12 +138,12 @@ const backdropClass = computed(() => {
 
 // 背景色样式（使用 inline style 因为 Tailwind 无法解析 rgba CSS 变量）
 const backdropStyle = computed(() => {
-  const bgColor = shouldShowBlur(modalId.value) 
-    ? 'var(--color-overlay-blur)' 
+  const bgColor = shouldShowBlur(modalId.value)
+    ? 'var(--color-overlay-blur)'
     : 'var(--color-overlay-dim)';
-  return { 
+  return {
     ...zStyle.value,
-    backgroundColor: bgColor 
+    backgroundColor: bgColor,
   };
 });
 
@@ -145,7 +158,7 @@ const sizeClass = computed(() => {
     '4xl': 'max-w-4xl',
     '5xl': 'max-w-5xl',
     '6xl': 'max-w-6xl',
-    full: 'max-w-full'
+    full: 'max-w-full',
   };
   return sizes[props.size];
 });
@@ -169,17 +182,21 @@ const handleKeydown = (e) => {
 };
 
 // 注册/注销 Modal
-watch(() => props.modelValue, (visible) => {
-  if (visible) {
-    register(modalId.value);
-    document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', handleKeydown);
-  } else {
-    unregister(modalId.value);
-    document.body.style.overflow = '';
-    document.removeEventListener('keydown', handleKeydown);
-  }
-}, { immediate: true });
+watch(
+  () => props.modelValue,
+  (visible) => {
+    if (visible) {
+      register(modalId.value);
+      document.body.style.overflow = 'hidden';
+      document.addEventListener('keydown', handleKeydown);
+    } else {
+      unregister(modalId.value);
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleKeydown);
+    }
+  },
+  { immediate: true }
+);
 
 onUnmounted(() => {
   unregister(modalId.value);
@@ -197,7 +214,7 @@ onUnmounted(() => {
     padding: 0 !important;
     overflow: visible !important;
   }
-  
+
   /* Remove modal card shadow and border */
   :deep(.bg-white.rounded-xl.shadow-2xl) {
     box-shadow: none !important;
@@ -205,9 +222,9 @@ onUnmounted(() => {
     border-radius: 0 !important;
     max-height: none !important;
   }
-  
+
   /* Hide close button */
-  button[aria-label], 
+  button[aria-label],
   .text-gray-400:has(svg) {
     display: none !important;
   }

@@ -2,43 +2,53 @@
   <nav v-if="totalPages > 1" class="flex justify-center" :class="containerClass">
     <div class="flex gap-1">
       <!-- 上一页 -->
-      <button 
+      <button
         v-if="showPrevNext"
-        @click="goToPage(currentPage - 1)"
         :disabled="currentPage === 1"
-        class="px-3 py-1 text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        class="rounded-md px-3 py-1 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
         :class="currentPage === 1 ? 'text-gray-400' : 'text-gray-600 hover:bg-gray-100'"
+        @click="goToPage(currentPage - 1)"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 19l-7-7 7-7"
+          ></path>
         </svg>
       </button>
 
       <!-- 页码 -->
       <template v-for="page in visiblePages" :key="page">
         <span v-if="page === '...'" class="px-3 py-1 text-sm text-gray-400">...</span>
-        <button 
+        <button
           v-else
+          class="min-w-[32px] rounded-md px-3 py-1 text-sm transition-colors"
+          :class="
+            page === currentPage ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'
+          "
           @click="goToPage(page)"
-          class="px-3 py-1 text-sm rounded-md transition-colors min-w-[32px]"
-          :class="page === currentPage 
-            ? 'bg-primary text-white' 
-            : 'text-gray-600 hover:bg-gray-100'"
         >
           {{ page }}
         </button>
       </template>
 
       <!-- 下一页 -->
-      <button 
+      <button
         v-if="showPrevNext"
-        @click="goToPage(currentPage + 1)"
         :disabled="currentPage === totalPages"
-        class="px-3 py-1 text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        class="rounded-md px-3 py-1 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
         :class="currentPage === totalPages ? 'text-gray-400' : 'text-gray-600 hover:bg-gray-100'"
+        @click="goToPage(currentPage + 1)"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 5l7 7-7 7"
+          ></path>
         </svg>
       </button>
     </div>
@@ -51,21 +61,21 @@ import { computed } from 'vue';
 const props = defineProps({
   currentPage: {
     type: Number,
-    required: true
+    required: true,
   },
   totalPages: {
     type: Number,
-    required: true
+    required: true,
   },
   maxVisible: {
     type: Number,
-    default: 5
+    default: 5,
   },
   showPrevNext: {
     type: Boolean,
-    default: true
+    default: true,
   },
-  containerClass: String
+  containerClass: String,
 });
 
 const emit = defineEmits(['update:currentPage', 'change']);

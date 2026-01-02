@@ -1,28 +1,35 @@
 <template>
-  <div class="bg-[var(--bg-card)] rounded-xl shadow-sm border border-[var(--border-color)]">
+  <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm">
     <!-- 头部操作栏 -->
-    <div class="p-4 border-b border-[var(--border-color)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div
+      class="flex flex-col justify-between gap-4 border-b border-[var(--border-color)] p-4 sm:flex-row sm:items-center"
+    >
       <div>
         <h2 class="text-lg font-semibold text-[var(--text-main)]">{{ t('salesperson.title') }}</h2>
-        <p class="text-sm text-[var(--text-secondary)] mt-1">{{ t('salesperson.subtitle') }}</p>
+        <p class="mt-1 text-sm text-[var(--text-secondary)]">{{ t('salesperson.subtitle') }}</p>
       </div>
 
       <div class="flex items-center gap-3">
         <!-- 搜索 -->
-        <SearchInput 
-          v-model="searchQuery" 
+        <SearchInput
+          v-model="searchQuery"
           :placeholder="t('common.searchPlaceholder')"
-          @search="handleSearch"
           class="w-full sm:w-64"
+          @search="handleSearch"
         />
 
         <!-- 新建按钮 -->
-        <button 
+        <button
+          class="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white shadow-[var(--color-primary)]/10 shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95"
           @click="openModal()"
-          class="flex items-center gap-2 px-4 py-2 bg-[var(--color-primary)] text-white text-sm font-medium rounded-lg hover:bg-[var(--color-primary-hover)] transition-all active:scale-95 shadow-lg shadow-[var(--color-primary)]/10"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4v16m8-8H4"
+            ></path>
           </svg>
           {{ t('salesperson.create') }}
         </button>
@@ -33,8 +40,8 @@
     <div class="overflow-x-auto">
       <!-- 桌面表格视图 (lg+) -->
       <div class="hidden lg:block">
-        <SalespersonTable 
-          :data="salespersons" 
+        <SalespersonTable
+          :data="salespersons"
           :loading="loading"
           @edit="openModal"
           @delete="confirmDelete"
@@ -43,9 +50,9 @@
       </div>
 
       <!-- 移动端卡片视图 (<lg) -->
-      <div class="lg:hidden p-4">
-        <SalespersonCards 
-          :data="salespersons" 
+      <div class="p-4 lg:hidden">
+        <SalespersonCards
+          :data="salespersons"
           :loading="loading"
           @edit="openModal"
           @delete="confirmDelete"
@@ -55,21 +62,21 @@
     </div>
 
     <!-- 分页 -->
-    <div class="p-4 border-t border-[var(--border-color)]">
-      <Pagination 
-        v-model:currentPage="currentPage"
-        :totalPages="pagination.totalPages"
+    <div class="border-t border-[var(--border-color)] p-4">
+      <Pagination
+        v-model:current-page="currentPage"
+        :total-pages="pagination.totalPages"
         @change="changePage"
       />
     </div>
 
     <!-- 编辑/新建弹窗 -->
-    <SalespersonForm 
+    <SalespersonForm
       v-model="showModal"
       :salesperson="editingSalesperson"
       :submitting="submitting"
       @submit="handleSubmit"
-      @resetToken="handleResetToken"
+      @reset-token="handleResetToken"
     />
 
     <!-- 确认弹窗 -->
@@ -95,16 +102,16 @@ import SalespersonTable from './salesperson/SalespersonTable.vue';
 import SalespersonCards from './salesperson/SalespersonCards.vue';
 import SalespersonForm from './salesperson/SalespersonForm.vue';
 
-const { 
-  salespersons, 
-  loading, 
-  pagination, 
-  loadSalespersons, 
-  createSalesperson, 
-  updateSalesperson, 
-  deleteSalesperson, 
-  resetToken, 
-  copyAccessLink 
+const {
+  salespersons,
+  loading,
+  pagination,
+  loadSalespersons,
+  createSalesperson,
+  updateSalesperson,
+  deleteSalesperson,
+  resetToken,
+  copyAccessLink,
 } = useSalespersons();
 
 const { t } = useI18n();
@@ -121,12 +128,12 @@ const confirmData = ref({
   message: '',
   type: 'primary',
   loading: false,
-  onConfirm: () => {}
+  onConfirm: () => {},
 });
 
 const currentPage = computed({
   get: () => pagination.value.page,
-  set: () => {} // 由 changePage 处理
+  set: () => {}, // 由 changePage 处理
 });
 
 // 初始化
@@ -179,7 +186,7 @@ const handleSubmit = async (formData) => {
 // 删除确认
 const confirmDelete = (person) => {
   if (person.orderCount > 0) return;
-  
+
   confirmData.value = {
     show: true,
     title: t('common.delete'),
@@ -197,14 +204,14 @@ const confirmDelete = (person) => {
       } finally {
         confirmData.value.loading = false;
       }
-    }
+    },
   };
 };
 
 // 重置访问链接
 const handleResetToken = () => {
   if (!editingSalesperson.value) return;
-  
+
   confirmData.value = {
     show: true,
     title: t('salesperson.resetLink'),
@@ -219,7 +226,7 @@ const handleResetToken = () => {
       } finally {
         confirmData.value.loading = false;
       }
-    }
+    },
   };
 };
 </script>

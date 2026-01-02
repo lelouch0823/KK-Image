@@ -1,53 +1,73 @@
 <template>
-  <div class="h-full flex flex-col bg-[var(--bg-card)] rounded-xl shadow-sm border border-[var(--border-color)]">
+  <div
+    class="flex h-full flex-col rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm"
+  >
     <!-- 头部操作栏 -->
-    <div class="p-4 border-b border-[var(--border-color)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
+    <div
+      class="flex flex-shrink-0 flex-col justify-between gap-4 border-b border-[var(--border-color)] p-4 sm:flex-row sm:items-center"
+    >
       <div>
         <h2 class="text-lg font-semibold text-[var(--text-main)]">{{ t('order.manage.title') }}</h2>
-        <p class="text-sm text-[var(--text-secondary)] mt-1">{{ t('order.manage.subtitle') }}</p>
+        <p class="mt-1 text-sm text-[var(--text-secondary)]">{{ t('order.manage.subtitle') }}</p>
       </div>
 
       <div class="flex items-center gap-3">
         <!-- 销售筛选 -->
-        <select 
+        <select
           v-model="filterSalesperson"
+          class="h-9 rounded-lg border-[var(--border-color)] bg-[var(--bg-muted)] px-3 text-sm text-[var(--text-main)] transition-all outline-none focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]"
           @change="handleFilterChange"
-          class="h-9 px-3 bg-[var(--bg-muted)] border-[var(--border-color)] text-[var(--text-main)] text-sm rounded-lg focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] outline-none transition-all"
         >
           <option value="">{{ t('order.manage.allSalespersons') }}</option>
           <option v-for="s in salespersons" :key="s.id" :value="s.id">{{ s.name }}</option>
         </select>
 
         <!-- 状态筛选 -->
-        <select 
+        <select
           v-model="filterStatus"
+          class="h-9 rounded-lg border-[var(--border-color)] bg-[var(--bg-muted)] px-3 text-sm text-[var(--text-main)] transition-all outline-none focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]"
           @change="handleFilterChange"
-          class="h-9 px-3 bg-[var(--bg-muted)] border-[var(--border-color)] text-[var(--text-main)] text-sm rounded-lg focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] outline-none transition-all"
         >
           <option value="">{{ t('order.manage.allStatuses') }}</option>
           <option v-for="s in statuses" :key="s" :value="s">{{ t(`order.statuses.${s}`) }}</option>
         </select>
 
         <!-- 搜索 -->
-        <SearchInput 
+        <SearchInput
           v-model="searchQuery"
           :placeholder="t('common.searchPlaceholder')"
-          @search="handleSearch"
           class="w-full sm:w-48"
+          @search="handleSearch"
         />
 
         <!-- 导出按钮 -->
         <button
-          @click="exportOrders"
           :disabled="exporting"
-          class="h-9 px-4 bg-[var(--color-primary)] text-white text-sm font-medium rounded-lg hover:bg-[var(--color-primary-hover)] transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 shadow-sm shadow-[var(--color-primary)]/10"
+          class="flex h-9 items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 text-sm font-medium text-white shadow-[var(--color-primary)]/10 shadow-sm transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 disabled:opacity-50"
+          @click="exportOrders"
         >
-          <svg v-if="exporting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          <svg v-if="exporting" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            ></path>
           </svg>
-          <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          <svg v-else class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
           </svg>
           {{ exporting ? t('order.manage.exporting') : t('order.manage.export') }}
         </button>
@@ -63,17 +83,17 @@
     <div class="flex-1 overflow-auto">
       <!-- 桌面表格视图 (lg+) -->
       <div class="hidden lg:block">
-        <OrderTable 
-          :data="orders" 
+        <OrderTable
+          v-model:selected-ids="selectedIds"
+          :data="orders"
           :loading="loading"
           :selectable="true"
-          v-model:selectedIds="selectedIds"
           @detail="openDetailModal"
           @edit="openEditModal"
           @void="handleVoidOrder"
         >
           <template #status="{ order }">
-            <OrderStatusChanger 
+            <OrderStatusChanger
               :status="order.status"
               :loading="statusChanging[order.id]"
               @change="(e) => handleStatusChange(order, e)"
@@ -83,15 +103,15 @@
       </div>
 
       <!-- 移动端卡片视图 (<lg) -->
-      <div class="lg:hidden p-4">
-        <OrderCards 
-          :data="orders" 
+      <div class="p-4 lg:hidden">
+        <OrderCards
+          :data="orders"
           :loading="loading"
           @detail="openDetailModal"
           @edit="openEditModal"
         >
           <template #status="{ order }">
-            <OrderStatusChanger 
+            <OrderStatusChanger
               :status="order.status"
               :loading="statusChanging[order.id]"
               @change="(e) => handleStatusChange(order, e)"
@@ -110,44 +130,65 @@
       leave-from-class="transform translate-y-0 opacity-100"
       leave-to-class="transform translate-y-4 opacity-0"
     >
-      <div 
-        v-if="selectedIds.length > 0" 
-        class="sticky bottom-0 left-0 right-0 bg-[var(--bg-card)] border-t border-[var(--border-color)] shadow-xl shadow-black/10 px-4 py-3.5 flex items-center justify-between gap-4 z-20 backdrop-blur-md bg-[var(--bg-card)]/90"
+      <div
+        v-if="selectedIds.length > 0"
+        class="sticky right-0 bottom-0 left-0 z-20 flex items-center justify-between gap-4 border-t border-[var(--border-color)] bg-[var(--bg-card)] bg-[var(--bg-card)]/90 px-4 py-3.5 shadow-xl shadow-black/10 backdrop-blur-md"
       >
         <div class="flex items-center gap-3">
-          <span class="text-sm text-primary font-medium">
+          <span class="text-primary text-sm font-medium">
             {{ t('order.manage.selectedCount', { count: selectedIds.length }) }}
           </span>
-          <button 
+          <button
+            class="text-secondary text-sm transition-colors hover:text-primary"
             @click="selectedIds = []"
-            class="text-sm text-secondary hover:text-primary transition-colors"
           >
             {{ t('order.manage.cancelSelect') }}
           </button>
         </div>
         <div class="flex items-center gap-2">
-          <button 
-            @click="handleBatchAction('confirm')"
+          <button
             :disabled="batchProcessing"
-            class="h-9 px-4 bg-[var(--color-primary)] text-white text-sm font-bold rounded-xl hover:bg-[var(--color-primary-hover)] transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-[var(--color-primary)]/10"
+            class="flex h-9 items-center gap-1.5 rounded-xl bg-[var(--color-primary)] px-4 text-sm font-bold text-white shadow-[var(--color-primary)]/10 shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 disabled:opacity-50"
+            @click="handleBatchAction('confirm')"
           >
-            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <svg class="size-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
             {{ t('order.manage.batchConfirm') }}
           </button>
-          <button 
-            @click="handleBatchAction('reject')"
+          <button
             :disabled="batchProcessing"
-            class="h-9 px-4 bg-[var(--color-warning)] text-white text-sm font-bold rounded-xl hover:bg-[var(--color-warning)]/90 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-[var(--color-warning)]/10"
+            class="flex h-9 items-center gap-1.5 rounded-xl bg-[var(--color-warning)] px-4 text-sm font-bold text-white shadow-[var(--color-warning)]/10 shadow-lg transition-all hover:bg-[var(--color-warning)]/90 active:scale-95 disabled:opacity-50"
+            @click="handleBatchAction('reject')"
           >
-            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            <svg class="size-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
             {{ t('order.manage.batchReject') }}
           </button>
-          <button 
-            @click="handleBatchAction('void')"
+          <button
             :disabled="batchProcessing"
-            class="h-9 px-4 bg-[var(--color-danger)] text-white text-sm font-bold rounded-xl hover:bg-[var(--color-danger)]/90 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-[var(--color-danger)]/10"
+            class="flex h-9 items-center gap-1.5 rounded-xl bg-[var(--color-danger)] px-4 text-sm font-bold text-white shadow-[var(--color-danger)]/10 shadow-lg transition-all hover:bg-[var(--color-danger)]/90 active:scale-95 disabled:opacity-50"
+            @click="handleBatchAction('void')"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
             {{ t('order.manage.batchVoid') }}
           </button>
         </div>
@@ -155,19 +196,22 @@
     </Transition>
 
     <!-- 分页 -->
-    <div v-if="pagination.totalPages > 1" class="p-4 border-t border-[var(--border-color)] flex-shrink-0">
-      <Pagination 
-        v-model:currentPage="pagination.page"
-        :totalPages="pagination.totalPages"
+    <div
+      v-if="pagination.totalPages > 1"
+      class="flex-shrink-0 border-t border-[var(--border-color)] p-4"
+    >
+      <Pagination
+        v-model:current-page="pagination.page"
+        :total-pages="pagination.totalPages"
         @change="changePage"
       />
     </div>
 
     <!-- 订单详情弹窗 -->
     <Modal v-model="showDetailModal" size="6xl" :title="t('order.detail.title')">
-      <OrderDetail 
+      <OrderDetail
         v-if="viewingOrder"
-        :order="viewingOrder" 
+        :order="viewingOrder"
         mode="admin"
         @back="closeDetailModal"
         @comment="handleAdminComment"
@@ -177,7 +221,7 @@
     </Modal>
 
     <!-- 订单编辑弹窗（z-index 根据打开顺序自动计算）-->
-    <OrderEditModal 
+    <OrderEditModal
       v-if="showEditModal && editingOrder"
       :order="editingOrder"
       :submitting="isEditing"
@@ -215,7 +259,19 @@ import OrderDetail from './order/OrderDetail.vue';
 import OrderDashboard from './order/OrderDashboard.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
-const { orders, salespersons, statuses, loading, pagination, loadOrders, getOrder, updateOrder, changeStatus, addComment, batchAction } = useOrders();
+const {
+  orders,
+  salespersons,
+  statuses,
+  loading,
+  pagination,
+  loadOrders,
+  getOrder,
+  updateOrder,
+  changeStatus,
+  addComment,
+  batchAction,
+} = useOrders();
 const { t } = useI18n();
 const { addToast } = useToast();
 
@@ -240,7 +296,7 @@ const confirmData = ref({
   message: '',
   type: 'primary',
   loading: false,
-  onConfirm: () => {}
+  onConfirm: () => {},
 });
 
 // 初始化
@@ -261,7 +317,7 @@ const handleFilterChange = () => {
     search: searchQuery.value,
     startTime: filterDateRange.value.start,
     endTime: filterDateRange.value.end,
-    page: 1
+    page: 1,
   });
 };
 
@@ -278,7 +334,7 @@ const changePage = (page) => {
     search: searchQuery.value,
     startTime: filterDateRange.value.start,
     endTime: filterDateRange.value.end,
-    page
+    page,
   });
 };
 
@@ -304,14 +360,14 @@ const handleDashboardFilter = (type) => {
   if (type === 'today') {
     // SOTA Timezone: Beijing Time (UTC+8)
     const now = new Date();
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
     const offset = 8 * 60 * 60 * 1000;
-    
+
     // Beijing 'Today' Start (00:00:00)
     const beijingNow = new Date(utc + offset);
     beijingNow.setHours(0, 0, 0, 0);
     const start = beijingNow.getTime() - offset; // Convert back to UTC timestamp
-    
+
     // Beijing 'Today' End (23:59:59)
     beijingNow.setHours(23, 59, 59, 999);
     const end = beijingNow.getTime() - offset;
@@ -322,7 +378,7 @@ const handleDashboardFilter = (type) => {
     filterStatus.value = 'pending';
     filterDateRange.value = { start: 0, end: 0 }; // Clear date filter
   }
-  
+
   // Reload
   handleFilterChange();
 };
@@ -340,7 +396,7 @@ const openEditModal = async (order) => {
 const closeEditModal = async () => {
   showEditModal.value = false;
   editingOrder.value = null;
-  
+
   // 若详情仍在显示，刷新其数据
   if (showDetailModal.value && viewingOrder.value) {
     const updated = await getOrder(viewingOrder.value.id);
@@ -354,9 +410,9 @@ const openDetailModal = async (order) => {
   if (fullOrder) {
     viewingOrder.value = fullOrder;
     showDetailModal.value = true;
-    
+
     // Clear red dot locally (SOTA: immediate feedback)
-    const idx = orders.value.findIndex(o => o.id === order.id);
+    const idx = orders.value.findIndex((o) => o.id === order.id);
     if (idx !== -1 && orders.value[idx].hasNewFeedback) {
       orders.value[idx].hasNewFeedback = false;
     }
@@ -389,7 +445,7 @@ const handleVoidOrder = (order) => {
       } finally {
         confirmData.value.loading = false;
       }
-    }
+    },
   };
 };
 
@@ -439,37 +495,39 @@ const handleEditFromDetail = (order) => {
 const exportOrders = async () => {
   if (exporting.value) return;
   exporting.value = true;
-  
+
   try {
     // 构建查询参数
     const params = new URLSearchParams();
     if (filterSalesperson.value) params.set('salesperson', filterSalesperson.value);
     if (filterStatus.value) params.set('status', filterStatus.value);
     if (searchQuery.value) params.set('search', searchQuery.value);
-    
+
     const url = `${API.MANAGE_ORDER_EXPORT}?${params.toString()}`;
     const response = await fetch(url, { credentials: 'include' });
-    
+
     if (!response.ok) {
       throw new Error('Export failed');
     }
-    
+
     // 获取 blob 并触发下载
     const blob = await response.blob();
     const downloadUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = downloadUrl;
-    
+
     // 从 Content-Disposition 获取文件名
     const disposition = response.headers.get('Content-Disposition');
     const filenameMatch = disposition && disposition.match(/filename="?(.+)"?/);
-    link.download = filenameMatch ? filenameMatch[1] : `orders_${new Date().toISOString().slice(0, 10)}.csv`;
-    
+    link.download = filenameMatch
+      ? filenameMatch[1]
+      : `orders_${new Date().toISOString().slice(0, 10)}.csv`;
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(downloadUrl);
-    
+
     addToast({ message: t('order.manage.exportSuccess'), type: 'success' });
   } catch (e) {
     console.error('Export error:', e);
@@ -519,7 +577,7 @@ const handleBatchAction = (action) => {
       } finally {
         confirmData.value.loading = false;
       }
-    }
+    },
   };
 };
 </script>

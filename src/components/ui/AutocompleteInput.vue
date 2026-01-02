@@ -1,5 +1,5 @@
 <template>
-  <div class="relative" ref="containerRef">
+  <div ref="containerRef" class="relative">
     <input
       v-model="inputValue"
       v-bind="$attrs"
@@ -9,8 +9,8 @@
       @blur="handleBlur"
       @input="handleInput"
       @keydown="handleKeydown"
-    >
-    
+    />
+
     <!-- 下拉建议列表 -->
     <Transition
       enter-active-class="transition duration-100 ease-out"
@@ -22,12 +22,12 @@
     >
       <div
         v-if="showDropdown && filteredSuggestions.length > 0"
-        class="absolute z-50 w-full mt-1 bg-white border border-[var(--border-color)] rounded-lg shadow-lg overflow-hidden"
+        class="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-[var(--border-color)] bg-white shadow-lg"
       >
-        <div class="py-1 max-h-48 overflow-y-auto">
+        <div class="max-h-48 overflow-y-auto py-1">
           <div
             v-if="label"
-            class="px-3 py-1.5 text-xs text-secondary font-medium bg-[var(--bg-muted)]"
+            class="text-secondary bg-[var(--bg-muted)] px-3 py-1.5 text-xs font-medium"
           >
             {{ label }}
           </div>
@@ -35,10 +35,10 @@
             v-for="(suggestion, index) in filteredSuggestions"
             :key="suggestion"
             type="button"
-            class="w-full px-3 py-2 text-left text-sm hover:bg-[var(--bg-hover)] transition-colors"
+            class="w-full px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--bg-hover)]"
             :class="{
               'bg-primary/5 text-primary': index === highlightedIndex,
-              'text-primary': index !== highlightedIndex
+              'text-primary': index !== highlightedIndex,
             }"
             @mousedown.prevent="selectSuggestion(suggestion)"
             @mouseenter="highlightedIndex = index"
@@ -60,7 +60,7 @@ const props = defineProps({
   placeholder: { type: String, default: '' },
   inputClass: { type: String, default: 'input h-11' },
   label: { type: String, default: '' },
-  filterMode: { type: Boolean, default: true } // true: 过滤建议, false: 始终显示全部
+  filterMode: { type: Boolean, default: true }, // true: 过滤建议, false: 始终显示全部
 });
 
 const emit = defineEmits(['update:modelValue', 'select']);
@@ -71,9 +71,12 @@ const showDropdown = ref(false);
 const highlightedIndex = ref(-1);
 
 // 同步外部值
-watch(() => props.modelValue, (val) => {
-  inputValue.value = val;
-});
+watch(
+  () => props.modelValue,
+  (val) => {
+    inputValue.value = val;
+  }
+);
 
 // 过滤后的建议列表
 const filteredSuggestions = computed(() => {
@@ -81,9 +84,7 @@ const filteredSuggestions = computed(() => {
     return props.suggestions;
   }
   const query = inputValue.value.toLowerCase();
-  return props.suggestions.filter(s => 
-    s.toLowerCase().includes(query)
-  );
+  return props.suggestions.filter((s) => s.toLowerCase().includes(query));
 });
 
 // 处理聚焦

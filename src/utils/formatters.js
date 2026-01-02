@@ -10,15 +10,15 @@
  * @returns {string} 格式化后的大小字符串
  */
 export const formatSize = (bytes, t) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-    const value = parseFloat((bytes / Math.pow(k, i)).toFixed(2));
-    const unit = t ? t(`formatters.units.${sizes[i]}`) : sizes[i];
+  const value = parseFloat((bytes / Math.pow(k, i)).toFixed(2));
+  const unit = t ? t(`formatters.units.${sizes[i]}`) : sizes[i];
 
-    return `${value} ${unit}`;
+  return `${value} ${unit}`;
 };
 
 /**
@@ -27,10 +27,11 @@ export const formatSize = (bytes, t) => {
  * @param {Object} t - i18n translate function
  */
 export const formatDuration = (seconds, t) => {
-    if (!t) return `${seconds}s`;
-    if (seconds < 60) return `${seconds}${t('formatters.seconds')}`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}${t('formatters.minutes')}${seconds % 60}${t('formatters.seconds')}`;
-    return `${Math.floor(seconds / 3600)}${t('formatters.hours')}${Math.floor((seconds % 3600) / 60)}${t('formatters.minutes')}`;
+  if (!t) return `${seconds}s`;
+  if (seconds < 60) return `${seconds}${t('formatters.seconds')}`;
+  if (seconds < 3600)
+    return `${Math.floor(seconds / 60)}${t('formatters.minutes')}${seconds % 60}${t('formatters.seconds')}`;
+  return `${Math.floor(seconds / 3600)}${t('formatters.hours')}${Math.floor((seconds % 3600) / 60)}${t('formatters.minutes')}`;
 };
 
 /**
@@ -40,16 +41,16 @@ export const formatDuration = (seconds, t) => {
  * @returns {string} 格式化后的日期字符串
  */
 export const formatDate = (timestamp, options = {}) => {
-    if (!timestamp) return '-';
-    const date = new Date(Number(timestamp));
-    return date.toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        ...options
-    });
+  if (!timestamp) return '-';
+  const date = new Date(Number(timestamp));
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    ...options,
+  });
 };
 
 /**
@@ -59,16 +60,16 @@ export const formatDate = (timestamp, options = {}) => {
  * @returns {string} 格式化后的过期时间描述
  */
 export const formatExpiry = (ts, t) => {
-    if (!t) return ts ? new Date(Number(ts)).toLocaleDateString() : '永久有效';
+  if (!t) return ts ? new Date(Number(ts)).toLocaleDateString() : '永久有效';
 
-    if (!ts) return t('formatters.forever');
-    const date = new Date(Number(ts));
-    const now = Date.now();
-    const days = Math.ceil((ts - now) / (1000 * 60 * 60 * 24));
+  if (!ts) return t('formatters.forever');
+  const date = new Date(Number(ts));
+  const now = Date.now();
+  const days = Math.ceil((ts - now) / (1000 * 60 * 60 * 24));
 
-    if (ts < now) return t('formatters.expired');
-    const dateStr = date.toLocaleDateString();
-    return t('formatters.daysLeft', { days, date: dateStr });
+  if (ts < now) return t('formatters.expired');
+  const dateStr = date.toLocaleDateString();
+  return t('formatters.daysLeft', { days, date: dateStr });
 };
 
 /**
@@ -77,8 +78,8 @@ export const formatExpiry = (ts, t) => {
  * @returns {string} 大写的扩展名
  */
 export const getFileExtension = (filename) => {
-    if (!filename) return '';
-    return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2).toUpperCase();
+  if (!filename) return '';
+  return filename.slice(((filename.lastIndexOf('.') - 1) >>> 0) + 2).toUpperCase();
 };
 
 import { IMAGE_EXTENSIONS } from './constants';
@@ -89,14 +90,14 @@ import { IMAGE_EXTENSIONS } from './constants';
  * @returns {boolean} 是否为图片
  */
 export const isImage = (file) => {
-    if (!file) return false;
+  if (!file) return false;
 
-    // 支持传入文件对象或字符串
-    const filename = typeof file === 'string' ? file : (file.name || file.originalName || '');
-    if (!filename) return false;
+  // 支持传入文件对象或字符串
+  const filename = typeof file === 'string' ? file : file.name || file.originalName || '';
+  if (!filename) return false;
 
-    const ext = getFileExtension(filename).toLowerCase();
-    return IMAGE_EXTENSIONS.includes(ext);
+  const ext = getFileExtension(filename).toLowerCase();
+  return IMAGE_EXTENSIONS.includes(ext);
 };
 
 /**
@@ -106,49 +107,49 @@ export const isImage = (file) => {
  * @returns {string} Relative time string
  */
 export const formatRelativeTime = (timestamp, t) => {
-    if (!timestamp) return t ? t('common.unknown') : '';
-    const date = new Date(Number(timestamp));
-    const now = new Date();
-    const diff = now - date;
+  if (!timestamp) return t ? t('common.unknown') : '';
+  const date = new Date(Number(timestamp));
+  const now = new Date();
+  const diff = now - date;
 
-    // 一分钟内
-    if (diff < 60000) return t ? t('common.justNow') : '刚刚';
-    // 一小时内
-    if (diff < 3600000) {
-        const count = Math.floor(diff / 60000);
-        return t ? t('common.minutesAgo', { count }) : `${count}分钟前`;
-    }
-    // 一天内
-    if (diff < 86400000) {
-        const count = Math.floor(diff / 3600000);
-        return t ? t('common.hoursAgo', { count }) : `${count}小时前`;
-    }
+  // 一分钟内
+  if (diff < 60000) return t ? t('common.justNow') : '刚刚';
+  // 一小时内
+  if (diff < 3600000) {
+    const count = Math.floor(diff / 60000);
+    return t ? t('common.minutesAgo', { count }) : `${count}分钟前`;
+  }
+  // 一天内
+  if (diff < 86400000) {
+    const count = Math.floor(diff / 3600000);
+    return t ? t('common.hoursAgo', { count }) : `${count}小时前`;
+  }
 
-    // 超过一天，显示日期 (MM/DD)
-    return `${date.getMonth() + 1}/${date.getDate()}`;
+  // 超过一天，显示日期 (MM/DD)
+  return `${date.getMonth() + 1}/${date.getDate()}`;
 };
 
 /**
  * 格式化详细时间 (MM/DD HH:mm) - 用于时间轴
- * @param {number|string} timestamp 
+ * @param {number|string} timestamp
  * @returns {string}
  */
 export const formatTimelineTime = (timestamp) => {
-    if (!timestamp) return '';
-    const date = new Date(Number(timestamp));
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
+  if (!timestamp) return '';
+  const date = new Date(Number(timestamp));
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
 
-    const timeStr = `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
-    if (isToday) {
-        return timeStr;
-    }
-    return `${date.getMonth() + 1}/${date.getDate()} ${timeStr}`;
+  const timeStr = `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+  if (isToday) {
+    return timeStr;
+  }
+  return `${date.getMonth() + 1}/${date.getDate()} ${timeStr}`;
 };
 
 /**
  * formatTime 别名 - 用于排序列表的时间显示
- * @param {number|string} timestamp 
+ * @param {number|string} timestamp
  * @returns {string}
  */
 export const formatTime = formatTimelineTime;
@@ -159,8 +160,8 @@ export const formatTime = formatTimelineTime;
  * @returns {string}
  */
 export const getCssVar = (varName) => {
-    if (typeof document === 'undefined') return '';
-    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  if (typeof document === 'undefined') return '';
+  return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
 };
 
 /**
@@ -169,11 +170,11 @@ export const getCssVar = (varName) => {
  * @returns {string[]}
  */
 export const getChartColors = (count = 6) => {
-    const colors = [];
-    for (let i = 1; i <= Math.min(count, 6); i++) {
-        colors.push(getCssVar(`--color-chart-${i}`));
-    }
-    return colors;
+  const colors = [];
+  for (let i = 1; i <= Math.min(count, 6); i++) {
+    colors.push(getCssVar(`--color-chart-${i}`));
+  }
+  return colors;
 };
 
 /**
@@ -183,12 +184,12 @@ export const getChartColors = (count = 6) => {
  * @returns {string}
  */
 export const hexToRgba = (hex, alpha = 1) => {
-    if (!hex) return `rgba(0, 0, 0, ${alpha})`;
-    hex = hex.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  if (!hex) return `rgba(0, 0, 0, ${alpha})`;
+  hex = hex.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
 /**
@@ -198,8 +199,8 @@ export const hexToRgba = (hex, alpha = 1) => {
  * @returns {string}
  */
 export const getChartBgColor = (index = 1, alpha = 0.1) => {
-    const hex = getCssVar(`--color-chart-${index}`);
-    return hexToRgba(hex, alpha);
+  const hex = getCssVar(`--color-chart-${index}`);
+  return hexToRgba(hex, alpha);
 };
 
 /**
@@ -208,14 +209,14 @@ export const getChartBgColor = (index = 1, alpha = 0.1) => {
  * @returns {string} YYYY-MM-DD (周X)
  */
 export function formatDateWithWeekday(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
 
-    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-    const day = weekdays[date.getDay()];
+  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  const day = weekdays[date.getDay()];
 
-    return `${dateString} (${day})`;
+  return `${dateString} (${day})`;
 }
 
 /**
@@ -225,16 +226,16 @@ export function formatDateWithWeekday(dateString) {
  * @returns {string} 格式化后的金额字符串
  */
 export const formatCurrency = (amount, currency = 'CNY') => {
-    if (amount === undefined || amount === null || amount === '') return '-';
+  if (amount === undefined || amount === null || amount === '') return '-';
 
-    // 确保是数字
-    const num = Number(amount);
-    if (isNaN(num)) return amount;
+  // 确保是数字
+  const num = Number(amount);
+  if (isNaN(num)) return amount;
 
-    return new Intl.NumberFormat('zh-CN', {
-        style: 'currency',
-        currency: currency,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }).format(num);
+  return new Intl.NumberFormat('zh-CN', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
 };

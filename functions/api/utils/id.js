@@ -10,7 +10,7 @@
  * @returns {string} UUID v4 格式
  */
 export function generateId() {
-    return crypto.randomUUID();
+  return crypto.randomUUID();
 }
 
 /**
@@ -19,7 +19,7 @@ export function generateId() {
  * @returns {string}
  */
 export function generatePrefixedId(prefix) {
-    return prefix + crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+  return prefix + crypto.randomUUID().replace(/-/g, '').substring(0, 16);
 }
 
 /**
@@ -28,10 +28,10 @@ export function generatePrefixedId(prefix) {
  * @returns {string}
  */
 export function generateShareToken(length = 12) {
-    const array = new Uint8Array(length);
-    crypto.getRandomValues(array);
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    return Array.from(array, byte => chars[byte % chars.length]).join('');
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from(array, (byte) => chars[byte % chars.length]).join('');
 }
 
 // ==================== 时间戳 ====================
@@ -41,7 +41,7 @@ export function generateShareToken(length = 12) {
  * @returns {number}
  */
 export function now() {
-    return Date.now();
+  return Date.now();
 }
 
 /**
@@ -50,9 +50,9 @@ export function now() {
  * @returns {number|null}
  */
 export function isoToTimestamp(isoString) {
-    if (!isoString) return null;
-    const date = new Date(isoString);
-    return isNaN(date.getTime()) ? null : date.getTime();
+  if (!isoString) return null;
+  const date = new Date(isoString);
+  return isNaN(date.getTime()) ? null : date.getTime();
 }
 
 /**
@@ -61,7 +61,7 @@ export function isoToTimestamp(isoString) {
  * @returns {string}
  */
 export function timestampToIso(timestamp) {
-    return new Date(timestamp).toISOString();
+  return new Date(timestamp).toISOString();
 }
 
 // ==================== 密码哈希 ====================
@@ -73,15 +73,15 @@ export function timestampToIso(timestamp) {
  * @returns {Promise<string>}
  */
 export async function hashPassword(password, salt) {
-    if (!salt) {
-        throw new Error('Salt is required for password hashing');
-    }
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password + salt);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hashBuffer))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
+  if (!salt) {
+    throw new Error('Salt is required for password hashing');
+  }
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + salt);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 // ==================== HMAC 签名 ====================
@@ -93,16 +93,16 @@ export async function hashPassword(password, salt) {
  * @returns {Promise<string>}
  */
 export async function generateHmacSignature(payload, secret) {
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-        'raw',
-        encoder.encode(secret),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-    );
-    const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
-    return 'sha256=' + btoa(String.fromCharCode(...new Uint8Array(signature)));
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+  return 'sha256=' + btoa(String.fromCharCode(...new Uint8Array(signature)));
 }
 
 // ==================== URL 验证 ====================
@@ -113,12 +113,12 @@ export async function generateHmacSignature(payload, secret) {
  * @returns {boolean}
  */
 export function isValidUrl(urlString) {
-    try {
-        const url = new URL(urlString);
-        return url.protocol === 'http:' || url.protocol === 'https:';
-    } catch {
-        return false;
-    }
+  try {
+    const url = new URL(urlString);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 /**
  * 生成订单编号
@@ -126,17 +126,17 @@ export function isValidUrl(urlString) {
  * @returns {string}
  */
 export function generateOrderNo() {
-    const now = new Date();
-    // 日期: YYMMDD
-    const datePart = now.toISOString().slice(2, 10).replace(/-/g, '');
-    // 时间: HHmmss (使用 UTC 保持一致性)
-    const hours = String(now.getUTCHours()).padStart(2, '0');
-    const mins = String(now.getUTCMinutes()).padStart(2, '0');
-    const secs = String(now.getUTCSeconds()).padStart(2, '0');
-    const timePart = `${hours}${mins}${secs}`;
-    // 随机: 3位 Base36 大写
-    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-    return `ORD-${datePart}-${timePart}-${random}`;
+  const now = new Date();
+  // 日期: YYMMDD
+  const datePart = now.toISOString().slice(2, 10).replace(/-/g, '');
+  // 时间: HHmmss (使用 UTC 保持一致性)
+  const hours = String(now.getUTCHours()).padStart(2, '0');
+  const mins = String(now.getUTCMinutes()).padStart(2, '0');
+  const secs = String(now.getUTCSeconds()).padStart(2, '0');
+  const timePart = `${hours}${mins}${secs}`;
+  // 随机: 3位 Base36 大写
+  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+  return `ORD-${datePart}-${timePart}-${random}`;
 }
 
 // ==================== SHA-256 哈希 ====================
@@ -147,10 +147,10 @@ export function generateOrderNo() {
  * @returns {Promise<string>} 十六进制哈希值
  */
 export async function sha256Hex(data) {
-    const encoder = new TextEncoder();
-    const buffer = typeof data === 'string' ? encoder.encode(data) : data;
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    return Array.from(new Uint8Array(hashBuffer))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
+  const encoder = new TextEncoder();
+  const buffer = typeof data === 'string' ? encoder.encode(data) : data;
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }

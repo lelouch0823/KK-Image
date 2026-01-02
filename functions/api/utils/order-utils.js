@@ -20,54 +20,56 @@ import { MSG } from './messages.js';
  * @returns {Promise<boolean>} 是否有变更
  */
 export async function updateOrderFiles(env, orderId, orderNo, newFileIds, actor, reason) {
-    if (!newFileIds || !Array.isArray(newFileIds)) {
-        return false;
-    }
+  if (!newFileIds || !Array.isArray(newFileIds)) {
+    return false;
+  }
 
-    // 获取旧文件列表
-    const { results: oldFiles } = await env.DB.prepare(
-        'SELECT file_id FROM order_files WHERE order_id = ? ORDER BY sort_order'
-    ).bind(orderId).all();
-    const oldFileIds = oldFiles.map(f => f.file_id);
+  // 获取旧文件列表
+  const { results: oldFiles } = await env.DB.prepare(
+    'SELECT file_id FROM order_files WHERE order_id = ? ORDER BY sort_order'
+  )
+    .bind(orderId)
+    .all();
+  const oldFileIds = oldFiles.map((f) => f.file_id);
 
-    // 比较文件列表（顺序敏感）
-    if (JSON.stringify(newFileIds) === JSON.stringify(oldFileIds)) {
-        return false; // 没有变化
-    }
+  // 比较文件列表（顺序敏感）
+  if (JSON.stringify(newFileIds) === JSON.stringify(oldFileIds)) {
+    return false; // 没有变化
+  }
 
-    // 更新文件关联
-    const orderRepo = new OrderRepository(env.DB);
-    await orderRepo.updateFiles(orderId, newFileIds);
+  // 更新文件关联
+  const orderRepo = new OrderRepository(env.DB);
+  await orderRepo.updateFiles(orderId, newFileIds);
 
-    // SOTA: 同步更新 main_image_id 为第一个文件
-    const newMainImageId = newFileIds.length > 0 ? newFileIds[0] : null;
-    await env.DB.prepare(
-        'UPDATE orders SET main_image_id = ?, updated_at = ? WHERE id = ?'
-    ).bind(newMainImageId, Date.now(), orderId).run();
+  // SOTA: 同步更新 main_image_id 为第一个文件
+  const newMainImageId = newFileIds.length > 0 ? newFileIds[0] : null;
+  await env.DB.prepare('UPDATE orders SET main_image_id = ?, updated_at = ? WHERE id = ?')
+    .bind(newMainImageId, Date.now(), orderId)
+    .run();
 
-    // SOTA: 自动归档到文件夹
-    try {
-        const { ensureOrderFolder, moveFilesToFolder } = await import('./folder-utils.js');
-        const folderId = await ensureOrderFolder(env, orderNo || orderId);
-        await moveFilesToFolder(env, newFileIds, folderId);
-    } catch (e) {
-        console.error('File archiving error:', e);
-    }
+  // SOTA: 自动归档到文件夹
+  try {
+    const { ensureOrderFolder, moveFilesToFolder } = await import('./folder-utils.js');
+    const folderId = await ensureOrderFolder(env, orderNo || orderId);
+    await moveFilesToFolder(env, newFileIds, folderId);
+  } catch (e) {
+    console.error('File archiving error:', e);
+  }
 
-    // 记录时间轴
-    const timelineRepo = new OrderTimelineRepository(env.DB);
-    await timelineRepo.addTimelineEntry(orderId, {
-        actionType: 'field_updated',
-        fieldName: 'files',
-        actorType: actor.type,
-        actorId: actor.id,
-        actorName: actor.name,
-        oldValue: `${oldFileIds.length} ${MSG.ORDER.IMAGES}`,
-        newValue: `${newFileIds.length} ${MSG.ORDER.IMAGES}`,
-        reason: reason || ''
-    });
+  // 记录时间轴
+  const timelineRepo = new OrderTimelineRepository(env.DB);
+  await timelineRepo.addTimelineEntry(orderId, {
+    actionType: 'field_updated',
+    fieldName: 'files',
+    actorType: actor.type,
+    actorId: actor.id,
+    actorName: actor.name,
+    oldValue: `${oldFileIds.length} ${MSG.ORDER.IMAGES}`,
+    newValue: `${newFileIds.length} ${MSG.ORDER.IMAGES}`,
+    reason: reason || '',
+  });
 
-    return true;
+  return true;
 }
 
 /**
@@ -81,37 +83,45 @@ export async function updateOrderFiles(env, orderId, orderNo, newFileIds, actor,
  * @param {string} reason - 修改原因
  * @returns {Promise<{newData: Object, hasChanges: boolean}>}
  */
-export async function detectAndLogFieldChanges(env, orderId, currentData, updates, allowedFields, actor, reason) {
-    const newData = { ...currentData };
-    const timelinePromises = [];
-    let hasChanges = false;
-    const timelineRepo = new OrderTimelineRepository(env.DB); // SOTA: 单例化
+export async function detectAndLogFieldChanges(
+  env,
+  orderId,
+  currentData,
+  updates,
+  allowedFields,
+  actor,
+  reason
+) {
+  const newData = { ...currentData };
+  const timelinePromises = [];
+  let hasChanges = false;
+  const timelineRepo = new OrderTimelineRepository(env.DB); // SOTA: 单例化
 
-    for (const field of allowedFields) {
-        if (updates[field] !== undefined && updates[field] !== currentData[field]) {
-            timelinePromises.push(
-                timelineRepo.addTimelineEntry(orderId, {
-                    actionType: 'field_updated',
-                    actorType: actor.type,
-                    actorId: actor.id,
-                    actorName: actor.name,
-                    fieldName: field,
-                    oldValue: currentData[field] || '',
-                    newValue: updates[field] || '',
-                    reason: reason || ''
-                })
-            );
-            newData[field] = updates[field];
-            hasChanges = true;
-        }
+  for (const field of allowedFields) {
+    if (updates[field] !== undefined && updates[field] !== currentData[field]) {
+      timelinePromises.push(
+        timelineRepo.addTimelineEntry(orderId, {
+          actionType: 'field_updated',
+          actorType: actor.type,
+          actorId: actor.id,
+          actorName: actor.name,
+          fieldName: field,
+          oldValue: currentData[field] || '',
+          newValue: updates[field] || '',
+          reason: reason || '',
+        })
+      );
+      newData[field] = updates[field];
+      hasChanges = true;
     }
+  }
 
-    // 并行执行时间轴记录
-    if (timelinePromises.length > 0) {
-        await Promise.all(timelinePromises);
-    }
+  // 并行执行时间轴记录
+  if (timelinePromises.length > 0) {
+    await Promise.all(timelinePromises);
+  }
 
-    return { newData, hasChanges };
+  return { newData, hasChanges };
 }
 
 /**
@@ -129,22 +139,29 @@ export async function detectAndLogFieldChanges(env, orderId, currentData, update
  * @returns {Promise<{success: boolean, hasChanges: boolean, newData: Object}>}
  */
 export async function processOrderUpdate(options) {
-    const { env, orderId, orderNo, currentData, updates, fileIds, allowedFields, actor, reason } = options;
+  const { env, orderId, orderNo, currentData, updates, fileIds, allowedFields, actor, reason } =
+    options;
 
-    // 1. 检测字段变更
-    const { newData, hasChanges: dataChanged } = await detectAndLogFieldChanges(
-        env, orderId, currentData, updates || {}, allowedFields, actor, reason
-    );
+  // 1. 检测字段变更
+  const { newData, hasChanges: dataChanged } = await detectAndLogFieldChanges(
+    env,
+    orderId,
+    currentData,
+    updates || {},
+    allowedFields,
+    actor,
+    reason
+  );
 
-    // 2. 检测文件变更
-    const filesChanged = await updateOrderFiles(env, orderId, orderNo, fileIds, actor, reason);
+  // 2. 检测文件变更
+  const filesChanged = await updateOrderFiles(env, orderId, orderNo, fileIds, actor, reason);
 
-    // 3. 如果有任何变更，更新订单
-    if (dataChanged || filesChanged) {
-        const orderRepo = new OrderRepository(env.DB);
-        await orderRepo.updateData(orderId, newData, actor.type === 'admin' ? 'admin' : 'sales');
-        return { success: true, hasChanges: true, newData };
-    }
+  // 3. 如果有任何变更，更新订单
+  if (dataChanged || filesChanged) {
+    const orderRepo = new OrderRepository(env.DB);
+    await orderRepo.updateData(orderId, newData, actor.type === 'admin' ? 'admin' : 'sales');
+    return { success: true, hasChanges: true, newData };
+  }
 
-    return { success: true, hasChanges: false, newData };
+  return { success: true, hasChanges: false, newData };
 }

@@ -1,6 +1,11 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { FolderQuerySchema, CreateFolderSchema, UpdateFolderSchema, ShareSettingsSchema } from '../../schemas/folder.js';
+import {
+  FolderQuerySchema,
+  CreateFolderSchema,
+  UpdateFolderSchema,
+  ShareSettingsSchema,
+} from '../../schemas/folder.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
 import { batchInsert } from '../../../../lib/db/batch.js';
@@ -11,248 +16,276 @@ const app = new Hono();
 /**
  * GET /api/v1/folders - 获取文件夹列表
  */
-app.get('/',
-    zValidator('query', FolderQuerySchema),
-    withCache(30),
-    async (c) => {
-        const { page, limit, parentId, search, includeFiles } = c.req.valid('query');
-        const { env } = c;
+app.get('/', zValidator('query', FolderQuerySchema), withCache(30), async (c) => {
+  const { page, limit, parentId, search, includeFiles } = c.req.valid('query');
+  const { env } = c;
 
-        let sql = 'SELECT * FROM folders WHERE 1=1';
-        const bindings = [];
+  let sql = 'SELECT * FROM folders WHERE 1=1';
+  const bindings = [];
 
-        if (parentId === null || parentId === 'null') {
-            sql += ' AND parent_id IS NULL';
-        } else if (parentId) {
-            sql += ' AND parent_id = ?';
-            bindings.push(parentId);
-        }
+  if (parentId === null || parentId === 'null') {
+    sql += ' AND parent_id IS NULL';
+  } else if (parentId) {
+    sql += ' AND parent_id = ?';
+    bindings.push(parentId);
+  }
 
-        if (search) {
-            sql += ' AND name LIKE ?';
-            bindings.push(`%${search}%`);
-        }
+  if (search) {
+    sql += ' AND name LIKE ?';
+    bindings.push(`%${search}%`);
+  }
 
-        // 获取总数
-        const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as total');
-        const countResult = await env.DB.prepare(countSql).bind(...bindings).first();
-        const total = countResult?.total || 0;
+  // 获取总数
+  const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as total');
+  const countResult = await env.DB.prepare(countSql)
+    .bind(...bindings)
+    .first();
+  const total = countResult?.total || 0;
 
-        // 分页查询
-        sql += ' ORDER BY name ASC LIMIT ? OFFSET ?';
-        bindings.push(limit, (page - 1) * limit);
+  // 分页查询
+  sql += ' ORDER BY name ASC LIMIT ? OFFSET ?';
+  bindings.push(limit, (page - 1) * limit);
 
-        const { results: folders } = await env.DB.prepare(sql).bind(...bindings).all();
+  const { results: folders } = await env.DB.prepare(sql)
+    .bind(...bindings)
+    .all();
 
-        // 添加文件计数
-        const foldersWithStats = await Promise.all(folders.map(async (folder) => {
-            const fileCount = await env.DB.prepare(
-                'SELECT COUNT(*) as count FROM files WHERE folder_id = ?'
-            ).bind(folder.id).first();
+  // 添加文件计数
+  const foldersWithStats = await Promise.all(
+    folders.map(async (folder) => {
+      const fileCount = await env.DB.prepare(
+        'SELECT COUNT(*) as count FROM files WHERE folder_id = ?'
+      )
+        .bind(folder.id)
+        .first();
 
-            const subfolderCount = await env.DB.prepare(
-                'SELECT COUNT(*) as count FROM folders WHERE parent_id = ?'
-            ).bind(folder.id).first();
+      const subfolderCount = await env.DB.prepare(
+        'SELECT COUNT(*) as count FROM folders WHERE parent_id = ?'
+      )
+        .bind(folder.id)
+        .first();
 
-            return {
-                ...folder,
-                fileCount: fileCount?.count || 0,
-                subfolderCount: subfolderCount?.count || 0
-            };
-        }));
+      return {
+        ...folder,
+        fileCount: fileCount?.count || 0,
+        subfolderCount: subfolderCount?.count || 0,
+      };
+    })
+  );
 
-        return c.json({
-            success: true,
-            data: foldersWithStats,
-            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
-        });
-    }
-);
+  return c.json({
+    success: true,
+    data: foldersWithStats,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  });
+});
 
 /**
  * GET /api/v1/folders/:id - 获取单个文件夹
  */
 app.get('/:id', withCache(60), async (c) => {
-    const id = c.req.param('id');
-    const { env } = c;
+  const id = c.req.param('id');
+  const { env } = c;
 
-    const folder = await env.DB.prepare('SELECT * FROM folders WHERE id = ?').bind(id).first();
+  const folder = await env.DB.prepare('SELECT * FROM folders WHERE id = ?').bind(id).first();
 
-    if (!folder) {
-        return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
-    }
+  if (!folder) {
+    return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
+  }
 
-    // 获取文件和子文件夹
-    const [filesResult, subfoldersResult] = await Promise.all([
-        env.DB.prepare('SELECT * FROM files WHERE folder_id = ? ORDER BY created_at DESC').bind(id).all(),
-        env.DB.prepare('SELECT * FROM folders WHERE parent_id = ? ORDER BY name ASC').bind(id).all()
-    ]);
+  // 获取文件和子文件夹
+  const [filesResult, subfoldersResult] = await Promise.all([
+    env.DB.prepare('SELECT * FROM files WHERE folder_id = ? ORDER BY created_at DESC')
+      .bind(id)
+      .all(),
+    env.DB.prepare('SELECT * FROM folders WHERE parent_id = ? ORDER BY name ASC').bind(id).all(),
+  ]);
 
-    return c.json({
-        success: true,
-        data: {
-            ...folder,
-            files: filesResult.results,
-            subfolders: subfoldersResult.results
-        }
-    });
+  return c.json({
+    success: true,
+    data: {
+      ...folder,
+      files: filesResult.results,
+      subfolders: subfoldersResult.results,
+    },
+  });
 });
 
 /**
  * POST /api/v1/folders - 创建文件夹
  */
-app.post('/',
-    requirePermission('folders:write'),
-    zValidator('json', CreateFolderSchema),
-    async (c) => {
-        const data = c.req.valid('json');
-        const user = c.get('user');
-        const { env } = c;
+app.post(
+  '/',
+  requirePermission('folders:write'),
+  zValidator('json', CreateFolderSchema),
+  async (c) => {
+    const data = c.req.valid('json');
+    const user = c.get('user');
+    const { env } = c;
 
-        // 验证父文件夹存在
-        if (data.parentId) {
-            const parent = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(data.parentId).first();
-            if (!parent) {
-                return c.json({ success: false, error: MSG.FOLDER.PARENT_NOT_FOUND }, 404);
-            }
-        }
+    // 验证父文件夹存在
+    if (data.parentId) {
+      const parent = await env.DB.prepare('SELECT id FROM folders WHERE id = ?')
+        .bind(data.parentId)
+        .first();
+      if (!parent) {
+        return c.json({ success: false, error: MSG.FOLDER.PARENT_NOT_FOUND }, 404);
+      }
+    }
 
-        const id = generateId();
-        const shareToken = generateShareToken(16);
-        const timestamp = now();
+    const id = generateId();
+    const shareToken = generateShareToken(16);
+    const timestamp = now();
 
-        await env.DB.prepare(`
+    await env.DB.prepare(
+      `
       INSERT INTO folders (id, name, parent_id, description, is_public, password, share_token, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-            id,
-            data.name,
-            data.parentId || null,
-            data.description || null,
-            data.isPublic ? 1 : 0,
-            data.password || null,
-            shareToken,
-            timestamp,
-            timestamp
-        ).run();
+    `
+    )
+      .bind(
+        id,
+        data.name,
+        data.parentId || null,
+        data.description || null,
+        data.isPublic ? 1 : 0,
+        data.password || null,
+        shareToken,
+        timestamp,
+        timestamp
+      )
+      .run();
 
-        return c.json({
-            success: true,
-            data: { id, shareToken, ...data, createdAt: timestamp }
-        }, 201);
-    }
+    return c.json(
+      {
+        success: true,
+        data: { id, shareToken, ...data, createdAt: timestamp },
+      },
+      201
+    );
+  }
 );
 
 /**
  * PUT /api/v1/folders/:id - 更新文件夹
  */
-app.put('/:id',
-    requirePermission('folders:write'),
-    zValidator('json', UpdateFolderSchema),
-    async (c) => {
-        const id = c.req.param('id');
-        const data = c.req.valid('json');
-        const { env } = c;
+app.put(
+  '/:id',
+  requirePermission('folders:write'),
+  zValidator('json', UpdateFolderSchema),
+  async (c) => {
+    const id = c.req.param('id');
+    const data = c.req.valid('json');
+    const { env } = c;
 
-        const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(id).first();
-        if (!folder) {
-            return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
-        }
-
-        const updates = [];
-        const values = [];
-
-        for (const [key, value] of Object.entries(data)) {
-            if (value !== undefined) {
-                const dbKey = key === 'isPublic' ? 'is_public' : key === 'parentId' ? 'parent_id' : key;
-                updates.push(`${dbKey} = ?`);
-                values.push(key === 'isPublic' ? (value ? 1 : 0) : value);
-            }
-        }
-
-        if (updates.length === 0) {
-            return c.json({ success: false, error: MSG.COMMON.NO_UPDATE_FIELDS }, 400);
-        }
-
-        updates.push('updated_at = ?');
-        values.push(now());
-        values.push(id);
-
-        await env.DB.prepare(
-            `UPDATE folders SET ${updates.join(', ')} WHERE id = ?`
-        ).bind(...values).run();
-
-        return c.json({ success: true, message: MSG.FOLDER.UPDATE_SUCCESS });
+    const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(id).first();
+    if (!folder) {
+      return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
     }
+
+    const updates = [];
+    const values = [];
+
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        const dbKey = key === 'isPublic' ? 'is_public' : key === 'parentId' ? 'parent_id' : key;
+        updates.push(`${dbKey} = ?`);
+        values.push(key === 'isPublic' ? (value ? 1 : 0) : value);
+      }
+    }
+
+    if (updates.length === 0) {
+      return c.json({ success: false, error: MSG.COMMON.NO_UPDATE_FIELDS }, 400);
+    }
+
+    updates.push('updated_at = ?');
+    values.push(now());
+    values.push(id);
+
+    await env.DB.prepare(`UPDATE folders SET ${updates.join(', ')} WHERE id = ?`)
+      .bind(...values)
+      .run();
+
+    return c.json({ success: true, message: MSG.FOLDER.UPDATE_SUCCESS });
+  }
 );
 
 /**
  * DELETE /api/v1/folders/:id - 删除文件夹
  */
-app.delete('/:id',
-    requirePermission('folders:delete'),
-    async (c) => {
-        const id = c.req.param('id');
-        const { env } = c;
+app.delete('/:id', requirePermission('folders:delete'), async (c) => {
+  const id = c.req.param('id');
+  const { env } = c;
 
-        const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(id).first();
-        if (!folder) {
-            return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
-        }
+  const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(id).first();
+  if (!folder) {
+    return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
+  }
 
-        // 检查是否有子文件夹或文件
-        const subfoldersCount = await env.DB.prepare(
-            'SELECT COUNT(*) as count FROM folders WHERE parent_id = ?'
-        ).bind(id).first();
-        const filesCount = await env.DB.prepare(
-            'SELECT COUNT(*) as count FROM files WHERE folder_id = ?'
-        ).bind(id).first();
+  // 检查是否有子文件夹或文件
+  const subfoldersCount = await env.DB.prepare(
+    'SELECT COUNT(*) as count FROM folders WHERE parent_id = ?'
+  )
+    .bind(id)
+    .first();
+  const filesCount = await env.DB.prepare('SELECT COUNT(*) as count FROM files WHERE folder_id = ?')
+    .bind(id)
+    .first();
 
-        if ((subfoldersCount?.count || 0) > 0 || (filesCount?.count || 0) > 0) {
-            return c.json({
-                success: false,
-                error: MSG.FOLDER.EMPTY_INVALID
-            }, 400);
-        }
+  if ((subfoldersCount?.count || 0) > 0 || (filesCount?.count || 0) > 0) {
+    return c.json(
+      {
+        success: false,
+        error: MSG.FOLDER.EMPTY_INVALID,
+      },
+      400
+    );
+  }
 
-        await env.DB.prepare('DELETE FROM folders WHERE id = ?').bind(id).run();
+  await env.DB.prepare('DELETE FROM folders WHERE id = ?').bind(id).run();
 
-        return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
-    }
-);
+  return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
+});
 
 /**
  * PUT /api/v1/folders/:id/share - 更新分享设置
  */
-app.put('/:id/share',
-    requirePermission('folders:write'),
-    zValidator('json', ShareSettingsSchema),
-    async (c) => {
-        const id = c.req.param('id');
-        const { isPublic, password, expiresAt } = c.req.valid('json');
-        const { env } = c;
+app.put(
+  '/:id/share',
+  requirePermission('folders:write'),
+  zValidator('json', ShareSettingsSchema),
+  async (c) => {
+    const id = c.req.param('id');
+    const { isPublic, password, expiresAt } = c.req.valid('json');
+    const { env } = c;
 
-        const expiresAtTs = expiresAt ? new Date(expiresAt).getTime() : null;
-        await env.DB.prepare(`
+    const expiresAtTs = expiresAt ? new Date(expiresAt).getTime() : null;
+    await env.DB.prepare(
+      `
       UPDATE folders SET is_public = ?, password = ?, share_expires_at = ?, updated_at = ?
       WHERE id = ?
-    `).bind(isPublic ? 1 : 0, password || null, expiresAtTs, now(), id).run();
+    `
+    )
+      .bind(isPublic ? 1 : 0, password || null, expiresAtTs, now(), id)
+      .run();
 
-        // 获取更新后的分享信息
-        const folder = await env.DB.prepare(
-            'SELECT share_token, is_public, password, share_expires_at FROM folders WHERE id = ?'
-        ).bind(id).first();
+    // 获取更新后的分享信息
+    const folder = await env.DB.prepare(
+      'SELECT share_token, is_public, password, share_expires_at FROM folders WHERE id = ?'
+    )
+      .bind(id)
+      .first();
 
-        return c.json({
-            success: true,
-            data: {
-                shareToken: folder?.share_token,
-                isPublic: !!folder?.is_public,
-                hasPassword: !!folder?.password,
-                expiresAt: folder?.share_expires_at
-            }
-        });
-    }
+    return c.json({
+      success: true,
+      data: {
+        shareToken: folder?.share_token,
+        isPublic: !!folder?.is_public,
+        hasPassword: !!folder?.password,
+        expiresAt: folder?.share_expires_at,
+      },
+    });
+  }
 );
 
 export default app;

@@ -14,18 +14,18 @@ const MAX_BINDINGS_PER_QUERY = 100;
  * @returns {Promise<void>}
  */
 export async function batchInsert(db, table, columns, rows) {
-    if (!rows.length) return;
+  if (!rows.length) return;
 
-    const statements = rows.map(row => {
-        const values = columns.map(col => row[col]);
-        const placeholders = columns.map(() => '?').join(', ');
-        return db.prepare(
-            `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`
-        ).bind(...values);
-    });
+  const statements = rows.map((row) => {
+    const values = columns.map((col) => row[col]);
+    const placeholders = columns.map(() => '?').join(', ');
+    return db
+      .prepare(`INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`)
+      .bind(...values);
+  });
 
-    // 分批执行（D1 限制）
-    await executeBatchChunks(db, statements);
+  // 分批执行（D1 限制）
+  await executeBatchChunks(db, statements);
 }
 
 /**
@@ -36,18 +36,18 @@ export async function batchInsert(db, table, columns, rows) {
  * @param {string} idColumn - ID 列名，默认 'id'
  */
 export async function batchUpdate(db, table, updates, idColumn = 'id') {
-    if (!updates.length) return;
+  if (!updates.length) return;
 
-    const statements = updates.map(update => {
-        const { [idColumn]: id, ...fields } = update;
-        const setClause = Object.keys(fields).map(k => `${k} = ?`).join(', ');
-        const values = [...Object.values(fields), id];
-        return db.prepare(
-            `UPDATE ${table} SET ${setClause} WHERE ${idColumn} = ?`
-        ).bind(...values);
-    });
+  const statements = updates.map((update) => {
+    const { [idColumn]: id, ...fields } = update;
+    const setClause = Object.keys(fields)
+      .map((k) => `${k} = ?`)
+      .join(', ');
+    const values = [...Object.values(fields), id];
+    return db.prepare(`UPDATE ${table} SET ${setClause} WHERE ${idColumn} = ?`).bind(...values);
+  });
 
-    await executeBatchChunks(db, statements);
+  await executeBatchChunks(db, statements);
 }
 
 /**
@@ -58,13 +58,13 @@ export async function batchUpdate(db, table, updates, idColumn = 'id') {
  * @param {string} idColumn - ID 列名，默认 'id'
  */
 export async function batchDelete(db, table, ids, idColumn = 'id') {
-    if (!ids.length) return;
+  if (!ids.length) return;
 
-    const statements = ids.map(id =>
-        db.prepare(`DELETE FROM ${table} WHERE ${idColumn} = ?`).bind(id)
-    );
+  const statements = ids.map((id) =>
+    db.prepare(`DELETE FROM ${table} WHERE ${idColumn} = ?`).bind(id)
+  );
 
-    await executeBatchChunks(db, statements);
+  await executeBatchChunks(db, statements);
 }
 
 /**
@@ -77,20 +77,22 @@ export async function batchDelete(db, table, ids, idColumn = 'id') {
  * @param {string[]} updateColumns - 更新列
  */
 export async function batchUpsert(db, table, columns, rows, conflictColumns, updateColumns) {
-    if (!rows.length) return;
+  if (!rows.length) return;
 
-    const updateClause = updateColumns.map(col => `${col} = excluded.${col}`).join(', ');
+  const updateClause = updateColumns.map((col) => `${col} = excluded.${col}`).join(', ');
 
-    const statements = rows.map(row => {
-        const values = columns.map(col => row[col]);
-        const placeholders = columns.map(() => '?').join(', ');
-        return db.prepare(
-            `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})
+  const statements = rows.map((row) => {
+    const values = columns.map((col) => row[col]);
+    const placeholders = columns.map(() => '?').join(', ');
+    return db
+      .prepare(
+        `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})
        ON CONFLICT (${conflictColumns.join(', ')}) DO UPDATE SET ${updateClause}`
-        ).bind(...values);
-    });
+      )
+      .bind(...values);
+  });
 
-    await executeBatchChunks(db, statements);
+  await executeBatchChunks(db, statements);
 }
 
 /**
@@ -99,12 +101,12 @@ export async function batchUpsert(db, table, columns, rows, conflictColumns, upd
  * @param {D1PreparedStatement[]} statements - 预编译语句数组
  */
 async function executeBatchChunks(db, statements) {
-    const chunkSize = MAX_BINDINGS_PER_QUERY;
+  const chunkSize = MAX_BINDINGS_PER_QUERY;
 
-    for (let i = 0; i < statements.length; i += chunkSize) {
-        const chunk = statements.slice(i, i + chunkSize);
-        await db.batch(chunk);
-    }
+  for (let i = 0; i < statements.length; i += chunkSize) {
+    const chunk = statements.slice(i, i + chunkSize);
+    await db.batch(chunk);
+  }
 }
 
 /**
@@ -113,25 +115,25 @@ async function executeBatchChunks(db, statements) {
  * @param {Function} callback - 事务回调，接收 tx 对象
  */
 export async function transaction(db, callback) {
-    const statements = [];
+  const statements = [];
 
-    const tx = {
-        prepare: (sql) => {
-            const stmt = db.prepare(sql);
-            return {
-                bind: (...args) => {
-                    const bound = stmt.bind(...args);
-                    statements.push(bound);
-                    return bound;
-                }
-            };
+  const tx = {
+    prepare: (sql) => {
+      const stmt = db.prepare(sql);
+      return {
+        bind: (...args) => {
+          const bound = stmt.bind(...args);
+          statements.push(bound);
+          return bound;
         },
-        add: (stmt) => statements.push(stmt)
-    };
+      };
+    },
+    add: (stmt) => statements.push(stmt),
+  };
 
-    await callback(tx);
+  await callback(tx);
 
-    if (statements.length) {
-        return db.batch(statements);
-    }
+  if (statements.length) {
+    return db.batch(statements);
+  }
 }

@@ -10,7 +10,7 @@ export const WEBHOOK_EVENTS = {
   FILE_DELETED: 'file.deleted',
   USER_CREATED: 'user.created',
   API_KEY_CREATED: 'api_key.created',
-  API_KEY_DELETED: 'api_key.deleted'
+  API_KEY_DELETED: 'api_key.deleted',
 };
 
 /**
@@ -34,11 +34,11 @@ export async function triggerWebhook(env, eventType, data) {
       event: eventType,
       timestamp: new Date().toISOString(),
       data: data,
-      id: generatePrefixedId('wh_')
+      id: generatePrefixedId('wh_'),
     };
 
     // 并行发送所有 Webhooks
-    const promises = webhooks.map(webhook => sendWebhook(env, webhook, payload));
+    const promises = webhooks.map((webhook) => sendWebhook(env, webhook, payload));
     const results = await Promise.allSettled(promises);
 
     // 记录结果
@@ -53,9 +53,6 @@ export async function triggerWebhook(env, eventType, data) {
         console.error(`Webhook ${webhooks[index].id} failed:`, result.reason);
       }
     });
-
-
-
   } catch (error) {
     console.error('Error triggering webhooks:', error);
     throw error;
@@ -78,7 +75,7 @@ async function sendWebhook(env, webhook, payload) {
         'User-Agent': 'kk-life-Webhook/1.0',
         'X-Webhook-Event': payload.event,
         'X-Webhook-ID': payload.id,
-        'X-Webhook-Timestamp': payload.timestamp
+        'X-Webhook-Timestamp': payload.timestamp,
       };
 
       // 添加签名（如果配置了密钥）
@@ -96,24 +93,31 @@ async function sendWebhook(env, webhook, payload) {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS)
+        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       });
 
       const duration = Date.now() - startTime;
 
       // 记录日志
-      await logWebhookExecution(env, webhook.id, payload, response.status, duration, response.ok, null);
+      await logWebhookExecution(
+        env,
+        webhook.id,
+        payload,
+        response.status,
+        duration,
+        response.ok,
+        null
+      );
 
       if (response.ok) {
         return {
           success: true,
           status: response.status,
-          attempt: attempt + 1
+          attempt: attempt + 1,
         };
       } else {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-
     } catch (error) {
       attempt++;
       lastError = error;
@@ -127,12 +131,10 @@ async function sendWebhook(env, webhook, payload) {
 
       // 指数退避重试
       const delay = Math.pow(2, attempt) * 1000;
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 }
-
-
 
 /**
  * 获取已注册的 Webhooks (D1)
@@ -143,28 +145,28 @@ async function getRegisteredWebhooks(env, eventType) {
   }
 
   try {
-    const { results } = await env.DB.prepare(
-      'SELECT * FROM webhooks WHERE enabled = 1'
-    ).all();
+    const { results } = await env.DB.prepare('SELECT * FROM webhooks WHERE enabled = 1').all();
 
-    return results.filter(webhook => {
-      // 检查事件类型匹配
-      if (webhook.events) {
-        const events = JSON.parse(webhook.events);
-        if (events.length > 0) {
-          return events.includes(eventType);
+    return results
+      .filter((webhook) => {
+        // 检查事件类型匹配
+        if (webhook.events) {
+          const events = JSON.parse(webhook.events);
+          if (events.length > 0) {
+            return events.includes(eventType);
+          }
         }
-      }
-      // 如果没有指定事件类型，默认接收所有事件
-      return true;
-    }).map(row => ({
-      id: row.id,
-      url: row.url,
-      events: row.events ? JSON.parse(row.events) : [],
-      secret: row.secret,
-      headers: row.headers ? JSON.parse(row.headers) : {},
-      enabled: Boolean(row.enabled)
-    }));
+        // 如果没有指定事件类型，默认接收所有事件
+        return true;
+      })
+      .map((row) => ({
+        id: row.id,
+        url: row.url,
+        events: row.events ? JSON.parse(row.events) : [],
+        secret: row.secret,
+        headers: row.headers ? JSON.parse(row.headers) : {},
+        enabled: Boolean(row.enabled),
+      }));
   } catch (error) {
     console.error('Error getting registered webhooks:', error);
     return [];
@@ -174,7 +176,15 @@ async function getRegisteredWebhooks(env, eventType) {
 /**
  * 记录 Webhook 执行历史 (D1)
  */
-async function logWebhookExecution(env, webhookId, payload, statusCode, durationMs, success, errorMsg) {
+async function logWebhookExecution(
+  env,
+  webhookId,
+  payload,
+  statusCode,
+  durationMs,
+  success,
+  errorMsg
+) {
   if (!env.DB) {
     return;
   }
@@ -182,26 +192,28 @@ async function logWebhookExecution(env, webhookId, payload, statusCode, duration
   try {
     const logId = generatePrefixedId('log_');
 
-    await env.DB.prepare(`
+    await env.DB.prepare(
+      `
       INSERT INTO webhook_logs (id, webhook_id, event, payload, status_code, duration_ms, success, response, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      logId,
-      webhookId,
-      payload.event,
-      JSON.stringify(payload),
-      statusCode,
-      durationMs,
-      success ? 1 : 0,
-      errorMsg || null,
-      Date.now()
-    ).run();
+    `
+    )
+      .bind(
+        logId,
+        webhookId,
+        payload.event,
+        JSON.stringify(payload),
+        statusCode,
+        durationMs,
+        success ? 1 : 0,
+        errorMsg || null,
+        Date.now()
+      )
+      .run();
   } catch (error) {
     console.error('Error logging webhook execution:', error);
   }
 }
-
-
 
 /**
  * 注册新的 Webhook (D1)
@@ -221,9 +233,9 @@ export async function registerWebhook(env, webhookConfig) {
   }
 
   // 检查是否已存在相同 URL
-  const existing = await env.DB.prepare(
-    'SELECT id FROM webhooks WHERE url = ?'
-  ).bind(webhookConfig.url).first();
+  const existing = await env.DB.prepare('SELECT id FROM webhooks WHERE url = ?')
+    .bind(webhookConfig.url)
+    .first();
 
   if (existing) {
     throw new Error('Webhook with this URL already exists');
@@ -232,19 +244,23 @@ export async function registerWebhook(env, webhookConfig) {
   const id = generatePrefixedId('wh_');
   const now = Date.now();
 
-  await env.DB.prepare(`
+  await env.DB.prepare(
+    `
     INSERT INTO webhooks (id, url, events, secret, headers, enabled, created_by, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(
-    id,
-    webhookConfig.url,
-    JSON.stringify(webhookConfig.events || []),
-    webhookConfig.secret || null,
-    JSON.stringify(webhookConfig.headers || {}),
-    webhookConfig.enabled !== false ? 1 : 0,
-    webhookConfig.createdBy || 'system',
-    now
-  ).run();
+  `
+  )
+    .bind(
+      id,
+      webhookConfig.url,
+      JSON.stringify(webhookConfig.events || []),
+      webhookConfig.secret || null,
+      JSON.stringify(webhookConfig.headers || {}),
+      webhookConfig.enabled !== false ? 1 : 0,
+      webhookConfig.createdBy || 'system',
+      now
+    )
+    .run();
 
   return {
     id,
@@ -254,7 +270,7 @@ export async function registerWebhook(env, webhookConfig) {
     headers: webhookConfig.headers || {},
     enabled: webhookConfig.enabled !== false,
     createdAt: now,
-    createdBy: webhookConfig.createdBy || 'system'
+    createdBy: webhookConfig.createdBy || 'system',
   };
 }
 
@@ -266,9 +282,9 @@ export async function deleteWebhook(env, webhookId) {
     throw new Error('Database not configured');
   }
 
-  const existing = await env.DB.prepare(
-    'SELECT id FROM webhooks WHERE id = ?'
-  ).bind(webhookId).first();
+  const existing = await env.DB.prepare('SELECT id FROM webhooks WHERE id = ?')
+    .bind(webhookId)
+    .first();
 
   if (!existing) {
     throw new Error('Webhook not found');
@@ -287,11 +303,9 @@ export async function getWebhooks(env) {
     return [];
   }
 
-  const { results } = await env.DB.prepare(
-    'SELECT * FROM webhooks ORDER BY created_at DESC'
-  ).all();
+  const { results } = await env.DB.prepare('SELECT * FROM webhooks ORDER BY created_at DESC').all();
 
-  return results.map(row => ({
+  return results.map((row) => ({
     id: row.id,
     url: row.url,
     events: row.events ? JSON.parse(row.events) : [],
@@ -301,6 +315,6 @@ export async function getWebhooks(env) {
     createdBy: row.created_by,
     createdAt: row.created_at,
     updatedBy: row.updated_by,
-    updatedAt: row.updated_at
+    updatedAt: row.updated_at,
   }));
 }

@@ -116,7 +116,7 @@ export async function verifyApiKey(apiKey, env) {
   // 从环境变量或 KV 存储中获取有效的 API Keys
   const validApiKeys = await getValidApiKeys(env);
 
-  const keyInfo = validApiKeys.find(key => key.key === apiKey);
+  const keyInfo = validApiKeys.find((key) => key.key === apiKey);
   if (!keyInfo) {
     throw new Error('Invalid API Key');
   }
@@ -135,7 +135,7 @@ export async function verifyApiKey(apiKey, env) {
     id: keyInfo.id,
     name: keyInfo.name,
     permissions: keyInfo.permissions || ['read'],
-    type: 'api_key'
+    type: 'api_key',
   };
 }
 
@@ -158,7 +158,7 @@ export async function verifyJWT(token, env) {
       permissions: payload.permissions || ['read'],
       type: payload.type || 'jwt',
       iat: payload.iat,
-      exp: payload.exp
+      exp: payload.exp,
     };
   } catch (error) {
     throw new Error(`JWT verification failed: ${error.message}`);
@@ -179,7 +179,7 @@ export async function generateJWT(user, env, expiresIn = 3600) {
     type: user.type,
     permissions: user.permissions || ['read'],
     iat: now,
-    exp: now + expiresIn
+    exp: now + expiresIn,
   };
 
   return await SimpleJWT.encode(payload, env.JWT_SECRET);
@@ -212,14 +212,16 @@ async function getValidApiKeys(env) {
   // 如果 KV 中没有，使用环境变量中的默认 API Key
   const defaultApiKey = env.DEFAULT_API_KEY;
   if (defaultApiKey) {
-    return [{
-      id: 'default',
-      key: defaultApiKey,
-      name: 'Default API Key',
-      permissions: ['read', 'write', 'delete'],
-      createdAt: Date.now(),
-      disabled: false
-    }];
+    return [
+      {
+        id: 'default',
+        key: defaultApiKey,
+        name: 'Default API Key',
+        permissions: ['read', 'write', 'delete'],
+        createdAt: Date.now(),
+        disabled: false,
+      },
+    ];
   }
 
   // 如果都没有，返回空数组
@@ -233,7 +235,7 @@ export async function saveApiKey(keyInfo, env) {
   }
 
   const existingKeys = await getValidApiKeys(env);
-  const updatedKeys = existingKeys.filter(k => k.id !== keyInfo.id);
+  const updatedKeys = existingKeys.filter((k) => k.id !== keyInfo.id);
   updatedKeys.push(keyInfo);
 
   await env.API_KEYS_KV.put('api_keys', JSON.stringify(updatedKeys));
@@ -248,15 +250,15 @@ export async function deleteApiKey(keyId, env) {
   }
 
   const existingKeys = await getValidApiKeys(env);
-  const updatedKeys = existingKeys.filter(k => k.id !== keyId);
+  const updatedKeys = existingKeys.filter((k) => k.id !== keyId);
 
   await env.API_KEYS_KV.put('api_keys', JSON.stringify(updatedKeys));
 
   return true;
 }
 
-// export { hasPermission, requirePermission } already handled by top-level import and existing usage? 
-// No, I imported them, but I need to EXPORT them. 
+// export { hasPermission, requirePermission } already handled by top-level import and existing usage?
+// No, I imported them, but I need to EXPORT them.
 // Since they are imported as named imports, I can just export them.
 
 // 验证 Cloudflare Turnstile
@@ -279,15 +281,13 @@ export async function verifyTurnstile(token, secret) {
   }
 }
 
-
-
 import { parse as parseCookie } from 'cookie';
 import { MSG } from './messages.js';
 
 /**
  * 验证管理员权限 (Middleware Helper)
- * @param {Request} request 
- * @param {Object} env 
+ * @param {Request} request
+ * @param {Object} env
  * @returns {Promise<Object>} User payload
  */
 export async function authenticateAdmin(request, env) {

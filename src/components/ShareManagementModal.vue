@@ -1,99 +1,169 @@
 <template>
-  <Modal 
-    :modelValue="modelValue" 
+  <Modal
+    :model-value="modelValue"
     :title="t('share.management')"
     size="full"
-    bodyClass="flex-1 overflow-auto p-6 flex flex-col h-[80vh]"
-    @update:modelValue="close"
+    body-class="flex-1 overflow-auto p-6 flex flex-col h-[80vh]"
+    @update:model-value="close"
   >
     <!-- Content -->
     <div class="flex-1">
-         <!-- Desktop Table -->
-         <div class="hidden lg:block">
-           <table class="w-full text-left text-sm">
-             <thead class="bg-gray-50 text-secondary border-b border-[var(--border-color)] sticky top-0">
-                <tr>
-                  <th class="px-6 py-3 font-medium">{{ t('share.folderName') }}</th>
-                  <th class="px-6 py-3 font-medium">{{ t('share.linkToken') }}</th>
-                  <th class="px-6 py-3 font-medium">{{ t('share.expiry') }}</th>
-                  <th class="px-6 py-3 font-medium text-right">{{ t('share.actions') }}</th>
-                </tr>
-             </thead>
-             <tbody class="divide-y divide-[var(--border-color)]">
-                <tr v-for="item in shares" :key="item.id" class="hover:bg-gray-50 transition-colors">
-                   <td class="px-6 py-3 text-primary font-medium">{{ item.name }}</td>
-                   <td class="px-6 py-3 text-secondary">
-                       <div class="flex items-center gap-2">
-                           <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded select-all">{{ item.shareToken }}</span>
-                           <button @click="copyLink(item)" class="text-primary hover:text-blue-600" :title="t('common.copyLink') || '复制链接'">
-                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-                           </button>
-                       </div>
-                   </td>
-                   <td class="px-6 py-3">
-                       <span :class="getExpiryClass(item.expiresAt)">{{ formatExpiry(item.expiresAt, t) }}</span>
-                   </td>
-                   <td class="px-6 py-3 text-right">
-                       <button @click="editShare(item)" class="text-primary hover:text-blue-600 mr-3">{{ t('common.edit') }}</button>
-                       <button @click="revokeShare(item)" class="text-red-500 hover:text-red-700">{{ t('common.cancelShare') }}</button>
-                   </td>
-                </tr>
-             </tbody>
-           </table>
-         </div>
-
-         <!-- Mobile Cards -->
-         <div class="lg:hidden space-y-4">
-           <div v-for="item in shares" :key="item.id" class="bg-gray-50 rounded-lg p-4 border border-[var(--border-color)]">
-             <div class="flex justify-between items-start mb-3">
-                <div class="font-medium text-primary text-base">{{ item.name }}</div>
-                <div class="flex gap-2">
-                    <button @click="editShare(item)" class="p-1.5 text-primary bg-white rounded border border-gray-200 shadow-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                    </button>
-                    <button @click="revokeShare(item)" class="p-1.5 text-red-500 bg-white rounded border border-gray-200 shadow-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
+      <!-- Desktop Table -->
+      <div class="hidden lg:block">
+        <table class="w-full text-left text-sm">
+          <thead
+            class="text-secondary sticky top-0 border-b border-[var(--border-color)] bg-gray-50"
+          >
+            <tr>
+              <th class="px-6 py-3 font-medium">{{ t('share.folderName') }}</th>
+              <th class="px-6 py-3 font-medium">{{ t('share.linkToken') }}</th>
+              <th class="px-6 py-3 font-medium">{{ t('share.expiry') }}</th>
+              <th class="px-6 py-3 text-right font-medium">{{ t('share.actions') }}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[var(--border-color)]">
+            <tr v-for="item in shares" :key="item.id" class="transition-colors hover:bg-gray-50">
+              <td class="text-primary px-6 py-3 font-medium">{{ item.name }}</td>
+              <td class="text-secondary px-6 py-3">
+                <div class="flex items-center gap-2">
+                  <span class="rounded bg-gray-100 px-2 py-1 font-mono text-xs select-all">{{
+                    item.shareToken
+                  }}</span>
+                  <button
+                    class="text-primary hover:text-blue-600"
+                    :title="t('common.copyLink') || '复制链接'"
+                    @click="copyLink(item)"
+                  >
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+                      ></path>
+                    </svg>
+                  </button>
                 </div>
-             </div>
-             <div class="flex flex-col gap-2 text-sm text-secondary">
-               <div class="flex items-center justify-between">
-                 <span>{{ t('share.linkToken') }}:</span>
-                 <div class="flex items-center gap-2">
-                   <span class="font-mono bg-white px-2 py-0.5 rounded border border-gray-200">{{ item.shareToken }}</span>
-                   <button @click="copyLink(item)" class="text-primary">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-                   </button>
-                 </div>
-               </div>
-               <div class="flex items-center justify-between">
-                 <span>{{ t('share.expiry') }}:</span>
-                 <span :class="getExpiryClass(item.expiresAt)">{{ formatExpiry(item.expiresAt, t) }}</span>
-               </div>
-             </div>
-           </div>
-         </div>
+              </td>
+              <td class="px-6 py-3">
+                <span :class="getExpiryClass(item.expiresAt)">{{
+                  formatExpiry(item.expiresAt, t)
+                }}</span>
+              </td>
+              <td class="px-6 py-3 text-right">
+                <button class="text-primary mr-3 hover:text-blue-600" @click="editShare(item)">
+                  {{ t('common.edit') }}
+                </button>
+                <button class="text-red-500 hover:text-red-700" @click="revokeShare(item)">
+                  {{ t('common.cancelShare') }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-         <!-- Empty State -->
-         <div v-if="shares.length === 0 && !loading" class="text-center py-12 text-secondary">
-             {{ t('common.noData') }}
-         </div>
+      <!-- Mobile Cards -->
+      <div class="space-y-4 lg:hidden">
+        <div
+          v-for="item in shares"
+          :key="item.id"
+          class="rounded-lg border border-[var(--border-color)] bg-gray-50 p-4"
+        >
+          <div class="mb-3 flex items-start justify-between">
+            <div class="text-primary text-base font-medium">{{ item.name }}</div>
+            <div class="flex gap-2">
+              <button
+                class="text-primary rounded border border-gray-200 bg-white p-1.5 shadow-sm"
+                @click="editShare(item)"
+              >
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  ></path>
+                </svg>
+              </button>
+              <button
+                class="rounded border border-gray-200 bg-white p-1.5 text-red-500 shadow-sm"
+                @click="revokeShare(item)"
+              >
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="text-secondary flex flex-col gap-2 text-sm">
+            <div class="flex items-center justify-between">
+              <span>{{ t('share.linkToken') }}:</span>
+              <div class="flex items-center gap-2">
+                <span class="rounded border border-gray-200 bg-white px-2 py-0.5 font-mono">{{
+                  item.shareToken
+                }}</span>
+                <button class="text-primary" @click="copyLink(item)">
+                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>{{ t('share.expiry') }}:</span>
+              <span :class="getExpiryClass(item.expiresAt)">{{
+                formatExpiry(item.expiresAt, t)
+              }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-         <!-- Loading -->
-         <div v-if="loading" class="text-center py-12 text-secondary">
-             {{ t('common.loading') }}
-         </div>
+      <!-- Empty State -->
+      <div v-if="shares.length === 0 && !loading" class="text-secondary py-12 text-center">
+        {{ t('common.noData') }}
+      </div>
+
+      <!-- Loading -->
+      <div v-if="loading" class="text-secondary py-12 text-center">
+        {{ t('common.loading') }}
+      </div>
     </div>
 
     <!-- Footer / Pagination -->
     <template #footer>
-      <div class="flex-1 flex items-center justify-between">
-         <span class="text-sm text-secondary">{{ t('share.total', { count: total }) }}</span>
-         <div class="flex gap-2">
-             <button @click="page--" :disabled="page <= 1" class="btn btn-secondary px-3 py-1 text-sm disabled:opacity-50">{{ t('share.prevPage') }}</button>
-             <span class="flex items-center px-2 text-sm text-secondary">{{ page }} / {{ totalPages }}</span>
-             <button @click="page++" :disabled="page >= totalPages" class="btn btn-secondary px-3 py-1 text-sm disabled:opacity-50">{{ t('share.nextPage') }}</button>
-         </div>
+      <div class="flex flex-1 items-center justify-between">
+        <span class="text-secondary text-sm">{{ t('share.total', { count: total }) }}</span>
+        <div class="flex gap-2">
+          <button
+            :disabled="page <= 1"
+            class="btn btn-secondary px-3 py-1 text-sm disabled:opacity-50"
+            @click="page--"
+          >
+            {{ t('share.prevPage') }}
+          </button>
+          <span class="text-secondary flex items-center px-2 text-sm"
+            >{{ page }} / {{ totalPages }}</span
+          >
+          <button
+            :disabled="page >= totalPages"
+            class="btn btn-secondary px-3 py-1 text-sm disabled:opacity-50"
+            @click="page++"
+          >
+            {{ t('share.nextPage') }}
+          </button>
+        </div>
       </div>
     </template>
   </Modal>
@@ -120,7 +190,7 @@ import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const props = defineProps({
-  modelValue: Boolean
+  modelValue: Boolean,
 });
 
 const emit = defineEmits(['update:modelValue', 'edit']);
@@ -142,88 +212,90 @@ const confirmData = ref({
   message: '',
   type: 'primary',
   loading: false,
-  onConfirm: () => {}
+  onConfirm: () => {},
 });
 
 const fetchShares = async () => {
-    loading.value = true;
-    try {
-        const res = await authFetchJson(`${API.SHARES}?page=${page.value}&limit=20`);
+  loading.value = true;
+  try {
+    const res = await authFetchJson(`${API.SHARES}?page=${page.value}&limit=20`);
 
-        if (res.success) {
-            shares.value = res.data.items;
-            total.value = res.data.total;
-            totalPages.value = res.data.totalPages;
-        }
-    } catch (e) {
-        error(t('common.loadFailed'));
-    } finally {
-        loading.value = false;
+    if (res.success) {
+      shares.value = res.data.items;
+      total.value = res.data.total;
+      totalPages.value = res.data.totalPages;
     }
+  } catch (e) {
+    error(t('common.loadFailed'));
+  } finally {
+    loading.value = false;
+  }
 };
 
 // 格式化过期时间类名
 const getExpiryClass = (ts) => {
-    if (!ts) return 'text-green-600';
-    if (ts < Date.now()) return 'text-red-500 font-medium';
-    if (ts - Date.now() < 24 * 60 * 60 * 1000 * 3) return 'text-orange-500'; // < 3 days
-    return 'text-secondary';
+  if (!ts) return 'text-green-600';
+  if (ts < Date.now()) return 'text-red-500 font-medium';
+  if (ts - Date.now() < 24 * 60 * 60 * 1000 * 3) return 'text-orange-500'; // < 3 days
+  return 'text-secondary';
 };
 
 const copyLink = (item) => {
-    const url = `${window.location.origin}${item.shareUrl}`;
-    navigator.clipboard.writeText(url).then(() => success(t('common.copied')));
+  const url = `${window.location.origin}${item.shareUrl}`;
+  navigator.clipboard.writeText(url).then(() => success(t('common.copied')));
 };
 
 const revokeShare = (item) => {
-    confirmData.value = {
-        show: true,
-        title: t('common.confirm'),
-        message: t('common.cancelShareConfirm', { name: item.name }),
-        type: 'danger',
-        onConfirm: async () => {
-            confirmData.value.loading = true;
-            try {
-                const res = await fetch(API.FOLDER_BY_ID(item.id), {
-                    method: 'PUT',
-                    headers: getHeaders(true),
-                    body: JSON.stringify({ isPublic: false, shareToken: null })
-                }).then(r => r.json());
+  confirmData.value = {
+    show: true,
+    title: t('common.confirm'),
+    message: t('common.cancelShareConfirm', { name: item.name }),
+    type: 'danger',
+    onConfirm: async () => {
+      confirmData.value.loading = true;
+      try {
+        const res = await fetch(API.FOLDER_BY_ID(item.id), {
+          method: 'PUT',
+          headers: getHeaders(true),
+          body: JSON.stringify({ isPublic: false, shareToken: null }),
+        }).then((r) => r.json());
 
-                if (res.success) {
-                    success(t('common.shareRevoked'));
-                    fetchShares();
-                    confirmData.value.show = false;
-                } else {
-                    error(res.message);
-                }
-            } catch (e) {
-                error(t('common.operationFailed'));
-            } finally {
-                confirmData.value.loading = false;
-            }
+        if (res.success) {
+          success(t('common.shareRevoked'));
+          fetchShares();
+          confirmData.value.show = false;
+        } else {
+          error(res.message);
         }
-    };
+      } catch (e) {
+        error(t('common.operationFailed'));
+      } finally {
+        confirmData.value.loading = false;
+      }
+    },
+  };
 };
 
 const editShare = (item) => {
-    // We can emit event to open parent's ShareFolderModal
-    // But we need the full folder object. 
-    // Ideally we pass the ID to parent to fetch and open.
-    emit('edit', item);
+  // We can emit event to open parent's ShareFolderModal
+  // But we need the full folder object.
+  // Ideally we pass the ID to parent to fetch and open.
+  emit('edit', item);
 };
 
 const close = () => {
-    emit('update:modelValue', false);
+  emit('update:modelValue', false);
 };
 
-watch(() => props.modelValue, (val) => {
+watch(
+  () => props.modelValue,
+  (val) => {
     if (val) {
-        page.value = 1;
-        fetchShares();
+      page.value = 1;
+      fetchShares();
     }
-});
+  }
+);
 
 watch(page, fetchShares);
-
 </script>

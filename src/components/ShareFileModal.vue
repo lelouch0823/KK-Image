@@ -1,47 +1,81 @@
 <template>
-  <Modal 
-    :modelValue="modelValue" 
+  <Modal
+    :model-value="modelValue"
     :title="t('share.titleFile')"
     size="md"
-    @update:modelValue="close"
+    @update:model-value="close"
   >
     <!-- Content -->
     <div>
-        <!-- File Info -->
-        <div class="flex items-center gap-3 mb-6 p-3 bg-[var(--bg-muted)] rounded-lg border border-[var(--border-color)]">
-            <div class="p-2 bg-white rounded-md shadow-sm border border-[var(--border-color)]">
-                <img v-if="fileIsImage" :src="file?.url" class="w-8 h-8 object-cover rounded" />
-                <div v-else class="w-8 h-8 flex items-center justify-center bg-[var(--bg-muted)] rounded text-xs font-bold text-secondary">
-                  {{ fileExtension }}
-                </div>
-            </div>
-            <div class="overflow-hidden">
-                <div class="font-medium text-primary truncate" :title="file?.name">{{ file?.name || file?.originalName || t('share.unknownFile') }}</div>
-                <div class="text-xs text-secondary">{{ formattedSize }}</div>
-            </div>
+      <!-- File Info -->
+      <div
+        class="mb-6 flex items-center gap-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] p-3"
+      >
+        <div class="rounded-md border border-[var(--border-color)] bg-white p-2 shadow-sm">
+          <img v-if="fileIsImage" :src="file?.url" class="size-8 rounded object-cover" />
+          <div
+            v-else
+            class="text-secondary flex size-8 items-center justify-center rounded bg-[var(--bg-muted)] text-xs font-bold"
+          >
+            {{ fileExtension }}
+          </div>
         </div>
+        <div class="overflow-hidden">
+          <div class="text-primary truncate font-medium" :title="file?.name">
+            {{ file?.name || file?.originalName || t('share.unknownFile') }}
+          </div>
+          <div class="text-secondary text-xs">{{ formattedSize }}</div>
+        </div>
+      </div>
 
-        <!-- Link Section -->
-        <div class="mb-4">
-            <label class="text-sm font-medium text-primary mb-2 block">{{ t('share.directLink') }}</label>
-            <div class="flex gap-2">
-                <input type="text" readonly :value="shareUrl" class="input flex-1 text-sm bg-[var(--bg-muted)]" @click="$event.target.select()">
-                <Tooltip :content="t('common.copy')">
-                  <button @click="copyLink" class="w-10 h-10 flex items-center justify-center bg-white border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-hover)] text-secondary hover:text-primary transition-colors">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-                  </button>
-                </Tooltip>
-            </div>
-            <p class="text-xs text-[var(--color-success)] mt-2 flex items-center" v-if="copied">
-                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                {{ t('share.copiedClipboard') }}
-            </p>
+      <!-- Link Section -->
+      <div class="mb-4">
+        <label class="text-primary mb-2 block text-sm font-medium">{{
+          t('share.directLink')
+        }}</label>
+        <div class="flex gap-2">
+          <input
+            type="text"
+            readonly
+            :value="shareUrl"
+            class="input flex-1 bg-[var(--bg-muted)] text-sm"
+            @click="$event.target.select()"
+          />
+          <Tooltip :content="t('common.copy')">
+            <button
+              class="text-secondary flex size-10 items-center justify-center rounded-lg border border-[var(--border-color)] bg-white transition-colors hover:text-primary hover:bg-[var(--bg-hover)]"
+              @click="copyLink"
+            >
+              <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+                ></path>
+              </svg>
+            </button>
+          </Tooltip>
         </div>
+        <p v-if="copied" class="mt-2 flex items-center text-xs text-[var(--color-success)]">
+          <svg class="mr-1 size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 13l4 4L19 7"
+            ></path>
+          </svg>
+          {{ t('share.copiedClipboard') }}
+        </p>
+      </div>
     </div>
 
     <!-- Footer -->
     <template #footer>
-      <button @click="close" class="btn btn-primary w-full sm:w-auto">{{ t('common.complete') }}</button>
+      <button class="btn btn-primary w-full sm:w-auto" @click="close">
+        {{ t('common.complete') }}
+      </button>
     </template>
   </Modal>
 </template>
@@ -57,7 +91,7 @@ import { API, ROUTES } from '@/utils/constants';
 
 const props = defineProps({
   modelValue: Boolean,
-  file: Object
+  file: Object,
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -68,35 +102,35 @@ const copied = ref(false);
 
 // 🔧 FIX: 使用 computed 确保响应式 + 空值安全
 const shareUrl = computed(() => {
-    if (props.file?.storageKey) {
-        return `${window.location.origin}${ROUTES.FILE(props.file.storageKey)}`;
-    }
-    // Fallback if storageKey is not present (e.g. legacy or simple URL)
-    if (!props.file?.url) return '';
-    if (props.file.url.startsWith('http')) return props.file.url;
-    return `${window.location.origin}${props.file.url}`;
+  if (props.file?.storageKey) {
+    return `${window.location.origin}${ROUTES.FILE(props.file.storageKey)}`;
+  }
+  // Fallback if storageKey is not present (e.g. legacy or simple URL)
+  if (!props.file?.url) return '';
+  if (props.file.url.startsWith('http')) return props.file.url;
+  return `${window.location.origin}${props.file.url}`;
 });
 
 const fileIsImage = computed(() => isImage(props.file));
 
 const fileExtension = computed(() => {
-    const name = props.file?.name || props.file?.originalName || '';
-    return getFileExtension(name);
+  const name = props.file?.name || props.file?.originalName || '';
+  return getFileExtension(name);
 });
 
 const formattedSize = computed(() => formatSize(props.file?.size || 0));
 
 const close = () => {
-    emit('update:modelValue', false);
-    copied.value = false;
+  emit('update:modelValue', false);
+  copied.value = false;
 };
 
 const copyLink = () => {
-    if (!shareUrl.value) return;
-    navigator.clipboard.writeText(shareUrl.value).then(() => {
-        copied.value = true;
-        setTimeout(() => copied.value = false, 2000);
-        success(t('share.linkCopied'));
-    });
+  if (!shareUrl.value) return;
+  navigator.clipboard.writeText(shareUrl.value).then(() => {
+    copied.value = true;
+    setTimeout(() => (copied.value = false), 2000);
+    success(t('share.linkCopied'));
+  });
 };
 </script>

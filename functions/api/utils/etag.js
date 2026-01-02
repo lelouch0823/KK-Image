@@ -1,7 +1,7 @@
 /**
  * ETag 工具模块
  * 用于生成 API 响应的 ETag，支持条件请求
- * 
+ *
  * @module api/utils/etag
  */
 
@@ -13,9 +13,9 @@ import { sha256Hex } from './id.js';
  * @returns {Promise<string>} 短哈希值
  */
 export async function generateETag(content) {
-    const hashHex = await sha256Hex(content);
-    // 使用前 16 字符作为 ETag，足够避免碰撞
-    return `"${hashHex.substring(0, 16)}"`;
+  const hashHex = await sha256Hex(content);
+  // 使用前 16 字符作为 ETag，足够避免碰撞
+  return `"${hashHex.substring(0, 16)}"`;
 }
 
 /**
@@ -25,10 +25,10 @@ export async function generateETag(content) {
  * @returns {boolean} 是否匹配
  */
 export function matchesETag(request, etag) {
-    const ifNoneMatch = request.headers.get('If-None-Match');
-    if (!ifNoneMatch) return false;
+  const ifNoneMatch = request.headers.get('If-None-Match');
+  if (!ifNoneMatch) return false;
 
-    // 支持多个 ETag（逗号分隔）
-    const tags = ifNoneMatch.split(',').map(t => t.trim());
-    return tags.some(t => t === etag || t === '*');
+  // 支持多个 ETag（逗号分隔）
+  const tags = ifNoneMatch.split(',').map((t) => t.trim());
+  return tags.some((t) => t === etag || t === '*');
 }

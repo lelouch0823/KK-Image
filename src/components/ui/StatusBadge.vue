@@ -1,9 +1,6 @@
 <template>
-  <span 
-    class="inline-flex items-center font-medium rounded"
-    :class="[sizeClass, variantClass]"
-  >
-    <span v-if="dot" class="mr-1.5 w-1.5 h-1.5 rounded-full" :class="dotClass"></span>
+  <span class="inline-flex items-center rounded font-medium" :class="[sizeClass, variantClass]">
+    <span v-if="dot" class="mr-1.5 size-1.5 rounded-full" :class="dotClass"></span>
     <slot>{{ label }}</slot>
   </span>
 </template>
@@ -14,29 +11,29 @@ import { computed } from 'vue';
 const props = defineProps({
   label: {
     type: String,
-    default: ''
+    default: '',
   },
   variant: {
     type: String,
     default: 'default',
-    validator: (v) => ['default', 'success', 'warning', 'error', 'info', 'primary'].includes(v)
+    validator: (v) => ['default', 'success', 'warning', 'error', 'info', 'primary'].includes(v),
   },
   size: {
     type: String,
     default: 'sm',
-    validator: (v) => ['xs', 'sm', 'md'].includes(v)
+    validator: (v) => ['xs', 'sm', 'md'].includes(v),
   },
   dot: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
 const sizeClass = computed(() => {
   const sizes = {
     xs: 'px-1.5 py-0.5 text-[10px]',
     sm: 'px-2 py-0.5 text-xs',
-    md: 'px-2.5 py-1 text-sm'
+    md: 'px-2.5 py-1 text-sm',
   };
   return sizes[props.size];
 });
@@ -50,7 +47,7 @@ const variantClass = computed(() => {
     info: 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]',
     primary: 'bg-primary/10 text-primary',
     purple: 'bg-[var(--color-purple-bg)] text-[var(--color-purple-text)]',
-    cyan: 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan-text)]'
+    cyan: 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan-text)]',
   };
   return variants[props.variant] || variants.default;
 });
@@ -64,7 +61,7 @@ const dotClass = computed(() => {
     info: 'bg-[var(--color-info)]',
     primary: 'bg-primary',
     purple: 'bg-[var(--color-purple)]',
-    cyan: 'bg-[var(--color-cyan)]'
+    cyan: 'bg-[var(--color-cyan)]',
   };
   return dots[props.variant] || dots.default;
 });

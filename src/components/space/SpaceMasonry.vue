@@ -1,62 +1,122 @@
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20">
+  <div class="mx-auto max-w-7xl px-4 py-6 pb-20 sm:px-6 lg:px-8">
     <!-- Header -->
     <div class="mb-8 flex items-end justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-primary">{{ space.name }}</h1>
+        <h1 class="text-primary text-2xl font-bold">{{ space.name }}</h1>
         <p v-if="space.description" class="text-secondary mt-2">{{ space.description }}</p>
-        
-        <div class="flex items-center gap-4 mt-4 text-sm text-secondary">
-           <span>{{ space.fileCount }} {{ t('spacePublic.files') }}</span>
-           <span>{{ space.viewCount }} {{ t('spacePublic.views') }}</span>
+
+        <div class="text-secondary mt-4 flex items-center gap-4 text-sm">
+          <span>{{ space.fileCount }} {{ t('spacePublic.files') }}</span>
+          <span>{{ space.viewCount }} {{ t('spacePublic.views') }}</span>
         </div>
       </div>
-      
-      <button v-if="hasFiles" @click="handleDownloadAll" :disabled="downloading"
-         class="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-         <svg v-if="downloading" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-         </svg>
-         <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-         {{ downloading ? `${t('spacePublic.packing')} ${downloadProgress}%` : t('spacePublic.downloadAllSimple') }}
+
+      <button
+        v-if="hasFiles"
+        :disabled="downloading"
+        class="bg-primary flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+        @click="handleDownloadAll"
+      >
+        <svg v-if="downloading" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+          ></circle>
+          <path
+            class="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
+        </svg>
+        <svg v-else class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+          ></path>
+        </svg>
+        {{
+          downloading
+            ? `${t('spacePublic.packing')} ${downloadProgress}%`
+            : t('spacePublic.downloadAllSimple')
+        }}
       </button>
     </div>
 
     <!-- Masonry Grid -->
     <div class="masonry-grid">
-      <div v-for="(file, index) in space.files" :key="file.id" @click="openLightbox(index)"
-        class="mb-4 break-inside-avoid rounded-xl overflow-hidden cursor-pointer group relative bg-gray-100 border border-gray-100 hover:border-gray-300 transition-all hover:shadow-lg">
-        
+      <div
+        v-for="(file, index) in space.files"
+        :key="file.id"
+        class="group relative mb-4 cursor-pointer break-inside-avoid overflow-hidden rounded-xl border border-gray-100 bg-gray-100 transition-all hover:border-gray-300 hover:shadow-lg"
+        @click="openLightbox(index)"
+      >
         <!-- Image -->
-        <img v-if="isImage(file)" :src="file.url" :alt="file.name"
-          class="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy">
-          
+        <img
+          v-if="isImage(file)"
+          :src="file.url"
+          :alt="file.name"
+          class="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+        />
+
         <!-- Other Files -->
-        <div v-else class="aspect-square w-full flex flex-col items-center justify-center bg-gray-50">
-           <span class="text-xs font-bold text-gray-400 uppercase mb-2">{{ file.name.split('.').pop() }}</span>
-           <span class="text-xs text-center text-gray-500 px-2 truncate w-full">{{ file.originalName || file.name }}</span>
+        <div
+          v-else
+          class="flex aspect-square w-full flex-col items-center justify-center bg-gray-50"
+        >
+          <span class="mb-2 text-xs font-bold text-gray-400 uppercase">{{
+            file.name.split('.').pop()
+          }}</span>
+          <span class="w-full truncate px-2 text-center text-xs text-gray-500">{{
+            file.originalName || file.name
+          }}</span>
         </div>
 
         <!-- Overlay -->
-        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-            <span class="text-white text-xs font-medium truncate w-full">{{ file.name }}</span>
+        <div
+          class="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 via-transparent to-transparent p-3 opacity-0 transition-opacity group-hover:opacity-100"
+        >
+          <span class="w-full truncate text-xs font-medium text-white">{{ file.name }}</span>
         </div>
       </div>
     </div>
-    
+
     <!-- Empty State -->
-    <div v-if="space.files.length === 0" class="py-20 text-center text-secondary">
-        <p>{{ t('spacePublic.noContent') }}</p>
+    <div v-if="space.files.length === 0" class="text-secondary py-20 text-center">
+      <p>{{ t('spacePublic.noContent') }}</p>
     </div>
 
     <!-- Lightbox (Reusing same logic or component ideally, simplified here) -->
-    <div v-if="lightbox.visible" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex items-center justify-center" @click.self="lightbox.visible = false">
-        <img v-if="lightbox.file && isImage(lightbox.file)" :src="lightbox.file.url" class="max-w-full max-h-full object-contain p-4">
-        <button @click="lightbox.visible = false" class="absolute top-4 right-4 text-white p-2 bg-white/10 rounded-full hover:bg-white/20">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-        </button>
+    <div
+      v-if="lightbox.visible"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm"
+      @click.self="lightbox.visible = false"
+    >
+      <img
+        v-if="lightbox.file && isImage(lightbox.file)"
+        :src="lightbox.file.url"
+        class="max-h-full max-w-full object-contain p-4"
+      />
+      <button
+        class="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+        @click="lightbox.visible = false"
+      >
+        <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          ></path>
+        </svg>
+      </button>
     </div>
   </div>
 </template>
@@ -68,7 +128,7 @@ import { useBatchDownload } from '@/composables/useBatchDownload';
 import { useI18n } from '@/composables/useI18n';
 
 const props = defineProps({
-  space: { type: Object, required: true }
+  space: { type: Object, required: true },
 });
 
 const { t } = useI18n();
@@ -79,11 +139,11 @@ const lightbox = ref({ visible: false, file: null });
 const hasFiles = computed(() => props.space.files && props.space.files.length > 0);
 
 const openLightbox = (index) => {
-    lightbox.value = { visible: true, file: props.space.files[index] };
+  lightbox.value = { visible: true, file: props.space.files[index] };
 };
 
 const handleDownloadAll = () => {
-    downloadAll(props.space.files, props.space.name);
+  downloadAll(props.space.files, props.space.name);
 };
 </script>
 
@@ -94,12 +154,18 @@ const handleDownloadAll = () => {
 }
 
 @media (min-width: 640px) {
-  .masonry-grid { column-count: 3; }
+  .masonry-grid {
+    column-count: 3;
+  }
 }
 @media (min-width: 1024px) {
-  .masonry-grid { column-count: 4; }
+  .masonry-grid {
+    column-count: 4;
+  }
 }
 @media (min-width: 1280px) {
-  .masonry-grid { column-count: 5; }
+  .masonry-grid {
+    column-count: 5;
+  }
 }
 </style>

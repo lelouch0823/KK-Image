@@ -15,103 +15,103 @@ const isLoading = ref(true);
  * @returns {Object} 认证相关的状态和方法
  */
 export function useAuth() {
-    /**
-     * 检查登录状态
-     * @returns {Promise<boolean>} 是否已登录
-     */
-    const checkAuth = async () => {
-        try {
-            isLoading.value = true;
-            const response = await fetch(API.USER, {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+  /**
+   * 检查登录状态
+   * @returns {Promise<boolean>} 是否已登录
+   */
+  const checkAuth = async () => {
+    try {
+      isLoading.value = true;
+      const response = await fetch(API.USER, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-            if (response.ok) {
-                const result = await response.json();
-                if (result.success) {
-                    isAuthenticated.value = true;
-                    currentUser.value = result.data;
-                    return true;
-                }
-            }
-
-            // 认证失败
-            isAuthenticated.value = false;
-            currentUser.value = null;
-            return false;
-        } catch (error) {
-            console.error('Auth check failed:', error);
-            isAuthenticated.value = false;
-            currentUser.value = null;
-            return false;
-        } finally {
-            isLoading.value = false;
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          isAuthenticated.value = true;
+          currentUser.value = result.data;
+          return true;
         }
+      }
+
+      // 认证失败
+      isAuthenticated.value = false;
+      currentUser.value = null;
+      return false;
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      isAuthenticated.value = false;
+      currentUser.value = null;
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  /**
+   * 带认证的 fetch 封装
+   * @param {string} url - 请求 URL
+   * @param {Object} options - fetch 选项
+   * @returns {Promise<Response>} fetch 响应
+   */
+  const authFetch = async (url, options = {}) => {
+    // 确保携带凭证 (Cookie)
+    const opts = {
+      ...options,
+      credentials: 'include',
+      headers: {
+        ...options.headers,
+      },
     };
 
-    /**
-     * 带认证的 fetch 封装
-     * @param {string} url - 请求 URL
-     * @param {Object} options - fetch 选项
-     * @returns {Promise<Response>} fetch 响应
-     */
-    const authFetch = async (url, options = {}) => {
-        // 确保携带凭证 (Cookie)
-        const opts = {
-            ...options,
-            credentials: 'include',
-            headers: {
-                ...options.headers
-            }
-        };
+    const response = await fetch(url, opts);
 
-        const response = await fetch(url, opts);
+    // 如果遇到 401，更新状态
+    if (response.status === 401) {
+      isAuthenticated.value = false;
+      currentUser.value = null;
+    }
 
-        // 如果遇到 401，更新状态
-        if (response.status === 401) {
-            isAuthenticated.value = false;
-            currentUser.value = null;
-        }
+    return response;
+  };
 
-        return response;
-    };
+  /**
+   * 带认证的 JSON fetch 封装
+   * @param {string} url - 请求 URL
+   * @param {Object} options - fetch 选项
+   * @returns {Promise<Object>} 解析后的 JSON 数据
+   */
+  const authFetchJson = async (url, options = {}) => {
+    const response = await authFetch(url, options);
+    return response.json();
+  };
 
-    /**
-     * 带认证的 JSON fetch 封装
-     * @param {string} url - 请求 URL
-     * @param {Object} options - fetch 选项
-     * @returns {Promise<Object>} 解析后的 JSON 数据
-     */
-    const authFetchJson = async (url, options = {}) => {
-        const response = await authFetch(url, options);
-        return response.json();
-    };
+  /**
+   * 退出登录
+   */
+  const logout = async () => {
+    try {
+      await fetch(API.LOGOUT, { method: 'POST', credentials: 'include' });
+    } catch (e) {
+      console.error('Logout failed:', e);
+    } finally {
+      isAuthenticated.value = false;
+      currentUser.value = null;
+    }
+  };
 
-    /**
-     * 退出登录
-     */
-    const logout = async () => {
-        try {
-            await fetch(API.LOGOUT, { method: 'POST', credentials: 'include' });
-        } catch (e) {
-            console.error('Logout failed:', e);
-        } finally {
-            isAuthenticated.value = false;
-            currentUser.value = null;
-        }
-    };
-
-    return {
-        isAuthenticated,
-        currentUser,
-        isLoading,
-        checkAuth,
-        authFetch,
-        authFetchJson,
-        logout
-    };
+  return {
+    isAuthenticated,
+    currentUser,
+    isLoading,
+    checkAuth,
+    authFetch,
+    authFetchJson,
+    logout,
+  };
 }
