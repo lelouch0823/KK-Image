@@ -26,9 +26,19 @@
         class="group flex items-start gap-4 rounded-xl border border-gray-100 bg-white p-6 transition-all hover:shadow-lg"
       >
         <div
-          class="group-hover:bg-primary group-hover:text-white flex size-12 shrink-0 items-center justify-center rounded-lg bg-gray-50 transition-colors"
+          class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 transition-colors"
+          :class="
+            sub.coverImage ? 'border border-gray-100' : 'group-hover:bg-primary group-hover:text-white'
+          "
         >
+          <img
+            v-if="sub.coverImage"
+            :src="sub.coverImage"
+            class="size-full object-cover transition-transform group-hover:scale-110"
+            alt="Cover"
+          />
           <svg
+            v-else
             class="size-6 text-gray-400 group-hover:text-white"
             fill="none"
             stroke="currentColor"

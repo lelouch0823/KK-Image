@@ -252,6 +252,14 @@ crud.put(
         updates.push('cover_file_id = ?');
         values.push(data.coverFileId || null);
       }
+      if (data.template !== undefined) {
+        updates.push('template = ?');
+        values.push(data.template);
+      }
+      if (data.templateData !== undefined) {
+        updates.push('template_data = ?');
+        values.push(JSON.stringify(data.templateData));
+      }
 
       updates.push('updated_at = ?');
       values.push(Date.now());

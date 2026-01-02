@@ -118,7 +118,7 @@ const getShareToken = () => {
 };
 
 // 加载空间
-const loadSpace = async (pwd = null) => {
+const loadSpace = async () => {
   const token = getShareToken();
   if (!token) {
     error.value = t('spacePublic.invalidLink');
@@ -127,10 +127,7 @@ const loadSpace = async (pwd = null) => {
   }
 
   try {
-    let url = API.PUBLIC_SPACE(token);
-    if (pwd) url += `?password=${encodeURIComponent(pwd)}`;
-
-    const response = await fetch(url);
+    const response = await fetch(API.PUBLIC_SPACE(token));
     const result = await response.json();
 
     if (result.success) {
@@ -153,9 +150,30 @@ const submitPassword = async (pwd) => {
   if (!pwd) return;
   passwordError.value = '';
   loading.value = true;
-  await loadSpace(pwd);
-  if (requiresPassword.value) {
-    passwordError.value = t('gallery.passwordError');
+
+  const token = getShareToken();
+  try {
+    // 使用 POST 安全传递密码，后端直接返回完整数据
+    const response = await fetch(API.PUBLIC_SPACE(token), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwd }),
+    });
+    const result = await response.json();
+
+    if (result.success && result.data) {
+      // 密码验证成功，后端直接返回了完整数据
+      space.value = result.data;
+      document.title = `${result.data.name} | KK-Image`;
+      requiresPassword.value = false;
+      passwordError.value = '';
+    } else {
+      passwordError.value = result.message || t('gallery.passwordError');
+    }
+  } catch (_e) {
+    passwordError.value = t('common.networkErrorRetry');
+  } finally {
+    loading.value = false;
   }
 };
 

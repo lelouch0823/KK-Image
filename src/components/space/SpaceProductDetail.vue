@@ -112,18 +112,45 @@
           }}</span>
         </div>
 
-        <div class="space-y-4 border-t border-gray-100 pt-6">
-          <div v-if="space.description">
-            <h3 class="mb-2 text-sm font-medium text-gray-900">
-              {{ t('spacePublic.description') }}
-            </h3>
-            <p class="text-secondary text-sm leading-relaxed">{{ space.description }}</p>
-          </div>
+        <!-- SOTA Product Parameters Table -->
+        <div class="border-b border-gray-100 pb-6">
+          <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+            <div
+              v-if="templateData.brand"
+              class="border-l-2 border-[var(--color-primary-light,rgba(59,130,246,0.5))] pl-3"
+            >
+              <dt class="text-sm font-medium text-gray-500">{{ t('spaceManager.brand') }}</dt>
+              <dd class="mt-1 text-sm font-semibold text-gray-900">{{ templateData.brand }}</dd>
+            </div>
+            <div
+              v-if="templateData.series"
+              class="border-l-2 border-[var(--color-primary-light,rgba(59,130,246,0.5))] pl-3"
+            >
+              <dt class="text-sm font-medium text-gray-500">{{ t('spaceManager.series') }}</dt>
+              <dd class="mt-1 text-sm font-semibold text-gray-900">{{ templateData.series }}</dd>
+            </div>
+            <div
+              v-if="templateData.material"
+              class="border-l-2 border-[var(--color-primary-light,rgba(59,130,246,0.5))] pl-3"
+            >
+              <dt class="text-sm font-medium text-gray-500">{{ t('spaceManager.material') }}</dt>
+              <dd class="mt-1 text-sm font-semibold text-gray-900">{{ templateData.material }}</dd>
+            </div>
+            <div
+              v-if="templateData.sku"
+              class="border-l-2 border-[var(--color-primary-light,rgba(59,130,246,0.5))] pl-3"
+            >
+              <dt class="text-sm font-medium text-gray-500">SKU</dt>
+              <dd class="mt-1 text-sm font-semibold text-gray-900 break-all">
+                {{ templateData.sku }}
+              </dd>
+            </div>
+          </dl>
+        </div>
 
-          <div v-if="templateData.material">
-            <h3 class="mb-2 text-sm font-medium text-gray-900">{{ t('spacePublic.material') }}</h3>
-            <p class="text-secondary text-sm">{{ templateData.material }}</p>
-          </div>
+        <div v-if="space.description" class="prose prose-sm prose-gray max-w-none text-gray-500">
+          <h3 class="text-sm font-medium text-gray-900">{{ t('spacePublic.description') }}</h3>
+          <p class="whitespace-pre-line">{{ space.description }}</p>
         </div>
 
         <div class="hidden space-y-3 border-t border-gray-100 pt-6 lg:block">
