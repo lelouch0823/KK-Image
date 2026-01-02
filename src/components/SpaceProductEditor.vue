@@ -594,10 +594,10 @@ const saveChanges = async () => {
   try {
     const success = await updateSpace(props.space.id, {
       ...form.value,
-      password: passwordEnabled.value ? form.value.password : '',
+      password: passwordEnabled.value ? form.value.password : null,
     });
     if (success) {
-      addToast({ message: t('common.saveSuccess'), type: 'success' });
+
       emit('updated');
     }
   } finally {
