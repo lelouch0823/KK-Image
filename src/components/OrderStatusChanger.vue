@@ -3,47 +3,66 @@
     <button 
       @click="toggle"
       ref="triggerRef"
-      class="inline-flex items-center justify-between gap-2 px-3 py-1.5 text-xs font-medium rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/20"
+      class="inline-flex items-center justify-between gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-full border shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/30 hover:shadow-md active:scale-95"
       :class="currentStatusClass"
     >
-      <span>{{ t(`order.statuses.${status}`) }}</span>
-      <svg class="w-4 h-4 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <span class="flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full" :class="getStatusDotColor(status)"></span>
+        {{ t(`order.statuses.${status}`) }}
+      </span>
+      <svg class="w-3.5 h-3.5 opacity-60 transition-transform duration-200" :class="{ 'rotate-180': isOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
       </svg>
     </button>
 
     <!-- 下拉菜单 - 使用 Teleport 移到 body 避免被父元素 overflow 裁剪 -->
     <Teleport to="body">
-      <div 
-        v-if="isOpen" 
-        class="fixed w-56 bg-white rounded-xl shadow-lg border border-[var(--border-color)] z-[100] overflow-hidden animate-fade-in ring-1 ring-black ring-opacity-5"
-        :style="dropdownStyle"
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 scale-95 -translate-y-1"
+        enter-to-class="opacity-100 scale-100 translate-y-0"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100 scale-100 translate-y-0"
+        leave-to-class="opacity-0 scale-95 -translate-y-1"
       >
-        <div class="p-2 border-b border-[var(--bg-muted)] bg-[var(--bg-muted)]/50">
-          <h4 class="text-xs font-medium text-secondary px-2">{{ t('order.manage.changeStatus') }}</h4>
-        </div>
-        
-        <div class="py-1 max-h-64 overflow-y-auto">
-          <button
-            v-for="s in statusOptions"
-            :key="s"
-            @click="selectStatus(s)"
-            class="w-full text-left px-4 py-2 text-sm flex items-center justify-between hover:bg-[var(--bg-hover)] transition-colors group"
-            :class="{'bg-primary/5 text-primary font-medium': s === status}"
-          >
-            <span 
-              class="flex items-center gap-2"
-              :class="{'font-medium': s === status}"
+        <div 
+          v-if="isOpen" 
+          class="fixed w-60 bg-white rounded-2xl shadow-xl border border-[var(--border-color)] z-[100] overflow-hidden ring-1 ring-black/5"
+          :style="dropdownStyle"
+        >
+          <!-- 顶部渐变装饰条 -->
+          <div class="h-1 bg-gradient-to-r from-primary via-[var(--color-info)] to-[var(--color-success)]"></div>
+          
+          <div class="p-3 border-b border-[var(--bg-muted)] bg-gradient-to-b from-[var(--bg-muted)]/50 to-transparent">
+            <h4 class="text-xs font-semibold text-secondary">{{ t('order.manage.changeStatus') }}</h4>
+          </div>
+          
+          <div class="py-2 max-h-64 overflow-y-auto">
+            <button
+              v-for="s in statusOptions"
+              :key="s"
+              @click="selectStatus(s)"
+              class="w-full text-left px-4 py-2.5 text-sm flex items-center justify-between transition-all duration-150 group"
+              :class="[
+                s === status 
+                  ? 'bg-primary/5 text-primary' 
+                  : 'hover:bg-[var(--bg-hover)] text-primary'
+              ]"
             >
-              <span class="w-2 h-2 rounded-full" :class="getStatusDotColor(s)"></span>
-              {{ t(`order.statuses.${s}`) }}
-            </span>
-            <svg v-if="s === status" class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-          </button>
+              <span class="flex items-center gap-2.5">
+                <span 
+                  class="w-2.5 h-2.5 rounded-full ring-2 ring-offset-1 transition-transform duration-150 group-hover:scale-110" 
+                  :class="[getStatusDotColor(s), s === status ? 'ring-current/30' : 'ring-transparent']"
+                ></span>
+                <span :class="{'font-semibold': s === status}">{{ t(`order.statuses.${s}`) }}</span>
+              </span>
+              <svg v-if="s === status" class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </button>
+          </div>
         </div>
-      </div>
+      </Transition>
     </Teleport>
 
     <!-- 备注输入弹窗 -->
