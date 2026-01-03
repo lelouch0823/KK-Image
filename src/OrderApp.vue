@@ -44,6 +44,7 @@
               <button
                 class="relative flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] transition-colors hover:bg-[var(--bg-hover)]"
                 :class="{ 'bg-[var(--bg-hover)]': showNotifications }"
+                :title="t('notification.title')"
                 @click="toggleNotifications"
               >
                 <svg class="text-secondary size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

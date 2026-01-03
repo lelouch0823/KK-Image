@@ -9,6 +9,18 @@ import { OrderTimelineRepository } from '../../repositories/OrderTimelineReposit
 import { NotificationRepository } from '../../repositories/NotificationRepository.js';
 import { MSG } from './messages.js';
 
+// 订单状态显示名称 (后端映射)
+const STATUS_LABELS = {
+  pending: '待确认',
+  confirmed: '已确认',
+  rejected: '已驳回',
+  production: '生产中',
+  shipping: '配送中',
+  arrived: '已到货',
+  delivered: '已签收',
+  void: '已作废',
+};
+
 // ========================================
 // 订单通知辅助函数
 // ========================================
@@ -72,12 +84,18 @@ export async function createOrderNotification(db, options) {
     return;
   }
 
+  // 构建显示参数
+  const displayExtra = { ...extra };
+  if (displayExtra.status && STATUS_LABELS[displayExtra.status]) {
+    displayExtra.status = STATUS_LABELS[displayExtra.status];
+  }
+
   // 构建 i18n 格式的标题和内容
   // 格式: JSON.stringify({ key: 'i18n.key', orderNo: '...', actor: '...' })
   const titleData = {
     key: eventConfig.titleKey,
     orderNo,
-    ...extra,
+    ...displayExtra,
   };
 
   const contentData = {
@@ -85,7 +103,7 @@ export async function createOrderNotification(db, options) {
     orderNo,
     actor: actorName || '',
     salesperson: actorName || '',
-    ...extra,
+    ...displayExtra,
   };
 
   // 构建跳转链接
@@ -119,17 +137,23 @@ export async function createBatchOrderNotifications(db, notifications) {
   const notificationRecords = notifications.map((n) => {
     const eventConfig = NOTIFICATION_EVENTS[n.event] || {};
 
+    // 构建显示参数
+    const displayExtra = { ...n.extra };
+    if (displayExtra.status && STATUS_LABELS[displayExtra.status]) {
+      displayExtra.status = STATUS_LABELS[displayExtra.status];
+    }
+
     const titleData = {
       key: eventConfig.titleKey || 'notification.order.updated',
       orderNo: n.orderNo,
-      ...n.extra,
+      ...displayExtra,
     };
 
     const contentData = {
       key: eventConfig.contentKey || 'notification.order.updatedDesc',
       orderNo: n.orderNo,
       actor: n.actorName || '',
-      ...n.extra,
+      ...displayExtra,
     };
 
     return {

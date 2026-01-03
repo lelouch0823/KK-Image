@@ -75,6 +75,10 @@ export function useNotifications() {
     }
   };
 
+  /**
+   * 标记通知为已读
+   * @param {string} id - 通知 ID
+   */
   const markAsRead = async (id) => {
     // 乐观更新
     const item = notifications.value.find((n) => n.id === id);
@@ -91,6 +95,9 @@ export function useNotifications() {
     }
   };
 
+  /**
+   * 标记所有通知为已读
+   */
   const markAllAsRead = async () => {
     // 乐观更新
     notifications.value.forEach((n) => (n.is_read = 1));
@@ -103,7 +110,10 @@ export function useNotifications() {
     }
   };
 
-  // 轮询 (单例模式)
+  /**
+   * 启动轮询更新通知
+   * @param {number} interval - 轮询间隔 (毫秒)
+   */
   const startPolling = (interval = 10000) => {
     if (pollInterval) return;
 
@@ -117,6 +127,9 @@ export function useNotifications() {
     pollInterval = setInterval(checkAndFetch, interval);
   };
 
+  /**
+   * 停止轮询
+   */
   const stopPolling = () => {
     if (pollInterval) {
       clearInterval(pollInterval);

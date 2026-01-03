@@ -19,81 +19,76 @@
     </div>
 
     <!-- List -->
-    <div class="min-h-[100px] flex-1 overflow-y-auto">
+    <div class="scrollbar-thin min-h-[100px] flex-1 overflow-y-auto">
       <div
         v-if="loading && notifications.length === 0"
-        class="p-8 text-center text-[var(--text-muted)]"
+        class="flex flex-col items-center justify-center p-12 text-center text-[var(--text-muted)]"
       >
         <div
-          class="border-primary mx-auto mb-2 size-5 animate-spin rounded-full border-2 border-t-transparent"
+          class="border-primary mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-t-transparent"
         ></div>
-        <span class="text-xs">{{ t('common.loading') }}</span>
+        <span class="text-xs font-medium">{{ t('common.loading') }}</span>
       </div>
 
-      <div
-        v-else-if="notifications.length === 0"
-        class="flex flex-col items-center p-8 text-center text-[var(--text-muted)]"
-      >
-        <svg
-          class="mb-2 size-10 text-[var(--color-gray-200)]"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.5"
-            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-          />
-        </svg>
-        <span class="text-sm">{{ t('notification.empty') }}</span>
+      <div v-else-if="notifications.length === 0" class="py-4">
+        <EmptyState icon="inbox" :title="t('notification.empty')" size="sm" />
       </div>
 
       <div v-else class="divide-y divide-[var(--border-color)]">
-        <div
-          v-for="item in notifications"
-          :key="item.id"
-          class="group relative cursor-pointer p-4 transition-colors hover:bg-[var(--bg-hover)]"
-          :class="{ 'bg-[var(--color-primary-bg)]': item.is_read === 0 }"
-          @click="handleClick(item)"
+        <TransitionGroup
+          name="list"
+          tag="div"
+          class="divide-y divide-[var(--border-color)]"
         >
-          <div class="flex items-start gap-3">
-            <!-- Icon based on type -->
-            <div class="mt-0.5 shrink-0">
-              <span
-                v-if="item.type === 'order'"
-                class="mt-1.5 block size-2 rounded-full bg-[var(--color-info)]"
-              ></span>
-              <span
-                v-else-if="item.type === 'deadline'"
-                class="mt-1.5 block size-2 rounded-full bg-[var(--color-warning)]"
-              ></span>
-              <span
-                v-else
-                class="mt-1.5 block size-2 rounded-full bg-[var(--color-text-muted)]"
-              ></span>
-            </div>
+          <div
+            v-for="item in notifications"
+            :key="item.id"
+            class="group relative cursor-pointer p-4 transition-all duration-200 hover:bg-[var(--bg-hover)] active:scale-[0.99]"
+            :class="{ 'bg-[var(--color-primary-bg)]': item.is_read === 0 }"
+            @click="handleClick(item)"
+          >
+            <div class="flex items-start gap-3">
+              <!-- Icon based on type -->
+              <div class="mt-1 shrink-0">
+                <span
+                  v-if="item.type === 'order'"
+                  class="block size-2 rounded-full bg-[var(--color-info)] shadow-sm"
+                ></span>
+                <span
+                  v-else-if="item.type === 'deadline'"
+                  class="block size-2 rounded-full bg-[var(--color-warning)] shadow-sm"
+                ></span>
+                <span
+                  v-else
+                  class="block size-2 rounded-full bg-[var(--color-text-muted)] shadow-sm"
+                ></span>
+              </div>
 
-            <div class="min-w-0 flex-1">
-              <p
-                class="truncate pr-4 text-sm font-medium text-[var(--text-main)]"
-                :class="{ 'font-semibold': item.is_read === 0 }"
-              >
-                {{ renderText(item.title) }}
-              </p>
-              <p class="text-secondary mt-0.5 line-clamp-2 text-xs">
-                {{ renderText(item.content) }}
-              </p>
-              <p class="text-muted mt-1.5 text-xs">{{ formatDate(item.created_at) }}</p>
-            </div>
+              <div class="min-w-0 flex-1">
+                <p
+                  class="group-hover:text-primary truncate pr-4 text-sm font-medium text-[var(--text-main)] transition-colors"
+                  :class="{ 'font-semibold': item.is_read === 0 }"
+                >
+                  {{ renderText(item.title) }}
+                </p>
+                <p class="text-secondary mt-0.5 line-clamp-2 text-xs leading-relaxed">
+                  {{ renderText(item.content) }}
+                </p>
+                <p class="text-muted mt-2 flex items-center gap-1.5 text-[10px] font-medium tracking-wider uppercase">
+                  <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {{ formatDate(item.created_at) }}
+                </p>
+              </div>
 
-            <!-- Unread indicator dot -->
-            <div v-if="item.is_read === 0" class="shrink-0 self-center">
-              <div class="bg-primary size-2 rounded-full"></div>
+              <!-- Unread indicator dot -->
+              <div v-if="item.is_read === 0" class="shrink-0 self-center">
+                <div class="bg-primary size-2 animate-pulse rounded-full"></div>
+              </div>
             </div>
           </div>
-        </div>
+        </TransitionGroup>
       </div>
     </div>
   </div>
@@ -104,6 +99,7 @@ import { onMounted } from 'vue';
 import { useNotifications } from '@/composables/useNotifications';
 import { useI18n } from '@/composables/useI18n';
 import { formatDate } from '@/utils/formatters';
+import EmptyState from '@/components/ui/EmptyState.vue';
 
 const props = defineProps({
   close: { type: Function, default: () => {} },
@@ -114,12 +110,8 @@ const { notifications, unreadCount, loading, markAsRead, markAllAsRead, fetchNot
   useNotifications();
 const { t } = useI18n();
 
-const fetchList = () => {
-  fetchNotifications();
-};
-
 onMounted(() => {
-  fetchList();
+  fetchNotifications();
 });
 
 // 处理可能的 JSON 格式翻译包
@@ -154,3 +146,15 @@ const handleClick = async (item) => {
   }
 };
 </script>
+
+<style scoped>
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.3s ease;
+}
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(10px);
+}
+</style>
