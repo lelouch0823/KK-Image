@@ -51,9 +51,11 @@ export class OrderRepository {
     const order = await this.db
       .prepare(
         `
-            SELECT o.*, f.storage_key as main_image_key
+            SELECT o.*, f.storage_key as main_image_key,
+                   c.name as customer_name, c.company as customer_company, c.phone as customer_phone
             FROM orders o
             LEFT JOIN files f ON o.main_image_id = f.id
+            LEFT JOIN customers c ON o.customer_id = c.id
             WHERE o.id = ?
         `
       )
@@ -74,9 +76,11 @@ export class OrderRepository {
     const order = await this.db
       .prepare(
         `
-            SELECT o.*, f.storage_key as main_image_key
+            SELECT o.*, f.storage_key as main_image_key,
+                   c.name as customer_name, c.company as customer_company, c.phone as customer_phone
             FROM orders o
             LEFT JOIN files f ON o.main_image_id = f.id
+            LEFT JOIN customers c ON o.customer_id = c.id
             WHERE o.id = ? AND o.salesperson_id = ?
         `
       )
@@ -498,6 +502,12 @@ export class OrderRepository {
       id: order.id,
       orderNo: order.order_no,
       salespersonId: order.salesperson_id,
+      customerId: order.customer_id,
+      customer: order.customer_name ? {
+        name: order.customer_name,
+        company: order.customer_company,
+        phone: order.customer_phone
+      } : null,
       status: order.status,
       // hasNewFeedback: !!order.has_new_feedback, // This is legacy column.
       // We should ideally expose specific flags or let Controller decide.

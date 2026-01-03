@@ -121,6 +121,88 @@
 
         <!-- 右侧：信息区域 (PC端占 4列) -->
         <div class="space-y-4 lg:col-span-4">
+          <!-- 客户信息 -->
+          <div
+            v-if="order.customer"
+            class="rounded-xl border border-[var(--border-color)] bg-white p-4 shadow-sm"
+          >
+            <h3 class="text-secondary mb-3 text-xs font-medium tracking-wider uppercase">
+              {{ t('customer.detail.title') }}
+            </h3>
+            <div class="flex items-start gap-3">
+              <div
+                class="flex size-10 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-blue-600"
+              >
+                {{ order.customer.name.charAt(0) }}
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-primary truncate text-sm font-medium">
+                  {{ order.customer.name }}
+                </p>
+                <p class="text-secondary truncate text-xs">{{ order.customer.company || '-' }}</p>
+                <p v-if="order.customer.phone" class="text-secondary mt-1 text-xs">
+                  {{ order.customer.phone }}
+                </p>
+              </div>
+              <!-- 电话按钮 -->
+              <a
+                v-if="order.customer.phone"
+                :href="`tel:${order.customer.phone}`"
+                class="text-secondary rounded-full p-2 transition-colors hover:text-primary hover:bg-[var(--bg-muted)]"
+              >
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                  ></path>
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- 客户信息 (仅当订单关联了客户时显示) -->
+          <div
+            v-if="order.customer"
+            class="rounded-xl border border-[var(--border-color)] bg-white p-4 shadow-sm"
+          >
+            <h3 class="text-secondary mb-3 text-xs font-medium tracking-wider uppercase">
+              {{ t('customer.detail.title') }}
+            </h3>
+            <div class="flex items-start gap-3">
+              <div
+                class="bg-blue-50 text-blue-600 flex size-10 items-center justify-center rounded-full text-sm font-bold"
+              >
+                {{ order.customer.name.charAt(0) }}
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-primary truncate text-sm font-medium">
+                  {{ order.customer.name }}
+                </p>
+                <p class="text-secondary truncate text-xs">{{ order.customer.company || '-' }}</p>
+                <p v-if="order.customer.phone" class="text-secondary mt-1 text-xs">
+                  {{ order.customer.phone }}
+                </p>
+              </div>
+              <!-- 电话按钮 -->
+              <a
+                v-if="order.customer.phone"
+                :href="`tel:${order.customer.phone}`"
+                class="text-secondary rounded-full p-2 transition-colors hover:text-primary hover:bg-[var(--bg-muted)]"
+              >
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                  ></path>
+                </svg>
+              </a>
+            </div>
+          </div>
+
           <!-- 销售人员信息 (仅管理员可见) -->
           <div
             v-if="(mode === 'admin' || !mode) && order.salesperson"
