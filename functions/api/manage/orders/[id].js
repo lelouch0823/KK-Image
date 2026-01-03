@@ -13,6 +13,7 @@ import { parse as parseCookie } from 'cookie';
 import { ORDER_STATUSES } from '../../../_shared/utils.js';
 import { OrderRepository } from '../../../repositories/OrderRepository.js';
 import { OrderTimelineRepository } from '../../../repositories/OrderTimelineRepository.js';
+import { createOrderNotification } from '../../utils/order-utils.js';
 
 /**
  * 获取当前管理员信息
@@ -179,6 +180,24 @@ export async function onRequestPatch(context) {
       return error(MSG.COMMON.NO_UPDATE_FIELDS, 400);
     }
 
+    // SOTA: 创建通知 -> 通知销售端
+    try {
+      // 获取销售员 ID
+      const orderInfo = await env.DB.prepare('SELECT salesperson_id FROM orders WHERE id = ?').bind(id).first();
+      if (orderInfo?.salesperson_id) {
+        await createOrderNotification(env.DB, {
+          event: 'ORDER_UPDATED_BY_ADMIN',
+          orderId: id,
+          orderNo: order.order_no,
+          receiver: 'sales',
+          salespersonId: orderInfo.salesperson_id,
+          actorName: admin.name,
+        });
+      }
+    } catch (e) {
+      console.error('Notification creation error:', e);
+    }
+
     return success(null, MSG.ORDER.UPDATE_SUCCESS);
   } catch (err) {
     if (err.message === MSG.AUTH.REQUIRED) {
@@ -231,6 +250,21 @@ async function handleStatusChange(context) {
       reason: note || null,
     });
 
+    // SOTA: 创建通知 -> 通知销售端
+    try {
+      await createOrderNotification(env.DB, {
+        event: 'ORDER_STATUS_CHANGED',
+        orderId: id,
+        orderNo: order.orderNo,
+        receiver: 'sales',
+        salespersonId: order.salespersonId,
+        actorName: admin.name,
+        extra: { status },
+      });
+    } catch (e) {
+      console.error('Notification creation error:', e);
+    }
+
     return success(null, MSG.ORDER.STATUS_CHANGED);
   } catch (err) {
     if (err.message === MSG.AUTH.REQUIRED) {
@@ -281,6 +315,20 @@ export async function onRequestPost(context) {
 
     // 设置红点 (通知销售人员)
     await orderRepo.setUnread(id, 'admin');
+
+    // SOTA: 创建通知 -> 通知销售端
+    try {
+      await createOrderNotification(env.DB, {
+        event: 'ORDER_COMMENTED_BY_ADMIN',
+        orderId: id,
+        orderNo: order.orderNo,
+        receiver: 'sales',
+        salespersonId: order.salespersonId,
+        actorName: admin.name,
+      });
+    } catch (e) {
+      console.error('Notification creation error:', e);
+    }
 
     return success(null, MSG.ORDER.COMMENT_ADDED);
   } catch (err) {

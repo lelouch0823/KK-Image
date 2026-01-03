@@ -6,6 +6,7 @@
 import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
 import { OrderRepository } from '../../../repositories/OrderRepository.js';
+import { createBatchOrderNotifications } from '../../utils/order-utils.js';
 
 // 允许的批量操作
 const ALLOWED_ACTIONS = ['confirm', 'reject', 'void'];
@@ -105,6 +106,32 @@ export async function onRequestPost(context) {
         ...timelineTemplate,
         oldValue: oldStatus,
       });
+    }
+
+    // SOTA: 批量创建通知 -> 通知相关销售员
+    try {
+      // 获取所有订单的销售员信息
+      const placeholders = validIds.map(() => '?').join(',');
+      const { results: orderDetails } = await env.DB.prepare(
+        `SELECT id, order_no, salesperson_id FROM orders WHERE id IN (${placeholders})`
+      )
+        .bind(...validIds)
+        .all();
+
+      // 构建通知列表
+      const notifications = orderDetails.map((o) => ({
+        event: 'ORDER_STATUS_CHANGED',
+        orderId: o.id,
+        orderNo: o.order_no,
+        receiver: 'sales',
+        salespersonId: o.salesperson_id,
+        actorName: '管理员', // Localized actor name
+        extra: { status: targetStatus, action: ACTION_LABELS[action] },
+      }));
+
+      await createBatchOrderNotifications(env.DB, notifications);
+    } catch (e) {
+      console.error('Batch notification creation error:', e);
     }
 
     const skipped = ids.length - validIds.length;

@@ -8,6 +8,7 @@ import { MSG } from '../../../../utils/messages.js';
 import { authenticateSalesperson } from '../../../../utils/salesperson-auth.js';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { OrderTimelineRepository } from '../../../../../repositories/OrderTimelineRepository.js';
+import { createOrderNotification } from '../../../../utils/order-utils.js';
 
 /**
  * POST - 添加留言
@@ -41,6 +42,22 @@ export async function onRequestPost(context) {
       actorName: salesperson.name,
       comment: comment.trim(),
     });
+
+    // SOTA: 设置红点 (通知管理员)
+    await orderRepo.setUnread(orderId, 'sales');
+
+    // SOTA: 创建通知 -> 通知管理端
+    try {
+      await createOrderNotification(env.DB, {
+        event: 'ORDER_COMMENTED_BY_SALES',
+        orderId,
+        orderNo: order.orderNo,
+        receiver: 'admin',
+        actorName: salesperson.name,
+      });
+    } catch (e) {
+      console.error('Notification creation error:', e);
+    }
 
     return success(null, MSG.ORDER.COMMENT_ADDED);
   } catch (err) {

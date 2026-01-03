@@ -1,10 +1,12 @@
 /**
- * 标记通知已读 API
+ * 管理端标记通知已读 API
  * POST /api/notifications/[id]/read - 标记单个已读
+ * POST /api/notifications/all/read - 标记全部已读
  */
 
 import { success, error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
+import { NotificationRepository } from '../../../repositories/NotificationRepository.js';
 
 export async function onRequestPost(context) {
   const { env, params } = context;
@@ -15,22 +17,12 @@ export async function onRequestPost(context) {
   }
 
   try {
+    const notificationRepo = new NotificationRepository(env.DB);
+
     if (id === 'all') {
-      // 标记所有为已读
-      await env.DB.prepare(
-        `
-                UPDATE notifications SET is_read = 1 WHERE is_read = 0
-            `
-      ).run();
+      await notificationRepo.markAllAsReadForAdmin();
     } else {
-      // 标记单个
-      await env.DB.prepare(
-        `
-                UPDATE notifications SET is_read = 1 WHERE id = ?
-            `
-      )
-        .bind(id)
-        .run();
+      await notificationRepo.markAsRead(id);
     }
 
     return success(null, MSG.COMMON.UPDATE_SUCCESS);
@@ -38,3 +30,4 @@ export async function onRequestPost(context) {
     return error(`${MSG.COMMON.OP_FAILED}: ${err.message}`, 500);
   }
 }
+

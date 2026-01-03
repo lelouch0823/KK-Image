@@ -309,16 +309,21 @@ CREATE INDEX IF NOT EXISTS idx_timeline_action ON order_timeline(action_type);
 CREATE TABLE IF NOT EXISTS notifications (
     id TEXT PRIMARY KEY,
     type TEXT NOT NULL CHECK(type IN ('system', 'order', 'deadline')), -- 通知类型
-    title TEXT NOT NULL,                    -- 标题
+    title TEXT NOT NULL,                    -- 标题 (支持 i18n key JSON)
     content TEXT,                           -- 内容 (支持 i18n key JSON)
     link TEXT,                              -- 跳转链接
     is_read INTEGER DEFAULT 0,              -- 是否已读
+    receiver TEXT DEFAULT 'admin' CHECK(receiver IN ('admin', 'sales')), -- 接收方
+    salesperson_id TEXT,                    -- 销售员 ID (receiver='sales' 时关联)
+    order_id TEXT,                          -- 关联订单 ID
     metadata TEXT,                          -- 元数据 (JSON)
     created_at INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
+CREATE INDEX IF NOT EXISTS idx_notifications_receiver_sales ON notifications(receiver, salesperson_id, is_read, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_order ON notifications(order_id);
 
 -- ===========================================================================
 -- 7. Webhooks

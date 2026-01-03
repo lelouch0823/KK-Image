@@ -11,6 +11,7 @@ import { now } from '../../../utils/id.js';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 import { OrderTimelineRepository } from '../../../../repositories/OrderTimelineRepository.js';
 import { authenticateSalesperson } from '../../../utils/salesperson-auth.js';
+import { createOrderNotification } from '../../../utils/order-utils.js';
 
 /**
  * 记录时间轴
@@ -173,6 +174,19 @@ export async function onRequestPatch(context) {
         newValue: 'pending',
         reason: MSG.ORDER.REASON_RESUBMIT,
       });
+    }
+
+    // SOTA: 创建通知 -> 通知管理端
+    try {
+      await createOrderNotification(env.DB, {
+        event: 'ORDER_UPDATED_BY_SALES',
+        orderId,
+        orderNo: order.order_no,
+        receiver: 'admin',
+        actorName: salesperson.name,
+      });
+    } catch (e) {
+      console.error('Notification creation error:', e);
     }
 
     return success(null, MSG.ORDER.UPDATE_SUCCESS);

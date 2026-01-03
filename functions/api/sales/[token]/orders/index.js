@@ -10,6 +10,7 @@ import { generateId, generateOrderNo } from '../../../utils/id.js';
 import { ORDER_STATUSES } from '../../../../_shared/utils.js';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 import { authenticateSalesperson } from '../../../utils/salesperson-auth.js';
+import { createOrderNotification } from '../../../utils/order-utils.js';
 
 /**
  * GET - 获取订单列表
@@ -131,6 +132,19 @@ export async function onRequestPost(context) {
       } catch (e) {
         console.error('File archiving error:', e);
       }
+    }
+
+    // SOTA: 创建通知 -> 通知管理端
+    try {
+      await createOrderNotification(env.DB, {
+        event: 'ORDER_CREATED',
+        orderId,
+        orderNo,
+        receiver: 'admin',
+        actorName: salesperson.name,
+      });
+    } catch (e) {
+      console.error('Notification creation error:', e);
     }
 
     return success(

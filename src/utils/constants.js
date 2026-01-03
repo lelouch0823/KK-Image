@@ -92,6 +92,10 @@ export const API = {
   NOTIFICATIONS: '/api/notifications',
   NOTIFICATIONS_READ: (id) => `/api/notifications/${id}/read`,
 
+  // 销售端通知 API
+  SALES_NOTIFICATIONS: (token) => `/api/sales/${token}/notifications`,
+  SALES_NOTIFICATIONS_READ: (token, id) => `/api/sales/${token}/notifications/${id}/read`,
+
   // 销售人员管理 API
   SALESPERSONS: `${API_PREFIX}/salespersons`,
   SALESPERSON_BY_ID: (id) => `${API_PREFIX}/salespersons/${id}`,

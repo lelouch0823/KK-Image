@@ -514,6 +514,19 @@ export default {
       deadline_title: '交货期临近提醒',
       deadline_desc: '订单 {orderNo} 期望交货日期为 {deadline}，请关注进度。',
     },
+    // 订单事件通知
+    order: {
+      created: '收到新订单',
+      createdDesc: '{salesperson} 提交了订单 {orderNo}',
+      updated: '订单已修改',
+      updatedDesc: '{actor} 修改了订单 {orderNo}',
+      commented: '收到新留言',
+      commentedDesc: '{actor} 在订单 {orderNo} 中留言',
+      statusChanged: '订单状态更新',
+      statusChangedDesc: '订单 {orderNo} 状态已变更为 {status}',
+      batchStatusChanged: '批量订单状态更新',
+      batchStatusChangedDesc: '{count} 个订单已{action}',
+    },
   },
   search: {
     history: '搜索历史',

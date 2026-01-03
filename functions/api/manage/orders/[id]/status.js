@@ -8,6 +8,7 @@ import { MSG } from '../../../utils/messages.js';
 import { now } from '../../../utils/id.js';
 import { authenticateAdmin } from '../../../utils/auth.js';
 import { OrderTimelineRepository } from '../../../../repositories/OrderTimelineRepository.js';
+import { createOrderNotification } from '../../../utils/order-utils.js';
 
 /**
  * PATCH - 变更订单状态
@@ -69,6 +70,27 @@ export async function onRequestPatch(context) {
       newValue: status,
       reason: note || null,
     });
+
+    // SOTA: 创建通知 -> 通知销售端
+    try {
+      // 获取销售员 ID 和订单编号
+      const orderInfo = await env.DB.prepare('SELECT salesperson_id, order_no FROM orders WHERE id = ?')
+        .bind(orderId)
+        .first();
+      if (orderInfo?.salesperson_id) {
+        await createOrderNotification(env.DB, {
+          event: 'ORDER_STATUS_CHANGED',
+          orderId,
+          orderNo: orderInfo.order_no,
+          receiver: 'sales',
+          salespersonId: orderInfo.salesperson_id,
+          actorName: admin.name,
+          extra: { status },
+        });
+      }
+    } catch (e) {
+      console.error('Notification creation error:', e);
+    }
 
     return success(null, MSG.ORDER.STATUS_CHANGED);
   } catch (err) {

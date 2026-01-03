@@ -6,7 +6,147 @@
 
 import { OrderRepository } from '../../repositories/OrderRepository.js';
 import { OrderTimelineRepository } from '../../repositories/OrderTimelineRepository.js';
+import { NotificationRepository } from '../../repositories/NotificationRepository.js';
 import { MSG } from './messages.js';
+
+// ========================================
+// 订单通知辅助函数
+// ========================================
+
+/**
+ * 通知事件类型映射
+ * 使用 i18n key 格式，前端可解析渲染
+ */
+const NOTIFICATION_EVENTS = {
+  // 销售端触发 -> 管理端接收
+  ORDER_CREATED: {
+    titleKey: 'notification.order.created',
+    contentKey: 'notification.order.createdDesc',
+  },
+  ORDER_UPDATED_BY_SALES: {
+    titleKey: 'notification.order.updated',
+    contentKey: 'notification.order.updatedDesc',
+  },
+  ORDER_COMMENTED_BY_SALES: {
+    titleKey: 'notification.order.commented',
+    contentKey: 'notification.order.commentedDesc',
+  },
+  // 管理端触发 -> 销售端接收
+  ORDER_STATUS_CHANGED: {
+    titleKey: 'notification.order.statusChanged',
+    contentKey: 'notification.order.statusChangedDesc',
+  },
+  ORDER_UPDATED_BY_ADMIN: {
+    titleKey: 'notification.order.updated',
+    contentKey: 'notification.order.updatedDesc',
+  },
+  ORDER_COMMENTED_BY_ADMIN: {
+    titleKey: 'notification.order.commented',
+    contentKey: 'notification.order.commentedDesc',
+  },
+  ORDER_BATCH_STATUS_CHANGED: {
+    titleKey: 'notification.order.batchStatusChanged',
+    contentKey: 'notification.order.batchStatusChangedDesc',
+  },
+};
+
+/**
+ * 创建订单相关通知
+ * @param {D1Database} db - 数据库实例
+ * @param {Object} options - 通知选项
+ * @param {string} options.event - 事件类型 (NOTIFICATION_EVENTS 的 key)
+ * @param {string} options.orderId - 订单 ID
+ * @param {string} options.orderNo - 订单编号
+ * @param {'admin'|'sales'} options.receiver - 接收方
+ * @param {string} [options.salespersonId] - 销售员 ID (receiver='sales' 时必填)
+ * @param {string} [options.actorName] - 操作者名称
+ * @param {Object} [options.extra] - 额外参数 (如 status, count 等)
+ * @returns {Promise<void>}
+ */
+export async function createOrderNotification(db, options) {
+  const { event, orderId, orderNo, receiver, salespersonId, actorName, extra = {} } = options;
+
+  const eventConfig = NOTIFICATION_EVENTS[event];
+  if (!eventConfig) {
+    console.warn(`Unknown notification event: ${event}`);
+    return;
+  }
+
+  // 构建 i18n 格式的标题和内容
+  // 格式: JSON.stringify({ key: 'i18n.key', orderNo: '...', actor: '...' })
+  const titleData = {
+    key: eventConfig.titleKey,
+    orderNo,
+    ...extra,
+  };
+
+  const contentData = {
+    key: eventConfig.contentKey,
+    orderNo,
+    actor: actorName || '',
+    salesperson: actorName || '',
+    ...extra,
+  };
+
+  // 构建跳转链接
+  const link = receiver === 'admin'
+    ? `/admin/orders?id=${orderId}`
+    : `/orders/${orderId}`;
+
+  const notificationRepo = new NotificationRepository(db);
+  await notificationRepo.create({
+    type: 'order',
+    title: JSON.stringify(titleData),
+    content: JSON.stringify(contentData),
+    link,
+    receiver,
+    salespersonId: receiver === 'sales' ? salespersonId : null,
+    orderId,
+    metadata: { event, ...extra },
+  });
+}
+
+/**
+ * 批量创建通知（用于批量订单操作）
+ * @param {D1Database} db - 数据库实例
+ * @param {Array<Object>} notifications - 通知配置数组
+ * @returns {Promise<void>}
+ */
+export async function createBatchOrderNotifications(db, notifications) {
+  if (!notifications || notifications.length === 0) return;
+
+  const notificationRepo = new NotificationRepository(db);
+  const notificationRecords = notifications.map((n) => {
+    const eventConfig = NOTIFICATION_EVENTS[n.event] || {};
+
+    const titleData = {
+      key: eventConfig.titleKey || 'notification.order.updated',
+      orderNo: n.orderNo,
+      ...n.extra,
+    };
+
+    const contentData = {
+      key: eventConfig.contentKey || 'notification.order.updatedDesc',
+      orderNo: n.orderNo,
+      actor: n.actorName || '',
+      ...n.extra,
+    };
+
+    return {
+      type: 'order',
+      title: JSON.stringify(titleData),
+      content: JSON.stringify(contentData),
+      link: n.receiver === 'admin' ? `/admin/orders?id=${n.orderId}` : `/orders/${n.orderId}`,
+      receiver: n.receiver,
+      salespersonId: n.receiver === 'sales' ? n.salespersonId : null,
+      orderId: n.orderId,
+      metadata: { event: n.event, ...n.extra },
+    };
+  });
+
+  await notificationRepo.createBatch(notificationRecords);
+}
+
 
 /**
  * 检测并更新订单文件

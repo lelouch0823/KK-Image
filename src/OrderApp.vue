@@ -17,7 +17,7 @@
     <template v-else>
       <!-- 顶部导航 -->
       <header
-        class="sticky top-0 z-40 border-b border-[var(--border-color)] bg-white/80 backdrop-blur-lg"
+        class="sticky top-0 z-40 border-b border-[var(--border-color)] bg-[var(--bg-card)]/80 backdrop-blur-lg"
       >
         <div class="mx-auto flex h-14 max-w-screen-xl items-center justify-between px-4 sm:px-6">
           <div class="flex items-center gap-3">
@@ -39,6 +39,49 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
+            <!-- 通知铃铛 -->
+            <div ref="notificationRef" class="relative">
+              <button
+                class="relative flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] transition-colors hover:bg-[var(--bg-hover)]"
+                :class="{ 'bg-[var(--bg-hover)]': showNotifications }"
+                @click="toggleNotifications"
+              >
+                <svg class="text-secondary size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
+                </svg>
+                <!-- 红点 -->
+                <span
+                  v-if="notificationUnreadCount > 0"
+                  class="absolute top-1.5 right-1.5 size-2 rounded-full border border-[var(--bg-card)] bg-[var(--color-danger)]"
+                ></span>
+              </button>
+
+              <!-- 下拉弹窗 -->
+              <Transition
+                enter-active-class="transition duration-100 ease-out"
+                enter-from-class="transform scale-95 opacity-0"
+                enter-to-class="transform scale-100 opacity-100"
+                leave-active-class="transition duration-75 ease-in"
+                leave-from-class="transform scale-100 opacity-100"
+                leave-to-class="transform scale-95 opacity-0"
+              >
+                <div
+                  v-if="showNotifications"
+                  class="absolute top-full right-0 z-50 mt-2 origin-top-right shadow-2xl"
+                >
+                  <SalesNotificationList
+                    :close="() => (showNotifications = false)"
+                    :on-navigate="handleNotificationNavigate"
+                  />
+                </div>
+              </Transition>
+            </div>
+
             <button
               v-if="currentView !== 'stats'"
               class="text-secondary hidden items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)] sm:flex"
@@ -142,13 +185,16 @@ import { useI18n } from '@/composables/useI18n';
 import { usePushNotification } from '@/composables/usePushNotification';
 import { useToast } from '@/composables/useToast';
 import { useOrders } from '@/composables/useOrders';
+import { useNotifications } from '@/composables/useNotifications';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
 import OrderLogin from '@/components/order/OrderLogin.vue';
 import OrderList from '@/components/order/OrderList.vue';
 import OrderForm from '@/components/order/OrderForm.vue';
 import OrderDetail from '@/components/order/OrderDetail.vue';
 import SalesStats from '@/components/order/SalesStats.vue';
+import SalesNotificationList from '@/components/order/SalesNotificationList.vue';
 import ReloadPrompt from '@/components/ReloadPrompt.vue';
+import { onClickOutside } from '@vueuse/core';
 
 const {
   loading: ordersLoading,
@@ -164,6 +210,12 @@ const {
 const { t } = useI18n();
 const { requestPermission, showOrderFeedbackNotification } = usePushNotification();
 const { addToast } = useToast();
+const {
+  unreadCount: notificationUnreadCount,
+  setSalesMode,
+  startPolling: startNotificationPolling,
+  stopPolling: stopNotificationPolling,
+} = useNotifications();
 
 // 状态
 const loading = ref(true);
@@ -175,6 +227,35 @@ const selectedOrder = ref(null);
 const prefillData = ref(null); // 预填充数据 (复制订单用)
 const pollIntervalId = ref(null);
 const submitProgress = ref({ step: '', current: 0, total: 0 }); // 提交进度
+
+// 通知相关状态
+const showNotifications = ref(false);
+const notificationRef = ref(null);
+
+// 点击外部关闭通知弹窗
+onClickOutside(notificationRef, () => {
+  showNotifications.value = false;
+});
+
+const toggleNotifications = () => {
+  showNotifications.value = !showNotifications.value;
+};
+
+// 通知导航处理
+const handleNotificationNavigate = async (orderId) => {
+  // 查找订单并跳转到详情
+  const order = orders.value.find((o) => o.id === orderId);
+  if (order) {
+    await viewOrder(order);
+  } else {
+    // 如果列表中没有，直接请求详情
+    const data = await getSalesOrder(accessToken, orderId);
+    if (data) {
+      selectedOrder.value = data;
+      currentView.value = 'detail';
+    }
+  }
+};
 
 // 轮询间隔 (60秒)
 const POLL_INTERVAL = 60 * 1000;
@@ -367,8 +448,14 @@ onMounted(async () => {
   if (isAuthenticated.value) {
     requestPermission();
     startPolling();
+    // 初始化销售端通知模式并启动轮询
+    setSalesMode(accessToken);
+    startNotificationPolling();
   }
 });
 
-onUnmounted(stopPolling);
+onUnmounted(() => {
+  stopPolling();
+  stopNotificationPolling();
+});
 </script>
