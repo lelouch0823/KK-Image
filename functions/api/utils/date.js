@@ -1,0 +1,34 @@
+/**
+ * 日期时间工具
+ * SOTA Timezone handling (Default: UTC+8)
+ */
+
+const TZ_OFFSET = 8 * 60 * 60 * 1000; // UTC+8
+
+/**
+ * 获取带时区偏移的当前时间戳
+ * @returns {number}
+ */
+export function getNow() {
+    return Date.now();
+}
+
+/**
+ * 获取中国时区当前时间的日期对象
+ * @param {number} timestamp - 可选时间戳
+ * @returns {Date}
+ */
+export function getChinaDate(timestamp = Date.now()) {
+    return new Date(timestamp + TZ_OFFSET);
+}
+
+/**
+ * 获取中国时区"今天"的起始时间戳 (UTC)
+ * @param {number} timestamp - 基准时间戳
+ * @returns {number} UTC Timestamp matching 00:00:00 in China
+ */
+export function getChinaDayStart(timestamp = Date.now()) {
+    const localTime = timestamp + TZ_OFFSET;
+    const localTodayStart = Math.floor(localTime / 86400000) * 86400000;
+    return localTodayStart - TZ_OFFSET;
+}

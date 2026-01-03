@@ -170,10 +170,10 @@ export class OrderStatsRepository {
       this.db
         .prepare(
           `
-                SELECT DATE(created_at / 1000, 'unixepoch', 'localtime') as date, COUNT(*) as count
+                SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count
                 FROM orders 
                 WHERE salesperson_id = ? AND created_at >= ?
-                GROUP BY DATE(created_at / 1000, 'unixepoch', 'localtime')
+                GROUP BY DATE(created_at / 1000, 'unixepoch', '+8 hours')
                 ORDER BY date ASC
             `
         )
@@ -232,7 +232,7 @@ export class OrderStatsRepository {
         this.db
           .prepare(
             `
-                SELECT DATE(created_at / 1000, 'unixepoch') as date, COUNT(*) as count
+                SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count
                 FROM orders 
                 WHERE created_at >= ?
                 GROUP BY date ORDER BY date

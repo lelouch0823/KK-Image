@@ -131,45 +131,56 @@ app.get('/:id', async (c) => {
 
 /**
  * GET /api/manage/spaces/:id/stats - 获取空间统计
+ * @query days - 趋势天数，支持 7 或 30，默认 7
  */
 app.get('/:id/stats', async (c) => {
   const { env } = c;
   const spaceId = c.req.param('id');
+  const days = Math.min(Math.max(parseInt(c.req.query('days') || '7', 10), 1), 30);
 
   try {
     // 获取空间基本统计 (view_count 存储在 spaces 表)
     const space = await env.DB.prepare(
-      `
-            SELECT view_count, download_count FROM spaces WHERE id = ?
-        `
+      'SELECT view_count, download_count FROM spaces WHERE id = ?'
     )
       .bind(spaceId)
       .first();
 
     // 获取文件统计
     const fileStats = await env.DB.prepare(
-      `
-            SELECT 
-                COUNT(*) as file_count,
-                COALESCE(SUM(f.size), 0) as total_size
-            FROM files f
-            JOIN space_files sf ON f.id = sf.file_id
-            WHERE sf.space_id = ?
-        `
+      `SELECT 
+        COUNT(*) as file_count,
+        COALESCE(SUM(f.size), 0) as total_size
+      FROM files f
+      JOIN space_files sf ON f.id = sf.file_id
+      WHERE sf.space_id = ?`
     )
       .bind(spaceId)
       .first();
 
-    // 生成最近7天趋势数据 (从 space_access_logs 表，如果没有则模拟)
-    // 注意：如果没有 space_access_logs 表，这里生成模拟数据
+    // 计算时间范围起点 (UTC+8 时区处理)
+    const { getChinaDayStart } = await import('../../_shared/utils.js');
+    const todayStart = getChinaDayStart();
+    const startTimestamp = todayStart - (days - 1) * 86400000;
+
+    // 从 space_access_logs 表聚合真实访问数据
+    const { results: trendData } = await env.DB.prepare(
+      `SELECT DATE(accessed_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count
+       FROM space_access_logs
+       WHERE space_id = ? AND accessed_at >= ?
+       GROUP BY date
+       ORDER BY date ASC`
+    )
+      .bind(spaceId, startTimestamp)
+      .all();
+
+    // 构建日期 -> 访问数的映射，补全缺失日期
+    const trendMap = new Map(trendData.map((d) => [d.date, d.count]));
     const trend = [];
-    const today = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(todayStart - i * 86400000);
       const dateStr = date.toISOString().slice(0, 10);
-      // 目前返回0，后续可接入真实访问日志
-      trend.push({ date: dateStr, count: 0 });
+      trend.push({ date: dateStr, count: trendMap.get(dateStr) || 0 });
     }
 
     return c.json({
@@ -182,6 +193,7 @@ app.get('/:id/stats', async (c) => {
         fileCount: fileStats?.file_count || 0,
         totalSize: fileStats?.total_size || 0,
         trend,
+        days,
       },
     });
   } catch (err) {

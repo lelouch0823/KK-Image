@@ -12,6 +12,9 @@ app.get('/', requirePermission('stats:read'), withCache(60), async (c) => {
   const { env } = c;
 
   try {
+    const { getChinaDayStart } = await import('../../_shared/utils.js');
+    const todayStart = getChinaDayStart();
+
     // 并行获取所有统计数据
     const [filesStats, foldersStats, albumsStats, spacesStats, recentFiles, todayStats] =
       await Promise.all([
@@ -46,7 +49,7 @@ app.get('/', requirePermission('stats:read'), withCache(60), async (c) => {
           SELECT COUNT(*) as count FROM files WHERE created_at >= ?
         `
         )
-          .bind(new Date().setHours(0, 0, 0, 0))
+          .bind(todayStart)
           .first(),
       ]);
 
@@ -121,12 +124,14 @@ app.get('/uploads', requirePermission('stats:read'), async (c) => {
   const days = parseInt(c.req.query('days') || '30');
 
   try {
-    const startTime = Date.now() - days * 24 * 60 * 60 * 1000;
+    const { getChinaDayStart } = await import('../../_shared/utils.js');
+    const todayStart = getChinaDayStart();
+    const startTime = todayStart - (days - 1) * 24 * 60 * 60 * 1000;
 
     const { results } = await env.DB.prepare(
       `
         SELECT 
-          DATE(created_at / 1000, 'unixepoch') as date,
+          DATE(created_at / 1000, 'unixepoch', '+8 hours') as date,
           COUNT(*) as count,
           COALESCE(SUM(size), 0) as size
         FROM files 

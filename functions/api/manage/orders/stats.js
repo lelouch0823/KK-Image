@@ -19,12 +19,8 @@ export async function onRequestGet(context) {
     const statsRepo = new OrderStatsRepository(env.DB);
 
     // SOTA Timezone handling: UTC+8
-    const now = new Date();
-    const utcNow = now.getTime();
-    const offset = 8 * 60 * 60 * 1000;
-    const localNow = utcNow + offset;
-    const localTodayStart = Math.floor(localNow / 86400000) * 86400000;
-    const todayStart = localTodayStart - offset;
+    const { getChinaDayStart } = await import('../../utils/date.js');
+    const todayStart = getChinaDayStart();
 
     const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000; // 7天前 (Inclusive of today)
     const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000; // 30天前

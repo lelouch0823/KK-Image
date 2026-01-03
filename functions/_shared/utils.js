@@ -14,6 +14,9 @@ export { success, error } from '../api/utils/response.js';
 // 消息常量
 export { MSG } from '../api/utils/messages.js';
 
+// 日期工具
+export { getChinaDate, getChinaDayStart } from '../api/utils/date.js';
+
 // ID 生成工具
 export {
   generateId,

@@ -18,18 +18,8 @@ export async function onRequestGet(context) {
     const statsRepo = new OrderStatsRepository(env.DB);
 
     // SOTA Timezone handling: Default to UTC+8 (China Standard Time)
-    // Correctly calculate "Start of Today" in UTC+8
-    const now = new Date();
-    // Get UTC timestamp
-    const utcNow = now.getTime();
-    // Offset for UTC+8
-    const offset = 8 * 60 * 60 * 1000;
-    // Local time in ms
-    const localNow = utcNow + offset;
-    // Local "Today 00:00:00" in ms
-    const localTodayStart = Math.floor(localNow / 86400000) * 86400000;
-    // Convert back to UTC timestamp for DB comparison
-    const todayStartTimestamp = localTodayStart - offset;
+    const { getChinaDayStart } = await import('../../utils/date.js');
+    const todayStartTimestamp = getChinaDayStart();
 
     const [todayCount, pendingCount, recentPendingOrders] = await Promise.all([
       // 今日订单
