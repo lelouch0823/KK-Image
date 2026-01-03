@@ -2,8 +2,7 @@
   <div class="base-container">
     <!-- Screen View (网页模式) -->
     <div class="screen-view space-y-6">
-      <!-- 原有的 Header, Grid, Timeline 等内容保持不变 -->
-      <!-- 返回按钮 -->
+      <!-- 返回按钮和操作区 -->
       <div class="flex items-center justify-between">
         <button
           class="text-secondary flex items-center gap-2 transition-colors hover:text-primary"
@@ -15,14 +14,13 @@
               stroke-linejoin="round"
               stroke-width="2"
               d="M10 19l-7-7m0 0l7-7m-7 7h18"
-            ></path>
+            />
           </svg>
           {{ t('order.portal.myOrders') }}
         </button>
 
         <!-- 销售端操作按钮 -->
         <div v-if="mode === 'sales'" class="flex gap-2">
-          <!-- 复制订单按钮 (始终显示) -->
           <button
             class="text-primary flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-white px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
             @click="$emit('duplicate', order)"
@@ -37,8 +35,6 @@
             </svg>
             {{ t('order.actions.duplicate') }}
           </button>
-          <!-- 编辑和作废按钮 -->
-          <!-- 编辑: pending, rejected, void -->
           <button
             v-if="['pending', 'rejected', 'void'].includes(order.status)"
             class="text-primary rounded-lg border border-[var(--border-hover)] bg-white px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
@@ -46,8 +42,6 @@
           >
             {{ t('order.manage.editOrder') }}
           </button>
-
-          <!-- 作废: 仅 pending -->
           <button
             v-if="order.status === 'pending'"
             class="rounded-lg border border-[var(--color-danger-bg)] bg-white px-3 py-1.5 text-sm font-medium text-[var(--color-danger-text)] transition-colors hover:bg-[var(--color-danger-bg)]"
@@ -73,7 +67,6 @@
             </svg>
             {{ t('order.manage.editOrder') }}
           </button>
-          <!-- 打印/保存PDF 按钮 -->
           <button
             class="text-secondary flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-white px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
             @click="handleSavePdf"
@@ -84,7 +77,7 @@
                 stroke-linejoin="round"
                 stroke-width="2"
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-              ></path>
+              />
             </svg>
             {{ t('common.savePdf') }}
           </button>
@@ -96,21 +89,7 @@
         <!-- 左侧：图片区域 (PC端占 8列) -->
         <div class="order-last space-y-4 lg:order-first lg:col-span-8">
           <!-- 商品图片 -->
-          <div
-            v-if="order.files && order.files.length > 0"
-            class="rounded-xl border border-[var(--border-color)] bg-white p-4"
-          >
-            <h3 class="text-primary mb-3 text-sm font-medium">{{ t('order.detail.images') }}</h3>
-            <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              <div
-                v-for="file in order.files"
-                :key="file.id"
-                class="aspect-square cursor-pointer overflow-hidden rounded-lg bg-[var(--bg-muted)] transition-opacity hover:opacity-90"
-              >
-                <img :src="file.url" class="size-full object-cover" loading="lazy" />
-              </div>
-            </div>
-          </div>
+          <OrderFileGrid :files="order.files" @preview="handlePreview" />
 
           <!-- 时间轴 (PC端显示在左侧下方) -->
           <div class="hidden rounded-xl border border-[var(--border-color)] bg-white p-4 lg:block">
@@ -122,260 +101,38 @@
         <!-- 右侧：信息区域 (PC端占 4列) -->
         <div class="space-y-4 lg:col-span-4">
           <!-- 客户信息 -->
-          <div
+          <OrderPersonCard
             v-if="order.customer"
-            class="rounded-xl border border-[var(--border-color)] bg-white p-4 shadow-sm"
-          >
-            <h3 class="text-secondary mb-3 text-xs font-medium tracking-wider uppercase">
-              {{ t('customer.detail.title') }}
-            </h3>
-            <div class="flex items-start gap-3">
-              <div
-                class="flex size-10 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-blue-600"
-              >
-                {{ order.customer.name.charAt(0) }}
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-primary truncate text-sm font-medium">
-                  {{ order.customer.name }}
-                </p>
-                <p class="text-secondary truncate text-xs">{{ order.customer.company || '-' }}</p>
-                <p v-if="order.customer.phone" class="text-secondary mt-1 text-xs">
-                  {{ order.customer.phone }}
-                </p>
-              </div>
-              <!-- 电话按钮 -->
-              <a
-                v-if="order.customer.phone"
-                :href="`tel:${order.customer.phone}`"
-                class="text-secondary rounded-full p-2 transition-colors hover:text-primary hover:bg-[var(--bg-muted)]"
-              >
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                  ></path>
-                </svg>
-              </a>
-            </div>
-          </div>
-
-          <!-- 客户信息 (仅当订单关联了客户时显示) -->
-          <div
-            v-if="order.customer"
-            class="rounded-xl border border-[var(--border-color)] bg-white p-4 shadow-sm"
-          >
-            <h3 class="text-secondary mb-3 text-xs font-medium tracking-wider uppercase">
-              {{ t('customer.detail.title') }}
-            </h3>
-            <div class="flex items-start gap-3">
-              <div
-                class="bg-blue-50 text-blue-600 flex size-10 items-center justify-center rounded-full text-sm font-bold"
-              >
-                {{ order.customer.name.charAt(0) }}
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-primary truncate text-sm font-medium">
-                  {{ order.customer.name }}
-                </p>
-                <p class="text-secondary truncate text-xs">{{ order.customer.company || '-' }}</p>
-                <p v-if="order.customer.phone" class="text-secondary mt-1 text-xs">
-                  {{ order.customer.phone }}
-                </p>
-              </div>
-              <!-- 电话按钮 -->
-              <a
-                v-if="order.customer.phone"
-                :href="`tel:${order.customer.phone}`"
-                class="text-secondary rounded-full p-2 transition-colors hover:text-primary hover:bg-[var(--bg-muted)]"
-              >
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                  ></path>
-                </svg>
-              </a>
-            </div>
-          </div>
+            :title="t('customer.detail.title')"
+            :name="order.customer.name"
+            :subtitle="order.customer.company"
+            :phone="order.customer.phone"
+            avatar-class="bg-blue-50 text-blue-600"
+          />
 
           <!-- 销售人员信息 (仅管理员可见) -->
-          <div
+          <OrderPersonCard
             v-if="(mode === 'admin' || !mode) && order.salesperson"
-            class="rounded-xl border border-[var(--border-color)] bg-white p-4 shadow-sm"
-          >
-            <h3 class="text-secondary mb-3 text-xs font-medium tracking-wider uppercase">
-              {{ t('order.detail.submittedBy') }}
-            </h3>
-            <div class="flex items-center gap-3">
-              <div
-                class="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-full text-sm font-bold"
-              >
-                {{ order.salesperson.name.charAt(0) }}
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-primary truncate text-sm font-medium">
-                  {{ order.salesperson.name }}
-                </p>
-                <p class="text-secondary truncate text-xs">{{ order.salesperson.store || '-' }}</p>
-              </div>
-              <!-- 电话 (点击拨打) -->
-              <a
-                v-if="order.salesperson.phone"
-                :href="`tel:${order.salesperson.phone}`"
-                class="text-secondary rounded-full p-2 transition-colors hover:text-primary hover:bg-[var(--bg-muted)]"
-              >
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                  ></path>
-                </svg>
-              </a>
-            </div>
-          </div>
+            :title="t('order.detail.submittedBy')"
+            :name="order.salesperson.name"
+            :subtitle="order.salesperson.store"
+            :phone="order.salesperson.phone"
+            avatar-class="bg-primary/10 text-primary"
+          />
 
           <!-- 订单头部 -->
-          <div class="rounded-xl border border-[var(--border-color)] bg-white p-4 shadow-sm">
-            <div class="flex items-start justify-between">
-              <div>
-                <p class="text-secondary mb-1 text-xs">{{ order.orderNo }}</p>
-                <h2 class="text-primary text-lg font-bold">
-                  {{ currentData.name || t('order.form.productName') }}
-                </h2>
-              </div>
-              <StatusBadge :variant="getStatusVariant(order.status)" size="md" dot>
-                {{ t(`order.statuses.${order.status}`) }}
-              </StatusBadge>
-            </div>
-
-            <!-- 状态流程条 -->
-            <div class="relative mt-6">
-              <div class="absolute top-3 right-0 left-0 h-0.5 bg-[var(--border-color)]"></div>
-              <div
-                class="bg-primary absolute top-3 left-0 h-0.5 transition-all"
-                :style="{ width: progressWidth }"
-              ></div>
-              <div class="relative flex justify-between">
-                <div
-                  v-for="(step, index) in statusSteps"
-                  :key="step"
-                  class="flex flex-col items-center"
-                >
-                  <div
-                    class="flex size-6 items-center justify-center rounded-full border-2 text-xs font-medium transition-all"
-                    :class="
-                      index <= currentStepIndex
-                        ? 'bg-primary border-primary text-white'
-                        : 'text-secondary border-[var(--border-hover)] bg-white'
-                    "
-                  >
-                    <svg
-                      v-if="index < currentStepIndex"
-                      class="size-3"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="3"
-                        d="M5 13l4 4L19 7"
-                      ></path>
-                    </svg>
-                    <span v-else>{{ index + 1 }}</span>
-                  </div>
-                  <span
-                    class="mt-1.5 text-center text-[10px] whitespace-nowrap"
-                    :class="
-                      index <= currentStepIndex ? 'text-primary font-medium' : 'text-secondary'
-                    "
-                  >
-                    {{ t(`order.statuses.${step}`) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <OrderStatusHeader
+            :order-no="order.orderNo"
+            :product-name="currentData.name"
+            :status="order.status"
+          />
 
           <!-- 商品信息 -->
-          <div class="rounded-xl border border-[var(--border-color)] bg-white p-4">
-            <div class="mb-4 flex items-center justify-between">
-              <h3 class="text-primary text-sm font-medium">{{ t('order.detail.currentInfo') }}</h3>
-              <!-- 修正标记 -->
-              <span
-                v-if="hasCorrection"
-                class="cursor-pointer rounded-full bg-[var(--color-warning-bg)] px-2 py-0.5 text-xs text-[var(--color-warning-text)] hover:bg-[var(--color-warning)] hover:text-white"
-                @click="showCorrectionModal = true"
-              >
-                {{ t('order.portal.viewCorrection') }}
-              </span>
-            </div>
-
-            <div class="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-              <div class="flex">
-                <span class="text-secondary w-20 flex-shrink-0 text-sm">{{
-                  t('order.form.productName')
-                }}</span>
-                <span class="text-primary truncate text-sm">{{ currentData.name || '-' }}</span>
-              </div>
-              <div class="flex">
-                <span class="text-secondary w-20 flex-shrink-0 text-sm">{{
-                  t('order.form.brand')
-                }}</span>
-                <span class="text-primary truncate text-sm">{{ currentData.brand || '-' }}</span>
-              </div>
-              <div class="flex">
-                <span class="text-secondary w-20 flex-shrink-0 text-sm">{{
-                  t('order.form.series')
-                }}</span>
-                <span class="text-primary truncate text-sm">{{ currentData.series || '-' }}</span>
-              </div>
-              <div class="flex">
-                <span class="text-secondary w-20 flex-shrink-0 text-sm">{{
-                  t('order.form.size')
-                }}</span>
-                <span class="text-primary truncate text-sm">{{ currentData.size || '-' }}</span>
-              </div>
-              <div class="flex">
-                <span class="text-secondary w-20 flex-shrink-0 text-sm">{{
-                  t('order.form.color')
-                }}</span>
-                <span class="text-primary truncate text-sm">{{ currentData.color || '-' }}</span>
-              </div>
-              <div class="flex">
-                <span class="text-secondary w-20 flex-shrink-0 text-sm">{{
-                  t('order.form.material')
-                }}</span>
-                <span class="text-primary truncate text-sm">{{ currentData.material || '-' }}</span>
-              </div>
-              <!-- 期望到货时间 (全宽) -->
-              <div class="col-span-1 flex sm:col-span-2">
-                <span class="text-secondary w-28 flex-shrink-0 text-sm whitespace-nowrap">{{
-                  t('order.form.expectedArrival')
-                }}</span>
-                <span class="text-primary text-sm">{{ formatDeadline(currentData.deadline) }}</span>
-              </div>
-              <!-- 备注 (全宽) -->
-              <div class="col-span-1 flex sm:col-span-2">
-                <span class="text-secondary w-28 flex-shrink-0 text-sm">{{
-                  t('order.form.remark')
-                }}</span>
-                <p
-                  class="text-primary w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] p-2 text-sm whitespace-pre-wrap"
-                >
-                  {{ currentData.remark || '-' }}
-                </p>
-              </div>
-            </div>
-          </div>
+          <OrderInfoCard
+            :data="currentData"
+            :has-correction="hasCorrection"
+            @view-correction="showCorrectionModal = true"
+          />
 
           <!-- 时间轴 (移动端显示) -->
           <div class="rounded-xl border border-[var(--border-color)] bg-white p-4 lg:hidden">
@@ -383,32 +140,8 @@
             <OrderTimeline :timeline="order.timeline" />
           </div>
 
-          <!-- 留言输入 - 聊天风格 -->
-          <div class="overflow-hidden rounded-xl border border-[var(--border-color)] bg-white">
-            <div class="flex items-center gap-3 p-3">
-              <input
-                v-model="commentText"
-                type="text"
-                :placeholder="t('order.detail.commentPlaceholder')"
-                class="focus:ring-primary/20 focus:ring-2 focus:outline-none h-10 flex-1 rounded-full border-0 bg-[var(--bg-muted)] px-4 text-sm transition-all"
-                @keyup.enter="sendComment"
-              />
-              <button
-                :disabled="!commentText.trim()"
-                class="bg-primary shadow-primary/20 flex size-10 flex-shrink-0 items-center justify-center rounded-full text-white shadow-lg transition-all hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-                @click="sendComment"
-              >
-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                  ></path>
-                </svg>
-              </button>
-            </div>
-          </div>
+          <!-- 留言输入 -->
+          <OrderCommentInput @submit="sendComment" />
         </div>
       </div>
 
@@ -439,7 +172,7 @@
                 stroke-linejoin="round"
                 stroke-width="2"
                 d="M14 5l7 7m0 0l-7 7m7-7H3"
-              ></path>
+              />
             </svg>
             <span class="text-success font-medium">{{ correction.newValue }}</span>
           </div>
@@ -472,107 +205,7 @@
     </div>
 
     <!-- Print View (文档模式 - A4 SOTA) -->
-    <div class="print-view hidden">
-      <!-- 打印页眉 -->
-      <div class="mb-6 flex items-start justify-between border-b-2 border-black pb-4">
-        <div>
-          <h1 class="text-2xl font-bold tracking-wider text-black uppercase">KK-Image System</h1>
-          <div class="mt-2 space-y-0.5 text-sm text-gray-600">
-            <p>
-              {{ t('order.orderNo') }}:
-              <span class="ml-2 font-mono text-base font-bold text-black">{{ order.orderNo }}</span>
-            </p>
-            <p>
-              {{ t('order.createdAt') }}:
-              <span class="ml-2 text-black">{{ formatTime(order.createdAt) }}</span>
-            </p>
-          </div>
-        </div>
-        <div class="text-right">
-          <div
-            class="inline-block rounded-sm border-2 border-black px-4 py-1 font-bold text-black uppercase"
-          >
-            {{ t(`order.statuses.${order.status}`) }}
-          </div>
-        </div>
-      </div>
-
-      <!-- 订单信息网格 -->
-      <div class="mb-8 break-inside-avoid">
-        <h2
-          class="mb-3 border-b border-gray-200 pb-1 text-sm font-bold tracking-wide text-gray-500 uppercase"
-        >
-          {{ t('order.detail.currentInfo') }}
-        </h2>
-        <dl class="grid grid-cols-2 gap-x-12 gap-y-4 text-sm">
-          <div class="grid grid-cols-[80px_1fr]">
-            <dt class="text-gray-500">{{ t('order.form.productName') }}</dt>
-            <dd class="font-medium text-black">{{ currentData.name || '-' }}</dd>
-          </div>
-          <div class="grid grid-cols-[80px_1fr]">
-            <dt class="text-gray-500">{{ t('order.form.brand') }}</dt>
-            <dd class="font-medium text-black">{{ currentData.brand || '-' }}</dd>
-          </div>
-          <div class="grid grid-cols-[80px_1fr]">
-            <dt class="text-gray-500">{{ t('order.form.series') }}</dt>
-            <dd class="font-medium text-black">{{ currentData.series || '-' }}</dd>
-          </div>
-          <div class="grid grid-cols-[80px_1fr]">
-            <dt class="text-gray-500">{{ t('order.form.size') }}</dt>
-            <dd class="font-medium text-black">{{ currentData.size || '-' }}</dd>
-          </div>
-          <div class="grid grid-cols-[80px_1fr]">
-            <dt class="text-gray-500">{{ t('order.form.color') }}</dt>
-            <dd class="font-medium text-black">{{ currentData.color || '-' }}</dd>
-          </div>
-          <div class="grid grid-cols-[80px_1fr]">
-            <dt class="text-gray-500">{{ t('order.form.material') }}</dt>
-            <dd class="font-medium text-black">{{ currentData.material || '-' }}</dd>
-          </div>
-          <div class="col-span-2 mt-2 border-t border-dashed border-gray-200 pt-2">
-            <dt class="mb-1 text-xs text-gray-500">{{ t('order.form.remark') }}</dt>
-            <dd
-              class="rounded border border-gray-100 bg-gray-50 p-3 text-sm leading-relaxed text-black"
-            >
-              {{ currentData.remark || '-' }}
-            </dd>
-          </div>
-        </dl>
-      </div>
-
-      <!-- 图片区域 -->
-      <div v-if="order.files && order.files.length > 0" class="mb-8 break-inside-avoid">
-        <h2
-          class="mb-3 border-b border-gray-200 pb-1 text-sm font-bold tracking-wide text-gray-500 uppercase"
-        >
-          {{ t('order.detail.images') }}
-        </h2>
-        <div class="grid grid-cols-4 gap-4">
-          <div v-for="file in order.files" :key="file.id" class="break-inside-avoid">
-            <div class="aspect-square overflow-hidden rounded-sm border border-gray-200 bg-gray-50">
-              <img :src="file.url" class="size-full object-cover" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 操作审计日志 (Table Mode) -->
-      <div v-if="order.timeline && order.timeline.length > 0">
-        <h2
-          class="mb-3 border-b border-gray-200 pb-1 text-sm font-bold tracking-wide text-gray-500 uppercase"
-        >
-          {{ t('order.detail.timeline') }}
-        </h2>
-        <OrderTimeline :timeline="order.timeline" mode="table" :max-items="999" />
-      </div>
-
-      <!-- 页脚 -->
-      <div
-        class="fixed bottom-0 left-0 w-full border-t border-gray-100 bg-white pt-2 text-center text-[10px] text-gray-400"
-      >
-        Generated by KK-Image System • {{ new Date().toLocaleString() }}
-      </div>
-    </div>
+    <OrderPrintView ref="printViewRef" :order="order" class="hidden" />
   </div>
 </template>
 
@@ -581,12 +214,19 @@ import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
-import { STATUS_OPTIONS, STATUS_STYLES, getStatusVariant } from '@/utils/status';
 import { useSalesToken } from '@/composables/useSalesToken';
-import { formatDateWithWeekday, formatTimelineTime } from '@/utils/formatters';
+import { formatTimelineTime } from '@/utils/formatters';
+import html2pdf from 'html2pdf.js';
+
+// Sub-components
 import OrderTimeline from './OrderTimeline.vue';
+import OrderFileGrid from './OrderFileGrid.vue';
+import OrderInfoCard from './OrderInfoCard.vue';
+import OrderCommentInput from './OrderCommentInput.vue';
+import OrderPersonCard from './OrderPersonCard.vue';
+import OrderStatusHeader from './OrderStatusHeader.vue';
+import OrderPrintView from './OrderPrintView.vue';
 import OrderEditModal from '../OrderEditModal.vue';
-import StatusBadge from '@/components/ui/StatusBadge.vue';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
@@ -600,10 +240,10 @@ const emit = defineEmits(['back', 'comment', 'refresh', 'duplicate', 'edit']);
 const { t } = useI18n();
 const { addToast } = useToast();
 
-const commentText = ref('');
 const showCorrectionModal = ref(false);
 const showEditModal = ref(false);
 const submitting = ref(false);
+const printViewRef = ref(null);
 
 const { token: salesToken } = useSalesToken();
 
@@ -626,7 +266,6 @@ const markAsRead = async () => {
       method: 'PATCH',
       credentials: 'include',
     });
-    // Notify parent to refresh data
     emit('refresh');
   } catch (_e) {
     console.error('Failed to mark read', _e);
@@ -638,21 +277,6 @@ markAsRead();
 
 // 当前数据
 const currentData = computed(() => props.order.currentData || {});
-const _originalData = computed(() => props.order.originalData || {});
-
-// 状态流程
-const statusSteps = STATUS_OPTIONS.filter((s) => s !== 'rejected'); // 排除 rejected
-const currentStepIndex = computed(() => {
-  const idx = statusSteps.indexOf(props.order.status);
-  return idx >= 0 ? idx : 0;
-});
-const progressWidth = computed(() => {
-  const total = statusSteps.length - 1;
-  return `${(currentStepIndex.value / total) * 100}%`;
-});
-
-// 状态样式
-const _statusClasses = STATUS_STYLES;
 
 // 是否有修正
 const hasCorrection = computed(() => {
@@ -667,14 +291,14 @@ const corrections = computed(() => {
 // 格式化时间
 const formatTime = (timestamp) => formatTimelineTime(timestamp);
 
-// 格式化截止时间
-const formatDeadline = (date) => formatDateWithWeekday(date);
-
 // 发送留言
-const sendComment = () => {
-  if (!commentText.value.trim()) return;
-  emit('comment', commentText.value.trim());
-  commentText.value = '';
+const sendComment = (text) => {
+  emit('comment', text);
+};
+
+// 预览图片
+const handlePreview = (_file) => {
+  // TODO: 实现图片预览 (可使用 Lightbox)
 };
 
 const handleVoid = () => {
@@ -746,52 +370,34 @@ const handleUpdate = async (payload) => {
   }
 };
 
-// 引入 html2pdf
-import html2pdf from 'html2pdf.js';
-
 const handleSavePdf = () => {
-  // 1. 获取打印视图元素
-  const element = document.querySelector('.print-view');
+  const element = printViewRef.value?.$el;
   if (!element) return;
 
-  // 2. 临时显示元素 (html2pdf 需要元素可见)
-  // 我们需要克隆元素以避免破坏现有 DOM 或影响显示
-  // 但 html2pdf 最好直接处理 DOM。此处使用一个技巧：
-  // 克隆节点，应用打印样式，插入 body (离屏)，生成后移除。
-
-  // SOTA 方案：直接使用 html2pdf 处理 .print-view，但需确保其可见。
-  //由于 .print-view 是 hidden 的，我们需要临时处理。
-
   const clone = element.cloneNode(true);
-
-  // 移除 hidden 类，强制显示
   clone.classList.remove('hidden');
   clone.style.display = 'block';
   clone.style.position = 'absolute';
   clone.style.top = '-9999px';
   clone.style.left = '-9999px';
-  clone.style.width = '210mm'; // A4 width
+  clone.style.width = '210mm';
   clone.style.background = 'white';
 
-  // 插入文档
   document.body.appendChild(clone);
 
-  // 3. 配置选项
   const opt = {
-    margin: [10, 10, 10, 10], // mm
+    margin: [10, 10, 10, 10],
     filename: `Order_${props.order.orderNo}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true, logging: false },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
   };
 
-  // 4. 生成并下载
   html2pdf()
     .set(opt)
     .from(clone)
     .save()
     .then(() => {
-      // 清理
       document.body.removeChild(clone);
     });
 };
@@ -807,7 +413,6 @@ const handleSavePdf = () => {
 
 /* Print View Styles */
 @media print {
-  /* Layout Reset */
   @page {
     size: A4;
     margin: 1.5cm;
@@ -819,7 +424,6 @@ const handleSavePdf = () => {
     background: white;
   }
 
-  /* Visibility Toggle */
   .screen-view {
     display: none !important;
   }
@@ -840,7 +444,6 @@ const handleSavePdf = () => {
       sans-serif;
   }
 
-  /* Component Hiding (Safety Net) */
   button,
   .flex.items-center.justify-between,
   .fixed.inset-0,
@@ -849,7 +452,6 @@ const handleSavePdf = () => {
     display: none !important;
   }
 
-  /* Utilities */
   .break-inside-avoid {
     break-inside: avoid;
   }
