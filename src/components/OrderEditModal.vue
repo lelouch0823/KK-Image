@@ -27,105 +27,16 @@
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
       <!-- 左侧：表单 -->
       <div class="space-y-5">
-        <div>
-          <h4
-            class="text-primary mb-4 border-b border-[var(--border-color)] pb-2 text-sm font-medium"
-          >
-            {{ t('order.detail.currentInfo') }}
-          </h4>
-
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <!-- 状态修改 (仅如有权限) -->
-            <div v-if="mode === 'admin'" class="sm:col-span-2">
-              <label class="text-secondary mb-1.5 block text-xs font-medium">{{
-                t('order.manage.orderStatus')
-              }}</label>
-              <select v-model="form.status" class="input h-11">
-                <option v-for="s in statuses" :key="s" :value="s">
-                  {{ t(`order.statuses.${s}`) }}
-                </option>
-              </select>
-            </div>
-            <!-- 商品名称 (全宽) -->
-            <div class="md:col-span-2">
-              <label class="text-secondary mb-1 block text-xs font-medium">{{
-                t('order.form.productName')
-              }}</label>
-              <input v-model="form.name" class="input" />
-            </div>
-
-            <!-- 品牌 -->
-            <div>
-              <label class="text-secondary mb-1 block text-xs font-medium">{{
-                t('order.form.brand')
-              }}</label>
-              <input v-model="form.brand" class="input" />
-            </div>
-
-            <!-- 系列 -->
-            <div>
-              <label class="text-secondary mb-1 block text-xs font-medium">{{
-                t('order.form.series')
-              }}</label>
-              <input v-model="form.series" class="input" />
-            </div>
-
-            <!-- 规格尺寸 -->
-            <div>
-              <label class="text-secondary mb-1 block text-xs font-medium">{{
-                t('order.form.size')
-              }}</label>
-              <input v-model="form.size" class="input" />
-            </div>
-
-            <!-- 颜色 -->
-            <div>
-              <label class="text-secondary mb-1 block text-xs font-medium">{{
-                t('order.form.color')
-              }}</label>
-              <input v-model="form.color" class="input" />
-            </div>
-
-            <!-- 材质 -->
-            <div>
-              <label class="text-secondary mb-1 block text-xs font-medium">{{
-                t('order.form.material')
-              }}</label>
-              <input v-model="form.material" class="input" />
-            </div>
-
-            <!-- 期望到货时间 -->
-            <div>
-              <label class="text-secondary mb-1 block text-xs font-medium">{{
-                t('order.form.expectedArrival')
-              }}</label>
-              <input
-                v-model="form.deadline"
-                type="date"
-                :min="minDate"
-                class="input appearance-none bg-white"
-                :class="{ 'text-muted': !form.deadline }"
-              />
-            </div>
-
-            <!-- 备注 (全宽) -->
-            <div class="md:col-span-2">
-              <label class="text-secondary mb-1 block text-xs font-medium">{{
-                t('order.form.remark')
-              }}</label>
-              <textarea
-                v-model="form.remark"
-                rows="3"
-                class="input h-auto resize-none py-2"
-              ></textarea>
-            </div>
-          </div>
-        </div>
+        <OrderFormFields
+          v-model="form"
+          :show-status="mode === 'admin'"
+          :statuses="statuses"
+        />
       </div>
 
       <!-- 右侧：原始信息 & 图片 -->
       <div class="space-y-6">
-        <!-- 图片管理 (放在右侧上方) -->
+        <!-- 图片管理 -->
         <div>
           <h4
             class="text-primary mb-3 border-b border-[var(--border-color)] pb-2 text-sm font-medium"
@@ -142,83 +53,34 @@
         </div>
 
         <!-- 原始信息对比 -->
-        <div>
-          <h4
-            class="text-primary mb-3 border-b border-[var(--border-color)] pb-2 text-sm font-medium"
-          >
-            {{ t('order.detail.originalInfo') }}
-          </h4>
-          <div
-            class="text-secondary grid grid-cols-2 gap-3 rounded-lg bg-[var(--bg-muted)] p-4 text-sm"
-          >
-            <div>
-              <span class="text-muted block text-xs">{{ t('order.form.productName') }}</span>
-              <span class="text-primary font-medium">{{ originalData.name || '-' }}</span>
-            </div>
-            <div>
-              <span class="text-muted block text-xs">{{ t('order.form.brand') }}</span>
-              <span class="text-primary">{{ originalData.brand || '-' }}</span>
-            </div>
-            <div>
-              <span class="text-muted block text-xs">{{ t('order.form.series') }}</span>
-              <span class="text-primary">{{ originalData.series || '-' }}</span>
-            </div>
-            <div>
-              <span class="text-muted block text-xs">{{ t('order.form.size') }}</span>
-              <span class="text-primary">{{ originalData.size || '-' }}</span>
-            </div>
-            <div>
-              <span class="text-muted block text-xs">{{ t('order.form.color') }}</span>
-              <span class="text-primary">{{ originalData.color || '-' }}</span>
-            </div>
-            <div>
-              <span class="text-muted block text-xs">{{ t('order.form.material') }}</span>
-              <span class="text-primary">{{ originalData.material || '-' }}</span>
-            </div>
-            <!-- 期望到货时间 (全宽) -->
-            <div class="col-span-2 flex items-start gap-2">
-              <span class="text-muted block w-24 flex-shrink-0 pt-0.5 text-xs whitespace-nowrap">{{
-                t('order.form.expectedArrival')
-              }}</span>
-              <span class="text-primary">{{ formatDateWithWeekday(originalData.deadline) }}</span>
-            </div>
-            <div class="col-span-2 flex items-start gap-2">
-              <span class="text-muted block w-24 flex-shrink-0 pt-0.5 text-xs">{{
-                t('order.form.remark')
-              }}</span>
-              <p class="text-primary whitespace-pre-wrap">{{ originalData.remark || '-' }}</p>
-            </div>
-          </div>
-        </div>
+        <OrderOriginalInfo :data="originalData" />
+      </div>
+
+      <!-- 修改理由 (必填) -->
+      <div class="col-span-full border-t border-[var(--border-color)] pt-4">
+        <label class="text-primary mb-2 block text-sm font-medium">
+          {{ t('order.manage.editReason') }} <span class="text-danger">*</span>
+        </label>
+        <input
+          ref="reasonInputRef"
+          v-model="editReason"
+          type="text"
+          :placeholder="t('order.manage.editReasonPlaceholder')"
+          class="bg-warning-bg border-warning/20 text-warning-text placeholder-warning-text/40 w-full rounded-lg border px-4 py-2.5 text-sm outline-none focus:ring-warning/40 focus:border-warning"
+        />
+        <p class="text-warning-text mt-1.5 flex items-center text-xs">
+          <svg class="mr-1 size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            ></path>
+          </svg>
+          {{ t('order.manage.editReasonRequired') }}
+        </p>
+      </div>
     </div>
-
-    <!-- 修改理由 (必填) - 移动到左侧表单下方 -->
-    <div class="mt-4 border-t border-[var(--border-color)] pt-4">
-      <label class="text-primary mb-2 block text-sm font-medium">
-        {{ t('order.manage.editReason') }} <span class="text-danger">*</span>
-      </label>
-      <input
-        ref="reasonInputRef"
-        v-model="editReason"
-        type="text"
-        :placeholder="t('order.manage.editReasonPlaceholder')"
-        class="bg-warning-bg border-warning/20 text-warning-text placeholder-warning-text/40 w-full rounded-lg border px-4 py-2.5 text-sm outline-none focus:ring-warning/40 focus:border-warning"
-      />
-      <p class="text-warning-text mt-1.5 flex items-center text-xs">
-        <svg class="mr-1 size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          ></path>
-        </svg>
-        {{ t('order.manage.editReasonRequired') }}
-      </p>
-    </div>
-  </div>
-
-
 
     <template #footer>
       <button
@@ -266,14 +128,12 @@
 import { ref, reactive, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
-import { getTodayISOString } from '@/utils/common';
-import { formatDateWithWeekday } from '@/utils/formatters';
 import { getStatusBadgeClass } from '@/utils/status';
 import { useSalesToken } from '@/composables/useSalesToken';
 import ImageUploader from './common/ImageUploader.vue';
 import Modal from '@/components/ui/Modal.vue';
-
-const minDate = computed(() => getTodayISOString());
+import OrderFormFields from './order/OrderFormFields.vue';
+import OrderOriginalInfo from './order/OrderOriginalInfo.vue';
 
 // 移动端检测
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
@@ -329,7 +189,7 @@ const form = reactive({
   deadline: '',
 });
 
-// 存储初始值快照 (用于变更检测)
+// 存储初始值快照
 const initialValues = ref({
   status: '',
   name: '',
@@ -343,19 +203,16 @@ const initialValues = ref({
   fileIds: '',
 });
 
-// 初始化标志 - 确保只初始化一次
 const initialized = ref(false);
 
-// 初始化数据 - 只在首次挂载时执行
+// 初始化数据
 watch(
   () => props.order,
   (newOrder) => {
-    // 只在第一次收到有效订单数据时初始化
     if (newOrder && !initialized.value) {
       initialized.value = true;
       const current = newOrder.currentData || {};
       
-      // 设置表单值
       form.status = newOrder.status || 'pending';
       form.name = current.name || '';
       form.brand = current.brand || '';
@@ -366,7 +223,6 @@ watch(
       form.remark = current.remark || '';
       form.deadline = current.deadline || '';
 
-      // 存储初始值快照 (深拷贝)
       initialValues.value = {
         status: newOrder.status || 'pending',
         name: current.name || '',
@@ -380,7 +236,6 @@ watch(
         fileIds: (newOrder.files || []).map((f) => f.id).sort().join(','),
       };
 
-      // 初始化文件
       uploadedFiles.value = (newOrder.files || []).map((f) => ({
         id: f.id,
         url: f.url,
@@ -392,12 +247,11 @@ watch(
 
 const originalData = computed(() => props.order.originalData || {});
 
-// 检查是否有变更 (对比初始值快照)
+// 检查是否有变更
 const hasChanges = computed(() => {
   if (!props.order) return false;
   const init = initialValues.value;
 
-  // 检查字段变更
   const fieldsChanged =
     form.name !== init.name ||
     form.brand !== init.brand ||
@@ -408,19 +262,15 @@ const hasChanges = computed(() => {
     form.remark !== init.remark ||
     form.deadline !== init.deadline;
 
-  // 检查状态变更
   if (props.mode === 'admin' && form.status !== init.status) return true;
-
   if (fieldsChanged) return true;
 
-  // 检查文件变更
   const newIds = uploadedFiles.value.map((f) => f.id).sort().join(',');
   return init.fileIds !== newIds;
 });
 
 const { token: salesToken } = useSalesToken();
 
-// 动态上传地址 (包含 orderId 以便归档)
 const uploadEndpoint = computed(() => {
   const orderId = props.order?.id;
   if (props.mode === 'sales') {
@@ -430,20 +280,16 @@ const uploadEndpoint = computed(() => {
   return orderId ? `${API.MANAGE_UPLOAD}?orderId=${orderId}` : API.MANAGE_UPLOAD;
 });
 
-// 验证逻辑 (所有模式都需要填写修改理由)
 const isValid = computed(() => {
   if (!hasChanges.value) return false;
   if (!editReason.value.trim()) return false;
   return true;
 });
 
-// 编辑理由输入框引用
 const reasonInputRef = ref(null);
 
-// 点击保存按钮处理
 const handleSaveClick = () => {
   if (!isValid.value) {
-    // 如果有变更但没填理由，滚动到理由输入框并聚焦
     if (hasChanges.value && !editReason.value.trim() && reasonInputRef.value) {
       reasonInputRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' });
       reasonInputRef.value.focus();
@@ -455,20 +301,15 @@ const handleSaveClick = () => {
 
 const uploaderRef = ref(null);
 
-// 提交
 const handleSubmit = async () => {
   if (!isValid.value) return;
 
-  // 1. 先触发图片上传 (延迟上传模式)
   if (uploaderRef.value) {
     const uploadSuccess = await uploaderRef.value.uploadPendingFiles();
-    if (!uploadSuccess) return; // 上传失败终止提交
-
-    // 等待 Vue 更新 uploadedFiles
+    if (!uploadSuccess) return;
     await nextTick();
   }
 
-  // 仅提取变更字段
   const updates = {};
   const init = initialValues.value;
   if (form.name !== init.name) updates.name = form.name;
@@ -480,12 +321,10 @@ const handleSubmit = async () => {
   if (form.remark !== init.remark) updates.remark = form.remark;
   if (form.deadline !== init.deadline) updates.deadline = form.deadline;
 
-  // 状态变更
   if (props.mode === 'admin' && form.status !== init.status) {
     updates.status = form.status;
   }
 
-  // 处理文件变更 - 过滤掉仍在本地的文件（不应该有，因为已上传完成）
   const oldIds = (props.order.files || [])
     .map((f) => f.id)
     .sort()
@@ -501,7 +340,6 @@ const handleSubmit = async () => {
     reason: editReason.value,
   };
 
-  // 只有当文件列表真正变化时才包含 fileIds
   if (oldIds !== newIds) {
     payload.fileIds = currentFiles.map((f) => f.id);
   }
