@@ -6,6 +6,7 @@
 
 import { success, error } from '../utils/response.js';
 import { MSG } from '../utils/messages.js';
+import { authenticateAdmin } from '../utils/auth.js';
 
 export async function onRequestGet(context) {
   const { env, request } = context;
@@ -15,6 +16,8 @@ export async function onRequestGet(context) {
   const unreadOnly = url.searchParams.get('unread_only') === 'true';
 
   try {
+    await authenticateAdmin(request, env);
+
     let sql = `SELECT * FROM notifications`;
     const params = [];
 
@@ -49,6 +52,9 @@ export async function onRequestGet(context) {
       unreadCount,
     });
   } catch (err) {
+    if (err.message === MSG.AUTH.REQUIRED || err.message === MSG.AUTH.EXPIRED) {
+      return error(err.message, 401);
+    }
     return error(`${MSG.COMMON.LOAD_FAILED}: ${err.message}`, 500);
   }
 }
@@ -57,6 +63,8 @@ export async function onRequestPost(context) {
   const { env, request } = context;
 
   try {
+    await authenticateAdmin(request, env);
+
     const body = await request.json();
     const { type = 'system', title, content = '', link = '', metadata = null } = body;
 
@@ -78,6 +86,9 @@ export async function onRequestPost(context) {
 
     return success({ id }, MSG.COMMON.CREATE_SUCCESS);
   } catch (err) {
+    if (err.message === MSG.AUTH.REQUIRED || err.message === MSG.AUTH.EXPIRED) {
+      return error(err.message, 401);
+    }
     return error(`${MSG.COMMON.OP_FAILED}: ${err.message}`, 500);
   }
 }

@@ -279,8 +279,8 @@ export async function onRequestPost(context) {
       comment: comment.trim(),
     });
 
-    // 设置红点
-    await orderRepo.setNewFeedback(id);
+    // 设置红点 (通知销售人员)
+    await orderRepo.setUnread(id, 'admin');
 
     return success(null, MSG.ORDER.COMMENT_ADDED);
   } catch (err) {

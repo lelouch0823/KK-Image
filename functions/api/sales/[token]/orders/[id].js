@@ -246,11 +246,18 @@ async function handleMarkRead(context) {
 
   try {
     const salesperson = await authenticateSalesperson(request, env, accessToken);
-    await env.DB.prepare(
-      'UPDATE orders SET has_new_feedback = 0 WHERE id = ? AND salesperson_id = ?'
-    )
+    const OrderRepository = (await import('../../../../repositories/OrderRepository.js')).OrderRepository;
+    const orderRepo = new OrderRepository(env.DB);
+
+    // 验证订单归属
+    const order = await env.DB.prepare('SELECT id FROM orders WHERE id = ? AND salesperson_id = ?')
       .bind(orderId, salesperson.id)
-      .run();
+      .first();
+
+    if (order) {
+      await orderRepo.markAsRead(orderId, 'sales');
+    }
+
     return success();
   } catch (e) {
     return error(e.message, 401);
