@@ -8,6 +8,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requirePermission } from '../../../middleware/auth.js';
+import { SpaceRepository } from '../../../repositories/SpaceRepository.js';
 import {
   generateId,
   generateShareToken,
@@ -35,22 +36,10 @@ const CreateSubspaceSchema = z.object({
 subspaces.get('/', async (c) => {
   const { env } = c;
   const parentId = c.req.param('id');
+  const repo = new SpaceRepository(env.DB);
 
   try {
-    const { results } = await env.DB.prepare(
-      `
-            SELECT s.*, 
-                (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
-                f.storage_key as cover_storage_key
-            FROM spaces s
-            LEFT JOIN files f ON s.cover_file_id = f.id
-            WHERE s.parent_id = ?
-            ORDER BY s.sort_order ASC, s.updated_at DESC
-        `
-    )
-      .bind(parentId)
-      .all();
-
+    const results = await repo.findSubspaces(parentId);
     return c.json({
       success: true,
       data: results.map(transformSpaceListItem),
@@ -73,12 +62,11 @@ subspaces.post(
     const parentId = c.req.param('id');
     const { name, description, isPublic, password, expiresAt, template, templateData } =
       c.req.valid('json');
+    const repo = new SpaceRepository(env.DB);
 
     try {
       // 验证父空间存在
-      const parent = await env.DB.prepare('SELECT id FROM spaces WHERE id = ?')
-        .bind(parentId)
-        .first();
+      const parent = await repo.findById(parentId);
       if (!parent) {
         return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
       }
@@ -87,27 +75,22 @@ subspaces.post(
       const shareToken = generateShareToken();
       const nowMs = Date.now();
 
-      await env.DB.prepare(
-        `
-                INSERT INTO spaces (id, parent_id, name, description, is_public, password, share_token, expires_at, template, template_data, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `
-      )
-        .bind(
-          spaceId,
-          parentId,
-          name.trim(),
-          description.trim(),
-          isPublic ? 1 : 0,
-          password || null,
-          shareToken,
-          expiresAt || null,
-          template,
-          JSON.stringify(templateData),
-          nowMs,
-          nowMs
-        )
-        .run();
+      const newSubspace = {
+        id: spaceId,
+        parentId,
+        name: name.trim(),
+        description: description.trim(),
+        isPublic,
+        password: password || null,
+        shareToken,
+        expiresAt: expiresAt || null,
+        template,
+        templateData: JSON.stringify(templateData),
+        createdAt: nowMs,
+        updatedAt: nowMs,
+      };
+
+      await repo.createSubspace(newSubspace);
 
       return c.json(
         {

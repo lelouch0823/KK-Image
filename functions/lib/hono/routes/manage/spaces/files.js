@@ -7,6 +7,7 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../../middleware/auth.js';
 import { MSG } from '../../../_shared/utils.js';
+import { SpaceRepository } from '../../../repositories/SpaceRepository.js';
 
 const files = new Hono();
 
@@ -17,27 +18,19 @@ files.post('/', requirePermission('files:write'), async (c) => {
   const { env } = c;
   const spaceId = c.req.param('id');
   const { fileIds } = await c.req.json();
+  const repo = new SpaceRepository(env.DB);
 
   try {
     if (!fileIds?.length) {
       return c.json({ success: false, error: MSG.COMMON.INVALID_PARAMS }, 400);
     }
 
-    const space = await env.DB.prepare('SELECT id FROM spaces WHERE id = ?').bind(spaceId).first();
+    const space = await repo.findById(spaceId);
     if (!space) {
       return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
     }
 
-    const statements = fileIds.map((fileId, index) =>
-      env.DB.prepare(
-        'INSERT INTO space_files (space_id, file_id, sort_order, added_at) VALUES (?, ?, ?, ?)'
-      ).bind(spaceId, fileId, index, Date.now())
-    );
-
-    await env.DB.batch(statements);
-    await env.DB.prepare('UPDATE spaces SET updated_at = ? WHERE id = ?')
-      .bind(Date.now(), spaceId)
-      .run();
+    await repo.addFiles(spaceId, fileIds);
 
     return c.json({
       success: true,
@@ -56,18 +49,14 @@ files.delete('/', requirePermission('files:write'), async (c) => {
   const { env } = c;
   const spaceId = c.req.param('id');
   const { fileIds } = await c.req.json();
+  const repo = new SpaceRepository(env.DB);
 
   try {
     if (!fileIds?.length) {
       return c.json({ success: false, error: MSG.COMMON.INVALID_PARAMS }, 400);
     }
 
-    const placeholders = fileIds.map(() => '?').join(',');
-    await env.DB.prepare(
-      `DELETE FROM space_files WHERE space_id = ? AND file_id IN (${placeholders})`
-    )
-      .bind(spaceId, ...fileIds)
-      .run();
+    await repo.removeFiles(spaceId, fileIds);
 
     return c.json({
       success: true,

@@ -17,7 +17,9 @@ export async function onRequestGet(context) {
     const salesperson = await authenticateSalesperson(request, env, token);
     const statsRepo = new OrderStatsRepository(env.DB);
 
-    const todayStart = new Date().setHours(0, 0, 0, 0);
+    // SOTA Date Logic
+    const { getChinaDayStart, getChinaDateStr } = await import('../../utils/date.js');
+    const todayStart = getChinaDayStart();
     const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000; // 30天前
 
     // 使用 Repository 获取统计
@@ -31,8 +33,7 @@ export async function onRequestGet(context) {
 
     const monthlyTrend = [];
     for (let i = 29; i >= 0; i--) {
-      const date = new Date(todayStart - i * 24 * 60 * 60 * 1000);
-      const dateStr = date.toISOString().slice(0, 10);
+      const dateStr = getChinaDateStr(todayStart - i * 24 * 60 * 60 * 1000);
       monthlyTrend.push({
         date: dateStr,
         count: trendMap.get(dateStr) || 0,

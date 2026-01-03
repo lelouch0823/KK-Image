@@ -12,11 +12,11 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requirePermission } from '../../../middleware/auth.js';
+import { SpaceRepository } from '../../../repositories/SpaceRepository.js';
 import { generateId, generateShareToken, MSG, getShareUrl } from '../../../_shared/utils.js';
 import {
   transformSpaceListItem,
   transformSpaceDetail,
-  transformSpaceStats,
 } from './transformers.js';
 
 const crud = new Hono();
@@ -40,19 +40,10 @@ const UpdateSpaceSchema = CreateSpaceSchema.partial();
  */
 crud.get('/', async (c) => {
   const { env } = c;
+  const repo = new SpaceRepository(env.DB);
 
   try {
-    const { results } = await env.DB.prepare(
-      `
-            SELECT s.*, 
-                (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
-                f.storage_key as cover_storage_key
-            FROM spaces s
-            LEFT JOIN files f ON s.cover_file_id = f.id
-            ORDER BY s.updated_at DESC
-        `
-    ).all();
-
+    const results = await repo.findAll();
     return c.json({
       success: true,
       data: results.map(transformSpaceListItem),
@@ -69,27 +60,17 @@ crud.get('/', async (c) => {
 crud.get('/:id', async (c) => {
   const { env } = c;
   const spaceId = c.req.param('id');
+  const repo = new SpaceRepository(env.DB);
 
   try {
-    const space = await env.DB.prepare('SELECT * FROM spaces WHERE id = ?').bind(spaceId).first();
-    if (!space) {
+    const result = await repo.getWithFiles(spaceId);
+    if (!result) {
       return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
     }
 
-    const { results: files } = await env.DB.prepare(
-      `
-            SELECT f.* FROM files f
-            JOIN space_files sf ON f.id = sf.file_id
-            WHERE sf.space_id = ?
-            ORDER BY sf.sort_order ASC, f.created_at DESC
-        `
-    )
-      .bind(spaceId)
-      .all();
-
     return c.json({
       success: true,
-      data: transformSpaceDetail(space, files),
+      data: transformSpaceDetail(result.space, result.files),
     });
   } catch (err) {
     console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
@@ -99,46 +80,45 @@ crud.get('/:id', async (c) => {
 
 /**
  * GET /:id/stats - 获取空间统计
+ * @query days - 趋势天数，支持 7 或 30，默认 7
  */
 crud.get('/:id/stats', async (c) => {
   const { env } = c;
   const spaceId = c.req.param('id');
+  const repo = new SpaceRepository(env.DB);
+  const days = Math.min(Math.max(parseInt(c.req.query('days') || '7', 10), 1), 30);
 
   try {
-    const space = await env.DB.prepare(
-      `
-            SELECT view_count, download_count FROM spaces WHERE id = ?
-        `
-    )
-      .bind(spaceId)
-      .first();
+    // 计算时间范围起点 (UTC+8 时区处理)
+    const { getChinaDayStart, getChinaDateStr } = await import('../../../_shared/utils.js');
+    const todayStart = getChinaDayStart();
+    const startTimestamp = todayStart - (days - 1) * 86400000;
 
-    const fileStats = await env.DB.prepare(
-      `
-            SELECT 
-                COUNT(*) as file_count,
-                COALESCE(SUM(f.size), 0) as total_size
-            FROM files f
-            JOIN space_files sf ON f.id = sf.file_id
-            WHERE sf.space_id = ?
-        `
-    )
-      .bind(spaceId)
-      .first();
+    const stats = await repo.getStats(spaceId, days, startTimestamp);
+    if (!stats) {
+      return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
+    }
 
-    // 生成最近7天趋势数据
+    // 构建日期 -> 访问数的映射，补全缺失日期
+    const trendMap = new Map(stats.trendData.map((d) => [d.date, d.count]));
     const trend = [];
-    const today = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().slice(0, 10);
-      trend.push({ date: dateStr, count: 0 });
+    for (let i = days - 1; i >= 0; i--) {
+      const dateStr = getChinaDateStr(todayStart - i * 86400000);
+      trend.push({ date: dateStr, count: trendMap.get(dateStr) || 0 });
     }
 
     return c.json({
       success: true,
-      data: transformSpaceStats(space, fileStats, trend),
+      data: {
+        total: {
+          view_count: stats.viewCount,
+          download_count: stats.downloadCount,
+        },
+        fileCount: stats.fileCount,
+        totalSize: stats.totalSize,
+        trend,
+        days,
+      },
     });
   } catch (err) {
     return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
@@ -156,32 +136,28 @@ crud.post(
     const { env } = c;
     const { name, description, isPublic, password, expiresAt, template, templateData } =
       c.req.valid('json');
+    const repo = new SpaceRepository(env.DB);
 
     try {
       const spaceId = generateId();
       const shareToken = generateShareToken();
       const nowMs = Date.now();
 
-      await env.DB.prepare(
-        `
-                INSERT INTO spaces (id, name, description, is_public, password, share_token, expires_at, template, template_data, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `
-      )
-        .bind(
-          spaceId,
-          name.trim(),
-          description.trim(),
-          isPublic ? 1 : 0,
-          password || null,
-          shareToken,
-          expiresAt || null,
-          template,
-          JSON.stringify(templateData),
-          nowMs,
-          nowMs
-        )
-        .run();
+      const newSpace = {
+        id: spaceId,
+        name: name.trim(),
+        description: description.trim(),
+        isPublic,
+        password: password || null,
+        shareToken,
+        expiresAt: expiresAt || null,
+        template,
+        templateData: JSON.stringify(templateData),
+        createdAt: nowMs,
+        updatedAt: nowMs,
+      };
+
+      await repo.create(newSpace);
 
       return c.json(
         {
@@ -218,9 +194,10 @@ crud.put(
     const { env } = c;
     const spaceId = c.req.param('id');
     const data = c.req.valid('json');
+    const repo = new SpaceRepository(env.DB);
 
     try {
-      const space = await env.DB.prepare('SELECT * FROM spaces WHERE id = ?').bind(spaceId).first();
+      const space = await repo.findById(spaceId);
       if (!space) {
         return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
       }
@@ -265,13 +242,7 @@ crud.put(
       values.push(Date.now());
       values.push(spaceId);
 
-      await env.DB.prepare(`UPDATE spaces SET ${updates.join(', ')} WHERE id = ?`)
-        .bind(...values)
-        .run();
-
-      const updated = await env.DB.prepare('SELECT * FROM spaces WHERE id = ?')
-        .bind(spaceId)
-        .first();
+      const updated = await repo.update(spaceId, updates, values);
 
       return c.json({
         success: true,
@@ -295,17 +266,15 @@ crud.put(
 crud.delete('/:id', requirePermission('files:delete'), async (c) => {
   const { env } = c;
   const spaceId = c.req.param('id');
+  const repo = new SpaceRepository(env.DB);
 
   try {
-    const space = await env.DB.prepare('SELECT id FROM spaces WHERE id = ?').bind(spaceId).first();
+    const space = await repo.findById(spaceId);
     if (!space) {
       return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
     }
 
-    await env.DB.batch([
-      env.DB.prepare('DELETE FROM space_files WHERE space_id = ?').bind(spaceId),
-      env.DB.prepare('DELETE FROM spaces WHERE id = ?').bind(spaceId),
-    ]);
+    await repo.delete(spaceId);
 
     return c.json({ success: true, message: MSG.SPACE.DELETE_SUCCESS });
   } catch (err) {

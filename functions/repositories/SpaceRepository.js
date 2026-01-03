@@ -1,0 +1,262 @@
+/**
+ * 共享空间仓库 (Space Repository)
+ * ===================================
+ *
+ * 负责共享空间 (Spaces) 及其关联文件 (Space Files) 的数据库操作。
+ * 遵循 SOTA 模式，集成真实的统计查询逻辑。
+ */
+
+export class SpaceRepository {
+    constructor(db) {
+        this.db = db;
+    }
+
+    /**
+     * 获取空间列表 (含封面和文件数)
+     * @returns {Promise<Array>}
+     */
+    async findAll() {
+        const { results } = await this.db
+            .prepare(
+                `
+        SELECT s.*, 
+          (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
+          f.storage_key as cover_storage_key
+        FROM spaces s
+        LEFT JOIN files f ON s.cover_file_id = f.id
+        ORDER BY s.updated_at DESC
+      `
+            )
+            .all();
+        return results;
+    }
+
+    /**
+     * 根据 ID 获取空间详情
+     * @param {string} id
+     * @returns {Promise<Object|null>}
+     */
+    async findById(id) {
+        return await this.db.prepare('SELECT * FROM spaces WHERE id = ?').bind(id).first();
+    }
+
+    /**
+     * 获取空间及其文件列表
+     * @param {string} id
+     * @returns {Promise<Object>} { space, files }
+     */
+    async getWithFiles(id) {
+        const space = await this.findById(id);
+        if (!space) return null;
+
+        const { results: files } = await this.db
+            .prepare(
+                `
+        SELECT f.* FROM files f
+        JOIN space_files sf ON f.id = sf.file_id
+        WHERE sf.space_id = ?
+        ORDER BY sf.sort_order ASC, f.created_at DESC
+      `
+            )
+            .bind(id)
+            .all();
+
+        return { space, files };
+    }
+
+    /**
+     * 获取空间统计信息 (View count, stats, and trend)
+     * @param {string} id
+     * @param {number} days - 趋势天数
+     * @param {number} startTimestamp - 统计起始时间戳 (UTC)
+     * @returns {Promise<Object>}
+     */
+    async getStats(id, days, startTimestamp) {
+        const space = await this.db
+            .prepare('SELECT view_count, download_count FROM spaces WHERE id = ?')
+            .bind(id)
+            .first();
+
+        if (!space) return null;
+
+        const fileStats = await this.db
+            .prepare(
+                `SELECT 
+        COUNT(*) as file_count,
+        COALESCE(SUM(f.size), 0) as total_size
+      FROM files f
+      JOIN space_files sf ON f.id = sf.file_id
+      WHERE sf.space_id = ?`
+            )
+            .bind(id)
+            .first();
+
+        // 从 space_access_logs 表聚合真实访问数据 (使用 SOTA +8 hours 修正)
+        const { results: trendData } = await this.db
+            .prepare(
+                `SELECT DATE(accessed_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count
+       FROM space_access_logs
+       WHERE space_id = ? AND accessed_at >= ?
+       GROUP BY date
+       ORDER BY date ASC`
+            )
+            .bind(id, startTimestamp)
+            .all();
+
+        return {
+            viewCount: space.view_count || 0,
+            downloadCount: space.download_count || 0,
+            fileCount: fileStats?.file_count || 0,
+            totalSize: fileStats?.total_size || 0,
+            trendData,
+        };
+    }
+
+    /**
+     * 创建空间
+     * @param {Object} data - Space data object
+     * @returns {Promise<void>}
+     */
+    async create(data) {
+        await this.db
+            .prepare(
+                `
+        INSERT INTO spaces (id, name, description, is_public, password, share_token, expires_at, template, template_data, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `
+            )
+            .bind(
+                data.id,
+                data.name,
+                data.description,
+                data.isPublic ? 1 : 0,
+                data.password,
+                data.shareToken,
+                data.expiresAt,
+                data.template,
+                data.templateData,
+                data.createdAt,
+                data.updatedAt
+            )
+            .run();
+    }
+
+    /**
+     * 更新空间
+     * @param {string} id
+     * @param {Array} updates - SQL update clauses
+     * @param {Array} values - SQL update values
+     * @returns {Promise<void>}
+     */
+    async update(id, updates, values) {
+        await this.db
+            .prepare(`UPDATE spaces SET ${updates.join(', ')} WHERE id = ?`)
+            .bind(...values)
+            .run();
+
+        return await this.findById(id);
+    }
+
+    /**
+     * 删除空间 (Transaction)
+     * @param {string} id
+     * @returns {Promise<void>}
+     */
+    async delete(id) {
+        await this.db.batch([
+            this.db.prepare('DELETE FROM space_files WHERE space_id = ?').bind(id),
+            this.db.prepare('DELETE FROM spaces WHERE id = ?').bind(id),
+        ]);
+    }
+
+    /**
+     * 添加文件到空间
+     * @param {string} spaceId
+     * @param {Array<string>} fileIds
+     * @returns {Promise<void>}
+     */
+    async addFiles(spaceId, fileIds) {
+        const statements = fileIds.map((fileId, index) =>
+            this.db
+                .prepare(
+                    'INSERT INTO space_files (space_id, file_id, sort_order, added_at) VALUES (?, ?, ?, ?)'
+                )
+                .bind(spaceId, fileId, index, Date.now())
+        );
+
+        await this.db.batch(statements);
+
+        // Update space updated_at
+        await this.db
+            .prepare('UPDATE spaces SET updated_at = ? WHERE id = ?')
+            .bind(Date.now(), spaceId)
+            .run();
+    }
+
+    /**
+     * 从空间移除文件
+     * @param {string} spaceId
+     * @param {Array<string>} fileIds
+     * @returns {Promise<void>}
+     */
+    async removeFiles(spaceId, fileIds) {
+        const placeholders = fileIds.map(() => '?').join(',');
+        await this.db
+            .prepare(`DELETE FROM space_files WHERE space_id = ? AND file_id IN (${placeholders})`)
+            .bind(spaceId, ...fileIds)
+            .run();
+    }
+
+    /**
+     * 获取子空间列表
+     * @param {string} parentId
+     * @returns {Promise<Array>}
+     */
+    async findSubspaces(parentId) {
+        const { results } = await this.db
+            .prepare(
+                `
+        SELECT s.*, 
+            (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
+            f.storage_key as cover_storage_key
+        FROM spaces s
+        LEFT JOIN files f ON s.cover_file_id = f.id
+        WHERE s.parent_id = ?
+        ORDER BY s.sort_order ASC, s.updated_at DESC
+      `
+            )
+            .bind(parentId)
+            .all();
+        return results;
+    }
+
+    /**
+     * 创建子空间
+     * @param {Object} data
+     * @returns {Promise<void>}
+     */
+    async createSubspace(data) {
+        await this.db
+            .prepare(
+                `
+        INSERT INTO spaces (id, parent_id, name, description, is_public, password, share_token, expires_at, template, template_data, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `
+            )
+            .bind(
+                data.id,
+                data.parentId,
+                data.name,
+                data.description,
+                data.isPublic ? 1 : 0,
+                data.password,
+                data.shareToken,
+                data.expiresAt,
+                data.template,
+                data.templateData,
+                data.createdAt,
+                data.updatedAt
+            )
+            .run();
+    }
+}

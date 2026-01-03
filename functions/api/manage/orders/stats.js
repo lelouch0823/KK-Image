@@ -34,10 +34,10 @@ export async function onRequestGet(context) {
       trendMap.set(row.date, row.count);
     });
 
+    const { getChinaDateStr } = await import('../../utils/date.js');
     const monthTrend = [];
     for (let i = 29; i >= 0; i--) {
-      const date = new Date(todayStart - i * 24 * 60 * 60 * 1000);
-      const dateStr = date.toISOString().slice(0, 10);
+      const dateStr = getChinaDateStr(todayStart - i * 24 * 60 * 60 * 1000);
       monthTrend.push({
         date: dateStr,
         count: trendMap.get(dateStr) || 0,

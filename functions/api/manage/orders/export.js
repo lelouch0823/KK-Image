@@ -136,13 +136,15 @@ export async function onRequestGet(context) {
 
     if (fromDate) {
       whereClause += ' AND o.created_at >= ?';
-      bindParams.push(new Date(fromDate).getTime());
+      const { parseChinaDate } = await import('../../utils/date.js');
+      bindParams.push(parseChinaDate(fromDate));
     }
 
     if (toDate) {
       whereClause += ' AND o.created_at <= ?';
+      const { parseChinaDate } = await import('../../utils/date.js');
       // 加上一天的毫秒数以包含当天
-      bindParams.push(new Date(toDate).getTime() + 86400000);
+      bindParams.push(parseChinaDate(toDate) + 86400000);
     }
 
     // 获取订单列表 (不分页，导出全部)
@@ -184,7 +186,8 @@ export async function onRequestGet(context) {
 
     // 生成 CSV
     const csv = generateCSV(formattedOrders);
-    const filename = `orders_${new Date().toISOString().slice(0, 10)}.csv`;
+    const { getChinaDateStr } = await import('../../utils/date.js');
+    const filename = `orders_${getChinaDateStr()}.csv`;
 
     return new Response(csv, {
       status: 200,

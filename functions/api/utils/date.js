@@ -32,3 +32,25 @@ export function getChinaDayStart(timestamp = Date.now()) {
     const localTodayStart = Math.floor(localTime / 86400000) * 86400000;
     return localTodayStart - TZ_OFFSET;
 }
+
+/**
+ * 获取中国时区的 YYYY-MM-DD 日期字符串
+ * @param {number} timestamp - 时间戳
+ * @returns {string} YYYY-MM-DD
+ */
+export function getChinaDateStr(timestamp = Date.now()) {
+    return new Date(timestamp + TZ_OFFSET).toISOString().slice(0, 10);
+}
+
+/**
+ * 解析中国时区的 YYYY-MM-DD 为 UTC 时间戳 (该日期的 00:00:00)
+ * @param {string} dateStr - YYYY-MM-DD
+ * @returns {number} UTC Timestamp
+ */
+export function parseChinaDate(dateStr) {
+    if (!dateStr) return null;
+    const [y, m, d] = dateStr.split('-').map(Number);
+    // Construct UTC date then subtract offset
+    const utcDate = Date.UTC(y, m - 1, d);
+    return utcDate - TZ_OFFSET;
+}
