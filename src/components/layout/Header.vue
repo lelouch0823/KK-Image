@@ -20,6 +20,16 @@
       <h1 class="text-primary text-lg font-semibold lg:text-xl">{{ viewTitle }}</h1>
     </div>
     <div class="flex items-center gap-2 lg:gap-4">
+      <!-- 移动端搜索按钮 -->
+      <button
+        class="flex size-9 items-center justify-center rounded-lg text-secondary transition-colors hover:bg-[var(--bg-hover)] lg:hidden"
+        @click="openMobileSearch"
+      >
+        <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </button>
+
       <!-- 搜索框 (桌面端) -->
       <div class="relative hidden lg:block">
         <input
@@ -98,11 +108,34 @@
         </svg>
       </button>
     </div>
+    
+    <!-- 移动端搜索遮罩 (Search Overlay) -->
+    <transition name="fade">
+      <div v-if="showMobileSearch" class="absolute inset-0 z-50 flex items-center bg-white px-4 lg:hidden">
+        <div class="relative flex-1">
+            <input
+            ref="mobileSearchInputRef"
+            v-model="searchQuery"
+            type="text"
+            :placeholder="t('header.searchPlaceholder')"
+            class="h-10 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-page)] pl-10 pr-4 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+            @keydown.esc="closeMobileSearch"
+            @blur="!searchQuery && closeMobileSearch()"
+            />
+            <svg class="text-secondary absolute top-1/2 left-3 size-5 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+        </div>
+        <button class="text-secondary ml-3 p-2 font-medium" @click="closeMobileSearch">
+            {{ t('common.cancel') }}
+        </button>
+      </div>
+    </transition>
   </header>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useView } from '@/composables/useView';
 import { useI18n } from '@/composables/useI18n';
 import { useSearch } from '@/composables/useSearch';
@@ -120,6 +153,21 @@ const { unreadCount, startPolling, stopPolling } = useNotifications();
 const showNotifications = ref(false);
 const notificationRef = ref(null);
 const notificationsSupported = ref(true); // 可以根据路由判断是否显示，目前全显示
+
+// 移动端搜索状态
+const showMobileSearch = ref(false);
+const mobileSearchInputRef = ref(null);
+
+const openMobileSearch = async () => {
+    showMobileSearch.value = true;
+    await nextTick();
+    mobileSearchInputRef.value?.focus();
+};
+
+const closeMobileSearch = () => {
+    showMobileSearch.value = false;
+    searchQuery.value = ''; // Optional: clear on close? Or keep? Let's keep it consistent with desktop (don't clear)
+};
 
 // 点击外部关闭
 onClickOutside(notificationRef, () => {

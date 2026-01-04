@@ -20,7 +20,7 @@
 
       <!-- 动态组件视图 -->
       <div class="scrollbar-thin relative flex-1 overflow-y-auto p-6">
-        <transition name="fade" mode="out-in">
+        <transition name="slide-up" mode="out-in">
           <keep-alive>
             <component :is="currentComponent" />
           </keep-alive>

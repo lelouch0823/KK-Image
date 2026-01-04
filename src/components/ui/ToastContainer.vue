@@ -5,7 +5,7 @@
         <div
           v-for="toast in toasts"
           :key="toast.id"
-          class="pointer-events-auto flex w-full max-w-xs items-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-xl"
+          class="pointer-events-auto flex w-full max-w-xs items-center rounded-lg border border-[var(--border-color)] bg-white/95 backdrop-blur-sm p-4 shadow-soft"
           role="alert"
         >
           <div

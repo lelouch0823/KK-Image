@@ -24,7 +24,7 @@
         >
           <div
             v-if="modelValue"
-            class="animate-in flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl shadow-2xl"
+            class="animate-in flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl shadow-2xl border border-white/20 ring-1 ring-black/5"
             :class="sizeClass"
             style="background-color: var(--color-modal-bg)"
           >

@@ -39,15 +39,16 @@ const sizeClass = computed(() => {
 });
 
 const variantClass = computed(() => {
+  /* Premium Badge Colors */
   const variants = {
-    default: 'bg-[var(--color-gray-100)] text-[var(--color-gray-600)]',
-    success: 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]',
-    warning: 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]',
-    error: 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]',
-    info: 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]',
-    primary: 'bg-primary/10 text-primary',
-    purple: 'bg-[var(--color-purple-bg)] text-[var(--color-purple-text)]',
-    cyan: 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan-text)]',
+    default: 'bg-[var(--bg-muted)] text-[var(--text-secondary)] border border-[var(--border-color)]',
+    success: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
+    warning: 'bg-amber-50 text-amber-700 border border-amber-100',
+    error: 'bg-rose-50 text-rose-700 border border-rose-100',
+    info: 'bg-sky-50 text-sky-700 border border-sky-100',
+    primary: 'bg-[var(--color-primary-bg)] text-[var(--color-primary)] border border-blue-100',
+    purple: 'bg-purple-50 text-purple-700 border border-purple-100',
+    cyan: 'bg-cyan-50 text-cyan-700 border border-cyan-100',
   };
   return variants[props.variant] || variants.default;
 });

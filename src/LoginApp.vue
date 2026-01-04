@@ -5,7 +5,7 @@
     <div class="w-full max-w-md">
       <!-- 登录卡片 -->
       <div
-        class="shadow-primary/5 overflow-hidden rounded-2xl border border-[var(--border-color)] bg-white shadow-xl"
+        class="animate-scale-in shadow-glass overflow-hidden rounded-2xl border border-white/20 bg-white/90 backdrop-blur-xl ring-1 ring-black/5"
       >
         <!-- 头部 -->
         <div class="px-8 pt-10 pb-6 text-center">
@@ -134,7 +134,7 @@
           <button
             type="submit"
             :disabled="loading || (turnstileEnabled && !turnstileToken)"
-            class="bg-primary shadow-primary/20 flex h-12 w-full items-center justify-center gap-2 rounded-xl font-medium text-white shadow-lg transition-all hover:bg-primary-hover hover:shadow-primary/30 hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
+            class="bg-primary shadow-primary/20 flex h-12 w-full items-center justify-center gap-2 rounded-xl font-medium text-white shadow-lg transition-all active:scale-95 hover:bg-primary-hover hover:shadow-primary/30 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-70"
           >
             <svg v-if="loading" class="size-5 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle

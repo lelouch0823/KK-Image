@@ -3,7 +3,7 @@
     <div
       v-for="file in files"
       :key="file.id"
-      class="flex items-center gap-3 rounded-xl bg-gray-50 p-3"
+      class="flex items-center gap-3 rounded-xl bg-gray-50 p-3 transition-all duration-300 hover:bg-white hover:shadow-soft hover:-translate-y-0.5 border border-transparent hover:border-[var(--border-color)]"
     >
       <!-- 缩略图 -->
       <div
@@ -35,8 +35,8 @@
       <!-- 操作按钮 -->
       <div class="flex items-center gap-1">
         <button
-          class="text-secondary rounded-lg p-2 hover:text-primary"
-          @click="$emit('share', file)"
+          class="text-secondary rounded-lg p-2 transition-colors hover:text-primary active:bg-gray-200"
+          @click.stop="$emit('share', file)"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -48,16 +48,11 @@
           </svg>
         </button>
         <button
-          class="text-secondary rounded-lg p-2 hover:text-[var(--color-danger)]"
-          @click="$emit('delete', file)"
+          class="text-secondary rounded-lg p-2 transition-colors hover:text-primary active:bg-gray-200"
+          @click.stop="$emit('context-menu', $event, file)"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            ></path>
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
           </svg>
         </button>
       </div>
@@ -75,7 +70,7 @@ defineProps({
   },
 });
 
-defineEmits(['share', 'delete']);
+defineEmits(['share', 'delete', 'context-menu']);
 
 const { formatSize, formatDate, getFileExtension, isImage } = useFileManager();
 </script>

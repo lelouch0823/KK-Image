@@ -4,6 +4,9 @@
       <tr
         class="text-secondary border-b border-[var(--border-color)] text-left text-xs font-medium tracking-wider uppercase"
       >
+        <th class="w-10 px-4 py-3">
+          <!-- Header Checkbox could go here if we want select all visible -->
+        </th>
         <th class="px-4 py-3">{{ t('fileManager.table.name') }}</th>
         <th class="px-4 py-3">{{ t('fileManager.table.size') }}</th>
         <th class="px-4 py-3">{{ t('fileManager.table.type') }}</th>
@@ -16,7 +19,18 @@
         v-for="file in files"
         :key="file.id"
         class="group transition-colors hover:bg-[var(--bg-hover)]"
+        :class="{ 'bg-blue-50/50': selectedIds.has(file.id) }"
+        @click="$emit('toggle-select', file)"
+        @contextmenu.prevent="handleContextMenu($event, file)"
       >
+        <td class="px-4 py-3">
+          <input
+            type="checkbox"
+            class="checkbox checkbox-sm checkbox-primary rounded"
+            :checked="selectedIds.has(file.id)"
+            @click.stop="$emit('toggle-select', file)"
+          />
+        </td>
         <td class="px-4 py-3">
           <div class="flex items-center gap-3">
             <img
@@ -36,6 +50,7 @@
               target="_blank"
               class="text-primary max-w-[200px] truncate text-sm font-medium hover:underline"
               :title="file.originalName"
+              @click.stop
               >{{ file.originalName || file.name }}</a
             >
           </div>
@@ -50,7 +65,7 @@
             <button
               class="text-secondary rounded-lg p-1.5 transition-colors hover:text-primary hover:bg-gray-100"
               :title="t('fileManager.actions.share')"
-              @click="$emit('share', file)"
+              @click.stop="$emit('share', file)"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -64,7 +79,7 @@
             <button
               class="text-secondary rounded-lg p-1.5 transition-colors hover:text-primary hover:bg-gray-100"
               :title="t('fileManager.actions.move')"
-              @click="$emit('move', file)"
+              @click.stop="$emit('move', file)"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -78,7 +93,7 @@
             <button
               class="text-secondary rounded-lg p-1.5 transition-colors hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger)]"
               :title="t('fileManager.actions.delete')"
-              @click="$emit('delete', file)"
+              @click.stop="$emit('delete', file)"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -105,10 +120,18 @@ defineProps({
     type: Array,
     required: true,
   },
+  selectedIds: {
+    type: Set,
+    default: () => new Set(),
+  },
 });
 
-defineEmits(['share', 'move', 'delete']);
+const emit = defineEmits(['share', 'move', 'delete', 'context-menu', 'select', 'toggle-select']);
 
 const { t } = useI18n();
 const { formatSize, formatDate, getFileExtension, isImage } = useFileManager();
+
+const handleContextMenu = (e, file) => {
+  emit('context-menu', e, file);
+};
 </script>

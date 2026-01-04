@@ -184,6 +184,81 @@ export function useFileManager() {
     deleteFolder,
     deleteFile,
 
+    // New Operations
+    renameFile: async (id, name) => {
+      try {
+        const res = await authFetch(`${API.FILES}/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        }).then((r) => r.json());
+
+        if (res.success) {
+          success(t('fileOps.renameSuccess'));
+          loadFolderData(currentFolder.value?.id);
+          return true;
+        } else {
+          error(res.message);
+          return false;
+        }
+      } catch (_e) {
+        error(t('fileOps.renameFailed'));
+        return false;
+      }
+    },
+
+    renameFolder: async (id, name) => {
+      return updateFolder(id, { name });
+    },
+
+    moveFolder: async (id, parentId) => {
+      return updateFolder(id, { parentId });
+    },
+
+    batchDeleteFiles: async (ids) => {
+      try {
+        const res = await authFetch(`${API.FILES}/batch/delete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids }),
+        }).then((r) => r.json());
+
+        if (res.success) {
+          success(res.message);
+          loadFolderData(currentFolder.value?.id);
+          return true;
+        } else {
+          error(res.message);
+          return false;
+        }
+      } catch (_e) {
+        error(t('fileOps.deleteFailed'));
+        return false;
+      }
+    },
+
+    batchMoveFiles: async (ids, targetFolderId) => {
+      try {
+        const res = await authFetch(`${API.FILES}/batch/move`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids, targetFolderId }),
+        }).then((r) => r.json());
+
+        if (res.success) {
+          success(res.message);
+          loadFolderData(currentFolder.value?.id);
+          return true;
+        } else {
+          error(res.message);
+          return false;
+        }
+      } catch (_e) {
+        error(t('fileOps.moveFailed'));
+        return false;
+      }
+    },
+
     // 从 utils 导出的辅助函数
     isImage,
     getFileExtension,

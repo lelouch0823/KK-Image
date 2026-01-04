@@ -16,7 +16,7 @@
 
       <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
         <div
-          class="pointer-events-auto flex h-full w-screen max-w-md transform flex-col bg-white shadow-xl transition duration-500 ease-in-out sm:duration-700"
+          class="pointer-events-auto flex h-full w-full sm:w-screen sm:max-w-md transform flex-col bg-white shadow-xl transition duration-500 ease-in-out sm:duration-700"
         >
           <!-- 头部 -->
           <div class="border-b border-gray-200 px-4 py-6 sm:px-6">

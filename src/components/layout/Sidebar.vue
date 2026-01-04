@@ -93,7 +93,7 @@
           class="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
           :class="[
             currentView === item.key
-              ? 'text-primary bg-[var(--bg-active)]'
+              ? 'text-primary bg-primary/5 font-semibold shadow-sm ring-1 ring-primary/10'
               : 'text-secondary hover:text-primary hover:bg-[var(--bg-hover)]',
             isCollapsed ? 'justify-center' : '',
           ]"

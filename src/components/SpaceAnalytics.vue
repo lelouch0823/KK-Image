@@ -37,7 +37,7 @@
       <!-- Key Metrics -->
       <div class="grid grid-cols-2 gap-4">
         <div
-          class="rounded-xl border border-[var(--color-info-bg)]/50 bg-[var(--color-info-bg)] p-4 transition-all duration-300"
+          class="rounded-2xl border border-[var(--color-info-bg)]/50 bg-[var(--color-info-bg)] p-4 shadow-sm transition-all duration-300 hover:shadow-soft hover:-translate-y-1"
         >
           <div class="mb-1 text-sm font-medium text-[var(--color-info-text)]">
             {{ t('spaceAnalytics.totalViews') }}
@@ -45,7 +45,7 @@
           <div class="text-primary text-2xl font-bold">{{ stats.total?.view_count || 0 }}</div>
         </div>
         <div
-          class="rounded-xl border border-[var(--color-purple-bg)]/50 bg-[var(--color-purple-bg)] p-4 transition-all duration-300"
+          class="rounded-2xl border border-[var(--color-purple-bg)]/50 bg-[var(--color-purple-bg)] p-4 shadow-sm transition-all duration-300 hover:shadow-soft hover:-translate-y-1"
         >
           <div class="mb-1 text-sm font-medium text-[var(--color-purple-text)]">
             {{ t('spaceAnalytics.totalDownloads') }}
@@ -55,7 +55,7 @@
       </div>
 
       <!-- Chart with Time Range Selector -->
-      <div class="rounded-xl border border-[var(--border-color)] bg-white p-4 shadow-sm">
+      <div class="rounded-2xl border border-[var(--border-color)] bg-white p-4 shadow-soft">
         <div class="mb-4 flex items-center justify-between">
           <h3 class="text-primary text-sm font-medium">
             {{ t('spaceAnalytics.visitorTrend') }}

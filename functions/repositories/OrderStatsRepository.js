@@ -89,6 +89,25 @@ export class OrderStatsRepository {
   }
 
   /**
+   * 统计指定时间范围内创建的订单数
+   * @param {number} startTimestamp - 开始时间戳 (包含)
+   * @param {number} endTimestamp - 结束时间戳 (不包含)
+   * @returns {Promise<number>}
+   */
+  async countCreatedBetween(startTimestamp, endTimestamp) {
+    const result = await this.db
+      .prepare(
+        `
+            SELECT COUNT(*) as count FROM orders 
+            WHERE created_at >= ? AND created_at < ?
+        `
+      )
+      .bind(startTimestamp, endTimestamp)
+      .first();
+    return result.count;
+  }
+
+  /**
    * 获取销售员的订单统计
    * @param {string} salespersonId
    * @param {number} todayStart

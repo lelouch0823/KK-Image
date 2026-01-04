@@ -1,7 +1,6 @@
 <template>
   <div class="space-y-6">
     <!-- 统计卡片 -->
-    <!-- 统计卡片 -->
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
       <div class="rounded-xl border border-[var(--border-color)] bg-white p-5">
         <div class="text-secondary mb-1 text-sm">{{ t('dashboard.todayOrders') }}</div>
@@ -12,12 +11,22 @@
         <div class="text-danger text-3xl font-bold">{{ orderStats.pendingCount }}</div>
       </div>
       <div class="rounded-xl border border-[var(--border-color)] bg-white p-5">
-        <div class="text-secondary mb-1 text-sm">{{ t('dashboard.todayUploads') }}</div>
-        <div class="text-primary text-3xl font-bold">{{ todayUploads }}</div>
+        <div class="text-secondary mb-1 flex items-center justify-between text-sm">
+          <span>{{ t('dashboard.weekOrders') }}</span>
+          <span
+            v-if="weekTrend !== 0"
+            :class="weekTrend > 0 ? 'text-green-600' : 'text-red-500'"
+            class="text-xs font-medium"
+          >
+            {{ weekTrend > 0 ? '↑' : '↓' }} {{ Math.abs(weekTrend) }}%
+          </span>
+          <span v-else class="text-xs text-gray-400">{{ t('dashboard.trendSame') }}</span>
+        </div>
+        <div class="text-primary text-3xl font-bold">{{ orderStats.weekCount || 0 }}</div>
       </div>
       <div class="rounded-xl border border-[var(--border-color)] bg-white p-5">
-        <div class="text-secondary mb-1 text-sm">{{ t('dashboard.totalStorage') }}</div>
-        <div class="text-primary text-3xl font-bold">{{ formatSize(totalSize) }}</div>
+        <div class="text-secondary mb-1 text-sm">{{ t('dashboard.activeShares') }}</div>
+        <div class="text-primary text-3xl font-bold">{{ orderStats.activeSharesCount || 0 }}</div>
       </div>
     </div>
 
@@ -263,7 +272,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onActivated } from 'vue';
+import { ref, onMounted, onActivated, computed } from 'vue';
 import { useView } from '@/composables/useView';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
@@ -291,15 +300,23 @@ const { t } = useI18n();
 const { getOrder } = useOrders();
 const { copyShareLink } = useClipboard();
 
-const totalFiles = ref(0);
-const todayUploads = ref(0);
-const totalSize = ref(0);
 const recentFiles = ref([]);
 const recentShares = ref([]);
 const orderStats = ref({
   todayCount: 0,
   pendingCount: 0,
+  weekCount: 0,
+  lastWeekCount: 0,
+  activeSharesCount: 0,
   recentPendingOrders: [],
+});
+
+// 计算周环比趋势百分比
+const weekTrend = computed(() => {
+  const current = orderStats.value.weekCount || 0;
+  const last = orderStats.value.lastWeekCount || 0;
+  if (last === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - last) / last) * 100);
 });
 
 const showShareManager = ref(false);
@@ -361,10 +378,6 @@ const fetchStats = async () => {
     const res = await authFetchJson(API.STATS);
 
     if (res.success && res.data) {
-      totalFiles.value = res.data.files?.total || 0;
-      todayUploads.value = res.data.files?.todayUploads || 0;
-      totalSize.value = res.data.files?.totalSize || 0;
-
       // Fix: Recent files are nested in data.recentFiles
       if (res.data.recentFiles) {
         recentFiles.value = res.data.recentFiles;

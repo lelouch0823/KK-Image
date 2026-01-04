@@ -33,7 +33,7 @@
       <!-- Top Stats Cards -->
       <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
         <div
-          class="group flex flex-col items-center justify-center rounded-xl border border-[var(--border-color)] bg-white p-4 text-center transition-colors hover:border-blue-300"
+          class="group flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-white p-4 text-center transition-all duration-300 hover:border-blue-300 hover:shadow-soft hover:-translate-y-1"
         >
           <span class="text-secondary mb-1 text-xs font-semibold tracking-wider uppercase">{{
             t('stats.totalFiles')
@@ -44,7 +44,7 @@
           >
         </div>
         <div
-          class="group flex flex-col items-center justify-center rounded-xl border border-[var(--border-color)] bg-white p-4 text-center transition-colors hover:border-green-300"
+          class="group flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-white p-4 text-center transition-all duration-300 hover:border-green-300 hover:shadow-soft hover:-translate-y-1"
         >
           <span class="text-secondary mb-1 text-xs font-semibold tracking-wider uppercase">{{
             t('stats.todayUploads')
@@ -55,7 +55,7 @@
           >
         </div>
         <div
-          class="group flex flex-col items-center justify-center rounded-xl border border-[var(--border-color)] bg-white p-4 text-center transition-colors hover:border-purple-300"
+          class="group flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-white p-4 text-center transition-all duration-300 hover:border-purple-300 hover:shadow-soft hover:-translate-y-1"
         >
           <span class="text-secondary mb-1 text-xs font-semibold tracking-wider uppercase">{{
             t('stats.weekUploads')
@@ -66,7 +66,7 @@
           >
         </div>
         <div
-          class="group flex flex-col items-center justify-center rounded-xl border border-[var(--border-color)] bg-white p-4 text-center transition-colors hover:border-orange-300"
+          class="group flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-white p-4 text-center transition-all duration-300 hover:border-orange-300 hover:shadow-soft hover:-translate-y-1"
         >
           <span class="text-secondary mb-1 text-xs font-semibold tracking-wider uppercase">{{
             t('stats.totalStorage')
@@ -81,7 +81,7 @@
       <!-- Charts Row 1 -->
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- 趋势图 (占用 2/3) -->
-        <div class="rounded-xl border border-[var(--border-color)] bg-white p-6 lg:col-span-2">
+        <div class="rounded-2xl border border-[var(--border-color)] bg-white p-6 shadow-sm lg:col-span-2">
           <h3 class="text-primary mb-6 flex items-center gap-2 text-lg font-semibold">
             <span class="h-6 w-1 rounded-full bg-blue-500"></span>
             {{ t('stats.uploadTrend') }}
@@ -157,7 +157,7 @@
 
         <!-- 最近上传列表 -->
         <div
-          class="flex h-full flex-col rounded-xl border border-[var(--border-color)] bg-white p-6"
+          class="flex h-full flex-col rounded-2xl border border-[var(--border-color)] bg-white p-6 shadow-sm"
         >
           <h3 class="text-primary mb-4 flex items-center gap-2 text-lg font-semibold">
             <span class="h-6 w-1 rounded-full bg-orange-500"></span>

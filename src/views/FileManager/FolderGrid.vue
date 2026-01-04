@@ -3,8 +3,14 @@
     <div
       v-for="folder in folders"
       :key="folder.id"
-      class="group relative cursor-pointer rounded-xl border border-[var(--border-color)] bg-white p-4 transition-all hover:border-gray-300 hover:shadow-md"
+      class="group relative cursor-pointer rounded-xl border p-4 transition-all hover:shadow-md"
+      :class="[
+        selectedIds.has(folder.id)
+          ? 'border-primary bg-blue-50/50 ring-1 ring-primary'
+          : 'border-[var(--border-color)] bg-white hover:border-gray-300'
+      ]"
       @click="$emit('navigate', folder.id)"
+      @contextmenu.prevent="handleContextMenu($event, folder)"
     >
       <div class="flex flex-col items-center">
         <svg
@@ -25,19 +31,16 @@
         </div>
       </div>
 
-      <!-- Delete Button on Hover -->
-      <button
-        class="text-secondary absolute top-2 right-2 z-10 rounded-lg border border-gray-100 bg-white p-1.5 opacity-0 shadow-sm transition-all group-hover:opacity-100 hover:text-[var(--color-danger)]"
-        :title="t('common.delete')"
-        @click.stop="$emit('delete', folder)"
+      <!-- Delete Button on Hover (Keep as quick action) -->
+      </button>
+
+        <!-- More Actions (Mobile/Desktop) -->
+       <button
+        class="text-secondary absolute top-2 right-2 z-10 rounded-lg border border-gray-100 bg-white p-1.5 shadow-sm transition-all hover:text-primary lg:opacity-0 lg:group-hover:opacity-100"
+        @click.stop="$emit('context-menu', $event, folder)"
       >
         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-          ></path>
+           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
         </svg>
       </button>
     </div>
@@ -52,9 +55,17 @@ defineProps({
     type: Array,
     required: true,
   },
+  selectedIds: {
+    type: Set,
+    default: () => new Set(),
+  },
 });
 
-defineEmits(['navigate', 'select', 'delete']);
+const emit = defineEmits(['navigate', 'select', 'delete', 'context-menu']);
 
 const { t } = useI18n();
+
+const handleContextMenu = (e, folder) => {
+  emit('context-menu', e, folder);
+};
 </script>

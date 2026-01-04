@@ -21,19 +21,36 @@ export async function onRequestGet(context) {
     const { getChinaDayStart } = await import('../../utils/date.js');
     const todayStartTimestamp = getChinaDayStart();
 
-    const [todayCount, pendingCount, recentPendingOrders] = await Promise.all([
+    // 计算本周和上周的时间范围
+    const weekStartTimestamp = todayStartTimestamp - 6 * 24 * 60 * 60 * 1000; // 7天前 (含今天)
+    const lastWeekStartTimestamp = weekStartTimestamp - 7 * 24 * 60 * 60 * 1000; // 上周同期
+    const now = Date.now();
+
+    const [todayCount, pendingCount, recentPendingOrders, weekCount, lastWeekCount, activeSharesCount] = await Promise.all([
       // 今日订单
       statsRepo.countCreatedAfter(todayStartTimestamp),
       // 待处理订单总数
       statsRepo.countByStatus('pending'),
       // 最近待处理订单 (Limit 5)
       statsRepo.getRecentPending(5),
+      // 本周订单
+      statsRepo.countCreatedAfter(weekStartTimestamp),
+      // 上周订单 (用于环比)
+      statsRepo.countCreatedBetween(lastWeekStartTimestamp, weekStartTimestamp),
+      // 活跃分享数 (未过期的公开分享)
+      env.DB.prepare(`
+        SELECT COUNT(*) as count FROM folders 
+        WHERE is_public = 1 AND (expires_at IS NULL OR expires_at > ?)
+      `).bind(now).first().then(r => r?.count || 0),
     ]);
 
     return success({
       todayCount,
       pendingCount,
       recentPendingOrders,
+      weekCount,
+      lastWeekCount,
+      activeSharesCount,
     });
   } catch (err) {
     if (err.message === MSG.AUTH.REQUIRED || err.message === MSG.AUTH.FORBIDDEN) {
