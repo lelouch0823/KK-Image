@@ -169,18 +169,16 @@
 import { ref, onMounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
-import { useFormat } from '@/composables/useFormat';
+import { formatSize, formatDate } from '@/utils/formatters';
 
 const { t } = useI18n();
 const { addToast } = useToast();
-const { formatFileSize, formatDateTime } = useFormat();
 
 const backups = ref([]);
 const loading = ref(true);
 const creating = ref(false);
 
-const formatSize = (bytes) => formatFileSize(bytes);
-const formatDate = (date) => formatDateTime(date);
+// 直接使用 formatters.js 的函数，无需额外封装
 
 const fetchBackups = async () => {
   try {

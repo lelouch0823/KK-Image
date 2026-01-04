@@ -91,25 +91,7 @@ export class OrderRepository {
     return mutations.setUnread(this.db, id, actorType);
   }
 
-  // ========================================
-  // 兼容性方法 (Legacy / Deprecated)
-  // ========================================
 
-  /**
-   * @deprecated 请使用 markAsRead(id, 'sales')
-   */
-  async clearNewFeedback(orderId, _salespersonId) {
-    await this.markAsRead(orderId, 'sales');
-  }
-
-  /**
-   * @deprecated 请使用 setUnread(id, actorType)
-   */
-  async setNewFeedback(_id) {
-    console.warn(
-      'setNewFeedback is deprecated. Use setUnread(id, actorType) + markAsRead(id, actorType)'
-    );
-  }
 
   // ========================================
   // 内部工具 (保留用于兼容性)

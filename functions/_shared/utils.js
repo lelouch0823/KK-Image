@@ -15,7 +15,7 @@ export { success, error } from '../api/utils/response.js';
 export { MSG } from '../api/utils/messages.js';
 
 // 日期工具
-export { getChinaDate, getChinaDayStart } from '../api/utils/date.js';
+export { getChinaDate, getChinaDayStart, getChinaDateStr } from '../api/utils/date.js';
 
 // ID 生成工具
 export {
@@ -34,7 +34,7 @@ export {
 export { getShareUrl, getFileUrl } from '../api/utils/url.js';
 
 // 认证工具
-export { generateJWT, verifyJWT, ADMIN_AUTH_COOKIE, verifyTurnstile } from '../api/utils/auth.js';
+export { generateJWT, verifyJWT, ADMIN_AUTH_COOKIE, verifyTurnstile, timingSafeCompare, isAdminAuthenticated } from '../api/utils/auth.js';
 
 // 后端常量
 export { CORS_MAX_AGE, ORDER_STATUSES } from '../api/utils/constants.js';
@@ -50,3 +50,6 @@ export { authenticateSalesperson } from '../api/utils/salesperson-auth.js';
 
 // ETag 工具
 export { generateETag, matchesETag } from '../api/utils/etag.js';
+
+// 文件工具
+export { storeFile, getFileType } from '../api/utils/file-utils.js';

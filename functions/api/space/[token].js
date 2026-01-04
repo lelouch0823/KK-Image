@@ -7,55 +7,8 @@
 
 import { success, error } from '../utils/response.js';
 import { MSG } from '../utils/messages.js';
-import { verifyJWT, ADMIN_AUTH_COOKIE } from '../utils/auth.js';
-import { parse as parseCookie } from 'cookie';
-
-// 常量时间密码比较 (防止时序攻击)
-function timingSafeCompare(a, b) {
-  if (typeof a !== 'string' || typeof b !== 'string') return false;
-  const encoder = new TextEncoder();
-  const bufA = encoder.encode(a);
-  const bufB = encoder.encode(b);
-  if (bufA.length !== bufB.length) {
-    // 比较一个虚拟值以保持时间一致
-    crypto.subtle.timingSafeEqual?.(bufA, bufA);
-    return false;
-  }
-  // Cloudflare Workers 支持 crypto.subtle.timingSafeEqual
-  if (crypto.subtle.timingSafeEqual) {
-    return crypto.subtle.timingSafeEqual(bufA, bufB);
-  }
-  // 回退：手动实现常量时间比较
-  let result = 0;
-  for (let i = 0; i < bufA.length; i++) {
-    result |= bufA[i] ^ bufB[i];
-  }
-  return result === 0;
-}
-
-// 检查是否为已认证管理员
-async function isAuthenticated(request, env) {
-  try {
-    const cookieHeader = request.headers.get('Cookie') || '';
-    const cookies = parseCookie(cookieHeader);
-    const token = cookies[ADMIN_AUTH_COOKIE];
-    if (!token) return false;
-    await verifyJWT(token, env);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// 判断文件类型
-function getFileType(mimeType, name) {
-  if (mimeType?.startsWith('image/')) return 'image';
-  if (mimeType === 'application/pdf') return 'pdf';
-  const ext = name?.split('.').pop()?.toLowerCase();
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'ico'].includes(ext)) return 'image';
-  if (ext === 'pdf') return 'pdf';
-  return 'file';
-}
+import { timingSafeCompare, isAdminAuthenticated } from '../utils/auth.js';
+import { getFileType } from '../utils/file-utils.js';
 
 /**
  * 获取空间数据 (GET/POST 共享逻辑)
@@ -152,7 +105,7 @@ export async function onRequestGet(context) {
     }
 
     // 检查是否公开 (管理员可预览未公开空间)
-    const isAdmin = await isAuthenticated(request, env);
+    const isAdmin = await isAdminAuthenticated(request, env);
     if (!space.is_public && !isAdmin) {
       return error(MSG.SPACE.PRIVATE, 403);
     }
@@ -215,10 +168,10 @@ export async function onRequestPost(context) {
 
   try {
     const body = await request.json();
-    const providedPassword = body.password;
+    const password = body.password;
 
-    if (!providedPassword || typeof providedPassword !== 'string') {
-      return error(MSG.COMMON.INVALID_PARAMS || '密码不能为空', 400);
+    if (!password) {
+      return error(MSG.USER.PASSWORD_REQUIRED, 400);
     }
 
     // 查找空间
@@ -232,20 +185,20 @@ export async function onRequestPost(context) {
 
     // 检查是否需要密码
     if (!space.password) {
-      return error('此空间无需密码', 400);
+      return error(MSG.SPACE.NO_PASSWORD_REQUIRED, 400);
     }
 
-    // 使用常量时间比较
-    if (!timingSafeCompare(providedPassword, space.password)) {
-      return error(MSG.SPACE.PASSWORD_REQUIRED || '密码错误', 401);
+    // 使用常量时间比较 (SOTA Security)
+    if (!timingSafeCompare(password, space.password)) {
+      return error(MSG.SPACE.PASSWORD_ERROR, 401);
     }
 
     // 密码正确，返回完整空间数据
     const data = await getSpaceData(space, env);
 
-    return success(data, '密码验证成功', 200, { 'Cache-Control': 'no-store, max-age=0' });
+    return success(data, MSG.AUTH.VERIFY_SUCCESS, 200, { 'Cache-Control': 'no-store, max-age=0' });
   } catch (err) {
-    console.error('密码验证失败:', err);
-    return error(`验证失败: ${err.message}`, 500);
+    console.error('Password verification failed:', err);
+    return error(`${MSG.AUTH.VERIFY_FAILED}: ${err.message}`, 500);
   }
 }

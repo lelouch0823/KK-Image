@@ -25,7 +25,7 @@ export async function onRequestPost(context) {
     const { comment } = body;
 
     if (!comment || !comment.trim()) {
-      return error(MSG.COMMON.INVALID_PARAMS + ': 留言内容不能为空', 400);
+      return error(`${MSG.COMMON.INVALID_PARAMS}: ${MSG.COMMON.REQUIRED}`, 400);
     }
 
     // 验证订单归属

@@ -16,11 +16,11 @@ export async function onRequestPatch(context) {
   const { token: accessToken, id: orderId } = params;
 
   try {
-    const salesperson = await authenticateSalesperson(request, env, accessToken);
+    const _salesperson = await authenticateSalesperson(request, env, accessToken);
     const orderRepo = new OrderRepository(env.DB);
 
-    // 使用 Repository 清除红点
-    await orderRepo.clearNewFeedback(orderId, salesperson.id);
+    // 使用 SOTA 方法标记订单为已读
+    await orderRepo.markAsRead(orderId, 'sales');
 
     return success(null, MSG.ORDER.ALREADY_READ);
   } catch (err) {

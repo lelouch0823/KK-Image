@@ -37,18 +37,13 @@ const STATUS_LABELS = {
 };
 
 /**
- * 格式化日期为本地时间字符串
+ * 格式化日期为本地时间字符串 (使用 date.js 工具)
  */
+import { getChinaDate } from '../../utils/date.js';
+
 function formatDate(timestamp) {
   if (!timestamp) return '';
-  const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return getChinaDate(timestamp).toISOString().slice(0, 16).replace('T', ' ');
 }
 
 /**

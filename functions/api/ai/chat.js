@@ -2,12 +2,12 @@
  * AI 聊天 API (Admin Only)
  * POST /api/ai/chat
  */
-import { success, error } from '../../utils/response.js';
-import { MSG } from '../../utils/messages.js';
-import { authenticateAdmin } from '../../utils/auth.js';
-import { OrderStatsRepository } from '../../../repositories/OrderStatsRepository.js';
+import { success, error } from '../utils/response.js';
+import { MSG } from '../utils/messages.js';
+import { authenticateAdmin } from '../utils/auth.js';
+import { OrderStatsRepository } from '../../repositories/OrderStatsRepository.js';
 import { callAI, SYSTEM_PROMPT } from '../../utils/ai-utils.js';
-import { getChinaDayStart } from '../../utils/date.js';
+import { getChinaDayStart } from '../utils/date.js';
 
 export async function onRequestPost(context) {
     const { env, request } = context;
@@ -94,6 +94,6 @@ export async function onRequestPost(context) {
             return error(err.message, 401);
         }
         console.error('AI Chat Error:', err);
-        return error(`AI 助手暂时无法响应: ${err.message}`, 500);
+        return error(`${MSG.AI.ERROR}: ${err.message}`, 500);
     }
 }

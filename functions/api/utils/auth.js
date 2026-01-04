@@ -307,3 +307,50 @@ export async function authenticateAdmin(request, env) {
     throw new Error(MSG.AUTH.EXPIRED);
   }
 }
+
+/**
+ * 常量时间密码比较 (防止时序攻击)
+ * @param {string} a 第一个字符串
+ * @param {string} b 第二个字符串
+ * @returns {boolean}
+ */
+export function timingSafeCompare(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const encoder = new TextEncoder();
+  const bufA = encoder.encode(a);
+  const bufB = encoder.encode(b);
+  if (bufA.length !== bufB.length) {
+    // 比较一个虚拟值以保持时间一致
+    crypto.subtle.timingSafeEqual?.(bufA, bufA);
+    return false;
+  }
+  // Cloudflare Workers 支持 crypto.subtle.timingSafeEqual
+  if (crypto.subtle.timingSafeEqual) {
+    return crypto.subtle.timingSafeEqual(bufA, bufB);
+  }
+  // 回退：手动实现常量时间比较
+  let result = 0;
+  for (let i = 0; i < bufA.length; i++) {
+    result |= bufA[i] ^ bufB[i];
+  }
+  return result === 0;
+}
+
+/**
+ * 检查请求是否来自已认证管理员（无抛错版本）
+ * @param {Request} request
+ * @param {Object} env
+ * @returns {Promise<boolean>}
+ */
+export async function isAdminAuthenticated(request, env) {
+  try {
+    const cookieHeader = request.headers.get('Cookie') || '';
+    const cookies = parseCookie(cookieHeader);
+    const token = cookies[ADMIN_AUTH_COOKIE];
+    if (!token) return false;
+    await verifyJWT(token, env);
+    return true;
+  } catch {
+    return false;
+  }
+}

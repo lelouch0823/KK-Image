@@ -74,6 +74,8 @@ export const MSG = {
     LINK_INVALID: '空间不存在或链接已失效',
     LINK_EXPIRED: '分享链接已过期',
     EXPIRED: '分享链接已过期',
+    PASSWORD_ERROR: '密码错误',
+    NO_PASSWORD_REQUIRED: '此空间无需密码',
   },
 
   USER: {
@@ -152,6 +154,7 @@ export const MSG = {
     UPLOAD_FAILED: '上传失败',
     UPLOAD_NO_FILE: '未找到上传文件',
     CHECK_FAILED: '检查失败',
+    REQUIRED: '必填项不能为空',
   },
 
   // 权限列表描述
@@ -174,5 +177,13 @@ export const MSG = {
     ADMIN: '管理员',
     USER: '普通用户',
     GUEST: '访客',
+  },
+
+  // AI 助手相关
+  AI: {
+    ASSISTANT: 'AI 助手',
+    SUBTITLE: '在线解答您的统计疑问',
+    ERROR: 'AI 助手暂时无法响应',
+    NETWORK_ERROR: '网络请求失败，请稍后再试',
   },
 };

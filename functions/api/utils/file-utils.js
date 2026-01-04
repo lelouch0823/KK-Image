@@ -109,3 +109,18 @@ export async function storeFile(env, file, options = {}) {
     instantUpload: isInstantUpload,
   };
 }
+
+/**
+ * 根据 MIME 类型和文件名判断文件类型
+ * @param {string} mimeType MIME 类型
+ * @param {string} name 文件名
+ * @returns {'image' | 'pdf' | 'file'}
+ */
+export function getFileType(mimeType, name) {
+  if (mimeType?.startsWith('image/')) return 'image';
+  if (mimeType === 'application/pdf') return 'pdf';
+  const ext = name?.split('.').pop()?.toLowerCase();
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'ico'].includes(ext)) return 'image';
+  if (ext === 'pdf') return 'pdf';
+  return 'file';
+}

@@ -5,22 +5,11 @@
  * 负责订单相关的统计查询，将统计逻辑从主 OrderRepository 中分离。
  */
 
+import { parseJson } from './order/helpers.js';
+
 export class OrderStatsRepository {
   constructor(db) {
     this.db = db;
-  }
-
-  /**
-   * Parse JSON string safely
-   * @private
-   */
-  _parseJson(jsonStr) {
-    try {
-      return jsonStr ? JSON.parse(jsonStr) : {};
-    } catch (e) {
-      console.warn('JSON parse failed:', e);
-      return {};
-    }
   }
 
   /**
@@ -43,7 +32,7 @@ export class OrderStatsRepository {
       .all();
 
     return result.results.map((order) => {
-      const data = this._parseJson(order.current_data);
+      const data = parseJson(order.current_data);
       return {
         id: order.id,
         orderNo: order.order_no,
