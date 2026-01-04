@@ -15,7 +15,7 @@ export { success, error } from '../api/utils/response.js';
 export { MSG } from '../api/utils/messages.js';
 
 // 日期工具
-export { getChinaDate, getChinaDayStart, getChinaDateStr } from '../api/utils/date.js';
+export { DateUtils, getChinaDate, getChinaDayStart, getChinaDateStr } from '../api/utils/date.js';
 
 // ID 生成工具
 export {

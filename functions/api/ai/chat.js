@@ -7,7 +7,7 @@ import { MSG } from '../utils/messages.js';
 import { authenticateAdmin } from '../utils/auth.js';
 import { OrderStatsRepository } from '../../repositories/OrderStatsRepository.js';
 import { callAI, SYSTEM_PROMPT } from '../../utils/ai-utils.js';
-import { getChinaDayStart } from '../utils/date.js';
+import { DateUtils } from '../utils/date.js';
 
 export async function onRequestPost(context) {
     const { env, request } = context;
@@ -65,7 +65,7 @@ export async function onRequestPost(context) {
                 let result = null;
 
                 if (functionName === "getOrderStats") {
-                    const todayStart = getChinaDayStart();
+                    const todayStart = DateUtils.getChinaDayStart();
                     const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000;
                     const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000;
                     result = await statsRepo.getAdminStats(todayStart, weekStart, monthStart);

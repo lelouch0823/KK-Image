@@ -39,11 +39,11 @@ const STATUS_LABELS = {
 /**
  * 格式化日期为本地时间字符串 (使用 date.js 工具)
  */
-import { getChinaDate } from '../../utils/date.js';
+import { DateUtils } from '../../utils/date.js';
 
 function formatDate(timestamp) {
   if (!timestamp) return '';
-  return getChinaDate(timestamp).toISOString().slice(0, 16).replace('T', ' ');
+  return DateUtils.getChinaDate(timestamp).toISOString().slice(0, 16).replace('T', ' ');
 }
 
 /**
@@ -131,15 +131,15 @@ export async function onRequestGet(context) {
 
     if (fromDate) {
       whereClause += ' AND o.created_at >= ?';
-      const { parseChinaDate } = await import('../../utils/date.js');
-      bindParams.push(parseChinaDate(fromDate));
+      const { DateUtils } = await import('../../utils/date.js');
+      bindParams.push(DateUtils.parseChinaDate(fromDate));
     }
 
     if (toDate) {
       whereClause += ' AND o.created_at <= ?';
-      const { parseChinaDate } = await import('../../utils/date.js');
+      const { DateUtils } = await import('../../utils/date.js');
       // 加上一天的毫秒数以包含当天
-      bindParams.push(parseChinaDate(toDate) + 86400000);
+      bindParams.push(DateUtils.parseChinaDate(toDate) + 86400000);
     }
 
     // 获取订单列表 (不分页，导出全部)
@@ -181,8 +181,8 @@ export async function onRequestGet(context) {
 
     // 生成 CSV
     const csv = generateCSV(formattedOrders);
-    const { getChinaDateStr } = await import('../../utils/date.js');
-    const filename = `orders_${getChinaDateStr()}.csv`;
+    const { DateUtils } = await import('../../utils/date.js');
+    const filename = `orders_${DateUtils.getChinaDateStr()}.csv`;
 
     return new Response(csv, {
       status: 200,

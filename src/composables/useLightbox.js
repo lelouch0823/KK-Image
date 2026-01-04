@@ -109,6 +109,18 @@ export function useLightbox(files, options = {}) {
     document.body.style.overflow = '';
   });
 
+  // 下载助手
+  const download = (file) => {
+    if (!file?.url) return;
+
+    const a = document.createElement('a');
+    a.href = file.url;
+    a.download = file.name || 'download';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   return {
     visible,
     currentFile,
@@ -122,5 +134,6 @@ export function useLightbox(files, options = {}) {
     hasNext,
     total,
     handleWheel,
+    download,
   };
 }

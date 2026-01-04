@@ -5,7 +5,7 @@
  * 封装与 OpenAI 兼容 API 的交互逻辑。
  */
 
-import { getChinaDateStr } from '../api/utils/date.js';
+import { DateUtils } from '../api/utils/date.js';
 
 /**
  * 调用外部 AI API
@@ -44,7 +44,7 @@ export async function callAI(messages, tools, env) {
  */
 export const SYSTEM_PROMPT = `
 你是一个专业的管理后台 AI 助手。你可以通过调用工具来查询数据库中的订单统计信息。
-当前的日期是：${getChinaDateStr()}。
+当前的日期是：${DateUtils.getChinaDateStr()}。
 
 回答准则：
 1. 始终使用中文回答。

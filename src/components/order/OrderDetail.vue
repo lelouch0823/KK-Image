@@ -206,6 +206,20 @@
 
     <!-- Print View (文档模式 - A4 SOTA) -->
     <OrderPrintView ref="printViewRef" :order="order" class="hidden" />
+
+    <!-- Lightbox -->
+    <Lightbox
+      :visible="visible"
+      :current-file="currentFile"
+      :current-index="currentIndex"
+      :total="total"
+      :has-prev="hasPrev"
+      :has-next="hasNext"
+      @close="close"
+      @prev="prev"
+      @next="next"
+      @download="download"
+    />
   </div>
 </template>
 
@@ -215,6 +229,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
 import { useSalesToken } from '@/composables/useSalesToken';
+import { useLightbox } from '@/composables/useLightbox';
 import { formatTimelineTime } from '@/utils/formatters';
 import html2pdf from 'html2pdf.js';
 
@@ -229,6 +244,7 @@ import OrderPrintView from './OrderPrintView.vue';
 import OrderEditModal from '../OrderEditModal.vue';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import Lightbox from '@/components/common/Lightbox.vue';
 
 const props = defineProps({
   order: { type: Object, required: true },
@@ -297,8 +313,27 @@ const sendComment = (text) => {
 };
 
 // 预览图片
-const handlePreview = (_file) => {
-  // TODO: 实现图片预览 (可使用 Lightbox)
+// 预览图片
+const files = computed(() => props.order.files || []);
+const {
+  visible,
+  currentFile,
+  currentIndex,
+  total,
+  hasPrev,
+  hasNext,
+  open,
+  close,
+  prev,
+  next,
+  download,
+} = useLightbox(files);
+
+const handlePreview = (file) => {
+  const index = files.value.findIndex((f) => f.id === file.id);
+  if (index !== -1) {
+    open(file, index);
+  }
 };
 
 const handleVoid = () => {

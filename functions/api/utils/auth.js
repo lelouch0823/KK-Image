@@ -293,7 +293,15 @@ import { MSG } from './messages.js';
 export async function authenticateAdmin(request, env) {
   const cookieHeader = request.headers.get('Cookie') || '';
   const cookies = parseCookie(cookieHeader);
-  const token = cookies[ADMIN_AUTH_COOKIE];
+  let token = cookies[ADMIN_AUTH_COOKIE];
+
+  // Try Bearer token if no cookie
+  if (!token) {
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+  }
 
   if (!token) {
     throw new Error(MSG.AUTH.REQUIRED);
@@ -346,7 +354,13 @@ export async function isAdminAuthenticated(request, env) {
   try {
     const cookieHeader = request.headers.get('Cookie') || '';
     const cookies = parseCookie(cookieHeader);
-    const token = cookies[ADMIN_AUTH_COOKIE];
+    let token = cookies[ADMIN_AUTH_COOKIE];
+    if (!token) {
+      const authHeader = request.headers.get('Authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
     if (!token) return false;
     await verifyJWT(token, env);
     return true;

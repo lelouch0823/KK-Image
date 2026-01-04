@@ -119,6 +119,7 @@ import { useOrders } from '@/composables/useOrders';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
+import { DateUtils } from '@/utils/date';
 
 // Components
 import Pagination from '@/components/ui/Pagination.vue';
@@ -236,17 +237,8 @@ const handleStatusChange = async (order, { status, note }) => {
 // 仪表盘筛选
 const handleDashboardFilter = (type) => {
   if (type === 'today') {
-    // SOTA Timezone: Beijing Time (UTC+8)
-    const now = new Date();
-    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-    const offset = 8 * 60 * 60 * 1000;
-
-    const beijingNow = new Date(utc + offset);
-    beijingNow.setHours(0, 0, 0, 0);
-    const start = beijingNow.getTime() - offset;
-
-    beijingNow.setHours(23, 59, 59, 999);
-    const end = beijingNow.getTime() - offset;
+    const start = DateUtils.getBeijingDayStart();
+    const end = DateUtils.getBeijingDayEnd();
 
     filterDateRange.value = { start, end };
     filterState.value.status = '';
