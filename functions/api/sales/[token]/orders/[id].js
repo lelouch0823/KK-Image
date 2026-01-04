@@ -89,8 +89,13 @@ export async function onRequestPatch(context) {
     const salesperson = await authenticateSalesperson(request, env, accessToken);
     const body = await request.json();
 
-    // 销售端：分离 fileIds、reason 和 updates
-    const { fileIds, reason, ...updates } = body.updates || body;
+    // 销售端：支持从 root 或 updates 中获取参数 (兼容性处理)
+    const updatesObj = body.updates || body;
+    const reason = body.reason || updatesObj.reason;
+    const fileIds = body.fileIds || updatesObj.fileIds;
+
+    // 分离出纯更新字段
+    const { fileIds: _f, reason: _r, ...updates } = updatesObj;
 
     const hasUpdates = updates && Object.keys(updates).length > 0;
     const hasFileIds = fileIds && Array.isArray(fileIds);

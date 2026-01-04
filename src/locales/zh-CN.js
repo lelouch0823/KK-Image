@@ -113,6 +113,12 @@ export default {
       uploadedAt: '上传时间',
       actions: '操作',
     },
+    reason: {
+      statusChanged: '状态变更',
+      resubmit: '重新提交订单',
+      salesVoid: '销售端作废',
+      initialUpload: '新建订单附件',
+    },
     actions: {
       share: '分享链接',
       move: '移动文件',

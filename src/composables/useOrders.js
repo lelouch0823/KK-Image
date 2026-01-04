@@ -288,7 +288,12 @@ export function useOrders() {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ updates: { fileIds: allFileIds } }),
+          body: JSON.stringify({
+            updates: {
+              fileIds: allFileIds,
+              reason: t('order.history.reason.initialUpload') || 'Initial upload'
+            }
+          }),
         });
 
         const patchResult = await patchRes.json();

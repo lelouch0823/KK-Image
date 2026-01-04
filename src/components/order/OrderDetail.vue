@@ -351,7 +351,7 @@ const handleUpdate = async (payload) => {
     const res = await fetch(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ updates: updatesToSend }),
+      body: JSON.stringify({ updates: { ...updatesToSend, reason: payload.reason } }),
       credentials: 'include',
     });
     const result = await res.json();
