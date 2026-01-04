@@ -39,6 +39,9 @@
 
     <!-- PWA 更新提示 -->
     <ReloadPrompt />
+
+    <!-- 全局 AI 助手 -->
+    <AIChatWidget />
   </div>
 </template>
 
@@ -49,6 +52,7 @@ import Header from '@/components/layout/Header.vue';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
 import UploadProgress from '@/components/ui/UploadProgress.vue';
 import ReloadPrompt from '@/components/ReloadPrompt.vue';
+import AIChatWidget from '@/components/common/AIChatWidget.vue';
 import { useView } from '@/composables/useView';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';

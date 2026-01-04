@@ -802,5 +802,13 @@ export default {
       createFailed: '备份失败',
       loadFailed: '加载备份列表失败',
     },
+    ai: {
+      assistant: 'AI 助手',
+      subtitle: '在线解答您的统计疑问',
+      placeholder: '问问订单统计，如：今天有几个订单？',
+      error: 'AI 助手暂时无法响应',
+      networkError: '网络请求失败，请稍后再试',
+      welcome: '您好！我是您的订单统计小助手。您可以问我关于订单数量、待处理任务或近期趋势的问题。',
+    },
   },
 };

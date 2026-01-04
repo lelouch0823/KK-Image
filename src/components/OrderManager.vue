@@ -101,7 +101,6 @@
       @close="closeEditModal"
       @submit="handleEditSubmit"
     />
-
     <!-- Confirm Dialog -->
     <ConfirmDialog
       v-model="confirmData.show"

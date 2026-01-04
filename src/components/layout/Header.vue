@@ -92,6 +92,29 @@
         </Transition>
       </div>
 
+      <!-- AI 助手按钮 -->
+      <button
+        :title="t('ai.assistant')"
+        class="group relative flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] transition-all hover:bg-primary/5 hover:border-primary/30"
+        :class="{ 'bg-primary/10 border-primary/50 text-primary': isOpen }"
+        @click="toggleAI"
+      >
+        <svg
+          class="size-5 transition-transform group-hover:scale-110"
+          :class="{ 'text-primary': isOpen, 'text-secondary': !isOpen }"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M13 10V3L4 14h7v7l9-11h-7z"
+          />
+        </svg>
+      </button>
+
       <!-- 刷新按钮 -->
       <button
         :title="t('header.refresh')"
@@ -142,6 +165,7 @@ import { useSearch } from '@/composables/useSearch';
 import { useNotifications } from '@/composables/useNotifications';
 import NotificationList from '@/components/common/NotificationList.vue';
 import { onClickOutside } from '@vueuse/core';
+import { useAI } from '@/composables/useAI';
 
 defineEmits(['openSidebar']);
 
@@ -149,6 +173,7 @@ const { viewTitle } = useView(); // setView unused here but destructured
 const { t } = useI18n();
 const { searchQuery } = useSearch();
 const { unreadCount, startPolling, stopPolling } = useNotifications();
+const { isOpen, toggle: toggleAI } = useAI();
 
 const showNotifications = ref(false);
 const notificationRef = ref(null);
