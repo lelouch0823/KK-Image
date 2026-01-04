@@ -717,6 +717,12 @@ export default {
       comment: '留言',
       by: '由',
       reason: '理由',
+      // 兼容历史错误数据的 Key
+      history: {
+        reason: {
+          initialUpload: '新建订单附件',
+        },
+      },
       reasons: {
         statusChanged: '状态变更',
         resubmit: '重新提交订单',

@@ -133,7 +133,7 @@
                 </div>
 
                 <p v-if="update.reason" class="text-secondary mt-1 text-xs">
-                  {{ t('order.timeline.reason') }}: {{ update.reason }}
+                  {{ t('order.timeline.reason') }}: {{ getReasonText(update.reason) }}
                 </p>
               </div>
             </div>
@@ -163,7 +163,7 @@
                 }}</span>
               </div>
               <p v-if="item.reason" class="text-secondary mt-1 text-xs">
-                {{ t('order.timeline.reason') }}: {{ item.reason }}
+                {{ t('order.timeline.reason') }}: {{ getReasonText(item.reason) }}
               </p>
             </div>
 
@@ -174,7 +174,7 @@
                 {{ t(`order.statuses.${item.newValue}`) }}
               </StatusBadge>
               <span v-if="item.reason" class="text-secondary mt-1 block text-xs">{{
-                item.reason
+                getReasonText(item.reason)
               }}</span>
             </p>
 
@@ -282,7 +282,7 @@
                     }}</span>
                   </div>
                   <div v-if="update.reason" class="mt-0.5 text-xs text-gray-500">
-                    {{ t('order.timeline.reason') }}: {{ update.reason }}
+                    {{ t('order.timeline.reason') }}: {{ getReasonText(update.reason) }}
                   </div>
                 </div>
               </div>
@@ -293,7 +293,7 @@
                   {{ t('order.timeline.statusChanged') }}
                   <span class="font-medium">{{ t(`order.statuses.${item.newValue}`) }}</span>
                 </div>
-                <div v-if="item.reason" class="mt-1 text-xs text-gray-500">{{ item.reason }}</div>
+                <div v-if="item.reason" class="mt-1 text-xs text-gray-500">{{ getReasonText(item.reason) }}</div>
               </div>
 
               <!-- Comment -->
@@ -437,4 +437,15 @@ const formatImageCount = (value) => {
 
 // 格式化时间
 const formatTime = (timestamp) => formatTimelineTime(timestamp);
+
+// 尝试翻译理由 (处理历史数据的 Key)
+const getReasonText = (reason) => {
+  if (!reason) return '';
+  // 如果是由于之前的 Bug 导致存入了 Key，尝试翻译它
+  if (reason.startsWith('order.') || reason.includes('.reason.')) {
+    return t(reason); // vue-i18n 如果找不到 key 会直接返回 key 本身，所以是安全的
+  }
+  return reason;
+};
+
 </script>
