@@ -7,7 +7,7 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../../middleware/auth.js';
 import { MSG } from '../../../_shared/utils.js';
-import { SpaceRepository } from '../../../repositories/SpaceRepository.js';
+import { SpaceRepository } from '../../../../../repositories/SpaceRepository.js';
 
 const files = new Hono();
 

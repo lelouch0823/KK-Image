@@ -1,7 +1,11 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import tailwindcss from '@tailwindcss/vite';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 import { VitePWA } from 'vite-plugin-pwa';
 

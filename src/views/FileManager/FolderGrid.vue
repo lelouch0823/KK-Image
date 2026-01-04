@@ -32,7 +32,6 @@
       </div>
 
       <!-- Delete Button on Hover (Keep as quick action) -->
-      </button>
 
         <!-- More Actions (Mobile/Desktop) -->
        <button

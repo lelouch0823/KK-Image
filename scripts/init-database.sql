@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS folders (
     name TEXT NOT NULL,                     -- 文件夹名称
     description TEXT DEFAULT '',            -- 描述
     share_token TEXT UNIQUE,                -- 分享 Token (用于公开访问)
+    share_expires_at INTEGER,               -- 分享过期时间
     is_public INTEGER DEFAULT 0,            -- 是否公开 (0: 私有, 1: 公开)
     password TEXT,                          -- 访问密码 (可选)
     created_by TEXT,                        -- 创建人 (用户名或 ID)
@@ -111,6 +112,11 @@ CREATE TABLE IF NOT EXISTS spaces (
     description TEXT DEFAULT '',            -- 描述
     template TEXT DEFAULT 'gallery',        -- 展示模板 (e.g., gallery, masonry, list)
     template_data TEXT,                     -- 模板配置数据 (JSON)
+    -- Generated Columns (Hybrid Search Optimization)
+    material TEXT GENERATED ALWAYS AS (json_extract(template_data, '$.material')) VIRTUAL,
+    category TEXT GENERATED ALWAYS AS (json_extract(template_data, '$.category')) VIRTUAL,
+    author TEXT GENERATED ALWAYS AS (json_extract(template_data, '$.author')) VIRTUAL,
+    tags TEXT GENERATED ALWAYS AS (json_extract(template_data, '$.tags')) VIRTUAL,
     cover_file_id TEXT,                     -- 封面图 ID
     share_token TEXT UNIQUE,                -- 分享链接 Token
     is_public INTEGER DEFAULT 0,            -- 是否公开
@@ -129,6 +135,9 @@ CREATE INDEX IF NOT EXISTS idx_spaces_parent ON spaces(parent_id);
 CREATE INDEX IF NOT EXISTS idx_spaces_share_token ON spaces(share_token);
 CREATE INDEX IF NOT EXISTS idx_spaces_template ON spaces(template);
 CREATE INDEX IF NOT EXISTS idx_spaces_cover ON spaces(cover_file_id);
+CREATE INDEX IF NOT EXISTS idx_spaces_category ON spaces(category);
+CREATE INDEX IF NOT EXISTS idx_spaces_author ON spaces(author);
+CREATE INDEX IF NOT EXISTS idx_spaces_tags ON spaces(tags);
 
 -- 空间-文件关联表 (多对多)
 CREATE TABLE IF NOT EXISTS space_files (

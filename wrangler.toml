@@ -173,7 +173,7 @@ COMPRESS_STATIC_ASSETS = "false"
 TG_Bot_Token = "123456789:ABCdefGHIjklMNOpqrSTUvwxYZ"
 TG_Chat_ID = "-1001234567890"
 BASIC_USER = "admin"
-BASIC_PASS = "123456"
+BASIC_PASS = "1"
 
 # =============================================================================
 # KV 命名空间绑定

@@ -12,7 +12,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requirePermission } from '../../../middleware/auth.js';
-import { SpaceRepository } from '../../../repositories/SpaceRepository.js';
+import { SpaceRepository } from '../../../../../repositories/SpaceRepository.js';
 import { generateId, generateShareToken, MSG, getShareUrl } from '../../../_shared/utils.js';
 import {
   transformSpaceListItem,

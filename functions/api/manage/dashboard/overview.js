@@ -40,7 +40,7 @@ export async function onRequestGet(context) {
       // 活跃分享数 (未过期的公开分享)
       env.DB.prepare(`
         SELECT COUNT(*) as count FROM folders 
-        WHERE is_public = 1 AND (expires_at IS NULL OR expires_at > ?)
+        WHERE is_public = 1 AND (share_expires_at IS NULL OR share_expires_at > ?)
       `).bind(now).first().then(r => r?.count || 0),
     ]);
 
