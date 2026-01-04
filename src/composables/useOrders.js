@@ -291,7 +291,7 @@ export function useOrders() {
           body: JSON.stringify({
             updates: {
               fileIds: allFileIds,
-              reason: t('order.history.reason.initialUpload') || 'Initial upload'
+              reason: t('order.timeline.reasons.initialUpload') || 'Initial upload'
             }
           }),
         });

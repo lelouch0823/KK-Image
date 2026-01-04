@@ -113,12 +113,7 @@ export default {
       uploadedAt: '上传时间',
       actions: '操作',
     },
-    reason: {
-      statusChanged: '状态变更',
-      resubmit: '重新提交订单',
-      salesVoid: '销售端作废',
-      initialUpload: '新建订单附件',
-    },
+
     actions: {
       share: '分享链接',
       move: '移动文件',
@@ -722,6 +717,12 @@ export default {
       comment: '留言',
       by: '由',
       reason: '理由',
+      reasons: {
+        statusChanged: '状态变更',
+        resubmit: '重新提交订单',
+        salesVoid: '销售端作废',
+        initialUpload: '新建订单附件',
+      },
       viewAll: '查看全部 {count} 条记录',
       collapse: '收起',
     },
