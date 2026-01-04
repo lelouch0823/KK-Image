@@ -7,17 +7,7 @@
     </h4>
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <!-- 状态修改 (仅管理端) -->
-      <div v-if="showStatus" class="sm:col-span-2">
-        <label class="text-secondary mb-1.5 block text-xs font-medium">{{
-          t('order.manage.orderStatus')
-        }}</label>
-        <select :value="modelValue.status" class="input h-11" @change="updateField('status', $event.target.value)">
-          <option v-for="s in statuses" :key="s" :value="s">
-            {{ t(`order.statuses.${s}`) }}
-          </option>
-        </select>
-      </div>
+      <!-- 状态修改 (已移移动到 Modal 顶部) -->
 
       <!-- 商品名称 (全宽) -->
       <div class="md:col-span-2">

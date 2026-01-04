@@ -14,8 +14,20 @@
           <h3 class="text-primary text-lg font-semibold">{{ t('order.manage.editOrder') }}</h3>
           <p class="text-secondary mt-0.5 text-sm">{{ order?.orderNo }}</p>
         </div>
+        <!-- 管理端：可选状态下拉 | 销售端：静态 Badge -->
+        <select
+          v-if="mode === 'admin'"
+          :value="form.status"
+          class="rounded-full border border-[var(--border-color)] bg-[var(--bg-muted)] px-3 py-1 text-xs font-medium outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
+          :class="getStatusSelectClass(form.status)"
+          @change="updateStatus($event.target.value)"
+        >
+          <option v-for="s in statuses" :key="s" :value="s">
+            {{ t(`order.statuses.${s}`) }}
+          </option>
+        </select>
         <span
-          v-if="form.status"
+          v-else-if="form.status"
           class="rounded-full border px-2.5 py-0.5 text-xs font-medium"
           :class="getStatusBadgeClass(form.status)"
         >
@@ -128,12 +140,19 @@
 import { ref, reactive, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
-import { getStatusBadgeClass } from '@/utils/status';
+import { getStatusBadgeClass, STATUS_STYLES } from '@/utils/status';
 import { useSalesToken } from '@/composables/useSalesToken';
 import ImageUploader from './common/ImageUploader.vue';
 import Modal from '@/components/ui/Modal.vue';
 import OrderFormFields from './order/OrderFormFields.vue';
 import OrderOriginalInfo from './order/OrderOriginalInfo.vue';
+
+// 动态获取 Select 样式 (带颜色)
+const getStatusSelectClass = (status) => {
+  const style = STATUS_STYLES[status] || 'bg-gray-100 text-gray-700 border-gray-200';
+  // 移除 hover 效果，保留基础颜色
+  return style.replace(/hover:[^ ]+/g, '');
+};
 
 // 移动端检测
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
@@ -244,6 +263,10 @@ watch(
   },
   { immediate: true }
 );
+
+const updateStatus = (newStatus) => {
+  form.status = newStatus;
+};
 
 const originalData = computed(() => props.order.originalData || {});
 
