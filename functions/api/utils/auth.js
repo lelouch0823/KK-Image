@@ -3,6 +3,11 @@
 // 管理员认证 Cookie 名称
 export const ADMIN_AUTH_COOKIE = 'ADMIN_AUTH';
 
+// Global Cache for API Keys (Worker 内存缓存)
+let cachedApiKeys = null;
+let lastCacheUpdate = 0;
+const CACHE_TTL = 60 * 1000; // 60 seconds TTL
+
 /**
  * JWT 实现 - 使用 URL-safe Base64 (RFC 4648) 和安全比较
  */
@@ -65,7 +70,7 @@ class SimpleJWT {
   static async decode(token, secret) {
     const parts = token.split('.');
     if (parts.length !== 3) {
-      throw new Error('Invalid token format');
+      throw new Error(MSG.AUTH.JWT_INVALID);
     }
 
     const [encodedHeader, encodedPayload, signature] = parts;
@@ -73,7 +78,7 @@ class SimpleJWT {
     // 使用恒定时间比较防止时序攻击
     const expectedSignature = await this.sign(`${encodedHeader}.${encodedPayload}`, secret);
     if (!this.constantTimeCompare(signature, expectedSignature)) {
-      throw new Error('Invalid token signature');
+      throw new Error(MSG.AUTH.JWT_INVALID);
     }
 
     // 解码载荷
@@ -81,7 +86,7 @@ class SimpleJWT {
 
     // 检查过期时间
     if (payload.exp && Date.now() / 1000 > payload.exp) {
-      throw new Error('Token expired');
+      throw new Error(MSG.AUTH.JWT_EXPIRED);
     }
 
     return payload;
@@ -110,7 +115,7 @@ class SimpleJWT {
 // 验证 API Key
 export async function verifyApiKey(apiKey, env) {
   if (!apiKey) {
-    throw new Error('API Key is required');
+    throw new Error(MSG.AUTH.API_KEY_REQUIRED);
   }
 
   // 从环境变量或 KV 存储中获取有效的 API Keys
@@ -118,23 +123,33 @@ export async function verifyApiKey(apiKey, env) {
 
   const keyInfo = validApiKeys.find((key) => key.key === apiKey);
   if (!keyInfo) {
-    throw new Error('Invalid API Key');
+    throw new Error(MSG.AUTH.API_KEY_INVALID);
   }
 
   // 检查 API Key 是否过期
-  if (keyInfo.expiresAt && Date.now() > keyInfo.expiresAt) {
-    throw new Error('API Key expired');
+  if (keyInfo.expires_at && Date.now() > keyInfo.expires_at) {
+    throw new Error(MSG.AUTH.API_KEY_EXPIRED);
   }
 
   // 检查 API Key 是否被禁用
   if (keyInfo.disabled) {
-    throw new Error('API Key disabled');
+    throw new Error(MSG.AUTH.API_KEY_DISABLED);
+  }
+
+  // Parse permissions if string
+  let permissions = keyInfo.permissions;
+  if (typeof permissions === 'string') {
+    try {
+      permissions = JSON.parse(permissions);
+    } catch (_) {
+      permissions = ['read'];
+    }
   }
 
   return {
     id: keyInfo.id,
     name: keyInfo.name,
-    permissions: keyInfo.permissions || ['read'],
+    permissions: permissions || ['read'],
     type: 'api_key',
   };
 }
@@ -142,11 +157,11 @@ export async function verifyApiKey(apiKey, env) {
 // 验证 JWT Token
 export async function verifyJWT(token, env) {
   if (!token) {
-    throw new Error('JWT Token is required');
+    throw new Error(MSG.AUTH.JWT_REQUIRED);
   }
 
   if (!env.JWT_SECRET) {
-    throw new Error('JWT_SECRET environment variable is required');
+    throw new Error(MSG.AUTH.JWT_SECRET_MISSING);
   }
 
   try {
@@ -161,14 +176,14 @@ export async function verifyJWT(token, env) {
       exp: payload.exp,
     };
   } catch (error) {
-    throw new Error(`JWT verification failed: ${error.message}`);
+    throw new Error(`${MSG.AUTH.JWT_FAILED}: ${error.message}`);
   }
 }
 
 // 生成 JWT Token
 export async function generateJWT(user, env, expiresIn = 3600) {
   if (!env.JWT_SECRET) {
-    throw new Error('JWT_SECRET environment variable is required');
+    throw new Error(MSG.AUTH.JWT_SECRET_MISSING);
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -195,21 +210,34 @@ export function generateApiKey() {
   return result;
 }
 
-// 获取有效的 API Keys
+// 获取有效的 API Keys (带内存缓存)
 async function getValidApiKeys(env) {
-  // 首先尝试从 KV 存储获取
-  if (env.API_KEYS_KV) {
-    try {
-      const keys = await env.API_KEYS_KV.get('api_keys', 'json');
-      if (keys && Array.isArray(keys)) {
-        return keys;
-      }
-    } catch (error) {
-      console.error('Failed to get API keys from KV:', error);
-    }
+  // 1. 检查内存缓存
+  const now = Date.now();
+  if (cachedApiKeys && now - lastCacheUpdate < CACHE_TTL) {
+    return cachedApiKeys;
   }
 
-  // 如果 KV 中没有，使用环境变量中的默认 API Key
+  // 2. 尝试从 D1 数据库获取
+  try {
+    const { results } = await env.DB.prepare('SELECT * FROM api_keys WHERE disabled = 0').all();
+
+    // 映射字段以保持一致性 (key_value -> key)
+    const keys = results.map(row => ({
+      ...row,
+      key: row.key_value,
+      // permissions 需要在使用时解析，这里保持原样或预解析均可，建议保持原样
+    }));
+
+    // 更新缓存
+    cachedApiKeys = keys;
+    lastCacheUpdate = now;
+    return keys;
+  } catch (error) {
+    console.error('Failed to get API keys from D1:', error);
+  }
+
+  // 如果 KV/D1 中没有，使用环境变量中的默认 API Key
   const defaultApiKey = env.DEFAULT_API_KEY;
   if (defaultApiKey) {
     return [
@@ -218,8 +246,8 @@ async function getValidApiKeys(env) {
         key: defaultApiKey,
         name: 'Default API Key',
         permissions: ['read', 'write', 'delete'],
-        createdAt: Date.now(),
-        disabled: false,
+        created_at: Date.now(),
+        disabled: 0,
       },
     ];
   }
@@ -228,31 +256,43 @@ async function getValidApiKeys(env) {
   return [];
 }
 
-// 保存 API Key 到 KV 存储
+// 保存 API Key 到 D1
 export async function saveApiKey(keyInfo, env) {
-  if (!env.API_KEYS_KV) {
-    throw new Error('API Keys KV namespace not configured');
-  }
+  // 插入到 D1
+  await env.DB.prepare(
+    `INSERT INTO api_keys (id, key_value, name, permissions, created_at, expires_at, disabled)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       name = excluded.name,
+       permissions = excluded.permissions,
+       expires_at = excluded.expires_at,
+       disabled = excluded.disabled`
+  )
+    .bind(
+      keyInfo.id,
+      keyInfo.key,
+      keyInfo.name,
+      JSON.stringify(keyInfo.permissions || ['read']),
+      keyInfo.created_at || Date.now(),
+      keyInfo.expires_at || null,
+      keyInfo.disabled ? 1 : 0
+    )
+    .run();
 
-  const existingKeys = await getValidApiKeys(env);
-  const updatedKeys = existingKeys.filter((k) => k.id !== keyInfo.id);
-  updatedKeys.push(keyInfo);
-
-  await env.API_KEYS_KV.put('api_keys', JSON.stringify(updatedKeys));
+  // 强制使本地缓存失效 (下次读取时将从 DB 重新获取)
+  cachedApiKeys = null;
+  lastCacheUpdate = 0;
 
   return keyInfo;
 }
 
 // 删除 API Key
 export async function deleteApiKey(keyId, env) {
-  if (!env.API_KEYS_KV) {
-    throw new Error('API Keys KV namespace not configured');
-  }
+  await env.DB.prepare('DELETE FROM api_keys WHERE id = ?').bind(keyId).run();
 
-  const existingKeys = await getValidApiKeys(env);
-  const updatedKeys = existingKeys.filter((k) => k.id !== keyId);
-
-  await env.API_KEYS_KV.put('api_keys', JSON.stringify(updatedKeys));
+  // 强制使本地缓存失效
+  cachedApiKeys = null;
+  lastCacheUpdate = 0;
 
   return true;
 }

@@ -19,6 +19,15 @@ export const MSG = {
     USERNAME_EXISTS: '用户名已存在',
     CANNOT_DELETE_SELF: '不能删除自己的账户',
     LOGIN_SUCCESS: '登录成功',
+    API_KEY_REQUIRED: '需要提供 API Key',
+    API_KEY_INVALID: '无效的 API Key',
+    API_KEY_EXPIRED: 'API Key 已过期',
+    API_KEY_DISABLED: 'API Key 已被禁用',
+    JWT_REQUIRED: '需要提供 JWT 令牌',
+    JWT_SECRET_MISSING: '未配置 JWT Secret',
+    JWT_INVALID: '无效的令牌签名',
+    JWT_EXPIRED: '令牌已过期',
+    JWT_FAILED: '令牌验证失败',
   },
 
   // 资源状态

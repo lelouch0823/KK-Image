@@ -14,29 +14,32 @@ import { getFileType } from '../utils/file-utils.js';
  * 获取空间数据 (GET/POST 共享逻辑)
  */
 async function getSpaceData(space, env) {
-  // 获取文件列表
-  const { results: files } = await env.DB.prepare(
-    `SELECT sf.section, sf.sort_order, f.*
-     FROM space_files sf
-     JOIN files f ON sf.file_id = f.id
-     WHERE sf.space_id = ?
-     ORDER BY sf.section ASC, sf.sort_order ASC`
-  )
-    .bind(space.id)
-    .all();
+  // 并行获取文件列表和子空间
+  const [filesResult, subspacesResult] = await Promise.all([
+    env.DB.prepare(
+      `SELECT sf.section, sf.sort_order, f.*
+       FROM space_files sf
+       JOIN files f ON sf.file_id = f.id
+       WHERE sf.space_id = ?
+       ORDER BY sf.section ASC, sf.sort_order ASC`
+    )
+      .bind(space.id)
+      .all(),
+    env.DB.prepare(
+      `SELECT s.id, s.name, s.template, s.share_token, s.description,
+              (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
+              f.storage_key as cover_storage_key
+       FROM spaces s
+       LEFT JOIN files f ON s.cover_file_id = f.id
+       WHERE s.parent_id = ? AND s.is_public = 1
+       ORDER BY s.sort_order ASC, s.name ASC`
+    )
+      .bind(space.id)
+      .all(),
+  ]);
 
-  // 获取子空间 (带封面图)
-  const { results: subspaces } = await env.DB.prepare(
-    `SELECT s.id, s.name, s.template, s.share_token, s.description,
-            (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
-            f.storage_key as cover_storage_key
-     FROM spaces s
-     LEFT JOIN files f ON s.cover_file_id = f.id
-     WHERE s.parent_id = ? AND s.is_public = 1
-     ORDER BY s.sort_order ASC, s.name ASC`
-  )
-    .bind(space.id)
-    .all();
+  const files = filesResult.results;
+  const subspaces = subspacesResult.results;
 
   // 按 section 分组文件
   const groupedFiles = {};
@@ -126,25 +129,22 @@ export async function onRequestGet(context) {
     data.viewCount = space.view_count + 1;
 
     // 记录访问
+    // 批量执行：记录访问日志 + 更新计数
     const accessId = Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
-    await env.DB.prepare(
-      `INSERT INTO space_access_logs (id, space_id, ip_address, user_agent, referrer, accessed_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    )
-      .bind(
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO space_access_logs (id, space_id, ip_address, user_agent, referrer, accessed_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).bind(
         accessId,
         space.id,
         request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || '',
         request.headers.get('User-Agent') || '',
         request.headers.get('Referer') || '',
         Date.now()
-      )
-      .run();
-
-    // 更新访问计数
-    await env.DB.prepare('UPDATE spaces SET view_count = view_count + 1 WHERE id = ?')
-      .bind(space.id)
-      .run();
+      ),
+      env.DB.prepare('UPDATE spaces SET view_count = view_count + 1 WHERE id = ?').bind(space.id),
+    ]);
 
     return success(data, 'Success', 200, {
       'Cache-Control':
