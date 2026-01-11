@@ -1,5 +1,5 @@
 <template>
-  <div class="pointer-events-none fixed right-6 bottom-6 z-50">
+  <div class="pointer-events-none fixed right-6 bottom-6 z-[60]">
     <!-- Chat Window -->
     <transition
       enter-active-class="transition duration-300 ease-out"
@@ -94,18 +94,6 @@
         </div>
       </div>
     </transition>
-
-    <!-- Toggle Button -->
-    <button
-      v-if="!isOpen"
-      :title="t('ai.open')"
-      class="bg-primary hover:bg-primary-hover pointer-events-auto flex size-14 items-center justify-center rounded-full text-white shadow-lg transition-all duration-300 hover:scale-110 active:scale-95"
-      @click="toggle"
-    >
-      <svg class="size-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-      </svg>
-    </button>
   </div>
 </template>
 
@@ -121,7 +109,8 @@ import { useAIStream } from '@/composables/useAIStream';
 import { throttle } from '@/utils/performance';
 
 
-const { isOpen, close, toggle, context, setContext } = useAI();
+
+const { isOpen, close, context, setContext } = useAI();
 const { t } = useI18n();
 const route = useRoute();
 
