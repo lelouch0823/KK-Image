@@ -76,13 +76,13 @@
           >
             <input
               v-model="userInput"
-              :disabled="loading"
+              :disabled="isStreamingLoading"
               type="text"
               :placeholder="t('ai.placeholder')"
               class="focus:ring-primary/20 focus:bg-white focus:ring-2 w-full rounded-xl border-none bg-gray-100/50 py-3 pr-12 pl-4 text-sm transition-all"
             />
             <button
-              :disabled="!userInput.trim() || loading"
+              :disabled="!userInput.trim() || isStreamingLoading"
               type="submit"
               class="text-primary absolute right-2 rounded-lg p-1.5 transition-all hover:bg-primary/10 disabled:opacity-30"
             >
@@ -98,26 +98,37 @@
 </template>
 
 <script setup>
-/* global TextDecoder */
 import { ref, nextTick, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { SSEParser } from '@/utils/streaming';
 import { renderMarkdown } from '@/utils/ai-markdown';
 import ChatMessage from '@/components/common/ai/ChatMessage.vue';
 import AISuggestions from '@/components/common/ai/AISuggestions.vue';
-import { useSmoothTypewriter } from '@/composables/useSmoothTypewriter';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAI } from '@/composables/useAI';
+import { useAIStream } from '@/composables/useAIStream';
+
+/**
+ * 核心节流函数 - 提升 Markdown 渲染性能
+ * @param {Function} fn - 需要执行的函数
+ * @param {number} wait - 节流间隔（毫秒）
+ */
+function throttle(fn, wait) {
+  let lastTime = 0;
+  return function(...args) {
+    const now = Date.now();
+    if (now - lastTime >= wait) {
+      fn.apply(this, args);
+      lastTime = now;
+    }
+  };
+}
 
 const { isOpen, close, context, setContext } = useAI();
 const { t } = useI18n();
 const { addToast } = useToast();
 const route = useRoute();
 
-const loading = ref(false);
-const streaming = ref(false);
-const toolStatus = ref('');
 const userInput = ref('');
 const messageContainer = ref(null);
 
@@ -165,28 +176,33 @@ const handleSuggestion = (text) => {
 };
 
 const { 
+  stream: startAIStream,
   displayedContent: streamContent, 
-  push: bufferStream, 
-  reset: resetStream 
-} = useSmoothTypewriter();
+  isThinking,
+  isLoading: isStreamingLoading,
+  isStreaming: isAIStreaming,
+  toolStatus,
+  resetStream 
+} = useAIStream();
 
-// 判断是否显示“思考中”状态
-const isThinking = computed(() => {
-  // 1. 初始请求加载中
-  if (loading.value) return true;
-  // 2. 流式传输已开始，但尚未产生可见内容（文本或工具调用），说明 AI 仍在后台生成
-  if (streaming.value && !streamContent.value && !toolStatus.value) return true;
-  return false;
-});
+// SOTA: Throttled Markdown rendering
+// AI typing speed is fast (~60fps), rendering Markdown on every char is expensive.
+// We throttle it to ~10fps (100ms) which is visually indistinguishable but saves ~80% CPU.
+const throttledRender = throttle((content, targetMsg) => {
+  if (targetMsg) {
+    targetMsg.html = renderMarkdown(content);
+    scrollToBottom();
+  }
+}, 100);
 
-// 监听流式内容更新并同步到消息列表
+// Listen for streaming content updates
 watch(streamContent, (newContent) => {
   if (messages.value.length > 0) {
     const lastMsg = messages.value[messages.value.length - 1];
     if (lastMsg.role === 'assistant') {
       lastMsg.content = newContent;
-      lastMsg.html = renderMarkdown(newContent);
-      scrollToBottom();
+      // Use throttled renderer
+      throttledRender(newContent, lastMsg);
     }
   }
 });
@@ -226,7 +242,7 @@ const clearHistory = () => {
 };
 
 const sendMessage = async () => {
-  if (!userInput.value.trim() || loading.value || streaming.value) return;
+  if (!userInput.value.trim() || isStreamingLoading.value || isAIStreaming.value) return;
 
   const userQuery = userInput.value;
   messages.value.push({ role: 'user', content: userQuery, html: '' });
@@ -239,88 +255,31 @@ const sendMessage = async () => {
   const historyToSend = messages.value.slice(-7).map(({ role, content }) => ({ role, content }));
 
   try {
-    const response = await fetch('/api/ai/stream', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: historyToSend, context: context.value }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    loading.value = false;
-    streaming.value = true;
-
-    // 创建 AI 消息占位
-    const aiMessageIndex = messages.value.length;
-    messages.value.push({ role: 'assistant', content: '', html: '' });
-    
-    // 重置打字机状态
-    resetStream();
-
-    // 5. 初始化流式接收器与解析器
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    const parser = new SSEParser();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      // 解码二进制流块并喂入 SSE 解析器
-      const chunk = decoder.decode(value, { stream: true });
-      const events = parser.feed(chunk);
-      
-      for (const event of events) {
-        // 处理文本增量：放入打字机缓冲池，实现丝滑渲染
-        if (event.type === 'text_delta' && event.data?.content) {
-          bufferStream(event.data.content);
-        } 
-        // 处理结构化内容块
-        else if (event.type === 'content_block') {
-           if (event.data?.type === 'chart' && event.data?.data) {
-             // 接收到图表数据，追加到当前最新消息中
-             const lastMsg = messages.value[messages.value.length - 1];
-             if (lastMsg) {
-               if (!lastMsg.charts) lastMsg.charts = [];
-               lastMsg.charts.push(event.data.data);
-               scrollToBottom();
-             }
-           } else if (event.data?.content) {
-             // 其他文本块 (Table etc.)
-             bufferStream(event.data.content);
-           }
-        } 
-        // 处理工具调用状态：显示“正在查询...”界面反馈
-        else if (event.type === 'tool_call' && event.data?.name) {
-          toolStatus.value = event.data.name;
-        } 
-        // 处理工具执行完成：隐藏状态，准备接收 AI 的解读结果
-        else if (event.type === 'tool_result') {
-          toolStatus.value = '';
-        } 
-        // 处理流式错误
-        else if (event.type === 'error') {
-          addToast({ message: event.data?.message || t('ai.error'), type: 'error' });
+    // 1. 发起流式请求
+    await startAIStream({
+      messages: historyToSend,
+      context: context.value,
+      onChart: (chartData) => {
+        const lastMsg = messages.value[messages.value.length - 1];
+        if (lastMsg) {
+          if (!lastMsg.charts) lastMsg.charts = [];
+          lastMsg.charts.push(chartData);
+          scrollToBottom();
         }
       }
-    }
+    });
 
-    // 最终确保渲染
-    if (messages.value[aiMessageIndex].content) {
-      messages.value[aiMessageIndex].html = renderMarkdown(messages.value[aiMessageIndex].content);
-    } else {
-      // 如果没有收到任何内容，移除空消息
-      messages.value.pop();
+    // 2. 流结束后的最终渲染 (确保最后一块内容被正确渲染，不依赖 throttle)
+    const lastMsg = messages.value[messages.value.length - 1];
+    if (lastMsg && lastMsg.role === 'assistant') {
+      lastMsg.html = renderMarkdown(lastMsg.content);
+      if (!lastMsg.content && (!lastMsg.charts || lastMsg.charts.length === 0)) {
+        messages.value.pop(); // 移除空消息
+      }
     }
-
   } catch (_err) {
-    addToast({ message: t('ai.networkError'), type: 'error' });
+    // Error is handled in useAIStream (toast)
   } finally {
-    loading.value = false;
-    streaming.value = false;
-    toolStatus.value = '';
     await scrollToBottom();
   }
 };
