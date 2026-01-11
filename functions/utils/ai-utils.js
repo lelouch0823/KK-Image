@@ -5,6 +5,7 @@
  * 封装与 OpenAI 兼容 API 的交互逻辑。
  */
 
+import { MSG } from '../api/utils/messages.js';
 import { DateUtils } from '../api/utils/date.js';
 
 /**
@@ -42,13 +43,4 @@ export async function callAI(messages, tools, env) {
 /**
  * 格式化系统提示词
  */
-export const SYSTEM_PROMPT = `
-你是一个专业的管理后台 AI 助手。你可以通过调用工具来查询数据库中的订单统计信息。
-当前的日期是：${DateUtils.getChinaDateStr()}。
-
-回答准则：
-1. 始终使用中文回答。
-2. 当用户询问统计数据时，优先使用工具查询。
-3. 如果工具返回了数据，请以友好、简洁的方式总结给用户。
-4. 如果无法查询到数据，请如实告知。
-`.trim();
+export const SYSTEM_PROMPT = MSG.AI.SYSTEM_PROMPT(DateUtils.getChinaDateStr());

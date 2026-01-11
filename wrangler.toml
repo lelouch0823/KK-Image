@@ -100,6 +100,11 @@ ModerateContentApiKey = ""
 # Sentry 错误监控 DSN
 SENTRY_DSN = ""
 
+# AI 助手配置 (OpenAI 兼容 API)
+AI_API_KEY = "ms-a5a227b4-b186-4411-8842-e78f6eebc8d6"
+AI_API_URL = "https://api-inference.modelscope.cn/v1/"
+AI_MODEL = "deepseek-ai/DeepSeek-V3.2"
+
 # =============================================================================
 # 生产环境配置
 # ⚠️ 敏感凭据必须通过 Cloudflare Dashboard -> Settings -> Environment Variables 设置
@@ -139,6 +144,11 @@ disable_telemetry = "false"
 ModerateContentApiKey = ""
 SENTRY_DSN = ""
 
+# AI 助手配置
+AI_API_KEY = ""
+AI_API_URL = "https://api.openai.com/v1"
+AI_MODEL = "gpt-4o"
+
 # Cloudflare Turnstile 防滥用验证
 TURNSTILE_SITE_KEY = "0x4AAAAAACJfZho-HoWMjX2s"
 TURNSTILE_SECRET_KEY = "0x4AAAAAACJfZgVVRfDSbOF7Kf9bU1kmmHI"
@@ -174,6 +184,11 @@ TG_Bot_Token = "123456789:ABCdefGHIjklMNOpqrSTUvwxYZ"
 TG_Chat_ID = "-1001234567890"
 BASIC_USER = "admin"
 BASIC_PASS = "1"
+
+# AI 助手配置
+AI_API_KEY = ""
+AI_API_URL = "https://api.openai.com/v1"
+AI_MODEL = "gpt-4o"
 
 # =============================================================================
 # KV 命名空间绑定

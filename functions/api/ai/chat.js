@@ -27,7 +27,7 @@ export async function onRequestPost(context) {
                 type: "function",
                 function: {
                     name: "getOrderStats",
-                    description: "获取订单总体统计数据，包括今日、本周、本月订单数和待处理订单数。",
+                    description: MSG.AI.TOOLS.GET_ORDER_STATS,
                     parameters: { type: "object", properties: {} }
                 }
             },
@@ -35,11 +35,11 @@ export async function onRequestPost(context) {
                 type: "function",
                 function: {
                     name: "getRecentPendingOrders",
-                    description: "获取最近的待处理订单列表。",
+                    description: MSG.AI.TOOLS.GET_RECENT_PENDING,
                     parameters: {
                         type: "object",
                         properties: {
-                            limit: { type: "number", description: "获取数量，默认为 5" }
+                            limit: { type: "number", description: MSG.AI.TOOLS.LIMIT_DESC }
                         }
                     }
                 }

@@ -19,141 +19,184 @@
           <p class="text-secondary text-sm">{{ t('auth.subtitle') }}</p>
         </div>
 
-        <!-- 表单 -->
-        <form class="px-8 pb-10" @submit.prevent="handleLogin">
-          <!-- 用户名 -->
-          <div class="mb-5">
-            <label class="mb-2 block text-sm font-medium text-[var(--text-main)]">{{
-              t('auth.username')
-            }}</label>
-            <div class="relative">
-              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                <svg
-                  class="text-secondary size-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1.5"
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  ></path>
-                </svg>
+        <!-- 登录与转场容器 -->
+        <div class="relative overflow-hidden">
+          <transition name="fade-slide-up" mode="out-in">
+            <!-- 登录表单 -->
+            <form v-if="!redirecting" class="px-8 pb-10" @submit.prevent="handleLogin">
+              <!-- 用户名 -->
+              <div class="mb-5">
+                <label class="mb-2 block text-sm font-medium text-[var(--text-main)]">{{
+                  t('auth.username')
+                }}</label>
+                <div class="relative">
+                  <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                    <svg
+                      class="text-secondary size-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.5"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      ></path>
+                    </svg>
+                  </div>
+                  <input
+                    v-model="username"
+                    type="text"
+                    required
+                    autocomplete="username"
+                    :placeholder="t('auth.usernamePlaceholder')"
+                    class="input-focus h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] pr-4 pl-12 text-sm transition-all focus:border-primary focus:ring-primary/10 focus:bg-white focus:ring-2 focus:outline-none"
+                  />
+                </div>
               </div>
-              <input
-                v-model="username"
-                type="text"
-                required
-                autocomplete="username"
-                :placeholder="t('auth.usernamePlaceholder')"
-                class="input-focus h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] pr-4 pl-12 text-sm transition-all focus:border-primary focus:ring-primary/10 focus:bg-white focus:ring-2 focus:outline-none"
-              />
-            </div>
-          </div>
 
-          <!-- 密码 -->
-          <div class="mb-6">
-            <label class="mb-2 block text-sm font-medium text-[var(--text-main)]">{{
-              t('auth.password')
-            }}</label>
-            <div class="relative">
-              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                <svg
-                  class="text-secondary size-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1.5"
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                  ></path>
-                </svg>
+              <!-- 密码 -->
+              <div class="mb-6">
+                <label class="mb-2 block text-sm font-medium text-[var(--text-main)]">{{
+                  t('auth.password')
+                }}</label>
+                <div class="relative">
+                  <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                    <svg
+                      class="text-secondary size-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.5"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      ></path>
+                    </svg>
+                  </div>
+                  <input
+                    v-model="password"
+                    :type="showPassword ? 'text' : 'password'"
+                    required
+                    autocomplete="current-password"
+                    :placeholder="t('auth.passwordPlaceholder')"
+                    class="input-focus h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-12 text-sm transition-all focus:border-primary focus:ring-primary/10 focus:bg-white focus:ring-2 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    class="text-muted absolute inset-y-0 right-0 flex items-center pr-4 transition-colors hover:text-primary"
+                    @click="showPassword = !showPassword"
+                  >
+                    <svg
+                      v-if="!showPassword"
+                      class="size-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.5"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      ></path>
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.5"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      ></path>
+                    </svg>
+                    <svg v-else class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.5"
+                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                      ></path>
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <input
-                v-model="password"
-                :type="showPassword ? 'text' : 'password'"
-                required
-                autocomplete="current-password"
-                :placeholder="t('auth.passwordPlaceholder')"
-                class="input-focus h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-12 text-sm transition-all focus:border-primary focus:ring-primary/10 focus:bg-white focus:ring-2 focus:outline-none"
-              />
+
+              <!-- Cloudflare Turnstile Widget -->
+              <div v-if="turnstileEnabled" class="mb-6">
+                <div
+                  ref="turnstileContainer"
+                  class="cf-turnstile"
+                  :data-sitekey="turnstileSiteKey"
+                  data-callback="onTurnstileSuccess"
+                  data-theme="light"
+                ></div>
+              </div>
+
+              <!-- 登录按钮 -->
               <button
-                type="button"
-                class="text-muted absolute inset-y-0 right-0 flex items-center pr-4 transition-colors hover:text-primary"
-                @click="showPassword = !showPassword"
+                type="submit"
+                :disabled="loading || (turnstileEnabled && !turnstileToken)"
+                class="bg-primary shadow-primary/20 flex h-12 w-full items-center justify-center gap-2 rounded-xl font-medium text-white shadow-lg transition-all active:scale-95 hover:bg-primary-hover hover:shadow-primary/30 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <svg
-                  v-if="!showPassword"
-                  class="size-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg v-if="loading" class="size-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
                   <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1.5"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  ></path>
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1.5"
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                <svg v-else class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1.5"
-                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                  ></path>
-                </svg>
+                <span>{{ loading ? t('auth.loggingIn') : t('auth.loginButton') }}</span>
               </button>
+            </form>
+
+            <!-- 成功转场状态 -->
+            <div v-else class="flex flex-col items-center justify-center px-8 pt-4 pb-16 text-center">
+              <div class="relative mb-6">
+                <div class="absolute inset-0 size-16 animate-ping rounded-full bg-primary/20"></div>
+                <div
+                  class="bg-primary relative flex size-16 items-center justify-center rounded-full text-white shadow-lg"
+                >
+                  <svg class="size-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="3"
+                      d="M5 13l4 4L19 7"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+              <h2 class="text-primary mb-2 text-xl font-bold italic">{{ t('auth.loginSuccess') }}</h2>
+              <div class="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                <svg class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  ></path>
+                </svg>
+                <span>正在为您准备工作台...</span>
+              </div>
             </div>
-          </div>
-
-          <!-- Cloudflare Turnstile Widget -->
-          <div v-if="turnstileEnabled" class="mb-6">
-            <div
-              ref="turnstileContainer"
-              class="cf-turnstile"
-              :data-sitekey="turnstileSiteKey"
-              data-callback="onTurnstileSuccess"
-              data-theme="light"
-            ></div>
-          </div>
-
-          <!-- 登录按钮 -->
-          <button
-            type="submit"
-            :disabled="loading || (turnstileEnabled && !turnstileToken)"
-            class="bg-primary shadow-primary/20 flex h-12 w-full items-center justify-center gap-2 rounded-xl font-medium text-white shadow-lg transition-all active:scale-95 hover:bg-primary-hover hover:shadow-primary/30 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            <svg v-if="loading" class="size-5 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            <span>{{ loading ? t('auth.loggingIn') : t('auth.loginButton') }}</span>
-          </button>
-        </form>
+          </transition>
+        </div>
       </div>
 
       <!-- 底部链接 -->
@@ -197,6 +240,7 @@ const username = ref('');
 const password = ref('');
 const showPassword = ref(false);
 const loading = ref(false);
+const redirecting = ref(false);
 const error = ref('');
 const turnstileToken = ref('');
 const turnstileContainer = ref(null);
@@ -213,9 +257,9 @@ if (typeof window !== 'undefined') {
 // 检查是否已登录 + 加载 Turnstile 配置
 onBeforeMount(async () => {
   // 检查登录状态
-  // 检查登录状态
   const isAuth = await checkAuth();
   if (isAuth) {
+    redirecting.value = true;
     window.location.href = ROUTES.ADMIN;
     return;
   }
@@ -247,6 +291,8 @@ onBeforeMount(async () => {
 });
 
 const handleLogin = async () => {
+  if (loading.value || redirecting.value) return;
+
   if (!username.value || !password.value) {
     addToast({ message: t('auth.inputRequired'), type: 'warning' });
     return;
@@ -270,11 +316,14 @@ const handleLogin = async () => {
     const result = await response.json();
 
     if (response.ok && result.success) {
+      // 切换至转场状态
+      redirecting.value = true;
       addToast({ message: t('auth.loginSuccess'), type: 'success' });
-      // Delay slightly for toast visibility
+      
+      // 平滑跳转
       setTimeout(() => {
         window.location.href = '/admin.html';
-      }, 500);
+      }, 800);
     } else {
       const msg = result.message || t('common.invalidCredentials');
       error.value = msg;
@@ -306,5 +355,37 @@ const handleLogin = async () => {
 .input-focus:focus {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* 进场动画：由下而上渐显 */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 转场动画 */
+.fade-slide-up-enter-active,
+.fade-slide-up-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fade-slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.fade-slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
 }
 </style>
