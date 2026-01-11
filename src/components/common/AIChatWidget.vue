@@ -103,30 +103,14 @@ import { useRoute } from 'vue-router';
 import { renderMarkdown } from '@/utils/ai-markdown';
 import ChatMessage from '@/components/common/ai/ChatMessage.vue';
 import AISuggestions from '@/components/common/ai/AISuggestions.vue';
-import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAI } from '@/composables/useAI';
 import { useAIStream } from '@/composables/useAIStream';
+import { throttle } from '@/utils/performance';
 
-/**
- * 核心节流函数 - 提升 Markdown 渲染性能
- * @param {Function} fn - 需要执行的函数
- * @param {number} wait - 节流间隔（毫秒）
- */
-function throttle(fn, wait) {
-  let lastTime = 0;
-  return function(...args) {
-    const now = Date.now();
-    if (now - lastTime >= wait) {
-      fn.apply(this, args);
-      lastTime = now;
-    }
-  };
-}
 
 const { isOpen, close, context, setContext } = useAI();
 const { t } = useI18n();
-const { addToast } = useToast();
 const route = useRoute();
 
 const userInput = ref('');
@@ -182,7 +166,6 @@ const {
   isLoading: isStreamingLoading,
   isStreaming: isAIStreaming,
   toolStatus,
-  resetStream 
 } = useAIStream();
 
 // SOTA: Throttled Markdown rendering
@@ -247,7 +230,7 @@ const sendMessage = async () => {
   const userQuery = userInput.value;
   messages.value.push({ role: 'user', content: userQuery, html: '' });
   userInput.value = '';
-  loading.value = true;
+  // loading state managed by useAIStream
   toolStatus.value = '';
   await scrollToBottom();
 
