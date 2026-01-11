@@ -206,6 +206,8 @@ export const MSG = {
     TOOLS: {
       RESULT_READY: '数据已获取',
     },
+    MODEL_SWITCH: '当前模型额度已达上限，已自动切换至备用模型',
+    ALL_MODELS_EXHAUSTED: '所有可用模型额度已耗尽，请稍后重试',
   },
 
   // 导出相关标签

@@ -79,12 +79,32 @@ export async function onRequestPost(context) {
 
                     let aiStream;
                     let useStreaming = true;
+                    let currentModel = null;
+                    let modelSwitched = false;
 
                     // 4. 发起首轮 AI 调用 (尝试流式传输)
                     try {
-                        aiStream = await callAIStream(messages, AI_TOOLS, env);
-                    } catch (_e) {
+                        console.log('[AI Stream] Calling callAIStream...');
+                        const streamResult = await callAIStream(messages, AI_TOOLS, env);
+                        console.log('[AI Stream] callAIStream returned:', {
+                            hasBody: !!streamResult.body,
+                            model: streamResult.model,
+                            switched: streamResult.switched
+                        });
+                        aiStream = streamResult.body;
+                        currentModel = streamResult.model;
+                        modelSwitched = streamResult.switched;
+
+                        // 如果发生了模型切换，通知前端
+                        if (modelSwitched) {
+                            sendSSE(controller, 'model_switch', {
+                                model: currentModel,
+                                reason: 'rate_limit'
+                            });
+                        }
+                    } catch (streamError) {
                         // 如果供应商或环境不支持流式，平滑降级为非流式模式
+                        console.error('[AI Stream] callAIStream failed:', streamError.message);
                         useStreaming = false;
                     }
 
@@ -99,9 +119,14 @@ export async function onRequestPost(context) {
 
                         while (true) {
                             const { done, value } = await reader.read();
-                            if (done) break;
+                            if (done) {
+                                console.log('[AI Stream] Reader done');
+                                break;
+                            }
 
-                            buffer += decoder.decode(value, { stream: true });
+                            const decodedChunk = decoder.decode(value, { stream: true });
+                            console.log(`[AI Stream] Received chunk (${value.length} bytes):`, decodedChunk.slice(0, 100) + (decodedChunk.length > 100 ? '...' : ''));
+                            buffer += decodedChunk;
 
                             // 健壮性优化：查找最后一个换行符，防止截断的 JSON 导致解析失败
                             const lastNewlineIndex = buffer.lastIndexOf('\n');
@@ -110,11 +135,15 @@ export async function onRequestPost(context) {
                                 buffer = buffer.slice(lastNewlineIndex + 1);
 
                                 const chunks = parseSSEChunk(toParse);
+                                console.log(`[AI Stream] Parsed ${chunks.length} SSE chunks`);
                                 for (const chunk of chunks) {
                                     if (chunk.done) continue;
 
                                     const delta = chunk.choices?.[0]?.delta;
-                                    if (!delta) continue;
+                                    if (!delta) {
+                                        console.log('[AI Stream] Chunk has no delta:', JSON.stringify(chunk).slice(0, 100));
+                                        continue;
+                                    }
 
                                     // === 核心逻辑修改：文本与图表混合解析 ===
                                     if (delta.content) {
@@ -210,6 +239,37 @@ export async function onRequestPost(context) {
                             }
                         }
 
+                        // === 主流式循环后：Flush 剩余的 streamBuffer ===
+                        if (streamBuffer) {
+                            const chartStartIndex = streamBuffer.indexOf(':::chart');
+                            if (chartStartIndex !== -1) {
+                                const chartEndIndex = streamBuffer.indexOf(':::', 8);
+                                if (chartEndIndex !== -1) {
+                                    if (chartStartIndex > 0) {
+                                        sendSSE(controller, 'text_delta', { content: streamBuffer.slice(0, chartStartIndex) });
+                                    }
+                                    const rawJson = streamBuffer.slice(8, chartEndIndex).trim();
+                                    try {
+                                        const chartData = JSON.parse(rawJson);
+                                        sendSSE(controller, 'content_block', { type: 'chart', data: chartData });
+                                    } catch (e) {
+                                        console.error('[AI Main Stream] Chart parse error:', e.message);
+                                        sendSSE(controller, 'text_delta', { content: streamBuffer.slice(0, chartEndIndex + 3) });
+                                    }
+                                    const afterChart = streamBuffer.slice(chartEndIndex + 3);
+                                    if (afterChart) {
+                                        sendSSE(controller, 'text_delta', { content: afterChart });
+                                    }
+                                } else {
+                                    sendSSE(controller, 'text_delta', { content: streamBuffer });
+                                }
+                            } else {
+                                sendSSE(controller, 'text_delta', { content: streamBuffer });
+                            }
+                            console.log(`[AI Main Stream] Flushed buffer: ${streamBuffer.length} chars`);
+                            streamBuffer = ''; // Reset after flush
+                        }
+
                         // === 工具调用处理逻辑 ===
                         if (toolCalls.length > 0) {
                             for (const tc of toolCalls) {
@@ -239,15 +299,133 @@ export async function onRequestPost(context) {
                                 });
                             }
 
-                            // 进行终番回复 (为了保证解读逻辑的严密性，此处使用非流式请求)
-                            const finalResponse = await callAI(messages, [], env);
-                            const finalContent = finalResponse.choices[0].message.content;
+                            // 进行终番回复 (改为流式请求以支持所有模型)
+                            const finalStreamResult = await callAIStream(messages, [], env);
+                            const finalReader = finalStreamResult.body.getReader();
+                            let finalBuffer = '';
+                            let finalFullContent = '';
+                            let streamBuffer = ''; // Re-use buffering logic for charts
 
-                            // 针对 Markdown 特色内容（如表格）的特殊处理
-                            if (finalContent.includes('|') && finalContent.includes('---')) {
-                                sendSSE(controller, 'content_block', { type: 'table', content: finalContent });
-                            } else {
-                                sendSSE(controller, 'text_delta', { content: finalContent });
+                            while (true) {
+                                const { done, value } = await finalReader.read();
+                                if (done) break;
+
+                                finalBuffer += decoder.decode(value, { stream: true });
+                                const lastNewlineIndex = finalBuffer.lastIndexOf('\n');
+                                if (lastNewlineIndex !== -1) {
+                                    const toParse = finalBuffer.slice(0, lastNewlineIndex + 1);
+                                    finalBuffer = finalBuffer.slice(lastNewlineIndex + 1);
+
+                                    const chunks = parseSSEChunk(toParse);
+                                    for (const chunk of chunks) {
+                                        if (chunk.done) continue;
+                                        const delta = chunk.choices?.[0]?.delta;
+                                        if (delta?.content) {
+                                            finalFullContent += delta.content;
+                                            streamBuffer += delta.content;
+
+                                            // === 复用图表解析逻辑 ===
+                                            while (true) {
+                                                const chartStartIndex = streamBuffer.indexOf(':::chart');
+                                                if (chartStartIndex === -1) {
+                                                    let partialMatch = false;
+                                                    const checkLen = Math.min(streamBuffer.length, 8);
+                                                    for (let i = 1; i <= checkLen; i++) {
+                                                        const suffix = streamBuffer.slice(-i);
+                                                        if (":::chart".startsWith(suffix)) {
+                                                            partialMatch = true;
+                                                            const safeText = streamBuffer.slice(0, -i);
+                                                            if (safeText) {
+                                                                sendSSE(controller, 'text_delta', { content: safeText });
+                                                                streamBuffer = streamBuffer.slice(safeText.length);
+                                                            }
+                                                            break;
+                                                        }
+                                                    }
+                                                    if (!partialMatch) {
+                                                        if (streamBuffer) {
+                                                            sendSSE(controller, 'text_delta', { content: streamBuffer });
+                                                            streamBuffer = '';
+                                                        }
+                                                    }
+                                                    break;
+                                                } else {
+                                                    if (chartStartIndex > 0) {
+                                                        const textPart = streamBuffer.slice(0, chartStartIndex);
+                                                        sendSSE(controller, 'text_delta', { content: textPart });
+                                                        streamBuffer = streamBuffer.slice(chartStartIndex);
+                                                    }
+                                                    const chartEndIndex = streamBuffer.indexOf(':::', 8);
+                                                    if (chartEndIndex !== -1) {
+                                                        const rawJson = streamBuffer.slice(8, chartEndIndex).trim();
+                                                        try {
+                                                            const chartData = JSON.parse(rawJson);
+                                                            sendSSE(controller, 'content_block', { type: 'chart', data: chartData });
+                                                        } catch (e) {
+                                                            console.error('Chart JSON parse error:', e);
+                                                            sendSSE(controller, 'text_delta', { content: streamBuffer.slice(0, chartEndIndex + 3) });
+                                                        }
+                                                        streamBuffer = streamBuffer.slice(chartEndIndex + 3);
+                                                    } else {
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // === 关键修复：Flush 剩余的 buffer ===
+                            // 处理最后剩余的 finalBuffer (可能包含不完整的 SSE 行)
+                            if (finalBuffer.trim()) {
+                                const chunks = parseSSEChunk(finalBuffer);
+                                for (const chunk of chunks) {
+                                    if (chunk.done) continue;
+                                    const delta = chunk.choices?.[0]?.delta;
+                                    if (delta?.content) {
+                                        streamBuffer += delta.content;
+                                    }
+                                }
+                            }
+
+                            // Flush streamBuffer 中剩余的非图表内容
+                            if (streamBuffer) {
+                                // 检查是否有未完成的图表块
+                                const chartStartIndex = streamBuffer.indexOf(':::chart');
+                                if (chartStartIndex !== -1) {
+                                    // 尝试解析可能完整的图表
+                                    const chartEndIndex = streamBuffer.indexOf(':::', 8);
+                                    if (chartEndIndex !== -1) {
+                                        // 发送图表前的文本
+                                        if (chartStartIndex > 0) {
+                                            sendSSE(controller, 'text_delta', { content: streamBuffer.slice(0, chartStartIndex) });
+                                        }
+                                        const rawJson = streamBuffer.slice(8, chartEndIndex).trim();
+                                        try {
+                                            const chartData = JSON.parse(rawJson);
+                                            sendSSE(controller, 'content_block', { type: 'chart', data: chartData });
+                                            console.log('[AI Stream] Final buffer chart sent successfully');
+                                        } catch (e) {
+                                            console.error('[AI Stream] Final buffer chart parse error:', e.message);
+                                            console.log('[AI Stream] Raw chart JSON:', rawJson.slice(0, 200));
+                                            sendSSE(controller, 'text_delta', { content: streamBuffer.slice(0, chartEndIndex + 3) });
+                                        }
+                                        // 发送图表后的剩余文本
+                                        const afterChart = streamBuffer.slice(chartEndIndex + 3);
+                                        if (afterChart) {
+                                            sendSSE(controller, 'text_delta', { content: afterChart });
+                                        }
+                                    } else {
+                                        // 图表不完整，作为文本发送
+                                        console.warn('[AI Stream] Incomplete chart block in final buffer, sending as text');
+                                        sendSSE(controller, 'text_delta', { content: streamBuffer });
+                                    }
+                                } else {
+                                    // 没有图表，直接发送剩余文本
+                                    sendSSE(controller, 'text_delta', { content: streamBuffer });
+                                }
+                                console.log(`[AI Stream] Flushed final buffer: ${streamBuffer.length} chars`);
                             }
                         }
                     } else {

@@ -103,7 +103,10 @@ SENTRY_DSN = ""
 # AI 助手配置 (OpenAI 兼容 API)
 AI_API_KEY = "ms-a5a227b4-b186-4411-8842-e78f6eebc8d6"
 AI_API_URL = "https://api-inference.modelscope.cn/v1/"
-AI_MODEL = "deepseek-ai/DeepSeek-V3.2"
+# 模型优先级列表（逗号分隔，按顺序尝试，额度不足时自动切换）
+AI_MODELS = "deepseek-ai/DeepSeek-V3.2,Qwen/Qwen3-Coder-480B-A35B-Instruct,Qwen/QwQ-32B,Qwen/Qwen3-32B,Qwen/Qwen3-Next-80B-A3B-Instruct"
+# 切换阈值：剩余额度低于此值时切换（默认5）
+AI_MODEL_SWITCH_THRESHOLD = "5"
 
 # =============================================================================
 # 生产环境配置
@@ -147,7 +150,8 @@ SENTRY_DSN = ""
 # AI 助手配置
 AI_API_KEY = "ms-a5a227b4-b186-4411-8842-e78f6eebc8d6"
 AI_API_URL = "https://api-inference.modelscope.cn/v1/"
-AI_MODEL = "deepseek-ai/DeepSeek-V3.2"
+AI_MODELS = "deepseek-ai/DeepSeek-V3.2,Qwen/Qwen3-Coder-480B-A35B-Instruct,Qwen/QwQ-32B,Qwen/Qwen3-32B,Qwen/Qwen3-Next-80B-A3B-Instruct"
+AI_MODEL_SWITCH_THRESHOLD = "5"
 
 # Cloudflare Turnstile 防滥用验证
 TURNSTILE_SITE_KEY = "0x4AAAAAACJfZho-HoWMjX2s"
@@ -188,7 +192,8 @@ BASIC_PASS = "1"
 # AI 助手配置
 AI_API_KEY = ""
 AI_API_URL = "https://api.openai.com/v1"
-AI_MODEL = "gpt-4o"
+AI_MODELS = "gpt-4o"
+AI_MODEL_SWITCH_THRESHOLD = "5"
 
 # =============================================================================
 # KV 命名空间绑定

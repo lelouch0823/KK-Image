@@ -836,6 +836,7 @@ export default {
     clear: '清空会话',
     clearConfirm: '确定要清空聊天记录吗？',
     copySuccess: '消息已复制到剪贴板',
+    modelSwitch: '模型额度已达上限，已自动切换至备用模型',
     toolNames: {
       getOrderStats: '订单统计',
       getRecentPendingOrders: '待处理订单',

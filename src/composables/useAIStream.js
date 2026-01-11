@@ -68,6 +68,9 @@ export function useAIStream() {
                     } else if (event.type === 'content_block') {
                         if (event.data?.type === 'chart' && event.data?.data) {
                             onChart?.(event.data.data);
+                        } else if (event.data?.type === 'table' && event.data?.content) {
+                            // 表格内容（工具调用结果）直接推送
+                            pushToTypewriter(event.data.content);
                         } else if (event.data?.content) {
                             pushToTypewriter(event.data.content);
                         }
@@ -75,6 +78,12 @@ export function useAIStream() {
                         toolStatus.value = event.data?.name || '';
                     } else if (event.type === 'tool_result') {
                         toolStatus.value = '';
+                    } else if (event.type === 'model_switch') {
+                        // 模型切换通知
+                        addToast({
+                            message: t('ai.modelSwitch') || '模型已切换',
+                            type: 'info'
+                        });
                     } else if (event.type === 'error') {
                         addToast({ message: event.data?.message || t('ai.error'), type: 'error' });
                     }
