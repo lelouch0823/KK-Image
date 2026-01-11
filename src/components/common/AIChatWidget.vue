@@ -125,6 +125,12 @@ import { useAI } from '@/composables/useAI';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
+// 配置 marked 以支持 GFM 表格和换行
+marked.use({
+  gfm: true,
+  breaks: true,
+});
+
 const { isOpen, close } = useAI();
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -153,7 +159,9 @@ const scrollToBottom = async () => {
 
 const renderMarkdown = (content) => {
   if (!content) return '';
-  const html = marked.parse(content);
+  // 预处理：确保表格前后有空行
+  const processed = content.replace(/([^\n])\n(\|)/g, '$1\n\n$2');
+  const html = marked.parse(processed);
   return DOMPurify.sanitize(html);
 };
 
