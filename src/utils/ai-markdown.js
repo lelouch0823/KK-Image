@@ -19,6 +19,9 @@ export function renderMarkdown(content) {
 
     let processed = content;
 
+    // === 预处理 0：移除报告标记 ===
+    processed = processed.replace(/\[REPORT_AVAILABLE\]/g, '');
+
     // === 预处理 1：修复加粗/斜体标记 ===
     // AI 可能产生带空格或换行的加粗标记 (e.g. ** text ** -> **text**)
     processed = processed.replace(/\*\*\s*([\s\S]*?)\s*\*\*/g, (_, p1) => `**${p1.trim()}**`);
@@ -34,8 +37,11 @@ export function renderMarkdown(content) {
     // 3. 强制在标题前换行
     processed = processed.replace(/([^\n])(#{1,6}\s)/g, '$1\n\n$2');
 
-    // 4. 表格 (以 | 开头)，但要小心不误伤正文中的 |
-    processed = processed.replace(/([^\n])\n(\|)/g, '$1\n\n$2');
+    // 4. 表格处理 - 确保表格行前有空行
+    // 匹配以 | 开头的行，确保前面有空行
+    processed = processed.replace(/([^\n])\n(\|[^\n]+\|)/g, '$1\n\n$2');
+    // 如果表格紧跟文字（无换行），也加空行
+    processed = processed.replace(/([^|\n])(\|[^|\n]+\|)/g, '$1\n\n$2');
 
     // 5. 代码块和引用
     processed = processed.replace(/([^\n])(```)/g, '$1\n\n$2');

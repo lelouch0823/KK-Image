@@ -61,6 +61,36 @@
 
         <!-- Input Area -->
         <div class="border-border border-t bg-white/50 px-4 pt-1 pb-4">
+          <!-- Report Button (appears after streaming when marker detected) -->
+          <transition
+            enter-active-class="transition-all duration-500 ease-out"
+            enter-from-class="opacity-0 translate-y-2"
+            enter-to-class="opacity-100 translate-y-0"
+          >
+            <button
+              v-if="showReportButton && !isGeneratingReport"
+              class="mb-3 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-3 text-sm font-medium text-white shadow-md transition-all hover:shadow-lg hover:brightness-110"
+              @click="generateReport"
+            >
+              <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {{ t('ai.generateReport') }}
+            </button>
+          </transition>
+
+          <!-- Report Generation Loading -->
+          <div
+            v-if="isGeneratingReport"
+            class="mb-3 flex items-center justify-center gap-2 rounded-xl bg-gray-100 px-4 py-3 text-sm text-gray-600"
+          >
+            <svg class="size-5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ t('ai.generatingReport') }}
+          </div>
+
           <AISuggestions 
             class="mb-2" 
             :suggestions="suggestions" 
@@ -103,10 +133,12 @@ import AISuggestions from '@/components/common/ai/AISuggestions.vue';
 import { useI18n } from '@/composables/useI18n';
 import { useAI } from '@/composables/useAI';
 import { useAIStream } from '@/composables/useAIStream';
+import { useToast } from '@/composables/useToast';
 import { throttle } from '@/utils/performance';
 
 const { isOpen, close, context, setContext } = useAI();
 const { t } = useI18n();
+const { addToast } = useToast();
 const { currentView, viewTitle } = useView();
 
 const userInput = ref('');
@@ -164,6 +196,19 @@ const {
   isStreaming: isAIStreaming,
   toolStatus,
 } = useAIStream();
+
+const isGeneratingReport = ref(false);
+
+// Show report button when streaming is done and last message has marker
+const showReportButton = computed(() => {
+  if (isAIStreaming.value || isStreamingLoading.value) return false;
+  if (isGeneratingReport.value) return false;
+  
+  const lastMsg = messages.value[messages.value.length - 1];
+  if (lastMsg?.role !== 'assistant') return false;
+  
+  return lastMsg.content?.includes('[REPORT_AVAILABLE]');
+});
 
 // SOTA: Throttled Markdown rendering - use fullContent for proper parsing
 const throttledRender = throttle((content, targetMsg) => {
@@ -231,15 +276,7 @@ const sendMessage = async () => {
   try {
     await startAIStream({
       messages: historyToSend,
-      context: context.value,
-      onChart: (chartData) => {
-        const lastMsg = messages.value[messages.value.length - 1];
-        if (lastMsg) {
-          if (!lastMsg.charts) lastMsg.charts = [];
-          lastMsg.charts.push(chartData);
-          scrollToBottom();
-        }
-      }
+      context: context.value
     });
 
     const lastMsg = messages.value[messages.value.length - 1];
@@ -247,7 +284,7 @@ const sendMessage = async () => {
       // Final render with complete fullContent for proper markdown parsing
       lastMsg.content = fullContent.value;
       lastMsg.html = renderMarkdown(fullContent.value);
-      if (!lastMsg.content && (!lastMsg.charts || lastMsg.charts.length === 0)) {
+      if (!lastMsg.content) {
         messages.value.pop();
       }
     }
@@ -255,6 +292,47 @@ const sendMessage = async () => {
     // Error is handled in useAIStream (toast)
   } finally {
     await scrollToBottom();
+  }
+};
+
+/**
+ * 生成并打开完整 HTML 报告
+ */
+const generateReport = async () => {
+  isGeneratingReport.value = true;
+  
+  try {
+    const response = await fetch('/api/ai/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context: context.value })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const html = data.data?.html || data.html;
+
+    if (!html) {
+      throw new Error('No HTML content received');
+    }
+
+    // 创建 Blob URL 并在新窗口打开
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+
+    // 延迟释放 URL
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+    addToast({ message: t('ai.reportGenerated'), type: 'success' });
+  } catch (err) {
+    console.error('[AI Report] Error:', err);
+    addToast({ message: t('ai.reportError'), type: 'error' });
+  } finally {
+    isGeneratingReport.value = false;
   }
 };
 </script>

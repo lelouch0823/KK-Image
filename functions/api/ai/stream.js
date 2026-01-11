@@ -17,7 +17,7 @@ import { OrderStatsRepository } from '../../repositories/OrderStatsRepository.js
 import { SystemStatsRepository } from '../../repositories/SystemStatsRepository.js';
 import { callAIStream, callAI, parseSSEChunk, SYSTEM_PROMPT } from '../../utils/ai-utils.js';
 import { DateUtils } from '../utils/date.js';
-import { extractChartsFromContent, extractToolCallsFromText, createSSESender } from '../../utils/ai-stream-helpers.js';
+import { extractToolCallsFromText, createSSESender } from '../../utils/ai-stream-helpers.js';
 
 export async function onRequestPost(context) {
     const { env, request } = context;
@@ -130,7 +130,7 @@ export async function onRequestPost(context) {
 /**
  * 处理流式响应
  * - 累积内容并实时发送文本
- * - 在流结束时解析图表
+ * - 检测文本格式的工具调用
  */
 async function processStream(aiStream, sendSSE) {
     const reader = aiStream.getReader();
@@ -206,19 +206,9 @@ async function processStream(aiStream, sendSSE) {
         }
     }
 
-    // 2. 解析图表并发送最终内容
+    // 2. 发送剩余的 pendingText
     if (pendingText) {
-        const { text, charts } = extractChartsFromContent(pendingText);
-
-        // 发送剩余文本
-        if (text) {
-            sendSSE('text_delta', { content: text });
-        }
-
-        // 发送图表
-        for (const chart of charts) {
-            sendSSE('content_block', { type: 'chart', data: chart });
-        }
+        sendSSE('text_delta', { content: pendingText });
     }
     // 3. 检查是否需要从文本中提取工具调用 (某些模型的兼容)
     if (toolCalls.length === 0 && fullContent) {
@@ -238,34 +228,22 @@ async function processStream(aiStream, sendSSE) {
 }
 
 /**
- * 获取可以安全发送的文本（不包含可能的图表块或工具调用）
+ * 获取可以安全发送的文本（不包含文本格式的工具调用）
  */
 function getSafeTextForStreaming(text) {
-    // 需要检测的特殊标记
-    const specialMarkers = [':::chart', '<tools'];
+    // 只检测文本格式工具调用标记
+    const toolsMarker = '<tools';
+    const toolsIndex = text.indexOf(toolsMarker);
 
-    let earliestIndex = text.length;
-
-    // 找到最早出现的特殊标记
-    for (const marker of specialMarkers) {
-        const index = text.indexOf(marker);
-        if (index !== -1 && index < earliestIndex) {
-            earliestIndex = index;
-        }
-    }
-
-    if (earliestIndex < text.length) {
-        // 有特殊标记，只返回之前的部分
-        return text.slice(0, earliestIndex);
+    if (toolsIndex !== -1) {
+        // 有工具调用标记，只返回之前的部分
+        return text.slice(0, toolsIndex);
     }
 
     // 检查是否有部分匹配（可能的标记开始）
-    for (const marker of specialMarkers) {
-        for (let i = 1; i <= marker.length; i++) {
-            if (text.endsWith(marker.slice(0, i))) {
-                // 可能是标记开始，保留这部分
-                return text.slice(0, -i);
-            }
+    for (let i = 1; i <= toolsMarker.length; i++) {
+        if (text.endsWith(toolsMarker.slice(0, i))) {
+            return text.slice(0, -i);
         }
     }
 
@@ -338,18 +316,10 @@ async function handleNonStreaming(messages, executeTool, sendSSE, env) {
         choice = finalResponse.choices[0];
     }
 
-    // 发送内容
-    const content = choice.message.content;
-    const { text, charts } = extractChartsFromContent(content);
-
-    // 模拟流式发送文本
+    // 发送内容（分块模拟流式）
+    const content = choice.message.content || '';
     const chunkSize = 20;
-    for (let i = 0; i < text.length; i += chunkSize) {
-        sendSSE('text_delta', { content: text.slice(i, i + chunkSize) });
-    }
-
-    // 发送图表
-    for (const chart of charts) {
-        sendSSE('content_block', { type: 'chart', data: chart });
+    for (let i = 0; i < content.length; i += chunkSize) {
+        sendSSE('text_delta', { content: content.slice(i, i + chunkSize) });
     }
 }

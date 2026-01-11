@@ -837,6 +837,10 @@ export default {
     clearConfirm: '确定要清空聊天记录吗？',
     copySuccess: '消息已复制到剪贴板',
     modelSwitch: '模型额度已达上限，已自动切换至备用模型',
+    generateReport: '📊 生成完整数据报告',
+    generatingReport: '正在生成报告...',
+    reportGenerated: '报告已生成，请查看新窗口',
+    reportError: '报告生成失败，请稍后再试',
     toolNames: {
       getOrderStats: '订单统计',
       getRecentPendingOrders: '待处理订单',

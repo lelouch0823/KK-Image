@@ -1,7 +1,7 @@
 <template>
   <div :class="['flex', message.role === 'user' ? 'justify-end' : 'justify-start']">
     <div
-      v-if="message.content || message.html || (message.charts && message.charts.length)"
+      v-if="message.content || message.html"
       :class="[
         'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm transition-all',
         message.role === 'user'
@@ -18,18 +18,6 @@
       
       <!-- User Message (Plain Text) -->
       <p v-else-if="message.role === 'user'" class="leading-relaxed whitespace-pre-wrap">{{ message.content }}</p>
-
-      <!-- Generative Charts (INSIDE the message bubble) -->
-      <div v-if="message.charts && message.charts.length > 0" class="mt-3 flex flex-col gap-3">
-        <AIChart
-          v-for="(chart, idx) in message.charts"
-          :key="idx"
-          :type="chart.type || 'bar'"
-          :data="chart.data"
-          :title="chart.title"
-          :options="chart.options"
-        />
-      </div>
     </div>
   </div>
 
@@ -61,7 +49,6 @@
 
 <script setup>
 import { useI18n } from '@/composables/useI18n';
-import AIChart from './AIChart.vue';
 
 const { t } = useI18n();
 
