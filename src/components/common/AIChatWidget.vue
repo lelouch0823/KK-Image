@@ -1,5 +1,4 @@
-<template>
-  <div class="pointer-events-none fixed right-6 bottom-6 z-[60]">
+  <div class="pointer-events-none fixed right-6 bottom-6 z-[9999]">
     <!-- Chat Window -->
     <transition
       enter-active-class="transition duration-300 ease-out"
@@ -99,7 +98,7 @@
 
 <script setup>
 import { ref, nextTick, watch, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useView } from '@/composables/useView';
 import { renderMarkdown } from '@/utils/ai-markdown';
 import ChatMessage from '@/components/common/ai/ChatMessage.vue';
 import AISuggestions from '@/components/common/ai/AISuggestions.vue';
@@ -112,18 +111,18 @@ import { throttle } from '@/utils/performance';
 
 const { isOpen, close, context, setContext } = useAI();
 const { t } = useI18n();
-const route = useRoute();
+const { currentView, viewTitle } = useView();
 
 const userInput = ref('');
 const messageContainer = ref(null);
 
 // 自动感知上下文
 watch(
-  () => route.path,
-  () => {
+  currentView,
+  (view) => {
     setContext({
-      path: route.path,
-      pageTitle: route.meta?.title || document.title
+      path: '/' + view,
+      pageTitle: viewTitle.value || document.title
     });
   },
   { immediate: true }
@@ -131,25 +130,25 @@ watch(
 
 // 主动建议逻辑
 const suggestions = computed(() => {
-  const path = route.path;
+  const view = currentView.value;
   const sug = (key) => t(`ai.suggestions.${key}`);
   
-  if (path === '/' || path === '/dashboard') {
+  if (view === 'dashboard') {
     return [sug('dailyReport'), sug('monthlySalesRanking'), sug('systemStatus')];
   }
-  if (path.startsWith('/orders')) {
+  if (view === 'orders' || view === 'order-detail') {
     return [sug('pendingOrders'), sug('todayNewOrders'), sug('weeklySalesTrend')];
   }
-  if (path.startsWith('/customers')) {
+  if (view === 'customers') {
     return [sug('weeklyNewCustomers'), sug('customerCount')];
   }
-  if (path.startsWith('/manage/spaces')) {
+  if (view === 'spaces' || view === 'space-detail') {
     return [sug('spaceUsage'), sug('recentActiveSpaces'), sug('downloadTop10')];
   }
-  if (path.startsWith('/manage/files')) {
+  if (view === 'files') {
     return [sug('storageUsage'), sug('largeFileAnalysis'), sug('fileTypeDistribution')];
   }
-  if (path.startsWith('/sales')) {
+  if (view === 'sales' || view === 'salespersons') {
     return [sug('myDailyPerformance'), sug('monthlyCommission')];
   }
   return [sug('dailyReport'), sug('pendingOrders'), sug('systemStatus')];
@@ -200,11 +199,7 @@ const messages = ref([
 ]);
 
 // Auto scroll when opened
-watch(isOpen, (val) => {
-  if (val) {
-    scrollToBottom();
-  }
-});
+// Auto scroll when opened - Duplicate watch removed
 
 const scrollToBottom = async () => {
   await nextTick();
