@@ -51,16 +51,19 @@ export class SSEParser {
         let type = 'message'; // 默认事件类型
         let data = '';
 
-        const lines = text.split('\n');
+        const lines = text.split(/\r?\n/);
         for (const line of lines) {
-            if (line.startsWith('event: ')) {
-                type = line.slice(7).trim();
-            } else if (line.startsWith('data: ')) {
+            if (line.startsWith('event:')) {
+                type = line.slice(6).trim();
+                if (type.startsWith(' ')) type = type.slice(1);
+            } else if (line.startsWith('data:')) {
+                let value = line.slice(5);
+                if (value.startsWith(' ')) value = value.slice(1);
                 // 如果存在多个 data 行，按标准应当换行合并
-                data += (data ? '\n' : '') + line.slice(6);
-            } else if (line.startsWith('id: ')) {
+                data += (data ? '\n' : '') + value;
+            } else if (line.startsWith('id:')) {
                 // 如果需要支持事件 ID 恢复，可以在此处处理
-            } else if (line.startsWith('retry: ')) {
+            } else if (line.startsWith('retry:')) {
                 // 如果需要支持自定义重试间隔，可以在此处处理
             }
         }

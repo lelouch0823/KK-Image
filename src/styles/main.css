@@ -31,6 +31,7 @@
     --color-border: var(--border-color);
     --color-border-hover: var(--border-hover);
 
+    --color-card: var(--bg-card);
     --color-muted: var(--text-muted);
 
     /* Spacing & Layout */

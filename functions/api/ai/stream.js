@@ -4,6 +4,7 @@
  * 
  * 返回 SSE 格式的流式响应，支持工具调用和增量文本输出。
  */
+/* global ReadableStream */
 import { MSG } from '../utils/messages.js';
 import { authenticateAdmin } from '../utils/auth.js';
 import { OrderStatsRepository } from '../../repositories/OrderStatsRepository.js';

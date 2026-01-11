@@ -836,5 +836,13 @@ export default {
     clear: '清空会话',
     clearConfirm: '确定要清空聊天记录吗？',
     copySuccess: '消息已复制到剪贴板',
+    toolNames: {
+      getOrderStats: '订单统计',
+      getRecentPendingOrders: '待处理订单',
+      getCustomerStats: '客户统计',
+      getSpaceStats: '共享空间数据',
+      getSalespersonStats: '销售员表现',
+      getFileStats: '文件库分析',
+    },
   },
 };

@@ -75,7 +75,7 @@
           </div>
 
           <!-- Loading / Tool Status -->
-          <div v-if="loading || toolStatus" class="flex justify-start">
+          <div v-if="isThinking || toolStatus" class="flex justify-start">
             <div class="border-border rounded-2xl rounded-bl-none border bg-white px-4 py-3 shadow-sm">
               <div class="flex items-center gap-3">
                 <!-- Tool Status -->
@@ -84,7 +84,7 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <span class="text-secondary text-xs">{{ t('ai.toolLoading', { tool: toolStatus }) }}</span>
+                  <span class="text-secondary text-xs">{{ t('ai.toolLoading', { tool: getToolName(toolStatus) }) }}</span>
                 </template>
                 <!-- Default Thinking -->
                 <template v-else>
@@ -131,7 +131,7 @@
 
 <script setup>
 /* global TextDecoder */
-import { ref, nextTick, watch } from 'vue';
+import { ref, nextTick, watch, computed } from 'vue';
 import { SSEParser } from '@/utils/streaming';
 import { useSmoothTypewriter } from '@/composables/useSmoothTypewriter';
 import { useToast } from '@/composables/useToast';
@@ -161,6 +161,21 @@ const {
   push: bufferStream, 
   reset: resetStream 
 } = useSmoothTypewriter();
+
+// 判断是否显示“思考中”状态
+const isThinking = computed(() => {
+  // 1. 初始请求加载中
+  if (loading.value) return true;
+  // 2. 流式传输已开始，但尚未产生可见内容（文本或工具调用），说明 AI 仍在后台生成
+  if (streaming.value && !streamContent.value && !toolStatus.value) return true;
+  return false;
+});
+
+// 获取工具的本地化名称
+const getToolName = (status) => {
+  if (!status) return '';
+  return t(`ai.toolNames.${status}`, status);
+};
 
 // 监听流式内容更新并同步到消息列表
 watch(streamContent, (newContent) => {
@@ -211,32 +226,29 @@ function renderMarkdown(content) {
   processed = processed.replace(/\*\s*([^\s*][^*]*?)\s*\*/g, (_, p1) => `*${p1.trim()}*`);
 
   // === 预处理 2：确保块级元素前有空行 ===
-  // 表格 (以 | 开头)
+  // 1. 强制在看似列表项的数字前换行 (例如 "Text1. Item" -> "Text\n\n1. Item")
+  // 匹配模式：(非换行符)(数字)(点)(空格)
+  processed = processed.replace(/([^\n])(\d+\.\s)/g, '$1\n\n$2');
+  
+  // 2. 强制在无序列表项前换行 (例如 "Text- Item" -> "Text\n\n- Item")
+  processed = processed.replace(/([^\n])([-*]\s)/g, '$1\n\n$2');
+
+  // 3. 强制在标题前换行
+  processed = processed.replace(/([^\n])(#{1,6}\s)/g, '$1\n\n$2');
+
+  // 4. 表格 (以 | 开头)，但要小心不误伤正文中的 |
+  // 这里要求 | 前必须有一个换行，或者它就是单独的一行
   processed = processed.replace(/([^\n])\n(\|)/g, '$1\n\n$2');
-  
-  // 有序列表 (1. Item, 2. Item, ...)
-  processed = processed.replace(/([^\n])\n(\d+\.\s)/g, '$1\n\n$2');
-  
-  // 无序列表 (- Item 或 * Item)
-  processed = processed.replace(/([^\n])\n([-*]\s)/g, '$1\n\n$2');
-  
-  // 标题 (# Heading)
-  processed = processed.replace(/([^\n])\n(#{1,6}\s)/g, '$1\n\n$2');
-  
-  // 代码块 (```)
-  processed = processed.replace(/([^\n])\n(```)/g, '$1\n\n$2');
-  
-  // 引用块 (> Quote)
-  processed = processed.replace(/([^\n])\n(>\s)/g, '$1\n\n$2');
 
-  // === 预处理 3：修复列表项之间的格式 ===
-  // 确保连续列表项之间只有单换行(避免变成多个独立列表)
-  // 但首项仍需双换行与前文分离（已在上面处理）
+  // 5. 代码块和引用
+  processed = processed.replace(/([^\n])(```)/g, '$1\n\n$2');
+  processed = processed.replace(/([^\n])(>\s)/g, '$1\n\n$2');
 
-  // === 预处理 4：处理中文冒号后紧跟列表的情况 ===
-  // 例如 "数据如下：1. 订单" -> "数据如下：\n\n1. 订单"
+  // === 预处理 3：处理中文标点后的列表 ===
   processed = processed.replace(/(：)(\d+\.\s)/g, '$1\n\n$2');
   processed = processed.replace(/(：)([-*]\s)/g, '$1\n\n$2');
+  processed = processed.replace(/(。)(\d+\.\s)/g, '$1\n\n$2');
+  processed = processed.replace(/(。)([-*]\s)/g, '$1\n\n$2');
 
   const html = marked.parse(processed);
   return DOMPurify.sanitize(html);
