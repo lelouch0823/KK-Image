@@ -1,13 +1,4 @@
-/**
- * 通用格式化工具函数
- * @module utils/formatters
- * @module utils/formatters
- */
-
-
-const DEFAULT_MESSAGES = {
-  FOREVER: '永久有效',
-};
+// No hardcoded default messages here
 
 /**
  * 格式化文件大小
@@ -67,16 +58,16 @@ export const formatDate = (timestamp, options = {}) => {
  */
 export const formatExpiry = (ts, t) => {
   if (!t) {
-    if (!ts) return DEFAULT_MESSAGES.FOREVER;
+    if (!ts) return '-';
     return new Date(Number(ts)).toLocaleDateString();
   }
 
-  if (!ts) return t('formatters.forever');
+  if (!ts) return t('formatters.forever', '永久有效');
   const date = new Date(Number(ts));
   const now = Date.now();
   const days = Math.ceil((ts - now) / (1000 * 60 * 60 * 24));
 
-  if (ts < now) return t('formatters.expired');
+  if (ts < now) return t('formatters.expired', '已过期');
   const dateStr = date.toLocaleDateString();
   return t('formatters.daysLeft', { days, date: dateStr });
 };
@@ -228,12 +219,10 @@ export function formatDateWithWeekday(dateString, t) {
 
   let dayStr;
   if (t) {
-    // SOTA: Use i18n with dot notation for array access
     dayStr = t(`common.weekdays.${date.getDay()}`);
   } else {
-    // Fallback if t not provided
-    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-    dayStr = weekdays[date.getDay()];
+    // SOTA: Fallback to non-localized if t not available, but avoid hardcoded arrays
+    return dateString;
   }
 
   return `${dateString} (${dayStr})`;

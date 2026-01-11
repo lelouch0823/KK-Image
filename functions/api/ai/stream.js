@@ -223,7 +223,7 @@ export async function onRequestPost(context) {
 
                                 sendSSE(controller, 'tool_result', {
                                     name: tc.name,
-                                    summary: MSG.AI.TOOLS.RESULT_READY || '数据已获取'
+                                    summary: MSG.AI.TOOLS.RESULT_READY
                                 });
 
                                 // 将执行结果喂回 AI 以获取最后的解读建议
@@ -265,7 +265,7 @@ export async function onRequestPost(context) {
 
                                 sendSSE(controller, 'tool_call', { name: functionName, status: 'started' });
                                 const result = await executeTool(functionName, args);
-                                sendSSE(controller, 'tool_result', { name: functionName, summary: '数据已获取' });
+                                sendSSE(controller, 'tool_result', { name: functionName, summary: MSG.AI.TOOLS.RESULT_READY });
 
                                 messages.push({
                                     tool_call_id: toolCall.id,

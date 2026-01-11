@@ -147,6 +147,14 @@ export const MSG = {
     VOID_SUCCESS: '订单已作废',
     BATCH_LIMIT: '批量操作最多支持 100 条订单',
     BATCH_NO_VALID: '没有可以执行此操作的订单',
+    BATCH_RESULT: '成功处理 {valid} 条订单',
+    BATCH_SKIPPED: '，已跳过 {skipped} 条状态不符合的订单',
+    ACTIONS: {
+      confirm: '确认',
+      reject: '驳回',
+      void: '作废',
+      BATCH_PREFIX: '批量',
+    },
     IMAGES: '张图片',
   },
 
@@ -195,6 +203,9 @@ export const MSG = {
     ERROR: 'AI 助手暂时无法响应',
     NETWORK_ERROR: '网络请求失败，请稍后再试',
     WELCOME: '您好！我是您的全能管理助手。我可以查询订单、客户、销售、共享空间和文件存储等各类统计数据。请问有什么可以帮您？',
+    TOOLS: {
+      RESULT_READY: '数据已获取',
+    },
   },
 
   // 导出相关标签

@@ -82,7 +82,7 @@ export async function onRequestPost(context) {
       actorType: 'admin',
       actorName: 'Admin',
       newValue: targetStatus,
-      reason: reason || `批量${ACTION_LABELS[action]}`,
+      reason: reason || `${MSG.ORDER.ACTIONS.BATCH_PREFIX}${ACTION_LABELS[action]}`,
     };
 
     // 为每个订单添加 oldValue 并使用 Repository 批量更新
@@ -121,7 +121,7 @@ export async function onRequestPost(context) {
         orderNo: o.order_no,
         receiver: 'sales',
         salespersonId: o.salesperson_id,
-        actorName: '管理员', // Localized actor name
+        actorName: MSG.ROLES.ADMIN, // Localized actor name
         extra: { status: targetStatus, action: ACTION_LABELS[action] },
       }));
 
