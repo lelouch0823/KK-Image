@@ -144,31 +144,37 @@ export async function onRequestPost(context) {
                             if (done) break;
 
                             buffer += decoder.decode(value, { stream: true });
-                            const chunks = parseSSEChunk(buffer);
-                            buffer = ''; // 清空已解析的部分
 
-                            for (const chunk of chunks) {
-                                if (chunk.done) continue;
+                            // 查找最后一个换行符，确保解析完整行
+                            const lastNewlineIndex = buffer.lastIndexOf('\n');
+                            if (lastNewlineIndex !== -1) {
+                                const toParse = buffer.slice(0, lastNewlineIndex + 1);
+                                buffer = buffer.slice(lastNewlineIndex + 1);
 
-                                const delta = chunk.choices?.[0]?.delta;
-                                if (!delta) continue;
+                                const chunks = parseSSEChunk(toParse);
+                                for (const chunk of chunks) {
+                                    if (chunk.done) continue;
 
-                                // 增量文本
-                                if (delta.content) {
-                                    fullContent += delta.content;
-                                    sendSSE(controller, 'text_delta', { content: delta.content });
-                                }
+                                    const delta = chunk.choices?.[0]?.delta;
+                                    if (!delta) continue;
 
-                                // 工具调用
-                                if (delta.tool_calls) {
-                                    for (const tc of delta.tool_calls) {
-                                        if (tc.index !== undefined) {
-                                            if (!toolCalls[tc.index]) {
-                                                toolCalls[tc.index] = { id: '', name: '', arguments: '' };
+                                    // 增量文本
+                                    if (delta.content) {
+                                        fullContent += delta.content;
+                                        sendSSE(controller, 'text_delta', { content: delta.content });
+                                    }
+
+                                    // 工具调用
+                                    if (delta.tool_calls) {
+                                        for (const tc of delta.tool_calls) {
+                                            if (tc.index !== undefined) {
+                                                if (!toolCalls[tc.index]) {
+                                                    toolCalls[tc.index] = { id: '', name: '', arguments: '' };
+                                                }
+                                                if (tc.id) toolCalls[tc.index].id = tc.id;
+                                                if (tc.function?.name) toolCalls[tc.index].name = tc.function.name;
+                                                if (tc.function?.arguments) toolCalls[tc.index].arguments += tc.function.arguments;
                                             }
-                                            if (tc.id) toolCalls[tc.index].id = tc.id;
-                                            if (tc.function?.name) toolCalls[tc.index].name = tc.function.name;
-                                            if (tc.function?.arguments) toolCalls[tc.index].arguments += tc.function.arguments;
                                         }
                                     }
                                 }

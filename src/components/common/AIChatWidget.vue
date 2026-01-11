@@ -57,6 +57,7 @@
             :class="['flex', msg.role === 'user' ? 'justify-end' : 'justify-start']"
           >
             <div
+              v-if="msg.content || msg.html"
               :class="[
                 'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm',
                 msg.role === 'user'
@@ -73,8 +74,8 @@
             </div>
           </div>
 
-          <!-- Loading / Streaming State -->
-          <div v-if="loading || streaming" class="flex justify-start">
+          <!-- Loading / Tool Status -->
+          <div v-if="loading || toolStatus" class="flex justify-start">
             <div class="border-border rounded-2xl rounded-bl-none border bg-white px-4 py-3 shadow-sm">
               <div class="flex items-center gap-3">
                 <!-- Tool Status -->
@@ -129,7 +130,10 @@
 </template>
 
 <script setup>
+/* global TextDecoder */
 import { ref, nextTick, watch } from 'vue';
+import { SSEParser } from '@/utils/streaming';
+import { useSmoothTypewriter } from '@/composables/useSmoothTypewriter';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAI } from '@/composables/useAI';
@@ -151,6 +155,24 @@ const streaming = ref(false);
 const toolStatus = ref('');
 const userInput = ref('');
 const messageContainer = ref(null);
+
+const { 
+  displayedContent: streamContent, 
+  push: bufferStream, 
+  reset: resetStream 
+} = useSmoothTypewriter();
+
+// 监听流式内容更新并同步到消息列表
+watch(streamContent, (newContent) => {
+  if (messages.value.length > 0) {
+    const lastMsg = messages.value[messages.value.length - 1];
+    if (lastMsg.role === 'assistant') {
+      lastMsg.content = newContent;
+      lastMsg.html = renderMarkdown(newContent);
+      scrollToBottom();
+    }
+  }
+});
 
 const messages = ref([
   { 
@@ -174,10 +196,48 @@ const scrollToBottom = async () => {
   }
 };
 
+/**
+ * 渲染 Markdown 内容为安全的 HTML
+ * 包含针对 AI 输出的预处理，确保各类 Markdown 语法正确渲染
+ */
 function renderMarkdown(content) {
   if (!content) return '';
-  // 预处理：确保表格前后有空行
-  const processed = content.replace(/([^\n])\n(\|)/g, '$1\n\n$2');
+  
+  let processed = content;
+
+  // === 预处理 1：修复加粗/斜体标记 ===
+  // AI 可能产生带空格或换行的加粗标记 (e.g. ** text ** -> **text**)
+  processed = processed.replace(/\*\*\s*([\s\S]*?)\s*\*\*/g, (_, p1) => `**${p1.trim()}**`);
+  processed = processed.replace(/\*\s*([^\s*][^*]*?)\s*\*/g, (_, p1) => `*${p1.trim()}*`);
+
+  // === 预处理 2：确保块级元素前有空行 ===
+  // 表格 (以 | 开头)
+  processed = processed.replace(/([^\n])\n(\|)/g, '$1\n\n$2');
+  
+  // 有序列表 (1. Item, 2. Item, ...)
+  processed = processed.replace(/([^\n])\n(\d+\.\s)/g, '$1\n\n$2');
+  
+  // 无序列表 (- Item 或 * Item)
+  processed = processed.replace(/([^\n])\n([-*]\s)/g, '$1\n\n$2');
+  
+  // 标题 (# Heading)
+  processed = processed.replace(/([^\n])\n(#{1,6}\s)/g, '$1\n\n$2');
+  
+  // 代码块 (```)
+  processed = processed.replace(/([^\n])\n(```)/g, '$1\n\n$2');
+  
+  // 引用块 (> Quote)
+  processed = processed.replace(/([^\n])\n(>\s)/g, '$1\n\n$2');
+
+  // === 预处理 3：修复列表项之间的格式 ===
+  // 确保连续列表项之间只有单换行(避免变成多个独立列表)
+  // 但首项仍需双换行与前文分离（已在上面处理）
+
+  // === 预处理 4：处理中文冒号后紧跟列表的情况 ===
+  // 例如 "数据如下：1. 订单" -> "数据如下：\n\n1. 订单"
+  processed = processed.replace(/(：)(\d+\.\s)/g, '$1\n\n$2');
+  processed = processed.replace(/(：)([-*]\s)/g, '$1\n\n$2');
+
   const html = marked.parse(processed);
   return DOMPurify.sanitize(html);
 }
@@ -194,31 +254,6 @@ const clearHistory = () => {
   }
 };
 
-/**
- * 解析 SSE 事件
- */
-function parseSSEEvents(text) {
-  const events = [];
-  const lines = text.split('\n');
-  let currentEvent = null;
-  
-  for (const line of lines) {
-    if (line.startsWith('event: ')) {
-      currentEvent = { type: line.slice(7).trim(), data: null };
-    } else if (line.startsWith('data: ') && currentEvent) {
-      try {
-        currentEvent.data = JSON.parse(line.slice(6));
-        events.push(currentEvent);
-      } catch (_e) {
-        // 忽略解析错误
-      }
-      currentEvent = null;
-    }
-  }
-  
-  return events;
-}
-
 const sendMessage = async () => {
   if (!userInput.value.trim() || loading.value || streaming.value) return;
 
@@ -229,17 +264,14 @@ const sendMessage = async () => {
   toolStatus.value = '';
   await scrollToBottom();
 
-  // 添加一个占位的 AI 消息用于流式更新
-  const aiMessageIndex = messages.value.length;
-  messages.value.push({ role: 'assistant', content: '', html: '' });
+  // 准备发送的历史消息（不包含刚添加的用户消息的html属性）
+  const historyToSend = messages.value.slice(-7).map(({ role, content }) => ({ role, content }));
 
   try {
     const response = await fetch('/api/ai/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        messages: messages.value.slice(0, -1).slice(-6).map(({ role, content }) => ({ role, content }))
-      }),
+      body: JSON.stringify({ messages: historyToSend }),
     });
 
     if (!response.ok) {
@@ -249,62 +281,49 @@ const sendMessage = async () => {
     loading.value = false;
     streaming.value = true;
 
+    // 创建 AI 消息占位
+    const aiMessageIndex = messages.value.length;
+    messages.value.push({ role: 'assistant', content: '', html: '' });
+    
+    // 重置打字机状态
+    resetStream();
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = '';
+    const parser = new SSEParser();
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      buffer += decoder.decode(value, { stream: true });
+      const chunk = decoder.decode(value, { stream: true });
+      const events = parser.feed(chunk);
       
-      // 处理完整的事件 (以 \n\n 结尾)
-      const parts = buffer.split('\n\n');
-      buffer = parts.pop() || ''; // 保留不完整的部分
-
-      for (const part of parts) {
-        if (!part.trim()) continue;
-        
-        const events = parseSSEEvents(part + '\n');
-        
-        for (const event of events) {
-          if (event.type === 'text_delta' && event.data?.content) {
-            // 增量文本
-            messages.value[aiMessageIndex].content += event.data.content;
-            messages.value[aiMessageIndex].html = renderMarkdown(messages.value[aiMessageIndex].content);
-            await scrollToBottom();
-          } else if (event.type === 'content_block' && event.data?.content) {
-            // 完整内容块 (表格等)
-            messages.value[aiMessageIndex].content += event.data.content;
-            messages.value[aiMessageIndex].html = renderMarkdown(messages.value[aiMessageIndex].content);
-            await scrollToBottom();
-          } else if (event.type === 'tool_call' && event.data?.name) {
-            // 工具调用状态
-            toolStatus.value = event.data.name;
-          } else if (event.type === 'tool_result') {
-            // 工具调用完成
-            toolStatus.value = '';
-          } else if (event.type === 'error') {
-            addToast({ message: event.data?.message || t('ai.error'), type: 'error' });
-          } else if (event.type === 'done') {
-            // 流结束
-          }
+      for (const event of events) {
+        if (event.type === 'text_delta' && event.data?.content) {
+          bufferStream(event.data.content);
+        } else if (event.type === 'content_block' && event.data?.content) {
+          bufferStream(event.data.content);
+        } else if (event.type === 'tool_call' && event.data?.name) {
+          toolStatus.value = event.data.name;
+        } else if (event.type === 'tool_result') {
+          toolStatus.value = '';
+        } else if (event.type === 'error') {
+          addToast({ message: event.data?.message || t('ai.error'), type: 'error' });
         }
       }
     }
 
-    // 确保最终渲染
+    // 最终确保渲染
     if (messages.value[aiMessageIndex].content) {
       messages.value[aiMessageIndex].html = renderMarkdown(messages.value[aiMessageIndex].content);
+    } else {
+      // 如果没有收到任何内容，移除空消息
+      messages.value.pop();
     }
 
   } catch (_err) {
     addToast({ message: t('ai.networkError'), type: 'error' });
-    // 移除空的 AI 消息
-    if (!messages.value[aiMessageIndex].content) {
-      messages.value.pop();
-    }
   } finally {
     loading.value = false;
     streaming.value = false;
