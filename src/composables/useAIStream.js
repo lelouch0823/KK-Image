@@ -20,6 +20,7 @@ export function useAIStream() {
     const toolStatus = ref('');
 
     const {
+        fullContent,
         displayedContent,
         isTyping,
         push: pushToTypewriter,
@@ -108,6 +109,7 @@ export function useAIStream() {
 
     return {
         stream,
+        fullContent,
         displayedContent,
         isTyping,
         isLoading,

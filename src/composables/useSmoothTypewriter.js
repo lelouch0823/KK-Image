@@ -14,6 +14,8 @@ import { ref } from 'vue';
 export function useSmoothTypewriter() {
     /** @type {import('vue').Ref<string>} 界面当前显示的文本内容 */
     const displayedContent = ref('');
+    /** @type {import('vue').Ref<string>} 完整的目标内容（用于 markdown 渲染） */
+    const fullContent = ref('');
     /** @type {import('vue').Ref<boolean>} 是否正在打字中 */
     const isTyping = ref(false);
 
@@ -74,6 +76,7 @@ export function useSmoothTypewriter() {
     const push = (content) => {
         if (!content) return;
         targetContent += content;
+        fullContent.value = targetContent; // 同步更新响应式完整内容
 
         // 如果渲染循环未开启，则启动它
         if (!rafId) {
@@ -101,6 +104,7 @@ export function useSmoothTypewriter() {
     const reset = () => {
         targetContent = '';
         displayedContent.value = '';
+        fullContent.value = ''; // 重置完整内容
         isTyping.value = false;
         if (rafId) {
             cancelAnimationFrame(rafId);
@@ -111,6 +115,7 @@ export function useSmoothTypewriter() {
     };
 
     return {
+        fullContent,
         displayedContent,
         isTyping,
         push,

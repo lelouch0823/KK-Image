@@ -157,6 +157,7 @@ const handleSuggestion = (text) => {
 
 const { 
   stream: startAIStream,
+  fullContent,
   displayedContent: streamContent, 
   isThinking,
   isLoading: isStreamingLoading,
@@ -164,7 +165,7 @@ const {
   toolStatus,
 } = useAIStream();
 
-// SOTA: Throttled Markdown rendering
+// SOTA: Throttled Markdown rendering - use fullContent for proper parsing
 const throttledRender = throttle((content, targetMsg) => {
   if (targetMsg) {
     targetMsg.html = renderMarkdown(content);
@@ -173,13 +174,14 @@ const throttledRender = throttle((content, targetMsg) => {
 }, 100);
 
 // Listen for streaming content updates
-watch(streamContent, (newContent) => {
+// Use fullContent for markdown rendering (complete text), streamContent for display
+watch([fullContent, streamContent], ([full, displayed]) => {
   if (messages.value.length > 0) {
     const lastMsg = messages.value[messages.value.length - 1];
     if (lastMsg.role === 'assistant') {
-      lastMsg.content = newContent;
-      // Use throttled renderer
-      throttledRender(newContent, lastMsg);
+      lastMsg.content = displayed; // For typewriter display
+      // Use fullContent for markdown rendering (contains complete text)
+      throttledRender(full, lastMsg);
     }
   }
 });
@@ -242,7 +244,9 @@ const sendMessage = async () => {
 
     const lastMsg = messages.value[messages.value.length - 1];
     if (lastMsg && lastMsg.role === 'assistant') {
-      lastMsg.html = renderMarkdown(lastMsg.content);
+      // Final render with complete fullContent for proper markdown parsing
+      lastMsg.content = fullContent.value;
+      lastMsg.html = renderMarkdown(fullContent.value);
       if (!lastMsg.content && (!lastMsg.charts || lastMsg.charts.length === 0)) {
         messages.value.pop();
       }

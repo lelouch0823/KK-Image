@@ -1,7 +1,7 @@
 <template>
   <div :class="['flex', message.role === 'user' ? 'justify-end' : 'justify-start']">
     <div
-      v-if="message.content || message.html"
+      v-if="message.content || message.html || (message.charts && message.charts.length)"
       :class="[
         'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm transition-all',
         message.role === 'user'
@@ -11,25 +11,25 @@
     >
       <!-- Assistant Message (Markdown) -->
       <div
-        v-if="message.role === 'assistant'"
+        v-if="message.role === 'assistant' && message.html"
         class="markdown-body text-sm leading-relaxed"
         v-html="message.html"
       ></div>
       
       <!-- User Message (Plain Text) -->
-      <p v-else class="leading-relaxed whitespace-pre-wrap">{{ message.content }}</p>
-    </div>
+      <p v-else-if="message.role === 'user'" class="leading-relaxed whitespace-pre-wrap">{{ message.content }}</p>
 
-    <!-- Generative Charts (Rendered below the text bubble) -->
-    <div v-if="message.charts && message.charts.length > 0" class="mt-4 flex w-full max-w-[85%] flex-col gap-4">
-      <AIChart
-        v-for="(chart, idx) in message.charts"
-        :key="idx"
-        :type="chart.type || 'bar'"
-        :data="chart.data"
-        :title="chart.title"
-        :options="chart.options"
-      />
+      <!-- Generative Charts (INSIDE the message bubble) -->
+      <div v-if="message.charts && message.charts.length > 0" class="mt-3 flex flex-col gap-3">
+        <AIChart
+          v-for="(chart, idx) in message.charts"
+          :key="idx"
+          :type="chart.type || 'bar'"
+          :data="chart.data"
+          :title="chart.title"
+          :options="chart.options"
+        />
+      </div>
     </div>
   </div>
 
