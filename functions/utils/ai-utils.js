@@ -5,9 +5,6 @@
  * 封装与 OpenAI 兼容 API 的交互逻辑。
  */
 
-import { MSG } from '../api/utils/messages.js';
-import { DateUtils } from '../api/utils/date.js';
-
 /**
  * 调用外部 AI API (非流式)
  */
@@ -104,4 +101,4 @@ export function parseSSEChunk(chunk) {
 /**
  * 格式化系统提示词
  */
-export const SYSTEM_PROMPT = MSG.AI.SYSTEM_PROMPT(DateUtils.getChinaDateStr());
+export { SYSTEM_PROMPT } from '../api/utils/ai-prompts.js';

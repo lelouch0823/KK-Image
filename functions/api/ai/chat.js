@@ -4,6 +4,7 @@
  */
 import { success, error } from '../utils/response.js';
 import { MSG } from '../utils/messages.js';
+import { TOOL_DESCRIPTIONS } from '../utils/ai-prompts.js';
 import { authenticateAdmin } from '../utils/auth.js';
 import { OrderStatsRepository } from '../../repositories/OrderStatsRepository.js';
 import { SystemStatsRepository } from '../../repositories/SystemStatsRepository.js';
@@ -29,7 +30,7 @@ export async function onRequestPost(context) {
                 type: "function",
                 function: {
                     name: "getOrderStats",
-                    description: MSG.AI.TOOLS.GET_ORDER_STATS,
+                    description: TOOL_DESCRIPTIONS.GET_ORDER_STATS,
                     parameters: { type: "object", properties: {} }
                 }
             },
@@ -37,11 +38,11 @@ export async function onRequestPost(context) {
                 type: "function",
                 function: {
                     name: "getRecentPendingOrders",
-                    description: MSG.AI.TOOLS.GET_RECENT_PENDING,
+                    description: TOOL_DESCRIPTIONS.GET_RECENT_PENDING,
                     parameters: {
                         type: "object",
                         properties: {
-                            limit: { type: "number", description: MSG.AI.TOOLS.LIMIT_DESC }
+                            limit: { type: "number", description: TOOL_DESCRIPTIONS.LIMIT_DESC }
                         }
                     }
                 }
@@ -50,7 +51,7 @@ export async function onRequestPost(context) {
                 type: "function",
                 function: {
                     name: "getCustomerStats",
-                    description: MSG.AI.TOOLS.GET_CUSTOMER_STATS,
+                    description: TOOL_DESCRIPTIONS.GET_CUSTOMER_STATS,
                     parameters: { type: "object", properties: {} }
                 }
             },
@@ -58,7 +59,7 @@ export async function onRequestPost(context) {
                 type: "function",
                 function: {
                     name: "getSpaceStats",
-                    description: MSG.AI.TOOLS.GET_SPACE_STATS,
+                    description: TOOL_DESCRIPTIONS.GET_SPACE_STATS,
                     parameters: { type: "object", properties: {} }
                 }
             },
@@ -66,7 +67,7 @@ export async function onRequestPost(context) {
                 type: "function",
                 function: {
                     name: "getSalespersonStats",
-                    description: MSG.AI.TOOLS.GET_SALESPERSON_STATS,
+                    description: TOOL_DESCRIPTIONS.GET_SALESPERSON_STATS,
                     parameters: { type: "object", properties: {} }
                 }
             },
@@ -74,7 +75,7 @@ export async function onRequestPost(context) {
                 type: "function",
                 function: {
                     name: "getFileStats",
-                    description: MSG.AI.TOOLS.GET_FILE_STATS,
+                    description: TOOL_DESCRIPTIONS.GET_FILE_STATS,
                     parameters: { type: "object", properties: {} }
                 }
             }
