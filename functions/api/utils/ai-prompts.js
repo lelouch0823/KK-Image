@@ -4,18 +4,86 @@
  */
 
 export const TOOL_DESCRIPTIONS = {
-    GET_ORDER_STATS: '获取订单总体统计数据，包括今日、本周、本月订单数和待处理订单数。',
-    GET_RECENT_PENDING: '获取最近的待处理订单列表。',
-    LIMIT_DESC: '获取数量，默认为 5',
-    GET_CUSTOMER_STATS: '获取客户统计数据，包括客户总数和最近一周新增客户数。',
-    GET_SPACE_STATS: '获取共享空间统计数据，包括空间总数、总访问量、总下载量和关联文件数。',
-    GET_SALESPERSON_STATS: '获取销售人员统计和业绩排行，包括销售总数、活跃销售数和订单数最高的销售列表。',
-    GET_FILE_STATS: '获取文件存储统计数据，包括文件总数、总存储大小和各类型文件分布。',
+  GET_ORDER_STATS: '获取订单总体统计数据，包括今日、本周、本月订单数和待处理订单数。',
+  GET_RECENT_PENDING: '获取最近的待处理订单列表。',
+  LIMIT_DESC: '获取数量，默认为 5',
+  GET_CUSTOMER_STATS: '获取客户统计数据，包括客户总数和最近一周新增客户数。',
+  GET_SPACE_STATS: '获取共享空间统计数据，包括空间总数、总访问量、总下载量和关联文件数。',
+  GET_SALESPERSON_STATS: '获取销售人员统计和业绩排行，包括销售总数、活跃销售数和订单数最高的销售列表。',
+  GET_FILE_STATS: '获取文件存储统计数据，包括文件总数、总存储大小和各类型文件分布。',
 };
 
-export const SYSTEM_PROMPT = (date) => `
+/**
+ * AI 工具定义数组 (供 stream.js 和 chat.js 共用)
+ */
+export const AI_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'getOrderStats',
+      description: TOOL_DESCRIPTIONS.GET_ORDER_STATS,
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getRecentPendingOrders',
+      description: TOOL_DESCRIPTIONS.GET_RECENT_PENDING,
+      parameters: {
+        type: 'object',
+        properties: {
+          limit: { type: 'number', description: TOOL_DESCRIPTIONS.LIMIT_DESC }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getCustomerStats',
+      description: TOOL_DESCRIPTIONS.GET_CUSTOMER_STATS,
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getSpaceStats',
+      description: TOOL_DESCRIPTIONS.GET_SPACE_STATS,
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getSalespersonStats',
+      description: TOOL_DESCRIPTIONS.GET_SALESPERSON_STATS,
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getFileStats',
+      description: TOOL_DESCRIPTIONS.GET_FILE_STATS,
+      parameters: { type: 'object', properties: {} }
+    }
+  }
+];
+
+export const SYSTEM_PROMPT = (date, context = {}) => {
+  let contextInfo = '';
+  if (context.path) contextInfo += `\n用户当前所在页面路径：${context.path}`;
+  if (context.pageTitle) contextInfo += `\n用户当前页面标题：${context.pageTitle}`;
+  if (context.selectedId) contextInfo += `\n用户当前选中的记录ID：${context.selectedId}`;
+
+  return `
 你是一个专业的管理后台 AI 助手。你可以通过调用工具来查询数据库中的各类统计信息。
-当前的日期是：${date}。
+当前的日期是：${date}。${contextInfo}
+**你的核心职责**：
+1. **精准理解用户意图**：根据用户的最后一条消息，结合上下文和**用户当前所在页面**，判断用户想查询什么。
+2. **工具调用**：如果需要查询数据，**必须**调用相应的工具函数。不要编造数据。
 
 你可以查询以下数据：
 - 订单统计：今日/本周/本月订单数、待处理订单列表
@@ -30,8 +98,23 @@ export const SYSTEM_PROMPT = (date) => `
    - **空行**：在列表、表格、代码块、标题前后，**必须**保留一个空行。
    - **列表**：使用标准的 "- " 或 "1. " 格式。
    - **层级**：使用 "###" 作为小标题，不要使用太大的标题。
-3. 当用户询问统计数据时，优先使用工具查询。
-4. 如果工具返回了数据，请以表格或列表的形式清晰展示给用户。
-5. 对于数字数据，适当添加同比/环比等上下文。
-6. 如果无法查询到数据，请如实告知。
+3. **数据可视化**：
+   - 当需要展示趋势、分布或对比数据时，**必须**生成图表。
+   - 图表格式：请输出一个包含 JSON 数据的块，格式如下：
+     :::chart
+     {
+       "type": "bar", // 支持 bar, line, pie, doughnut
+       "title": "图表标题",
+       "data": {
+         "labels": ["标签1", "标签2"],
+         "datasets": [{ "label": "数据集名称", "data": [10, 20] }]
+       }
+     }
+     :::
+   - 不要将图表 JSON 放入 Markdown 代码块中，直接使用 :::chart 包裹。
+4. 当用户询问统计数据时，优先使用工具查询。
+5. 如果工具返回了数据，请以表格或列表的形式清晰展示给用户，并在适当位置生成图表。
+6. 对于数字数据，适当添加同比/环比等上下文。
+7. 如果无法查询到数据，请如实告知。
 `.trim();
+};

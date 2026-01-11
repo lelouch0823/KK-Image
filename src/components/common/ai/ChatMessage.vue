@@ -19,6 +19,18 @@
       <!-- User Message (Plain Text) -->
       <p v-else class="leading-relaxed whitespace-pre-wrap">{{ message.content }}</p>
     </div>
+
+    <!-- Generative Charts (Rendered below the text bubble) -->
+    <div v-if="message.charts && message.charts.length > 0" class="mt-4 flex w-full max-w-[85%] flex-col gap-4">
+      <AIChart
+        v-for="(chart, idx) in message.charts"
+        :key="idx"
+        :type="chart.type || 'bar'"
+        :data="chart.data"
+        :title="chart.title"
+        :options="chart.options"
+      />
+    </div>
   </div>
 
   <!-- Thinking / Tool Status for Assistant (Only shown when this is the latest responding message) -->
@@ -49,6 +61,7 @@
 
 <script setup>
 import { useI18n } from '@/composables/useI18n';
+import AIChart from './AIChart.vue';
 
 const { t } = useI18n();
 

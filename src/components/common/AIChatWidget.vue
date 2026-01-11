@@ -62,7 +62,14 @@
         </div>
 
         <!-- Input Area -->
-        <div class="border-border border-t bg-white/50 p-4">
+        <div class="border-border border-t bg-white/50 px-4 pt-1 pb-4">
+          <!-- Proactive Suggestions -->
+          <AISuggestions 
+            class="mb-2" 
+            :suggestions="suggestions" 
+            @select="handleSuggestion" 
+          />
+          
           <form
             class="relative flex items-center"
             @submit.prevent="sendMessage"
@@ -93,23 +100,69 @@
 <script setup>
 /* global TextDecoder */
 import { ref, nextTick, watch, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { SSEParser } from '@/utils/streaming';
 import { renderMarkdown } from '@/utils/ai-markdown';
 import ChatMessage from '@/components/common/ai/ChatMessage.vue';
+import AISuggestions from '@/components/common/ai/AISuggestions.vue';
 import { useSmoothTypewriter } from '@/composables/useSmoothTypewriter';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAI } from '@/composables/useAI';
 
-const { isOpen, close } = useAI();
+const { isOpen, close, context, setContext } = useAI();
 const { t } = useI18n();
 const { addToast } = useToast();
+const route = useRoute();
 
 const loading = ref(false);
 const streaming = ref(false);
 const toolStatus = ref('');
 const userInput = ref('');
 const messageContainer = ref(null);
+
+// 自动感知上下文
+watch(
+  () => route.path,
+  () => {
+    setContext({
+      path: route.path,
+      pageTitle: route.meta?.title || document.title
+    });
+  },
+  { immediate: true }
+);
+
+// 主动建议逻辑
+const suggestions = computed(() => {
+  const path = route.path;
+  const sug = (key) => t(`ai.suggestions.${key}`);
+  
+  if (path === '/' || path === '/dashboard') {
+    return [sug('dailyReport'), sug('monthlySalesRanking'), sug('systemStatus')];
+  }
+  if (path.startsWith('/orders')) {
+    return [sug('pendingOrders'), sug('todayNewOrders'), sug('weeklySalesTrend')];
+  }
+  if (path.startsWith('/customers')) {
+    return [sug('weeklyNewCustomers'), sug('customerCount')];
+  }
+  if (path.startsWith('/manage/spaces')) {
+    return [sug('spaceUsage'), sug('recentActiveSpaces'), sug('downloadTop10')];
+  }
+  if (path.startsWith('/manage/files')) {
+    return [sug('storageUsage'), sug('largeFileAnalysis'), sug('fileTypeDistribution')];
+  }
+  if (path.startsWith('/sales')) {
+    return [sug('myDailyPerformance'), sug('monthlyCommission')];
+  }
+  return [sug('dailyReport'), sug('pendingOrders'), sug('systemStatus')];
+});
+
+const handleSuggestion = (text) => {
+  userInput.value = text;
+  sendMessage();
+};
 
 const { 
   displayedContent: streamContent, 
@@ -189,7 +242,7 @@ const sendMessage = async () => {
     const response = await fetch('/api/ai/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: historyToSend }),
+      body: JSON.stringify({ messages: historyToSend, context: context.value }),
     });
 
     if (!response.ok) {
@@ -224,9 +277,20 @@ const sendMessage = async () => {
         if (event.type === 'text_delta' && event.data?.content) {
           bufferStream(event.data.content);
         } 
-        // 处理结构化内容块：直接显示（如表格）
-        else if (event.type === 'content_block' && event.data?.content) {
-          bufferStream(event.data.content);
+        // 处理结构化内容块
+        else if (event.type === 'content_block') {
+           if (event.data?.type === 'chart' && event.data?.data) {
+             // 接收到图表数据，追加到当前最新消息中
+             const lastMsg = messages.value[messages.value.length - 1];
+             if (lastMsg) {
+               if (!lastMsg.charts) lastMsg.charts = [];
+               lastMsg.charts.push(event.data.data);
+               scrollToBottom();
+             }
+           } else if (event.data?.content) {
+             // 其他文本块 (Table etc.)
+             bufferStream(event.data.content);
+           }
         } 
         // 处理工具调用状态：显示“正在查询...”界面反馈
         else if (event.type === 'tool_call' && event.data?.name) {

@@ -4,7 +4,7 @@
  */
 import { success, error } from '../utils/response.js';
 import { MSG } from '../utils/messages.js';
-import { TOOL_DESCRIPTIONS } from '../utils/ai-prompts.js';
+import { AI_TOOLS } from '../utils/ai-prompts.js';
 import { authenticateAdmin } from '../utils/auth.js';
 import { OrderStatsRepository } from '../../repositories/OrderStatsRepository.js';
 import { SystemStatsRepository } from '../../repositories/SystemStatsRepository.js';
@@ -18,76 +18,22 @@ export async function onRequestPost(context) {
         // 1. 权限验证
         await authenticateAdmin(request, env);
 
-        const { messages: history } = await request.json();
+        const { messages: history, context: clientContext = {} } = await request.json();
 
         // 2. 初始化 Repos
         const orderStatsRepo = new OrderStatsRepository(env.DB);
         const systemStatsRepo = new SystemStatsRepository(env.DB);
 
-        // 3. 定义工具列表
-        const tools = [
-            {
-                type: "function",
-                function: {
-                    name: "getOrderStats",
-                    description: TOOL_DESCRIPTIONS.GET_ORDER_STATS,
-                    parameters: { type: "object", properties: {} }
-                }
-            },
-            {
-                type: "function",
-                function: {
-                    name: "getRecentPendingOrders",
-                    description: TOOL_DESCRIPTIONS.GET_RECENT_PENDING,
-                    parameters: {
-                        type: "object",
-                        properties: {
-                            limit: { type: "number", description: TOOL_DESCRIPTIONS.LIMIT_DESC }
-                        }
-                    }
-                }
-            },
-            {
-                type: "function",
-                function: {
-                    name: "getCustomerStats",
-                    description: TOOL_DESCRIPTIONS.GET_CUSTOMER_STATS,
-                    parameters: { type: "object", properties: {} }
-                }
-            },
-            {
-                type: "function",
-                function: {
-                    name: "getSpaceStats",
-                    description: TOOL_DESCRIPTIONS.GET_SPACE_STATS,
-                    parameters: { type: "object", properties: {} }
-                }
-            },
-            {
-                type: "function",
-                function: {
-                    name: "getSalespersonStats",
-                    description: TOOL_DESCRIPTIONS.GET_SALESPERSON_STATS,
-                    parameters: { type: "object", properties: {} }
-                }
-            },
-            {
-                type: "function",
-                function: {
-                    name: "getFileStats",
-                    description: TOOL_DESCRIPTIONS.GET_FILE_STATS,
-                    parameters: { type: "object", properties: {} }
-                }
-            }
-        ];
+        // 3. AI 交互循环 (处理 Function Calling)
+        const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
+        const systemContent = SYSTEM_PROMPT(todayDate, clientContext);
 
-        // 4. AI 交互循环 (处理 Function Calling)
         let messages = [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemContent },
             ...history
         ];
 
-        let response = await callAI(messages, tools, env);
+        let response = await callAI(messages, AI_TOOLS, env);
         let choice = response.choices[0];
 
         // 如果 AI 想要调用工具

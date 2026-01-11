@@ -6,69 +6,12 @@
  */
 /* global ReadableStream */
 import { MSG } from '../utils/messages.js';
-import { TOOL_DESCRIPTIONS } from '../utils/ai-prompts.js';
+import { AI_TOOLS } from '../utils/ai-prompts.js';
 import { authenticateAdmin } from '../utils/auth.js';
 import { OrderStatsRepository } from '../../repositories/OrderStatsRepository.js';
 import { SystemStatsRepository } from '../../repositories/SystemStatsRepository.js';
 import { callAIStream, callAI, parseSSEChunk, SYSTEM_PROMPT } from '../../utils/ai-utils.js';
 import { DateUtils } from '../utils/date.js';
-
-// SSE 工具定义
-const TOOLS = [
-    {
-        type: "function",
-        function: {
-            name: "getOrderStats",
-            description: TOOL_DESCRIPTIONS.GET_ORDER_STATS,
-            parameters: { type: "object", properties: {} }
-        }
-    },
-    {
-        type: "function",
-        function: {
-            name: "getRecentPendingOrders",
-            description: TOOL_DESCRIPTIONS.GET_RECENT_PENDING,
-            parameters: {
-                type: "object",
-                properties: {
-                    limit: { type: "number", description: TOOL_DESCRIPTIONS.LIMIT_DESC }
-                }
-            }
-        }
-    },
-    {
-        type: "function",
-        function: {
-            name: "getCustomerStats",
-            description: TOOL_DESCRIPTIONS.GET_CUSTOMER_STATS,
-            parameters: { type: "object", properties: {} }
-        }
-    },
-    {
-        type: "function",
-        function: {
-            name: "getSpaceStats",
-            description: TOOL_DESCRIPTIONS.GET_SPACE_STATS,
-            parameters: { type: "object", properties: {} }
-        }
-    },
-    {
-        type: "function",
-        function: {
-            name: "getSalespersonStats",
-            description: TOOL_DESCRIPTIONS.GET_SALESPERSON_STATS,
-            parameters: { type: "object", properties: {} }
-        }
-    },
-    {
-        type: "function",
-        function: {
-            name: "getFileStats",
-            description: TOOL_DESCRIPTIONS.GET_FILE_STATS,
-            parameters: { type: "object", properties: {} }
-        }
-    }
-];
 
 export async function onRequestPost(context) {
     const { env, request } = context;
@@ -88,7 +31,7 @@ export async function onRequestPost(context) {
         // 1. 权限验证：确保只有管理员可以访问 AI 统计功能
         await authenticateAdmin(request, env);
 
-        const { messages: history } = await request.json();
+        const { messages: history, context: clientContext = {} } = await request.json();
 
         // 2. 初始化核心逻辑库
         const orderStatsRepo = new OrderStatsRepository(env.DB);
@@ -126,8 +69,11 @@ export async function onRequestPost(context) {
         const stream = new ReadableStream({
             async start(controller) {
                 try {
+                    const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
+                    const systemContent = SYSTEM_PROMPT(todayDate, clientContext);
+
                     let messages = [
-                        { role: "system", content: SYSTEM_PROMPT },
+                        { role: "system", content: systemContent },
                         ...history
                     ];
 
@@ -136,7 +82,7 @@ export async function onRequestPost(context) {
 
                     // 4. 发起首轮 AI 调用 (尝试流式传输)
                     try {
-                        aiStream = await callAIStream(messages, TOOLS, env);
+                        aiStream = await callAIStream(messages, AI_TOOLS, env);
                     } catch (_e) {
                         // 如果供应商或环境不支持流式，平滑降级为非流式模式
                         useStreaming = false;
@@ -146,7 +92,8 @@ export async function onRequestPost(context) {
                         // === 流式处理模式 ===
                         const reader = aiStream.getReader();
                         const decoder = new TextDecoder();
-                        let buffer = '';
+                        let buffer = ''; // Raw byte buffer for decoding
+                        let streamBuffer = ''; // Text buffer for parsing charts
                         let fullContent = '';
                         let toolCalls = [];
 
@@ -169,10 +116,81 @@ export async function onRequestPost(context) {
                                     const delta = chunk.choices?.[0]?.delta;
                                     if (!delta) continue;
 
-                                    // 文本增量：实时推送给客户端渲染
+                                    // === 核心逻辑修改：文本与图表混合解析 ===
                                     if (delta.content) {
                                         fullContent += delta.content;
-                                        sendSSE(controller, 'text_delta', { content: delta.content });
+                                        streamBuffer += delta.content;
+
+                                        // 循环处理 buffer，直到没有完整的图表或无法确定是否为文本
+                                        while (true) {
+                                            const chartStartIndex = streamBuffer.indexOf(':::chart');
+
+                                            if (chartStartIndex === -1) {
+                                                // 没找到开头，检查是否可能是开头的一部分 (Last few chars match partial ':::chart')
+                                                // 最长可能是 ":::chart" (8 chars)
+                                                let partialMatch = false;
+                                                const checkLen = Math.min(streamBuffer.length, 8);
+                                                for (let i = 1; i <= checkLen; i++) {
+                                                    const suffix = streamBuffer.slice(-i);
+                                                    if (":::chart".startsWith(suffix)) {
+                                                        partialMatch = true;
+                                                        // 发送 pending 的部分 (除去 suffix)
+                                                        const safeText = streamBuffer.slice(0, -i);
+                                                        if (safeText) {
+                                                            sendSSE(controller, 'text_delta', { content: safeText });
+                                                            streamBuffer = streamBuffer.slice(safeText.length);
+                                                        }
+                                                        break;
+                                                    }
+                                                }
+
+                                                // 如果不仅没找到开头，连可能的开头都不是 -> 全部作为文本发送
+                                                if (!partialMatch) {
+                                                    if (streamBuffer) {
+                                                        sendSSE(controller, 'text_delta', { content: streamBuffer });
+                                                        streamBuffer = '';
+                                                    }
+                                                }
+                                                break; // 退出循环，等待更多数据
+                                            } else {
+                                                // 找到了 ":::chart"
+
+                                                // 1. 先把 chart 之前的内容作为文本发送
+                                                if (chartStartIndex > 0) {
+                                                    const textPart = streamBuffer.slice(0, chartStartIndex);
+                                                    sendSSE(controller, 'text_delta', { content: textPart });
+                                                    streamBuffer = streamBuffer.slice(chartStartIndex);
+                                                }
+
+                                                // 2. 现在 streamBuffer 以 ":::chart" 开头，寻找结束标记 ":::"
+                                                // 注意：结束标记必须在开头之后。
+                                                // ":::chart" len=8. End tag ":::" len=3.
+                                                // 我们需要找的是内容之后的 ":::"，为了防止匹配到开头的 ":::" 中的一部分，我们从 index 8 开始找
+                                                const chartEndIndex = streamBuffer.indexOf(':::', 8);
+
+                                                if (chartEndIndex !== -1) {
+                                                    // 找到了完整的图表块
+                                                    const rawJson = streamBuffer.slice(8, chartEndIndex).trim(); // Remove ":::chart" and content trim
+                                                    try {
+                                                        const chartData = JSON.parse(rawJson);
+                                                        // 发送图表事件
+                                                        sendSSE(controller, 'content_block', { type: 'chart', data: chartData });
+                                                    } catch (e) {
+                                                        console.error('Chart JSON parse error:', e);
+                                                        // 解析失败，回退为纯文本发送 (包含标记，让前端或其他逻辑处理，或者单纯显示)
+                                                        // 这里选择作为文本发送，避免丢失信息
+                                                        sendSSE(controller, 'text_delta', { content: streamBuffer.slice(0, chartEndIndex + 3) });
+                                                    }
+
+                                                    // 移除已处理的图表块 (including ending ":::")
+                                                    streamBuffer = streamBuffer.slice(chartEndIndex + 3);
+                                                    // 继续下一次循环，处理剩余字符
+                                                } else {
+                                                    // 还没传输完完整的图表，等待更多数据
+                                                    break;
+                                                }
+                                            }
+                                        }
                                     }
 
                                     // 工具调用增量：累积函数调用信息
@@ -234,7 +252,7 @@ export async function onRequestPost(context) {
                         }
                     } else {
                         // === 兼容降级模式 (非流式请求) ===
-                        const response = await callAI(messages, TOOLS, env);
+                        const response = await callAI(messages, AI_TOOLS, env);
                         let choice = response.choices[0];
 
                         // 处理单次往返中的工具调用
