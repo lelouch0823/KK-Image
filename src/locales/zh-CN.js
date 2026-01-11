@@ -832,6 +832,7 @@ export default {
     networkError: '网络请求失败，请稍后再试',
     welcome: '您好！我是您的全能管理助手。我可以查询订单、客户、销售、共享空间和文件存储等各类统计数据。请问有什么可以帮您？',
     thinking: 'AI 正在思考...',
+    toolLoading: '正在查询{tool}数据...',
     clear: '清空会话',
     clearConfirm: '确定要清空聊天记录吗？',
     copySuccess: '消息已复制到剪贴板',

@@ -73,16 +73,27 @@
             </div>
           </div>
 
-          <!-- Loading State -->
-          <div v-if="loading" class="flex justify-start">
+          <!-- Loading / Streaming State -->
+          <div v-if="loading || streaming" class="flex justify-start">
             <div class="border-border rounded-2xl rounded-bl-none border bg-white px-4 py-3 shadow-sm">
               <div class="flex items-center gap-3">
-                <div class="flex gap-1">
-                  <span class="bg-primary/40 size-1.5 animate-bounce rounded-full"></span>
-                  <span class="bg-primary/40 size-1.5 animate-bounce rounded-full [animation-delay:0.2s]"></span>
-                  <span class="bg-primary/40 size-1.5 animate-bounce rounded-full [animation-delay:0.4s]"></span>
-                </div>
-                <span class="text-secondary text-xs">{{ t('ai.thinking') }}</span>
+                <!-- Tool Status -->
+                <template v-if="toolStatus">
+                  <svg class="text-primary size-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span class="text-secondary text-xs">{{ t('ai.toolLoading', { tool: toolStatus }) }}</span>
+                </template>
+                <!-- Default Thinking -->
+                <template v-else>
+                  <div class="flex gap-1">
+                    <span class="bg-primary/40 size-1.5 animate-bounce rounded-full"></span>
+                    <span class="bg-primary/40 size-1.5 animate-bounce rounded-full [animation-delay:0.2s]"></span>
+                    <span class="bg-primary/40 size-1.5 animate-bounce rounded-full [animation-delay:0.4s]"></span>
+                  </div>
+                  <span class="text-secondary text-xs">{{ t('ai.thinking') }}</span>
+                </template>
               </div>
             </div>
           </div>
@@ -136,6 +147,8 @@ const { t } = useI18n();
 const { addToast } = useToast();
 
 const loading = ref(false);
+const streaming = ref(false);
+const toolStatus = ref('');
 const userInput = ref('');
 const messageContainer = ref(null);
 
@@ -181,41 +194,121 @@ const clearHistory = () => {
   }
 };
 
+/**
+ * 解析 SSE 事件
+ */
+function parseSSEEvents(text) {
+  const events = [];
+  const lines = text.split('\n');
+  let currentEvent = null;
+  
+  for (const line of lines) {
+    if (line.startsWith('event: ')) {
+      currentEvent = { type: line.slice(7).trim(), data: null };
+    } else if (line.startsWith('data: ') && currentEvent) {
+      try {
+        currentEvent.data = JSON.parse(line.slice(6));
+        events.push(currentEvent);
+      } catch (_e) {
+        // 忽略解析错误
+      }
+      currentEvent = null;
+    }
+  }
+  
+  return events;
+}
+
 const sendMessage = async () => {
-  if (!userInput.value.trim() || loading.value) return;
+  if (!userInput.value.trim() || loading.value || streaming.value) return;
 
   const userQuery = userInput.value;
-  // User response - no markdown needed usually, but consistent structure helps
   messages.value.push({ role: 'user', content: userQuery, html: '' });
   userInput.value = '';
   loading.value = true;
+  toolStatus.value = '';
   await scrollToBottom();
 
+  // 添加一个占位的 AI 消息用于流式更新
+  const aiMessageIndex = messages.value.length;
+  messages.value.push({ role: 'assistant', content: '', html: '' });
+
   try {
-    const res = await fetch('/api/ai/chat', {
+    const response = await fetch('/api/ai/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        // Only send role/content to API, not the extra html property
-        messages: messages.value.slice(-6).map(({ role, content }) => ({ role, content }))
+        messages: messages.value.slice(0, -1).slice(-6).map(({ role, content }) => ({ role, content }))
       }),
     });
 
-    const result = await res.json();
-    if (result.success) {
-      const aiContent = result.data.message.content;
-      messages.value.push({
-        role: 'assistant',
-        content: aiContent,
-        html: renderMarkdown(aiContent)
-      });
-    } else {
-      addToast({ message: result.message || t('ai.error'), type: 'error' });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
+
+    loading.value = false;
+    streaming.value = true;
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      
+      // 处理完整的事件 (以 \n\n 结尾)
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop() || ''; // 保留不完整的部分
+
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        
+        const events = parseSSEEvents(part + '\n');
+        
+        for (const event of events) {
+          if (event.type === 'text_delta' && event.data?.content) {
+            // 增量文本
+            messages.value[aiMessageIndex].content += event.data.content;
+            messages.value[aiMessageIndex].html = renderMarkdown(messages.value[aiMessageIndex].content);
+            await scrollToBottom();
+          } else if (event.type === 'content_block' && event.data?.content) {
+            // 完整内容块 (表格等)
+            messages.value[aiMessageIndex].content += event.data.content;
+            messages.value[aiMessageIndex].html = renderMarkdown(messages.value[aiMessageIndex].content);
+            await scrollToBottom();
+          } else if (event.type === 'tool_call' && event.data?.name) {
+            // 工具调用状态
+            toolStatus.value = event.data.name;
+          } else if (event.type === 'tool_result') {
+            // 工具调用完成
+            toolStatus.value = '';
+          } else if (event.type === 'error') {
+            addToast({ message: event.data?.message || t('ai.error'), type: 'error' });
+          } else if (event.type === 'done') {
+            // 流结束
+          }
+        }
+      }
+    }
+
+    // 确保最终渲染
+    if (messages.value[aiMessageIndex].content) {
+      messages.value[aiMessageIndex].html = renderMarkdown(messages.value[aiMessageIndex].content);
+    }
+
   } catch (_err) {
     addToast({ message: t('ai.networkError'), type: 'error' });
+    // 移除空的 AI 消息
+    if (!messages.value[aiMessageIndex].content) {
+      messages.value.pop();
+    }
   } finally {
     loading.value = false;
+    streaming.value = false;
+    toolStatus.value = '';
     await scrollToBottom();
   }
 };
