@@ -51,53 +51,14 @@
 
         <!-- Messages Area -->
         <div ref="messageContainer" class="flex-1 space-y-4 overflow-y-auto p-4">
-          <div
+          <!-- Message Loop -->
+          <ChatMessage
             v-for="(msg, index) in messages"
             :key="index"
-            :class="['flex', msg.role === 'user' ? 'justify-end' : 'justify-start']"
-          >
-            <div
-              v-if="msg.content || msg.html"
-              :class="[
-                'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm',
-                msg.role === 'user'
-                  ? 'bg-primary rounded-br-none text-white'
-                  : 'border-border text-primary rounded-bl-none border bg-white'
-              ]"
-            >
-              <div
-                v-if="msg.role === 'assistant'"
-                class="markdown-body text-sm leading-relaxed"
-                v-html="msg.html"
-              ></div>
-              <p v-else class="leading-relaxed whitespace-pre-wrap">{{ msg.content }}</p>
-            </div>
-          </div>
-
-          <!-- Loading / Tool Status -->
-          <div v-if="isThinking || toolStatus" class="flex justify-start">
-            <div class="border-border rounded-2xl rounded-bl-none border bg-white px-4 py-3 shadow-sm">
-              <div class="flex items-center gap-3">
-                <!-- Tool Status -->
-                <template v-if="toolStatus">
-                  <svg class="text-primary size-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span class="text-secondary text-xs">{{ t('ai.toolLoading', { tool: getToolName(toolStatus) }) }}</span>
-                </template>
-                <!-- Default Thinking -->
-                <template v-else>
-                  <div class="flex gap-1">
-                    <span class="bg-primary/40 size-1.5 animate-bounce rounded-full"></span>
-                    <span class="bg-primary/40 size-1.5 animate-bounce rounded-full [animation-delay:0.2s]"></span>
-                    <span class="bg-primary/40 size-1.5 animate-bounce rounded-full [animation-delay:0.4s]"></span>
-                  </div>
-                  <span class="text-secondary text-xs">{{ t('ai.thinking') }}</span>
-                </template>
-              </div>
-            </div>
-          </div>
+            :message="msg"
+            :is-thinking="index === messages.length - 1 && isThinking"
+            :tool-status="index === messages.length - 1 ? toolStatus : ''"
+          />
         </div>
 
         <!-- Input Area -->
@@ -133,18 +94,12 @@
 /* global TextDecoder */
 import { ref, nextTick, watch, computed } from 'vue';
 import { SSEParser } from '@/utils/streaming';
+import { renderMarkdown } from '@/utils/ai-markdown';
+import ChatMessage from '@/components/common/ai/ChatMessage.vue';
 import { useSmoothTypewriter } from '@/composables/useSmoothTypewriter';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAI } from '@/composables/useAI';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
-
-// 配置 marked 以支持 GFM 表格和换行
-marked.use({
-  gfm: true,
-  breaks: true,
-});
 
 const { isOpen, close } = useAI();
 const { t } = useI18n();
@@ -170,12 +125,6 @@ const isThinking = computed(() => {
   if (streaming.value && !streamContent.value && !toolStatus.value) return true;
   return false;
 });
-
-// 获取工具的本地化名称
-const getToolName = (status) => {
-  if (!status) return '';
-  return t(`ai.toolNames.${status}`, status);
-};
 
 // 监听流式内容更新并同步到消息列表
 watch(streamContent, (newContent) => {
@@ -210,49 +159,6 @@ const scrollToBottom = async () => {
     messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
   }
 };
-
-/**
- * 渲染 Markdown 内容为安全的 HTML
- * 包含针对 AI 输出的预处理，确保各类 Markdown 语法正确渲染
- */
-function renderMarkdown(content) {
-  if (!content) return '';
-  
-  let processed = content;
-
-  // === 预处理 1：修复加粗/斜体标记 ===
-  // AI 可能产生带空格或换行的加粗标记 (e.g. ** text ** -> **text**)
-  processed = processed.replace(/\*\*\s*([\s\S]*?)\s*\*\*/g, (_, p1) => `**${p1.trim()}**`);
-  processed = processed.replace(/\*\s*([^\s*][^*]*?)\s*\*/g, (_, p1) => `*${p1.trim()}*`);
-
-  // === 预处理 2：确保块级元素前有空行 ===
-  // 1. 强制在看似列表项的数字前换行 (例如 "Text1. Item" -> "Text\n\n1. Item")
-  // 匹配模式：(非换行符)(数字)(点)(空格)
-  processed = processed.replace(/([^\n])(\d+\.\s)/g, '$1\n\n$2');
-  
-  // 2. 强制在无序列表项前换行 (例如 "Text- Item" -> "Text\n\n- Item")
-  processed = processed.replace(/([^\n])([-*]\s)/g, '$1\n\n$2');
-
-  // 3. 强制在标题前换行
-  processed = processed.replace(/([^\n])(#{1,6}\s)/g, '$1\n\n$2');
-
-  // 4. 表格 (以 | 开头)，但要小心不误伤正文中的 |
-  // 这里要求 | 前必须有一个换行，或者它就是单独的一行
-  processed = processed.replace(/([^\n])\n(\|)/g, '$1\n\n$2');
-
-  // 5. 代码块和引用
-  processed = processed.replace(/([^\n])(```)/g, '$1\n\n$2');
-  processed = processed.replace(/([^\n])(>\s)/g, '$1\n\n$2');
-
-  // === 预处理 3：处理中文标点后的列表 ===
-  processed = processed.replace(/(：)(\d+\.\s)/g, '$1\n\n$2');
-  processed = processed.replace(/(：)([-*]\s)/g, '$1\n\n$2');
-  processed = processed.replace(/(。)(\d+\.\s)/g, '$1\n\n$2');
-  processed = processed.replace(/(。)([-*]\s)/g, '$1\n\n$2');
-
-  const html = marked.parse(processed);
-  return DOMPurify.sanitize(html);
-}
 
 const clearHistory = () => {
   if (confirm(t('ai.clearConfirm'))) {
