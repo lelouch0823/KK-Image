@@ -1,5 +1,5 @@
+<template>
   <div class="pointer-events-none fixed right-6 bottom-6 z-[9999]">
-    <!-- Chat Window -->
     <transition
       enter-active-class="transition duration-300 ease-out"
       enter-from-class="translate-y-4 transform scale-95 opacity-0"
@@ -50,7 +50,6 @@
 
         <!-- Messages Area -->
         <div ref="messageContainer" class="flex-1 space-y-4 overflow-y-auto p-4">
-          <!-- Message Loop -->
           <ChatMessage
             v-for="(msg, index) in messages"
             :key="index"
@@ -62,7 +61,6 @@
 
         <!-- Input Area -->
         <div class="border-border border-t bg-white/50 px-4 pt-1 pb-4">
-          <!-- Proactive Suggestions -->
           <AISuggestions 
             class="mb-2" 
             :suggestions="suggestions" 
@@ -106,8 +104,6 @@ import { useI18n } from '@/composables/useI18n';
 import { useAI } from '@/composables/useAI';
 import { useAIStream } from '@/composables/useAIStream';
 import { throttle } from '@/utils/performance';
-
-
 
 const { isOpen, close, context, setContext } = useAI();
 const { t } = useI18n();
@@ -169,8 +165,6 @@ const {
 } = useAIStream();
 
 // SOTA: Throttled Markdown rendering
-// AI typing speed is fast (~60fps), rendering Markdown on every char is expensive.
-// We throttle it to ~10fps (100ms) which is visually indistinguishable but saves ~80% CPU.
 const throttledRender = throttle((content, targetMsg) => {
   if (targetMsg) {
     targetMsg.html = renderMarkdown(content);
@@ -197,9 +191,6 @@ const messages = ref([
     html: renderMarkdown(t('ai.welcome'))
   }
 ]);
-
-// Auto scroll when opened
-// Auto scroll when opened - Duplicate watch removed
 
 const scrollToBottom = async () => {
   await nextTick();
@@ -230,11 +221,12 @@ const sendMessage = async () => {
   toolStatus.value = '';
   await scrollToBottom();
 
-  // 准备发送的历史消息（不包含刚添加的用户消息的html属性）
-  const historyToSend = messages.value.slice(-7).map(({ role, content }) => ({ role, content }));
+  // Add placeholder for assistant response
+  messages.value.push({ role: 'assistant', content: '', html: '' });
+  
+  const historyToSend = messages.value.slice(-8, -1).map(({ role, content }) => ({ role, content }));
 
   try {
-    // 1. 发起流式请求
     await startAIStream({
       messages: historyToSend,
       context: context.value,
@@ -248,12 +240,11 @@ const sendMessage = async () => {
       }
     });
 
-    // 2. 流结束后的最终渲染 (确保最后一块内容被正确渲染，不依赖 throttle)
     const lastMsg = messages.value[messages.value.length - 1];
     if (lastMsg && lastMsg.role === 'assistant') {
       lastMsg.html = renderMarkdown(lastMsg.content);
       if (!lastMsg.content && (!lastMsg.charts || lastMsg.charts.length === 0)) {
-        messages.value.pop(); // 移除空消息
+        messages.value.pop();
       }
     }
   } catch (_err) {
@@ -265,7 +256,6 @@ const sendMessage = async () => {
 </script>
 
 <style>
-/* Markdown Styles - Using Design Tokens */
 .markdown-body {
   font-size: 0.875rem;
   line-height: 1.6;
