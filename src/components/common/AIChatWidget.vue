@@ -115,7 +115,6 @@
       </div>
     </transition>
   </div>
-  </div>
 </template>
 
 <script setup>

@@ -145,9 +145,9 @@ ModerateContentApiKey = ""
 SENTRY_DSN = ""
 
 # AI 助手配置
-AI_API_KEY = ""
-AI_API_URL = "https://api.openai.com/v1"
-AI_MODEL = "gpt-4o"
+AI_API_KEY = "ms-a5a227b4-b186-4411-8842-e78f6eebc8d6"
+AI_API_URL = "https://api-inference.modelscope.cn/v1/"
+AI_MODEL = "deepseek-ai/DeepSeek-V3.2"
 
 # Cloudflare Turnstile 防滥用验证
 TURNSTILE_SITE_KEY = "0x4AAAAAACJfZho-HoWMjX2s"

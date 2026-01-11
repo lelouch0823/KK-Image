@@ -6,6 +6,7 @@ import { success, error } from '../utils/response.js';
 import { MSG } from '../utils/messages.js';
 import { authenticateAdmin } from '../utils/auth.js';
 import { OrderStatsRepository } from '../../repositories/OrderStatsRepository.js';
+import { SystemStatsRepository } from '../../repositories/SystemStatsRepository.js';
 import { callAI, SYSTEM_PROMPT } from '../../utils/ai-utils.js';
 import { DateUtils } from '../utils/date.js';
 
@@ -18,8 +19,9 @@ export async function onRequestPost(context) {
 
         const { messages: history } = await request.json();
 
-        // 2. 初始化 Repo
-        const statsRepo = new OrderStatsRepository(env.DB);
+        // 2. 初始化 Repos
+        const orderStatsRepo = new OrderStatsRepository(env.DB);
+        const systemStatsRepo = new SystemStatsRepository(env.DB);
 
         // 3. 定义工具列表
         const tools = [
@@ -43,6 +45,38 @@ export async function onRequestPost(context) {
                         }
                     }
                 }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "getCustomerStats",
+                    description: MSG.AI.TOOLS.GET_CUSTOMER_STATS,
+                    parameters: { type: "object", properties: {} }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "getSpaceStats",
+                    description: MSG.AI.TOOLS.GET_SPACE_STATS,
+                    parameters: { type: "object", properties: {} }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "getSalespersonStats",
+                    description: MSG.AI.TOOLS.GET_SALESPERSON_STATS,
+                    parameters: { type: "object", properties: {} }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "getFileStats",
+                    description: MSG.AI.TOOLS.GET_FILE_STATS,
+                    parameters: { type: "object", properties: {} }
+                }
             }
         ];
 
@@ -64,13 +98,30 @@ export async function onRequestPost(context) {
                 const args = JSON.parse(toolCall.function.arguments);
                 let result = null;
 
+                // 订单相关
                 if (functionName === "getOrderStats") {
                     const todayStart = DateUtils.getChinaDayStart();
                     const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000;
                     const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000;
-                    result = await statsRepo.getAdminStats(todayStart, weekStart, monthStart);
+                    result = await orderStatsRepo.getAdminStats(todayStart, weekStart, monthStart);
                 } else if (functionName === "getRecentPendingOrders") {
-                    result = await statsRepo.getRecentPending(args.limit || 5);
+                    result = await orderStatsRepo.getRecentPending(args.limit || 5);
+                }
+                // 客户统计
+                else if (functionName === "getCustomerStats") {
+                    result = await systemStatsRepo.getCustomerStats();
+                }
+                // 共享空间统计
+                else if (functionName === "getSpaceStats") {
+                    result = await systemStatsRepo.getSpaceStats();
+                }
+                // 销售人员统计
+                else if (functionName === "getSalespersonStats") {
+                    result = await systemStatsRepo.getSalespersonStats();
+                }
+                // 文件存储统计
+                else if (functionName === "getFileStats") {
+                    result = await systemStatsRepo.getFileStats();
                 }
 
                 messages.push({
