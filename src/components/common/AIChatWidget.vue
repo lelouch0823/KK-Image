@@ -288,6 +288,7 @@ const sendMessage = async () => {
     // 重置打字机状态
     resetStream();
 
+    // 5. 初始化流式接收器与解析器
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     const parser = new SSEParser();
@@ -296,19 +297,29 @@ const sendMessage = async () => {
       const { done, value } = await reader.read();
       if (done) break;
 
+      // 解码二进制流块并喂入 SSE 解析器
       const chunk = decoder.decode(value, { stream: true });
       const events = parser.feed(chunk);
       
       for (const event of events) {
+        // 处理文本增量：放入打字机缓冲池，实现丝滑渲染
         if (event.type === 'text_delta' && event.data?.content) {
           bufferStream(event.data.content);
-        } else if (event.type === 'content_block' && event.data?.content) {
+        } 
+        // 处理结构化内容块：直接显示（如表格）
+        else if (event.type === 'content_block' && event.data?.content) {
           bufferStream(event.data.content);
-        } else if (event.type === 'tool_call' && event.data?.name) {
+        } 
+        // 处理工具调用状态：显示“正在查询...”界面反馈
+        else if (event.type === 'tool_call' && event.data?.name) {
           toolStatus.value = event.data.name;
-        } else if (event.type === 'tool_result') {
+        } 
+        // 处理工具执行完成：隐藏状态，准备接收 AI 的解读结果
+        else if (event.type === 'tool_result') {
           toolStatus.value = '';
-        } else if (event.type === 'error') {
+        } 
+        // 处理流式错误
+        else if (event.type === 'error') {
           addToast({ message: event.data?.message || t('ai.error'), type: 'error' });
         }
       }

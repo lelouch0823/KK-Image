@@ -1,30 +1,36 @@
 import { ref } from 'vue';
 
 /**
- * SOTA Smooth Typewriter Composable
+ * SOTA 丝滑打字机效果 Composable
  * =================================
  * 
- * Provides an adaptive typewriter effect that smooths out network jitter.
+ * 提供一种自适应的打字渲染效果，用于平滑网络传输产生的文字块抖动。
  * 
- * Features:
- * - Adaptive Speed: Accelerates if the buffer grows too large (lag compensation).
- * - RAF Loop: Uses requestAnimationFrame for native 60fps smoothness.
- * - Reactive Output: Directly provides the current display string.
+ * 特色：
+ * - 自适应速度：如果缓冲区堆积过多，会自动加速（延迟补偿）。
+ * - RAF 渲染：使用 requestAnimationFrame 实现原生 60fps 的流畅度。
+ * - 响应式输出：直接提供用于界面显示的字符串响应式引用。
  */
 export function useSmoothTypewriter() {
+    /** @type {import('vue').Ref<string>} 界面当前显示的文本内容 */
     const displayedContent = ref('');
+    /** @type {import('vue').Ref<boolean>} 是否正在打字中 */
     const isTyping = ref(false);
 
-    let targetContent = '';
-    let lastFrameTime = 0;
-    let accumulatedTime = 0;
-    let rafId = null;
+    let targetContent = '';    // 最终需要显示的完整目标文本
+    let lastFrameTime = 0;     // 上一帧的时间戳
+    let accumulatedTime = 0;   // 累积未处理的时间毫秒
+    let rafId = null;          // requestAnimationFrame 的 ID
 
-    // Configuration
-    const BASE_SPEED = 20; // ms per character (approx 50 chars/sec)
-    const MIN_SPEED = 5;   // Fastest allowed (catch up mode)
-    const MAX_LAG_CHARS = 50; // If buffer > 50 chars, accelerate
+    // 参数配置
+    const BASE_SPEED = 20;     // 基础速度：字符间隔毫秒 (约 50 字/秒)
+    const MIN_SPEED = 5;       // 最高速度：加速模式下的最小间隔
+    const MAX_LAG_CHARS = 50;  // 积压阈值：如果缓冲区超过 50 字，开始线性加速
 
+    /**
+     * 帧渲染计时器
+     * @param {number} timestamp - 当前帧时间戳
+     */
     const tick = (timestamp) => {
         if (!lastFrameTime) lastFrameTime = timestamp;
         const deltaTime = timestamp - lastFrameTime;
@@ -32,26 +38,28 @@ export function useSmoothTypewriter() {
 
         accumulatedTime += deltaTime;
 
-        // Calculate dynamic speed based on buffer size
+        // 根据剩余字数动态计算打字速度（缓冲区越大，速度越快）
         const charsRemaining = targetContent.length - displayedContent.value.length;
         let currentSpeed = BASE_SPEED;
 
         if (charsRemaining > MAX_LAG_CHARS) {
-            // Accelerate linearly as buffer grows
+            // 线性加速：每多出一个字，速度缩短 1ms，直到达到 MIN_SPEED
             currentSpeed = Math.max(MIN_SPEED, BASE_SPEED - (charsRemaining - MAX_LAG_CHARS));
         }
 
-        // Process characters
+        // 处理当前帧应当显示的字符数量
         while (accumulatedTime >= currentSpeed && displayedContent.value.length < targetContent.length) {
             const nextChar = targetContent[displayedContent.value.length];
             displayedContent.value += nextChar;
             accumulatedTime -= currentSpeed;
         }
 
+        // 如果还有未显示的内容，继续申请下一帧
         if (displayedContent.value.length < targetContent.length) {
             isTyping.value = true;
             rafId = requestAnimationFrame(tick);
         } else {
+            // 渲染完成，重置状态
             isTyping.value = false;
             rafId = null;
             lastFrameTime = 0;
@@ -60,13 +68,14 @@ export function useSmoothTypewriter() {
     };
 
     /**
-     * Append new content to the typewriter buffer.
-     * @param {string} content - The chunk of text to separate.
+     * 将新内容推入打字机缓冲区。
+     * @param {string} content - 接收到的流式文本片段。
      */
     const push = (content) => {
         if (!content) return;
         targetContent += content;
 
+        // 如果渲染循环未开启，则启动它
         if (!rafId) {
             isTyping.value = true;
             lastFrameTime = 0;
@@ -75,7 +84,7 @@ export function useSmoothTypewriter() {
     };
 
     /**
-     * Immediately complete the typing (skip animation).
+     * 立即完成打字（跳过动画直接显示全部内容）。
      */
     const finish = () => {
         displayedContent.value = targetContent;
@@ -87,7 +96,7 @@ export function useSmoothTypewriter() {
     };
 
     /**
-     * Reset the typewriter state.
+     * 重置打字机状态。
      */
     const reset = () => {
         targetContent = '';
