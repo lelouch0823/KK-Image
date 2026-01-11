@@ -189,9 +189,8 @@ const sendMessage = async () => {
     } else {
       addToast({ message: result.message || t('ai.error'), type: 'error' });
     }
-  } catch (err) {
+  } catch (_err) {
     addToast({ message: t('ai.networkError'), type: 'error' });
-    console.error(err);
   } finally {
     loading.value = false;
     await scrollToBottom();
@@ -200,7 +199,7 @@ const sendMessage = async () => {
 </script>
 
 <style>
-/* Markdown Styles */
+/* Markdown Styles - Using Design Tokens */
 .markdown-body {
   font-size: 0.875rem;
   line-height: 1.6;
@@ -220,16 +219,16 @@ const sendMessage = async () => {
   list-style-type: decimal;
 }
 .markdown-body code {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--bg-muted);
   padding: 0.2em 0.4em;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-family: monospace;
   font-size: 0.9em;
 }
 .markdown-body pre {
-  background-color: #f3f4f6;
+  background-color: var(--color-gray-100);
   padding: 0.75em;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   overflow-x: auto;
   margin-bottom: 0.5em;
 }
@@ -240,10 +239,10 @@ const sendMessage = async () => {
 }
 .markdown-body strong {
   font-weight: 600;
-  color: #111827;
+  color: var(--text-main);
 }
 .markdown-body a {
-  color: #2563eb;
+  color: var(--color-info);
   text-decoration: underline;
 }
 .markdown-body table {
@@ -253,12 +252,12 @@ const sendMessage = async () => {
   font-size: 0.85em;
 }
 .markdown-body th, .markdown-body td {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   padding: 0.4em 0.6em;
   text-align: left;
 }
 .markdown-body th {
-  background-color: #f9fafb;
+  background-color: var(--bg-muted);
   font-weight: 600;
 }
 </style>
