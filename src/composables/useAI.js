@@ -10,7 +10,6 @@ const context = ref({
 
 export function useAI() {
     const toggle = () => {
-        console.log('useAI: toggle called, new value:', !isOpen.value);
         isOpen.value = !isOpen.value;
     };
 

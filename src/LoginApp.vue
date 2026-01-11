@@ -322,7 +322,7 @@ const handleLogin = async () => {
       
       // 平滑跳转
       setTimeout(() => {
-        window.location.href = '/admin.html';
+        window.location.href = ROUTES.ADMIN;
       }, 800);
     } else {
       const msg = result.message || t('common.invalidCredentials');
