@@ -46,6 +46,7 @@
     "eslint-plugin-better-tailwindcss": "^3.8.0",
     "eslint-plugin-vue": "^10.6.2",
     "form-data": "^4.0.3",
+    "jsdom": "^27.4.0",
     "mocha": "^10.6.0",
     "node-fetch": "^3.3.2",
     "postcss": "^8.5.6",

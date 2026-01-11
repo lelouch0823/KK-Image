@@ -18,12 +18,8 @@ const ACTION_STATUS_MAP = {
   void: 'voided',
 };
 
-// 操作说明映射
-const ACTION_LABELS = {
-  confirm: '确认',
-  reject: '驳回',
-  void: '作废',
-};
+// 操作说明映射 (使用 MSG.ORDER.ACTIONS)
+const ACTION_LABELS = MSG.ORDER.ACTIONS;
 
 // 可以进行批量操作的源状态
 const VALID_SOURCE_STATUSES = {
@@ -135,9 +131,9 @@ export async function onRequestPost(context) {
     }
 
     const skipped = ids.length - validIds.length;
-    let message = `已成功处理 ${validIds.length} 个订单`;
+    let message = MSG.ORDER.BATCH_RESULT.replace('{valid}', validIds.length);
     if (skipped > 0) {
-      message += `，${skipped} 个订单因状态不符跳过`;
+      message += MSG.ORDER.BATCH_SKIPPED.replace('{skipped}', skipped);
     }
 
     return success(

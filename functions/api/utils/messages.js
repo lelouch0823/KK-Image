@@ -195,4 +195,28 @@ export const MSG = {
     ERROR: 'AI 助手暂时无法响应',
     NETWORK_ERROR: '网络请求失败，请稍后再试',
   },
+
+  // 导出相关标签
+  EXPORT: {
+    HEADERS: {
+      ORDER_NO: '订单编号',
+      PRODUCT_NAME: '商品名称',
+      BRAND: '品牌',
+      SERIES: '系列',
+      SIZE: '规格尺寸',
+      COLOR: '颜色',
+      MATERIAL: '材质',
+      STATUS: '状态',
+      SALESPERSON: '销售员',
+      STORE: '门店',
+      REMARK: '备注',
+      CREATED_AT: '提交时间',
+      UPDATED_AT: '更新时间',
+    },
+  },
+
+  // 格式化相关
+  FORMAT: {
+    FOREVER: '永久有效',
+  },
 };

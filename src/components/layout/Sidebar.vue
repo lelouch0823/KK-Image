@@ -38,6 +38,7 @@
       <div class="flex items-center gap-1">
         <!-- 桌面端折叠按钮 -->
         <button
+          type="button"
           class="text-secondary hidden rounded-lg p-1.5 transition-colors hover:text-primary hover:bg-[var(--bg-hover)] lg:flex"
           :title="isCollapsed ? t('sidebar.expand') : t('sidebar.collapse')"
           @click="toggleCollapse"
@@ -60,6 +61,7 @@
 
         <!-- 移动端关闭按钮 -->
         <button
+          type="button"
           class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 lg:hidden"
           @click="closeSidebar"
         >
@@ -89,6 +91,7 @@
         <button
           v-for="item in menuItems"
           :key="item.key"
+          type="button"
           :title="isCollapsed ? item.label : ''"
           class="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
           :class="[
@@ -116,6 +119,7 @@
           </div>
         </transition>
         <button
+          type="button"
           :title="isCollapsed ? t('sidebar.logout') : ''"
           :class="[
             'text-secondary flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger)]',
@@ -155,6 +159,17 @@
       </div>
     </div>
   </aside>
+
+  <!-- 退出确认弹窗 -->
+  <ConfirmDialog
+    v-model="showLogoutConfirm"
+    type="danger"
+    :title="t('common.logoutConfirmTitle')"
+    :message="t('common.logoutConfirmMessage')"
+    :confirm-text="t('sidebar.logout')"
+    :loading="logoutLoading"
+    @confirm="confirmLogout"
+  />
 </template>
 
 <script setup>
@@ -163,6 +178,7 @@ import { useView } from '@/composables/useView';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const { currentView, setView } = useView();
 const { t } = useI18n();
@@ -250,10 +266,27 @@ const menuItems = computed(() => [
   },
 ]);
 
-const handleLogout = async () => {
-  await logout();
-  addToast({ message: t('auth.logout'), type: 'success' });
-  window.location.reload();
+const showLogoutConfirm = ref(false);
+const logoutLoading = ref(false);
+
+const handleLogout = () => {
+  showLogoutConfirm.value = true;
+};
+
+const confirmLogout = async () => {
+  logoutLoading.value = true;
+  try {
+    await logout();
+    addToast({ message: t('auth.logout'), type: 'success' });
+    // SOTA: 明确跳转到登录页，而不是刷新
+    window.location.href = '/login';
+  } catch (e) {
+    console.error(e);
+    addToast({ message: t('common.networkError'), type: 'error' });
+  } finally {
+    logoutLoading.value = false;
+    showLogoutConfirm.value = false;
+  }
 };
 </script>
 

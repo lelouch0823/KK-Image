@@ -2,24 +2,24 @@
   <div class="animate-pulse" :class="containerClass">
     <!-- 预设形状 -->
     <template v-if="type === 'text'">
-      <div class="h-4 rounded bg-gray-200" :class="widthClass"></div>
+      <div class="h-4 rounded bg-[var(--color-gray-200)]" :class="widthClass"></div>
     </template>
 
     <template v-else-if="type === 'avatar'">
-      <div class="rounded-full bg-gray-200" :class="avatarSizeClass"></div>
+      <div class="rounded-full bg-[var(--color-gray-200)]" :class="avatarSizeClass"></div>
     </template>
 
     <template v-else-if="type === 'image'">
-      <div class="rounded-lg bg-gray-200" :class="imageSizeClass"></div>
+      <div class="rounded-lg bg-[var(--color-gray-200)]" :class="imageSizeClass"></div>
     </template>
 
     <template v-else-if="type === 'card'">
-      <div class="space-y-3 rounded-xl bg-gray-50 p-4">
+      <div class="space-y-3 rounded-xl bg-[var(--bg-muted)] p-4">
         <div class="flex items-center gap-3">
-          <div class="size-10 rounded-full bg-gray-200"></div>
+          <div class="size-10 rounded-full bg-[var(--color-gray-200)]"></div>
           <div class="flex-1 space-y-2">
-            <div class="h-4 w-24 rounded bg-gray-200"></div>
-            <div class="h-3 w-32 rounded bg-gray-200"></div>
+            <div class="h-4 w-24 rounded bg-[var(--color-gray-200)]"></div>
+            <div class="h-3 w-32 rounded bg-[var(--color-gray-200)]"></div>
           </div>
         </div>
       </div>
@@ -28,14 +28,14 @@
     <template v-else-if="type === 'table-row'">
       <tr>
         <td v-for="i in columns" :key="i" class="p-4">
-          <div class="h-4 w-2/3 rounded bg-gray-200"></div>
+          <div class="h-4 w-2/3 rounded bg-[var(--color-gray-200)]"></div>
         </td>
       </tr>
     </template>
 
     <!-- 自定义形状 -->
     <template v-else>
-      <div class="rounded bg-gray-200" :class="customClass"></div>
+      <div class="rounded bg-[var(--color-gray-200)]" :class="customClass"></div>
     </template>
   </div>
 </template>

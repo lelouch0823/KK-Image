@@ -304,7 +304,7 @@ const handleFileSelect = async (e) => {
       originalHash = result.originalHash; // 压缩时已计算的原始 hash
     } catch (compressErr) {
       console.error('[ImageUploader] Compression failed:', compressErr);
-      addToast({ message: `压缩失败: ${compressErr.message}`, type: 'error' });
+      addToast({ message: t('upload.compressFailed', { message: compressErr.message }), type: 'error' });
       isProcessing.value = false;
       processingStatus.value = '';
       continue;
@@ -341,7 +341,7 @@ const handleFileSelect = async (e) => {
       }
     } catch (uploadErr) {
       console.error('[ImageUploader] Upload failed:', uploadErr);
-      addToast({ message: `上传失败: ${uploadErr.message}`, type: 'error' });
+      addToast({ message: t('upload.failed', { message: uploadErr.message }), type: 'error' });
     }
   }
 

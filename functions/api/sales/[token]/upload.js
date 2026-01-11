@@ -76,7 +76,7 @@ export async function onRequestPost(context) {
     // 如果是已知业务错误，返回 400
     const isClientError = Object.values(MSG.FILE).includes(err.message);
     return error(
-      isClientError ? err.message : `上传失败: ${err.message}`,
+      isClientError ? err.message : MSG.FILE.UPLOAD_FAILED.replace('{message}', err.message),
       isClientError ? 400 : 500
     );
   }

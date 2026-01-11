@@ -9,17 +9,8 @@ import { OrderTimelineRepository } from '../../repositories/OrderTimelineReposit
 import { NotificationRepository } from '../../repositories/NotificationRepository.js';
 import { MSG } from './messages.js';
 
-// 订单状态显示名称 (后端映射)
-const STATUS_LABELS = {
-  pending: '待确认',
-  confirmed: '已确认',
-  rejected: '已驳回',
-  production: '生产中',
-  shipping: '配送中',
-  arrived: '已到货',
-  delivered: '已签收',
-  void: '已作废',
-};
+// 订单状态显示名称 (引用 messages.js)
+const STATUS_LABELS = MSG.ORDER.STATUS;
 
 // ========================================
 // 订单通知辅助函数

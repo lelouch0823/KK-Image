@@ -7,34 +7,25 @@ import { error } from '../../utils/response.js';
 import { MSG } from '../../utils/messages.js';
 import { ORDER_STATUSES } from '../../../_shared/utils.js';
 
-// CSV 导出字段定义
+// CSV 导出字段定义 (使用 MSG.EXPORT.HEADERS)
 const EXPORT_COLUMNS = [
-  { key: 'orderNo', label: '订单编号' },
-  { key: 'productName', label: '商品名称' },
-  { key: 'brand', label: '品牌' },
-  { key: 'series', label: '系列' },
-  { key: 'size', label: '规格尺寸' },
-  { key: 'color', label: '颜色' },
-  { key: 'material', label: '材质' },
-  { key: 'status', label: '状态' },
-  { key: 'salesperson', label: '销售员' },
-  { key: 'store', label: '门店' },
-  { key: 'remark', label: '备注' },
-  { key: 'createdAt', label: '提交时间' },
-  { key: 'updatedAt', label: '更新时间' },
+  { key: 'orderNo', label: MSG.EXPORT.HEADERS.ORDER_NO },
+  { key: 'productName', label: MSG.EXPORT.HEADERS.PRODUCT_NAME },
+  { key: 'brand', label: MSG.EXPORT.HEADERS.BRAND },
+  { key: 'series', label: MSG.EXPORT.HEADERS.SERIES },
+  { key: 'size', label: MSG.EXPORT.HEADERS.SIZE },
+  { key: 'color', label: MSG.EXPORT.HEADERS.COLOR },
+  { key: 'material', label: MSG.EXPORT.HEADERS.MATERIAL },
+  { key: 'status', label: MSG.EXPORT.HEADERS.STATUS },
+  { key: 'salesperson', label: MSG.EXPORT.HEADERS.SALESPERSON },
+  { key: 'store', label: MSG.EXPORT.HEADERS.STORE },
+  { key: 'remark', label: MSG.EXPORT.HEADERS.REMARK },
+  { key: 'createdAt', label: MSG.EXPORT.HEADERS.CREATED_AT },
+  { key: 'updatedAt', label: MSG.EXPORT.HEADERS.UPDATED_AT },
 ];
 
-// 状态名称映射
-const STATUS_LABELS = {
-  pending: '待确认',
-  confirmed: '已确认',
-  rejected: '已驳回',
-  production: '生产中',
-  shipping: '已发货',
-  arrived: '已到店',
-  delivered: '已交付',
-  void: '已作废',
-};
+// 状态名称映射 (使用 MSG.ORDER.STATUS)
+const STATUS_LABELS = MSG.ORDER.STATUS;
 
 /**
  * 格式化日期为本地时间字符串 (使用 date.js 工具)

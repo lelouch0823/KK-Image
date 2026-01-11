@@ -30,61 +30,50 @@
 
     <!-- Content -->
     <div v-else-if="stats" class="space-y-6 pb-20">
-      <!-- Top Stats Cards -->
-      <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <!-- Top Stats Cards (SOTA: 存储 + 访问) -->
+      <div class="grid grid-cols-2 gap-4 md:grid-cols-3">
         <div
-          class="group flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-white p-4 text-center transition-all duration-300 hover:border-blue-300 hover:shadow-soft hover:-translate-y-1"
+          class="group flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-white p-4 text-center transition-all duration-300 hover:shadow-soft hover:-translate-y-1 hover:border-blue-300"
         >
           <span class="text-secondary mb-1 text-xs font-semibold tracking-wider uppercase">{{
             t('stats.totalFiles')
           }}</span>
           <span
             class="text-primary text-3xl font-bold transition-colors group-hover:text-blue-600"
-            >{{ formatNumber(stats.overview.totalFiles) }}</span
+            >{{ formatNumber(stats.storage.totalFiles) }}</span
           >
         </div>
         <div
-          class="group flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-white p-4 text-center transition-all duration-300 hover:border-green-300 hover:shadow-soft hover:-translate-y-1"
-        >
-          <span class="text-secondary mb-1 text-xs font-semibold tracking-wider uppercase">{{
-            t('stats.todayUploads')
-          }}</span>
-          <span
-            class="text-primary text-3xl font-bold transition-colors group-hover:text-green-600"
-            >{{ formatNumber(stats.overview.todayUploads) }}</span
-          >
-        </div>
-        <div
-          class="group flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-white p-4 text-center transition-all duration-300 hover:border-purple-300 hover:shadow-soft hover:-translate-y-1"
-        >
-          <span class="text-secondary mb-1 text-xs font-semibold tracking-wider uppercase">{{
-            t('stats.weekUploads')
-          }}</span>
-          <span
-            class="text-primary text-3xl font-bold transition-colors group-hover:text-purple-600"
-            >{{ formatNumber(stats.overview.weekUploads) }}</span
-          >
-        </div>
-        <div
-          class="group flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-white p-4 text-center transition-all duration-300 hover:border-orange-300 hover:shadow-soft hover:-translate-y-1"
+          class="group flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-white p-4 text-center transition-all duration-300 hover:shadow-soft hover:-translate-y-1 hover:border-green-300"
         >
           <span class="text-secondary mb-1 text-xs font-semibold tracking-wider uppercase">{{
             t('stats.totalStorage')
           }}</span>
           <span
-            class="text-primary text-3xl font-bold transition-colors group-hover:text-orange-600"
-            >{{ formatSize(stats.overview.totalSize) }}</span
+            class="text-primary text-3xl font-bold transition-colors group-hover:text-green-600"
+            >{{ formatSize(stats.storage.totalSize) }}</span
+          >
+        </div>
+        <div
+          class="group flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-white p-4 text-center transition-all duration-300 hover:shadow-soft hover:-translate-y-1 hover:border-purple-300"
+        >
+          <span class="text-secondary mb-1 text-xs font-semibold tracking-wider uppercase">{{
+            t('stats.monthVisits')
+          }}</span>
+          <span
+            class="text-primary text-3xl font-bold transition-colors group-hover:text-purple-600"
+            >{{ formatNumber(stats.traffic.monthTotal) }}</span
           >
         </div>
       </div>
 
-      <!-- Charts Row 1 -->
+      <!-- Charts Row 1: 访问趋势 + 文件类型 -->
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <!-- 趋势图 (占用 2/3) -->
+        <!-- 访问趋势图 (占用 2/3) -->
         <div class="rounded-2xl border border-[var(--border-color)] bg-white p-6 shadow-sm lg:col-span-2">
           <h3 class="text-primary mb-6 flex items-center gap-2 text-lg font-semibold">
             <span class="h-6 w-1 rounded-full bg-blue-500"></span>
-            {{ t('stats.uploadTrend') }}
+            {{ t('stats.trafficTrend') }}
           </h3>
           <div class="relative h-72">
             <canvas ref="trendChartRef"></canvas>
@@ -103,9 +92,45 @@
         </div>
       </div>
 
-      <!-- Bottom Row -->
+      <!-- Bottom Row: 热门空间 + 资产健康度 -->
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <!-- 文件状态 -->
+        <!-- 热门空间 Top 5 -->
+        <div class="rounded-xl border border-[var(--border-color)] bg-white p-6">
+          <h3 class="text-primary mb-4 flex items-center gap-2 text-lg font-semibold">
+            <span class="h-6 w-1 rounded-full bg-orange-500"></span>
+            {{ t('stats.topSpaces') }}
+          </h3>
+          <div v-if="stats.traffic.topSpaces.length > 0" class="space-y-3">
+            <div
+              v-for="(space, index) in stats.traffic.topSpaces"
+              :key="space.id"
+              class="flex items-center justify-between rounded-lg bg-gray-50 p-3 transition-colors hover:bg-gray-100"
+            >
+              <div class="flex items-center gap-3">
+                <span
+                  class="flex size-8 items-center justify-center rounded-full text-sm font-bold"
+                  :class="{
+                    'bg-yellow-100 text-yellow-700': index === 0,
+                    'bg-gray-200 text-gray-600': index === 1,
+                    'bg-orange-100 text-orange-600': index === 2,
+                    'bg-gray-100 text-gray-500': index > 2
+                  }"
+                >
+                  {{ index + 1 }}
+                </span>
+                <span class="text-primary max-w-[200px] truncate font-medium">{{ space.name }}</span>
+              </div>
+              <div class="text-secondary text-sm">
+                {{ formatNumber(space.views) }} {{ t('stats.views') }}
+              </div>
+            </div>
+          </div>
+          <div v-else class="text-secondary flex h-40 items-center justify-center text-sm">
+            {{ t('stats.noData') }}
+          </div>
+        </div>
+
+        <!-- 资产健康度 -->
         <div class="rounded-xl border border-[var(--border-color)] bg-white p-6">
           <h3 class="text-primary mb-4 flex items-center gap-2 text-lg font-semibold">
             <span class="h-6 w-1 rounded-full bg-purple-500"></span>
@@ -119,7 +144,7 @@
                 t('stats.normal')
               }}</span>
               <span class="text-2xl font-bold text-green-700">{{
-                formatNumber(stats.status.normal)
+                formatNumber(stats.health.status.normal)
               }}</span>
             </div>
             <div
@@ -129,7 +154,7 @@
                 t('stats.blocked')
               }}</span>
               <span class="text-2xl font-bold text-red-700">{{
-                formatNumber(stats.status.blocked)
+                formatNumber(stats.health.status.blocked)
               }}</span>
             </div>
             <div
@@ -139,7 +164,7 @@
                 t('stats.whitelisted')
               }}</span>
               <span class="text-2xl font-bold text-blue-700">{{
-                formatNumber(stats.status.whitelisted)
+                formatNumber(stats.health.status.whitelisted)
               }}</span>
             </div>
             <div
@@ -149,49 +174,45 @@
                 t('stats.liked')
               }}</span>
               <span class="text-2xl font-bold text-amber-700">{{
-                formatNumber(stats.status.liked)
+                formatNumber(stats.health.status.liked)
               }}</span>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- 最近上传列表 -->
-        <div
-          class="flex h-full flex-col rounded-2xl border border-[var(--border-color)] bg-white p-6 shadow-sm"
-        >
-          <h3 class="text-primary mb-4 flex items-center gap-2 text-lg font-semibold">
-            <span class="h-6 w-1 rounded-full bg-orange-500"></span>
-            {{ t('stats.recentActivity') }}
-          </h3>
-          <div class="scrollbar-thin max-h-[250px] flex-1 overflow-y-auto pr-2">
-            <div
-              v-for="file in stats.recent"
-              :key="file.name"
-              class="flex items-center justify-between rounded-lg border-b border-gray-100 px-2 py-3 transition-colors last:border-0 hover:bg-gray-50"
-            >
-              <div class="flex items-center gap-3 overflow-hidden">
-                <div
-                  class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-xs font-bold text-gray-400 uppercase"
-                >
-                  {{ file.type.split('/')[1] || 'FILE' }}
-                </div>
-                <div class="min-w-0">
-                  <div
-                    class="text-primary max-w-[150px] truncate text-sm font-medium sm:max-w-[200px]"
-                    :title="file.name"
-                  >
-                    {{ file.name }}
-                  </div>
-                  <div class="text-secondary text-xs">{{ formatRelativeDate(file.timestamp) }}</div>
-                </div>
-              </div>
-              <span
-                class="ml-2 rounded-full bg-gray-100 px-2 py-1 text-xs font-medium whitespace-nowrap text-gray-400"
+      <!-- 大文件 Top 10 -->
+      <div class="rounded-xl border border-[var(--border-color)] bg-white p-6">
+        <h3 class="text-primary mb-4 flex items-center gap-2 text-lg font-semibold">
+          <span class="h-6 w-1 rounded-full bg-red-500"></span>
+          {{ t('stats.largeFiles') }}
+        </h3>
+        <div v-if="stats.storage.largeFiles.length > 0" class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="text-secondary border-b border-[var(--border-color)] bg-gray-50">
+              <tr>
+                <th class="px-4 py-3">#</th>
+                <th class="px-4 py-3">{{ t('stats.fileName') }}</th>
+                <th class="px-4 py-3">{{ t('stats.fileType') }}</th>
+                <th class="px-4 py-3 text-right">{{ t('stats.fileSize') }}</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[var(--border-color)]">
+              <tr
+                v-for="(file, index) in stats.storage.largeFiles"
+                :key="file.id"
+                class="hover:bg-gray-50"
               >
-                {{ formatSize(file.size) }}
-              </span>
-            </div>
-          </div>
+                <td class="px-4 py-3 text-gray-400">{{ index + 1 }}</td>
+                <td class="text-primary max-w-[300px] truncate px-4 py-3 font-medium">{{ file.name }}</td>
+                <td class="text-secondary px-4 py-3">{{ file.type?.split('/')[1] || '-' }}</td>
+                <td class="px-4 py-3 text-right font-mono text-orange-600">{{ formatSize(file.size) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-else class="text-secondary flex h-20 items-center justify-center text-sm">
+          {{ t('stats.noData') }}
         </div>
       </div>
     </div>
@@ -220,7 +241,7 @@ import { ref, onMounted, onActivated, nextTick, onUnmounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
-import { formatSize, getCssVar, getChartColors, formatRelativeTime } from '@/utils/formatters';
+import { formatSize, getCssVar, getChartColors } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import Chart from 'chart.js/auto';
 import 'chartjs-adapter-date-fns';
@@ -246,11 +267,6 @@ const formatNumber = (num) => {
   return num?.toString() || '0';
 };
 
-// 格式化相对时间 (已迁移至 utils/formatters，这里保持调用)
-const formatRelativeDate = (timestamp) => {
-  return formatRelativeTime(timestamp, t);
-};
-
 const createCharts = () => {
   if (!stats.value) return;
 
@@ -258,15 +274,15 @@ const createCharts = () => {
   if (trendChartInstance) trendChartInstance.destroy();
   if (typeChartInstance) typeChartInstance.destroy();
 
-  // New Trend Chart
+  // New Trend Chart (访问趋势)
   if (trendChartRef.value) {
     const ctx = trendChartRef.value.getContext('2d');
-    const dailyData = stats.value.trends.daily;
+    const dailyData = stats.value.traffic.daily;
 
     // Gradient
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(64, 158, 255, 0.4)');
-    gradient.addColorStop(1, 'rgba(64, 158, 255, 0)');
+    gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
+    gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
 
     trendChartInstance = new Chart(ctx, {
       type: 'line',
@@ -274,9 +290,9 @@ const createCharts = () => {
         labels: Object.keys(dailyData),
         datasets: [
           {
-            label: t('stats.dailyUpload'),
+            label: t('stats.monthVisits'),
             data: Object.values(dailyData),
-            borderColor: getCssVar('--color-chart-1'),
+            borderColor: getCssVar('--color-chart-1') || '#6366f1',
             backgroundColor: gradient,
             borderWidth: 3,
             fill: true,
@@ -294,7 +310,7 @@ const createCharts = () => {
           x: { grid: { display: false }, ticks: { maxTicksLimit: 7 } },
           y: {
             border: { dash: [4, 4] },
-            grid: { color: getCssVar('--color-chart-grid') },
+            grid: { color: getCssVar('--color-chart-grid') || '#e5e7eb' },
             beginAtZero: true,
           },
         },
@@ -306,7 +322,7 @@ const createCharts = () => {
   // New Type Chart
   if (typeChartRef.value) {
     const ctx = typeChartRef.value.getContext('2d');
-    const typeData = stats.value.fileTypes.top.slice(0, 6);
+    const typeData = stats.value.health.fileTypes.slice(0, 6);
 
     typeChartInstance = new Chart(ctx, {
       type: 'doughnut',
@@ -340,7 +356,9 @@ const loadStats = async () => {
     const response = await authFetch(API.STATS);
     if (!response.ok) throw new Error('API Request Failed');
 
-    stats.value = await response.json();
+    const json = await response.json();
+    // API 返回 { success: true, data: {...} } 格式
+    stats.value = json.data || json;
     await nextTick();
     createCharts();
     addToast({ message: t('stats.refreshSuccess'), type: 'success' });

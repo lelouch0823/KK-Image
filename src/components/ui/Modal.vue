@@ -24,6 +24,9 @@
         >
           <div
             v-if="modelValue"
+            role="dialog"
+            aria-modal="true"
+            :aria-labelledby="title ? modalTitleId : undefined"
             class="animate-in flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl shadow-2xl border border-white/20 ring-1 ring-black/5"
             :class="sizeClass"
             style="background-color: var(--color-modal-bg)"
@@ -34,7 +37,7 @@
               class="flex items-center justify-between border-b border-[var(--border-color)] px-6 py-4"
             >
               <slot name="header">
-                <h3 class="text-primary text-lg font-semibold">{{ title }}</h3>
+                <h3 :id="modalTitleId" class="text-primary text-lg font-semibold">{{ title }}</h3>
               </slot>
               <button
                 v-if="closable"
@@ -72,7 +75,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { useModalStack } from '@/composables/useModalStack';
 
 const props = defineProps({
@@ -114,6 +117,7 @@ const emit = defineEmits(['update:modelValue', 'close']);
 const { generateModalId, register, unregister, shouldShowBlur, isTopModal, getZIndex } =
   useModalStack();
 const modalId = ref(generateModalId());
+const modalTitleId = computed(() => `modal-title-${modalId.value}`);
 
 // 动态 z-index 样式
 // SOTA: 使用 inline style 而不是 Tailwind class，因为动态数值类名在生产构建中无法被正确提取

@@ -1,7 +1,13 @@
 /**
  * 通用格式化工具函数
  * @module utils/formatters
+ * @module utils/formatters
  */
+
+
+const DEFAULT_MESSAGES = {
+  FOREVER: '永久有效',
+};
 
 /**
  * 格式化文件大小
@@ -60,7 +66,10 @@ export const formatDate = (timestamp, options = {}) => {
  * @returns {string} 格式化后的过期时间描述
  */
 export const formatExpiry = (ts, t) => {
-  if (!t) return ts ? new Date(Number(ts)).toLocaleDateString() : '永久有效';
+  if (!t) {
+    if (!ts) return DEFAULT_MESSAGES.FOREVER;
+    return new Date(Number(ts)).toLocaleDateString();
+  }
 
   if (!ts) return t('formatters.forever');
   const date = new Date(Number(ts));
@@ -112,17 +121,20 @@ export const formatRelativeTime = (timestamp, t) => {
   const now = new Date();
   const diff = now - date;
 
+  // 必须提供 t 函数，否则返回空字符串 (SOTA: 避免硬编码)
+  if (!t) return '';
+
   // 一分钟内
-  if (diff < 60000) return t ? t('common.justNow') : '刚刚';
+  if (diff < 60000) return t('common.justNow');
   // 一小时内
   if (diff < 3600000) {
     const count = Math.floor(diff / 60000);
-    return t ? t('common.minutesAgo', { count }) : `${count}分钟前`;
+    return t('common.minutesAgo', { count });
   }
   // 一天内
   if (diff < 86400000) {
     const count = Math.floor(diff / 3600000);
-    return t ? t('common.hoursAgo', { count }) : `${count}小时前`;
+    return t('common.hoursAgo', { count });
   }
 
   // 超过一天，显示日期 (MM/DD)
@@ -206,17 +218,25 @@ export const getChartBgColor = (index = 1, alpha = 0.1) => {
 /**
  * 格式化日期+星期
  * @param {string} dateString YYYY-MM-DD
+ * @param {Function} t i18n translate function
  * @returns {string} YYYY-MM-DD (周X)
  */
-export function formatDateWithWeekday(dateString) {
+export function formatDateWithWeekday(dateString, t) {
   if (!dateString) return '-';
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return dateString;
 
-  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-  const day = weekdays[date.getDay()];
+  let dayStr;
+  if (t) {
+    // SOTA: Use i18n with dot notation for array access
+    dayStr = t(`common.weekdays.${date.getDay()}`);
+  } else {
+    // Fallback if t not provided
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    dayStr = weekdays[date.getDay()];
+  }
 
-  return `${dateString} (${day})`;
+  return `${dateString} (${dayStr})`;
 }
 
 /**

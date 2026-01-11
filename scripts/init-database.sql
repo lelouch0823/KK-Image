@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS files (
     width INTEGER,                          -- 图片宽度 (像素)
     height INTEGER,                         -- 图片高度 (像素)
     blurhash TEXT,                          -- BlurHash 占位符字符串
+    status TEXT DEFAULT 'normal' CHECK(status IN ('normal', 'blocked', 'whitelisted', 'liked')), -- 文件状态
     created_at INTEGER NOT NULL,            -- 上传时间
     updated_at INTEGER,                     -- 更新时间
     FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE
@@ -68,6 +69,7 @@ CREATE INDEX IF NOT EXISTS idx_files_created ON files(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_files_content_hash ON files(content_hash);
 CREATE INDEX IF NOT EXISTS idx_files_original_hash ON files(original_hash);
 CREATE INDEX IF NOT EXISTS idx_files_created_by ON files(created_by);
+CREATE INDEX IF NOT EXISTS idx_files_status ON files(status);
 
 -- ===========================================================================
 -- 1.5 虚拟相册 (Albums - Virtual Collections)
@@ -191,6 +193,19 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 -- ===========================================================================
 -- 4. 客户关系管理 (CRM)
 -- ===========================================================================
+
+-- API Keys (Service-to-Service or Developer Access)
+CREATE TABLE IF NOT EXISTS api_keys (
+    id TEXT PRIMARY KEY,
+    key_value TEXT NOT NULL UNIQUE,         -- API Key Value (Renamed from 'key')
+    name TEXT,                              -- 密钥名称/描述
+    permissions TEXT,                       -- 权限列表 (JSON)
+    created_at INTEGER NOT NULL,            -- 创建时间
+    expires_at INTEGER,                     -- 过期时间 (NULL 表示永不过期)
+    disabled INTEGER DEFAULT 0              -- 是否禁用
+);
+
+CREATE INDEX IF NOT EXISTS idx_api_keys_value ON api_keys(key_value);
 
 -- 客户表
 CREATE TABLE IF NOT EXISTS customers (

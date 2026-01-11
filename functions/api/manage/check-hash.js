@@ -5,6 +5,7 @@
 
 import { success, error } from '../utils/response.js';
 import { getBlobByHash } from '../utils/blob-utils.js';
+import { MSG } from '../utils/messages.js';
 
 export async function onRequestGet(context) {
   const { env, request } = context;
@@ -43,6 +44,6 @@ export async function onRequestGet(context) {
     }
   } catch (err) {
     console.error('Check hash error:', err);
-    return error(`检查失败: ${err.message}`, 500);
+    return error(MSG.FILE.CHECK_FAILED.replace('{message}', err.message), 500);
   }
 }

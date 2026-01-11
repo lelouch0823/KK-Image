@@ -8,8 +8,8 @@ import os
 import re
 from pathlib import Path
 
-# 项目根目录
-PROJECT_ROOT = "/Users/kayla/Downloads/Code/KK-Image"
+# 项目根目录 (动态获取，避免硬编码)
+PROJECT_ROOT = str(Path(__file__).parent.parent)
 
 # 要扫描的目录
 SCAN_DIRS = ["src", "functions"]
