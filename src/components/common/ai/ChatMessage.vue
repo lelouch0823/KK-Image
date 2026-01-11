@@ -50,7 +50,9 @@
 <script setup>
 import { useI18n } from '@/composables/useI18n';
 
-const props = defineProps({
+const { t } = useI18n();
+
+defineProps({
   message: {
     type: Object,
     required: true,
@@ -65,8 +67,6 @@ const props = defineProps({
     default: '',
   }
 });
-
-const { t } = useI18n();
 
 const getToolName = (status) => {
   if (!status) return '';
