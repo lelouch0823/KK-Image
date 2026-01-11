@@ -67,7 +67,7 @@
               <div
                 v-if="msg.role === 'assistant'"
                 class="markdown-body text-sm leading-relaxed"
-                v-html="renderMarkdown(msg.content)"
+                v-html="msg.html"
               ></div>
               <p v-else class="leading-relaxed whitespace-pre-wrap">{{ msg.content }}</p>
             </div>
@@ -140,7 +140,11 @@ const userInput = ref('');
 const messageContainer = ref(null);
 
 const messages = ref([
-  { role: 'assistant', content: t('ai.welcome') }
+  { 
+    role: 'assistant', 
+    content: t('ai.welcome'),
+    html: renderMarkdown(t('ai.welcome'))
+  }
 ]);
 
 // Auto scroll when opened
@@ -157,18 +161,22 @@ const scrollToBottom = async () => {
   }
 };
 
-const renderMarkdown = (content) => {
+function renderMarkdown(content) {
   if (!content) return '';
   // 预处理：确保表格前后有空行
   const processed = content.replace(/([^\n])\n(\|)/g, '$1\n\n$2');
   const html = marked.parse(processed);
   return DOMPurify.sanitize(html);
-};
+}
 
 const clearHistory = () => {
   if (confirm(t('ai.clearConfirm'))) {
     messages.value = [
-      { role: 'assistant', content: t('ai.welcome') }
+      { 
+        role: 'assistant', 
+        content: t('ai.welcome'),
+        html: renderMarkdown(t('ai.welcome'))
+      }
     ];
   }
 };
@@ -177,7 +185,8 @@ const sendMessage = async () => {
   if (!userInput.value.trim() || loading.value) return;
 
   const userQuery = userInput.value;
-  messages.value.push({ role: 'user', content: userQuery });
+  // User response - no markdown needed usually, but consistent structure helps
+  messages.value.push({ role: 'user', content: userQuery, html: '' });
   userInput.value = '';
   loading.value = true;
   await scrollToBottom();
@@ -187,13 +196,19 @@ const sendMessage = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        messages: messages.value.slice(-6) // 只带最近几轮对话
+        // Only send role/content to API, not the extra html property
+        messages: messages.value.slice(-6).map(({ role, content }) => ({ role, content }))
       }),
     });
 
     const result = await res.json();
     if (result.success) {
-      messages.value.push(result.data.message);
+      const aiContent = result.data.message.content;
+      messages.value.push({
+        role: 'assistant',
+        content: aiContent,
+        html: renderMarkdown(aiContent)
+      });
     } else {
       addToast({ message: result.message || t('ai.error'), type: 'error' });
     }

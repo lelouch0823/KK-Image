@@ -70,6 +70,7 @@ CREATE INDEX IF NOT EXISTS idx_files_content_hash ON files(content_hash);
 CREATE INDEX IF NOT EXISTS idx_files_original_hash ON files(original_hash);
 CREATE INDEX IF NOT EXISTS idx_files_created_by ON files(created_by);
 CREATE INDEX IF NOT EXISTS idx_files_status ON files(status);
+CREATE INDEX IF NOT EXISTS idx_files_mime_type ON files(mime_type);
 
 -- ===========================================================================
 -- 1.5 虚拟相册 (Albums - Virtual Collections)
@@ -226,6 +227,7 @@ CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name);
 CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
 CREATE INDEX IF NOT EXISTS idx_customers_company ON customers(company);
 CREATE INDEX IF NOT EXISTS idx_customers_created_by ON customers(created_by);
+CREATE INDEX IF NOT EXISTS idx_customers_created_at ON customers(created_at DESC);
 
 -- ===========================================================================
 -- 5. 订单系统 (Order System)
