@@ -32,9 +32,8 @@ export function useAIStream() {
      * @param {Object} options 
      * @param {Array} options.messages - 历史消息
      * @param {Object} options.context - 环境上下文
-     * @param {Function} options.onChart - 图表数据回调
      */
-    const stream = async ({ messages, context, onChart }) => {
+    const stream = async ({ messages, context }) => {
         isLoading.value = true;
         isStreaming.value = false;
         toolStatus.value = '';
@@ -67,9 +66,7 @@ export function useAIStream() {
                     if (event.type === 'text_delta' && event.data?.content) {
                         pushToTypewriter(event.data.content);
                     } else if (event.type === 'content_block') {
-                        if (event.data?.type === 'chart' && event.data?.data) {
-                            onChart?.(event.data.data);
-                        } else if (event.data?.type === 'table' && event.data?.content) {
+                        if (event.data?.type === 'table' && event.data?.content) {
                             // 表格内容（工具调用结果）直接推送
                             pushToTypewriter(event.data.content);
                         } else if (event.data?.content) {
@@ -82,7 +79,7 @@ export function useAIStream() {
                     } else if (event.type === 'model_switch') {
                         // 模型切换通知
                         addToast({
-                            message: t('ai.modelSwitch') || '模型已切换',
+                            message: t('ai.modelSwitch'),
                             type: 'info'
                         });
                     } else if (event.type === 'error') {
