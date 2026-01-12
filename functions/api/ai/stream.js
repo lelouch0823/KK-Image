@@ -5,8 +5,7 @@
  * 返回 SSE 格式的流式响应，支持工具调用和增量文本输出。
  * 
  * 架构说明：
- * - 流式传输期间：只发送纯文本内容（实时打字机效果）
- * - 流结束时：解析并发送图表数据（避免重复内容）
+ * - 流式传输期间：发送纯文本内容（实时打字机效果）
  * - 工具调用：执行后重新调用 AI 获取最终解读
  */
 /* global ReadableStream */
@@ -121,7 +120,7 @@ async function processStream(aiStream, sendSSE) {
     let fullContent = '';
     let toolCalls = [];
 
-    // 用于检测图表开始标记的简单状态
+    // 暂存文本用于检测工具调用标记
     let pendingText = '';
 
     while (true) {
@@ -147,8 +146,7 @@ async function processStream(aiStream, sendSSE) {
                     fullContent += delta.content;
                     pendingText += delta.content;
 
-                    // 检查是否有 :::chart 标记开始
-                    // 如果有，暂停发送直到图表完成或确认不是图表
+                    // 检查是否有特殊标记（如工具调用 <tools）
                     const safeText = getSafeTextForStreaming(pendingText);
                     if (safeText) {
                         sendSSE('text_delta', { content: safeText });
@@ -299,8 +297,8 @@ async function handleNonStreaming(messages, executeTool, sendSSE, env) {
 
     // 发送内容（分块模拟流式）
     const content = choice.message.content || '';
-    const chunkSize = 20;
-    for (let i = 0; i < content.length; i += chunkSize) {
-        sendSSE('text_delta', { content: content.slice(i, i + chunkSize) });
+    const CHUNK_SIZE = 20;
+    for (let i = 0; i < content.length; i += CHUNK_SIZE) {
+        sendSSE('text_delta', { content: content.slice(i, i + CHUNK_SIZE) });
     }
 }

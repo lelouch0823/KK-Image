@@ -208,6 +208,7 @@ export const MSG = {
     },
     MODEL_SWITCH: '当前模型额度已达上限，已自动切换至备用模型',
     ALL_MODELS_EXHAUSTED: '所有可用模型额度已耗尽，请稍后重试',
+    CONFIG_MISSING: 'AI 配置缺失：请检查环境变量 AI_API_KEY, AI_API_URL 或 AI_MODELS',
   },
 
   // 导出相关标签

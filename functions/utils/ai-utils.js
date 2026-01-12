@@ -1,3 +1,5 @@
+import { MSG } from '../api/utils/messages.js';
+
 /**
  * 模型冷却池 (In-Memory Map)
  * Key: Model Name
@@ -66,6 +68,80 @@ export function getRateLimitStatus(response) {
 }
 
 /**
+ * 通用 AI 请求执行器 - 处理模型选择、限流和重试逻辑
+ * @param {Object} env - 环境变量
+ * @param {number} modelIndex - 当前尝试的模型索引
+ * @param {Function} requestFn - 请求执行函数 (model, apiKey, apiUrl) => Promise<Response>
+ * @returns {Promise<{ response: Response, model: string, switched: boolean, rateLimit: Object }>}
+ */
+async function executeAIRequest(env, modelIndex, requestFn) {
+    const { AI_API_KEY, AI_API_URL, AI_MODELS, AI_MODEL, AI_MODEL_SWITCH_THRESHOLD } = env;
+    const threshold = parseInt(AI_MODEL_SWITCH_THRESHOLD || '5');
+
+    // 解析模型列表
+    const models = parseModels(AI_MODELS);
+    if (models.length === 0 && AI_MODEL) {
+        models.push(AI_MODEL);
+    }
+
+    if (!AI_API_KEY || !AI_API_URL || models.length === 0) {
+        throw new Error(MSG.AI.CONFIG_MISSING);
+    }
+
+    // 智能模型选择
+    let activeIndex = modelIndex;
+    if (!isModelAvailable(models[activeIndex])) {
+        const nextIndex = getNextAvailableModelIndex(models, activeIndex);
+        if (nextIndex !== -1) {
+            activeIndex = nextIndex;
+        }
+        // 如果所有都不可用，只能尝试当前的
+    }
+    const currentModel = models[activeIndex];
+    const cleanApiUrl = AI_API_URL.replace(/\/+$/, '');
+
+    // 执行请求
+    const response = await requestFn(currentModel, AI_API_KEY, cleanApiUrl);
+
+    // 检查限流状态
+    const rateLimit = getRateLimitStatus(response);
+
+    // 额度不足预警切换
+    if (rateLimit.modelRemaining < threshold) {
+        markModelRateLimited(currentModel);
+        const nextIndex = getNextAvailableModelIndex(models, activeIndex);
+        if (nextIndex !== -1) {
+            console.log(`[AI] Model ${currentModel} low quota (${rateLimit.modelRemaining}), switching...`);
+            return executeAIRequest(env, nextIndex, requestFn);
+        }
+    }
+
+    // 处理 API 错误
+    if (!response.ok) {
+        // 429 限流
+        if (response.status === 429) {
+            markModelRateLimited(currentModel);
+            const nextIndex = getNextAvailableModelIndex(models, activeIndex);
+            if (nextIndex !== -1) {
+                console.log(`[AI] Model ${currentModel} 429 rate limited, switching...`);
+                return executeAIRequest(env, nextIndex, requestFn);
+            }
+        }
+
+        // 其他错误抛出
+        const errorBody = await response.text();
+        throw new Error(`AI API error (${response.status}): ${errorBody}`);
+    }
+
+    return {
+        response,
+        model: currentModel,
+        switched: activeIndex > 0, // 只要不是 0 号位，就算 switched
+        rateLimit
+    };
+}
+
+/**
  * 调用外部 AI API (非流式) - 支持模型切换
  * @param {Array} messages - 消息数组
  * @param {Array} tools - 工具定义数组
@@ -74,84 +150,29 @@ export function getRateLimitStatus(response) {
  * @returns {Promise<{ response: Object, model: string, switched: boolean }>}
  */
 export async function callAI(messages, tools, env, modelIndex = 0) {
-    const { AI_API_KEY, AI_API_URL, AI_MODELS, AI_MODEL, AI_MODEL_SWITCH_THRESHOLD } = env;
-    const threshold = parseInt(AI_MODEL_SWITCH_THRESHOLD || '5');
-
-    // 兼容旧配置：如果没有 AI_MODELS，使用单个 AI_MODEL
-    const models = parseModels(AI_MODELS);
-    if (models.length === 0 && AI_MODEL) {
-        models.push(AI_MODEL);
-    }
-
-    if (!AI_API_KEY || !AI_API_URL || models.length === 0) {
-        throw new Error('AI configuration missing: AI_API_KEY, AI_API_URL, or AI_MODELS');
-    }
-
-    // 确保从当前索引开始找到第一个可用的模型
-    let activeIndex = modelIndex;
-    if (!isModelAvailable(models[activeIndex])) {
-        const nextIndex = getNextAvailableModelIndex(models, activeIndex);
-        if (nextIndex !== -1) {
-            activeIndex = nextIndex;
-        } else {
-            // 如果所有后续模型都挂了，但当前索引没挂（不可能，因为 checked），
-            // 或者所有都挂了，只能硬着头皮试当前这个（或者抛错）
-            // 这里选择硬着头皮试，或者直接抛出 "所有模型繁忙"
-            // 简单起见，如果找不到更优的，就试当前的 (哪怕在 CD 中，作为最后挣扎)
-        }
-    }
-    const currentModel = models[activeIndex];
-
-    const response = await fetch(`${AI_API_URL.replace(/\/+$/, '')}/chat/completions`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${AI_API_KEY}`
-        },
-        body: JSON.stringify({
-            model: currentModel,
-            messages,
-            tools: tools.length > 0 ? tools : undefined,
-            tool_choice: tools.length > 0 ? 'auto' : undefined
-        })
+    const result = await executeAIRequest(env, modelIndex, async (model, apiKey, apiUrl) => {
+        return fetch(`${apiUrl}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model,
+                messages,
+                tools: tools.length > 0 ? tools : undefined,
+                tool_choice: tools.length > 0 ? 'auto' : undefined
+            })
+        });
     });
 
-    // 检查限流状态
-    const rateLimit = getRateLimitStatus(response);
-
-    // 如果当前模型额度不足
-    if (rateLimit.modelRemaining < threshold) {
-        markModelRateLimited(currentModel);
-
-        const nextIndex = getNextAvailableModelIndex(models, activeIndex);
-        if (nextIndex !== -1) {
-            console.log(`[AI] Model ${currentModel} rate limited (${rateLimit.modelRemaining} remaining), switching to next model...`);
-            return callAI(messages, tools, env, nextIndex);
-        }
-    }
-
-    if (!response.ok) {
-        // 如果是 429 限流错误
-        if (response.status === 429) {
-            markModelRateLimited(currentModel);
-
-            const nextIndex = getNextAvailableModelIndex(models, activeIndex);
-            if (nextIndex !== -1) {
-                console.log(`[AI] Model ${currentModel} returned 429, switching to next model...`);
-                return callAI(messages, tools, env, nextIndex);
-            }
-        }
-        const errorBody = await response.text();
-        throw new Error(`AI API error (${response.status}): ${errorBody}`);
-    }
-
-    const data = await response.json();
+    const data = await result.response.json();
     return {
         ...data,
         _meta: {
-            model: currentModel,
-            switched: activeIndex > 0, // 只要不是初始意图的 0 号位，都算 switched
-            rateLimit
+            model: result.model,
+            switched: result.switched,
+            rateLimit: result.rateLimit
         }
     };
 }
@@ -165,80 +186,28 @@ export async function callAI(messages, tools, env, modelIndex = 0) {
  * @returns {Promise<{ body: ReadableStream, model: string, switched: boolean }>}
  */
 export async function callAIStream(messages, tools, env, modelIndex = 0) {
-    const { AI_API_KEY, AI_API_URL, AI_MODELS, AI_MODEL, AI_MODEL_SWITCH_THRESHOLD } = env;
-    const threshold = parseInt(AI_MODEL_SWITCH_THRESHOLD || '5');
-
-    // 兼容旧配置
-    const models = parseModels(AI_MODELS);
-    if (models.length === 0 && AI_MODEL) {
-        models.push(AI_MODEL);
-    }
-
-    if (!AI_API_KEY || !AI_API_URL || models.length === 0) {
-        throw new Error('AI configuration missing');
-    }
-
-    // 确保从当前索引开始找到第一个可用的模型
-    let activeIndex = modelIndex;
-    // 如果当前指定的模型在冷却中，寻找下一个
-    if (!isModelAvailable(models[activeIndex])) {
-        // console.log(`[AI] Model ${models[activeIndex]} is in cooldown, skipping...`);
-        const nextIndex = getNextAvailableModelIndex(models, activeIndex);
-        if (nextIndex !== -1) {
-            activeIndex = nextIndex;
-        }
-    }
-    const currentModel = models[activeIndex];
-
-    const response = await fetch(`${AI_API_URL.replace(/\/+$/, '')}/chat/completions`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${AI_API_KEY}`
-        },
-        body: JSON.stringify({
-            model: currentModel,
-            messages,
-            tools: tools.length > 0 ? tools : undefined,
-            tool_choice: tools.length > 0 ? 'auto' : undefined,
-            stream: true
-        })
+    const result = await executeAIRequest(env, modelIndex, async (model, apiKey, apiUrl) => {
+        return fetch(`${apiUrl}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model,
+                messages,
+                tools: tools.length > 0 ? tools : undefined,
+                tool_choice: tools.length > 0 ? 'auto' : undefined,
+                stream: true
+            })
+        });
     });
 
-    // 检查限流状态
-    const rateLimit = getRateLimitStatus(response);
-
-    // 如果当前模型额度不足
-    if (rateLimit.modelRemaining < threshold) {
-        markModelRateLimited(currentModel);
-
-        const nextIndex = getNextAvailableModelIndex(models, activeIndex);
-        if (nextIndex !== -1) {
-            console.log(`[AI] Model ${currentModel} rate limited (${rateLimit.modelRemaining} remaining), switching to next model...`);
-            return callAIStream(messages, tools, env, nextIndex);
-        }
-    }
-
-    if (!response.ok) {
-        // 如果是 429 限流错误
-        if (response.status === 429) {
-            markModelRateLimited(currentModel);
-
-            const nextIndex = getNextAvailableModelIndex(models, activeIndex);
-            if (nextIndex !== -1) {
-                console.log(`[AI] Model ${currentModel} returned 429, switching to next model...`);
-                return callAIStream(messages, tools, env, nextIndex);
-            }
-        }
-        const errorBody = await response.text();
-        throw new Error(`AI API error (${response.status}): ${errorBody}`);
-    }
-
     return {
-        body: response.body,
-        model: currentModel,
-        switched: activeIndex > 0,
-        rateLimit
+        body: result.response.body,
+        model: result.model,
+        switched: result.switched,
+        rateLimit: result.rateLimit
     };
 }
 
