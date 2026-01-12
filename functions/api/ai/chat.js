@@ -9,7 +9,7 @@ import { authenticateAdmin } from '../utils/auth.js';
 import { OrderStatsRepository } from '../../repositories/OrderStatsRepository.js';
 import { SystemStatsRepository } from '../../repositories/SystemStatsRepository.js';
 import { callAI, SYSTEM_PROMPT } from '../../utils/ai-utils.js';
-import { DateUtils } from '../utils/date.js';
+import { executeAITool } from '../../utils/ai-tool-executor.js';
 
 export async function onRequestPost(context) {
     const { env, request } = context;
@@ -45,31 +45,7 @@ export async function onRequestPost(context) {
                 const args = JSON.parse(toolCall.function.arguments);
                 let result = null;
 
-                // 订单相关
-                if (functionName === "getOrderStats") {
-                    const todayStart = DateUtils.getChinaDayStart();
-                    const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000;
-                    const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000;
-                    result = await orderStatsRepo.getAdminStats(todayStart, weekStart, monthStart);
-                } else if (functionName === "getRecentPendingOrders") {
-                    result = await orderStatsRepo.getRecentPending(args.limit || 5);
-                }
-                // 客户统计
-                else if (functionName === "getCustomerStats") {
-                    result = await systemStatsRepo.getCustomerStats();
-                }
-                // 共享空间统计
-                else if (functionName === "getSpaceStats") {
-                    result = await systemStatsRepo.getSpaceStats();
-                }
-                // 销售人员统计
-                else if (functionName === "getSalespersonStats") {
-                    result = await systemStatsRepo.getSalespersonStats();
-                }
-                // 文件存储统计
-                else if (functionName === "getFileStats") {
-                    result = await systemStatsRepo.getFileStats();
-                }
+                result = await executeAITool(functionName, args, { orderStatsRepo, systemStatsRepo });
 
                 messages.push({
                     tool_call_id: toolCall.id,

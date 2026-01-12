@@ -16,7 +16,7 @@ import { authenticateAdmin } from '../utils/auth.js';
 import { OrderStatsRepository } from '../../repositories/OrderStatsRepository.js';
 import { SystemStatsRepository } from '../../repositories/SystemStatsRepository.js';
 import { callAIStream, callAI, parseSSEChunk, SYSTEM_PROMPT } from '../../utils/ai-utils.js';
-import { DateUtils } from '../utils/date.js';
+import { executeAITool } from '../../utils/ai-tool-executor.js';
 import { extractToolCallsFromText, createSSESender } from '../../utils/ai-stream-helpers.js';
 
 export async function onRequestPost(context) {
@@ -34,26 +34,7 @@ export async function onRequestPost(context) {
 
         // 3. 工具执行函数
         const executeTool = async (name, args) => {
-            const todayStart = DateUtils.getChinaDayStart();
-            const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000;
-            const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000;
-
-            switch (name) {
-                case "getOrderStats":
-                    return await orderStatsRepo.getAdminStats(todayStart, weekStart, monthStart);
-                case "getRecentPendingOrders":
-                    return await orderStatsRepo.getRecentPending(args.limit || 5);
-                case "getCustomerStats":
-                    return await systemStatsRepo.getCustomerStats();
-                case "getSpaceStats":
-                    return await systemStatsRepo.getSpaceStats();
-                case "getSalespersonStats":
-                    return await systemStatsRepo.getSalespersonStats();
-                case "getFileStats":
-                    return await systemStatsRepo.getFileStats();
-                default:
-                    return null;
-            }
+            return await executeAITool(name, args, { orderStatsRepo, systemStatsRepo });
         };
 
         // 4. 创建 SSE 流
