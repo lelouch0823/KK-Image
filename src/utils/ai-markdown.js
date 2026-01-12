@@ -60,6 +60,10 @@ export function renderMarkdown(content) {
     processed = processed.replace(/(：)(\d+\.\s)/g, '$1\n\n$2');
     processed = processed.replace(/(。)(\d+\.\s)/g, '$1\n\n$2');
 
+    // 7. 修复连续的 key：value 对 (例如 "姓名：张三所属门店：北京" -> "姓名：张三\n所属门店：北京")
+    // 匹配: 非换行符 + 汉字/字母/数字 + 中文冒号
+    processed = processed.replace(/([^\n：])([一-龥a-zA-Z0-9]+：)/g, '$1\n$2');
+
     const html = marked.parse(processed);
     return DOMPurify.sanitize(html);
 }

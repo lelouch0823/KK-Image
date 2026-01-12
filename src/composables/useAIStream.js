@@ -10,6 +10,7 @@ import { useI18n } from '@/composables/useI18n';
  * SOTA AI 流式数据处理 Composable
  * =================================
  * 封装 SSE 连接、解析、打字机队列以及工具调用状态。
+ * 支持请求取消 (AbortController)。
  */
 export function useAIStream() {
     const { t } = useI18n();
@@ -18,6 +19,9 @@ export function useAIStream() {
     const isLoading = ref(false);
     const isStreaming = ref(false);
     const toolStatus = ref('');
+
+    // 请求取消控制器
+    let abortController = null;
 
     const {
         fullContent,
@@ -34,6 +38,12 @@ export function useAIStream() {
      * @param {Object} options.context - 环境上下文
      */
     const stream = async ({ messages, context }) => {
+        // 取消之前的请求
+        if (abortController) {
+            abortController.abort();
+        }
+        abortController = new AbortController();
+
         isLoading.value = true;
         isStreaming.value = false;
         toolStatus.value = '';
@@ -44,6 +54,7 @@ export function useAIStream() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ messages, context }),
+                signal: abortController.signal
             });
 
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -88,6 +99,11 @@ export function useAIStream() {
                 }
             }
         } catch (err) {
+            // 忽略用户主动取消的请求
+            if (err.name === 'AbortError') {
+                // 用户主动取消，静默处理
+                return;
+            }
             console.error('AI Stream Error:', err);
             addToast({ message: t('ai.networkError'), type: 'error' });
             throw err;
@@ -95,7 +111,21 @@ export function useAIStream() {
             isLoading.value = false;
             isStreaming.value = false;
             toolStatus.value = '';
+            abortController = null;
         }
+    };
+
+    /**
+     * 取消当前进行中的请求
+     */
+    const cancel = () => {
+        if (abortController) {
+            abortController.abort();
+            abortController = null;
+        }
+        isLoading.value = false;
+        isStreaming.value = false;
+        toolStatus.value = '';
     };
 
     const isThinking = computed(() => {
@@ -106,6 +136,7 @@ export function useAIStream() {
 
     return {
         stream,
+        cancel,
         fullContent,
         displayedContent,
         isTyping,

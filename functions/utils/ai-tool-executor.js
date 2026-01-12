@@ -14,35 +14,40 @@ import { DateUtils } from '../api/utils/date.js';
 export async function executeAITool(name, args, repos) {
     const { orderStatsRepo, systemStatsRepo } = repos;
 
-    switch (name) {
-        // --- 订单统计 ---
-        case 'getOrderStats': {
-            const todayStart = DateUtils.getChinaDayStart();
-            const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000;
-            const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000;
-            return await orderStatsRepo.getAdminStats(todayStart, weekStart, monthStart);
+    try {
+        switch (name) {
+            // --- 订单统计 ---
+            case 'getOrderStats': {
+                const todayStart = DateUtils.getChinaDayStart();
+                const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000;
+                const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000;
+                return await orderStatsRepo.getAdminStats(todayStart, weekStart, monthStart);
+            }
+            case 'getRecentPendingOrders':
+                return await orderStatsRepo.getRecentPending(args.limit || 5);
+
+            // --- 客户统计 ---
+            case 'getCustomerStats':
+                return await systemStatsRepo.getCustomerStats();
+
+            // --- 共享空间 ---
+            case 'getSpaceStats':
+                return await systemStatsRepo.getSpaceStats();
+
+            // --- 销售人员 ---
+            case 'getSalespersonStats':
+                return await systemStatsRepo.getSalespersonStats();
+
+            // --- 文件存储 ---
+            case 'getFileStats':
+                return await systemStatsRepo.getFileStats();
+
+            default:
+                console.warn(`[AI Tool] Unknown tool: ${name}`);
+                return { error: true, message: `未知工具: ${name}` };
         }
-        case 'getRecentPendingOrders':
-            return await orderStatsRepo.getRecentPending(args.limit || 5);
-
-        // --- 客户统计 ---
-        case 'getCustomerStats':
-            return await systemStatsRepo.getCustomerStats();
-
-        // --- 共享空间 ---
-        case 'getSpaceStats':
-            return await systemStatsRepo.getSpaceStats();
-
-        // --- 销售人员 ---
-        case 'getSalespersonStats':
-            return await systemStatsRepo.getSalespersonStats();
-
-        // --- 文件存储 ---
-        case 'getFileStats':
-            return await systemStatsRepo.getFileStats();
-
-        default:
-            console.warn(`[AI Tool] Unknown tool: ${name}`);
-            return `Error: Unknown tool '${name}'`;
+    } catch (err) {
+        console.error(`[AI Tool] Error executing ${name}:`, err.message);
+        return { error: true, message: `工具执行失败: ${err.message}` };
     }
 }
