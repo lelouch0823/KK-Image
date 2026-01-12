@@ -1,7 +1,20 @@
 -- ===========================================================================
 -- kk-life 数据库初始化脚本
--- SOTA 全量架构
--- 创建时间: 2026-01-01
+-- SOTA 全量架构 (Cloudflare D1 优化版)
+-- 版本: 2.1.0
+-- 更新时间: 2026-01-12
+-- ===========================================================================
+-- 
+-- 使用说明:
+--   1. 本文件用于全新部署，包含完整的表结构和索引
+--   2. 所有表使用 IF NOT EXISTS，支持幂等执行
+--   3. 增量更新请使用 migrations/ 目录下的迁移文件
+--
+-- D1 兼容性说明:
+--   - 不使用 Generated Columns (D1 不完全支持)
+--   - 使用 INTEGER 存储毫秒级时间戳
+--   - 使用 TEXT 存储 JSON 数据
+--
 -- ===========================================================================
 
 PRAGMA foreign_keys = ON;
@@ -10,7 +23,7 @@ PRAGMA foreign_keys = ON;
 -- 1. 文件系统核心 (File System Core)
 -- ===========================================================================
 
--- 文件夹表 (支持嵌套结构)
+-- 1.1 文件夹表 (支持嵌套结构)
 CREATE TABLE IF NOT EXISTS folders (
     id TEXT PRIMARY KEY,
     parent_id TEXT,                         -- 父文件夹 ID (NULL 表示根目录)
@@ -30,7 +43,7 @@ CREATE INDEX IF NOT EXISTS idx_folders_parent ON folders(parent_id);
 CREATE INDEX IF NOT EXISTS idx_folders_share_token ON folders(share_token);
 CREATE INDEX IF NOT EXISTS idx_folders_created_by ON folders(created_by);
 
--- 二进制大对象表 (CAS - 内容寻址存储)
+-- 1.2 二进制大对象表 (CAS - 内容寻址存储)
 -- 用于文件去重，存储文件的实际内容哈希和元数据
 CREATE TABLE IF NOT EXISTS blobs (
     content_hash TEXT PRIMARY KEY,          -- SHA-256 哈希值 (也是 R2 存储的 Key)
@@ -42,7 +55,7 @@ CREATE TABLE IF NOT EXISTS blobs (
 
 CREATE INDEX IF NOT EXISTS idx_blobs_ref_count ON blobs(ref_count);
 
--- 文件表 (元数据)
+-- 1.3 文件表 (元数据)
 CREATE TABLE IF NOT EXISTS files (
     id TEXT PRIMARY KEY,
     folder_id TEXT,                         -- 所属文件夹 ID
@@ -58,7 +71,7 @@ CREATE TABLE IF NOT EXISTS files (
     width INTEGER,                          -- 图片宽度 (像素)
     height INTEGER,                         -- 图片高度 (像素)
     blurhash TEXT,                          -- BlurHash 占位符字符串
-    status TEXT DEFAULT 'normal' CHECK(status IN ('normal', 'blocked', 'whitelisted', 'liked')), -- 文件状态
+    status TEXT DEFAULT 'normal' CHECK(status IN ('normal', 'blocked', 'whitelisted', 'liked')),
     created_at INTEGER NOT NULL,            -- 上传时间
     updated_at INTEGER,                     -- 更新时间
     FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE
@@ -71,12 +84,13 @@ CREATE INDEX IF NOT EXISTS idx_files_original_hash ON files(original_hash);
 CREATE INDEX IF NOT EXISTS idx_files_created_by ON files(created_by);
 CREATE INDEX IF NOT EXISTS idx_files_status ON files(status);
 CREATE INDEX IF NOT EXISTS idx_files_mime_type ON files(mime_type);
+-- [SOTA] 复合索引：按文件夹+创建时间排序
+CREATE INDEX IF NOT EXISTS idx_files_folder_created ON files(folder_id, created_at DESC);
 
 -- ===========================================================================
--- 1.5 虚拟相册 (Albums - Virtual Collections)
+-- 2. 虚拟相册 (Albums - Virtual Collections)
 -- ===========================================================================
 
--- 相册表
 CREATE TABLE IF NOT EXISTS albums (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,                     -- 相册名称
@@ -89,7 +103,6 @@ CREATE TABLE IF NOT EXISTS albums (
     FOREIGN KEY (cover_file_id) REFERENCES files(id) ON DELETE SET NULL
 );
 
--- 相册-文件关联表 (多对多)
 CREATE TABLE IF NOT EXISTS album_files (
     album_id TEXT NOT NULL,                 -- 相册 ID
     file_id TEXT NOT NULL,                  -- 文件 ID
@@ -104,22 +117,19 @@ CREATE INDEX IF NOT EXISTS idx_album_files_album ON album_files(album_id);
 CREATE INDEX IF NOT EXISTS idx_album_files_file ON album_files(file_id);
 
 -- ===========================================================================
--- 2. 共享空间 (Shared Spaces)
+-- 3. 共享空间 (Shared Spaces)
 -- ===========================================================================
 
--- 空间表
+-- 3.1 空间表
+-- 注意: template_data 中的字段 (material, category, author, tags) 需在应用层提取
+-- D1 对 Generated Columns 支持有限，故在此不使用
 CREATE TABLE IF NOT EXISTS spaces (
     id TEXT PRIMARY KEY,
     parent_id TEXT,                         -- 父空间 ID (支持嵌套)
     name TEXT NOT NULL,                     -- 空间名称
     description TEXT DEFAULT '',            -- 描述
-    template TEXT DEFAULT 'gallery',        -- 展示模板 (e.g., gallery, masonry, list)
+    template TEXT DEFAULT 'gallery',        -- 展示模板 (gallery, masonry, list, product)
     template_data TEXT,                     -- 模板配置数据 (JSON)
-    -- Generated Columns (Hybrid Search Optimization)
-    material TEXT GENERATED ALWAYS AS (json_extract(template_data, '$.material')) VIRTUAL,
-    category TEXT GENERATED ALWAYS AS (json_extract(template_data, '$.category')) VIRTUAL,
-    author TEXT GENERATED ALWAYS AS (json_extract(template_data, '$.author')) VIRTUAL,
-    tags TEXT GENERATED ALWAYS AS (json_extract(template_data, '$.tags')) VIRTUAL,
     cover_file_id TEXT,                     -- 封面图 ID
     share_token TEXT UNIQUE,                -- 分享链接 Token
     is_public INTEGER DEFAULT 0,            -- 是否公开
@@ -138,11 +148,10 @@ CREATE INDEX IF NOT EXISTS idx_spaces_parent ON spaces(parent_id);
 CREATE INDEX IF NOT EXISTS idx_spaces_share_token ON spaces(share_token);
 CREATE INDEX IF NOT EXISTS idx_spaces_template ON spaces(template);
 CREATE INDEX IF NOT EXISTS idx_spaces_cover ON spaces(cover_file_id);
-CREATE INDEX IF NOT EXISTS idx_spaces_category ON spaces(category);
-CREATE INDEX IF NOT EXISTS idx_spaces_author ON spaces(author);
-CREATE INDEX IF NOT EXISTS idx_spaces_tags ON spaces(tags);
+-- [SOTA] 复合索引：公开空间按更新时间排序
+CREATE INDEX IF NOT EXISTS idx_spaces_public_updated ON spaces(is_public, updated_at DESC);
 
--- 空间-文件关联表 (多对多)
+-- 3.2 空间-文件关联表 (多对多)
 CREATE TABLE IF NOT EXISTS space_files (
     id TEXT PRIMARY KEY,
     space_id TEXT NOT NULL,
@@ -158,7 +167,7 @@ CREATE TABLE IF NOT EXISTS space_files (
 CREATE INDEX IF NOT EXISTS idx_space_files_space ON space_files(space_id);
 CREATE INDEX IF NOT EXISTS idx_space_files_file ON space_files(file_id);
 
--- 访问日志
+-- 3.3 访问日志
 CREATE TABLE IF NOT EXISTS space_access_logs (
     id TEXT PRIMARY KEY,
     space_id TEXT NOT NULL,
@@ -173,10 +182,9 @@ CREATE INDEX IF NOT EXISTS idx_space_access_logs_space ON space_access_logs(spac
 CREATE INDEX IF NOT EXISTS idx_space_access_logs_time ON space_access_logs(accessed_at DESC);
 
 -- ===========================================================================
--- 3. 用户系统 (User System)
+-- 4. 用户系统 (User System)
 -- ===========================================================================
 
--- 管理员/用户表
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,          -- 用户名
@@ -192,13 +200,12 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
 -- ===========================================================================
--- 4. 客户关系管理 (CRM)
+-- 5. API Keys (Service-to-Service 或开发者访问)
 -- ===========================================================================
 
--- API Keys (Service-to-Service or Developer Access)
 CREATE TABLE IF NOT EXISTS api_keys (
     id TEXT PRIMARY KEY,
-    key_value TEXT NOT NULL UNIQUE,         -- API Key Value (Renamed from 'key')
+    key_value TEXT NOT NULL UNIQUE,         -- API Key 值 (避免使用保留字 'key')
     name TEXT,                              -- 密钥名称/描述
     permissions TEXT,                       -- 权限列表 (JSON)
     created_at INTEGER NOT NULL,            -- 创建时间
@@ -208,7 +215,10 @@ CREATE TABLE IF NOT EXISTS api_keys (
 
 CREATE INDEX IF NOT EXISTS idx_api_keys_value ON api_keys(key_value);
 
--- 客户表
+-- ===========================================================================
+-- 6. 客户关系管理 (CRM)
+-- ===========================================================================
+
 CREATE TABLE IF NOT EXISTS customers (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,                     -- 客户姓名
@@ -230,10 +240,10 @@ CREATE INDEX IF NOT EXISTS idx_customers_created_by ON customers(created_by);
 CREATE INDEX IF NOT EXISTS idx_customers_created_at ON customers(created_at DESC);
 
 -- ===========================================================================
--- 5. 订单系统 (Order System)
+-- 7. 订单系统 (Order System)
 -- ===========================================================================
 
--- 销售员表
+-- 7.1 销售员表
 CREATE TABLE IF NOT EXISTS salespersons (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,                     -- 姓名
@@ -249,7 +259,7 @@ CREATE TABLE IF NOT EXISTS salespersons (
 CREATE INDEX IF NOT EXISTS idx_salespersons_token ON salespersons(access_token);
 CREATE INDEX IF NOT EXISTS idx_salespersons_active ON salespersons(is_active);
 
--- 订单表
+-- 7.2 订单表
 CREATE TABLE IF NOT EXISTS orders (
     id TEXT PRIMARY KEY,
     order_no TEXT UNIQUE NOT NULL,          -- 订单编号
@@ -257,7 +267,7 @@ CREATE TABLE IF NOT EXISTS orders (
     customer_id TEXT,                       -- 关联客户 (可选)
     original_data TEXT NOT NULL,            -- 原始提交数据 (JSON)
     current_data TEXT NOT NULL,             -- 当前最新数据 (JSON)
-    -- 订单状态枚举
+    -- 订单状态枚举 (完整生命周期)
     status TEXT DEFAULT 'pending' CHECK(status IN (
         'pending',      -- 待确认
         'confirmed',    -- 已确认
@@ -284,13 +294,17 @@ CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_no ON orders(order_no);
+-- [SOTA] 复合索引：按状态+创建时间排序 (常用查询优化)
+CREATE INDEX IF NOT EXISTS idx_orders_status_created ON orders(status, created_at DESC);
+-- [SOTA] 复合索引：管理员未读筛选
+CREATE INDEX IF NOT EXISTS idx_orders_unread_admin ON orders(unread_by_admin, created_at DESC);
 
--- 订单文件 (多对多)
+-- 7.3 订单文件 (多对多)
 CREATE TABLE IF NOT EXISTS order_files (
     id TEXT PRIMARY KEY,
     order_id TEXT NOT NULL,
     file_id TEXT NOT NULL,
-    section TEXT DEFAULT 'product',         -- 文件分区 (e.g., product, requirements, confirmation)
+    section TEXT DEFAULT 'product',         -- 文件分区 (product, requirements, confirmation)
     sort_order INTEGER DEFAULT 0,
     added_at INTEGER NOT NULL,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
@@ -301,7 +315,7 @@ CREATE TABLE IF NOT EXISTS order_files (
 CREATE INDEX IF NOT EXISTS idx_order_files_order ON order_files(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_files_file ON order_files(file_id);
 
--- 订单时间轴 (操作日志)
+-- 7.4 订单时间轴 (操作日志)
 CREATE TABLE IF NOT EXISTS order_timeline (
     id TEXT PRIMARY KEY,
     order_id TEXT NOT NULL,
@@ -312,7 +326,7 @@ CREATE TABLE IF NOT EXISTS order_timeline (
         'status_changed',   -- 状态变更
         'comment'           -- 评论/反馈
     )),
-    actor_type TEXT NOT NULL CHECK(actor_type IN ('salesperson', 'admin')), -- 操作人类型
+    actor_type TEXT NOT NULL CHECK(actor_type IN ('salesperson', 'admin')),
     actor_id TEXT,                            -- 操作人 ID
     actor_name TEXT,                          -- 操作人姓名 (快照)
     field_name TEXT,                          -- 变更字段名 (仅 field_updated)
@@ -329,17 +343,17 @@ CREATE INDEX IF NOT EXISTS idx_timeline_created ON order_timeline(created_at DES
 CREATE INDEX IF NOT EXISTS idx_timeline_action ON order_timeline(action_type);
 
 -- ===========================================================================
--- 6. 通知系统 (Notifications)
+-- 8. 通知系统 (Notifications)
 -- ===========================================================================
 
 CREATE TABLE IF NOT EXISTS notifications (
     id TEXT PRIMARY KEY,
-    type TEXT NOT NULL CHECK(type IN ('system', 'order', 'deadline')), -- 通知类型
+    type TEXT NOT NULL CHECK(type IN ('system', 'order', 'deadline')),
     title TEXT NOT NULL,                    -- 标题 (支持 i18n key JSON)
     content TEXT,                           -- 内容 (支持 i18n key JSON)
     link TEXT,                              -- 跳转链接
     is_read INTEGER DEFAULT 0,              -- 是否已读
-    receiver TEXT DEFAULT 'admin' CHECK(receiver IN ('admin', 'sales')), -- 接收方
+    receiver TEXT DEFAULT 'admin' CHECK(receiver IN ('admin', 'sales')),
     salesperson_id TEXT,                    -- 销售员 ID (receiver='sales' 时关联)
     order_id TEXT,                          -- 关联订单 ID
     metadata TEXT,                          -- 元数据 (JSON)
@@ -348,14 +362,14 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
+-- [SOTA] 复合索引：销售端通知查询优化
 CREATE INDEX IF NOT EXISTS idx_notifications_receiver_sales ON notifications(receiver, salesperson_id, is_read, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_order ON notifications(order_id);
 
 -- ===========================================================================
--- 7. Webhooks
+-- 9. Webhooks
 -- ===========================================================================
 
--- Webhook 配置
 CREATE TABLE IF NOT EXISTS webhooks (
     id TEXT PRIMARY KEY,
     url TEXT NOT NULL,                      -- 目标 URL
@@ -369,7 +383,6 @@ CREATE TABLE IF NOT EXISTS webhooks (
     updated_at INTEGER
 );
 
--- Webhook 发送日志
 CREATE TABLE IF NOT EXISTS webhook_logs (
     id TEXT PRIMARY KEY,
     webhook_id TEXT NOT NULL,
@@ -387,13 +400,12 @@ CREATE INDEX IF NOT EXISTS idx_webhook_logs_webhook ON webhook_logs(webhook_id);
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_created ON webhook_logs(created_at DESC);
 
 -- ===========================================================================
--- 8. 存储镜像/同步 (Storage Mirrors)
+-- 10. 存储镜像/同步 (Storage Mirrors)
 -- ===========================================================================
 
--- 用于追踪文件在第三方存储 (如 R2, S3) 的同步状态
 CREATE TABLE IF NOT EXISTS storage_mirrors (
     file_id TEXT NOT NULL,
-    provider TEXT NOT NULL,                 -- 存储提供商 (e.g., 'r2', 's3')
+    provider TEXT NOT NULL,                 -- 存储提供商 (r2, s3, telegram)
     provider_file_id TEXT,                  -- 远端 ID
     status TEXT DEFAULT 'pending',          -- 状态 (pending, synced, failed)
     error TEXT,                             -- 错误信息
@@ -403,9 +415,15 @@ CREATE TABLE IF NOT EXISTS storage_mirrors (
 );
 
 -- ===========================================================================
--- 9. 初始数据 (Initial Data)
+-- 11. 初始数据 (Initial Data)
 -- ===========================================================================
 
--- 根目录
+-- 创建根目录
 INSERT OR IGNORE INTO folders (id, parent_id, name, description, share_token, is_public, created_at, updated_at)
 VALUES ('root', NULL, '根目录', '默认根目录', NULL, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000);
+
+-- ===========================================================================
+-- Schema Version: 2.1.0 (2026-01-12)
+-- Tables: 19
+-- Indexes: 45
+-- ===========================================================================
