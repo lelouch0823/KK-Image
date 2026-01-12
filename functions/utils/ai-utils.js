@@ -161,12 +161,20 @@ export async function callAI(messages, tools, env, modelIndex = 0) {
                 model,
                 messages,
                 tools: tools.length > 0 ? tools : undefined,
-                tool_choice: tools.length > 0 ? 'auto' : undefined
+                tool_choice: tools.length > 0 ? 'auto' : undefined,
+                // MiniMax M2.1 思考模型支持：分离推理内容
+                reasoning_split: true
             })
         });
     });
 
     const data = await result.response.json();
+
+    // 过滤思考模型的推理内容（reasoning_details），只保留最终输出
+    if (data.choices?.[0]?.message) {
+        delete data.choices[0].message.reasoning_details;
+    }
+
     return {
         ...data,
         _meta: {
@@ -198,7 +206,9 @@ export async function callAIStream(messages, tools, env, modelIndex = 0) {
                 messages,
                 tools: tools.length > 0 ? tools : undefined,
                 tool_choice: tools.length > 0 ? 'auto' : undefined,
-                stream: true
+                stream: true,
+                // MiniMax M2.1 思考模型支持：分离推理内容
+                reasoning_split: true
             })
         });
     });

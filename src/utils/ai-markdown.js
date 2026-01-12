@@ -31,27 +31,34 @@ export function renderMarkdown(content) {
     // 1. 强制在看似列表项的数字前换行 (例如 "Text1. Item" -> "Text\n\n1. Item")
     processed = processed.replace(/([^\n])(\d+\.\s)/g, '$1\n\n$2');
 
-    // 2. 强制在无序列表项前换行 (例如 "Text- Item" -> "Text\n\n- Item")
-    processed = processed.replace(/([^\n])([-*]\s)/g, '$1\n\n$2');
+    // 2. 处理无序列表项
+    // Step A: 紧凑列表修复 - 在 "-" 和后续非空格字符之间插入空格
+    // 例如: "：-本周" -> "： - 本周"
+    // 排除: "--" (破折号), "-5" (负数), "- " (已有空格)
+    processed = processed.replace(/([^\d\s-])-([^\s\d-])/g, '$1 - $2');
+
+    // Step B: 行首/空格后的紧凑列表修复
+    // 例如: " -本周" -> " - 本周", 但保留 "- 正确格式"
+    processed = processed.replace(/(^|\n|\s)-([^\s\d-])/gm, '$1- $2');
+
+    // Step C: 确保列表项前有换行 (文字后紧跟 "- " 的情况)
+    // 例如: "文字- 项目" -> "文字\n\n- 项目"
+    processed = processed.replace(/([^\n\s])(\s*-\s)/g, '$1\n\n- ');
 
     // 3. 强制在标题前换行
     processed = processed.replace(/([^\n])(#{1,6}\s)/g, '$1\n\n$2');
 
     // 4. 表格处理 - 确保表格行前有空行
-    // 匹配以 | 开头的行，确保前面有空行
     processed = processed.replace(/([^\n])\n(\|[^\n]+\|)/g, '$1\n\n$2');
-    // 如果表格紧跟文字（无换行），也加空行
     processed = processed.replace(/([^|\n])(\|[^|\n]+\|)/g, '$1\n\n$2');
 
     // 5. 代码块和引用
     processed = processed.replace(/([^\n])(```)/g, '$1\n\n$2');
     processed = processed.replace(/([^\n])(>\s)/g, '$1\n\n$2');
 
-    // === 预处理 3：处理中文标点后的列表 ===
+    // 6. 中文标点后的列表 (补充处理)
     processed = processed.replace(/(：)(\d+\.\s)/g, '$1\n\n$2');
-    processed = processed.replace(/(：)([-*]\s)/g, '$1\n\n$2');
     processed = processed.replace(/(。)(\d+\.\s)/g, '$1\n\n$2');
-    processed = processed.replace(/(。)([-*]\s)/g, '$1\n\n$2');
 
     const html = marked.parse(processed);
     return DOMPurify.sanitize(html);

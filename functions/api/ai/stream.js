@@ -141,16 +141,27 @@ async function processStream(aiStream, sendSSE) {
                 const delta = chunk.choices?.[0]?.delta;
                 if (!delta) continue;
 
-                // 处理文本内容
+                // 处理文本内容（自动忽略 MiniMax M2.1 的 reasoning_content 思考内容）
                 if (delta.content) {
                     fullContent += delta.content;
                     pendingText += delta.content;
 
-                    // 检查是否有特殊标记（如工具调用 <tools）
-                    const safeText = getSafeTextForStreaming(pendingText);
+                    // 检查是否有特殊标记（如工具调用 <tools 或思考过程 <think>）
+                    // 某些兼容 API 即使设置了 reasoning_split 也可能在 content 中返回 <think>
+                    let safeText = getSafeTextForStreaming(pendingText);
+
+                    // 移除 <think>...</think> 块
+                    const thinkMatch = safeText.match(/<think>[\s\S]*?<\/think>/);
+                    if (thinkMatch) {
+                        safeText = safeText.replace(/<think>[\s\S]*?<\/think>/g, '');
+                    } else if (safeText.includes('<think>')) {
+                        // 思考过程尚未闭合，暂停发送
+                        safeText = '';
+                    }
+
                     if (safeText) {
                         sendSSE('text_delta', { content: safeText });
-                        pendingText = pendingText.slice(safeText.length);
+                        pendingText = pendingText.slice(pendingText.indexOf(safeText) + safeText.length);
                     }
                 }
 
