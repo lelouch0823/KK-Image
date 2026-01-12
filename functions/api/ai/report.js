@@ -8,7 +8,7 @@
 import { authenticateAdmin } from '../utils/auth.js';
 import { OrderStatsRepository } from '../../repositories/OrderStatsRepository.js';
 import { SystemStatsRepository } from '../../repositories/SystemStatsRepository.js';
-import { callAI } from '../../utils/ai-utils.js';
+import { callAIAuto } from '../../utils/ai-utils.js';
 import { DateUtils } from '../utils/date.js';
 import { success, error } from '../utils/response.js';
 
@@ -89,8 +89,8 @@ export async function onRequestPost(context) {
             { role: 'user', content: '请根据以上数据生成完整的 HTML 报告。' }
         ];
 
-        const response = await callAI(messages, [], env);
-        const htmlContent = response.choices[0]?.message?.content || '';
+        const result = await callAIAuto({ messages, tools: [], env, preferStream: true });
+        const htmlContent = result.content || '';
 
         // 4. 清理 HTML（移除可能的 markdown 代码块标记）
         let cleanHtml = htmlContent;

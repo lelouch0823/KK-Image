@@ -1,47 +1,80 @@
 <template>
-  <div :class="['flex', message.role === 'user' ? 'justify-end' : 'justify-start']">
-    <div
-      v-if="message.content || message.html"
-      :class="[
-        'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm transition-all',
-        message.role === 'user'
-          ? 'bg-primary rounded-br-none text-white'
-          : 'border-border text-primary rounded-bl-none border bg-white'
-      ]"
-    >
-      <!-- Assistant Message (Markdown) -->
+  <div>
+    <!-- Message Bubble -->
+    <div :class="['flex', message.role === 'user' ? 'justify-end' : 'justify-start']">
       <div
-        v-if="message.role === 'assistant' && message.html"
-        class="markdown-body text-sm leading-relaxed"
-        v-html="message.html"
-      ></div>
-      
-      <!-- User Message (Plain Text) -->
-      <p v-else-if="message.role === 'user'" class="leading-relaxed whitespace-pre-wrap">{{ message.content }}</p>
+        v-if="message.content || message.html"
+        :class="[
+          'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm transition-all',
+          message.role === 'user'
+            ? 'bg-primary rounded-br-none text-white'
+            : 'border-border text-primary rounded-bl-none border bg-white'
+        ]"
+      >
+        <!-- Assistant Message (Markdown) -->
+        <div
+          v-if="message.role === 'assistant' && message.html"
+          class="markdown-body text-sm leading-relaxed"
+          v-html="message.html"
+        ></div>
+        
+        <!-- User Message (Plain Text) -->
+        <p v-else-if="message.role === 'user'" class="leading-relaxed whitespace-pre-wrap">{{ message.content }}</p>
+      </div>
     </div>
-  </div>
 
-  <!-- Thinking / Tool Status for Assistant (Only shown when this is the latest responding message) -->
-  <div v-if="isThinking || toolStatus" class="flex justify-start">
-    <div class="border-border rounded-2xl rounded-bl-none border bg-white px-4 py-3 shadow-sm">
-      <div class="flex items-center gap-3">
-        <!-- Tool Status -->
-        <template v-if="toolStatus">
-          <svg class="text-primary size-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    <!-- Report Button (below this specific message bubble with marker) -->
+    <transition
+      enter-active-class="transition-all duration-500 ease-out"
+      enter-from-class="opacity-0 translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+    >
+      <div v-if="showReportButton && !isGeneratingReport" class="mt-2 flex justify-start">
+        <button
+          class="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-2.5 text-sm font-medium text-white shadow-md transition-all hover:shadow-lg hover:brightness-110"
+          @click="$emit('generate-report')"
+        >
+          <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <span class="text-secondary text-xs">{{ t('ai.toolLoading', { tool: getToolName(toolStatus) }) }}</span>
-        </template>
-        <!-- Default Thinking -->
-        <template v-else>
-          <div class="flex gap-1">
-            <span class="bg-primary/40 size-1.5 animate-bounce rounded-full"></span>
-            <span class="bg-primary/40 size-1.5 animate-bounce rounded-full [animation-delay:0.2s]"></span>
-            <span class="bg-primary/40 size-1.5 animate-bounce rounded-full [animation-delay:0.4s]"></span>
-          </div>
-          <span class="text-secondary text-xs">{{ t('ai.thinking') }}</span>
-        </template>
+          {{ t('ai.generateReport') }}
+        </button>
+      </div>
+    </transition>
+
+    <!-- Report Generation Loading -->
+    <div v-if="isGeneratingReport" class="mt-2 flex justify-start">
+      <div class="flex items-center gap-2 rounded-xl bg-gray-100 px-4 py-2.5 text-sm text-gray-600">
+        <svg class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        {{ t('ai.generatingReport') }}
+      </div>
+    </div>
+
+    <!-- Thinking / Tool Status for Assistant -->
+    <div v-if="isThinking || toolStatus" class="flex justify-start">
+      <div class="border-border rounded-2xl rounded-bl-none border bg-white px-4 py-3 shadow-sm">
+        <div class="flex items-center gap-3">
+          <!-- Tool Status -->
+          <template v-if="toolStatus">
+            <svg class="text-primary size-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-secondary text-xs">{{ t('ai.toolLoading', { tool: getToolName(toolStatus) }) }}</span>
+          </template>
+          <!-- Default Thinking -->
+          <template v-else>
+            <div class="flex gap-1">
+              <span class="bg-primary/40 size-1.5 animate-bounce rounded-full"></span>
+              <span class="bg-primary/40 size-1.5 animate-bounce rounded-full [animation-delay:0.2s]"></span>
+              <span class="bg-primary/40 size-1.5 animate-bounce rounded-full [animation-delay:0.4s]"></span>
+            </div>
+            <span class="text-secondary text-xs">{{ t('ai.thinking') }}</span>
+          </template>
+        </div>
       </div>
     </div>
   </div>
@@ -57,7 +90,6 @@ defineProps({
     type: Object,
     required: true,
   },
-  // 下面这些属性只对应最新的一条助手消息
   isThinking: {
     type: Boolean,
     default: false,
@@ -65,8 +97,18 @@ defineProps({
   toolStatus: {
     type: String,
     default: '',
+  },
+  showReportButton: {
+    type: Boolean,
+    default: false,
+  },
+  isGeneratingReport: {
+    type: Boolean,
+    default: false,
   }
 });
+
+defineEmits(['generate-report']);
 
 const getToolName = (status) => {
   if (!status) return '';

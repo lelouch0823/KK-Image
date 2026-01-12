@@ -270,6 +270,109 @@ export function parseSSEChunk(chunk) {
 }
 
 /**
+ * 智能 AI 调用 - 自动处理流式/非流式切换
+ * 
+ * 当模型返回 400 错误（不支持某种模式）时，自动切换到另一模式重试。
+ * 
+ * @param {Object} options
+ * @param {Array} options.messages - 消息数组
+ * @param {Array} options.tools - 工具定义（可选）
+ * @param {Object} options.env - 环境变量
+ * @param {boolean} options.preferStream - 优先使用流式模式（默认 true）
+ * @param {boolean} options.accumulate - 累积全部内容返回（用于报告生成）
+ * @returns {Promise<{ content: string, toolCalls?: Array, model?: string }>}
+ */
+export async function callAIAuto({ messages, tools = [], env, preferStream = true, _accumulate = true }) {
+    const tryStream = async () => {
+        const result = await callAIStream(messages, tools, env);
+        const reader = result.body.getReader();
+        const decoder = new TextDecoder();
+
+        let fullContent = '';
+        let buffer = '';
+        const toolCalls = [];
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lastNewlineIndex = buffer.lastIndexOf('\n');
+
+            if (lastNewlineIndex !== -1) {
+                const toParse = buffer.slice(0, lastNewlineIndex + 1);
+                buffer = buffer.slice(lastNewlineIndex + 1);
+
+                const chunks = parseSSEChunk(toParse);
+                for (const chunk of chunks) {
+                    if (chunk.done) continue;
+                    const delta = chunk.choices?.[0]?.delta;
+                    if (delta?.content) {
+                        fullContent += delta.content;
+                    }
+                    if (delta?.tool_calls) {
+                        for (const tc of delta.tool_calls) {
+                            if (tc.index !== undefined) {
+                                if (!toolCalls[tc.index]) {
+                                    toolCalls[tc.index] = { id: '', name: '', arguments: '' };
+                                }
+                                if (tc.id) toolCalls[tc.index].id = tc.id;
+                                if (tc.function?.name) toolCalls[tc.index].name = tc.function.name;
+                                if (tc.function?.arguments) toolCalls[tc.index].arguments += tc.function.arguments;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 处理剩余 buffer
+        if (buffer.trim()) {
+            const chunks = parseSSEChunk(buffer);
+            for (const chunk of chunks) {
+                if (chunk.done) continue;
+                const delta = chunk.choices?.[0]?.delta;
+                if (delta?.content) {
+                    fullContent += delta.content;
+                }
+            }
+        }
+
+        return { content: fullContent, toolCalls: toolCalls.filter(Boolean), model: result.model };
+    };
+
+    const tryNonStream = async () => {
+        const result = await callAI(messages, tools, env);
+        const choice = result.choices[0];
+        return {
+            content: choice?.message?.content || '',
+            toolCalls: choice?.message?.tool_calls || [],
+            model: result._meta?.model
+        };
+    };
+
+    // 智能切换逻辑
+    const primaryFn = preferStream ? tryStream : tryNonStream;
+    const fallbackFn = preferStream ? tryNonStream : tryStream;
+
+    try {
+        return await primaryFn();
+    } catch (err) {
+        // 如果是 400 错误（不支持该模式），切换到另一模式
+        if (err.message?.includes('400') || err.message?.includes('invalid_parameter')) {
+            console.log('[AI Auto] Primary mode failed, switching to fallback mode...');
+            try {
+                return await fallbackFn();
+            } catch (fallbackErr) {
+                console.error('[AI Auto] Fallback mode also failed:', fallbackErr);
+                throw fallbackErr;
+            }
+        }
+        throw err;
+    }
+}
+
+/**
  * 格式化系统提示词
  */
 export { SYSTEM_PROMPT } from '../api/utils/ai-prompts.js';

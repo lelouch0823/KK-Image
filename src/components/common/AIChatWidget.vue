@@ -56,41 +56,14 @@
             :message="msg"
             :is-thinking="index === messages.length - 1 && isThinking"
             :tool-status="index === messages.length - 1 ? toolStatus : ''"
+            :show-report-button="shouldShowReportButtonForMessage(msg, index)"
+            :is-generating-report="isGeneratingReport"
+            @generate-report="generateReport"
           />
         </div>
 
         <!-- Input Area -->
         <div class="border-border border-t bg-white/50 px-4 pt-1 pb-4">
-          <!-- Report Button (appears after streaming when marker detected) -->
-          <transition
-            enter-active-class="transition-all duration-500 ease-out"
-            enter-from-class="opacity-0 translate-y-2"
-            enter-to-class="opacity-100 translate-y-0"
-          >
-            <button
-              v-if="showReportButton && !isGeneratingReport"
-              class="mb-3 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-3 text-sm font-medium text-white shadow-md transition-all hover:shadow-lg hover:brightness-110"
-              @click="generateReport"
-            >
-              <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              {{ t('ai.generateReport') }}
-            </button>
-          </transition>
-
-          <!-- Report Generation Loading -->
-          <div
-            v-if="isGeneratingReport"
-            class="mb-3 flex items-center justify-center gap-2 rounded-xl bg-gray-100 px-4 py-3 text-sm text-gray-600"
-          >
-            <svg class="size-5 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            {{ t('ai.generatingReport') }}
-          </div>
-
           <AISuggestions 
             class="mb-2" 
             :suggestions="suggestions" 
@@ -199,16 +172,18 @@ const {
 
 const isGeneratingReport = ref(false);
 
-// Show report button when streaming is done and last message has marker
-const showReportButton = computed(() => {
+// 判断特定消息是否应显示报告按钮
+const shouldShowReportButtonForMessage = (msg, index) => {
+  // 正在流式传输时不显示
   if (isAIStreaming.value || isStreamingLoading.value) return false;
-  if (isGeneratingReport.value) return false;
-  
-  const lastMsg = messages.value[messages.value.length - 1];
-  if (lastMsg?.role !== 'assistant') return false;
-  
-  return lastMsg.content?.includes('[REPORT_AVAILABLE]');
-});
+  // 必须是 assistant 消息
+  if (msg.role !== 'assistant') return false;
+  // 必须是最后一条 assistant 消息（避免重复显示）
+  const lastAssistantIndex = messages.value.map((m, i) => m.role === 'assistant' ? i : -1).filter(i => i >= 0).pop();
+  if (index !== lastAssistantIndex) return false;
+  // 必须包含报告标记
+  return msg.content?.includes('[REPORT_AVAILABLE]');
+};
 
 // SOTA: Throttled Markdown rendering - use fullContent for proper parsing
 const throttledRender = throttle((content, targetMsg) => {
