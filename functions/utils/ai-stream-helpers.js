@@ -4,47 +4,9 @@
  * 
  * 流式响应处理的辅助函数，包括：
  * - SSE 事件发送
- * - 图表块解析（:::chart ... :::）
- * - Buffer 管理
+ * - 文本格式工具调用解析
+ * - 工具调用处理
  */
-
-/**
- * 从完整内容中解析所有图表块
- * 返回纯文本内容和提取的图表数据数组
- * 
- * @param {string} content - 完整的 AI 响应内容
- * @returns {{ text: string, charts: Array<Object> }}
- */
-export function extractChartsFromContent(content) {
-    const charts = [];
-    let textContent = content;
-
-    // 使用正则匹配所有 :::chart ... ::: 块
-    // 支持多行 JSON，非贪婪匹配
-    const chartRegex = /:::chart\s*([\s\S]*?)\s*:::/g;
-    let match;
-
-    while ((match = chartRegex.exec(content)) !== null) {
-        const rawJson = match[1].trim();
-        try {
-            const chartData = JSON.parse(rawJson);
-            charts.push(chartData);
-            console.log('[AI Helper] Successfully parsed chart:', chartData.title || chartData.type);
-        } catch (e) {
-            console.error('[AI Helper] Failed to parse chart JSON:', e.message);
-            console.log('[AI Helper] Raw JSON (first 200 chars):', rawJson.slice(0, 200));
-            // 解析失败时保留原文
-        }
-    }
-
-    // 从文本中移除图表块
-    textContent = content.replace(chartRegex, '').trim();
-
-    // 清理多余的空行
-    textContent = textContent.replace(/\n{3,}/g, '\n\n');
-
-    return { text: textContent, charts };
-}
 
 /**
  * 从文本内容中提取工具调用
@@ -112,88 +74,12 @@ export function createSSESender(controller, encoder) {
 }
 
 /**
- * 简化的流式文本处理器
- * 不进行实时图表解析，只累积内容
- * 图表解析留到最后统一处理
- */
-export class StreamContentAccumulator {
-    constructor() {
-        this.buffer = '';
-        this.fullContent = '';
-    }
-
-    /**
-     * 添加内容到累积器
-     * @param {string} content - 新的内容片段
-     */
-    append(content) {
-        this.fullContent += content;
-        this.buffer += content;
-    }
-
-    /**
-     * 获取可以安全发送的文本（排除可能的图表开头）
-     * @returns {string} 安全文本
-     */
-    getSafeText() {
-        // 检查是否有未完成的图表块
-        const chartStartIndex = this.buffer.indexOf(':::chart');
-
-        if (chartStartIndex === -1) {
-            // 没有图表开始标记，但检查是否以 :::c / :::ch 等开头
-            const partialMarkers = [':', '::', ':::', ':::c', ':::ch', ':::cha', ':::char', ':::chart'];
-            for (let i = partialMarkers.length - 1; i >= 0; i--) {
-                const marker = partialMarkers[i];
-                if (this.buffer.endsWith(marker)) {
-                    // 保留可能的标记，返回之前的内容
-                    const safeText = this.buffer.slice(0, -marker.length);
-                    this.buffer = marker;
-                    return safeText;
-                }
-            }
-            // 没有任何标记，全部安全
-            const text = this.buffer;
-            this.buffer = '';
-            return text;
-        }
-
-        // 有图表开始标记，返回之前的文本，保留图表块
-        const safeText = this.buffer.slice(0, chartStartIndex);
-        this.buffer = this.buffer.slice(chartStartIndex);
-        return safeText;
-    }
-
-    /**
-     * 获取完整累积内容
-     * @returns {string}
-     */
-    getFullContent() {
-        return this.fullContent;
-    }
-
-    /**
-     * 获取剩余 buffer（用于最终 flush）
-     * @returns {string}
-     */
-    getRemainingBuffer() {
-        return this.buffer;
-    }
-
-    /**
-     * 重置累积器
-     */
-    reset() {
-        this.buffer = '';
-        this.fullContent = '';
-    }
-}
-
-/**
  * 处理工具调用的辅助函数
  * @param {Array} toolCalls - 累积的工具调用信息
  * @param {Function} executeTool - 工具执行函数
  * @param {Function} sendSSE - SSE 发送函数
  * @param {string} toolResultMsg - 工具结果提示消息
+ * @param {string|null} fullContent - 助手消息的完整内容（可选）
  * @returns {Array} 要添加到 messages 的新消息
  */
 export async function processToolCalls(toolCalls, executeTool, sendSSE, toolResultMsg, fullContent = null) {
