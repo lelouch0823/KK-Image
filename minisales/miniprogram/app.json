@@ -3,6 +3,8 @@
     "pages/index/index",
     "pages/form/form",
     "pages/detail/detail",
+    "pages/spaces/spaces",
+    "pages/spaces/detail",
     "pages/stats/stats",
     "pages/login/login"
   ],
@@ -46,6 +48,12 @@
       {
         "pagePath": "pages/index/index",
         "text": "订单",
+        "iconPath": "assets/icons/orders.png",
+        "selectedIconPath": "assets/icons/orders-active.png"
+      },
+      {
+        "pagePath": "pages/spaces/spaces",
+        "text": "资源",
         "iconPath": "assets/icons/orders.png",
         "selectedIconPath": "assets/icons/orders-active.png"
       },

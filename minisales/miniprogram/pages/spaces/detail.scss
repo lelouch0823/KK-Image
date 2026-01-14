@@ -1,0 +1,90 @@
+@import '../../styles/variables.scss';
+
+.page {
+    min-height: 100vh;
+    background-color: $bg-page;
+    display: flex;
+    flex-direction: column;
+}
+
+.content {
+    flex: 1;
+    padding: $spacing-lg;
+}
+
+.loading-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 40vh;
+}
+
+// 头部卡片
+.header-card {
+    background-color: $bg-card;
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-lg;
+    box-shadow: $shadow-sm;
+}
+
+.space-title {
+    display: block;
+    font-size: $font-size-xl;
+    font-weight: 700;
+    color: $text-main;
+    margin-bottom: 8rpx;
+}
+
+.space-desc {
+    display: block;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    margin-bottom: 16rpx;
+    line-height: 1.5;
+}
+
+.space-stats {
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+}
+
+.stat-text {
+    font-size: $font-size-xs;
+    color: $text-muted;
+}
+
+// 文件区域
+.file-section {
+    margin-bottom: $spacing-lg;
+}
+
+.section-title {
+    font-size: $font-size-sm;
+    font-weight: 600;
+    color: $text-main;
+    margin-bottom: $spacing-md;
+}
+
+.file-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12rpx;
+}
+
+.file-item {
+    width: calc(33.333% - 8rpx);
+    aspect-ratio: 1;
+    border-radius: 16rpx;
+    overflow: hidden;
+    background-color: $bg-hover;
+}
+
+.empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: $spacing-xl * 2;
+}

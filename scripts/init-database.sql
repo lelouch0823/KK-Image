@@ -138,6 +138,7 @@ CREATE TABLE IF NOT EXISTS spaces (
     view_count INTEGER DEFAULT 0,           -- 浏览次数
     download_count INTEGER DEFAULT 0,       -- 下载次数
     sort_order INTEGER DEFAULT 0,           -- 排序权重
+    share_mode TEXT DEFAULT 'none' CHECK(share_mode IN ('none', 'all', 'selected')), -- 分享模式 (none: 私有, all: 所有销售, selected: 指定销售)
     created_at INTEGER NOT NULL,            -- 创建时间
     updated_at INTEGER NOT NULL,            -- 更新时间
     FOREIGN KEY (parent_id) REFERENCES spaces(id) ON DELETE CASCADE,
@@ -150,6 +151,20 @@ CREATE INDEX IF NOT EXISTS idx_spaces_template ON spaces(template);
 CREATE INDEX IF NOT EXISTS idx_spaces_cover ON spaces(cover_file_id);
 -- [SOTA] 复合索引：公开空间按更新时间排序
 CREATE INDEX IF NOT EXISTS idx_spaces_public_updated ON spaces(is_public, updated_at DESC);
+-- [SOTA] 索引：按分享模式筛选
+CREATE INDEX IF NOT EXISTS idx_spaces_share_mode ON spaces(share_mode);
+
+-- 3.1.1 空间-销售员分享关联表 (选择性分享)
+CREATE TABLE IF NOT EXISTS space_salesperson_shares (
+    space_id TEXT NOT NULL,
+    salesperson_id TEXT NOT NULL,
+    shared_at INTEGER NOT NULL,
+    PRIMARY KEY (space_id, salesperson_id),
+    FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE CASCADE,
+    FOREIGN KEY (salesperson_id) REFERENCES salespersons(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_space_shares_salesperson ON space_salesperson_shares(salesperson_id);
 
 -- 3.2 空间-文件关联表 (多对多)
 CREATE TABLE IF NOT EXISTS space_files (

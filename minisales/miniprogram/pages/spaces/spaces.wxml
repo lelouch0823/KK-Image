@@ -1,0 +1,62 @@
+<!--pages/spaces/spaces.wxml-->
+<t-navbar title="共享资源" left-arrow="{{false}}" fixed placeholder />
+
+<view class="page">
+  <scroll-view
+    class="content"
+    scroll-y
+    refresher-enabled
+    refresher-triggered="{{loading}}"
+    bindrefresherrefresh="onPullDownRefresh"
+  >
+    <!-- 加载中 -->
+    <view wx:if="{{loading && spaces.length === 0}}" class="loading-container">
+      <t-loading theme="circular" size="40rpx" text="加载中..." />
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:elif="{{!loading && spaces.length === 0}}" class="empty-state">
+      <t-empty icon="folder" description="暂无共享资源" />
+    </view>
+
+    <!-- 空间列表 -->
+    <view wx:else class="space-list">
+      <view
+        wx:for="{{spaces}}"
+        wx:key="id"
+        class="space-card"
+        data-id="{{item.id}}"
+        bindtap="handleViewSpace"
+      >
+        <!-- 封面图 -->
+        <view class="space-cover">
+          <t-image
+            wx:if="{{item.coverUrl}}"
+            src="{{baseUrl}}{{item.coverUrl}}"
+            mode="aspectFill"
+            width="200"
+            height="150"
+            lazy-load
+            shape="round"
+          />
+          <view wx:else class="cover-placeholder">
+            <t-icon name="folder" size="64rpx" color="#9ca3af" />
+          </view>
+        </view>
+
+        <!-- 信息 -->
+        <view class="space-info">
+          <text class="space-name">{{item.name}}</text>
+          <text class="space-desc" wx:if="{{item.description}}">{{item.description}}</text>
+          <view class="space-meta">
+            <t-icon name="image" size="28rpx" color="#9ca3af" />
+            <text class="file-count">{{item.fileCount}} 个文件</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <t-divider content="没有更多了" wx:if="{{!loading && spaces.length > 0}}" />
+    <view style="height: 120rpx;"></view>
+  </scroll-view>
+</view>

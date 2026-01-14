@@ -27,6 +27,10 @@ export const API = {
     // 通知
     SALES_NOTIFICATIONS: (token: string) => `/api/sales/${token}/notifications`,
     SALES_NOTIFICATIONS_READ: (token: string, id: string) => `/api/sales/${token}/notifications/${id}/read`,
+
+    // 共享空间
+    SALES_SPACES: (token: string) => `/api/sales/${token}/spaces`,
+    SALES_SPACE_DETAIL: (token: string, id: string) => `/api/sales/${token}/spaces/${id}`,
 };
 
 // 订单状态

@@ -258,6 +258,14 @@ export default {
       unpublish: '取消公开',
       unpublishSuccess: '已取消公开',
     },
+    // 分享模式
+    shareMode: '分享模式',
+    'shareMode.none': '私有',
+    'shareMode.selected': '指定销售',
+    'shareMode.all': '所有销售',
+    selectSalespersons: '选择可见销售员',
+    selectSalespersonsPlaceholder: '点击选择销售员',
+    publicLink: '公开链接',
   },
   spacePublic: {
     // 公共空间页面
@@ -794,6 +802,7 @@ export default {
     leaveBlankToKeep: '不修改请留空',
     activeStatus: '启用状态',
     uuid: '唯一标识 (UUID)',
+    noAvailable: '暂无可选销售员',
   },
   pwa: {
     offlineReady: '应用已准备好离线使用',

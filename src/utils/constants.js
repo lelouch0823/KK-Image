@@ -53,6 +53,9 @@ export const API = {
   PUBLIC_GALLERY: (token) => `/api/gallery/${token}`,
   PUBLIC_SPACE: (token) => `/api/space/${token}`,
 
+  // 销售员管理
+  SALESPERSONS: `${API_PREFIX}/salespersons`,
+
   // 统计
   STATS: `${API_PREFIX}/stats`,
 

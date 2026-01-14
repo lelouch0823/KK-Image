@@ -23,127 +23,106 @@
         <div class="flex-1">
           <h3 class="text-primary font-semibold">{{ t('spaceManager.shareSettings') }}</h3>
           <p class="text-secondary text-sm">
-            {{
-              isPublic
-                ? t('spaceManager.publicStatus')
-                : t('spaceManager.shareCard.notPublic')
-            }}
+            {{ shareModeLabel }}
           </p>
         </div>
       </div>
 
-      <!-- 未公开状态 -->
-      <div v-if="!isPublic" class="space-y-4">
-        <button
-          :disabled="publishing"
-          class="bg-primary flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-white transition-all hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
-          @click="$emit('publish')"
-        >
-          <svg
-            v-if="!publishing"
-            class="size-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-            />
-          </svg>
-          <svg v-else class="size-5 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            />
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
-          {{ publishing ? t('common.saving') : t('spaceManager.shareCard.publishNow') }}
-        </button>
-        <p class="text-secondary text-center text-xs">
-          {{ t('spaceManager.shareCard.publishHint') }}
-        </p>
-      </div>
-
-      <!-- 已公开状态 -->
-      <div v-else class="space-y-4">
-        <!-- 访问统计 -->
-        <div class="flex items-center gap-4 text-sm">
-          <div class="text-secondary flex items-center gap-1.5">
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-              />
-            </svg>
-            <span>{{ viewCount || 0 }} {{ t('spacePublic.views') }}</span>
-          </div>
-        </div>
-
-        <!-- 链接显示 -->
+      <!-- 分享模式选择器 -->
+      <div class="mb-4 space-y-3">
+        <label class="text-secondary block text-sm font-medium">{{ t('spaceManager.shareMode') || '分享模式' }}</label>
         <div class="flex gap-2">
-          <input
-            type="text"
-            readonly
-            :value="shareUrl"
-            class="text-primary flex-1 rounded-xl border border-[var(--border-color)] bg-white px-4 py-2.5 font-mono text-sm"
-          />
           <button
-            class="text-primary flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-white px-4 py-2.5 transition-colors hover:bg-[var(--bg-hover)]"
-            @click="copyLink"
+            v-for="mode in shareModes"
+            :key="mode.value"
+            type="button"
+            class="flex flex-1 flex-col items-center gap-2 rounded-xl border px-3 py-3 transition-all"
+            :class="currentShareMode === mode.value
+              ? 'border-[var(--color-primary)] bg-[var(--color-primary-bg)]'
+              : 'border-[var(--border-color)] hover:border-[var(--border-hover)]'"
+            @click="updateShareMode(mode.value)"
           >
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
-              />
-            </svg>
-            {{ t('common.copy') }}
+            <span class="text-lg">{{ mode.icon }}</span>
+            <span class="text-sm font-medium" :class="currentShareMode === mode.value ? 'text-[var(--color-primary)]' : 'text-primary'">
+              {{ mode.label }}
+            </span>
           </button>
         </div>
+      </div>
 
-        <!-- 取消公开 -->
+      <!-- 选择销售员 (仅 selected 模式) -->
+      <div v-if="currentShareMode === 'selected'" class="mb-4">
+        <SalespersonPicker
+          v-model="selectedSalespersonIds"
+          :label="t('spaceManager.selectSalespersons') || '选择可见销售员'"
+          :placeholder="t('spaceManager.selectSalespersonsPlaceholder') || '点击选择销售员'"
+        />
+      </div>
+
+      <!-- 保存分享设置按钮 -->
+      <button
+        :disabled="publishing"
+        class="bg-primary flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-white transition-all hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+        @click="saveShareSettings"
+      >
+        <svg v-if="publishing" class="size-5 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        {{ publishing ? t('common.saving') : t('common.save') }}
+      </button>
+    </div>
+
+    <!-- 公开链接区域 (仅 is_public 为 true 时) -->
+    <div v-if="isPublic" class="rounded-2xl border border-[var(--border-color)] bg-white p-5">
+      <div class="mb-4 flex items-center gap-3">
+        <div class="flex size-10 items-center justify-center rounded-xl bg-green-50">
+          <svg class="size-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
+          </svg>
+        </div>
+        <div class="flex-1">
+          <h3 class="font-semibold text-green-700">{{ t('spaceManager.publicLink') || '公开链接' }}</h3>
+          <p class="text-secondary text-sm">{{ viewCount || 0 }} {{ t('spacePublic.views') }}</p>
+        </div>
+      </div>
+
+      <!-- 链接显示 -->
+      <div class="flex gap-2">
+        <input
+          type="text"
+          readonly
+          :value="shareUrl"
+          class="text-primary flex-1 rounded-xl border border-[var(--border-color)] bg-white px-4 py-2.5 font-mono text-sm"
+        />
         <button
-          :disabled="publishing"
-          class="text-secondary w-full rounded-xl border border-[var(--border-color)] py-2.5 text-sm transition-colors hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]"
-          @click="$emit('unpublish')"
+          class="text-primary flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-white px-4 py-2.5 transition-colors hover:bg-[var(--bg-hover)]"
+          @click="copyLink"
         >
-          {{ t('spaceManager.shareCard.unpublish') }}
+          <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+          </svg>
+          {{ t('common.copy') }}
         </button>
       </div>
+
+      <!-- 取消公开 -->
+      <button
+        :disabled="publishing"
+        class="text-secondary mt-3 w-full rounded-xl border border-[var(--border-color)] py-2.5 text-sm transition-colors hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]"
+        @click="$emit('unpublish')"
+      >
+        {{ t('spaceManager.shareCard.unpublish') }}
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useClipboard } from '@/composables/useClipboard';
+import SalespersonPicker from '@/components/SalespersonPicker.vue';
 
 const props = defineProps({
   isPublic: {
@@ -162,13 +141,64 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // 新增: 当前分享模式
+  shareMode: {
+    type: String,
+    default: 'none',
+  },
+  // 新增: 已分享的销售员列表
+  sharedSalespersons: {
+    type: Array,
+    default: () => [],
+  },
 });
 
-defineEmits(['publish', 'unpublish']);
+const emit = defineEmits(['publish', 'unpublish', 'update-share-settings']);
 
 const { t } = useI18n();
 const { copy } = useClipboard();
 
+// 分享模式选项 (使用 i18n)
+const shareModes = computed(() => [
+  { value: 'none', label: t('spaceManager.shareMode.none') || '私有', icon: '🔒' },
+  { value: 'selected', label: t('spaceManager.shareMode.selected') || '指定销售', icon: '👥' },
+  { value: 'all', label: t('spaceManager.shareMode.all') || '所有销售', icon: '🌍' },
+]);
+
+// 当前分享模式
+const currentShareMode = ref(props.shareMode);
+
+// 已选销售员 IDs
+const selectedSalespersonIds = ref(props.sharedSalespersons.map((sp) => sp.id));
+
+// 监听 props 变化
+watch(() => props.shareMode, (val) => {
+  currentShareMode.value = val;
+});
+watch(() => props.sharedSalespersons, (val) => {
+  selectedSalespersonIds.value = val.map((sp) => sp.id);
+}, { deep: true });
+
+// 分享模式标签
+const shareModeLabel = computed(() => {
+  const mode = shareModes.find((m) => m.value === currentShareMode.value);
+  return mode ? `${mode.icon} ${mode.label}` : t('spaceManager.shareCard.notPublic');
+});
+
+// 更新分享模式
+const updateShareMode = (mode) => {
+  currentShareMode.value = mode;
+};
+
+// 保存分享设置
+const saveShareSettings = () => {
+  emit('update-share-settings', {
+    shareMode: currentShareMode.value,
+    sharedSalespersonIds: currentShareMode.value === 'selected' ? selectedSalespersonIds.value : [],
+  });
+};
+
+// 复制链接
 const copyLink = async () => {
   if (!props.shareUrl) return;
   await copy(props.shareUrl, {

@@ -1,0 +1,93 @@
+@import '../../styles/variables.scss';
+
+.page {
+    min-height: 100vh;
+    background-color: $bg-page;
+    display: flex;
+    flex-direction: column;
+}
+
+.content {
+    flex: 1;
+    padding: $spacing-lg;
+}
+
+.loading-container,
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: $spacing-xl * 3;
+}
+
+// 空间列表
+.space-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+}
+
+// 空间卡片 (瀑布流风格)
+.space-card {
+    width: calc(50% - 12rpx);
+    background-color: $bg-card;
+    border-radius: $border-radius-lg;
+    overflow: hidden;
+    box-shadow: $shadow-sm;
+    border: 1rpx solid $border-color;
+}
+
+.space-cover {
+    width: 100%;
+    height: 200rpx;
+    background-color: $bg-hover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cover-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+}
+
+.space-info {
+    padding: $spacing-md;
+}
+
+.space-name {
+    display: block;
+    font-size: $font-size-base;
+    font-weight: 600;
+    color: $text-main;
+    margin-bottom: 4rpx;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.space-desc {
+    display: block;
+    font-size: $font-size-xs;
+    color: $text-secondary;
+    margin-bottom: 12rpx;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.space-meta {
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+}
+
+.file-count {
+    font-size: $font-size-xs;
+    color: $text-muted;
+}

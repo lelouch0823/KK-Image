@@ -1,0 +1,52 @@
+<!--pages/spaces/detail.wxml-->
+<t-navbar title="{{space.name || '资源详情'}}" left-arrow bind:go-back="handleBack" fixed placeholder />
+
+<view class="page">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <t-loading theme="circular" size="40rpx" text="加载中..." />
+  </view>
+
+  <scroll-view wx:elif="{{space}}" class="content" scroll-y>
+    <!-- 头部信息 -->
+    <view class="header-card">
+      <text class="space-title">{{space.name}}</text>
+      <text class="space-desc" wx:if="{{space.description}}">{{space.description}}</text>
+      <view class="space-stats">
+        <t-icon name="image" size="28rpx" color="#6b7280" />
+        <text class="stat-text">{{space.files.length}} 个文件</text>
+      </view>
+    </view>
+
+    <!-- 文件网格 -->
+    <view class="file-section" wx:if="{{space.files.length > 0}}">
+      <view class="section-title">全部文件</view>
+      <view class="file-grid">
+        <view
+          wx:for="{{space.files}}"
+          wx:key="id"
+          class="file-item"
+          data-url="{{baseUrl}}{{item.url}}"
+          data-index="{{index}}"
+          bindtap="previewImage"
+        >
+          <t-image
+            src="{{baseUrl}}{{item.url}}"
+            mode="aspectFill"
+            width="100%"
+            height="200"
+            lazy-load
+            shape="round"
+          />
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:else class="empty-state">
+      <t-empty icon="image" description="暂无文件" />
+    </view>
+
+    <view style="height: 48rpx;"></view>
+  </scroll-view>
+</view>
