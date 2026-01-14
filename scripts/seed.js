@@ -220,6 +220,66 @@ function generateNotification(id) {
     };
 }
 
+// 空间模板类型
+const SPACE_TEMPLATES = ['gallery', 'product', 'portfolio', 'document', 'collection', 'custom'];
+const SPACE_NAMES = {
+    gallery: ['精选图库', '新品展示', '2026春季系列', '年度作品集'],
+    product: ['爆款推荐', '新品上架', '限时特惠', '会员专享'],
+    portfolio: ['设计作品集', '项目案例', '客户定制案例', '展会精选'],
+    document: ['产品规格书', '技术文档', '使用手册', '培训资料'],
+    collection: ['产品系列合集', '品牌专区', '行业解决方案', '客户专属'],
+    custom: ['自定义空间', '临时分享', '测试空间', '演示区'],
+};
+
+function generateSpace(id, template, index) {
+    const shareToken = randomBytes(8).toString('base64url');
+    const names = SPACE_NAMES[template] || SPACE_NAMES.custom;
+    const templateData = template === 'product' ? {
+        brand: randomItem(['品牌A', '品牌B', '品牌C']),
+        price: randomInt(100, 9999),
+        series: `系列${randomInt(1, 10)}`,
+        material: randomItem(['不锈钢', '合金', '塑料', '木材']),
+        sku: `SKU-${randomInt(100000, 999999)}`,
+    } : {};
+
+    return {
+        id,
+        parent_id: null,
+        name: names[index % names.length] || `${template}空间${index + 1}`,
+        description: `这是一个${template}类型的测试空间，用于展示${template}模板效果`,
+        share_token: shareToken,
+        is_public: randomInt(0, 1),
+        password: null,
+        template,
+        template_data: JSON.stringify(templateData),
+        view_count: randomInt(0, 500),
+        download_count: randomInt(0, 100),
+        cover_file_id: null,
+        share_mode: randomItem(['none', 'all', 'selected']),
+        created_by: 'seed-script',
+        created_at: now() - randomInt(0, 30 * 24 * 60 * 60 * 1000),
+        updated_at: now(),
+    };
+}
+
+function generateSpaceFile(spaceId, fileId, sortIndex) {
+    return {
+        space_id: spaceId,
+        file_id: fileId,
+        sort_index: sortIndex,
+        section: randomItem([null, 'main', 'detail', 'spec']),
+        added_at: now() - randomInt(0, 7 * 24 * 60 * 60 * 1000),
+    };
+}
+
+function generateSpaceSalespersonShare(spaceId, salespersonId) {
+    return {
+        space_id: spaceId,
+        salesperson_id: salespersonId,
+        shared_at: now() - randomInt(0, 7 * 24 * 60 * 60 * 1000),
+    };
+}
+
 // ============================================================================
 // 主流程
 // ============================================================================
@@ -307,6 +367,45 @@ async function main() {
         sqlStatements.push(generateInsert('notifications', generateNotification(uuid())));
     }
 
+    // 9. 生成空间 (每种模板至少 2 个)
+    const spaceIds = [];
+    const selectedSpaceIds = []; // 用于 selected 分享模式
+    log(`生成 ${SPACE_TEMPLATES.length * 2} 个空间 (覆盖所有模板类型)...`);
+    let spaceIndex = 0;
+    for (const template of SPACE_TEMPLATES) {
+        for (let i = 0; i < 2; i++) {
+            const id = uuid();
+            spaceIds.push(id);
+            const space = generateSpace(id, template, i);
+            sqlStatements.push(generateInsert('spaces', space));
+            // 记录 selected 模式的空间
+            if (space.share_mode === 'selected') {
+                selectedSpaceIds.push(id);
+            }
+            spaceIndex++;
+        }
+    }
+
+    // 10. 生成空间文件关联 (每个空间关联 3-8 个文件)
+    log(`为空间关联文件...`);
+    for (const spaceId of spaceIds) {
+        const filesPerSpace = randomInt(3, 8);
+        const shuffledFiles = [...fileIds].sort(() => Math.random() - 0.5);
+        for (let i = 0; i < Math.min(filesPerSpace, shuffledFiles.length); i++) {
+            sqlStatements.push(generateInsert('space_files', generateSpaceFile(spaceId, shuffledFiles[i], i)));
+        }
+    }
+
+    // 11. 生成空间销售分享关联 (selected 模式的空间分配 1-3 个销售)
+    log(`为空间分配销售权限...`);
+    for (const spaceId of selectedSpaceIds) {
+        const salesCount = randomInt(1, Math.min(3, salespersonIds.length));
+        const shuffledSales = [...salespersonIds].sort(() => Math.random() - 0.5);
+        for (let i = 0; i < salesCount; i++) {
+            sqlStatements.push(generateInsert('space_salesperson_shares', generateSpaceSalespersonShare(spaceId, shuffledSales[i])));
+        }
+    }
+
     // 分批执行
     log(`开始写入数据库 (共 ${sqlStatements.length} 条语句)...`);
     const BATCH_SIZE = 50;
@@ -333,6 +432,8 @@ async function main() {
     console.log(`   订单: ${orderIds.length}`);
     console.log(`   时间轴: ${count}`);
     console.log(`   通知: ${Math.ceil(count / 5)}`);
+    console.log(`   空间: ${spaceIds.length} (${SPACE_TEMPLATES.join(', ')})`);
+    console.log(`   空间分享: ${selectedSpaceIds.length} 个空间使用 selected 模式`);
 }
 
 main().catch(e => {
