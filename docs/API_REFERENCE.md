@@ -40,12 +40,23 @@
 | :--- | :--- | :--- |
 | GET | `/api/common/config` | 获取系统公开配置 |
 
-### 2.2 销售端接口
+### 2.2 销售端接口 (Sales API)
+
+**2.2.1 认证接口**
+Base URL: `/api/sales`
+
+| Method | Endpoint | 描述 |
+| :--- | :--- | :--- |
+| POST | `/wechat-login` | 微信小程序一键登录 (Code 换 Token) |
+
+**2.2.2 业务接口**
 Base URL: `/api/sales/:accessToken`
 
 | Method | Endpoint | 描述 |
 | :--- | :--- | :--- |
-| POST | `/login` | 销售员登录 (换取 Session JWT) |
+| POST | `/auth` | 销售员密码登录 (换取 Session JWT) |
+| GET | `/auth` | 获取当前销售员信息 (Session Check) |
+| POST | `/bind-wechat` | 绑定微信账号 (需 JWT) |
 | GET | `/orders` | 获取订单列表 |
 | POST | `/orders` | 创建新订单 |
 | GET | `/orders/:id` | 获取订单详情 |

@@ -1,0 +1,71 @@
+/**
+ * 设计令牌 - 与 Web 端保持一致的设计系统
+ * 使用 CSS 变量便于主题切换
+ */
+
+// 颜色变量
+$color-primary: #3b82f6;
+$color-primary-hover: #2563eb;
+$color-danger: #ef4444;
+$color-success: #22c55e;
+$color-warning: #f59e0b;
+
+// 文字颜色
+$text-main: #1f2937;
+$text-secondary: #6b7280;
+$text-muted: #9ca3af;
+
+// 背景颜色
+$bg-page: #f5f5f5;
+$bg-card: #ffffff;
+$bg-hover: #f3f4f6;
+
+// 边框
+$border-color: #e5e7eb;
+$border-radius: 16rpx;
+$border-radius-lg: 24rpx;
+
+// 间距
+$spacing-xs: 8rpx;
+$spacing-sm: 16rpx;
+$spacing-md: 24rpx;
+$spacing-lg: 32rpx;
+$spacing-xl: 48rpx;
+
+// 字体大小
+$font-size-xs: 22rpx;
+$font-size-sm: 24rpx;
+$font-size-base: 28rpx;
+$font-size-lg: 32rpx;
+$font-size-xl: 36rpx;
+$font-size-2xl: 44rpx;
+
+// 阴影
+$shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+
+// 状态卡片颜色
+$card-blue-bg: #eff6ff;
+$card-blue-border: #bfdbfe;
+$card-blue-text: #3b82f6;
+$card-blue-accent: #1d4ed8;
+
+$card-green-bg: #f0fdf4;
+$card-green-border: #bbf7d0;
+$card-green-text: #22c55e;
+$card-green-accent: #15803d;
+
+$card-purple-bg: #faf5ff;
+$card-purple-border: #e9d5ff;
+$card-purple-text: #a855f7;
+$card-purple-accent: #7c3aed;
+
+// 订单状态颜色
+$status-pending: #f59e0b;
+$status-confirmed: #3b82f6;
+$status-production: #8b5cf6;
+$status-shipping: #06b6d4;
+$status-arrived: #10b981;
+$status-delivered: #22c55e;
+$status-rejected: #ef4444;
+$status-void: #6b7280;

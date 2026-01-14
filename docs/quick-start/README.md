@@ -4,85 +4,67 @@
 
 ## 🎯 概览
 
-kk-life 是一个免费的图床解决方案，只需要一个 Cloudflare 账户即可开始使用。整个部署过程包括：
+kk-life 是一个基于 Cloudflare 全栈架构 (Workers + Pages + D1 + R2) 的现代化图床与销售管理系统。
 
-1. **准备工作** - 获取必要的账户和权限
-2. **项目部署** - Fork 项目并部署到 Cloudflare Pages
-3. **配置设置** - 设置 Telegram Bot 和环境变量
-4. **功能测试** - 验证上传和访问功能
+**主要步骤：**
+1. **GitHub** - Fork 项目代码
+2. **Cloudflare** - 创建数据库 (D1) 和存储桶 (R2)
+3. **Pages** - 连接 Git 并部署
+4. **Init** - 初始化数据库表结构
 
 ## ⏱️ 预计时间
 
-- **首次部署**: 10-15 分钟
+- **首次部署**: 15-20 分钟
 - **配置优化**: 5-10 分钟
-- **功能测试**: 2-3 分钟
 
 ## 📋 前置要求
 
-在开始之前，请确保您拥有：
-
-### 必需账户
-- ✅ [GitHub 账户](https://github.com) - 用于 Fork 项目
-- ✅ [Cloudflare 账户](https://cloudflare.com) - 用于部署和托管
-- ✅ [Telegram 账户](https://telegram.org) - 用于创建 Bot 和频道
-
-### 可选账户
-- 🔧 [ModerateContent 账户](https://moderatecontent.com) - 用于内容审查（可选）
+- ✅ [GitHub 账户](https://github.com)
+- ✅ [Cloudflare 账户](https://cloudflare.com)
+- ❌ **无需** 服务器或购买域名 (可以使用 `*.pages.dev`)
 
 ## 🚀 快速部署流程
 
 ### 第一步：项目准备
 1. 访问 [kk-life GitHub 仓库](https://github.com/cf-pages/kk-life)
 2. 点击右上角的 **Fork** 按钮
-3. 等待 Fork 完成
 
-### 第二步：Cloudflare Pages 部署
-1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)
-2. 进入 **Pages** 页面
-3. 点击 **创建项目** → **连接到 Git 提供程序**
-4. 选择您刚才 Fork 的仓库
-5. 配置构建设置（使用默认设置即可）
-6. 点击 **部署站点**
+### 第二步：资源准备 (Cloudflare Dashboard)
+1. **R2 存储**: 创建一个 Bucket (推荐命名 `kk-life-storage`)
+2. **D1 数据库**: 创建一个 Database (推荐命名 `kk-life-db`)
 
-### 第三步：Telegram Bot 配置
-详细步骤请参考：[安装部署指南](installation.md#telegram-配置)
+### 第三步：Pages 部署
+1. 进入 Cloudflare Pages -> **Create application** -> **Connect to Git**
+2. 选择 Fork 的仓库，框架选择 **Vue**
+3. **重要**：在 **Settings** -> **Functions** 中绑定 D1 (`DB`) 和 R2 (`R2_BUCKET`)
+4. 在 **Settings** -> **Environment variables** 设置管理员账号 (`BASIC_USER`, `BASIC_PASS`, `JWT_SECRET`)
 
-### 第四步：环境变量设置
-在 Cloudflare Pages 后台设置以下环境变量：
-- `TG_Bot_Token` - Telegram Bot Token
-- `TG_Chat_ID` - Telegram 频道 ID
-
-### 第五步：功能测试
-按照 [首次上传教程](first-upload.md) 验证功能。
+### 第四步：初始化数据库
+1. 部署完成后，在 D1 控制台 或使用 Wrangler 运行 `scripts/init-database.sql`
+2. 这将创建必要的表结构 (Orders, Files, etc.)
 
 ## 📖 详细指南
 
-- **[📋 安装部署指南](installation.md)** - 详细的部署步骤和配置说明
-- **[🎯 首次上传教程](first-upload.md)** - 完成部署后的功能验证
+- **[📋 安装部署指南](installation.md)** - 包含图文的详细步骤及故障排除
+- **[🎯 首次上传教程](first-upload.md)** - 验证部署是否成功
 
 ## ❓ 常见问题
 
-### Q: 部署失败怎么办？
-A: 检查 GitHub 仓库是否正确 Fork，确保 Cloudflare Pages 有访问权限。
+### Q: 必须绑定域名吗？
+A: 不需要，默认提供的 `*.pages.dev` 目前已支持 HTTPS 和 R2 访问。
 
-### Q: 上传失败怎么办？
-A: 确认 Telegram Bot Token 和 Chat ID 配置正确，Bot 已添加为频道管理员。
+### Q: 为什么无法登录后台？
+A: 请检查环境变量 `JWT_SECRET` 是否设置，以及 `BASIC_USER` 密码是否正确。
 
-### Q: 图片无法访问怎么办？
-A: 检查域名是否正确，确认部署已完成且无错误。
+### Q: 上传提示 "Internal Server Error"？
+A: 通常是因为 R2 未正确绑定 (`R2_BUCKET`) 或数据库未初始化。
 
 ## 🔗 相关链接
 
-- [用户手册](../user-manual/README.md) - 详细的使用指南
-- [管理员手册](../admin-manual/README.md) - 后台管理功能
-- [故障排除](../deployment/README.md#故障排除) - 常见问题解决方案
-
-## 💡 小贴士
-
-- 建议先在测试环境验证功能后再正式使用
-- 定期备份重要配置信息
-- 关注项目更新以获取最新功能
+- [用户手册](../user-manual/README.md)
+- [管理员手册](../admin-manual/README.md)
+- [部署故障排除](../deployment/README.md)
 
 ---
 
-🎉 **恭喜！** 完成快速开始后，您就可以开始使用 kk-life 了！
+🎉 **恭喜！** 完成部署后，您拥有了一个企业级的 Sales & File 系统！

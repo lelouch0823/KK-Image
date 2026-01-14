@@ -53,3 +53,10 @@ kk-life 支持强大的多存储策略引擎，支持 R2, S3, Telegram 及其组
 - `disable_telemetry`: `"true"` (禁用匿名 usage 统计)
 - `ModerateContentApiKey`: 内容审查 API Key
 - `SENTRY_DSN`: Sentry 错误追踪 DSN
+- `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`: Cloudflare Turnstile 验证配置
+
+## 📱 微信小程序集成
+仅当需要启用销售端小程序一键登录时配置：
+
+- `WECHAT_APPID`: 小程序 AppID
+- `WECHAT_SECRET`: 小程序 AppSecret

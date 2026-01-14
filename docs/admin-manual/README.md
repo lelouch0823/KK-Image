@@ -63,6 +63,12 @@
 - 使用量统计
 - 告警设置
 
+#### [💼 销售管理](sales-management.md)
+管理销售团队和订单系统：
+- 销售人员账号创建
+- 微信绑定流程说明
+- 订单权限管理
+
 **监控内容**:
 - 系统性能指标
 - 错误和异常
@@ -281,7 +287,7 @@ disable_telemetry=false
 ### 技术文档
 - **[快速开始](../quick-start/README.md)** - 基础部署指南
 - **[开发者指南](../developer-guide/README.md)** - 技术实现详解
-- **[API 文档](../api-docs/README.md)** - 接口使用说明
+- **[API 文档](../api/README.md)** - 接口使用说明
 
 ### 工具资源
 - **[部署指南](../deployment/README.md)** - 生产环境部署

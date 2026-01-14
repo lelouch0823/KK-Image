@@ -1,0 +1,19 @@
+<!--components/nav-bar/nav-bar.wxml-->
+<view class="nav-bar" style="height: {{headerHeight}}px; padding-top: {{statusBarHeight}}px;">
+  <view class="nav-content" style="height: {{navContentHeight}}px;">
+    <!-- 返回按钮 -->
+    <view class="nav-back" bindtap="handleBack">
+      <text wx:if="{{showBack}}" class="back-icon">‹</text>
+    </view>
+    
+    <!-- 标题 -->
+    <text class="nav-title">{{title}}</text>
+    
+    <!-- 右侧操作 -->
+    <view class="nav-action" bindtap="handleAction">
+      <text wx:if="{{actionText}}">{{actionText}}</text>
+    </view>
+  </view>
+</view>
+<!-- 占位符，防止内容被遮挡 -->
+<view style="height: {{headerHeight}}px;"></view>

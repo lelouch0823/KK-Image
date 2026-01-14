@@ -1,0 +1,11 @@
+@import '../../styles/variables.scss';
+
+.status-badge {
+    padding: 4rpx 12rpx;
+    border-radius: 8rpx;
+    font-size: $font-size-xs;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}

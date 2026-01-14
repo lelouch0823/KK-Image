@@ -8,7 +8,7 @@
 
 ## 2. 核心状态 (Current Status)
 
-> **版本**: 2.0.0 (SOTA Edition)  
+> **版本**: 2.1.0 (WeChat Edition)  
 > **状态**: 🟢 生产就绪
 
 ### ✅ 核心业务模块
@@ -20,8 +20,8 @@
     - 支持多种展示模板 (画廊、清单、瀑布流、作品集)
     - 细粒度权限 (密码/过期时间/公开范围)
 - **订单管理系统 (OMS)**:
-    - 销售端 (H5): 快速下单、状态追踪、修正反馈
-    - 管理端 (Web): 订单审核、状态流转、时间轴记录
+    - **销售端 (WeChat Mini Program)**: 基于 Skyline 渲染的微信小程序，支持一键登录、快速开单
+    - **管理端 (Web)**: 订单审核、状态流转、时间轴记录
 - **客户关系管理 (CRM-lite)**:
     - 客户档案、历史订单关联、标签管理
 - **通知系统**:
@@ -39,10 +39,11 @@
 
 ## 3. 详细技术栈
 
-### 前端 (Client)
+### 前端 (Client & Mini Program)
 | 模块 | 技术选型 | 说明 |
 |------|----------|------|
-| **Core** | Vue 3.4+ | Composition API, `<script setup>` |
+| **Web Core** | Vue 3.4+ | Composition API, `<script setup>` |
+| **Mini Program** | **WeChat Native** | Skyline 渲染引擎, TypeScript |
 | **Build** | Vite 5.x | 极速构建，Rollup 打包 |
 | **UI** | **Tailwind CSS v4** | Utility-first, 零运行时 CSS |
 | **Icons** | Heroicons (SVG) | 直接内联 SVG，无字体依赖 |
@@ -75,6 +76,7 @@ kk-life/
 │   │   └── v1/             # 公共/旧版接口
 │   ├── lib/                # 后端工具库 (db, auth, validation)
 │   └── utils/              # 通用辅助函数
+├── minisales/              # 微信小程序源码 (Sales App)
 ├── migrations/             # D1 数据库迁移脚本
 ├── docs/                   # 项目文档
 └── public/                 # 静态资源

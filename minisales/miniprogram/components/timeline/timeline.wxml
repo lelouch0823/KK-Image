@@ -1,0 +1,39 @@
+<wxs src="../../utils/format.wxs" module="format" />
+
+<view class="timeline">
+  <view 
+    wx:for="{{items}}" 
+    wx:key="id" 
+    class="timeline-item"
+  >
+    <view class="timeline-left">
+      <view class="timeline-dot"></view>
+      <view wx:if="{{index !== items.length - 1}}" class="timeline-line"></view>
+    </view>
+    <view class="timeline-content">
+      <view class="timeline-header">
+        <text class="timeline-actor">{{item.actorName || '系统'}}</text>
+        <text class="timeline-time">{{format.formatTime(item.createdAt)}}</text>
+      </view>
+      <view class="timeline-body">
+        <!-- 状态变更 -->
+        <block wx:if="{{item.actionType === 'status_changed'}}">
+          <text>状态变更为</text>
+          <status-badge status="{{item.newValue}}" small></status-badge>
+        </block>
+        
+        <!-- 创建订单 -->
+        <text wx:elif="{{item.actionType === 'created'}}">创建了订单</text>
+        
+        <!-- 留言 -->
+        <text wx:elif="{{item.actionType === 'comment'}}" class="timeline-comment">{{item.comment}}</text>
+        
+        <!-- 字段更新 -->
+        <text wx:elif="{{item.actionType === 'field_updated'}}">更新了 {{item.fieldName}}</text>
+        
+        <!-- 其他 -->
+        <text wx:else>{{item.actionType}}</text>
+      </view>
+    </view>
+  </view>
+</view>

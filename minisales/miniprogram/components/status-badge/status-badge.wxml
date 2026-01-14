@@ -1,0 +1,7 @@
+<!--components/status-badge/status-badge.wxml-->
+<view 
+  class="status-badge"
+  style="background-color: {{config.bgColor}}; color: {{config.color}};"
+>
+  <text>{{config.label}}</text>
+</view>

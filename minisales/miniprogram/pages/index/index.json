@@ -1,5 +1,7 @@
 {
   "usingComponents": {
-    "navigation-bar": "/components/navigation-bar/navigation-bar"
-  }
+    "status-badge": "../../components/status-badge/status-badge"
+  },
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true
 }

@@ -69,6 +69,8 @@
 | `BASIC_PASS` | 是 | 后台管理员密码 |
 | `JWT_SECRET` | 是 | JWT 签名密钥 (生成一个随机长字符串) |
 | `STORAGE_PROVIDER`| 否 | 默认 `r2`，可选 `telegram`, `s3` |
+| `WECHAT_APPID` | 否 | 销售端小程序 AppID (可选) |
+| `WECHAT_SECRET` | 否 | 销售端小程序 Secret (可选) |
 
 ### 步骤 6: 初始化数据库 (Schema Setup)
 

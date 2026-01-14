@@ -1,6 +1,6 @@
 # 系统概览
 
-本文档提供 kk-life 系统的整体架构概览，帮助您快速理解系统的核心组件和工作原理。
+本文档提供 kk-life 系统的整体架构概览。
 
 ## 🏗️ 系统架构图
 
@@ -9,175 +9,112 @@ graph TB
     subgraph "用户层"
         U1[Web 用户]
         U2[API 用户]
-        U3[管理员用户]
+        U3[管理员]
+        U4[销售人员]
     end
     
-    subgraph "Cloudflare 全球网络"
+    subgraph "Cloudflare 边缘网络"
         CDN[Cloudflare CDN]
-        CF[Cloudflare Pages]
-        KV[Cloudflare KV]
+        Pages[Cloudflare Pages]
     end
     
-    subgraph "应用服务层"
-        subgraph "Hybrid Runtime"
-            PF[Pages Functions<br/>Filesystem Routing]
-            Hono[Hono Framework<br/>Middleware Engine]
-        end
-        
-        subgraph "核心功能"
-            UF[上传模块<br/>upload.js]
-            FF[文件服务<br/>file/*]
-            API[业务 API<br/>manage/*, sales/*]
+    subgraph "应用服务层 (Pages Functions)"
+        subgraph "API 路由"
+            ManageAPI[/api/manage/*<br/>管理端]
+            SalesAPI[/api/sales/*<br/>销售端]
+            SpaceAPI[/api/space/*<br/>访客端]
         end
         
         subgraph "静态资源"
-            HTML[前端页面<br/>index.html, admin.html]
-            CSS[样式文件]
-            JS[JavaScript 脚本]
+            Admin[admin.html<br/>Vue 3 SPA]
+            Sales[sales.html<br/>销售后台]
+            Space[space.html<br/>公开画廊]
         end
     end
     
-    subgraph "存储层"
-        TG[Telegram Bot API<br/>文件存储]
-        TGCH[Telegram Channel<br/>文件托管]
+    subgraph "数据层"
+        D1[(D1 Database<br/>SQLite)]
+        R2[(R2 Storage<br/>对象存储)]
     end
     
     subgraph "外部服务"
         MC[ModerateContent API<br/>内容审查]
-        ST[Sentry<br/>错误监控]
+        Sentry[Sentry<br/>错误监控]
+        WeChat[微信 API<br/>小程序登录]
     end
     
     U1 --> CDN
     U2 --> CDN
     U3 --> CDN
-    CDN --> CF
-    CF --> PF
-    CF --> Hono
-    PF --> UF
-    PF --> API
-    Hono --> API
-    CF --> HTML
-    
-    PF --> FF
-    UF --> TG
-    FF --> TG
-    MF --> KV
-    FF --> KV
-    UF --> MC
-    FF --> MC
-    TG --> TGCH
-    CF --> ST
-    
-    classDef userClass fill:#e1f5fe
-    classDef cloudflareClass fill:#fff3e0
-    classDef appClass fill:#f3e5f5
-    classDef storageClass fill:#e8f5e8
-    classDef externalClass fill:#fce4ec
-    
-    class U1,U2,U3 userClass
-    class CDN,CF,KV cloudflareClass
-    class UF,FF,MF,HTML,CSS,JS appClass
-    class TG,TGCH storageClass
-    class MC,ST externalClass
+    U4 --> CDN
+    CDN --> Pages
+    Pages --> ManageAPI
+    Pages --> SalesAPI
+    Pages --> SpaceAPI
+    Pages --> Admin
+    ManageAPI --> D1
+    ManageAPI --> R2
+    SalesAPI --> D1
+    SalesAPI --> WeChat
+    SpaceAPI --> D1
+    SpaceAPI --> R2
+    ManageAPI --> MC
+    Pages --> Sentry
 ```
 
 ## 🔧 核心组件
 
-### 1. 用户接入层
+### 1. 用户角色
 
-**Web 用户**:
-- 通过浏览器访问图床服务
-- 上传和管理图片文件
-- 使用响应式 Web 界面
-
-**API 用户**:
-- 通过 REST API 集成服务
-- 程序化上传和管理文件
-- 支持批量操作
-
-**管理员用户**:
-- 访问后台管理界面
-- 监控系统状态和使用情况
-- 管理用户和内容
+| 角色 | 入口 | 认证方式 |
+|------|------|----------|
+| **管理员** | `/admin` | JWT (Basic Auth 登录) |
+| **销售人员** | `/order/:token` | Access Token + JWT |
+| **访客** | `/space/:token` | Share Token + 密码 (可选) |
+| **API 用户** | `/api/*` | X-API-Key 或 JWT |
 
 ### 2. Cloudflare 基础设施
 
-**Cloudflare CDN**:
-- 全球 200+ 节点分发
-- 智能缓存和加速
-- DDoS 防护和安全过滤
-- 自动 HTTPS 和 SSL 证书
-
-**Cloudflare Pages**:
-- 静态网站托管
-- Serverless Functions 运行环境
-- 自动部署和版本管理
-- 边缘计算能力
-
-**Cloudflare KV**:
-- 全球分布式键值存储
-- 文件元数据存储
-- 配置信息管理
-- 毫秒级读取性能
-
-### 3. 应用服务层 (Hybrid Architecture)
-
-系统采用 **Pages Functions + Hono** 的混合架构，结合了文件系统路由的便捷性和 Hono 框架的中间件能力。
-
-**A. Cloudflare Pages Functions (Primary API)**:
-基于文件系统的路由，处理绝大多数业务逻辑。遵循 SOTA 标准。
+**Pages Functions (Serverless)**:
 ```
 functions/
 ├── api/
-│   ├── manage/              # 管理端 API (Admin)
-│   │   ├── orders/          # 订单管理
-│   │   ├── customers/       # CRM
-│   │   └── upload.js        # 文件上传
-│   ├── sales/               # 销售端 API
-│   ├── gallery/             # 公开画廊 API
-│   └── cron/                # 定时任务
-└── utils/                   # 共享工具函数
+│   ├── manage/         # 需要 Admin JWT
+│   │   ├── orders/     # 订单管理
+│   │   ├── customers/  # CRM
+│   │   ├── salespersons/
+│   │   └── dashboard/
+│   ├── sales/          # 需要 Sales Token + JWT
+│   │   ├── [token]/    # 动态路由
+│   │   └── wechat-login.js  # 微信登录
+│   └── space/          # 公开/密码访问
+├── file/               # 文件服务
+└── _middleware.js      # 全局中间件
 ```
 
-**B. Hono Framework (Middleware & Compat)**:
-处理部分中间件逻辑、复杂路由和 V1 兼容接口。
-- **Entry**: `functions/[[path]].js` (Catch-all)
-- **Features**: 全局错误处理、CORS、JWT 校验中间件复用。
+**D1 Database (SQLite)**:
+- 核心业务数据: `orders`, `customers`, `salespersons`
+- 文件元数据: `files`, `blobs`, `folders`
+- 系统配置: `users`, `webhooks`, `notifications`
 
-**静态资源**:
-- **index.html** - 主上传页面
-- **admin.html** - 管理后台界面 (Vue3 SPA)
-- **sales.html** - 销售端界面 (Vue3 SPA)
-- **gallery.html** - 公开画廊界面
+**R2 Storage**:
+- 对象存储 (图片、视频、文档)
+- Key = SHA-256 哈希 (CAS 去重)
+- 支持 Signed URL 临时访问
 
+### 3. 数据模型
 
-### 4. 存储层
-
-**Telegram Bot API**:
-- 作为文件存储后端
-- 支持多种文件格式
-- 提供稳定的 API 接口
-- 全球分布式存储
-
-**Telegram Channel**:
-- 实际文件托管位置
-- 无限存储容量
-- 高可用性保证
-- 全球 CDN 分发
-
-### 5. 外部服务
-
-**ModerateContent API**:
-- 智能内容审查
-- 不当内容识别
-- 自动化审核流程
-- 可配置审查策略
-
-**Sentry 监控**:
-- 错误追踪和分析
-- 性能监控
-- 用户会话记录
-- 实时告警通知
+```mermaid
+erDiagram
+    SALESPERSONS ||--o{ ORDERS : creates
+    CUSTOMERS ||--o{ ORDERS : owns
+    ORDERS ||--o{ ORDER_TIMELINE : logs
+    ORDERS }o--o{ FILES : attachments
+    
+    FILES }o--|| BLOBS : "content_hash"
+    FOLDERS ||--o{ FILES : contains
+    SPACES }o--o{ FILES : highlights
+```
 
 ## 🔄 数据流程
 
@@ -185,192 +122,106 @@ functions/
 
 ```mermaid
 sequenceDiagram
-    participant User as 用户
-    participant CDN as Cloudflare CDN
-    participant CF as Pages Functions
-    participant TG as Telegram API
-    participant KV as Cloudflare KV
-    participant MC as 内容审查
+    participant Client as 客户端
+    participant Pages as Pages Function
+    participant D1 as D1 Database
+    participant R2 as R2 Storage
     
-    User->>CDN: 1. 上传文件请求
-    CDN->>CF: 2. 路由到上传函数
-    CF->>CF: 3. 文件验证和预处理
+    Client->>Pages: 1. POST /api/upload (FormData)
+    Pages->>Pages: 2. 计算 SHA-256 哈希
+    Pages->>D1: 3. 查询 blobs 表 (秒传检查)
     
-    alt 启用内容审查
-        CF->>MC: 4a. 发送内容审查请求
-        MC-->>CF: 4b. 返回审查结果
+    alt 哈希已存在 (秒传)
+        D1-->>Pages: 返回现有记录
+        Pages->>D1: 4a. 创建 files 记录 (ref_count++)
+    else 哈希不存在
+        Pages->>R2: 4b. 上传文件 (Key = hash)
+        Pages->>D1: 5. 创建 blobs + files 记录
     end
     
-    CF->>TG: 5. 上传文件到 Telegram
-    TG-->>CF: 6. 返回文件 ID 和信息
-    CF->>KV: 7. 保存文件元数据
-    CF-->>CDN: 8. 返回文件访问链接
-    CDN-->>User: 9. 响应上传结果
+    Pages-->>Client: 6. 返回文件 URL
 ```
 
-### 文件访问流程
+### 订单创建流程
 
 ```mermaid
 sequenceDiagram
-    participant User as 用户
-    participant CDN as Cloudflare CDN
-    participant CF as Pages Functions
-    participant KV as Cloudflare KV
-    participant TG as Telegram API
-    participant Cache as CDN 缓存
+    participant Sales as 销售端 (小程序)
+    participant API as Sales API
+    participant D1 as D1 Database
+    participant Notify as 通知服务
     
-    User->>CDN: 1. 请求文件
-    
-    alt 缓存命中
-        CDN-->>User: 2a. 直接返回缓存文件
-    else 缓存未命中
-        CDN->>CF: 2b. 路由到文件函数
-        CF->>KV: 3. 查询文件元数据
-        KV-->>CF: 4. 返回文件信息
-        CF->>CF: 5. 检查访问权限
-        CF->>TG: 6. 从 Telegram 获取文件
-        TG-->>CF: 7. 返回文件内容
-        CF-->>CDN: 8. 返回文件数据
-        CDN->>Cache: 9. 缓存文件
-        CDN-->>User: 10. 返回文件给用户
-    end
+    Sales->>API: 1. POST /api/sales/:token/orders
+    API->>API: 2. 验证 JWT (authenticateSalesperson)
+    API->>D1: 3. 创建订单 + 时间轴记录
+    API->>D1: 4. 关联订单附件 (order_files)
+    API->>Notify: 5. 创建管理员通知
+    API-->>Sales: 6. 返回订单号
 ```
 
 ## 🔒 安全架构
 
-### 网络安全
+### 认证机制
 
-**传输层安全**:
-- 强制 HTTPS 连接
-- TLS 1.3 加密协议
-- HTTP 严格传输安全 (HSTS)
-- 自动证书管理
+```
+┌───────────────────────────────────────────────────────┐
+│                    认证层级                           │
+├───────────────────────────────────────────────────────┤
+│  Level 3: Admin JWT                                   │
+│  - 完全控制 (订单/CRM/销售管理)                        │
+│  - 获取方式: POST /api/auth/login                     │
+├───────────────────────────────────────────────────────┤
+│  Level 2: Sales JWT                                   │
+│  - 受限访问 (个人订单/上传)                            │
+│  - 获取方式: POST /api/sales/:token/auth              │
+│  - 或: POST /api/sales/wechat-login (微信)            │
+├───────────────────────────────────────────────────────┤
+│  Level 1: Share Token (Guest)                         │
+│  - 只读访问 (公开空间)                                 │
+│  - 可选密码保护                                        │
+└───────────────────────────────────────────────────────┘
+```
 
-**应用层防护**:
-- 跨域资源共享 (CORS) 配置
-- 内容安全策略 (CSP)
-- 输入验证和输出编码
-- SQL 注入防护
+### D1 安全规范
 
-### 访问控制
+**强制参数绑定 (防 SQL 注入)**:
+```javascript
+// ❌ 错误
+await env.DB.prepare(`SELECT * FROM users WHERE id = '${id}'`).run();
 
-**认证机制**:
-- Basic Authentication 保护管理接口
-- 可选的 API 密钥验证
-- IP 白名单支持
-- 会话管理
+// ✅ 正确
+await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).run();
+```
 
-**权限管理**:
-- 基于角色的访问控制
-- 功能级权限划分
-- 资源级访问控制
-- 操作审计日志
+## 📈 性能优化
 
-### 内容安全
+### Smart Placement
 
-**内容审查**:
-- 自动内容检测
-- 人工审核流程
-- 黑白名单机制
-- 违规内容处理
+```toml
+# wrangler.toml
+[placement]
+mode = "smart"
+```
+Cloudflare 自动将 Functions 部署到距离 D1/R2 最近的节点。
 
-## 📈 性能特性
+### Batch API (批量写入)
 
-### 全球分发
+```javascript
+// ✅ SOTA: 使用 Batch 减少网络往返
+const statements = files.map(f => env.DB.prepare('INSERT...').bind(...));
+await env.DB.batch(statements);
+```
 
-**CDN 加速**:
-- 200+ 全球节点
-- 智能路由选择
-- 边缘缓存优化
-- 带宽自动优化
+### CAS 去重
 
-**缓存策略**:
-- 静态资源长期缓存
-- 动态内容智能缓存
-- 边缘计算优化
-- 缓存失效管理
-
-### 弹性扩展
-
-**自动扩容**:
-- 基于负载的自动扩展
-- 无服务器架构优势
-- 零运维成本
-- 按需付费模式
-
-**高可用性**:
-- 多区域部署
-- 故障自动转移
-- 服务降级策略
-- 99.9% 可用性保证
-
-## 🔍 监控体系
-
-### 应用监控
-
-**性能指标**:
-- 响应时间监控
-- 错误率统计
-- 吞吐量分析
-- 用户体验指标
-
-**业务监控**:
-- 上传成功率
-- 文件访问量
-- 存储使用情况
-- 用户活跃度
-
-### 基础设施监控
-
-**资源监控**:
-- CPU 和内存使用率
-- 网络带宽使用
-- 存储空间监控
-- 函数执行统计
-
-**告警机制**:
-- 实时错误告警
-- 性能阈值告警
-- 资源使用告警
-- 自定义业务告警
-
-## 🚀 技术优势
-
-### 现代化架构
-
-**无服务器优势**:
-- 零服务器管理
-- 自动扩展能力
-- 按使用量付费
-- 高可用性保证
-
-**云原生设计**:
-- 微服务架构
-- 容器化部署
-- 服务网格支持
-- DevOps 友好
-
-### 开发效率
-
-**快速部署**:
-- 一键部署到生产
-- 自动化 CI/CD
-- 版本回滚支持
-- 蓝绿部署
-
-**开发友好**:
-- 本地开发环境
-- 热重载支持
-- 完整的开发工具链
-- 丰富的文档和示例
+相同内容的文件只存储一份，通过 `ref_count` 管理引用。
 
 ## 🔗 相关文档
 
-- **[架构详解](architecture.md)** - 深入的技术架构说明
-- **[数据流程](data-flow.md)** - 详细的数据处理流程
-- **[安全架构](security.md)** - 完整的安全设计方案
-- **[开发者指南](../developer-guide/README.md)** - 开发和集成指南
+- **[安全架构](security.md)** - 详细安全设计
+- **[开发者指南](../developer-guide/README.md)** - 开发规范
+- **[API 文档](../api/README.md)** - 接口说明
 
 ---
 
-📊 **系统概览**: 这个架构设计确保了 kk-life 的高性能、高可用性、安全性和可扩展性。
+📊 **系统概览**: kk-life 采用 Cloudflare 全栈 Serverless 架构，确保了高性能、高可用性和低成本。

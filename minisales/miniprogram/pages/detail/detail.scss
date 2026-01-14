@@ -1,0 +1,134 @@
+@import '../../styles/variables.scss';
+
+.page {
+    min-height: 100vh;
+    background-color: $bg-page;
+    display: flex;
+    flex-direction: column;
+}
+
+// 导航栏
+// components/nav-bar
+
+
+// loading styles: 使用全局样式 (app.scss)
+
+// 状态卡片
+.status-card {
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-md;
+}
+
+.status-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+
+.order-no {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+}
+
+// section, section-title: 使用全局样式 (app.scss)
+
+// 图片滚动
+.image-scroll {
+    margin: 0 (-$spacing-lg);
+    padding: 0 $spacing-lg;
+}
+
+.image-list {
+    display: flex;
+    gap: $spacing-sm;
+}
+
+.product-image {
+    width: 200rpx;
+    height: 200rpx;
+    border-radius: $border-radius;
+    flex-shrink: 0;
+}
+
+// 信息行
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: $spacing-sm 0;
+    border-bottom: 1rpx solid $border-color;
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    &.remark {
+        flex-direction: column;
+        gap: $spacing-sm;
+    }
+}
+
+.info-label {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+}
+
+.info-value {
+    font-size: $font-size-sm;
+    color: $text-main;
+}
+
+// 时间轴
+// components/timeline
+
+
+// 留言栏
+.comment-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: $spacing-sm;
+    padding: $spacing-md $spacing-lg;
+    background-color: $bg-card;
+    border-top: 1rpx solid $border-color;
+}
+
+.comment-input {
+    flex: 1;
+    height: 80rpx;
+    padding: 0 $spacing-md;
+    background-color: $bg-page;
+    border-radius: $border-radius;
+    font-size: $font-size-base;
+}
+
+.comment-btn {
+    width: 140rpx;
+    height: 80rpx;
+    background-color: $color-primary;
+    color: #ffffff;
+    font-size: $font-size-sm;
+    font-weight: 500;
+    border-radius: $border-radius;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &[disabled] {
+        opacity: 0.5;
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}

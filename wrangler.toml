@@ -157,6 +157,11 @@ AI_MODEL_SWITCH_THRESHOLD = "5"
 TURNSTILE_SITE_KEY = "0x4AAAAAACJfZho-HoWMjX2s"
 TURNSTILE_SECRET_KEY = "0x4AAAAAACJfZgVVRfDSbOF7Kf9bU1kmmHI"
 
+# 微信小程序配置
+# 用于销售端一键登录 ({appid, secret} from mp.weixin.qq.com)
+WECHAT_APPID = ""
+WECHAT_SECRET = ""
+
 # 生产环境 KV 命名空间绑定
 [[env.production.kv_namespaces]]
 binding = "img_url"

@@ -1,0 +1,243 @@
+@import '../../styles/variables.scss';
+
+.page {
+    min-height: 100vh;
+    background-color: $bg-page;
+    display: flex;
+    flex-direction: column;
+}
+
+// 导航栏
+// 导航栏
+// components/nav-bar
+
+
+// 表单容器
+.form-container {
+    flex: 1;
+    padding: $spacing-md;
+}
+
+// 分区
+.section {
+    background-color: $bg-card;
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-md;
+}
+
+.section-title {
+    font-size: $font-size-sm;
+    font-weight: 600;
+    color: $text-main;
+    margin-bottom: $spacing-md;
+    display: block;
+}
+
+// 图片网格
+.image-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+}
+
+.image-item {
+    position: relative;
+    width: 200rpx;
+    height: 200rpx;
+    border-radius: $border-radius;
+    overflow: hidden;
+}
+
+.preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.upload-mask {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-spinner {
+    width: 48rpx;
+    height: 48rpx;
+    border: 4rpx solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.upload-success {
+    position: absolute;
+    right: $spacing-xs;
+    bottom: $spacing-xs;
+    width: 40rpx;
+    height: 40rpx;
+    background-color: $color-success;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    text {
+        color: #ffffff;
+        font-size: $font-size-xs;
+    }
+}
+
+.remove-btn {
+    position: absolute;
+    top: $spacing-xs;
+    right: $spacing-xs;
+    width: 40rpx;
+    height: 40rpx;
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    text {
+        color: #ffffff;
+        font-size: $font-size-lg;
+        line-height: 1;
+    }
+}
+
+.add-image-btn {
+    width: 200rpx;
+    height: 200rpx;
+    border: 2rpx dashed $border-color;
+    border-radius: $border-radius;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: $bg-hover;
+}
+
+.add-icon {
+    font-size: 56rpx;
+    color: $text-muted;
+    line-height: 1;
+}
+
+.add-text {
+    font-size: $font-size-xs;
+    color: $text-muted;
+    margin-top: $spacing-xs;
+}
+
+// 表单项
+.form-item {
+    margin-bottom: $spacing-md;
+
+    &.half {
+        flex: 1;
+    }
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.form-row {
+    display: flex;
+    gap: $spacing-md;
+}
+
+.form-label {
+    display: block;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    margin-bottom: $spacing-sm;
+
+    &.required::after {
+        content: '*';
+        color: $color-danger;
+        margin-left: 4rpx;
+    }
+}
+
+.form-input {
+    width: 100%;
+    height: 88rpx;
+    padding: 0 $spacing-md;
+    background-color: $bg-page;
+    border: 2rpx solid $border-color;
+    border-radius: $border-radius;
+    font-size: $font-size-base;
+    box-sizing: border-box;
+}
+
+.picker-input {
+    display: flex;
+    align-items: center;
+}
+
+.placeholder {
+    color: $text-muted;
+}
+
+.form-textarea {
+    width: 100%;
+    min-height: 160rpx;
+    padding: $spacing-md;
+    background-color: $bg-page;
+    border: 2rpx solid $border-color;
+    border-radius: $border-radius;
+    font-size: $font-size-base;
+    box-sizing: border-box;
+}
+
+// 底部栏
+.bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: $spacing-md $spacing-lg;
+    background-color: $bg-card;
+    border-top: 1rpx solid $border-color;
+}
+
+.upload-progress {
+    text-align: center;
+    margin-bottom: $spacing-sm;
+
+    text {
+        font-size: $font-size-xs;
+        color: $text-secondary;
+    }
+}
+
+.submit-btn {
+    width: 100%;
+    height: 96rpx;
+    background: linear-gradient(135deg, $color-primary 0%, #6366f1 100%);
+    color: #ffffff;
+    font-size: $font-size-base;
+    font-weight: 600;
+    border-radius: $border-radius;
+    border: none;
+
+    &[disabled] {
+        opacity: 0.6;
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}

@@ -39,10 +39,10 @@ kk-life 基于 Cloudflare Pages 的无服务器架构，支持快速部署和自
 - 变量更新和生效机制
 
 **核心变量**:
-- `TG_Bot_Token` - Telegram Bot 令牌
-- `TG_Chat_ID` - Telegram 频道 ID
-- `ModerateContentApiKey` - 内容审查 API
 - `BASIC_USER`/`BASIC_PASS` - 管理员认证
+- `JWT_SECRET` - JWT 签名密钥
+- `WECHAT_APPID`/`WECHAT_SECRET` - 微信小程序 (可选)
+- `ModerateContentApiKey` - 内容审查 API (可选)
 
 #### [🌐 自定义域名设置](custom-domain.md)
 配置自定义域名和 SSL 证书：
@@ -123,55 +123,37 @@ const securityHeaders = {
 ### wrangler.toml 配置
 
 ```toml
-name = "kk-image"
-compatibility_date = "2024-12-01"
-pages_build_output_dir = "dist"
-
-# 兼容性和性能设置
+name = "kk-life"
+compatibility_date = "2025-01-01"
+pages_build_output_dir = "./dist"
 compatibility_flags = ["nodejs_compat"]
 
-# 静态资源优化配置
-[build]
-command = "npm run build"
+[placement]
+mode = "smart"
 
-# 全局环境变量（开发和生产环境通用）
 [vars]
-# Telegram 配置（必需）- 请在 Cloudflare Pages 后台设置实际值
-TG_Bot_Token = "YOUR_TELEGRAM_BOT_TOKEN_HERE"
-TG_Chat_ID = "YOUR_TELEGRAM_CHAT_ID_HERE"
-
-# 内容审查配置（可选）
-ModerateContentApiKey = ""
-
-# 管理员认证配置（可选）
-BASIC_USER = ""
-BASIC_PASS = ""
-
-# 功能开关（可选）
-WhiteList_Mode = "false"
-disable_telemetry = "false"
-
-# 生产环境配置
-[env.production.vars]
-COMPRESS_STATIC_ASSETS = "true"
-
-# 开发环境配置
-[env.development]
-compatibility_date = "2024-12-01"
-
-[env.development.vars]
-COMPRESS_STATIC_ASSETS = "false"
-# 开发环境可以使用测试值
-TG_Bot_Token = "123456789:ABCdefGHIjklMNOpqrSTUvwxYZ"
-TG_Chat_ID = "-1001234567890"
+# 管理员认证 (生产环境应在 Dashboard 设置)
 BASIC_USER = "admin"
-BASIC_PASS = "123456"
+BASIC_PASS = ""
+JWT_SECRET = "change-me-in-production"
 
-# KV 命名空间配置
-[[kv_namespaces]]
-binding = "img_url"
-id = "local-kv-namespace"
-preview_id = "local-kv-namespace"
+# 存储配置
+STORAGE_PROVIDER = "r2"
+
+# 微信小程序 (可选)
+WECHAT_APPID = ""
+WECHAT_SECRET = ""
+
+# D1 数据库绑定
+[[d1_databases]]
+binding = "DB"
+database_name = "kk-life-db"
+database_id = "YOUR_D1_DATABASE_ID"
+
+# R2 存储桶绑定
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "kk-life-storage"
 ```
 
 ### package.json 脚本
@@ -352,8 +334,8 @@ export async function onRequest(context) {
 **资源使用优化**:
 - 监控 Cloudflare 使用量
 - 优化函数执行时间
-- 减少 KV 读写次数
-- 合理配置缓存策略
+- 使用 D1 Batch API 减少数据库往返
+- 合理配置 R2 缓存策略
 
 **成本监控**:
 - 设置使用量告警

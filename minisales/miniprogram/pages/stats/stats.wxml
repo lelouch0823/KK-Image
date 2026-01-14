@@ -1,0 +1,91 @@
+<!--pages/stats/stats.wxml-->
+<view class="page">
+  <!-- 顶部导航 -->
+  <view class="header" style="padding-top: {{statusBarHeight}}px; height: {{headerHeight}}px;">
+    <view class="header-content" style="height: {{navContentHeight}}px;">
+      <view class="header-info">
+        <text class="header-title">业绩统计</text>
+        <text class="header-subtitle">{{user.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <scroll-view
+    class="content"
+    scroll-y
+    refresher-enabled
+    refresher-triggered="{{loading}}"
+    bindrefresherrefresh="onPullDownRefresh"
+  >
+    <!-- 统计卡片 -->
+    <view class="stats-grid">
+      <!-- 总订单数 -->
+      <view class="stat-card blue">
+        <text class="stat-label">总订单数</text>
+        <view class="stat-value">
+          <view wx:if="{{loading}}" class="skeleton"></view>
+          <text wx:else>{{stats.totalOrders}}</text>
+        </view>
+      </view>
+
+      <!-- 已完成 -->
+      <view class="stat-card green">
+        <text class="stat-label">已完成</text>
+        <view class="stat-value">
+          <view wx:if="{{loading}}" class="skeleton"></view>
+          <text wx:else>{{stats.completedOrders}}</text>
+        </view>
+      </view>
+
+      <!-- 本月订单 -->
+      <view class="stat-card purple full-width">
+        <view class="stat-header">
+          <view>
+            <text class="stat-label">本月订单</text>
+            <view class="stat-value large">
+              <view wx:if="{{loading}}" class="skeleton"></view>
+              <text wx:else>{{stats.monthOrders}}</text>
+            </view>
+          </view>
+          
+          <!-- 趋势图 -->
+          <view wx:if="{{!loading && stats.monthlyTrend.length > 0}}" class="trend-chart">
+            <view
+              wx:for="{{stats.monthlyTrend}}"
+              wx:key="date"
+              class="trend-bar"
+              style="height: {{item.count / maxCount * 100}}%;"
+            ></view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 最近趋势 -->
+    <view class="section">
+      <text class="section-title">近期趋势</text>
+      <view wx:if="{{loading}}" class="trend-loading">
+        <view class="loading-spinner small"></view>
+      </view>
+      <view wx:elif="{{stats.monthlyTrend.length === 0}}" class="empty-trend">
+        <text>暂无数据</text>
+      </view>
+      <view wx:else class="trend-list">
+        <view
+          wx:for="{{stats.monthlyTrend}}"
+          wx:key="date"
+          class="trend-item"
+        >
+          <text class="trend-date">{{item.date}}</text>
+          <view class="trend-bar-container">
+            <view
+              class="trend-bar-fill"
+              style="width: {{item.count / maxCount * 100}}%;"
+            ></view>
+          </view>
+          <text class="trend-count">{{item.count}}</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

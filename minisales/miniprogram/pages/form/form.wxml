@@ -1,0 +1,183 @@
+<!--pages/form/form.wxml-->
+<view class="page">
+  <!-- 导航栏 -->
+  <nav-bar title="新建订单"></nav-bar>
+
+  <scroll-view class="form-container" scroll-y>
+    <!-- 图片上传区域 -->
+    <view class="section">
+      <text class="section-title">产品图片</text>
+      <view class="image-grid">
+        <!-- 已选图片 -->
+        <view
+          wx:for="{{images}}"
+          wx:key="tempPath"
+          class="image-item"
+        >
+          <image
+            src="{{item.url || item.tempPath}}"
+            mode="aspectFill"
+            class="preview-image"
+            data-index="{{index}}"
+            bindtap="previewImage"
+          ></image>
+          <!-- 上传中遮罩 -->
+          <view wx:if="{{item.uploading}}" class="upload-mask">
+            <view class="upload-spinner"></view>
+          </view>
+          <!-- 已上传标记 -->
+          <view wx:if="{{item.uploaded}}" class="upload-success">
+            <text>✓</text>
+          </view>
+          <!-- 删除按钮 -->
+          <view
+            class="remove-btn"
+            data-index="{{index}}"
+            catchtap="removeImage"
+          >
+            <text>×</text>
+          </view>
+        </view>
+
+        <!-- 添加按钮 -->
+        <view
+          wx:if="{{images.length < 9}}"
+          class="add-image-btn"
+          bindtap="chooseImage"
+        >
+          <text class="add-icon">+</text>
+          <text class="add-text">添加图片</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 基本信息 -->
+    <view class="section">
+      <text class="section-title">基本信息</text>
+      
+      <view class="form-item">
+        <text class="form-label required">客户名称</text>
+        <input
+          class="form-input"
+          placeholder="请输入客户名称"
+          value="{{form.name}}"
+          data-field="name"
+          bindinput="onInput"
+        />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">品牌</text>
+        <input
+          class="form-input"
+          placeholder="请输入品牌"
+          value="{{form.brand}}"
+          data-field="brand"
+          bindinput="onInput"
+        />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">系列</text>
+        <input
+          class="form-input"
+          placeholder="请输入系列"
+          value="{{form.series}}"
+          data-field="series"
+          bindinput="onInput"
+        />
+      </view>
+    </view>
+
+    <!-- 规格信息 -->
+    <view class="section">
+      <text class="section-title">规格信息</text>
+
+      <view class="form-row">
+        <view class="form-item half">
+          <text class="form-label">尺寸</text>
+          <input
+            class="form-input"
+            placeholder="如: 120x60"
+            value="{{form.size}}"
+            data-field="size"
+            bindinput="onInput"
+          />
+        </view>
+        <view class="form-item half">
+          <text class="form-label">颜色</text>
+          <input
+            class="form-input"
+            placeholder="如: 白色"
+            value="{{form.color}}"
+            data-field="color"
+            bindinput="onInput"
+          />
+        </view>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">材质</text>
+        <input
+          class="form-input"
+          placeholder="请输入材质"
+          value="{{form.material}}"
+          data-field="material"
+          bindinput="onInput"
+        />
+      </view>
+    </view>
+
+    <!-- 其他信息 -->
+    <view class="section">
+      <text class="section-title">其他信息</text>
+
+      <view class="form-item">
+        <text class="form-label">期望到货日期</text>
+        <picker
+          mode="date"
+          start="{{minDate}}"
+          end="{{maxDate}}"
+          value="{{form.deadline}}"
+          bindchange="onDateChange"
+        >
+          <view class="form-input picker-input">
+            <text wx:if="{{form.deadline}}">{{form.deadline}}</text>
+            <text wx:else class="placeholder">选择日期</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">备注</text>
+        <textarea
+          class="form-textarea"
+          placeholder="请输入备注信息"
+          value="{{form.remark}}"
+          data-field="remark"
+          bindinput="onInput"
+          maxlength="500"
+        ></textarea>
+      </view>
+    </view>
+
+    <!-- 底部间距 -->
+    <view style="height: 200rpx;"></view>
+  </scroll-view>
+
+  <!-- 底部按钮 -->
+  <view class="bottom-bar safe-area-bottom">
+    <!-- 上传进度 -->
+    <view wx:if="{{uploadProgress.total > 0}}" class="upload-progress">
+      <text>上传图片 {{uploadProgress.current}}/{{uploadProgress.total}}</text>
+    </view>
+    
+    <button
+      class="submit-btn"
+      bindtap="handleSubmit"
+      disabled="{{submitting}}"
+    >
+      {{submitting ? '提交中...' : '提交订单'}}
+    </button>
+  </view>
+</view>

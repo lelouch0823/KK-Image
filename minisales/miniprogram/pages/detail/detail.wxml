@@ -1,0 +1,115 @@
+<!--pages/detail/detail.wxml-->
+<view class="page">
+  <!-- 导航栏 -->
+  <nav-bar 
+    title="订单详情" 
+    actionText="复制" 
+    bind:action="handleDuplicate"
+  ></nav-bar>
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 订单内容 -->
+  <scroll-view wx:elif="{{order}}" class="content" scroll-y>
+    <!-- 状态卡片 -->
+    <view class="status-card" style="background-color: {{statusConfig[order.status].bgColor}};">
+      <view class="status-header">
+        <status-badge status="{{order.status}}"></status-badge>
+        <text class="order-no">{{order.orderNo}}</text>
+      </view>
+    </view>
+
+    <!-- 图片区域 -->
+    <view wx:if="{{order.files.length > 0}}" class="section">
+      <text class="section-title">产品图片</text>
+      <scroll-view class="image-scroll" scroll-x>
+        <view class="image-list">
+          <image
+            wx:for="{{order.files}}"
+            wx:key="id"
+            src="{{item.url}}"
+            mode="aspectFill"
+            class="product-image"
+            data-url="{{item.url}}"
+            bindtap="previewImage"
+          ></image>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 订单信息 -->
+    <view class="section">
+      <text class="section-title">订单信息</text>
+      
+      <view wx:if="{{order.currentData.name}}" class="info-row">
+        <text class="info-label">客户名称</text>
+        <text class="info-value">{{order.currentData.name}}</text>
+      </view>
+      
+      <view wx:if="{{order.currentData.brand}}" class="info-row">
+        <text class="info-label">品牌</text>
+        <text class="info-value">{{order.currentData.brand}}</text>
+      </view>
+      
+      <view wx:if="{{order.currentData.series}}" class="info-row">
+        <text class="info-label">系列</text>
+        <text class="info-value">{{order.currentData.series}}</text>
+      </view>
+      
+      <view wx:if="{{order.currentData.size}}" class="info-row">
+        <text class="info-label">尺寸</text>
+        <text class="info-value">{{order.currentData.size}}</text>
+      </view>
+      
+      <view wx:if="{{order.currentData.color}}" class="info-row">
+        <text class="info-label">颜色</text>
+        <text class="info-value">{{order.currentData.color}}</text>
+      </view>
+      
+      <view wx:if="{{order.currentData.material}}" class="info-row">
+        <text class="info-label">材质</text>
+        <text class="info-value">{{order.currentData.material}}</text>
+      </view>
+      
+      <view wx:if="{{order.currentData.deadline}}" class="info-row">
+        <text class="info-label">期望到货</text>
+        <text class="info-value">{{order.currentData.deadline}}</text>
+      </view>
+      
+      <view wx:if="{{order.currentData.remark}}" class="info-row remark">
+        <text class="info-label">备注</text>
+        <text class="info-value">{{order.currentData.remark}}</text>
+      </view>
+    </view>
+
+    <!-- 时间轴 -->
+    <view class="section">
+      <text class="section-title">订单动态</text>
+      <timeline items="{{order.timeline}}"></timeline>
+    </view>
+
+    <!-- 底部间距 -->
+    <view style="height: 200rpx;"></view>
+  </scroll-view>
+
+  <!-- 留言输入框 -->
+  <view wx:if="{{order}}" class="comment-bar safe-area-bottom">
+    <input
+      class="comment-input"
+      placeholder="输入留言..."
+      value="{{comment}}"
+      bindinput="onCommentInput"
+    />
+    <button
+      class="comment-btn"
+      bindtap="handleSubmitComment"
+      disabled="{{!comment.trim() || submittingComment}}"
+    >
+      发送
+    </button>
+  </view>
+</view>

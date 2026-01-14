@@ -310,9 +310,9 @@ Closes #123
 ### 贡献数据
 
 **代码统计**:
-- 总代码行数：~5,000 行
-- 主要语言：JavaScript (85%), HTML (10%), CSS (5%)
-- 文件数量：~50 个文件
+- 总代码行数：~10,000+ 行
+- 技术栈：Vue 3 (Frontend) + Node.js (Functions)
+- 核心依赖：Tailwind CSS v4, Pinia, D1, R2
 - 测试覆盖率：80%+
 
 **社区活跃度**:
@@ -326,7 +326,7 @@ Closes #123
 ### 技术文档
 - **[开发者指南](../developer-guide/README.md)** - 技术实现详解
 - **[架构文档](../architecture/README.md)** - 系统架构设计
-- **[API 文档](../api-docs/README.md)** - 接口使用说明
+- **[API 文档](../api/README.md)** - 接口使用说明
 
 ### 项目资源
 - **[GitHub 仓库](https://github.com/cf-pages/kk-life)** - 源代码和问题跟踪

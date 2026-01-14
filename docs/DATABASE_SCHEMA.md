@@ -1,6 +1,6 @@
 # Database Schema (SOTA)
 
-> **Last Updated**: 2026-01-01
+> **Last Updated**: 2026-01-14
 > **Database Engine**: Cloudflare D1 (SQLite)
 
 本文档描述 **kk-life** 的核心数据库结构。所有表结构定义源自 `scripts/init-database.sql`。
@@ -96,6 +96,7 @@
 | `name` | TEXT | 销售姓名 |
 | `access_token`| TEXT | 登录凭证 (Unique) |
 | `store` | TEXT | 所属门店/区域 |
+| `wechat_openid`| TEXT | 微信小程序 OpenID (Unique) |
 
 ### `customers` (客户)
 简易 CRM 客户档案。

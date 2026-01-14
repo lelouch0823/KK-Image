@@ -1,0 +1,242 @@
+@import '../../styles/variables.scss';
+
+.page {
+    min-height: 100vh;
+    background-color: $bg-page;
+    display: flex;
+    flex-direction: column;
+}
+
+// 顶部导航
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: $bg-card;
+    border-bottom: 1rpx solid $border-color;
+    box-sizing: border-box;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    padding: 0 $spacing-lg;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.header-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.header-title {
+    font-size: $font-size-xl;
+    font-weight: 700;
+    color: $text-main;
+}
+
+.header-subtitle {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    margin-top: $spacing-xs;
+}
+
+// 内容区
+.content {
+    flex: 1;
+    padding: $spacing-md;
+}
+
+// 统计卡片网格
+.stats-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+}
+
+.stat-card {
+    flex: 1;
+    min-width: calc(50% - #{$spacing-md} / 2);
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+
+    &.full-width {
+        flex-basis: 100%;
+    }
+
+    &.blue {
+        background-color: $card-blue-bg;
+        border: 2rpx solid $card-blue-border;
+
+        .stat-label {
+            color: $card-blue-text;
+        }
+
+        .stat-value text {
+            color: $card-blue-accent;
+        }
+    }
+
+    &.green {
+        background-color: $card-green-bg;
+        border: 2rpx solid $card-green-border;
+
+        .stat-label {
+            color: $card-green-text;
+        }
+
+        .stat-value text {
+            color: $card-green-accent;
+        }
+    }
+
+    &.purple {
+        background-color: $card-purple-bg;
+        border: 2rpx solid $card-purple-border;
+
+        .stat-label {
+            color: $card-purple-text;
+        }
+
+        .stat-value text {
+            color: $card-purple-accent;
+        }
+
+        .trend-bar {
+            background-color: rgba($card-purple-accent, 0.4);
+
+            &:hover {
+                background-color: $card-purple-accent;
+            }
+        }
+    }
+}
+
+.stat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.stat-label {
+    font-size: $font-size-sm;
+    font-weight: 500;
+}
+
+.stat-value {
+    margin-top: $spacing-sm;
+
+    text {
+        font-size: $font-size-2xl;
+        font-weight: 700;
+    }
+
+    &.large text {
+        font-size: 56rpx;
+    }
+}
+
+.skeleton {
+    width: 80rpx;
+    height: 48rpx;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 8rpx;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+// 趋势图
+.trend-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 6rpx;
+    height: 80rpx;
+    width: 240rpx;
+}
+
+.trend-bar {
+    flex: 1;
+    min-height: 8rpx;
+    border-radius: 4rpx 4rpx 0 0;
+    transition: all 0.2s;
+}
+
+// section, section-title: 使用全局样式 (app.scss)
+
+// 趋势加载
+.trend-loading {
+    display: flex;
+    justify-content: center;
+    padding: $spacing-xl;
+}
+
+// loading-spinner: 使用全局样式 (app.scss)
+
+.empty-trend {
+    text-align: center;
+    padding: $spacing-xl;
+
+    text {
+        font-size: $font-size-sm;
+        color: $text-muted;
+    }
+}
+
+// 趋势列表
+.trend-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+}
+
+.trend-item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+}
+
+.trend-date {
+    width: 100rpx;
+    font-size: $font-size-xs;
+    color: $text-secondary;
+    flex-shrink: 0;
+}
+
+.trend-bar-container {
+    flex: 1;
+    height: 16rpx;
+    background-color: $bg-hover;
+    border-radius: 8rpx;
+    overflow: hidden;
+}
+
+.trend-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, $color-primary, #6366f1);
+    border-radius: 8rpx;
+    transition: width 0.3s ease;
+}
+
+.trend-count {
+    width: 48rpx;
+    font-size: $font-size-sm;
+    font-weight: 600;
+    color: $text-main;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+// @keyframes spin: 使用全局样式 (app.scss)
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
