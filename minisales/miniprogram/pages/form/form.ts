@@ -4,7 +4,7 @@
 
 // ... (Imports remain same)
 import { post, uploadFile, getAccessToken } from '../../utils/api';
-import { API } from '../../utils/constants';
+import { API, API_BASE_URL } from '../../utils/constants';
 
 interface FormData {
     name: string;
@@ -121,7 +121,7 @@ Page({
                 if (uploadRes.success && uploadRes.data) {
                     this.setData({
                         [`fileList[${index}].status`]: 'done',
-                        [`fileList[${index}].url`]: uploadRes.data.url, // Update to remote URL (optional, depends on backend return)
+                        [`fileList[${index}].url`]: API_BASE_URL + uploadRes.data.url, // Update to full URL
                         // Store the ID somewhere? TDesign file object allows custom props?
                         // We need to store the ID to submit later. 
                         // Let's attach 'id' to the file object in fileList.

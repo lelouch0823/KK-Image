@@ -177,6 +177,30 @@
     justify-content: center;
 }
 
+// Line Chart Container
+.chart-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.trend-chart-canvas {
+    width: 100%;
+    height: 400rpx;
+}
+
+.chart-x-labels {
+    display: flex;
+    justify-content: space-between;
+    padding: 8rpx 10rpx 0;
+
+    .x-label {
+        font-size: 22rpx;
+        color: #9ca3af;
+        font-family: monospace;
+    }
+}
+
 // Clean Table Style
 .trend-table {
     display: flex;

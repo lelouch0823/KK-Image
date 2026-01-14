@@ -1,6 +1,6 @@
 <!--pages/detail/detail.wxml-->
 <view class="page">
-  <t-navbar title="订单详情" left-arrow bind:go-back="handleBack" fixed t-class-placeholder="navbar-placeholder">
+  <t-navbar title="订单详情" left-arrow bind:go-back="handleBack" fixed placeholder>
     <view slot="right" bind:tap="handleDuplicate" style="padding-right: 24rpx; font-size: 28rpx;">复制</view>
   </t-navbar>
 

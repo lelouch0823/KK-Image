@@ -52,11 +52,32 @@ export async function onRequest(context) {
   }
 
   try {
-    // 使用条件请求和 Range 支持
-    const object = await env.R2_BUCKET.get(storageKey, {
-      onlyIf: request.headers,
-      range: request.headers,
-    });
+    // SOTA: 构建 R2 选项 (兼容 Range 和条件请求)
+    const options = {};
+
+    // 1. 处理 Range (仅支持 standard HTTP Range header)
+    const rangeHeader = request.headers.get('Range');
+    if (rangeHeader) {
+      options.range = request.headers; // R2 supports passing the Headers object for range
+    }
+
+    // 2. 处理条件请求 (R2Conditional)
+    const onlyIf = {};
+    const etagMatches = request.headers.get('If-Match');
+    const etagDoesNotMatch = request.headers.get('If-None-Match');
+    const uploadedBefore = request.headers.get('If-Unmodified-Since');
+    const uploadedAfter = request.headers.get('If-Modified-Since');
+
+    if (etagMatches) onlyIf.etagMatches = etagMatches;
+    if (etagDoesNotMatch) onlyIf.etagDoesNotMatch = etagDoesNotMatch;
+    if (uploadedBefore) onlyIf.uploadedBefore = new Date(uploadedBefore);
+    if (uploadedAfter) onlyIf.uploadedAfter = new Date(uploadedAfter);
+
+    if (Object.keys(onlyIf).length > 0) {
+      options.onlyIf = onlyIf;
+    }
+
+    const object = await env.R2_BUCKET.get(storageKey, options);
 
     if (object === null) {
       // 如果没有找到，尝试用原始 fileId

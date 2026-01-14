@@ -4,14 +4,11 @@
 
 <view class="page">
   <!-- 顶部导航 -->
-  <t-navbar t-class-placeholder="navbar-placeholder" title="{{user.name ? user.name + '的订单' : '我的订单'}}" fixed style="--td-navbar-bg-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
+  <t-navbar title="{{user.name ? user.name + '的订单' : '我的订单'}}" fixed placeholder style="--td-navbar-bg-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
     <view slot="left" class="header-icon-container">
       <t-icon name="app" size="24px" />
     </view>
   </t-navbar>
-  
-  <!-- 占位元素 (如果 t-navbar placeholder={true} 不生效) -->
-  <view style="height: {{headerHeight}}px"></view>
 
   <!-- 订单列表 -->
   <scroll-view
@@ -46,41 +43,49 @@
         data-id="{{item.id}}"
         bindtap="handleViewOrder"
       >
-        <!-- 主图 -->
-        <view class="card-image">
-          <t-image
-            wx:if="{{item.mainImage}}"
-            src="{{item.mainImage}}"
-            mode="aspectFill"
-            width="180"
-            height="180"
-            lazy-load
-          />
-          <view wx:else class="image-placeholder">
-            <text class="placeholder-text">暂无图片</text>
+        <view class="card-inner">
+          <!-- 主图 (Left) -->
+          <view class="card-image">
+            <t-image
+              wx:if="{{item.mainImage}}"
+              src="{{item.mainImage}}"
+              mode="aspectFill"
+              width="128"
+              height="128"
+              lazy-load
+              shape="round"
+              class="t-image-rounded"
+            />
+            <view wx:else class="image-placeholder">
+              <t-icon name="image" size="48rpx" color="#ccc" />
+            </view>
+            <!-- 新反馈红点 -->
+            <view wx:if="{{item.hasNewFeedback}}" class="feedback-dot"></view>
           </view>
-          <!-- 新反馈红点 -->
-          <view wx:if="{{item.hasNewFeedback}}" class="feedback-dot"></view>
-        </view>
 
-        <!-- 卡片内容 -->
-        <view class="card-content">
-          <view class="card-header">
-            <text class="order-no">{{item.orderNo}}</text>
-            <t-tag 
-              size="small" 
-              variant="light" 
-              style="color: {{statusConfig[item.status].color}}; background-color: {{statusConfig[item.status].bgColor}};"
-            >
-              {{statusConfig[item.status].label}}
-            </t-tag>
-          </view>
-          <view class="card-body">
-            <text wx:if="{{item.customerName}}" class="customer-name">{{item.customerName}}</text>
-          </view>
-          <view class="card-footer">
-            <text class="order-time">{{format.formatRelativeTime(item.createdAt)}}</text>
-            <view class="view-link">查看详情 <t-icon name="chevron-right" size="14" /></view>
+          <!-- 信息 (Right) -->
+          <view class="card-content">
+            <!-- Top: Product Name + Arrow? (Arrow fits better in Web's absolute right or flex structure) -->
+            <view class="row-top">
+              <text class="product-name">{{item.name || '未命名商品'}}</text>
+            </view>
+
+            <!-- Middle: Order No -->
+            <view class="row-middle">
+              <text class="order-no">{{item.orderNo}}</text>
+            </view>
+
+            <!-- Bottom: Status + Time -->
+            <view class="row-bottom">
+              <t-tag 
+                size="small" 
+                variant="light" 
+                style="color: {{statusConfig[item.status].color}}; background-color: {{statusConfig[item.status].bgColor}};"
+              >
+                {{statusConfig[item.status].label}}
+              </t-tag>
+              <text class="order-time">{{format.formatRelativeTime(item.createdAt)}}</text>
+            </view>
           </view>
         </view>
       </view>

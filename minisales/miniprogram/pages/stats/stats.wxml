@@ -76,26 +76,17 @@
             <t-empty icon="info-circle" description="暂无近期数据" />
         </view>
 
-        <view wx:else class="trend-table">
-            <!-- Table Header -->
-            <view class="tr header">
-                <text class="th date">日期</text>
-                <text class="th graph">趋势</text>
-                <text class="th count">订单</text>
-            </view>
-            <!-- Table Body -->
-            <view wx:for="{{stats.monthlyTrend}}" wx:key="date" class="tr body-row">
-                <view class="td date">
-                    <text class="date-text">{{format.getDate(item.date)}}</text>
-                </view>
-                <view class="td graph">
-                     <view class="progress-track">
-                        <view class="progress-bar" style="width: {{item.count / maxCount * 100}}%; background-color: {{item.count > 0 ? '#3b82f6' : '#e5e7eb'}}"></view>
-                     </view>
-                </view>
-                <view class="td count">
-                    <text class="count-text {{item.count > 0 ? 'highlight' : ''}}">{{item.count}}</text>
-                </view>
+        <!-- Line Chart Canvas -->
+        <view wx:else class="chart-container">
+            <canvas 
+                type="2d" 
+                id="trendChart" 
+                class="trend-chart-canvas"
+                style="width: 100%; height: 400rpx;"
+            ></canvas>
+            <!-- X Axis Labels -->
+            <view class="chart-x-labels">
+                <text wx:for="{{chartLabels}}" wx:key="*this" class="x-label">{{item}}</text>
             </view>
         </view>
     </view>

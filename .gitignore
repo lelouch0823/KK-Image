@@ -20,7 +20,7 @@ out/
 .nuxt/
 .next/
 .vite/
-minisales\miniprogram\miniprogram_npm\tdesign-miniprogram
+
 # Environment variables
 .env
 .env.local

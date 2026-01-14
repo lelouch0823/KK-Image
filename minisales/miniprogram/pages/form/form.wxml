@@ -1,6 +1,6 @@
 <!--pages/form/form.wxml-->
 <view class="page">
-  <t-navbar title="新建订单" left-arrow bind:go-back="handleBack" fixed t-class-placeholder="navbar-placeholder" />
+  <t-navbar title="新建订单" left-arrow bind:go-back="handleBack" fixed placeholder />
 
   <scroll-view class="form-container" scroll-y type="list">
     <view class="section">
