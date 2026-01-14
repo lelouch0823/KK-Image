@@ -4,9 +4,11 @@
 
 ## 1. Management API (管理端)
 > **Base URL**: `/api/manage`  
-> **Auth**: Basic Auth / JWT (Admin)
+> **Auth**: Basic Auth / JWT / API Key (External)
 
 用于后台管理系统的核心 API，包含文件上传、订单管理、CRM、销售人员管理等所有特权操作。
+
+> **External Access**: 支持通过 `X-API-Key` 请求头进行外部调用 (如自动化脚本)。
 
 - **[管理端 API 文档](management.md)**
   - 文件上传 (`/upload`, `/check-hash`)
@@ -15,7 +17,7 @@
 
 ## 2. Sales API (销售端)
 > **Base URL**: `/api/sales/:token`  
-> **Auth**: Bearer Token (in Path)
+> **Auth**: Bearer Token (in Path) + JWT
 
 专为移动端销售工具设计，通过 `access_token` 进行鉴权。
 
@@ -23,8 +25,19 @@
   - 创建订单
   - 查看个人业绩
   - 更新订单状态
+  - **微信小程序登录** (NEW)
 
-## 3. Space API (访客端)
+---
+
+## 3. 微信小程序支持 (NEW)
+> **微信登录**: `POST /api/sales/wechat-login`  
+> **绑定微信**: `POST /api/sales/:token/bind-wechat`
+
+支持微信小程序原生登录 (`wx.login`)，启用前需配置环境变量：
+- `WECHAT_APPID`: 小程序 AppID
+- `WECHAT_SECRET`: 小程序 AppSecret
+
+## 4. Space API (访客端)
 > **Base URL**: `/api/space/:token`  
 > **Auth**: Share Token + Password (Optional)
 

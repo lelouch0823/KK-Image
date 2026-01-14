@@ -60,7 +60,7 @@ export async function onRequestPost(context) {
       TOKEN_EXPIRY
     );
 
-    // 设置 Cookie
+    // 设置 Cookie (浏览器兼容)
     const cookieOptions = [
       `sales_token=${jwt}`,
       `Path=/`,
@@ -73,11 +73,14 @@ export async function onRequestPost(context) {
       cookieOptions.push('Secure');
     }
 
+    // SOTA: 同时返回 token 在 body 中 (微信小程序兼容)
     return success(
       {
         id: salesperson.id,
         name: salesperson.name,
         store: salesperson.store,
+        token: jwt, // 🆕 返回 token，小程序可存入 wx.setStorageSync
+        expiresIn: TOKEN_EXPIRY,
       },
       MSG.AUTH.LOGIN_SUCCESS,
       200,
@@ -99,10 +102,19 @@ export async function onRequestGet(context) {
   const accessToken = params.token;
 
   try {
-    // 从 Cookie 获取 JWT
-    const cookieHeader = request.headers.get('Cookie') || '';
-    const cookies = parseCookie(cookieHeader);
-    const jwt = cookies.sales_token;
+    // 🆕 SOTA: 优先从 Authorization Header 获取 Token (小程序兼容)
+    let jwt = null;
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      jwt = authHeader.substring(7);
+    }
+
+    // 回退到 Cookie (浏览器兼容)
+    if (!jwt) {
+      const cookieHeader = request.headers.get('Cookie') || '';
+      const cookies = parseCookie(cookieHeader);
+      jwt = cookies.sales_token;
+    }
 
     if (!jwt) {
       return error(MSG.AUTH.REQUIRED, 401);

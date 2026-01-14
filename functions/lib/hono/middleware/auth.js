@@ -1,4 +1,4 @@
-import { verifyJWT, ADMIN_AUTH_COOKIE, MSG } from '../_shared/utils.js';
+import { verifyJWT, verifyApiKey, ADMIN_AUTH_COOKIE, MSG } from '../_shared/utils.js';
 
 /**
  * 公开路由列表（无需认证）
@@ -49,10 +49,20 @@ export async function authMiddleware(c, next) {
   if (!token) {
     const apiKey = c.req.header('X-API-Key');
     if (apiKey) {
-      // 验证 API Key（简化版，实际应查询 KV）
-      if (apiKey === c.env.DEFAULT_API_KEY) {
-        c.set('user', { id: 'api', name: 'API User', type: 'api_key' });
+      try {
+        // 验证 API Key (支持 D1 和 DEFAULT_API_KEY)
+        const user = await verifyApiKey(apiKey, c.env);
+        c.set('user', user);
         return next();
+      } catch (err) {
+        console.error('API Key Verification Failed:', err);
+        return c.json(
+          {
+            success: false,
+            error: `${MSG.AUTH.INVALID_TOKEN}: ${err.message}`,
+          },
+          401
+        );
       }
     }
   }

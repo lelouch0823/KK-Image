@@ -43,6 +43,32 @@ export class SalespersonRepository {
   }
 
   /**
+   * 根据微信 OpenID 查找销售人员
+   * @param {string} openid
+   * @returns {Promise<Object|null>}
+   */
+  async findByWechatOpenid(openid) {
+    return await this.db
+      .prepare('SELECT * FROM salespersons WHERE wechat_openid = ?')
+      .bind(openid)
+      .first();
+  }
+
+  /**
+   * 绑定微信 OpenID 到销售人员
+   * @param {string} id - 销售人员 ID
+   * @param {string} openid - 微信 OpenID
+   * @returns {Promise<boolean>}
+   */
+  async updateWechatOpenid(id, openid) {
+    const result = await this.db
+      .prepare('UPDATE salespersons SET wechat_openid = ?, updated_at = ? WHERE id = ?')
+      .bind(openid, now(), id)
+      .run();
+    return result.success && result.meta.changes > 0;
+  }
+
+  /**
    * 获取销售人员列表 (分页)
    * @param {Object} params
    * @param {number} params.page

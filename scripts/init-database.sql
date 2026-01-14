@@ -251,6 +251,7 @@ CREATE TABLE IF NOT EXISTS salespersons (
     phone TEXT,                             -- 手机号
     access_token TEXT UNIQUE NOT NULL,      -- 访问 Token (用于免密/快速登录)
     password_hash TEXT NOT NULL,            -- 访问密码哈希
+    wechat_openid TEXT UNIQUE,              -- 微信小程序 OpenID (用于微信一键登录)
     is_active INTEGER DEFAULT 1,            -- 是否启用
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
@@ -258,6 +259,7 @@ CREATE TABLE IF NOT EXISTS salespersons (
 
 CREATE INDEX IF NOT EXISTS idx_salespersons_token ON salespersons(access_token);
 CREATE INDEX IF NOT EXISTS idx_salespersons_active ON salespersons(is_active);
+CREATE INDEX IF NOT EXISTS idx_salespersons_wechat_openid ON salespersons(wechat_openid);
 
 -- 7.2 订单表
 CREATE TABLE IF NOT EXISTS orders (
@@ -423,7 +425,8 @@ INSERT OR IGNORE INTO folders (id, parent_id, name, description, share_token, is
 VALUES ('root', NULL, '根目录', '默认根目录', NULL, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000);
 
 -- ===========================================================================
--- Schema Version: 2.1.0 (2026-01-12)
+-- Schema Version: 2.2.0 (2026-01-14)
 -- Tables: 19
--- Indexes: 45
+-- Indexes: 46
+-- Changes: Added wechat_openid to salespersons for WeChat Mini Program support
 -- ===========================================================================

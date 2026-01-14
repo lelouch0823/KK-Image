@@ -51,6 +51,8 @@
 ### 上传文件
 `POST /api/manage/upload`
 
+> **Note**: 支持使用 `X-API-Key` 进行外部调用。
+
 **Form Data:**
 - `file`: 文件二进制
 - `folder_id`: 目标文件夹 ID (可选)
