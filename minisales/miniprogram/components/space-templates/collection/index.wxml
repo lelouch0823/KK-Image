@@ -1,0 +1,34 @@
+<!-- 合集模板 (子空间列表) -->
+<view class="collection-container">
+  <view class="collection-header">
+    <view class="collection-icon">
+      <t-icon name="folder" size="64rpx" color="#3b82f6" />
+    </view>
+    <text class="collection-title">{{space.name}}</text>
+    <text class="collection-desc" wx:if="{{space.description}}">{{space.description}}</text>
+  </view>
+  <view class="subspace-list" wx:if="{{space.subspaces && space.subspaces.length > 0}}">
+    <view
+      wx:for="{{space.subspaces}}"
+      wx:key="id"
+      class="subspace-card"
+      data-id="{{item.id}}"
+      bindtap="onSubspaceTap"
+    >
+      <view class="subspace-cover" wx:if="{{item.coverUrl}}">
+        <t-image src="{{baseUrl}}{{item.coverUrl}}" mode="aspectFill" width="96" height="96" shape="round" />
+      </view>
+      <view class="subspace-cover placeholder" wx:else>
+        <t-icon name="folder" size="40rpx" color="#9ca3af" />
+      </view>
+      <view class="subspace-info">
+        <text class="subspace-name">{{item.name}}</text>
+        <text class="subspace-count">{{item.fileCount || 0}} 个文件</text>
+      </view>
+      <t-icon name="chevron-right" size="32rpx" color="#d1d5db" />
+    </view>
+  </view>
+  <view wx:else class="empty-subspaces">
+    <t-empty icon="folder" description="暂无子空间" />
+  </view>
+</view>

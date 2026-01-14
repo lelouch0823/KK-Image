@@ -1,4 +1,10 @@
 {
-    "usingComponents": {},
+    "usingComponents": {
+        "template-gallery": "/components/space-templates/gallery/index",
+        "template-product": "/components/space-templates/product/index",
+        "template-portfolio": "/components/space-templates/portfolio/index",
+        "template-document": "/components/space-templates/document/index",
+        "template-collection": "/components/space-templates/collection/index"
+    },
     "navigationStyle": "custom"
 }

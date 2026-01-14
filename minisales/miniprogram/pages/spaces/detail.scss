@@ -9,7 +9,6 @@
 
 .content {
     flex: 1;
-    padding: $spacing-lg;
 }
 
 .loading-container {
@@ -20,12 +19,12 @@
     padding-top: 40vh;
 }
 
-// 头部卡片
+// ============ Default 模板样式 ============
 .header-card {
     background-color: $bg-card;
     border-radius: $border-radius-lg;
     padding: $spacing-lg;
-    margin-bottom: $spacing-lg;
+    margin: $spacing-lg;
     box-shadow: $shadow-sm;
 }
 
@@ -56,8 +55,8 @@
     color: $text-muted;
 }
 
-// 文件区域
 .file-section {
+    padding: 0 $spacing-lg;
     margin-bottom: $spacing-lg;
 }
 

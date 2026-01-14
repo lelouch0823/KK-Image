@@ -1,0 +1,38 @@
+<!-- 作品集模板 (大图轮播) -->
+<view class="portfolio-container">
+  <view class="portfolio-header">
+    <text class="portfolio-title">{{space.name}}</text>
+    <text class="portfolio-desc" wx:if="{{space.description}}">{{space.description}}</text>
+  </view>
+  
+  <block wx:if="{{space.files && space.files.length > 0}}">
+    <swiper
+      class="portfolio-swiper"
+      indicator-dots
+      autoplay="{{false}}"
+      circular
+      current="{{currentIndex}}"
+      bindchange="onSwiperChange"
+    >
+      <swiper-item
+        wx:for="{{space.files}}"
+        wx:key="id"
+        data-url="{{baseUrl}}{{item.url}}"
+        data-index="{{index}}"
+        bindtap="onPreview"
+      >
+        <view class="portfolio-slide">
+          <t-image src="{{baseUrl}}{{item.url}}" mode="aspectFit" width="100%" height="800" />
+          <text class="slide-name">{{item.name}}</text>
+        </view>
+      </swiper-item>
+    </swiper>
+    <view class="portfolio-indicator">
+      <text class="indicator-text">{{currentIndex + 1}} / {{space.files.length}}</text>
+    </view>
+  </block>
+  
+  <view wx:else class="empty-state">
+    <t-empty icon="image" description="暂无作品" />
+  </view>
+</view>

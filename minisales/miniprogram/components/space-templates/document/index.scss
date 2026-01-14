@@ -1,0 +1,89 @@
+@import '../../../styles/variables.scss';
+
+.document-container {
+    width: 100%;
+}
+
+.document-header {
+    padding: $spacing-lg;
+    background-color: $bg-card;
+    border-bottom: 1rpx solid $border-color;
+}
+
+.document-title {
+    display: block;
+    font-size: $font-size-xl;
+    font-weight: 700;
+    color: $text-main;
+}
+
+.document-desc {
+    display: block;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    margin-top: 8rpx;
+}
+
+.document-list {
+    background-color: $bg-card;
+}
+
+.document-item {
+    display: flex;
+    align-items: center;
+    padding: $spacing-md $spacing-lg;
+    border-bottom: 1rpx solid $border-color;
+
+    &:active {
+        background-color: $bg-hover;
+    }
+}
+
+.file-icon {
+    width: 80rpx;
+    height: 80rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16rpx;
+    margin-right: $spacing-md;
+
+    &.icon-image {
+        background-color: #dbeafe;
+        color: #3b82f6;
+    }
+
+    &.icon-file {
+        background-color: #f3f4f6;
+        color: #6b7280;
+    }
+}
+
+.file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-name {
+    display: block;
+    font-size: $font-size-base;
+    font-weight: 500;
+    color: $text-main;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.file-type {
+    display: block;
+    font-size: $font-size-xs;
+    color: $text-muted;
+    margin-top: 4rpx;
+}
+
+.empty-state {
+    padding: $spacing-xl * 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

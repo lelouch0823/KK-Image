@@ -1,0 +1,86 @@
+@import '../../../styles/variables.scss';
+
+.collection-container {
+    width: 100%;
+}
+
+.collection-header {
+    padding: $spacing-xl $spacing-lg;
+    text-align: center;
+}
+
+.collection-icon {
+    width: 120rpx;
+    height: 120rpx;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-radius: 32rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto $spacing-md;
+}
+
+.collection-title {
+    display: block;
+    font-size: $font-size-2xl;
+    font-weight: 700;
+    color: $text-main;
+}
+
+.collection-desc {
+    display: block;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    margin-top: 8rpx;
+}
+
+.subspace-list {
+    padding: 0 $spacing-lg;
+}
+
+.subspace-card {
+    display: flex;
+    align-items: center;
+    background-color: $bg-card;
+    border-radius: $border-radius-lg;
+    padding: $spacing-md;
+    margin-bottom: $spacing-md;
+    box-shadow: $shadow-sm;
+}
+
+.subspace-cover {
+    width: 96rpx;
+    height: 96rpx;
+    border-radius: 16rpx;
+    overflow: hidden;
+    margin-right: $spacing-md;
+
+    &.placeholder {
+        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+.subspace-info {
+    flex: 1;
+}
+
+.subspace-name {
+    display: block;
+    font-size: $font-size-base;
+    font-weight: 600;
+    color: $text-main;
+}
+
+.subspace-count {
+    display: block;
+    font-size: $font-size-xs;
+    color: $text-muted;
+    margin-top: 4rpx;
+}
+
+.empty-subspaces {
+    padding: $spacing-xl * 2;
+}

@@ -1,0 +1,105 @@
+@import '../../../styles/variables.scss';
+
+.product-container {
+    width: 100%;
+}
+
+.product-swiper {
+    width: 100%;
+    height: 600rpx;
+    background-color: #fff;
+}
+
+.product-info-card {
+    padding: $spacing-lg;
+    background-color: $bg-card;
+    margin-top: -32rpx;
+    border-radius: 32rpx 32rpx 0 0;
+    position: relative;
+}
+
+.product-brand {
+    display: inline-block;
+    font-size: $font-size-xs;
+    font-weight: 500;
+    color: $color-primary;
+    background-color: rgba(59, 130, 246, 0.1);
+    padding: 4rpx 16rpx;
+    border-radius: 8rpx;
+    margin-bottom: 12rpx;
+}
+
+.product-name {
+    display: block;
+    font-size: $font-size-xl;
+    font-weight: 700;
+    color: $text-main;
+    margin-bottom: 16rpx;
+}
+
+.product-price {
+    display: flex;
+    align-items: baseline;
+    gap: 4rpx;
+    margin-bottom: 24rpx;
+}
+
+.price-symbol {
+    font-size: $font-size-sm;
+    color: #ef4444;
+}
+
+.price-value {
+    font-size: 48rpx;
+    font-weight: 700;
+    color: #ef4444;
+}
+
+.product-params {
+    background-color: $bg-page;
+    border-radius: 16rpx;
+    padding: $spacing-md;
+    margin-bottom: 24rpx;
+}
+
+.param-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12rpx 0;
+    border-bottom: 1rpx solid $border-color;
+
+    &:last-child {
+        border-bottom: none;
+    }
+}
+
+.param-label {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+}
+
+.param-value {
+    font-size: $font-size-sm;
+    font-weight: 500;
+    color: $text-main;
+}
+
+.product-desc {
+    margin-top: 24rpx;
+}
+
+.desc-title {
+    display: block;
+    font-size: $font-size-sm;
+    font-weight: 600;
+    color: $text-main;
+    margin-bottom: 8rpx;
+}
+
+.desc-content {
+    display: block;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}

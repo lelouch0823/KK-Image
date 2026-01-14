@@ -1,0 +1,53 @@
+<!-- 商品模板 (电商风格) -->
+<view class="product-container">
+  <!-- 主图轮播 -->
+  <swiper
+    class="product-swiper"
+    indicator-dots="{{space.files.length > 1}}"
+    autoplay="{{false}}"
+    bindchange="onSwiperChange"
+  >
+    <swiper-item
+      wx:for="{{space.files}}"
+      wx:key="id"
+      data-url="{{baseUrl}}{{item.url}}"
+      data-index="{{index}}"
+      bindtap="onPreview"
+    >
+      <t-image src="{{baseUrl}}{{item.url}}" mode="aspectFit" width="100%" height="600" />
+    </swiper-item>
+  </swiper>
+
+  <!-- 商品信息卡片 -->
+  <view class="product-info-card">
+    <view wx:if="{{space.templateData.brand}}" class="product-brand">
+      {{space.templateData.brand}}
+    </view>
+    <text class="product-name">{{space.name}}</text>
+    <view wx:if="{{space.templateData.price}}" class="product-price">
+      <text class="price-symbol">¥</text>
+      <text class="price-value">{{space.templateData.price}}</text>
+    </view>
+
+    <!-- 参数表格 -->
+    <view class="product-params">
+      <view wx:if="{{space.templateData.series}}" class="param-row">
+        <text class="param-label">系列</text>
+        <text class="param-value">{{space.templateData.series}}</text>
+      </view>
+      <view wx:if="{{space.templateData.material}}" class="param-row">
+        <text class="param-label">材质</text>
+        <text class="param-value">{{space.templateData.material}}</text>
+      </view>
+      <view wx:if="{{space.templateData.sku}}" class="param-row">
+        <text class="param-label">SKU</text>
+        <text class="param-value">{{space.templateData.sku}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{space.description}}" class="product-desc">
+      <text class="desc-title">商品描述</text>
+      <text class="desc-content">{{space.description}}</text>
+    </view>
+  </view>
+</view>

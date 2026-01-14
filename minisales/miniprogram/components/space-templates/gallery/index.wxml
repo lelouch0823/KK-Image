@@ -1,0 +1,32 @@
+<!-- 画廊模板 (瀑布流) -->
+<view class="gallery-container">
+  <view class="gallery-header">
+    <text class="gallery-title">{{space.name}}</text>
+    <text class="gallery-desc" wx:if="{{space.description}}">{{space.description}}</text>
+    <view class="gallery-meta">
+      <t-icon name="image" size="24rpx" color="#9ca3af" />
+      <text class="meta-text">{{space.files.length || 0}} 个文件</text>
+    </view>
+  </view>
+  <view class="masonry-grid" wx:if="{{space.files && space.files.length > 0}}">
+    <view
+      wx:for="{{space.files}}"
+      wx:key="id"
+      class="masonry-item"
+      data-url="{{baseUrl}}{{item.url}}"
+      data-index="{{index}}"
+      bindtap="onPreview"
+    >
+      <t-image
+        src="{{baseUrl}}{{item.url}}"
+        mode="widthFix"
+        width="100%"
+        lazy-load
+        shape="round"
+      />
+    </view>
+  </view>
+  <view wx:else class="empty-state">
+    <t-empty icon="image" description="暂无图片" />
+  </view>
+</view>

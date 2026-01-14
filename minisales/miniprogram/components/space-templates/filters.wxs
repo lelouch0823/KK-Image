@@ -1,0 +1,33 @@
+/**
+ * 空间模板公共 WXS 过滤器
+ */
+module.exports = {
+  /**
+   * 判断文件是否为图片类型
+   */
+  isImage: function(mimeType) {
+    if (!mimeType) return false;
+    return mimeType.indexOf('image') !== -1;
+  },
+
+  /**
+   * 获取文件类型图标
+   */
+  getFileIcon: function(mimeType) {
+    if (!mimeType) return 'file';
+    if (mimeType.indexOf('image') !== -1) return 'image';
+    if (mimeType.indexOf('video') !== -1) return 'video';
+    if (mimeType.indexOf('audio') !== -1) return 'file-music';
+    if (mimeType.indexOf('pdf') !== -1) return 'file-pdf';
+    return 'file';
+  },
+
+  /**
+   * 获取文件类型图标背景类
+   */
+  getIconClass: function(mimeType) {
+    if (!mimeType) return 'icon-file';
+    if (mimeType.indexOf('image') !== -1) return 'icon-image';
+    return 'icon-file';
+  },
+};
