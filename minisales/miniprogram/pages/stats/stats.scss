@@ -2,241 +2,255 @@
 
 .page {
     min-height: 100vh;
-    background-color: $bg-page;
+    background-color: #f3f4f6; // Web default bg
     display: flex;
     flex-direction: column;
 }
 
-// 顶部导航
-.header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background-color: $bg-card;
-    border-bottom: 1rpx solid $border-color;
-    box-sizing: border-box;
-}
-
-.header-content {
-    display: flex;
-    align-items: center;
-    padding: 0 $spacing-lg;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.header-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.header-title {
-    font-size: $font-size-xl;
-    font-weight: 700;
-    color: $text-main;
-}
-
-.header-subtitle {
-    font-size: $font-size-sm;
-    color: $text-secondary;
-    margin-top: $spacing-xs;
-}
-
-// 内容区
 .content {
     flex: 1;
-    padding: $spacing-md;
+    padding: 24rpx;
 }
 
-// 统计卡片网格
-.stats-grid {
+// Overview Cards Grid
+.stats-overview {
     display: flex;
     flex-wrap: wrap;
-    gap: $spacing-md;
-    margin-bottom: $spacing-md;
+    gap: 24rpx;
+    margin-bottom: 32rpx;
 }
 
 .stat-card {
-    flex: 1;
-    min-width: calc(50% - #{$spacing-md} / 2);
-    border-radius: $border-radius-lg;
-    padding: $spacing-lg;
+    background: #ffffff;
+    border-radius: 24rpx; // Rounded-2xl
+    padding: 32rpx;
+    width: calc(50% - 12rpx);
+    box-sizing: border-box;
+    box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.02);
+    border: 1rpx solid rgba(229, 231, 235, 0.5); // Very subtle border
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
 
     &.full-width {
-        flex-basis: 100%;
-    }
-
-    &.blue {
-        background-color: $card-blue-bg;
-        border: 2rpx solid $card-blue-border;
-
-        .stat-label {
-            color: $card-blue-text;
-        }
-
-        .stat-value text {
-            color: $card-blue-accent;
-        }
-    }
-
-    &.green {
-        background-color: $card-green-bg;
-        border: 2rpx solid $card-green-border;
-
-        .stat-label {
-            color: $card-green-text;
-        }
-
-        .stat-value text {
-            color: $card-green-accent;
-        }
-    }
-
-    &.purple {
-        background-color: $card-purple-bg;
-        border: 2rpx solid $card-purple-border;
-
-        .stat-label {
-            color: $card-purple-text;
-        }
-
-        .stat-value text {
-            color: $card-purple-accent;
-        }
-
-        .trend-bar {
-            background-color: rgba($card-purple-accent, 0.4);
-
-            &:hover {
-                background-color: $card-purple-accent;
-            }
-        }
+        width: 100%;
+        flex-direction: row;
+        align-items: center;
+        text-align: left;
     }
 }
 
-.stat-header {
+.stat-icon-bg {
+    width: 80rpx;
+    height: 80rpx;
+    border-radius: 50%;
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 16rpx;
+
+    &.blue {
+        background-color: #eff6ff;
+    }
+
+    // blue-50
+    &.green {
+        background-color: #ecfdf5;
+    }
+
+    // green-50
+    &.purple {
+        background-color: #f5f3ff;
+    }
+
+    // violet-50
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
 }
 
 .stat-label {
-    font-size: $font-size-sm;
+    font-size: 24rpx;
+    color: #6b7280; // text-secondary
     font-weight: 500;
+    margin-bottom: 8rpx;
 }
 
-.stat-value {
-    margin-top: $spacing-sm;
+.stat-num {
+    font-size: 40rpx;
+    font-weight: 700;
+    color: #111827; // text-primary
 
-    text {
-        font-size: $font-size-2xl;
-        font-weight: 700;
+    &.blue {
+        color: #2563eb;
     }
 
-    &.large text {
-        font-size: 56rpx;
+    &.green {
+        color: #059669;
+    }
+
+    &.purple {
+        color: #7c3aed;
     }
 }
 
-.skeleton {
-    width: 80rpx;
-    height: 48rpx;
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 8rpx;
-    animation: pulse 1.5s ease-in-out infinite;
+// Specific layout for the full-width card
+.row-between {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
 }
 
-// 趋势图
-.trend-chart {
+.flex-row {
+    display: flex;
+    align-items: center;
+    gap: 24rpx;
+
+    .stat-icon-bg {
+        margin-bottom: 0;
+    }
+
+    .stat-info {
+        text-align: left;
+        align-items: flex-start;
+    }
+}
+
+.mini-chart {
     display: flex;
     align-items: flex-end;
     gap: 6rpx;
-    height: 80rpx;
-    width: 240rpx;
-}
+    height: 64rpx;
+    width: 160rpx;
 
-.trend-bar {
-    flex: 1;
-    min-height: 8rpx;
-    border-radius: 4rpx 4rpx 0 0;
-    transition: all 0.2s;
-}
-
-// section, section-title: 使用全局样式 (app.scss)
-
-// 趋势加载
-.trend-loading {
-    display: flex;
-    justify-content: center;
-    padding: $spacing-xl;
-}
-
-// loading-spinner: 使用全局样式 (app.scss)
-
-.empty-trend {
-    text-align: center;
-    padding: $spacing-xl;
-
-    text {
-        font-size: $font-size-sm;
-        color: $text-muted;
+    .mini-bar {
+        flex: 1;
+        background-color: #8b5cf6;
+        border-radius: 4rpx 4rpx 0 0;
     }
 }
 
-// 趋势列表
-.trend-list {
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-sm;
+// Section Charts
+.section-card {
+    background: #ffffff;
+    border-radius: 24rpx;
+    padding: 32rpx;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.02);
+    border: 1rpx solid rgba(229, 231, 235, 0.5);
 }
 
-.trend-item {
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32rpx;
+}
+
+.title-with-mark {
     display: flex;
     align-items: center;
-    gap: $spacing-md;
+    gap: 16rpx;
+
+    .mark-line {
+        width: 8rpx;
+        height: 32rpx;
+        background-color: #3b82f6;
+        border-radius: 4rpx;
+    }
+
+    .title {
+        font-size: 32rpx;
+        font-weight: 600;
+        color: #111827;
+    }
 }
 
-.trend-date {
-    width: 100rpx;
-    font-size: $font-size-xs;
-    color: $text-secondary;
-    flex-shrink: 0;
+// Loading & Empty
+.loading-state,
+.empty-state {
+    padding: 64rpx 0;
+    display: flex;
+    justify-content: center;
 }
 
-.trend-bar-container {
+// Clean Table Style
+.trend-table {
+    display: flex;
+    flex-direction: column;
+}
+
+.tr {
+    display: flex;
+    align-items: center;
+    padding: 20rpx 0;
+    border-bottom: 1rpx solid #f3f4f6;
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    &.header {
+        padding-top: 0;
+        padding-bottom: 16rpx;
+        border-bottom: 2rpx solid #f3f4f6;
+
+        .th {
+            font-size: 24rpx;
+            color: #9ca3af;
+            font-weight: 500;
+        }
+    }
+}
+
+.td {
+    font-size: 28rpx;
+    color: #374151;
+}
+
+// Columns
+.date {
+    width: 140rpx;
+}
+
+.graph {
     flex: 1;
-    height: 16rpx;
-    background-color: $bg-hover;
-    border-radius: 8rpx;
+    padding: 0 24rpx;
+}
+
+.count {
+    width: 100rpx;
+    text-align: right;
+}
+
+.date-text {
+    color: #6b7280;
+    font-family: monospace;
+}
+
+.progress-track {
+    width: 100%;
+    height: 12rpx;
+    background-color: #f3f4f6;
+    border-radius: 6rpx;
     overflow: hidden;
 }
 
-.trend-bar-fill {
+.progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, $color-primary, #6366f1);
-    border-radius: 8rpx;
+    border-radius: 6rpx;
     transition: width 0.3s ease;
 }
 
-.trend-count {
-    width: 48rpx;
-    font-size: $font-size-sm;
-    font-weight: 600;
-    color: $text-main;
-    text-align: right;
-    flex-shrink: 0;
-}
+.count-text {
+    font-weight: 500;
+    color: #9ca3af;
 
-// @keyframes spin: 使用全局样式 (app.scss)
-
-@keyframes pulse {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.5;
+    &.highlight {
+        color: #111827;
+        font-weight: 700;
     }
 }

@@ -1,0 +1,8 @@
+<t-tab-bar value="{{value}}" bind:change="onChange" theme="tag" split="{{false}}">
+  <t-tab-bar-item value="/pages/index/index" icon="app">
+    订单
+  </t-tab-bar-item>
+  <t-tab-bar-item value="/pages/stats/stats" icon="chart">
+    统计
+  </t-tab-bar-item>
+</t-tab-bar>

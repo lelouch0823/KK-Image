@@ -1,5 +1,39 @@
 @import '../../styles/variables.scss';
 
+.section {
+    background: #fff;
+    margin-bottom: 24rpx;
+    padding: 0 32rpx;
+    /* TDesign inputs usually have no horizontal padding or internal padding, container needs it? TDesign cells have internal padding */
+    /* Remove padding if TDesign components handle it. TDesign inputs are usually full width or in cells. */
+    padding: 0;
+}
+
+.section-title {
+    padding: 24rpx 32rpx 16rpx;
+    font-size: $font-size-base;
+    font-weight: 600;
+    color: $text-main;
+}
+
+.form-container {
+    height: 100vh;
+    background-color: #f5f5f5;
+    box-sizing: border-box;
+    padding-bottom: 120rpx;
+}
+
+.bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16rpx 32rpx calc(env(safe-area-inset-bottom) + 16rpx);
+    background: #fff;
+    z-index: 100;
+    box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
 .page {
     min-height: 100vh;
     background-color: $bg-page;

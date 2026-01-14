@@ -1,115 +1,84 @@
 <!--pages/detail/detail.wxml-->
 <view class="page">
-  <!-- 导航栏 -->
-  <nav-bar 
-    title="订单详情" 
-    actionText="复制" 
-    bind:action="handleDuplicate"
-  ></nav-bar>
+  <t-navbar title="订单详情" left-arrow bind:go-back="handleBack" fixed t-class-placeholder="navbar-placeholder">
+    <view slot="right" bind:tap="handleDuplicate" style="padding-right: 24rpx; font-size: 28rpx;">复制</view>
+  </t-navbar>
 
-  <!-- 加载中 -->
   <view wx:if="{{loading}}" class="loading-container">
-    <view class="loading-spinner"></view>
-    <text class="loading-text">加载中...</text>
+    <t-loading theme="circular" size="40rpx" text="加载中..." />
   </view>
 
-  <!-- 订单内容 -->
   <scroll-view wx:elif="{{order}}" class="content" scroll-y>
     <!-- 状态卡片 -->
     <view class="status-card" style="background-color: {{statusConfig[order.status].bgColor}};">
       <view class="status-header">
-        <status-badge status="{{order.status}}"></status-badge>
+        <t-tag 
+            size="medium" 
+            variant="light" 
+            style="color: {{statusConfig[order.status].color}}; background-color: {{statusConfig[order.status].bgColor}};"
+        >
+          {{statusConfig[order.status].label}}
+        </t-tag>
         <text class="order-no">{{order.orderNo}}</text>
       </view>
     </view>
 
     <!-- 图片区域 -->
     <view wx:if="{{order.files.length > 0}}" class="section">
-      <text class="section-title">产品图片</text>
-      <scroll-view class="image-scroll" scroll-x>
-        <view class="image-list">
-          <image
-            wx:for="{{order.files}}"
-            wx:key="id"
-            src="{{item.url}}"
-            mode="aspectFill"
-            class="product-image"
-            data-url="{{item.url}}"
-            bindtap="previewImage"
-          ></image>
-        </view>
-      </scroll-view>
+      <view class="section-title">产品图片</view>
+      <t-grid column="{{3}}" border="{{false}}">
+        <t-grid-item wx:for="{{order.files}}" wx:key="id">
+          <t-image src="{{item.url}}" mode="aspectFill" width="200" height="200" bind:click="previewImage" data-url="{{item.url}}" />
+        </t-grid-item>
+      </t-grid>
     </view>
 
     <!-- 订单信息 -->
     <view class="section">
-      <text class="section-title">订单信息</text>
-      
-      <view wx:if="{{order.currentData.name}}" class="info-row">
-        <text class="info-label">客户名称</text>
-        <text class="info-value">{{order.currentData.name}}</text>
-      </view>
-      
-      <view wx:if="{{order.currentData.brand}}" class="info-row">
-        <text class="info-label">品牌</text>
-        <text class="info-value">{{order.currentData.brand}}</text>
-      </view>
-      
-      <view wx:if="{{order.currentData.series}}" class="info-row">
-        <text class="info-label">系列</text>
-        <text class="info-value">{{order.currentData.series}}</text>
-      </view>
-      
-      <view wx:if="{{order.currentData.size}}" class="info-row">
-        <text class="info-label">尺寸</text>
-        <text class="info-value">{{order.currentData.size}}</text>
-      </view>
-      
-      <view wx:if="{{order.currentData.color}}" class="info-row">
-        <text class="info-label">颜色</text>
-        <text class="info-value">{{order.currentData.color}}</text>
-      </view>
-      
-      <view wx:if="{{order.currentData.material}}" class="info-row">
-        <text class="info-label">材质</text>
-        <text class="info-value">{{order.currentData.material}}</text>
-      </view>
-      
-      <view wx:if="{{order.currentData.deadline}}" class="info-row">
-        <text class="info-label">期望到货</text>
-        <text class="info-value">{{order.currentData.deadline}}</text>
-      </view>
-      
-      <view wx:if="{{order.currentData.remark}}" class="info-row remark">
-        <text class="info-label">备注</text>
-        <text class="info-value">{{order.currentData.remark}}</text>
-      </view>
+      <view class="section-title">订单信息</view>
+      <t-cell-group theme="card">
+        <t-cell title="客户名称" note="{{order.currentData.name || '-'}}" />
+        <t-cell title="品牌" note="{{order.currentData.brand || '-'}}" />
+        <t-cell title="系列" note="{{order.currentData.series || '-'}}" />
+        <t-cell title="尺寸" note="{{order.currentData.size || '-'}}" />
+        <t-cell title="颜色" note="{{order.currentData.color || '-'}}" />
+        <t-cell title="材质" note="{{order.currentData.material || '-'}}" />
+        <t-cell title="期望到货" note="{{order.currentData.deadline || '-'}}" />
+        <t-cell title="备注" note="{{order.currentData.remark || '-'}}" wx:if="{{order.currentData.remark}}" />
+      </t-cell-group>
     </view>
 
     <!-- 时间轴 -->
     <view class="section">
-      <text class="section-title">订单动态</text>
-      <timeline items="{{order.timeline}}"></timeline>
+      <view class="section-title">订单动态</view>
+      <view class="timeline-container">
+        <t-steps layout="vertical" theme="dot" current="{{order.timeline.length - 1}}">
+          <t-step 
+            wx:for="{{order.timeline}}" 
+            wx:key="id" 
+            title="{{item.actionType === 'status_changed' ? '状态变更: ' + item.newValue : item.actionType === 'created' ? '创建了订单' : item.actorName}}" 
+            content="{{item.comment || item.fieldName || item.reason || ''}}" 
+          >
+             <view slot="extra" class="timeline-time">{{format.formatTime(item.createdAt)}}</view>
+          </t-step>
+        </t-steps>
+      </view>
     </view>
 
-    <!-- 底部间距 -->
-    <view style="height: 200rpx;"></view>
+    <view style="height: 120rpx;"></view>
   </scroll-view>
 
-  <!-- 留言输入框 -->
+  <!-- 留言输入框: Using TDesign Input? Or native input fixed at bottom is fine. Let's keep native or custom for better keyboard handling -->
   <view wx:if="{{order}}" class="comment-bar safe-area-bottom">
+    <!-- Using native input for now to avoid TDesign form behaviors -->
     <input
       class="comment-input"
       placeholder="输入留言..."
       value="{{comment}}"
       bindinput="onCommentInput"
     />
-    <button
-      class="comment-btn"
-      bindtap="handleSubmitComment"
-      disabled="{{!comment.trim() || submittingComment}}"
-    >
-      发送
-    </button>
+    <t-button theme="primary" size="small" bind:tap="handleSubmitComment" disabled="{{!comment.trim()}}" loading="{{submittingComment}}">发送</t-button>
   </view>
 </view>
+<!-- WXS import needed for format -->
+<wxs src="../../utils/format.wxs" module="format" />

@@ -5,6 +5,7 @@
 
 import { post, setToken, clearToken, getAccessToken, setAccessToken } from './api';
 import { API, STORAGE_KEYS } from './constants';
+import { store, KEYS } from './store';
 
 interface UserInfo {
     id: string;
@@ -66,11 +67,13 @@ export async function wxLogin(): Promise<LoginResult> {
         // 4. 保存 Token
         if (data.token) {
             setToken(data.token);
+            store.set(KEYS.TOKEN, data.token);
         }
 
         // 5. 保存用户信息
         if (data.user) {
             wx.setStorageSync(STORAGE_KEYS.USER_INFO, data.user);
+            store.set(KEYS.USER, data.user);
         }
 
         return {
@@ -107,6 +110,7 @@ export async function passwordLogin(accessToken: string, password: string): Prom
         // 保存 Token
         setToken(data.token);
         setAccessToken(accessToken);
+        store.set(KEYS.TOKEN, data.token);
 
         // 保存用户信息
         const user: UserInfo = {
@@ -115,6 +119,7 @@ export async function passwordLogin(accessToken: string, password: string): Prom
             store: data.store,
         };
         wx.setStorageSync(STORAGE_KEYS.USER_INFO, user);
+        store.set(KEYS.USER, user);
 
         return { success: true, user };
     } catch (error: any) {
@@ -148,6 +153,7 @@ export async function usernameLogin(username: string, password: string): Promise
         // 保存 Token
         setToken(data.token);
         setAccessToken(data.accessToken);
+        store.set(KEYS.TOKEN, data.token);
 
         // 保存用户信息
         const user: UserInfo = {
@@ -156,6 +162,7 @@ export async function usernameLogin(username: string, password: string): Promise
             store: data.store,
         };
         wx.setStorageSync(STORAGE_KEYS.USER_INFO, user);
+        store.set(KEYS.USER, user);
 
         return { success: true, user };
     } catch (error: any) {
@@ -177,10 +184,13 @@ export async function checkAuth(): Promise<UserInfo | null> {
         const response = await post<UserInfo>(API.SALES_AUTH(accessToken), {});
         if (response.success && response.data) {
             wx.setStorageSync(STORAGE_KEYS.USER_INFO, response.data);
+            store.set(KEYS.USER, response.data);
             return response.data;
         }
+        store.set(KEYS.USER, null);
         return null;
     } catch {
+        store.set(KEYS.USER, null);
         return null;
     }
 }
@@ -192,6 +202,8 @@ export function logout(): void {
     clearToken();
     wx.removeStorageSync(STORAGE_KEYS.USER_INFO);
     wx.removeStorageSync(STORAGE_KEYS.ACCESS_TOKEN);
+    store.set(KEYS.USER, null);
+    store.set(KEYS.TOKEN, null);
     wx.redirectTo({ url: '/pages/login/login' });
 }
 
@@ -199,7 +211,12 @@ export function logout(): void {
  * 获取当前用户信息
  */
 export function getCurrentUser(): UserInfo | null {
-    return wx.getStorageSync(STORAGE_KEYS.USER_INFO) || null;
+    const user = wx.getStorageSync(STORAGE_KEYS.USER_INFO) || null;
+    // 确保 store 同步
+    if (user && !store.get(KEYS.USER)) {
+        store.set(KEYS.USER, user);
+    }
+    return user;
 }
 
 /**

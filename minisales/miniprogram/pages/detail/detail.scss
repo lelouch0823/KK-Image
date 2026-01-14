@@ -84,6 +84,7 @@
 
 
 // 留言栏
+// 留言输入框
 .comment-bar {
     position: fixed;
     bottom: 0;
@@ -94,41 +95,19 @@
     padding: $spacing-md $spacing-lg;
     background-color: $bg-card;
     border-top: 1rpx solid $border-color;
+    align-items: center;
 }
 
 .comment-input {
     flex: 1;
-    height: 80rpx;
+    height: 72rpx;
     padding: 0 $spacing-md;
     background-color: $bg-page;
     border-radius: $border-radius;
     font-size: $font-size-base;
 }
 
-.comment-btn {
-    width: 140rpx;
-    height: 80rpx;
-    background-color: $color-primary;
-    color: #ffffff;
-    font-size: $font-size-sm;
-    font-weight: 500;
-    border-radius: $border-radius;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &[disabled] {
-        opacity: 0.5;
-    }
-}
-
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
+.timeline-time {
+    font-size: $font-size-xs;
+    color: $text-muted;
 }

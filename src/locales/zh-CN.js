@@ -792,6 +792,8 @@ export default {
     emptyList: '暂无销售人员',
     emptyHint: '点击上方按钮添加第一个销售',
     leaveBlankToKeep: '不修改请留空',
+    activeStatus: '启用状态',
+    uuid: '唯一标识 (UUID)',
   },
   pwa: {
     offlineReady: '应用已准备好离线使用',

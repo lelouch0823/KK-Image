@@ -1,7 +1,5 @@
 {
-  "usingComponents": {
-    "status-badge": "../../components/status-badge/status-badge"
-  },
+  "usingComponents": {},
   "navigationStyle": "custom",
   "enablePullDownRefresh": true
 }

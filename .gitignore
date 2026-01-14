@@ -20,7 +20,7 @@ out/
 .nuxt/
 .next/
 .vite/
-
+minisales\miniprogram\miniprogram_npm\tdesign-miniprogram
 # Environment variables
 .env
 .env.local
@@ -151,3 +151,14 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Wechat Mini Program
+miniprogram_npm/
+minisales/**/miniprogram_npm/
+
+project.private.config.json
+**/project.private.config.json
+
+# Wechat Mini Program
+miniprogram_npm/
+minisales/**/miniprogram_npm/

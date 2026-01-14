@@ -8,78 +8,9 @@
 }
 
 // 顶部导航
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background-color: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20rpx);
-  border-bottom: 1rpx solid $border-color;
-  box-sizing: border-box;
-}
-
-.header-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 $spacing-lg;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-}
-
-.header-icon {
-  width: 72rpx;
-  height: 72rpx;
-  background: linear-gradient(135deg, $color-primary 0%, #6366f1 100%);
-  border-radius: 16rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.icon-image {
-  width: 36rpx;
-  height: 36rpx;
-}
-
-.header-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.header-title {
-  font-size: $font-size-lg;
-  font-weight: 600;
-  color: $text-main;
-}
-
-.header-subtitle {
-  font-size: $font-size-xs;
-  color: $text-secondary;
-}
-
-.new-order-btn {
-  display: flex;
-  align-items: center;
-  gap: $spacing-xs;
-  padding: $spacing-sm $spacing-md;
-  background: linear-gradient(135deg, $color-primary 0%, #6366f1 100%);
-  color: #ffffff;
-  font-size: $font-size-sm;
-  font-weight: 500;
-  border-radius: $border-radius;
-  border: none;
-}
-
-.btn-icon {
-  font-size: $font-size-lg;
-  font-weight: 300;
+// Header 样式被 t-navbar 替代
+.header-icon-container {
+  padding-left: 16rpx;
 }
 
 // 订单列表
@@ -225,36 +156,9 @@
 // @keyframes spin: 使用全局样式 (app.scss)
 
 // 悬浮按钮 (FAB)
-.fab-btn {
-  position: fixed;
-  right: 40rpx;
-  bottom: calc(env(safe-area-inset-bottom) + 60rpx);
-  width: 100rpx;
-  height: 100rpx;
-  border-radius: 50%;
-  background: linear-gradient(135deg, $color-primary 0%, #6366f1 100%);
-  box-shadow: 0 8rpx 20rpx rgba($color-primary, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 900;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &.hidden {
-    transform: translateY(200%);
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-}
-
-.fab-icon {
-  font-size: 64rpx;
-  color: #fff;
-  line-height: 1;
-  font-weight: 300;
-  padding-bottom: 8rpx; // 视觉修正
+// 悬浮按钮 (FAB)
+// t-fab handles styles, we just need the hidden state custom transition if t-fab doesn't match
+.fab-hidden {
+  transform: translateY(200%) !important;
+  opacity: 0;
 }

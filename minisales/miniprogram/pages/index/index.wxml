@@ -4,22 +4,14 @@
 
 <view class="page">
   <!-- 顶部导航 -->
-  <view class="header" style="padding-top: {{statusBarHeight}}px; height: {{headerHeight}}px;">
-    <view class="header-content" style="height: {{navContentHeight}}px;">
-      <view class="header-left">
-        <view class="header-icon">
-          <image src="/assets/icons/orders.png" mode="aspectFit" class="icon-image"></image>
-        </view>
-        <view class="header-info">
-          <text class="header-title">我的订单</text>
-          <text class="header-subtitle">{{user.name}}</text>
-        </view>
-      </view>
-      <view class="header-right">
-        <!-- FAB 替代顶部按钮 -->
-      </view>
+  <t-navbar t-class-placeholder="navbar-placeholder" title="{{user.name ? user.name + '的订单' : '我的订单'}}" fixed style="--td-navbar-bg-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
+    <view slot="left" class="header-icon-container">
+      <t-icon name="app" size="24px" />
     </view>
-  </view>
+  </t-navbar>
+  
+  <!-- 占位元素 (如果 t-navbar placeholder={true} 不生效) -->
+  <view style="height: {{headerHeight}}px"></view>
 
   <!-- 订单列表 -->
   <scroll-view
@@ -34,21 +26,21 @@
   >
     <!-- 加载中 -->
     <view wx:if="{{loading && orders.length === 0}}" class="loading-container">
-      <view class="loading-spinner"></view>
-      <text class="loading-text">加载中...</text>
+      <t-loading theme="circular" size="40rpx" text="加载中..." />
     </view>
 
     <!-- 空状态 -->
+    <!-- 空状态 -->
     <view wx:elif="{{!loading && orders.length === 0}}" class="empty-state">
-      <image src="/assets/icons/empty.png" mode="aspectFit" class="empty-icon"></image>
-      <text class="empty-text">暂无订单</text>
-      <text class="empty-hint">点击右上角"新建"创建订单</text>
+      <t-empty icon="info-circle-filled" description="暂无订单" />
+      <view class="empty-hint" style="margin-top: 20rpx; color: #999; font-size: 24rpx;">点击右下角"+"创建订单</view>
     </view>
 
     <!-- 订单卡片列表 -->
     <block wx:else>
       <view
         wx:for="{{orders}}"
+        wx:for-item="item"
         wx:key="id"
         class="order-card list-item" 
         data-id="{{item.id}}"
@@ -56,13 +48,14 @@
       >
         <!-- 主图 -->
         <view class="card-image">
-          <image
+          <t-image
             wx:if="{{item.mainImage}}"
             src="{{item.mainImage}}"
             mode="aspectFill"
-            class="main-image"
+            width="180"
+            height="180"
             lazy-load
-          ></image>
+          />
           <view wx:else class="image-placeholder">
             <text class="placeholder-text">暂无图片</text>
           </view>
@@ -74,23 +67,35 @@
         <view class="card-content">
           <view class="card-header">
             <text class="order-no">{{item.orderNo}}</text>
-            <status-badge status="{{item.status}}"></status-badge>
+            <t-tag 
+              size="small" 
+              variant="light" 
+              style="color: {{statusConfig[item.status].color}}; background-color: {{statusConfig[item.status].bgColor}};"
+            >
+              {{statusConfig[item.status].label}}
+            </t-tag>
           </view>
           <view class="card-body">
             <text wx:if="{{item.customerName}}" class="customer-name">{{item.customerName}}</text>
           </view>
           <view class="card-footer">
             <text class="order-time">{{format.formatRelativeTime(item.createdAt)}}</text>
-            <text class="view-link">查看详情 ›</text>
+            <view class="view-link">查看详情 <t-icon name="chevron-right" size="14" /></view>
           </view>
         </view>
       </view>
     </block>
-
+    
+    <t-divider content="没有更多了" wx:if="{{!loading && orders.length > 0}}" />
+    <view style="height: 120rpx;"></view> <!-- 底部安全区 -->
   </scroll-view>
 
   <!-- 悬浮新建按钮 -->
-  <view class="fab-btn {{fabVisible ? '' : 'hidden'}}" bindtap="handleNewOrder">
-    <text class="fab-icon">+</text>
-  </view>
+  <t-fab
+    icon="add"
+    bind:click="handleNewOrder"
+    aria-label="新建订单"
+    style="bottom: 200rpx; right: 40rpx; z-index: 9999;"
+    class="{{fabVisible ? '' : 'fab-hidden'}}"
+  />
 </view>

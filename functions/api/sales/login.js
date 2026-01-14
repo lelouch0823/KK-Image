@@ -9,7 +9,7 @@
  * 响应: { success: true, data: { id, name, store, token, accessToken } }
  */
 
-import { success, error, MSG, verifyJWT, generateJWT } from '../../_shared/utils.js';
+import { success, error, MSG, verifyJWT, generateJWT, hashPassword } from '../../_shared/utils.js';
 
 export async function onRequestPost(context) {
     const { env, request } = context;
@@ -30,20 +30,16 @@ export async function onRequestPost(context) {
 
         if (!salesperson) {
             console.log('Login failed: user not found for:', username);
-            return error('用户不存在', 401);
+            return error('用户不存在', 400);
         }
 
-        // 验证密码 (SHA-256 哈希)
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        // 验证密码 (使用 hashPassword 和 JWT_SECRET 加盐)
+        const passwordHash = await hashPassword(password, env.JWT_SECRET);
 
         console.log('Login attempt:', { username, inputHash: passwordHash, storedHash: salesperson.password_hash });
 
         if (salesperson.password_hash !== passwordHash) {
-            return error('密码错误', 401);
+            return error('密码错误', 400);
         }
 
         // 生成 JWT Token

@@ -5,6 +5,7 @@
 import { get, getAccessToken } from '../../utils/api';
 import { getCurrentUser, logout } from '../../utils/auth';
 import { API, STATUS_CONFIG, OrderStatus } from '../../utils/constants';
+import { store, KEYS } from '../../utils/store';
 
 interface Order {
   id: string;
@@ -15,6 +16,7 @@ interface Order {
   hasNewFeedback?: boolean;
   createdAt: number;
   updatedAt: number;
+  // ... other fields
 }
 
 Page({
@@ -35,9 +37,19 @@ Page({
 
   // 滚动状态记录
   lastScrollTop: 0,
+  // 监听器销毁函数
+  unsubUser: null as null | (() => void),
 
   onLoad() {
     this.checkAuth();
+
+    // 订阅用户信息变化
+    this.unsubUser = store.on(KEYS.USER, (user) => {
+      this.setData({ user });
+      if (user) {
+        this.loadOrders();
+      }
+    });
 
     // 计算自定义导航栏高度
     const sysInfo = wx.getSystemInfoSync();
@@ -55,8 +67,20 @@ Page({
   },
 
   onShow() {
-    if (this.data.user) {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      (this.getTabBar() as any).init();
+    }
+
+    // 移除 onShow 中的 checkAuth，交由 store 管理
+    const user = getCurrentUser(); // 确保 store 有值
+    if (user && this.data.orders.length === 0) {
       this.loadOrders();
+    }
+  },
+
+  onUnload() {
+    if (this.unsubUser) {
+      this.unsubUser();
     }
   },
 

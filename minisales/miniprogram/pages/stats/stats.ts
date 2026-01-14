@@ -50,6 +50,9 @@ Page({
     },
 
     onShow() {
+        if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+            (this.getTabBar() as any).init();
+        }
         this.loadStats();
     },
 

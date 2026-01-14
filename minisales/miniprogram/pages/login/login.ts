@@ -57,11 +57,9 @@ Page({
     /**
      * 输入事件
      */
-    onUsernameInput(e: WechatMiniprogram.Input) {
-        this.setData({ username: e.detail.value, error: '' });
-    },
-
-    onPasswordInput(e: WechatMiniprogram.Input) {
-        this.setData({ password: e.detail.value, error: '' });
+    onInput(e: WechatMiniprogram.CustomEvent) {
+        const { field } = e.currentTarget.dataset;
+        const { value } = e.detail;
+        this.setData({ [field]: value, error: '' });
     },
 });
