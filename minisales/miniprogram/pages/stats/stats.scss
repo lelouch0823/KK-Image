@@ -2,7 +2,7 @@
 
 .page {
     min-height: 100vh;
-    background-color: #f3f4f6; // Web default bg
+    background-color: $bg-page;
     display: flex;
     flex-direction: column;
 }
@@ -22,7 +22,7 @@
 }
 
 .stat-card {
-    background: #ffffff;
+    background: $bg-card;
     border-radius: 24rpx; // Rounded-2xl
     padding: 32rpx;
     width: calc(50% - 12rpx);
@@ -52,17 +52,17 @@
     margin-bottom: 16rpx;
 
     &.blue {
-        background-color: #eff6ff;
+        background-color: $card-blue-bg;
     }
 
     // blue-50
     &.green {
-        background-color: #ecfdf5;
+        background-color: $card-green-bg;
     }
 
     // green-50
     &.purple {
-        background-color: #f5f3ff;
+        background-color: $card-purple-bg;
     }
 
     // violet-50
@@ -75,7 +75,7 @@
 
 .stat-label {
     font-size: 24rpx;
-    color: #6b7280; // text-secondary
+    color: $text-secondary;
     font-weight: 500;
     margin-bottom: 8rpx;
 }
@@ -83,18 +83,18 @@
 .stat-num {
     font-size: 40rpx;
     font-weight: 700;
-    color: #111827; // text-primary
+    color: $text-main;
 
     &.blue {
-        color: #2563eb;
+        color: $card-blue-text;
     }
 
     &.green {
-        color: #059669;
+        color: $card-green-text;
     }
 
     &.purple {
-        color: #7c3aed;
+        color: $card-purple-text;
     }
 }
 
@@ -130,14 +130,14 @@
 
     .mini-bar {
         flex: 1;
-        background-color: #8b5cf6;
+        background-color: $card-purple-text; // Purple accent
         border-radius: 4rpx 4rpx 0 0;
     }
 }
 
 // Section Charts
 .section-card {
-    background: #ffffff;
+    background: $bg-card;
     border-radius: 24rpx;
     padding: 32rpx;
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.02);
@@ -159,14 +159,14 @@
     .mark-line {
         width: 8rpx;
         height: 32rpx;
-        background-color: #3b82f6;
+        background-color: $color-primary;
         border-radius: 4rpx;
     }
 
     .title {
         font-size: 32rpx;
         font-weight: 600;
-        color: #111827;
+        color: $text-main;
     }
 }
 
@@ -197,7 +197,7 @@
 
     .x-label {
         font-size: 22rpx;
-        color: #9ca3af;
+        color: $text-muted;
         font-family: monospace;
     }
 }
@@ -212,7 +212,7 @@
     display: flex;
     align-items: center;
     padding: 20rpx 0;
-    border-bottom: 1rpx solid #f3f4f6;
+    border-bottom: 1rpx solid $bg-hover;
 
     &:last-child {
         border-bottom: none;
@@ -221,11 +221,11 @@
     &.header {
         padding-top: 0;
         padding-bottom: 16rpx;
-        border-bottom: 2rpx solid #f3f4f6;
+        border-bottom: 2rpx solid $bg-hover;
 
         .th {
             font-size: 24rpx;
-            color: #9ca3af;
+            color: $text-muted;
             font-weight: 500;
         }
     }
@@ -233,7 +233,7 @@
 
 .td {
     font-size: 28rpx;
-    color: #374151;
+    color: $text-main;
 }
 
 // Columns
@@ -252,14 +252,14 @@
 }
 
 .date-text {
-    color: #6b7280;
+    color: $text-secondary;
     font-family: monospace;
 }
 
 .progress-track {
     width: 100%;
     height: 12rpx;
-    background-color: #f3f4f6;
+    background-color: $bg-hover;
     border-radius: 6rpx;
     overflow: hidden;
 }
@@ -272,10 +272,10 @@
 
 .count-text {
     font-weight: 500;
-    color: #9ca3af;
+    color: $text-muted;
 
     &.highlight {
-        color: #111827;
+        color: $text-main;
         font-weight: 700;
     }
 }

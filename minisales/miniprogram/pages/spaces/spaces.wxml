@@ -109,6 +109,6 @@
     </view>
 
     <t-divider content="没有更多了" wx:if="{{!loading && spaces.length > 0}}" />
-    <view style="height: 120rpx;"></view>
+    <view class="footer-spacer"></view>
   </scroll-view>
 </view>

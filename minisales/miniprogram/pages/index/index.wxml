@@ -37,7 +37,7 @@
     <!-- 空状态 -->
     <view wx:elif="{{!loading && orders.length === 0}}" class="empty-state">
       <t-empty icon="info-circle-filled" description="暂无订单" />
-      <view class="empty-hint" style="margin-top: 20rpx; color: #999; font-size: 24rpx;">点击右下角"+"创建订单</view>
+      <view class="empty-hint">点击右下角"+"创建订单</view>
     </view>
 
     <!-- 订单卡片列表 -->
@@ -99,7 +99,7 @@
     </block>
     
     <t-divider content="没有更多了" wx:if="{{!loading && orders.length > 0}}" />
-    <view style="height: 120rpx;"></view> <!-- 底部安全区 -->
+    <view class="footer-spacer"></view> <!-- 底部安全区 -->
   </scroll-view>
 
   <!-- 悬浮新建按钮 -->

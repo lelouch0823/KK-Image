@@ -4,6 +4,7 @@
 
 import { get, getAccessToken } from '../../utils/api';
 import { API, API_BASE_URL } from '../../utils/constants';
+import { calculateNavBarHeight, getNavbarVisibility, initTabBar } from '../../utils/ui-helpers';
 
 interface Space {
     id: string;
@@ -30,36 +31,32 @@ const TEMPLATE_NAMES: Record<string, string> = {
 
 Page({
     data: {
+        // ... (Other data)
         spaces: [] as Space[],
         leftColumn: [] as Space[],
         rightColumn: [] as Space[],
         loading: true,
         baseUrl: API_BASE_URL,
-        // Navbar auto-hide logic
-        navBarHeight: 88, // Default fallback (rpx)
+        navBarHeight: 88, // Navbar height for style binding & auto-hide logic
         navBarVisible: true,
-        lastScrollTop: 0,
     },
 
+    // 滚动状态记录
+    lastScrollTop: 0,
+
     onLoad() {
-        // Calculate navbar height (Status Bar + 44px)
-        const systemInfo = wx.getSystemInfoSync();
-        const statusBarHeight = systemInfo.statusBarHeight || 20;
-        // Convert px to rpx for consistent usage if needed, but styling usually uses px for dynamic vars
-        // Here we use px for the style binding
+        const { totalHeight } = calculateNavBarHeight();
         this.setData({
-            navBarHeight: statusBarHeight + 44, // 44 is standard nav height
+            navBarHeight: totalHeight,
         });
     },
 
     onShow() {
-        // 初始化 Tab Bar
-        if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-            (this.getTabBar() as any).init();
-        }
+        initTabBar(this);
         this.loadSpaces();
     },
 
+    // ... onPullDownRefresh ...
     /**
      * 下拉刷新
      */
@@ -73,29 +70,21 @@ Page({
      */
     onScroll(e: WechatMiniprogram.ScrollViewScroll) {
         const scrollTop = e.detail.scrollTop;
-        const { lastScrollTop, navBarVisible, navBarHeight } = this.data;
-        const SCROLL_THRESHOLD = 10; // Minimum delta to trigger
+        const { navBarVisible, navBarHeight } = this.data;
+        const lastScrollTop = this.lastScrollTop;
 
-        // Always show if near top
-        if (scrollTop < navBarHeight + 20) {
-            if (!navBarVisible) this.setData({ navBarVisible: true });
-            return;
+        const shouldShow = getNavbarVisibility(
+            scrollTop,
+            lastScrollTop,
+            navBarVisible,
+            navBarHeight
+        );
+
+        if (shouldShow !== null) {
+            this.setData({ navBarVisible: shouldShow });
         }
 
-        const delta = scrollTop - lastScrollTop;
-
-        if (Math.abs(delta) < SCROLL_THRESHOLD) return;
-
-        // Scroll Down -> Hide
-        if (delta > 0 && navBarVisible) {
-            this.setData({ navBarVisible: false });
-        }
-        // Scroll Up -> Show
-        else if (delta < 0 && !navBarVisible) {
-            this.setData({ navBarVisible: true });
-        }
-
-        this.data.lastScrollTop = scrollTop;
+        this.lastScrollTop = scrollTop;
     },
 
     /**

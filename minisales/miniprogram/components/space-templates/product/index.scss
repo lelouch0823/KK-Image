@@ -2,12 +2,13 @@
 
 .product-container {
     width: 100%;
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .product-swiper {
     width: 100%;
-    height: 600rpx;
-    background-color: #fff;
+    height: 750rpx; // 1:1 Aspect Ratio typically looks better for products
+    background-color: $bg-card;
 }
 
 .product-info-card {
@@ -16,90 +17,128 @@
     margin-top: -32rpx;
     border-radius: 32rpx 32rpx 0 0;
     position: relative;
+    z-index: 1;
 }
 
-.product-brand {
+// Brand Badge (Matched Web: inline-block rounded bg-gray-100 px-2 py-1 text-sm font-medium text-primary)
+.brand-badge {
     display: inline-block;
-    font-size: $font-size-xs;
+    font-size: $font-size-sm;
     font-weight: 500;
     color: $color-primary;
-    background-color: rgba(59, 130, 246, 0.1);
+    background-color: $bg-hover; // Gray-100 equivalent
     padding: 4rpx 16rpx;
     border-radius: 8rpx;
-    margin-bottom: 12rpx;
+    margin-bottom: 16rpx;
 }
 
 .product-name {
     display: block;
-    font-size: $font-size-xl;
+    font-size: 40rpx; // Larger like Web (text-3xl ~ 30px ~ 60rpx, but 40rpx is safe for mobile)
     font-weight: 700;
     color: $text-main;
-    margin-bottom: 16rpx;
+    line-height: 1.3;
+    margin-bottom: 24rpx;
 }
 
 .product-price {
     display: flex;
     align-items: baseline;
-    gap: 4rpx;
-    margin-bottom: 24rpx;
+    margin-bottom: 32rpx;
+    color: $color-danger; // Or keep typical black? Web uses text-gray-900 for value, keep danger for emphasis? Web actually used text-gray-900. Let's stick to danger for standard E-commerce feel.
 }
 
 .price-symbol {
     font-size: $font-size-sm;
-    color: #ef4444;
+    margin-right: 4rpx;
+    font-weight: 500;
 }
 
 .price-value {
-    font-size: 48rpx;
+    font-size: 48rpx; // 3xl
     font-weight: 700;
-    color: #ef4444;
 }
 
-.product-params {
-    background-color: $bg-page;
-    border-radius: 16rpx;
-    padding: $spacing-md;
-    margin-bottom: 24rpx;
+// Params (Matched Web: border-l-2 pl-3)
+.params-container {
+    padding-bottom: 32rpx;
+    border-bottom: 1rpx solid $bg-hover;
+    margin-bottom: 32rpx;
+
+    // Grid layout for 2 cols if needed, or stack
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24rpx;
 }
 
-.param-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 12rpx 0;
-    border-bottom: 1rpx solid $border-color;
-
-    &:last-child {
-        border-bottom: none;
-    }
+.param-item {
+    border-left: 4rpx solid rgba($color-primary, 0.3); // var(--color-primary-light)
+    padding-left: 16rpx;
 }
 
 .param-label {
+    display: block;
     font-size: $font-size-sm;
-    color: $text-secondary;
+    color: $text-muted;
+    font-weight: 500;
+    margin-bottom: 4rpx;
 }
 
 .param-value {
-    font-size: $font-size-sm;
-    font-weight: 500;
+    display: block;
+    font-size: $font-size-base;
     color: $text-main;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .product-desc {
-    margin-top: 24rpx;
+    .desc-title {
+        display: block;
+        font-size: $font-size-base;
+        font-weight: 600;
+        color: $text-main;
+        margin-bottom: 16rpx;
+    }
+
+    .desc-content {
+        display: block;
+        font-size: $font-size-base;
+        color: $text-secondary;
+        line-height: 1.6;
+        white-space: pre-wrap;
+    }
 }
 
-.desc-title {
-    display: block;
-    font-size: $font-size-sm;
-    font-weight: 600;
-    color: $text-main;
-    margin-bottom: 8rpx;
+// 底部安全区占位
+.footer-spacer {
+    height: 140rpx; // Space for sticky bar
 }
 
-.desc-content {
-    display: block;
-    font-size: $font-size-sm;
-    color: $text-secondary;
-    line-height: 1.6;
-    white-space: pre-wrap;
+// Sticky Action Bar
+.sticky-action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: $bg-card;
+    padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+    box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.05);
+    display: flex;
+    gap: 24rpx;
+    z-index: 99;
+
+    .action-btn {
+        flex: 1;
+    }
+
+    .share-btn {
+        flex: 1;
+    }
+
+    .download-btn {
+        flex: 2; // Make download/view button larger
+    }
 }

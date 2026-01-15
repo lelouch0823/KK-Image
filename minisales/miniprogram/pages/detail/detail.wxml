@@ -65,7 +65,7 @@
       </view>
     </view>
 
-    <view style="height: 120rpx;"></view>
+    <view class="footer-spacer"></view>
   </scroll-view>
 
   <!-- 留言输入框: Using TDesign Input? Or native input fixed at bottom is fine. Let's keep native or custom for better keyboard handling -->

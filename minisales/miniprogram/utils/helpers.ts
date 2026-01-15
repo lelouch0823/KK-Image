@@ -89,3 +89,29 @@ export function throttle<T extends (...args: any[]) => any>(
         }
     };
 }
+/**
+ * 智能友好时间格式化 (如 "今天 12:30", "周三", "11/24")
+ */
+export function formatFriendlyTime(timestamp: number): string {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+
+    // 今天
+    if (diff < 24 * 60 * 60 * 1000 && date.getDate() === now.getDate()) {
+        const h = date.getHours().toString().padStart(2, '0');
+        const m = date.getMinutes().toString().padStart(2, '0');
+        return `今天 ${h}:${m}`;
+    }
+
+    // 一周内
+    if (diff < 7 * 24 * 60 * 60 * 1000) {
+        const days = ['日', '一', '二', '三', '四', '五', '六'];
+        return `周${days[date.getDay()]}`;
+    }
+
+    // 更早 (MM/DD)
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${month}/${day}`;
+}

@@ -11,23 +11,7 @@
 
 // 顶部导航
 // Header 样式被 t-navbar 替代
-// 顶部导航栏动画容器
-.custom-navbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: 100;
-  transition: transform 0.3s ease-in-out;
-  background-color: transparent; // 背景由 t-navbar 或内部 View 控制
-  pointer-events: none; // 透传点击，防止遮挡（如果需要点击 nav 则去掉）
-  // 实际上 navbar 需要点击（icon），所以 pointer-events: auto
-  pointer-events: auto;
-
-  &.navbar-hidden {
-    transform: translateY(-100%);
-  }
-}
+// .custom-navbar 已提取至 app.scss
 
 .header-icon-container {
   padding-left: 16rpx;
@@ -155,4 +139,16 @@
 .fab-hidden {
   transform: translateY(200%) !important;
   opacity: 0;
+}
+
+// 空状态提示
+.empty-hint {
+  margin-top: 20rpx;
+  color: $text-muted;
+  font-size: $font-size-sm;
+}
+
+// 底部安全区占位
+.footer-spacer {
+  height: 120rpx;
 }

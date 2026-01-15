@@ -6,6 +6,9 @@
     <view class="gallery-meta">
       <t-icon name="image" size="24rpx" color="#9ca3af" />
       <text class="meta-text">{{space.files.length || 0}} 个文件</text>
+      <text class="meta-divider" wx:if="{{space.viewCount}}">·</text>
+      <t-icon name="browse" size="24rpx" color="#9ca3af" wx:if="{{space.viewCount}}" />
+      <text class="meta-text" wx:if="{{space.viewCount}}">{{space.viewCount}} 次浏览</text>
     </view>
   </view>
   <view class="masonry-grid" wx:if="{{space.files && space.files.length > 0}}">

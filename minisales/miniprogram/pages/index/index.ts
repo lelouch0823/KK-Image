@@ -3,10 +3,13 @@
  */
 
 import { get, getAccessToken } from '../../utils/api';
+import { formatFriendlyTime } from '../../utils/helpers';
+import { calculateNavBarHeight, getNavbarVisibility, initTabBar } from '../../utils/ui-helpers';
 import { getCurrentUser, logout } from '../../utils/auth';
 import { API, STATUS_CONFIG, OrderStatus } from '../../utils/constants';
 import { store, KEYS } from '../../utils/store';
 
+// ... (Interface Order)
 interface Order {
   id: string;
   orderNo: string;
@@ -54,24 +57,17 @@ Page({
     });
 
     // 计算自定义导航栏高度
-    const sysInfo = wx.getSystemInfoSync();
-    const menuInfo = wx.getMenuButtonBoundingClientRect();
-
-    const statusBarHeight = sysInfo.statusBarHeight;
-    // 导航栏内容高度 = (胶囊顶部 - 状态栏高度) * 2 + 胶囊高度
-    const navContentHeight = (menuInfo.top - statusBarHeight) * 2 + menuInfo.height;
+    const { statusBarHeight, navContentHeight, totalHeight } = calculateNavBarHeight();
 
     this.setData({
       statusBarHeight,
       navContentHeight,
-      headerHeight: statusBarHeight + navContentHeight,
+      headerHeight: totalHeight,
     });
   },
 
   onShow() {
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      (this.getTabBar() as any).init();
-    }
+    initTabBar(this);
 
     // 移除 onShow 中的 checkAuth，交由 store 管理
     const user = getCurrentUser(); // 确保 store 有值
@@ -93,18 +89,28 @@ Page({
     const currentScrollTop = e.detail.scrollTop;
     if (currentScrollTop < 0) return;
 
-    // FAB & Navbar Logic
-    // 向下滚动隐藏 (阈值 10px)
-    if (currentScrollTop > this.lastScrollTop + 10) {
-      if (this.data.fabVisible) this.setData({ fabVisible: false });
-      if (this.data.navBarVisible && currentScrollTop > this.data.headerHeight) {
-        this.setData({ navBarVisible: false });
-      }
+    // Use Helper for Navbar
+    // Use Helper for Navbar
+    const { navBarVisible, headerHeight } = this.data;
+    const lastScrollTop = this.lastScrollTop; // Instance property
+
+    const shouldShowNavbar = getNavbarVisibility(
+      currentScrollTop,
+      lastScrollTop,
+      navBarVisible,
+      headerHeight
+    );
+
+    if (shouldShowNavbar !== null) {
+      this.setData({ navBarVisible: shouldShowNavbar });
     }
-    // 向上滚动显示 (阈值 10px)
-    else if (currentScrollTop < this.lastScrollTop - 10) {
-      if (!this.data.fabVisible) this.setData({ fabVisible: true });
-      if (!this.data.navBarVisible) this.setData({ navBarVisible: true });
+
+    // FAB follows Navbar logic roughly, or can be separate. 
+    // Usually FAB hides when scrolling down, shows when up.
+    // If Navbar hides, FAB hides. If Navbar shows, FAB shows.
+    // Sync FAB with Navbar visibility for cleaner UX
+    if (shouldShowNavbar !== null) {
+      this.setData({ fabVisible: shouldShowNavbar });
     }
 
     this.lastScrollTop = currentScrollTop;
@@ -178,23 +184,8 @@ Page({
    * 格式化时间
    */
   formatTime(timestamp: number): string {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-
-    // 今天
-    if (diff < 24 * 60 * 60 * 1000 && date.getDate() === now.getDate()) {
-      return `今天 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-    }
-
-    // 一周内
-    if (diff < 7 * 24 * 60 * 60 * 1000) {
-      const days = ['日', '一', '二', '三', '四', '五', '六'];
-      return `周${days[date.getDay()]}`;
-    }
-
-    // 更早
-    return `${date.getMonth() + 1}/${date.getDate()}`;
+    // 使用统一的 helper 函数
+    return formatFriendlyTime(timestamp);
   },
 
   /**

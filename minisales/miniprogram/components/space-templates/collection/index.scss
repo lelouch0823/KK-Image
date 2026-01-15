@@ -12,7 +12,7 @@
 .collection-icon {
     width: 120rpx;
     height: 120rpx;
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    background: linear-gradient(135deg, $card-blue-bg 0%, lighten($card-blue-bg, 5%) 100%);
     border-radius: 32rpx;
     display: flex;
     align-items: center;
@@ -56,7 +56,7 @@
     margin-right: $spacing-md;
 
     &.placeholder {
-        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        background: linear-gradient(135deg, $bg-hover 0%, darken($bg-hover, 3%) 100%);
         display: flex;
         align-items: center;
         justify-content: center;

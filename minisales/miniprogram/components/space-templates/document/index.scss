@@ -49,13 +49,13 @@
     margin-right: $spacing-md;
 
     &.icon-image {
-        background-color: #dbeafe;
-        color: #3b82f6;
+        background-color: $card-blue-bg;
+        color: $color-primary;
     }
 
     &.icon-file {
-        background-color: #f3f4f6;
-        color: #6b7280;
+        background-color: $bg-hover;
+        color: $text-secondary;
     }
 }
 

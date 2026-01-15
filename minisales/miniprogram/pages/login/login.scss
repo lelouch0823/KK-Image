@@ -21,7 +21,7 @@
 .logo-icon {
     width: 160rpx;
     height: 160rpx;
-    background: linear-gradient(135deg, $color-primary 0%, #6366f1 100%);
+    background: linear-gradient(135deg, $color-primary 0%, lighten($color-primary, 10%) 100%);
     border-radius: 40rpx;
     display: flex;
     align-items: center;
@@ -94,3 +94,16 @@
 }
 
 // @keyframes spin: 使用全局样式 (app.scss)
+
+// 辅助类
+.icon-muted {
+    color: $text-muted !important;
+}
+
+.mt-md {
+    margin-top: $spacing-md;
+}
+
+.mt-lg {
+    margin-top: $spacing-xl;
+}

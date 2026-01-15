@@ -20,34 +20,54 @@
 
   <!-- 商品信息卡片 -->
   <view class="product-info-card">
-    <view wx:if="{{space.templateData.brand}}" class="product-brand">
+    <!-- Brand Badge (Web Style: Gray bg, Primary text) -->
+    <view wx:if="{{space.templateData.brand}}" class="brand-badge">
       {{space.templateData.brand}}
     </view>
+    
     <text class="product-name">{{space.name}}</text>
+    
     <view wx:if="{{space.templateData.price}}" class="product-price">
       <text class="price-symbol">¥</text>
       <text class="price-value">{{space.templateData.price}}</text>
     </view>
 
-    <!-- 参数表格 -->
-    <view class="product-params">
-      <view wx:if="{{space.templateData.series}}" class="param-row">
-        <text class="param-label">系列</text>
-        <text class="param-value">{{space.templateData.series}}</text>
-      </view>
-      <view wx:if="{{space.templateData.material}}" class="param-row">
-        <text class="param-label">材质</text>
-        <text class="param-value">{{space.templateData.material}}</text>
-      </view>
-      <view wx:if="{{space.templateData.sku}}" class="param-row">
-        <text class="param-label">SKU</text>
-        <text class="param-value">{{space.templateData.sku}}</text>
-      </view>
-    </view>
+    <!-- 参数列表 (Web Style: border-l-2 with padding) -->
+    <!-- 使用 wxs 处理显示逻辑 -->
+    <block wx:if="{{space.templateData.series || space.templateData.material || space.templateData.sku}}">
+        <view class="params-container">
+            <view wx:if="{{space.templateData.brand}}" class="param-item">
+                <text class="param-label">品牌</text>
+                <text class="param-value">{{space.templateData.brand}}</text>
+            </view>
+            <view wx:if="{{space.templateData.series}}" class="param-item">
+                <text class="param-label">系列</text>
+                <text class="param-value">{{space.templateData.series}}</text>
+            </view>
+            <view wx:if="{{space.templateData.material}}" class="param-item">
+                <text class="param-label">材质</text>
+                <text class="param-value">{{space.templateData.material}}</text>
+            </view>
+            <view wx:if="{{space.templateData.sku}}" class="param-item">
+                <text class="param-label">SKU</text>
+                <text class="param-value">{{space.templateData.sku}}</text>
+            </view>
+        </view>
+    </block>
 
     <view wx:if="{{space.description}}" class="product-desc">
       <text class="desc-title">商品描述</text>
       <text class="desc-content">{{space.description}}</text>
     </view>
+    
+    <!-- 底部占位 -->
+    <view class="footer-spacer"></view>
+  </view>
+  
+  <!-- 底部操作栏 (Mobile Sticky) -->
+  <view class="sticky-action-bar safe-area-bottom">
+      <t-button theme="light" icon="share" class="action-btn share-btn" open-type="share">分享</t-button>
+      <!-- "下载" 其实是预览，Web 版叫 Download Current -->
+      <t-button theme="primary" icon="download" class="action-btn download-btn" bind:tap="onPreview">查看原图</t-button>
   </view>
 </view>

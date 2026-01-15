@@ -32,13 +32,13 @@
         clearable
       >
         <view slot="prefix-icon">
-          <t-icon name="user" size="40rpx" style="color: #999;" />
+          <t-icon name="user" size="40rpx" class="icon-muted" />
         </view>
       </t-input>
     </view>
 
     <!-- 密码输入 -->
-    <view class="form-item" style="margin-top: 24rpx;">
+    <view class="form-item mt-md">
       <t-input
         label="密码"
         type="password"
@@ -49,13 +49,13 @@
         clearable
       >
          <view slot="prefix-icon">
-          <t-icon name="lock-on" size="40rpx" style="color: #999;" />
+          <t-icon name="lock-on" size="40rpx" class="icon-muted" />
         </view>
       </t-input>
     </view>
 
     <!-- 登录按钮 -->
-    <view style="margin-top: 64rpx;">
+    <view class="mt-lg">
       <t-button
         theme="primary"
         size="large"

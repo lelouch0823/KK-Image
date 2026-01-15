@@ -36,6 +36,12 @@
     color: $text-muted;
 }
 
+.meta-divider {
+    font-size: $font-size-xs;
+    color: $text-muted;
+    margin: 0 4rpx;
+}
+
 .masonry-grid {
     column-count: 2;
     column-gap: 12rpx;

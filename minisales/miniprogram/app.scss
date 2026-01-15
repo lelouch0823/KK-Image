@@ -80,7 +80,7 @@ web-view {
 
   &-primary {
     background-color: $color-primary;
-    color: #ffffff;
+    color: $color-white;
 
     &:active {
       background-color: $color-primary-hover;
@@ -98,7 +98,7 @@ web-view {
 
   &-danger {
     background-color: $color-danger;
-    color: #ffffff;
+    color: $color-white;
   }
 
   &-block {
@@ -310,4 +310,24 @@ web-view {
 // 安全区域
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+// ===========================================
+// 全局组件样式
+// ===========================================
+
+// 顶部导航栏动画容器 (Pages: Index, Spaces)
+.custom-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  transition: transform 0.3s ease-in-out;
+  background-color: transparent; // 背景由 t-navbar 或内部 View 控制
+  // 注意: 内部元素 (t-navbar) 自带 pointer-events，无需单独设置
+
+  &.navbar-hidden {
+    transform: translateY(-100%);
+  }
 }
