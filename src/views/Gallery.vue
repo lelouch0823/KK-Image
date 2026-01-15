@@ -186,24 +186,23 @@
       @prev="prevFile"
       @next="nextFile"
     />
-
-    <!-- Toast -->
-    <ToastContainer />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useClipboard } from '@/composables/useClipboard';
-import ToastContainer from '@/components/ui/ToastContainer.vue';
 import Lightbox from '@/components/ui/Lightbox.vue';
 import PasswordGate from '@/components/common/PasswordGate.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
-import { API } from '@/utils/constants';
+import { API, APP_NAME } from '@/utils/constants';
+import { isImage } from '@/utils/formatters';
 
 const { t } = useI18n();
 const { copy } = useClipboard();
+const route = useRoute();
 
 const loading = ref(true);
 const verifying = ref(false);
@@ -213,45 +212,37 @@ const requiresPassword = ref(false);
 const passwordError = ref('');
 const lightbox = ref({ visible: false, file: null, index: 0 });
 
-// 从 URL 获取分享令牌
-const getShareToken = () => {
-  const path = window.location.pathname;
-  const match = path.match(/\/gallery\/([^/]+)/);
-  return match ? match[1] : null;
-};
+// 从路由获取 Token
+const token = computed(() => route.params.token);
 
 // 加载相册
 const loadAlbum = async (pwd = null) => {
-  const token = getShareToken();
-  if (!token) {
+  if (!token.value) {
     error.value = t('gallery.invalidLink');
     loading.value = false;
     return;
   }
 
   try {
-    let url = API.PUBLIC_GALLERY(token);
+    let url = API.PUBLIC_GALLERY(token.value);
     if (pwd) url += `?password=${encodeURIComponent(pwd)}`;
 
     const response = await fetch(url);
     const result = await response.json();
 
     if (result.success) {
-      // Normalize files
+      // 使用工具函数规范化文件类型
       const files = result.data.files.map((f) => {
-        const isImg = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(
-          f.name.split('.').pop().toLowerCase()
-        );
-        const isPdf = f.name.toLowerCase().endsWith('.pdf');
+        const ext = f.name.split('.').pop().toLowerCase();
         return {
           ...f,
-          type: isImg ? 'image' : isPdf ? 'pdf' : 'other',
+          type: isImage(f) ? 'image' : ext === 'pdf' ? 'pdf' : 'other',
           thumbnailUrl: f.url,
         };
       });
 
       album.value = { ...result.data, files };
-      document.title = `${result.data.name} | KK-Image`;
+      document.title = `${result.data.name} | ${APP_NAME}`;
       requiresPassword.value = false;
     } else if (result.requiresPassword) {
       requiresPassword.value = true;
@@ -314,6 +305,13 @@ const handleImgError = (e) => {
   e.target.src =
     'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIGZpbGw9IiNGMEYwRjAiLz48L3N2Zz4=';
 };
+
+// 监听 Token 变化 (处理 SPA 同组件跳转)
+watch(token, () => {
+  loading.value = true;
+  album.value = null;
+  loadAlbum();
+});
 
 onMounted(() => {
   loadAlbum();

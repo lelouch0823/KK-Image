@@ -148,8 +148,9 @@ const loadSalespersons = async () => {
   try {
     const response = await fetch(API.SALESPERSONS, { credentials: 'include' });
     const result = await response.json();
-    if (result.success) {
-      salespersons.value = result.data;
+    if (result.success && result.data) {
+      // API 返回 { data: { salespersons: [...] } } 格式
+      salespersons.value = result.data.salespersons || result.data || [];
     }
   } catch (err) {
     console.error('Load salespersons failed:', err);

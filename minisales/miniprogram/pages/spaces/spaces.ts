@@ -1,5 +1,5 @@
 /**
- * 共享空间列表页
+ * 共享空间列表页 - 小红书风格瀑布流
  */
 
 import { get, getAccessToken } from '../../utils/api';
@@ -9,14 +9,30 @@ interface Space {
     id: string;
     name: string;
     description: string;
+    template: string;
     fileCount: number;
     coverUrl: string | null;
     updatedAt: number;
+    // 计算属性
+    templateName?: string;
+    aspectRatio?: number;
 }
+
+// 模板名称映射
+const TEMPLATE_NAMES: Record<string, string> = {
+    gallery: '画廊',
+    product: '商品',
+    portfolio: '作品集',
+    document: '文档',
+    collection: '合集',
+    custom: '自定义',
+};
 
 Page({
     data: {
         spaces: [] as Space[],
+        leftColumn: [] as Space[],
+        rightColumn: [] as Space[],
         loading: true,
         baseUrl: API_BASE_URL,
     },
@@ -57,7 +73,26 @@ Page({
             const response = await get<Space[]>(API.SALES_SPACES(accessToken));
 
             if (response.success && response.data) {
-                this.setData({ spaces: response.data });
+                // 添加模板名称和随机宽高比
+                const spaces = response.data.map((space) => ({
+                    ...space,
+                    templateName: TEMPLATE_NAMES[space.template] || space.template,
+                    aspectRatio: space.coverUrl ? (0.8 + Math.random() * 0.6) : 1, // 0.8-1.4
+                }));
+
+                // 瀑布流分列（简单交替分配）
+                const leftColumn: Space[] = [];
+                const rightColumn: Space[] = [];
+
+                spaces.forEach((space, index) => {
+                    if (index % 2 === 0) {
+                        leftColumn.push(space);
+                    } else {
+                        rightColumn.push(space);
+                    }
+                });
+
+                this.setData({ spaces, leftColumn, rightColumn });
             }
         } catch (error) {
             console.error('Load spaces failed:', error);

@@ -158,8 +158,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
-import { useView } from '@/composables/useView';
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useSearch } from '@/composables/useSearch';
 import { useNotifications } from '@/composables/useNotifications';
@@ -169,7 +169,9 @@ import { useAI } from '@/composables/useAI';
 
 defineEmits(['openSidebar']);
 
-const { viewTitle } = useView(); // setView unused here but destructured
+const route = useRoute();
+// 从路由 meta 获取页面标题
+const viewTitle = computed(() => route.meta?.title || '管理后台');
 const { t } = useI18n();
 const { searchQuery } = useSearch();
 const { unreadCount, startPolling, stopPolling } = useNotifications();

@@ -171,30 +171,23 @@
       <!-- 底部安全区域 -->
       <div class="h-[env(safe-area-inset-bottom)]"></div>
     </template>
-
-    <!-- Toast -->
-    <ToastContainer />
-
-    <!-- PWA 更新提示 -->
-    <ReloadPrompt />
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePushNotification } from '@/composables/usePushNotification';
 import { useToast } from '@/composables/useToast';
 import { useOrders } from '@/composables/useOrders';
 import { useNotifications } from '@/composables/useNotifications';
-import ToastContainer from '@/components/ui/ToastContainer.vue';
 import OrderLogin from '@/components/order/OrderLogin.vue';
 import OrderList from '@/components/order/OrderList.vue';
 import OrderForm from '@/components/order/OrderForm.vue';
 import OrderDetail from '@/components/order/OrderDetail.vue';
 import SalesStats from '@/components/order/SalesStats.vue';
 import SalesNotificationList from '@/components/order/SalesNotificationList.vue';
-import ReloadPrompt from '@/components/ReloadPrompt.vue';
 import { onClickOutside } from '@vueuse/core';
 
 const {
@@ -217,6 +210,9 @@ const {
   startPolling: startNotificationPolling,
   stopPolling: stopNotificationPolling,
 } = useNotifications();
+
+const route = useRoute();
+const accessToken = computed(() => route.params.token);
 
 // 状态
 const loading = ref(true);
@@ -250,7 +246,7 @@ const handleNotificationNavigate = async (orderId) => {
     await viewOrder(order);
   } else {
     // 如果列表中没有，直接请求详情
-    const data = await getSalesOrder(accessToken, orderId);
+    const data = await getSalesOrder(accessToken.value, orderId);
     if (data) {
       selectedOrder.value = data;
       currentView.value = 'detail';
@@ -261,23 +257,14 @@ const handleNotificationNavigate = async (orderId) => {
 // 轮询间隔 (60秒)
 const POLL_INTERVAL = 60 * 1000;
 
-// 从 URL 获取访问令牌
-const getAccessToken = () => {
-  const path = window.location.pathname;
-  const match = path.match(/\/sales\/([^/]+)/);
-  return match ? match[1] : null;
-};
-
-const accessToken = getAccessToken();
-
 // 检查登录状态
 const checkAuth = async () => {
-  if (!accessToken) {
+  if (!accessToken.value) {
     loading.value = false;
     return;
   }
 
-  const data = await checkSalesAuth(accessToken);
+  const data = await checkSalesAuth(accessToken.value);
   if (data) {
     isAuthenticated.value = true;
     salesperson.value = data;
@@ -289,7 +276,7 @@ const checkAuth = async () => {
 // 登录
 const handleLogin = async (password) => {
   loginError.value = '';
-  const result = await loginSales(accessToken, password);
+  const result = await loginSales(accessToken.value, password);
   if (result.success) {
     isAuthenticated.value = true;
     salesperson.value = result.data;
@@ -300,11 +287,11 @@ const handleLogin = async (password) => {
 };
 
 // 加载订单列表
-const loadOrders = () => loadSalesOrders(accessToken);
+const loadOrders = () => loadSalesOrders(accessToken.value);
 
 // 查看订单详情
 const viewOrder = async (order) => {
-  const data = await getSalesOrder(accessToken, order.id);
+  const data = await getSalesOrder(accessToken.value, order.id);
   if (data) {
     selectedOrder.value = data;
     currentView.value = 'detail';
@@ -325,7 +312,7 @@ const handleSubmitOrder = async (formData) => {
     submitProgress.value = { step, current, total };
   };
 
-  const result = await createSalesOrder(accessToken, formData, handleProgress);
+  const result = await createSalesOrder(accessToken.value, formData, handleProgress);
 
   // 重置进度
   submitProgress.value = { step: '', current: 0, total: 0 };
@@ -345,7 +332,7 @@ const handleBackToList = () => {
 // 添加留言
 const handleComment = async (comment) => {
   if (!selectedOrder.value) return;
-  const success = await addSalesComment(accessToken, selectedOrder.value.id, comment);
+  const success = await addSalesComment(accessToken.value, selectedOrder.value.id, comment);
   if (success) {
     // 重新加载详情以显示新留言
     await viewOrder(selectedOrder.value);
@@ -411,13 +398,13 @@ const handleCancelForm = () => {
 
 // 轮询检查新消息
 const checkNewFeedback = async () => {
-  if (!isAuthenticated.value || !accessToken) return;
+  if (!isAuthenticated.value || !accessToken.value) return;
 
   // 记录当前有反馈的订单ID
   const prevFeedbackIds = new Set(orders.value.filter((o) => o.hasNewFeedback).map((o) => o.id));
 
   // 静默刷新订单列表
-  await loadSalesOrders(accessToken);
+  await loadSalesOrders(accessToken.value);
 
   // 检测新增的反馈
   orders.value.forEach((order) => {
@@ -443,6 +430,14 @@ const stopPolling = () => {
   }
 };
 
+// 监听 Token 变化 (处理 SPA 同组件跳转)
+watch(accessToken, () => {
+  loading.value = true;
+  isAuthenticated.value = false;
+  salesperson.value = null;
+  checkAuth();
+});
+
 onMounted(async () => {
   await checkAuth();
   // 登录成功后请求通知权限并启动轮询
@@ -450,7 +445,7 @@ onMounted(async () => {
     requestPermission();
     startPolling();
     // 初始化销售端通知模式并启动轮询
-    setSalesMode(accessToken);
+    setSalesMode(accessToken.value);
     startNotificationPolling();
   }
 });

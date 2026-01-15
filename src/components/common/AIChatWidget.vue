@@ -99,7 +99,7 @@
 
 <script setup>
 import { ref, nextTick, watch, computed } from 'vue';
-import { useView } from '@/composables/useView';
+import { useRoute } from 'vue-router';
 import { renderMarkdown } from '@/utils/ai-markdown';
 import ChatMessage from '@/components/common/ai/ChatMessage.vue';
 import AISuggestions from '@/components/common/ai/AISuggestions.vue';
@@ -112,7 +112,17 @@ import { throttle } from '@/utils/performance';
 const { isOpen, close, context, setContext } = useAI();
 const { t } = useI18n();
 const { addToast } = useToast();
-const { currentView, viewTitle } = useView();
+const route = useRoute();
+
+// 从路由计算当前视图和标题
+const currentView = computed(() => {
+  const path = route.path;
+  if (path.startsWith('/admin/')) {
+    return path.replace('/admin/', '');
+  }
+  return 'dashboard';
+});
+const viewTitle = computed(() => route.meta?.title || document.title);
 
 const userInput = ref('');
 const messageContainer = ref(null);
@@ -123,7 +133,7 @@ watch(
   (view) => {
     setContext({
       path: '/' + view,
-      pageTitle: viewTitle.value || document.title
+      pageTitle: viewTitle.value
     });
   },
   { immediate: true }

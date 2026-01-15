@@ -61,19 +61,16 @@
         <a href="/" class="hover:text-primary transition-colors">{{ t('gallery.poweredBy') }}</a>
       </footer>
     </template>
-
-    <!-- Toast -->
-    <ToastContainer />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, defineAsyncComponent } from 'vue';
+import { ref, onMounted, computed, defineAsyncComponent, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
-import ToastContainer from '@/components/ui/ToastContainer.vue';
 import SpacePassword from '@/components/space/SpacePassword.vue';
 import SpaceTurnstile from '@/components/space/SpaceTurnstile.vue';
-import { API } from '@/utils/constants';
+import { API, APP_NAME } from '@/utils/constants';
 
 // 懒加载不同模版组件
 const SpaceMasonry = defineAsyncComponent(() => import('@/components/space/SpaceMasonry.vue'));
@@ -87,6 +84,7 @@ const SpaceCollection = defineAsyncComponent(
 const SpaceDocument = defineAsyncComponent(() => import('@/components/space/SpaceMasonry.vue'));
 
 const { t } = useI18n();
+const route = useRoute();
 
 const loading = ref(true);
 const error = ref('');
@@ -96,6 +94,9 @@ const passwordError = ref('');
 const requiresTurnstile = ref(false);
 const turnstileVerified = ref(false);
 const turnstileSiteKey = ref(''); // 从 API 获取
+
+// 从路由获取 Token
+const token = computed(() => route.params.token);
 
 const spaceComponent = computed(() => {
   switch (space.value?.template) {
@@ -110,29 +111,21 @@ const spaceComponent = computed(() => {
   }
 });
 
-// 从 URL 获取分享令牌
-const getShareToken = () => {
-  const path = window.location.pathname;
-  const match = path.match(/\/space\/([^/]+)/);
-  return match ? match[1] : null;
-};
-
 // 加载空间
 const loadSpace = async () => {
-  const token = getShareToken();
-  if (!token) {
+  if (!token.value) {
     error.value = t('spacePublic.invalidLink');
     loading.value = false;
     return;
   }
 
   try {
-    const response = await fetch(API.PUBLIC_SPACE(token));
+    const response = await fetch(API.PUBLIC_SPACE(token.value));
     const result = await response.json();
 
     if (result.success) {
       space.value = result.data;
-      document.title = `${result.data.name} | KK-Image`;
+      document.title = `${result.data.name} | ${APP_NAME}`;
       requiresPassword.value = false;
     } else if (result.requiresPassword) {
       requiresPassword.value = true;
@@ -151,10 +144,9 @@ const submitPassword = async (pwd) => {
   passwordError.value = '';
   loading.value = true;
 
-  const token = getShareToken();
   try {
     // 使用 POST 安全传递密码，后端直接返回完整数据
-    const response = await fetch(API.PUBLIC_SPACE(token), {
+    const response = await fetch(API.PUBLIC_SPACE(token.value), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: pwd }),
@@ -164,7 +156,7 @@ const submitPassword = async (pwd) => {
     if (result.success && result.data) {
       // 密码验证成功，后端直接返回了完整数据
       space.value = result.data;
-      document.title = `${result.data.name} | KK-Image`;
+      document.title = `${result.data.name} | ${APP_NAME}`;
       requiresPassword.value = false;
       passwordError.value = '';
     } else {
@@ -197,7 +189,14 @@ const handleTurnstileVerified = async (token) => {
   await loadSpace();
 };
 
-// 初始化：检查 Turnstile 配置
+// 监听 Token 变化 (处理 SPA 同组件跳转)
+watch(token, () => {
+  loading.value = true;
+  space.value = null;
+  loadSpace();
+});
+
+// 初始化
 onMounted(async () => {
   try {
     // 从 API 获取 Turnstile 配置

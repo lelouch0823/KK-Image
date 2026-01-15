@@ -30,7 +30,7 @@
 
       <!-- 分享模式选择器 -->
       <div class="mb-4 space-y-3">
-        <label class="text-secondary block text-sm font-medium">{{ t('spaceManager.shareMode') || '分享模式' }}</label>
+        <label class="text-secondary block text-sm font-medium">{{ t('spaceManager.shareMode.label') || '分享模式' }}</label>
         <div class="flex gap-2">
           <button
             v-for="mode in shareModes"
@@ -160,9 +160,9 @@ const { copy } = useClipboard();
 
 // 分享模式选项 (使用 i18n)
 const shareModes = computed(() => [
-  { value: 'none', label: t('spaceManager.shareMode.none') || '私有', icon: '🔒' },
-  { value: 'selected', label: t('spaceManager.shareMode.selected') || '指定销售', icon: '👥' },
-  { value: 'all', label: t('spaceManager.shareMode.all') || '所有销售', icon: '🌍' },
+  { value: 'none', label: t('spaceManager.shareMode.none'), icon: '🔒' },
+  { value: 'selected', label: t('spaceManager.shareMode.selected'), icon: '👥' },
+  { value: 'all', label: t('spaceManager.shareMode.all'), icon: '🌍' },
 ]);
 
 // 当前分享模式

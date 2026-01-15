@@ -38,22 +38,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         cleanupOutdatedCaches: true
       }
-    }),
-    // 自定义插件：将 src/pages 下的 HTML 输出到根目录
-    {
-      name: 'flatten-html',
-      enforce: 'post',
-      generateBundle(options, bundle) {
-        for (const [fileName, chunk] of Object.entries(bundle)) {
-          if (fileName.endsWith('.html') && fileName.includes('src/pages/')) {
-            const newName = fileName.split('/').pop();
-            chunk.fileName = newName;
-            delete bundle[fileName];
-            bundle[newName] = chunk;
-          }
-        }
-      }
-    }
+    })
   ],
 
   // 构建配置
@@ -62,11 +47,7 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        'admin': resolve(__dirname, 'src/pages/admin.html'),
-        'login': resolve(__dirname, 'src/pages/login.html'),
-        'gallery': resolve(__dirname, 'src/pages/gallery.html'),
-        'space': resolve(__dirname, 'src/pages/space.html'),
-        'sales': resolve(__dirname, 'src/pages/sales.html')
+        main: resolve(__dirname, 'index.html'),
       },
       output: {
         // 代码分割配置

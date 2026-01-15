@@ -1,7 +1,8 @@
 <!--pages/spaces/spaces.wxml-->
-<t-navbar title="共享资源" left-arrow="{{false}}" fixed placeholder />
-
+<!--小红书风格瀑布流布局-->
 <view class="page">
+  <t-navbar title="共享资源" left-arrow="{{false}}" fixed placeholder />
+
   <scroll-view
     class="content"
     scroll-y
@@ -19,38 +20,78 @@
       <t-empty icon="folder" description="暂无共享资源" />
     </view>
 
-    <!-- 空间列表 -->
-    <view wx:else class="space-list">
-      <view
-        wx:for="{{spaces}}"
-        wx:key="id"
-        class="space-card"
-        data-id="{{item.id}}"
-        bindtap="handleViewSpace"
-      >
-        <!-- 封面图 -->
-        <view class="space-cover">
-          <t-image
-            wx:if="{{item.coverUrl}}"
-            src="{{baseUrl}}{{item.coverUrl}}"
-            mode="aspectFill"
-            width="200"
-            height="150"
-            lazy-load
-            shape="round"
-          />
-          <view wx:else class="cover-placeholder">
-            <t-icon name="folder" size="64rpx" color="#9ca3af" />
+    <!-- 小红书风格瀑布流 -->
+    <view wx:else class="waterfall">
+      <!-- 左列 -->
+      <view class="waterfall-column">
+        <view
+          wx:for="{{leftColumn}}"
+          wx:key="id"
+          class="card"
+          data-id="{{item.id}}"
+          bindtap="handleViewSpace"
+        >
+          <view class="card-cover" style="aspect-ratio: {{item.aspectRatio || 1}};">
+            <t-image
+              wx:if="{{item.coverUrl}}"
+              src="{{baseUrl}}{{item.coverUrl}}"
+              mode="widthFix"
+              width="100%"
+              lazy-load
+              shape="round"
+            />
+            <view wx:else class="cover-placeholder">
+              <t-icon name="folder" size="80rpx" color="#d1d5db" />
+            </view>
+          </view>
+          <view class="card-body">
+            <text class="card-title">{{item.name}}</text>
+            <view class="card-footer">
+              <view class="author">
+                <view class="avatar">
+                  <t-icon name="image" size="24rpx" color="#9ca3af" />
+                </view>
+                <text class="count">{{item.fileCount}}个</text>
+              </view>
+              <view class="template-tag">{{item.templateName}}</view>
+            </view>
           </view>
         </view>
+      </view>
 
-        <!-- 信息 -->
-        <view class="space-info">
-          <text class="space-name">{{item.name}}</text>
-          <text class="space-desc" wx:if="{{item.description}}">{{item.description}}</text>
-          <view class="space-meta">
-            <t-icon name="image" size="28rpx" color="#9ca3af" />
-            <text class="file-count">{{item.fileCount}} 个文件</text>
+      <!-- 右列 -->
+      <view class="waterfall-column">
+        <view
+          wx:for="{{rightColumn}}"
+          wx:key="id"
+          class="card"
+          data-id="{{item.id}}"
+          bindtap="handleViewSpace"
+        >
+          <view class="card-cover" style="aspect-ratio: {{item.aspectRatio || 1}};">
+            <t-image
+              wx:if="{{item.coverUrl}}"
+              src="{{baseUrl}}{{item.coverUrl}}"
+              mode="widthFix"
+              width="100%"
+              lazy-load
+              shape="round"
+            />
+            <view wx:else class="cover-placeholder">
+              <t-icon name="folder" size="80rpx" color="#d1d5db" />
+            </view>
+          </view>
+          <view class="card-body">
+            <text class="card-title">{{item.name}}</text>
+            <view class="card-footer">
+              <view class="author">
+                <view class="avatar">
+                  <t-icon name="image" size="24rpx" color="#9ca3af" />
+                </view>
+                <text class="count">{{item.fileCount}}个</text>
+              </view>
+              <view class="template-tag">{{item.templateName}}</view>
+            </view>
           </view>
         </view>
       </view>

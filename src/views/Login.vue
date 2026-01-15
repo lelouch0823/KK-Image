@@ -192,7 +192,7 @@
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                   ></path>
                 </svg>
-                <span>正在为您准备工作台...</span>
+                <span>{{ t('auth.preparingWorkspace') }}</span>
               </div>
             </div>
           </transition>
@@ -218,23 +218,20 @@
         </a>
       </div>
     </div>
-
-    <!-- Toast Container -->
-    <ToastContainer />
   </div>
 </template>
 
 <script setup>
 import { ref, onBeforeMount } from 'vue';
-import ToastContainer from '@/components/ui/ToastContainer.vue';
+import { useRouter } from 'vue-router';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
-import { API, ROUTES } from '@/utils/constants';
+import { API } from '@/utils/constants';
 
 const { addToast } = useToast();
-const { checkAuth } = useAuth();
 const { t } = useI18n();
+const router = useRouter();
 
 const username = ref('');
 const password = ref('');
@@ -247,23 +244,17 @@ const turnstileContainer = ref(null);
 const turnstileEnabled = ref(false);
 const turnstileSiteKey = ref('');
 
-// Turnstile 回调 (挂载到 window 供 widget 调用)
+// Turnstile 回调
 if (typeof window !== 'undefined') {
   window.onTurnstileSuccess = (token) => {
     turnstileToken.value = token;
   };
 }
 
-// 检查是否已登录 + 加载 Turnstile 配置
-onBeforeMount(async () => {
-  // 检查登录状态
-  const isAuth = await checkAuth();
-  if (isAuth) {
-    redirecting.value = true;
-    window.location.href = ROUTES.ADMIN;
-    return;
-  }
+// 登录成功后的检查已被移除，由路由守卫处理
 
+// 获取配置
+onBeforeMount(async () => {
   // 从 API 获取 Turnstile 配置
   try {
     const configRes = await fetch(API.TURNSTILE_VERIFY);
@@ -272,7 +263,6 @@ onBeforeMount(async () => {
       turnstileEnabled.value = true;
       turnstileSiteKey.value = config.data.siteKey;
 
-      // Explicitly render Turnstile after DOM update
       setTimeout(() => {
         if (window.turnstile && turnstileContainer.value) {
           window.turnstile.render(turnstileContainer.value, {
@@ -285,7 +275,6 @@ onBeforeMount(async () => {
       }, 100);
     }
   } catch {
-    // Turnstile 配置获取失败，跳过验证
     console.warn('Failed to load Turnstile config');
   }
 });
@@ -316,13 +305,13 @@ const handleLogin = async () => {
     const result = await response.json();
 
     if (response.ok && result.success) {
-      // 切换至转场状态
       redirecting.value = true;
       addToast({ message: t('auth.loginSuccess'), type: 'success' });
       
       // 平滑跳转
       setTimeout(() => {
-        window.location.href = ROUTES.ADMIN;
+        // 使用 router 跳转代替 window.location
+        router.push(router.currentRoute.value.query.redirect || '/admin');
       }, 800);
     } else {
       const msg = result.message || t('common.invalidCredentials');

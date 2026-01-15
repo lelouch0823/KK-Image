@@ -78,7 +78,7 @@
           {{ t('dashboard.noPendingOrders') }}
         </div>
         <div class="mt-auto border-t border-[var(--border-color)] p-3 text-center">
-          <button class="text-primary text-sm hover:underline" @click="setView('orders')">
+          <button class="text-primary text-sm hover:underline" @click="router.push('/admin/orders')">
             {{ t('dashboard.viewMore') }}
           </button>
         </div>
@@ -233,7 +233,7 @@
             {{ t('dashboard.noRecentFiles') }}
           </div>
           <div class="mt-auto border-t border-[var(--border-color)] p-3 text-center">
-            <button class="text-primary text-sm hover:underline" @click="setView('files')">
+            <button class="text-primary text-sm hover:underline" @click="router.push('/admin/files')">
               {{ t('dashboard.viewAll') }}
             </button>
           </div>
@@ -273,7 +273,7 @@
 
 <script setup>
 import { ref, onMounted, onActivated, computed } from 'vue';
-import { useView } from '@/composables/useView';
+import { useRouter } from 'vue-router';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
@@ -293,7 +293,7 @@ import {
 } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 
-const { setView } = useView();
+const router = useRouter();
 const { error, success } = useToast();
 const { getHeaders, authFetchJson } = useAuth();
 const { t } = useI18n();

@@ -174,16 +174,26 @@
 
 <script setup>
 import { computed, ref, onMounted } from 'vue';
-import { useView } from '@/composables/useView';
+import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
-const { currentView, setView } = useView();
+const router = useRouter();
+const route = useRoute();
 const { t } = useI18n();
 const { logout } = useAuth();
 const { addToast } = useToast();
+
+// 当前视图 key (从路由路径推断)
+const currentView = computed(() => {
+  const path = route.path;
+  if (path.startsWith('/admin/')) {
+    return path.replace('/admin/', '');
+  }
+  return 'dashboard';
+});
 
 // 移动端侧边栏状态
 const isOpen = ref(false);
@@ -214,9 +224,9 @@ const closeSidebar = () => {
   isOpen.value = false;
 };
 
-// 菜单点击：切换视图并关闭侧边栏
+// 菜单点击：使用 router 导航并关闭侧边栏
 const handleMenuClick = (key) => {
-  setView(key);
+  router.push(`/admin/${key}`);
   closeSidebar();
 };
 
@@ -278,8 +288,8 @@ const confirmLogout = async () => {
   try {
     await logout();
     addToast({ message: t('auth.logout'), type: 'success' });
-    // SOTA: 明确跳转到登录页，而不是刷新
-    window.location.href = '/login';
+    // 使用 router 导航到登录页
+    router.push('/login');
   } catch (e) {
     console.error(e);
     addToast({ message: t('common.networkError'), type: 'error' });

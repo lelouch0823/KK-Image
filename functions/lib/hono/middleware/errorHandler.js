@@ -26,7 +26,7 @@ export async function errorHandler(c, next) {
         success: false,
         error: message,
         code: err.code || err.name || 'INTERNAL_ERROR',
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+        ...(c.env.NODE_ENV === 'development' && { stack: err.stack }),
       },
       status
     );

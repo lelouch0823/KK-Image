@@ -3,6 +3,9 @@
  * @module utils/constants
  */
 
+// 应用名称 (用于页面标题等)
+export const APP_NAME = 'kk-life';
+
 // 图片文件扩展名
 export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'];
 

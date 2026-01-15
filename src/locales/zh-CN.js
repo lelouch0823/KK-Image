@@ -259,10 +259,12 @@ export default {
       unpublishSuccess: '已取消公开',
     },
     // 分享模式
-    shareMode: '分享模式',
-    'shareMode.none': '私有',
-    'shareMode.selected': '指定销售',
-    'shareMode.all': '所有销售',
+    shareMode: {
+      label: '分享模式',
+      none: '私有',
+      selected: '指定销售',
+      all: '所有销售',
+    },
     selectSalespersons: '选择可见销售员',
     selectSalespersonsPlaceholder: '点击选择销售员',
     publicLink: '公开链接',
@@ -373,6 +375,7 @@ export default {
     passwordRequired: '需要密码',
     passwordSubtitle: '此内容受密码保护',
     passwordAccessPlaceholder: '请输入访问密码',
+    preparingWorkspace: '正在为您准备工作台...',
   },
   dashboard: {
     todayOrders: '今日订单',

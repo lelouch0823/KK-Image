@@ -10,12 +10,14 @@
 import { execSync } from 'child_process';
 import { writeFileSync } from 'fs';
 import { randomBytes, createHash } from 'crypto';
+import { tmpdir } from 'os';
+import { join } from 'path';
 
 // ============================================================================
 // 配置
 // ============================================================================
 const CONFIG = {
-    database: 'kk-life-db',
+    database: 'DB',  // 使用 wrangler 绑定名称
     remote: process.argv.includes('--remote') || process.argv.includes('-r'),
     count: parseInt(process.argv.find((_, i, arr) => arr[i - 1] === '--count') || '50'),
 };
@@ -68,13 +70,15 @@ function generateInsert(table, row) {
 }
 
 function executeSql(sql) {
-    const tmpFile = '/tmp/seed_batch.sql';
+    const tmpFile = join(tmpdir(), 'seed_batch.sql');
     writeFileSync(tmpFile, sql, 'utf-8');
     const remoteFlag = CONFIG.remote ? '--remote' : '--local';
     try {
         execSync(`npx wrangler d1 execute ${CONFIG.database} ${remoteFlag} --file=${tmpFile}`, { stdio: 'pipe' });
         return true;
     } catch (e) {
+        console.error(`[ERROR] SQL 执行失败: ${e.message}`);
+        if (e.stderr) console.error(`stderr: ${e.stderr.toString()}`);
         return false;
     }
 }
@@ -166,6 +170,7 @@ function generateFile(id, folderId, blobHash) {
         width: randomInt(800, 4000),
         height: randomInt(600, 3000),
         blurhash: 'LGF5]+Yk^6#M@-5c,1J5@[or[Q6.',
+        status: randomItem(['normal', 'blocked', 'whitelisted', 'liked']),
         created_at: now() - randomInt(0, 30 * 24 * 60 * 60 * 1000),
         updated_at: now(),
     };
@@ -256,17 +261,16 @@ function generateSpace(id, template, index) {
         download_count: randomInt(0, 100),
         cover_file_id: null,
         share_mode: randomItem(['none', 'all', 'selected']),
-        created_by: 'seed-script',
         created_at: now() - randomInt(0, 30 * 24 * 60 * 60 * 1000),
         updated_at: now(),
     };
 }
 
-function generateSpaceFile(spaceId, fileId, sortIndex) {
+function generateSpaceFile(spaceId, fileId, sortOrder) {
     return {
         space_id: spaceId,
         file_id: fileId,
-        sort_index: sortIndex,
+        sort_order: sortOrder,
         section: randomItem([null, 'main', 'detail', 'spec']),
         added_at: now() - randomInt(0, 7 * 24 * 60 * 60 * 1000),
     };
