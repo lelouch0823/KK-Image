@@ -3,17 +3,22 @@
 <wxs src="../../utils/format.wxs" module="format" />
 
 <view class="page">
-  <!-- 顶部导航 -->
-  <t-navbar title="{{user.name ? user.name + '的订单' : '我的订单'}}" fixed placeholder style="--td-navbar-bg-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
-    <view slot="left" class="header-icon-container">
-      <t-icon name="app" size="24px" />
-    </view>
-  </t-navbar>
-
+  <!-- 顶部导航 (Auto-hide) -->
+  <view 
+    class="custom-navbar {{navBarVisible ? '' : 'navbar-hidden'}}"
+    style="height: {{headerHeight}}px;"
+  >
+    <t-navbar title="{{user.name ? user.name + '的订单' : '我的订单'}}" left-arrow="{{false}}" style="--td-navbar-bg-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
+      <view slot="left" class="header-icon-container">
+        <t-icon name="app" size="24px" />
+      </view>
+    </t-navbar>
+  </view>
+  
   <!-- 订单列表 -->
+  <!-- Remove spacer, usage padding-top on scroll-view instead -->
   <scroll-view
     class="order-list"
-    type="list"
     scroll-y
     show-scrollbar="{{false}}"
     refresher-enabled
@@ -21,6 +26,8 @@
     bindrefresherrefresh="onPullDownRefresh"
     bindscroll="onScroll"
   >
+    <!-- Spacer for Navbar with extra buffer -->
+    <view style="height: calc({{headerHeight}}px + 20rpx); width: 100%; flex-shrink: 0;"></view>
     <!-- 加载中 -->
     <view wx:if="{{loading && orders.length === 0}}" class="loading-container">
       <t-loading theme="circular" size="40rpx" text="加载中..." />

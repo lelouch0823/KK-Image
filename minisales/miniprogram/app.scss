@@ -11,6 +11,11 @@ page {
   background-color: $bg-page;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  // Fix Scroll View Height Constraint: Enforce single-screen height
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 // 全局盒模型重置 - 防止 padding 导致宽度溢出

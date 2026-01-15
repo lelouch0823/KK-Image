@@ -1,15 +1,26 @@
 <!--pages/spaces/spaces.wxml-->
 <!--小红书风格瀑布流布局-->
 <view class="page">
-  <t-navbar title="共享资源" left-arrow="{{false}}" fixed placeholder />
+<!-- 导航栏 (Auto-hide) -->
+<view 
+  class="custom-navbar {{navBarVisible ? '' : 'navbar-hidden'}}"
+  style="height: {{navBarHeight}}px;"
+>
+  <t-navbar title="共享资源" left-arrow="{{false}}" />
+</view>
 
-  <scroll-view
+<scroll-view
     class="content"
     scroll-y
+    bindscroll="onScroll"
+    scroll-with-animation="{{false}}"
     refresher-enabled
     refresher-triggered="{{loading}}"
     bindrefresherrefresh="onPullDownRefresh"
   >
+    <!-- Spacer for Navbar with extra buffer -->
+    <view style="height: calc({{navBarHeight}}px + 20rpx); width: 100%; flex-shrink: 0;"></view>
+
     <!-- 加载中 -->
     <view wx:if="{{loading && spaces.length === 0}}" class="loading-container">
       <t-loading theme="circular" size="40rpx" text="加载中..." />

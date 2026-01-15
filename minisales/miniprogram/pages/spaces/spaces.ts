@@ -35,10 +35,21 @@ Page({
         rightColumn: [] as Space[],
         loading: true,
         baseUrl: API_BASE_URL,
+        // Navbar auto-hide logic
+        navBarHeight: 88, // Default fallback (rpx)
+        navBarVisible: true,
+        lastScrollTop: 0,
     },
 
     onLoad() {
-        // 初始加载
+        // Calculate navbar height (Status Bar + 44px)
+        const systemInfo = wx.getSystemInfoSync();
+        const statusBarHeight = systemInfo.statusBarHeight || 20;
+        // Convert px to rpx for consistent usage if needed, but styling usually uses px for dynamic vars
+        // Here we use px for the style binding
+        this.setData({
+            navBarHeight: statusBarHeight + 44, // 44 is standard nav height
+        });
     },
 
     onShow() {
@@ -55,6 +66,36 @@ Page({
     async onPullDownRefresh() {
         await this.loadSpaces();
         wx.stopPullDownRefresh();
+    },
+
+    /**
+     * Handle Scroll for Auto-hiding Navbar
+     */
+    onScroll(e: WechatMiniprogram.ScrollViewScroll) {
+        const scrollTop = e.detail.scrollTop;
+        const { lastScrollTop, navBarVisible, navBarHeight } = this.data;
+        const SCROLL_THRESHOLD = 10; // Minimum delta to trigger
+
+        // Always show if near top
+        if (scrollTop < navBarHeight + 20) {
+            if (!navBarVisible) this.setData({ navBarVisible: true });
+            return;
+        }
+
+        const delta = scrollTop - lastScrollTop;
+
+        if (Math.abs(delta) < SCROLL_THRESHOLD) return;
+
+        // Scroll Down -> Hide
+        if (delta > 0 && navBarVisible) {
+            this.setData({ navBarVisible: false });
+        }
+        // Scroll Up -> Show
+        else if (delta < 0 && !navBarVisible) {
+            this.setData({ navBarVisible: true });
+        }
+
+        this.data.lastScrollTop = scrollTop;
     },
 
     /**

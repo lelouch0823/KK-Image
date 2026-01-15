@@ -33,6 +33,8 @@ Page({
 
     // FAB 按钮状态
     fabVisible: true,
+    // Navbar auto-hide
+    navBarVisible: true,
   },
 
   // 滚动状态记录
@@ -91,13 +93,18 @@ Page({
     const currentScrollTop = e.detail.scrollTop;
     if (currentScrollTop < 0) return;
 
-    // 向下滚动隐藏 (阈值 20px)
-    if (currentScrollTop > this.lastScrollTop + 20 && this.data.fabVisible) {
-      this.setData({ fabVisible: false });
+    // FAB & Navbar Logic
+    // 向下滚动隐藏 (阈值 10px)
+    if (currentScrollTop > this.lastScrollTop + 10) {
+      if (this.data.fabVisible) this.setData({ fabVisible: false });
+      if (this.data.navBarVisible && currentScrollTop > this.data.headerHeight) {
+        this.setData({ navBarVisible: false });
+      }
     }
-    // 向上滚动显示 (阈值 20px)
-    else if (currentScrollTop < this.lastScrollTop - 20 && !this.data.fabVisible) {
-      this.setData({ fabVisible: true });
+    // 向上滚动显示 (阈值 10px)
+    else if (currentScrollTop < this.lastScrollTop - 10) {
+      if (!this.data.fabVisible) this.setData({ fabVisible: true });
+      if (!this.data.navBarVisible) this.setData({ navBarVisible: true });
     }
 
     this.lastScrollTop = currentScrollTop;
