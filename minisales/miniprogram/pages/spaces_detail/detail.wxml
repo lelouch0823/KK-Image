@@ -7,13 +7,12 @@
     <t-loading theme="circular" size="40rpx" text="加载中..." />
   </view>
 
-  <scroll-view wx:elif="{{space}}" class="content" scroll-y>
+  <scroll-view wx:elif="{{space}}" class="content" scroll-y type="list">
     
     <!-- Gallery 模板 -->
     <template-gallery
       wx:if="{{space.template === 'gallery'}}"
       space="{{space}}"
-      baseUrl="{{baseUrl}}"
       bind:preview="handlePreview"
     />
 
@@ -21,7 +20,6 @@
     <template-product
       wx:elif="{{space.template === 'product'}}"
       space="{{space}}"
-      baseUrl="{{baseUrl}}"
       bind:preview="handlePreview"
       bind:swiperchange="onSwiperChange"
     />
@@ -30,7 +28,6 @@
     <template-portfolio
       wx:elif="{{space.template === 'portfolio'}}"
       space="{{space}}"
-      baseUrl="{{baseUrl}}"
       currentIndex="{{currentIndex}}"
       bind:preview="handlePreview"
       bind:swiperchange="onSwiperChange"
@@ -40,7 +37,6 @@
     <template-document
       wx:elif="{{space.template === 'document'}}"
       space="{{space}}"
-      baseUrl="{{baseUrl}}"
       bind:itemtap="handleDocumentItem"
     />
 
@@ -48,7 +44,6 @@
     <template-collection
       wx:elif="{{space.template === 'collection'}}"
       space="{{space}}"
-      baseUrl="{{baseUrl}}"
       bind:subspacetap="handleViewSubspace"
     />
 
@@ -70,12 +65,12 @@
             wx:for="{{space.files}}"
             wx:key="id"
             class="file-item"
-            data-url="{{baseUrl}}{{item.url}}"
+            data-url="{{item.url}}"
             data-index="{{index}}"
             bindtap="previewImage"
           >
             <t-image
-              src="{{baseUrl}}{{item.url}}"
+              src="{{item.url}}"
               mode="aspectFill"
               width="100%"
               height="200"

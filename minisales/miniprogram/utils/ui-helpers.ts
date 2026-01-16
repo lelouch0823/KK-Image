@@ -2,11 +2,17 @@
  * UI 辅助函数
  */
 
+let cachedNavBarHeight: { statusBarHeight: number; navContentHeight: number; totalHeight: number } | null = null;
+
 /**
- * 计算自定义导航栏高度
+ * 计算自定义导航栏高度 (带缓存)
  * @returns { navContentHeight, statusBarHeight, totalHeight }
  */
 export function calculateNavBarHeight() {
+    if (cachedNavBarHeight) {
+        return cachedNavBarHeight;
+    }
+
     const sysInfo = wx.getSystemInfoSync();
     const menuInfo = wx.getMenuButtonBoundingClientRect();
 
@@ -14,11 +20,13 @@ export function calculateNavBarHeight() {
     // 导航栏内容高度 = (胶囊顶部 - 状态栏高度) * 2 + 胶囊高度
     const navContentHeight = (menuInfo.top - statusBarHeight) * 2 + menuInfo.height;
 
-    return {
+    cachedNavBarHeight = {
         statusBarHeight,
         navContentHeight,
         totalHeight: statusBarHeight + navContentHeight,
     };
+
+    return cachedNavBarHeight;
 }
 
 /**

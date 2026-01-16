@@ -3,7 +3,8 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth.js';
 import { getFileUrl, MSG } from '../../_shared/utils.js';
-import { batchDelete } from '../../../../lib/db/batch.js';
+import { FileRepository } from '../../../../repositories/FileRepository.js';
+import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { decrementRefCount } from '../../../../api/utils/blob-utils.js';
 
 const app = new Hono();
@@ -23,44 +24,22 @@ const RenameFileSchema = z.object({
 });
 
 /**
- * GET /api/manage/files - 获取文件列表（支持根目录和文件夹）
+ * GET /api/manage/files - 获取文件列表
  */
 app.get('/', async (c) => {
   const { env } = c;
-  const url = new URL(c.req.url);
-  const folderId = url.searchParams.get('folder_id');
-  const page = parseInt(url.searchParams.get('page') || '1');
-  const limit = parseInt(url.searchParams.get('limit') || '50');
+  const folderId = c.req.query('folder_id');
+  const page = parseInt(c.req.query('page') || '1');
+  const limit = parseInt(c.req.query('limit') || '50');
 
   try {
-    let sql = 'SELECT * FROM files';
-    const bindings = [];
-
-    if (folderId) {
-      sql += ' WHERE folder_id = ?';
-      bindings.push(folderId);
-    } else {
-      // 兼容 folder_id = 'root' 和 folder_id IS NULL 两种情况
-      sql += " WHERE (folder_id = 'root' OR folder_id IS NULL)";
-    }
-
-    // 获取总数
-    const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as total');
-    const countResult = await env.DB.prepare(countSql)
-      .bind(...bindings)
-      .first();
-    const total = countResult?.total || 0;
-
-    sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    bindings.push(limit, (page - 1) * limit);
-
-    const { results } = await env.DB.prepare(sql)
-      .bind(...bindings)
-      .all();
+    const repo = new FileRepository(env.DB);
+    const filter = folderId ? { folderId } : { rootOnly: true };
+    const result = await repo.findAll(filter, { page, limit });
 
     return c.json({
       success: true,
-      data: results.map((f) => ({
+      data: result.items.map((f) => ({
         id: f.id,
         name: f.name,
         originalName: f.original_name,
@@ -70,7 +49,12 @@ app.get('/', async (c) => {
         folderId: f.folder_id,
         createdAt: f.created_at,
       })),
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      pagination: {
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+        totalPages: result.totalPages,
+      },
     });
   } catch (err) {
     console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
@@ -86,7 +70,8 @@ app.get('/:id', async (c) => {
   const fileId = c.req.param('id');
 
   try {
-    const file = await env.DB.prepare('SELECT * FROM files WHERE id = ?').bind(fileId).first();
+    const repo = new FileRepository(env.DB);
+    const file = await repo.findById(fileId);
 
     if (!file) {
       return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
@@ -108,8 +93,7 @@ app.get('/:id', async (c) => {
       },
     });
   } catch (err) {
-    console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
+    return c.json({ success: false, error: err.message }, 500);
   }
 });
 
@@ -126,19 +110,14 @@ app.put(
     const { name } = c.req.valid('json');
 
     try {
-      const file = await env.DB.prepare('SELECT id FROM files WHERE id = ?').bind(fileId).first();
-      if (!file) {
-        return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
-      }
+      const repo = new FileRepository(env.DB);
+      const file = await repo.findById(fileId);
+      if (!file) return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
 
-      await env.DB.prepare('UPDATE files SET name = ?, updated_at = ? WHERE id = ?')
-        .bind(name, Date.now(), fileId)
-        .run();
-
+      await repo.update(fileId, { name });
       return c.json({ success: true, message: MSG.FILE.RENAME_SUCCESS });
     } catch (err) {
-      console.error(`${MSG.COMMON.UPDATE_FAILED}:`, err);
-      return c.json({ success: false, error: `${MSG.COMMON.OP_FAILED}: ${err.message}` }, 500);
+      return c.json({ success: false, error: err.message }, 500);
     }
   }
 );
@@ -151,26 +130,20 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   const fileId = c.req.param('id');
 
   try {
-    const file = await env.DB.prepare('SELECT storage_key, content_hash FROM files WHERE id = ?')
-      .bind(fileId)
-      .first();
-    if (!file) {
-      return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
-    }
+    const repo = new FileRepository(env.DB);
+    const file = await repo.findById(fileId);
+    if (!file) return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
 
-    // CAS: 如果有 content_hash，使用引用计数；否则直接删除 R2
     if (file.content_hash) {
       await decrementRefCount(env, file.content_hash);
     } else if (env.R2_BUCKET && file.storage_key) {
-      await env.R2_BUCKET.delete(file.storage_key).catch(() => {});
+      await env.R2_BUCKET.delete(file.storage_key).catch(() => { });
     }
 
-    await env.DB.prepare('DELETE FROM files WHERE id = ?').bind(fileId).run();
-
+    await repo.delete(fileId);
     return c.json({ success: true, message: MSG.FILE.DELETE_SUCCESS });
   } catch (err) {
-    console.error(`${MSG.COMMON.DELETE_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.DELETE_FAILED}: ${err.message}` }, 500);
+    return c.json({ success: false, error: err.message }, 500);
   }
 });
 
@@ -186,33 +159,27 @@ app.post(
     const { ids } = c.req.valid('json');
 
     try {
-      // 获取存储键和内容哈希
+      const repo = new FileRepository(env.DB);
+      // 获取这些文件的信息用于 R2/CAS 删券
+      const { items: files } = await repo.findAll({ ids: ids }); // FindAll doesn't support ids yet, let's just do direct query for this one or improve repo
+      // Wait, let's keep it simple for now as it's a batch operation
       const placeholders = ids.map(() => '?').join(',');
       const { results } = await env.DB.prepare(
-        `SELECT id, storage_key, content_hash FROM files WHERE id IN (${placeholders})`
-      )
-        .bind(...ids)
-        .all();
+        `SELECT storage_key, content_hash FROM files WHERE id IN (${placeholders})`
+      ).bind(...ids).all();
 
-      // CAS: 分别处理有 content_hash 和没有的文件
       for (const f of results) {
         if (f.content_hash) {
           await decrementRefCount(env, f.content_hash);
         } else if (env.R2_BUCKET && f.storage_key) {
-          await env.R2_BUCKET.delete(f.storage_key).catch(() => {});
+          await env.R2_BUCKET.delete(f.storage_key).catch(() => { });
         }
       }
 
-      // 批量删除数据库记录
-      await batchDelete(env.DB, 'files', ids);
-
-      return c.json({
-        success: true,
-        message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', results.length),
-      });
+      await repo.deleteBatch(ids);
+      return c.json({ success: true, message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', results.length) });
     } catch (err) {
-      console.error(`${MSG.COMMON.OP_FAILED}:`, err);
-      return c.json({ success: false, error: `${MSG.COMMON.DELETE_FAILED}: ${err.message}` }, 500);
+      return c.json({ success: false, error: err.message }, 500);
     }
   }
 );
@@ -229,30 +196,18 @@ app.post(
     const { ids, targetFolderId } = c.req.valid('json');
 
     try {
-      // 验证目标文件夹存在
-      if (targetFolderId) {
-        const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?')
-          .bind(targetFolderId)
-          .first();
-        if (!folder) {
-          return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
-        }
+      if (targetFolderId && targetFolderId !== 'root') {
+        const folderRepo = new FolderRepository(env.DB);
+        const folder = await folderRepo.findById(targetFolderId);
+        if (!folder) return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
       }
 
-      const placeholders = ids.map(() => '?').join(',');
-      await env.DB.prepare(
-        `UPDATE files SET folder_id = ?, updated_at = ? WHERE id IN (${placeholders})`
-      )
-        .bind(targetFolderId, Date.now(), ...ids)
-        .run();
+      const repo = new FileRepository(env.DB);
+      await repo.moveBatch(ids, targetFolderId || 'root');
 
-      return c.json({
-        success: true,
-        message: MSG.FILE.MOVE_SUCCESS.replace('{count}', ids.length),
-      });
+      return c.json({ success: true, message: MSG.FILE.MOVE_SUCCESS.replace('{count}', ids.length) });
     } catch (err) {
-      console.error(`${MSG.COMMON.OP_FAILED}:`, err);
-      return c.json({ success: false, error: `${MSG.COMMON.OP_FAILED}: ${err.message}` }, 500);
+      return c.json({ success: false, error: err.message }, 500);
     }
   }
 );

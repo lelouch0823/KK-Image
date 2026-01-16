@@ -1,12 +1,29 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/form/form",
-    "pages/detail/detail",
     "pages/spaces/spaces",
-    "pages/spaces/detail",
     "pages/stats/stats",
     "pages/login/login"
+  ],
+  "subPackages": [
+    {
+      "root": "pages/form",
+      "pages": [
+        "form"
+      ]
+    },
+    {
+      "root": "pages/detail",
+      "pages": [
+        "detail"
+      ]
+    },
+    {
+      "root": "pages/spaces_detail",
+      "pages": [
+        "detail"
+      ]
+    }
   ],
   "window": {
     "navigationBarTextStyle": "black",
@@ -36,7 +53,8 @@
     "t-cell-group": "tdesign-miniprogram/cell-group/cell-group",
     "t-divider": "tdesign-miniprogram/divider/divider",
     "t-popup": "tdesign-miniprogram/popup/popup",
-    "t-empty": "tdesign-miniprogram/empty/empty"
+    "t-empty": "tdesign-miniprogram/empty/empty",
+    "t-skeleton": "tdesign-miniprogram/skeleton/skeleton"
   },
   "tabBar": {
     "custom": true,

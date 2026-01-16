@@ -1,8 +1,4 @@
-/**
- * 订单详情页
- */
-
-import { get, post, getAccessToken } from '../../utils/api';
+import { get, post, getAccessToken, getFileUrl } from '../../utils/api';
 import { API, STATUS_CONFIG, OrderStatus } from '../../utils/constants';
 
 interface OrderDetail {
@@ -36,6 +32,9 @@ interface OrderDetail {
         newValue?: string;
         reason?: string;
         createdAt: number;
+        // 扩展字段用于视图渲染
+        displayTitle?: string;
+        displayContent?: string;
     }>;
     createdAt: number;
     updatedAt: number;
@@ -48,6 +47,12 @@ Page({
         statusConfig: STATUS_CONFIG,
         comment: '',
         submittingComment: false,
+        // Skeleton 配置
+        detailRowCol: [
+            { width: '100%', height: '160rpx', borderRadius: '16rpx' },
+            { width: '100%', height: '400rpx', borderRadius: '16rpx', marginTop: '24rpx' },
+            { width: '100%', height: '300rpx', borderRadius: '16rpx', marginTop: '24rpx' },
+        ],
     },
 
     onLoad(options: { id: string }) {
@@ -69,7 +74,22 @@ Page({
             const response = await get<OrderDetail>(API.SALES_ORDER_DETAIL(accessToken, orderId));
 
             if (response.success && response.data) {
-                this.setData({ order: response.data });
+                const order = response.data;
+
+                // 处理文件路径
+                order.files = order.files.map(f => ({
+                    ...f,
+                    url: getFileUrl(f.url)
+                }));
+
+                // 处理时间轴文本 (逻辑下沉到逻辑层)
+                order.timeline = order.timeline.map(item => ({
+                    ...item,
+                    displayTitle: this.getActionTitle(item),
+                    displayContent: item.comment || item.fieldName || item.reason || ''
+                }));
+
+                this.setData({ order });
             }
         } catch (error) {
             console.error('Load order failed:', error);
@@ -146,33 +166,14 @@ Page({
     },
 
     /**
-     * 格式化时间
+     * 获取动作类型标题
      */
-    formatTime(timestamp: number): string {
-        const date = new Date(timestamp);
-        const y = date.getFullYear();
-        const m = (date.getMonth() + 1).toString().padStart(2, '0');
-        const d = date.getDate().toString().padStart(2, '0');
-        const h = date.getHours().toString().padStart(2, '0');
-        const min = date.getMinutes().toString().padStart(2, '0');
-        return `${y}-${m}-${d} ${h}:${min}`;
-    },
-
-    /**
-     * 获取动作类型文本
-     */
-    getActionText(item: OrderDetail['timeline'][0]): string {
-        switch (item.actionType) {
-            case 'created':
-                return '创建了订单';
-            case 'status_changed':
-                return `状态变更: ${item.newValue}`;
-            case 'field_updated':
-                return `更新了 ${item.fieldName}`;
-            case 'comment':
-                return item.comment || '';
-            default:
-                return '';
-        }
+    getActionTitle(item: any): string {
+        const actionMap: Record<string, string> = {
+            'created': '创建了订单',
+            'status_changed': `状态变更: ${item.newValue}`,
+            'field_updated': `更新了 ${item.fieldName}`,
+        };
+        return actionMap[item.actionType] || item.actorName || '订单动态';
     },
 });

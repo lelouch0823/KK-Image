@@ -12,6 +12,9 @@ import {
   getFileUrl,
 } from '../../_shared/utils.js';
 
+import { FolderRepository } from '../../../../repositories/FolderRepository.js';
+import { FileRepository } from '../../../../repositories/FileRepository.js';
+
 const app = new Hono();
 
 // Schemas
@@ -35,35 +38,17 @@ app.get('/', async (c) => {
   const url = new URL(c.req.url);
   const parentId = url.searchParams.get('parent_id') || null;
   const all = url.searchParams.get('all') === 'true';
+  const folderRepo = new FolderRepository(env.DB);
 
   try {
-    let query;
+    let results;
     if (all) {
-      query = env.DB.prepare(`
-        SELECT f.id, f.parent_id, f.name
-        FROM folders f WHERE f.id != 'root'
-        ORDER BY f.name ASC
-      `);
+      results = await folderRepo.findAllMinimal();
     } else if (parentId) {
-      query = env.DB.prepare(
-        `
-        SELECT f.*, 
-          (SELECT COUNT(*) FROM folders WHERE parent_id = f.id) as subfolder_count,
-          (SELECT COUNT(*) FROM files WHERE folder_id = f.id) as file_count
-        FROM folders f WHERE f.parent_id = ? ORDER BY f.name ASC
-      `
-      ).bind(parentId);
+      results = await folderRepo.findByParent(parentId);
     } else {
-      query = env.DB.prepare(`
-        SELECT f.*, 
-          (SELECT COUNT(*) FROM folders WHERE parent_id = f.id) as subfolder_count,
-          (SELECT COUNT(*) FROM files WHERE folder_id = f.id) as file_count
-        FROM folders f WHERE f.parent_id IS NULL AND f.id != 'root'
-        ORDER BY f.name ASC
-      `);
+      results = await folderRepo.findTopLevel();
     }
-
-    const { results } = await query.all();
 
     return c.json({
       success: true,
@@ -88,34 +73,21 @@ app.get('/', async (c) => {
 app.get('/:id', async (c) => {
   const { env } = c;
   const folderId = c.req.param('id');
+  const folderRepo = new FolderRepository(env.DB);
+  const fileRepo = new FileRepository(env.DB);
 
   try {
-    const folder = await env.DB.prepare('SELECT * FROM folders WHERE id = ?')
-      .bind(folderId)
-      .first();
+    const folder = await folderRepo.findById(folderId);
     if (!folder) {
       return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
     }
 
     // 并行获取子文件夹和文件
-    const [subfoldersResult, filesResult] = await Promise.all([
-      env.DB.prepare(
-        `
-        SELECT f.*, 
-          (SELECT COUNT(*) FROM folders WHERE parent_id = f.id) as subfolder_count,
-          (SELECT COUNT(*) FROM files WHERE folder_id = f.id) as file_count
-        FROM folders f WHERE f.parent_id = ? ORDER BY f.name ASC
-      `
-      )
-        .bind(folderId)
-        .all(),
-      env.DB.prepare('SELECT * FROM files WHERE folder_id = ? ORDER BY created_at DESC')
-        .bind(folderId)
-        .all(),
+    const [subfolders, files, breadcrumbs] = await Promise.all([
+      folderRepo.findByParent(folderId),
+      fileRepo.findByFolder(folderId),
+      folderRepo.getBreadcrumbs(folderId)
     ]);
-
-    // 获取面包屑
-    const breadcrumbs = await getBreadcrumbs(env.DB, folderId);
 
     return c.json({
       success: true,
@@ -131,7 +103,7 @@ app.get('/:id', async (c) => {
         updatedAt: folder.updated_at,
         shareUrl: getShareUrl(folder.share_token),
         breadcrumbs,
-        subfolders: subfoldersResult.results.map((f) => ({
+        subfolders: subfolders.map((f) => ({
           id: f.id,
           name: f.name,
           subfolderCount: f.subfolder_count,
@@ -139,7 +111,7 @@ app.get('/:id', async (c) => {
           isPublic: Boolean(f.is_public),
           createdAt: f.created_at,
         })),
-        files: filesResult.results.map((f) => ({
+        files: files.map((f) => ({
           id: f.id,
           name: f.name,
           originalName: f.original_name,
@@ -166,12 +138,11 @@ app.post(
   async (c) => {
     const { env } = c;
     const { name, description, parentId, isPublic, password } = c.req.valid('json');
+    const folderRepo = new FolderRepository(env.DB);
 
     try {
       if (parentId) {
-        const parent = await env.DB.prepare('SELECT id FROM folders WHERE id = ?')
-          .bind(parentId)
-          .first();
+        const parent = await folderRepo.findById(parentId);
         if (!parent) {
           return c.json({ success: false, error: MSG.FOLDER.PARENT_NOT_FOUND }, 400);
         }
@@ -181,24 +152,17 @@ app.post(
       const shareToken = isPublic ? generateShareToken() : null;
       const nowMs = Date.now();
 
-      await env.DB.prepare(
-        `
-        INSERT INTO folders (id, parent_id, name, description, share_token, is_public, password, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `
-      )
-        .bind(
-          folderId,
-          parentId || null,
-          name.trim(),
-          description.trim(),
-          shareToken,
-          isPublic ? 1 : 0,
-          password || null,
-          nowMs,
-          nowMs
-        )
-        .run();
+      await folderRepo.create({
+        id: folderId,
+        parentId: parentId || null,
+        name: name.trim(),
+        description: description.trim(),
+        shareToken,
+        isPublic,
+        password: password || null,
+        createdAt: nowMs,
+        updatedAt: nowMs
+      });
 
       return c.json(
         {
@@ -234,11 +198,10 @@ app.put(
     const { env } = c;
     const folderId = c.req.param('id');
     const data = c.req.valid('json');
+    const folderRepo = new FolderRepository(env.DB);
 
     try {
-      const folder = await env.DB.prepare('SELECT * FROM folders WHERE id = ?')
-        .bind(folderId)
-        .first();
+      const folder = await folderRepo.findById(folderId);
       if (!folder) {
         return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
       }
@@ -284,13 +247,7 @@ app.put(
       values.push(Date.now());
       values.push(folderId);
 
-      await env.DB.prepare(`UPDATE folders SET ${updates.join(', ')} WHERE id = ?`)
-        .bind(...values)
-        .run();
-
-      const updated = await env.DB.prepare('SELECT * FROM folders WHERE id = ?')
-        .bind(folderId)
-        .first();
+      const updated = await folderRepo.update(folderId, updates, values);
 
       return c.json({
         success: true,
@@ -313,40 +270,28 @@ app.put(
 app.delete('/:id', requirePermission('folders:delete'), async (c) => {
   const { env } = c;
   const folderId = c.req.param('id');
+  const folderRepo = new FolderRepository(env.DB);
 
   try {
     if (folderId === 'root') {
       return c.json({ success: false, error: MSG.FOLDER.ROOT_CANNOT_DELETE }, 400);
     }
 
-    const folder = await env.DB.prepare('SELECT * FROM folders WHERE id = ?')
-      .bind(folderId)
-      .first();
+    const folder = await folderRepo.findById(folderId);
     if (!folder) {
       return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
     }
 
-    // 获取所有子文件的存储键
-    const { results: files } = await env.DB.prepare(
-      `
-        WITH RECURSIVE subfolder_tree AS (
-          SELECT id FROM folders WHERE id = ?
-          UNION ALL
-          SELECT f.id FROM folders f JOIN subfolder_tree st ON f.parent_id = st.id
-        )
-        SELECT storage_key FROM files WHERE folder_id IN (SELECT id FROM subfolder_tree)
-      `
-    )
-      .bind(folderId)
-      .all();
+    // 获取所有子文件的存储键 (递归)
+    const storageKeys = await folderRepo.getAllStorageKeysRecursive(folderId);
 
     // 从 R2 删除文件
-    if (env.R2_BUCKET && files.length > 0) {
-      await Promise.all(files.map((f) => env.R2_BUCKET.delete(f.storage_key).catch(() => { })));
+    if (env.R2_BUCKET && storageKeys.length > 0) {
+      await Promise.all(storageKeys.map((key) => env.R2_BUCKET.delete(key).catch(() => { })));
     }
 
     // 删除文件夹（级联删除）
-    await env.DB.prepare('DELETE FROM folders WHERE id = ?').bind(folderId).run();
+    await folderRepo.deleteRecursive(folderId);
 
     return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
   } catch (err) {
@@ -354,24 +299,6 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
     return c.json({ success: false, error: `${MSG.COMMON.DELETE_FAILED}: ${err.message}` }, 500);
   }
 });
-
-// 面包屑辅助函数
-async function getBreadcrumbs(db, folderId) {
-  const breadcrumbs = [];
-  let currentId = folderId;
-
-  while (currentId) {
-    const folder = await db
-      .prepare('SELECT id, name, parent_id FROM folders WHERE id = ?')
-      .bind(currentId)
-      .first();
-    if (!folder || folder.id === 'root') break;
-    breadcrumbs.unshift({ id: folder.id, name: folder.name });
-    currentId = folder.parent_id;
-  }
-
-  return breadcrumbs;
-}
 
 import { RedundancyManager } from '../../../../storage/redundancy.js';
 import { triggerWebhook } from '../../_shared/utils.js';
@@ -427,25 +354,19 @@ app.post('/:id/upload', requirePermission('files:write'), async (c) => {
     const nowMs = Date.now();
 
     // 4. 保存数据库记录
-    await env.DB.prepare(
-      `
-                INSERT INTO files (id, folder_id, name, original_name, size, mime_type, storage_key, created_by, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `
-    )
-      .bind(
-        fileId,
-        folderId,
-        fileName,
-        fileName,
-        fileSize,
-        fileType,
-        fileId, // storage_key
-        user.id,
-        nowMs,
-        nowMs
-      )
-      .run();
+    const fileRepo = new FileRepository(env.DB);
+    await fileRepo.create({
+      id: fileId,
+      folderId: folderId,
+      name: fileName,
+      originalName: fileName,
+      size: fileSize,
+      mimeType: fileType,
+      storageKey: fileId,
+      createdBy: user.id,
+      createdAt: nowMs,
+      updatedAt: nowMs
+    });
 
     // 5. 触发 Webhook
     const fileInfo = {

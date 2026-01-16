@@ -16,7 +16,7 @@
       bindtap="onSubspaceTap"
     >
       <view class="subspace-cover" wx:if="{{item.coverUrl}}">
-        <t-image src="{{baseUrl}}{{item.coverUrl}}" mode="aspectFill" width="96" height="96" shape="round" />
+        <t-image src="{{item.coverUrl}}" mode="aspectFill" width="96" height="96" shape="round" />
       </view>
       <view class="subspace-cover placeholder" wx:else>
         <t-icon name="folder" size="40rpx" color="#9ca3af" />

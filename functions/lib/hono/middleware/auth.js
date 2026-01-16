@@ -11,6 +11,8 @@ export const publicRoutes = [
   '/api/v1/health',
   '/api/gallery',
   '/api/space',
+  '/api/sales/login',
+  '/api/sales/wechat-login',
 ];
 
 /**
@@ -20,7 +22,7 @@ export async function authMiddleware(c, next) {
   const path = c.req.path;
 
   // 跳过公开路由
-  if (publicRoutes.some((route) => path.startsWith(route))) {
+  if (publicRoutes.some((route) => path.startsWith(route)) || /^\/api\/sales\/[^/]+\/auth$/.test(path)) {
     return next();
   }
 

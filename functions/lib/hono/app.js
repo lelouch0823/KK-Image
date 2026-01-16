@@ -25,6 +25,8 @@ import manageSpacesRoutes from './routes/manage/spaces/index.js';
 import manageStatsRoutes from './routes/manage/stats.js';
 import manageUsersRoutes from './routes/manage/user.js';
 import manageSharesRoutes from './routes/manage/shares.js';
+import manageUtilsRoutes from './routes/manage/utils.js';
+import salesRoutes from './routes/sales.js';
 
 export const app = new Hono();
 
@@ -66,6 +68,8 @@ app.use('/api/*', rateLimitMiddleware);
 
 app.use('/api/v1/*', authMiddleware);
 app.use('/api/manage/*', authMiddleware);
+// 注意：/api/sales/login 和 wechat-login 在 authMiddleware 内部通过 publicRoutes 排除
+app.use('/api/sales/*', authMiddleware);
 
 app.route('/api/v1/auth', authRoutes);
 app.route('/api/v1/health', healthRoutes);
@@ -85,6 +89,8 @@ app.route('/api/manage/spaces', manageSpacesRoutes);
 app.route('/api/manage/stats', manageStatsRoutes);
 app.route('/api/manage/user', manageUsersRoutes);
 app.route('/api/manage/shares', manageSharesRoutes);
+app.route('/api/manage/utils', manageUtilsRoutes);
+app.route('/api/sales', salesRoutes);
 
 // ============================================
 // 通用处理

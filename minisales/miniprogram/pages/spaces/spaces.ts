@@ -1,9 +1,5 @@
-/**
- * 共享空间列表页 - 小红书风格瀑布流
- */
-
-import { get, getAccessToken } from '../../utils/api';
-import { API, API_BASE_URL } from '../../utils/constants';
+import { get, getAccessToken, getFileUrl } from '../../utils/api';
+import { API } from '../../utils/constants';
 import { calculateNavBarHeight, getNavbarVisibility, initTabBar } from '../../utils/ui-helpers';
 
 interface Space {
@@ -31,14 +27,17 @@ const TEMPLATE_NAMES: Record<string, string> = {
 
 Page({
     data: {
-        // ... (Other data)
         spaces: [] as Space[],
         leftColumn: [] as Space[],
         rightColumn: [] as Space[],
         loading: true,
-        baseUrl: API_BASE_URL,
-        navBarHeight: 88, // Navbar height for style binding & auto-hide logic
+        navBarHeight: 88,
         navBarVisible: true,
+        // Skeleton 配置
+        spacesRowCol: [
+            { width: '100%', height: '300rpx', borderRadius: '16rpx' },
+            { width: '80%', height: '32rpx', marginTop: '16rpx' },
+        ],
     },
 
     // 滚动状态记录
@@ -56,7 +55,6 @@ Page({
         this.loadSpaces();
     },
 
-    // ... onPullDownRefresh ...
     /**
      * 下拉刷新
      */
@@ -103,14 +101,14 @@ Page({
             const response = await get<Space[]>(API.SALES_SPACES(accessToken));
 
             if (response.success && response.data) {
-                // 添加模板名称和随机宽高比
+                // 数据预处理
                 const spaces = response.data.map((space) => ({
                     ...space,
+                    coverUrl: getFileUrl(space.coverUrl || undefined),
                     templateName: TEMPLATE_NAMES[space.template] || space.template,
-                    aspectRatio: space.coverUrl ? (0.8 + Math.random() * 0.6) : 1, // 0.8-1.4
+                    aspectRatio: space.coverUrl ? (0.8 + Math.random() * 0.6) : 1,
                 }));
 
-                // 瀑布流分列（简单交替分配）
                 const leftColumn: Space[] = [];
                 const rightColumn: Space[] = [];
 
@@ -135,8 +133,8 @@ Page({
     /**
      * 查看空间详情
      */
-    handleViewSpace(e: WechatMiniprogram.CustomEvent) {
+    handleViewSpace(e: WechatMiniprogram.TouchEvent) {
         const { id } = e.currentTarget.dataset;
-        wx.navigateTo({ url: `/pages/spaces/detail?id=${id}` });
+        wx.navigateTo({ url: `/pages/spaces_detail/detail?id=${id}` });
     },
 });

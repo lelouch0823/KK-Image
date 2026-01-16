@@ -259,4 +259,97 @@ export class SpaceRepository {
             )
             .run();
     }
+    /**
+     * 获取空间分享的销售员列表
+     * @param {string} id
+     * @returns {Promise<Array>}
+     */
+    async getSharedSalespersons(id) {
+        const { results } = await this.db
+            .prepare(
+                `
+        SELECT sp.id, sp.name, sp.store
+        FROM space_salesperson_shares sss
+        JOIN salespersons sp ON sss.salesperson_id = sp.id
+        WHERE sss.space_id = ?
+      `
+            )
+            .bind(id)
+            .all();
+        return results || [];
+    }
+
+    /**
+     * 更新空间分享的销售员列表
+     * @param {string} id
+     * @param {Array<string>} salespersonIds
+     * @returns {Promise<void>}
+     */
+    async updateSharedSalespersons(id, salespersonIds) {
+        const nowMs = Date.now();
+        const batch = [this.db.prepare('DELETE FROM space_salesperson_shares WHERE space_id = ?').bind(id)];
+
+        if (salespersonIds.length > 0) {
+            const insertStmt = this.db.prepare(
+                'INSERT INTO space_salesperson_shares (space_id, salesperson_id, shared_at) VALUES (?, ?, ?)'
+            );
+            salespersonIds.forEach((spId) => {
+                batch.push(insertStmt.bind(id, spId, nowMs));
+            });
+        }
+
+        await this.db.batch(batch);
+    }
+
+    /**
+     * 获取销售员可见的共享空间列表
+     * @param {string} salespersonId
+     * @returns {Promise<Array>}
+     */
+    async findAllForSalesperson(salespersonId) {
+        const { results } = await this.db.prepare(`
+            SELECT s.*, 
+                (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
+                f.storage_key as cover_storage_key
+            FROM spaces s
+            LEFT JOIN files f ON s.cover_file_id = f.id
+            WHERE s.share_mode = 'all'
+               OR (s.share_mode = 'selected' AND EXISTS (
+                   SELECT 1 FROM space_salesperson_shares sss 
+                   WHERE sss.space_id = s.id AND sss.salesperson_id = ?
+               ))
+            ORDER BY s.updated_at DESC
+        `).bind(salespersonId).all();
+        return results;
+    }
+
+    /**
+     * 获取销售员可见的空间详情
+     * @param {string} spaceId
+     * @param {string} salespersonId
+     * @returns {Promise<Object|null>}
+     */
+    async findByIdForSalesperson(spaceId, salespersonId) {
+        const space = await this.db.prepare(`
+            SELECT s.* 
+            FROM spaces s
+            WHERE s.id = ?
+              AND (s.share_mode = 'all'
+                   OR (s.share_mode = 'selected' AND EXISTS (
+                       SELECT 1 FROM space_salesperson_shares sss 
+                       WHERE sss.space_id = s.id AND sss.salesperson_id = ?
+                   )))
+        `).bind(spaceId, salespersonId).first();
+
+        if (!space) return null;
+
+        const { results: files } = await this.db.prepare(`
+            SELECT f.*, sf.section FROM files f
+            JOIN space_files sf ON f.id = sf.file_id
+            WHERE sf.space_id = ?
+            ORDER BY sf.section, sf.sort_order ASC, f.created_at DESC
+        `).bind(spaceId).all();
+
+        return { ...space, files };
+    }
 }

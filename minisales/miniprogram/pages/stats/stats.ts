@@ -1,10 +1,7 @@
-/**
- * 个人统计页
- */
-
 import { get, getAccessToken } from '../../utils/api';
 import { API } from '../../utils/constants';
 import { getCurrentUser } from '../../utils/auth';
+import { calculateNavBarHeight, initTabBar } from '../../utils/ui-helpers';
 
 interface Stats {
     totalOrders: number;
@@ -30,30 +27,29 @@ Page({
         statusBarHeight: 20,
         navContentHeight: 44,
         headerHeight: 64,
+        // Skeleton 配置
+        statsRowCol: [
+            { width: '100%', height: '320rpx', borderRadius: '16rpx' },
+            { width: '100%', height: '480rpx', borderRadius: '16rpx', marginTop: '32rpx' },
+        ],
     },
 
     onLoad() {
         const user = getCurrentUser();
         this.setData({ user });
 
-        // 计算自定义导航栏高度
-        const sysInfo = wx.getSystemInfoSync();
-        const menuInfo = wx.getMenuButtonBoundingClientRect();
-
-        const statusBarHeight = sysInfo.statusBarHeight;
-        const navContentHeight = (menuInfo.top - statusBarHeight) * 2 + menuInfo.height;
+        // 使用统一的 UI Helper 计算高度
+        const { statusBarHeight, navContentHeight, totalHeight } = calculateNavBarHeight();
 
         this.setData({
             statusBarHeight,
             navContentHeight,
-            headerHeight: statusBarHeight + navContentHeight,
+            headerHeight: totalHeight,
         });
     },
 
     onShow() {
-        if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-            (this.getTabBar() as any).init();
-        }
+        initTabBar(this);
         this.loadStats();
     },
 

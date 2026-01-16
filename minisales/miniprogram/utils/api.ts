@@ -13,11 +13,12 @@ interface RequestOptions {
     loadingText?: string;
 }
 
-interface ApiResponse<T = any> {
+export interface ApiResponse<T = any> {
     success: boolean;
     data?: T;
     message?: string;
     error?: string;
+    [key: string]: any; // Allow extra fields
 }
 
 /**
@@ -136,7 +137,7 @@ export function post<T = any>(url: string, data?: object, options?: Omit<Request
 /**
  * 上传文件
  */
-export function uploadFile(url: string, filePath: string, formData?: object): Promise<ApiResponse> {
+export function uploadFile<T = any>(url: string, filePath: string, formData?: object): Promise<ApiResponse<T>> {
     const token = getToken();
 
     return new Promise((resolve, reject) => {
@@ -148,7 +149,7 @@ export function uploadFile(url: string, filePath: string, formData?: object): Pr
             header: token ? { 'Authorization': `Bearer ${token}` } : {},
             success: (res) => {
                 try {
-                    const response = JSON.parse(res.data) as ApiResponse;
+                    const response = JSON.parse(res.data) as ApiResponse<T>;
                     if (res.statusCode >= 200 && res.statusCode < 300 && response.success) {
                         resolve(response);
                     } else {
@@ -164,4 +165,13 @@ export function uploadFile(url: string, filePath: string, formData?: object): Pr
             },
         });
     });
+}
+
+/**
+ * 获取完整的文件 URL
+ */
+export function getFileUrl(path: string | undefined): string {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    return `${API_BASE_URL}${path}`;
 }

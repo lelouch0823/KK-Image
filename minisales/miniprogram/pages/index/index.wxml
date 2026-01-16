@@ -1,94 +1,58 @@
-<!--pages/index/index.wxml-->
+<!-- pages/index/index.wxml -->
 <!-- 引入 WXS 模块 -->
 <wxs src="../../utils/format.wxs" module="format" />
-
 <view class="page">
   <!-- 顶部导航 (Auto-hide) -->
-  <view 
-    class="custom-navbar {{navBarVisible ? '' : 'navbar-hidden'}}"
-    style="height: {{headerHeight}}px;"
-  >
+  <view class="custom-navbar {{navBarVisible ? '' : 'navbar-hidden'}}" style="height: {{headerHeight}}px;">
     <t-navbar title="{{user.name ? user.name + '的订单' : '我的订单'}}" left-arrow="{{false}}" style="--td-navbar-bg-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
       <view slot="left" class="header-icon-container">
         <t-icon name="app" size="24px" />
       </view>
     </t-navbar>
   </view>
-  
   <!-- 订单列表 -->
   <!-- Remove spacer, usage padding-top on scroll-view instead -->
-  <scroll-view
-    class="order-list"
-    scroll-y
-    show-scrollbar="{{false}}"
-    refresher-enabled
-    refresher-triggered="{{refreshing}}"
-    bindrefresherrefresh="onPullDownRefresh"
-    bindscroll="onScroll"
-  >
+  <scroll-view class="order-list" scroll-y type="list" show-scrollbar="{{false}}" refresher-enabled refresher-triggered="{{refreshing}}" bindrefresherrefresh="onPullDownRefresh" bindscroll="onScroll">
     <!-- Spacer for Navbar with extra buffer -->
     <view style="height: calc({{headerHeight}}px + 20rpx); width: 100%; flex-shrink: 0;"></view>
-    <!-- 加载中 -->
-    <view wx:if="{{loading && orders.length === 0}}" class="loading-container">
-      <t-loading theme="circular" size="40rpx" text="加载中..." />
+    <!-- 骨架屏加载 -->
+    <view wx:if="{{loading && orders.length === 0}}" class="skeleton-list">
+      <view wx:for="{{6}}" wx:key="index" class="skeleton-item-card">
+        <t-skeleton rowCol="{{rowCol}}" theme="paragraph" loading></t-skeleton>
+      </view>
     </view>
-
     <!-- 空状态 -->
     <!-- 空状态 -->
     <view wx:elif="{{!loading && orders.length === 0}}" class="empty-state">
       <t-empty icon="info-circle-filled" description="暂无订单" />
       <view class="empty-hint">点击右下角"+"创建订单</view>
     </view>
-
     <!-- 订单卡片列表 -->
     <block wx:else>
-      <view
-        wx:for="{{orders}}"
-        wx:for-item="item"
-        wx:key="id"
-        class="order-card list-item" 
-        data-id="{{item.id}}"
-        bindtap="handleViewOrder"
-      >
+      <view wx:for="{{orders}}" wx:for-item="item" wx:key="id" class="order-card list-item" data-id="{{item.id}}" bindtap="handleViewOrder">
         <view class="card-inner">
           <!-- 主图 (Left) -->
           <view class="card-image">
-            <t-image
-              wx:if="{{item.mainImage}}"
-              src="{{item.mainImage}}"
-              mode="aspectFill"
-              width="128"
-              height="128"
-              lazy-load
-              shape="round"
-              class="t-image-rounded"
-            />
+            <t-image wx:if="{{item.mainImage}}" src="{{item.mainImage}}" mode="aspectFill" width="128" height="128" lazy-load shape="round" class="t-image-rounded" />
             <view wx:else class="image-placeholder">
               <t-icon name="image" size="48rpx" color="#ccc" />
             </view>
             <!-- 新反馈红点 -->
             <view wx:if="{{item.hasNewFeedback}}" class="feedback-dot"></view>
           </view>
-
           <!-- 信息 (Right) -->
           <view class="card-content">
             <!-- Top: Product Name + Arrow? (Arrow fits better in Web's absolute right or flex structure) -->
             <view class="row-top">
               <text class="product-name">{{item.name || '未命名商品'}}</text>
             </view>
-
             <!-- Middle: Order No -->
             <view class="row-middle">
               <text class="order-no">{{item.orderNo}}</text>
             </view>
-
             <!-- Bottom: Status + Time -->
             <view class="row-bottom">
-              <t-tag 
-                size="small" 
-                variant="light" 
-                style="color: {{statusConfig[item.status].color}}; background-color: {{statusConfig[item.status].bgColor}};"
-              >
+              <t-tag size="small" variant="light" style="color: {{statusConfig[item.status].color}}; background-color: {{statusConfig[item.status].bgColor}};">
                 {{statusConfig[item.status].label}}
               </t-tag>
               <text class="order-time">{{format.formatRelativeTime(item.createdAt)}}</text>
@@ -97,17 +61,10 @@
         </view>
       </view>
     </block>
-    
     <t-divider content="没有更多了" wx:if="{{!loading && orders.length > 0}}" />
-    <view class="footer-spacer"></view> <!-- 底部安全区 -->
+    <view class="footer-spacer"></view>
+    <!-- 底部安全区 -->
   </scroll-view>
-
   <!-- 悬浮新建按钮 -->
-  <t-fab
-    icon="add"
-    bind:click="handleNewOrder"
-    aria-label="新建订单"
-    style="bottom: 200rpx; right: 40rpx; z-index: 9999;"
-    class="{{fabVisible ? '' : 'fab-hidden'}}"
-  />
+  <t-fab icon="add" bind:click="handleNewOrder" aria-label="新建订单" style="bottom: 200rpx; right: 40rpx; z-index: 9999;" class="{{fabVisible ? '' : 'fab-hidden'}}" />
 </view>

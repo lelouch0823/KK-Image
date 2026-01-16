@@ -1,25 +1,20 @@
-/**
- * 订单列表页 (首页)
- */
-
-import { get, getAccessToken } from '../../utils/api';
-import { formatFriendlyTime } from '../../utils/helpers';
+import { get, getAccessToken, getFileUrl } from '../../utils/api';
 import { calculateNavBarHeight, getNavbarVisibility, initTabBar } from '../../utils/ui-helpers';
 import { getCurrentUser, logout } from '../../utils/auth';
 import { API, STATUS_CONFIG, OrderStatus } from '../../utils/constants';
 import { store, KEYS } from '../../utils/store';
 
-// ... (Interface Order)
+// ... (Interface Order remain same)
 interface Order {
   id: string;
   orderNo: string;
+  name?: string; // Add name if missing from previous snippet
   status: OrderStatus;
   customerName?: string;
   mainImage?: string;
   hasNewFeedback?: boolean;
   createdAt: number;
   updatedAt: number;
-  // ... other fields
 }
 
 Page({
@@ -38,6 +33,12 @@ Page({
     fabVisible: true,
     // Navbar auto-hide
     navBarVisible: true,
+    // Skeleton 配置
+    rowCol: [
+      [{ size: '128rpx', borderRadius: '12rpx' }],
+      [{ width: '60%', height: '32rpx', marginBottom: '16rpx' }],
+      [{ width: '40%', height: '24rpx' }],
+    ],
   },
 
   // 滚动状态记录
@@ -57,8 +58,7 @@ Page({
     });
 
     // 计算自定义导航栏高度
-    const { statusBarHeight, navContentHeight, totalHeight } = calculateNavBarHeight();
-
+    const { totalHeight, statusBarHeight, navContentHeight } = calculateNavBarHeight();
     this.setData({
       statusBarHeight,
       navContentHeight,
@@ -69,8 +69,7 @@ Page({
   onShow() {
     initTabBar(this);
 
-    // 移除 onShow 中的 checkAuth，交由 store 管理
-    const user = getCurrentUser(); // 确保 store 有值
+    const user = getCurrentUser();
     if (user && this.data.orders.length === 0) {
       this.loadOrders();
     }
@@ -89,10 +88,8 @@ Page({
     const currentScrollTop = e.detail.scrollTop;
     if (currentScrollTop < 0) return;
 
-    // Use Helper for Navbar
-    // Use Helper for Navbar
     const { navBarVisible, headerHeight } = this.data;
-    const lastScrollTop = this.lastScrollTop; // Instance property
+    const lastScrollTop = this.lastScrollTop;
 
     const shouldShowNavbar = getNavbarVisibility(
       currentScrollTop,
@@ -102,15 +99,10 @@ Page({
     );
 
     if (shouldShowNavbar !== null) {
-      this.setData({ navBarVisible: shouldShowNavbar });
-    }
-
-    // FAB follows Navbar logic roughly, or can be separate. 
-    // Usually FAB hides when scrolling down, shows when up.
-    // If Navbar hides, FAB hides. If Navbar shows, FAB shows.
-    // Sync FAB with Navbar visibility for cleaner UX
-    if (shouldShowNavbar !== null) {
-      this.setData({ fabVisible: shouldShowNavbar });
+      this.setData({
+        navBarVisible: shouldShowNavbar,
+        fabVisible: shouldShowNavbar
+      });
     }
 
     this.lastScrollTop = currentScrollTop;
@@ -155,7 +147,13 @@ Page({
       const response = await get<{ orders: Order[] }>(API.SALES_ORDERS(accessToken));
 
       if (response.success && response.data) {
-        this.setData({ orders: response.data.orders || response.data });
+        const rawOrders = response.data.orders || (response.data as any);
+        const orders = Array.isArray(rawOrders) ? rawOrders.map(o => ({
+          ...o,
+          mainImage: getFileUrl(o.mainImage)
+        })) : [];
+
+        this.setData({ orders });
       }
     } catch (error) {
       console.error('Load orders failed:', error);
@@ -178,14 +176,6 @@ Page({
   handleViewOrder(e: WechatMiniprogram.TouchEvent) {
     const { id } = e.currentTarget.dataset;
     wx.navigateTo({ url: `/pages/detail/detail?id=${id}` });
-  },
-
-  /**
-   * 格式化时间
-   */
-  formatTime(timestamp: number): string {
-    // 使用统一的 helper 函数
-    return formatFriendlyTime(timestamp);
   },
 
   /**

@@ -11,7 +11,7 @@
       wx:for="{{space.files}}"
       wx:key="id"
       class="document-item"
-      data-url="{{baseUrl}}{{item.url}}"
+      data-url="{{item.url}}"
       data-index="{{index}}"
       bindtap="onItemTap"
     >

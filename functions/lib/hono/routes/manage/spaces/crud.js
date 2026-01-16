@@ -72,19 +72,14 @@ crud.get('/:id', async (c) => {
     }
 
     // 获取已分享的销售员列表 (用于前端显示)
-    const sharedSalespersons = await env.DB.prepare(`
-      SELECT sp.id, sp.name, sp.store
-      FROM space_salesperson_shares sss
-      JOIN salespersons sp ON sss.salesperson_id = sp.id
-      WHERE sss.space_id = ?
-    `).bind(spaceId).all();
+    const sharedSalespersons = await repo.getSharedSalespersons(spaceId);
 
     return c.json({
       success: true,
       data: {
         ...transformSpaceDetail(result.space, result.files),
         shareMode: result.space.share_mode || 'none',
-        sharedSalespersons: sharedSalespersons.results || [],
+        sharedSalespersons: sharedSalespersons,
       },
     });
   } catch (err) {
@@ -266,21 +261,7 @@ crud.put(
 
       // 处理选择性分享的销售员列表
       if (data.sharedSalespersonIds !== undefined) {
-        const nowMs = Date.now();
-        // 先清除旧的关联
-        await env.DB.prepare('DELETE FROM space_salesperson_shares WHERE space_id = ?')
-          .bind(spaceId)
-          .run();
-
-        // 批量插入新关联
-        if (data.sharedSalespersonIds.length > 0) {
-          const insertStmt = env.DB.prepare(
-            'INSERT INTO space_salesperson_shares (space_id, salesperson_id, shared_at) VALUES (?, ?, ?)'
-          );
-          await env.DB.batch(
-            data.sharedSalespersonIds.map((spId) => insertStmt.bind(spaceId, spId, nowMs))
-          );
-        }
+        await repo.updateSharedSalespersons(spaceId, data.sharedSalespersonIds);
       }
 
       return c.json({

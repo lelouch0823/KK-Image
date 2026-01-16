@@ -3,8 +3,8 @@
  */
 
 // ... (Imports remain same)
-import { post, uploadFile, getAccessToken } from '../../utils/api';
-import { API, API_BASE_URL } from '../../utils/constants';
+import { post, uploadFile, getAccessToken, getFileUrl } from '../../utils/api';
+import { API } from '../../utils/constants';
 
 interface FormData {
     name: string;
@@ -106,33 +106,71 @@ Page({
         this.setData({ fileList });
     },
 
+    onUnload() {
+        // 页面卸载时关闭提醒
+        if (wx.disableAlertBeforeUnload) {
+            wx.disableAlertBeforeUnload();
+        }
+    },
+
     async processUpload(files: any[]) {
         const accessToken = getAccessToken();
         if (!accessToken) return;
 
-        const currentFiles = this.data.fileList; // Get latest reference
+        // 开启退出提醒 (SOTA UX)
+        if (wx.enableAlertBeforeUnload) {
+            wx.enableAlertBeforeUnload({
+                message: '图片正在上传中，退出可能导致上传中断，确定退出吗？'
+            });
+        }
 
-        for (const file of files) {
+        const uploadTasks = files.map(async (file) => {
+            const currentFiles = this.data.fileList;
             const index = currentFiles.findIndex(f => f.url === file.url);
-            if (index === -1) continue;
+            if (index === -1) return;
+
+            // 注册到全局管理器 (WANT 模式)
+            const taskId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            import('../../utils/upload-manager').then(({ uploadManager }) => {
+                uploadManager.addTask(taskId, file.name || '图片', 'current_form');
+            });
 
             try {
-                const uploadRes = await uploadFile(API.SALES_UPLOAD(accessToken), file.url); // file.url is tempFilePath
+                const uploadRes = await uploadFile<{ id: string; url: string }>(
+                    API.SALES_UPLOAD(accessToken),
+                    file.url
+                );
+
                 if (uploadRes.success && uploadRes.data) {
                     this.setData({
                         [`fileList[${index}].status`]: 'done',
-                        [`fileList[${index}].url`]: API_BASE_URL + uploadRes.data.url, // Update to full URL
-                        // Store the ID somewhere? TDesign file object allows custom props?
-                        // We need to store the ID to submit later. 
-                        // Let's attach 'id' to the file object in fileList.
+                        [`fileList[${index}].url`]: getFileUrl(uploadRes.data.url),
                         [`fileList[${index}].id`]: uploadRes.data.id,
+                    });
+                    import('../../utils/upload-manager').then(({ uploadManager }) => {
+                        uploadManager.setSuccess(taskId, uploadRes.data);
                     });
                 } else {
                     this.setData({ [`fileList[${index}].status`]: 'failed' });
+                    import('../../utils/upload-manager').then(({ uploadManager }) => {
+                        uploadManager.setFailed(taskId, '上传失败');
+                    });
                 }
             } catch (e) {
+                console.error('Upload item failed:', e);
                 this.setData({ [`fileList[${index}].status`]: 'failed' });
+                import('../../utils/upload-manager').then(({ uploadManager }) => {
+                    uploadManager.setFailed(taskId, String(e));
+                });
             }
+        });
+
+        await Promise.all(uploadTasks);
+
+        // 如果所有图片上传完成且没有失败，关闭退出提醒
+        const allDone = this.data.fileList.every(f => f.status === 'done');
+        if (allDone && wx.disableAlertBeforeUnload) {
+            wx.disableAlertBeforeUnload();
         }
     },
 
@@ -143,31 +181,34 @@ Page({
     async handleSubmit() {
         const { form, fileList } = this.data;
         const accessToken = getAccessToken();
+        const Toast = this.selectComponent('#t-toast');
+
         if (!accessToken) {
-            // TToast usage via id
-            const Toast = this.selectComponent('#t-toast');
             Toast.show({ content: '请先登录', theme: 'warning' });
             return;
         }
 
-        if (!form.name.trim()) {
-            const Toast = this.selectComponent('#t-toast');
-            Toast.show({ content: '请输入客户名称', theme: 'warning' });
-            return;
+        // 增强校验
+        const requiredFields: Array<{ key: keyof FormData; label: string }> = [
+            { key: 'name', label: '客户名称' },
+            { key: 'brand', label: '品牌' }
+        ];
+
+        for (const field of requiredFields) {
+            if (!form[field.key]?.trim()) {
+                Toast.show({ content: `请输入${field.label}`, theme: 'warning' });
+                return;
+            }
         }
 
-        // Check if all uploads done
-        const uploading = fileList.some(f => f.status === 'loading');
-        if (uploading) {
-            const Toast = this.selectComponent('#t-toast');
+        // 检查上传状态
+        if (fileList.some(f => f.status === 'loading')) {
             Toast.show({ content: '图片上传中，请稍候', theme: 'warning' });
             return;
         }
 
-        const failed = fileList.some(f => f.status === 'failed');
-        if (failed) {
-            const Toast = this.selectComponent('#t-toast');
-            Toast.show({ content: '有图片上传失败，请重试或删除', theme: 'warning' });
+        if (fileList.some(f => f.status === 'failed')) {
+            Toast.show({ content: '存在上传失败的图片', theme: 'warning' });
             return;
         }
 
@@ -175,23 +216,18 @@ Page({
 
         try {
             const imageIds = fileList.map((f: any) => f.id).filter(Boolean);
-
-            const orderData = {
+            const response = await post(API.SALES_ORDERS(accessToken), {
                 ...form,
                 images: imageIds,
-            };
-
-            const response = await post(API.SALES_ORDERS(accessToken), orderData);
+            });
 
             if (response.success) {
-                const Toast = this.selectComponent('#t-toast');
                 Toast.show({ content: '订单创建成功', theme: 'success' });
                 setTimeout(() => wx.navigateBack(), 1500);
             } else {
                 throw new Error(response.error || '创建失败');
             }
         } catch (error: any) {
-            const Toast = this.selectComponent('#t-toast');
             Toast.show({ content: error.message || '提交失败', theme: 'error' });
         } finally {
             this.setData({ submitting: false });

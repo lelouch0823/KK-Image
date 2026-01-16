@@ -1,38 +1,33 @@
-<!--pages/detail/detail.wxml-->
+<!-- pages/detail/detail.wxml -->
 <view class="page">
   <t-navbar title="订单详情" left-arrow bind:go-back="handleBack" fixed placeholder>
-    <view slot="right" bind:tap="handleDuplicate" style="padding-right: 24rpx; font-size: 28rpx;">复制</view>
+    <view slot="right" bind:tap="handleDuplicate" style="padding-right: 24rpx; font-size: 28rpx;">
+      复制
+    </view>
   </t-navbar>
-
-  <view wx:if="{{loading}}" class="loading-container">
-    <t-loading theme="circular" size="40rpx" text="加载中..." />
+  <!-- 骨架屏加载 -->
+  <view wx:if="{{loading && !order}}" class="skeleton-detail">
+    <t-skeleton rowCol="{{detailRowCol}}" loading style="padding: 24rpx;"></t-skeleton>
   </view>
-
-  <scroll-view wx:elif="{{order}}" class="content" scroll-y>
+  <scroll-view wx:elif="{{order}}" class="content" scroll-y type="list">
     <!-- 状态卡片 -->
     <view class="status-card" style="background-color: {{statusConfig[order.status].bgColor}};">
       <view class="status-header">
-        <t-tag 
-            size="medium" 
-            variant="light" 
-            style="color: {{statusConfig[order.status].color}}; background-color: {{statusConfig[order.status].bgColor}};"
-        >
+        <t-tag size="medium" variant="light" style="color: {{statusConfig[order.status].color}}; background-color: {{statusConfig[order.status].bgColor}};">
           {{statusConfig[order.status].label}}
         </t-tag>
         <text class="order-no">{{order.orderNo}}</text>
       </view>
     </view>
-
     <!-- 图片区域 -->
     <view wx:if="{{order.files.length > 0}}" class="section">
       <view class="section-title">产品图片</view>
       <t-grid column="{{3}}" border="{{false}}">
         <t-grid-item wx:for="{{order.files}}" wx:key="id">
-          <t-image src="{{item.url}}" mode="aspectFill" width="200" height="200" bind:click="previewImage" data-url="{{item.url}}" />
+          <t-image src="{{item.url}}" mode="aspectFill" width="200" height="200" lazy-load bind:click="previewImage" data-url="{{item.url}}" />
         </t-grid-item>
       </t-grid>
     </view>
-
     <!-- 订单信息 -->
     <view class="section">
       <view class="section-title">订单信息</view>
@@ -47,37 +42,26 @@
         <t-cell title="备注" note="{{order.currentData.remark || '-'}}" wx:if="{{order.currentData.remark}}" />
       </t-cell-group>
     </view>
-
     <!-- 时间轴 -->
     <view class="section">
       <view class="section-title">订单动态</view>
       <view class="timeline-container">
         <t-steps layout="vertical" theme="dot" current="{{order.timeline.length - 1}}">
-          <t-step 
-            wx:for="{{order.timeline}}" 
-            wx:key="id" 
-            title="{{item.actionType === 'status_changed' ? '状态变更: ' + item.newValue : item.actionType === 'created' ? '创建了订单' : item.actorName}}" 
-            content="{{item.comment || item.fieldName || item.reason || ''}}" 
-          >
-             <view slot="extra" class="timeline-time">{{format.formatTime(item.createdAt)}}</view>
+          <t-step wx:for="{{order.timeline}}" wx:key="id" title="{{item.displayTitle}}" content="{{item.displayContent}}">
+            <view slot="extra" class="timeline-time">{{format.formatTime(item.createdAt)}}</view>
           </t-step>
         </t-steps>
       </view>
     </view>
-
     <view class="footer-spacer"></view>
   </scroll-view>
-
   <!-- 留言输入框: Using TDesign Input? Or native input fixed at bottom is fine. Let's keep native or custom for better keyboard handling -->
   <view wx:if="{{order}}" class="comment-bar safe-area-bottom">
     <!-- Using native input for now to avoid TDesign form behaviors -->
-    <input
-      class="comment-input"
-      placeholder="输入留言..."
-      value="{{comment}}"
-      bindinput="onCommentInput"
-    />
-    <t-button theme="primary" size="small" bind:tap="handleSubmitComment" disabled="{{!comment.trim()}}" loading="{{submittingComment}}">发送</t-button>
+    <input class="comment-input" placeholder="输入留言..." value="{{comment}}" bindinput="onCommentInput" />
+    <t-button theme="primary" size="small" bind:tap="handleSubmitComment" disabled="{{!comment.trim()}}" loading="{{submittingComment}}">
+      发送
+    </t-button>
   </view>
 </view>
 <!-- WXS import needed for format -->

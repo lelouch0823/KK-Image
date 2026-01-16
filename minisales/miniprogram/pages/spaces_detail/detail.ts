@@ -1,10 +1,5 @@
-/**
- * 共享空间详情页
- * 支持 6 种模板: gallery, product, portfolio, document, collection, custom
- */
-
-import { get, getAccessToken } from '../../utils/api';
-import { API, API_BASE_URL } from '../../utils/constants';
+import { get, getAccessToken, getFileUrl } from '../../utils/api';
+import { API } from '../../utils/constants';
 
 interface SpaceFile {
     id: string;
@@ -37,7 +32,6 @@ Page({
     data: {
         space: null as SpaceDetail | null,
         loading: true,
-        baseUrl: API_BASE_URL,
         currentIndex: 0,
     },
 
@@ -70,6 +64,20 @@ Page({
                 if (!data.templateData) {
                     data.templateData = {};
                 }
+
+                // 数据预处理
+                data.files = (data.files || []).map(f => ({
+                    ...f,
+                    url: getFileUrl(f.url)
+                }));
+
+                if (data.subspaces) {
+                    data.subspaces = data.subspaces.map(s => ({
+                        ...s,
+                        coverUrl: getFileUrl(s.coverUrl)
+                    }));
+                }
+
                 this.setData({ space: data });
             } else {
                 wx.showToast({ title: '加载失败', icon: 'none' });
@@ -94,22 +102,22 @@ Page({
      */
     handlePreview(e: WechatMiniprogram.CustomEvent) {
         const { url } = e.detail;
-        const { space, baseUrl } = this.data;
+        const { space } = this.data;
         if (!space) return;
 
-        const urls = space.files.map((f) => `${baseUrl}${f.url}`);
+        const urls = space.files.map((f) => f.url);
         wx.previewImage({ current: url, urls });
     },
 
     /**
      * 预览图片 (default template)
      */
-    previewImage(e: WechatMiniprogram.CustomEvent) {
+    previewImage(e: WechatMiniprogram.TouchEvent) {
         const { url } = e.currentTarget.dataset;
-        const { space, baseUrl } = this.data;
+        const { space } = this.data;
         if (!space) return;
 
-        const urls = space.files.map((f) => `${baseUrl}${f.url}`);
+        const urls = space.files.map((f) => f.url);
         wx.previewImage({ current: url, urls });
     },
 
@@ -118,16 +126,16 @@ Page({
      */
     handleDocumentItem(e: WechatMiniprogram.CustomEvent) {
         const { url, index } = e.detail;
-        const { space, baseUrl } = this.data;
+        const { space } = this.data;
         if (!space) return;
 
         const file = space.files[index];
         if (file.mimeType.includes('image')) {
-            const urls = space.files.map((f) => `${baseUrl}${f.url}`);
+            const urls = space.files.map((f) => f.url);
             wx.previewImage({ current: url, urls });
         } else {
             wx.downloadFile({
-                url: `${baseUrl}${file.url}`,
+                url: file.url,
                 success: (res) => {
                     if (res.statusCode === 200) {
                         wx.openDocument({
@@ -147,7 +155,7 @@ Page({
      */
     handleViewSubspace(e: WechatMiniprogram.CustomEvent) {
         const { id } = e.detail;
-        wx.navigateTo({ url: `/pages/spaces/detail?id=${id}` });
+        wx.navigateTo({ url: `/pages/spaces_detail/detail?id=${id}` });
     },
 
     /**

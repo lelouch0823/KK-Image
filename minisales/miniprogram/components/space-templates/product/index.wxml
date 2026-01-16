@@ -10,11 +10,11 @@
     <swiper-item
       wx:for="{{space.files}}"
       wx:key="id"
-      data-url="{{baseUrl}}{{item.url}}"
+      data-url="{{item.url}}"
       data-index="{{index}}"
       bindtap="onPreview"
     >
-      <t-image src="{{baseUrl}}{{item.url}}" mode="aspectFit" width="100%" height="600" />
+      <t-image src="{{item.url}}" mode="aspectFit" width="100%" height="600" />
     </swiper-item>
   </swiper>
 

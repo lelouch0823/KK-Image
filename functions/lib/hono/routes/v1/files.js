@@ -8,9 +8,10 @@ import {
 } from '../../schemas/file.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache, invalidateCache } from '../../middleware/cache.js';
-import { batchDelete } from '../../../../lib/db/batch.js';
 import { getFileUrl, generateId, now, MSG } from '../../_shared/utils.js';
 import { decrementRefCount } from '../../../../api/utils/blob-utils.js';
+import { FileRepository } from '../../../../repositories/FileRepository.js';
+import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 
 const app = new Hono();
 
@@ -21,64 +22,100 @@ app.get('/', zValidator('query', FileQuerySchema), withCache(30), async (c) => {
   const { page, limit, sort, order, folderId, search, type, isPublic } = c.req.valid('query');
   const { env } = c;
 
-  let sql = 'SELECT * FROM files WHERE 1=1';
-  const bindings = [];
+  try {
+    const repo = new FileRepository(env.DB);
+    // Note: Our current findAll doesn't support all advanced filters yet, let's stick to simple one for now or keep direct SQL for complex filters
+    // Actually, I'll use direct SQL for complex public listing but repo for internal logic
+    // But let's try to use Repo pattern as much as possible.
+    // For now, I'll use the existing direct SQL logic but wrap it in a Repository method if needed later.
+    // Actually, I already defined a basic findAll. Let's stick to it and add more filters if needed.
 
-  if (folderId) {
-    sql += ' AND folder_id = ?';
-    bindings.push(folderId);
-  } else {
-    // 没有指定 folderId 时，只返回根目录文件
-    // 兼容 folder_id = 'root' 和 folder_id IS NULL 两种情况
-    sql += " AND (folder_id = 'root' OR folder_id IS NULL)";
+    // For now, I'll keep the direct SQL in this route for performance and complexity, but it's okay because it's v1.
+    // Wait, let's be SOTA and move it to Repo.
+
+    // Simple enough to keep here for now as v1 is legacy-ish but we are refactoring.
+    // I'll skip refactoring the GET list for now as it has complex search logic.
+
+    let sql = 'SELECT * FROM files WHERE 1=1';
+    const bindings = [];
+
+    if (folderId) {
+      sql += ' AND folder_id = ?';
+      bindings.push(folderId);
+    } else {
+      sql += " AND (folder_id = 'root' OR folder_id IS NULL)";
+    }
+
+    if (search) {
+      sql += ' AND (name LIKE ? OR original_name LIKE ?)';
+      bindings.push(`%${search}%`, `%${search}%`);
+    }
+
+    if (type && type !== 'all') {
+      sql += ' AND mime_type LIKE ?';
+      bindings.push(`${type}/%`);
+    }
+
+    if (typeof isPublic === 'boolean') {
+      sql += ' AND is_public = ?';
+      bindings.push(isPublic ? 1 : 0);
+    }
+
+    const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as total');
+    const countResult = await env.DB.prepare(countSql).bind(...bindings).first();
+    const total = countResult?.total || 0;
+
+    sql += ` ORDER BY ${sort} ${order} LIMIT ? OFFSET ?`;
+    bindings.push(limit, (page - 1) * limit);
+
+    const { results } = await env.DB.prepare(sql).bind(...bindings).all();
+
+    return c.json({
+      success: true,
+      data: results.map((file) => ({
+        ...file,
+        url: getFileUrl(file.storage_key),
+      })),
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
+  } catch (err) {
+    return c.json({ success: false, error: err.message }, 500);
   }
+});
 
-  if (search) {
-    sql += ' AND (name LIKE ? OR original_name LIKE ?)';
-    bindings.push(`%${search}%`, `%${search}%`);
+/**
+ * POST /api/v1/files/check-hash - 预检查 (original_hash)
+ */
+app.post('/check-hash', async (c) => {
+  const { original_hash } = await c.req.json();
+  if (!original_hash) return c.json({ success: false, error: 'original_hash is required' }, 400);
+
+  try {
+    const repo = new FileRepository(c.env.DB);
+    const existingFile = await repo.findByOriginalHash(original_hash);
+
+    if (existingFile) {
+      return c.json({
+        success: true,
+        data: {
+          exists: true,
+          file: {
+            id: existingFile.id,
+            name: existingFile.name,
+            url: getFileUrl(existingFile.storage_key),
+            mimeType: existingFile.mime_type,
+            size: existingFile.size,
+            instantUpload: true,
+          }
+        },
+        message: MSG.FILE.INSTANT_UPLOAD
+      });
+    }
+
+    return c.json({ success: true, data: { exists: false } });
+  } catch (err) {
+    return c.json({ success: false, error: err.message }, 500);
   }
-
-  if (type && type !== 'all') {
-    sql += ' AND mime_type LIKE ?';
-    bindings.push(`${type}/%`);
-  }
-
-  if (typeof isPublic === 'boolean') {
-    sql += ' AND is_public = ?';
-    bindings.push(isPublic ? 1 : 0);
-  }
-
-  // 获取总数
-  const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as total');
-  const countResult = await env.DB.prepare(countSql)
-    .bind(...bindings)
-    .first();
-  const total = countResult?.total || 0;
-
-  // 分页查询
-  sql += ` ORDER BY ${sort} ${order} LIMIT ? OFFSET ?`;
-  bindings.push(limit, (page - 1) * limit);
-
-  const { results } = await env.DB.prepare(sql)
-    .bind(...bindings)
-    .all();
-
-  // 添加 URL
-  const filesWithUrls = results.map((file) => ({
-    ...file,
-    url: getFileUrl(file.storage_key),
-  }));
-
-  return c.json({
-    success: true,
-    data: filesWithUrls,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
-  });
 });
 
 /**
@@ -88,7 +125,8 @@ app.get('/:id', withCache(60), async (c) => {
   const id = c.req.param('id');
   const { env } = c;
 
-  const file = await env.DB.prepare('SELECT * FROM files WHERE id = ?').bind(id).first();
+  const repo = new FileRepository(env.DB);
+  const file = await repo.findById(id);
 
   if (!file) {
     return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
@@ -111,25 +149,29 @@ app.post('/', requirePermission('files:write'), zValidator('json', CreateFileSch
   const user = c.get('user');
   const { env } = c;
 
-  const id = generateId();
-  const nowMs = Date.now();
+  try {
+    const repo = new FileRepository(env.DB);
+    const id = generateId();
+    const nowMs = Date.now();
 
-  await env.DB.prepare(
-    `
-      INSERT INTO files (id, name, folder_id, is_public, storage_key, created_by, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `
-  )
-    .bind(id, data.name, data.folderId || null, data.isPublic ? 1 : 0, id, user.id, nowMs, nowMs)
-    .run();
+    await repo.create({
+      id,
+      name: data.name,
+      folderId: data.folderId,
+      isPublic: data.isPublic,
+      storageKey: id, // Default storage key
+      createdBy: user.id,
+      createdAt: nowMs,
+      updatedAt: nowMs
+    });
 
-  return c.json(
-    {
+    return c.json({
       success: true,
       data: { id, ...data, createdAt: nowMs },
-    },
-    201
-  );
+    }, 201);
+  } catch (err) {
+    return c.json({ success: false, error: err.message }, 500);
+  }
 });
 
 /**
@@ -140,43 +182,27 @@ app.put('/:id', requirePermission('files:write'), async (c) => {
   const data = await c.req.json();
   const { env } = c;
 
-  const file = await env.DB.prepare('SELECT id FROM files WHERE id = ?').bind(id).first();
-  if (!file) {
-    return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
+  try {
+    const repo = new FileRepository(env.DB);
+    const file = await repo.findById(id);
+    if (!file) return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
+
+    const updates = {};
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.folderId !== undefined) updates.folder_id = data.folderId;
+    if (data.isPublic !== undefined) updates.is_public = data.isPublic ? 1 : 0;
+
+    if (Object.keys(updates).length === 0) {
+      return c.json({ success: false, error: MSG.COMMON.NO_UPDATE_FIELDS }, 400);
+    }
+
+    await repo.update(id, updates);
+    await invalidateCache(c.req.url);
+
+    return c.json({ success: true, message: MSG.FILE.UPDATE_SUCCESS });
+  } catch (err) {
+    return c.json({ success: false, error: err.message }, 500);
   }
-
-  const updates = [];
-  const values = [];
-
-  if (data.name !== undefined) {
-    updates.push('name = ?');
-    values.push(data.name);
-  }
-  if (data.folderId !== undefined) {
-    updates.push('folder_id = ?');
-    values.push(data.folderId);
-  }
-  if (data.isPublic !== undefined) {
-    updates.push('is_public = ?');
-    values.push(data.isPublic ? 1 : 0);
-  }
-
-  if (updates.length === 0) {
-    return c.json({ success: false, error: MSG.COMMON.NO_UPDATE_FIELDS }, 400);
-  }
-
-  updates.push('updated_at = ?');
-  values.push(now());
-  values.push(id);
-
-  await env.DB.prepare(`UPDATE files SET ${updates.join(', ')} WHERE id = ?`)
-    .bind(...values)
-    .run();
-
-  // 失效缓存
-  await invalidateCache(c.req.url);
-
-  return c.json({ success: true, message: MSG.FILE.UPDATE_SUCCESS });
 });
 
 /**
@@ -186,24 +212,22 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   const id = c.req.param('id');
   const { env } = c;
 
-  const file = await env.DB.prepare('SELECT storage_key, content_hash FROM files WHERE id = ?')
-    .bind(id)
-    .first();
-  if (!file) {
-    return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
+  try {
+    const repo = new FileRepository(env.DB);
+    const file = await repo.findById(id);
+    if (!file) return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
+
+    if (file.content_hash) {
+      await decrementRefCount(env, file.content_hash);
+    } else if (file.storage_key && env.R2_BUCKET) {
+      await env.R2_BUCKET.delete(file.storage_key);
+    }
+
+    await repo.delete(id);
+    return c.json({ success: true, message: MSG.FILE.DELETE_SUCCESS });
+  } catch (err) {
+    return c.json({ success: false, error: err.message }, 500);
   }
-
-  // CAS: 如果有 content_hash，使用引用计数；否则直接删除 R2
-  if (file.content_hash) {
-    await decrementRefCount(env, file.content_hash);
-  } else if (file.storage_key && env.R2_BUCKET) {
-    await env.R2_BUCKET.delete(file.storage_key);
-  }
-
-  // 删除数据库记录
-  await env.DB.prepare('DELETE FROM files WHERE id = ?').bind(id).run();
-
-  return c.json({ success: true, message: MSG.FILE.DELETE_SUCCESS });
 });
 
 /**
@@ -217,30 +241,33 @@ app.post(
     const { ids } = c.req.valid('json');
     const { env } = c;
 
-    // 获取存储键和内容哈希
-    const placeholders = ids.map(() => '?').join(',');
-    const { results } = await env.DB.prepare(
-      `SELECT id, storage_key, content_hash FROM files WHERE id IN (${placeholders})`
-    )
-      .bind(...ids)
-      .all();
+    try {
+      const repo = new FileRepository(env.DB);
 
-    // CAS: 分别处理有 content_hash 和没有的文件
-    for (const f of results) {
-      if (f.content_hash) {
-        await decrementRefCount(env, f.content_hash);
-      } else if (f.storage_key && env.R2_BUCKET) {
-        await env.R2_BUCKET.delete(f.storage_key).catch(() => {});
+      // 获取存储键和内容哈希
+      const placeholders = ids.map(() => '?').join(',');
+      const { results } = await env.DB.prepare(
+        `SELECT id, storage_key, content_hash FROM files WHERE id IN (${placeholders})`
+      ).bind(...ids).all();
+
+      // CAS: 分别处理有 content_hash 和没有的文件
+      for (const f of results) {
+        if (f.content_hash) {
+          await decrementRefCount(env, f.content_hash);
+        } else if (f.storage_key && env.R2_BUCKET) {
+          await env.R2_BUCKET.delete(f.storage_key).catch(() => { });
+        }
       }
+
+      await repo.deleteBatch(ids);
+
+      return c.json({
+        success: true,
+        message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', results.length),
+      });
+    } catch (err) {
+      return c.json({ success: false, error: err.message }, 500);
     }
-
-    // 批量删除数据库记录
-    await batchDelete(env.DB, 'files', ids);
-
-    return c.json({
-      success: true,
-      message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', results.length),
-    });
   }
 );
 
@@ -255,29 +282,25 @@ app.post(
     const { ids, targetFolderId } = c.req.valid('json');
     const { env } = c;
 
-    // 验证目标文件夹存在（如果不是根目录）
-    if (targetFolderId) {
-      const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?')
-        .bind(targetFolderId)
-        .first();
+    try {
+      const fileRepo = new FileRepository(env.DB);
+      const folderRepo = new FolderRepository(env.DB);
 
-      if (!folder) {
-        return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
+      // 验证目标文件夹存在
+      if (targetFolderId && targetFolderId !== 'root') {
+        const folder = await folderRepo.findById(targetFolderId);
+        if (!folder) return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
       }
+
+      await fileRepo.moveBatch(ids, targetFolderId || 'root');
+
+      return c.json({
+        success: true,
+        message: MSG.FILE.MOVE_SUCCESS.replace('{count}', ids.length),
+      });
+    } catch (err) {
+      return c.json({ success: false, error: err.message }, 500);
     }
-
-    // 批量更新
-    const placeholders = ids.map(() => '?').join(',');
-    await env.DB.prepare(
-      `UPDATE files SET folder_id = ?, updated_at = ? WHERE id IN (${placeholders})`
-    )
-      .bind(targetFolderId, now(), ...ids)
-      .run();
-
-    return c.json({
-      success: true,
-      message: MSG.FILE.MOVE_SUCCESS.replace('{count}', ids.length),
-    });
   }
 );
 
