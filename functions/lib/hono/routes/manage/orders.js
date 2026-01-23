@@ -199,7 +199,27 @@ app.get('/:id', async (c) => {
     const repo = new OrderRepository(env.DB);
     const order = await repo.findById(id);
     if (!order) return c.json({ success: false, error: MSG.ORDER.NOT_FOUND }, 404);
-    return c.json({ success: true, data: order });
+
+    // SOTA: 获取关联的文件和时间轴
+    const { OrderTimelineRepository } = await import('../../../../repositories/OrderTimelineRepository.js');
+    const timelineRepo = new OrderTimelineRepository(env.DB);
+
+    const [files, timeline] = await Promise.all([
+        repo.getFiles(id),
+        timelineRepo.getTimeline(id),
+    ]);
+
+    // 标记管理员已读
+    await repo.markAsRead(id, 'admin');
+
+    return c.json({
+        success: true,
+        data: {
+            ...order,
+            files,
+            timeline,
+        }
+    });
 });
 
 /**
@@ -221,7 +241,7 @@ app.patch('/:id', async (c) => {
     const { processOrderUpdate } = await import('../../../../api/utils/order-utils.js');
 
     // 管理员允许修改的所有字段
-    const ADMIN_EDITABLE_FIELDS = ['name', 'brand', 'series', 'size', 'color', 'material', 'remark', 'deadline'];
+    const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline'];
 
     const _result = await processOrderUpdate({
         env,

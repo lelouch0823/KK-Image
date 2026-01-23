@@ -15,8 +15,15 @@
           <p class="text-secondary mt-0.5 text-sm">{{ order?.orderNo }}</p>
         </div>
         <!-- 状态 (只读显示) -->
+        <!-- 状态选择 (仅管理员可编辑) -->
+        <StatusSelector
+          v-if="mode === 'admin'"
+          v-model="form.status"
+          :options="statuses"
+        />
+        <!-- 状态徽章 (销售端只读) -->
         <span
-          v-if="form.status"
+          v-else-if="form.status"
           class="rounded-full border px-2.5 py-0.5 text-xs font-medium"
           :class="getStatusBadgeClass(form.status)"
         >
@@ -132,10 +139,10 @@ import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import { getStatusBadgeClass, STATUS_STYLES } from '@/utils/status';
 import { useSalesToken } from '@/composables/useSalesToken';
-import ImageUploader from './common/ImageUploader.vue';
 import Modal from '@/components/ui/Modal.vue';
 import OrderFormFields from './order/OrderFormFields.vue';
 import OrderOriginalInfo from './order/OrderOriginalInfo.vue';
+import StatusSelector from '@/components/ui/StatusSelector.vue';
 
 
 
@@ -203,6 +210,7 @@ const initialValues = ref({
   name: '',
   brand: '',
   series: '',
+  sku: '',
   size: '',
   color: '',
   material: '',
@@ -236,6 +244,7 @@ watch(
         name: current.name || '',
         brand: current.brand || '',
         series: current.series || '',
+        sku: current.sku || '',
         size: current.size || '',
         color: current.color || '',
         material: current.material || '',
@@ -266,6 +275,7 @@ const hasChanges = computed(() => {
     form.name !== init.name ||
     form.brand !== init.brand ||
     form.series !== init.series ||
+    form.sku !== init.sku ||
     form.size !== init.size ||
     form.color !== init.color ||
     form.material !== init.material ||
@@ -325,6 +335,7 @@ const handleSubmit = async () => {
   if (form.name !== init.name) updates.name = form.name;
   if (form.brand !== init.brand) updates.brand = form.brand;
   if (form.series !== init.series) updates.series = form.series;
+  if (form.sku !== init.sku) updates.sku = form.sku;
   if (form.size !== init.size) updates.size = form.size;
   if (form.color !== init.color) updates.color = form.color;
   if (form.material !== init.material) updates.material = form.material;
@@ -332,11 +343,9 @@ const handleSubmit = async () => {
   if (form.deadline !== init.deadline) updates.deadline = form.deadline;
 
   // 移除状态更新逻辑，状态变更应使用 OrderStatusChanger 专用 API
-  /*
   if (props.mode === 'admin' && form.status !== init.status) {
     updates.status = form.status;
   }
-  */
 
   const oldIds = (props.order.files || [])
     .map((f) => f.id)

@@ -1,0 +1,131 @@
+<template>
+  <div class="relative" ref="containerRef">
+    <!-- Trigger -->
+    <button
+      type="button"
+      class="flex items-center gap-2 rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)] focus:outline-none focus:ring-2 focus:ring-primary/20"
+      @click="toggle"
+    >
+      <span
+        class="size-2 rounded-full"
+        :class="getStatusColorClass(modelValue)"
+      ></span>
+      <span>{{ t(`order.statuses.${modelValue}`) }}</span>
+      <svg
+        class="text-secondary size-4 transition-transform duration-200"
+        :class="{ 'rotate-180': isOpen }"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M19 9l-7 7-7-7"
+        ></path>
+      </svg>
+    </button>
+
+    <!-- Dropdown -->
+    <div
+      v-if="isOpen"
+      class="absolute right-0 z-50 mt-1 max-h-60 w-48 overflow-auto rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] shadow-lg ring-1 ring-black/5 focus:outline-none"
+    >
+      <div class="p-1">
+        <button
+          v-for="status in options"
+          :key="status"
+          type="button"
+          class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-hover)]"
+          :class="{ 'bg-[var(--bg-muted)]': modelValue === status }"
+          @click="select(status)"
+        >
+          <span
+            class="size-2 rounded-full"
+            :class="getStatusColorClass(status)"
+          ></span>
+          <span class="flex-1 text-left">{{ t(`order.statuses.${status}`) }}</span>
+          <svg
+            v-if="modelValue === status"
+            class="text-primary size-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 13l4 4L19 7"
+            ></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, onUnmounted } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+import { STATUS_STYLES } from '@/utils/status';
+
+const props = defineProps({
+  modelValue: {
+    type: String,
+    required: true,
+  },
+  options: {
+    type: Array,
+    required: true,
+  },
+});
+
+const emit = defineEmits(['update:modelValue']);
+
+const { t } = useI18n();
+const isOpen = ref(false);
+const containerRef = ref(null);
+
+const toggle = () => {
+  isOpen.value = !isOpen.value;
+};
+
+const select = (status) => {
+  emit('update:modelValue', status);
+  isOpen.value = false;
+};
+
+// 获取状态颜色类（仅圆点颜色）
+const getStatusColorClass = (status) => {
+    // 映射状态到 Tailwind 颜色类 (参考 utils/status.js，提取 bg 部分并转换)
+    const map = {
+        pending: 'bg-yellow-500',
+        confirmed: 'bg-blue-500',
+        production: 'bg-purple-500', 
+        shipping: 'bg-indigo-500',
+        completed: 'bg-green-500', // delivered/completed
+        delivered: 'bg-green-500',
+        arrived: 'bg-teal-500',
+        rejected: 'bg-red-500',
+        void: 'bg-gray-500',
+    };
+    return map[status] || 'bg-gray-400';
+};
+
+// 点击外部关闭
+const handleClickOutside = (event) => {
+  if (containerRef.value && !containerRef.value.contains(event.target)) {
+    isOpen.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
+</script>

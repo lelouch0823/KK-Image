@@ -425,6 +425,8 @@ const getFieldLabel = (fieldName) => {
     deadline: t('order.form.expectedArrival'),
     brand: t('order.form.brand'),
     series: t('order.form.series'),
+    sku: t('order.form.sku'),
+    status: t('order.detail.status'),
     images: t('order.detail.images'),
     files: t('order.detail.images'), // 兼容后端 fieldName: 'files'
   };

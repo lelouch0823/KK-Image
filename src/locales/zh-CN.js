@@ -646,6 +646,8 @@ export default {
       brandPlaceholder: '如：Nike',
       series: '系列',
       seriesPlaceholder: '如：Air Force',
+      sku: '款号',
+      skuPlaceholder: '如：AF1-001',
       recentInputs: '最近使用',
     },
 

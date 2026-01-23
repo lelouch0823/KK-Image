@@ -33,6 +33,12 @@
         <input :value="modelValue.series" class="input" @input="updateField('series', $event.target.value)" />
       </div>
 
+      <!-- 款号 (SKU) -->
+      <div>
+        <label class="text-secondary mb-1 block text-xs font-medium">{{ t('order.form.sku') }}</label>
+        <input :value="modelValue.sku" class="input" @input="updateField('sku', $event.target.value)" />
+      </div>
+
       <!-- 规格尺寸 -->
       <div>
         <label class="text-secondary mb-1 block text-xs font-medium">{{

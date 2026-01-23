@@ -63,6 +63,19 @@
           </div>
         </div>
 
+        <!-- 款号 (SKU) -->
+        <div>
+          <label class="text-primary mb-2 block text-sm font-medium">
+            {{ t('order.form.sku') }}
+          </label>
+          <input
+            v-model="form.sku"
+            type="text"
+            :placeholder="t('order.form.skuPlaceholder')"
+            class="input h-11"
+          />
+        </div>
+
         <!-- 规格尺寸 -->
         <div>
           <label class="text-primary mb-2 block text-sm font-medium">

@@ -26,6 +26,10 @@
         <span class="text-primary truncate text-sm">{{ data.series || '-' }}</span>
       </div>
       <div class="flex">
+        <span class="text-secondary w-20 flex-shrink-0 text-sm">{{ t('order.form.sku') }}</span>
+        <span class="text-primary truncate text-sm">{{ data.sku || '-' }}</span>
+      </div>
+      <div class="flex">
         <span class="text-secondary w-20 flex-shrink-0 text-sm">{{ t('order.form.size') }}</span>
         <span class="text-primary truncate text-sm">{{ data.size || '-' }}</span>
       </div>
