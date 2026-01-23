@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-xl border border-[var(--border-color)] bg-white p-4">
+  <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
     <div class="mb-4 flex items-center justify-between">
       <h3 class="text-primary text-sm font-medium">{{ t('order.detail.currentInfo') }}</h3>
       <!-- 修正标记 -->

@@ -1,6 +1,6 @@
 <template>
   <table class="w-full text-left text-sm">
-    <thead class="bg-[var(--bg-muted)] font-medium text-[var(--text-secondary)]">
+    <thead class="sticky top-0 z-10 bg-[var(--bg-card)]/90 font-medium text-[var(--text-secondary)] shadow-sm backdrop-blur-sm">
       <tr>
         <th class="px-4 py-3">{{ t('salesperson.name') }}</th>
         <th class="px-4 py-3">{{ t('salesperson.store') }}</th>
@@ -25,7 +25,7 @@
         <tr
           v-for="person in data"
           :key="person.id"
-          class="transition-colors hover:bg-[var(--bg-hover)]"
+          class="group transition-colors hover:bg-[var(--bg-hover)]"
         >
           <td class="px-4 py-3">
             <div class="font-medium text-[var(--text-main)]">{{ person.name }}</div>
@@ -41,7 +41,7 @@
             </StatusBadge>
           </td>
           <td class="px-4 py-3 text-right">
-            <div class="flex items-center justify-end gap-2">
+            <div class="flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 mobile:opacity-100">
               <button
                 class="rounded-lg p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)] active:scale-90"
                 :title="t('salesperson.copyLink')"

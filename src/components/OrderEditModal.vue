@@ -79,9 +79,9 @@
           v-model="editReason"
           type="text"
           :placeholder="t('order.manage.editReasonPlaceholder')"
-          class="bg-warning-bg dark:bg-yellow-900/10 border-warning/20 dark:border-yellow-500/20 text-warning-text dark:text-yellow-200 placeholder-warning-text/40 dark:placeholder-yellow-200/30 w-full rounded-lg border px-4 py-2.5 text-sm outline-none focus:ring-warning/40 focus:border-warning"
+          class="w-full rounded-lg border border-[var(--color-warning)]/20 bg-[var(--color-warning-bg)]/50 px-4 py-2.5 text-sm text-[var(--color-warning-text)] outline-none transition placeholder:text-[var(--color-warning-text)]/40 focus:border-[var(--color-warning)] focus:ring-1 focus:ring-[var(--color-warning)] dark:bg-[var(--color-warning)]/10 dark:text-[var(--color-warning)] dark:placeholder:text-[var(--color-warning)]/50"
         />
-        <p class="text-warning-text mt-1.5 flex items-center text-xs">
+        <p class="mt-1.5 flex items-center text-xs text-[var(--color-warning-text)] dark:text-[var(--color-warning)]">
           <svg class="mr-1 size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"

@@ -17,7 +17,7 @@
     <template v-else>
       <!-- 顶部导航 -->
       <header
-        class="sticky top-0 z-40 border-b border-[var(--border-color)] bg-[var(--bg-card)]/80 backdrop-blur-lg"
+        class="sticky top-0 z-40 border-b border-[var(--border-color)] bg-[var(--bg-card)]/90 backdrop-blur-lg transition-all"
       >
         <div class="mx-auto flex h-14 max-w-screen-xl items-center justify-between px-4 sm:px-6">
           <div class="flex items-center gap-3">

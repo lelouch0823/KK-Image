@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-xl border border-[var(--border-color)] bg-white p-4">
+  <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
     <div v-if="files && files.length > 0">
       <h3 class="text-primary mb-3 text-sm font-medium">{{ t('order.detail.images') }}</h3>
       <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">

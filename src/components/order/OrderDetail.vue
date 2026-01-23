@@ -22,7 +22,7 @@
         <!-- 销售端操作按钮 -->
         <div v-if="mode === 'sales'" class="flex gap-2">
           <button
-            class="text-primary flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
+            class="flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium text-primary shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:shadow-md active:scale-95"
             @click="$emit('duplicate', order)"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -37,9 +37,12 @@
           </button>
           <button
             v-if="['pending', 'rejected', 'void'].includes(order.status)"
-            class="text-primary rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
+            class="flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium text-primary shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:shadow-md active:scale-95"
             @click="showEditModal = true"
           >
+            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
             {{ t('order.manage.editOrder') }}
           </button>
           <button
@@ -54,7 +57,7 @@
         <!-- 管理端操作按钮 -->
         <div v-if="mode === 'admin' || !mode" class="flex gap-2">
           <button
-            class="text-primary flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
+            class="flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium text-primary shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:shadow-md active:scale-95"
             @click="$emit('edit', order)"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,7 +71,7 @@
             {{ t('order.manage.editOrder') }}
           </button>
           <button
-            class="text-secondary flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
+            class="group flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium text-secondary shadow-sm transition-all hover:text-primary hover:bg-[var(--bg-hover)] hover:shadow-md active:scale-95"
             @click="handleSavePdf"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

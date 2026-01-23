@@ -43,20 +43,21 @@
       <div
         v-for="order in orders"
         :key="order.id"
-        class="cursor-pointer rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 transition-all hover:border-[var(--border-hover)] hover:shadow-md active:scale-[0.98]"
+        class="group relative cursor-pointer overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg active:scale-[0.98]"
+        :class="getStatusBorderClass(order.status)"
         @click="$emit('view', order)"
       >
         <div class="flex items-start gap-3">
           <!-- 主图 -->
-          <div class="size-16 flex-shrink-0 overflow-hidden rounded-lg bg-[var(--bg-muted)]">
+          <div class="size-20 flex-shrink-0 overflow-hidden rounded-lg bg-[var(--bg-muted)] shadow-sm">
             <img
               v-if="order.mainImage"
               :src="order.mainImage"
-              class="size-full object-cover"
+              class="size-full object-cover transition-transform duration-500 group-hover:scale-110"
               loading="lazy"
             />
             <div v-else class="flex size-full items-center justify-center">
-              <svg class="text-muted size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="text-muted size-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -84,7 +85,9 @@
               </div>
             </div>
 
-            <p class="text-secondary mt-1 text-xs">{{ order.orderNo }}</p>
+            <div class="mt-1 flex items-center gap-2 text-xs">
+              <span class="font-mono text-secondary bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">{{ order.orderNo }}</span>
+            </div>
 
             <div class="mt-2 flex items-center justify-between">
               <!-- 状态标签 -->
@@ -140,6 +143,22 @@ const emit = defineEmits(['refresh', 'view']);
 
 const { t } = useI18n();
 const isPulling = ref(false);
+
+const getStatusBorderClass = (status) => {
+  const variant = getStatusVariant(status);
+  switch (variant) {
+    case 'success':
+      return 'border-l-4 border-l-[var(--color-success)]';
+    case 'warning':
+      return 'border-l-4 border-l-[var(--color-warning)]';
+    case 'danger':
+      return 'border-l-4 border-l-[var(--color-danger)]';
+    case 'info':
+      return 'border-l-4 border-l-[var(--color-info)]';
+    default:
+      return 'border-l-4 border-l-[var(--text-muted)]';
+  }
+};
 
 // 状态样式映射
 // const statusClasses = STATUS_STYLES;

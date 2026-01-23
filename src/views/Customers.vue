@@ -44,7 +44,7 @@
         <!-- 桌面端表格 (lg+) -->
           <div class="hidden lg:block relative w-full">
            <table class="w-full text-left text-sm">
-               <thead class="text-secondary sticky top-0 z-10 bg-[var(--bg-card)]/90 backdrop-blur-sm font-medium shadow-sm">
+              <thead class="sticky top-0 z-10 bg-[var(--bg-card)]/90 font-medium text-[var(--text-secondary)] shadow-sm backdrop-blur-sm">
               <tr>
                   <th class="px-4 py-3">{{ t('customer.form.name') }}</th>
                   <th class="px-4 py-3">{{ t('customer.form.contact') }}</th>
@@ -67,11 +67,11 @@
                   <tr
                   v-for="customer in customers"
                   :key="customer.id"
-                  class="cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
-                  :class="{ 'bg-primary-50': viewingCustomer?.id === customer.id }"
+                  class="group cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
+                  :class="{ 'bg-primary-50 dark:bg-primary/10': viewingCustomer?.id === customer.id }"
                   @click="openDetail(customer)"
                   >
-                  <td class="text-primary px-4 py-3 font-medium">{{ customer.name }}</td>
+                  <td class="px-4 py-3 font-medium text-[var(--text-main)]">{{ customer.name }}</td>
                   <td class="text-secondary px-4 py-3">
                       <div class="flex flex-col gap-1">
                       <!-- 电话 -->
@@ -102,7 +102,7 @@
                       <span v-if="!customer.phone && !customer.email" class="text-muted">-</span>
                       </div>
                   </td>
-                  <td class="text-secondary px-4 py-3">{{ customer.company || '-' }}</td>
+                  <td class="px-4 py-3 text-[var(--text-secondary)]">{{ customer.company || '-' }}</td>
                   <td class="px-4 py-3">
                       <div class="flex flex-wrap gap-1">
                       <span
@@ -114,10 +114,10 @@
                       </span>
                       </div>
                   </td>
-                  <td class="text-secondary px-4 py-3 text-xs">{{ formatDate(customer.createdAt) }}</td>
+                  <td class="px-4 py-3 text-xs text-[var(--text-secondary)]">{{ formatDate(customer.createdAt) }}</td>
                   <td class="px-4 py-3 text-right" @click.stop>
                       <button
-                      class="text-primary p-1 hover:text-primary-hover"
+                      class="rounded-lg p-1.5 text-[var(--text-secondary)] opacity-0 transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)] group-hover:opacity-100 focus:opacity-100"
                       :title="t('common.edit')"
                       @click="openEditModal(customer)"
                       >

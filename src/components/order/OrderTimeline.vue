@@ -227,14 +227,14 @@
     <!-- 表格模式 (Print / Table) -->
     <div v-else class="w-full">
       <table class="w-full border-collapse text-left text-sm">
-        <thead class="border-b border-gray-200 bg-gray-50 font-medium text-gray-500">
+        <thead class="border-b border-[var(--border-color)] bg-[var(--bg-muted)] font-medium text-secondary">
           <tr>
             <th class="w-32 px-3 py-2">{{ t('order.createdAt') }}</th>
             <th class="w-32 px-3 py-2">{{ t('sidebar.role') }}</th>
             <th class="px-3 py-2 pl-8">{{ t('common.actions') }}</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100">
+        <tbody class="divide-y divide-[var(--border-color)]">
           <tr v-for="item in displayedItems" :key="item.id" class="break-inside-avoid">
             <td class="p-3 align-top text-xs text-gray-500">
               {{ formatTime(item.createdAt) }}
@@ -304,7 +304,7 @@
       </table>
       <div
         v-if="!groupedTimeline || groupedTimeline.length === 0"
-        class="border-t border-gray-100 py-4 text-center text-sm text-gray-400"
+        class="border-t border-[var(--border-color)] py-4 text-center text-sm text-secondary"
       >
         {{ t('common.noData') }}
       </div>
