@@ -54,7 +54,7 @@
       <div
         v-for="(file, index) in space.files"
         :key="file.id"
-        class="group relative mb-4 cursor-pointer break-inside-avoid overflow-hidden rounded-xl border border-gray-100 bg-gray-100 transition-all hover:border-gray-300 hover:shadow-lg"
+        class="group relative mb-4 cursor-pointer break-inside-avoid overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] transition-all hover:border-[var(--border-hover)] hover:shadow-lg"
         @click="openLightbox(index)"
       >
         <!-- Image -->
@@ -69,7 +69,7 @@
         <!-- Other Files -->
         <div
           v-else
-          class="flex aspect-square w-full flex-col items-center justify-center bg-gray-50"
+          class="flex aspect-square w-full flex-col items-center justify-center bg-[var(--bg-muted)]"
         >
           <span class="mb-2 text-xs font-bold text-gray-400 uppercase">{{
             file.name.split('.').pop()

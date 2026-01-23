@@ -40,9 +40,10 @@
       <!-- 左侧：表单 -->
       <div class="space-y-5">
         <OrderFormFields
-          v-model="form"
+          :model-value="form"
           :show-status="mode === 'admin'"
           :statuses="statuses"
+          @update:model-value="updateForm"
         />
       </div>
 
@@ -78,7 +79,7 @@
           v-model="editReason"
           type="text"
           :placeholder="t('order.manage.editReasonPlaceholder')"
-          class="bg-warning-bg border-warning/20 text-warning-text placeholder-warning-text/40 w-full rounded-lg border px-4 py-2.5 text-sm outline-none focus:ring-warning/40 focus:border-warning"
+          class="bg-warning-bg dark:bg-yellow-900/10 border-warning/20 dark:border-yellow-500/20 text-warning-text dark:text-yellow-200 placeholder-warning-text/40 dark:placeholder-yellow-200/30 w-full rounded-lg border px-4 py-2.5 text-sm outline-none focus:ring-warning/40 focus:border-warning"
         />
         <p class="text-warning-text mt-1.5 flex items-center text-xs">
           <svg class="mr-1 size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,7 +150,7 @@ import OrderOriginalInfo from './order/OrderOriginalInfo.vue';
 
 // 动态获取 Select 样式 (带颜色)
 const getStatusSelectClass = (status) => {
-  const style = STATUS_STYLES[status] || 'bg-gray-100 text-gray-700 border-gray-200';
+  const style = STATUS_STYLES[status] || 'bg-[var(--bg-muted)] text-[var(--text-secondary)] border-[var(--border-color)]';
   // 移除 hover 效果，保留基础颜色
   return style.replace(/hover:[^ ]+/g, '');
 };
@@ -207,6 +208,10 @@ const form = reactive({
   remark: '',
   deadline: '',
 });
+
+const updateForm = (newVal) => {
+  Object.assign(form, newVal);
+};
 
 // 存储初始值快照
 const initialValues = ref({

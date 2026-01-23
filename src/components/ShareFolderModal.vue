@@ -11,7 +11,7 @@
       <div
         class="mb-6 flex items-center gap-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] p-3"
       >
-        <div class="rounded-md bg-white p-2 shadow-sm">
+        <div class="rounded-md bg-[var(--bg-card)] p-2 shadow-sm">
           <svg class="size-6 text-[var(--color-warning)]" fill="currentColor" viewBox="0 0 20 20">
             <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
           </svg>
@@ -42,7 +42,7 @@
             type="text"
             readonly
             :value="existingShareUrl"
-            class="input flex-1 bg-white text-sm"
+            class="input flex-1 bg-[var(--bg-card)] text-sm"
             @click="$event.target.select()"
           />
           <Tooltip :content="t('share.copyLink')">
@@ -112,7 +112,7 @@
           />
           <Tooltip :content="t('common.copy')">
             <button
-              class="text-secondary flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-white transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-success)]"
+              class="text-secondary flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-success)]"
               @click="copyLink"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

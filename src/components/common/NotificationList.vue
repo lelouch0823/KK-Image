@@ -1,12 +1,12 @@
 <template>
   <div
-    class="flex max-h-[80vh] w-80 flex-col overflow-hidden rounded-lg border border-[var(--border-color)] bg-white shadow-xl sm:w-96"
+    class="flex max-h-[80vh] w-80 flex-col overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] shadow-xl sm:w-96"
   >
     <!-- Header -->
     <div
-      class="flex items-center justify-between border-b border-[var(--border-color)] bg-gray-50/50 px-4 py-3"
+      class="flex items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-muted)] px-4 py-3"
     >
-      <h3 class="font-medium text-gray-900">{{ t('notification.title') }}</h3>
+      <h3 class="font-medium text-primary">{{ t('notification.title') }}</h3>
       <div class="flex items-center gap-2">
         <button
           v-if="unreadCount > 0"
@@ -29,7 +29,7 @@
 
       <div
         v-else-if="notifications.length === 0"
-        class="flex flex-col items-center p-8 text-center text-gray-400"
+        class="flex flex-col items-center p-8 text-center text-secondary"
       >
         <svg
           class="mb-2 size-10 text-gray-200"
@@ -47,7 +47,7 @@
         <span class="text-sm">{{ t('notification.empty') }}</span>
       </div>
 
-      <div v-else class="divide-y divide-gray-100">
+      <div v-else class="divide-y divide-[var(--border-color)]">
         <div
           v-for="item in notifications"
           :key="item.id"
@@ -74,7 +74,7 @@
 
             <div class="min-w-0 flex-1">
               <p
-                class="truncate pr-4 text-sm font-medium text-gray-900"
+                class="truncate pr-4 text-sm font-medium text-primary"
                 :class="{ 'font-semibold': item.is_read === 0 }"
               >
                 {{ renderText(item.title) }}

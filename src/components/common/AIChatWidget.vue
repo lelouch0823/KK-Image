@@ -10,7 +10,7 @@
     >
       <div
         v-if="isOpen"
-        class="bg-card/80 border-border pointer-events-auto absolute right-0 bottom-0 flex h-[600px] w-[420px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl"
+        class="bg-[var(--bg-card)] border-border pointer-events-auto absolute right-0 bottom-0 flex h-[600px] w-[420px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl"
       >
         <!-- Header -->
         <div class="bg-primary flex items-center justify-between p-4 text-white">
@@ -63,7 +63,7 @@
         </div>
 
         <!-- Input Area -->
-        <div class="border-border border-t bg-white/50 px-4 pt-1 pb-4">
+        <div class="border-border border-t bg-[var(--bg-card)] px-4 pt-1 pb-4">
           <AISuggestions 
             class="mb-2" 
             :suggestions="suggestions" 
@@ -79,7 +79,7 @@
               :disabled="isStreamingLoading"
               type="text"
               :placeholder="t('ai.placeholder')"
-              class="focus:ring-primary/20 focus:bg-white focus:ring-2 w-full rounded-xl border-none bg-gray-100/50 py-3 pr-12 pl-4 text-sm transition-all"
+              class="focus:ring-primary/20 focus:bg-[var(--bg-card)] focus:ring-2 w-full rounded-xl border-none bg-[var(--bg-muted)] py-3 pr-12 pl-4 text-sm transition-all"
             />
             <button
               :disabled="!userInput.trim() || isStreamingLoading"

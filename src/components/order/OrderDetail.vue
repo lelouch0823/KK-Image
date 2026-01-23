@@ -22,7 +22,7 @@
         <!-- 销售端操作按钮 -->
         <div v-if="mode === 'sales'" class="flex gap-2">
           <button
-            class="text-primary flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-white px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
+            class="text-primary flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
             @click="$emit('duplicate', order)"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -37,14 +37,14 @@
           </button>
           <button
             v-if="['pending', 'rejected', 'void'].includes(order.status)"
-            class="text-primary rounded-lg border border-[var(--border-hover)] bg-white px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
+            class="text-primary rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
             @click="showEditModal = true"
           >
             {{ t('order.manage.editOrder') }}
           </button>
           <button
             v-if="order.status === 'pending'"
-            class="rounded-lg border border-[var(--color-danger-bg)] bg-white px-3 py-1.5 text-sm font-medium text-[var(--color-danger-text)] transition-colors hover:bg-[var(--color-danger-bg)]"
+            class="rounded-lg border border-[var(--color-danger-bg)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium text-[var(--color-danger-text)] transition-colors hover:bg-[var(--color-danger-bg)]"
             @click="handleVoid"
           >
             {{ t('order.actions.void') }}
@@ -54,7 +54,7 @@
         <!-- 管理端操作按钮 -->
         <div v-if="mode === 'admin' || !mode" class="flex gap-2">
           <button
-            class="text-primary flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-white px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
+            class="text-primary flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
             @click="$emit('edit', order)"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,7 +68,7 @@
             {{ t('order.manage.editOrder') }}
           </button>
           <button
-            class="text-secondary flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-white px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
+            class="text-secondary flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
             @click="handleSavePdf"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,7 +92,7 @@
           <OrderFileGrid :files="order.files" @preview="handlePreview" />
 
           <!-- 时间轴 (PC端显示在左侧下方) -->
-          <div class="hidden rounded-xl border border-[var(--border-color)] bg-white p-4 lg:block">
+          <div class="hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 lg:block">
             <h3 class="text-primary mb-4 text-sm font-medium">{{ t('order.detail.timeline') }}</h3>
             <OrderTimeline :timeline="order.timeline" />
           </div>
@@ -135,7 +135,7 @@
           />
 
           <!-- 时间轴 (移动端显示) -->
-          <div class="rounded-xl border border-[var(--border-color)] bg-white p-4 lg:hidden">
+          <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 lg:hidden">
             <h3 class="text-primary mb-4 text-sm font-medium">{{ t('order.detail.timeline') }}</h3>
             <OrderTimeline :timeline="order.timeline" />
           </div>

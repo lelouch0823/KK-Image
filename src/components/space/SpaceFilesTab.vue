@@ -2,7 +2,7 @@
   <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--bg-muted)]/50">
     <!-- Toolbar -->
     <div
-      class="flex shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-white p-4"
+      class="flex shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-card)] p-4"
     >
       <div class="flex items-center gap-3">
         <Tooltip :content="t('spaceManager.addFile')">
@@ -79,7 +79,7 @@
           />
           <div
             v-else
-            class="flex size-full items-center justify-center bg-white text-xs font-bold text-gray-400 uppercase"
+            class="flex size-full items-center justify-center bg-[var(--bg-card)] text-xs font-bold text-[var(--text-muted)] uppercase"
           >
             {{ file.name?.split('.').pop() }}
           </div>

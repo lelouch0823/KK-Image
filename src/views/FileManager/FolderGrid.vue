@@ -6,8 +6,8 @@
       class="group relative cursor-pointer rounded-xl border p-4 transition-all hover:shadow-md"
       :class="[
         selectedIds.has(folder.id)
-          ? 'border-primary bg-blue-50/50 ring-1 ring-primary'
-          : 'border-[var(--border-color)] bg-white hover:border-gray-300'
+          ? 'border-primary bg-blue-50/50 dark:bg-blue-900/30 ring-1 ring-primary'
+          : 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-[var(--border-hover)]'
       ]"
       @click="$emit('navigate', folder.id)"
       @contextmenu.prevent="handleContextMenu($event, folder)"
@@ -35,7 +35,7 @@
 
         <!-- More Actions (Mobile/Desktop) -->
        <button
-        class="text-secondary absolute top-2 right-2 z-10 rounded-lg border border-gray-100 bg-white p-1.5 shadow-sm transition-all hover:text-primary lg:opacity-0 lg:group-hover:opacity-100"
+        class="text-secondary absolute top-2 right-2 z-10 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-1.5 shadow-sm transition-all hover:text-primary lg:opacity-0 lg:group-hover:opacity-100"
         @click.stop="$emit('context-menu', $event, folder)"
       >
         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

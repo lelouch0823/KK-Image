@@ -2,12 +2,12 @@
   <transition name="slide-up">
     <div
       v-if="hasItems"
-      class="ease-spring fixed right-6 bottom-6 z-[60] flex max-h-[500px] w-96 flex-col overflow-hidden rounded-2xl border border-white/20 bg-white/90 shadow-2xl backdrop-blur-md transition-all duration-300"
+      class="ease-spring fixed right-6 bottom-6 z-[60] flex max-h-[500px] w-96 flex-col overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/90 shadow-glass backdrop-blur-md transition-all duration-300"
       :class="{ 'w-auto rounded-full': isMinimized }"
     >
       <!-- Header -->
       <div
-        class="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-4 py-3 select-none"
+        class="flex items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-muted)]/50 px-4 py-3 select-none"
       >
         <div class="flex items-center gap-3">
           <!-- Progress Ring or Icon -->
@@ -49,12 +49,12 @@
           </div>
 
           <div v-if="!isMinimized" class="flex flex-col">
-            <span class="text-sm font-semibold text-gray-800">
+            <span class="text-sm font-semibold text-[var(--text-main)]">
               {{
                 isUploading ? t('upload.uploading', { count: activeCount }) : t('upload.complete')
               }}
             </span>
-            <span class="text-xs text-gray-500">
+            <span class="text-xs text-[var(--text-secondary)]">
               {{ completedCount }} / {{ queue.length }} {{ t('upload.finished') }}
               <!-- 🔧 NEW: 速度和剩余时间 -->
               <template v-if="isUploading && totalSpeed > 0">
@@ -71,7 +71,7 @@
         <div class="flex items-center gap-1">
           <button
             v-if="!isMinimized"
-            class="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+            class="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]"
             @click.stop="toggleMinimize"
           >
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,7 +85,7 @@
           </button>
           <button
             v-else
-            class="rounded-full p-2 text-gray-600 transition-colors hover:bg-white/50 hover:text-gray-900"
+            class="rounded-full p-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]"
           >
             <span class="text-xs font-bold">{{ overallProgress }}%</span>
           </button>
@@ -144,17 +144,17 @@
       <transition name="expand">
         <div
           v-if="!isMinimized"
-          class="scrollbar-thin max-h-[300px] flex-1 overflow-y-auto bg-white/50"
+          class="scrollbar-thin max-h-[300px] flex-1 overflow-y-auto bg-[var(--bg-page)]/50"
         >
           <transition-group name="list" tag="ul" class="space-y-2 p-2">
             <li
               v-for="item in queue"
               :key="item.id"
-              class="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-gray-100 bg-white p-3 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md"
+              class="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:shadow-md"
             >
               <!-- Icon -->
               <div
-                class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-xs font-bold text-gray-500 uppercase"
+                class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-muted)] text-xs font-bold text-[var(--text-muted)] uppercase"
               >
                 {{ item.name.split('.').pop().slice(0, 4) }}
               </div>
@@ -162,14 +162,14 @@
               <!-- Info -->
               <div class="min-w-0 flex-1">
                 <div class="mb-1 flex items-center justify-between">
-                  <h4 class="truncate pr-2 text-sm font-medium text-gray-700" :title="item.name">
+                  <h4 class="truncate pr-2 text-sm font-medium text-[var(--text-main)]" :title="item.name">
                     {{ item.name }}
                   </h4>
                   <span class="shrink-0 font-mono text-xs" :class="getStatusColor(item.status)">
                     {{ getStatusText(item) }}
                   </span>
                 </div>
-                <div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                <div class="h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-muted)]">
                   <div
                     class="h-full rounded-full transition-all duration-300 ease-out"
                     :class="getProgressBarClass(item.status)"
@@ -181,7 +181,7 @@
               <!-- Action Button -->
               <button
                 v-if="item.status === 'error'"
-                class="rounded-full border border-gray-100 bg-white p-1.5 text-orange-500 shadow-sm transition-all hover:bg-orange-50 hover:text-orange-700"
+                class="rounded-full border border-[var(--border-color)] bg-white dark:bg-[var(--bg-card)] p-1.5 text-orange-500 shadow-sm transition-all hover:bg-orange-50 hover:text-orange-700"
                 :title="t('upload.retry')"
                 @click="retryFile(item.id)"
               >
@@ -196,7 +196,7 @@
               </button>
               <button
                 v-else-if="item.status !== 'success'"
-                class="absolute top-1/2 right-2 -translate-y-1/2 rounded-full border border-gray-100 bg-white p-1.5 text-gray-400 opacity-0 shadow-sm transition-all group-hover:opacity-100 hover:bg-red-50 hover:text-red-500"
+                class="absolute top-1/2 right-2 -translate-y-1/2 rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] p-1.5 text-[var(--text-muted)] opacity-0 shadow-sm transition-all group-hover:opacity-100 hover:bg-red-50 hover:text-red-500"
                 @click="removeFile(item.id)"
               >
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

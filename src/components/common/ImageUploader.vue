@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-xl border border-[var(--border-color)] bg-white p-4">
+  <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
     <label v-if="label" class="text-secondary mb-3 block text-sm font-medium">
       {{ label }}
     </label>
@@ -31,7 +31,7 @@
         >
           <!-- 替换按钮 -->
           <label
-            class="flex size-8 cursor-pointer items-center justify-center rounded-full bg-white/90 transition-colors hover:bg-white"
+            class="flex size-8 cursor-pointer items-center justify-center rounded-full bg-white/90 transition-colors hover:bg-white dark:bg-black/50 dark:hover:bg-black/70"
           >
             <input
               type="file"

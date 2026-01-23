@@ -43,7 +43,7 @@
       <div
         v-for="order in orders"
         :key="order.id"
-        class="cursor-pointer rounded-xl border border-[var(--border-color)] bg-white p-4 transition-all hover:border-[var(--border-hover)] hover:shadow-md active:scale-[0.98]"
+        class="cursor-pointer rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 transition-all hover:border-[var(--border-hover)] hover:shadow-md active:scale-[0.98]"
         @click="$emit('view', order)"
       >
         <div class="flex items-start gap-3">

@@ -1,6 +1,9 @@
 @import "./variables.css";
 @import "tailwindcss";
 
+/* Enable class-based dark mode */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Tailwind CSS v4 主题配置 */
 @theme {
     /* Color Palette Mapping */
@@ -93,7 +96,7 @@
 
     /* 基础输入框 */
     .input {
-        @apply w-full h-10 px-3 text-sm border border-[var(--border-color)] rounded-lg bg-white focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-sm;
+        @apply w-full h-10 px-3 text-sm border border-[var(--border-color)] rounded-lg bg-white dark:bg-[var(--bg-page)] focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-sm;
     }
 
     /* Premium date picker styling */

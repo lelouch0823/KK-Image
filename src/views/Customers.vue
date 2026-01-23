@@ -1,8 +1,8 @@
 <template>
   <!-- Root Container: Flex Row for Push Layout -->
-  <div class="flex h-full overflow-hidden rounded-xl border border-[var(--border-color)] bg-white shadow-sm">
+  <div class="flex h-full overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] shadow-sm">
     <!-- Left Side: Main Content -->
-    <div class="flex flex-1 flex-col min-w-0 bg-white">
+    <div class="flex flex-1 flex-col min-w-0 bg-[var(--bg-card)]">
       <!-- 头部操作栏 -->
       <div
         class="flex flex-shrink-0 flex-col justify-between gap-4 border-b border-[var(--border-color)] p-4 sm:flex-row sm:items-center"
@@ -42,9 +42,9 @@
       <!-- 客户列表 -->
       <div class="flex-1 overflow-auto">
         <!-- 桌面端表格 (lg+) -->
-        <div class="hidden lg:block relative w-full">
+          <div class="hidden lg:block relative w-full">
            <table class="w-full text-left text-sm">
-               <thead class="text-secondary sticky top-0 z-10 bg-white/90 backdrop-blur-sm font-medium shadow-sm">
+               <thead class="text-secondary sticky top-0 z-10 bg-[var(--bg-card)]/90 backdrop-blur-sm font-medium shadow-sm">
               <tr>
                   <th class="px-4 py-3">{{ t('customer.form.name') }}</th>
                   <th class="px-4 py-3">{{ t('customer.form.contact') }}</th>
@@ -170,7 +170,7 @@
     <!-- Right Side: Detail Panel (Desktop Push) -->
     <div
       v-if="showDetailPanel"
-      class="hidden lg:flex w-96 shrink-0 flex-col border-l border-[var(--border-color)] bg-white transition-all duration-300 ease-in-out"
+      class="hidden lg:flex w-96 shrink-0 flex-col border-l border-[var(--border-color)] bg-[var(--bg-card)] transition-all duration-300 ease-in-out"
     >
       <CustomerDetailContent
         :customer="viewingCustomer"

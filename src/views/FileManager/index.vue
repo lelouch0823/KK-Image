@@ -1,6 +1,6 @@
 <template>
   <div
-    class="relative flex min-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-xl border border-[var(--border-color)] bg-white"
+    class="relative flex min-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)]"
     @dragenter="onDragEnter"
     @dragleave="onDragLeave"
     @dragover="onDragOver"
@@ -90,7 +90,7 @@
         <!-- 常规按钮 -->
         <Tooltip v-if="currentFolder" :content="t('fileManager.shareFolder')">
           <button
-            class="text-secondary flex size-10 items-center justify-center rounded-xl border border-gray-200 bg-white transition-all hover:text-primary hover:bg-gray-50"
+            class="text-secondary flex size-10 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:text-primary hover:bg-[var(--bg-hover)]"
             @click="handleShareFolder"
           >
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,7 +124,7 @@
 
         <Tooltip :content="t('fileManager.newFolder')">
           <button
-            class="text-secondary flex size-10 items-center justify-center rounded-xl border border-gray-200 bg-white transition-all hover:text-primary hover:bg-gray-50"
+            class="text-secondary flex size-10 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:text-primary hover:bg-[var(--bg-hover)]"
             @click="openCreateFolderModal"
           >
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,10 +139,10 @@
         </Tooltip>
 
         <!-- View Toggle -->
-         <div class="flex items-center rounded-xl border border-gray-200 bg-white p-1 hidden lg:flex">
+         <div class="flex items-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-1 hidden lg:flex">
              <button
                class="rounded-lg p-1.5 transition-all"
-               :class="viewMode === 'list' ? 'bg-gray-100 text-primary shadow-sm' : 'text-gray-400 hover:text-gray-600'"
+               :class="viewMode === 'list' ? 'bg-[var(--bg-hover)] text-primary shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'"
                :title="t('fileManager.viewMode.list')"
                @click="viewMode = 'list'"
              >
@@ -150,7 +150,7 @@
              </button>
              <button
                class="rounded-lg p-1.5 transition-all"
-               :class="viewMode === 'grid' ? 'bg-gray-100 text-primary shadow-sm' : 'text-gray-400 hover:text-gray-600'"
+               :class="viewMode === 'grid' ? 'bg-[var(--bg-hover)] text-primary shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'"
                :title="t('fileManager.viewMode.grid')"
                @click="viewMode = 'grid'"
              >
@@ -234,8 +234,8 @@
                       class="group relative cursor-pointer rounded-xl border p-4 transition-all hover:shadow-md"
                       :class="[
                         selectedIds.has(file.id)
-                          ? 'border-primary bg-blue-50/50 ring-1 ring-primary'
-                          : 'border-[var(--border-color)] bg-white hover:border-gray-300'
+                          ? 'border-primary bg-blue-50/50 dark:bg-blue-900/30 ring-1 ring-primary'
+                          : 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-[var(--border-hover)]'
                       ]"
                        @click.stop="toggleSelect(file)"
                        @dblclick="window.open(file.url, '_blank')"

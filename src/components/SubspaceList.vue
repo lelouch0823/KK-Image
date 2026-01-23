@@ -2,7 +2,7 @@
   <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--bg-muted)]/50">
     <!-- Header -->
     <div
-      class="flex shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-white p-4"
+      class="flex shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-card)] p-4"
     >
       <div class="flex items-center gap-3">
         <Tooltip :content="t('spaceManager.createSubspace')">
@@ -36,8 +36,8 @@
         v-else-if="subspaces.length === 0"
         class="text-secondary flex h-full flex-col items-center justify-center py-12"
       >
-        <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gray-50">
-          <svg class="size-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-[var(--bg-muted)]">
+          <svg class="text-muted size-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -60,13 +60,13 @@
         <div
           v-for="sub in subspaces"
           :key="sub.id"
-          class="group cursor-pointer rounded-xl border border-[var(--border-color)] bg-white p-4 transition-all hover:shadow-md"
+          class="group cursor-pointer rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 transition-all hover:shadow-md"
           @click="openSubspace(sub)"
         >
           <div class="flex items-start gap-4">
             <!-- Cover Thumbnail -->
             <div
-              class="size-16 shrink-0 overflow-hidden rounded-lg border border-[var(--border-color)] bg-gray-100"
+              class="size-16 shrink-0 overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)]"
             >
               <img
                 v-if="sub.coverUrl"
@@ -76,7 +76,7 @@
               />
               <div v-else class="flex size-full items-center justify-center">
                 <svg
-                  class="size-6 text-gray-300"
+                  class="text-muted size-6"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -118,7 +118,7 @@
                 </span>
                 <span
                   v-else
-                  class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500"
+                  class="inline-flex items-center gap-1 rounded-full bg-[var(--bg-muted)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]"
                 >
                   <svg class="size-2.5" fill="currentColor" viewBox="0 0 20 20">
                     <path
@@ -138,7 +138,7 @@
             >
               <Tooltip :content="t('spaceManager.copyLink')">
                 <button
-                  class="text-secondary flex size-8 items-center justify-center rounded-lg bg-gray-100 transition-colors hover:text-primary hover:bg-gray-200"
+                  class="text-secondary flex size-8 items-center justify-center rounded-lg bg-[var(--bg-muted)] transition-colors hover:text-primary hover:bg-[var(--bg-hover)]"
                   @click.stop="copyLink(sub)"
                 >
                   <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

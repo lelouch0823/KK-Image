@@ -5,7 +5,7 @@
     <div class="w-full max-w-md">
       <!-- 登录卡片 -->
       <div
-        class="animate-scale-in shadow-glass overflow-hidden rounded-2xl border border-white/20 bg-white/90 backdrop-blur-xl ring-1 ring-black/5"
+        class="animate-scale-in shadow-glass overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/90 backdrop-blur-xl ring-1 ring-black/5"
       >
         <!-- 头部 -->
         <div class="px-8 pt-10 pb-6 text-center">
@@ -51,7 +51,7 @@
                     required
                     autocomplete="username"
                     :placeholder="t('auth.usernamePlaceholder')"
-                    class="input-focus h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] pr-4 pl-12 text-sm transition-all focus:border-primary focus:ring-primary/10 focus:bg-white focus:ring-2 focus:outline-none"
+                    class="input-focus h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] pr-4 pl-12 text-sm transition-all focus:border-primary focus:ring-primary/10 focus:bg-white dark:focus:bg-[var(--bg-active)] focus:ring-2 focus:outline-none"
                   />
                 </div>
               </div>
@@ -83,7 +83,7 @@
                     required
                     autocomplete="current-password"
                     :placeholder="t('auth.passwordPlaceholder')"
-                    class="input-focus h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-12 text-sm transition-all focus:border-primary focus:ring-primary/10 focus:bg-white focus:ring-2 focus:outline-none"
+                    class="input-focus h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-12 text-sm transition-all focus:border-primary focus:ring-primary/10 focus:bg-white dark:focus:bg-[var(--bg-active)] focus:ring-2 focus:outline-none"
                   />
                   <button
                     type="button"

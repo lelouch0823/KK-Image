@@ -1,6 +1,6 @@
 <template>
   <header
-    class="flex h-[var(--header-height)] shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-white px-4 lg:px-6"
+    class="flex h-[var(--header-height)] shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-card)] px-4 lg:px-6"
   >
     <div class="flex items-center gap-3">
       <!-- 移动端汉堡菜单按钮 -->
@@ -92,6 +92,32 @@
         </Transition>
       </div>
 
+      <!-- 主题切换按钮 -->
+      <button
+        class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] transition-colors hover:bg-[var(--bg-hover)]"
+        :title="isDark ? '切换亮色模式' : '切换暗色模式'"
+        @click="toggleTheme"
+      >
+        <!-- Sun Icon (Show in Dark Mode) -->
+        <svg v-if="isDark" class="text-secondary size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+          />
+        </svg>
+        <!-- Moon Icon (Show in Light Mode) -->
+        <svg v-else class="text-secondary size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+          />
+        </svg>
+      </button>
+
       <!-- AI 助手按钮 -->
       <button
         :title="t('ai.assistant')"
@@ -134,7 +160,7 @@
     
     <!-- 移动端搜索遮罩 (Search Overlay) -->
     <transition name="fade">
-      <div v-if="showMobileSearch" class="absolute inset-0 z-50 flex items-center bg-white px-4 lg:hidden">
+      <div v-if="showMobileSearch" class="absolute inset-0 z-50 flex items-center bg-[var(--bg-card)] px-4 lg:hidden">
         <div class="relative flex-1">
             <input
             ref="mobileSearchInputRef"
@@ -166,6 +192,7 @@ import { useNotifications } from '@/composables/useNotifications';
 import NotificationList from '@/components/common/NotificationList.vue';
 import { onClickOutside } from '@vueuse/core';
 import { useAI } from '@/composables/useAI';
+import { useTheme } from '@/composables/useTheme';
 
 defineEmits(['openSidebar']);
 
@@ -176,6 +203,7 @@ const { t } = useI18n();
 const { searchQuery } = useSearch();
 const { unreadCount, startPolling, stopPolling } = useNotifications();
 const { isOpen, toggle: toggleAI } = useAI();
+const { isDark, toggleTheme } = useTheme();
 
 const showNotifications = ref(false);
 const notificationRef = ref(null);

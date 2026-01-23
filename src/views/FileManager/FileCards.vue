@@ -3,11 +3,11 @@
     <div
       v-for="file in files"
       :key="file.id"
-      class="flex items-center gap-3 rounded-xl bg-gray-50 p-3 transition-all duration-300 hover:bg-white hover:shadow-soft hover:-translate-y-0.5 border border-transparent hover:border-[var(--border-color)]"
+      class="flex items-center gap-3 rounded-xl bg-[var(--bg-muted)] p-3 transition-all duration-300 hover:bg-[var(--bg-card)] hover:shadow-soft hover:-translate-y-0.5 border border-transparent hover:border-[var(--border-color)]"
     >
       <!-- 缩略图 -->
       <div
-        class="size-12 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--border-color)] bg-gray-100"
+        class="size-12 shrink-0 overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)]"
       >
         <img v-if="isImage(file)" :src="file.url" class="size-full object-cover" loading="lazy" />
         <div
@@ -35,7 +35,7 @@
       <!-- 操作按钮 -->
       <div class="flex items-center gap-1">
         <button
-          class="text-secondary rounded-lg p-2 transition-colors hover:text-primary active:bg-gray-200"
+          class="text-secondary rounded-lg p-2 transition-colors hover:text-primary active:bg-[var(--bg-active)]"
           @click.stop="$emit('share', file)"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,7 +48,7 @@
           </svg>
         </button>
         <button
-          class="text-secondary rounded-lg p-2 transition-colors hover:text-primary active:bg-gray-200"
+          class="text-secondary rounded-lg p-2 transition-colors hover:text-primary active:bg-[var(--bg-active)]"
           @click.stop="$emit('context-menu', $event, file)"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

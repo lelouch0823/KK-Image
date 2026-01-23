@@ -74,7 +74,7 @@
     </div>
 
     <!-- 公开链接区域 (仅 is_public 为 true 时) -->
-    <div v-if="isPublic" class="rounded-2xl border border-[var(--border-color)] bg-white p-5">
+    <div v-if="isPublic" class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5">
       <div class="mb-4 flex items-center gap-3">
         <div class="flex size-10 items-center justify-center rounded-xl bg-green-50">
           <svg class="size-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,10 +93,10 @@
           type="text"
           readonly
           :value="shareUrl"
-          class="text-primary flex-1 rounded-xl border border-[var(--border-color)] bg-white px-4 py-2.5 font-mono text-sm"
+          class="text-primary flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 font-mono text-sm"
         />
         <button
-          class="text-primary flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-white px-4 py-2.5 transition-colors hover:bg-[var(--bg-hover)]"
+          class="text-primary flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 transition-colors hover:bg-[var(--bg-hover)]"
           @click="copyLink"
         >
           <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

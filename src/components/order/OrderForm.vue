@@ -17,7 +17,7 @@
       />
 
       <!-- 商品信息 -->
-      <div class="space-y-4 rounded-xl border border-[var(--border-color)] bg-white p-4">
+      <div class="space-y-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
         <!-- 商品名称 -->
         <div>
           <label class="text-primary mb-2 block text-sm font-medium">
@@ -128,7 +128,7 @@
             v-model="form.deadline"
             type="date"
             :min="minDate"
-            class="input h-11 appearance-none bg-white"
+            class="input h-11 appearance-none bg-[var(--bg-card)]"
             :class="{ 'text-muted': !form.deadline }"
           />
         </div>

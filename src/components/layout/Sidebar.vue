@@ -8,7 +8,7 @@
 
   <aside
     :class="[
-      'z-50 flex shrink-0 flex-col border-r border-[var(--border-color)] bg-white transition-all duration-300',
+      'z-50 flex shrink-0 flex-col border-r border-[var(--border-color)] bg-[var(--bg-card)] transition-all duration-300',
       // 桌面端：根据折叠状态切换宽度
       isCollapsed ? 'lg:w-[72px]' : 'lg:w-[var(--sidebar-width)]',
       'lg:relative lg:translate-x-0',
