@@ -103,9 +103,9 @@
 
         <!-- 右侧：信息区域 (PC端占 4列) -->
         <div class="space-y-4 lg:col-span-4">
-          <!-- 客户信息 -->
+          <!-- 客户信息 (仅当有有效客户数据时显示) -->
           <OrderPersonCard
-            v-if="order.customer"
+            v-if="hasCustomerInfo"
             :title="t('customer.detail.title')"
             :name="order.customer.name"
             :subtitle="order.customer.company"
@@ -293,6 +293,12 @@ const markAsRead = async () => {
 
 // 初始化
 markAsRead();
+
+// 是否有有效的客户信息 (SOTA: 精确检查客户数据有效性)
+const hasCustomerInfo = computed(() => {
+  const customer = props.order.customer;
+  return customer && typeof customer === 'object' && customer.name?.trim();
+});
 
 // 当前数据
 const currentData = computed(() => props.order.currentData || {});

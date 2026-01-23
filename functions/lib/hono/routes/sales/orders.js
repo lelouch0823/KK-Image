@@ -169,13 +169,18 @@ app.patch('/:id', async (c) => {
     }
 
     const { processOrderUpdate } = await import('../../../../api/utils/order-utils.js');
-    const result = await processOrderUpdate({
+    
+    // 销售端允许修改的字段
+    const SALES_EDITABLE_FIELDS = ['name', 'brand', 'series', 'size', 'color', 'material', 'remark', 'deadline'];
+    
+    const _result = await processOrderUpdate({
         env,
         orderId,
         orderNo: order.orderNo,
         currentData: order.currentData,
         updates,
         fileIds,
+        allowedFields: SALES_EDITABLE_FIELDS,
         actor: { type: 'salesperson', id: salesperson.id, name: salesperson.name },
         reason: reason.trim(),
     });

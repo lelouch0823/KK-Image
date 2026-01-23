@@ -205,6 +205,41 @@ app.get('/:id', async (c) => {
 });
 
 /**
+ * PATCH /:id - 修改订单
+ */
+app.patch('/:id', async (c) => {
+    const { env } = c;
+    const id = c.req.param('id');
+    const body = await c.req.json();
+
+    const orderRepo = new OrderRepository(env.DB);
+    const order = await orderRepo.findById(id);
+    if (!order) return c.json({ success: false, error: MSG.ORDER.NOT_FOUND }, 404);
+
+    const updatesObj = body.updates || body;
+    const { reason, fileIds, ...updates } = updatesObj;
+
+    const { processOrderUpdate } = await import('../../../../api/utils/order-utils.js');
+
+    // 管理员允许修改的所有字段
+    const ADMIN_EDITABLE_FIELDS = ['name', 'brand', 'series', 'size', 'color', 'material', 'remark', 'deadline'];
+
+    const _result = await processOrderUpdate({
+        env,
+        orderId: id,
+        orderNo: order.orderNo,
+        currentData: order.currentData,
+        updates,
+        fileIds,
+        allowedFields: ADMIN_EDITABLE_FIELDS,
+        actor: { type: 'admin', id: 'admin', name: 'Admin' }, // 这里可以优化为从 JWT 获取管理员名称，如果实现了多管理员
+        reason: reason || 'Admin Update',
+    });
+
+    return c.json({ success: true, message: MSG.ORDER.UPDATE_SUCCESS });
+});
+
+/**
  * PATCH /:id/status - 更新订单状态
  */
 app.patch('/:id/status', async (c) => {

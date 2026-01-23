@@ -112,7 +112,7 @@ app.get('/:id', async (c) => {
 /**
  * PUT /:id - 更新销售信息
  */
-app.put('/:id', zValidator('json', UpdateSalespersonSchema), async (c) => {
+const updateHandler = async (c) => {
     const { env } = c;
     const id = c.req.param('id');
     const body = c.req.valid('json');
@@ -137,7 +137,11 @@ app.put('/:id', zValidator('json', UpdateSalespersonSchema), async (c) => {
         message: MSG.SALESPERSON.UPDATE_SUCCESS,
         data: { id },
     });
-});
+};
+
+// 同时支持 PUT 和 PATCH 方法
+app.put('/:id', zValidator('json', UpdateSalespersonSchema), updateHandler);
+app.patch('/:id', zValidator('json', UpdateSalespersonSchema), updateHandler);
 
 /**
  * DELETE /:id - 删除销售人员

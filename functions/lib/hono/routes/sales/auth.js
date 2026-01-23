@@ -1,10 +1,15 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { setCookie } from 'hono/cookie';
 import { SalesLoginSchema, WechatLoginSchema } from '../../schemas/sales.js';
 import { generateJWT, MSG } from '../../_shared/utils.js';
 import { SalespersonRepository } from '../../../../repositories/SalespersonRepository.js';
 
 const app = new Hono();
+
+// Cookie 配置常量
+const SALES_TOKEN_COOKIE = 'sales_token';
+const COOKIE_MAX_AGE = 7 * 24 * 3600; // 7天
 
 /**
  * POST /login - 用户名密码登录
@@ -34,8 +39,17 @@ app.post('/login', zValidator('json', SalesLoginSchema), async (c) => {
         const token = await generateJWT(
             { id: salesperson.id, name: salesperson.name, type: 'salesperson' },
             env,
-            7 * 24 * 3600
+            COOKIE_MAX_AGE
         );
+
+        // 设置 HttpOnly Cookie
+        setCookie(c, SALES_TOKEN_COOKIE, token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'Lax',
+            maxAge: COOKIE_MAX_AGE,
+            path: '/api/sales',
+        });
 
         return c.json({
             success: true,
@@ -45,7 +59,7 @@ app.post('/login', zValidator('json', SalesLoginSchema), async (c) => {
                 store: salesperson.store,
                 token: token,
                 accessToken: salesperson.access_token,
-                expiresIn: 7 * 24 * 3600,
+                expiresIn: COOKIE_MAX_AGE,
             }
         });
     } catch (err) {
@@ -88,15 +102,24 @@ app.post('/wechat-login', zValidator('json', WechatLoginSchema), async (c) => {
         const token = await generateJWT(
             { id: salesperson.id, name: salesperson.name, type: 'salesperson' },
             env,
-            7 * 24 * 3600
+            COOKIE_MAX_AGE
         );
+
+        // 设置 HttpOnly Cookie
+        setCookie(c, SALES_TOKEN_COOKIE, token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'Lax',
+            maxAge: COOKIE_MAX_AGE,
+            path: '/api/sales',
+        });
 
         return c.json({
             success: true,
             data: {
                 token,
                 user: { id: salesperson.id, name: salesperson.name, store: salesperson.store },
-                expiresIn: 7 * 24 * 3600
+                expiresIn: COOKIE_MAX_AGE
             }
         });
     } catch (err) {
@@ -129,8 +152,17 @@ app.post('/:token/auth', async (c) => {
         const token = await generateJWT(
             { id: salesperson.id, name: salesperson.name, type: 'salesperson' },
             env,
-            7 * 24 * 3600
+            COOKIE_MAX_AGE
         );
+
+        // 设置 HttpOnly Cookie
+        setCookie(c, SALES_TOKEN_COOKIE, token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'Lax',
+            maxAge: COOKIE_MAX_AGE,
+            path: '/api/sales',
+        });
 
         return c.json({
             success: true,
@@ -139,7 +171,7 @@ app.post('/:token/auth', async (c) => {
                 name: salesperson.name,
                 store: salesperson.store,
                 token: token,
-                expiresIn: 7 * 24 * 3600,
+                expiresIn: COOKIE_MAX_AGE,
             }
         });
     } catch (err) {
