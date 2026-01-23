@@ -23,7 +23,7 @@
 
           <!-- 添加按钮 -->
           <button
-            class="bg-primary flex h-9 flex-shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition-colors hover:bg-primary-hover"
+            class="bg-primary flex h-9 flex-shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition-colors hover:bg-primary-hover dark:text-gray-900"
             @click="openCreateModal"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

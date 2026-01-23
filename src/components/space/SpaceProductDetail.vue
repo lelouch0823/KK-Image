@@ -5,14 +5,14 @@
       <div class="w-full space-y-4 lg:w-2/3">
         <!-- Main Image -->
         <div
-          class="group relative aspect-video touch-pan-y overflow-hidden rounded-2xl border border-gray-100 bg-gray-100 shadow-sm"
+          class="group relative aspect-video touch-pan-y overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-muted)] shadow-sm"
           @touchstart="handleTouchStart"
           @touchend="handleTouchEnd"
         >
           <img
             v-if="currentFile && isImage(currentFile)"
             :src="currentFile.url"
-            class="size-full bg-white object-contain select-none"
+            class="size-full bg-[var(--bg-card)] object-contain select-none"
             alt="Product Image"
           />
           <div v-else class="text-secondary flex size-full items-center justify-center">
@@ -22,7 +22,8 @@
           <!-- Navigation Arrows (Hidden on mobile) -->
           <button
             v-if="hasMultipleFiles"
-            class="absolute top-1/2 left-4 hidden -translate-y-1/2 rounded-full bg-white/80 p-2 text-gray-700 opacity-0 shadow-md transition-opacity group-hover:opacity-100 hover:bg-white lg:flex"
+            v-if="hasMultipleFiles"
+            class="absolute top-1/2 left-4 hidden -translate-y-1/2 rounded-full bg-[var(--bg-card)]/80 p-2 text-[var(--text-secondary)] opacity-0 shadow-md transition-opacity group-hover:opacity-100 hover:bg-[var(--bg-card)] lg:flex"
             @click="prevImage"
           >
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,7 +37,8 @@
           </button>
           <button
             v-if="hasMultipleFiles"
-            class="absolute top-1/2 right-4 hidden -translate-y-1/2 rounded-full bg-white/80 p-2 text-gray-700 opacity-0 shadow-md transition-opacity group-hover:opacity-100 hover:bg-white lg:flex"
+            v-if="hasMultipleFiles"
+            class="absolute top-1/2 right-4 hidden -translate-y-1/2 rounded-full bg-[var(--bg-card)]/80 p-2 text-[var(--text-secondary)] opacity-0 shadow-md transition-opacity group-hover:opacity-100 hover:bg-[var(--bg-card)] lg:flex"
             @click="nextImage"
           >
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,7 +81,7 @@
             <img v-if="isImage(file)" :src="file.url" class="size-full object-cover" />
             <div
               v-else
-              class="flex size-full items-center justify-center bg-gray-50 text-xs font-bold text-gray-400 uppercase"
+              class="flex size-full items-center justify-center bg-[var(--bg-muted)] text-xs font-bold text-[var(--text-secondary)] uppercase"
             >
               {{ file.name.split('.').pop() }}
             </div>
@@ -92,11 +94,11 @@
         <div>
           <div
             v-if="templateData.brand"
-            class="text-primary mb-2 inline-block rounded bg-gray-100 px-2 py-1 text-sm font-medium"
+            class="text-primary mb-2 inline-block rounded bg-[var(--bg-muted)] px-2 py-1 text-sm font-medium"
           >
             {{ templateData.brand }}
           </div>
-          <h1 class="text-3xl leading-tight font-bold text-gray-900">{{ space.name }}</h1>
+          <h1 class="text-3xl leading-tight font-bold text-[var(--text-primary)]">{{ space.name }}</h1>
           <p v-if="templateData.series" class="text-secondary mt-1 text-lg">
             {{ templateData.series }}
           </p>
@@ -106,54 +108,58 @@
         </div>
 
         <div v-if="templateData.price" class="flex items-baseline gap-1">
-          <span class="text-sm text-gray-500">¥</span>
-          <span class="text-3xl font-bold text-gray-900">{{
+          <span class="text-sm text-[var(--text-secondary)]">¥</span>
+          <span class="text-3xl font-bold text-[var(--text-primary)]">{{
             formatPrice(templateData.price)
           }}</span>
         </div>
 
         <!-- SOTA Product Parameters Table -->
-        <div class="border-b border-gray-100 pb-6">
+        <div class="border-b border-[var(--border-color)] pb-6">
           <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
             <div
               v-if="templateData.brand"
               class="border-l-2 border-[var(--color-primary-light,rgba(59,130,246,0.5))] pl-3"
             >
-              <dt class="text-sm font-medium text-gray-500">{{ t('spaceManager.brand') }}</dt>
-              <dd class="mt-1 text-sm font-semibold text-gray-900">{{ templateData.brand }}</dd>
+            >
+              <dt class="text-sm font-medium text-[var(--text-secondary)]">{{ t('spaceManager.brand') }}</dt>
+              <dd class="mt-1 text-sm font-semibold text-[var(--text-primary)]">{{ templateData.brand }}</dd>
             </div>
             <div
               v-if="templateData.series"
               class="border-l-2 border-[var(--color-primary-light,rgba(59,130,246,0.5))] pl-3"
             >
-              <dt class="text-sm font-medium text-gray-500">{{ t('spaceManager.series') }}</dt>
-              <dd class="mt-1 text-sm font-semibold text-gray-900">{{ templateData.series }}</dd>
+            >
+              <dt class="text-sm font-medium text-[var(--text-secondary)]">{{ t('spaceManager.series') }}</dt>
+              <dd class="mt-1 text-sm font-semibold text-[var(--text-primary)]">{{ templateData.series }}</dd>
             </div>
             <div
               v-if="templateData.material"
               class="border-l-2 border-[var(--color-primary-light,rgba(59,130,246,0.5))] pl-3"
             >
-              <dt class="text-sm font-medium text-gray-500">{{ t('spaceManager.material') }}</dt>
-              <dd class="mt-1 text-sm font-semibold text-gray-900">{{ templateData.material }}</dd>
+            >
+              <dt class="text-sm font-medium text-[var(--text-secondary)]">{{ t('spaceManager.material') }}</dt>
+              <dd class="mt-1 text-sm font-semibold text-[var(--text-primary)]">{{ templateData.material }}</dd>
             </div>
             <div
               v-if="templateData.sku"
               class="border-l-2 border-[var(--color-primary-light,rgba(59,130,246,0.5))] pl-3"
             >
-              <dt class="text-sm font-medium text-gray-500">SKU</dt>
-              <dd class="mt-1 text-sm font-semibold text-gray-900 break-all">
+            >
+              <dt class="text-sm font-medium text-[var(--text-secondary)]">SKU</dt>
+              <dd class="mt-1 text-sm font-semibold text-[var(--text-primary)] break-all">
                 {{ templateData.sku }}
               </dd>
             </div>
           </dl>
         </div>
 
-        <div v-if="space.description" class="prose prose-sm prose-gray max-w-none text-gray-500">
-          <h3 class="text-sm font-medium text-gray-900">{{ t('spacePublic.description') }}</h3>
+        <div v-if="space.description" class="prose prose-sm prose-gray dark:prose-invert max-w-none text-[var(--text-secondary)]">
+          <h3 class="text-sm font-medium text-[var(--text-primary)]">{{ t('spacePublic.description') }}</h3>
           <p class="whitespace-pre-line">{{ space.description }}</p>
         </div>
 
-        <div class="hidden space-y-3 border-t border-gray-100 pt-6 lg:block">
+        <div class="hidden space-y-3 border-t border-[var(--border-color)] pt-6 lg:block">
           <a
             v-if="currentFile"
             :href="currentFile.url"
@@ -174,7 +180,7 @@
           <button
             v-if="hasMultipleFiles"
             :disabled="downloading"
-            class="text-primary flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3 font-medium transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            class="text-primary flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] py-3 font-medium transition-colors hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
             @click="handleDownloadAll"
           >
             <svg
@@ -222,14 +228,14 @@
 
     <!-- SOTA Mobile Sticky Bottom Bar -->
     <div
-      class="fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t border-gray-100 bg-white p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden"
+      class="fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t border-[var(--border-color)] bg-[var(--bg-card)] p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden"
     >
       <div class="flex flex-1 gap-2">
         <a
           v-if="currentFile"
           :href="currentFile.url"
           download
-          class="text-primary flex flex-1 items-center justify-center gap-2 rounded-xl bg-gray-100 py-3 font-medium transition-transform active:scale-95"
+          class="text-primary flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--bg-muted)] py-3 font-medium transition-transform active:scale-95"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path

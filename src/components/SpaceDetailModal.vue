@@ -31,7 +31,7 @@
     <!-- Content -->
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
       <!-- Tabs Header -->
-      <div class="shrink-0 border-b border-[var(--border-color)] bg-white px-6">
+      <div class="shrink-0 border-b border-[var(--border-color)] bg-[var(--bg-card)] px-6">
         <div class="flex space-x-6">
           <button
             class="border-b-2 px-1 py-3 text-sm font-medium transition-colors duration-200"

@@ -12,7 +12,7 @@
       <div class="hidden lg:block">
         <table class="w-full text-left text-sm">
           <thead
-            class="text-secondary sticky top-0 border-b border-[var(--border-color)] bg-gray-50"
+            class="text-secondary sticky top-0 border-b border-[var(--border-color)] bg-[var(--bg-muted)]"
           >
             <tr>
               <th class="px-6 py-3 font-medium">{{ t('share.folderName') }}</th>
@@ -22,11 +22,11 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-[var(--border-color)]">
-            <tr v-for="item in shares" :key="item.id" class="transition-colors hover:bg-gray-50">
+            <tr v-for="item in shares" :key="item.id" class="transition-colors hover:bg-[var(--bg-hover)]">
               <td class="text-primary px-6 py-3 font-medium">{{ item.name }}</td>
               <td class="text-secondary px-6 py-3">
                 <div class="flex items-center gap-2">
-                  <span class="rounded bg-gray-100 px-2 py-1 font-mono text-xs select-all">{{
+                  <span class="rounded bg-[var(--bg-muted)] px-2 py-1 font-mono text-xs select-all">{{
                     item.shareToken
                   }}</span>
                   <button
@@ -68,13 +68,13 @@
         <div
           v-for="item in shares"
           :key="item.id"
-          class="rounded-lg border border-[var(--border-color)] bg-gray-50 p-4"
+          class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] p-4"
         >
           <div class="mb-3 flex items-start justify-between">
             <div class="text-primary text-base font-medium">{{ item.name }}</div>
             <div class="flex gap-2">
               <button
-                class="text-primary rounded border border-gray-200 bg-white p-1.5 shadow-sm"
+                class="text-primary rounded border border-[var(--border-color)] bg-[var(--bg-card)] p-1.5 shadow-sm"
                 @click="editShare(item)"
               >
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,7 +87,7 @@
                 </svg>
               </button>
               <button
-                class="rounded border border-gray-200 bg-white p-1.5 text-red-500 shadow-sm"
+                class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] p-1.5 text-red-500 shadow-sm"
                 @click="revokeShare(item)"
               >
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,7 +105,7 @@
             <div class="flex items-center justify-between">
               <span>{{ t('share.linkToken') }}:</span>
               <div class="flex items-center gap-2">
-                <span class="rounded border border-gray-200 bg-white px-2 py-0.5 font-mono">{{
+                <span class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-0.5 font-mono">{{
                   item.shareToken
                 }}</span>
                 <button class="text-primary" @click="copyLink(item)">

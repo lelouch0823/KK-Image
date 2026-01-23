@@ -44,7 +44,7 @@
     <template v-else-if="album">
       <!-- Header -->
       <header
-        class="sticky top-0 z-40 border-b border-[var(--border-color)] bg-white/95 backdrop-blur-sm"
+        class="sticky top-0 z-40 border-b border-[var(--border-color)] bg-[var(--bg-card)]/95 backdrop-blur-sm"
       >
         <div class="mx-auto flex max-w-7xl items-center justify-between p-4 sm:px-6 lg:px-8">
           <div>
@@ -75,7 +75,7 @@
       <!-- Description -->
       <div v-if="album.description" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <p
-          class="text-secondary rounded-xl border border-[var(--border-color)] bg-gray-50 p-4 text-sm"
+          class="text-secondary rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] p-4 text-sm"
         >
           {{ album.description }}
         </p>
@@ -89,7 +89,7 @@
           <div
             v-for="(file, index) in album.files"
             :key="file.id"
-            class="group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-[var(--border-color)] bg-gray-100 shadow-sm transition-colors hover:border-gray-300 hover:shadow-md"
+            class="group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] shadow-sm transition-colors hover:border-[var(--border-hover)] hover:shadow-md"
             @click="openFile(file, index)"
           >
             <!-- 图片 -->
@@ -105,7 +105,7 @@
             <!-- PDF -->
             <div
               v-else-if="file.type === 'pdf'"
-              class="text-secondary flex size-full flex-col items-center justify-center bg-gray-50"
+              class="text-secondary flex size-full flex-col items-center justify-center bg-[var(--bg-muted)]"
             >
               <svg
                 class="mb-2 size-12 text-red-500"
@@ -121,7 +121,7 @@
                 ></path>
               </svg>
               <span
-                class="rounded border border-gray-200 bg-white px-2 py-1 text-xs font-medium shadow-sm"
+                class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-1 text-xs font-medium shadow-sm"
                 >PDF</span
               >
             </div>
@@ -129,7 +129,7 @@
             <!-- 其他文件 -->
             <div
               v-else
-              class="text-secondary flex size-full flex-col items-center justify-center bg-gray-50"
+              class="text-secondary flex size-full flex-col items-center justify-center bg-[var(--bg-muted)]"
             >
               <svg
                 class="mb-2 size-12 text-gray-400"
@@ -145,7 +145,7 @@
                 ></path>
               </svg>
               <span
-                class="rounded border border-gray-200 bg-white px-2 py-1 text-xs font-medium uppercase shadow-sm"
+                class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-1 text-xs font-medium uppercase shadow-sm"
                 >{{ file.name.split('.').pop() }}</span
               >
             </div>
@@ -170,7 +170,7 @@
 
       <!-- Footer -->
       <footer
-        class="text-secondary border-t border-[var(--border-color)] bg-white py-8 text-center text-sm"
+        class="text-secondary border-t border-[var(--border-color)] bg-[var(--bg-card)] py-8 text-center text-sm"
       >
         <a href="/" class="hover:text-primary transition-colors">{{ t('gallery.poweredBy') }}</a>
       </footer>

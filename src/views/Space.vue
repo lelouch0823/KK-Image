@@ -1,12 +1,17 @@
 <template>
   <div class="min-h-screen bg-[var(--bg-page)] font-sans text-[var(--text-main)] antialiased">
     <!-- 加载状态 -->
-    <div v-if="loading" class="flex min-h-screen items-center justify-center">
-      <div class="text-center">
-        <div
-          class="border-t-primary mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-[var(--border-color)]"
-        ></div>
-        <p class="text-secondary">{{ t('common.loading') }}</p>
+    <!-- 加载状态 -->
+    <div v-if="loading" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div class="mb-8 flex items-end justify-between">
+        <div class="space-y-4">
+          <Skeleton type="text" width="w-64" class="h-8" />
+          <Skeleton type="text" width="w-96" class="h-4" />
+        </div>
+        <Skeleton type="custom" custom-class="h-10 w-32 rounded-lg" />
+      </div>
+      <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <Skeleton v-for="i in 8" :key="i" type="custom" custom-class="aspect-square w-full rounded-xl" />
       </div>
     </div>
 
@@ -56,7 +61,7 @@
 
       <!-- Footer -->
       <footer
-        class="text-secondary mt-auto border-t border-[var(--border-color)] bg-white py-8 text-center text-sm"
+        class="text-secondary mt-auto border-t border-[var(--border-color)] bg-[var(--bg-card)] py-8 text-center text-sm"
       >
         <a href="/" class="hover:text-primary transition-colors">{{ t('gallery.poweredBy') }}</a>
       </footer>
@@ -70,6 +75,7 @@ import { useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import SpacePassword from '@/components/space/SpacePassword.vue';
 import SpaceTurnstile from '@/components/space/SpaceTurnstile.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
 import { API, APP_NAME } from '@/utils/constants';
 
 // 懒加载不同模版组件

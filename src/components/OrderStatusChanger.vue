@@ -26,16 +26,16 @@
       <transition name="fade-scale">
         <div
           v-if="showModal"
-          class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          class="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--color-overlay-dim)] p-4 backdrop-blur-sm"
           @click.self="closeModal"
         >
           <div
-            class="w-full max-w-md transform overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl transition-all"
+            class="w-full max-w-md transform overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-2xl transition-all"
             @click.stop
           >
             <!-- 顶部渐变装饰 + 图标 -->
             <div
-              class="from-primary/5 relative flex h-20 items-center justify-center overflow-hidden bg-gradient-to-br via-[var(--color-info)]/5 to-[var(--color-success)]/5"
+              class="from-primary/10 relative flex h-20 items-center justify-center overflow-hidden bg-gradient-to-br via-[var(--color-info)]/10 to-[var(--color-success)]/10"
             >
               <div class="absolute inset-0 scale-150 transform opacity-20 blur-2xl">
                 <div class="bg-primary absolute top-0 left-1/4 size-20 rounded-full"></div>
@@ -82,7 +82,7 @@
                   :class="[
                     selectedStatus === s
                       ? 'border-primary bg-primary/5 ring-primary/20 ring-2'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
+                      : 'border-[var(--border-color)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)]',
                   ]"
                   @click="selectedStatus = s"
                 >

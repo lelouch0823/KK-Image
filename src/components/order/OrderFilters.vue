@@ -40,7 +40,7 @@
       <!-- 导出按钮 -->
       <button
         :disabled="exporting"
-        class="flex h-9 items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 text-sm font-medium text-white shadow-[var(--color-primary)]/10 shadow-sm transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 disabled:opacity-50"
+        class="flex h-9 items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 text-sm font-medium text-white shadow-[var(--color-primary)]/10 shadow-sm transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 disabled:opacity-50 dark:text-gray-900"
         @click="$emit('export')"
       >
         <svg v-if="exporting" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">

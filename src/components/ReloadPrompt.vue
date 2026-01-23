@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="offlineReady || needRefresh"
-    class="fixed right-4 bottom-4 z-[100] max-w-sm rounded-lg border border-[var(--border-color)] bg-white p-4 shadow-lg"
+    class="fixed right-4 bottom-4 z-[100] max-w-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-lg"
     role="alert"
   >
     <div class="flex items-start gap-4">
@@ -36,22 +36,22 @@
         </svg>
       </div>
       <div class="flex-1">
-        <h3 class="text-sm font-medium text-gray-900">
+        <h3 class="text-primary text-sm font-medium">
           {{ offlineReady ? t('pwa.offlineReady') : t('pwa.newContent') }}
         </h3>
-        <p class="mt-1 text-sm text-gray-500">
+        <p class="text-secondary mt-1 text-sm">
           {{ offlineReady ? t('pwa.offlineReadyDesc') : t('pwa.newContentDesc') }}
         </p>
         <div class="mt-3 flex gap-3">
           <button
             v-if="needRefresh"
-            class="bg-primary rounded-md px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-hover"
+            class="bg-primary rounded-md px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-hover dark:text-gray-900"
             @click="updateServiceWorker()"
           >
             {{ t('pwa.reload') }}
           </button>
           <button
-            class="rounded-md bg-[var(--bg-muted)] px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200"
+            class="rounded-md bg-[var(--bg-muted)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
             @click="close"
           >
             {{ t('pwa.close') }}

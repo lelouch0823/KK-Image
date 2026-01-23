@@ -13,7 +13,7 @@
         <!-- 未来可扩展：导入、归档等按钮 -->
         <Tooltip :content="t('spaceManager.create')">
           <button
-            class="bg-primary flex size-9 items-center justify-center rounded-lg text-white shadow-sm transition-colors hover:bg-[var(--color-primary-hover)]"
+            class="bg-primary flex size-9 items-center justify-center rounded-lg text-white shadow-sm transition-colors hover:bg-[var(--color-primary-hover)] dark:text-gray-900"
             @click="showCreateModal = true"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,8 +30,9 @@
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="flex justify-center py-20">
-      <div class="border-primary size-8 animate-spin rounded-full border-b-2"></div>
+    <!-- 加载状态 -->
+    <div v-if="loading" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <Skeleton v-for="i in 6" :key="i" type="card" />
     </div>
 
     <!-- 空间列表 -->
@@ -39,12 +40,12 @@
       <div
         v-for="space in spaces"
         :key="space.id"
-        class="group cursor-pointer overflow-hidden rounded-xl border border-[var(--border-color)] bg-white transition-all hover:shadow-lg"
+        class="group cursor-pointer overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:shadow-lg"
         @click="openSpaceDetail(space)"
       >
         <!-- 封面图 -->
         <div
-          class="relative aspect-video overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200"
+          class="relative aspect-video overflow-hidden bg-gradient-to-br from-[var(--bg-muted)] to-[var(--bg-page)]"
         >
           <!-- 实际封面图 -->
           <img
@@ -56,7 +57,7 @@
           <!-- 占位图 -->
           <div v-else class="absolute inset-0 flex items-center justify-center">
             <svg
-              class="size-12 text-gray-300"
+              class="size-12 text-[var(--text-disabled)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -72,7 +73,7 @@
 
           <!-- 模版标签 -->
           <span
-            class="absolute top-2 left-2 rounded-full bg-white/90 px-2 py-1 text-xs font-medium"
+            class="absolute top-2 left-2 rounded-full bg-[var(--bg-card)]/90 px-2 py-1 text-xs font-medium"
           >
             {{ getTemplateLabel(space.template) }}
           </span>
@@ -148,7 +149,7 @@
         <div class="flex justify-end gap-2 px-4 pb-4">
           <Tooltip :content="t('spaceManager.copyLink')">
             <button
-              class="text-secondary flex size-8 items-center justify-center rounded-lg bg-gray-100 transition-colors hover:text-primary hover:bg-gray-200"
+              class="text-secondary flex size-8 items-center justify-center rounded-lg bg-[var(--bg-muted)] transition-colors hover:text-primary hover:bg-[var(--bg-hover)]"
               @click.stop="handleCopyShareLink(space)"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -183,9 +184,9 @@
     <!-- 空状态 -->
     <div v-else class="py-20 text-center">
       <div
-        class="mx-auto mb-6 flex size-20 items-center justify-center rounded-full border-2 border-dashed border-gray-200 bg-gray-50"
+        class="mx-auto mb-6 flex size-20 items-center justify-center rounded-full border-2 border-dashed border-[var(--border-color)] bg-[var(--bg-muted)]"
       >
-        <svg class="size-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="size-10 text-[var(--text-disabled)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -197,7 +198,7 @@
       <h3 class="text-primary mb-2 text-lg font-medium">{{ t('spaceManager.emptyTitle') }}</h3>
       <p class="text-secondary mb-6 text-sm">{{ t('spaceManager.createDesc') }}</p>
       <button
-        class="bg-primary inline-flex items-center gap-2 rounded-lg px-6 py-3 text-white transition-colors hover:bg-[var(--color-primary-hover)]"
+        class="bg-primary inline-flex items-center gap-2 rounded-lg px-6 py-3 text-white transition-colors hover:bg-[var(--color-primary-hover)] dark:text-gray-900"
         @click="showCreateModal = true"
       >
         <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,8 +257,8 @@ import { useClipboard } from '@/composables/useClipboard';
 import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
 import SpaceDetailModal from '@/components/SpaceDetailModal.vue';
 import SpaceProductEditor from '@/components/SpaceProductEditor.vue';
-import Tooltip from '@/components/ui/Tooltip.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
 
 const { spaces, loading, loadSpaces, deleteSpace } = useSpaces();
 const { addToast } = useToast();

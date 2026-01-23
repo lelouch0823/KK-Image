@@ -32,6 +32,7 @@ import manageCustomersRoutes from './routes/manage/customers.js';
 import manageSalespersonsRoutes from './routes/manage/salespersons.js';
 import manageUploadRoutes from './routes/manage/upload.js';
 import manageBackupsRoutes from './routes/manage/backups.js';
+import manageSettingsRoutes from './routes/manage/settings.js';
 import salesRoutes from './routes/sales.js';
 
 export const app = new Hono();
@@ -102,6 +103,7 @@ app.route('/api/manage/customers', manageCustomersRoutes);
 app.route('/api/manage/salespersons', manageSalespersonsRoutes);
 app.route('/api/manage/upload', manageUploadRoutes);
 app.route('/api/manage/backups', manageBackupsRoutes);
+app.route('/api/manage/settings', manageSettingsRoutes);
 app.route('/api/sales', salesRoutes);
 
 // ============================================

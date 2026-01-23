@@ -193,12 +193,29 @@ TG_Bot_Token = "123456789:ABCdefGHIjklMNOpqrSTUvwxYZ"
 TG_Chat_ID = "-1001234567890"
 BASIC_USER = "admin"
 BASIC_PASS = "1"
+JWT_SECRET = "kk-image-jwt-secret-preview"
 
 # AI 助手配置
 AI_API_KEY = ""
 AI_API_URL = "https://api.openai.com/v1"
 AI_MODELS = "gpt-4o"
 AI_MODEL_SWITCH_THRESHOLD = "5"
+
+# 预览环境数据库绑定
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "kk-life-db-test"
+database_id = "969b18c0-8c41-474b-8730-5141285fd259"
+migrations_dir = "migrations"
+
+# 预览环境 R2 存储桶绑定
+[[env.preview.r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "kk-life-storage-test"
+
+[[env.preview.r2_buckets]]
+binding = "R2_BACKUP_BUCKET"
+bucket_name = "kk-life-backup-test"
 
 # =============================================================================
 # KV 命名空间绑定

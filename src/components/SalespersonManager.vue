@@ -20,7 +20,7 @@
 
         <!-- 新建按钮 -->
         <button
-          class="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white shadow-[var(--color-primary)]/10 shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95"
+          class="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white shadow-[var(--color-primary)]/10 shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 dark:text-gray-900"
           @click="openModal()"
         >
           <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -108,7 +108,7 @@
 
         <Tooltip :content="t('fileManager.upload')">
           <button
-            class="bg-primary flex size-10 items-center justify-center rounded-xl text-white shadow-lg shadow-gray-900/10 transition-all hover:-translate-y-0.5 hover:bg-black hover:shadow-gray-900/20 active:translate-y-0"
+            class="bg-primary flex size-10 items-center justify-center rounded-xl text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary-hover hover:shadow-primary/30 active:translate-y-0"
             @click="$refs.fileInput.click()"
           >
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,8 +179,13 @@
     </div>
 
     <!-- 加载中 -->
-    <div v-if="loading" class="flex min-h-[200px] flex-1 items-center justify-center">
-      <div class="border-primary size-8 animate-spin rounded-full border-b-2"></div>
+    <div v-if="loading" class="p-6">
+      <div v-if="viewMode === 'list'" class="space-y-4">
+        <Skeleton v-for="i in 5" :key="i" type="custom" custom-class="h-12 w-full rounded-lg" />
+      </div>
+      <div v-else class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <Skeleton v-for="i in 10" :key="i" type="custom" custom-class="aspect-square w-full rounded-xl" />
+      </div>
     </div>
 
     <!-- 内容区域 -->
@@ -376,6 +381,7 @@ import ContextMenu from '@/components/ui/ContextMenu.vue';
 import FolderGrid from './FolderGrid.vue';
 import FileTable from './FileTable.vue';
 import FileCards from './FileCards.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
 import { useFileManager } from '@/composables/useFileManager';
 import { useI18n } from '@/composables/useI18n';
 import { useSearch } from '@/composables/useSearch';
