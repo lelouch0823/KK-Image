@@ -1,5 +1,5 @@
 <template>
-  <span class="inline-flex items-center rounded font-medium" :class="[sizeClass, variantClass]">
+  <span class="inline-flex items-center rounded font-medium transition-colors duration-300" :class="[sizeClass, variantClass]">
     <span v-if="dot" class="mr-1.5 size-1.5 rounded-full" :class="dotClass"></span>
     <slot>{{ label }}</slot>
   </span>

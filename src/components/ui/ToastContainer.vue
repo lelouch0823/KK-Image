@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <div class="pointer-events-none fixed top-4 right-4 z-[1000] flex flex-col gap-2">
-      <transition-group name="slide-up">
+      <transition-group name="toast-slide">
         <div
           v-for="toast in toasts"
           :key="toast.id"

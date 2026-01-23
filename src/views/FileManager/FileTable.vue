@@ -14,7 +14,7 @@
         <th class="px-4 py-3 text-right">{{ t('fileManager.table.actions') }}</th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-[var(--border-color)]">
+    <TransitionGroup name="list" tag="tbody" class="divide-y divide-[var(--border-color)]">
       <tr
         v-for="file in files"
         :key="file.id"
@@ -107,7 +107,7 @@
           </div>
         </td>
       </tr>
-    </tbody>
+    </TransitionGroup>
   </table>
 </template>
 

@@ -22,7 +22,6 @@
           <!-- Navigation Arrows (Hidden on mobile) -->
           <button
             v-if="hasMultipleFiles"
-            v-if="hasMultipleFiles"
             class="absolute top-1/2 left-4 hidden -translate-y-1/2 rounded-full bg-[var(--bg-card)]/80 p-2 text-[var(--text-secondary)] opacity-0 shadow-md transition-opacity group-hover:opacity-100 hover:bg-[var(--bg-card)] lg:flex"
             @click="prevImage"
           >
@@ -36,7 +35,6 @@
             </svg>
           </button>
           <button
-            v-if="hasMultipleFiles"
             v-if="hasMultipleFiles"
             class="absolute top-1/2 right-4 hidden -translate-y-1/2 rounded-full bg-[var(--bg-card)]/80 p-2 text-[var(--text-secondary)] opacity-0 shadow-md transition-opacity group-hover:opacity-100 hover:bg-[var(--bg-card)] lg:flex"
             @click="nextImage"

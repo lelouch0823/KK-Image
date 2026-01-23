@@ -97,8 +97,7 @@
              <div class="relative z-10 flex items-start justify-between">
                 <div>
                   <p class="text-sm font-medium text-slate-400">{{ t('stats.totalFiles') }}</p>
-                  <h3 class="mt-2 text-3xl font-bold tracking-tight text-white font-mono">
-                    {{ formatNumber(stats.storage.totalFiles) }}
+                    {{ formatNumber(stats.storage?.totalFiles) }}
                   </h3>
                 </div>
                 <div class="rounded-lg bg-blue-500/20 p-2 text-blue-400 ring-1 ring-blue-500/30">
@@ -119,8 +118,7 @@
              <div class="relative z-10 flex items-start justify-between">
                 <div>
                   <p class="text-sm font-medium text-slate-400">{{ t('stats.totalStorage') }}</p>
-                  <h3 class="mt-2 text-3xl font-bold tracking-tight text-white font-mono">
-                    {{ formatSize(stats.storage.totalSize) }}
+                    {{ formatSize(stats.storage?.totalSize) }}
                   </h3>
                 </div>
                 <div class="rounded-lg bg-emerald-500/20 p-2 text-emerald-400 ring-1 ring-emerald-500/30">
@@ -141,8 +139,7 @@
              <div class="relative z-10 flex items-start justify-between">
                 <div>
                   <p class="text-sm font-medium text-slate-400">{{ t('stats.monthVisits') }}</p>
-                  <h3 class="mt-2 text-3xl font-bold tracking-tight text-white font-mono">
-                    {{ formatNumber(stats.traffic.monthTotal) }}
+                    {{ formatNumber(stats.traffic?.monthTotal) }}
                   </h3>
                 </div>
                 <div class="rounded-lg bg-purple-500/20 p-2 text-purple-400 ring-1 ring-purple-500/30">
@@ -193,9 +190,9 @@
                 {{ t('stats.topSpaces') }}
               </h3>
               
-              <div v-if="stats.traffic.topSpaces.length > 0" class="space-y-4">
+              <div v-if="stats.traffic?.topSpaces?.length > 0" class="space-y-4">
                 <div
-                    v-for="(space, index) in stats.traffic.topSpaces"
+                    v-for="(space, index) in stats.traffic?.topSpaces"
                     :key="space.id"
                     class="group flex items-center justify-between rounded-xl bg-white/5 p-4 transition-all hover:bg-white/10 border border-transparent hover:border-white/5"
                 >
@@ -237,7 +234,7 @@
                         <!-- Normal -->
                         <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
                             <div class="text-sm font-medium text-emerald-400 mb-2">{{ t('stats.normal') }}</div>
-                            <div class="text-3xl font-bold text-emerald-200 font-mono">{{ formatNumber(stats.health.status.normal) }}</div>
+                            <div class="text-3xl font-bold text-emerald-200 font-mono">{{ formatNumber(stats.health?.status?.normal) }}</div>
                              <div class="mt-2 h-1 w-full rounded-full bg-emerald-500/20">
                                 <div class="h-full rounded-full bg-emerald-500 transition-all duration-1000" style="width: 100%"></div>
                              </div>
@@ -245,20 +242,20 @@
                          <!-- Blocked -->
                          <div class="rounded-xl border border-red-500/20 bg-red-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
                             <div class="text-sm font-medium text-red-400 mb-2">{{ t('stats.blocked') }}</div>
-                            <div class="text-3xl font-bold text-red-200 font-mono">{{ formatNumber(stats.health.status.blocked) }}</div>
+                            <div class="text-3xl font-bold text-red-200 font-mono">{{ formatNumber(stats.health?.status?.blocked) }}</div>
                              <div class="mt-2 h-1 w-full rounded-full bg-red-500/20">
-                                <div class="h-full rounded-full bg-red-500 transition-all duration-1000" :style="`width: ${stats.health.status.blocked > 0 ? '100%' : '0%'}`"></div>
+                                <div class="h-full rounded-full bg-red-500 transition-all duration-1000" :style="`width: ${stats.health?.status?.blocked > 0 ? '100%' : '0%'}`"></div>
                              </div>
                         </div>
                          <!-- Whitelisted -->
                          <div class="rounded-xl border border-blue-500/20 bg-blue-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
                             <div class="text-sm font-medium text-blue-400 mb-2">{{ t('stats.whitelisted') }}</div>
-                            <div class="text-3xl font-bold text-blue-200 font-mono">{{ formatNumber(stats.health.status.whitelisted) }}</div>
+                            <div class="text-3xl font-bold text-blue-200 font-mono">{{ formatNumber(stats.health?.status?.whitelisted) }}</div>
                         </div>
                         <!-- Liked -->
                         <div class="rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
                             <div class="text-sm font-medium text-yellow-400 mb-2">{{ t('stats.liked') }}</div>
-                            <div class="text-3xl font-bold text-yellow-200 font-mono">{{ formatNumber(stats.health.status.liked) }}</div>
+                            <div class="text-3xl font-bold text-yellow-200 font-mono">{{ formatNumber(stats.health?.status?.liked) }}</div>
                         </div>
                     </div>
                 </div>
@@ -273,7 +270,7 @@
                 {{ t('stats.largeFiles') }}
             </h3>
             
-             <div v-if="stats.storage.largeFiles.length > 0" class="overflow-x-auto">
+             <div v-if="stats.storage?.largeFiles?.length > 0" class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                   <thead class="text-slate-400 border-b border-white/10">
                     <tr>
@@ -285,7 +282,7 @@
                   </thead>
                   <tbody class="divide-y divide-white/5">
                     <tr
-                      v-for="(file, index) in stats.storage.largeFiles"
+                      v-for="(file, index) in stats.storage?.largeFiles"
                       :key="file.id"
                       class="group transition-colors hover:bg-white/5"
                     >
@@ -360,7 +357,7 @@ const createCharts = () => {
   // 1. Traffic Trend Chart
   if (trendChartRef.value) {
     const ctx = trendChartRef.value.getContext('2d');
-    const dailyData = stats.value.traffic.daily;
+    const dailyData = stats.value.traffic?.daily || {};
 
     // Gradient Fill
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
@@ -423,8 +420,8 @@ const createCharts = () => {
   // 2. File Type Chart
   if (typeChartRef.value) {
     const ctx = typeChartRef.value.getContext('2d');
-    const typeData = stats.value.health.fileTypes.slice(0, 5); // Start with top 5
-    const otherCount = stats.value.health.fileTypes.slice(5).reduce((acc, cur) => acc + cur.count, 0);
+    const typeData = stats.value.health?.fileTypes?.slice(0, 5) || []; // Start with top 5
+    const otherCount = stats.value.health?.fileTypes?.slice(5)?.reduce((acc, cur) => acc + cur.count, 0) || 0;
     if (otherCount > 0) {
         typeData.push({ type: 'Other', count: otherCount });
     }

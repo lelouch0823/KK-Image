@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-2">
+  <TransitionGroup name="list" tag="div" class="space-y-2">
     <div
       v-for="file in files"
       :key="file.id"
@@ -57,7 +57,7 @@
         </button>
       </div>
     </div>
-  </div>
+  </TransitionGroup>
 </template>
 
 <script setup>

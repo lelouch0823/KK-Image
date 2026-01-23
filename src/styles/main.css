@@ -73,7 +73,7 @@
         background-color: var(--color-gray-400);
     }
 
-    /* 基础按钮样式 */
+    /* 基础按钮样式 - Enhanced Interaction */
     .btn {
         @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed;
     }
@@ -119,6 +119,24 @@
 }
 
 /* 动画工具类 */
+
+/* Page Fade Transition */
+.fade-page-enter-active,
+.fade-page-leave-active {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.fade-page-enter-from {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.fade-page-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+/* Base Fade */
 .fade-enter-active,
 .fade-leave-active {
     transition: opacity var(--transition-base);
@@ -129,6 +147,7 @@
     opacity: 0;
 }
 
+/* Slide Up */
 .slide-up-enter-active,
 .slide-up-leave-active {
     transition: all var(--transition-base);
@@ -138,4 +157,23 @@
 .slide-up-leave-to {
     opacity: 0;
     transform: translateY(10px);
+}
+
+/* List Transitions */
+.list-move, /* apply transition to moving elements */
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.5s ease;
+}
+
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+/* ensure leaving items are taken out of layout flow so that moving
+   animations can be calculated correctly. */
+.list-leave-active {
+  position: absolute;
 }

@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+  <TransitionGroup name="list" tag="div" class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
     <div
       v-for="folder in folders"
       :key="folder.id"
@@ -43,7 +43,7 @@
         </svg>
       </button>
     </div>
-  </div>
+  </TransitionGroup>
 </template>
 
 <script setup>

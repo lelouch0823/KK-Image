@@ -20,10 +20,17 @@ app.get('/', requirePermission('stats:read'), withCache(60), async (c) => {
     return c.json({
       success: true,
       data: {
-        ...data,
+        // Transform for frontend Stats.vue
         storage: {
+          totalFiles: data.files.total,
+          totalSize: data.files.totalSize,
           used: data.files.totalSize,
           limit: null
+        },
+        traffic: data.traffic,
+        health: {
+          status: data.status,
+          fileTypes: data.fileTypes
         },
         generatedAt: new Date().toISOString(),
       },

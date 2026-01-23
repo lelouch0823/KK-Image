@@ -1,6 +1,11 @@
 <template>
   <!-- 根路由组件 -->
-  <router-view />
+  <!-- 根路由组件 -->
+  <router-view v-slot="{ Component }">
+    <Transition name="fade-page" mode="out-in">
+      <component :is="Component" />
+    </Transition>
+  </router-view>
 
   <!-- 全局 Toast -->
   <ToastContainer />

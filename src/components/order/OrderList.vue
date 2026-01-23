@@ -39,7 +39,7 @@
     </div>
 
     <!-- 订单列表 -->
-    <div v-else class="space-y-3">
+    <TransitionGroup v-else name="list" tag="div" class="space-y-3">
       <div
         v-for="order in orders"
         :key="order.id"
@@ -116,13 +116,11 @@
           </svg>
         </div>
       </div>
-    </div>
+    </TransitionGroup>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="flex items-center justify-center py-8">
-      <div
-        class="border-t-primary size-8 animate-spin rounded-full border-3 border-[var(--border-color)]"
-      ></div>
+    <div v-if="loading" class="space-y-3">
+      <Skeleton v-for="i in 3" :key="i" type="card" />
     </div>
   </div>
 </template>
@@ -133,6 +131,7 @@ import { useI18n } from '@/composables/useI18n';
 import { formatRelativeTime } from '@/utils/formatters';
 import { getStatusVariant } from '@/utils/status';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
 
 const props = defineProps({
   orders: { type: Array, default: () => [] },
