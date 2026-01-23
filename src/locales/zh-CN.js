@@ -51,6 +51,7 @@ export default {
     minutesAgo: '{count} 分钟前',
     hoursAgo: '{count} 小时前',
     optional: '选填',
+    salesperson: '销售人员',
   },
   formatters: {
     forever: '永久有效',
@@ -496,6 +497,7 @@ export default {
     deleteSuccess: '空间已删除',
     deleteFailed: '删除失败',
     addFileFailed: '添加失败',
+    addFileSuccess: '文件添加成功',
     removeFileSuccess: '文件已移除',
     removeFileFailed: '移除失败',
   },
@@ -551,6 +553,7 @@ export default {
       tagInputPlaceholder: '输入标签后回车',
     },
     detail: {
+      title: '客户详情',
       historyOrders: '历史订单',
       totalSpent: '总消费',
       orderCount: '订单数',

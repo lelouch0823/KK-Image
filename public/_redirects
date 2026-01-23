@@ -1,4 +1,1 @@
-# Explicitly allow index.html to avoid loop warning
-/index.html /index.html 200
-# SPA Catch-all
 /* /index.html 200
