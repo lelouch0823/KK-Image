@@ -92,48 +92,65 @@
             </p>
 
             <!-- 字段修正 (聚合) -->
-            <div v-else-if="item.actionType === 'field_updated'" class="space-y-3">
-              <div v-for="(update, idx) in item.updates" :key="idx" class="text-sm">
-                <p class="text-primary font-medium">
-                  <span v-if="['files', 'images'].includes(update.fieldName)">{{
-                    t('order.timeline.imagesUpdated')
-                  }}</span>
-                  <span v-else>{{
-                    t('order.timeline.fieldUpdated', { field: getFieldLabel(update.fieldName) })
-                  }}</span>
-                </p>
+            <div v-else-if="item.actionType === 'field_updated'">
+              <div class="space-y-3">
+                <div v-for="(update, idx) in item.updates" :key="idx" class="text-sm">
+                  <p class="text-primary font-medium">
+                    <span v-if="['files', 'images'].includes(update.fieldName)">{{
+                      t('order.timeline.imagesUpdated')
+                    }}</span>
+                    <span v-else>{{
+                      t('order.timeline.fieldUpdated', { field: getFieldLabel(update.fieldName) })
+                    }}</span>
+                  </p>
 
-                <!-- 仅当非文件更新，或文件数量发生变化时才显示对比 -->
-                <div
-                  v-if="
-                    !['files', 'images'].includes(update.fieldName) ||
-                    update.oldValue !== update.newValue
-                  "
-                  class="mt-1 flex items-center gap-2 text-xs"
-                >
-                  <span class="text-[var(--color-danger-text)]/60 line-through">
-                    {{ formatFieldValue(update.fieldName, update.oldValue) }}</span
+                  <!-- 仅当非文件更新，或文件数量发生变化时才显示对比 -->
+                  <div
+                    v-if="
+                      !['files', 'images'].includes(update.fieldName) ||
+                      update.oldValue !== update.newValue
+                    "
+                    class="mt-1 flex items-center gap-2 text-xs"
                   >
-                  <svg
-                    class="text-secondary size-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                    <span class="text-[var(--color-danger-text)]/60 line-through">
+                      {{ formatFieldValue(update.fieldName, update.oldValue) }}</span
+                    >
+                    <svg
+                      class="text-secondary size-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M14 5l7 7m0 0l-7 7m7-7H3"
+                      ></path>
+                    </svg>
+                    <span class="font-medium text-[var(--color-success-text)]">{{
+                      formatFieldValue(update.fieldName, update.newValue)
+                    }}</span>
+                  </div>
+
+                  <!-- 个别理由 (如果有不同) -->
+                  <p
+                    v-if="update.reason && !getCommonReason(item.updates)"
+                    class="text-secondary mt-1 text-xs"
                   >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M14 5l7 7m0 0l-7 7m7-7H3"
-                    ></path>
-                  </svg>
-                  <span class="font-medium text-[var(--color-success-text)]">{{
-                    formatFieldValue(update.fieldName, update.newValue)
-                  }}</span>
+                    {{ t('order.timeline.reason') }}: {{ getReasonText(update.reason) }}
+                  </p>
                 </div>
+              </div>
 
-                <p v-if="update.reason" class="text-secondary mt-1 text-xs">
-                  {{ t('order.timeline.reason') }}: {{ getReasonText(update.reason) }}
+              <!-- 公共理由 (合并显示) -->
+              <div
+                v-if="getCommonReason(item.updates)"
+                class="mt-3 border-t border-dashed border-[var(--border-color)] pt-2"
+              >
+                <p class="text-secondary text-xs">
+                  <span class="font-medium">{{ t('order.timeline.reason') }}:</span>
+                  {{ getReasonText(getCommonReason(item.updates)) }}
                 </p>
               </div>
             </div>
@@ -390,7 +407,7 @@ const iconClasses = {
 };
 
 // 状态样式
-const statusClasses = STATUS_STYLES;
+const _statusClasses = STATUS_STYLES;
 
 // 操作人颜色
 const actorTypeColor = (type) => {
@@ -446,6 +463,16 @@ const getReasonText = (reason) => {
     return t(reason); // vue-i18n 如果找不到 key 会直接返回 key 本身，所以是安全的
   }
   return reason;
+};
+
+// 获取公共理由 (如果所有更新的理由相同)
+const getCommonReason = (updates) => {
+  if (!updates || updates.length === 0) return null;
+  const firstReason = updates[0].reason;
+  if (!firstReason) return null;
+  
+  // 检查是否所有理由都相同
+  return updates.every((u) => u.reason === firstReason) ? firstReason : null;
 };
 
 </script>

@@ -14,20 +14,9 @@
           <h3 class="text-primary text-lg font-semibold">{{ t('order.manage.editOrder') }}</h3>
           <p class="text-secondary mt-0.5 text-sm">{{ order?.orderNo }}</p>
         </div>
-        <!-- 管理端：可选状态下拉 | 销售端：静态 Badge -->
-        <select
-          v-if="mode === 'admin'"
-          :value="form.status"
-          class="rounded-full border border-[var(--border-color)] bg-[var(--bg-muted)] px-3 py-1 text-xs font-medium outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
-          :class="getStatusSelectClass(form.status)"
-          @change="updateStatus($event.target.value)"
-        >
-          <option v-for="s in statuses" :key="s" :value="s">
-            {{ t(`order.statuses.${s}`) }}
-          </option>
-        </select>
+        <!-- 状态 (只读显示) -->
         <span
-          v-else-if="form.status"
+          v-if="form.status"
           class="rounded-full border px-2.5 py-0.5 text-xs font-medium"
           :class="getStatusBadgeClass(form.status)"
         >
@@ -148,12 +137,7 @@ import Modal from '@/components/ui/Modal.vue';
 import OrderFormFields from './order/OrderFormFields.vue';
 import OrderOriginalInfo from './order/OrderOriginalInfo.vue';
 
-// 动态获取 Select 样式 (带颜色)
-const getStatusSelectClass = (status) => {
-  const style = STATUS_STYLES[status] || 'bg-[var(--bg-muted)] text-[var(--text-secondary)] border-[var(--border-color)]';
-  // 移除 hover 效果，保留基础颜色
-  return style.replace(/hover:[^ ]+/g, '');
-};
+
 
 // 移动端检测
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
@@ -269,9 +253,7 @@ watch(
   { immediate: true }
 );
 
-const updateStatus = (newStatus) => {
-  form.status = newStatus;
-};
+
 
 const originalData = computed(() => props.order.originalData || {});
 
@@ -349,9 +331,12 @@ const handleSubmit = async () => {
   if (form.remark !== init.remark) updates.remark = form.remark;
   if (form.deadline !== init.deadline) updates.deadline = form.deadline;
 
+  // 移除状态更新逻辑，状态变更应使用 OrderStatusChanger 专用 API
+  /*
   if (props.mode === 'admin' && form.status !== init.status) {
     updates.status = form.status;
   }
+  */
 
   const oldIds = (props.order.files || [])
     .map((f) => f.id)

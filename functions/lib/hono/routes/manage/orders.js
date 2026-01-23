@@ -1,6 +1,4 @@
 import { Hono } from 'hono';
-import { z } from 'zod';
-import { zValidator } from '@hono/zod-validator';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 import { OrderStatsRepository } from '../../../../repositories/OrderStatsRepository.js';
 import { MSG, ORDER_STATUSES, getChinaDayStart, getChinaDateStr } from '../../_shared/utils.js';
@@ -209,6 +207,7 @@ app.get('/:id', async (c) => {
  */
 app.patch('/:id', async (c) => {
     const { env } = c;
+    const user = c.get('user'); // 从 JWT 获取管理员信息
     const id = c.req.param('id');
     const body = await c.req.json();
 
@@ -232,7 +231,7 @@ app.patch('/:id', async (c) => {
         updates,
         fileIds,
         allowedFields: ADMIN_EDITABLE_FIELDS,
-        actor: { type: 'admin', id: 'admin', name: 'Admin' }, // 这里可以优化为从 JWT 获取管理员名称，如果实现了多管理员
+        actor: { type: 'admin', id: user?.id || 'admin', name: user?.name || 'Admin' },
         reason: reason || 'Admin Update',
     });
 
@@ -244,10 +243,30 @@ app.patch('/:id', async (c) => {
  */
 app.patch('/:id/status', async (c) => {
     const { env } = c;
+    const user = c.get('user');
     const id = c.req.param('id');
-    const { status, reason } = await c.req.json();
+    const { status, note } = await c.req.json();
+    
     const repo = new OrderRepository(env.DB);
+    const order = await repo.findById(id);
+    if (!order) return c.json({ success: false, error: MSG.ORDER.NOT_FOUND }, 404);
+    
+    const oldStatus = order.status;
     const success = await repo.updateStatus(id, status, 'admin');
+    
+    if (success) {
+        // 记录状态变更到时间轴
+        await repo.timelineRepo.addTimelineEntry(id, {
+            actionType: 'status_changed',
+            actorType: 'admin',
+            actorId: user?.id || 'admin',
+            actorName: user?.name || 'Admin',
+            oldValue: oldStatus,
+            newValue: status,
+            reason: note || '',
+        });
+    }
+    
     return c.json({ success: !!success, message: success ? MSG.ORDER.STATUS_CHANGED : MSG.COMMON.OP_FAILED });
 });
 
