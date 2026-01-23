@@ -1,9 +1,9 @@
 <template>
-  <div class="relative min-h-screen w-full overflow-hidden bg-slate-900 text-slate-200">
+  <div class="relative min-h-screen w-full overflow-hidden bg-gray-50 text-slate-900 dark:bg-slate-900 dark:text-slate-200">
     <!-- Background Gradient Mesh -->
-    <div class="fixed inset-0 z-0">
+    <div class="pointer-events-none fixed inset-0 z-0">
       <div
-        class="absolute -top-[20%] -left-[10%] size-[800px] animate-pulse rounded-full bg-blue-600/20 blur-[120px]"
+        class="absolute -top-[20%] -left-[10%] size-[800px] animate-pulse rounded-full bg-blue-400/20 blur-[120px] dark:bg-blue-600/20"
       ></div>
       <div
         class="absolute top-[20%] right-[0%] size-[600px] animate-pulse rounded-full bg-purple-600/20 blur-[100px]"
@@ -15,7 +15,7 @@
       ></div>
       <!-- Grid Overlay -->
       <div
-        class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] opacity-20"
+        class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:40px_40px] opacity-20 dark:bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)]"
       ></div>
     </div>
 
@@ -24,17 +24,17 @@
       <!-- Header -->
       <div class="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 class="font-display text-transparent bg-gradient-to-r from-blue-200 to-indigo-200 bg-clip-text text-3xl font-bold tracking-tight">
+          <h1 class="font-display text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-3xl font-bold tracking-tight dark:from-blue-200 dark:to-indigo-200">
             {{ t('stats.statusOverview') }}
           </h1>
-          <p class="mt-2 text-slate-400">{{ t('ai.subtitle') }}</p>
+          <p class="mt-2 text-slate-500 dark:text-slate-400">{{ t('ai.subtitle') }}</p>
         </div>
         
         <!-- Refresh Button -->
         <button
           @click="loadStats"
           :disabled="loading"
-          class="group relative overflow-hidden rounded-xl bg-slate-800/50 px-5 py-2.5 text-sm font-medium text-slate-300 shadow-lg backdrop-blur-md transition-all hover:bg-slate-700/50 hover:text-white disabled:opacity-50"
+          class="group relative overflow-hidden rounded-xl bg-white px-5 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 dark:bg-slate-800/50 dark:text-slate-300 dark:shadow-lg dark:backdrop-blur-md dark:hover:bg-slate-700/50 dark:hover:text-white"
         >
           <div
             class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-700 group-hover:translate-x-full"
@@ -76,7 +76,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         </div>
-        <h3 class="text-xl font-semibold text-slate-200">{{ t('stats.loadFailed') }}</h3>
+        <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-200">{{ t('stats.loadFailed') }}</h3>
         <p class="text-slate-500 max-w-md">{{ error }}</p>
         <button
           @click="loadStats"
@@ -92,11 +92,12 @@
         <!-- Key Metrics Row -->
         <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
             <!-- Total Files -->
-           <div class="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md transition-all hover:bg-white/10 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)]">
+           <div class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-sm backdrop-blur-md transition-all hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 dark:hover:shadow-[0_0_30px_rgba(59,130,246,0.1)]">
              <div class="absolute -right-6 -top-6 rounded-full bg-blue-500/10 p-12 transition-transform group-hover:bg-blue-500/20 blur-2xl"></div>
              <div class="relative z-10 flex items-start justify-between">
                 <div>
-                  <p class="text-sm font-medium text-slate-400">{{ t('stats.totalFiles') }}</p>
+                  <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ t('stats.totalFiles') }}</p>
+                  <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 font-mono dark:text-white">
                     {{ formatNumber(stats.storage?.totalFiles) }}
                   </h3>
                 </div>
@@ -117,7 +118,8 @@
              <div class="absolute -right-6 -top-6 rounded-full bg-emerald-500/10 p-12 transition-transform group-hover:bg-emerald-500/20 blur-2xl"></div>
              <div class="relative z-10 flex items-start justify-between">
                 <div>
-                  <p class="text-sm font-medium text-slate-400">{{ t('stats.totalStorage') }}</p>
+                  <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ t('stats.totalStorage') }}</p>
+                  <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 font-mono dark:text-white">
                     {{ formatSize(stats.storage?.totalSize) }}
                   </h3>
                 </div>
@@ -138,7 +140,8 @@
              <div class="absolute -right-6 -top-6 rounded-full bg-purple-500/10 p-12 transition-transform group-hover:bg-purple-500/20 blur-2xl"></div>
              <div class="relative z-10 flex items-start justify-between">
                 <div>
-                  <p class="text-sm font-medium text-slate-400">{{ t('stats.monthVisits') }}</p>
+                  <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ t('stats.monthVisits') }}</p>
+                  <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 font-mono dark:text-white">
                     {{ formatNumber(stats.traffic?.monthTotal) }}
                   </h3>
                 </div>
@@ -159,8 +162,8 @@
         <!-- Charts Area -->
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <!-- Traffic Trend -->
-          <div class="lg:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-            <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-white">
+          <div class="lg:col-span-2 rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5">
+            <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
               <span class="size-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span>
               {{ t('stats.trafficTrend') }}
             </h3>
@@ -170,8 +173,8 @@
           </div>
 
           <!-- File Distribution -->
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-            <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-white">
+          <div class="rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5">
+            <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
               <span class="size-2 rounded-full bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.8)]"></span>
               {{ t('stats.fileTypes') }}
             </h3>
@@ -184,8 +187,8 @@
         <!-- Bottom Grid -->
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <!-- Top Spaces -->
-            <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-               <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-white">
+            <div class="rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5">
+               <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
                 <span class="size-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]"></span>
                 {{ t('stats.topSpaces') }}
               </h3>
@@ -194,7 +197,7 @@
                 <div
                     v-for="(space, index) in stats.traffic?.topSpaces"
                     :key="space.id"
-                    class="group flex items-center justify-between rounded-xl bg-white/5 p-4 transition-all hover:bg-white/10 border border-transparent hover:border-white/5"
+                    class="group flex items-center justify-between rounded-xl border border-transparent bg-gray-50 p-4 transition-all hover:border-blue-100 hover:bg-blue-50/50 dark:bg-white/5 dark:hover:border-white/5 dark:hover:bg-white/10"
                 >
                     <div class="flex items-center gap-4">
                         <div 
@@ -218,7 +221,7 @@
                     </div>
                 </div>
               </div>
-               <div v-else class="flex h-40 items-center justify-center text-slate-400">
+               <div v-else class="flex h-40 items-center justify-center text-slate-500 dark:text-slate-400">
                     {{ t('stats.noData') }}
                 </div>
             </div>
@@ -272,7 +275,7 @@
             
              <div v-if="stats.storage?.largeFiles?.length > 0" class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
-                  <thead class="text-slate-400 border-b border-white/10">
+                  <thead class="border-b border-gray-200 text-slate-500 dark:border-white/10 dark:text-slate-400">
                     <tr>
                       <th class="px-4 py-3 font-medium cursor-default">#</th>
                       <th class="px-4 py-3 font-medium">{{ t('stats.fileName') }}</th>
@@ -286,15 +289,15 @@
                       :key="file.id"
                       class="group transition-colors hover:bg-white/5"
                     >
-                      <td class="px-4 py-4 text-slate-500 group-hover:text-slate-300">{{ index + 1 }}</td>
-                      <td class="px-4 py-4 font-medium text-slate-200">
+                      <td class="px-4 py-4 text-slate-600 group-hover:text-slate-900 dark:text-slate-500 dark:group-hover:text-slate-300">{{ index + 1 }}</td>
+                      <td class="px-4 py-4 font-medium text-slate-900 dark:text-slate-200">
                           <div class="flex items-center gap-2">
                               <span class="line-clamp-1 max-w-[200px] md:max-w-md">{{ file.name }}</span>
                               <span v-if="index < 3" class="inline-flex items-center rounded-md bg-red-400/10 px-2 py-1 text-xs font-medium text-red-400 ring-1 ring-inset ring-red-400/20">Hot</span>
                           </div>
                       </td>
-                      <td class="px-4 py-4 text-slate-400">
-                          <span class="inline-flex items-center rounded-md bg-slate-700/50 px-2 py-1 text-xs font-medium text-slate-300 ring-1 ring-inset ring-slate-600/50">
+                      <td class="px-4 py-4 text-slate-500 dark:text-slate-400">
+                          <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-gray-200 dark:bg-slate-700/50 dark:text-slate-300 dark:ring-slate-600/50">
                               {{ file.type?.split('/')[1]?.toUpperCase() || 'UNKNOWN' }}
                           </span>
                       </td>
@@ -303,7 +306,7 @@
                   </tbody>
                 </table>
               </div>
-               <div v-else class="flex h-32 items-center justify-center text-slate-400">
+               <div v-else class="flex h-32 items-center justify-center text-slate-500 dark:text-slate-400">
                     {{ t('stats.noData') }}
                 </div>
         </div>

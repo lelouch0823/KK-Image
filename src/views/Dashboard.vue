@@ -1,40 +1,22 @@
 <template>
   <div class="relative min-h-screen w-full overflow-hidden bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-200 transition-colors duration-300">
     <!-- Fixed Background Gradient Mesh -->
-    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-      <!-- Dark Mode Blobs (Current) -->
-      <div class="dark:block hidden">
-          <div
-            class="absolute -top-[10%] -right-[10%] size-[600px] animate-pulse rounded-full bg-indigo-600/20 blur-[120px]"
-          ></div>
-           <div
-            class="absolute top-[40%] -left-[10%] size-[500px] animate-pulse rounded-full bg-cyan-600/10 blur-[100px]"
-            style="animation-delay: 2s"
-          ></div>
-          <div
-            class="absolute -bottom-[10%] right-[20%] size-[600px] animate-pulse rounded-full bg-purple-600/20 blur-[100px]"
-            style="animation-delay: 4s"
-          ></div>
-      </div>
-      
-      <!-- Light Mode Blobs (Subtle/Pastel) -->
-      <div class="dark:hidden block">
-          <div
-            class="absolute -top-[10%] -right-[10%] size-[600px] animate-pulse rounded-full bg-blue-200/40 blur-[100px]"
-          ></div>
-           <div
-            class="absolute top-[30%] -left-[10%] size-[500px] animate-pulse rounded-full bg-cyan-200/30 blur-[80px]"
-            style="animation-delay: 2s"
-          ></div>
-          <div
-            class="absolute -bottom-[10%] right-[20%] size-[600px] animate-pulse rounded-full bg-purple-200/30 blur-[100px]"
-            style="animation-delay: 4s"
-          ></div>
-      </div>
-
-      <!-- Grid Pattern -->
+    <!-- Background Gradient Mesh -->
+    <div class="pointer-events-none fixed inset-0 z-0">
       <div
-        class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] opacity-100"
+        class="absolute -top-[20%] -left-[10%] size-[800px] animate-pulse rounded-full bg-blue-400/20 blur-[120px] dark:bg-blue-600/20"
+      ></div>
+      <div
+        class="absolute top-[20%] right-[0%] size-[600px] animate-pulse rounded-full bg-purple-600/20 blur-[100px]"
+        style="animation-delay: 2s"
+      ></div>
+      <div
+        class="absolute -bottom-[20%] left-[20%] size-[600px] animate-pulse rounded-full bg-teal-600/20 blur-[100px]"
+        style="animation-delay: 4s"
+      ></div>
+      <!-- Grid Overlay -->
+      <div
+        class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:40px_40px] opacity-20 dark:bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)]"
       ></div>
     </div>
 
@@ -44,7 +26,7 @@
       <!-- Metrics Grid -->
       <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <!-- Today Orders -->
-        <div class="group relative overflow-hidden rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-6 shadow-sm dark:shadow-none backdrop-blur-md transition-all hover:-translate-y-1 hover:shadow-lg dark:hover:bg-white/10 dark:hover:shadow-blue-500/10 animate-fade-in-up" style="animation-delay: 0ms">
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-sm backdrop-blur-md transition-all hover:-translate-y-1 hover:shadow-lg dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:bg-white/10 dark:hover:shadow-blue-500/10 animate-fade-in-up" style="animation-delay: 0ms">
            <div class="flex items-center justify-between">
               <div>
                  <p class="text-sm font-medium text-gray-500 dark:text-slate-400">{{ t('dashboard.todayOrders') }}</p>
