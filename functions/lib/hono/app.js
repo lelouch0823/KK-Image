@@ -23,9 +23,15 @@ import manageFilesRoutes from './routes/manage/files.js';
 import manageAlbumsRoutes from './routes/manage/albums.js';
 import manageSpacesRoutes from './routes/manage/spaces/index.js';
 import manageStatsRoutes from './routes/manage/stats.js';
+import manageOrdersRoutes from './routes/manage/orders.js';
+import manageDashboardRoutes from './routes/manage/dashboard.js';
 import manageUsersRoutes from './routes/manage/user.js';
 import manageSharesRoutes from './routes/manage/shares.js';
 import manageUtilsRoutes from './routes/manage/utils.js';
+import manageCustomersRoutes from './routes/manage/customers.js';
+import manageSalespersonsRoutes from './routes/manage/salespersons.js';
+import manageUploadRoutes from './routes/manage/upload.js';
+import manageBackupsRoutes from './routes/manage/backups.js';
 import salesRoutes from './routes/sales.js';
 
 export const app = new Hono();
@@ -87,9 +93,15 @@ app.route('/api/manage/files', manageFilesRoutes);
 app.route('/api/manage/albums', manageAlbumsRoutes);
 app.route('/api/manage/spaces', manageSpacesRoutes);
 app.route('/api/manage/stats', manageStatsRoutes);
+app.route('/api/manage/orders', manageOrdersRoutes);
+app.route('/api/manage/dashboard', manageDashboardRoutes);
 app.route('/api/manage/user', manageUsersRoutes);
 app.route('/api/manage/shares', manageSharesRoutes);
 app.route('/api/manage/utils', manageUtilsRoutes);
+app.route('/api/manage/customers', manageCustomersRoutes);
+app.route('/api/manage/salespersons', manageSalespersonsRoutes);
+app.route('/api/manage/upload', manageUploadRoutes);
+app.route('/api/manage/backups', manageBackupsRoutes);
 app.route('/api/sales', salesRoutes);
 
 // ============================================

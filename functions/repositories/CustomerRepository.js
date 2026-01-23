@@ -23,7 +23,18 @@ export class CustomerRepository {
       .first();
 
     if (customer) {
-      customer.tags = customer.tags ? JSON.parse(customer.tags) : [];
+      if (customer.tags) {
+        try {
+          customer.tags = JSON.parse(customer.tags);
+          if (!Array.isArray(customer.tags)) {
+            customer.tags = [customer.tags];
+          }
+        } catch {
+          customer.tags = [customer.tags];
+        }
+      } else {
+        customer.tags = [];
+      }
     }
     return customer;
   }
@@ -69,10 +80,22 @@ export class CustomerRepository {
         .all(),
     ]);
 
-    const results = listResult.results.map((c) => ({
-      ...c,
-      tags: c.tags ? JSON.parse(c.tags) : [],
-    }));
+    const results = listResult.results.map((c) => {
+      let tags = [];
+      if (c.tags) {
+        try {
+          tags = JSON.parse(c.tags);
+          // 如果解析结果不是数组，包装为数组
+          if (!Array.isArray(tags)) {
+            tags = [tags];
+          }
+        } catch {
+          // 如果解析失败，可能是纯字符串，包装为数组
+          tags = [c.tags];
+        }
+      }
+      return { ...c, tags };
+    });
 
     return {
       results,
