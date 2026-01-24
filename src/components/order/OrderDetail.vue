@@ -384,18 +384,20 @@ const executeVoid = async () => {
 const handleUpdate = async (payload) => {
   if (!salesToken.value) return;
 
-  const { updates, fileIds } = payload;
-  const updatesToSend = { ...updates };
-  if (fileIds) {
-    updatesToSend.fileIds = fileIds;
-  }
+  const { updates, fileIds, reason } = payload;
 
   submitting.value = true;
   try {
+    // 发送正确的 payload 结构：updates, reason, fileIds 都在顶层
+    const requestBody = { updates, reason };
+    if (fileIds) {
+      requestBody.fileIds = fileIds;
+    }
+    
     const res = await fetch(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ updates: { ...updatesToSend, reason: payload.reason } }),
+      body: JSON.stringify(requestBody),
       credentials: 'include',
     });
     const result = await res.json();

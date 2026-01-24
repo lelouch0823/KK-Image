@@ -105,19 +105,17 @@ export function useOrderForm(options = {}) {
 
   /**
    * 获取提交数据
-   * @returns {Object} 包含表单数据、新文件和已有文件ID
+   * @returns {Object} 包含表单数据和文件ID列表
    */
   const getSubmitData = () => {
-    // 新上传的文件
-    const files = uploadedFiles.value.filter((f) => f.isLocal && f.file).map((f) => f.file);
-
-    // 已有文件ID (复制订单时)
-    const existingFileIds = uploadedFiles.value.filter((f) => !f.isLocal && f.id).map((f) => f.id);
+    // 提取所有已上传的文件ID
+    const fileIds = uploadedFiles.value
+      .filter((f) => !f.isLocal && f.id)
+      .map((f) => f.id);
 
     return {
       ...form,
-      files,
-      existingFileIds,
+      fileIds,
     };
   };
 

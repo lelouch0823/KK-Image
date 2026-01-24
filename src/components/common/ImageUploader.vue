@@ -73,7 +73,7 @@
         <!-- 主图/封面标记 -->
         <div
           v-if="index === 0"
-          class="bg-primary absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] text-white shadow-sm"
+          class="bg-primary absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] text-white shadow-sm dark:text-gray-900"
         >
           {{ coverText }}
         </div>
@@ -145,13 +145,14 @@
 </template>
 
 <script setup>
-import { ref, toRef } from 'vue';
+import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useDragSort } from '@/composables/useDragSort';
 import { useImageCompression } from '@/composables/useImageCompression';
 import { API } from '@/utils/constants';
 import { generateRandomId } from '@/utils/common';
+import { runConcurrent } from '@/utils/concurrency';
 
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
@@ -175,8 +176,8 @@ const processingStatus = ref('');
 const coverText = t('spaceManager.cover');
 const uploadText = t('common.addImage');
 
-// 使用拖拽排序 composable
-const items = toRef(props, 'modelValue');
+// 使用 computed 确保响应式同步
+const items = computed(() => props.modelValue);
 const {
   getDragClass,
   handleDragStart,
@@ -440,43 +441,62 @@ const replaceFile = async (index, e) => {
     addToast({ message: t('uploadQueue.uploadFailed'), type: 'error' });
   }
 };
-// 批量上传待处理文件 (供父组件调用)
+// 批量上传待处理文件 (供父组件调用) - 并发优化版 SOTA
 const uploadPendingFiles = async () => {
-  const pendingFiles = items.value.filter((f) => f.isLocal && f.file);
-  if (pendingFiles.length === 0) return true;
+  // 直接从 props 获取最新值，确保响应式同步
+  const currentFiles = props.modelValue || [];
+  const pendingIndices = [];
+
+  // 记录需要上传的文件索引
+  currentFiles.forEach((f, index) => {
+    if (f.isLocal && f.file) {
+      pendingIndices.push(index);
+    }
+  });
+
+  console.warn('[ImageUploader] uploadPendingFiles called, total files:', currentFiles.length, 'pending:', pendingIndices.length);
+
+  if (pendingIndices.length === 0) return true;
 
   isProcessing.value = true;
-  let _successCount = 0;
+
+  // 创建工作副本
+  let workingList = [...currentFiles];
 
   try {
-    const newFiles = [...items.value];
+    // 顺序上传每个待处理文件（避免并发时的状态问题）
+    for (let i = 0; i < pendingIndices.length; i++) {
+      const originalIndex = pendingIndices[i];
+      const fileObj = currentFiles[originalIndex];
 
-    for (let i = 0; i < newFiles.length; i++) {
-      const fileObj = newFiles[i];
-      if (fileObj.isLocal && fileObj.file) {
-        processingStatus.value = `${t('upload.uploading')} ${i + 1}/${newFiles.length}`;
-        try {
-          const uploaded = await uploadFile(fileObj.file, fileObj.hash);
+      processingStatus.value = `${t('upload.uploading')} ${i + 1}/${pendingIndices.length}`;
 
-          if (fileObj.url.startsWith('blob:')) {
-            URL.revokeObjectURL(fileObj.url);
-          }
+      try {
+        const uploaded = await uploadFile(fileObj.file, fileObj.hash);
 
-          newFiles[i] = {
-            id: uploaded.id,
-            url: `/file/${uploaded.storage_key || uploaded.storageKey}`,
-            hash: fileObj.hash,
-            instantUpload: uploaded.instantUpload,
-          };
-          _successCount++;
-        } catch (e) {
-          console.error(`Upload failed for file index ${i}`, e);
-          throw new Error(`${fileObj.file.name} ${t('uploadQueue.uploadFailed')}`);
+        if (fileObj.url && fileObj.url.startsWith('blob:')) {
+          URL.revokeObjectURL(fileObj.url);
         }
+
+        // 更新工作副本中的对应项
+        workingList[originalIndex] = {
+          id: uploaded.id,
+          url: `/file/${uploaded.storage_key || uploaded.storageKey}`,
+          hash: fileObj.hash,
+          instantUpload: uploaded.instantUpload,
+        };
+
+        console.warn('[ImageUploader] Uploaded file at index', originalIndex, 'new id:', uploaded.id);
+      } catch (e) {
+        console.error(`Upload failed for file at index ${originalIndex}`, e);
+        throw new Error(`${fileObj.file.name} ${t('uploadQueue.uploadFailed')}`);
       }
     }
 
-    emit('update:modelValue', newFiles);
+    // 所有上传完成后，一次性发送更新
+    console.warn('[ImageUploader] All uploads done, emitting updated list:', JSON.stringify(workingList.map(f => ({ id: f.id, isLocal: f.isLocal }))));
+    emit('update:modelValue', workingList);
+
     return true;
   } catch (err) {
     addToast({ message: err.message, type: 'error' });

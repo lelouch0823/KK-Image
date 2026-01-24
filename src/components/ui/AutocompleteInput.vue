@@ -22,12 +22,12 @@
     >
       <div
         v-if="showDropdown && filteredSuggestions.length > 0"
-        class="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-[var(--border-color)] bg-white shadow-lg"
+        class="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] shadow-lg"
       >
         <div class="max-h-48 overflow-y-auto py-1">
           <div
             v-if="label"
-            class="text-secondary bg-[var(--bg-muted)] px-3 py-1.5 text-xs font-medium"
+            class="text-[var(--text-secondary)] bg-[var(--bg-muted)] px-3 py-1.5 text-xs font-medium"
           >
             {{ label }}
           </div>
@@ -35,10 +35,9 @@
             v-for="(suggestion, index) in filteredSuggestions"
             :key="suggestion"
             type="button"
-            class="w-full px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--bg-hover)]"
+            class="w-full px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--bg-hover)] text-[var(--text-main)]"
             :class="{
-              'bg-primary/5 text-primary': index === highlightedIndex,
-              'text-primary': index !== highlightedIndex,
+              'bg-[var(--bg-muted)]': index === highlightedIndex,
             }"
             @mousedown.prevent="selectSuggestion(suggestion)"
             @mouseenter="highlightedIndex = index"

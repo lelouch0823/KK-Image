@@ -161,18 +161,19 @@ app.patch('/:id', async (c) => {
         return c.json({ success: false, error: MSG.ORDER.ONLY_PENDING_CAN_EDIT }, 403);
     }
 
-    const updatesObj = body.updates || body;
-    const { reason, fileIds, ...updates } = updatesObj;
+    const { updates: updatesFromBody, reason, fileIds } = body;
+    const updatesObj = updatesFromBody || body;
+    const { reason: _unusedReason, fileIds: _unusedFileIds, updates: _unusedUpdates, ...updates } = updatesObj;
 
     if (!reason || !reason.trim()) {
         return c.json({ success: false, error: MSG.ORDER.REASON_REQUIRED }, 400);
     }
 
     const { processOrderUpdate } = await import('../../../../api/utils/order-utils.js');
-    
+
     // 销售端允许修改的字段
     const SALES_EDITABLE_FIELDS = ['name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline'];
-    
+
     const _result = await processOrderUpdate({
         env,
         orderId,

@@ -236,73 +236,24 @@ export function useOrders() {
    */
   const createSalesOrder = async (token, data, onProgress = () => { }) => {
     try {
-      const { files, existingFileIds = [], ...orderData } = data;
+      // OrderForm 已在提交前通过 ImageUploader 完成上传，直接使用 fileIds
+      const { fileIds = [], ...orderData } = data;
 
-      // Step 1: 创建订单 (如果有已有文件ID，直接传入)
-      onProgress('creating', 0, files?.length || 0);
+      onProgress('creating', 0, 0);
+
+      console.warn('[useOrders] createSalesOrder with fileIds:', fileIds);
 
       const res = await fetch(API.SALES_ORDER_CREATE(token), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ ...orderData, fileIds: existingFileIds }),
+        body: JSON.stringify({ ...orderData, fileIds }),
       });
       const result = await res.json();
 
       if (!result.success) {
         addToast({ message: result.message, type: 'error' });
         return false;
-      }
-
-      const { id: orderId, orderNo: _orderNo } = result.data;
-
-      // Step 2: 上传新图片 (带 orderId，直接归档)
-      const newFileIds = [];
-      if (files && files.length > 0) {
-        for (let i = 0; i < files.length; i++) {
-          onProgress('uploading', i + 1, files.length);
-
-          const formData = new FormData();
-          formData.append('file', files[i]);
-
-          // 带上 orderId 参数，后端会直接归档到订单文件夹
-          const uploadRes = await fetch(`${API.SALES_UPLOAD(token)}?orderId=${orderId}`, {
-            method: 'POST',
-            body: formData,
-            credentials: 'include',
-          });
-          const uploadResult = await uploadRes.json();
-          if (uploadResult.success) {
-            newFileIds.push(uploadResult.data.id);
-          }
-        }
-      }
-
-      // Step 3: 如果有新上传的图片，追加到订单
-      if (newFileIds.length > 0) {
-        onProgress('linking', 0, 0);
-
-        // 合并已有文件ID和新上传的文件ID
-        const allFileIds = [...existingFileIds, ...newFileIds];
-        const patchRes = await fetch(API.SALES_ORDER_DETAIL(token, orderId), {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            updates: {
-              fileIds: allFileIds,
-              reason: t('order.timeline.reasons.initialUpload') || 'Initial upload'
-            }
-          }),
-        });
-
-        const patchResult = await patchRes.json();
-        if (!patchResult.success) {
-          console.error('Link files failed:', patchResult);
-          // 不中断流程，但提示用户? 或者抛出错误
-          // 鉴于订单已创建，图片已上传，只是关联失败。
-          // 暂不抛出错误，但记录日志。
-        }
       }
 
       onProgress('done', 0, 0);

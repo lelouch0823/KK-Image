@@ -1,5 +1,5 @@
 <template>
-  <div class="overflow-hidden rounded-xl border border-[var(--border-color)] bg-white">
+  <div class="overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)]">
     <div class="flex items-center gap-3 p-3">
       <input
         v-model="text"

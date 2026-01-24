@@ -23,7 +23,7 @@ import manageFilesRoutes from './routes/manage/files.js';
 import manageAlbumsRoutes from './routes/manage/albums.js';
 import manageSpacesRoutes from './routes/manage/spaces/index.js';
 import manageStatsRoutes from './routes/manage/stats.js';
-import manageOrdersRoutes from './routes/manage/orders.js';
+import manageOrdersRoutes from './routes/manage/orders/index.js';
 import manageDashboardRoutes from './routes/manage/dashboard.js';
 import manageUsersRoutes from './routes/manage/user.js';
 import manageSharesRoutes from './routes/manage/shares.js';

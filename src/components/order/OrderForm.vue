@@ -10,6 +10,7 @@
     <form class="space-y-4" @submit.prevent="handleSubmit">
       <!-- 图片上传 -->
       <ImageUploader
+        ref="uploaderRef"
         v-model="uploadedFiles"
         :label="t('order.form.uploadImages')"
         :hint="t('order.form.uploadHint')"
@@ -215,7 +216,7 @@
 </template>
 
 <script setup>
-import { watch, toRef, reactive, computed } from 'vue';
+import { watch, toRef, reactive, computed, ref, nextTick } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useOrderForm } from '@/composables/useOrderForm';
 import ImageUploader from '../common/ImageUploader.vue';
@@ -295,12 +296,28 @@ watch(
 );
 
 // 提交表单
+const uploaderRef = ref(null);
+
 const handleSubmit = async () => {
   if (!isValid.value || isSubmitting.value) return;
 
   setSubmitting(true);
   try {
+    // 1. 先上传已有图片
+    if (uploaderRef.value) {
+      console.warn('[OrderForm] Before upload, uploadedFiles:', JSON.stringify(uploadedFiles.value.map(f => ({ id: f.id, isLocal: f.isLocal }))));
+      const success = await uploaderRef.value.uploadPendingFiles();
+      if (!success) {
+        setSubmitting(false);
+        return;
+      }
+      await nextTick(); // 等待 Vue 处理响应式更新
+      console.warn('[OrderForm] After upload, uploadedFiles:', JSON.stringify(uploadedFiles.value.map(f => ({ id: f.id, isLocal: f.isLocal }))));
+    }
+
+    // 2. 获取提交数据 (此时 uploadedFiles 已包含服务器 ID)
     const data = getSubmitData();
+    console.warn('[OrderForm] Submit data fileIds:', data.fileIds);
     if (props.mode === 'admin') {
       data.salespersonId = adminForm.salespersonId;
       data.status = adminForm.status;
@@ -308,7 +325,6 @@ const handleSubmit = async () => {
     
     await emit('submit', data);
     saveHistory();
-    // adminForm 重置? Parent will likely close modal.
   } finally {
     setSubmitting(false);
   }

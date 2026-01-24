@@ -11,7 +11,7 @@
       <!-- Create Button -->
       <button
         v-if="showCreate"
-        class="flex h-9 items-center gap-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 px-4 text-sm font-medium text-white shadow-sm transition-all active:scale-95"
+        class="flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-white shadow-sm shadow-primary/20 transition-all hover:bg-primary-hover active:scale-95 dark:text-gray-900"
         @click="$emit('create')"
       >
         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
