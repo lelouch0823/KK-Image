@@ -165,8 +165,7 @@ const {
   orders,
   checkSalesAuth,
   loginSales,
-  loadSalesOrders,
-  getSalesOrder
+  loadSalesOrders
 } = useOrders();
 
 const { t } = useI18n();
