@@ -72,7 +72,7 @@ export async function updateData(db, id, newData, actorType) {
     const timestamp = now();
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
 
-    await db
+    return db
         .prepare(
             `
       UPDATE orders 
@@ -95,7 +95,7 @@ export async function updateStatus(db, id, newStatus, actorType) {
     const timestamp = now();
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
 
-    await db
+    return db
         .prepare(
             `
       UPDATE orders 

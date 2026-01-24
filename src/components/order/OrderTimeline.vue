@@ -100,7 +100,7 @@
                       t('order.timeline.imagesUpdated')
                     }}</span>
                     <span v-else>{{
-                      t('order.timeline.fieldUpdated', { field: getFieldLabel(update.fieldName) })
+                      t('order.timeline.fieldUpdated', { field: getDisplayField(update) })
                     }}</span>
                   </p>
 
@@ -113,7 +113,7 @@
                     class="mt-1 flex items-center gap-2 text-xs"
                   >
                     <span class="text-[var(--color-danger-text)]/60 line-through">
-                      {{ formatFieldValue(update.fieldName, update.oldValue) }}</span
+                      {{ getDisplayValue(update, 'oldValue') }}</span
                     >
                     <svg
                       class="text-secondary size-3"
@@ -129,7 +129,7 @@
                       ></path>
                     </svg>
                     <span class="font-medium text-[var(--color-success-text)]">{{
-                      formatFieldValue(update.fieldName, update.newValue)
+                      getDisplayValue(update, 'newValue')
                     }}</span>
                   </div>
 
@@ -280,7 +280,7 @@
                       t('order.timeline.imagesUpdated')
                     }}</span>
                     <span v-else>{{
-                      t('order.timeline.fieldUpdated', { field: getFieldLabel(update.fieldName) })
+                      t('order.timeline.fieldUpdated', { field: getDisplayField(update) })
                     }}</span>
                   </div>
                   <div
@@ -291,11 +291,11 @@
                     class="mt-0.5 flex items-center gap-2 text-xs"
                   >
                     <span class="text-gray-400 line-through">{{
-                      formatFieldValue(update.fieldName, update.oldValue)
+                      getDisplayValue(update, 'oldValue')
                     }}</span>
                     <span class="text-gray-300">→</span>
                     <span class="text-gray-900">{{
-                      formatFieldValue(update.fieldName, update.newValue)
+                      getDisplayValue(update, 'newValue')
                     }}</span>
                   </div>
                   <div v-if="update.reason" class="mt-0.5 text-xs text-gray-500">
@@ -342,7 +342,26 @@ const props = defineProps({
   mode: { type: String, default: 'timeline' }, // 'timeline' | 'table'
 });
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
+
+// 简化的语言代码 (zh-CN -> zh)
+const currentLang = computed(() => locale.value?.startsWith('zh') ? 'zh' : 'en');
+
+// 获取显示字段名 (优先使用后端返回的双语)
+const getDisplayField = (update) => {
+  if (update.display?.field) {
+    return update.display.field[currentLang.value] || update.display.field.zh;
+  }
+  return getFieldLabel(update.fieldName);
+};
+
+// 获取显示值 (优先使用后端返回的双语)
+const getDisplayValue = (update, type) => {
+  if (update.display?.[type]) {
+    return update.display[type][currentLang.value] || update.display[type].zh;
+  }
+  return formatFieldValue(update.fieldName, update[type]);
+};
 
 const isExpanded = ref(false);
 
@@ -429,19 +448,35 @@ const getFieldLabel = (fieldName) => {
     status: t('order.detail.status'),
     images: t('order.detail.images'),
     files: t('order.detail.images'), // 兼容后端 fieldName: 'files'
+    'order.detail.status': t('order.detail.status'), // 兼容后端直接存了 key 的情况
   };
   return labels[fieldName] || fieldName;
 };
 
 // 格式化字段值 (处理图片数量等特殊显示)
 const formatFieldValue = (fieldName, value) => {
-  if ((fieldName === 'images' || fieldName === 'files') && value) {
-    const match = value.match(/(\d+)/);
+  if (!value) return '-';
+
+  // 图片数量
+  if (fieldName === 'images' || fieldName === 'files') {
+    const match = String(value).match(/(\d+)/);
     if (match) {
       return t('order.timeline.imageCount', { count: match[1] });
     }
   }
-  return value || '-';
+
+  // 状态值翻译
+  if (['status', 'order.detail.status'].includes(fieldName)) {
+    // 尝试翻译状态值
+    const key = `order.statuses.${value}`;
+    const translated = t(key);
+    // 如果翻译结果与 key 不同，说明找到了翻译
+    if (translated !== key) {
+      return translated;
+    }
+  }
+
+  return value;
 };
 
 // 格式化图片数量

@@ -7,6 +7,7 @@
  */
 
 import { generateId, now } from '../api/utils/id.js';
+import { getTimelineDisplay } from '../api/utils/timeline-dict.js';
 
 export class OrderTimelineRepository {
   constructor(db) {
@@ -41,6 +42,10 @@ export class OrderTimelineRepository {
       reason: t.reason,
       comment: t.comment,
       createdAt: t.created_at,
+      // SOTA: 增加后端双语显示支持
+      display: t.field_name
+        ? getTimelineDisplay(t.field_name, t.old_value, t.new_value)
+        : null,
     }));
   }
 
