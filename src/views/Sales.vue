@@ -21,22 +21,47 @@
       >
         <div class="mx-auto flex h-14 max-w-screen-xl items-center justify-between px-4 sm:px-6">
           <div class="flex items-center gap-3">
-            <div
-              class="from-primary flex size-8 items-center justify-center rounded-lg bg-gradient-to-br to-[var(--color-gray-700)]"
-            >
-              <svg class="size-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                ></path>
-              </svg>
-            </div>
-            <div>
-              <h1 class="text-primary text-sm font-semibold">{{ t('order.portal.myOrders') }}</h1>
-              <p class="text-secondary text-xs">{{ salesperson?.name }}</p>
-            </div>
+            <!-- List Page: Logo & User Info -->
+            <template v-if="isListPage">
+              <div
+                class="from-primary flex size-8 items-center justify-center rounded-lg bg-gradient-to-br to-[var(--color-gray-700)]"
+              >
+                <svg class="size-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  ></path>
+                </svg>
+              </div>
+              <div>
+                <h1 class="text-primary text-sm font-semibold">{{ t('order.portal.myOrders') }}</h1>
+                <p class="text-secondary text-xs">{{ salesperson?.name }}</p>
+              </div>
+            </template>
+
+            <!-- Sub-pages: Back Button & Page Title -->
+            <template v-else>
+              <button
+                class="group flex items-center gap-2 transition-colors"
+                @click="router.push(`/sales/${accessToken}`)"
+              >
+                <div
+                  class="text-secondary flex size-8 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] transition-colors group-hover:text-primary group-hover:bg-[var(--bg-hover)]"
+                >
+                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                </div>
+                <h1 class="text-primary text-sm font-semibold">{{ pageTitle }}</h1>
+              </button>
+            </template>
           </div>
           <div class="flex items-center gap-2">
             <!-- 通知铃铛 -->
@@ -116,21 +141,6 @@
               </svg>
               {{ t('order.portal.newOrder') }}
             </button>
-             <button
-              v-else-if="!isListPage"
-              class="text-secondary flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
-              @click="router.push(`/sales/${accessToken}`)"
-            >
-              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                ></path>
-              </svg>
-              {{ t('order.portal.myOrders') }}
-            </button>
           </div>
         </div>
       </header>
@@ -183,6 +193,14 @@ const accessToken = computed(() => route.params.token);
 // Derived state for Header Actions
 const isStatsPage = computed(() => route.path.endsWith('/stats'));
 const isListPage = computed(() => route.path === `/sales/${accessToken.value}` || route.path === `/sales/${accessToken.value}/`);
+
+const pageTitle = computed(() => {
+  if (isListPage.value) return t('order.portal.myOrders');
+  if (route.path.includes('/create')) return t('order.portal.newOrder');
+  if (route.path.includes('/detail')) return t('order.detail.title');
+  if (route.path.includes('/stats')) return t('salesStats.title');
+  return '';
+});
 
 // Auth State
 const loading = ref(true);
