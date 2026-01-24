@@ -19,7 +19,7 @@
       />
 
       <!-- 商品信息 -->
-      <div class="space-y-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
+      <div class="space-y-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 sm:p-5">
         <!-- 商品名称 -->
         <div>
           <label class="text-primary mb-2 block text-sm font-medium">
@@ -36,7 +36,7 @@
         </div>
 
         <!-- 品牌和系列 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
             <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('order.form.brand') }}
@@ -66,7 +66,7 @@
         </div>
 
         <!-- Admin: 销售员 | SKU -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div v-if="mode === 'admin'">
             <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('common.salesperson') }} <span class="text-danger">*</span>
@@ -104,7 +104,7 @@
         </div>
 
         <!-- 颜色材质 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
             <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('order.form.color') }}
@@ -147,7 +147,7 @@
         </div>
 
         <!-- Admin: 状态 | 到货时间 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div v-if="mode === 'admin'">
             <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('order.status') }}
@@ -185,7 +185,7 @@
         <button
           type="submit"
           :disabled="!isValid || isSubmitting"
-          class="bg-primary shadow-primary/20 flex h-12 flex-1 items-center justify-center gap-2 rounded-xl font-medium text-white dark:text-gray-900 shadow-lg transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+          class="bg-primary shadow-primary/20 flex h-12 flex-1 items-center justify-center gap-2 rounded-xl font-medium text-white shadow-lg transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-900"
         >
           <svg
             v-if="isSubmitting"
@@ -228,8 +228,8 @@ const props = defineProps({
   prefill: { type: Object, default: null },
   submitProgress: { type: Object, default: () => ({ step: '', current: 0, total: 0 }) },
   mode: { type: String, default: 'sales' }, // 'sales', 'admin'
-  title: String,
-  subtitle: String,
+  title: { type: String, default: '' },
+  subtitle: { type: String, default: '' },
   salespersons: { type: Array, default: () => [] },
   statuses: { type: Array, default: () => [] },
 });

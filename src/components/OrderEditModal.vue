@@ -1,10 +1,9 @@
 <template>
-  <!-- 移动端全屏，桌面端 6xl -->
   <Modal
     :model-value="true"
-    :size="isMobile ? 'full' : '6xl'"
+    size="6xl"
     :title="t('order.manage.editOrder')"
-    :body-class="isMobile ? 'flex-1 overflow-y-auto p-4' : 'flex-1 overflow-y-auto p-6'"
+    body-class="flex-1 overflow-y-auto p-4 lg:p-6"
     :z-index="zIndex"
     @update:model-value="$emit('close')"
   >
@@ -68,7 +67,7 @@
           v-model="editReason"
           type="text"
           :placeholder="t('order.manage.editReasonPlaceholder')"
-          class="w-full rounded-lg border border-[var(--color-warning)]/20 bg-[var(--color-warning-bg)]/50 px-4 py-2.5 text-sm text-[var(--color-warning-text)] outline-none transition placeholder:text-[var(--color-warning-text)]/40 focus:border-[var(--color-warning)] focus:ring-1 focus:ring-[var(--color-warning)] dark:bg-[var(--color-warning)]/10 dark:text-[var(--color-warning)] dark:placeholder:text-[var(--color-warning)]/50"
+          class="w-full rounded-lg border border-[var(--color-warning)]/20 bg-[var(--color-warning-bg)]/50 px-4 py-2.5 text-sm text-[var(--color-warning-text)] transition outline-none placeholder:text-[var(--color-warning-text)]/40 focus:border-[var(--color-warning)] focus:ring-1 focus:ring-[var(--color-warning)] dark:bg-[var(--color-warning)]/10 dark:text-[var(--color-warning)] dark:placeholder:text-[var(--color-warning)]/50"
         />
         <p class="mt-1.5 flex items-center text-xs text-[var(--color-warning-text)] dark:text-[var(--color-warning)]">
           <svg class="mr-1 size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,7 +93,7 @@
       <button
         :class="[
           !isValid || submitting ? 'cursor-not-allowed opacity-50' : 'hover:bg-primary-hover',
-          'bg-primary shadow-primary/20 flex items-center rounded-lg px-5 py-2 font-medium text-white dark:text-gray-900 shadow-lg transition-colors'
+          'bg-primary shadow-primary/20 flex items-center rounded-lg px-5 py-2 font-medium text-white shadow-lg transition-colors dark:text-gray-900'
         ]"
         :disabled="submitting"
         @click="handleSaveClick"
@@ -127,34 +126,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed, watch, nextTick } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
-import { getStatusBadgeClass, STATUS_STYLES } from '@/utils/status';
+import { getStatusBadgeClass } from '@/utils/status';
 import { useSalesToken } from '@/composables/useSalesToken';
 import Modal from '@/components/ui/Modal.vue';
 import OrderFormFields from './order/OrderFormFields.vue';
 import OrderOriginalInfo from './order/OrderOriginalInfo.vue';
-import StatusSelector from '@/components/ui/StatusSelector.vue';
 import ImageUploader from '@/components/common/ImageUploader.vue';
-
-
-
-// 移动端检测
-const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
-const isMobile = computed(() => windowWidth.value < 768);
-
-const handleResize = () => {
-  windowWidth.value = window.innerWidth;
-};
-
-onMounted(() => {
-  window.addEventListener('resize', handleResize);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('resize', handleResize);
-});
 
 const props = defineProps({
   order: { type: Object, required: true },
