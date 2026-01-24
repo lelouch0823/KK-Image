@@ -34,8 +34,13 @@ import manageUploadRoutes from './routes/manage/upload.js';
 import manageBackupsRoutes from './routes/manage/backups.js';
 import manageSettingsRoutes from './routes/manage/settings.js';
 import salesRoutes from './routes/sales.js';
+import manageNotificationsRoutes from './routes/manage/notifications.js';
 
 export const app = new Hono();
+
+// ============================================
+// 全局中间件（洋葱模型，从外到内执行）
+// ============================================
 
 // ============================================
 // 全局中间件（洋葱模型，从外到内执行）
@@ -75,6 +80,7 @@ app.use('/api/*', rateLimitMiddleware);
 
 app.use('/api/v1/*', authMiddleware);
 app.use('/api/manage/*', authMiddleware);
+app.use('/api/notifications/*', authMiddleware); // 新增: 通知 API 需要认证
 // 注意：/api/sales/login 和 wechat-login 在 authMiddleware 内部通过 publicRoutes 排除
 app.use('/api/sales/*', authMiddleware);
 
@@ -104,6 +110,7 @@ app.route('/api/manage/salespersons', manageSalespersonsRoutes);
 app.route('/api/manage/upload', manageUploadRoutes);
 app.route('/api/manage/backups', manageBackupsRoutes);
 app.route('/api/manage/settings', manageSettingsRoutes);
+app.route('/api/notifications', manageNotificationsRoutes); // 新增: 挂载通知路由
 app.route('/api/sales', salesRoutes);
 
 // ============================================

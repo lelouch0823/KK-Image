@@ -3,7 +3,6 @@ import { zValidator } from '@hono/zod-validator';
 import { CreateOrderSchema, AddCommentSchema } from '../../schemas/sales.js';
 import { MSG, generateId, generateOrderNo, triggerWebhook } from '../../_shared/utils.js';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
-import { NotificationRepository } from '../../../../repositories/NotificationRepository.js';
 
 const app = new Hono();
 
@@ -78,13 +77,14 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
     // 2. 发送 WEBHOOK & 通知 (后台任务)
     c.executionCtx.waitUntil((async () => {
         try {
-            const notifyRepo = new NotificationRepository(env.DB);
-            await notifyRepo.create({
+            const { createOrderNotification } = await import('../../../../api/utils/order-utils.js');
+            await createOrderNotification(env.DB, {
                 event: 'ORDER_CREATED',
                 orderId,
                 orderNo,
                 receiver: 'admin',
                 actorName: salesperson.name,
+                salespersonId: salesperson.id,
             });
 
             await triggerWebhook(env, 'order.created', { orderId, orderNo, salesperson: salesperson.name });
