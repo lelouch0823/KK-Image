@@ -69,6 +69,7 @@ app.patch('/:id', async (c) => {
         allowedFields: ADMIN_EDITABLE_FIELDS,
         actor: { type: 'admin', id: user?.id || 'admin', name: user?.name || 'Admin' },
         reason: reason || 'Admin Update',
+        salespersonId: order.salespersonId, // 传入销售员ID以发送通知
     });
 
     return c.json({ success: true, message: MSG.ORDER.UPDATE_SUCCESS });
@@ -101,6 +102,20 @@ app.patch('/:id/status', async (c) => {
             newValue: status,
             reason: note || '',
         });
+
+        // SOTA: 发送状态变更通知给销售
+        if (order.salespersonId) {
+            const { createOrderNotification } = await import('../../../../../api/utils/order-utils.js');
+            await createOrderNotification(env.DB, {
+                event: 'ORDER_STATUS_CHANGED',
+                orderId: id,
+                orderNo: order.orderNo,
+                receiver: 'sales',
+                salespersonId: order.salespersonId,
+                actorName: user?.name || 'Admin',
+                extra: { status }
+            });
+        }
     }
 
     return c.json({ success: !!success, message: success ? MSG.ORDER.STATUS_CHANGED : MSG.COMMON.OP_FAILED });

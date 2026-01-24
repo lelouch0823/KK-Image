@@ -293,7 +293,7 @@ export async function detectAndLogFieldChanges(
  * @returns {Promise<{success: boolean, hasChanges: boolean, newData: Object}>}
  */
 export async function processOrderUpdate(options) {
-  const { env, orderId, orderNo, currentData, updates, fileIds, allowedFields, actor, reason } =
+  const { env, orderId, orderNo, currentData, updates, fileIds, allowedFields, actor, reason, salespersonId } =
     options;
 
   // 1. 检测字段变更
@@ -310,10 +310,37 @@ export async function processOrderUpdate(options) {
   // 2. 检测文件变更
   const filesChanged = await updateOrderFiles(env, orderId, orderNo, fileIds, actor, reason);
 
-  // 3. 如果有任何变更，更新订单
+  // 3. 如果有任何变更，更新订单并发送通知
   if (dataChanged || filesChanged) {
     const orderRepo = new OrderRepository(env.DB);
     await orderRepo.updateData(orderId, newData, actor.type === 'admin' ? 'admin' : 'sales');
+
+    // SOTA: 自动发送通知
+    // 如果是管理员修改，通知销售员
+    if (actor.type === 'admin' && salespersonId) {
+      await createOrderNotification(env.DB, {
+        event: 'ORDER_UPDATED_BY_ADMIN',
+        orderId,
+        orderNo,
+        receiver: 'sales',
+        salespersonId,
+        actorName: actor.name,
+        extra: {
+          count: Object.keys(updates || {}).length + (filesChanged ? 1 : 0)
+        }
+      });
+    }
+    // 如果是销售员修改，通知管理员
+    else if (actor.type !== 'admin') {
+      await createOrderNotification(env.DB, {
+        event: 'ORDER_UPDATED_BY_SALES',
+        orderId,
+        orderNo,
+        receiver: 'admin',
+        actorName: actor.name
+      });
+    }
+
     return { success: true, hasChanges: true, newData };
   }
 
