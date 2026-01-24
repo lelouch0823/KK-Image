@@ -212,10 +212,23 @@ const {
   stopPolling: stopNotificationPolling,
 } = useNotifications();
 
-// Watch for notifications to auto-refresh logic
-watch(lastNotificationTime, () => {
+// 监听上次通知时间 (SOTA: 自动刷新逻辑)
+watch(lastNotificationTime, async () => {
   if (isAuthenticated.value && currentView.value === 'list') {
-    loadOrders();
+    // 1. 记录当前有反馈的订单ID (用于比较新增反馈)
+    const prevFeedbackIds = new Set(orders.value.filter((o) => o.hasNewFeedback).map((o) => o.id));
+
+    // 2. 刷新订单列表
+    await loadOrders();
+
+    // 3. 检测新增的反馈并弹出通知
+    orders.value.forEach((order) => {
+      if (order.hasNewFeedback && !prevFeedbackIds.has(order.id)) {
+        showOrderFeedbackNotification(order, () => {
+          viewOrder(order);
+        });
+      }
+    });
   }
 });
 
@@ -230,7 +243,6 @@ const salesperson = ref(null);
 const currentView = ref('list'); // list | form | detail
 const selectedOrder = ref(null);
 const prefillData = ref(null); // 预填充数据 (复制订单用)
-const pollIntervalId = ref(null);
 const submitProgress = ref({ step: '', current: 0, total: 0 }); // 提交进度
 
 // 通知相关状态
@@ -261,9 +273,6 @@ const handleNotificationNavigate = async (orderId) => {
     }
   }
 };
-
-// 轮询间隔 (60秒)
-const POLL_INTERVAL = 60 * 1000;
 
 // 检查登录状态
 const checkAuth = async () => {
@@ -404,40 +413,6 @@ const handleCancelForm = () => {
   currentView.value = 'list';
 };
 
-// 轮询检查新消息
-const checkNewFeedback = async () => {
-  if (!isAuthenticated.value || !accessToken.value) return;
-
-  // 记录当前有反馈的订单ID
-  const prevFeedbackIds = new Set(orders.value.filter((o) => o.hasNewFeedback).map((o) => o.id));
-
-  // 静默刷新订单列表
-  await loadSalesOrders(accessToken.value);
-
-  // 检测新增的反馈
-  orders.value.forEach((order) => {
-    if (order.hasNewFeedback && !prevFeedbackIds.has(order.id)) {
-      showOrderFeedbackNotification(order, () => {
-        viewOrder(order);
-      });
-    }
-  });
-};
-
-// 启动轮询
-const startPolling = () => {
-  if (pollIntervalId.value) return;
-  pollIntervalId.value = setInterval(checkNewFeedback, POLL_INTERVAL);
-};
-
-// 停止轮询
-const stopPolling = () => {
-  if (pollIntervalId.value) {
-    clearInterval(pollIntervalId.value);
-    pollIntervalId.value = null;
-  }
-};
-
 // 监听 Token 变化 (处理 SPA 同组件跳转)
 watch(accessToken, () => {
   loading.value = true;
@@ -451,7 +426,7 @@ onMounted(async () => {
   // 登录成功后请求通知权限并启动轮询
   if (isAuthenticated.value) {
     requestPermission();
-    startPolling();
+    // note: local polling removed, using centralized notifications
     // 初始化销售端通知模式并启动轮询
     setSalesMode(accessToken.value);
     startNotificationPolling();
@@ -459,7 +434,6 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  stopPolling();
   stopNotificationPolling();
 });
 </script>

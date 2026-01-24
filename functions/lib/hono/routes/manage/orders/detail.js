@@ -126,10 +126,23 @@ app.patch('/:id/status', async (c) => {
  */
 app.post('/:id/comment', async (c) => {
     const { env } = c;
+    const user = c.get('user');
     const id = c.req.param('id');
-    const { content } = await c.req.json();
+    // SOTA: Payload key mismatch fix (frontend sends 'comment', backend expected 'content')
+    const { comment } = await c.req.json();
+
+    if (!comment) return c.json({ success: false, message: MSG.COMMON.INVALID_PARAMS });
+
     const repo = new OrderRepository(env.DB);
-    await repo.timelineRepo.add({ orderId: id, type: 'comment', content, actorType: 'admin' });
+    // SOTA: Use correct method addTimelineEntry instead of add
+    await repo.timelineRepo.addTimelineEntry(id, {
+        actionType: 'comment',
+        actorType: 'admin',
+        actorId: user?.id || 'admin',
+        actorName: user?.name || 'Admin',
+        comment
+    });
+
     return c.json({ success: true, message: MSG.ORDER.COMMENT_ADDED });
 });
 

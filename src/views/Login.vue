@@ -5,7 +5,7 @@
     <div class="w-full max-w-md">
       <!-- 登录卡片 -->
       <div
-        class="animate-scale-in shadow-glass overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/90 backdrop-blur-xl ring-1 ring-black/5"
+        class="animate-scale-in shadow-glass overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/90 ring-1 ring-black/5 backdrop-blur-xl"
       >
         <!-- 头部 -->
         <div class="px-8 pt-10 pb-6 text-center">
@@ -51,7 +51,7 @@
                     required
                     autocomplete="username"
                     :placeholder="t('auth.usernamePlaceholder')"
-                    class="input-focus h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] pr-4 pl-12 text-sm transition-all focus:border-primary focus:ring-primary/10 focus:bg-white dark:focus:bg-[var(--bg-active)] focus:ring-2 focus:outline-none"
+                    class="input-focus h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] pr-4 pl-12 text-sm transition-all focus:border-primary focus:ring-primary/10 focus:bg-white focus:ring-2 focus:outline-none dark:focus:bg-[var(--bg-active)]"
                   />
                 </div>
               </div>
@@ -83,7 +83,7 @@
                     required
                     autocomplete="current-password"
                     :placeholder="t('auth.passwordPlaceholder')"
-                    class="input-focus h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-12 text-sm transition-all focus:border-primary focus:ring-primary/10 focus:bg-white dark:focus:bg-[var(--bg-active)] focus:ring-2 focus:outline-none"
+                    class="input-focus h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-12 text-sm transition-all focus:border-primary focus:ring-primary/10 focus:bg-white focus:ring-2 focus:outline-none dark:focus:bg-[var(--bg-active)]"
                   />
                   <button
                     type="button"
@@ -137,9 +137,9 @@
               <button
                 type="submit"
                 :disabled="loading || (turnstileEnabled && !turnstileToken)"
-                class="bg-primary shadow-primary/20 flex h-12 w-full items-center justify-center gap-2 rounded-xl font-medium text-white dark:text-gray-900 shadow-lg transition-all active:scale-95 hover:bg-primary-hover hover:shadow-primary/30 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-70"
+                class="bg-primary shadow-primary/20 flex h-12 w-full items-center justify-center gap-2 rounded-xl font-medium text-white shadow-lg transition-all hover:bg-primary-hover hover:shadow-primary/30 hover:-translate-y-px active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 dark:text-gray-900"
               >
-                <svg v-if="loading" class="size-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <svg v-if="loading || (turnstileEnabled && !turnstileToken)" class="size-5 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle
                     class="opacity-25"
                     cx="12"
@@ -154,14 +154,22 @@
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                <span>{{ loading ? t('auth.loggingIn') : t('auth.loginButton') }}</span>
+                <span>
+                  {{ 
+                    loading 
+                      ? t('auth.loggingIn') 
+                      : (turnstileEnabled && !turnstileToken 
+                          ? (t('auth.verifying') || 'Verifying...') 
+                          : t('auth.loginButton')) 
+                  }}
+                </span>
               </button>
             </form>
 
             <!-- 成功转场状态 -->
             <div v-else class="flex flex-col items-center justify-center px-8 pt-4 pb-16 text-center">
               <div class="relative mb-6">
-                <div class="absolute inset-0 size-16 animate-ping rounded-full bg-primary/20"></div>
+                <div class="bg-primary/20 absolute inset-0 size-16 animate-ping rounded-full"></div>
                 <div
                   class="bg-primary relative flex size-16 items-center justify-center rounded-full text-white shadow-lg"
                 >
@@ -225,7 +233,6 @@
 import { ref, onBeforeMount } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from '@/composables/useToast';
-import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 
@@ -254,31 +261,6 @@ if (typeof window !== 'undefined') {
 // 登录成功后的检查已被移除，由路由守卫处理
 
 // 获取配置
-onBeforeMount(async () => {
-  // 从 API 获取 Turnstile 配置
-  try {
-    const configRes = await fetch(API.TURNSTILE_VERIFY);
-    const config = await configRes.json();
-    if (config.success && config.data?.enabled) {
-      turnstileEnabled.value = true;
-      turnstileSiteKey.value = config.data.siteKey;
-
-      setTimeout(() => {
-        if (window.turnstile && turnstileContainer.value) {
-          window.turnstile.render(turnstileContainer.value, {
-            sitekey: turnstileSiteKey.value,
-            callback: (token) => {
-              turnstileToken.value = token;
-            },
-          });
-        }
-      }, 100);
-    }
-  } catch {
-    console.warn('Failed to load Turnstile config');
-  }
-});
-
 const handleLogin = async () => {
   if (loading.value || redirecting.value) return;
 
@@ -314,18 +296,67 @@ const handleLogin = async () => {
         router.push(router.currentRoute.value.query.redirect || '/admin');
       }, 800);
     } else {
+      loading.value = false; // Add this back if login fails
+      // 刷新 Turnstile
+      if (window.turnstile && turnstileEnabled.value) {
+        window.turnstile.reset();
+        turnstileToken.value = '';
+      }
+      
       const msg = result.message || t('common.invalidCredentials');
       error.value = msg;
       addToast({ message: msg, type: 'error' });
     }
   } catch (err) {
+    loading.value = false; // Add this back if login errors
     console.error('Login error:', err);
     error.value = t('auth.loginFailed');
     addToast({ message: t('auth.loginFailed'), type: 'error' });
-  } finally {
-    loading.value = false;
   }
 };
+
+// 轮询检查 Turnstile 是否加载完成
+const waitForTurnstile = () => {
+  let attempts = 0;
+  const maxAttempts = 50; // 5 seconds
+  const interval = setInterval(() => {
+    attempts++;
+    if (window.turnstile && turnstileContainer.value) {
+      clearInterval(interval);
+      try {
+        window.turnstile.render(turnstileContainer.value, {
+          sitekey: turnstileSiteKey.value,
+          callback: (token) => {
+            turnstileToken.value = token;
+          },
+          'error-callback': () => {
+             console.warn('Turnstile error');
+          }
+        });
+      } catch (e) {
+        console.error('Turnstile render error:', e);
+      }
+    } else if (attempts >= maxAttempts) {
+      clearInterval(interval);
+      console.warn('Turnstile load timeout');
+    }
+  }, 100);
+};
+
+onBeforeMount(async () => {
+  // 从 API 获取 Turnstile 配置
+  try {
+    const configRes = await fetch(API.TURNSTILE_VERIFY);
+    const config = await configRes.json();
+    if (config.success && config.data?.enabled) {
+      turnstileEnabled.value = true;
+      turnstileSiteKey.value = config.data.siteKey;
+      waitForTurnstile();
+    }
+  } catch {
+    console.warn('Failed to load Turnstile config');
+  }
+});
 </script>
 
 <style>
