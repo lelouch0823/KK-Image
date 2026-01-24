@@ -26,7 +26,7 @@
           v-else
           class="min-w-[32px] rounded-md px-3 py-1 text-sm transition-colors"
           :class="
-            page === currentPage ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'
+            page === currentPage ? 'bg-primary text-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100'
           "
           @click="goToPage(page)"
         >

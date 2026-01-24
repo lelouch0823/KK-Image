@@ -137,7 +137,7 @@
               <button
                 type="submit"
                 :disabled="loading || (turnstileEnabled && !turnstileToken)"
-                class="bg-primary shadow-primary/20 flex h-12 w-full items-center justify-center gap-2 rounded-xl font-medium text-white shadow-lg transition-all active:scale-95 hover:bg-primary-hover hover:shadow-primary/30 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-70"
+                class="bg-primary shadow-primary/20 flex h-12 w-full items-center justify-center gap-2 rounded-xl font-medium text-white dark:text-gray-900 shadow-lg transition-all active:scale-95 hover:bg-primary-hover hover:shadow-primary/30 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-70"
               >
                 <svg v-if="loading" class="size-5 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle

@@ -101,7 +101,7 @@
       <button
         :class="[
           !isValid || submitting ? 'cursor-not-allowed opacity-50' : 'hover:bg-primary-hover',
-          'bg-primary shadow-primary/20 flex items-center rounded-lg px-5 py-2 font-medium text-white shadow-lg transition-colors'
+          'bg-primary shadow-primary/20 flex items-center rounded-lg px-5 py-2 font-medium text-white dark:text-gray-900 shadow-lg transition-colors'
         ]"
         :disabled="submitting"
         @click="handleSaveClick"
