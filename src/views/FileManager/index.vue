@@ -6,7 +6,7 @@
     @dragover="onDragOver"
     @drop="onDrop"
   >
-    <!-- 拖拽上传覆盖层 -->
+    <!-- Drag & Drop Overlay -->
     <transition name="fade">
       <div
         v-if="isDragging"
@@ -34,134 +34,22 @@
       </div>
     </transition>
 
-    <!-- 工具栏 -->
-    <div class="flex items-center justify-between border-b border-[var(--border-color)] px-6 py-4">
-      <!-- 面包屑 -->
-      <div class="scrollbar-thin flex max-w-2xl items-center gap-2 overflow-x-auto" :class="{ 'hidden lg:flex': selectedIds.size > 0 }">
-        <button
-          class="hover:text-primary flex items-center gap-1 text-sm font-medium whitespace-nowrap transition-colors"
-          :class="!currentFolder ? 'text-primary' : 'text-secondary'"
-          @click="navigateTo(null)"
-        >
-          <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-            ></path>
-          </svg>
-          {{ t('fileManager.root') }}
-        </button>
-        <template v-for="(crumb, index) in breadcrumbs" :key="crumb.id">
-          <span class="text-secondary text-sm">/</span>
-          <button
-            class="hover:text-primary text-sm font-medium whitespace-nowrap transition-colors"
-            :class="index === breadcrumbs.length - 1 ? 'text-primary' : 'text-secondary'"
-            @click="navigateTo(crumb.id)"
-          >
-            {{ crumb.name }}
-          </button>
-        </template>
-      </div>
+    <!-- Toolbar -->
+    <FileManagerToolbar
+      :breadcrumbs="breadcrumbs"
+      :current-folder="currentFolder"
+      v-model:view-mode="viewMode"
+      :selected-count="selectedIds.size"
+      @navigate="navigateTo"
+      @upload="handleFileSelect"
+      @create-folder="openCreateFolderModal"
+      @share-folder="openShareFolderModal"
+      @batch-move="handleBatchMove"
+      @batch-delete="handleBatchDelete"
+      @clear-selection="selectedIds.clear()"
+    />
 
-      <!-- 操作按钮 -->
-      <div class="flex items-center gap-3">
-        <!-- 批量操作 (当有选中项时显示) -->
-        <template v-if="selectedIds.size > 0">
-          <div class="flex flex-1 items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-700 animate-in fade-in slide-in-from-right-4 duration-300">
-            <span class="whitespace-nowrap font-medium">{{ t('fileManager.selected', { count: selectedIds.size }) }}</span>
-            <div class="mx-1 h-4 w-px bg-blue-200"></div>
-            <div class="flex items-center gap-1 ml-auto sm:ml-0">
-                <button class="hover:text-blue-900 hover:underline px-1" @click="handleBatchMove">
-                {{ t('fileManager.actions.move') }}
-                </button>
-                <button class="text-red-600 hover:text-red-800 hover:underline px-1" @click="handleBatchDelete">
-                {{ t('fileManager.actions.delete') }}
-                </button>
-                <button class="text-gray-500 hover:text-gray-700 px-1" @click="selectedIds.clear()">
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-          </div>
-          <div class="hidden lg:block h-6 w-px bg-[var(--border-color)]"></div>
-        </template>
-
-        <!-- 常规按钮 -->
-        <Tooltip v-if="currentFolder" :content="t('fileManager.shareFolder')">
-          <button
-            class="text-secondary flex size-10 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:text-primary hover:bg-[var(--bg-hover)]"
-            @click="handleShareFolder"
-          >
-            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-              ></path>
-            </svg>
-          </button>
-        </Tooltip>
-
-        <input ref="fileInput" type="file" multiple class="hidden" @change="handleFileSelect" />
-
-        <Tooltip :content="t('fileManager.upload')">
-          <button
-            class="bg-primary flex size-10 items-center justify-center rounded-xl text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary-hover hover:shadow-primary/30 active:translate-y-0"
-            @click="$refs.fileInput.click()"
-          >
-            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-              ></path>
-            </svg>
-          </button>
-        </Tooltip>
-
-        <Tooltip :content="t('fileManager.newFolder')">
-          <button
-            class="text-secondary flex size-10 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:text-primary hover:bg-[var(--bg-hover)]"
-            @click="openCreateFolderModal"
-          >
-            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-              ></path>
-            </svg>
-          </button>
-        </Tooltip>
-
-        <!-- View Toggle -->
-         <div class="flex items-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-1 hidden lg:flex">
-             <button
-               class="rounded-lg p-1.5 transition-all"
-               :class="viewMode === 'list' ? 'bg-[var(--bg-hover)] text-primary shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'"
-               :title="t('fileManager.viewMode.list')"
-               @click="viewMode = 'list'"
-             >
-               <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-             </button>
-             <button
-               class="rounded-lg p-1.5 transition-all"
-               :class="viewMode === 'grid' ? 'bg-[var(--bg-hover)] text-primary shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'"
-               :title="t('fileManager.viewMode.grid')"
-               @click="viewMode = 'grid'"
-             >
-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-             </button>
-         </div>
-
-      </div>
-    </div>
-
-    <!-- 当前文件夹信息 & 全选 (列表模式下可选) -->
+    <!-- Folder Info & Select All -->
     <div
       v-if="currentFolder"
       class="flex items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-muted)] px-6 py-3 text-sm"
@@ -178,7 +66,7 @@
        </div>
     </div>
 
-    <!-- 加载中 -->
+    <!-- Loading State -->
     <div v-if="loading" class="p-6">
       <div v-if="viewMode === 'list'" class="space-y-4">
         <Skeleton v-for="i in 5" :key="i" type="custom" custom-class="h-12 w-full rounded-lg" />
@@ -188,26 +76,26 @@
       </div>
     </div>
 
-    <!-- 内容区域 -->
-    <div v-else class="flex flex-1 flex-col" @contextmenu.prevent>
-      <!-- 文件夹列表 -->
+    <!-- Content Area -->
+    <div v-else class="flex flex-1 flex-col" @contextmenu.prevent="openBackgroundContextMenu($event)">
+      <!-- Subfolders -->
       <div v-if="displayedSubfolders.length > 0" class="p-6 pb-0">
         <FolderGrid
           :folders="displayedSubfolders"
           :selected-ids="selectedIds"
           @navigate="navigateTo"
           @delete="handleDeleteFolder"
-          @context-menu="openContextMenu($event, $event, 'folder')"
+          @context-menu="(e, folder) => openContextMenu(e, folder, 'folder')"
         />
       </div>
 
-      <!-- 分隔线 -->
+      <!-- Divider -->
       <div
         v-if="displayedSubfolders.length > 0 && displayedFiles.length > 0"
         class="m-6 h-px bg-[var(--border-color)]"
       ></div>
 
-      <!-- 文件列表 -->
+      <!-- Files -->
       <div v-if="displayedFiles.length > 0" class="flex-1 p-4 pt-0 lg:p-6" @click="selectedIds.clear()">
         <h3
           v-if="displayedSubfolders.length > 0"
@@ -216,7 +104,7 @@
           {{ t('fileManager.filesHeader') }}
         </h3>
 
-        <!-- 桌面视图 (支持切换) -->
+        <!-- Desktop View -->
         <div class="hidden lg:block">
            <template v-if="viewMode === 'list'">
                <FileTable
@@ -225,18 +113,18 @@
                 @share="handleShareFile"
                 @move="handleMoveFile"
                 @delete="handleDeleteFile"
-                @context-menu="openContextMenu($event, $event, 'file')"
+                @context-menu="(e, file) => openContextMenu(e, file, 'file')"
                 @toggle-select="toggleSelect"
               />
            </template>
            <template v-else>
-               <!-- Grid View for Files (Reusing Cards or creating new Grid?) - Let's use FileCards tailored for desktop grid if possible, or just Cards -->
+               <!-- Grid View is basically FileCards but laid out in a grid -->
+               <!-- Using a direct grid layout here for simplicity with FileCards logic if reusable, but let's stick to simple implementation like before -->
                 <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                    <!-- Simple Grid Items similar to Folders but for Files -->
                     <div
                       v-for="file in displayedFiles"
                       :key="file.id"
-                      class="group relative cursor-pointer rounded-xl border p-4 transition-all hover:shadow-md"
+                      class="group relative cursor-pointer rounded-xl border p-4 transition-all hover:shadow-md hover:-translate-y-1"
                       :class="[
                         selectedIds.has(file.id)
                           ? 'border-primary bg-blue-50/50 dark:bg-blue-900/30 ring-1 ring-primary'
@@ -246,38 +134,37 @@
                        @dblclick="window.open(file.url, '_blank')"
                        @contextmenu.prevent.stop="openContextMenu($event, file, 'file')"
                     >
-                         <!-- File Grid Logic (Thumbnail + Name) -->
-                        <div class="flex flex-col items-center">
-                            <img
-                              v-if="isImage(file)"
-                              :src="file.url"
-                              class="mb-2 size-16 rounded object-cover shadow-sm bg-gray-50"
-                              loading="lazy"
-                            />
-                             <div
-                              v-else
-                              class="text-secondary mb-2 flex size-16 items-center justify-center rounded bg-gray-100 text-xs font-bold uppercase"
-                            >
-                              {{ getFileExtension(file.name) }}
-                            </div>
-                            
-                            <div class="text-primary w-full truncate px-2 text-center text-sm font-medium" :title="file.name">
-                                {{ file.name }}
-                            </div>
-                            <div class="text-secondary mt-1 text-xs">{{ formatSize(file.size) }}</div>
-                        </div>
+                         <div class="flex flex-col items-center">
+                             <img
+                               v-if="isImage(file)"
+                               :src="file.url"
+                               class="mb-2 size-20 rounded object-cover shadow-sm bg-gray-50 dark:bg-gray-800"
+                               loading="lazy"
+                             />
+                              <div
+                               v-else
+                               class="text-secondary mb-2 flex size-20 items-center justify-center rounded bg-gray-100 dark:bg-gray-800 text-sm font-bold uppercase"
+                              >
+                                {{ getFileExtension(file.name) }}
+                              </div>
+                             
+                             <div class="text-primary w-full truncate px-2 text-center text-sm font-medium" :title="file.name">
+                                 {{ file.name }}
+                             </div>
+                             <div class="text-secondary mt-1 text-xs">{{ formatSize(file.size) }}</div>
+                         </div>
                     </div>
                 </div>
            </template>
         </div>
 
-        <!-- 移动端卡片视图 (<lg) -->
+        <!-- Mobile View -->
         <div class="lg:hidden">
-          <FileCards :files="displayedFiles" @share="handleShareFile" @delete="handleDeleteFile" @context-menu="openContextMenu($event, $event, 'file')" />
+          <FileCards :files="displayedFiles" @share="handleShareFile" @delete="handleDeleteFile" @context-menu="(e, file) => openContextMenu(e, file, 'file')" />
         </div>
       </div>
 
-      <!-- 空状态 -->
+      <!-- Empty State -->
       <EmptyState
         v-if="!loading && displayedSubfolders.length === 0 && displayedFiles.length === 0"
         icon="folder"
@@ -286,71 +173,17 @@
       />
     </div>
 
-    <!-- 创建文件夹 Modal -->
-    <Modal v-model="showModal" :title="t('fileManager.newFolder')" size="sm">
-      <form @submit.prevent="handleCreateFolder">
-        <div class="mb-4">
-          <label class="text-primary mb-1 block text-sm font-medium">{{
-            t('fileManager.table.name')
-          }}</label>
-          <input
-            v-model="folderName"
-            type="text"
-            required
-            class="input w-full"
-            :placeholder="t('fileManager.folderNamePlaceholder')"
-            autofocus
-            @keydown.stop
-          />
-        </div>
-      </form>
-      <template #footer>
-        <button type="button" class="btn btn-secondary" @click="showModal = false">
-          {{ t('common.cancel') }}
-        </button>
-        <button class="btn btn-primary" @click="handleCreateFolder">
-          {{ t('common.confirm') }}
-        </button>
-      </template>
-    </Modal>
-    
-    <!-- Rename Modal -->
-    <Modal v-model="showRenameModal" :title="t('fileManager.contextMenu.rename')" size="sm">
-      <form @submit.prevent="handleRename">
-        <div class="mb-4">
-          <label class="text-primary mb-1 block text-sm font-medium">{{ t('fileManager.table.name') }}</label>
-          <input
-             v-model="renameName"
-             type="text"
-             required
-             class="input w-full"
-             autofocus
-             @keydown.stop
-          />
-        </div>
-      </form>
-       <template #footer>
-        <button type="button" class="btn btn-secondary" @click="showRenameModal = false">
-          {{ t('common.cancel') }}
-        </button>
-        <button class="btn btn-primary" @click="handleRename">
-          {{ t('common.save') }}
-        </button>
-      </template>
-    </Modal>
-
-    <!-- Move Item Modal -->
-    <MoveItemModal v-model="showMoveModal" :items-to-move="itemsToMove" @moved="handleMoved" />
-
-    <!-- Share Folder Modal -->
-    <ShareFolderModal
-      v-model="showShareModal"
-      :folder="currentFolder"
-      @updated="handleShareUpdated"
+    <!-- Modals Wrapper -->
+    <FileManagerModals
+      ref="modals"
+      :current-folder="currentFolder"
+      :items-to-move="itemsToMove"
+      :share-file="currentShareFile"
+      @create-folder="handleCreateFolder"
+      @rename="handleRenameSubmit"
+      @moved="handleMoved"
+      @share-updated="handleShareUpdated"
     />
-
-    <!-- Share File Modal -->
-    <ShareFileModal v-model="showShareFileModal" :file="currentShareFile" />
 
     <!-- Confirm Dialog -->
     <ConfirmDialog
@@ -374,21 +207,19 @@
 
 <script setup>
 import { onMounted, ref, onUnmounted, onActivated, watch, computed } from 'vue';
-import Tooltip from '@/components/ui/Tooltip.vue';
-import Modal from '@/components/ui/Modal.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import ContextMenu from '@/components/ui/ContextMenu.vue';
 import FolderGrid from './FolderGrid.vue';
 import FileTable from './FileTable.vue';
 import FileCards from './FileCards.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import FileManagerToolbar from './FileManagerToolbar.vue';
+import FileManagerModals from './FileManagerModals.vue';
+
 import { useFileManager } from '@/composables/useFileManager';
 import { useI18n } from '@/composables/useI18n';
 import { useSearch } from '@/composables/useSearch';
-import MoveItemModal from '@/components/MoveItemModal.vue';
-import ShareFolderModal from '@/components/ShareFolderModal.vue';
-import ShareFileModal from '@/components/ShareFileModal.vue';
-import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import { useToast } from '@/composables/useToast';
 import { useUploadQueue } from '@/composables/useUploadQueue';
 
@@ -396,6 +227,7 @@ const { addToast } = useToast();
 const { addFiles, registerFolderRefresh, unregisterFolderRefresh } = useUploadQueue();
 const { t } = useI18n();
 
+// Setup FileManager Composable
 const {
   loading,
   currentFolder,
@@ -408,13 +240,12 @@ const {
   deleteFile,
   renameFile,
   renameFolder,
-  moveFolder,
   batchDeleteFiles,
-  batchMoveFiles,
 } = useFileManager();
 
 const { searchQuery } = useSearch();
 
+// Computed Data
 const displayedSubfolders = computed(() => {
   if (!searchQuery.value) return subfolders.value;
   const query = searchQuery.value.toLowerCase();
@@ -432,35 +263,15 @@ const displayedFiles = computed(() => {
 });
 
 // UI State
-const viewMode = ref('list'); // 'list' | 'grid'
-const showModal = ref(false);
-const showMoveModal = ref(false);
-const showShareModal = ref(false);
-const showShareFileModal = ref(false);
-const showRenameModal = ref(false);
-
-// Items to Move: Array of { id, type }
+const viewMode = ref('list');
+const modals = ref(null); // Ref to FileManagerModals component
 const itemsToMove = ref([]);
-const folderName = ref('');
-const renameName = ref('');
-const renameTarget = ref(null); // { id, type, name }
-
+const currentShareFile = ref(null);
+const selectedIds = ref(new Set());
 const isDragging = ref(false);
 const dragCounter = ref(0);
-const currentShareFile = ref(null);
 
-// Selection State
-const selectedIds = ref(new Set());
-
-// Context Menu State
-const contextMenuData = ref({
-  show: false,
-  x: 0,
-  y: 0,
-  items: [],
-});
-
-// 确认弹窗状态
+// Confirm Dialog State
 const confirmData = ref({
   show: false,
   title: '',
@@ -470,6 +281,15 @@ const confirmData = ref({
   onConfirm: () => {},
 });
 
+// Context Menu State
+const contextMenuData = ref({
+  show: false,
+  x: 0,
+  y: 0,
+  items: [],
+});
+
+// Navigation
 const navigateTo = (id) => {
   if (selectedIds.value.size > 0) {
     selectedIds.value.clear();
@@ -477,35 +297,25 @@ const navigateTo = (id) => {
   loadFolderData(id);
 };
 
+// Handlers
+const handleCreateFolder = async (name) => {
+  await createFolder({ name });
+};
+
 const openCreateFolderModal = () => {
-  folderName.value = '';
-  showModal.value = true;
+  modals.value?.openCreateFolder();
 };
 
-const handleCreateFolder = async () => {
-  const success = await createFolder({ name: folderName.value });
-  if (success) showModal.value = false;
+const openShareFolderModal = () => {
+  modals.value?.openShareFolder();
 };
 
-const handleRename = async () => {
-  if (!renameTarget.value) return;
-  const { id, type } = renameTarget.value;
-  let success = false;
+const handleRenameSubmit = async ({ id, type, newName }) => {
   if (type === 'file') {
-    success = await renameFile(id, renameName.value);
+    await renameFile(id, newName);
   } else {
-    success = await renameFolder(id, renameName.value);
+    await renameFolder(id, newName);
   }
-  if (success) {
-    showRenameModal.value = false;
-    renameTarget.value = null;
-  }
-};
-
-const openRenameModal = (target) => { // target: { id, type, name }
-  renameTarget.value = target;
-  renameName.value = target.name;
-  showRenameModal.value = true;
 };
 
 // Batch Actions
@@ -538,9 +348,6 @@ const handleBatchDelete = () => {
       confirmData.value.loading = true;
       try {
         const ids = Array.from(selectedIds.value);
-        // Currently only batch delete files supported by API
-        // For mixed selection implementation needs to be careful
-        // Assuming we select only files for now in the file table
         await batchDeleteFiles(ids);
         selectedIds.value.clear();
         confirmData.value.show = false;
@@ -554,11 +361,25 @@ const handleBatchDelete = () => {
 const handleBatchMove = () => {
   if (selectedIds.value.size === 0) return;
   itemsToMove.value = Array.from(selectedIds.value).map(id => ({ id, type: 'file' }));
-  showMoveModal.value = true;
+  modals.value.openMove();
 };
 
+const handleMoveFile = (file) => {
+  itemsToMove.value = [{ id: file.id, type: 'file' }];
+  modals.value.openMove();
+};
 
-// Single Item Actions
+const handleMoveFolder = (folder) => {
+  itemsToMove.value = [{ id: folder.id, type: 'folder' }];
+  modals.value.openMove();
+};
+
+const handleMoved = () => {
+  loadFolderData(currentFolder.value?.id);
+  selectedIds.value.clear();
+};
+
+// Delete Actions
 const handleDeleteFile = (file) => {
   confirmData.value = {
     show: true,
@@ -598,35 +419,17 @@ const handleDeleteFolder = (folder) => {
   };
 };
 
-// Folder-aware upload refresh
-watch(
-  currentFolder,
-  (newFolder, oldFolder) => {
-    selectedIds.value.clear();
-    if (oldFolder?.id) {
-      unregisterFolderRefresh(oldFolder.id);
-    }
-    if (newFolder?.id) {
-      registerFolderRefresh(newFolder.id, () => {
-        loadFolderData(newFolder.id, { silent: true });
-      });
-    }
-  },
-  { immediate: true }
-);
-
-const handleFileSelect = (e) => {
-  const selectedFiles = Array.from(e.target.files);
-  if (selectedFiles.length) {
-    if (!currentFolder.value) {
-      addToast({ message: t('fileManager.selectFolderFirst'), type: 'warning' });
-      return;
-    }
-    addFiles(selectedFiles, currentFolder.value.id);
-    e.target.value = '';
-  }
+// Sharing
+const handleShareFile = (file) => {
+  currentShareFile.value = file;
+  modals.value.openShareFile();
 };
 
+const handleShareUpdated = () => {
+  loadFolderData(currentFolder.value?.id);
+};
+
+// Drag & Drop
 const onDragEnter = (e) => {
   e.preventDefault();
   dragCounter.value++;
@@ -659,62 +462,130 @@ const onDrop = (e) => {
   }
 };
 
-const handleShareFile = (file) => {
-  currentShareFile.value = file;
-  showShareFileModal.value = true;
+const handleFileSelect = (files) => {
+    if (!currentFolder.value) {
+      addToast({ message: t('fileManager.selectFolderFirst'), type: 'warning' });
+      return;
+    }
+    // Convert FileList to Array
+    addFiles(Array.from(files), currentFolder.value.id);
 };
 
-const handleShareFolder = () => {
-  showShareModal.value = true;
-};
+// Auto Refresh
+watch(
+  currentFolder,
+  (newFolder, oldFolder) => {
+    selectedIds.value.clear();
+    if (oldFolder?.id) {
+      unregisterFolderRefresh(oldFolder.id);
+    }
+    if (newFolder?.id) {
+      registerFolderRefresh(newFolder.id, () => {
+        loadFolderData(newFolder.id, { silent: true });
+      });
+    }
+  },
+  { immediate: true }
+);
 
-const handleShareUpdated = () => {
+// Lifecycle
+onMounted(() => {
+  loadFolderData();
+  window.addEventListener('click', () => contextMenuData.value.show = false);
+});
+
+onActivated(() => {
   loadFolderData(currentFolder.value?.id);
-};
+});
 
-const handleMoveFile = (file) => {
-  itemsToMove.value = [{ id: file.id, type: 'file' }];
-  showMoveModal.value = true;
-};
+onUnmounted(() => {
+    if (currentFolder.value?.id) {
+        unregisterFolderRefresh(currentFolder.value.id);
+    }
+});
 
-const handleMoveFolder = (folder) => { // New: Move Folder
-  itemsToMove.value = [{ id: folder.id, type: 'folder' }];
-  showMoveModal.value = true;
-};
+// Context Menu Logic
+// Heroicons import removed in favor of local createIcon helper to avoid dependency issues
+// Wait, I don't have heroicons installed probably? I should stick to the simple createIcon helper or usage I had before.
+// Actually, I can just define the menu items with string icons or simple objects if ContextMenu supports it.
+// The ContextMenu component likely expects objects. Reverting to the local icon definition pattern for safety.
 
-const handleMoved = () => {
-  loadFolderData(currentFolder.value?.id);
-  selectedIds.value.clear();
-};
+const createIconPath = (d) => d; // Unused, can be removed
+// It used a `createIcon` helper that returned a VNode.
 
-// Context Menu Handler
-const openContextMenu = (e, item, type) => { // type: 'file' | 'folder'
-  // If item not in selection, clear selection and select it
-  // (Standard file manager behavior)
-  if (!selectedIds.value.has(item.id)) {
-    // Only clear if not holding Ctrl/Shift (simplified)
-    // Here we prefer single selection behavior for context menu if obscure
-    // But let's just add it to selection if not present
+import { h } from 'vue';
+const createIcon = (d) => {
+  return {
+    render: () => h('svg', { class: 'size-4', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+      h('path', { d })
+    ])
   }
-  
+}
+
+const Icons = {
+  upload: createIcon('M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12'),
+  folderPlus: createIcon('M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z'),
+  refresh: createIcon('M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'),
+  list: createIcon('M4 6h16M4 12h16M4 18h16'),
+  grid: createIcon('M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z'),
+  open: createIcon('M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'),
+  rename: createIcon('M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'),
+  move: createIcon('M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'),
+  share: createIcon('M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z'),
+  download: createIcon('M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4'),
+  delete: createIcon('M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'),
+};
+
+const openBackgroundContextMenu = (e) => {
   const menuItems = [
-    { label: t('fileManager.contextMenu.open'), icon: null, action: () => type === 'folder' ? navigateTo(item.id) : window.open(item.url, '_blank') },
-    { label: t('fileManager.contextMenu.rename'), icon: null, action: () => openRenameModal({ id: item.id, type, name: item.name }) },
-    { label: t('fileManager.contextMenu.move'), icon: null, action: () => type === 'folder' ? handleMoveFolder(item) : handleMoveFile(item) },
+    { 
+      label: t('fileManager.upload'), 
+      icon: Icons.upload, 
+      action: () => document.querySelector('input[type=file]')?.click() 
+    },
+    { 
+      label: t('fileManager.newFolder'), 
+      icon: Icons.folderPlus, 
+      action: () => modals.value.openCreateFolder()
+    },
+    { type: 'separator' },
+    { 
+      label: t('header.refresh'), 
+      icon: Icons.refresh, 
+      action: () => loadFolderData(currentFolder.value?.id) 
+    },
+    { type: 'separator' },
+    { 
+      label: viewMode.value === 'list' ? t('fileManager.viewMode.grid') : t('fileManager.viewMode.list'), 
+      icon: viewMode.value === 'list' ? Icons.grid : Icons.list, 
+      action: () => viewMode.value = viewMode.value === 'list' ? 'grid' : 'list' 
+    }
+  ];
+
+  contextMenuData.value = {
+    show: true,
+    x: e.clientX,
+    y: e.clientY,
+    items: menuItems,
+  };
+};
+
+const openContextMenu = (e, item, type) => {
+  const menuItems = [
+    { label: t('fileManager.contextMenu.open'), icon: Icons.open, action: () => type === 'folder' ? navigateTo(item.id) : window.open(item.url, '_blank') },
+    { label: t('fileManager.contextMenu.rename'), icon: Icons.rename, action: () => modals.value.openRename({ id: item.id, type, name: item.name }) },
+    { label: t('fileManager.contextMenu.move'), icon: Icons.move, action: () => type === 'folder' ? handleMoveFolder(item) : handleMoveFile(item) },
   ];
 
   if (type === 'file') {
-    menuItems.push({ label: t('fileManager.contextMenu.share'), icon: null, action: () => handleShareFile(item) });
-    menuItems.push({ label: t('fileManager.contextMenu.download'), icon: null, action: () => window.open(item.url, '_blank') }); // Simply open for now
-  } else {
-    // Share folder logic
-     // Could add share folder action if not root
+    menuItems.push({ label: t('fileManager.contextMenu.share'), icon: Icons.share, action: () => handleShareFile(item) });
+    menuItems.push({ label: t('fileManager.contextMenu.download'), icon: Icons.download, action: () => window.open(item.url, '_blank') });
   }
   
   menuItems.push({ type: 'separator' });
   menuItems.push({ 
     label: t('fileManager.contextMenu.delete'), 
-    icon: null, 
+    icon: Icons.delete, 
     danger: true, 
     action: () => type === 'folder' ? handleDeleteFolder(item) : handleDeleteFile(item) 
   });
@@ -727,26 +598,9 @@ const openContextMenu = (e, item, type) => { // type: 'file' | 'folder'
   };
 };
 
-const preventDefaultHandler = (e) => e.preventDefault();
-const closeContextMenu = () => contextMenuData.value.show = false;
+// Utils need to be imported or available.
+// In <script setup>, imports are top level.
+// We imported useFileManager which provides these.
+const { formatSize, getFileExtension, isImage } = useFileManager();
 
-onMounted(() => {
-  loadFolderData();
-  window.addEventListener('dragover', preventDefaultHandler);
-  window.addEventListener('drop', preventDefaultHandler);
-  window.addEventListener('click', closeContextMenu);
-});
-
-onActivated(() => {
-  loadFolderData(currentFolder.value?.id);
-});
-
-onUnmounted(() => {
-  if (currentFolder.value?.id) {
-    unregisterFolderRefresh(currentFolder.value.id);
-  }
-  window.removeEventListener('dragover', preventDefaultHandler);
-  window.removeEventListener('drop', preventDefaultHandler);
-  window.removeEventListener('click', closeContextMenu);
-});
 </script>

@@ -24,6 +24,7 @@ app.get('/', requirePermission('stats:read'), withCache(60), async (c) => {
         storage: {
           totalFiles: data.files.total,
           totalSize: data.files.totalSize,
+          todayUploads: data.files.todayUploads,
           used: data.files.totalSize,
           limit: null
         },

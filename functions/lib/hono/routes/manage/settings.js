@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { error, success } from '../../utils/response';
+import { error, success } from '../../../../api/utils/response';
 
 const app = new Hono();
 
@@ -12,7 +12,7 @@ app.get('/', async (c) => {
 
     // 转换为对象格式: { category: { key: value } }
     const settings = {};
-    
+
     // 如果数据库为空，尝试从环境变量读取默认值
     if (!results || results.length === 0) {
       // AI Defaults
@@ -21,7 +21,7 @@ app.get('/', async (c) => {
         { key: 'AI_API_URL', value: c.env.AI_API_URL || 'https://api.openai.com/v1', category: 'ai' },
         { key: 'AI_MODELS', value: c.env.AI_MODELS || 'gpt-4o', category: 'ai' }
       ];
-      
+
       return success(c, aiDefaults.reduce((acc, curr) => {
         if (!acc[curr.category]) acc[curr.category] = {};
         acc[curr.category][curr.key] = curr.value;
@@ -62,7 +62,7 @@ app.post('/batch', async (c) => {
     );
 
     const batch = settings.map(s => stmt.bind(s.key, s.value, s.category || 'general', s.description || null));
-    
+
     await c.env.DB.batch(batch);
 
     return success(c, { count: settings.length });

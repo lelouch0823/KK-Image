@@ -108,8 +108,9 @@
                 </div>
              </div>
              <!-- Progress Bar Simulation -->
-             <div class="mt-6 h-1 w-full overflow-hidden rounded-full bg-slate-800">
-                <div class="h-full w-[70%] rounded-full bg-blue-500"></div>
+             <div class="mt-4 flex items-center gap-2 text-sm font-medium text-slate-500">
+               <span class="rounded bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-500">+{{ formatNumber(stats.storage?.todayUploads) }}</span>
+               {{ t('dashboard.todayUploads') }}
              </div>
            </div>
 
@@ -130,9 +131,9 @@
                 </div>
              </div>
              <!-- Progress Bar Simulation -->
-              <div class="mt-6 h-1 w-full overflow-hidden rounded-full bg-slate-800">
-                <div class="h-full w-[45%] rounded-full bg-emerald-500"></div>
-             </div>
+              <div class="mt-4 text-sm font-medium text-slate-500">
+                {{ t('stats.totalStorage') }}
+              </div>
            </div>
 
            <!-- Monthly Visits -->
@@ -152,9 +153,8 @@
                   </svg>
                 </div>
              </div>
-             <!-- Sparkline Simulation (Static CSS) -->
-             <div class="mt-6 flex h-6 w-full items-end gap-1 opacity-50">
-               <div v-for="i in 12" :key="i" class="w-full rounded-t-sm bg-purple-500" :style="`height: ${Math.random() * 100}%`"></div>
+             <div class="mt-4 text-sm font-medium text-slate-500">
+               {{ t('stats.trafficTrend') }}
              </div>
            </div>
         </div>

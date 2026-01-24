@@ -811,6 +811,9 @@ export default {
     activeStatus: '启用状态',
     uuid: '唯一标识 (UUID)',
     noAvailable: '暂无可选销售员',
+    table: {
+      orders: '关联订单',
+    },
   },
   pwa: {
     offlineReady: '应用已准备好离线使用',

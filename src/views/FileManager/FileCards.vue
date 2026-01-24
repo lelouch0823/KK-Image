@@ -1,41 +1,45 @@
 <template>
-  <TransitionGroup name="list" tag="div" class="space-y-2">
+  <TransitionGroup name="list" tag="div" class="space-y-3">
     <div
       v-for="file in files"
       :key="file.id"
-      class="flex items-center gap-3 rounded-xl bg-[var(--bg-muted)] p-3 transition-all duration-300 hover:bg-[var(--bg-card)] hover:shadow-soft hover:-translate-y-0.5 border border-transparent hover:border-[var(--border-color)]"
+      class="group relative flex items-center gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-sm transition-all duration-300 active:scale-[0.98] active:bg-[var(--bg-muted)]"
+      @click="$emit('preview', file)"
     >
-      <!-- 缩略图 -->
+      <!-- Thumbnail -->
       <div
-        class="size-12 shrink-0 overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)]"
+        class="relative size-14 shrink-0 overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)]"
       >
-        <img v-if="isImage(file)" :src="file.url" class="size-full object-cover" loading="lazy" />
+        <img
+          v-if="isImage(file)"
+          :src="file.url"
+          class="size-full object-cover transition-transform duration-500 group-active:scale-110"
+          loading="lazy"
+        />
         <div
           v-else
-          class="text-secondary flex size-full items-center justify-center text-xs font-medium uppercase"
+          class="text-secondary flex size-full items-center justify-center text-xs font-bold uppercase tracking-wider"
         >
           {{ getFileExtension(file.name) }}
         </div>
       </div>
 
-      <!-- 文件信息 -->
-      <div class="min-w-0 flex-1">
-        <a
-          :href="file.url"
-          target="_blank"
-          class="text-primary block truncate text-sm font-medium hover:underline"
-        >
+      <!-- Info -->
+      <div class="min-w-0 flex-1 py-0.5">
+        <h4 class="text-primary truncate text-sm font-semibold leading-tight">
           {{ file.originalName || file.name }}
-        </a>
-        <div class="text-secondary mt-0.5 text-xs">
-          {{ formatSize(file.size) }} · {{ formatDate(file.createdAt) }}
+        </h4>
+        <div class="text-secondary mt-1 flex items-center gap-2 text-xs">
+          <span>{{ formatSize(file.size) }}</span>
+          <span class="size-0.5 rounded-full bg-current opacity-50"></span>
+          <span>{{ formatDate(file.createdAt) }}</span>
         </div>
       </div>
 
-      <!-- 操作按钮 -->
+      <!-- Actions -->
       <div class="flex items-center gap-1">
         <button
-          class="text-secondary rounded-lg p-2 transition-colors hover:text-primary active:bg-[var(--bg-active)]"
+          class="text-secondary flex size-8 items-center justify-center rounded-lg transition-colors active:bg-[var(--bg-active)] active:text-primary"
           @click.stop="$emit('share', file)"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,7 +52,7 @@
           </svg>
         </button>
         <button
-          class="text-secondary rounded-lg p-2 transition-colors hover:text-primary active:bg-[var(--bg-active)]"
+          class="text-secondary flex size-8 items-center justify-center rounded-lg transition-colors active:bg-[var(--bg-active)] active:text-primary"
           @click.stop="$emit('context-menu', $event, file)"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,7 +74,7 @@ defineProps({
   },
 });
 
-defineEmits(['share', 'delete', 'context-menu']);
+defineEmits(['share', 'delete', 'context-menu', 'preview']);
 
 const { formatSize, formatDate, getFileExtension, isImage } = useFileManager();
 </script>

@@ -79,7 +79,7 @@
     }
 
     .btn-primary {
-        @apply bg-primary text-white hover:bg-gray-800 focus:ring-gray-900 shadow-sm hover:shadow;
+        @apply bg-primary text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 focus:ring-gray-900 dark:focus:ring-gray-100 shadow-sm hover:shadow;
     }
 
     .btn-secondary {
@@ -160,20 +160,21 @@
 }
 
 /* List Transitions */
-.list-move, /* apply transition to moving elements */
+.list-move,
+/* apply transition to moving elements */
 .list-enter-active,
 .list-leave-active {
-  transition: all 0.5s ease;
+    transition: all 0.5s ease;
 }
 
 .list-enter-from,
 .list-leave-to {
-  opacity: 0;
-  transform: translateX(30px);
+    opacity: 0;
+    transform: translateX(30px);
 }
 
 /* ensure leaving items are taken out of layout flow so that moving
    animations can be calculated correctly. */
 .list-leave-active {
-  position: absolute;
+    position: absolute;
 }
