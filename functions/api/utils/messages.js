@@ -156,6 +156,16 @@ export const MSG = {
       BATCH_PREFIX: '批量',
     },
     IMAGES: '张图片',
+    // 订单状态标签 (用于通知展示)
+    STATUS: {
+      pending: '待处理',
+      confirmed: '已确认',
+      production: '生产中',
+      shipping: '在途',
+      completed: '已完成',
+      rejected: '已驳回',
+      void: '已作废',
+    },
   },
 
   // 通用错误
