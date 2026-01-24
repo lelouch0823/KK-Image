@@ -86,7 +86,7 @@
             </div>
 
             <div class="mt-1 flex items-center gap-2 text-xs">
-              <span class="font-mono text-secondary bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">{{ order.orderNo }}</span>
+              <span class="text-secondary rounded bg-[var(--bg-muted)] px-1.5 py-0.5 font-mono">{{ order.orderNo }}</span>
             </div>
 
             <div class="mt-2 flex items-center justify-between">
@@ -126,22 +126,22 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { formatRelativeTime } from '@/utils/formatters';
 import { getStatusVariant } from '@/utils/status';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 
-const props = defineProps({
+defineProps({
   orders: { type: Array, default: () => [] },
   loading: Boolean,
+  isPulling: Boolean,
 });
 
-const emit = defineEmits(['refresh', 'view']);
+defineEmits(['refresh', 'view']);
 
 const { t } = useI18n();
-const isPulling = ref(false);
+// const isPulling = ref(false); // Removed internal state
 
 const getStatusBorderClass = (status) => {
   const variant = getStatusVariant(status);

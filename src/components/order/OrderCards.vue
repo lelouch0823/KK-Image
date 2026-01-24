@@ -23,7 +23,7 @@
       <div
         v-for="order in data"
         :key="order.id"
-        class="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm transition-all active:scale-[0.98] active:bg-[var(--bg-hover)] active:shadow-none"
+        class="group overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm transition-all active:scale-[0.98] active:bg-[var(--bg-hover)] active:shadow-none"
         @click="$emit('detail', order)"
       >
         <div class="flex gap-3 p-4">
@@ -31,7 +31,7 @@
           <div
             class="size-16 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)]"
           >
-            <img v-if="order.mainImage" :src="order.mainImage" class="size-full object-cover" />
+            <img v-if="order.mainImage" :src="order.mainImage" class="size-full object-cover transition-transform duration-500 group-hover:scale-110" />
             <div v-else class="flex size-full items-center justify-center">
               <svg
                 class="size-6 text-[var(--text-secondary)]/30"

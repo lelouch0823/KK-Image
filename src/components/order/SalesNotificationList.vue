@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex max-h-[80vh] w-80 flex-col overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] shadow-xl sm:w-96"
+    class="flex max-h-[80vh] w-full flex-col overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] shadow-xl"
   >
     <!-- Header -->
     <div

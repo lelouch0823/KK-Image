@@ -98,7 +98,7 @@
               >
                 <div
                   v-if="showNotifications"
-                  class="absolute top-full right-0 z-50 mt-2 origin-top-right shadow-2xl"
+                  class="fixed inset-x-4 top-16 z-50 origin-top shadow-2xl sm:absolute sm:top-full sm:right-0 sm:mt-2 sm:inset-auto sm:w-96 sm:origin-top-right"
                 >
                   <SalesNotificationList
                     :close="() => (showNotifications = false)"

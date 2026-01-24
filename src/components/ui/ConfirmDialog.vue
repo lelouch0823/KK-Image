@@ -8,7 +8,7 @@
         @click.self="handleCancel"
       >
         <div
-          class="w-full max-w-sm transform overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-2xl transition-all"
+          class="mx-4 w-full max-w-sm transform overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-2xl transition-all"
           @click.stop
         >
           <!-- 图标/背景装饰 -->
@@ -189,6 +189,7 @@ const props = defineProps({
     default: 'text',
   },
   verifyText: { type: String, default: '' }, // If provided, confirm button disabled until input matches
+  inputRequired: Boolean, // New: Require non-empty input
 });
 
 const emit = defineEmits(['update:modelValue', 'confirm', 'cancel']);
@@ -242,7 +243,10 @@ watch(
 // Confirm button disabled state
 const isConfirmDisabled = computed(() => {
   if (props.loading) return true;
-  if (props.showInput && props.verifyText && inputValue.value !== props.verifyText) return true;
+  if (props.showInput) {
+      if (props.verifyText && inputValue.value !== props.verifyText) return true;
+      if (props.inputRequired && !inputValue.value.trim()) return true;
+  }
   return false;
 });
 

@@ -57,30 +57,7 @@
         <OrderOriginalInfo :data="originalData" />
       </div>
 
-      <!-- 修改理由 (必填) -->
-      <div class="col-span-full border-t border-[var(--border-color)] pt-4">
-        <label class="text-primary mb-2 block text-sm font-medium">
-          {{ t('order.manage.editReason') }} <span class="text-danger">*</span>
-        </label>
-        <input
-          ref="reasonInputRef"
-          v-model="editReason"
-          type="text"
-          :placeholder="t('order.manage.editReasonPlaceholder')"
-          class="w-full rounded-lg border border-[var(--color-warning)]/20 bg-[var(--color-warning-bg)]/50 px-4 py-2.5 text-sm text-[var(--color-warning-text)] transition outline-none placeholder:text-[var(--color-warning-text)]/40 focus:border-[var(--color-warning)] focus:ring-1 focus:ring-[var(--color-warning)] dark:bg-[var(--color-warning)]/10 dark:text-[var(--color-warning)] dark:placeholder:text-[var(--color-warning)]/50"
-        />
-        <p class="mt-1.5 flex items-center text-xs text-[var(--color-warning-text)] dark:text-[var(--color-warning)]">
-          <svg class="mr-1 size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
-          </svg>
-          {{ t('order.manage.editReasonRequired') }}
-        </p>
-      </div>
+
     </div>
 
     <template #footer>
@@ -95,7 +72,7 @@
           !isValid || submitting ? 'cursor-not-allowed opacity-50' : 'hover:bg-primary-hover',
           'bg-primary shadow-primary/20 flex items-center rounded-lg px-5 py-2 font-medium text-white shadow-lg transition-colors dark:text-gray-900'
         ]"
-        :disabled="submitting"
+        :disabled="!isValid || submitting"
         @click="handleSaveClick"
       >
         <svg
@@ -122,6 +99,21 @@
         {{ t('common.save') }}
       </button>
     </template>
+
+    <!-- Reason Input Dialog -->
+    <ConfirmDialog
+      v-model="confirmData.show"
+      :title="confirmData.title"
+      :message="confirmData.message"
+      :type="confirmData.type"
+      :loading="confirmData.loading"
+      :confirm-text="t('common.save')"
+      show-input
+      input-required
+      :input-label="t('order.manage.editReason')"
+      :input-placeholder="t('order.manage.editReasonPlaceholder')"
+      @confirm="handleConfirmSave"
+    />
   </Modal>
 </template>
 
@@ -132,6 +124,7 @@ import { API } from '@/utils/constants';
 import { getStatusBadgeClass } from '@/utils/status';
 import { useSalesToken } from '@/composables/useSalesToken';
 import Modal from '@/components/ui/Modal.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import OrderFormFields from './order/OrderFormFields.vue';
 import OrderOriginalInfo from './order/OrderOriginalInfo.vue';
 import ImageUploader from '@/components/common/ImageUploader.vue';
@@ -161,12 +154,22 @@ const { t } = useI18n();
 const editReason = ref('');
 const uploadedFiles = ref([]);
 
+// 确认弹窗状态
+const confirmData = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'warning',
+  loading: false,
+});
+
 // 表单数据
 const form = reactive({
   status: '',
   name: '',
   brand: '',
   series: '',
+  sku: '',
   size: '',
   color: '',
   material: '',
@@ -207,6 +210,7 @@ watch(
       form.name = current.name || '';
       form.brand = current.brand || '';
       form.series = current.series || '';
+      form.sku = current.sku || '';
       form.size = current.size || '';
       form.color = current.color || '';
       form.material = current.material || '';
@@ -259,7 +263,13 @@ const hasChanges = computed(() => {
   if (props.mode === 'admin' && form.status !== init.status) return true;
   if (fieldsChanged) return true;
 
-  const newIds = uploadedFiles.value.map((f) => f.id).sort().join(',');
+  // Check for new files (no ID) or count mismatch
+  const currentFiles = uploadedFiles.value;
+  const newLocalFiles = currentFiles.filter(f => !f.id).length > 0;
+  if (newLocalFiles) return true;
+
+  // Check for removed files (ID mismatch)
+  const newIds = currentFiles.map((f) => f.id).filter(Boolean).sort().join(',');
   return init.fileIds !== newIds;
 });
 
@@ -276,27 +286,36 @@ const uploadEndpoint = computed(() => {
 
 const isValid = computed(() => {
   if (!hasChanges.value) return false;
-  if (!editReason.value.trim()) return false;
   return true;
 });
 
-const reasonInputRef = ref(null);
-
 const handleSaveClick = () => {
-  if (!isValid.value) {
-    if (hasChanges.value && !editReason.value.trim() && reasonInputRef.value) {
-      reasonInputRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      reasonInputRef.value.focus();
-    }
-    return;
-  }
-  handleSubmit();
+  if (!isValid.value) return;
+  
+  // Reset reason and show dialog
+  editReason.value = '';
+  confirmData.value = {
+    show: true,
+    title: t('order.manage.saveChanges'),
+    message: t('order.manage.editReasonRequired'),
+    type: 'warning',
+    loading: false,
+  };
+};
+
+const handleConfirmSave = (reason) => {
+    editReason.value = reason;
+    handleSubmit();
 };
 
 const uploaderRef = ref(null);
 
 const handleSubmit = async () => {
   if (!isValid.value) return;
+  
+  confirmData.value.loading = true;
+  
+  try {
 
   if (uploaderRef.value) {
 
@@ -344,5 +363,9 @@ const handleSubmit = async () => {
   }
 
   emit('submit', payload);
+  } finally {
+      confirmData.value.loading = false;
+      confirmData.value.show = false;
+  }
 };
 </script>

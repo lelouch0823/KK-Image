@@ -703,6 +703,7 @@ export default {
       editReason: '编辑理由',
       editReasonPlaceholder: '请填写修改原因（必填）',
       editReasonRequired: '修改信息时必须填写理由',
+      saveChanges: '保存修改',
       statusNote: '状态备注',
       statusNotePlaceholder: '如：预计3天后到达门店',
       confirmStatusChange: '确认变更',

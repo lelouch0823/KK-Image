@@ -9,7 +9,7 @@
         <p class="mt-1 text-sm text-[var(--text-secondary)]">{{ t('salesperson.subtitle') }}</p>
       </div>
 
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
         <!-- 搜索 -->
         <SearchInput
           v-model="searchQuery"

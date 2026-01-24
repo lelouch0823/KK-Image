@@ -5,7 +5,7 @@
     :title="t('order.manage.createTitle')"
     @update:model-value="$emit('update:modelValue', false)"
   >
-    <div class="p-6">
+    <div class="p-4 sm:p-6">
       <OrderForm
         mode="admin"
         :salespersons="salespersons"

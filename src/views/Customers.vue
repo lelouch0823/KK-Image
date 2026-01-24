@@ -2,7 +2,7 @@
   <!-- Root Container: Flex Row for Push Layout -->
   <div class="flex h-full overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] shadow-sm">
     <!-- Left Side: Main Content -->
-    <div class="flex flex-1 flex-col min-w-0 bg-[var(--bg-card)]">
+    <div class="flex min-w-0 flex-1 flex-col bg-[var(--bg-card)]">
       <!-- 头部操作栏 -->
       <div
         class="flex flex-shrink-0 flex-col justify-between gap-4 border-b border-[var(--border-color)] p-4 sm:flex-row sm:items-center"
@@ -12,7 +12,7 @@
           <p class="text-secondary mt-1 text-sm">{{ t('customer.manage.subtitle') }}</p>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <!-- 搜索 -->
           <SearchInput
             v-model="searchQuery"
@@ -42,7 +42,7 @@
       <!-- 客户列表 -->
       <div class="flex-1 overflow-auto">
         <!-- 桌面端表格 (lg+) -->
-          <div class="hidden lg:block relative w-full">
+          <div class="relative hidden w-full lg:block">
            <table class="w-full text-left text-sm">
               <thead class="sticky top-0 z-10 bg-[var(--bg-card)]/90 font-medium text-[var(--text-secondary)] shadow-sm backdrop-blur-sm">
               <tr>
@@ -117,7 +117,7 @@
                   <td class="px-4 py-3 text-xs text-[var(--text-secondary)]">{{ formatDate(customer.createdAt) }}</td>
                   <td class="px-4 py-3 text-right" @click.stop>
                       <button
-                      class="rounded-lg p-1.5 text-[var(--text-secondary)] opacity-0 transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)] group-hover:opacity-100 focus:opacity-100"
+                      class="rounded-lg p-1.5 text-[var(--text-secondary)] opacity-0 transition-all group-hover:opacity-100 hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)] focus:opacity-100"
                       :title="t('common.edit')"
                       @click="openEditModal(customer)"
                       >
@@ -170,7 +170,7 @@
     <!-- Right Side: Detail Panel (Desktop Push) -->
     <div
       v-if="showDetailPanel"
-      class="hidden lg:flex w-96 shrink-0 flex-col border-l border-[var(--border-color)] bg-[var(--bg-card)] transition-all duration-300 ease-in-out"
+      class="hidden w-96 shrink-0 flex-col border-l border-[var(--border-color)] bg-[var(--bg-card)] transition-all duration-300 ease-in-out lg:flex"
     >
       <CustomerDetailContent
         :customer="viewingCustomer"

@@ -7,11 +7,11 @@
       <p class="mt-1 text-sm text-[var(--text-secondary)]">{{ t('order.manage.subtitle') }}</p>
     </div>
 
-    <div class="flex items-center gap-3">
+    <div class="flex flex-wrap items-center gap-3">
       <!-- Create Button -->
       <button
         v-if="showCreate"
-        class="flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-white shadow-sm shadow-primary/20 transition-all hover:bg-primary-hover active:scale-95 dark:text-gray-900"
+        class="bg-primary shadow-primary/20 flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary-hover active:scale-95 dark:text-gray-900"
         @click="$emit('create')"
       >
         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
