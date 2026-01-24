@@ -379,6 +379,7 @@ export default {
     preparingWorkspace: '正在为您准备工作台...',
   },
   dashboard: {
+    stats: '数据概览',
     todayOrders: '今日订单',
     pendingOrders: '待处理订单',
     weekOrders: '本周订单',
@@ -697,6 +698,8 @@ export default {
       filterByStatus: '按状态筛选',
       allSalespersons: '全部销售',
       allStatuses: '全部状态',
+      salesShort: '销售',
+      statusShort: '状态',
       editOrder: '编辑订单',
       orderStatus: '订单状态',
       changeStatus: '变更状态',

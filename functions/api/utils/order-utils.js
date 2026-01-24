@@ -313,7 +313,15 @@ export async function processOrderUpdate(options) {
   // 3. 如果有任何变更，更新订单并发送通知
   if (dataChanged || filesChanged) {
     const orderRepo = new OrderRepository(env.DB);
-    await orderRepo.updateData(orderId, newData, actor.type === 'admin' ? 'admin' : 'sales');
+    const actorTypeStr = actor.type === 'admin' ? 'admin' : 'sales';
+
+    // SOTA: 检测 status 变更并更新顶级 status 列
+    // updateData 只更新 current_data JSON，不会更新 status 列
+    if (updates?.status !== undefined && updates.status !== currentData.status) {
+      await orderRepo.updateStatus(orderId, updates.status, actorTypeStr);
+    }
+
+    await orderRepo.updateData(orderId, newData, actorTypeStr);
 
     // SOTA: 自动发送通知
     // 如果是管理员修改，通知销售员

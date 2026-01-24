@@ -1,19 +1,22 @@
 <template>
-  <div class="relative" ref="containerRef">
+  <div ref="containerRef" class="relative">
     <!-- Trigger -->
     <button
       type="button"
-      class="flex w-full items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 text-left text-sm transition-all focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+      class="flex w-full items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] text-left text-sm transition-all focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
       :class="[
-        size === 'sm' ? 'h-9 rounded-lg' : 'h-11 rounded-xl',
+        size === 'sm' ? 'h-9 rounded-lg px-2' : 'h-11 rounded-xl px-4',
         !modelValue ? 'text-[var(--text-secondary)]' : 'text-[var(--text-main)]'
       ]"
       @click="toggle"
     >
       <span class="truncate">{{ selectedLabel || placeholder }}</span>
       <svg
-        class="size-4 text-[var(--text-secondary)] transition-transform duration-200"
-        :class="{ 'rotate-180': isOpen }"
+        class="text-[var(--text-secondary)] shrink-0 transition-transform duration-200"
+        :class="[
+          size === 'sm' ? 'size-3.5' : 'size-4',
+          { 'rotate-180': isOpen }
+        ]"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -33,7 +36,7 @@
     >
       <div
         v-if="isOpen"
-        class="absolute left-0 right-0 z-50 overflow-auto rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-lg ring-1 ring-black/5 focus:outline-none"
+        class="absolute left-0 z-50 min-w-full w-auto whitespace-nowrap rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-lg ring-1 ring-black/5 focus:outline-none"
         :class="[
           dropdownPosition === 'top' ? 'bottom-full mb-1 origin-bottom' : 'mt-1 origin-top',
           'max-h-60'
@@ -44,8 +47,8 @@
             {{ emptyText }}
           </div>
           <button
-            v-else
             v-for="option in options"
+            v-else
             :key="option.value"
             type="button"
             class="hover:bg-[var(--bg-hover)] flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition-colors"

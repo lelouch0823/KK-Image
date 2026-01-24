@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex h-full flex-col rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm"
+    class="flex flex-col rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm lg:h-full"
   >
     <!-- 头部操作栏 -->
     <OrderFilters
@@ -12,15 +12,21 @@
       @search="handleFilterChange"
       @export="exportOrders"
       @create="showCreateModal = true"
+      @show-stats="showStatsModal = true"
     />
 
-    <!-- 订单统计仪表盘 -->
-    <div class="px-4 pt-4">
+    <!-- 订单统计仪表盘 (Desktop only inline) -->
+    <div class="hidden px-4 pt-4 lg:block">
       <OrderDashboard @filter="handleDashboardFilter" />
     </div>
 
+    <!-- Mobile Stats Modal -->
+    <Modal v-model="showStatsModal" :title="t('dashboard.stats')">
+      <OrderDashboard is-popup @filter="(type) => { handleDashboardFilter(type); showStatsModal = false; }" />
+    </Modal>
+
     <!-- 订单列表 -->
-    <div class="flex-1 overflow-auto">
+    <div class="lg:flex-1 lg:overflow-auto">
       <!-- 桌面表格视图 (lg+) -->
       <div class="hidden lg:block">
         <OrderTable
@@ -189,6 +195,7 @@ const editingOrder = ref(null);
 const viewingOrder = ref(null);
 const isEditing = ref(false);
 const showDetailModal = ref(false);
+const showStatsModal = ref(false);
 const showCreateModal = ref(false); // New state
 const exporting = ref(false);
 const selectedIds = ref([]);
