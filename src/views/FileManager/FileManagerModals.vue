@@ -55,7 +55,7 @@
     <!-- Share Folder Modal -->
     <ShareFolderModal
       v-model="showShareFolder"
-      :folder="currentFolder"
+      :folder="shareFolderTarget || currentFolder"
       @updated="$emit('share-updated')"
     />
 
@@ -115,7 +115,10 @@ const openMove = () => {
   showMove.value = true;
 };
 
-const openShareFolder = () => {
+const shareFolderTarget = ref(null);
+
+const openShareFolder = (folder = null) => {
+  shareFolderTarget.value = folder;
   showShareFolder.value = true;
 };
 

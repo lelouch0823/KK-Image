@@ -10,7 +10,7 @@
           : 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-[var(--border-hover)]'
       ]"
       @click="$emit('navigate', folder.id)"
-      @contextmenu.prevent="handleContextMenu($event, folder)"
+      @contextmenu.prevent.stop="handleContextMenu($event, folder)"
     >
       <div class="flex flex-col items-center">
         <svg

@@ -306,8 +306,8 @@ const openCreateFolderModal = () => {
   modals.value?.openCreateFolder();
 };
 
-const openShareFolderModal = () => {
-  modals.value?.openShareFolder();
+const openShareFolderModal = (folder = null) => {
+  modals.value?.openShareFolder(folder);
 };
 
 const handleRenameSubmit = async ({ id, type, newName }) => {
@@ -580,6 +580,9 @@ const openContextMenu = (e, item, type) => {
   if (type === 'file') {
     menuItems.push({ label: t('fileManager.contextMenu.share'), icon: Icons.share, action: () => handleShareFile(item) });
     menuItems.push({ label: t('fileManager.contextMenu.download'), icon: Icons.download, action: () => window.open(item.url, '_blank') });
+  } else {
+    // Folder actions
+    menuItems.push({ label: t('fileManager.contextMenu.share'), icon: Icons.share, action: () => openShareFolderModal(item) });
   }
   
   menuItems.push({ type: 'separator' });

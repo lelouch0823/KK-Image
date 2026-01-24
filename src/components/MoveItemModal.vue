@@ -78,7 +78,7 @@
       </button>
       <button
         :disabled="!selectedId || moving"
-        class="bg-primary flex items-center gap-2 rounded-lg px-6 py-2 font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+        class="bg-primary flex items-center gap-2 rounded-lg px-6 py-2 font-medium text-white dark:text-gray-900 transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
         @click="confirmMove"
       >
         <span v-if="moving" class="size-4 animate-spin rounded-full border-b-2 border-white"></span>
@@ -104,7 +104,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'moved']);
 
 const { addToast } = useToast();
-const { getAuthHeader, getHeaders } = useAuth();
+const { authFetch } = useAuth();
 const { t } = useI18n();
 
 const loading = ref(false);
@@ -182,9 +182,7 @@ const buildTreeAndFlatten = (flatList) => {
 const fetchAllFolders = async () => {
   loading.value = true;
   try {
-    const res = await fetch(`${API.FOLDERS}?all=true`, {
-      headers: getAuthHeader(),
-    }).then((r) => r.json());
+    const res = await authFetch(`${API.FOLDERS}?all=true`).then((r) => r.json());
 
     if (res.success) {
       flattenedFolders.value = buildTreeAndFlatten(res.data);
@@ -213,9 +211,9 @@ const confirmMove = async () => {
     
     // Batch move files
     if (files.length > 0) {
-       const res = await fetch(`${API.FILES}/batch/move`, {
+       const res = await authFetch(`${API.FILES}/batch/move`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ids: files, targetFolderId: targetFolderId === 'root' ? null : targetFolderId }), // DB usually treats null as root for parent_id
        }).then(r => r.json());
        
@@ -228,9 +226,9 @@ const confirmMove = async () => {
     if (folders.length > 0) {
       // Parallelize
        await Promise.all(folders.map(id => 
-          fetch(`${API.FOLDERS}/${id}`, {
+          authFetch(`${API.FOLDERS}/${id}`, {
              method: 'PUT',
-             headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+             headers: { 'Content-Type': 'application/json' },
              body: JSON.stringify({ parentId: targetFolderId === 'root' ? null : targetFolderId })
           }).then(r => r.json()).then(res => {
              if (!res.success) throw new Error(res.message);
