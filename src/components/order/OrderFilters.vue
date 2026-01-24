@@ -8,25 +8,39 @@
     </div>
 
     <div class="flex items-center gap-3">
-      <!-- 销售筛选 -->
-      <select
-        :value="filters.salesperson"
-        class="h-9 rounded-lg border-[var(--border-color)] bg-[var(--bg-muted)] px-3 text-sm text-[var(--text-main)] transition-all outline-none focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]"
-        @change="$emit('update:filters', { ...filters, salesperson: $event.target.value })"
+      <!-- Create Button -->
+      <button
+        v-if="showCreate"
+        class="flex h-9 items-center gap-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 px-4 text-sm font-medium text-white shadow-sm transition-all active:scale-95"
+        @click="$emit('create')"
       >
-        <option value="">{{ t('order.manage.allSalespersons') }}</option>
-        <option v-for="s in salespersons" :key="s.id" :value="s.id">{{ s.name }}</option>
-      </select>
+        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        {{ t('order.manage.create') || '新建订单' }}
+      </button>
+
+      <!-- 销售筛选 -->
+      <div class="w-40">
+        <Select
+          :model-value="filters.salesperson"
+          :options="salespersonOptions"
+          :placeholder="t('order.manage.allSalespersons')"
+          size="sm"
+          @update:model-value="$emit('update:filters', { ...filters, salesperson: $event })"
+        />
+      </div>
 
       <!-- 状态筛选 -->
-      <select
-        :value="filters.status"
-        class="h-9 rounded-lg border-[var(--border-color)] bg-[var(--bg-muted)] px-3 text-sm text-[var(--text-main)] transition-all outline-none focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]"
-        @change="$emit('update:filters', { ...filters, status: $event.target.value })"
-      >
-        <option value="">{{ t('order.manage.allStatuses') }}</option>
-        <option v-for="s in statuses" :key="s" :value="s">{{ t(`order.statuses.${s}`) }}</option>
-      </select>
+      <div class="w-40">
+        <Select
+          :model-value="filters.status"
+          :options="statusOptions"
+          :placeholder="t('order.manage.allStatuses')"
+          size="sm"
+          @update:model-value="$emit('update:filters', { ...filters, status: $event })"
+        />
+      </div>
 
       <!-- 搜索 -->
       <SearchInput
@@ -73,10 +87,12 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import SearchInput from '@/components/ui/SearchInput.vue';
+import Select from '@/components/ui/Select.vue';
 
-defineProps({
+const props = defineProps({
   filters: {
     type: Object,
     required: true,
@@ -94,9 +110,23 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  showCreate: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-defineEmits(['update:filters', 'search', 'export']);
+defineEmits(['update:filters', 'search', 'export', 'create']);
 
 const { t } = useI18n();
+
+const salespersonOptions = computed(() => [
+  { label: t('order.manage.allSalespersons'), value: '' },
+  ...props.salespersons.map(s => ({ label: s.name, value: s.id }))
+]);
+
+const statusOptions = computed(() => [
+  { label: t('order.manage.allStatuses'), value: '' },
+  ...props.statuses.map(s => ({ label: t(`order.statuses.${s}`), value: s }))
+]);
 </script>

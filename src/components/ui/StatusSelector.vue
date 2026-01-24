@@ -30,7 +30,11 @@
     <!-- Dropdown -->
     <div
       v-if="isOpen"
-      class="absolute right-0 z-50 mt-1 max-h-60 w-48 overflow-auto rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] shadow-lg ring-1 ring-black/5 focus:outline-none"
+      class="absolute right-0 z-50 overflow-auto rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] shadow-lg ring-1 ring-black/5 focus:outline-none"
+      :class="[
+        dropdownPosition === 'top' ? 'bottom-full mb-1 origin-bottom' : 'mt-1 origin-top',
+        'max-h-60 w-48'
+      ]"
     >
       <div class="p-1">
         <button
@@ -67,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { STATUS_STYLES } from '@/utils/status';
 
@@ -87,9 +91,26 @@ const emit = defineEmits(['update:modelValue']);
 const { t } = useI18n();
 const isOpen = ref(false);
 const containerRef = ref(null);
+const dropdownPosition = ref('bottom');
 
-const toggle = () => {
-  isOpen.value = !isOpen.value;
+const toggle = async () => {
+  if (!isOpen.value) {
+    isOpen.value = true;
+    await nextTick();
+    if (containerRef.value) {
+      const rect = containerRef.value.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      // If space below is less than 200px and space above is larger, flip to top
+      if (spaceBelow < 200 && spaceAbove > spaceBelow) {
+        dropdownPosition.value = 'top';
+      } else {
+        dropdownPosition.value = 'bottom';
+      }
+    }
+  } else {
+    isOpen.value = false;
+  }
 };
 
 const select = (status) => {

@@ -19,7 +19,7 @@ import { generateId, now } from '../../api/utils/id.js';
 export async function create(
     db,
     timelineRepo,
-    { id, orderNo, salespersonId, data, mainImageId, fileIds = [], timeline }
+    { id, orderNo, salespersonId, data, status = 'pending', mainImageId, fileIds = [], timeline }
 ) {
     const timestamp = now();
     const orderData = JSON.stringify(data);
@@ -31,10 +31,10 @@ export async function create(
             .prepare(
                 `
         INSERT INTO orders (id, order_no, salesperson_id, original_data, current_data, status, main_image_id, unread_by_admin, unread_by_sales, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, 'pending', ?, 1, 0, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
         `
             )
-            .bind(id, orderNo, salespersonId, orderData, orderData, mainImageId, timestamp, timestamp)
+            .bind(id, orderNo, salespersonId, orderData, orderData, status, mainImageId, timestamp, timestamp)
     );
 
     // 2. 关联文件

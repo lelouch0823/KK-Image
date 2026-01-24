@@ -8,8 +8,10 @@
       :salespersons="salespersons"
       :statuses="statuses"
       :exporting="exporting"
+      :show-create="true"
       @search="handleFilterChange"
       @export="exportOrders"
+      @create="showCreateModal = true"
     />
 
     <!-- 订单统计仪表盘 -->
@@ -79,6 +81,15 @@
       />
     </div>
 
+    <!-- Create Modal -->
+    <OrderCreateModal
+      v-if="showCreateModal"
+      v-model="showCreateModal"
+      :salespersons="salespersons"
+      :statuses="statuses"
+      @submit="handleCreateOrder"
+    />
+
     <!-- 订单详情弹窗 -->
     <Modal v-model="showDetailModal" size="6xl" :title="t('order.detail.title')">
       <OrderDetail
@@ -133,6 +144,8 @@ import OrderStatusChanger from './OrderStatusChanger.vue';
 import OrderEditModal from './OrderEditModal.vue';
 import OrderDetail from './order/OrderDetail.vue';
 import OrderDashboard from './order/OrderDashboard.vue';
+import OrderCreateModal from '@/components/OrderCreateModal.vue';
+import { useAuth } from '@/composables/useAuth';
 
 const {
   orders,
@@ -149,6 +162,7 @@ const {
 } = useOrders();
 const { t } = useI18n();
 const { addToast } = useToast();
+const { authFetch } = useAuth(); // Import useAuth
 
 // Filter state (unified object for v-model)
 const filterState = ref({
@@ -164,9 +178,34 @@ const editingOrder = ref(null);
 const viewingOrder = ref(null);
 const isEditing = ref(false);
 const showDetailModal = ref(false);
+const showCreateModal = ref(false); // New state
 const exporting = ref(false);
 const selectedIds = ref([]);
 const batchProcessing = ref(false);
+
+// Create Order (Admin)
+const handleCreateOrder = async (data) => {
+  try {
+    const res = await authFetch(API.MANAGE_ORDERS, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productName: data.name, // Mapping
+        ...data,
+      }),
+    }).then((r) => r.json());
+
+    if (res.success) {
+      addToast({ message: t('order.manage.createSuccess') || '订单创建成功', type: 'success' });
+      showCreateModal.value = false;
+      loadOrders({ page: 1 });
+    } else {
+      addToast({ message: res.error || t('common.operationFailed'), type: 'error' });
+    }
+  } catch (e) {
+    addToast({ message: t('common.networkError'), type: 'error' });
+  }
+};
 
 // 确认弹窗状态
 const confirmData = ref({

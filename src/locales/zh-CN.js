@@ -690,6 +690,9 @@ export default {
     manage: {
       title: '订单管理',
       subtitle: '审核和管理预定订单',
+      create: '新建订单',
+      createTitle: '创建新订单',
+      createSuccess: '订单创建成功',
       filterBySalesperson: '按销售筛选',
       filterByStatus: '按状态筛选',
       allSalespersons: '全部销售',
@@ -811,6 +814,7 @@ export default {
     activeStatus: '启用状态',
     uuid: '唯一标识 (UUID)',
     noAvailable: '暂无可选销售员',
+    selectPlaceholder: '选择销售员',
     table: {
       orders: '关联订单',
     },

@@ -78,6 +78,17 @@
         />
       </div>
 
+      <!-- 状态 (仅管理员可见) -->
+      <div v-if="showStatus">
+        <label class="text-secondary mb-1 block text-xs font-medium">{{ t('order.status') }}</label>
+        <StatusSelector
+          :model-value="modelValue.status"
+          :options="statuses"
+          class="w-full"
+          @update:model-value="updateField('status', $event)"
+        />
+      </div>
+
       <!-- 备注 (全宽) -->
       <div class="md:col-span-2">
         <label class="text-secondary mb-1 block text-xs font-medium">{{
@@ -98,6 +109,7 @@
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { getTodayISOString } from '@/utils/common';
+import StatusSelector from '@/components/ui/StatusSelector.vue';
 
 const props = defineProps({
   modelValue: {

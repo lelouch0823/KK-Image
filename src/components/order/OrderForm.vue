@@ -1,9 +1,10 @@
 <template>
   <div class="space-y-6">
-    <!-- 标题 -->
-    <div class="text-center">
-      <h2 class="text-primary text-xl font-bold">{{ t('order.portal.newOrder') }}</h2>
-      <p class="text-secondary mt-1 text-sm">{{ t('order.portal.subtitle') }}</p>
+    <!-- 标题 (仅销售端显示) -->
+    <div v-if="mode !== 'admin'" class="text-center">
+      <h2 class="text-primary text-xl font-bold">{{ title || t('order.portal.newOrder') }}</h2>
+      <p v-if="subtitle" class="text-secondary mt-1 text-sm">{{ subtitle }}</p>
+      <p v-else-if="mode === 'sales'" class="text-secondary mt-1 text-sm">{{ t('order.portal.subtitle') }}</p>
     </div>
 
     <form class="space-y-4" @submit.prevent="handleSubmit">
@@ -34,7 +35,7 @@
         </div>
 
         <!-- 品牌和系列 -->
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('order.form.brand') }}
@@ -63,17 +64,29 @@
           </div>
         </div>
 
-        <!-- 款号 (SKU) -->
-        <div>
-          <label class="text-primary mb-2 block text-sm font-medium">
-            {{ t('order.form.sku') }}
-          </label>
-          <input
-            v-model="form.sku"
-            type="text"
-            :placeholder="t('order.form.skuPlaceholder')"
-            class="input h-11"
-          />
+        <!-- Admin: 销售员 | SKU -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div v-if="mode === 'admin'">
+            <label class="text-primary mb-2 block text-sm font-medium">
+              {{ t('common.salesperson') }} <span class="text-danger">*</span>
+            </label>
+            <Select
+              v-model="adminForm.salespersonId"
+              :options="salespersonOptions"
+              :placeholder="t('salesperson.selectPlaceholder') || '选择销售员'"
+            />
+          </div>
+          <div :class="{ 'md:col-span-2': mode !== 'admin' }">
+            <label class="text-primary mb-2 block text-sm font-medium">
+              {{ t('order.form.sku') }}
+            </label>
+            <input
+              v-model="form.sku"
+              type="text"
+              :placeholder="t('order.form.skuPlaceholder')"
+              class="input h-11"
+            />
+          </div>
         </div>
 
         <!-- 规格尺寸 -->
@@ -90,7 +103,7 @@
         </div>
 
         <!-- 颜色材质 -->
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('order.form.color') }}
@@ -132,18 +145,30 @@
           ></textarea>
         </div>
 
-        <!-- 期望到货时间 -->
-        <div>
-          <label class="text-primary mb-2 block text-sm font-medium">
-            {{ t('order.form.expectedArrival') }}
-          </label>
-          <input
-            v-model="form.deadline"
-            type="date"
-            :min="minDate"
-            class="input h-11 appearance-none bg-[var(--bg-card)]"
-            :class="{ 'text-muted': !form.deadline }"
-          />
+        <!-- Admin: 状态 | 到货时间 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div v-if="mode === 'admin'">
+            <label class="text-primary mb-2 block text-sm font-medium">
+              {{ t('order.status') }}
+            </label>
+            <StatusSelector
+              v-model="adminForm.status"
+              :options="statuses"
+              class="w-full"
+            />
+          </div>
+          <div :class="{ 'md:col-span-2': mode !== 'admin' }">
+            <label class="text-primary mb-2 block text-sm font-medium">
+              {{ t('order.form.expectedArrival') }}
+            </label>
+            <input
+              v-model="form.deadline"
+              type="date"
+              :min="minDate"
+              class="input h-11 appearance-none bg-[var(--bg-card)]"
+              :class="{ 'text-muted': !form.deadline }"
+            />
+          </div>
         </div>
       </div>
 
@@ -190,20 +215,40 @@
 </template>
 
 <script setup>
-import { watch, toRef } from 'vue';
+import { watch, toRef, reactive, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useOrderForm } from '@/composables/useOrderForm';
 import ImageUploader from '../common/ImageUploader.vue';
 import AutocompleteInput from '../ui/AutocompleteInput.vue';
+import StatusSelector from '@/components/ui/StatusSelector.vue';
+import Select from '@/components/ui/Select.vue';
 
 const props = defineProps({
   prefill: { type: Object, default: null },
   submitProgress: { type: Object, default: () => ({ step: '', current: 0, total: 0 }) },
+  mode: { type: String, default: 'sales' }, // 'sales', 'admin'
+  title: String,
+  subtitle: String,
+  salespersons: { type: Array, default: () => [] },
+  statuses: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['submit', 'cancel']);
 
 const { t } = useI18n();
+
+const salespersonOptions = computed(() =>
+  props.salespersons.map((sp) => ({
+    label: `${sp.name}${sp.store ? ` (${sp.store})` : ''}`,
+    value: sp.id,
+  }))
+);
+
+// Admin fields
+const adminForm = reactive({
+  salespersonId: '',
+  status: 'pending',
+});
 
 // 使用 composable 管理表单逻辑
 const {
@@ -211,7 +256,7 @@ const {
   uploadedFiles,
   isSubmitting,
   minDate,
-  isValid,
+  isValid: isFormValid,
   progressText,
   uploadEndpoint,
   nameSuggestions,
@@ -225,6 +270,15 @@ const {
   setSubmitting,
 } = useOrderForm({
   submitProgress: toRef(props, 'submitProgress'),
+  isSalesMode: props.mode === 'sales', // Pass mode hint if needed
+});
+
+const isValid = computed(() => {
+  if (!isFormValid.value) return false;
+  if (props.mode === 'admin') {
+    if (!adminForm.salespersonId) return false;
+  }
+  return true;
 });
 
 // 监听预填充数据变化
@@ -232,6 +286,10 @@ watch(
   () => props.prefill,
   (data) => {
     fillForm(data);
+    if (data && props.mode === 'admin') {
+      if (data.salespersonId) adminForm.salespersonId = data.salespersonId;
+      if (data.status) adminForm.status = data.status;
+    }
   },
   { immediate: true }
 );
@@ -242,8 +300,15 @@ const handleSubmit = async () => {
 
   setSubmitting(true);
   try {
-    await emit('submit', getSubmitData());
+    const data = getSubmitData();
+    if (props.mode === 'admin') {
+      data.salespersonId = adminForm.salespersonId;
+      data.status = adminForm.status;
+    }
+    
+    await emit('submit', data);
     saveHistory();
+    // adminForm 重置? Parent will likely close modal.
   } finally {
     setSubmitting(false);
   }

@@ -14,16 +14,9 @@
           <h3 class="text-primary text-lg font-semibold">{{ t('order.manage.editOrder') }}</h3>
           <p class="text-secondary mt-0.5 text-sm">{{ order?.orderNo }}</p>
         </div>
-        <!-- 状态 (只读显示) -->
-        <!-- 状态选择 (仅管理员可编辑) -->
-        <StatusSelector
-          v-if="mode === 'admin'"
-          v-model="form.status"
-          :options="statuses"
-        />
-        <!-- 状态徽章 (销售端只读) -->
+        <!-- 状态徽章 (只读显示) -->
         <span
-          v-else-if="form.status"
+          v-if="form.status"
           class="rounded-full border px-2.5 py-0.5 text-xs font-medium"
           :class="getStatusBadgeClass(form.status)"
         >
