@@ -319,11 +319,11 @@ const handleSubmit = async () => {
   if (!isValid.value) return;
 
   if (uploaderRef.value) {
-    console.warn('[OrderEditModal] Before upload, uploadedFiles:', JSON.stringify(uploadedFiles.value.map(f => ({ id: f.id, isLocal: f.isLocal }))));
+
     const uploadSuccess = await uploaderRef.value.uploadPendingFiles();
     if (!uploadSuccess) return;
     await nextTick();
-    console.warn('[OrderEditModal] After upload, uploadedFiles:', JSON.stringify(uploadedFiles.value.map(f => ({ id: f.id, isLocal: f.isLocal }))));
+
   }
 
   const updates = {};
@@ -348,7 +348,7 @@ const handleSubmit = async () => {
     .sort()
     .join(',');
   const currentFiles = uploadedFiles.value.filter((f) => f.id && !f.isLocal);
-  console.warn('[OrderEditModal] currentFiles for payload:', JSON.stringify(currentFiles.map(f => ({ id: f.id, isLocal: f.isLocal }))));
+
   const newIds = currentFiles
     .map((f) => f.id)
     .sort()

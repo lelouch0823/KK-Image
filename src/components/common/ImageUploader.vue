@@ -152,7 +152,7 @@ import { useDragSort } from '@/composables/useDragSort';
 import { useImageCompression } from '@/composables/useImageCompression';
 import { API } from '@/utils/constants';
 import { generateRandomId } from '@/utils/common';
-import { runConcurrent } from '@/utils/concurrency';
+
 
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
@@ -454,7 +454,7 @@ const uploadPendingFiles = async () => {
     }
   });
 
-  console.warn('[ImageUploader] uploadPendingFiles called, total files:', currentFiles.length, 'pending:', pendingIndices.length);
+
 
   if (pendingIndices.length === 0) return true;
 
@@ -486,7 +486,7 @@ const uploadPendingFiles = async () => {
           instantUpload: uploaded.instantUpload,
         };
 
-        console.warn('[ImageUploader] Uploaded file at index', originalIndex, 'new id:', uploaded.id);
+
       } catch (e) {
         console.error(`Upload failed for file at index ${originalIndex}`, e);
         throw new Error(`${fileObj.file.name} ${t('uploadQueue.uploadFailed')}`);
@@ -494,7 +494,7 @@ const uploadPendingFiles = async () => {
     }
 
     // 所有上传完成后，一次性发送更新
-    console.warn('[ImageUploader] All uploads done, emitting updated list:', JSON.stringify(workingList.map(f => ({ id: f.id, isLocal: f.isLocal }))));
+
     emit('update:modelValue', workingList);
 
     return true;

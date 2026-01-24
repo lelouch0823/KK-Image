@@ -241,7 +241,7 @@ export function useOrders() {
 
       onProgress('creating', 0, 0);
 
-      console.warn('[useOrders] createSalesOrder with fileIds:', fileIds);
+
 
       const res = await fetch(API.SALES_ORDER_CREATE(token), {
         method: 'POST',
