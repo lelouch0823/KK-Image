@@ -6,6 +6,7 @@ const notifications = ref([]);
 const unreadCount = ref(0);
 const loading = ref(false);
 const initialized = ref(false);
+const lastNotificationTime = ref(Date.now()); // SOTA: Signal for auto-refresh
 let pollInterval = null;
 
 // 模式和 token 配置
@@ -64,8 +65,15 @@ export function useNotifications() {
       const res = await fetch(getApiUrl());
       const result = await res.json();
       if (result.success) {
+        const newUnreadCount = result.data.unreadCount;
+
+        // SOTA: 如果未读数量增加，说明有新消息，触发刷新信号
+        if (newUnreadCount > unreadCount.value) {
+          lastNotificationTime.value = Date.now();
+        }
+
         notifications.value = result.data.list;
-        unreadCount.value = result.data.unreadCount;
+        unreadCount.value = newUnreadCount;
         initialized.value = true;
       }
     } catch (e) {
@@ -142,6 +150,7 @@ export function useNotifications() {
     unreadCount,
     loading,
     initialized,
+    lastNotificationTime, // Export signal
     fetchNotifications,
     markAsRead,
     markAllAsRead,

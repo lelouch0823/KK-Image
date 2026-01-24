@@ -127,6 +127,7 @@
 <script setup>
 import { ref, reactive, onMounted, onActivated, watch } from 'vue';
 import { useOrders } from '@/composables/useOrders';
+import { useNotifications } from '@/composables/useNotifications';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
@@ -163,6 +164,16 @@ const {
 const { t } = useI18n();
 const { addToast } = useToast();
 const { authFetch } = useAuth(); // Import useAuth
+// SOTA: Auto-refresh on notification
+const { lastNotificationTime } = useNotifications();
+
+// Watch for notifications to auto-refresh
+watch(lastNotificationTime, () => {
+  // Only refresh if not editing or viewing detail to avoid disruption
+  if (!showEditModal.value && !showDetailModal.value && !showCreateModal.value) {
+    loadOrders({ page: pagination.value.page });
+  }
+});
 
 // Filter state (unified object for v-model)
 const filterState = ref({

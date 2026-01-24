@@ -206,10 +206,18 @@ const { requestPermission, showOrderFeedbackNotification } = usePushNotification
 const { addToast } = useToast();
 const {
   unreadCount: notificationUnreadCount,
+  lastNotificationTime, // SOTA: Auto-refresh signal
   setSalesMode,
   startPolling: startNotificationPolling,
   stopPolling: stopNotificationPolling,
 } = useNotifications();
+
+// Watch for notifications to auto-refresh logic
+watch(lastNotificationTime, () => {
+  if (isAuthenticated.value && currentView.value === 'list') {
+    loadOrders();
+  }
+});
 
 const route = useRoute();
 const accessToken = computed(() => route.params.token);
