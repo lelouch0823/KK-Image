@@ -143,6 +143,21 @@ app.post('/:id/comment', async (c) => {
         comment
     });
 
+    // SOTA: Send notification to salesperson if assigned
+    const order = await repo.findById(id);
+    if (order && order.salespersonId) {
+        const { createOrderNotification } = await import('../../../../../api/utils/order-utils.js');
+        await createOrderNotification(env.DB, {
+            event: 'ORDER_COMMENTED_BY_ADMIN',
+            orderId: id,
+            orderNo: order.orderNo,
+            receiver: 'sales',
+            salespersonId: order.salespersonId,
+            actorName: user?.name || 'Admin',
+            extra: { comment }
+        });
+    }
+
     return c.json({ success: true, message: MSG.ORDER.COMMENT_ADDED });
 });
 

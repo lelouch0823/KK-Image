@@ -41,9 +41,34 @@ const routes = [
     },
     {
         path: '/sales/:token',
-        name: 'Sales',
-        component: Sales,
+        component: Sales, // Sales.vue acts as layout
         meta: { title: '销售门户' },
+        children: [
+            {
+                path: '',
+                name: 'SalesList',
+                component: () => import('@/views/sales/SalesListView.vue'),
+                meta: { title: '订单列表' },
+            },
+            {
+                path: 'create',
+                name: 'SalesCreate',
+                component: () => import('@/views/sales/SalesFormView.vue'),
+                meta: { title: '新建订单' },
+            },
+            {
+                path: 'detail/:id',
+                name: 'SalesDetail',
+                component: () => import('@/views/sales/SalesDetailView.vue'),
+                meta: { title: '订单详情' },
+            },
+            {
+                path: 'stats',
+                name: 'SalesStats',
+                component: () => import('@/views/sales/SalesStatsView.vue'),
+                meta: { title: '个人统计' },
+            },
+        ],
     },
     {
         path: '/admin',

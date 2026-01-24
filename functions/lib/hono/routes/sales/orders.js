@@ -238,6 +238,17 @@ app.post('/:id/comment', zValidator('json', AddCommentSchema), async (c) => {
 
     await orderRepo.setUnread(orderId, 'sales');
 
+    // SOTA: Send notification to admin
+    const { createOrderNotification } = await import('../../../../api/utils/order-utils.js');
+    await createOrderNotification(env.DB, {
+        event: 'ORDER_COMMENTED_BY_SALES',
+        orderId,
+        orderNo: order.orderNo,
+        receiver: 'admin',
+        actorName: salesperson.name,
+        extra: { comment: comment.trim() }
+    });
+
     return c.json({ success: true, message: MSG.ORDER.COMMENT_ADDED });
 });
 

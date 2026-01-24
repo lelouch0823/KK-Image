@@ -13,8 +13,8 @@
     <!-- 登录页面 -->
     <OrderLogin v-else-if="!isAuthenticated" :error="loginError" :on-submit="handleLogin" />
 
-    <!-- 主应用 -->
-    <template v-else>
+    <!-- 主应用 (已认证) -->
+    <div v-else>
       <!-- 顶部导航 -->
       <header
         class="sticky top-0 z-40 border-b border-[var(--border-color)] bg-[var(--bg-card)]/90 backdrop-blur-lg transition-all"
@@ -83,11 +83,12 @@
               </Transition>
             </div>
 
+            <!-- Header Actions -->
             <button
-              v-if="currentView !== 'stats'"
+              v-if="!isStatsPage"
               class="text-secondary hidden items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)] sm:flex"
               :title="t('salesStats.title')"
-              @click="currentView = 'stats'"
+              @click="router.push(`/sales/${accessToken}/stats`)"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -99,10 +100,11 @@
               </svg>
               {{ t('salesStats.title') }}
             </button>
+            
             <button
-              v-if="currentView === 'list'"
+               v-if="isListPage"
               class="bg-primary flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)]"
-              @click="handleNewOrder"
+              @click="router.push(`/sales/${accessToken}/create`)"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -114,10 +116,10 @@
               </svg>
               {{ t('order.portal.newOrder') }}
             </button>
-            <button
-              v-else-if="currentView === 'form' || currentView === 'stats'"
+             <button
+              v-else-if="!isListPage"
               class="text-secondary flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
-              @click="currentView = 'list'"
+              @click="router.push(`/sales/${accessToken}`)"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -133,62 +135,30 @@
         </div>
       </header>
 
-      <!-- 内容区域 -->
+      <!-- Content Area using Router View -->
       <main class="mx-auto max-w-screen-xl px-4 py-6 sm:px-6">
-        <!-- 订单列表 -->
-        <OrderList
-          v-if="currentView === 'list'"
-          :orders="orders"
-          :loading="ordersLoading"
-          @refresh="loadOrders"
-          @view="viewOrder"
-        />
-
-        <!-- 新建订单表单 -->
-        <OrderForm
-          v-else-if="currentView === 'form'"
-          :prefill="prefillData"
-          :submit-progress="submitProgress"
-          @submit="handleSubmitOrder"
-          @cancel="handleCancelForm"
-        />
-
-        <!-- 订单详情 -->
-        <OrderDetail
-          v-else-if="currentView === 'detail' && selectedOrder"
-          :order="selectedOrder"
-          mode="sales"
-          @back="handleBackToList"
-          @comment="handleComment"
-          @refresh="handleRefreshOrder"
-          @duplicate="handleDuplicate"
-        />
-
-        <!-- 个人统计 -->
-        <SalesStats v-else-if="currentView === 'stats'" :token="accessToken" />
+          <router-view />
       </main>
 
-      <!-- 底部安全区域 -->
+      <!-- Safe Area -->
       <div class="h-[env(safe-area-inset-bottom)]"></div>
-    </template>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, watch, onMounted, onUnmounted, computed, provide } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePushNotification } from '@/composables/usePushNotification';
-import { useToast } from '@/composables/useToast';
 import { useOrders } from '@/composables/useOrders';
 import { useNotifications } from '@/composables/useNotifications';
 import OrderLogin from '@/components/order/OrderLogin.vue';
-import OrderList from '@/components/order/OrderList.vue';
-import OrderForm from '@/components/order/OrderForm.vue';
-import OrderDetail from '@/components/order/OrderDetail.vue';
-import SalesStats from '@/components/order/SalesStats.vue';
 import SalesNotificationList from '@/components/order/SalesNotificationList.vue';
 import { onClickOutside } from '@vueuse/core';
+
+const route = useRoute();
+const router = useRouter();
 
 const {
   loading: ordersLoading,
@@ -196,224 +166,97 @@ const {
   checkSalesAuth,
   loginSales,
   loadSalesOrders,
-  getSalesOrder,
-  createSalesOrder,
-  addSalesComment,
+  getSalesOrder
 } = useOrders();
 
 const { t } = useI18n();
 const { requestPermission, showOrderFeedbackNotification } = usePushNotification();
-const { addToast } = useToast();
 const {
   unreadCount: notificationUnreadCount,
-  lastNotificationTime, // SOTA: Auto-refresh signal
+  lastNotificationTime,
   setSalesMode,
   startPolling: startNotificationPolling,
   stopPolling: stopNotificationPolling,
 } = useNotifications();
 
-// 监听上次通知时间 (SOTA: 自动刷新逻辑)
+const accessToken = computed(() => route.params.token);
+
+// Derived state for Header Actions
+const isStatsPage = computed(() => route.path.endsWith('/stats'));
+const isListPage = computed(() => route.path === `/sales/${accessToken.value}` || route.path === `/sales/${accessToken.value}/`);
+
+// Auth State
+const loading = ref(true);
+const isAuthenticated = ref(false);
+const loginError = ref('');
+const salesperson = ref(null);
+const prefillData = ref(null); // Shared state for duplicating order
+
+// Provide context to child views
+provide('salesContext', {
+    orders,
+    loading: ordersLoading,
+    salesperson, // In case needed
+    loadOrders: () => loadSalesOrders(accessToken.value),
+    prefillData,
+    setPrefillData: (data) => { prefillData.value = data }
+});
+
+// Notifications Logic
+const showNotifications = ref(false);
+const notificationRef = ref(null);
+onClickOutside(notificationRef, () => showNotifications.value = false);
+const toggleNotifications = () => showNotifications.value = !showNotifications.value;
+
+const handleNotificationNavigate = async (orderId) => {
+  showNotifications.value = false;
+  router.push(`/sales/${accessToken.value}/detail/${orderId}`);
+};
+
+// Auto-refresh logic (Centralized)
 watch(lastNotificationTime, async () => {
-  if (isAuthenticated.value && currentView.value === 'list') {
-    // 1. 记录当前有反馈的订单ID (用于比较新增反馈)
+  if (isAuthenticated.value && isListPage.value) {
     const prevFeedbackIds = new Set(orders.value.filter((o) => o.hasNewFeedback).map((o) => o.id));
-
-    // 2. 刷新订单列表
-    await loadOrders();
-
-    // 3. 检测新增的反馈并弹出通知
+    await loadSalesOrders(accessToken.value);
+    
+    // Check for NEW feedback
     orders.value.forEach((order) => {
       if (order.hasNewFeedback && !prevFeedbackIds.has(order.id)) {
         showOrderFeedbackNotification(order, () => {
-          viewOrder(order);
+           router.push(`/sales/${accessToken.value}/detail/${order.id}`);
         });
       }
     });
   }
 });
 
-const route = useRoute();
-const accessToken = computed(() => route.params.token);
-
-// 状态
-const loading = ref(true);
-const isAuthenticated = ref(false);
-const loginError = ref('');
-const salesperson = ref(null);
-const currentView = ref('list'); // list | form | detail
-const selectedOrder = ref(null);
-const prefillData = ref(null); // 预填充数据 (复制订单用)
-const submitProgress = ref({ step: '', current: 0, total: 0 }); // 提交进度
-
-// 通知相关状态
-const showNotifications = ref(false);
-const notificationRef = ref(null);
-
-// 点击外部关闭通知弹窗
-onClickOutside(notificationRef, () => {
-  showNotifications.value = false;
-});
-
-const toggleNotifications = () => {
-  showNotifications.value = !showNotifications.value;
-};
-
-// 通知导航处理
-const handleNotificationNavigate = async (orderId) => {
-  // 查找订单并跳转到详情
-  const order = orders.value.find((o) => o.id === orderId);
-  if (order) {
-    await viewOrder(order);
-  } else {
-    // 如果列表中没有，直接请求详情
-    const data = await getSalesOrder(accessToken.value, orderId);
-    if (data) {
-      selectedOrder.value = data;
-      currentView.value = 'detail';
-    }
-  }
-};
-
-// 检查登录状态
+// Auth & Init
 const checkAuth = async () => {
   if (!accessToken.value) {
     loading.value = false;
     return;
   }
-
   const data = await checkSalesAuth(accessToken.value);
   if (data) {
     isAuthenticated.value = true;
     salesperson.value = data;
-    await loadOrders();
+    await loadSalesOrders(accessToken.value);
   }
   loading.value = false;
 };
 
-// 登录
 const handleLogin = async (password) => {
   loginError.value = '';
   const result = await loginSales(accessToken.value, password);
   if (result.success) {
     isAuthenticated.value = true;
     salesperson.value = result.data;
-    await loadOrders();
+    await loadSalesOrders(accessToken.value);
   } else {
     loginError.value = result.message;
   }
 };
 
-// 加载订单列表
-const loadOrders = () => loadSalesOrders(accessToken.value);
-
-// 查看订单详情
-const viewOrder = async (order) => {
-  const data = await getSalesOrder(accessToken.value, order.id);
-  if (data) {
-    selectedOrder.value = data;
-    currentView.value = 'detail';
-
-    // 如果列表里有红点，清除它（本地更新，避免重新加载列表）
-    if (data.hasNewFeedback) {
-      const idx = orders.value.findIndex((o) => o.id === order.id);
-      if (idx !== -1) {
-        orders.value[idx].hasNewFeedback = false;
-      }
-    }
-  }
-};
-
-// 提交订单
-const handleSubmitOrder = async (formData) => {
-  const handleProgress = (step, current, total) => {
-    submitProgress.value = { step, current, total };
-  };
-
-  const result = await createSalesOrder(accessToken.value, formData, handleProgress);
-
-  // 重置进度
-  submitProgress.value = { step: '', current: 0, total: 0 };
-
-  if (result) {
-    currentView.value = 'list';
-    await loadOrders();
-  }
-};
-
-// 返回列表
-const handleBackToList = () => {
-  currentView.value = 'list';
-  selectedOrder.value = null;
-};
-
-// 添加留言
-const handleComment = async (comment) => {
-  if (!selectedOrder.value) return;
-  const success = await addSalesComment(accessToken.value, selectedOrder.value.id, comment);
-  if (success) {
-    // 重新加载详情以显示新留言
-    await viewOrder(selectedOrder.value);
-  }
-};
-
-// 刷新当前订单详情
-const handleRefreshOrder = async () => {
-  if (!selectedOrder.value) return;
-  await viewOrder(selectedOrder.value);
-  loadOrders(); // 同时刷新列表
-};
-
-// 复制订单 (预填充表单)
-const handleDuplicate = (order) => {
-  // 直接使用订单数据填充表单，无需重新请求 API
-  const currentData = order.currentData || {};
-
-  // 复制已有的图片 (转换为预填充格式)
-  const prefillFiles = (order.files || []).map((f) => ({
-    id: f.id,
-    name: f.name,
-    url: f.url,
-    mimeType: f.mimeType,
-    size: f.size,
-    isLocal: false, // 标记为服务端已有文件
-  }));
-
-  prefillData.value = {
-    name: currentData.name || '',
-    brand: currentData.brand || '',
-    series: currentData.series || '',
-    size: currentData.size || '',
-    color: currentData.color || '',
-    material: currentData.material || '',
-    remark: currentData.remark || '',
-    deadline: currentData.deadline || '', // 复制期望到货时间
-    files: prefillFiles, // 复制图片列表
-  };
-
-  currentView.value = 'form';
-  addToast({ message: t('order.actions.duplicateSuccess'), type: 'success' });
-};
-
-// 新建订单 (清除预填充)
-const handleNewOrder = () => {
-  prefillData.value = null;
-  currentView.value = 'form';
-};
-
-// 监听视图切换，自动刷新列表
-watch(currentView, (newVal) => {
-  if (newVal === 'list' && isAuthenticated.value) {
-    loadOrders();
-  }
-});
-
-// 取消表单 (清除预填充)
-const handleCancelForm = () => {
-  prefillData.value = null;
-  currentView.value = 'list';
-};
-
-// 监听 Token 变化 (处理 SPA 同组件跳转)
 watch(accessToken, () => {
   loading.value = true;
   isAuthenticated.value = false;
@@ -423,11 +266,8 @@ watch(accessToken, () => {
 
 onMounted(async () => {
   await checkAuth();
-  // 登录成功后请求通知权限并启动轮询
   if (isAuthenticated.value) {
     requestPermission();
-    // note: local polling removed, using centralized notifications
-    // 初始化销售端通知模式并启动轮询
     setSalesMode(accessToken.value);
     startNotificationPolling();
   }
