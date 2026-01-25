@@ -11,7 +11,7 @@
       <div class="flex items-center gap-3">
         <div>
           <h3 class="text-primary text-lg font-semibold">{{ t('order.manage.editOrder') }}</h3>
-          <p class="text-secondary mt-0.5 text-sm">{{ order?.orderNo }}</p>
+          <p class="text-secondary-text mt-0.5 text-sm">{{ order?.orderNo }}</p>
         </div>
         <!-- 状态徽章 (只读显示) -->
         <span
@@ -40,7 +40,7 @@
         <!-- 图片管理 -->
         <div>
           <h4
-            class="text-primary mb-3 border-b border-[var(--border-color)] pb-2 text-sm font-medium"
+            class="text-primary mb-3 border-b border-border pb-2 text-sm font-medium"
           >
             {{ t('order.detail.images') }}
           </h4>
@@ -62,7 +62,7 @@
 
     <template #footer>
       <button
-        class="text-secondary rounded-lg border border-[var(--border-color)] px-5 py-2 font-medium transition-colors hover:bg-[var(--bg-hover)]"
+        class="text-secondary-text rounded-lg border border-border px-5 py-2 font-medium transition-colors hover:bg-surface-hover"
         @click="$emit('close')"
       >
         {{ t('common.cancel') }}
@@ -70,7 +70,7 @@
       <button
         :class="[
           !isValid || submitting ? 'cursor-not-allowed opacity-50' : 'hover:bg-primary-hover',
-          'bg-primary shadow-primary/20 flex items-center rounded-lg px-5 py-2 font-medium text-white shadow-lg transition-colors dark:text-gray-900'
+          'bg-primary shadow-primary/20 flex items-center rounded-lg px-5 py-2 font-medium text-white shadow-lg transition-colors dark:text-surface'
         ]"
         :disabled="!isValid || submitting"
         @click="handleSaveClick"

@@ -18,24 +18,39 @@
     --color-success: var(--color-success);
     --color-success-bg: var(--color-success-bg);
     --color-success-text: var(--color-success-text);
+    --color-success-border: var(--border-success);
 
     --color-warning: var(--color-warning);
     --color-warning-bg: var(--color-warning-bg);
     --color-warning-text: var(--color-warning-text);
+    --color-warning-border: var(--border-warning);
 
     --color-danger: var(--color-danger);
     --color-danger-bg: var(--color-danger-bg);
     --color-danger-text: var(--color-danger-text);
+    --color-danger-border: var(--border-danger);
 
     --color-info: var(--color-info);
     --color-info-bg: var(--color-info-bg);
     --color-info-text: var(--color-info-text);
+    --color-info-border: var(--border-info);
 
     --color-border: var(--border-color);
     --color-border-hover: var(--border-hover);
+    --color-border-subtle: var(--border-subtle);
+    --color-border-strong: var(--border-strong);
 
-    --color-card: var(--bg-card);
+    --color-surface: var(--bg-card);
+    --color-surface-hover: var(--bg-hover);
+    --color-surface-active: var(--bg-active);
+    --color-surface-muted: var(--bg-muted);
+    --color-surface-secondary: var(--bg-secondary);
+
+    --color-main: var(--text-main);
+    --color-main-inverse: var(--text-inverse);
     --color-muted: var(--text-muted);
+
+    --color-secondary-text: var(--text-secondary);
 
     /* Spacing & Layout */
     --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
@@ -44,6 +59,7 @@
     --radius-md: var(--radius-md);
     --radius-lg: var(--radius-lg);
     --radius-xl: var(--radius-xl);
+
 }
 
 @layer base {
@@ -65,12 +81,12 @@
     }
 
     .scrollbar-thin::-webkit-scrollbar-thumb {
-        background-color: var(--color-gray-300);
+        background-color: var(--color-border-hover);
         border-radius: var(--radius-full);
     }
 
     .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-        background-color: var(--color-gray-400);
+        background-color: var(--color-border-strong);
     }
 
     /* 基础按钮样式 - Enhanced Interaction */
@@ -79,25 +95,26 @@
     }
 
     .btn-primary {
-        @apply bg-primary text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 focus:ring-gray-900 dark:focus:ring-gray-100 shadow-sm hover:shadow;
+        @apply bg-primary text-white dark:text-surface hover:bg-primary-hover focus:ring-primary shadow-sm hover:shadow;
     }
 
     .btn-secondary {
-        @apply bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 focus:ring-gray-200 shadow-sm hover:shadow-md;
+        @apply bg-surface border border-border text-secondary-text hover:bg-surface-hover focus:ring-border shadow-sm hover:shadow-md;
     }
 
     .btn-danger {
-        @apply bg-red-50 text-red-700 border border-red-100 hover:bg-red-100 focus:ring-red-200;
+        @apply bg-danger-bg text-danger-text border border-danger-border hover:bg-danger/20 focus:ring-danger/30;
     }
 
     .btn-ghost {
-        @apply text-gray-500 hover:text-gray-900 hover:bg-gray-100;
+        @apply text-secondary-text hover:text-main hover:bg-surface-hover;
     }
 
     /* 基础输入框 */
     .input {
-        @apply w-full h-10 px-3 text-sm border border-[var(--border-color)] rounded-lg bg-white dark:bg-[var(--bg-page)] focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-sm;
+        @apply w-full h-10 px-3 text-sm border border-border rounded-lg bg-surface dark:bg-surface-muted focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-sm;
     }
+
 
     /* Premium date picker styling */
     input[type="date"] {

@@ -7,28 +7,28 @@
     <form class="space-y-5" @submit.prevent="handleSubmit">
       <!-- 姓名 -->
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-[var(--text-main)]">
-          {{ t('salesperson.name') }} <span class="text-[var(--color-danger)]">*</span>
+        <label class="mb-1.5 block text-sm font-medium text-main">
+          {{ t('salesperson.name') }} <span class="text-danger">*</span>
         </label>
         <input
           v-model="form.name"
           type="text"
           :placeholder="t('salesperson.namePlaceholder')"
-          class="input h-11 border-[var(--border-color)] bg-[var(--bg-muted)] text-[var(--text-main)] placeholder-[var(--text-secondary)]/50 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+          class="input h-11 border-border bg-surface-muted text-main placeholder-secondary-text/50 focus:border-primary focus:ring-primary/20"
           required
         />
       </div>
 
       <!-- 门店 -->
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-[var(--text-main)]">
+        <label class="mb-1.5 block text-sm font-medium text-main">
           {{ t('salesperson.store') }}
         </label>
         <input
           v-model="form.store"
           type="text"
           :placeholder="t('salesperson.storePlaceholder')"
-          class="input h-11 border-[var(--border-color)] bg-[var(--bg-muted)] text-[var(--text-main)] placeholder-[var(--text-secondary)]/50 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+          class="input h-11 border-border bg-surface-muted text-main placeholder-secondary-text/50 focus:border-primary focus:ring-primary/20"
         />
       </div>
 
@@ -47,9 +47,9 @@
 
       <!-- 密码 -->
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-[var(--text-main)]">
+        <label class="mb-1.5 block text-sm font-medium text-main">
           {{ t('salesperson.password') }}
-          <span v-if="!isEditing" class="text-[var(--color-danger)]">*</span>
+          <span v-if="!isEditing" class="text-danger">*</span>
         </label>
         <input
           v-model="form.password"
@@ -57,10 +57,10 @@
           :placeholder="
             isEditing ? t('salesperson.leaveBlankToKeep') : t('salesperson.passwordPlaceholder')
           "
-          class="input h-11 border-[var(--border-color)] bg-[var(--bg-muted)] text-[var(--text-main)] placeholder-[var(--text-secondary)]/50 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+          class="input h-11 border-border bg-surface-muted text-main placeholder-secondary-text/50 focus:border-primary focus:ring-primary/20"
           :required="!isEditing"
         />
-        <p class="mt-1.5 text-xs text-[var(--text-secondary)]">
+        <p class="mt-1.5 text-xs text-secondary-text">
           {{ t('salesperson.passwordHint') }}
         </p>
       </div>
@@ -69,13 +69,13 @@
       <div v-if="isEditing" class="space-y-5 border-t border-[var(--border-color)] pt-5">
         <label class="group flex cursor-pointer items-center justify-between">
           <span
-            class="text-sm font-medium text-[var(--text-main)] transition-colors group-hover:text-[var(--color-primary)]"
+            class="text-sm font-medium text-main transition-colors group-hover:text-primary"
             >{{ t('salesperson.activeStatus') }}</span
           >
           <div class="relative inline-flex cursor-pointer items-center">
             <input v-model="form.isActive" type="checkbox" class="peer sr-only" />
             <div
-              class="peer h-6 w-11 rounded-full bg-[var(--bg-muted)] peer-checked:bg-[var(--color-primary)] peer-focus:ring-2 peer-focus:ring-[var(--color-primary)]/20 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
+              class="peer h-6 w-11 rounded-full bg-surface-muted peer-checked:bg-primary peer-focus:ring-2 peer-focus:ring-primary/20 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-border after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
             ></div>
           </div>
         </label>
@@ -108,7 +108,7 @@
       </button>
       <button
         :disabled="submitting"
-        class="flex items-center rounded-xl bg-[var(--color-primary)] px-6 py-2.5 text-sm font-bold text-white shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+        class="flex items-center rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white dark:text-main-inverse shadow-primary/20 shadow-lg transition-all hover:bg-primary-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         @click="handleSubmit"
       >
         <svg

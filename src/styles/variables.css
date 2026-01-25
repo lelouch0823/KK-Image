@@ -50,15 +50,25 @@
     --color-cyan-bg: #CFFAFE;
     --color-cyan-text: #164E63;
 
-    /* 背景与边框 */
+    /* 背景与边框 - Semantic Surfaces & Borders */
     --bg-page: var(--color-gray-50);
     --bg-card: #FFFFFF;
     --bg-hover: var(--color-gray-50);
     --bg-active: var(--color-gray-100);
     --bg-muted: var(--color-gray-50);
+    --bg-secondary: var(--color-gray-100);
 
     --border-color: var(--color-gray-200);
     --border-hover: var(--color-gray-300);
+    --border-subtle: var(--color-gray-100);
+    --border-strong: var(--color-gray-400);
+
+    /* 状态边框与内边距 */
+    --border-success: #A7F3D0;
+    --border-warning: #FDE68A;
+    --border-danger: #FECACA;
+    --border-info: #BFDBFE;
+
 
     /* Modal 遮罩层 - Modal Overlay */
     --color-overlay-blur: rgba(0, 0, 0, 0.5);
@@ -72,6 +82,8 @@
     --text-main: var(--color-gray-900);
     --text-secondary: var(--color-gray-500);
     --text-muted: var(--color-gray-400);
+    --text-inverse: #FFFFFF;
+
 
     /* 交互反馈 */
     --ring-offset: 2px;
@@ -103,6 +115,7 @@
     --color-chart-5: #EF4444;
     --color-chart-grid: #F3F4F6;
 }
+
 /* 深色模式变量覆盖 - Dark Mode Overrides */
 .dark {
     --color-primary: var(--color-gray-50);
@@ -118,13 +131,23 @@
     --bg-hover: #334155;
     --bg-active: #475569;
     --bg-muted: #0F172A;
+    --bg-secondary: #020617;
 
     --border-color: rgba(255, 255, 255, 0.1);
     --border-hover: rgba(255, 255, 255, 0.2);
+    --border-subtle: rgba(255, 255, 255, 0.05);
+    --border-strong: rgba(255, 255, 255, 0.3);
+
+    --border-success: rgba(16, 185, 129, 0.3);
+    --border-warning: rgba(245, 158, 11, 0.3);
+    --border-danger: rgba(239, 68, 68, 0.3);
+    --border-info: rgba(59, 130, 246, 0.3);
 
     --text-main: #F1F5F9;
     --text-secondary: #94A3B8;
     --text-muted: #64748B;
+    --text-inverse: var(--color-gray-900);
+
 
     --color-overlay-blur: rgba(0, 0, 0, 0.7);
     --color-overlay-dim: rgba(0, 0, 0, 0.5);

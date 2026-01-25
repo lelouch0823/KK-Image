@@ -78,7 +78,7 @@
               :class="
                 selectedFolderIds.includes(folder.id)
                   ? 'bg-primary border-primary'
-                  : 'hover:border-primary border-gray-300 bg-white'
+                  : 'hover:border-primary border-border bg-surface'
               "
             >
               <svg

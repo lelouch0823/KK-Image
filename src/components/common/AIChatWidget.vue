@@ -13,7 +13,7 @@
         class="border-border pointer-events-auto absolute right-0 bottom-0 flex h-[600px] w-[420px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border bg-[var(--bg-card)] shadow-2xl backdrop-blur-xl"
       >
         <!-- Header -->
-        <div class="bg-primary flex items-center justify-between p-4 text-white dark:text-gray-900">
+        <div class="bg-primary flex items-center justify-between p-4 text-white dark:text-surface">
           <div class="flex items-center gap-3">
             <div class="flex size-8 items-center justify-center rounded-lg bg-white/20">
               <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,7 +63,7 @@
         </div>
 
         <!-- Input Area -->
-        <div class="border-border border-t bg-[var(--bg-card)] px-4 pt-1 pb-4">
+        <div class="border-border border-t bg-surface px-4 pt-1 pb-4">
           <AISuggestions 
             class="mb-2" 
             :suggestions="suggestions" 
@@ -79,7 +79,7 @@
               :disabled="isStreamingLoading"
               type="text"
               :placeholder="t('ai.placeholder')"
-              class="focus:ring-primary/20 focus:bg-[var(--bg-card)] focus:ring-2 w-full rounded-xl border-none bg-[var(--bg-muted)] py-3 pr-12 pl-4 text-sm transition-all"
+              class="focus:ring-primary/20 focus:bg-surface focus:ring-2 w-full rounded-xl border-none bg-surface-muted py-3 pr-12 pl-4 text-sm transition-all"
             />
             <button
               :disabled="!userInput.trim() || isStreamingLoading"

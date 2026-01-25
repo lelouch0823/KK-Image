@@ -11,6 +11,8 @@
  */
 export function getFileUrl(storageKey, origin = '') {
   if (!storageKey) return null;
+  // 如果 storageKey 已经是完整 URL，直接返回
+  if (storageKey.startsWith('http')) return storageKey;
   return `${origin}/file/${storageKey}`;
 }
 

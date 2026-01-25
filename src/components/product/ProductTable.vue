@@ -10,11 +10,11 @@
         <th class="rounded-tr-xl px-6 py-4 pr-8 text-right text-xs font-semibold tracking-wider text-slate-500 uppercase">{{ t('product.table.header.actions') }}</th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-slate-100 bg-white/50 dark:divide-slate-800 dark:bg-slate-800/50">
+    <tbody class="divide-y divide-border-subtle bg-surface/50 dark:divide-border-subtle dark:bg-slate-800/50">
       <tr 
         v-for="product in products" 
         :key="product.id"
-        class="group transition-colors duration-200 hover:bg-white dark:hover:bg-slate-800"
+        class="group transition-colors duration-200 hover:bg-surface dark:hover:bg-slate-800"
       >
         <!-- Product Info -->
         <td class="px-6 py-4 pl-8">

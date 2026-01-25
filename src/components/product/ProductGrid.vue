@@ -3,7 +3,7 @@
     <div 
         v-for="product in products" 
         :key="product.id"
-        class="group relative cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800"
+        class="group relative cursor-pointer overflow-hidden rounded-xl border border-border-subtle bg-surface p-4 shadow-sm transition-all duration-300 active:scale-[0.98] dark:border-border dark:bg-surface-muted"
         :class="getStatusBorderClass(product.status)"
         @click="$emit('edit', product)"
     >

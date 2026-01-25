@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-xl border border-[var(--border-color)] bg-white p-4 shadow-sm">
+  <div class="rounded-xl border border-border bg-surface p-4 shadow-sm">
     <div class="mb-3 flex items-center justify-between">
       <div class="flex items-center gap-2">
         <div
@@ -49,7 +49,7 @@
           @change="$emit('update:isPublic', $event.target.checked)"
         />
         <div
-          class="peer h-5 w-9 rounded-full bg-[var(--color-gray-200)] peer-checked:bg-primary peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full"
+          class="peer h-5 w-9 rounded-full bg-border-strong peer-checked:bg-primary peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full"
         ></div>
       </label>
     </div>

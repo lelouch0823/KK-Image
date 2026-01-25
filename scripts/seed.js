@@ -63,10 +63,11 @@ function toSqlValue(value) {
     return `'${escaped}'`;
 }
 
-function generateInsert(table, row) {
+function generateInsert(table, row, orIgnore = true) {
     const columns = Object.keys(row);
     const values = columns.map(col => toSqlValue(row[col]));
-    return `INSERT OR IGNORE INTO "${table}" (${columns.map(c => `"${c}"`).join(', ')}) VALUES (${values.join(', ')});`;
+    const action = orIgnore ? 'INSERT OR IGNORE' : 'INSERT';
+    return `${action} INTO "${table}" (${columns.map(c => `"${c}"`).join(', ')}) VALUES (${values.join(', ')});`;
 }
 
 function executeSql(sql) {
@@ -93,6 +94,51 @@ const COMPANIES = ['科技有限公司', '贸易有限公司', '实业集团', '
 const CITIES = ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '南京'];
 const STATUSES = ['pending', 'confirmed', 'production', 'shipping', 'delivered'];
 const MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+
+// ============================================================================
+// 商品主题与图片 (Unsplash)
+// ============================================================================
+const PRODUCT_CATEGORIES = [
+    {
+        name: '智能数码 (Electronics)',
+        brands: ['Apple', 'DJI', 'Sony', 'Samsung', 'Xiaomi'],
+        series: ['Pro', 'Air', 'Generation 5', 'Galaxy', 'Ultra'],
+        items: ['无线降噪耳机', '4K 高清无人机', '智能平板电脑', '机械游戏键盘', '曲面电竞显示器'],
+        images: [
+            'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1000&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1542393545-10f5cde2c810?q=80&w=1000&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1527690146636-88b9a1e7d5bb?q=80&w=1000&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?q=80&w=1000&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?q=80&w=1000&auto=format&fit=crop'
+        ]
+    },
+    {
+        name: '极简家居 (Furniture)',
+        brands: ['IKEA', 'Herman Miller', 'Muji', 'ZARA Home'],
+        series: ['Nordic', 'Industrial', 'Zen', 'Modern Classic'],
+        items: ['人体工学办公椅', '实木极简餐桌', '智能感应落地灯', '意式真皮沙发', '便携式投影仪支架'],
+        images: [
+            'https://images.unsplash.com/photo-1592078615290-033ee584e267?q=80&w=1000&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=1000&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?q=80&w=1000&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=80&w=1000&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=1000&auto=format&fit=crop'
+        ]
+    },
+    {
+        name: '时尚运动 (Performance)',
+        brands: ['Nike', 'Adidas', 'Lululemon', 'Arc\'teryx'],
+        series: ['Unlimited', 'Performance', 'Alpha', 'Beta'],
+        items: ['全掌气垫跑步鞋', '专业级瑜伽服', '科技速干运动衫', '轻量化登山背包', '碳纤维骑行头盔'],
+        images: [
+            'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1000&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1506152983158-b4a74a01c721?q=80&w=1000&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=1000&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?q=80&w=1000&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=1000&auto=format&fit=crop'
+        ]
+    }
+];
 
 function generateSalesperson(id) {
     const firstName = randomItem(FIRST_NAMES);
@@ -143,8 +189,8 @@ function generateFolder(id, parentId = null) {
     };
 }
 
-function generateBlob() {
-    const hash = randomHash();
+function generateBlob(customHash = null) {
+    const hash = customHash || randomHash();
     return {
         content_hash: hash,
         size: randomInt(1024, 10 * 1024 * 1024),
@@ -154,23 +200,25 @@ function generateBlob() {
     };
 }
 
-function generateFile(id, folderId, blobHash) {
+function generateFile(id, folderId, blobHash, category = null) {
+    const isExternal = blobHash.startsWith('http');
+    const name = category ? `${randomItem(category.items)}_${randomInt(100, 999)}.jpg` : `file_${randomInt(10000, 99999)}.${randomItem(['jpg', 'png', 'pdf'])}`;
     return {
         id,
         folder_id: folderId,
-        name: `file_${randomInt(10000, 99999)}.${randomItem(['jpg', 'png', 'pdf'])}`,
-        original_name: `original_${randomInt(1000, 9999)}.jpg`,
-        size: randomInt(1024, 5 * 1024 * 1024),
-        mime_type: randomItem(MIME_TYPES),
+        name,
+        original_name: name,
+        size: isExternal ? randomInt(102400, 2048000) : randomInt(1024, 5 * 1024 * 1024),
+        mime_type: 'image/jpeg',
         storage_key: blobHash,
-        content_hash: blobHash,
+        content_hash: blobHash, // 保持一致以通过外键检查
         original_hash: randomHash(),
-        is_public: 0,
+        is_public: 1,
         created_by: 'seed-script',
-        width: randomInt(800, 4000),
-        height: randomInt(600, 3000),
+        width: randomInt(1200, 2400),
+        height: randomInt(800, 1600),
         blurhash: 'LGF5]+Yk^6#M@-5c,1J5@[or[Q6.',
-        status: randomItem(['normal', 'blocked', 'whitelisted', 'liked']),
+        status: 'normal',
         created_at: now() - randomInt(0, 30 * 24 * 60 * 60 * 1000),
         updated_at: now(),
     };
@@ -236,31 +284,37 @@ const SPACE_NAMES = {
     custom: ['自定义空间', '临时分享', '测试空间', '演示区'],
 };
 
-function generateSpace(id, template, index) {
+function generateSpace(id, template, index, category = null) {
     const shareToken = randomBytes(8).toString('base64url');
     const names = SPACE_NAMES[template] || SPACE_NAMES.custom;
-    const templateData = template === 'product' ? {
-        brand: randomItem(['品牌A', '品牌B', '品牌C']),
-        price: randomInt(100, 9999),
-        series: `系列${randomInt(1, 10)}`,
-        material: randomItem(['不锈钢', '合金', '塑料', '木材']),
-        sku: `SKU-${randomInt(100000, 999999)}`,
-    } : {};
+
+    let spaceName = names[index % names.length];
+    let templateData = {};
+
+    if (template === 'product' && category) {
+        spaceName = `${randomItem(category.brands)} ${randomItem(category.items)}`;
+        templateData = {
+            brand: randomItem(category.brands),
+            price: randomInt(199, 12999),
+            series: randomItem(category.series),
+            material: randomItem(['钛合金', '陶瓷', '皮革', '再生铝', '真丝']),
+            sku: `SOTA-${randomInt(100000, 999999)}`,
+        };
+    }
 
     return {
         id,
         parent_id: null,
-        name: names[index % names.length] || `${template}空间${index + 1}`,
-        description: `这是一个${template}类型的测试空间，用于展示${template}模板效果`,
+        name: spaceName || `${template}空间${index + 1}`,
+        description: `这是来自 ${category?.name || '默认分类'} 的 SOTA 商品展示空间`,
         share_token: shareToken,
-        is_public: randomInt(0, 1),
+        is_public: 1,
         password: null,
         template,
         template_data: JSON.stringify(templateData),
-        view_count: randomInt(0, 500),
-        download_count: randomInt(0, 100),
+        view_count: randomInt(50, 2000),
+        download_count: randomInt(10, 300),
         cover_file_id: null,
-        share_mode: randomItem(['none', 'all', 'selected']),
         created_at: now() - randomInt(0, 30 * 24 * 60 * 60 * 1000),
         updated_at: now(),
     };
@@ -371,62 +425,84 @@ async function main() {
         sqlStatements.push(generateInsert('notifications', generateNotification(uuid())));
     }
 
-    // 9. 生成空间 (每种模板至少 2 个)
+    // 9. 生成空间 (增加商品空间数量)
     const spaceIds = [];
-    const selectedSpaceIds = []; // 用于 selected 分享模式
-    log(`生成 ${SPACE_TEMPLATES.length * 2} 个空间 (覆盖所有模板类型)...`);
-    let spaceIndex = 0;
-    for (const template of SPACE_TEMPLATES) {
+    const productSpaceIds = [];
+    log(`生成全分类空间...`);
+
+    // 生成一些普通空间
+    for (const template of SPACE_TEMPLATES.filter(t => t !== 'product')) {
         for (let i = 0; i < 2; i++) {
             const id = uuid();
             spaceIds.push(id);
-            const space = generateSpace(id, template, i);
-            sqlStatements.push(generateInsert('spaces', space));
-            // 记录 selected 模式的空间
-            if (space.share_mode === 'selected') {
-                selectedSpaceIds.push(id);
+            sqlStatements.push(generateInsert('spaces', generateSpace(id, template, i)));
+        }
+    }
+
+    // 生成大量优质商品空间
+    log('生成 50 个优质商品展示空间...');
+    for (let i = 0; i < 50; i++) {
+        const id = uuid();
+        const category = randomItem(PRODUCT_CATEGORIES);
+        const space = generateSpace(id, 'product', i, category);
+        spaceIds.push(id);
+        productSpaceIds.push({ id, category });
+        sqlStatements.push(generateInsert('spaces', space));
+    }
+
+    // 10. 为商品空间关联真实的 Unsplash 图片
+    log(`为商品空间关联外部图片...`);
+    for (const { id: spaceId, category } of productSpaceIds) {
+        // 每个商品关联其分类下的所有 5 张图片
+        category.images.forEach((imgUrl, idx) => {
+            const fileId = uuid();
+            const blobHash = randomHash(); // 为外部图片生成一个新的 content_hash (或使用 imgUrl)
+
+            // SOTA: 必须先创建 Blob 记录，否则 File 记录会违反外键约束
+            sqlStatements.push(generateInsert('blobs', generateBlob(blobHash)));
+
+            // 插入文件表
+            sqlStatements.push(generateInsert('files', generateFile(fileId, null, imgUrl, category)));
+
+            // 修正：File 中的 storage_key 应与 content_hash 匹配或后端支持 URL
+            // 在我们的 case 中，storage_key 是 imgUrl，content_hash 是产生的随机 hash
+            // 我们需要更新 generateFile 调用，确保 blobHash 一致
+
+            // 关联空间
+            sqlStatements.push(generateInsert('space_files', generateSpaceFile(spaceId, fileId, idx)));
+            // 设置第一张为封面
+            if (idx === 0) {
+                sqlStatements.push(`UPDATE spaces SET cover_file_id = '${fileId}' WHERE id = '${spaceId}';`);
             }
-            spaceIndex++;
-        }
+        });
     }
 
-    // 10. 生成空间文件关联 (每个空间关联 3-8 个文件)
-    log(`为空间关联文件...`);
-    for (const spaceId of spaceIds) {
-        const filesPerSpace = randomInt(3, 8);
-        const shuffledFiles = [...fileIds].sort(() => Math.random() - 0.5);
-        for (let i = 0; i < Math.min(filesPerSpace, shuffledFiles.length); i++) {
-            sqlStatements.push(generateInsert('space_files', generateSpaceFile(spaceId, shuffledFiles[i], i)));
-        }
+    // 11. 空间生成完成
+    log(`空间与商品关联生成完成`);
+
+
+    // 进度显示 (生成阶段)
+    log(`SQL 语句生成完成 (共 ${sqlStatements.length} 条)`);
+
+    // 分批执行 (SOTA 改良: 作为一个事务整体执行以保证外键一致性)
+    log(`开始写入数据库...`);
+
+    // 我们将所有语句合并为一个大语句，并在首尾禁用/启用外键
+    // 虽然 D1 执行有大小限制，但对于几千条 INSERT 来说，通常可以由 wrangler 处理
+    const finalSql = [
+        'PRAGMA foreign_keys = OFF;',
+        'BEGIN TRANSACTION;',
+        ...sqlStatements,
+        'COMMIT;',
+        'PRAGMA foreign_keys = ON;'
+    ].join('\n');
+
+    if (executeSql(finalSql)) {
+        log(`✅ 种子数据生成完成! ${sqlStatements.length} 条成功`, 'success');
+    } else {
+        log(`❌ 数据库写入失败，请检查报错详情`, 'error');
     }
 
-    // 11. 生成空间销售分享关联 (selected 模式的空间分配 1-3 个销售)
-    log(`为空间分配销售权限...`);
-    for (const spaceId of selectedSpaceIds) {
-        const salesCount = randomInt(1, Math.min(3, salespersonIds.length));
-        const shuffledSales = [...salespersonIds].sort(() => Math.random() - 0.5);
-        for (let i = 0; i < salesCount; i++) {
-            sqlStatements.push(generateInsert('space_salesperson_shares', generateSpaceSalespersonShare(spaceId, shuffledSales[i])));
-        }
-    }
-
-    // 分批执行
-    log(`开始写入数据库 (共 ${sqlStatements.length} 条语句)...`);
-    const BATCH_SIZE = 50;
-    let successCount = 0;
-
-    for (let i = 0; i < sqlStatements.length; i += BATCH_SIZE) {
-        const batch = sqlStatements.slice(i, i + BATCH_SIZE);
-        if (executeSql(batch.join('\n'))) {
-            successCount += batch.length;
-        }
-        // 进度显示
-        const progress = Math.round((i / sqlStatements.length) * 100);
-        process.stdout.write(`\r[INFO] 进度: ${progress}%`);
-    }
-
-    console.log(''); // 换行
-    log(`✅ 种子数据生成完成! ${successCount}/${sqlStatements.length} 条成功`, 'success');
     log(`📊 统计:`, 'info');
     console.log(`   销售员: ${salespersonIds.length}`);
     console.log(`   客户: ${customerIds.length}`);
@@ -437,7 +513,6 @@ async function main() {
     console.log(`   时间轴: ${count}`);
     console.log(`   通知: ${Math.ceil(count / 5)}`);
     console.log(`   空间: ${spaceIds.length} (${SPACE_TEMPLATES.join(', ')})`);
-    console.log(`   空间分享: ${selectedSpaceIds.length} 个空间使用 selected 模式`);
 }
 
 main().catch(e => {
