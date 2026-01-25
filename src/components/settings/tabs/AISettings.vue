@@ -120,7 +120,7 @@ const fetchSettings = async () => {
       form.AI_MODELS = ai.AI_MODELS || '';
     }
   } catch (e) {
-    addToast({ type: 'error', message: 'Failed to load AI settings' });
+    addToast({ type: 'error', message: t('settings.ai.loadFailed') });
     console.error(e);
   } finally {
     loading.value = false;
@@ -144,9 +144,9 @@ const saveSettings = async () => {
     
     const json = await res.json();
     if (json.success) {
-      addToast({ type: 'success', message: 'AI settings saved successfully' });
+      addToast({ message: t('order.manage.createSuccess'), type: 'success' });
     } else {
-      throw new Error(json.error || 'Failed to save');
+      throw new Error(json.error || t('settings.ai.saveFailed'));
     }
   } catch (e) {
     addToast({ type: 'error', message: e.message });

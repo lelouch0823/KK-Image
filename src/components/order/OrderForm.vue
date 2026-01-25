@@ -74,7 +74,7 @@
             <Select
               v-model="adminForm.salespersonId"
               :options="salespersonOptions"
-              :placeholder="t('salesperson.selectPlaceholder') || '选择销售员'"
+              :placeholder="t('salesperson.selectPlaceholder')"
             />
           </div>
           <div :class="{ 'md:col-span-2': mode !== 'admin' }">
@@ -249,6 +249,13 @@ const salespersonOptions = computed(() =>
 const adminForm = reactive({
   salespersonId: '',
   status: 'pending',
+});
+
+const dashboard = reactive({
+    order_detail: '订单详情',
+    personal_stats: '个人统计',
+    dashboard: '概览',
+    file_management: '文件管理',
 });
 
 // 使用 composable 管理表单逻辑

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
-import { withCache } from '../../../../middleware/cache.js';
+import { withCache } from '../../../middleware/cache.js';
 
 const app = new Hono();
 

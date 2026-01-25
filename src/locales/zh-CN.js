@@ -13,6 +13,7 @@ export default {
     deleted: '删除成功',
     loading: '加载中...',
     noData: '暂无数据',
+    save_success: '保存成功',
     copy: '复制',
     copied: '已复制',
     copyFailed: '复制失败',
@@ -25,7 +26,6 @@ export default {
       unauthorized: '未授权，请重新登录',
       server_error: '服务器错误，请稍后重试',
     },
-    close: '关闭',
     complete: '完成',
     invalidCredentials: '用户名或密码错误',
     cancelShare: '取消分享',
@@ -429,6 +429,7 @@ export default {
     monthVisits: '本月访问',
     trafficTrend: '访问趋势 (30天)',
     topSpaces: '热门空间 Top 5',
+    hot: '热门',
     views: '次访问',
     downloads: '次下载',
     // 资产健康
@@ -528,6 +529,7 @@ export default {
     files: '文件管理',
     stats: '统计',
     customers: '客户管理',
+    products: '商品管理',
     admin: '管理后台',
   },
 
@@ -602,6 +604,25 @@ export default {
     history: '搜索历史',
     clearHistory: '清除历史',
     noHistory: '暂无搜索记录',
+  },
+  router: {
+    login: '登录',
+    gallery_share: '相册分享',
+    space_share: '共享空间',
+    sales_portal: '销售门户',
+    order_list: '订单列表',
+    new_order: '新建订单',
+    order_detail: '订单详情',
+    personal_stats: '个人统计',
+    dashboard: '仪表盘',
+    file_management: '文件管理',
+    space_management: '共享空间管理',
+    salesperson_management: '销售管理',
+    product_management: '商品管理',
+    order_management: '预定管理',
+    customer_management: '客户管理',
+    stats_analysis: '统计分析',
+    system_settings: '系统设置',
   },
 
   // 订单模块 (销售端 + 管理端)
@@ -893,12 +914,16 @@ export default {
     ai: {
       title: 'AI 配置',
       description: '配置 AI 助手使用的 API 密钥、模型及接口地址。',
+      save: '保存 AI 设置',
       apiUrl: 'API 接口地址',
-      apiUrlDesc: 'OpenAI 兼容接口的基础 URL 地址。',
+      apiUrlDesc: 'OpenAI 兼容接口的基础 URL。',
       apiKey: 'API 密钥',
-      apiKeyDesc: '您的密钥将加密存储在数据库中。',
+      apiKeyDesc: '您的 API 密钥将安全地存储在数据库中。',
       models: '模型列表',
-      modelListDesc: '按优先级输入的模型 ID 列表，用逗号分隔。',
+      modelListDesc: '以逗号分隔的模型 ID 列表。',
+      loadFailed: '加载 AI 设置失败',
+      saveSuccess: 'AI 设置保存成功',
+      saveFailed: '保存 AI 设置失败',
       saved: 'AI 设置已保存',
     },
     backup: {
@@ -921,6 +946,8 @@ export default {
     manager: {
       title: '商品管理',
       subtitle: '管理您的商品库存、价格和基本信息',
+      stats_overview: '商品数据统计',
+      stats_desc: '近30天商品数据概览',
     },
     action: {
       create: '新建商品',
@@ -943,6 +970,7 @@ export default {
     filters: {
       search_placeholder: '搜索商品名称/编码...',
       status: {
+        short_label: '状态',
         all: '全部状态',
         active: '上架',
         draft: '下架',

@@ -12,7 +12,7 @@
                 {{ editMode ? t('product.modal.edit_title') : t('product.modal.create_title') }}
             </h3>
             <button class="text-slate-400 hover:text-slate-500 focus:outline-none" @click="$emit('update:modelValue', false)">
-                <span class="sr-only">Close</span>
+                <span class="sr-only">{{ t('common.close') }}</span>
                 <svg class="size-6 " fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -45,6 +45,7 @@
                             <!-- Existing Images -->
                             <div v-for="(img, idx) in form.images" :key="idx" class="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
                                 <img :src="`/file/${img}`" class="size-full  object-cover">
+                                <span v-if="idx < 3" class="absolute top-1 left-1 inline-flex items-center rounded-md bg-red-400/10 px-2 py-1 text-xs font-medium text-red-400 ring-1 ring-red-400/20 ring-inset">{{ t('stats.hot') }}</span>
                                 <button type="button" class="absolute top-1 right-1 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100" @click="removeImage(idx)">
                                     <svg class="size-4 " fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
@@ -107,7 +108,7 @@
                      </div>
 
                      <div class="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
-                        <h4 class="font-bold text-slate-800 dark:text-slate-200">{{ t('product.form.organization') || 'Organization' }}</h4>
+                        <h4 class="font-bold text-slate-800 dark:text-slate-200">{{ t('product.form.organization') }}</h4>
                         <div>
                             <label class="block text-xs font-medium text-slate-500 uppercase">{{ t('product.form.slug_seo') }}</label>
                             <input v-model="form.slug" type="text" class="mt-1 block w-full rounded-lg border-slate-300 text-slate-500 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:border-slate-700 dark:bg-slate-800" :placeholder="t('product.form.slug_placeholder')">

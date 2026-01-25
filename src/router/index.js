@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import nprogress from 'nprogress';
 import 'nprogress/nprogress.css';
 import { useAuth } from '@/composables/useAuth';
+import { useI18n } from '@/composables/useI18n';
 import { APP_NAME } from '@/utils/constants';
 
 // 懒加载组件
@@ -23,7 +24,7 @@ const routes = [
         component: Login,
         meta: {
             guest: true, // 仅访客可见
-            title: '登录',
+            titleKey: 'router.login',
         },
     },
     // Public Apps (Token Based)
@@ -31,42 +32,42 @@ const routes = [
         path: '/gallery/:token',
         name: 'Gallery',
         component: Gallery,
-        meta: { title: '相册分享' },
+        meta: { titleKey: 'router.gallery_share' },
     },
     {
         path: '/space/:token',
         name: 'Space',
         component: Space,
-        meta: { title: '共享空间' },
+        meta: { titleKey: 'router.space_share' },
     },
     {
         path: '/sales/:token',
         component: Sales, // Sales.vue acts as layout
-        meta: { title: '销售门户' },
+        meta: { titleKey: 'router.sales_portal' },
         children: [
             {
                 path: '',
                 name: 'SalesList',
                 component: () => import('@/views/sales/SalesListView.vue'),
-                meta: { title: '订单列表' },
+                meta: { titleKey: 'router.order_list' },
             },
             {
                 path: 'create',
                 name: 'SalesCreate',
                 component: () => import('@/views/sales/SalesFormView.vue'),
-                meta: { title: '新建订单' },
+                meta: { titleKey: 'router.new_order' },
             },
             {
                 path: 'detail/:id',
                 name: 'SalesDetail',
                 component: () => import('@/views/sales/SalesDetailView.vue'),
-                meta: { title: '订单详情' },
+                meta: { titleKey: 'router.order_detail' },
             },
             {
                 path: 'stats',
                 name: 'SalesStats',
                 component: () => import('@/views/sales/SalesStatsView.vue'),
-                meta: { title: '个人统计' },
+                meta: { titleKey: 'router.personal_stats' },
             },
         ],
     },
@@ -85,55 +86,55 @@ const routes = [
                 path: 'dashboard',
                 name: 'Dashboard',
                 component: () => import('@/views/Dashboard.vue'),
-                meta: { title: '概览' },
+                meta: { titleKey: 'router.dashboard' },
             },
             {
                 path: 'files',
                 name: 'Files',
                 component: () => import('@/views/FileManager/index.vue'),
-                meta: { title: '文件管理' },
+                meta: { titleKey: 'router.file_management' },
             },
             {
                 path: 'spaces',
                 name: 'Spaces',
                 component: () => import('@/views/SpaceManager/index.vue'),
-                meta: { title: '共享空间' },
+                meta: { titleKey: 'router.space_management' },
             },
             {
                 path: 'salespersons',
                 name: 'Salespersons',
                 component: () => import('@/components/SalespersonManager.vue'), // 暂时兼容
-                meta: { title: '销售员管理' },
+                meta: { titleKey: 'router.salesperson_management' },
             },
             {
                 path: 'products',
                 name: 'Products',
                 component: () => import('@/components/ProductManager.vue'),
-                meta: { title: '商品管理' },
+                meta: { titleKey: 'router.product_management' },
             },
             {
                 path: 'orders',
                 name: 'Orders',
                 component: () => import('@/components/OrderManager.vue'), // 暂时兼容
-                meta: { title: '订单管理' },
+                meta: { titleKey: 'router.order_management' },
             },
             {
                 path: 'customers',
                 name: 'Customers',
                 component: () => import('@/views/Customers.vue'),
-                meta: { title: '客户管理' },
+                meta: { titleKey: 'router.customer_management' },
             },
             {
                 path: 'stats',
                 name: 'Stats',
                 component: () => import('@/views/Stats.vue'),
-                meta: { title: '统计分析' },
+                meta: { titleKey: 'router.stats_analysis' },
             },
             {
                 path: 'settings',
                 name: 'Settings',
                 component: () => import('@/views/Settings.vue'),
-                meta: { title: '系统设置' },
+                meta: { titleKey: 'router.system_settings' },
             },
         ],
     },
@@ -163,9 +164,10 @@ nprogress.configure({ showSpinner: false });
 router.beforeEach(async (to, from, next) => {
     nprogress.start();
 
-    // 更新标题 (基础标题，具体页面会在加载后设置更具体的标题)
-    if (to.meta.title) {
-        document.title = `${to.meta.title} | ${APP_NAME}`;
+    // 设置页面标题
+    const { t } = useI18n();
+    if (to.meta.titleKey) {
+        document.title = `${t(to.meta.titleKey)} | ${APP_NAME}`;
     }
 
     const { checkAuth, isAuthenticated } = useAuth();

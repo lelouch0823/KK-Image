@@ -3,13 +3,15 @@
     <div 
         v-for="product in products" 
         :key="product.id"
-        class="group relative cursor-pointer overflow-hidden rounded-xl border border-border-subtle bg-surface p-4 shadow-sm transition-all duration-300 active:scale-[0.98] dark:border-border dark:bg-surface-muted"
-        :class="getStatusBorderClass(product.status)"
+        :class="[
+            'group relative cursor-pointer overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm transition-all duration-300 active:scale-[0.98] active:bg-[var(--bg-hover)] active:shadow-none',
+            getStatusBorderClass(product.status)
+        ]"
         @click="$emit('edit', product)"
     >
-        <div class="flex items-start gap-3">
-            <!-- Image -->
-            <div class="size-20 flex-shrink-0 overflow-hidden rounded-lg border border-slate-100 bg-slate-100 dark:border-slate-600 dark:bg-slate-700">
+        <div class="flex items-start gap-3 p-3">
+            <!-- Image (Larger for better visual appeal) -->
+            <div class="size-20 flex-shrink-0 overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)]">
                  <AppImage 
                     v-if="getMainImage(product)" 
                     :src="getFileUrl(getMainImage(product))" 
@@ -18,14 +20,14 @@
                     rounded="none"
                 >
                     <template #placeholder>
-                         <div class="flex size-full items-center justify-center bg-slate-100 text-slate-300 dark:bg-slate-700 dark:text-slate-600">
+                         <div class="flex size-full items-center justify-center bg-[var(--bg-muted)] text-[var(--text-secondary)]/30">
                              <svg class="size-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                              </svg>
                          </div>
                     </template>
                 </AppImage>
-                <div v-else class="flex size-full items-center justify-center text-slate-300 dark:text-slate-600">
+                <div v-else class="flex size-full items-center justify-center text-[var(--text-secondary)]/30">
                     <svg class="size-8 " fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
@@ -34,38 +36,32 @@
             
             <!-- Info -->
             <div class="min-w-0 flex-1">
-                <div class="flex items-start justify-between gap-2">
-                    <h3 class="truncate text-[15px] leading-tight font-medium text-slate-900 dark:text-slate-100">
-                        {{ product.name }}
-                    </h3>
-                </div>
+                <!-- Title -->
+                <h3 class="truncate text-[15px] leading-tight font-medium text-[var(--text-main)]">
+                    {{ product.name }}
+                </h3>
                 
-                <div class="mt-1 flex items-center gap-2">
-                    <span class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-500 dark:bg-slate-700/50">
+                <!-- SKU + Stock Row -->
+                <div class="mt-1.5 flex items-center gap-2">
+                    <span class="rounded bg-[var(--bg-muted)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--text-secondary)]">
                         {{ product.sku }}
+                    </span>
+                    <span class="text-[11px] text-[var(--text-secondary)]">
+                        {{ t('product.table.header.stock') }}: {{ product.stock_quantity }}
                     </span>
                     <span v-if="product.stock_quantity <= (product.alert_threshold || 10)" class="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-500 dark:bg-red-900/20">
                         {{ t('product.stats.low_stock') }}
                     </span>
                 </div>
                 
-                <div class="mt-2.5 flex items-end justify-between">
-                    <div class="flex items-center gap-2">
-                        <StatusBadge :variant="getStatusVariant(product.status)" size="xs" :dot="true">
-                            {{ t(`product.filters.status.${product.status}`) }}
-                        </StatusBadge>
-                    </div>
-                    <div class="text-right">
-                         <div class="font-bold text-slate-900 dark:text-white">¥{{ product.price }}</div>
-                         <div class="text-[10px] text-slate-400">Inventory: {{ product.stock_quantity }}</div>
-                    </div>
+                <!-- Price + Status Row -->
+                <div class="mt-2 flex items-end justify-between">
+                    <StatusBadge :variant="getStatusVariant(product.status)" size="xs" :dot="true">
+                        {{ t(`product.filters.status.${product.status}`) }}
+                    </StatusBadge>
+                    <div class="text-lg font-bold text-[var(--color-primary)]">¥{{ product.price }}</div>
                 </div>
             </div>
-
-            <!-- Arrow -->
-             <svg class="pointer-events-none absolute top-1/2 right-2 hidden size-5  -translate-y-1/2 text-slate-300 opacity-0 transition-opacity group-hover:opacity-100 sm:block dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-             </svg>
         </div>
     </div>
   </div>
@@ -78,7 +74,10 @@ import AppImage from '@/components/ui/AppImage.vue';
 
 const { t } = useI18n();
 defineProps({
-    products: Array
+    products: {
+        type: Array,
+        default: () => []
+    }
 });
 defineEmits(['edit']);
 

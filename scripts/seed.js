@@ -273,6 +273,43 @@ function generateNotification(id) {
     };
 }
 
+function generateProduct(id) {
+    const category = randomItem(PRODUCT_CATEGORIES);
+    const brand = randomItem(category.brands);
+    const series = randomItem(category.series);
+    const name = `${brand} ${series} ${randomItem(category.items)}`;
+
+    // Status mapping: on_shelf -> active, off_shelf -> draft, out_of_stock -> active (with 0 stock), archived -> archived
+    const seedStatus = randomItem(['active', 'draft', 'archived']);
+    const stock = seedStatus === 'active' ? randomInt(0, 500) : randomInt(0, 50);
+
+    return {
+        id,
+        name,
+        brand,
+        series,
+        // model: removed as per schema
+        category: category.name.split(' ')[0],
+        price: randomInt(199, 12999),
+        cost_price: randomInt(100, 8000),
+        stock_quantity: stock,
+        sku: `SKU-${randomInt(100000, 999999)}`,
+        // material: removed as it is not a direct column, put in specifications
+        specifications: JSON.stringify({
+            material: randomItem(['铝合金', '塑料', '碳纤维', '真皮', '棉麻']),
+            color: randomItem(['黑色', '白色', '银色']),
+            size: randomItem(['S', 'M', 'L'])
+        }),
+        description: `这是 ${name} 的详细描述。SOTA 品质保证。`,
+        status: seedStatus,
+        // view_count: removed
+        // sales_count: removed
+        images: '[]', // Will be updated in main loop
+        created_at: now() - randomInt(0, 60 * 24 * 60 * 60 * 1000),
+        updated_at: now(),
+    };
+}
+
 // 空间模板类型
 const SPACE_TEMPLATES = ['gallery', 'product', 'portfolio', 'document', 'collection', 'custom'];
 const SPACE_NAMES = {
@@ -477,7 +514,26 @@ async function main() {
         });
     }
 
-    // 11. 空间生成完成
+    // 11. 生成商品 (Table: products) - SOTA NEW
+    log(`生成 ${count} 个商品...`);
+    const productIds = [];
+    for (let i = 0; i < count; i++) {
+        const id = uuid();
+        productIds.push(id);
+        const product = generateProduct(id);
+
+        // Associate with an image if available
+        if (Math.random() < 0.8 && fileIds.length > 0) {
+            // Need to get the storage_key from files? No, seed script files table generation doesn't store storage_key in memory easily.
+            // But 'images' column stores file IDs.
+            const mainImageFileId = randomItem(fileIds);
+            product.images = JSON.stringify([mainImageFileId]);
+        }
+
+        sqlStatements.push(generateInsert('products', product));
+    }
+
+    // 12. 空间生成完成
     log(`空间与商品关联生成完成`);
 
 
@@ -504,7 +560,9 @@ async function main() {
     }
 
     log(`📊 统计:`, 'info');
+    console.log(`   商品: ${productIds.length}`);
     console.log(`   销售员: ${salespersonIds.length}`);
+
     console.log(`   客户: ${customerIds.length}`);
     console.log(`   文件夹: ${folderIds.length}`);
     console.log(`   Blobs: ${blobHashes.length}`);

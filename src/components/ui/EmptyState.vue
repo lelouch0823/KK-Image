@@ -1,5 +1,5 @@
 <template>
-  <div class="animate-fade-in-up flex flex-col items-center justify-center py-16 text-center" :class="containerClass">
+  <div class="animate-fade-in-up flex flex-col items-center justify-center py-12 md:py-16 text-center" :class="containerClass">
     <!-- Icon Container with Blob Background -->
     <div class="relative mb-6">
       <!-- Decorative Blob -->
