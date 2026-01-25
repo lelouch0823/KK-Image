@@ -27,30 +27,58 @@ export function useOrders() {
    * 加载管理端订单列表（增强版，提取额外数据）
    */
   const loadOrders = async (params = {}) => {
-    const success = await resource.loadItems(params);
+    // 复用 useResource 的状态管理，但自定义请求逻辑以获取 metadata
+    // 取消之前的请求
+    resource.abort();
 
-    // 成功后尝试从响应中提取额外数据
-    // TODO: 需要修改 useResource 支持 onSuccess 回调，或直接从缓存中读取完整响应
-    // 临时方案：手动再请求一次（不理想，将在后续优化）
-    if (success) {
-      try {
-        const query = new URLSearchParams({
-          page: params.page || resource.pagination.page,
-          limit: params.limit || resource.pagination.limit,
-          ...params,
-        });
-        const res = await authFetch(`${API.MANAGE_ORDERS}?${query.toString()}`).then(r => r.json());
+    resource.loading.value = true;
+    resource.error.value = null;
 
-        if (res.success) {
-          salespersons.value = res.data.salespersons || [];
-          statuses.value = res.data.statuses || [];
+    try {
+      const query = new URLSearchParams({
+        page: params.page || resource.pagination.page,
+        limit: params.limit || resource.pagination.limit,
+        ...params,
+      });
+
+      // 过滤空参数
+      const cleanParams = new URLSearchParams();
+      for (const [key, value] of query) {
+        if (value !== 'undefined' && value !== 'null' && value !== '') {
+          cleanParams.append(key, value);
         }
-      } catch (_e) {
-        console.warn('Failed to fetch extra order metadata');
       }
-    }
 
-    return success;
+      // 使用自定义 fetch 获取完整响应
+      const res = await authFetch(`${API.MANAGE_ORDERS}?${cleanParams.toString()}`).then(r => r.json());
+
+      if (res.success) {
+        // 更新列表数据
+        resource.items.value = res.data.orders;
+
+        // 提取额外数据
+        salespersons.value = res.data.salespersons || [];
+        statuses.value = res.data.statuses || [];
+
+        // 更新分页
+        if (res.data.pagination) {
+          Object.assign(resource.pagination, res.data.pagination);
+        }
+
+        return true;
+      } else {
+        resource.error.value = res.message || t('common.loadFailed');
+        addToast({ message: resource.error.value, type: 'error' });
+        return false;
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return false;
+      resource.error.value = t('common.networkError');
+      addToast({ message: resource.error.value, type: 'error' });
+      return false;
+    } finally {
+      resource.loading.value = false;
+    }
   };
 
   /**
@@ -76,6 +104,14 @@ export function useOrders() {
    * 更新订单信息
    */
   const updateOrder = async (id, updates, reason, fileIds) => {
+    const idx = resource.items.value.findIndex(item => item.id === id);
+    const oldItem = idx !== -1 ? { ...resource.items.value[idx] } : null;
+
+    // 乐观更新
+    if (idx !== -1) {
+      resource.items.value[idx] = { ...resource.items.value[idx], ...updates };
+    }
+
     try {
       const body = { updates, reason };
       if (fileIds) body.fileIds = fileIds;
@@ -90,10 +126,14 @@ export function useOrders() {
         addToast({ message: res.message || t('order.manage.editOrder'), type: 'success' });
         return true;
       } else {
+        // 回滚
+        if (idx !== -1 && oldItem) resource.items.value[idx] = oldItem;
         addToast({ message: res.message, type: 'error' });
         return false;
       }
     } catch (_e) {
+      // 回滚
+      if (idx !== -1 && oldItem) resource.items.value[idx] = oldItem;
       addToast({ message: t('common.networkError'), type: 'error' });
       return false;
     }
@@ -103,6 +143,14 @@ export function useOrders() {
    * 变更订单状态
    */
   const changeStatus = async (id, status, note = '') => {
+    const idx = resource.items.value.findIndex(item => item.id === id);
+    const oldItem = idx !== -1 ? { ...resource.items.value[idx] } : null;
+
+    // 乐观更新
+    if (idx !== -1) {
+      resource.items.value[idx].status = status;
+    }
+
     try {
       const res = await authFetch(API.MANAGE_ORDER_STATUS(id), {
         method: 'PATCH',
@@ -114,10 +162,14 @@ export function useOrders() {
         addToast({ message: res.message, type: 'success' });
         return true;
       } else {
+        // 回滚
+        if (idx !== -1 && oldItem) resource.items.value[idx] = oldItem;
         addToast({ message: res.message, type: 'error' });
         return false;
       }
     } catch (_e) {
+      // 回滚
+      if (idx !== -1 && oldItem) resource.items.value[idx] = oldItem;
       addToast({ message: t('common.networkError'), type: 'error' });
       return false;
     }
@@ -127,6 +179,7 @@ export function useOrders() {
    * 添加管理员留言
    */
   const addComment = async (id, comment) => {
+    // 留言通常不需要乐观更新，因为不直接显示在列表的主要列中
     try {
       const res = await authFetch(API.MANAGE_ORDER_COMMENT(id), {
         method: 'POST',

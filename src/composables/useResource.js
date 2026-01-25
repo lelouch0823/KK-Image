@@ -170,11 +170,16 @@ export function useResource(apiEndpoint, options = {}) {
         }
 
         try {
-            const query = new URLSearchParams({
-                page: params.page || pagination.page,
-                limit: params.limit || pagination.limit,
-                ...params,
-            });
+            // 过滤掉 undefined 和 null 的参数
+            const cleanParams = Object.fromEntries(
+                Object.entries({
+                    page: params.page || pagination.page,
+                    limit: params.limit || pagination.limit,
+                    ...params,
+                }).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+            );
+
+            const query = new URLSearchParams(cleanParams);
 
             const fetchFn = async () => {
                 const res = await authFetch(`${apiEndpoint}?${query.toString()}`, {
