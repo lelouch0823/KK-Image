@@ -33,6 +33,8 @@ import manageSalespersonsRoutes from './routes/manage/salespersons.js';
 import manageUploadRoutes from './routes/manage/upload.js';
 import manageBackupsRoutes from './routes/manage/backups.js';
 import manageSettingsRoutes from './routes/manage/settings.js';
+import manageProductsRoutes from './routes/manage/products/index.js'; // NEW
+import manageProductDetailRoutes from './routes/manage/products/[id].js'; // NEW
 import salesRoutes from './routes/sales.js';
 import manageNotificationsRoutes from './routes/manage/notifications.js';
 
@@ -110,6 +112,8 @@ app.route('/api/manage/salespersons', manageSalespersonsRoutes);
 app.route('/api/manage/upload', manageUploadRoutes);
 app.route('/api/manage/backups', manageBackupsRoutes);
 app.route('/api/manage/settings', manageSettingsRoutes);
+app.route('/api/manage/products', manageProductsRoutes); // NEW: List & Create
+app.route('/api/manage/products', manageProductDetailRoutes); // NEW: Detail operations (/:id...)
 app.route('/api/notifications', manageNotificationsRoutes); // 新增: 挂载通知路由
 app.route('/api/sales', salesRoutes);
 

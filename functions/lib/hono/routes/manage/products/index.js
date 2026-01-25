@@ -1,10 +1,14 @@
 import { Hono } from 'hono';
-import { handle } from 'hono/cloudflare-pages';
-import { ProductRepository } from '../../../repositories/ProductRepository.js';
+import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
+import { withCache } from '../../../../middleware/cache.js';
 
-const app = new Hono().basePath('/api/manage/products');
+const app = new Hono();
 
-app.get('/', async (c) => {
+/**
+ * GET / - 搜索商品列表
+ * SOTA: 使用边缘缓存 (TTL 60s) 减少 DB 压力
+ */
+app.get('/', withCache(60), async (c) => {
     const { env } = c;
     const { search, category, brand, status, page = 1, limit = 20 } = c.req.query();
 
@@ -29,6 +33,9 @@ app.get('/', async (c) => {
     });
 });
 
+/**
+ * POST / - 创建商品
+ */
 app.post('/', async (c) => {
     const { env } = c;
     const body = await c.req.json();
@@ -47,10 +54,10 @@ app.post('/', async (c) => {
 
     try {
         const product = await repo.create(body);
-        return c.json({ success: true, data: product });
+        return c.json({ success: true, data: product }, 201);
     } catch (e) {
         return c.json({ success: false, error: e.message }, 500);
     }
 });
 
-export const onRequest = handle(app);
+export default app;
