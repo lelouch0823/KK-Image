@@ -3,146 +3,49 @@
  * @module composables/useSpaces
  */
 import { ref } from 'vue';
+import { useResource } from './useResource';
 import { API } from '@/utils/constants';
+import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 
-// 全局状态
-const spaces = ref([]);
+// 全局状态：当前空间详情
 const currentSpace = ref(null);
-const loading = ref(false);
 
 export function useSpaces() {
+  const { authFetch } = useAuth();
   const { addToast } = useToast();
   const { t } = useI18n();
 
+  // 使用 useResource 管理空间列表的基础 CRUD
+  const resource = useResource(API.SPACES);
+
   /**
-   * 加载空间列表
+   * 加载空间列表（支持父级过滤）
    */
   const loadSpaces = async (parentId = null) => {
-    loading.value = true;
-    try {
-      const url = parentId ? `${API.SPACES}?parent_id=${parentId}` : API.SPACES;
-      const response = await fetch(url, { credentials: 'include' });
-      const result = await response.json();
-
-      if (result.success) {
-        spaces.value = result.data;
-      } else {
-        addToast({ message: result.message || t('spaces.loadFailed'), type: 'error' });
-      }
-    } catch (err) {
-      console.error(t('spaces.loadFailed'), err);
-      addToast({ message: t('spaces.networkError'), type: 'error' });
-    } finally {
-      loading.value = false;
-    }
+    const params = parentId ? { parent_id: parentId } : {};
+    return resource.loadItems(params);
   };
 
   /**
    * 获取空间详情
    */
   const loadSpace = async (spaceId) => {
-    loading.value = true;
     try {
-      const response = await fetch(API.SPACE_BY_ID(spaceId), { credentials: 'include' });
-      const result = await response.json();
+      const res = await authFetch(API.SPACE_BY_ID(spaceId)).then(r => r.json());
 
-      if (result.success) {
-        currentSpace.value = result.data;
-        return result.data;
+      if (res.success) {
+        currentSpace.value = res.data;
+        return res.data;
       } else {
-        addToast({ message: result.message || t('spaces.loadFailed'), type: 'error' });
+        addToast({ message: res.message || t('spaces.loadFailed'), type: 'error' });
         return null;
       }
     } catch (err) {
       console.error(t('spaces.loadDetailFailed'), err);
       addToast({ message: t('spaces.networkError'), type: 'error' });
       return null;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  /**
-   * 创建空间
-   */
-  const createSpace = async (data) => {
-    try {
-      const response = await fetch(API.SPACES, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(data),
-      });
-      const result = await response.json();
-
-      if (result.success) {
-        addToast({ message: t('spaces.createSuccess'), type: 'success' });
-        await loadSpaces();
-        return result.data;
-      } else {
-        addToast({ message: result.message || t('spaces.createFailed'), type: 'error' });
-        return null;
-      }
-    } catch (err) {
-      console.error(t('spaces.createFailed'), err);
-      addToast({ message: t('spaces.networkError'), type: 'error' });
-      return null;
-    }
-  };
-
-  /**
-   * 更新空间
-   */
-  const updateSpace = async (spaceId, data) => {
-    try {
-      const response = await fetch(API.SPACE_BY_ID(spaceId), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(data),
-      });
-      const result = await response.json();
-
-      if (result.success) {
-        addToast({ message: t('spaces.updateSuccess'), type: 'success' });
-        await loadSpaces();
-        return result.data;
-      } else {
-        addToast({ message: result.message || t('spaces.updateFailed'), type: 'error' });
-        return null;
-      }
-    } catch (err) {
-      console.error(t('spaces.updateFailed'), err);
-      addToast({ message: t('spaces.networkError'), type: 'error' });
-      return null;
-    }
-  };
-
-  /**
-   * 删除空间
-   */
-  const deleteSpace = async (spaceId) => {
-    try {
-      const response = await fetch(API.SPACE_BY_ID(spaceId), {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      const result = await response.json();
-
-      if (result.success) {
-        addToast({ message: t('spaces.deleteSuccess'), type: 'success' });
-        await loadSpaces();
-        return true;
-      } else {
-        addToast({ message: result.message || t('spaces.deleteFailed'), type: 'error' });
-        return false;
-      }
-    } catch (err) {
-      console.error(t('spaces.deleteFailed'), err);
-      addToast({ message: t('spaces.networkError'), type: 'error' });
-      return false;
     }
   };
 
@@ -153,19 +56,17 @@ export function useSpaces() {
     try {
       const body = Array.isArray(fileIds) ? { fileIds, section } : { ...fileIds, section }; // 支持传对象 { fileIds, folderIds }
 
-      const response = await fetch(API.SPACE_FILES(spaceId), {
+      const res = await authFetch(API.SPACE_FILES(spaceId), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(body),
-      });
-      const result = await response.json();
+      }).then(r => r.json());
 
-      if (result.success) {
-        addToast({ message: result.message || t('spaces.addFileSuccess'), type: 'success' });
+      if (res.success) {
+        addToast({ message: res.message || t('spaces.addFileSuccess'), type: 'success' });
         return true;
       } else {
-        addToast({ message: result.message || t('spaces.addFileFailed'), type: 'error' });
+        addToast({ message: res.message || t('spaces.addFileFailed'), type: 'error' });
         return false;
       }
     } catch (err) {
@@ -180,19 +81,17 @@ export function useSpaces() {
    */
   const removeFilesFromSpace = async (spaceId, fileIds) => {
     try {
-      const response = await fetch(API.SPACE_FILES(spaceId), {
+      const res = await authFetch(API.SPACE_FILES(spaceId), {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ fileIds }),
-      });
-      const result = await response.json();
+      }).then(r => r.json());
 
-      if (result.success) {
+      if (res.success) {
         addToast({ message: t('spaces.removeFileSuccess'), type: 'success' });
         return true;
       } else {
-        addToast({ message: result.message || t('spaces.removeFileFailed'), type: 'error' });
+        addToast({ message: res.message || t('spaces.removeFileFailed'), type: 'error' });
         return false;
       }
     } catch (err) {
@@ -207,12 +106,12 @@ export function useSpaces() {
    */
   const loadSubspaces = async (parentId) => {
     try {
-      const response = await fetch(API.SPACE_SUBSPACES(parentId), { credentials: 'include' });
-      const result = await response.json();
-      if (result.success) {
-        return result.data;
+      const res = await authFetch(API.SPACE_SUBSPACES(parentId)).then(r => r.json());
+
+      if (res.success) {
+        return res.data;
       } else {
-        addToast({ message: result.message || t('spaces.loadFailed'), type: 'error' });
+        addToast({ message: res.message || t('spaces.loadFailed'), type: 'error' });
         return [];
       }
     } catch (err) {
@@ -227,19 +126,17 @@ export function useSpaces() {
    */
   const createSubspace = async (parentId, data) => {
     try {
-      const response = await fetch(API.SPACE_SUBSPACES(parentId), {
+      const res = await authFetch(API.SPACE_SUBSPACES(parentId), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(data),
-      });
-      const result = await response.json();
+      }).then(r => r.json());
 
-      if (result.success) {
+      if (res.success) {
         addToast({ message: t('spaces.createSuccess'), type: 'success' });
-        return result.data;
+        return res.data;
       } else {
-        addToast({ message: result.message || t('spaces.createFailed'), type: 'error' });
+        addToast({ message: res.message || t('spaces.createFailed'), type: 'error' });
         return null;
       }
     } catch (err) {
@@ -250,14 +147,16 @@ export function useSpaces() {
   };
 
   return {
-    spaces,
+    spaces: resource.items,
     currentSpace,
-    loading,
+    loading: resource.loading,
+    error: resource.error,
+    pagination: resource.pagination,
     loadSpaces,
     loadSpace,
-    createSpace,
-    updateSpace,
-    deleteSpace,
+    createSpace: resource.createItem,
+    updateSpace: resource.updateItem,
+    deleteSpace: resource.deleteItem,
     addFilesToSpace,
     removeFilesFromSpace,
     loadSubspaces,

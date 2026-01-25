@@ -3,52 +3,54 @@
  * @module composables/useOrders
  */
 import { ref } from 'vue';
+import { useResource } from './useResource';
+import { useAuth } from './useAuth';
 import { useToast } from './useToast';
 import { useI18n } from './useI18n';
 import { API } from '@/utils/constants';
 
 export function useOrders() {
+  const { authFetch } = useAuth();
   const { addToast } = useToast();
   const { t } = useI18n();
 
-  const loading = ref(false);
-  const orders = ref([]);
+  // 使用 useResource 管理管理端订单列表
+  const resource = useResource(API.MANAGE_ORDERS, {
+    listPath: 'data.orders',
+  });
+
+  // 额外状态（Orders 特有）
   const salespersons = ref([]);
   const statuses = ref([]);
-  const pagination = ref({ page: 1, limit: 20, total: 0, totalPages: 0 });
 
   /**
-   * 加载管理端订单列表
+   * 加载管理端订单列表（增强版，提取额外数据）
    */
   const loadOrders = async (params = {}) => {
-    loading.value = true;
-    try {
-      const query = new URLSearchParams();
-      if (params.page) query.set('page', params.page);
-      if (params.limit) query.set('limit', params.limit);
-      if (params.salesperson) query.set('salesperson', params.salesperson);
-      if (params.status) query.set('status', params.status);
-      if (params.search) query.set('search', params.search);
-      if (params.startTime) query.set('startTime', params.startTime);
-      if (params.endTime) query.set('endTime', params.endTime);
+    const success = await resource.loadItems(params);
 
-      const url = `${API.MANAGE_ORDERS}?${query.toString()}`;
-      const res = await fetch(url, { credentials: 'include' });
-      const result = await res.json();
+    // 成功后尝试从响应中提取额外数据
+    // TODO: 需要修改 useResource 支持 onSuccess 回调，或直接从缓存中读取完整响应
+    // 临时方案：手动再请求一次（不理想，将在后续优化）
+    if (success) {
+      try {
+        const query = new URLSearchParams({
+          page: params.page || resource.pagination.page,
+          limit: params.limit || resource.pagination.limit,
+          ...params,
+        });
+        const res = await authFetch(`${API.MANAGE_ORDERS}?${query.toString()}`).then(r => r.json());
 
-      if (result.success) {
-        orders.value = result.data.orders;
-        salespersons.value = result.data.salespersons || [];
-        statuses.value = result.data.statuses || [];
-        pagination.value = result.data.pagination;
-      } else {
-        addToast({ message: result.message || t('common.loadFailed'), type: 'error' });
+        if (res.success) {
+          salespersons.value = res.data.salespersons || [];
+          statuses.value = res.data.statuses || [];
+        }
+      } catch (_e) {
+        console.warn('Failed to fetch extra order metadata');
       }
-    } catch (_e) {
-      addToast({ message: t('common.networkError'), type: 'error' });
-    } finally {
-      loading.value = false;
     }
+
+    return success;
   };
 
   /**
@@ -56,13 +58,12 @@ export function useOrders() {
    */
   const getOrder = async (id) => {
     try {
-      const res = await fetch(API.MANAGE_ORDER_BY_ID(id), { credentials: 'include' });
-      const result = await res.json();
+      const res = await authFetch(API.MANAGE_ORDER_BY_ID(id)).then(r => r.json());
 
-      if (result.success) {
-        return result.data;
+      if (res.success) {
+        return res.data;
       } else {
-        addToast({ message: result.message, type: 'error' });
+        addToast({ message: res.message, type: 'error' });
         return null;
       }
     } catch (_e) {
@@ -79,19 +80,17 @@ export function useOrders() {
       const body = { updates, reason };
       if (fileIds) body.fileIds = fileIds;
 
-      const res = await fetch(API.MANAGE_ORDER_UPDATE(id), {
+      const res = await authFetch(API.MANAGE_ORDER_UPDATE(id), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(body),
-      });
-      const result = await res.json();
+      }).then(r => r.json());
 
-      if (result.success) {
-        addToast({ message: result.message || t('order.manage.editOrder'), type: 'success' });
+      if (res.success) {
+        addToast({ message: res.message || t('order.manage.editOrder'), type: 'success' });
         return true;
       } else {
-        addToast({ message: result.message, type: 'error' });
+        addToast({ message: res.message, type: 'error' });
         return false;
       }
     } catch (_e) {
@@ -105,19 +104,17 @@ export function useOrders() {
    */
   const changeStatus = async (id, status, note = '') => {
     try {
-      const res = await fetch(API.MANAGE_ORDER_STATUS(id), {
+      const res = await authFetch(API.MANAGE_ORDER_STATUS(id), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ status, note }),
-      });
-      const result = await res.json();
+      }).then(r => r.json());
 
-      if (result.success) {
-        addToast({ message: result.message, type: 'success' });
+      if (res.success) {
+        addToast({ message: res.message, type: 'success' });
         return true;
       } else {
-        addToast({ message: result.message, type: 'error' });
+        addToast({ message: res.message, type: 'error' });
         return false;
       }
     } catch (_e) {
@@ -131,19 +128,17 @@ export function useOrders() {
    */
   const addComment = async (id, comment) => {
     try {
-      const res = await fetch(API.MANAGE_ORDER_COMMENT(id), {
+      const res = await authFetch(API.MANAGE_ORDER_COMMENT(id), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ comment }),
-      });
-      const result = await res.json();
+      }).then(r => r.json());
 
-      if (result.success) {
-        addToast({ message: result.message, type: 'success' });
+      if (res.success) {
+        addToast({ message: res.message, type: 'success' });
         return true;
       } else {
-        addToast({ message: result.message, type: 'error' });
+        addToast({ message: res.message, type: 'error' });
         return false;
       }
     } catch (_e) {
@@ -158,9 +153,8 @@ export function useOrders() {
   const checkSalesAuth = async (token) => {
     if (!token) return null;
     try {
-      const res = await fetch(API.SALES_AUTH(token), { credentials: 'include' });
-      const result = await res.json();
-      return result.success ? result.data : null;
+      const res = await authFetch(API.SALES_AUTH(token)).then(r => r.json());
+      return res.success ? res.data : null;
     } catch (_e) {
       return null;
     }
@@ -171,17 +165,16 @@ export function useOrders() {
    */
   const loginSales = async (token, password) => {
     try {
-      const res = await fetch(API.SALES_AUTH(token), {
+      const res = await authFetch(API.SALES_AUTH(token), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ password }),
-      });
-      const result = await res.json();
-      if (result.success) {
-        return { success: true, data: result.data };
+      }).then(r => r.json());
+
+      if (res.success) {
+        return { success: true, data: res.data };
       }
-      return { success: false, message: result.message || t('order.portal.passwordError') };
+      return { success: false, message: res.message || t('order.portal.passwordError') };
     } catch (_e) {
       return { success: false, message: t('common.networkError') };
     }
@@ -192,19 +185,19 @@ export function useOrders() {
    */
   const loadSalesOrders = async (token) => {
     if (!token) return;
-    loading.value = true;
+    resource.loading.value = true;
     try {
-      const res = await fetch(API.SALES_ORDER_LIST(token), { credentials: 'include' });
-      const result = await res.json();
-      if (result.success) {
-        orders.value = result.data.orders;
+      const res = await authFetch(API.SALES_ORDER_LIST(token)).then(r => r.json());
+
+      if (res.success) {
+        resource.items.value = res.data.orders;
       } else {
-        addToast({ message: result.message || t('common.loadFailed'), type: 'error' });
+        addToast({ message: res.message || t('common.loadFailed'), type: 'error' });
       }
     } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
     } finally {
-      loading.value = false;
+      resource.loading.value = false;
     }
   };
 
@@ -213,13 +206,13 @@ export function useOrders() {
    */
   const getSalesOrder = async (token, id) => {
     try {
-      const res = await fetch(API.SALES_ORDER_DETAIL(token, id), { credentials: 'include' });
-      const result = await res.json();
-      if (result.success) {
+      const res = await authFetch(API.SALES_ORDER_DETAIL(token, id)).then(r => r.json());
+
+      if (res.success) {
         // SOTA: Auto-read handled by backend GET request
-        return result.data;
+        return res.data;
       } else {
-        addToast({ message: result.message, type: 'error' });
+        addToast({ message: res.message, type: 'error' });
         return null;
       }
     } catch (_e) {
@@ -241,18 +234,14 @@ export function useOrders() {
 
       onProgress('creating', 0, 0);
 
-
-
-      const res = await fetch(API.SALES_ORDER_CREATE(token), {
+      const res = await authFetch(API.SALES_ORDER_CREATE(token), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ ...orderData, fileIds }),
-      });
-      const result = await res.json();
+      }).then(r => r.json());
 
-      if (!result.success) {
-        addToast({ message: result.message, type: 'error' });
+      if (!res.success) {
+        addToast({ message: res.message, type: 'error' });
         return false;
       }
 
@@ -270,18 +259,17 @@ export function useOrders() {
    */
   const addSalesComment = async (token, id, comment) => {
     try {
-      const res = await fetch(API.SALES_ORDER_COMMENT(token, id), {
+      const res = await authFetch(API.SALES_ORDER_COMMENT(token, id), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ comment }),
-      });
-      const result = await res.json();
-      if (result.success) {
-        addToast({ message: result.message, type: 'success' });
+      }).then(r => r.json());
+
+      if (res.success) {
+        addToast({ message: res.message, type: 'success' });
         return true;
       }
-      addToast({ message: result.message, type: 'error' });
+      addToast({ message: res.message, type: 'error' });
       return false;
     } catch (_e) {
       addToast({ message: t('common.networkError'), type: 'error' });
@@ -328,19 +316,17 @@ export function useOrders() {
    */
   const batchAction = async (ids, action, reason = '') => {
     try {
-      const res = await fetch(API.MANAGE_ORDER_BATCH, {
+      const res = await authFetch(API.MANAGE_ORDER_BATCH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ ids, action, reason }),
-      });
-      const result = await res.json();
+      }).then(r => r.json());
 
-      if (result.success) {
-        addToast({ message: result.message, type: 'success' });
-        return result.data;
+      if (res.success) {
+        addToast({ message: res.message, type: 'success' });
+        return res.data;
       } else {
-        addToast({ message: result.message, type: 'error' });
+        addToast({ message: res.message, type: 'error' });
         return null;
       }
     } catch (_e) {
@@ -350,11 +336,12 @@ export function useOrders() {
   };
 
   return {
-    loading,
-    orders,
+    loading: resource.loading,
+    orders: resource.items,
     salespersons,
     statuses,
-    pagination,
+    pagination: resource.pagination,
+    error: resource.error,
     loadOrders,
     getOrder,
     updateOrder,
