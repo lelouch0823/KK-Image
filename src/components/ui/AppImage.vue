@@ -43,9 +43,10 @@
     <div v-if="state === 'error'" class="app-image__error">
       <slot name="error">
         <div class="app-image__error-content">
+          <!-- Broken Image Icon -->
           <svg class="app-image__error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-              d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
+              d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" 
             />
           </svg>
           <button
@@ -234,15 +235,20 @@ function handleLoad() {
   emit('load');
 }
 
-function handleError() {
+function handleError(e) {
   // 如果有 fallback 且未尝试过，使用 fallback
   if (props.fallback && retryCount.value === 0) {
     retryCount.value = 1;
     state.value = 'loading';
     return;
   }
+  
+  // 避免重复触发
+  if (state.value === 'error') return;
+
+  console.warn('[AppImage] Load failed:', props.src);
   state.value = 'error';
-  emit('error');
+  emit('error', e);
 }
 
 function handleRetry() {
@@ -335,6 +341,23 @@ function handleRetry() {
   align-items: center;
   justify-content: center;
   background-color: var(--bg-muted);
+  z-index: 5;
+}
+
+/* 增加错误态的视觉区分 (Error visual distinction) */
+.app-image--error .app-image__error {
+    background-color: var(--color-gray-100);
+}
+:root.dark .app-image--error .app-image__error {
+    background-color: rgba(239, 68, 68, 0.1); /* Red tint in dark mode */
+}
+
+/* 针对错误态更明显的图标颜色 */
+.app-image__error-icon {
+  width: 2rem;
+  height: 2rem;
+  color: var(--text-muted);
+  opacity: 0.7;
 }
 
 .app-image__error-content {
@@ -344,29 +367,6 @@ function handleRetry() {
   gap: 0.5rem;
   color: var(--text-muted);
 }
-
-.app-image__error-icon {
-  width: 2rem;
-  height: 2rem;
-  opacity: 0.5;
-}
-
-.app-image__retry-btn {
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  color: var(--text-main);
-  background-color: var(--bg-hover);
-  border: 1px solid var(--border-color);
-  border-radius: 0.375rem;
-  cursor: pointer;
-  transition: background-color 0.15s;
-}
-
-.app-image__retry-btn:hover {
-  background-color: var(--bg-active);
-}
-
-/* 业务状态角标 */
 .app-image__badge {
   position: absolute;
   top: 0.25rem;
