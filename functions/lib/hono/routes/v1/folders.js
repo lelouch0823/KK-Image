@@ -7,10 +7,21 @@ import {
   ShareSettingsSchema,
 } from '../../schemas/folder.js';
 import { requirePermission } from '../../middleware/auth.js';
-import { withCache } from '../../middleware/cache.js';
+import { withCache, invalidateCache } from '../../middleware/cache.js';
 import { generateId, generateShareToken, now, MSG } from '../../_shared/utils.js';
 
 const app = new Hono();
+
+/**
+ * 构建缓存失效 URL
+ */
+const getFolderCacheUrls = (c) => {
+  const origin = new URL(c.req.url).origin;
+  return [
+    `${origin}/api/v1/folders`,
+    `${origin}/api/v1/folders?parentId=null`,
+  ];
+};
 
 /**
  * GET /api/v1/folders - 获取文件夹列表
@@ -155,6 +166,9 @@ app.post(
       )
       .run();
 
+    // 使缓存失效
+    c.executionCtx.waitUntil(invalidateCache(getFolderCacheUrls(c)));
+
     return c.json(
       {
         success: true,
@@ -205,6 +219,9 @@ app.put(
       .bind(...values)
       .run();
 
+    // 使缓存失效
+    c.executionCtx.waitUntil(invalidateCache(getFolderCacheUrls(c)));
+
     return c.json({ success: true, message: MSG.FOLDER.UPDATE_SUCCESS });
   }
 );
@@ -243,6 +260,9 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
 
   await env.DB.prepare('DELETE FROM folders WHERE id = ?').bind(id).run();
 
+  // 使缓存失效
+  c.executionCtx.waitUntil(invalidateCache(getFolderCacheUrls(c)));
+
   return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
 });
 
@@ -267,6 +287,9 @@ app.put(
     )
       .bind(isPublic ? 1 : 0, password || null, expiresAtTs, now(), id)
       .run();
+
+    // 使缓存失效
+    c.executionCtx.waitUntil(invalidateCache(getFolderCacheUrls(c)));
 
     // 获取更新后的分享信息
     const folder = await env.DB.prepare(

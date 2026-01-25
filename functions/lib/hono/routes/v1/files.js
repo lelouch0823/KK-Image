@@ -16,6 +16,18 @@ import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 const app = new Hono();
 
 /**
+ * 构建缓存失效 URL
+ */
+const getFileCacheUrls = (c) => {
+  const origin = new URL(c.req.url).origin;
+  // 简单清除根列表和第一页，复杂查询暂不处理
+  return [
+    `${origin}/api/v1/files`,
+    `${origin}/api/v1/files?page=1&limit=20`,
+  ];
+};
+
+/**
  * GET /api/v1/files - 获取文件列表
  */
 app.get('/', zValidator('query', FileQuerySchema), withCache(30), async (c) => {
@@ -165,6 +177,9 @@ app.post('/', requirePermission('files:write'), zValidator('json', CreateFileSch
       updatedAt: nowMs
     });
 
+    // 使缓存失效
+    c.executionCtx.waitUntil(invalidateCache(getFileCacheUrls(c)));
+
     return c.json({
       success: true,
       data: { id, ...data, createdAt: nowMs },
@@ -197,7 +212,8 @@ app.put('/:id', requirePermission('files:write'), async (c) => {
     }
 
     await repo.update(id, updates);
-    await invalidateCache(c.req.url);
+    // 使详情缓存和列表缓存失效
+    c.executionCtx.waitUntil(invalidateCache([...getFileCacheUrls(c), c.req.url]));
 
     return c.json({ success: true, message: MSG.FILE.UPDATE_SUCCESS });
   } catch (err) {
@@ -224,6 +240,9 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
     }
 
     await repo.delete(id);
+    // 使缓存失效
+    c.executionCtx.waitUntil(invalidateCache(getFileCacheUrls(c)));
+
     return c.json({ success: true, message: MSG.FILE.DELETE_SUCCESS });
   } catch (err) {
     return c.json({ success: false, error: err.message }, 500);
@@ -260,6 +279,8 @@ app.post(
       }
 
       await repo.deleteBatch(ids);
+      // 使缓存失效
+      c.executionCtx.waitUntil(invalidateCache(getFileCacheUrls(c)));
 
       return c.json({
         success: true,
@@ -293,6 +314,8 @@ app.post(
       }
 
       await fileRepo.moveBatch(ids, targetFolderId || 'root');
+      // 使缓存失效
+      c.executionCtx.waitUntil(invalidateCache(getFileCacheUrls(c)));
 
       return c.json({
         success: true,

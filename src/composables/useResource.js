@@ -292,13 +292,14 @@ export function useResource(apiEndpoint, options = {}) {
      */
     const updateItem = async (id, updates, idKey = 'id') => {
         const idx = items.value.findIndex(item => item[idKey] === id);
-        if (idx === -1) return false;
 
-        // 1. 保存旧值
-        const oldItem = { ...items.value[idx] };
+        // 1. 保存旧值 (仅当在缓存中找到时)
+        const oldItem = idx !== -1 ? { ...items.value[idx] } : null;
 
-        // 2. 乐观更新
-        items.value[idx] = { ...items.value[idx], ...updates };
+        // 2. 乐观更新 (仅当在缓存中找到时)
+        if (idx !== -1) {
+            items.value[idx] = { ...items.value[idx], ...updates };
+        }
 
         try {
             const res = await authFetch(`${apiEndpoint}/${id}`, {
@@ -313,15 +314,19 @@ export function useResource(apiEndpoint, options = {}) {
                 clearCache(); // 清空缓存
                 return true;
             } else {
-                // 3. 失败回滚
-                items.value[idx] = oldItem;
-                addToast({ message: res.error || t('common.error'), type: 'error' });
+                // 3. 失败回滚 (仅当有旧值时)
+                if (oldItem && idx !== -1) {
+                    items.value[idx] = oldItem;
+                }
+                addToast({ message: res.error || t('common.operationFailed'), type: 'error' });
                 return false;
             }
         } catch (e) {
             if (e.name === 'AbortError') return false;
-            // 3. 失败回滚
-            items.value[idx] = oldItem;
+            // 3. 失败回滚 (仅当有旧值时)
+            if (oldItem && idx !== -1) {
+                items.value[idx] = oldItem;
+            }
             addToast({ message: t('common.networkError'), type: 'error' });
             return false;
         }

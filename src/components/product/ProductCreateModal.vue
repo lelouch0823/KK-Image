@@ -175,11 +175,13 @@
 <script setup>
 import { ref, reactive, watch } from 'vue';
 import { useProducts } from '@/composables/useProducts';
+import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import ImageUploader from '@/components/common/ImageUploader.vue';
 import { API } from '@/utils/constants';
 
 const { t } = useI18n();
+const { addToast } = useToast();
 const props = defineProps({
     modelValue: Boolean,
     editMode: Boolean,
@@ -282,7 +284,13 @@ const parseJson = (str) => {
 };
 
 const handleSubmit = async () => {
-    if (!form.name || !form.sku) return;
+    if (!form.name || !form.sku) {
+        addToast({ 
+            message: t('common.validation_error', '请填写必填项 (商品名称, SKU)'), 
+            type: 'error' 
+        });
+        return;
+    }
     
     submitting.value = true;
     try {

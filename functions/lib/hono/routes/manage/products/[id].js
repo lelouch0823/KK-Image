@@ -1,7 +1,19 @@
 import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
+import { invalidateCache } from '../../../middleware/cache.js';
 
 const app = new Hono();
+
+/**
+ * 构建缓存失效 URL
+ */
+const getProductCacheUrls = (c) => {
+    const origin = new URL(c.req.url).origin;
+    return [
+        `${origin}/api/manage/products`,
+        `${origin}/api/manage/products?page=1&limit=20`,
+    ];
+};
 
 /**
  * GET /:id - 获取商品详情
@@ -9,16 +21,6 @@ const app = new Hono();
 app.get('/:id', async (c) => {
     const { env } = c;
     const id = c.req.param('id');
-    // Simple fetch without Repo for now as Repo doesn't have findById yet
-    // const repo = new ProductRepository(env.DB);
-
-    // ProductRepository requires custom method or we reuse search by ID if available (likely need dedicated method)
-    // For now, let's assume search can filter enough or add findById
-    // Actually repo has findBySku but not explicit findById in snippet.
-    // Let's rely on basic DB fetch for now or extend Repo in next step if needed. 
-    // Checking previous file content... Repo doesn't have findById. 
-    // Wait, let's implement a quick fetch here or add to Repo.
-    // Adding to Repo is SOTA. 
 
     const product = await env.DB.prepare('SELECT * FROM products WHERE id = ?').bind(id).first();
 
@@ -26,8 +28,6 @@ app.get('/:id', async (c) => {
         return c.json({ success: false, error: 'Product not found' }, 404);
     }
 
-    // Reuse parsing logic? Repo has _parseResult.
-    // Let's manually parse for now to keep it simple, or import utils.
     try {
         product.images = JSON.parse(product.images || '[]');
         product.specifications = JSON.parse(product.specifications || '{}');
@@ -39,7 +39,34 @@ app.get('/:id', async (c) => {
 });
 
 /**
- * PUT /:id - 更新商品
+ * PATCH /:id - 更新商品 (Partial Update)
+ */
+app.patch('/:id', async (c) => {
+    const { env } = c;
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const repo = new ProductRepository(env.DB);
+
+    console.log('[PATCH /products/:id] ID:', id);
+    console.log('[PATCH /products/:id] Body:', JSON.stringify(body));
+
+    const result = await repo.updateWithMeta(id, body);
+
+    console.log('[PATCH /products/:id] Result:', JSON.stringify(result));
+
+    if (result.success && result.changes > 0) {
+        // 使缓存失效
+        c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
+        return c.json({ success: true, message: 'Product updated', changes: result.changes });
+    } else if (result.success && result.changes === 0) {
+        return c.json({ success: false, error: 'No rows updated. Product may not exist.' }, 404);
+    } else {
+        return c.json({ success: false, error: result.error || 'Update failed' }, 400);
+    }
+});
+
+/**
+ * PUT /:id - 更新商品 (Full Update)
  */
 app.put('/:id', async (c) => {
     const { env } = c;
@@ -50,6 +77,8 @@ app.put('/:id', async (c) => {
     const success = await repo.update(id, body);
 
     if (success) {
+        // 使缓存失效
+        c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
         return c.json({ success: true, message: 'Product updated' });
     } else {
         return c.json({ success: false, error: 'Update failed or no changes' }, 400);
@@ -57,17 +86,18 @@ app.put('/:id', async (c) => {
 });
 
 /**
- * DELETE /:id - 删除商品 (Mock, usually archive)
+ * DELETE /:id - 删除商品 (Soft delete)
  */
 app.delete('/:id', async (c) => {
     const { env } = c;
     const id = c.req.param('id');
     const repo = new ProductRepository(env.DB);
 
-    // Soft delete usually
     const success = await repo.update(id, { status: 'archived' });
 
     if (success) {
+        // 使缓存失效
+        c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
         return c.json({ success: true, message: 'Product archived' });
     } else {
         return c.json({ success: false, error: 'Delete failed' }, 400);

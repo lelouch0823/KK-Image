@@ -49,6 +49,17 @@ export class ProductRepository {
      * @param {Object} updates 
      */
     async update(id, updates) {
+        const result = await this.updateWithMeta(id, updates);
+        return result.success && result.changes > 0;
+    }
+
+    /**
+     * 更新商品 (带元数据)
+     * @param {string} id 
+     * @param {Object} updates 
+     * @returns {Promise<{success: boolean, changes: number, error?: string}>}
+     */
+    async updateWithMeta(id, updates) {
         const allowedFields = [
             'name', 'sku', 'slug', 'category', 'brand', 'series',
             'price', 'cost_price', 'stock_quantity', 'alert_threshold',
@@ -69,18 +80,33 @@ export class ProductRepository {
             }
         }
 
-        if (Object.keys(updateData).length === 0) return false;
+        if (Object.keys(updateData).length === 0) {
+            return { success: false, changes: 0, error: 'No valid fields to update' };
+        }
 
         updateData.updated_at = now;
 
         const sets = Object.keys(updateData).map(k => `${k} = ?`).join(', ');
         const values = [...Object.values(updateData), id];
 
-        const result = await this.db.prepare(`UPDATE products SET ${sets} WHERE id = ?`)
-            .bind(...values)
-            .run();
+        console.log('[ProductRepository.updateWithMeta] SQL:', `UPDATE products SET ${sets} WHERE id = ?`);
+        console.log('[ProductRepository.updateWithMeta] Values:', JSON.stringify(values));
 
-        return result.success;
+        try {
+            const result = await this.db.prepare(`UPDATE products SET ${sets} WHERE id = ?`)
+                .bind(...values)
+                .run();
+
+            console.log('[ProductRepository.updateWithMeta] D1 Result:', JSON.stringify(result));
+
+            return {
+                success: result.success,
+                changes: result.meta?.changes || 0
+            };
+        } catch (e) {
+            console.error('[ProductRepository.updateWithMeta] Error:', e);
+            return { success: false, changes: 0, error: e.message };
+        }
     }
 
     /**
