@@ -6,7 +6,7 @@
       class="group relative cursor-pointer rounded-xl border p-4 transition-all hover:shadow-md"
       :class="[
         selectedIds.has(folder.id)
-          ? 'border-primary bg-blue-50/50 dark:bg-blue-900/30 ring-1 ring-primary'
+          ? 'border-primary ring-primary bg-blue-50/50 ring-1 dark:bg-blue-900/30'
           : 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-[var(--border-hover)]'
       ]"
       @click="$emit('navigate', folder.id)"

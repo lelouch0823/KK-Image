@@ -1,15 +1,15 @@
 <template>
-  <div class="flex flex-col items-center justify-center py-16 text-center animate-fade-in-up" :class="containerClass">
+  <div class="animate-fade-in-up flex flex-col items-center justify-center py-16 text-center" :class="containerClass">
     <!-- Icon Container with Blob Background -->
     <div class="relative mb-6">
       <!-- Decorative Blob -->
       <div 
-        class="absolute inset-0 rounded-full bg-linear-to-tr from-[var(--color-primary-bg)] to-transparent blur-xl opacity-60 scale-150"
+        class="absolute inset-0 scale-150 rounded-full bg-linear-to-tr from-[var(--color-primary-bg)] to-transparent opacity-60 blur-xl"
       ></div>
       
       <!-- Icon Circle -->
       <div 
-        class="relative flex items-center justify-center rounded-2xl bg-white shadow-soft transition-transform duration-300 hover:scale-105 hover:shadow-lg hover:-translate-y-1" 
+        class="shadow-soft relative flex items-center justify-center rounded-2xl bg-white transition-transform duration-300 hover:-translate-y-1 hover:scale-105 hover:shadow-lg" 
         :class="iconContainerClass"
       >
         <slot name="icon">
@@ -32,21 +32,21 @@
     </div>
 
     <!-- Title -->
-    <h3 class="text-[var(--text-main)] text-lg font-semibold tracking-tight" :class="titleClass">
+    <h3 class="text-lg font-semibold tracking-tight text-[var(--text-main)]" :class="titleClass">
       <slot name="title">{{ title }}</slot>
     </h3>
 
     <!-- Description -->
     <p
       v-if="description || $slots.description"
-      class="text-[var(--text-muted)] mt-2 max-w-sm text-sm leading-relaxed"
+      class="mt-2 max-w-sm text-sm leading-relaxed text-[var(--text-muted)]"
       :class="descriptionClass"
     >
       <slot name="description">{{ description }}</slot>
     </p>
 
     <!-- Action -->
-    <div v-if="$slots.action" class="mt-6 animate-scale-in" style="animation-delay: 0.1s">
+    <div v-if="$slots.action" class="animate-scale-in mt-6" style="animation-delay: 0.1s">
       <slot name="action"></slot>
     </div>
   </div>

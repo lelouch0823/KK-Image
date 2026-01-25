@@ -36,9 +36,9 @@
 
     <!-- Toolbar -->
     <FileManagerToolbar
+      v-model:view-mode="viewMode"
       :breadcrumbs="breadcrumbs"
       :current-folder="currentFolder"
-      v-model:view-mode="viewMode"
       :selected-count="selectedIds.size"
       @navigate="navigateTo"
       @upload="handleFileSelect"
@@ -58,8 +58,8 @@
         <span>{{ t('fileManager.totalFiles', { count: displayedFiles.length }) }}</span>
         <span>{{ t('fileManager.totalFolders', { count: displayedSubfolders.length }) }}</span>
       </div>
-       <div class="hidden lg:block" v-if="displayedFiles.length > 0 && viewMode === 'list'">
-         <label class="flex items-center gap-2 cursor-pointer text-secondary hover:text-primary">
+       <div v-if="displayedFiles.length > 0 && viewMode === 'list'" class="hidden lg:block">
+         <label class="text-secondary flex cursor-pointer items-center gap-2 hover:text-primary">
             <input type="checkbox" class="checkbox checkbox-sm checkbox-primary rounded" :checked="selectedIds.size === displayedFiles.length && displayedFiles.length > 0" @change="selectAll">
             <span>{{ t('fileManager.manage.selectAll') }}</span>
          </label>
@@ -124,10 +124,10 @@
                     <div
                       v-for="file in displayedFiles"
                       :key="file.id"
-                      class="group relative cursor-pointer rounded-xl border p-4 transition-all hover:shadow-md hover:-translate-y-1"
+                      class="group relative cursor-pointer rounded-xl border p-4 transition-all hover:-translate-y-1 hover:shadow-md"
                       :class="[
                         selectedIds.has(file.id)
-                          ? 'border-primary bg-blue-50/50 dark:bg-blue-900/30 ring-1 ring-primary'
+                          ? 'border-primary ring-primary bg-blue-50/50 ring-1 dark:bg-blue-900/30'
                           : 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-[var(--border-hover)]'
                       ]"
                        @click.stop="toggleSelect(file)"
@@ -138,12 +138,12 @@
                              <img
                                v-if="isImage(file)"
                                :src="file.url"
-                               class="mb-2 size-20 rounded object-cover shadow-sm bg-gray-50 dark:bg-gray-800"
+                               class="mb-2 size-20 rounded bg-gray-50 object-cover shadow-sm dark:bg-gray-800"
                                loading="lazy"
                              />
                               <div
                                v-else
-                               class="text-secondary mb-2 flex size-20 items-center justify-center rounded bg-gray-100 dark:bg-gray-800 text-sm font-bold uppercase"
+                               class="text-secondary mb-2 flex size-20 items-center justify-center rounded bg-gray-100 text-sm font-bold uppercase dark:bg-gray-800"
                               >
                                 {{ getFileExtension(file.name) }}
                               </div>

@@ -18,7 +18,7 @@
         />
         <div
           v-else
-          class="text-secondary flex size-full items-center justify-center text-xs font-bold uppercase tracking-wider"
+          class="text-secondary flex size-full items-center justify-center text-xs font-bold tracking-wider uppercase"
         >
           {{ getFileExtension(file.name) }}
         </div>
@@ -26,7 +26,7 @@
 
       <!-- Info -->
       <div class="min-w-0 flex-1 py-0.5">
-        <h4 class="text-primary truncate text-sm font-semibold leading-tight">
+        <h4 class="text-primary truncate text-sm leading-tight font-semibold">
           {{ file.originalName || file.name }}
         </h4>
         <div class="text-secondary mt-1 flex items-center gap-2 text-xs">
@@ -39,7 +39,7 @@
       <!-- Actions -->
       <div class="flex items-center gap-1">
         <button
-          class="text-secondary flex size-8 items-center justify-center rounded-lg transition-colors active:bg-[var(--bg-active)] active:text-primary"
+          class="text-secondary flex size-8 items-center justify-center rounded-lg transition-colors active:text-primary active:bg-[var(--bg-active)]"
           @click.stop="$emit('share', file)"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,7 +52,7 @@
           </svg>
         </button>
         <button
-          class="text-secondary flex size-8 items-center justify-center rounded-lg transition-colors active:bg-[var(--bg-active)] active:text-primary"
+          class="text-secondary flex size-8 items-center justify-center rounded-lg transition-colors active:text-primary active:bg-[var(--bg-active)]"
           @click.stop="$emit('context-menu', $event, file)"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

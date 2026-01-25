@@ -6,7 +6,7 @@
     <div
       class="flex items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-muted)] px-4 py-3"
     >
-      <h3 class="font-medium text-primary">{{ t('notification.title') }}</h3>
+      <h3 class="text-primary font-medium">{{ t('notification.title') }}</h3>
       <div class="flex items-center gap-2">
         <button
           v-if="unreadCount > 0"
@@ -29,7 +29,7 @@
 
       <div
         v-else-if="notifications.length === 0"
-        class="flex flex-col items-center p-8 text-center text-secondary"
+        class="text-secondary flex flex-col items-center p-8 text-center"
       >
         <svg
           class="mb-2 size-10 text-gray-200"
@@ -74,7 +74,7 @@
 
             <div class="min-w-0 flex-1">
               <p
-                class="truncate pr-4 text-sm font-medium text-primary"
+                class="text-primary truncate pr-4 text-sm font-medium"
                 :class="{ 'font-semibold': item.is_read === 0 }"
               >
                 {{ renderText(item.title) }}

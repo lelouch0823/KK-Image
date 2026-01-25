@@ -39,7 +39,7 @@
             </div>
             <!-- 编辑按钮 (Top Right) -->
             <button
-               class="p-2 text-[var(--text-secondary)] active:bg-[var(--bg-muted)] rounded-full"
+               class="rounded-full p-2 text-[var(--text-secondary)] active:bg-[var(--bg-muted)]"
                @click.stop="$emit('edit', customer)"
             >
                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,7 +65,7 @@
               <span
                 v-for="tag in customer.tags"
                 :key="tag"
-                class="bg-[var(--bg-muted)] text-[var(--text-secondary)] rounded px-2 py-0.5 text-[10px]"
+                class="rounded bg-[var(--bg-muted)] px-2 py-0.5 text-[10px] text-[var(--text-secondary)]"
               >
                 {{ tag }}
               </span>

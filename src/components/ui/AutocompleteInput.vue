@@ -27,7 +27,7 @@
         <div class="max-h-48 overflow-y-auto py-1">
           <div
             v-if="label"
-            class="text-[var(--text-secondary)] bg-[var(--bg-muted)] px-3 py-1.5 text-xs font-medium"
+            class="bg-[var(--bg-muted)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)]"
           >
             {{ label }}
           </div>
@@ -35,7 +35,7 @@
             v-for="(suggestion, index) in filteredSuggestions"
             :key="suggestion"
             type="button"
-            class="w-full px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--bg-hover)] text-[var(--text-main)]"
+            class="w-full px-3 py-2 text-left text-sm text-[var(--text-main)] transition-colors hover:bg-[var(--bg-hover)]"
             :class="{
               'bg-[var(--bg-muted)]': index === highlightedIndex,
             }"

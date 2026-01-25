@@ -6,8 +6,8 @@
           <component :is="icon" class="size-5" />
         </div>
         <div>
-          <h3 class="text-base font-semibold text-primary">{{ title }}</h3>
-          <p v-if="description" class="text-sm text-secondary">{{ description }}</p>
+          <h3 class="text-primary text-base font-semibold">{{ title }}</h3>
+          <p v-if="description" class="text-secondary text-sm">{{ description }}</p>
         </div>
         <div class="ml-auto">
           <slot name="action" />
@@ -17,7 +17,7 @@
     <div class="p-6">
       <slot />
     </div>
-    <div v-if="$slots.footer" class="bg-gray-50/50 px-6 py-4 border-t border-[var(--border-color)] dark:bg-white/5">
+    <div v-if="$slots.footer" class="border-t border-[var(--border-color)] bg-gray-50/50 px-6 py-4 dark:bg-white/5">
       <slot name="footer" />
     </div>
   </div>

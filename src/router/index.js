@@ -106,6 +106,12 @@ const routes = [
                 meta: { title: '销售员管理' },
             },
             {
+                path: 'products',
+                name: 'Products',
+                component: () => import('@/components/ProductManager.vue'),
+                meta: { title: '商品管理' },
+            },
+            {
                 path: 'orders',
                 name: 'Orders',
                 component: () => import('@/components/OrderManager.vue'), // 暂时兼容

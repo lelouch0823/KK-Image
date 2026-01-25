@@ -27,7 +27,7 @@
             role="dialog"
             aria-modal="true"
             :aria-labelledby="title ? modalTitleId : undefined"
-            class="animate-in flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl shadow-2xl border border-[var(--border-color)] ring-1 ring-black/5 bg-[var(--color-modal-bg)]"
+            class="animate-in flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--color-modal-bg)] shadow-2xl ring-1 ring-black/5"
             :class="sizeClass"
           >
             <!-- Header -->

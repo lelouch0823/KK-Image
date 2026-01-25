@@ -114,7 +114,7 @@
 
         <!-- SOTA Product Parameters Table -->
         <div class="border-b border-[var(--border-color)] pb-6">
-          <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+          <dl class="grid grid-cols-1 gap-4  sm:grid-cols-2">
             <div
               v-if="templateData.brand"
               class="border-l-2 border-[var(--color-primary-light,rgba(59,130,246,0.5))] pl-3"
@@ -145,7 +145,7 @@
             >
             >
               <dt class="text-sm font-medium text-[var(--text-secondary)]">SKU</dt>
-              <dd class="mt-1 text-sm font-semibold text-[var(--text-primary)] break-all">
+              <dd class="mt-1 text-sm font-semibold break-all text-[var(--text-primary)]">
                 {{ templateData.sku }}
               </dd>
             </div>

@@ -5,7 +5,7 @@
         v-model="text"
         type="text"
         :placeholder="t('order.detail.commentPlaceholder')"
-        class="focus:ring-primary/20 h-10 flex-1 rounded-full border-0 bg-[var(--bg-muted)] px-4 text-sm transition-all focus:ring-2 focus:outline-none"
+        class="focus:ring-primary/20 focus:ring-2 focus:outline-none h-10 flex-1 rounded-full border-0 bg-[var(--bg-muted)] px-4 text-sm transition-all"
         @keyup.enter="send"
       />
       <button

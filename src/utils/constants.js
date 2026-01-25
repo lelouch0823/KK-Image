@@ -95,6 +95,11 @@ export const API = {
   MANAGE_CUSTOMERS: '/api/manage/customers',
   MANAGE_CUSTOMER: '/api/manage/customers',
   MANAGE_CUSTOMER_ORDERS: (id) => `/api/manage/customers/${id}/orders`,
+
+  // 商品管理
+  MANAGE_PRODUCTS: `${API_PREFIX}/products`,
+  MANAGE_PRODUCT_BY_ID: (id) => `${API_PREFIX}/products/${id}`,
+
   NOTIFICATIONS: '/api/notifications',
   NOTIFICATIONS_READ: (id) => `/api/notifications/${id}/read`,
 
@@ -103,7 +108,6 @@ export const API = {
   SALES_NOTIFICATIONS_READ: (token, id) => `/api/sales/${token}/notifications/${id}/read`,
 
   // 销售人员管理 API
-  SALESPERSONS: `${API_PREFIX}/salespersons`,
   SALESPERSON_BY_ID: (id) => `${API_PREFIX}/salespersons/${id}`,
   SALESPERSON_RESET_TOKEN: (id) => `${API_PREFIX}/salespersons/${id}/reset-token`,
 

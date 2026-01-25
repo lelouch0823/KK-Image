@@ -244,7 +244,7 @@
     <!-- 表格模式 (Print / Table) -->
     <div v-else class="w-full">
       <table class="w-full border-collapse text-left text-sm">
-        <thead class="border-b border-[var(--border-color)] bg-[var(--bg-muted)] font-medium text-secondary">
+        <thead class="text-secondary border-b border-[var(--border-color)] bg-[var(--bg-muted)] font-medium">
           <tr>
             <th class="w-32 px-3 py-2">{{ t('order.createdAt') }}</th>
             <th class="w-32 px-3 py-2">{{ t('sidebar.role') }}</th>
@@ -321,7 +321,7 @@
       </table>
       <div
         v-if="!groupedTimeline || groupedTimeline.length === 0"
-        class="border-t border-[var(--border-color)] py-4 text-center text-sm text-secondary"
+        class="text-secondary border-t border-[var(--border-color)] py-4 text-center text-sm"
       >
         {{ t('common.noData') }}
       </div>

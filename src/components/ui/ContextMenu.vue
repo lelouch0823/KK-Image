@@ -2,7 +2,7 @@
   <transition name="fade">
     <div
       v-if="modelValue"
-      class="fixed z-50 min-w-[160px] max-w-[240px] overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)]/90 dark:bg-[var(--bg-card)]/95 backdrop-blur-md p-1 shadow-glass ring-1 ring-black/5"
+      class="shadow-glass fixed z-50 max-w-[240px] min-w-[160px] overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)]/90 p-1 ring-1 ring-black/5 backdrop-blur-md dark:bg-[var(--bg-card)]/95"
       :style="menuStyle"
       @contextmenu.prevent
     >
@@ -17,7 +17,7 @@
           :class="{
             'text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)]': item.danger,
             'text-secondary hover:text-primary': !item.danger,
-            'opacity-50 cursor-not-allowed': item.disabled
+            'cursor-not-allowed opacity-50': item.disabled
           }"
           :disabled="item.disabled"
           @click="handleClick(item)"

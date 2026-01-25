@@ -1,9 +1,9 @@
 <template>
-  <div class="relative" ref="containerRef">
+  <div ref="containerRef" class="relative">
     <!-- Trigger -->
     <button
       type="button"
-      class="flex items-center gap-2 rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)] focus:outline-none focus:ring-2 focus:ring-primary/20"
+      class="focus:ring-primary/20 focus:ring-2 focus:outline-none flex items-center gap-2 rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
       @click="toggle"
     >
       <span

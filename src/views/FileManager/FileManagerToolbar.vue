@@ -47,23 +47,23 @@
           v-if="selectedCount > 0" 
           class="flex flex-1 items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
         >
-          <span class="whitespace-nowrap font-medium">{{ t('fileManager.selected', { count: selectedCount }) }}</span>
+          <span class="font-medium whitespace-nowrap">{{ t('fileManager.selected', { count: selectedCount }) }}</span>
           <div class="mx-1 h-4 w-px bg-blue-200 dark:bg-blue-700"></div>
-          <div class="flex items-center gap-1 ml-auto sm:ml-0">
-            <button class="hover:text-blue-900 dark:hover:text-blue-100 hover:underline px-1" @click="$emit('batch-move')">
+          <div class="ml-auto flex items-center gap-1 sm:ml-0">
+            <button class="px-1 hover:text-blue-900 hover:underline dark:hover:text-blue-100" @click="$emit('batch-move')">
               {{ t('fileManager.actions.move') }}
             </button>
-            <button class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:underline px-1" @click="$emit('batch-delete')">
+            <button class="px-1 text-red-600 hover:text-red-800 hover:underline dark:text-red-400 dark:hover:text-red-300" @click="$emit('batch-delete')">
               {{ t('fileManager.actions.delete') }}
             </button>
-            <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 px-1" @click="$emit('clear-selection')">
+            <button class="px-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" @click="$emit('clear-selection')">
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
           </div>
         </div>
       </Transition>
 
-      <div v-if="selectedCount > 0" class="hidden lg:block h-6 w-px bg-[var(--border-color)]"></div>
+      <div v-if="selectedCount > 0" class="hidden h-6 w-px bg-[var(--border-color)] lg:block"></div>
 
       <!-- Regular Actions -->
       <Tooltip v-if="currentFolder" :content="t('fileManager.shareFolder')">
@@ -86,7 +86,7 @@
 
       <Tooltip :content="t('fileManager.upload')">
         <button
-          class="bg-primary flex size-10 items-center justify-center rounded-xl text-white dark:text-gray-900 shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary-hover hover:shadow-primary/30 active:translate-y-0 active:scale-95"
+          class="bg-primary shadow-primary/20 flex size-10 items-center justify-center rounded-xl text-white shadow-lg transition-all hover:bg-primary-hover hover:shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 dark:text-gray-900"
           @click="$refs.fileInput.click()"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,10 +117,10 @@
       </Tooltip>
 
       <!-- View Toggle -->
-      <div class="flex items-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-1 hidden lg:flex">
+      <div class="flex hidden items-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-1 lg:flex">
         <button
           class="rounded-lg p-1.5 transition-all"
-          :class="viewMode === 'list' ? 'bg-[var(--bg-hover)] text-primary shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'"
+          :class="viewMode === 'list' ? 'text-primary bg-[var(--bg-hover)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'"
           :title="t('fileManager.viewMode.list')"
           @click="$emit('update:viewMode', 'list')"
         >
@@ -128,7 +128,7 @@
         </button>
         <button
           class="rounded-lg p-1.5 transition-all"
-          :class="viewMode === 'grid' ? 'bg-[var(--bg-hover)] text-primary shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'"
+          :class="viewMode === 'grid' ? 'text-primary bg-[var(--bg-hover)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'"
           :title="t('fileManager.viewMode.grid')"
           @click="$emit('update:viewMode', 'grid')"
         >

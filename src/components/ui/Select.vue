@@ -3,7 +3,7 @@
     <!-- Trigger -->
     <button
       type="button"
-      class="flex w-full items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] text-left text-sm transition-all focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+      class="flex w-full items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] text-left text-sm transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none"
       :class="[
         size === 'sm' ? 'h-9 rounded-lg px-2' : 'h-11 rounded-xl px-4',
         !modelValue ? 'text-[var(--text-secondary)]' : 'text-[var(--text-main)]'
@@ -12,7 +12,7 @@
     >
       <span class="truncate">{{ selectedLabel || placeholder }}</span>
       <svg
-        class="text-[var(--text-secondary)] shrink-0 transition-transform duration-200"
+        class="shrink-0 text-[var(--text-secondary)] transition-transform duration-200"
         :class="[
           size === 'sm' ? 'size-3.5' : 'size-4',
           { 'rotate-180': isOpen }
@@ -36,7 +36,7 @@
     >
       <div
         v-if="isOpen"
-        class="absolute left-0 z-50 min-w-full w-auto whitespace-nowrap rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-lg ring-1 ring-black/5 focus:outline-none"
+        class="absolute left-0 z-50 w-auto min-w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] whitespace-nowrap shadow-lg ring-1 ring-black/5 focus:outline-none"
         :class="[
           dropdownPosition === 'top' ? 'bottom-full mb-1 origin-bottom' : 'mt-1 origin-top',
           'max-h-60'
@@ -51,14 +51,14 @@
             v-else
             :key="option.value"
             type="button"
-            class="hover:bg-[var(--bg-hover)] flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition-colors"
-            :class="{ 'bg-[var(--bg-muted)] text-[var(--color-primary)] font-medium': modelValue === option.value, 'text-[var(--text-main)]': modelValue !== option.value }"
+            class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--bg-hover)]"
+            :class="{ 'bg-[var(--bg-muted)] font-medium text-[var(--color-primary)]': modelValue === option.value, 'text-[var(--text-main)]': modelValue !== option.value }"
             @click="select(option)"
           >
             <span class="truncate">{{ option.label }}</span>
             <svg
               v-if="modelValue === option.value"
-              class="text-[var(--color-primary)] size-4"
+              class="size-4 text-[var(--color-primary)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

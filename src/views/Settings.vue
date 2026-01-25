@@ -5,7 +5,7 @@
   >
     <template #sidebar>
       <SettingsSidebar
-        v-model:currentTab="currentTab"
+        v-model:current-tab="currentTab"
         :items="navigationItems"
       />
     </template>

@@ -41,7 +41,7 @@
             </StatusBadge>
           </td>
           <td class="px-4 py-3 text-right">
-            <div class="flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 mobile:opacity-100">
+            <div class="mobile:opacity-100 flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
               <button
                 class="rounded-lg p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)] active:scale-90"
                 :title="t('salesperson.copyLink')"

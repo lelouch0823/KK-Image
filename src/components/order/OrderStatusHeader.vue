@@ -2,7 +2,7 @@
   <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-sm">
     <div class="flex items-start justify-between">
       <div>
-        <p class="font-mono text-secondary mb-1 text-xs">{{ orderNo }}</p>
+        <p class="text-secondary mb-1 font-mono text-xs">{{ orderNo }}</p>
         <h2 class="text-primary text-lg font-bold">
           {{ productName || t('order.form.productName') }}
         </h2>

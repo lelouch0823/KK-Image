@@ -80,7 +80,7 @@
     <!-- Filters Row -->
     <div class="mt-2.5 flex flex-wrap items-center gap-2 sm:mt-3">
       <!-- 销售筛选 -->
-      <div class="min-w-[72px] max-w-[100px] sm:w-36">
+      <div class="max-w-[100px] min-w-[72px] sm:w-36">
         <Select
           :model-value="filters.salesperson"
           :options="salespersonOptions"
@@ -91,7 +91,7 @@
       </div>
 
       <!-- 状态筛选 -->
-      <div class="min-w-[72px] max-w-[100px] sm:w-32">
+      <div class="max-w-[100px] min-w-[72px] sm:w-32">
         <Select
           :model-value="filters.status"
           :options="statusOptions"

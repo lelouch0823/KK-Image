@@ -231,7 +231,59 @@ CREATE TABLE IF NOT EXISTS api_keys (
 CREATE INDEX IF NOT EXISTS idx_api_keys_value ON api_keys(key_value);
 
 -- ===========================================================================
--- 6. 客户关系管理 (CRM)
+-- 6. 商品系统 (Merchandise System) [SOTA]
+-- ===========================================================================
+
+-- 6.1 商品表 (Products)
+CREATE TABLE IF NOT EXISTS products (
+    id TEXT PRIMARY KEY,                    -- UUID
+    name TEXT NOT NULL,                     -- 商品名称
+    sku TEXT UNIQUE NOT NULL,               -- 库存单位 (Stock Keeping Unit)
+    slug TEXT,                              -- URL 别名 (SEO 优化, UNIQUE via index)
+    
+    -- 分类与品牌
+    category TEXT,                          -- 分类 (如: Handbag, Wallet)
+    brand TEXT,                             -- 品牌 (如: Hermes, Chanel)
+    series TEXT,                            -- 系列 (如: Birkin, Kelly)
+    
+    -- 价格与成本
+    price REAL DEFAULT 0,                   -- 标准售价
+    cost_price REAL,                        -- 成本价 (用于利润分析)
+    
+    -- 库存管理
+    stock_quantity INTEGER DEFAULT 0,       -- 当前库存数量
+    alert_threshold INTEGER DEFAULT 10,     -- 低库存预警阈值
+    
+    -- 详情
+    description TEXT,                       -- 商品描述 (Supports Markdown)
+    
+    -- 媒体
+    images TEXT DEFAULT '[]',               -- JSON Array of file IDs: ["file_id_1", "file_id_2"]
+    
+    -- 规格参数 (JSON)
+    -- 用于存储尺寸、颜色选项、材质等结构化数据
+    -- 示例: {"size": "25", "leather": "Togo", "hardware": "Gold"}
+    specifications TEXT DEFAULT '{}',
+    
+    -- 状态
+    status TEXT DEFAULT 'active' CHECK(status IN ('active', 'archived', 'draft')),
+    
+    -- 时间戳
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+-- 创建索引
+CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
+CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug_unique ON products(slug); -- SQLite workaround for ALTER but good here too
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+CREATE INDEX IF NOT EXISTS idx_products_brand ON products(brand);
+CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
+CREATE INDEX IF NOT EXISTS idx_products_created_at ON products(created_at DESC);
+
+-- ===========================================================================
+-- 7. 客户关系管理 (CRM)
 -- ===========================================================================
 
 CREATE TABLE IF NOT EXISTS customers (
@@ -255,7 +307,7 @@ CREATE INDEX IF NOT EXISTS idx_customers_created_by ON customers(created_by);
 CREATE INDEX IF NOT EXISTS idx_customers_created_at ON customers(created_at DESC);
 
 -- ===========================================================================
--- 7. 订单系统 (Order System)
+-- 8. 订单系统 (Order System)
 -- ===========================================================================
 
 -- 7.1 销售员表
@@ -282,6 +334,7 @@ CREATE TABLE IF NOT EXISTS orders (
     order_no TEXT UNIQUE NOT NULL,          -- 订单编号
     salesperson_id TEXT NOT NULL,           -- 归属销售员
     customer_id TEXT,                       -- 关联客户 (可选)
+    product_id TEXT,                        -- 关联标准商品 (可选，用于标准化订单)
     original_data TEXT NOT NULL,            -- 原始提交数据 (JSON)
     current_data TEXT NOT NULL,             -- 当前最新数据 (JSON)
     -- 订单状态枚举 (完整生命周期)
@@ -303,11 +356,13 @@ CREATE TABLE IF NOT EXISTS orders (
     updated_at INTEGER NOT NULL,
     FOREIGN KEY (salesperson_id) REFERENCES salespersons(id) ON DELETE RESTRICT,
     FOREIGN KEY (customer_id) REFERENCES customers(id),
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
     FOREIGN KEY (main_image_id) REFERENCES files(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_orders_salesperson ON orders(salesperson_id);
 CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_product_id ON orders(product_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_no ON orders(order_no);
@@ -360,7 +415,7 @@ CREATE INDEX IF NOT EXISTS idx_timeline_created ON order_timeline(created_at DES
 CREATE INDEX IF NOT EXISTS idx_timeline_action ON order_timeline(action_type);
 
 -- ===========================================================================
--- 8. 通知系统 (Notifications)
+-- 9. 通知系统 (Notifications)
 -- ===========================================================================
 
 CREATE TABLE IF NOT EXISTS notifications (
@@ -384,7 +439,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_receiver_sales ON notifications(rec
 CREATE INDEX IF NOT EXISTS idx_notifications_order ON notifications(order_id);
 
 -- ===========================================================================
--- 9. Webhooks
+-- 10. Webhooks
 -- ===========================================================================
 
 CREATE TABLE IF NOT EXISTS webhooks (
@@ -417,7 +472,7 @@ CREATE INDEX IF NOT EXISTS idx_webhook_logs_webhook ON webhook_logs(webhook_id);
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_created ON webhook_logs(created_at DESC);
 
 -- ===========================================================================
--- 10. 存储镜像/同步 (Storage Mirrors)
+-- 11. 存储镜像/同步 (Storage Mirrors)
 -- ===========================================================================
 
 CREATE TABLE IF NOT EXISTS storage_mirrors (
@@ -432,7 +487,20 @@ CREATE TABLE IF NOT EXISTS storage_mirrors (
 );
 
 -- ===========================================================================
--- 11. 初始数据 (Initial Data)
+-- 12. 系统设置 (System Settings)
+-- ===========================================================================
+
+-- 配置表 (Key-Value)
+CREATE TABLE IF NOT EXISTS SystemSettings (
+    "key" TEXT PRIMARY KEY,
+    "value" TEXT NOT NULL,
+    "category" TEXT NOT NULL DEFAULT 'general',
+    "description" TEXT,
+    "updatedAt" INTEGER DEFAULT (strftime('%s', 'now') * 1000)
+);
+
+-- ===========================================================================
+-- 13. 初始数据 (Initial Data)
 -- ===========================================================================
 
 -- 创建根目录
@@ -440,8 +508,7 @@ INSERT OR IGNORE INTO folders (id, parent_id, name, description, share_token, is
 VALUES ('root', NULL, '根目录', '默认根目录', NULL, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000);
 
 -- ===========================================================================
--- Schema Version: 2.2.0 (2026-01-14)
--- Tables: 19
--- Indexes: 46
--- Changes: Added wechat_openid to salespersons for WeChat Mini Program support
+-- Schema Version: 2.3.0 (2026-01-25)
+-- Tables: 21 (Added products, SystemSettings)
+-- SOTA: Inventory, Cost, SEO included in products
 -- ===========================================================================

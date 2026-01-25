@@ -24,7 +24,7 @@
       <!-- Header -->
       <div class="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 class="font-display text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-3xl font-bold tracking-tight dark:from-blue-200 dark:to-indigo-200">
+          <h1 class="font-display bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-3xl font-bold tracking-tight text-transparent dark:from-blue-200 dark:to-indigo-200">
             {{ t('stats.statusOverview') }}
           </h1>
           <p class="mt-2 text-slate-500 dark:text-slate-400">{{ t('ai.subtitle') }}</p>
@@ -32,9 +32,9 @@
         
         <!-- Refresh Button -->
         <button
-          @click="loadStats"
           :disabled="loading"
           class="group relative overflow-hidden rounded-xl bg-white px-5 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 dark:bg-slate-800/50 dark:text-slate-300 dark:shadow-lg dark:backdrop-blur-md dark:hover:bg-slate-700/50 dark:hover:text-white"
+          @click="loadStats"
         >
           <div
             class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-700 group-hover:translate-x-full"
@@ -62,7 +62,7 @@
       <!-- Loading State -->
       <div v-if="loading && !stats" class="flex h-96 items-center justify-center">
         <div class="relative">
-          <div class="size-16 rounded-full border-4 border-slate-700 border-t-blue-500 animate-spin"></div>
+          <div class="size-16 animate-spin rounded-full border-4 border-slate-700 border-t-blue-500"></div>
           <div class="absolute inset-0 flex items-center justify-center">
             <div class="size-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
           </div>
@@ -77,27 +77,27 @@
           </svg>
         </div>
         <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-200">{{ t('stats.loadFailed') }}</h3>
-        <p class="text-slate-500 max-w-md">{{ error }}</p>
+        <p class="max-w-md text-slate-500">{{ error }}</p>
         <button
-          @click="loadStats"
           class="mt-2 rounded-lg bg-blue-600 px-6 py-2.5 font-medium text-white transition-all hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/25 active:scale-95"
+          @click="loadStats"
         >
           {{ t('stats.retry') }}
         </button>
       </div>
 
       <!-- Dashboard Content -->
-      <div v-else-if="stats" class="grid gap-6 animate-fade-in-up">
+      <div v-else-if="stats" class="animate-fade-in-up grid gap-6">
         
         <!-- Key Metrics Row -->
         <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
             <!-- Total Files -->
            <div class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-sm backdrop-blur-md transition-all hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 dark:hover:shadow-[0_0_30px_rgba(59,130,246,0.1)]">
-             <div class="absolute -right-6 -top-6 rounded-full bg-blue-500/10 p-12 transition-transform group-hover:bg-blue-500/20 blur-2xl"></div>
+             <div class="absolute -top-6 -right-6 rounded-full bg-blue-500/10 p-12 blur-2xl transition-transform group-hover:bg-blue-500/20"></div>
              <div class="relative z-10 flex items-start justify-between">
                 <div>
                   <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ t('stats.totalFiles') }}</p>
-                  <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 font-mono dark:text-white">
+                  <h3 class="mt-2 font-mono text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
                     {{ formatNumber(stats.storage?.totalFiles) }}
                   </h3>
                 </div>
@@ -116,11 +116,11 @@
 
            <!-- Total Storage -->
            <div class="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md transition-all hover:bg-white/10 hover:shadow-[0_0_30px_rgba(16,185,129,0.1)]">
-             <div class="absolute -right-6 -top-6 rounded-full bg-emerald-500/10 p-12 transition-transform group-hover:bg-emerald-500/20 blur-2xl"></div>
+             <div class="absolute -top-6 -right-6 rounded-full bg-emerald-500/10 p-12 blur-2xl transition-transform group-hover:bg-emerald-500/20"></div>
              <div class="relative z-10 flex items-start justify-between">
                 <div>
                   <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ t('stats.totalStorage') }}</p>
-                  <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 font-mono dark:text-white">
+                  <h3 class="mt-2 font-mono text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
                     {{ formatSize(stats.storage?.totalSize) }}
                   </h3>
                 </div>
@@ -138,11 +138,11 @@
 
            <!-- Monthly Visits -->
            <div class="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md transition-all hover:bg-white/10 hover:shadow-[0_0_30px_rgba(139,92,246,0.1)]">
-             <div class="absolute -right-6 -top-6 rounded-full bg-purple-500/10 p-12 transition-transform group-hover:bg-purple-500/20 blur-2xl"></div>
+             <div class="absolute -top-6 -right-6 rounded-full bg-purple-500/10 p-12 blur-2xl transition-transform group-hover:bg-purple-500/20"></div>
              <div class="relative z-10 flex items-start justify-between">
                 <div>
                   <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ t('stats.monthVisits') }}</p>
-                  <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 font-mono dark:text-white">
+                  <h3 class="mt-2 font-mono text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
                     {{ formatNumber(stats.traffic?.monthTotal) }}
                   </h3>
                 </div>
@@ -162,7 +162,7 @@
         <!-- Charts Area -->
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <!-- Traffic Trend -->
-          <div class="lg:col-span-2 rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5">
+          <div class="rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-sm backdrop-blur-md lg:col-span-2 dark:border-white/10 dark:bg-white/5">
             <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
               <span class="size-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span>
               {{ t('stats.trafficTrend') }}
@@ -201,7 +201,7 @@
                 >
                     <div class="flex items-center gap-4">
                         <div 
-                          class="flex size-10 items-center justify-center rounded-lg font-bold text-lg"
+                          class="flex size-10 items-center justify-center rounded-lg text-lg font-bold"
                            :class="{
                             'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-lg shadow-orange-500/20': index === 0,
                             'bg-slate-700 text-slate-300': index > 0
@@ -210,14 +210,14 @@
                             {{ index + 1 }}
                         </div>
                         <div>
-                           <div class="font-medium text-white group-hover:text-blue-300 transition-colors">{{ space.name }}</div>
-                            <div class="text-xs text-slate-400 mt-1">ID: {{ space.id.slice(0,8) }}</div>
+                           <div class="font-medium text-white transition-colors group-hover:text-blue-300">{{ space.name }}</div>
+                            <div class="mt-1 text-xs text-slate-400">ID: {{ space.id.slice(0,8) }}</div>
                         </div>
                     </div>
                     
                     <div class="text-right">
-                         <div class="text-xl font-bold text-white font-mono">{{ formatNumber(space.views) }}</div>
-                         <div class="text-xs text-slate-500 uppercase tracking-wider">{{ t('stats.views') }}</div>
+                         <div class="font-mono text-xl font-bold text-white">{{ formatNumber(space.views) }}</div>
+                         <div class="text-xs tracking-wider text-slate-500 uppercase">{{ t('stats.views') }}</div>
                     </div>
                 </div>
               </div>
@@ -236,29 +236,29 @@
                     <div class="grid grid-cols-2 gap-4">
                         <!-- Normal -->
                         <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
-                            <div class="text-sm font-medium text-emerald-400 mb-2">{{ t('stats.normal') }}</div>
-                            <div class="text-3xl font-bold text-emerald-200 font-mono">{{ formatNumber(stats.health?.status?.normal) }}</div>
+                            <div class="mb-2 text-sm font-medium text-emerald-400">{{ t('stats.normal') }}</div>
+                            <div class="font-mono text-3xl font-bold text-emerald-200">{{ formatNumber(stats.health?.status?.normal) }}</div>
                              <div class="mt-2 h-1 w-full rounded-full bg-emerald-500/20">
                                 <div class="h-full rounded-full bg-emerald-500 transition-all duration-1000" style="width: 100%"></div>
                              </div>
                         </div>
                          <!-- Blocked -->
                          <div class="rounded-xl border border-red-500/20 bg-red-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
-                            <div class="text-sm font-medium text-red-400 mb-2">{{ t('stats.blocked') }}</div>
-                            <div class="text-3xl font-bold text-red-200 font-mono">{{ formatNumber(stats.health?.status?.blocked) }}</div>
+                            <div class="mb-2 text-sm font-medium text-red-400">{{ t('stats.blocked') }}</div>
+                            <div class="font-mono text-3xl font-bold text-red-200">{{ formatNumber(stats.health?.status?.blocked) }}</div>
                              <div class="mt-2 h-1 w-full rounded-full bg-red-500/20">
                                 <div class="h-full rounded-full bg-red-500 transition-all duration-1000" :style="`width: ${stats.health?.status?.blocked > 0 ? '100%' : '0%'}`"></div>
                              </div>
                         </div>
                          <!-- Whitelisted -->
                          <div class="rounded-xl border border-blue-500/20 bg-blue-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
-                            <div class="text-sm font-medium text-blue-400 mb-2">{{ t('stats.whitelisted') }}</div>
-                            <div class="text-3xl font-bold text-blue-200 font-mono">{{ formatNumber(stats.health?.status?.whitelisted) }}</div>
+                            <div class="mb-2 text-sm font-medium text-blue-400">{{ t('stats.whitelisted') }}</div>
+                            <div class="font-mono text-3xl font-bold text-blue-200">{{ formatNumber(stats.health?.status?.whitelisted) }}</div>
                         </div>
                         <!-- Liked -->
                         <div class="rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
-                            <div class="text-sm font-medium text-yellow-400 mb-2">{{ t('stats.liked') }}</div>
-                            <div class="text-3xl font-bold text-yellow-200 font-mono">{{ formatNumber(stats.health?.status?.liked) }}</div>
+                            <div class="mb-2 text-sm font-medium text-yellow-400">{{ t('stats.liked') }}</div>
+                            <div class="font-mono text-3xl font-bold text-yellow-200">{{ formatNumber(stats.health?.status?.liked) }}</div>
                         </div>
                     </div>
                 </div>
@@ -277,10 +277,10 @@
                 <table class="w-full text-left text-sm">
                   <thead class="border-b border-gray-200 text-slate-500 dark:border-white/10 dark:text-slate-400">
                     <tr>
-                      <th class="px-4 py-3 font-medium cursor-default">#</th>
+                      <th class="cursor-default px-4 py-3 font-medium">#</th>
                       <th class="px-4 py-3 font-medium">{{ t('stats.fileName') }}</th>
                       <th class="px-4 py-3 font-medium">{{ t('stats.fileType') }}</th>
-                      <th class="px-4 py-3 font-medium text-right">{{ t('stats.fileSize') }}</th>
+                      <th class="px-4 py-3 text-right font-medium">{{ t('stats.fileSize') }}</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-white/5">
@@ -289,19 +289,19 @@
                       :key="file.id"
                       class="group transition-colors hover:bg-white/5"
                     >
-                      <td class="px-4 py-4 text-slate-600 group-hover:text-slate-900 dark:text-slate-500 dark:group-hover:text-slate-300">{{ index + 1 }}</td>
-                      <td class="px-4 py-4 font-medium text-slate-900 dark:text-slate-200">
+                      <td class="p-4  text-slate-600 group-hover:text-slate-900 dark:text-slate-500 dark:group-hover:text-slate-300">{{ index + 1 }}</td>
+                      <td class="p-4  font-medium text-slate-900 dark:text-slate-200">
                           <div class="flex items-center gap-2">
                               <span class="line-clamp-1 max-w-[200px] md:max-w-md">{{ file.name }}</span>
-                              <span v-if="index < 3" class="inline-flex items-center rounded-md bg-red-400/10 px-2 py-1 text-xs font-medium text-red-400 ring-1 ring-inset ring-red-400/20">Hot</span>
+                              <span v-if="index < 3" class="inline-flex items-center rounded-md bg-red-400/10 px-2 py-1 text-xs font-medium text-red-400 ring-1 ring-red-400/20 ring-inset">Hot</span>
                           </div>
                       </td>
-                      <td class="px-4 py-4 text-slate-500 dark:text-slate-400">
-                          <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-gray-200 dark:bg-slate-700/50 dark:text-slate-300 dark:ring-slate-600/50">
+                      <td class="p-4  text-slate-500 dark:text-slate-400">
+                          <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-gray-200 ring-inset dark:bg-slate-700/50 dark:text-slate-300 dark:ring-slate-600/50">
                               {{ file.type?.split('/')[1]?.toUpperCase() || 'UNKNOWN' }}
                           </span>
                       </td>
-                      <td class="px-4 py-4 text-right font-mono text-orange-400 group-hover:text-orange-300">{{ formatSize(file.size) }}</td>
+                      <td class="p-4  text-right font-mono text-orange-400 group-hover:text-orange-300">{{ formatSize(file.size) }}</td>
                     </tr>
                   </tbody>
                 </table>

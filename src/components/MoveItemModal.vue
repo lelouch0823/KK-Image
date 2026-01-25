@@ -48,7 +48,7 @@
              selectedId === folder.id
               ? 'bg-indigo-50 text-indigo-700'
               : 'text-gray-700 hover:bg-gray-50',
-             isTargetDisabled(folder) ? 'opacity-50 cursor-not-allowed' : ''
+             isTargetDisabled(folder) ? 'cursor-not-allowed opacity-50' : ''
           ]"
           :style="{ paddingLeft: folder.level * 1.5 + 0.75 + 'rem' }"
           @click="!isTargetDisabled(folder) && selectFolder(folder)"
@@ -78,7 +78,7 @@
       </button>
       <button
         :disabled="!selectedId || moving"
-        class="bg-primary flex items-center gap-2 rounded-lg px-6 py-2 font-medium text-white dark:text-gray-900 transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+        class="bg-primary flex items-center gap-2 rounded-lg px-6 py-2 font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50 dark:text-gray-900"
         @click="confirmMove"
       >
         <span v-if="moving" class="size-4 animate-spin rounded-full border-b-2 border-white"></span>

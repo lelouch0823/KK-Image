@@ -147,7 +147,7 @@
       </button>
       <button
         :disabled="submitting"
-        class="bg-primary rounded-lg px-6 py-2 font-medium text-white dark:text-gray-900 transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+        class="bg-primary rounded-lg px-6 py-2 font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50 dark:text-gray-900"
         @click="handleSubmit"
       >
         {{ submitButtonText }}

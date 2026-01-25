@@ -36,7 +36,7 @@
             v-for="mode in shareModes"
             :key="mode.value"
             type="button"
-            class="flex flex-1 flex-col items-center gap-2 rounded-xl border px-3 py-3 transition-all"
+            class="flex flex-1 flex-col items-center gap-2 rounded-xl border p-3  transition-all"
             :class="currentShareMode === mode.value
               ? 'border-[var(--color-primary)] bg-[var(--color-primary-bg)]'
               : 'border-[var(--border-color)] hover:border-[var(--border-hover)]'"
@@ -181,7 +181,7 @@ watch(() => props.sharedSalespersons, (val) => {
 
 // 分享模式标签
 const shareModeLabel = computed(() => {
-  const mode = shareModes.find((m) => m.value === currentShareMode.value);
+  const mode = shareModes.value.find((m) => m.value === currentShareMode.value);
   return mode ? `${mode.icon} ${mode.label}` : t('spaceManager.shareCard.notPublic');
 });
 

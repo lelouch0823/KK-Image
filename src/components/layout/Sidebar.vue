@@ -96,7 +96,7 @@
           class="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
           :class="[
             currentView === item.key
-              ? 'text-primary bg-primary/5 font-semibold shadow-sm ring-1 ring-primary/10'
+              ? 'text-primary bg-primary/5 ring-primary/10 font-semibold shadow-sm ring-1'
               : 'text-secondary hover:text-primary hover:bg-[var(--bg-hover)]',
             isCollapsed ? 'justify-center' : '',
           ]"
@@ -248,6 +248,11 @@ const menuItems = computed(() => [
     key: 'spaces',
     label: t('sidebar.spaces'),
     icon: '<svg fill="none" class="w-5 h-5" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>',
+  },
+  {
+    key: 'products',
+    label: 'Products', // TODO: Add i18n 'title.products'
+    icon: '<svg fill="none" class="w-5 h-5" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>',
   },
   {
     key: 'orders',

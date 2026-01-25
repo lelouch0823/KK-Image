@@ -22,7 +22,7 @@
     <div class="flex items-center gap-2 lg:gap-4">
       <!-- 移动端搜索按钮 -->
       <button
-        class="flex size-9 items-center justify-center rounded-lg text-secondary transition-colors hover:bg-[var(--bg-hover)] lg:hidden"
+        class="text-secondary flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-[var(--bg-hover)] lg:hidden"
         @click="openMobileSearch"
       >
         <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,7 +167,7 @@
             v-model="searchQuery"
             type="text"
             :placeholder="t('header.searchPlaceholder')"
-            class="h-10 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-page)] pl-10 pr-4 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+            class="h-10 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-page)] pr-4 pl-10 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
             @keydown.esc="closeMobileSearch"
             @blur="!searchQuery && closeMobileSearch()"
             />

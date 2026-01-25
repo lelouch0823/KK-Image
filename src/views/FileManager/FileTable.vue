@@ -3,16 +3,16 @@
     <table class="w-full">
       <thead>
         <tr
-          class="bg-[var(--bg-muted)]/50 text-left text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase border-b border-[var(--border-color)]"
+          class="border-b border-[var(--border-color)] bg-[var(--bg-muted)]/50 text-left text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase"
         >
           <th class="w-12 px-4 py-3">
              <!-- Checkbox column placeholder or Select All -->
           </th>
           <th class="px-4 py-3">{{ t('fileManager.table.name') }}</th>
-          <th class="px-4 py-3 w-32">{{ t('fileManager.table.size') }}</th>
-          <th class="px-4 py-3 w-24">{{ t('fileManager.table.type') }}</th>
-          <th class="px-4 py-3 w-48">{{ t('fileManager.table.uploadedAt') }}</th>
-          <th class="px-4 py-3 w-32 text-right">{{ t('fileManager.table.actions') }}</th>
+          <th class="w-32 px-4 py-3">{{ t('fileManager.table.size') }}</th>
+          <th class="w-24 px-4 py-3">{{ t('fileManager.table.type') }}</th>
+          <th class="w-48 px-4 py-3">{{ t('fileManager.table.uploadedAt') }}</th>
+          <th class="w-32 px-4 py-3 text-right">{{ t('fileManager.table.actions') }}</th>
         </tr>
       </thead>
       <TransitionGroup name="list" tag="tbody" class="divide-y divide-[var(--border-color)]">
@@ -54,14 +54,14 @@
               
               <!-- Name -->
               <div class="min-w-0 flex-1">
-                 <div class="text-primary truncate text-sm font-medium group-hover:text-primary-focus transition-colors">
+                 <div class="text-primary truncate text-sm font-medium transition-colors group-hover:text-primary-focus">
                     {{ file.originalName || file.name }}
                  </div>
               </div>
             </div>
           </td>
-          <td class="text-secondary px-4 py-3 text-sm font-tabular-nums">{{ formatSize(file.size) }}</td>
-          <td class="text-secondary px-4 py-3 text-xs uppercase tracking-wide">
+          <td class="text-secondary font-tabular-nums px-4 py-3 text-sm">{{ formatSize(file.size) }}</td>
+          <td class="text-secondary px-4 py-3 text-xs tracking-wide uppercase">
             <span class="rounded bg-[var(--bg-muted)] px-1.5 py-0.5">
                {{ getFileExtension(file.name) }}
             </span>
@@ -71,7 +71,7 @@
             <div class="flex items-center justify-end gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100" :class="{ 'opacity-100': contextMenuOpen }">
               <Tooltip :content="t('fileManager.actions.share')" placement="top">
                 <button
-                  class="text-secondary hover:bg-[var(--bg-active)] hover:text-primary rounded-lg p-1.5 transition-colors"
+                  class="text-secondary rounded-lg p-1.5 transition-colors hover:text-primary hover:bg-[var(--bg-active)]"
                   @click.stop="$emit('share', file)"
                 >
                   <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,7 +87,7 @@
               
                <Tooltip :content="t('fileManager.actions.move')" placement="top">
                 <button
-                  class="text-secondary hover:bg-[var(--bg-active)] hover:text-primary rounded-lg p-1.5 transition-colors"
+                  class="text-secondary rounded-lg p-1.5 transition-colors hover:text-primary hover:bg-[var(--bg-active)]"
                   @click.stop="$emit('move', file)"
                 >
                   <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,7 +98,7 @@
 
               <Tooltip :content="t('fileManager.actions.delete')" placement="top" danger>
                 <button
-                  class="text-secondary hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 rounded-lg p-1.5 transition-colors"
+                  class="text-secondary rounded-lg p-1.5 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
                   @click.stop="$emit('delete', file)"
                 >
                   <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

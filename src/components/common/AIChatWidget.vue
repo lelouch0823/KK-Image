@@ -10,7 +10,7 @@
     >
       <div
         v-if="isOpen"
-        class="bg-[var(--bg-card)] border-border pointer-events-auto absolute right-0 bottom-0 flex h-[600px] w-[420px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl"
+        class="border-border pointer-events-auto absolute right-0 bottom-0 flex h-[600px] w-[420px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border bg-[var(--bg-card)] shadow-2xl backdrop-blur-xl"
       >
         <!-- Header -->
         <div class="bg-primary flex items-center justify-between p-4 text-white dark:text-gray-900">

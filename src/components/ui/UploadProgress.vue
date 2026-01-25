@@ -2,7 +2,7 @@
   <transition name="slide-up">
     <div
       v-if="hasItems"
-      class="ease-spring fixed right-6 bottom-6 z-[60] flex max-h-[500px] w-96 flex-col overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/90 shadow-glass backdrop-blur-md transition-all duration-300"
+      class="ease-spring shadow-glass fixed right-6 bottom-6 z-[60] flex max-h-[500px] w-96 flex-col overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/90 backdrop-blur-md transition-all duration-300"
       :class="{ 'w-auto rounded-full': isMinimized }"
     >
       <!-- Header -->
@@ -181,7 +181,7 @@
               <!-- Action Button -->
               <button
                 v-if="item.status === 'error'"
-                class="rounded-full border border-[var(--border-color)] bg-white dark:bg-[var(--bg-card)] p-1.5 text-orange-500 shadow-sm transition-all hover:bg-orange-50 hover:text-orange-700"
+                class="rounded-full border border-[var(--border-color)] bg-white p-1.5 text-orange-500 shadow-sm transition-all hover:bg-orange-50 hover:text-orange-700 dark:bg-[var(--bg-card)]"
                 :title="t('upload.retry')"
                 @click="retryFile(item.id)"
               >

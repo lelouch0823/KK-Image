@@ -36,7 +36,7 @@
           <button
             type="submit"
             :disabled="loading"
-            class="bg-primary flex h-12 w-full items-center justify-center rounded-xl font-medium text-white dark:text-gray-900 transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+            class="bg-primary flex h-12 w-full items-center justify-center rounded-xl font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50 dark:text-gray-900"
           >
             <svg
               v-if="loading"
