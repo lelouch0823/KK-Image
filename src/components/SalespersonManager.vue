@@ -132,7 +132,7 @@ const confirmData = ref({
 });
 
 const currentPage = computed({
-  get: () => pagination.value.page,
+  get: () => pagination.page,
   set: () => {}, // 由 changePage 处理
 });
 
@@ -176,7 +176,7 @@ const handleSubmit = async (formData) => {
 
     if (success) {
       showModal.value = false;
-      loadSalespersons({ page: pagination.value.page });
+      loadSalespersons({ page: pagination.page });
     }
   } finally {
     submitting.value = false;
@@ -198,7 +198,7 @@ const confirmDelete = (person) => {
       try {
         const success = await deleteSalesperson(person.id);
         if (success) {
-          loadSalespersons({ page: pagination.value.page });
+          loadSalespersons({ page: pagination.page });
           confirmData.value.show = false;
         }
       } finally {

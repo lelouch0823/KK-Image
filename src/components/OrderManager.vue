@@ -177,7 +177,7 @@ const { lastNotificationTime } = useNotifications();
 watch(lastNotificationTime, () => {
   // Only refresh if not editing or viewing detail to avoid disruption
   if (!showEditModal.value && !showDetailModal.value && !showCreateModal.value) {
-    loadOrders({ page: pagination.value.page });
+    loadOrders({ page: pagination.page });
   }
 });
 
@@ -247,7 +247,7 @@ onMounted(() => {
 
 // 每次进入页面刷新
 onActivated(() => {
-  loadOrders({ page: pagination.value.page });
+  loadOrders({ page: pagination.page });
 });
 
 // 筛选
@@ -379,7 +379,7 @@ const handleEditSubmit = async ({ updates, reason, fileIds }) => {
     const success = await updateOrder(editingOrder.value.id, updates, reason, fileIds);
     if (success) {
       closeEditModal();
-      loadOrders({ page: pagination.value.page });
+      loadOrders({ page: pagination.page });
     }
   } finally {
     isEditing.value = false;
@@ -487,7 +487,7 @@ const handleBatchAction = (action) => {
         const result = await batchAction(selectedIds.value, action);
         if (result) {
           selectedIds.value = [];
-          await loadOrders({ page: pagination.value.page });
+          await loadOrders({ page: pagination.page });
           confirmData.value.show = false;
         }
       } finally {

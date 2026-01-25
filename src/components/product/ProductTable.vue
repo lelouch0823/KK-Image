@@ -14,7 +14,8 @@
       <tr 
         v-for="product in products" 
         :key="product.id"
-        class="group transition-colors duration-200 hover:bg-surface dark:hover:bg-slate-800"
+        class="group cursor-pointer transition-colors duration-200 hover:bg-surface dark:hover:bg-slate-800"
+        @click="$emit('view', product)"
       >
         <!-- Product Info -->
         <td class="px-6 py-4 pl-8">

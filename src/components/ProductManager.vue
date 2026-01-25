@@ -15,7 +15,7 @@
             <!-- Create Button -->
             <button 
                 class="bg-primary shadow-primary/20 flex items-center justify-center gap-2 rounded-lg text-sm font-medium text-white shadow-sm transition-all hover:bg-primary-hover active:scale-95 dark:text-gray-900 sm:h-9 sm:px-4 max-sm:size-9"
-                @click="showCreateModal = true"
+                @click="handleCreate"
                 :title="t('product.action.create')"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="size-5 sm:size-4" viewBox="0 0 20 20" fill="currentColor">
@@ -52,18 +52,37 @@
         <ProductStats />
     </Modal>
     
+    <!-- Create/Edit Modal -->
+    <ProductCreateModal
+        v-model="showCreateModal"
+        :edit-mode="isEditMode"
+        :initial-data="editingProduct"
+        @success="handleModalSuccess"
+    />
+
+    <!-- Detail Modal -->
+    <Modal v-model="showDetailModal" size="4xl" :title="t('product.manager.detail_title') || t('router.product_detail')">
+        <ProductDetail 
+            v-if="viewingProduct" 
+            :product="viewingProduct" 
+            @edit="handleEditFromDetail"
+            @close="showDetailModal = false"
+        />
+    </Modal>
+    
     <!-- 2. Content Area (Table/Grid) -->
     <div class="relative flex-1 lg:min-h-[400px] lg:overflow-hidden">
       <!-- Loading Overlay -->
       <div v-if="loading" class="absolute inset-0 z-10 flex items-center justify-center bg-white/50 backdrop-blur-[1px] dark:bg-slate-900/50">
-        <div class="size-10  animate-spin rounded-full border-b-2 border-indigo-500"></div>
+        <div class="size-10 animate-spin rounded-full border-b-2 border-indigo-500"></div>
       </div>
 
       <!-- Desktop Table (Show only if data exists) -->
       <div v-if="!loading && !error && products.length > 0" class="custom-scrollbar hidden h-full overflow-auto lg:block">
          <ProductTable 
            :products="products" 
-           @edit="openEdit" 
+           @view="handleView"
+           @edit="handleEdit" 
            @delete="handleDelete" 
         />
       </div>
@@ -72,7 +91,8 @@
       <div v-if="!loading && !error && products.length > 0" class="p-4 lg:hidden">
         <ProductGrid 
             :products="products" 
-            @edit="openEdit"
+            @view="handleView"
+            @edit="handleEdit"
         />
       </div>
 
@@ -98,7 +118,7 @@
             :description="t('product.text.empty_description') || t('common.text.create_first_item')"
         >
             <template #action>
-                <button class="btn btn-primary" @click="showCreateModal = true">
+                <button class="btn btn-primary" @click="handleCreate">
                     {{ t('product.action.create') }}
                 </button>
             </template>
@@ -115,22 +135,6 @@
         />
     </div>
 
-    <!-- Creation Modal -->
-    <ProductCreateModal 
-        v-if="showCreateModal" 
-        v-model="showCreateModal"
-        @success="handleSuccess"
-    />
-
-    <!-- Edit Modal (Reuses Create Modal probably or separate) -->
-    <ProductCreateModal
-        v-if="showEditModal"
-        v-model="showEditModal"
-        :edit-mode="true"
-        :initial-data="editingProduct"
-        @success="handleSuccess"
-    />
-
   </div>
 </template>
 
@@ -140,8 +144,9 @@ import { useProducts } from '@/composables/useProducts';
 import ProductStats from './product/ProductStats.vue';
 import ProductFilters from './product/ProductFilters.vue';
 import ProductTable from './product/ProductTable.vue';
+import ProductCreateModal from './product/ProductCreateModal.vue'; 
+import ProductDetail from './product/ProductDetail.vue'; // Import Detail
 import ProductGrid from './product/ProductGrid.vue';
-import ProductCreateModal from './product/ProductCreateModal.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Modal from '@/components/ui/Modal.vue';
@@ -151,11 +156,12 @@ import { useI18n } from '@/composables/useI18n';
 const { t } = useI18n();
 const { products, loading, error, pagination, loadProducts, deleteProduct } = useProducts();
 
-const showCreateModal = ref(false);
-const showEditModal = ref(false);
 const showStatsModal = ref(false);
+const showCreateModal = ref(false); 
+const showDetailModal = ref(false); // Detail modal state
+const isEditMode = ref(false);
 const editingProduct = ref(null);
-// statsCollapsed removed
+const viewingProduct = ref(null);
 
 const filters = reactive({
     search: '',
@@ -166,22 +172,36 @@ onMounted(() => {
     loadProducts();
 });
 
-const openEdit = (product) => {
-    editingProduct.value = product;
-    showEditModal.value = true;
+const handleCreate = () => {
+    isEditMode.value = false;
+    editingProduct.value = {};
+    showCreateModal.value = true;
 };
 
-const handleSuccess = () => {
-    showCreateModal.value = false;
-    showEditModal.value = false;
-    loadProducts(); // refresh
+const handleEdit = (product) => {
+    isEditMode.value = true;
+    editingProduct.value = { ...product };
+    showCreateModal.value = true;
+};
+
+const handleView = (product) => {
+    viewingProduct.value = { ...product };
+    showDetailModal.value = true;
+};
+
+const handleEditFromDetail = (product) => {
+    showDetailModal.value = false;
+    handleEdit(product);
+};
+
+const handleModalSuccess = () => {
+    loadProducts();
 };
 
 const handleDelete = async (product) => {
     if (confirm(t('product.action.delete_confirm_message', { name: product.name }))) {
         await deleteProduct(product.id);
+        loadProducts(); 
     }
 }
 </script>
-
-

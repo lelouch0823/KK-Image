@@ -7,7 +7,7 @@
             'group relative cursor-pointer overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm transition-all duration-300 active:scale-[0.98] active:bg-[var(--bg-hover)] active:shadow-none',
             getStatusBorderClass(product.status)
         ]"
-        @click="$emit('edit', product)"
+        @click="$emit('view', product)"
     >
         <div class="flex items-start gap-3 p-3">
             <!-- Image (Larger for better visual appeal) -->
@@ -79,7 +79,7 @@ defineProps({
         default: () => []
     }
 });
-defineEmits(['edit']);
+defineEmits(['view', 'edit']);
 
 const getFileUrl = (id) => `/file/${id}`;
 const getMainImage = (product) => {
