@@ -71,6 +71,7 @@ export function transformFile(file) {
     size: file.size,
     mimeType: file.mime_type,
     url: getFileUrl(file.storage_key),
+    blurhash: file.blurhash,
     createdAt: file.created_at,
   };
 }

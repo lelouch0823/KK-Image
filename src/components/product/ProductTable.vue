@@ -21,12 +21,22 @@
             <div class="flex items-center gap-4">
                 <div class="relative size-12  flex-shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 transition-all group-hover:shadow-md dark:border-slate-600 dark:bg-slate-700">
                     <!-- Image Logic (parse JSON) -->
-                    <img 
+                    <!-- Image Logic (parse JSON) -->
+                    <AppImage 
                         v-if="getMainImage(product)" 
                         :src="getFileUrl(getMainImage(product))" 
-                        class="size-full  transform object-cover transition-transform duration-500 group-hover:scale-110"
-                        alt=""
-                    />
+                        fit="cover"
+                        class="size-full product-table-image"
+                        rounded="none"
+                    >
+                         <template #placeholder>
+                             <div class="flex size-full items-center justify-center bg-slate-100 text-slate-300 dark:bg-slate-700 dark:text-slate-600">
+                                 <svg class="size-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                 </svg>
+                             </div>
+                         </template>
+                    </AppImage>
                     <div v-else class="flex h-full items-center justify-center text-slate-400">
                         <svg class="size-6 " fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     </div>
@@ -122,11 +132,11 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppImage from '@/components/ui/AppImage.vue';
 
 const { t } = useI18n();
-const props = defineProps({
+defineProps({
     products: { type: Array, default: () => [] }
 });
 defineEmits(['edit', 'delete']);
@@ -173,3 +183,9 @@ const getStatusDot = (s) => {
     }
 }
 </script>
+
+<style scoped>
+:deep(.product-table-image .app-image__img) {
+  @apply transform transition-transform duration-500 group-hover:scale-110;
+}
+</style>

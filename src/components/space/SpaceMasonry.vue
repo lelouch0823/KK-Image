@@ -58,12 +58,14 @@
         @click="openLightbox(index)"
       >
         <!-- Image -->
-        <img
+        <AppImage
           v-if="isImage(file)"
           :src="file.url"
           :alt="file.name"
-          class="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
+          :blurhash="file.blurhash"
+          fit="cover"
+          class="h-auto w-full masonry-image"
+          rounded="none"
         />
 
         <!-- Other Files -->
@@ -126,6 +128,7 @@ import { ref, computed } from 'vue';
 import { isImage } from '@/utils/formatters';
 import { useBatchDownload } from '@/composables/useBatchDownload';
 import { useI18n } from '@/composables/useI18n';
+import AppImage from '@/components/ui/AppImage.vue';
 
 const props = defineProps({
   space: { type: Object, required: true },
@@ -148,6 +151,10 @@ const handleDownloadAll = () => {
 </script>
 
 <style scoped>
+:deep(.masonry-image .app-image__img) {
+  @apply transition-transform duration-500 group-hover:scale-105;
+}
+
 .masonry-grid {
   column-count: 2;
   column-gap: 1rem;

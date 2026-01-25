@@ -9,14 +9,23 @@
     >
         <div class="flex items-start gap-3">
             <!-- Image -->
-            <div class="size-20  flex-shrink-0 overflow-hidden rounded-lg border border-slate-100 bg-slate-100 dark:border-slate-600 dark:bg-slate-700">
-                 <img 
+            <div class="size-20 flex-shrink-0 overflow-hidden rounded-lg border border-slate-100 bg-slate-100 dark:border-slate-600 dark:bg-slate-700">
+                 <AppImage 
                     v-if="getMainImage(product)" 
                     :src="getFileUrl(getMainImage(product))" 
-                    class="size-full  object-cover"
-                    loading="lazy"
-                />
-                <div v-else class="flex size-full  items-center justify-center text-slate-300 dark:text-slate-600">
+                    fit="cover"
+                    class="size-full"
+                    rounded="none"
+                >
+                    <template #placeholder>
+                         <div class="flex size-full items-center justify-center bg-slate-100 text-slate-300 dark:bg-slate-700 dark:text-slate-600">
+                             <svg class="size-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                             </svg>
+                         </div>
+                    </template>
+                </AppImage>
+                <div v-else class="flex size-full items-center justify-center text-slate-300 dark:text-slate-600">
                     <svg class="size-8 " fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
@@ -65,6 +74,7 @@
 <script setup>
 import { useI18n } from '@/composables/useI18n';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import AppImage from '@/components/ui/AppImage.vue';
 
 const { t } = useI18n();
 defineProps({

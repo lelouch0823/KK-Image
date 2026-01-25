@@ -9,11 +9,13 @@
           @touchstart="handleTouchStart"
           @touchend="handleTouchEnd"
         >
-          <img
+          <AppImage
             v-if="currentFile && isImage(currentFile)"
             :src="currentFile.url"
-            class="size-full bg-surface object-contain select-none"
-            alt="Product Image"
+            :blurhash="currentFile.blurhash"
+            fit="contain"
+            class="size-full bg-surface select-none"
+            rounded="none"
           />
           <div v-else class="text-secondary flex size-full items-center justify-center">
             {{ t('spacePublic.noPreview') }}
@@ -76,7 +78,14 @@
             "
             @click="currentIndex = index"
           >
-            <img v-if="isImage(file)" :src="file.url" class="size-full object-cover" />
+            <AppImage
+              v-if="isImage(file)"
+              :src="file.url"
+              :blurhash="file.blurhash"
+              fit="cover"
+              class="size-full"
+              rounded="none"
+            />
             <div
               v-else
               class="flex size-full items-center justify-center bg-surface-muted text-xs font-bold text-secondary-text uppercase"
@@ -289,6 +298,7 @@ import { isImage } from '@/utils/formatters';
 import { useBatchDownload } from '@/composables/useBatchDownload';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
+import AppImage from '@/components/ui/AppImage.vue';
 
 const props = defineProps({
   space: { type: Object, required: true },
