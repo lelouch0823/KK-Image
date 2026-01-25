@@ -9,7 +9,13 @@
           class="aspect-square cursor-pointer overflow-hidden rounded-lg bg-[var(--bg-muted)] transition-opacity hover:opacity-90"
           @click="$emit('preview', file)"
         >
-          <img :src="file.url" class="size-full object-cover" loading="lazy" alt="" />
+          <AppImage 
+            :src="file.url" 
+            :blurhash="file.blurhash"
+            fit="cover"
+            class="size-full"
+            rounded="none"
+          />
         </div>
       </div>
     </div>
@@ -37,6 +43,7 @@
 
 <script setup>
 import { useI18n } from '@/composables/useI18n';
+import AppImage from '@/components/ui/AppImage.vue';
 
 defineProps({
   files: {

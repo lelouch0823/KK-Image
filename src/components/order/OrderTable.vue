@@ -57,7 +57,14 @@
               <div
                 class="size-10 flex-shrink-0 overflow-hidden rounded border border-[var(--border-color)] bg-[var(--bg-muted)]"
               >
-                <img v-if="order.mainImage" :src="order.mainImage" class="size-full object-cover" />
+                <AppImage 
+                  v-if="order.mainImage" 
+                  :src="order.mainImage" 
+                  :blurhash="order.mainImageBlurhash"
+                  fit="cover"
+                  class="size-full"
+                  rounded="none"
+                />
                 <div v-else class="flex size-full items-center justify-center">
                   <svg
                     class="size-4 text-[var(--text-secondary)]/30"
@@ -172,6 +179,7 @@ import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { formatDate } from '@/utils/formatters';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import AppImage from '@/components/ui/AppImage.vue';
 
 const props = defineProps({
   data: {

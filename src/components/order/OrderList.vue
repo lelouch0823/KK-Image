@@ -50,11 +50,13 @@
         <div class="flex items-start gap-3">
           <!-- 主图 -->
           <div class="size-20 flex-shrink-0 overflow-hidden rounded-lg bg-[var(--bg-muted)] shadow-sm">
-            <img
+            <AppImage
               v-if="order.mainImage"
               :src="order.mainImage"
-              class="size-full object-cover transition-transform duration-500 group-hover:scale-110"
-              loading="lazy"
+              :blurhash="order.mainImageBlurhash"
+              fit="cover"
+              class="size-full order-list-image"
+              rounded="none"
             />
             <div v-else class="flex size-full items-center justify-center">
               <svg class="text-muted size-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,6 +133,7 @@ import { formatRelativeTime } from '@/utils/formatters';
 import { getStatusVariant } from '@/utils/status';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
+import AppImage from '@/components/ui/AppImage.vue';
 
 defineProps({
   orders: { type: Array, default: () => [] },

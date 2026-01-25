@@ -19,7 +19,7 @@ export async function findById(db, id) {
     const order = await db
         .prepare(
             `
-      SELECT o.*, f.storage_key as main_image_key,
+      SELECT o.*, f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
              c.name as customer_name, c.company as customer_company, c.phone as customer_phone
       FROM orders o
       LEFT JOIN files f ON o.main_image_id = f.id
@@ -44,7 +44,7 @@ export async function findByIdAndSalesperson(db, id, salespersonId) {
     const order = await db
         .prepare(
             `
-      SELECT o.*, f.storage_key as main_image_key,
+      SELECT o.*, f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
              c.name as customer_name, c.company as customer_company, c.phone as customer_phone
       FROM orders o
       LEFT JOIN files f ON o.main_image_id = f.id
@@ -87,7 +87,7 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
           o.id, o.order_no, o.current_data, o.status, 
           o.unread_by_sales as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
-          f.storage_key as main_image_key,
+          f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
           CASE o.status
               WHEN 'pending' THEN 1
               WHEN 'production' THEN 2
@@ -174,7 +174,7 @@ export async function listForAdmin(
           o.unread_by_admin as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
           s.name as salesperson_name, s.store as salesperson_store,
-          f.storage_key as main_image_key,
+          f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
           CASE o.status
               WHEN 'pending' THEN 1
               WHEN 'production' THEN 2
@@ -223,7 +223,7 @@ export async function getFiles(db, orderId) {
     const result = await db
         .prepare(
             `
-      SELECT f.id, f.name, f.original_name, f.mime_type, f.size, f.storage_key, f.created_at
+      SELECT f.id, f.name, f.original_name, f.mime_type, f.size, f.storage_key, f.blurhash, f.created_at
       FROM order_files of
       JOIN files f ON of.file_id = f.id
       WHERE of.order_id = ?
@@ -239,6 +239,7 @@ export async function getFiles(db, orderId) {
         mimeType: f.mime_type,
         size: f.size,
         url: `/file/${f.storage_key}`,
+        blurhash: f.blurhash,
         createdAt: f.created_at,
     }));
 }

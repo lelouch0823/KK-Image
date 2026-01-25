@@ -31,7 +31,14 @@
           <div
             class="size-16 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)]"
           >
-            <img v-if="order.mainImage" :src="order.mainImage" class="size-full object-cover transition-transform duration-500 group-hover:scale-110" />
+            <AppImage 
+              v-if="order.mainImage" 
+              :src="order.mainImage" 
+              :blurhash="order.mainImageBlurhash"
+              fit="cover"
+              class="size-full order-card-image"
+              rounded="none"
+            />
             <div v-else class="flex size-full items-center justify-center">
               <svg
                 class="size-6 text-[var(--text-secondary)]/30"
@@ -99,6 +106,7 @@
 import { useI18n } from '@/composables/useI18n';
 import { formatDate } from '@/utils/formatters';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import AppImage from '@/components/ui/AppImage.vue';
 
 defineProps({
   data: {

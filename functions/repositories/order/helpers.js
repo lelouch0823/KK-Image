@@ -35,6 +35,7 @@ export function mapOrderListItem(order) {
         status: order.status,
         hasNewFeedback: !!order.is_unread,
         mainImage: order.main_image_key ? `/file/${order.main_image_key}` : null,
+        mainImageBlurhash: order.main_image_blurhash,
         createdAt: order.created_at,
         updatedAt: order.updated_at,
     };
@@ -67,6 +68,7 @@ export function mapOrderDetail(order) {
         originalData,
         currentData,
         mainImage: order.main_image_key ? `/file/${order.main_image_key}` : null,
+        mainImageBlurhash: order.main_image_blurhash,
         mainImageId: order.main_image_id,
         createdAt: order.created_at,
         updatedAt: order.updated_at,
