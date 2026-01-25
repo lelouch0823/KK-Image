@@ -58,6 +58,7 @@
              <div class="mt-6 flex items-baseline gap-1">
                  <span class="text-xs text-[var(--text-secondary)]">¥</span>
                  <span class="font-[Outfit] text-3xl font-bold text-[var(--text-main)]">{{ product.price?.toFixed(2) }}</span>
+                 <span v-if="product.cost_price" class="ml-2 text-xs text-[var(--text-secondary)]">({{ t('product.form.cost') }}: ¥{{ product.cost_price }})</span>
              </div>
         </div>
 
@@ -113,7 +114,7 @@
         <div class="flex gap-3 pt-2">
             <button 
                 @click="$emit('edit', product)"
-                class="flex-1 rounded-xl bg-[var(--color-primary)] py-2.5 text-sm font-medium text-white shadow-lg shadow-[var(--color-primary)]/20 transition-all hover:bg-[var(--color-primary-hover)] active:scale-95"
+                class="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-600/20 transition-all hover:bg-indigo-700 active:scale-95"
             >
                 {{ t('product.action.edit') }}
             </button>

@@ -56,6 +56,7 @@ export default {
     hoursAgo: '{count} 小时前',
     optional: '选填',
     salesperson: '销售人员',
+    close: '关闭',
   },
   formatters: {
     forever: '永久有效',
@@ -751,10 +752,10 @@ export default {
       exportFailed: '导出失败',
       dateRange: '日期范围',
       startDate: '开始日期',
-      endDate: '结束日期',
-      currentStatus: '当前状态',
       dangerousStatusWarning: '此操作将把订单标记为不可逆状态，请确认后再提交。',
     },
+
+
 
     // 仪表盘
     dashboard: {
@@ -802,6 +803,83 @@ export default {
       viewAll: '查看全部 {count} 条记录',
       collapse: '收起',
     },
+  },
+
+  // Product
+  product: {
+    manager: {
+      title: '商品管理',
+      subtitle: '管理您的商品库存和价格',
+      stats_overview: '统计概览',
+      detail_title: '商品详情',
+    },
+    modal: {
+      create_title: '创建新商品',
+      edit_title: '编辑商品',
+    },
+    form: {
+      name: '商品名称',
+      name_placeholder: '请输入商品名称',
+      description: '商品描述',
+      description_placeholder: '请输入详细的商品描述...',
+      media: '商品图片',
+      media_help: '第一张图片将作为封面图',
+      category: '商品分类',
+      category_placeholder: '如：男装',
+      specifications: '规格参数',
+      pricing_inventory: '价格与库存',
+      price: '销售价格',
+      cost: '成本价格',
+      inventory: '库存信息',
+      sku: 'SKU 编码',
+      stock: '当前库存',
+      alert_at: '预警阈值',
+      organization: '组织与属性',
+      slug_seo: 'SEO 链接标识 (Slug)',
+      slug_placeholder: '留空自动生成',
+    },
+    table: {
+      header: {
+        product: '商品信息',
+        price: '价格',
+        stock: '库存',
+        status: '状态',
+        actions: '操作',
+      },
+      empty: '暂无商品数据',
+    },
+    filters: {
+      status: {
+        active: '上架',
+        draft: '草稿',
+        archived: '下架',
+      },
+    },
+    action: {
+      create: '创建商品',
+      edit: '编辑商品',
+      delete: '删除',
+      cancel: '取消',
+      save: '保存',
+      delete_confirm_message: '确定要删除商品 "{name}" 吗？此操作不可恢复。',
+    },
+    confirm: {
+      delete_title: '删除确认',
+    },
+    stats: {
+      total_products: '商品总数',
+      total_value: '库存总值',
+      low_stock: '库存预警',
+      no_stock: '缺货',
+      stock_level: '库存水平',
+    },
+    text: {
+      no_images: '暂无图片',
+      empty_title: '暂无商品',
+      empty_description: '开始添加您的第一个商品',
+      cost: '成本',
+      units: '件',
+    }
   },
 
   // 销售人员管理
@@ -943,83 +1021,5 @@ export default {
     save: '保存更改',
     saving: '保存中...',
   },
-  product: {
-    manager: {
-      title: '商品管理',
-      subtitle: '管理您的商品库存、价格和基本信息',
-      stats_overview: '商品数据统计',
-      stats_desc: '近30天商品数据概览',
-    },
-    action: {
-      create: '新建商品',
-      cancel: '取消',
-      save: '保存商品',
-      create_success: '创建成功',
-      update_success: '更新成功',
-      delete_confirm_title: '确认删除',
-      delete_confirm_message: '确定要删除该商品吗？此操作无法撤销。',
-      delete_success: '删除成功',
-    },
-    stats: {
-      total_products: '总商品数',
-      active_catalog: '在售商品',
-      low_stock: '库存预警',
-      needs_attention: '需要关注',
-      total_value: '总货值',
-      cost_basis: '成本估算',
-    },
-    filters: {
-      search_placeholder: '搜索商品名称/编码...',
-      status: {
-        short_label: '状态',
-        all: '全部状态',
-        active: '上架',
-        draft: '下架',
-        archived: '归档',
-      },
-    },
-    table: {
-      empty: '暂无商品数据',
-      header: {
-        product: '商品信息',
-        category: '分类',
-        price: '价格',
-        stock: '库存',
-        status: '状态',
-        updated: '更新时间',
-        actions: '操作',
-      },
-    },
-    modal: {
-      create_title: '新建商品',
-      edit_title: '编辑商品',
-    },
-    form: {
-      basic_info: '基本信息',
-      name: '商品名称',
-      name_placeholder: '请输入商品名称',
-      category: '商品分类',
-      category_placeholder: '如：包袋、配饰、服饰等',
-      specifications: '规格参数',
-      inventory: '库存信息',
-      pricing_inventory: '价格与库存',
-      price: '销售价格',
-      cost: '成本价格',
-      stock: '当前库存',
-      sku: 'SKU 编码',
-      media: '商品图片',
-      media_help: '支持 JPG, PNG, WebP 格式，单张不超过 5MB',
-      upload_text: '点击或拖拽上传',
-      description: '商品描述',
-      description_placeholder: '请输入商品详细描述...',
-      slug_seo: 'SEO 链接标识 (Slug)',
-      slug_placeholder: '留空自动生成',
-      alert_at: '库存预警阈值',
-      organization: '组织与状态',
-    },
-    text: {
-      empty_title: '暂无商品',
-      empty_description: '创建一个商品来开始使用',
-    },
-  },
+
 };

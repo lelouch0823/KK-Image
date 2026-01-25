@@ -58,8 +58,8 @@
                 <div class="w-fit rounded bg-slate-100 px-2 py-0.5 font-mono text-sm text-slate-700 dark:bg-slate-900 dark:text-slate-300">
                     {{ product.sku }}
                 </div>
-                <div class="max-w-[120px] truncate text-xs text-slate-400" :title="product.slug">
-                    /{{ product.slug || '-' }}
+                <div v-if="product.slug" class="max-w-[120px] truncate text-xs text-slate-400" :title="product.slug">
+                    / {{ product.slug }}
                 </div>
             </div>
         </td>
@@ -67,14 +67,14 @@
         <!-- Price -->
         <td class="px-6 py-4">
             <div class="font-medium text-slate-900 dark:text-slate-100">¥{{ product.price }}</div>
-            <div v-if="product.cost_price" class="text-xs text-slate-400">Cost: ¥{{ product.cost_price }}</div>
+            <div v-if="product.cost_price" class="text-xs text-slate-400">{{ t('product.text.cost') }}: ¥{{ product.cost_price }}</div>
         </td>
 
         <!-- Stock -->
         <td class="w-48 px-6 py-4">
             <div class="flex flex-col gap-1.5">
                 <div class="mb-1 flex justify-between text-xs">
-                    <span :class="getStockColor(product)">{{ product.stock_quantity }} units</span>
+                    <span :class="getStockColor(product)">{{ product.stock_quantity }} {{ t('product.text.units') }}</span>
                 </div>
                 <!-- Progress Bar -->
                 <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
@@ -145,8 +145,9 @@ defineEmits(['edit', 'delete']);
 const getFileUrl = (id) => `/file/${id}`;
 const getMainImage = (product) => {
     try {
-        const imgs = JSON.parse(product.images || '[]');
-        return imgs.length > 0 ? imgs[0] : null;
+        if (!product.images) return null;
+        const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
+        return Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
     } catch { return null; }
 };
 

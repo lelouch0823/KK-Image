@@ -84,8 +84,9 @@ defineEmits(['view', 'edit']);
 const getFileUrl = (id) => `/file/${id}`;
 const getMainImage = (product) => {
     try {
-        const imgs = JSON.parse(product.images || '[]');
-        return imgs.length > 0 ? imgs[0] : null;
+        if (!product.images) return null;
+        const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
+        return Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
     } catch { return null; }
 };
 
