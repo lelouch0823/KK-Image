@@ -38,6 +38,7 @@ export function mapOrderListItem(order) {
         mainImageBlurhash: order.main_image_blurhash,
         createdAt: order.created_at,
         updatedAt: order.updated_at,
+        productId: order.product_id,
     };
 }
 
@@ -55,6 +56,7 @@ export function mapOrderDetail(order) {
         orderNo: order.order_no,
         salespersonId: order.salesperson_id,
         customerId: order.customer_id,
+        productId: order.product_id,
         customer: order.customer_name
             ? {
                 name: order.customer_name,

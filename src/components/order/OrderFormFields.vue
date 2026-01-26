@@ -7,14 +7,18 @@
     </h4>
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <!-- 状态修改 (已移移动到 Modal 顶部) -->
-
       <!-- 商品名称 (全宽) -->
       <div class="md:col-span-2">
         <label class="text-secondary mb-1 block text-xs font-medium">{{
           t('order.form.productName')
         }}</label>
-        <input :value="modelValue.name" class="input" @input="updateField('name', $event.target.value)" />
+        <input 
+          :value="modelValue.name" 
+          class="input" 
+          :disabled="disabledFields.includes('name')"
+          :class="{ 'cursor-not-allowed bg-slate-100 dark:bg-slate-800': disabledFields.includes('name') }"
+          @input="updateField('name', $event.target.value)" 
+        />
       </div>
 
       <!-- 品牌 -->
@@ -22,7 +26,13 @@
         <label class="text-secondary mb-1 block text-xs font-medium">{{
           t('order.form.brand')
         }}</label>
-        <input :value="modelValue.brand" class="input" @input="updateField('brand', $event.target.value)" />
+        <input 
+          :value="modelValue.brand" 
+          class="input" 
+          :disabled="disabledFields.includes('brand')"
+          :class="{ 'cursor-not-allowed bg-slate-100 dark:bg-slate-800': disabledFields.includes('brand') }"
+          @input="updateField('brand', $event.target.value)" 
+        />
       </div>
 
       <!-- 系列 -->
@@ -30,13 +40,25 @@
         <label class="text-secondary mb-1 block text-xs font-medium">{{
           t('order.form.series')
         }}</label>
-        <input :value="modelValue.series" class="input" @input="updateField('series', $event.target.value)" />
+        <input 
+          :value="modelValue.series" 
+          class="input" 
+          :disabled="disabledFields.includes('series')"
+          :class="{ 'cursor-not-allowed bg-slate-100 dark:bg-slate-800': disabledFields.includes('series') }"
+          @input="updateField('series', $event.target.value)" 
+        />
       </div>
 
       <!-- 款号 (SKU) -->
       <div>
         <label class="text-secondary mb-1 block text-xs font-medium">{{ t('order.form.sku') }}</label>
-        <input :value="modelValue.sku" class="input" @input="updateField('sku', $event.target.value)" />
+        <input 
+          :value="modelValue.sku" 
+          class="input" 
+          :disabled="disabledFields.includes('sku')"
+          :class="{ 'cursor-not-allowed bg-slate-100 dark:bg-slate-800': disabledFields.includes('sku') }"
+          @input="updateField('sku', $event.target.value)" 
+        />
       </div>
 
       <!-- 规格尺寸 -->
@@ -124,6 +146,10 @@ const props = defineProps({
     type: Array,
     default: () => ['pending', 'confirmed', 'production', 'shipping', 'completed', 'rejected', 'void'],
   },
+  disabledFields: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -132,6 +158,7 @@ const { t } = useI18n();
 const minDate = computed(() => getTodayISOString());
 
 const updateField = (field, value) => {
+  if (props.disabledFields.includes(field)) return; // Prevent updates on disabled fields
   emit('update:modelValue', { ...props.modelValue, [field]: value });
 };
 </script>

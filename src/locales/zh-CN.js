@@ -758,6 +758,15 @@ export default {
       dangerousStatusWarning: '此操作将把订单标记为不可逆状态，请确认后再提交。',
     },
 
+    // 商品绑定
+    binding: {
+      title: '关联商品',
+      hint: '搜索并选择商品库中的商品进行关联，关联后商品信息将自动同步且锁定编辑。',
+      unbind: '解除关联',
+      editProduct: '编辑商品详情',
+      locked: '此字段已锁定，如需修改请解除商品关联或前往商品详情页。',
+    },
+
 
 
     // 仪表盘
@@ -880,6 +889,9 @@ export default {
       low_stock: '库存预警',
       no_stock: '缺货',
       stock_level: '库存水平',
+      active_catalog: '当前在售',
+      needs_attention: '需要补货',
+      cost_basis: '基于成本价核算',
     },
     text: {
       no_images: '暂无图片',

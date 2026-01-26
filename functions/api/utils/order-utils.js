@@ -321,7 +321,7 @@ export async function processOrderUpdate(options) {
       await orderRepo.updateStatus(orderId, updates.status, actorTypeStr);
     }
 
-    await orderRepo.updateData(orderId, newData, actorTypeStr);
+    await orderRepo.updateData(orderId, newData, actorTypeStr, options.productId);
 
     // SOTA: 自动发送通知
     // 如果是管理员修改，通知销售员

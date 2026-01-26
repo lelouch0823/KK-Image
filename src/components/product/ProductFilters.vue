@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-wrap items-center gap-2">
     <!-- Status (Left) -->
-    <div class="max-w-[100px] min-w-[72px] sm:w-40">
+    <div class="w-24 sm:w-28">
         <Select
             :model-value="status"
             :options="statusOptions"

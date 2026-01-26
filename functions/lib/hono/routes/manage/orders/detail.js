@@ -1,6 +1,7 @@
 
 import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
+import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { MSG } from '../../../_shared/utils.js';
 
 const app = new Hono();
@@ -50,11 +51,28 @@ app.patch('/:id', async (c) => {
     const order = await orderRepo.findById(id);
     if (!order) return c.json({ success: false, error: MSG.ORDER.NOT_FOUND }, 404);
 
-    const { updates: updatesFromBody, reason, fileIds } = body;
+    const { updates: updatesFromBody, reason, fileIds, productId } = body;
     const updatesObj = updatesFromBody || body;
-    const { reason: _unusedReason, fileIds: _unusedFileIds, updates: _unusedUpdates, ...updates } = updatesObj;
+    const { reason: _unusedReason, fileIds: _unusedFileIds, updates: _unusedUpdates, productId: _unusedProductId, ...updates } = updatesObj;
 
     const { processOrderUpdate } = await import('../../../../../api/utils/order-utils.js');
+
+    // 如果绑定了商品，从商品库获取信息覆盖提交的字段
+    let finalUpdates = { ...updates };
+    if (productId) {
+        const productRepo = new ProductRepository(env.DB);
+        const product = await productRepo.findById(productId);
+        if (product) {
+            finalUpdates.name = product.name;
+            finalUpdates.brand = product.brand;
+            finalUpdates.series = product.series;
+            finalUpdates.sku = product.sku;
+            // 可以在此同步更多字段，如 material
+            if (product.specifications?.material) {
+                finalUpdates.material = product.specifications.material;
+            }
+        }
+    }
 
     // 管理员允许修改的所有字段
     const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline'];
@@ -64,8 +82,9 @@ app.patch('/:id', async (c) => {
         orderId: id,
         orderNo: order.orderNo,
         currentData: order.currentData,
-        updates,
+        updates: finalUpdates,
         fileIds,
+        productId, // 传入 product_id 以更新列
         allowedFields: ADMIN_EDITABLE_FIELDS,
         actor: { type: 'admin', id: user?.id || 'admin', name: user?.name || 'Admin' },
         reason: reason || 'Admin Update',

@@ -208,6 +208,15 @@ export class ProductRepository {
     }
 
     /**
+     * 根据 ID 查找
+     * @param {string} id
+     */
+    async findById(id) {
+        const result = await this.db.prepare('SELECT * FROM products WHERE id = ?').bind(id).first();
+        return this._parseResult(result);
+    }
+
+    /**
      * 根据条件搜索
      * @param {Object} filters { search, category, brand, status, page, limit }
      */

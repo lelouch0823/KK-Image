@@ -68,19 +68,27 @@ export async function create(
  * @param {Object} newData
  * @param {'admin'|'sales'} actorType
  */
-export async function updateData(db, id, newData, actorType) {
+export async function updateData(db, id, newData, actorType, productId = undefined) {
     const timestamp = now();
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
 
-    return db
-        .prepare(
-            `
+    let query = `
       UPDATE orders 
       SET current_data = ?, ${updateField} = 1, updated_at = ? 
-      WHERE id = ?
-      `
-        )
-        .bind(JSON.stringify(newData), timestamp, id)
+    `;
+    const params = [JSON.stringify(newData), timestamp];
+
+    if (productId !== undefined) {
+        query += `, product_id = ? `;
+        params.push(productId);
+    }
+
+    query += ` WHERE id = ?`;
+    params.push(id);
+
+    return db
+        .prepare(query)
+        .bind(...params)
         .run();
 }
 

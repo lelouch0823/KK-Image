@@ -95,11 +95,12 @@
           <!-- 商品图片 -->
           <OrderFileGrid :files="order.files" @preview="handlePreview" />
 
-          <!-- 时间轴 (PC端显示在左侧下方) -->
-          <div class="hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 lg:block">
-            <h3 class="text-primary mb-4 text-sm font-medium">{{ t('order.detail.timeline') }}</h3>
-            <OrderTimeline :timeline="order.timeline" />
-          </div>
+          <!-- 商品信息 (PC端显示在左侧下方，放大显示) -->
+          <OrderInfoCard
+            :data="currentData"
+            :has-correction="hasCorrection"
+            @view-correction="showCorrectionModal = true"
+          />
         </div>
 
         <!-- 右侧：信息区域 (PC端占 4列) -->
@@ -131,18 +132,13 @@
             :status="order.status"
           />
 
-          <!-- 商品信息 -->
-          <OrderInfoCard
-            :data="currentData"
-            :has-correction="hasCorrection"
-            @view-correction="showCorrectionModal = true"
-          />
-
-          <!-- 时间轴 (移动端显示) -->
-          <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 lg:hidden">
+          <!-- 时间轴 (PC端窄栏显示，移动端通用) -->
+          <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
             <h3 class="text-primary mb-4 text-sm font-medium">{{ t('order.detail.timeline') }}</h3>
             <OrderTimeline :timeline="order.timeline" />
           </div>
+
+
 
           <!-- 留言输入 -->
           <OrderCommentInput @submit="sendComment" />
