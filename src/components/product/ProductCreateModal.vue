@@ -32,12 +32,12 @@
                       <div class="space-y-4">
                           <div>
                               <label class="block text-sm font-medium text-[var(--text-secondary)]">{{ t('product.form.name') }} <span class="text-[var(--color-danger)]">*</span></label>
-                              <input v-model="form.name" type="text" required class="mt-1 block w-full rounded-xl border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-sm focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] sm:text-sm text-[var(--text-main)]" :placeholder="t('product.form.name_placeholder')">
+                              <input v-model="form.name" type="text" required class="input mt-1" :placeholder="t('product.form.name_placeholder')">
                           </div>
                           
                           <div>
                               <label class="block text-sm font-medium text-[var(--text-secondary)]">{{ t('product.form.description') }}</label>
-                              <textarea v-model="form.description" rows="3" class="mt-1 block w-full rounded-xl border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-sm focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] sm:text-sm text-[var(--text-main)]" :placeholder="t('product.form.description_placeholder')"></textarea>
+                              <textarea v-model="form.description" rows="3" class="input mt-1 h-auto py-3" :placeholder="t('product.form.description_placeholder')"></textarea>
                           </div>
                       </div>
 
@@ -45,18 +45,18 @@
                       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <div>
                               <label class="block text-sm font-medium text-[var(--text-secondary)]">{{ t('order.form.brand') }}</label>
-                              <input v-model="form.brand" type="text" class="mt-1 block w-full rounded-xl border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-sm focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] sm:text-sm text-[var(--text-main)]" :placeholder="t('order.form.brandPlaceholder')">
+                              <input v-model="form.brand" type="text" class="input mt-1" :placeholder="t('order.form.brandPlaceholder')">
                           </div>
                           <div>
                               <label class="block text-sm font-medium text-[var(--text-secondary)]">{{ t('order.form.series') }}</label>
-                              <input v-model="form.series" type="text" class="mt-1 block w-full rounded-xl border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-sm focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] sm:text-sm text-[var(--text-main)]" :placeholder="t('order.form.seriesPlaceholder')">
+                              <input v-model="form.series" type="text" class="input mt-1" :placeholder="t('order.form.seriesPlaceholder')">
                           </div>
                       </div>
 
                       <!-- Category -->
                       <div>
                           <label class="block text-sm font-medium text-[var(--text-secondary)]">{{ t('product.form.category') }}</label>
-                          <input v-model="form.category" type="text" class="mt-1 block w-full rounded-xl border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-sm focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] sm:text-sm text-[var(--text-main)]" :placeholder="t('product.form.category_placeholder')">
+                          <input v-model="form.category" type="text" class="input mt-1" :placeholder="t('product.form.category_placeholder')">
                       </div>
 
                       <!-- Specifications: Size, Color, Material -->
@@ -65,15 +65,15 @@
                           <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                               <div>
                                   <label class="block text-xs font-medium text-[var(--text-secondary)] uppercase">{{ t('order.form.size') }}</label>
-                                  <input v-model="form.specifications.size" type="text" class="mt-1 block w-full rounded-lg border-[var(--border-color)] bg-[var(--bg-card)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] sm:text-sm text-[var(--text-main)]" :placeholder="t('order.form.sizePlaceholder')">
+                                  <input v-model="form.specifications.size" type="text" class="input mt-1 !h-9" :placeholder="t('order.form.sizePlaceholder')">
                               </div>
                               <div>
                                   <label class="block text-xs font-medium text-[var(--text-secondary)] uppercase">{{ t('order.form.color') }}</label>
-                                  <input v-model="form.specifications.color" type="text" class="mt-1 block w-full rounded-lg border-[var(--border-color)] bg-[var(--bg-card)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] sm:text-sm text-[var(--text-main)]" :placeholder="t('order.form.colorPlaceholder')">
+                                  <input v-model="form.specifications.color" type="text" class="input mt-1 !h-9" :placeholder="t('order.form.colorPlaceholder')">
                               </div>
                               <div>
                                   <label class="block text-xs font-medium text-[var(--text-secondary)] uppercase">{{ t('order.form.material') }}</label>
-                                  <input v-model="form.specifications.material" type="text" class="mt-1 block w-full rounded-lg border-[var(--border-color)] bg-[var(--bg-card)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] sm:text-sm text-[var(--text-main)]" :placeholder="t('order.form.materialPlaceholder')">
+                                  <input v-model="form.specifications.material" type="text" class="input mt-1 !h-9" :placeholder="t('order.form.materialPlaceholder')">
                               </div>
                           </div>
                       </div>
@@ -102,7 +102,7 @@
                                   <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                                       <span class="text-[var(--text-secondary)] sm:text-sm">¥</span>
                                   </div>
-                                  <input v-model.number="form.price" type="number" required class="block w-full rounded-lg border-[var(--border-color)] bg-[var(--bg-card)] pl-7 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] sm:text-sm text-[var(--text-main)]" placeholder="0.00">
+                                  <input v-model.number="form.price" type="number" required class="input block w-full pl-7" placeholder="0.00">
                               </div>
                           </div>
                           <div>
@@ -111,7 +111,7 @@
                                   <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                                       <span class="text-[var(--text-secondary)] sm:text-sm">¥</span>
                                   </div>
-                                  <input v-model.number="form.costPrice" type="number" class="block w-full rounded-lg border-[var(--border-color)] bg-[var(--bg-card)] pl-7 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] sm:text-sm text-[var(--text-main)]" placeholder="0.00">
+                                  <input v-model.number="form.costPrice" type="number" class="input block w-full pl-7" placeholder="0.00">
                               </div>
                           </div>
                        </div>
@@ -121,16 +121,16 @@
                          <h4 class="font-bold text-[var(--text-main)]">{{ t('product.form.inventory') }}</h4>
                          <div>
                              <label class="block text-xs font-medium text-[var(--text-secondary)] uppercase">{{ t('product.form.sku') }} <span class="text-[var(--color-danger)]">*</span></label>
-                             <input v-model="form.sku" type="text" required class="mt-1 block w-full rounded-lg border-[var(--border-color)] bg-[var(--bg-card)] font-mono uppercase focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] sm:text-sm text-[var(--text-main)]">
+                             <input v-model="form.sku" type="text" required class="input mt-1 font-mono uppercase">
                          </div>
                           <div class="grid grid-cols-2 gap-4">
                              <div>
                                  <label class="block text-xs font-medium text-[var(--text-secondary)] uppercase">{{ t('product.form.stock') }}</label>
-                                 <input v-model.number="form.stockQuantity" type="number" class="mt-1 block w-full rounded-lg border-[var(--border-color)] bg-[var(--bg-card)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] sm:text-sm text-[var(--text-main)]">
+                                  <input v-model.number="form.stockQuantity" type="number" class="input mt-1">
                              </div>
                              <div>
                                  <label class="block text-xs font-medium text-[var(--text-secondary)] uppercase">{{ t('product.form.alert_at') }}</label>
-                                 <input v-model.number="form.alertThreshold" type="number" class="mt-1 block w-full rounded-lg border-[var(--border-color)] bg-[var(--bg-card)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] sm:text-sm text-[var(--text-main)]">
+                                  <input v-model.number="form.alertThreshold" type="number" class="input mt-1">
                              </div>
                           </div>
                       </div>
@@ -140,11 +140,11 @@
                          <h4 class="font-bold text-[var(--text-main)]">{{ t('product.form.organization') }}</h4>
                          <div>
                              <label class="block text-xs font-medium text-[var(--text-secondary)] uppercase">{{ t('product.form.slug_seo') }}</label>
-                             <input v-model="form.slug" type="text" class="mt-1 block w-full rounded-lg border-[var(--border-color)] bg-[var(--bg-card)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] sm:text-sm text-[var(--text-secondary)]" :placeholder="t('product.form.slug_placeholder')">
+                             <input v-model="form.slug" type="text" class="input mt-1" :placeholder="t('product.form.slug_placeholder')">
                          </div>
                          <div>
                              <label class="block text-xs font-medium text-[var(--text-secondary)] uppercase">{{ t('product.table.header.status') }}</label>
-                             <select v-model="form.status" class="mt-1 block w-full rounded-lg border-[var(--border-color)] bg-[var(--bg-card)] py-2 pr-10 pl-3 text-base focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] focus:outline-none sm:text-sm text-[var(--text-main)]">
+                             <select v-model="form.status" class="input mt-1 appearance-none py-1 pr-10 pl-3">
                                  <option value="active">{{ t('product.filters.status.active') }}</option>
                                  <option value="draft">{{ t('product.filters.status.draft') }}</option>
                                  <option value="archived">{{ t('product.filters.status.archived') }}</option>

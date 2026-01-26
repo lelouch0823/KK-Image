@@ -4,7 +4,7 @@
       :value="modelValue"
       type="text"
       :placeholder="placeholder"
-      class="focus:ring-primary focus:border-primary w-full rounded-lg border border-gray-300 py-2 pr-4 pl-9 text-sm transition-colors outline-none"
+      class="input pl-9"
       :class="[inputClass, { 'pr-8': clearable && modelValue }]"
       @input="handleInput"
     />

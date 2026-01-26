@@ -38,7 +38,7 @@
         <div class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-sm">
             <div class="mb-3 flex items-center justify-between">
                 <span class="text-sm font-medium text-[var(--text-main)]">匹配结果</span>
-                <span class="rounded-full bg-[var(--color-primary)]/10 px-2 py-0.5 text-xs font-medium text-[var(--color-primary)]">
+                <span class="rounded-full bg-[var(--color-primary-bg)] px-2 py-0.5 text-xs font-medium text-[var(--color-primary)]">
                     {{ processedImagesCount }} / {{ totalImagesCount }}
                 </span>
             </div>

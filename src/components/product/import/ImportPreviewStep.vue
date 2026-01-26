@@ -2,13 +2,13 @@
     <div v-if="fileName" class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-4 dark:border-white/10 dark:bg-white/5">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="file-icon flex size-10 items-center justify-center rounded-lg bg-[var(--color-success)]/10 text-[var(--color-success-text)] dark:bg-[var(--color-success)]/10 dark:text-green-400">
-                    <svg class="size-6" fill="currentColor" viewBox="0 0 24 24">
+                <div class="file-icon flex size-10 items-center justify-center rounded-lg bg-[var(--color-success)]/10 text-[var(--color-success-text)] dark:bg-[var(--color-success)]/20">
+                    <svg class="size-6 text-[var(--color-success-text)]" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
                     </svg>
                 </div>
                 <div>
-                    <h4 class="text-sm font-medium text-[var(--text-main)] dark:text-white">{{ fileName }}</h4>
+                    <h4 class="text-sm font-medium text-[var(--text-main)]">{{ fileName }}</h4>
                     <p class="text-xs text-[var(--text-secondary)]">{{ fileSize }}</p>
                 </div>
             </div>
@@ -26,9 +26,9 @@
         <div v-if="parsedItems.length > 0" class="mt-4 border-t border-[var(--border-color)] pt-3 dark:border-white/10">
             <div class="flex items-center justify-between text-sm">
                 <span class="text-[var(--text-secondary)]">{{ t('product.import.total_rows', '识别行数') }}:</span>
-                <span class="font-medium text-[var(--text-main)] dark:text-white">{{ parsedItems.length }}</span>
+                <span class="font-medium text-[var(--text-main)]">{{ parsedItems.length }}</span>
             </div>
-            <div v-if="parsedItems.length > 500" class="mt-2 rounded bg-[var(--color-warning)]/10 px-2 py-1 text-xs text-[var(--color-warning-text)] dark:bg-[var(--color-warning)]/10 dark:text-amber-400">
+            <div v-if="parsedItems.length > 500" class="mt-2 rounded bg-[var(--color-warning)]/10 px-2 py-1 text-xs text-[var(--color-warning-text)]">
                 ⚠️ {{ t('product.import.limit_warning', '数据量较大，将自动分批导入') }}
             </div>
         </div>

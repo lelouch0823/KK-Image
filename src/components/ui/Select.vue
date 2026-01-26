@@ -3,9 +3,9 @@
     <!-- Trigger -->
     <button
       type="button"
-      class="flex w-full items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] text-left text-sm transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none"
+      class="flex w-full items-center justify-between border border-[var(--border-color)] bg-[var(--bg-card)] dark:bg-[var(--bg-muted)] text-left text-sm transition-all focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/10 focus:outline-none"
       :class="[
-        size === 'sm' ? 'h-9 rounded-lg px-2' : 'h-11 rounded-xl px-4',
+        size === 'sm' ? 'h-9 rounded-lg px-2 focus:ring-2' : 'h-11 rounded-xl px-4 focus:ring-4',
         !modelValue ? 'text-[var(--text-secondary)]' : 'text-[var(--text-main)]'
       ]"
       @click="toggle"
