@@ -2,91 +2,7 @@
   <div class="base-container">
     <!-- Screen View (网页模式) -->
     <div class="screen-view space-y-6">
-      <!-- 返回按钮和操作区 -->
-      <div class="flex items-center justify-between">
-        <button
-          v-if="mode !== 'sales'"
-          class="flex items-center gap-2 text-[var(--text-secondary)] transition-colors hover:text-[var(--color-primary)]"
-          @click="$emit('back')"
-        >
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M10 19l-7-7m0 0l7-7m-7 7h18"
-            />
-          </svg>
-          {{ t('order.portal.myOrders') }}
-        </button>
 
-        <!-- 销售端操作按钮 -->
-        <div v-if="mode === 'sales'" class="flex gap-2">
-          <button
-            class="flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary)] shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:shadow-md active:scale-95"
-            @click="$emit('duplicate', order)"
-          >
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-              />
-            </svg>
-            {{ t('order.actions.duplicate') }}
-          </button>
-          <button
-            v-if="['pending', 'rejected', 'void'].includes(order.status)"
-            class="flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary)] shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:shadow-md active:scale-95"
-            @click="showEditModal = true"
-          >
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            {{ t('order.manage.editOrder') }}
-          </button>
-          <button
-            v-if="order.status === 'pending'"
-            class="rounded-lg border border-[var(--color-danger-bg)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium text-[var(--color-danger-text)] transition-colors hover:bg-[var(--color-danger-bg)]"
-            @click="handleVoid"
-          >
-            {{ t('order.actions.void') }}
-          </button>
-        </div>
-
-        <!-- 管理端操作按钮 -->
-        <div v-if="mode === 'admin' || !mode" class="flex gap-2">
-          <button
-            class="flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary)] shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:shadow-md active:scale-95"
-            @click="$emit('edit', order)"
-          >
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              />
-            </svg>
-            {{ t('order.manage.editOrder') }}
-          </button>
-          <button
-            class="group flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium text-[var(--text-secondary)] shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)] hover:shadow-md active:scale-95"
-            @click="handleSavePdf"
-          >
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-              />
-            </svg>
-            {{ t('common.savePdf') }}
-          </button>
-        </div>
-      </div>
 
       <!-- 主要内容区域 Grid -->
       <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
@@ -98,6 +14,7 @@
           <!-- 商品信息 (PC端显示在左侧下方，放大显示) -->
           <OrderInfoCard
             :data="currentData"
+            :quantity="order.quantity || 1"
             :has-correction="hasCorrection"
             @view-correction="showCorrectionModal = true"
           />
@@ -445,6 +362,8 @@ const handleSavePdf = () => {
       document.body.removeChild(clone);
     });
 };
+
+defineExpose({ handleSavePdf, handleVoid });
 </script>
 
 <style scoped>

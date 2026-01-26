@@ -15,7 +15,10 @@
     <div class="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
       <div class="flex flex-col sm:flex-row">
         <span class="mb-1 flex-shrink-0 text-sm text-[var(--text-secondary)] sm:mb-0 sm:w-20">{{ t('order.form.productName') }}</span>
-        <span class="truncate text-sm text-[var(--text-main)]">{{ data.name || '-' }}</span>
+        <div class="flex items-center gap-2 overflow-hidden">
+            <span class="truncate text-sm text-[var(--text-main)]">{{ data.name || '-' }}</span>
+            <span class="flex-shrink-0 rounded bg-[var(--color-primary)]/10 px-1.5 py-0.5 text-xs font-medium text-[var(--color-primary)]">x {{ quantity }}</span>
+        </div>
       </div>
       <div class="flex flex-col sm:flex-row">
         <span class="mb-1 flex-shrink-0 text-sm text-[var(--text-secondary)] sm:mb-0 sm:w-20">{{ t('order.form.brand') }}</span>
@@ -73,6 +76,10 @@ defineProps({
   hasCorrection: {
     type: Boolean,
     default: false,
+  },
+  quantity: {
+    type: Number,
+    default: 1,
   },
 });
 

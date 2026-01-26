@@ -96,8 +96,36 @@
     />
 
     <!-- 订单详情弹窗 -->
-    <Modal v-model="showDetailModal" size="6xl" :title="t('order.detail.title')">
+    <Modal v-model="showDetailModal" size="6xl">
+       <template #header>
+        <div class="flex items-center gap-4">
+          <h3 class="text-lg font-semibold text-[var(--text-main)]">{{ t('order.detail.title') }}</h3>
+          <div class="flex items-center gap-2">
+            <!-- Edit Button -->
+            <button
+               class="flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)]/10 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
+               @click="handleEditFromDetail(viewingOrder)"
+            >
+               <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+               </svg>
+               {{ t('order.manage.editOrder') }}
+            </button>
+            <!-- Save PDF Button -->
+            <button
+               class="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)]"
+               @click="detailRef?.handleSavePdf()"
+            >
+               <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+               </svg>
+               {{ t('common.savePdf') }}
+            </button>
+          </div>
+        </div>
+      </template>
       <OrderDetail
+        ref="detailRef"
         v-if="viewingOrder"
         :order="viewingOrder"
         mode="admin"
@@ -199,6 +227,7 @@ const showCreateModal = ref(false); // New state
 const exporting = ref(false);
 const selectedIds = ref([]);
 const batchProcessing = ref(false);
+const detailRef = ref(null);
 
 // Create Order (Admin)
 const handleCreateOrder = async (data) => {

@@ -5,7 +5,6 @@
         <p class="text-secondary mb-1 font-mono text-xs">{{ orderNo }}</p>
         <h2 class="text-primary text-lg font-bold">
           {{ productName || t('order.form.productName') }}
-          <span class="ml-2 rounded bg-[var(--color-primary)]/10 px-2 py-0.5 text-sm font-medium text-[var(--color-primary)]">x {{ quantity }}</span>
         </h2>
       </div>
       <StatusBadge :variant="getStatusVariant(status)" size="md" dot>

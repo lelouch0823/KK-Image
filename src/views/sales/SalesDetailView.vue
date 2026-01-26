@@ -90,6 +90,7 @@ const handleDuplicate = (sourceOrder) => {
         size: currentData.size || '',
         color: currentData.color || '',
         material: currentData.material || '',
+        quantity: currentData.quantity || 1,
         remark: currentData.remark || '',
         deadline: '', 
         files: prefillFiles,

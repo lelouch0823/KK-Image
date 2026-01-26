@@ -113,20 +113,7 @@
             </p>
         </div>
 
-        <div class="flex gap-3 pt-2">
-            <button 
-                class="flex-1 rounded-xl bg-[var(--color-primary)] py-2.5 text-sm font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:opacity-90 active:scale-95"
-                @click="$emit('edit', product)"
-            >
-                {{ t('product.action.edit') }}
-            </button>
-            <button 
-                class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-5 py-2.5 text-sm font-medium text-[var(--text-main)] transition-all hover:bg-[var(--bg-hover)] active:scale-95"
-                @click="$emit('close')"
-            >
-                {{ t('common.close') }}
-            </button>
-        </div>
+
     </div>
   </div>
 </template>
