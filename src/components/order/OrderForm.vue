@@ -94,17 +94,31 @@
           </div>
         </div>
 
-        <!-- 规格尺寸 -->
-        <div>
-          <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
-            {{ t('order.form.size') }}
-          </label>
-          <input
-            v-model="form.size"
-            type="text"
-            :placeholder="t('order.form.sizePlaceholder')"
-            class="input h-11"
-          />
+        <!-- 规格尺寸 & 数量 -->
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+              {{ t('order.form.size') }}
+            </label>
+            <input
+              v-model="form.size"
+              type="text"
+              :placeholder="t('order.form.sizePlaceholder')"
+              class="input h-11"
+            />
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+              {{ t('order.form.quantity') }} <span class="text-[var(--color-danger-text)]">*</span>
+            </label>
+            <input
+              v-model.number="form.quantity"
+              type="number"
+              min="1"
+              required
+              class="input h-11"
+            />
+          </div>
         </div>
 
         <!-- 颜色材质 -->

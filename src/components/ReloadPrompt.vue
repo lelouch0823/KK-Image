@@ -45,7 +45,7 @@
         <div class="mt-3 flex gap-3">
           <button
             v-if="needRefresh"
-            class="bg-primary rounded-md px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-hover dark:text-gray-900"
+            class="bg-primary rounded-md px-3 py-1.5 text-xs font-medium text-[var(--text-inverse)] transition-colors hover:bg-primary-hover"
             @click="updateServiceWorker()"
           >
             {{ t('pwa.reload') }}

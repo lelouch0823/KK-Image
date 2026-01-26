@@ -130,6 +130,7 @@
             :order-no="order.orderNo"
             :product-name="currentData.name"
             :status="order.status"
+            :quantity="order.quantity || 1"
           />
 
           <!-- 时间轴 (PC端窄栏显示，移动端通用) -->

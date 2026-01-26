@@ -170,10 +170,10 @@
               <button
                 :disabled="!canConfirm"
                 :class="[
-                  'flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all active:scale-95',
+                  'flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--text-inverse)] shadow-lg transition-all active:scale-95',
                   isDangerousStatus
                     ? 'bg-[var(--color-danger)] shadow-[var(--color-danger)]/20 hover:bg-[var(--color-danger)]/90'
-                    : 'bg-primary shadow-primary/20 hover:bg-primary-hover',
+                    : 'bg-[var(--color-primary)] shadow-[var(--color-primary)]/20 hover:opacity-90',
                   !canConfirm ? 'cursor-not-allowed opacity-70' : '',
                 ]"
                 @click="handleConfirm"

@@ -63,7 +63,7 @@
         <!-- 封面标记 -->
         <div
           v-if="coverFileId === file.id"
-          class="bg-primary absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] text-white shadow-sm"
+          class="bg-primary absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] text-[var(--text-inverse)] shadow-sm"
         >
           {{ t('spaceManager.cover') }}
         </div>

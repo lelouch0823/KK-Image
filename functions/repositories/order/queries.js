@@ -19,7 +19,7 @@ export async function findById(db, id) {
     const order = await db
         .prepare(
             `
-      SELECT o.*, o.product_id, f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
+      SELECT o.*, o.product_id, o.quantity, f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
              c.name as customer_name, c.company as customer_company, c.phone as customer_phone
       FROM orders o
       LEFT JOIN files f ON o.main_image_id = f.id
@@ -44,7 +44,7 @@ export async function findByIdAndSalesperson(db, id, salespersonId) {
     const order = await db
         .prepare(
             `
-      SELECT o.*, o.product_id, f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
+      SELECT o.*, o.product_id, o.quantity, f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
              c.name as customer_name, c.company as customer_company, c.phone as customer_phone
       FROM orders o
       LEFT JOIN files f ON o.main_image_id = f.id
@@ -170,7 +170,7 @@ export async function listForAdmin(
         .prepare(
             `
       SELECT 
-          o.id, o.order_no, o.salesperson_id, o.current_data, o.status, o.product_id,
+          o.id, o.order_no, o.salesperson_id, o.current_data, o.status, o.product_id, o.quantity,
           o.unread_by_admin as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
           s.name as salesperson_name, s.store as salesperson_store,

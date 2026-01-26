@@ -679,6 +679,8 @@ export default {
       seriesPlaceholder: '如：Air Force',
       sku: '款号',
       skuPlaceholder: '如：AF1-001',
+      quantity: '预定数量',
+      quantityPlaceholder: '请输入数量',
       recentInputs: '最近使用',
     },
 
@@ -733,6 +735,7 @@ export default {
       editOrder: '编辑订单',
       orderStatus: '订单状态',
       changeStatus: '变更状态',
+      currentStatus: '当前状态',
       editReason: '编辑理由',
       editReasonPlaceholder: '请填写修改原因（必填）',
       editReasonRequired: '修改信息时必须填写理由',

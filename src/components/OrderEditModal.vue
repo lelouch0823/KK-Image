@@ -186,6 +186,7 @@ const form = reactive({
   size: '',
   color: '',
   material: '',
+  quantity: 1,
   remark: '',
   deadline: '',
 });
@@ -258,6 +259,7 @@ const initialValues = ref({
   size: '',
   color: '',
   material: '',
+  quantity: 1,
   remark: '',
   deadline: '',
   fileIds: '',
@@ -283,6 +285,7 @@ watch(
       form.size = current.size || '';
       form.color = current.color || '';
       form.material = current.material || '';
+      form.quantity = current.quantity || 1;
       form.remark = current.remark || '';
       form.deadline = current.deadline || '';
 
@@ -312,6 +315,7 @@ watch(
         size: current.size || '',
         color: current.color || '',
         material: current.material || '',
+        quantity: current.quantity || 1,
         remark: current.remark || '',
         deadline: current.deadline || '',
         fileIds: (newOrder.files || []).map((f) => f.id).sort().join(','),
@@ -347,6 +351,7 @@ const hasChanges = computed(() => {
     form.size !== init.size ||
     form.color !== init.color ||
     form.material !== init.material ||
+    form.quantity !== init.quantity ||
     form.remark !== init.remark ||
     form.deadline !== init.deadline;
 
@@ -424,6 +429,7 @@ const handleSubmit = async () => {
   if (form.size !== init.size) updates.size = form.size;
   if (form.color !== init.color) updates.color = form.color;
   if (form.material !== init.material) updates.material = form.material;
+  if (form.quantity !== init.quantity) updates.quantity = form.quantity;
   if (form.remark !== init.remark) updates.remark = form.remark;
   if (form.deadline !== init.deadline) updates.deadline = form.deadline;
 

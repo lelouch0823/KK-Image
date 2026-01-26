@@ -8,7 +8,7 @@
         <div
           class="from-primary mx-auto mb-4 flex size-16 transform items-center justify-center rounded-2xl bg-gradient-to-br to-[var(--color-gray-700)] shadow-lg transition-transform hover:scale-105"
         >
-          <svg class="size-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="size-8 text-[var(--text-inverse)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -83,7 +83,7 @@
               >
                 <svg
                   v-if="rememberMe"
-                  class="size-3 text-white"
+                  class="size-3 text-[var(--text-inverse)]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -104,7 +104,7 @@
           <button
             type="submit"
             :disabled="!password || isSubmitting"
-            class="bg-primary flex h-12 w-full items-center justify-center gap-2 rounded-xl font-medium text-white transition-all hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+            class="bg-primary flex h-12 w-full items-center justify-center gap-2 rounded-xl font-medium text-[var(--text-inverse)] transition-all hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg
               v-if="isSubmitting"

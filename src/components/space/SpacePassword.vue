@@ -32,7 +32,7 @@
           />
           <button
             type="submit"
-            class="bg-primary h-12 w-full rounded-xl font-medium text-white transition-colors hover:bg-gray-800"
+            class="bg-primary h-12 w-full rounded-xl font-medium text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)]"
           >
             {{ t('gallery.confirm') }}
           </button>

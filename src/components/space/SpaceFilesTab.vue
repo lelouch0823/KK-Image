@@ -7,7 +7,7 @@
       <div class="flex items-center gap-3">
         <Tooltip :content="t('spaceManager.addFile')">
           <button
-            class="bg-primary flex size-8 items-center justify-center rounded-lg text-sm font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)]"
+            class="bg-primary flex size-8 items-center justify-center rounded-lg text-sm font-medium text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)]"
             @click="$emit('addFiles')"
           >
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,7 +60,7 @@
           <!-- Cover Badge -->
           <div
             v-if="coverFileId === file.id"
-            class="bg-primary absolute top-1.5 left-1.5 z-10 flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium text-white shadow-sm"
+            class="bg-primary absolute top-1.5 left-1.5 z-10 flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-inverse)] shadow-sm"
           >
             <svg class="size-3" fill="currentColor" viewBox="0 0 20 20">
               <path
@@ -89,7 +89,7 @@
             <!-- Set as Cover Button -->
             <button
               v-if="file.mimeType?.startsWith('image/') && coverFileId !== file.id"
-              class="bg-primary rounded-full p-1.5 text-white transition-colors hover:bg-[var(--color-primary-hover)]"
+              class="bg-primary rounded-full p-1.5 text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)]"
               :title="t('spaceManager.setCover')"
               @click.stop="$emit('setCover', file.id)"
             >
@@ -103,7 +103,7 @@
             </button>
             <!-- Remove Button -->
             <button
-              class="rounded-full bg-[var(--color-danger)] p-1.5 text-white transition-colors hover:bg-red-600"
+              class="rounded-full bg-[var(--color-danger)] p-1.5 text-[var(--text-inverse)] transition-colors hover:bg-red-600"
               @click.stop="$emit('remove', file.id)"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

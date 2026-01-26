@@ -30,6 +30,7 @@ export function useOrderForm(options = {}) {
     color: '',
     material: '',
     size: '',
+    quantity: 1,
     remark: '',
     deadline: '',
   });
@@ -129,6 +130,7 @@ export function useOrderForm(options = {}) {
       series: form.series,
       color: form.color,
       material: form.material,
+      quantity: form.quantity,
     });
   };
 

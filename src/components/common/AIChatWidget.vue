@@ -13,7 +13,7 @@
         class="border-border pointer-events-auto absolute right-0 bottom-0 flex h-[600px] w-[420px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border bg-[var(--bg-card)] shadow-2xl backdrop-blur-xl"
       >
         <!-- Header -->
-        <div class="bg-primary flex items-center justify-between p-4 text-white dark:text-surface">
+        <div class="bg-primary flex items-center justify-between p-4 text-[var(--text-inverse)]">
           <div class="flex items-center gap-3">
             <div class="flex size-8 items-center justify-center rounded-lg bg-white/20">
               <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

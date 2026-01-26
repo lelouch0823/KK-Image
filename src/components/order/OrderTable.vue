@@ -13,6 +13,7 @@
           />
         </th>
         <th class="px-4 py-3 text-center">{{ t('order.form.productName') }}</th>
+        <th class="px-4 py-3 text-center">{{ t('order.form.quantity') }}</th>
         <th class="px-4 py-3 text-center">{{ t('salesperson.name') }}</th>
         <th class="px-4 py-3 text-center">{{ t('order.orderNo') }}</th>
         <th class="px-4 py-3 text-center">{{ t('order.status') }}</th>
@@ -27,7 +28,7 @@
           <td v-if="selectable" class="p-4">
             <div class="size-4 rounded bg-[var(--bg-muted)]"></div>
           </td>
-          <td v-for="j in 6" :key="j" class="p-4">
+          <td v-for="j in 7" :key="j" class="p-4">
             <div class="h-4 w-2/3 rounded bg-[var(--bg-muted)]"></div>
           </td>
         </tr>
@@ -93,6 +94,9 @@
                 </div>
               </div>
             </div>
+          </td>
+          <td class="px-4 py-3 text-center font-mono font-medium text-[var(--color-primary)]">
+            x {{ order.quantity || 1 }}
           </td>
           <td class="px-4 py-3">
             <div class="font-medium text-[var(--text-main)]">
@@ -166,7 +170,7 @@
 
       <!-- 空状态 -->
       <tr v-else>
-        <td :colspan="selectable ? 7 : 6" class="px-4 py-16 text-center">
+        <td :colspan="selectable ? 8 : 7" class="px-4 py-16 text-center">
           <EmptyState icon="file" :title="t('order.portal.emptyOrders')" />
         </td>
       </tr>

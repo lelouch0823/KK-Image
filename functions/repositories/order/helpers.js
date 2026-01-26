@@ -39,6 +39,7 @@ export function mapOrderListItem(order) {
         createdAt: order.created_at,
         updatedAt: order.updated_at,
         productId: order.product_id,
+        quantity: order.quantity || 1,
     };
 }
 
@@ -72,6 +73,7 @@ export function mapOrderDetail(order) {
         mainImage: order.main_image_key ? `/file/${order.main_image_key}` : null,
         mainImageBlurhash: order.main_image_blurhash,
         mainImageId: order.main_image_id,
+        quantity: order.quantity || 1,
         createdAt: order.created_at,
         updatedAt: order.updated_at,
     };

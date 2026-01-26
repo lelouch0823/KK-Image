@@ -83,7 +83,7 @@
             >
               <svg
                 v-if="selectedFolderIds.includes(folder.id)"
-                class="size-3.5 text-white"
+                class="size-3.5 text-[var(--text-inverse)]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -143,7 +143,7 @@
             v-if="selectedIds.includes(file.id)"
             class="bg-primary animate-in zoom-in absolute top-2 right-2 flex size-6 items-center justify-center rounded-full shadow-md duration-200"
           >
-            <svg class="size-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="size-3.5 text-[var(--text-inverse)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -183,7 +183,7 @@
       </button>
       <button
         :disabled="selectedIds.length === 0 && selectedFolderIds.length === 0"
-        class="bg-primary shadow-primary/20 rounded-lg px-6 py-2 text-sm font-medium text-white shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+        class="bg-primary shadow-primary/20 rounded-lg px-6 py-2 text-sm font-medium text-[var(--text-inverse)] shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         @click="confirmSelect"
       >
         {{ t('fileSelector.add') }}

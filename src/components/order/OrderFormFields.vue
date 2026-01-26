@@ -69,6 +69,20 @@
         <input :value="modelValue.size" class="input" @input="updateField('size', $event.target.value)" />
       </div>
 
+      <!-- 数量 -->
+      <div>
+        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
+          t('order.form.quantity')
+        }}</label>
+        <input 
+          :value="modelValue.quantity" 
+          type="number" 
+          min="1" 
+          class="input" 
+          @input="updateField('quantity', parseInt($event.target.value) || 1)" 
+        />
+      </div>
+
       <!-- 颜色 -->
       <div>
         <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
