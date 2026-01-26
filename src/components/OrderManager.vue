@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex flex-col rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm lg:h-full"
+    class="flex flex-col rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] backdrop-blur-sm transition-all duration-500 lg:h-full"
   >
     <!-- 头部操作栏 -->
     <OrderFilters
@@ -16,13 +16,12 @@
     />
 
     <!-- 订单统计仪表盘 (Desktop only inline) -->
-    <div class="hidden px-4 pt-4 lg:block">
-      <OrderDashboard @filter="handleDashboardFilter" />
-    </div>
+
 
     <!-- Mobile Stats Modal -->
+    <!-- Stats Modal -->
     <Modal v-model="showStatsModal" :title="t('dashboard.stats')">
-      <OrderDashboard is-popup @filter="(type) => { handleDashboardFilter(type); showStatsModal = false; }" />
+      <OrderDashboard @filter="(type) => { handleDashboardFilter(type); showStatsModal = false; }" />
     </Modal>
 
     <!-- 订单列表 -->

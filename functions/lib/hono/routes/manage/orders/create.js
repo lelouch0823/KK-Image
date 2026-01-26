@@ -44,6 +44,7 @@ app.post('/', async (c) => {
         },
         // Admin can set initial status
         status: body.status || 'pending',
+        productId: body.productId || null,
         mainImageId: body.fileIds?.[0] || null,
         fileIds: body.fileIds || [],
         timeline: {

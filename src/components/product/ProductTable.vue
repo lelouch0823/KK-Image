@@ -2,14 +2,14 @@
   <table class="w-full border-collapse">
     <thead class="sticky top-0 z-10 border-b border-slate-200 bg-slate-50/90 backdrop-blur-md dark:border-slate-700 dark:bg-slate-900/90">
       <tr>
-        <th class="rounded-tl-xl px-6 py-4 pl-8 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase">{{ t('product.table.header.product') }}</th>
-        <th class="hidden px-6 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase md:table-cell">SKU</th>
-        <th class="hidden px-6 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase lg:table-cell">{{ t('product.table.header.category') }}</th>
-        <th class="px-6 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase">{{ t('product.table.header.price') }}</th>
-        <th class="px-6 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase">{{ t('product.table.header.stock') }}</th>
-        <th class="px-6 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase">{{ t('product.table.header.status') }}</th>
-        <th class="hidden px-6 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase xl:table-cell">{{ t('common.updated') }}</th>
-        <th class="rounded-tr-xl p-4  pr-8 text-right text-xs font-semibold tracking-wider text-slate-500 uppercase">{{ t('product.table.header.actions') }}</th>
+        <th class="rounded-tl-xl px-6 py-4 text-center text-xs font-semibold tracking-wider text-slate-500 uppercase">{{ t('product.table.header.product') }}</th>
+        <th class="hidden px-6 py-4 text-center text-xs font-semibold tracking-wider text-slate-500 uppercase md:table-cell">SKU</th>
+        <th class="hidden px-6 py-4 text-center text-xs font-semibold tracking-wider text-slate-500 uppercase lg:table-cell">{{ t('product.table.header.category') }}</th>
+        <th class="px-6 py-4 text-center text-xs font-semibold tracking-wider text-slate-500 uppercase">{{ t('product.table.header.price') }}</th>
+        <th class="px-6 py-4 text-center text-xs font-semibold tracking-wider text-slate-500 uppercase">{{ t('product.table.header.stock') }}</th>
+        <th class="px-6 py-4 text-center text-xs font-semibold tracking-wider text-slate-500 uppercase">{{ t('product.table.header.status') }}</th>
+        <th class="hidden px-6 py-4 text-center text-xs font-semibold tracking-wider text-slate-500 uppercase xl:table-cell">{{ t('common.updated') }}</th>
+        <th class="rounded-tr-xl p-4 pr-8 text-center text-xs font-semibold tracking-wider text-slate-500 uppercase">{{ t('product.table.header.actions') }}</th>
       </tr>
     </thead>
     <tbody class="divide-border-subtle bg-surface/50 divide-y dark:divide-border-subtle dark:bg-slate-800/50">
@@ -20,8 +20,8 @@
         @click="$emit('view', product)"
       >
         <!-- Product Info -->
-        <td class="max-w-[300px] px-6 py-4 pl-8">
-            <div class="flex items-center gap-4">
+        <td class="max-w-[300px] px-6 py-4">
+            <div class="flex items-center justify-center gap-4">
                 <div class="relative size-12 flex-shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 transition-all group-hover:shadow-md dark:border-slate-600 dark:bg-slate-700">
                     <AppImage 
                         v-if="getMainImage(product)" 
@@ -42,7 +42,7 @@
                         <svg class="size-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     </div>
                 </div>
-                <div class="min-w-0 flex-1">
+                <div class="min-w-0 flex-1 text-left">
                     <div class="truncate font-[Outfit] font-medium text-slate-900 dark:text-slate-100" :title="product.name">{{ product.name }}</div>
                     <div class="mt-0.5 flex flex-wrap gap-2 text-xs text-slate-500">
                         <span v-if="product.brand" class="rounded-md bg-slate-100 px-1.5 py-0.5 text-slate-600 dark:bg-slate-700 dark:text-slate-300">{{ product.brand }}</span>
@@ -55,7 +55,7 @@
 
         <!-- SKU (Tablet+) -->
         <td class="hidden px-6 py-4 md:table-cell">
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col items-center gap-1">
                 <div class="w-fit rounded bg-slate-100 px-2 py-0.5 font-mono text-sm text-slate-700 dark:bg-slate-900 dark:text-slate-300">
                     {{ product.sku }}
                 </div>
@@ -64,7 +64,7 @@
         </td>
 
         <!-- Category (Large screens+) -->
-        <td class="hidden px-6 py-4 lg:table-cell">
+        <td class="hidden px-6 py-4 text-center lg:table-cell">
              <span v-if="product.category" class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
                 {{ product.category }}
              </span>
@@ -72,7 +72,7 @@
         </td>
 
         <!-- Price -->
-        <td class="px-6 py-4 whitespace-nowrap">
+        <td class="px-6 py-4 text-center whitespace-nowrap">
             <div class="font-medium text-slate-900 dark:text-slate-100">¥{{ product.price }}</div>
             <div v-if="product.cost_price" class="text-xs text-slate-400 opacity-0 transition-opacity group-hover:opacity-100">
                 CPP: ¥{{ product.cost_price }}
@@ -81,7 +81,7 @@
 
         <!-- Stock (Optimized Compact) -->
         <td class="px-6 py-4 whitespace-nowrap">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center justify-center gap-2">
                 <div :class="getStockColor(product)" class="text-sm font-semibold">
                     {{ product.stock_quantity || 0 }}
                 </div>
@@ -96,7 +96,7 @@ v-if="(product.stock_quantity || 0) <= (product.alert_threshold || 10)"
         </td>
 
         <!-- Status -->
-        <td class="px-6 py-4 whitespace-nowrap">
+        <td class="px-6 py-4 text-center whitespace-nowrap">
             <span 
                 class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize"
                 :class="getStatusClass(product.status)"
@@ -107,13 +107,13 @@ v-if="(product.stock_quantity || 0) <= (product.alert_threshold || 10)"
         </td>
 
         <!-- Updated At (XL screens+) -->
-        <td class="hidden px-6 py-4 text-xs whitespace-nowrap text-slate-500 xl:table-cell">
+        <td class="hidden px-6 py-4 text-center text-xs whitespace-nowrap text-slate-500 xl:table-cell">
             {{ formatRelativeTime(product.updated_at, t) }}
         </td>
 
         <!-- Actions -->
-        <td class="p-4  pr-8 text-right whitespace-nowrap">
-            <div class="flex items-center justify-end gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+        <td class="p-4 pr-8 text-center whitespace-nowrap">
+            <div class="flex items-center justify-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                 <button 
                   class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/30"
                   :title="t('common.edit') || 'Edit'"

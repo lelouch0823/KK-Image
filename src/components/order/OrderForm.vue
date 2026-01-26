@@ -32,6 +32,7 @@
             :label="t('order.form.recentInputs')"
             :filter-mode="false"
             input-class="input h-11"
+            :disabled="isDisabled('name')"
           />
         </div>
 
@@ -48,6 +49,7 @@
               :label="t('order.form.recentInputs')"
               :filter-mode="false"
               input-class="input h-11"
+              :disabled="isDisabled('brand')"
             />
           </div>
           <div>
@@ -61,6 +63,7 @@
               :label="t('order.form.recentInputs')"
               :filter-mode="false"
               input-class="input h-11"
+              :disabled="isDisabled('series')"
             />
           </div>
         </div>
@@ -86,6 +89,7 @@
               type="text"
               :placeholder="t('order.form.skuPlaceholder')"
               class="input h-11"
+              :disabled="isDisabled('sku')"
             />
           </div>
         </div>
@@ -232,6 +236,7 @@ const props = defineProps({
   subtitle: { type: String, default: '' },
   salespersons: { type: Array, default: () => [] },
   statuses: { type: Array, default: () => [] },
+  disabledFields: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['submit', 'cancel']);
@@ -244,6 +249,9 @@ const salespersonOptions = computed(() =>
     value: sp.id,
   }))
 );
+
+// Helper to check if field is disabled
+const isDisabled = (field) => props.disabledFields.includes(field);
 
 // Admin fields
 const adminForm = reactive({

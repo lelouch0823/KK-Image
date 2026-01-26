@@ -1,5 +1,5 @@
 <template>
-  <table class="relative w-full text-left text-sm">
+  <table class="relative w-full text-center text-sm">
     <thead class="sticky top-0 z-10 bg-[var(--bg-card)]/90 font-medium text-[var(--text-secondary)] shadow-sm backdrop-blur-sm">
       <tr>
         <!-- 批量选择 checkbox -->
@@ -12,12 +12,12 @@
             @change="toggleSelectAll"
           />
         </th>
-        <th class="px-4 py-3">{{ t('order.form.productName') }}</th>
-        <th class="px-4 py-3">{{ t('salesperson.name') }}</th>
-        <th class="px-4 py-3">{{ t('order.orderNo') }}</th>
-        <th class="px-4 py-3">{{ t('order.status') }}</th>
-        <th class="px-4 py-3">{{ t('order.createdAt') }}</th>
-        <th class="px-4 py-3 text-right">{{ t('common.actions') }}</th>
+        <th class="px-4 py-3 text-center">{{ t('order.form.productName') }}</th>
+        <th class="px-4 py-3 text-center">{{ t('salesperson.name') }}</th>
+        <th class="px-4 py-3 text-center">{{ t('order.orderNo') }}</th>
+        <th class="px-4 py-3 text-center">{{ t('order.status') }}</th>
+        <th class="px-4 py-3 text-center">{{ t('order.createdAt') }}</th>
+        <th class="px-4 py-3 text-center">{{ t('common.actions') }}</th>
       </tr>
     </thead>
     <tbody class="divide-y divide-[var(--border-color)]">
@@ -52,7 +52,7 @@
             />
           </td>
           <td class="px-4 py-3">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center justify-center gap-3">
               <!-- 缩略图 -->
               <div
                 class="size-10 flex-shrink-0 overflow-hidden rounded border border-[var(--border-color)] bg-[var(--bg-muted)]"
@@ -104,9 +104,9 @@
           <td class="px-4 py-3" @click.stop>
             <slot name="status" :order="order"></slot>
           </td>
-          <td class="text-secondary px-4 py-3 text-xs">{{ formatTime(order.createdAt) }}</td>
-          <td class="px-4 py-3 text-right" @click.stop>
-            <div class="flex items-center justify-end gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
+          <td class="text-secondary px-4 py-3 text-center text-xs">{{ formatTime(order.createdAt) }}</td>
+          <td class="px-4 py-3 text-center" @click.stop>
+            <div class="flex items-center justify-center gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
               <!-- 查看 -->
               <button
                 class="text-secondary rounded-lg p-1.5 transition-colors hover:text-primary hover:bg-[var(--bg-hover)]"

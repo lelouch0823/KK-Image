@@ -20,9 +20,21 @@
           {{ t('order.manage.create') }}
         </button>
 
+        <!-- Stats Button -->
+        <button
+          class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--color-primary)] transition-all hover:bg-[var(--bg-card-hover)] active:scale-95"
+          :title="t('dashboard.stats')"
+          @click="$emit('show-stats')"
+        >
+          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        </button>
+
         <button
           :disabled="exporting"
-          class="flex h-9 items-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-3 text-sm font-medium text-[var(--text-main)] transition-all hover:bg-[var(--bg-card-hover)] active:scale-95 disabled:opacity-50"
+          class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-main)] transition-all hover:bg-[var(--bg-card-hover)] active:scale-95 disabled:opacity-50"
+          :title="t('order.manage.export')"
           @click="$emit('export')"
         >
           <svg v-if="exporting" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -30,9 +42,8 @@
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           <svg v-else class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          {{ exporting ? t('order.manage.exporting') : t('order.manage.export') }}
         </button>
       </div>
 
@@ -80,7 +91,7 @@
     <!-- Filters Row -->
     <div class="mt-2.5 flex flex-wrap items-center gap-2 sm:mt-3">
       <!-- 销售筛选 -->
-      <div class="max-w-[100px] min-w-[72px] sm:w-36">
+      <div class="w-24 sm:w-36">
         <Select
           :model-value="filters.salesperson"
           :options="salespersonOptions"
@@ -91,7 +102,7 @@
       </div>
 
       <!-- 状态筛选 -->
-      <div class="max-w-[100px] min-w-[72px] sm:w-32">
+      <div class="w-24 sm:w-32">
         <Select
           :model-value="filters.status"
           :options="statusOptions"

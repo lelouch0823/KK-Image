@@ -1,230 +1,106 @@
 <template>
-  <div :class="{ 'mb-4 lg:mb-6': !isPopup }">
-    <!-- 移动端: 可折叠的横向滚动卡片条 (仅在非弹窗模式且非桌面端显示) -->
-    <div v-if="!isPopup" class="lg:hidden">
-      <!-- 折叠控制按钮 -->
-      <button
-        class="mb-2 flex w-full items-center justify-between rounded-lg bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--bg-card-hover)]"
-        @click="collapsed = !collapsed"
-      >
-        <span class="flex items-center gap-2">
-          <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          {{ t('dashboard.stats') }}
-        </span>
-        <svg
-          class="size-4 transition-transform duration-200"
-          :class="{ 'rotate-180': !collapsed }"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      <!-- 横向滚动卡片容器 -->
-      <Transition name="collapse">
-        <div v-show="!collapsed" class="overflow-hidden">
-          <div class="scrollbar-none -mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
-            <!-- 移动端滚动内容 (保留原有逻辑作为回退) -->
-            <!-- ... content omitted for brevity, logic identical to below but different wrapper ... -->
-            <!-- (Actually, let's just reuse the generic structure if possible, but distinct layouts are cleaner for now) -->
-             <!-- 今日订单 -->
-            <div
-              class="flex min-w-[140px] shrink-0 cursor-pointer items-center gap-3 rounded-xl border border-[var(--color-card-blue-border)]/60 bg-gradient-to-br from-[var(--color-card-blue-bg)] to-[var(--bg-card)] px-3 py-2.5 shadow-sm transition-all duration-200 active:scale-95"
-              @click="$emit('filter', 'today')"
-            >
-              <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-card-blue-accent)]/20">
-                <svg class="size-4 text-[var(--color-card-blue-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <div class="text-[10px] font-medium text-[var(--color-card-blue-text)]/70">{{ t('dashboard.todayOrders') }}</div>
-                <div class="text-lg leading-tight font-bold text-[var(--color-card-blue-accent)] tabular-nums">
-                  <span v-if="loading" class="inline-block h-5 w-6 animate-pulse rounded bg-[var(--color-card-blue-border)]"></span>
-                  <span v-else>{{ stats.todayCount }}</span>
-                </div>
-              </div>
-            </div>
-             <!-- 待处理 -->
-            <div
-              class="flex min-w-[140px] shrink-0 cursor-pointer items-center gap-3 rounded-xl border border-[var(--color-card-orange-border)]/60 bg-gradient-to-br from-[var(--color-card-orange-bg)] to-[var(--bg-card)] px-3 py-2.5 shadow-sm transition-all duration-200 active:scale-95"
-              @click="$emit('filter', 'pending')"
-            >
-              <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-card-orange-accent)]/20">
-                <svg class="size-4 text-[var(--color-card-orange-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <div class="text-[10px] font-medium text-[var(--color-card-orange-text)]/70">{{ t('dashboard.pendingOrders') }}</div>
-                <div class="text-lg leading-tight font-bold text-[var(--color-card-orange-accent)] tabular-nums">
-                  <span v-if="loading" class="inline-block h-5 w-6 animate-pulse rounded bg-[var(--color-card-orange-border)]"></span>
-                  <span v-else>{{ stats.pendingCount }}</span>
-                </div>
-              </div>
-            </div>
-             <!-- 本周订单 -->
-            <div
-              class="flex min-w-[140px] shrink-0 items-center gap-3 rounded-xl border border-[var(--color-card-green-border)]/60 bg-gradient-to-br from-[var(--color-card-green-bg)] to-[var(--bg-card)] px-3 py-2.5 shadow-sm transition-all duration-200"
-            >
-              <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-card-green-accent)]/20">
-                <svg class="size-4 text-[var(--color-card-green-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <div>
-                <div class="text-[10px] font-medium text-[var(--color-card-green-text)]/70">{{ t('order.dashboard.weekOrders') }}</div>
-                <div class="text-lg leading-tight font-bold text-[var(--color-card-green-accent)] tabular-nums">
-                  <span v-if="loading" class="inline-block h-5 w-6 animate-pulse rounded bg-[var(--color-card-green-border)]"></span>
-                  <span v-else>{{ stats.weekCount }}</span>
-                </div>
-              </div>
-            </div>
-             <!-- 状态分布 -->
-            <div
-              class="flex min-w-[160px] shrink-0 cursor-pointer items-center gap-3 rounded-xl border border-[var(--color-card-purple-border)]/60 bg-gradient-to-br from-[var(--color-card-purple-bg)] to-[var(--bg-card)] px-3 py-2.5 shadow-sm transition-all duration-200 active:scale-95"
-              @click="showChartModal = true"
-            >
-              <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-card-purple-accent)]/20">
-                <svg class="size-4 text-[var(--color-card-purple-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                </svg>
-              </div>
-              <div>
-                <div class="text-[10px] font-medium text-[var(--color-card-purple-text)]/70">{{ t('order.dashboard.statusDistribution') }}</div>
-                 <div v-if="!loading" class="flex items-center gap-1.5 pt-0.5">
-                  <span class="inline-flex items-center gap-1 text-[10px] font-medium">
-                    <span class="size-1.5 rounded-full bg-[var(--color-success)]"></span>
-                    {{ stats.statusDistribution?.confirmed || 0 }}
-                  </span>
-                  <span class="inline-flex items-center gap-1 text-[10px] font-medium">
-                    <span class="size-1.5 rounded-full bg-[var(--color-warning)]"></span>
-                    {{ stats.statusDistribution?.pending || 0 }}
-                  </span>
-                  <span class="inline-flex items-center gap-1 text-[10px] font-medium">
-                    <span class="size-1.5 rounded-full bg-[var(--color-danger)]"></span>
-                    {{ stats.statusDistribution?.rejected || 0 }}
-                  </span>
-                </div>
-                <div v-else class="h-4 w-16 animate-pulse rounded bg-[var(--color-card-purple-border)]"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </div>
-
-    <!-- 弹窗/桌面端: 网格布局 -->
-    <div
-      class="gap-4"
-      :class="[
-        isPopup ? 'grid grid-cols-2' : 'hidden lg:grid lg:grid-cols-4'
-      ]"
-    >
-      <!-- 今日订单 -->
+  <div>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <!-- 今日订单 (Indigo) -->
       <div
-        class="group relative cursor-pointer overflow-hidden rounded-2xl border border-[var(--color-card-blue-border)]/60 bg-gradient-to-br from-[var(--color-card-blue-bg)] to-[var(--bg-card)] p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:scale-95 sm:p-5"
+        class="group relative cursor-pointer overflow-hidden rounded-2xl border border-white/20 bg-white/60 p-4 shadow-lg backdrop-blur-xl transition-all duration-300 dark:border-white/5 dark:bg-slate-800/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10 sm:p-5"
         @click="$emit('filter', 'today')"
       >
-        <div class="absolute -top-6 -right-6 size-20 rounded-full bg-[var(--color-card-blue-accent)]/10 blur-xl transition-transform duration-300 group-hover:scale-125"></div>
-        <div class="relative flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div class="relative z-10 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <div class="text-xs font-medium text-[var(--color-card-blue-text)]/80 sm:text-sm">{{ t('dashboard.todayOrders') }}</div>
-            <div class="mt-1 text-2xl font-bold text-[var(--color-card-blue-accent)] tabular-nums sm:mt-2 sm:text-3xl">
-              <span v-if="loading" class="inline-block h-8 w-10 animate-pulse rounded-lg bg-[var(--color-card-blue-border)]"></span>
+            <div class="text-xs font-medium text-slate-500 dark:text-slate-400 sm:text-sm">{{ t('dashboard.todayOrders') }}</div>
+            <div class="mt-1 font-[Outfit] text-2xl font-bold tracking-tight text-slate-900 sm:mt-2 sm:text-3xl dark:text-white">
+              <span v-if="loading" class="inline-block h-8 w-10 animate-pulse rounded-lg bg-indigo-100 dark:bg-indigo-900/30"></span>
               <span v-else>{{ stats.todayCount }}</span>
             </div>
           </div>
-          <div class="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--color-card-blue-accent)]/20 to-[var(--color-card-blue-accent)]/5 ring-1 ring-[var(--color-card-blue-accent)]/10 backdrop-blur-sm sm:size-12">
-            <svg class="size-5 text-[var(--color-card-blue-accent)] sm:size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="flex size-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600 transition-colors group-hover:bg-indigo-500 group-hover:text-white dark:bg-indigo-500/20 dark:text-indigo-400 dark:group-hover:bg-indigo-500/80 dark:group-hover:text-white sm:size-12">
+            <svg class="size-5 transition-transform duration-300 group-hover:scale-110 sm:size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
         </div>
+        <!-- Blob -->
+        <div class="absolute -right-6 -top-6 -z-0 size-32 rounded-full bg-indigo-500/10 blur-3xl transition-opacity duration-300 group-hover:opacity-100 dark:bg-indigo-500/5 opacity-50"></div>
       </div>
 
-      <!-- 待处理 -->
+      <!-- 待处理 (Amber) -->
       <div
-        class="group relative cursor-pointer overflow-hidden rounded-2xl border border-[var(--color-card-orange-border)]/60 bg-gradient-to-br from-[var(--color-card-orange-bg)] to-[var(--bg-card)] p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:scale-95 sm:p-5"
+        class="group relative cursor-pointer overflow-hidden rounded-2xl border border-white/20 bg-white/60 p-4 shadow-lg backdrop-blur-xl transition-all duration-300 dark:border-white/5 dark:bg-slate-800/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/10 sm:p-5"
         @click="$emit('filter', 'pending')"
       >
-        <div class="absolute -top-6 -right-6 size-20 rounded-full bg-[var(--color-card-orange-accent)]/10 blur-xl transition-transform duration-300 group-hover:scale-125"></div>
-        <div class="relative flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div class="relative z-10 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <div class="text-xs font-medium text-[var(--color-card-orange-text)]/80 sm:text-sm">{{ t('dashboard.pendingOrders') }}</div>
-            <div class="mt-1 text-2xl font-bold text-[var(--color-card-orange-accent)] tabular-nums sm:mt-2 sm:text-3xl">
-              <span v-if="loading" class="inline-block h-8 w-10 animate-pulse rounded-lg bg-[var(--color-card-orange-border)]"></span>
+            <div class="text-xs font-medium text-slate-500 dark:text-slate-400 sm:text-sm">{{ t('dashboard.pendingOrders') }}</div>
+            <div class="mt-1 font-[Outfit] text-2xl font-bold tracking-tight text-slate-900 sm:mt-2 sm:text-3xl dark:text-white">
+              <span v-if="loading" class="inline-block h-8 w-10 animate-pulse rounded-lg bg-amber-100 dark:bg-amber-900/30"></span>
               <span v-else>{{ stats.pendingCount }}</span>
             </div>
           </div>
-          <div class="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--color-card-orange-accent)]/20 to-[var(--color-card-orange-accent)]/5 ring-1 ring-[var(--color-card-orange-accent)]/10 backdrop-blur-sm sm:size-12">
-            <svg class="size-5 text-[var(--color-card-orange-accent)] sm:size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="flex size-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 transition-colors group-hover:bg-amber-500 group-hover:text-white dark:bg-amber-500/20 dark:text-amber-400 dark:group-hover:bg-amber-500/80 dark:group-hover:text-white sm:size-12">
+            <svg class="size-5 transition-transform duration-300 group-hover:scale-110 sm:size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
         </div>
+        <div class="absolute -right-6 -top-6 -z-0 size-32 rounded-full bg-amber-500/10 blur-3xl transition-opacity duration-300 group-hover:opacity-100 dark:bg-amber-500/5 opacity-50"></div>
       </div>
 
-      <!-- 本周订单 -->
+      <!-- 本周订单 (Emerald) -->
       <div
-        class="group relative overflow-hidden rounded-2xl border border-[var(--color-card-green-border)]/60 bg-gradient-to-br from-[var(--color-card-green-bg)] to-[var(--bg-card)] p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-5"
+        class="group relative overflow-hidden rounded-2xl border border-white/20 bg-white/60 p-4 shadow-lg backdrop-blur-xl transition-all duration-300 dark:border-white/5 dark:bg-slate-800/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10 sm:p-5"
       >
-        <div class="absolute -top-6 -right-6 size-20 rounded-full bg-[var(--color-card-green-accent)]/10 blur-xl transition-transform duration-300 group-hover:scale-125"></div>
-        <div class="relative flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div class="relative z-10 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <div class="text-xs font-medium text-[var(--color-card-green-text)]/80 sm:text-sm">{{ t('order.dashboard.weekOrders') }}</div>
-            <div class="mt-1 text-2xl font-bold text-[var(--color-card-green-accent)] tabular-nums sm:mt-2 sm:text-3xl">
-              <span v-if="loading" class="inline-block h-8 w-10 animate-pulse rounded-lg bg-[var(--color-card-green-border)]"></span>
+            <div class="text-xs font-medium text-slate-500 dark:text-slate-400 sm:text-sm">{{ t('order.dashboard.weekOrders') }}</div>
+            <div class="mt-1 font-[Outfit] text-2xl font-bold tracking-tight text-slate-900 sm:mt-2 sm:text-3xl dark:text-white">
+              <span v-if="loading" class="inline-block h-8 w-10 animate-pulse rounded-lg bg-emerald-100 dark:bg-emerald-900/30"></span>
               <span v-else>{{ stats.weekCount }}</span>
             </div>
           </div>
-          <div class="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--color-card-green-accent)]/20 to-[var(--color-card-green-accent)]/5 ring-1 ring-[var(--color-card-green-accent)]/10 backdrop-blur-sm sm:size-12">
-            <svg class="size-5 text-[var(--color-card-green-accent)] sm:size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="flex size-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 transition-colors group-hover:bg-emerald-500 group-hover:text-white dark:bg-emerald-500/20 dark:text-emerald-400 dark:group-hover:bg-emerald-500/80 dark:group-hover:text-white sm:size-12">
+            <svg class="size-5 transition-transform duration-300 group-hover:scale-110 sm:size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
           </div>
         </div>
+        <div class="absolute -right-6 -top-6 -z-0 size-32 rounded-full bg-emerald-500/10 blur-3xl transition-opacity duration-300 group-hover:opacity-100 dark:bg-emerald-500/5 opacity-50"></div>
       </div>
 
-      <!-- 状态分布 -->
+      <!-- 状态分布 (Purple) -->
       <div
-        class="group relative cursor-pointer overflow-hidden rounded-2xl border border-[var(--color-card-purple-border)]/60 bg-gradient-to-br from-[var(--color-card-purple-bg)] to-[var(--bg-card)] p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:scale-95 sm:p-5"
+        class="group relative cursor-pointer overflow-hidden rounded-2xl border border-white/20 bg-white/60 p-4 shadow-lg backdrop-blur-xl transition-all duration-300 dark:border-white/5 dark:bg-slate-800/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/10 sm:p-5"
         @click="showChartModal = true"
       >
-        <div class="absolute -top-6 -right-6 size-20 rounded-full bg-[var(--color-card-purple-accent)]/10 blur-xl transition-transform duration-300 group-hover:scale-125"></div>
-        <div class="relative flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div class="relative z-10 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <div class="text-xs font-medium text-[var(--color-card-purple-text)]/80 sm:text-sm">{{ t('order.dashboard.statusDistribution') }}</div>
+            <div class="text-xs font-medium text-slate-500 dark:text-slate-400 sm:text-sm">{{ t('order.dashboard.statusDistribution') }}</div>
             <div v-if="!loading" class="mt-2 flex flex-col gap-1 sm:mt-2.5 sm:flex-row sm:items-center sm:gap-2.5">
-              <span class="inline-flex items-center gap-1.5 text-[10px] font-medium sm:text-xs">
-                <span class="size-2 rounded-full bg-[var(--color-success)] ring-2 ring-[var(--color-success)]/20 sm:size-2.5"></span>
+              <span class="inline-flex items-center gap-1.5 text-[10px] font-medium sm:text-xs text-slate-700 dark:text-slate-300">
+                <span class="size-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20 sm:size-2.5"></span>
                 {{ stats.statusDistribution?.confirmed || 0 }}
               </span>
-              <span class="inline-flex items-center gap-1.5 text-[10px] font-medium sm:text-xs">
-                <span class="size-2 rounded-full bg-[var(--color-warning)] ring-2 ring-[var(--color-warning)]/20 sm:size-2.5"></span>
+              <span class="inline-flex items-center gap-1.5 text-[10px] font-medium sm:text-xs text-slate-700 dark:text-slate-300">
+                <span class="size-2 rounded-full bg-amber-500 ring-2 ring-amber-500/20 sm:size-2.5"></span>
                 {{ stats.statusDistribution?.pending || 0 }}
               </span>
-              <span class="inline-flex items-center gap-1.5 text-[10px] font-medium sm:text-xs">
-                <span class="size-2 rounded-full bg-[var(--color-danger)] ring-2 ring-[var(--color-danger)]/20 sm:size-2.5"></span>
+              <span class="inline-flex items-center gap-1.5 text-[10px] font-medium sm:text-xs text-slate-700 dark:text-slate-300">
+                <span class="size-2 rounded-full bg-red-500 ring-2 ring-red-500/20 sm:size-2.5"></span>
                 {{ stats.statusDistribution?.rejected || 0 }}
               </span>
             </div>
             <div v-else class="mt-2 flex h-6 items-center">
-              <span class="inline-block h-5 w-24 animate-pulse rounded-lg bg-[var(--color-card-purple-border)]"></span>
+              <span class="inline-block h-5 w-24 animate-pulse rounded-lg bg-purple-100 dark:bg-purple-900/30"></span>
             </div>
           </div>
-          <div class="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--color-card-purple-accent)]/20 to-[var(--color-card-purple-accent)]/5 ring-1 ring-[var(--color-card-purple-accent)]/10 backdrop-blur-sm sm:size-12">
-            <svg class="size-5 text-[var(--color-card-purple-accent)] sm:size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="flex size-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 transition-colors group-hover:bg-purple-500 group-hover:text-white dark:bg-purple-500/20 dark:text-purple-400 dark:group-hover:bg-purple-500/80 dark:group-hover:text-white sm:size-12">
+            <svg class="size-5 transition-transform duration-300 group-hover:scale-110 sm:size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
             </svg>
           </div>
         </div>
+        <div class="absolute -right-6 -top-6 -z-0 size-32 rounded-full bg-purple-500/10 blur-3xl transition-opacity duration-300 group-hover:opacity-100 dark:bg-purple-500/5 opacity-50"></div>
       </div>
     </div>
   </div>
@@ -239,19 +115,13 @@ import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import StatusChartModal from './StatusChartModal.vue';
 
-defineProps({
-  isPopup: {
-    type: Boolean,
-    default: false
-  }
-});
+defineProps({});
 
 defineEmits(['filter']);
 
 const { t } = useI18n();
 
 const loading = ref(true);
-const collapsed = ref(false); // 移动端折叠状态
 const showChartModal = ref(false);
 const stats = ref({
   todayCount: 0,
