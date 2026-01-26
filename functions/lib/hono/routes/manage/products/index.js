@@ -2,7 +2,19 @@ import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { withCache } from '../../../middleware/cache.js';
 
+import batch from './batch.js';
+import exportRoute from './export.js';
+
 const app = new Hono();
+
+// Mount batch route first to avoid collision with [id] if defined elsewhere, 
+// strictly speaking in this file it's fine as long as there is no overlap in this router.
+// But this router is just for `/` and exports `app`.
+// Wait, this file contains `app.get('/', ...)` and `app.post('/', ...)`.
+// It does NOT contain `[id]`.
+// So we can mount `/batch` here safely.
+app.route('/batch', batch);
+app.route('/export', exportRoute);
 
 /**
  * GET / - 搜索商品列表

@@ -384,6 +384,22 @@ export function useResource(apiEndpoint, options = {}) {
         abortController.abort();
     };
 
+    /**
+     * 原始请求 (带 Auth 和 BaseURL)
+     */
+    const rawRequest = async (subPath, options = {}) => {
+        const url = subPath ? `${apiEndpoint}${subPath}` : apiEndpoint;
+        const res = await authFetch(url, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            },
+            signal: abortController.signal
+        });
+        return res.json();
+    };
+
     return {
         items,
         loading,
@@ -395,5 +411,6 @@ export function useResource(apiEndpoint, options = {}) {
         deleteItem,
         clearCache,
         abort,
+        rawRequest,
     };
 }

@@ -42,6 +42,95 @@ export class ProductRepository {
 
         return product;
     }
+    /**
+     * 批量创建商品
+     * @param {Array<Object>} items 
+     * @returns {Promise<{success: boolean, count: number, errors: Array}>}
+     */
+    async createBatch(items) {
+        if (!items || items.length === 0) return { success: true, count: 0, errors: [] };
+
+        const now = Date.now();
+        const stmts = [];
+        const errors = [];
+        const validItems = [];
+
+        // 1. Prepare data
+        for (const data of items) {
+            // Basic validation
+            if (!data.name || !data.sku) {
+                errors.push({ sku: data.sku || 'UNKNOWN', error: 'Missing name or sku' });
+                continue;
+            }
+
+            const id = crypto.randomUUID();
+            validItems.push({
+                data,
+                id
+            });
+
+            const product = {
+                id,
+                name: data.name,
+                sku: data.sku,
+                slug: data.slug || null,
+                category: data.category || null,
+                brand: data.brand || null,
+                series: data.series || null,
+                price: Number(data.price) || 0,
+                cost_price: data.cost_price ? Number(data.cost_price) : null,
+                stock_quantity: data.stock_quantity ? Number(data.stock_quantity) : 0,
+                alert_threshold: data.alert_threshold ? Number(data.alert_threshold) : 10,
+                description: data.description || '',
+                images: JSON.stringify(data.images || []),
+                specifications: JSON.stringify(data.specifications || {}),
+                status: data.status || 'active',
+                created_at: now,
+                updated_at: now
+            };
+
+            const keys = Object.keys(product);
+            const placeholders = keys.map(() => '?').join(', ');
+            const values = Object.values(product);
+
+            // Use INSERT OR IGNORE to skip duplicates elegantly, or we could handle errors.
+            // For now, let's try standard INSERT and let batch fail if strict.
+            // Actually, D1 batch is all-or-nothing by default unless we handle it cautiously.
+            // But to avoid one dup killing the whole batch, INSERT OR IGNORE is safer for "import".
+            const query = `INSERT OR IGNORE INTO products (${keys.join(', ')}) VALUES (${placeholders})`;
+            stmts.push(this.db.prepare(query).bind(...values));
+        }
+
+        if (stmts.length === 0) {
+            return { success: false, count: 0, errors };
+        }
+
+        try {
+            // 2. Execute batch
+            const results = await this.db.batch(stmts);
+
+            // 3. Count successes (check changes)
+            let successCount = 0;
+            results.forEach((res, index) => {
+                if (res.success) {
+                    if (res.meta && res.meta.changes > 0) {
+                        successCount++;
+                    } else {
+                        // If changes is 0, it means INSERT OR IGNORE ignored it (duplicate)
+                        errors.push({ sku: validItems[index].data.sku, error: 'Duplicate SKU or insert failed' });
+                    }
+                } else {
+                    errors.push({ sku: validItems[index].data.sku, error: 'Database error' });
+                }
+            });
+
+            return { success: true, count: successCount, errors };
+
+        } catch (e) {
+            console.error('[ProductRepository.createBatch] Error:', e);
+            return { success: false, count: 0, errors: [{ error: e.message }] };
+        }
+    }
 
     /**
      * 更新商品

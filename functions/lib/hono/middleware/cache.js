@@ -71,6 +71,21 @@ export async function invalidateCache(urls) {
 }
 
 /**
+ * 获取商品相关的缓存 URL 列表
+ * @param {Object} c - Hono context
+ * @returns {string[]}
+ */
+export function getProductCacheUrls(c) {
+  const baseUrl = new URL(c.req.url).origin;
+  // Invalidate main list and possibly search results
+  // Since we don't know exact search params, we just invalidate the main list
+  // A better strategy for list caching is needed if we use many filters.
+  return [
+    `${baseUrl}/api/manage/products`
+  ];
+}
+
+/**
  * 条件缓存中间件
  * 基于用户身份或其他条件决定是否缓存
  */

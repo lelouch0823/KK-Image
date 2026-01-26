@@ -39,7 +39,7 @@
         class="absolute left-0 z-50 w-auto min-w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] whitespace-nowrap shadow-lg ring-1 ring-black/5 focus:outline-none"
         :class="[
           dropdownPosition === 'top' ? 'bottom-full mb-1 origin-bottom' : 'mt-1 origin-top',
-          'max-h-60'
+          'max-h-72 overflow-y-auto'
         ]"
       >
         <div class="p-1">

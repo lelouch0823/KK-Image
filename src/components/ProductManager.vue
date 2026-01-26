@@ -24,6 +24,28 @@
                 <span class="hidden sm:inline">{{ t('product.action.create') }}</span>
             </button>
 
+            <!-- Import Button -->
+            <button
+                class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] transition-all active:scale-95 hover:bg-[var(--bg-card-hover)] hover:text-indigo-600"
+                :title="t('product.action.import')"
+                @click="showImportModal = true"
+            >
+                <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+            </button>
+
+            <!-- Export Button -->
+            <button
+                class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] transition-all active:scale-95 hover:bg-[var(--bg-card-hover)] hover:text-indigo-600"
+                :title="t('product.action.export')"
+                @click="handleExport"
+            >
+                <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+            </button>
+
              <!-- Stats Button -->
             <button
                 class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--color-primary)] transition-all active:scale-95 hover:bg-[var(--bg-card-hover)]"
@@ -51,6 +73,12 @@
     <Modal v-model="showStatsModal" :title="t('product.manager.stats_overview')">
         <ProductStats />
     </Modal>
+
+    <!-- Import Modal -->
+    <ProductImportModal
+        v-model="showImportModal"
+        @success="handleModalSuccess"
+    />
     
     <!-- Create/Edit Modal -->
     <ProductCreateModal
@@ -145,11 +173,13 @@ import ProductStats from './product/ProductStats.vue';
 import ProductFilters from './product/ProductFilters.vue';
 import ProductTable from './product/ProductTable.vue';
 import ProductCreateModal from './product/ProductCreateModal.vue'; 
-import ProductDetail from './product/ProductDetail.vue'; // Import Detail
+import ProductDetail from './product/ProductDetail.vue'; 
+import ProductImportModal from './product/ProductImportModal.vue';
 import ProductGrid from './product/ProductGrid.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Modal from '@/components/ui/Modal.vue';
+
 
 import { useI18n } from '@/composables/useI18n';
 
@@ -158,7 +188,8 @@ const { products, loading, error, pagination, loadProducts, deleteProduct } = us
 
 const showStatsModal = ref(false);
 const showCreateModal = ref(false); 
-const showDetailModal = ref(false); // Detail modal state
+const showDetailModal = ref(false);
+const showImportModal = ref(false);
 const isEditMode = ref(false);
 const editingProduct = ref(null);
 const viewingProduct = ref(null);
@@ -203,5 +234,10 @@ const handleDelete = async (product) => {
         await deleteProduct(product.id);
         loadProducts(); 
     }
-}
+};
+
+const handleExport = () => {
+    // Open the backend export endpoint
+    window.open('/api/manage/products/export?format=csv', '_blank');
+};
 </script>
