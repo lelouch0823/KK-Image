@@ -311,7 +311,7 @@ const handleUploadImagesAndNext = async () => {
             formData.append('file', file);
             
             // Upload to API
-            const res = await fetch(API.MANAGE_UPLOAD, {
+            const res = await fetch(`${API.MANAGE_UPLOAD}?context=product`, {
                 method: 'POST',
                 body: formData
             });

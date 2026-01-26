@@ -282,6 +282,10 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
       return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
     }
 
+    if (folder.is_system) {
+      return c.json({ success: false, error: MSG.FOLDER.SYSTEM_FOLDER_DELETE }, 403);
+    }
+
     // 获取所有子文件的存储键 (递归)
     const storageKeys = await folderRepo.getAllStorageKeysRecursive(folderId);
 

@@ -162,6 +162,7 @@ const props = defineProps({
   readonly: Boolean,
   uploadEndpoint: { type: String, default: '' },
   deferred: { type: Boolean, default: false },
+  context: { type: String, default: '' }, // e.g. 'product', 'order'
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -235,7 +236,12 @@ const uploadFile = async (file, hash, originalHash) => {
   if (originalHash) params.push(`originalHash=${originalHash}`);
   if (params.length) {
     const separator = uploadUrl.includes('?') ? '&' : '?';
+    // Add context if prop provided
+    if (props.context) params.push(`context=${props.context}`);
     uploadUrl = `${uploadUrl}${separator}${params.join('&')}`;
+  } else if (props.context) {
+    const separator = uploadUrl.includes('?') ? '&' : '?';
+    uploadUrl = `${uploadUrl}${separator}context=${props.context}`;
   }
 
   const response = await fetch(uploadUrl, {

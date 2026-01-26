@@ -86,6 +86,7 @@
                               :hint="t('product.form.media_help')"
                               :upload-endpoint="API.MANAGE_UPLOAD"
                               :max-files="10"
+                              context="product"
                           />
                       </div>
                   </div>

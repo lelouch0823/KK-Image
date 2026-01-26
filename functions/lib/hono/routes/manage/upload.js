@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
-import { MSG, storeFile, ensureFolder } from '../../_shared/utils.js';
+import { MSG, storeFile } from '../../_shared/utils.js';
 
 const app = new Hono();
 
@@ -20,7 +20,13 @@ app.post('/', requirePermission('files:write'), async (c) => {
     const file = formData.get('file');
 
     let folderId = 'root';
-    if (orderId) {
+    const context = url.searchParams.get('context');
+
+    if (context === 'product') {
+        // Ensure folder for product
+        const { ensureProductFolder } = await import('../../../../api/utils/folder-utils.js');
+        folderId = await ensureProductFolder(env);
+    } else if (orderId) {
         const order = await env.DB.prepare('SELECT order_no FROM orders WHERE id = ?').bind(orderId).first();
         if (order?.order_no) {
             // Ensure folder for order
