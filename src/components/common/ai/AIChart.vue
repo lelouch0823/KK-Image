@@ -1,8 +1,8 @@
 <template>
   <div class="bg-card/50 border-border w-full rounded-xl border p-4 shadow-sm backdrop-blur-sm">
     <div v-if="title" class="mb-4 flex items-center gap-2">
-      <div class="bg-primary/10 size-1.5 rounded-full"></div>
-      <h4 class="text-xs font-semibold tracking-wider text-gray-500 uppercase">{{ title }}</h4>
+      <div class="bg-primary/20 size-1.5 rounded-full"></div>
+      <h4 class="text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase">{{ title }}</h4>
     </div>
     <div class="relative h-64 w-full">
       <component 
@@ -136,7 +136,7 @@ const enhancedData = computed(() => {
        return {
          backgroundColor: colors,
          borderWidth: 2,
-         borderColor: '#ffffff',
+         borderColor: 'transparent',
          hoverOffset: 4,
          ...dataset
        };
@@ -161,15 +161,15 @@ const defaultOptions = computed(() => {
           usePointStyle: true,
           boxWidth: 8,
           padding: 20,
-          font: { size: 11, family: "'Inter', sans-serif" },
-          color: gray[500] || '#6B7280'
+          font: { size: 11, family: "'Outfit', 'Inter', sans-serif" },
+          color: gray[500] || 'var(--text-secondary)'
         }
       },
       tooltip: {
-        backgroundColor: '#ffffff',
-        titleColor: gray[900] || '#111827',
-        bodyColor: gray[600] || '#4B5563',
-        borderColor: gray[200] || '#E5E7EB',
+        backgroundColor: 'var(--bg-card)',
+        titleColor: gray[900] || 'var(--text-main)',
+        bodyColor: gray[600] || 'var(--text-secondary)',
+        borderColor: gray[200] || 'var(--border-color)',
         borderWidth: 1,
         padding: 10,
         boxPadding: 4,
@@ -182,12 +182,12 @@ const defaultOptions = computed(() => {
     scales: (props.type === 'pie' || props.type === 'doughnut') ? {} : {
       x: {
         grid: { display: false },
-        ticks: { color: gray[400] || '#9CA3AF', font: { size: 10 } },
+        ticks: { color: gray[400] || 'var(--text-muted)', font: { size: 10 } },
         border: { display: false }
       },
       y: {
-        grid: { color: gray[100] || '#F3F4F6', borderDash: [4, 4] },
-        ticks: { color: gray[400] || '#9CA3AF', font: { size: 10 } },
+        grid: { color: gray[100] || 'var(--color-chart-grid)', borderDash: [4, 4] },
+        ticks: { color: gray[400] || 'var(--text-muted)', font: { size: 10 } },
         border: { display: false },
         beginAtZero: true
       }

@@ -347,10 +347,10 @@ function handleRetry() {
 
 /* 增加错误态的视觉区分 (Error visual distinction) */
 .app-image--error .app-image__error {
-    background-color: var(--color-gray-100);
+    background-color: var(--bg-muted);
 }
 :root.dark .app-image--error .app-image__error {
-    background-color: rgba(239, 68, 68, 0.1); /* Red tint in dark mode */
+    background-color: var(--color-danger-bg); /* Red tint in dark mode */
 }
 
 /* 针对错误态更明显的图标颜色 */
@@ -401,8 +401,8 @@ function handleRetry() {
   padding: 0.125rem 0.375rem;
   font-size: 0.625rem;
   font-weight: 700;
-  color: white;
-  background: linear-gradient(135deg, #10b981, #059669);
+  color: var(--text-inverse);
+  background: var(--color-success);
   border-radius: 0.25rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -412,7 +412,7 @@ function handleRetry() {
   padding: 0.125rem 0.375rem;
   font-size: 0.625rem;
   font-weight: 600;
-  color: white;
+  color: var(--text-inverse);
   background-color: var(--color-primary);
   border-radius: 0.25rem;
 }

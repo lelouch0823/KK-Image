@@ -112,7 +112,7 @@
             :name="order.customer.name"
             :subtitle="order.customer.company"
             :phone="order.customer.phone"
-            avatar-class="bg-blue-50 text-blue-600"
+            avatar-class="bg-[var(--color-info-bg)] text-[var(--color-info-text)]"
           />
 
           <!-- 销售人员信息 (仅管理员可见) -->
@@ -122,7 +122,7 @@
             :name="order.salesperson.name"
             :subtitle="order.salesperson.store"
             :phone="order.salesperson.phone"
-            avatar-class="bg-primary/10 text-primary"
+            avatar-class="bg-[var(--color-primary-bg)] text-[var(--color-primary)]"
           />
 
           <!-- 订单头部 -->

@@ -4,7 +4,7 @@
       <div v-if="hasData" class="relative h-64">
         <Pie :data="chartData" :options="chartOptions" />
       </div>
-      <div v-else class="py-10 text-center text-gray-500">
+      <div v-else class="py-10 text-center text-[var(--text-muted)]">
         {{ t('common.noData') }}
       </div>
 
@@ -14,7 +14,7 @@
             class="size-3 rounded-full"
             :style="{ backgroundColor: getStatusHexColor(key) }"
           ></span>
-          <span class="text-sm text-gray-600">{{ t(`order.statuses.${key}`) }}: {{ value }}</span>
+          <span class="text-sm text-[var(--text-secondary)]">{{ t(`order.statuses.${key}`) }}: {{ value }}</span>
         </div>
       </div>
     </div>

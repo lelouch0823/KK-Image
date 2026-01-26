@@ -3,7 +3,7 @@
     <button
       v-for="suggestion in suggestions"
       :key="suggestion"
-      class="hover:border-primary/30 hover:bg-primary/5 hover:text-primary rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs whitespace-nowrap text-gray-600 transition-all active:scale-95"
+      class="hover:border-primary/30 hover:bg-primary/5 hover:text-primary rounded-full border border-[var(--border-color)] bg-[var(--bg-muted)] px-3 py-1.5 text-xs whitespace-nowrap text-[var(--text-secondary)] transition-all active:scale-95"
       @click="$emit('select', suggestion)"
     >
       {{ suggestion }}

@@ -40,7 +40,8 @@
               </slot>
               <button
                 v-if="closable"
-                class="-mr-1 p-1 text-gray-400 transition-colors hover:text-gray-600"
+                type="button"
+                class="-mr-1 p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text-main)]"
                 @click="close"
               >
                 <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -226,9 +227,8 @@ onUnmounted(() => {
     max-height: none !important;
   }
 
-  /* Hide close button */
-  button[aria-label],
-  .text-gray-400:has(svg) {
+  /* Ensure muted text uses variables */
+  button[aria-label] {
     display: none !important;
   }
 }

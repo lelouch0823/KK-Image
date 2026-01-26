@@ -10,7 +10,7 @@
     />
     <!-- 搜索图标 -->
     <svg
-      class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400"
+      class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--text-muted)]"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -26,7 +26,7 @@
     <button
       v-if="clearable && modelValue"
       type="button"
-      class="absolute top-1/2 right-2 -translate-y-1/2 p-1 text-gray-400 transition-colors hover:text-gray-600"
+      class="absolute top-1/2 right-2 -translate-y-1/2 p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text-main)]"
       @click="clear"
     >
       <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

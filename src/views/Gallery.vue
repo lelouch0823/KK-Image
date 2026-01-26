@@ -4,9 +4,9 @@
     <div v-if="loading" class="flex min-h-screen items-center justify-center">
       <div class="text-center">
         <div
-          class="border-t-primary mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-gray-200"
+          class="mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-[var(--border-color)] border-t-[var(--color-primary)]"
         ></div>
-        <p class="text-secondary">{{ t('gallery.loading') }}</p>
+        <p class="text-[var(--text-secondary)]">{{ t('gallery.loading') }}</p>
       </div>
     </div>
 
@@ -25,8 +25,8 @@
     <!-- 错误状态 -->
     <div v-else-if="error" class="flex min-h-screen items-center justify-center px-4">
       <div class="text-center">
-        <div class="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-red-50">
-          <svg class="size-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-[var(--color-danger-bg)]">
+          <svg class="size-10 text-[var(--color-danger-text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -35,8 +35,8 @@
             ></path>
           </svg>
         </div>
-        <h2 class="text-primary mb-2 text-xl font-semibold">{{ t('gallery.cannotLoad') }}</h2>
-        <p class="text-secondary">{{ error }}</p>
+        <h2 class="mb-2 text-xl font-semibold text-[var(--text-main)]">{{ t('gallery.cannotLoad') }}</h2>
+        <p class="text-[var(--text-secondary)]">{{ error }}</p>
       </div>
     </div>
 
@@ -48,14 +48,14 @@
       >
         <div class="mx-auto flex max-w-7xl items-center justify-between p-4 sm:px-6 lg:px-8">
           <div>
-            <h1 class="text-primary px-1 text-xl font-semibold">{{ album.name }}</h1>
-            <p class="text-secondary mt-0.5 px-1 text-sm">
+            <h1 class="px-1 text-xl font-semibold text-[var(--text-main)]">{{ album.name }}</h1>
+            <p class="mt-0.5 px-1 text-sm text-[var(--text-secondary)]">
               {{ t('gallery.files', { count: album.fileCount }) }}
             </p>
           </div>
           <div class="flex items-center gap-3">
             <button
-              class="text-secondary flex items-center gap-2 rounded-lg border border-[var(--border-color)] px-4 py-2 text-sm font-medium transition-colors hover:bg-[var(--bg-muted)]"
+              class="flex items-center gap-2 rounded-lg border border-[var(--border-color)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-muted)]"
               @click="shareAlbum"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -75,7 +75,7 @@
       <!-- Description -->
       <div v-if="album.description" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <p
-          class="text-secondary rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] p-4 text-sm"
+          class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] p-4 text-sm text-[var(--text-secondary)]"
         >
           {{ album.description }}
         </p>
@@ -105,10 +105,10 @@
             <!-- PDF -->
             <div
               v-else-if="file.type === 'pdf'"
-              class="text-secondary flex size-full flex-col items-center justify-center bg-[var(--bg-muted)]"
+              class="flex size-full flex-col items-center justify-center bg-[var(--bg-muted)] text-[var(--text-secondary)]"
             >
               <svg
-                class="mb-2 size-12 text-red-500"
+                class="mb-2 size-12 text-[var(--color-danger)]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -129,10 +129,10 @@
             <!-- 其他文件 -->
             <div
               v-else
-              class="text-secondary flex size-full flex-col items-center justify-center bg-[var(--bg-muted)]"
+              class="flex size-full flex-col items-center justify-center bg-[var(--bg-muted)] text-[var(--text-secondary)]"
             >
               <svg
-                class="mb-2 size-12 text-gray-400"
+                class="mb-2 size-12 text-[var(--text-muted)]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -170,9 +170,9 @@
 
       <!-- Footer -->
       <footer
-        class="text-secondary border-t border-[var(--border-color)] bg-[var(--bg-card)] py-8 text-center text-sm"
+        class="border-t border-[var(--border-color)] bg-[var(--bg-card)] py-8 text-center text-sm text-[var(--text-secondary)]"
       >
-        <a href="/" class="hover:text-primary transition-colors">{{ t('gallery.poweredBy') }}</a>
+        <a href="/" class="transition-colors hover:text-[var(--color-primary)]">{{ t('gallery.poweredBy') }}</a>
       </footer>
     </template>
 

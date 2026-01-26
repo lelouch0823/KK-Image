@@ -73,9 +73,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useI18n } from '@/composables/useI18n';
-import { STATUS_STYLES } from '@/utils/status';
 
-const props = defineProps({
+defineProps({
   modelValue: {
     type: String,
     required: true,
@@ -122,15 +121,15 @@ const select = (status) => {
 const getStatusColorClass = (status) => {
     // 映射状态到 Tailwind 颜色类 (参考 utils/status.js，提取 bg 部分并转换)
     const map = {
-        pending: 'bg-yellow-500',
-        confirmed: 'bg-blue-500',
-        production: 'bg-purple-500', 
-        shipping: 'bg-indigo-500',
-        completed: 'bg-green-500', // delivered/completed
-        delivered: 'bg-green-500',
-        arrived: 'bg-teal-500',
-        rejected: 'bg-red-500',
-        void: 'bg-gray-500',
+        pending: 'bg-[var(--color-warning)]',
+        confirmed: 'bg-[var(--color-info)]',
+        production: 'bg-[var(--color-orange)]', 
+        shipping: 'bg-[var(--color-primary)]',
+        completed: 'bg-[var(--color-success)]', // delivered/completed
+        delivered: 'bg-[var(--color-success)]',
+        arrived: 'bg-[var(--color-cyan)]',
+        rejected: 'bg-[var(--color-danger)]',
+        void: 'bg-[var(--text-muted)]',
     };
     return map[status] || 'bg-gray-400';
 };

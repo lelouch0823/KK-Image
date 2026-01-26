@@ -1,8 +1,8 @@
 <template>
   <div class="overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm transition-all hover:shadow-md">
-    <div class="border-b border-[var(--border-color)] bg-gray-50/50 px-6 py-4 dark:bg-white/5">
+    <div class="border-b border-[var(--border-color)] bg-[var(--bg-muted)] px-6 py-4">
       <div class="flex items-center gap-3">
-        <div v-if="icon" class="flex size-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+        <div v-if="icon" class="flex size-10 items-center justify-center rounded-lg bg-[var(--color-primary-bg)] text-[var(--color-primary)]">
           <component :is="icon" class="size-5" />
         </div>
         <div>
@@ -17,7 +17,7 @@
     <div class="p-6">
       <slot />
     </div>
-    <div v-if="$slots.footer" class="border-t border-[var(--border-color)] bg-gray-50/50 px-6 py-4 dark:bg-white/5">
+    <div v-if="$slots.footer" class="border-t border-[var(--border-color)] bg-[var(--bg-muted)] px-6 py-4">
       <slot name="footer" />
     </div>
   </div>

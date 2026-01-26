@@ -9,7 +9,7 @@
         <div class="ml-3 flex h-7 items-center">
           <button
             type="button"
-            class="focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:outline-none rounded-md bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            class="focus:ring-[var(--color-primary)] focus:ring-2 focus:ring-offset-2 focus:outline-none rounded-md bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-colors"
             @click="$emit('close')"
           >
             <span class="sr-only">{{ t('common.close') }}</span>
@@ -48,9 +48,9 @@
             :key="tab.key"
             :class="[
               currentTab === tab.key
-                ? 'border-primary text-primary'
-                : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]',
-              'mr-8 border-b-2 px-1 py-4 text-sm font-medium whitespace-nowrap',
+                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:text-[var(--text-main)]',
+              'mr-8 border-b-2 px-1 py-4 text-sm font-medium whitespace-nowrap transition-colors',
             ]"
             @click="currentTab = tab.key"
           >
@@ -66,7 +66,7 @@
           <!-- 操作栏 -->
           <div class="mb-6 flex justify-start gap-4">
             <button
-              class="focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:outline-none inline-flex items-center rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-sm leading-4 font-medium text-[var(--text-primary)] shadow-sm hover:bg-[var(--bg-hover)]"
+              class="focus:ring-[var(--color-primary)] focus:ring-2 focus:ring-offset-2 focus:outline-none inline-flex items-center rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-sm leading-4 font-medium text-[var(--text-main)] shadow-sm hover:bg-[var(--bg-hover)] transition-colors"
               @click="$emit('edit', customer)"
             >
               <svg
@@ -85,7 +85,7 @@
               {{ t('common.edit') }}
             </button>
             <button
-              class="inline-flex items-center rounded-md border border-transparent bg-red-600 px-3 py-2 text-sm leading-4 font-medium text-white shadow-sm hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
+              class="inline-flex items-center rounded-md border border-transparent bg-[var(--color-danger)] px-3 py-2 text-sm leading-4 font-medium text-[var(--text-inverse)] shadow-sm hover:opacity-90 active:scale-95 transition-all"
               @click="handleDelete"
             >
               <svg
@@ -131,7 +131,7 @@
                   <span
                     v-for="tag in customer?.tags"
                     :key="tag"
-                    class="bg-primary/10 text-primary rounded px-2 py-0.5 text-xs"
+                    class="bg-[var(--color-primary-bg)] text-[var(--color-primary)] rounded px-2 py-0.5 text-xs font-medium"
                   >
                     {{ tag }}
                   </span>

@@ -1,7 +1,7 @@
 <template>
   <Modal 
     :model-value="modelValue" 
-    :title="t('product.import.title', '导入商品')"
+    :title="t('product.import.title')"
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <div class="space-y-6">
@@ -53,16 +53,16 @@
             :disabled="loading"
             @click="currentStep === 1 ? $emit('update:modelValue', false) : handleBack()"
         >
-            {{ currentStep === 1 ? t('common.cancel') : '上一步' }}
+            {{ currentStep === 1 ? t('common.cancel') : t('product.import.back') }}
         </button>
         
         <button v-if="currentStep === 3" type="button" class="btn btn-primary" @click="handleConfirmMapping">
-            确认映射
+            {{ t('product.import.confirm_mapping') }}
         </button>
 
         <button v-if="currentStep === 5" type="button" class="btn btn-primary" :disabled="loading" @click="handleUploadImagesAndNext">
             <span v-if="loading" class="loading-spinner mr-2 size-4"></span>
-            {{ loading ? '上传中...' : '上传并继续' }}
+            {{ loading ? t('product.import.uploading') : t('product.import.upload_and_continue') }}
         </button>
 
         <button 
@@ -77,8 +77,8 @@
                 loading 
                     ? t('product.import.importing', { current: importStats.processed, total: importStats.total }) 
                     : (importResult 
-                        ? (importResult.success ? t('common.done', '完成') : t('common.retry', '重试'))
-                        : t('product.import.action', '开始导入')) 
+                        ? (importResult.success ? t('common.complete') : t('common.retry'))
+                        : t('product.import.action')) 
             }}
         </button>
     </template>
@@ -126,21 +126,21 @@ const rawFileRows = ref([]);
 const fieldMapping = ref({});
 
 const SYSTEM_FIELDS = [
-    { key: 'name', label: '商品名称', required: true, aliases: ['品名', '标题', 'Name'] },
-    { key: 'sku', label: 'SKU (编码)', required: true, aliases: ['款号', '货号', '编码', 'Code'] },
-    { key: 'price', label: '价格', required: false, aliases: ['售价', '销售价', '单价', '金额'] }, 
-    { key: 'stock_quantity', label: '库存', required: false, aliases: ['数量', '存货', '库存数'] }, 
-    { key: 'description', label: '描述', required: false, aliases: ['详情', '备注', '介绍'] },
-    { key: 'image_url', label: '图片链接', required: false, aliases: ['图片', '主图', 'Image'] },
-    { key: 'category', label: '分类', required: false, aliases: ['类别', '小类', '种类', '类目'] },
-    { key: 'brand', label: '品牌', required: false, aliases: ['牌子', '厂家'] },
-    { key: 'series', label: '系列', required: false, aliases: ['系列名'] },
-    { key: 'cost_price', label: '成本价', required: false, aliases: ['成本', '进价', '进货价'] },
-    { key: 'alert_threshold', label: '库存预警', required: false, aliases: ['预警线', '安全库存', '预警'] },
+    { key: 'name', label: t('product.form.name'), required: true, aliases: ['品名', '标题', 'Name'] },
+    { key: 'sku', label: t('product.form.sku'), required: true, aliases: ['款号', '货号', '编码', 'Code'] },
+    { key: 'price', label: t('product.form.price'), required: false, aliases: ['售价', '销售价', '单价', '金额'] }, 
+    { key: 'stock_quantity', label: t('product.form.stock'), required: false, aliases: ['数量', '存货', '库存数'] }, 
+    { key: 'description', label: t('product.form.description'), required: false, aliases: ['详情', '备注', '介绍'] },
+    { key: 'image_url', label: t('product.import.fields.image_url', '图片链接'), required: false, aliases: ['图片', '主图', 'Image'] },
+    { key: 'category', label: t('product.form.category'), required: false, aliases: ['类别', '小类', '种类', '类目'] },
+    { key: 'brand', label: t('order.form.brand'), required: false, aliases: ['品牌', '牌子', '厂家'] },
+    { key: 'series', label: t('order.form.series'), required: false, aliases: ['系列', '系列名'] },
+    { key: 'cost_price', label: t('product.form.cost'), required: false, aliases: ['成本', '进价', '进货价'] },
+    { key: 'alert_threshold', label: t('product.form.alert_at'), required: false, aliases: ['预警线', '安全库存', '预警'] },
     // Specifications
-    { key: 'color', label: '颜色', required: false, aliases: ['色号', '花色'], isSpec: true },
-    { key: 'size', label: '尺码', required: false, aliases: ['规格', '尺寸'], isSpec: true },
-    { key: 'material', label: '材质', required: false, aliases: ['面料', '成分'], isSpec: true }
+    { key: 'color', label: t('order.form.color'), required: false, aliases: ['颜色', '色号', '花色'], isSpec: true },
+    { key: 'size', label: t('order.form.size'), required: false, aliases: ['尺寸', '规格', '尺寸'], isSpec: true },
+    { key: 'material', label: t('order.form.material'), required: false, aliases: ['材质', '面料', '成分'], isSpec: true }
 ];
 
 const formatFileSize = (bytes) => {
@@ -219,7 +219,7 @@ const processFile = async (file) => {
 const handleConfirmMapping = () => {
     // Validate required
     if (!fieldMapping.value['name'] || !fieldMapping.value['sku']) {
-        addToast({ type: 'error', message: '请至少映射“商品名称”和“SKU”字段' });
+        addToast({ type: 'error', message: t('product.import.error_missing_fields', '请至少映射“商品名称”和“SKU”字段') });
         return;
     }
 
@@ -294,7 +294,7 @@ const totalImagesCount = computed(() => parsedItems.value.filter(i => i.image_ur
 
 const handleUploadImagesAndNext = async () => {
     if (imageMatches.value.size === 0) {
-        if (!confirm('未匹配到任何图片，确定要继续吗？这些商品将没有图片。')) return;
+        if (!confirm(t('product.import.match_hint'))) return;
         currentStep.value = 4;
         return;
     }
@@ -331,12 +331,12 @@ const handleUploadImagesAndNext = async () => {
             }
         }
         
-        addToast({ message: `成功上传 ${uploadedCount} 张图片`, type: 'success' });
+        addToast({ message: t('product.import.upload_success', { count: uploadedCount }), type: 'success' });
         currentStep.value = 4; // To Preview
         
     } catch (e) {
         console.error(e);
-        addToast({ message: '图片上传失败: ' + e.message, type: 'error' });
+        addToast({ message: t('product.import.upload_failed', { message: e.message }), type: 'error' });
     } finally {
         loading.value = false;
     }
@@ -428,9 +428,9 @@ const handleImport = async () => {
         
         if (_importStats.value.failed > 0) {
              if (hasSuccess) {
-                 addToast({ message: `导入完成: ${_importStats.value.success} 成功, ${_importStats.value.failed} 失败`, type: 'warning' });
+                 addToast({ message: t('product.import.stats_summary', { success: _importStats.value.success, failed: _importStats.value.failed }), type: 'warning' });
              } else {
-                 addToast({ message: `导入失败: 全部 ${_importStats.value.failed} 条数据导入失败`, type: 'error' });
+                 addToast({ message: t('product.import.stats.all_failed', { failed: _importStats.value.failed }, `导入失败: 全部 ${_importStats.value.failed} 条数据导入失败`), type: 'error' });
              }
         } else {
              addToast({ message: t('common.success'), type: 'success' });

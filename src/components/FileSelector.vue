@@ -38,9 +38,9 @@
         {{ t('fileSelector.allFiles') }}
       </button>
       <template v-for="folder in breadcrumbs" :key="folder.id">
-        <span class="text-gray-300">/</span>
+        <span class="text-[var(--border-color)]">/</span>
         <button
-          class="hover:text-primary transition-colors"
+          class="hover:text-[var(--color-primary)] transition-colors"
           :class="currentFolderId === folder.id ? 'text-primary font-semibold' : 'text-secondary'"
           @click="navigateTo(folder.id)"
         >
@@ -60,10 +60,10 @@
         <div
           v-for="folder in currentFolders"
           :key="'f-' + folder.id"
-          class="group relative flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 bg-blue-50/50 transition-all hover:bg-blue-50"
+          class="group relative flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 bg-[var(--color-info-bg)] transition-all hover:opacity-80"
           :class="
             selectedFolderIds.includes(folder.id)
-              ? 'border-primary ring-primary/20 bg-blue-50 ring-2'
+              ? 'border-[var(--color-primary)] ring-[var(--color-primary-light)] ring-2'
               : 'border-transparent'
           "
           @click="navigateTo(folder.id, folder)"
@@ -98,13 +98,13 @@
             </div>
           </div>
           <svg
-            class="mb-2 size-12 text-blue-400 transition-transform duration-200 group-hover:scale-110 group-hover:text-blue-500"
+            class="mb-2 size-12 text-[var(--color-info)] transition-transform duration-200 group-hover:scale-110"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
             <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
           </svg>
-          <span class="w-full truncate px-2 text-center text-xs font-medium text-gray-700">{{
+          <span class="w-full truncate px-2 text-center text-xs font-medium text-[var(--text-main)]">{{
             folder.name
           }}</span>
         </div>
@@ -130,11 +130,11 @@
             loading="lazy"
           />
           <!-- 非图片 -->
-          <div v-else class="flex size-full flex-col items-center justify-center bg-gray-50">
-            <span class="text-xs font-bold text-gray-400 uppercase">{{
+          <div v-else class="flex size-full flex-col items-center justify-center bg-[var(--bg-muted)]">
+            <span class="text-xs font-bold text-[var(--text-muted)] uppercase">{{
               file.name?.split('.').pop()
             }}</span>
-            <span class="mt-1 w-full truncate px-2 text-center text-[10px] text-gray-400">{{
+            <span class="mt-1 w-full truncate px-2 text-center text-[10px] text-[var(--text-muted)]">{{
               file.originalName || file.name
             }}</span>
           </div>
@@ -157,10 +157,10 @@
 
       <div
         v-if="!loading && currentFolders.length === 0 && files.length === 0"
-        class="text-secondary flex h-full flex-col items-center justify-center pb-10"
+        class="text-[var(--text-secondary)] flex h-full flex-col items-center justify-center pb-10"
       >
-        <div class="mb-4 flex size-16 items-center justify-center rounded-full bg-gray-100">
-          <svg class="size-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="mb-4 flex size-16 items-center justify-center rounded-full bg-[var(--bg-muted)]">
+          <svg class="size-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"

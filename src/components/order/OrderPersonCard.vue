@@ -57,7 +57,7 @@ defineProps({
   },
   avatarClass: {
     type: String,
-    default: 'bg-blue-50 text-blue-600',
+    default: 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]',
   },
 });
 </script>

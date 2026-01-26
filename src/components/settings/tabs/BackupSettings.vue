@@ -8,7 +8,7 @@
       <template #action>
         <button
           :disabled="creating"
-          class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-blue-500"
+          class="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
           @click="createBackup"
         >
           <!-- Spinner -->
@@ -25,9 +25,9 @@
       </template>
 
       <!-- Backup List -->
-      <div class="overflow-hidden rounded-lg border border-(--border-color)">
+      <div class="overflow-hidden rounded-lg border border-[var(--border-color)]">
         <table class="w-full text-left text-sm">
-          <thead class="bg-gray-50 text-xs text-gray-500 uppercase dark:bg-white/5 dark:text-gray-400">
+          <thead class="bg-[var(--bg-muted)] text-xs text-[var(--text-secondary)] uppercase">
             <tr>
               <th scope="col" class="px-6 py-3 font-medium">{{ t('settings.backup.filename', 'Filename') }}</th>
               <th scope="col" class="px-6 py-3 font-medium">{{ t('settings.backup.size', 'Size') }}</th>
@@ -35,7 +35,7 @@
               <th scope="col" class="px-6 py-3 text-right font-medium">{{ t('common.actions', 'Actions') }}</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-(--border-color) bg-white dark:bg-transparent">
+          <tbody class="divide-y divide-[var(--border-color)] bg-[var(--bg-card)]">
             <tr v-if="loading" class="animate-pulse">
               <td colspan="4" class="text-secondary px-6 py-8 text-center">
                 {{ t('common.loading', 'Loading backups...') }}
@@ -45,7 +45,7 @@
               <td colspan="4" class="text-secondary px-6 py-12 text-center">
                 <div class="flex flex-col items-center gap-3">
                   <!-- Archive Box X Mark Icon -->
-                  <svg class="size-10 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <svg class="size-10 text-[var(--text-muted)] opacity-50" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m6 4.125l2.25 2.25m0 0l2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
                   </svg>
                   <span>{{ t('settings.backup.empty', 'No backups found') }}</span>
@@ -55,12 +55,12 @@
             <tr
               v-for="backup in backups"
               :key="backup.key"
-              class="group transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
+              class="group transition-colors hover:bg-[var(--bg-hover)]"
             >
               <td class="text-primary px-6 py-4 font-medium">
                 <div class="flex items-center gap-3">
                   <!-- Document Icon -->
-                  <svg class="size-5 text-gray-400 transition-colors group-hover:text-blue-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <svg class="size-5 text-[var(--text-muted)] transition-colors group-hover:text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                   </svg>
                   {{ backup.name }}
@@ -74,7 +74,7 @@
               </td>
               <td class="px-6 py-4 text-right">
                 <button
-                  class="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-blue-300 hover:text-blue-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-blue-500 dark:hover:text-blue-400"
+                  class="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-xs font-medium text-[var(--text-main)] shadow-sm transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)]"
                   @click="downloadBackup(backup)"
                 >
                   <!-- Arrow Down Tray Icon -->

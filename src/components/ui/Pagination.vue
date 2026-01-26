@@ -5,8 +5,8 @@
       <button
         v-if="showPrevNext"
         :disabled="currentPage === 1"
-        class="rounded-md px-3 py-1 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-        :class="currentPage === 1 ? 'text-gray-400' : 'text-gray-600 hover:bg-gray-100'"
+        class="text-secondary rounded-md px-3 py-1 text-sm transition-colors hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-30"
+        :class="{ 'text-[var(--text-muted)]': currentPage === 1 }"
         @click="goToPage(currentPage - 1)"
       >
         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -21,12 +21,12 @@
 
       <!-- 页码 -->
       <template v-for="page in visiblePages" :key="page">
-        <span v-if="page === '...'" class="px-3 py-1 text-sm text-gray-400">...</span>
+        <span v-if="page === '...'" class="text-muted px-3 py-1 text-sm">...</span>
         <button
           v-else
-          class="min-w-[32px] rounded-md px-3 py-1 text-sm transition-colors"
+          class="text-secondary min-w-[32px] rounded-md px-3 py-1 text-sm transition-colors hover:bg-[var(--bg-hover)]"
           :class="
-            page === currentPage ? 'bg-primary text-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100'
+            page === currentPage ? 'bg-primary text-[var(--text-inverse)] font-bold' : ''
           "
           @click="goToPage(page)"
         >
@@ -38,8 +38,8 @@
       <button
         v-if="showPrevNext"
         :disabled="currentPage === totalPages"
-        class="rounded-md px-3 py-1 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-        :class="currentPage === totalPages ? 'text-gray-400' : 'text-gray-600 hover:bg-gray-100'"
+        class="text-secondary rounded-md px-3 py-1 text-sm transition-colors hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-30"
+        :class="{ 'text-[var(--text-muted)]': currentPage === totalPages }"
         @click="goToPage(currentPage + 1)"
       >
         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

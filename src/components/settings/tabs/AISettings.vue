@@ -14,7 +14,7 @@
               v-model="form.AI_API_URL"
               type="url"
               placeholder="https://api.openai.com/v1"
-              class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 text-sm transition-colors focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/10 focus:outline-none dark:bg-[var(--bg-muted)]"
             />
           </div>
           <p class="text-secondary text-xs">{{ t('settings.ai.apiUrlDesc', 'The base URL for the OpenAI-compatible API provider.') }}</p>
@@ -27,12 +27,12 @@
             <input
               v-model="form.AI_API_KEY"
               :type="showKey ? 'text' : 'password'"
-              class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-10 text-sm transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 pr-10 text-sm transition-colors focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/10 focus:outline-none dark:bg-[var(--bg-muted)]"
               placeholder="sk-..."
             />
             <button
               type="button"
-              class="absolute top-2.5 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              class="absolute top-2.5 right-3 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
               @click="showKey = !showKey"
             >
               <!-- Eye Icon -->
@@ -56,7 +56,7 @@
              <textarea
               v-model="form.AI_MODELS"
               rows="3"
-              class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 text-sm transition-colors focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/10 focus:outline-none dark:bg-[var(--bg-muted)]"
               placeholder="gpt-4o, gpt-3.5-turbo..."
             ></textarea>
           </div>
@@ -67,7 +67,7 @@
            <button
             type="submit"
             :disabled="saving"
-            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50 dark:focus:ring-offset-gray-900"
+            class="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-5 py-2.5 text-sm font-medium text-[var(--text-inverse)] shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50"
           >
             <!-- Spinner Icon -->
             <svg v-if="saving" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">

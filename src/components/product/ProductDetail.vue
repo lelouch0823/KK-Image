@@ -52,7 +52,10 @@
                          <span v-if="product.series">&bull; {{ product.series }}</span>
                      </div>
                  </div>
-                 <StatusBadge :status="product.status" />
+                 <StatusBadge 
+                   :label="t(`product.filters.status.${product.status || 'draft'}`)" 
+                   :variant="getProductStatusVariant(product.status)" 
+                 />
              </div>
              
              <div class="mt-6 flex items-baseline gap-1">
@@ -133,6 +136,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppImage from '@/components/ui/AppImage.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import { getProductStatusVariant } from '@/utils/status';
 
 const props = defineProps({
     product: {

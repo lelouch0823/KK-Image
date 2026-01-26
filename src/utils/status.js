@@ -22,7 +22,7 @@ export const STATUS_STYLES = {
   arrived:
     'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success)]/20 hover:bg-[var(--color-success-bg)]/80',
   delivered:
-    'bg-[var(--color-gray-100)] text-[var(--color-gray-600)] border-[var(--color-gray-200)] hover:bg-[var(--color-gray-200)]',
+    'bg-[var(--bg-muted)] text-[var(--text-secondary)] border-[var(--border-color)] hover:bg-[var(--bg-hover)]',
 };
 
 export const STATUS_DOTS = {
@@ -32,7 +32,7 @@ export const STATUS_DOTS = {
   production: 'bg-[var(--color-purple)]',
   shipping: 'bg-[var(--color-cyan)]',
   arrived: 'bg-[var(--color-success)]',
-  delivered: 'bg-[var(--color-gray-500)]',
+  delivered: 'bg-[var(--text-muted)]',
 };
 
 export const getStatusVariant = (status) => {
@@ -45,6 +45,20 @@ export const getStatusVariant = (status) => {
     arrived: 'success',
     delivered: 'default',
     void: 'default',
+  };
+  return map[status] || 'default';
+};
+
+/**
+ * 获取商品状态对应的徽章变体
+ * @param {string} status - 商品状态 (active, draft, archived)
+ * @returns {string} StatusBadge 变体名称
+ */
+export const getProductStatusVariant = (status) => {
+  const map = {
+    active: 'success',
+    draft: 'default',
+    archived: 'warning',
   };
   return map[status] || 'default';
 };
@@ -91,10 +105,10 @@ export const getStatusBadgeClass = (status) => {
     arrived:
       'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success)]/20',
     delivered:
-      'bg-[var(--color-gray-100)] text-[var(--color-gray-600)] border-[var(--color-gray-200)]',
+      'bg-[var(--bg-muted)] text-[var(--text-secondary)] border-[var(--border-color)]',
     rejected:
       'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger)]/20',
-    void: 'bg-[var(--color-gray-100)] text-[var(--color-gray-500)] border-[var(--color-gray-200)]',
+    void: 'bg-[var(--bg-muted)] text-[var(--text-muted)] border-[var(--border-color)]',
   };
-  return map[status] || 'bg-gray-50 text-gray-600 border-gray-200';
+  return map[status] || 'bg-[var(--bg-muted)] text-[var(--text-secondary)] border-[var(--border-color)]';
 };

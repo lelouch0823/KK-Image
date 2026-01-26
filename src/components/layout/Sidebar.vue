@@ -62,7 +62,7 @@
         <!-- 移动端关闭按钮 -->
         <button
           type="button"
-          class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 lg:hidden"
+          class="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] lg:hidden"
           @click="closeSidebar"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

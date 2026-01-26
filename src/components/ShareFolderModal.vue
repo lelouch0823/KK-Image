@@ -17,8 +17,8 @@
           </svg>
         </div>
         <div>
-          <div class="text-primary font-medium">{{ folder?.name }}</div>
-          <div class="text-secondary text-xs">
+          <div class="font-medium text-[var(--text-main)]">{{ folder?.name }}</div>
+          <div class="text-xs text-[var(--text-secondary)]">
             {{ t('fileManager.totalFiles', { count: folder?.fileCount || 0 }) }}
           </div>
         </div>
@@ -27,7 +27,7 @@
       <!-- 🔧 NEW: 显示已有分享链接 -->
       <div
         v-if="existingShareUrl && !shareUrl"
-        class="mb-6 rounded-lg border border-blue-100 bg-[var(--color-info-bg)] p-4"
+        class="mb-6 rounded-lg border border-[var(--color-info)]/20 bg-[var(--color-info-bg)] p-4"
       >
         <div class="mb-2 flex items-center justify-between">
           <span class="text-sm font-medium text-[var(--color-info-text)]">{{
@@ -47,7 +47,7 @@
           />
           <Tooltip :content="t('share.copyLink')">
             <button
-              class="text-secondary flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-white transition-colors hover:bg-gray-50 hover:text-[var(--color-info)]"
+              class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-info)]"
               @click="copyExistingLink"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,7 +64,7 @@
         <p v-if="existingCopied" class="mt-2 text-xs text-[var(--color-info)]">
           ✓ {{ t('share.copiedClipboard') }}
         </p>
-        <div class="mt-3 flex items-center justify-between border-t border-blue-100 pt-3">
+        <div class="mt-3 flex items-center justify-between border-t border-[var(--color-info)]/20 pt-3">
           <span class="text-xs text-[var(--color-info)] opacity-80">{{
             t('share.needUpdateExpiry')
           }}</span>
@@ -79,7 +79,7 @@
 
       <!-- Expiration Options -->
       <div v-if="!existingShareUrl || showExpiryOptions" class="mb-6">
-        <label class="text-primary mb-3 block text-sm font-medium">{{
+        <label class="mb-3 block text-sm font-medium text-[var(--text-main)]">{{
           t('share.expiration')
         }}</label>
         <div class="grid grid-cols-3 gap-3">
@@ -89,8 +89,8 @@
             class="rounded-lg border px-3 py-2 text-center text-sm transition-all"
             :class="
               expiry === opt.value
-                ? 'border-primary text-primary ring-primary bg-[var(--color-primary-bg)] font-medium ring-1'
-                : 'text-secondary border-[var(--border-color)] hover:border-gray-300'
+                ? 'border-[var(--color-primary)] bg-[var(--color-primary-bg)] font-medium text-[var(--color-primary)] ring-1 ring-[var(--color-primary)]'
+                : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--border-hover)]'
             "
             @click="expiry = opt.value"
           >
@@ -101,7 +101,7 @@
 
       <!-- Generated Link -->
       <div v-if="shareUrl" class="mb-4">
-        <label class="text-primary mb-2 block text-sm font-medium">{{ t('share.generate') }}</label>
+        <label class="mb-2 block text-sm font-medium text-[var(--text-main)]">{{ t('share.generate') }}</label>
         <div class="flex gap-2">
           <input
             type="text"
@@ -112,7 +112,7 @@
           />
           <Tooltip :content="t('common.copy')">
             <button
-              class="text-secondary flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-success)]"
+              class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-success)]"
               @click="copyLink"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

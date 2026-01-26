@@ -878,10 +878,9 @@ export default {
     action: {
       create: '创建商品',
       edit: '编辑商品',
-      delete: '删除',
+      save: '保存修改',
       cancel: '取消',
-      save: '保存',
-      delete_confirm_message: '确定要删除商品 "{name}" 吗？此操作不可恢复。',
+      import: '导入',
     },
     confirm: {
       delete_title: '删除确认',
@@ -944,6 +943,11 @@ export default {
       image_match_stats: '{matched} / {total}',
       upload_and_continue: '上传并继续',
       mapping_confirm: '确认映射',
+      back: '上一步',
+      match_hint: '未匹配到任何图片，确定要继续吗？这些商品将没有图片。',
+      upload_success: '成功上传 {count} 张图片',
+      upload_failed: '图片上传失败: {message}',
+      stats_summary: '导入完成: {success} 成功, {failed} 失败',
     },
   },
 

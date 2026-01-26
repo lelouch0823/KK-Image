@@ -7,8 +7,8 @@
         :class="[
           'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm transition-all',
           message.role === 'user'
-            ? 'bg-primary rounded-br-none text-white dark:text-main-inverse'
-            : 'border-border text-primary bg-surface rounded-bl-none border dark:bg-surface-muted'
+            ? 'bg-primary rounded-br-none text-[var(--text-inverse)] font-medium shadow-primary/20'
+            : 'border-[var(--border-color)] text-[var(--text-main)] bg-[var(--bg-card)] rounded-bl-none border shadow-sm'
         ]"
       >
         <!-- Assistant Message (Markdown) -->
@@ -31,7 +31,7 @@
     >
       <div v-if="showReportButton && !isGeneratingReport" class="mt-2 flex justify-start">
         <button
-          class="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-2.5 text-sm font-medium text-white shadow-md transition-all hover:shadow-lg hover:brightness-110"
+          class="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--color-info)] to-[var(--color-purple)] px-4 py-2.5 text-sm font-medium text-[var(--text-inverse)] shadow-md transition-all hover:shadow-lg hover:brightness-110"
           @click="$emit('generate-report')"
         >
           <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -44,7 +44,7 @@
 
     <!-- Report Generation Loading -->
     <div v-if="isGeneratingReport" class="mt-2 flex justify-start">
-      <div class="flex items-center gap-2 rounded-xl bg-gray-100 px-4 py-2.5 text-sm text-gray-600">
+      <div class="flex items-center gap-2 rounded-xl bg-[var(--bg-muted)] px-4 py-2.5 text-sm text-[var(--text-secondary)]">
         <svg class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -55,7 +55,7 @@
 
     <!-- Thinking / Tool Status for Assistant -->
     <div v-if="isThinking || toolStatus" class="flex justify-start">
-      <div class="border-border bg-surface rounded-2xl rounded-bl-none border px-4 py-3 shadow-sm dark:bg-surface-muted">
+      <div class="border-[var(--border-color)] bg-[var(--bg-card)] rounded-2xl rounded-bl-none border px-4 py-3 shadow-sm">
         <div class="flex items-center gap-3">
           <!-- Tool Status -->
           <template v-if="toolStatus">

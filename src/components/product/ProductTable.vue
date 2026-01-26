@@ -171,26 +171,26 @@ const getMainImage = (product) => {
 const getStockColor = (p) => {
     const qty = p.stock_quantity || 0;
     const threshold = p.alert_threshold || 10;
-    if (qty === 0) return 'text-red-500';
-    if (qty <= threshold) return 'text-amber-500';
-    return 'text-slate-900 dark:text-slate-100';
+    if (qty === 0) return 'text-[var(--color-danger)] font-bold';
+    if (qty <= threshold) return 'text-[var(--color-warning)] font-bold';
+    return 'text-[var(--text-main)]';
 };
 
 const getStatusClass = (s) => {
     switch (s) {
-        case 'active': return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800';
-        case 'draft': return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
-        case 'archived': return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800';
-        default: return 'bg-slate-100 text-slate-600';
+        case 'active': return 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--border-success)]';
+        case 'draft': return 'bg-[var(--bg-muted)] text-[var(--text-secondary)] border-[var(--border-color)]';
+        case 'archived': return 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--border-warning)]';
+        default: return 'bg-[var(--bg-muted)] text-[var(--text-secondary)]';
     }
 }
 
 const getStatusDot = (s) => {
     switch (s) {
-        case 'active': return 'bg-green-500';
-        case 'draft': return 'bg-slate-500';
-        case 'archived': return 'bg-amber-500';
-        default: return 'bg-slate-400';
+        case 'active': return 'bg-[var(--color-success)]';
+        case 'draft': return 'bg-[var(--text-muted)]';
+        case 'archived': return 'bg-[var(--color-warning)]';
+        default: return 'bg-[var(--text-muted)]';
     }
 }
 </script>
