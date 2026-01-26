@@ -55,7 +55,7 @@
               :src="order.mainImage"
               :blurhash="order.mainImageBlurhash"
               fit="cover"
-              class="size-full order-list-image"
+              class="order-list-image size-full"
               rounded="none"
             />
             <div v-else class="flex size-full items-center justify-center">

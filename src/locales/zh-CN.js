@@ -846,6 +846,8 @@ export default {
         product: '商品信息',
         price: '价格',
         stock: '库存',
+        category: '分类',
+        updated: '更新时间',
         status: '状态',
         actions: '操作',
       },
@@ -884,6 +886,7 @@ export default {
       empty_title: '暂无商品',
       empty_description: '开始添加您的第一个商品',
       cost: '成本',
+      lowStock: '库存不足',
       units: '件',
     },
     import: {

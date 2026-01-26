@@ -7,28 +7,28 @@
     <form class="space-y-5" @submit.prevent="handleSubmit">
       <!-- 姓名 -->
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-main">
+        <label class="text-main mb-1.5 block text-sm font-medium">
           {{ t('salesperson.name') }} <span class="text-danger">*</span>
         </label>
         <input
           v-model="form.name"
           type="text"
           :placeholder="t('salesperson.namePlaceholder')"
-          class="input h-11 border-border bg-surface-muted text-main placeholder-secondary-text/50 focus:border-primary focus:ring-primary/20"
+          class="input border-border bg-surface-muted text-main placeholder-secondary-text/50 h-11 focus:border-primary focus:ring-primary/20"
           required
         />
       </div>
 
       <!-- 门店 -->
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-main">
+        <label class="text-main mb-1.5 block text-sm font-medium">
           {{ t('salesperson.store') }}
         </label>
         <input
           v-model="form.store"
           type="text"
           :placeholder="t('salesperson.storePlaceholder')"
-          class="input h-11 border-border bg-surface-muted text-main placeholder-secondary-text/50 focus:border-primary focus:ring-primary/20"
+          class="input border-border bg-surface-muted text-main placeholder-secondary-text/50 h-11 focus:border-primary focus:ring-primary/20"
         />
       </div>
 
@@ -47,7 +47,7 @@
 
       <!-- 密码 -->
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-main">
+        <label class="text-main mb-1.5 block text-sm font-medium">
           {{ t('salesperson.password') }}
           <span v-if="!isEditing" class="text-danger">*</span>
         </label>
@@ -57,10 +57,10 @@
           :placeholder="
             isEditing ? t('salesperson.leaveBlankToKeep') : t('salesperson.passwordPlaceholder')
           "
-          class="input h-11 border-border bg-surface-muted text-main placeholder-secondary-text/50 focus:border-primary focus:ring-primary/20"
+          class="input border-border bg-surface-muted text-main placeholder-secondary-text/50 h-11 focus:border-primary focus:ring-primary/20"
           :required="!isEditing"
         />
-        <p class="mt-1.5 text-xs text-secondary-text">
+        <p class="text-secondary-text mt-1.5 text-xs">
           {{ t('salesperson.passwordHint') }}
         </p>
       </div>
@@ -69,13 +69,13 @@
       <div v-if="isEditing" class="space-y-5 border-t border-[var(--border-color)] pt-5">
         <label class="group flex cursor-pointer items-center justify-between">
           <span
-            class="text-sm font-medium text-main transition-colors group-hover:text-primary"
+            class="text-main text-sm font-medium transition-colors group-hover:text-primary"
             >{{ t('salesperson.activeStatus') }}</span
           >
           <div class="relative inline-flex cursor-pointer items-center">
             <input v-model="form.isActive" type="checkbox" class="peer sr-only" />
             <div
-              class="peer h-6 w-11 rounded-full bg-surface-muted peer-checked:bg-primary peer-focus:ring-2 peer-focus:ring-primary/20 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-border after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
+              class="peer bg-surface-muted h-6 w-11 rounded-full peer-checked:bg-primary peer-focus:ring-primary/20 peer-focus:ring-2 peer-focus:outline-none after:border-border after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
             ></div>
           </div>
         </label>
@@ -108,7 +108,7 @@
       </button>
       <button
         :disabled="submitting"
-        class="flex items-center rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white dark:text-main-inverse shadow-primary/20 shadow-lg transition-all hover:bg-primary-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+        class="bg-primary shadow-primary/20 flex items-center rounded-xl px-6 py-2.5 text-sm font-bold text-white shadow-lg transition-all dark:text-main-inverse hover:bg-primary-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         @click="handleSubmit"
       >
         <svg

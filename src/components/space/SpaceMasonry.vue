@@ -64,7 +64,7 @@
           :alt="file.name"
           :blurhash="file.blurhash"
           fit="cover"
-          class="h-auto w-full masonry-image"
+          class="masonry-image h-auto w-full"
           rounded="none"
         />
 

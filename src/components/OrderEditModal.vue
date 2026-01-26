@@ -40,7 +40,7 @@
         <!-- 图片管理 -->
         <div>
           <h4
-            class="text-primary mb-3 border-b border-border pb-2 text-sm font-medium"
+            class="text-primary border-border mb-3 border-b pb-2 text-sm font-medium"
           >
             {{ t('order.detail.images') }}
           </h4>
@@ -62,7 +62,7 @@
 
     <template #footer>
       <button
-        class="text-secondary-text rounded-lg border border-border px-5 py-2 font-medium transition-colors hover:bg-surface-hover"
+        class="text-secondary-text border-border rounded-lg border px-5 py-2 font-medium transition-colors hover:bg-surface-hover"
         @click="$emit('close')"
       >
         {{ t('common.cancel') }}

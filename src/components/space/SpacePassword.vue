@@ -1,7 +1,7 @@
 <template>
   <div class="flex min-h-screen items-center justify-center px-4">
     <div class="w-full max-w-sm">
-      <div class="rounded-2xl border border-border bg-surface p-8 shadow-lg">
+      <div class="border-border bg-surface rounded-2xl border p-8 shadow-lg">
         <div class="mb-6 text-center">
           <div
             class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-gray-100"
@@ -28,7 +28,7 @@
             v-model="password"
             type="password"
             :placeholder="t('gallery.enterPassword')"
-            class="focus:border-primary focus:bg-surface focus:outline-none mb-4 h-12 w-full rounded-xl border border-border bg-surface-muted px-4 text-sm transition-colors"
+            class="focus:border-primary focus:bg-surface focus:outline-none border-border bg-surface-muted mb-4 h-12 w-full rounded-xl border px-4 text-sm transition-colors"
           />
           <button
             type="submit"

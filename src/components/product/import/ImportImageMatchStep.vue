@@ -1,7 +1,7 @@
 <template>
     <div>
-        <h3 class="font-medium text-lg mb-2 dark:text-gray-100">{{ t('product.import.step_image', '图片智能匹配') }}</h3>
-        <p class="text-sm text-gray-500 mb-4 dark:text-gray-400">
+        <h3 class="mb-2 text-lg font-medium dark:text-gray-100">{{ t('product.import.step_image', '图片智能匹配') }}</h3>
+        <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
             检测到Excel中包含 {{ totalImagesCount }} 个本地图片引用。请上传对应的图片文件。
         </p>
 

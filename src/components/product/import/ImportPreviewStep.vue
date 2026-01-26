@@ -2,7 +2,7 @@
     <div v-if="fileName" class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="file-icon bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 flex size-10 items-center justify-center rounded-lg">
+                <div class="file-icon flex size-10 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
                     <svg class="size-6" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
                     </svg>
@@ -28,7 +28,7 @@
                 <span class="text-gray-600 dark:text-gray-300">{{ t('product.import.total_rows', '识别行数') }}:</span>
                 <span class="font-medium text-gray-900 dark:text-white">{{ parsedItems.length }}</span>
             </div>
-            <div class="mt-2 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded dark:bg-amber-900/20 dark:text-amber-400" v-if="parsedItems.length > 500">
+            <div v-if="parsedItems.length > 500" class="mt-2 rounded bg-amber-50 px-2 py-1 text-xs text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
                 ⚠️ {{ t('product.import.limit_warning', '数据量较大，将自动分批导入') }}
             </div>
         </div>
@@ -54,7 +54,8 @@
     </div>
     
     <!-- Import Result -->
-    <div v-if="importResult" class="rounded-md p-3 text-sm mt-4" 
+    <div
+v-if="importResult" class="mt-4 rounded-md p-3 text-sm" 
     :class="importResult.success && importResult.count > 0 ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'">
         <p class="font-medium">
         {{ importResult.success && importResult.count > 0 ? '导入完成！' : '导入失败' }}
@@ -66,7 +67,7 @@
     </div>
 
     <!-- Error Feedback (General) -->
-    <div v-if="importError" class="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300 mt-4">
+    <div v-if="importError" class="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
         {{ importError }}
     </div>
 </template>

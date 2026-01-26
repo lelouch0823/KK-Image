@@ -50,8 +50,8 @@
         <button 
             type="button" 
             class="btn btn-ghost mr-2" 
-            @click="currentStep === 1 ? $emit('update:modelValue', false) : handleBack()"
             :disabled="loading"
+            @click="currentStep === 1 ? $emit('update:modelValue', false) : handleBack()"
         >
             {{ currentStep === 1 ? t('common.cancel') : '上一步' }}
         </button>

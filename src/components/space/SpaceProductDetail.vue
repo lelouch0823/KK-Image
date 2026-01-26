@@ -5,7 +5,7 @@
       <div class="w-full space-y-4 lg:w-2/3">
         <!-- Main Image -->
         <div
-          class="group relative aspect-video touch-pan-y overflow-hidden rounded-2xl border border-border bg-surface-muted shadow-sm"
+          class="group border-border bg-surface-muted relative aspect-video touch-pan-y overflow-hidden rounded-2xl border shadow-sm"
           @touchstart="handleTouchStart"
           @touchend="handleTouchEnd"
         >
@@ -14,7 +14,7 @@
             :src="currentFile.url"
             :blurhash="currentFile.blurhash"
             fit="contain"
-            class="size-full bg-surface select-none"
+            class="bg-surface size-full select-none"
             rounded="none"
           />
           <div v-else class="text-secondary flex size-full items-center justify-center">
@@ -24,7 +24,7 @@
           <!-- Navigation Arrows (Hidden on mobile) -->
           <button
             v-if="hasMultipleFiles"
-            class="absolute top-1/2 left-4 hidden -translate-y-1/2 rounded-full bg-surface/80 p-2 text-secondary-text opacity-0 shadow-md transition-opacity group-hover:opacity-100 hover:bg-surface lg:flex"
+            class="bg-surface/80 text-secondary-text absolute top-1/2 left-4 hidden -translate-y-1/2 rounded-full p-2 opacity-0 shadow-md transition-opacity hover:bg-surface group-hover:opacity-100 lg:flex"
             @click="prevImage"
           >
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,7 +88,7 @@
             />
             <div
               v-else
-              class="flex size-full items-center justify-center bg-surface-muted text-xs font-bold text-secondary-text uppercase"
+              class="bg-surface-muted text-secondary-text flex size-full items-center justify-center text-xs font-bold uppercase"
             >
               {{ file.name.split('.').pop() }}
             </div>
@@ -101,11 +101,11 @@
         <div>
           <div
             v-if="templateData.brand"
-            class="text-primary mb-2 inline-block rounded bg-surface-muted px-2 py-1 text-sm font-medium"
+            class="text-primary bg-surface-muted mb-2 inline-block rounded px-2 py-1 text-sm font-medium"
           >
             {{ templateData.brand }}
           </div>
-          <h1 class="text-3xl leading-tight font-bold text-main">{{ space.name }}</h1>
+          <h1 class="text-main text-3xl leading-tight font-bold">{{ space.name }}</h1>
           <p v-if="templateData.series" class="text-secondary mt-1 text-lg">
             {{ templateData.series }}
           </p>
@@ -116,7 +116,7 @@
 
         <div v-if="templateData.price" class="flex items-baseline gap-1">
           <span class="text-sm text-[var(--text-secondary)]">¥</span>
-          <span class="text-3xl font-bold text-main">{{
+          <span class="text-main text-3xl font-bold">{{
             formatPrice(templateData.price)
           }}</span>
         </div>
@@ -126,10 +126,10 @@
           <dl class="grid grid-cols-1 gap-4  sm:grid-cols-2">
             <div
               v-if="templateData.brand"
-              class="border-l-2 border-primary-light pl-3"
+              class="border-primary-light border-l-2 pl-3"
             >
-              <dt class="text-sm font-medium text-secondary-text">{{ t('spaceManager.brand') }}</dt>
-              <dd class="mt-1 text-sm font-semibold text-main">{{ templateData.brand }}</dd>
+              <dt class="text-secondary-text text-sm font-medium">{{ t('spaceManager.brand') }}</dt>
+              <dd class="text-main mt-1 text-sm font-semibold">{{ templateData.brand }}</dd>
             </div>
             <div
               v-if="templateData.series"
@@ -160,8 +160,8 @@
           </dl>
         </div>
 
-        <div v-if="space.description" class="prose prose-sm prose-gray dark:prose-invert max-w-none text-secondary-text">
-          <h3 class="text-sm font-medium text-main">{{ t('spacePublic.description') }}</h3>
+        <div v-if="space.description" class="prose prose-sm prose-gray dark:prose-invert text-secondary-text max-w-none">
+          <h3 class="text-main text-sm font-medium">{{ t('spacePublic.description') }}</h3>
           <p class="whitespace-pre-line">{{ space.description }}</p>
         </div>
 
@@ -186,7 +186,7 @@
           <button
             v-if="hasMultipleFiles"
             :disabled="downloading"
-            class="text-primary flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface py-3 font-medium transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+            class="text-primary border-border bg-surface flex w-full items-center justify-center gap-2 rounded-xl border py-3 font-medium transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
             @click="handleDownloadAll"
           >
             <svg
@@ -234,14 +234,14 @@
 
     <!-- SOTA Mobile Sticky Bottom Bar -->
     <div
-      class="fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t border-border bg-surface p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden"
+      class="border-border bg-surface fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden"
     >
       <div class="flex flex-1 gap-2">
         <a
           v-if="currentFile"
           :href="currentFile.url"
           download
-          class="text-primary flex flex-1 items-center justify-center gap-2 rounded-xl bg-surface-muted py-3 font-medium transition-transform active:scale-95"
+          class="text-primary bg-surface-muted flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-medium transition-transform active:scale-95"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path

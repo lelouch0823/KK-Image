@@ -1,12 +1,12 @@
 <template>
   <div
+    ref="containerRef"
     class="app-image"
     :class="[
       containerClasses,
       { 'app-image--lazy': lazy && !isIntersecting },
     ]"
     :style="containerStyle"
-    ref="containerRef"
   >
     <!-- 占位层 (加载中或懒加载未触发) -->
     <div
@@ -45,7 +45,8 @@
         <div class="app-image__error-content">
           <!-- Broken Image Icon -->
           <svg class="app-image__error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
+            <path
+stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
               d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" 
             />
           </svg>

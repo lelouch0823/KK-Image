@@ -8,7 +8,7 @@
           'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm transition-all',
           message.role === 'user'
             ? 'bg-primary rounded-br-none text-white dark:text-main-inverse'
-            : 'border-border text-primary rounded-bl-none border bg-surface dark:bg-surface-muted'
+            : 'border-border text-primary bg-surface rounded-bl-none border dark:bg-surface-muted'
         ]"
       >
         <!-- Assistant Message (Markdown) -->
@@ -55,7 +55,7 @@
 
     <!-- Thinking / Tool Status for Assistant -->
     <div v-if="isThinking || toolStatus" class="flex justify-start">
-      <div class="border-border rounded-2xl rounded-bl-none border bg-surface px-4 py-3 shadow-sm dark:bg-surface-muted">
+      <div class="border-border bg-surface rounded-2xl rounded-bl-none border px-4 py-3 shadow-sm dark:bg-surface-muted">
         <div class="flex items-center gap-3">
           <!-- Tool Status -->
           <template v-if="toolStatus">

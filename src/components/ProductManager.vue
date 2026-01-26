@@ -14,9 +14,9 @@
         <div class="flex shrink-0 items-center gap-1 sm:gap-2">
             <!-- Create Button -->
             <button 
-                class="bg-primary shadow-primary/20 flex items-center justify-center gap-2 rounded-lg text-sm font-medium text-white shadow-sm transition-all hover:bg-primary-hover active:scale-95 dark:text-gray-900 sm:h-9 sm:px-4 max-sm:size-9"
-                @click="handleCreate"
+                class="bg-primary shadow-primary/20 flex items-center justify-center gap-2 rounded-lg text-sm font-medium text-white shadow-sm transition-all hover:bg-primary-hover active:scale-95 max-sm:size-9 sm:h-9 sm:px-4 dark:text-gray-900"
                 :title="t('product.action.create')"
+                @click="handleCreate"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="size-5 sm:size-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
@@ -26,7 +26,7 @@
 
             <!-- Import Button -->
             <button
-                class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] transition-all active:scale-95 hover:bg-[var(--bg-card-hover)] hover:text-indigo-600"
+                class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-card-hover)] hover:text-indigo-600 active:scale-95"
                 :title="t('product.action.import')"
                 @click="showImportModal = true"
             >
@@ -37,7 +37,7 @@
 
             <!-- Export Button -->
             <button
-                class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] transition-all active:scale-95 hover:bg-[var(--bg-card-hover)] hover:text-indigo-600"
+                class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-card-hover)] hover:text-indigo-600 active:scale-95"
                 :title="t('product.action.export')"
                 @click="handleExport"
             >
@@ -48,7 +48,7 @@
 
              <!-- Stats Button -->
             <button
-                class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--color-primary)] transition-all active:scale-95 hover:bg-[var(--bg-card-hover)]"
+                class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--color-primary)] transition-all hover:bg-[var(--bg-card-hover)] active:scale-95"
                 :title="t('product.manager.stats_overview')"
                 @click="showStatsModal = true"
             >

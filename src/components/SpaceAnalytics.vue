@@ -55,7 +55,7 @@
       </div>
 
       <!-- Chart with Time Range Selector -->
-      <div class="shadow-soft rounded-2xl border border-border bg-surface p-4">
+      <div class="shadow-soft border-border bg-surface rounded-2xl border p-4">
         <div class="mb-4 flex items-center justify-between">
           <h3 class="text-primary text-sm font-medium">
             {{ t('spaceAnalytics.visitorTrend') }}
@@ -93,7 +93,7 @@
           <!-- Chart Loading Overlay -->
           <div
             v-if="chartLoading"
-            class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-surface/80"
+            class="bg-surface/80 absolute inset-0 z-10 flex items-center justify-center rounded-lg"
           >
             <div class="border-primary size-6 animate-spin rounded-full border-b-2"></div>
           </div>

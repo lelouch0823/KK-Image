@@ -36,7 +36,7 @@
               :src="order.mainImage" 
               :blurhash="order.mainImageBlurhash"
               fit="cover"
-              class="size-full order-card-image"
+              class="order-card-image size-full"
               rounded="none"
             />
             <div v-else class="flex size-full items-center justify-center">

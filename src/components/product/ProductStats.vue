@@ -1,7 +1,7 @@
 <template>
   <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
     <!-- Total Products -->
-    <div class="group relative rounded-2xl border border-border-subtle bg-surface p-5 shadow-sm transition-all duration-300 hover:shadow-md dark:border-border dark:bg-surface-muted">
+    <div class="group border-border-subtle bg-surface relative rounded-2xl border p-5 shadow-sm transition-all duration-300 dark:border-border dark:bg-surface-muted hover:shadow-md">
       <div class="flex items-start justify-between">
         <div>
           <h3 class="mb-1 text-sm font-medium text-slate-500 dark:text-slate-400">{{ t('product.stats.total_products') }}</h3>
@@ -26,7 +26,7 @@
     </div>
 
     <!-- Low Stock Alert -->
-    <div class="group relative rounded-2xl border border-border-subtle bg-surface p-5 shadow-sm transition-all duration-300 hover:shadow-md dark:border-border dark:bg-surface-muted">
+    <div class="group border-border-subtle bg-surface relative rounded-2xl border p-5 shadow-sm transition-all duration-300 dark:border-border dark:bg-surface-muted hover:shadow-md">
       <div class="flex items-start justify-between">
         <div>
           <h3 class="mb-1 text-sm font-medium text-slate-500 dark:text-slate-400">{{ t('product.stats.low_stock') }}</h3>
@@ -46,7 +46,7 @@
     </div>
 
     <!-- Total Value (Est) -->
-    <div class="group relative rounded-2xl border border-border-subtle bg-surface p-5 shadow-sm transition-all duration-300 hover:shadow-md dark:border-border dark:bg-surface-muted">
+    <div class="group border-border-subtle bg-surface relative rounded-2xl border p-5 shadow-sm transition-all duration-300 dark:border-border dark:bg-surface-muted hover:shadow-md">
       <div class="flex items-start justify-between">
         <div>
           <h3 class="mb-1 text-sm font-medium text-slate-500 dark:text-slate-400">{{ t('product.stats.total_value') }}</h3>
