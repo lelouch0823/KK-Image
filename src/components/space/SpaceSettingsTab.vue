@@ -2,12 +2,12 @@
   <div class="flex-1 space-y-4 overflow-y-auto p-6">
     <!-- 分享设置卡片 -->
     <div
-      class="from-primary/5 to-primary/10 border-primary/20 rounded-2xl border bg-gradient-to-br p-5"
+      class="rounded-2xl border border-[var(--color-primary)]/20 bg-gradient-to-br from-[var(--color-primary)]/5 to-[var(--color-primary)]/10 p-5"
     >
       <div class="mb-4 flex items-center gap-3">
-        <div class="bg-primary/10 flex size-10 items-center justify-center rounded-xl">
+        <div class="flex size-10 items-center justify-center rounded-xl bg-[var(--color-primary)]/10">
           <svg
-            class="text-primary size-5"
+            class="size-5 text-[var(--color-primary)]"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -21,8 +21,8 @@
           </svg>
         </div>
         <div class="flex-1">
-          <h3 class="text-primary font-semibold">{{ t('spaceManager.shareSettings') }}</h3>
-          <p class="text-secondary text-sm">
+          <h3 class="font-semibold text-[var(--color-primary)]">{{ t('spaceManager.shareSettings') }}</h3>
+          <p class="text-sm text-[var(--text-secondary)]">
             {{ shareModeLabel }}
           </p>
         </div>
@@ -30,7 +30,7 @@
 
       <!-- 分享模式选择器 -->
       <div class="mb-4 space-y-3">
-        <label class="text-secondary block text-sm font-medium">{{ t('spaceManager.shareMode.label') || '分享模式' }}</label>
+        <label class="block text-sm font-medium text-[var(--text-secondary)]">{{ t('spaceManager.shareMode.label') || '分享模式' }}</label>
         <div class="flex gap-2">
           <button
             v-for="mode in shareModes"
@@ -43,7 +43,7 @@
             @click="updateShareMode(mode.value)"
           >
             <span class="text-lg">{{ mode.icon }}</span>
-            <span class="text-sm font-medium" :class="currentShareMode === mode.value ? 'text-[var(--color-primary)]' : 'text-primary'">
+            <span class="text-sm font-medium" :class="currentShareMode === mode.value ? 'text-[var(--color-primary)]' : 'text-[var(--text-main)]'">
               {{ mode.label }}
             </span>
           </button>
@@ -62,7 +62,7 @@
       <!-- 保存分享设置按钮 -->
       <button
         :disabled="publishing"
-        class="bg-primary flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-white transition-all hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+        class="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] py-3 font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:opacity-90 disabled:opacity-50"
         @click="saveShareSettings"
       >
         <svg v-if="publishing" class="size-5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -74,16 +74,16 @@
     </div>
 
     <!-- 公开链接区域 (仅 is_public 为 true 时) -->
-    <div v-if="isPublic" class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5">
+    <div v-if="isPublic" class="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5">
       <div class="mb-4 flex items-center gap-3">
-        <div class="flex size-10 items-center justify-center rounded-xl bg-green-50">
-          <svg class="size-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex size-10 items-center justify-center rounded-xl bg-[var(--color-success)]/10">
+          <svg class="size-5 text-[var(--color-success)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
           </svg>
         </div>
         <div class="flex-1">
-          <h3 class="font-semibold text-green-700">{{ t('spaceManager.publicLink') || '公开链接' }}</h3>
-          <p class="text-secondary text-sm">{{ viewCount || 0 }} {{ t('spacePublic.views') }}</p>
+          <h3 class="font-semibold text-[var(--color-success)]">{{ t('spaceManager.publicLink') || '公开链接' }}</h3>
+          <p class="text-sm text-[var(--text-secondary)]">{{ viewCount || 0 }} {{ t('spacePublic.views') }}</p>
         </div>
       </div>
 
@@ -93,10 +93,10 @@
           type="text"
           readonly
           :value="shareUrl"
-          class="text-primary flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 font-mono text-sm"
+          class="flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-4 py-2.5 font-mono text-sm text-[var(--text-main)]"
         />
         <button
-          class="text-primary flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 transition-colors hover:bg-[var(--bg-hover)]"
+          class="flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 text-[var(--text-main)] transition-colors hover:bg-[var(--bg-hover)]"
           @click="copyLink"
         >
           <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,7 +109,7 @@
       <!-- 取消公开 -->
       <button
         :disabled="publishing"
-        class="text-secondary mt-3 w-full rounded-xl border border-[var(--border-color)] py-2.5 text-sm transition-colors hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]"
+        class="mt-3 w-full rounded-xl border border-[var(--border-color)] py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--color-danger-text)] hover:text-[var(--color-danger-text)]"
         @click="$emit('unpublish')"
       >
         {{ t('spaceManager.shareCard.unpublish') }}

@@ -7,28 +7,28 @@
     <form class="space-y-5" @submit.prevent="handleSubmit">
       <!-- 姓名 -->
       <div>
-        <label class="text-main mb-1.5 block text-sm font-medium">
-          {{ t('salesperson.name') }} <span class="text-danger">*</span>
+        <label class="mb-1.5 block text-sm font-medium text-[var(--text-main)]">
+          {{ t('salesperson.name') }} <span class="text-[var(--color-danger)]">*</span>
         </label>
         <input
           v-model="form.name"
           type="text"
           :placeholder="t('salesperson.namePlaceholder')"
-          class="input border-border bg-surface-muted text-main placeholder-secondary-text/50 h-11 focus:border-primary focus:ring-primary/20"
+          class="flex h-11 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] px-3 text-sm text-[var(--text-main)] transition-all outline-none placeholder:text-[var(--text-secondary)]/50 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20"
           required
         />
       </div>
 
       <!-- 门店 -->
       <div>
-        <label class="text-main mb-1.5 block text-sm font-medium">
+        <label class="mb-1.5 block text-sm font-medium text-[var(--text-main)]">
           {{ t('salesperson.store') }}
         </label>
         <input
           v-model="form.store"
           type="text"
           :placeholder="t('salesperson.storePlaceholder')"
-          class="input border-border bg-surface-muted text-main placeholder-secondary-text/50 h-11 focus:border-primary focus:ring-primary/20"
+          class="flex h-11 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] px-3 text-sm text-[var(--text-main)] transition-all outline-none placeholder:text-[var(--text-secondary)]/50 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20"
         />
       </div>
 
@@ -41,15 +41,15 @@
           v-model="form.phone"
           type="tel"
           :placeholder="t('salesperson.phonePlaceholder')"
-          class="input h-11 border-[var(--border-color)] bg-[var(--bg-muted)] text-[var(--text-main)] placeholder-[var(--text-secondary)]/50 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+          class="flex h-11 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] px-3 text-sm text-[var(--text-main)] transition-all outline-none placeholder:text-[var(--text-secondary)]/50 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20"
         />
       </div>
 
       <!-- 密码 -->
       <div>
-        <label class="text-main mb-1.5 block text-sm font-medium">
+        <label class="mb-1.5 block text-sm font-medium text-[var(--text-main)]">
           {{ t('salesperson.password') }}
-          <span v-if="!isEditing" class="text-danger">*</span>
+          <span v-if="!isEditing" class="text-[var(--color-danger)]">*</span>
         </label>
         <input
           v-model="form.password"
@@ -57,10 +57,10 @@
           :placeholder="
             isEditing ? t('salesperson.leaveBlankToKeep') : t('salesperson.passwordPlaceholder')
           "
-          class="input border-border bg-surface-muted text-main placeholder-secondary-text/50 h-11 focus:border-primary focus:ring-primary/20"
+          class="flex h-11 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] px-3 text-sm text-[var(--text-main)] transition-all outline-none placeholder:text-[var(--text-secondary)]/50 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20"
           :required="!isEditing"
         />
-        <p class="text-secondary-text mt-1.5 text-xs">
+        <p class="mt-1.5 text-xs text-[var(--text-secondary)]">
           {{ t('salesperson.passwordHint') }}
         </p>
       </div>
@@ -69,13 +69,13 @@
       <div v-if="isEditing" class="space-y-5 border-t border-[var(--border-color)] pt-5">
         <label class="group flex cursor-pointer items-center justify-between">
           <span
-            class="text-main text-sm font-medium transition-colors group-hover:text-primary"
+            class="text-sm font-medium text-[var(--text-main)] transition-colors group-hover:text-[var(--color-primary)]"
             >{{ t('salesperson.activeStatus') }}</span
           >
           <div class="relative inline-flex cursor-pointer items-center">
             <input v-model="form.isActive" type="checkbox" class="peer sr-only" />
             <div
-              class="peer bg-surface-muted h-6 w-11 rounded-full peer-checked:bg-primary peer-focus:ring-primary/20 peer-focus:ring-2 peer-focus:outline-none after:border-border after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
+              class="h-6 w-11 rounded-full bg-[var(--bg-muted)] transition-all peer peer-checked:bg-[var(--color-primary)] peer-focus:ring-2 peer-focus:ring-[var(--color-primary)]/20 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:size-5 after:rounded-full after:border after:border-[var(--border-color)] after:bg-[var(--bg-card)] after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-[var(--bg-card)]"
             ></div>
           </div>
         </label>
@@ -108,7 +108,7 @@
       </button>
       <button
         :disabled="submitting"
-        class="bg-primary shadow-primary/20 flex items-center rounded-xl px-6 py-2.5 text-sm font-bold text-white shadow-lg transition-all dark:text-main-inverse hover:bg-primary-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+        class="flex items-center rounded-xl bg-[var(--color-primary)] px-6 py-2.5 text-sm font-bold text-[var(--text-inverse)] shadow-lg shadow-[var(--color-primary)]/20 transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         @click="handleSubmit"
       >
         <svg

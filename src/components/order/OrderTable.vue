@@ -100,16 +100,16 @@
             </div>
             <div class="text-xs text-[var(--text-secondary)]">{{ order.store }}</div>
           </td>
-          <td class="text-secondary px-4 py-3 font-mono text-xs">{{ order.orderNo }}</td>
+          <td class="px-4 py-3 font-mono text-xs text-[var(--text-secondary)]">{{ order.orderNo }}</td>
           <td class="px-4 py-3" @click.stop>
             <slot name="status" :order="order"></slot>
           </td>
-          <td class="text-secondary px-4 py-3 text-center text-xs">{{ formatTime(order.createdAt) }}</td>
+          <td class="px-4 py-3 text-center text-xs text-[var(--text-secondary)]">{{ formatTime(order.createdAt) }}</td>
           <td class="px-4 py-3 text-center" @click.stop>
             <div class="flex items-center justify-center gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
               <!-- 查看 -->
               <button
-                class="text-secondary rounded-lg p-1.5 transition-colors hover:text-primary hover:bg-[var(--bg-hover)]"
+                class="rounded-lg p-1.5 transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)] text-[var(--text-secondary)]"
                 :title="t('common.view')"
                 @click="$emit('detail', order)"
               >
@@ -130,7 +130,7 @@
               </button>
               <!-- 编辑 -->
               <button
-                class="text-secondary rounded-lg p-1.5 transition-colors hover:text-primary hover:bg-[var(--bg-hover)]"
+                class="rounded-lg p-1.5 transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)] text-[var(--text-secondary)]"
                 :title="t('common.edit')"
                 @click="$emit('edit', order)"
               >

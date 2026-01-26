@@ -10,7 +10,7 @@
       <div class="flex items-center gap-3">
         <div>
           <div class="flex items-center gap-2">
-            <h2 class="text-primary text-lg font-semibold">
+            <h2 class="text-lg font-semibold text-[var(--text-main)]">
               {{ spaceData?.name || t('spaceManager.detailTitle') }}
             </h2>
             <StatusBadge v-if="spaceData?.isPublic" variant="success" dot>
@@ -20,7 +20,7 @@
               {{ t('spaceManager.publicOff') }}
             </StatusBadge>
           </div>
-          <p class="text-secondary mt-0.5 text-sm">
+          <p class="mt-0.5 text-sm text-[var(--text-secondary)]">
             {{ getTemplateLabel(spaceData?.template) }} ·
             {{ t('fileManager.totalFiles', { count: spaceData?.files?.length || 0 }) }}
           </p>
@@ -37,8 +37,8 @@
             class="border-b-2 px-1 py-3 text-sm font-medium transition-colors duration-200"
             :class="
               activeTab === 'files'
-                ? 'border-primary text-primary'
-                : 'text-secondary border-transparent hover:text-[var(--text-main)]'
+                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-main)]'
             "
             @click="activeTab = 'files'"
           >
@@ -50,8 +50,8 @@
             class="border-b-2 px-1 py-3 text-sm font-medium transition-colors duration-200"
             :class="
               activeTab === 'settings'
-                ? 'border-primary text-primary'
-                : 'text-secondary border-transparent hover:text-[var(--text-main)]'
+                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-main)]'
             "
             @click="activeTab = 'settings'"
           >
@@ -61,8 +61,8 @@
             class="border-b-2 px-1 py-3 text-sm font-medium transition-colors duration-200"
             :class="
               activeTab === 'analytics'
-                ? 'border-primary text-primary'
-                : 'text-secondary border-transparent hover:text-[var(--text-main)]'
+                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-main)]'
             "
             @click="activeTab = 'analytics'"
           >
@@ -109,13 +109,13 @@
     <!-- Footer -->
     <template #footer>
       <button
-        class="text-secondary px-4 py-2 text-sm font-medium hover:text-primary"
+        class="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--color-primary)]"
         @click="$emit('close')"
       >
         {{ t('spaceManager.close') }}
       </button>
       <button
-        class="text-primary rounded-lg bg-[var(--bg-muted)] px-4 py-2 text-sm font-medium hover:bg-[var(--bg-hover)]"
+        class="rounded-lg bg-[var(--bg-muted)] px-4 py-2 text-sm font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--bg-hover)]"
         @click="openPreview"
       >
         {{ t('spaceManager.preview') }}

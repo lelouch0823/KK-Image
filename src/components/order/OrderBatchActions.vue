@@ -12,11 +12,11 @@
       class="sticky right-0 bottom-0 left-0 z-20 flex items-center justify-between gap-4 border-t border-[var(--border-color)] bg-[var(--bg-card)] bg-[var(--bg-card)]/90 px-4 py-3.5 shadow-xl shadow-black/10 backdrop-blur-md"
     >
       <div class="flex items-center gap-3">
-        <span class="text-primary text-sm font-medium">
+        <span class="text-[var(--color-primary)] text-sm font-medium">
           {{ t('order.manage.selectedCount', { count: selectedCount }) }}
         </span>
         <button
-          class="text-secondary text-sm transition-colors hover:text-primary"
+          class="text-[var(--text-secondary)] text-sm transition-colors hover:text-[var(--color-primary)]"
           @click="$emit('cancel')"
         >
           {{ t('order.manage.cancelSelect') }}
@@ -25,7 +25,7 @@
       <div class="flex items-center gap-2">
         <button
           :disabled="processing"
-          class="flex h-9 items-center gap-1.5 rounded-xl bg-[var(--color-primary)] px-4 text-sm font-bold text-white shadow-[var(--color-primary)]/10 shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 disabled:opacity-50"
+          class="flex h-9 items-center gap-1.5 rounded-xl bg-[var(--color-primary)] px-4 text-sm font-bold text-[var(--text-inverse)] shadow-[var(--color-primary)]/10 shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
           @click="$emit('action', 'confirm')"
         >
           <svg class="size-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -40,7 +40,7 @@
         </button>
         <button
           :disabled="processing"
-          class="flex h-9 items-center gap-1.5 rounded-xl bg-[var(--color-warning)] px-4 text-sm font-bold text-white shadow-[var(--color-warning)]/10 shadow-lg transition-all hover:bg-[var(--color-warning)]/90 active:scale-95 disabled:opacity-50"
+          class="flex h-9 items-center gap-1.5 rounded-xl bg-[var(--color-warning)] px-4 text-sm font-bold text-[var(--text-inverse)] shadow-[var(--color-warning)]/10 shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
           @click="$emit('action', 'reject')"
         >
           <svg class="size-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,7 +55,7 @@
         </button>
         <button
           :disabled="processing"
-          class="flex h-9 items-center gap-1.5 rounded-xl bg-[var(--color-danger)] px-4 text-sm font-bold text-white shadow-[var(--color-danger)]/10 shadow-lg transition-all hover:bg-[var(--color-danger)]/90 active:scale-95 disabled:opacity-50"
+          class="flex h-9 items-center gap-1.5 rounded-xl bg-[var(--color-danger)] px-4 text-sm font-bold text-[var(--text-inverse)] shadow-[var(--color-danger)]/10 shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
           @click="$emit('action', 'void')"
         >
           <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

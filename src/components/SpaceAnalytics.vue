@@ -6,21 +6,21 @@
         <div
           class="animate-pulse rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] p-4"
         >
-          <div class="mb-2 h-4 w-16 rounded bg-[var(--color-gray-200)]"></div>
-          <div class="h-8 w-24 rounded bg-[var(--color-gray-200)]"></div>
+          <div class="mb-2 h-4 w-16 rounded bg-[var(--border-color)]"></div>
+          <div class="h-8 w-24 rounded bg-[var(--border-color)]"></div>
         </div>
         <div
           class="animate-pulse rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] p-4"
         >
-          <div class="mb-2 h-4 w-16 rounded bg-[var(--color-gray-200)]"></div>
-          <div class="h-8 w-24 rounded bg-[var(--color-gray-200)]"></div>
+          <div class="mb-2 h-4 w-16 rounded bg-[var(--border-color)]"></div>
+          <div class="h-8 w-24 rounded bg-[var(--border-color)]"></div>
         </div>
       </div>
       <div
         class="animate-pulse rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] p-4"
       >
-        <div class="mb-4 h-4 w-32 rounded bg-[var(--color-gray-200)]"></div>
-        <div class="h-64 rounded bg-[var(--color-gray-200)]"></div>
+        <div class="mb-4 h-4 w-32 rounded bg-[var(--border-color)]"></div>
+        <div class="h-64 rounded bg-[var(--border-color)]"></div>
       </div>
     </template>
 
@@ -37,27 +37,27 @@
       <!-- Key Metrics -->
       <div class="grid grid-cols-2 gap-4">
         <div
-          class="hover:shadow-soft hover:-translate-y-1 rounded-2xl border border-[var(--color-info-bg)]/50 bg-[var(--color-info-bg)] p-4 shadow-sm transition-all duration-300"
+          class="rounded-2xl border border-[var(--color-info)]/20 bg-[var(--color-info)]/5 p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
         >
-          <div class="mb-1 text-sm font-medium text-[var(--color-info-text)]">
+          <div class="mb-1 text-sm font-medium text-[var(--color-info)]">
             {{ t('spaceAnalytics.totalViews') }}
           </div>
-          <div class="text-primary text-2xl font-bold">{{ stats.total?.view_count || 0 }}</div>
+          <div class="text-2xl font-bold text-[var(--text-main)]">{{ stats.total?.view_count || 0 }}</div>
         </div>
         <div
-          class="hover:shadow-soft hover:-translate-y-1 rounded-2xl border border-[var(--color-purple-bg)]/50 bg-[var(--color-purple-bg)] p-4 shadow-sm transition-all duration-300"
+          class="rounded-2xl border border-[var(--color-purple)]/20 bg-[var(--color-purple)]/5 p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
         >
-          <div class="mb-1 text-sm font-medium text-[var(--color-purple-text)]">
+          <div class="mb-1 text-sm font-medium text-[var(--color-purple)]">
             {{ t('spaceAnalytics.totalDownloads') }}
           </div>
-          <div class="text-primary text-2xl font-bold">{{ stats.total?.download_count || 0 }}</div>
+          <div class="text-2xl font-bold text-[var(--text-main)]">{{ stats.total?.download_count || 0 }}</div>
         </div>
       </div>
 
       <!-- Chart with Time Range Selector -->
-      <div class="shadow-soft border-border bg-surface rounded-2xl border p-4">
+      <div class="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-4 shadow-sm">
         <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-primary text-sm font-medium">
+          <h3 class="text-sm font-medium text-[var(--text-main)]">
             {{ t('spaceAnalytics.visitorTrend') }}
           </h3>
           <!-- Time Range Toggle -->
@@ -68,8 +68,8 @@
               :class="[
                 'rounded-md px-3 py-1 text-xs font-medium transition-all duration-200',
                 selectedDays === 7
-                  ? 'text-primary bg-white shadow-sm'
-                  : 'text-secondary hover:text-primary',
+                  ? 'bg-[var(--bg-card)] text-[var(--color-primary)] shadow-sm'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]',
               ]"
               @click="changeDays(7)"
             >
@@ -79,8 +79,8 @@
               :class="[
                 'rounded-md px-3 py-1 text-xs font-medium transition-all duration-200',
                 selectedDays === 30
-                  ? 'text-primary bg-white shadow-sm'
-                  : 'text-secondary hover:text-primary',
+                  ? 'bg-[var(--bg-card)] text-[var(--color-primary)] shadow-sm'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]',
               ]"
               @click="changeDays(30)"
             >
@@ -93,9 +93,9 @@
           <!-- Chart Loading Overlay -->
           <div
             v-if="chartLoading"
-            class="bg-surface/80 absolute inset-0 z-10 flex items-center justify-center rounded-lg"
+            class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[var(--bg-card)]/80"
           >
-            <div class="border-primary size-6 animate-spin rounded-full border-b-2"></div>
+            <div class="size-6 animate-spin rounded-full border-b-2 border-[var(--color-primary)]"></div>
           </div>
 
           <!-- Chart or Empty State -->
@@ -112,7 +112,7 @@
             >
               <!-- Empty State Icon -->
               <svg
-                class="text-secondary mb-3 size-12 opacity-40"
+                class="mb-3 size-12 text-[var(--text-secondary)] opacity-40"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -124,8 +124,8 @@
                   d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                 />
               </svg>
-              <p class="text-secondary text-sm">{{ t('spaceAnalytics.noVisits') }}</p>
-              <p class="text-muted mt-1 text-xs">{{ t('spaceAnalytics.noVisitsHint') }}</p>
+              <p class="text-sm text-[var(--text-secondary)]">{{ t('spaceAnalytics.noVisits') }}</p>
+              <p class="mt-1 text-xs text-[var(--text-muted)]">{{ t('spaceAnalytics.noVisitsHint') }}</p>
             </div>
           </Transition>
         </div>

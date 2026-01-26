@@ -49,7 +49,7 @@
                     <span class="text-[11px] text-[var(--text-secondary)]">
                         {{ t('product.table.header.stock') }}: {{ product.stock_quantity }}
                     </span>
-                    <span v-if="product.stock_quantity <= (product.alert_threshold || 10)" class="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-500 dark:bg-red-900/20">
+                    <span v-if="product.stock_quantity <= (product.alert_threshold || 10)" class="rounded bg-[var(--color-danger-bg)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-danger-text)]">
                         {{ t('product.stats.low_stock') }}
                     </span>
                 </div>
@@ -102,11 +102,11 @@ const getStatusVariant = (status) => {
 const getStatusBorderClass = (status) => {
     const variant = getStatusVariant(status);
     switch (variant) {
-        case 'success': return 'border-l-4 border-l-emerald-500';
-        case 'warning': return 'border-l-4 border-l-amber-500';
-        case 'info': return 'border-l-4 border-l-sky-500';
-        case 'error': return 'border-l-4 border-l-rose-500'; // if needed
-        default: return 'border-l-4 border-l-slate-300 dark:border-l-slate-600';
+        case 'success': return 'border-l-4 border-l-[var(--color-success)]';
+        case 'warning': return 'border-l-4 border-l-[var(--color-warning)]';
+        case 'info': return 'border-l-4 border-l-[var(--color-info)]';
+        case 'error': return 'border-l-4 border-l-[var(--color-danger)]'; 
+        default: return 'border-l-4 border-l-[var(--border-strong)]';
     }
 };
 </script>

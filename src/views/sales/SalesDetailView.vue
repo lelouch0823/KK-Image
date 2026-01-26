@@ -1,6 +1,6 @@
 <template>
   <div v-if="loading" class="flex h-64 items-center justify-center">
-    <div class="size-8 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600"></div>
+    <div class="size-8 animate-spin rounded-full border-4 border-[var(--border-color)] border-t-[var(--color-primary)]"></div>
   </div>
   <OrderDetail
     v-else-if="order"
@@ -11,7 +11,7 @@
     @refresh="handleRefresh"
     @duplicate="handleDuplicate"
   />
-  <div v-else class="py-12 text-center text-gray-500">
+  <div v-else class="py-12 text-center text-[var(--text-secondary)]">
     {{ t('order.detail.notFound') || '订单不存在' }}
   </div>
 </template>

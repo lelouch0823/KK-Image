@@ -8,8 +8,8 @@
         class="flex flex-shrink-0 flex-col justify-between gap-4 border-b border-[var(--border-color)] p-4 sm:flex-row sm:items-center"
       >
         <div>
-          <h2 class="text-primary text-lg font-semibold">{{ t('customer.manage.title') }}</h2>
-          <p class="text-secondary mt-1 text-sm">{{ t('customer.manage.subtitle') }}</p>
+          <h2 class="text-lg font-semibold text-[var(--color-primary)]">{{ t('customer.manage.title') }}</h2>
+          <p class="mt-1 text-sm text-[var(--text-secondary)]">{{ t('customer.manage.subtitle') }}</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
@@ -23,7 +23,7 @@
 
           <!-- 添加按钮 -->
           <button
-            class="bg-primary flex h-9 flex-shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition-colors hover:bg-primary-hover dark:text-gray-900"
+            class="flex h-9 shrink-0 items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:bg-[var(--color-primary-hover)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:outline-none"
             @click="openCreateModal"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,7 +72,7 @@
                   @click="openDetail(customer)"
                   >
                   <td class="px-4 py-3 font-medium text-[var(--text-main)]">{{ customer.name }}</td>
-                  <td class="text-secondary px-4 py-3">
+                  <td class="px-4 py-3 text-[var(--text-secondary)]">
                       <div class="flex flex-col gap-1">
                       <!-- 电话 -->
                       <div v-if="customer.phone" class="flex items-center gap-1">
@@ -105,11 +105,11 @@
                   <td class="px-4 py-3 text-[var(--text-secondary)]">{{ customer.company || '-' }}</td>
                   <td class="px-4 py-3">
                       <div class="flex flex-wrap gap-1">
-                      <span
+                        <span
                           v-for="tag in customer.tags"
                           :key="tag"
-                          class="bg-primary/10 text-primary rounded px-2 py-0.5 text-xs"
-                      >
+                          class="rounded bg-[var(--color-primary)]/10 px-2.5 py-0.5 text-xs text-[var(--color-primary)]"
+                        >
                           {{ tag }}
                       </span>
                       </div>
@@ -117,7 +117,7 @@
                   <td class="px-4 py-3 text-xs text-[var(--text-secondary)]">{{ formatDate(customer.createdAt) }}</td>
                   <td class="px-4 py-3 text-right" @click.stop>
                       <button
-                      class="rounded-lg p-1.5 text-[var(--text-secondary)] opacity-0 transition-all group-hover:opacity-100 hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)] focus:opacity-100"
+                      class="rounded-lg p-1.5 text-[var(--text-secondary)] opacity-0 transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)] focus:opacity-100"
                       :title="t('common.edit')"
                       @click="openEditModal(customer)"
                       >

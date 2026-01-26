@@ -6,7 +6,7 @@
       class="group relative cursor-pointer rounded-xl border p-4 transition-all hover:shadow-md"
       :class="[
         selectedIds.has(folder.id)
-          ? 'border-primary ring-primary bg-blue-50/50 ring-1 dark:bg-blue-900/30'
+          ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 ring-1 ring-[var(--color-primary)] dark:bg-[var(--color-primary)]/20'
           : 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-[var(--border-hover)]'
       ]"
       @click="$emit('navigate', folder.id)"
@@ -21,12 +21,12 @@
           <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
         </svg>
         <div
-          class="text-primary w-full truncate px-2 text-center text-sm font-medium"
+          class="w-full truncate px-2 text-center text-sm font-medium text-[var(--color-primary)]"
           :title="folder.name"
         >
           {{ folder.name }}
         </div>
-        <div class="text-secondary mt-1 text-xs">
+        <div class="mt-1 text-xs text-[var(--text-secondary)]">
           {{ (folder.fileCount || 0) + (folder.subfolderCount || 0) }} {{ t('common.items') }}
         </div>
       </div>

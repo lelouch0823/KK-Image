@@ -3,10 +3,10 @@
     <!-- Header -->
     <div class="mb-8 flex items-end justify-between">
       <div>
-        <h1 class="text-primary text-2xl font-bold">{{ space.name }}</h1>
-        <p v-if="space.description" class="text-secondary mt-2">{{ space.description }}</p>
+        <h1 class="text-2xl font-bold text-[var(--text-main)]">{{ space.name }}</h1>
+        <p v-if="space.description" class="mt-2 text-[var(--text-secondary)]">{{ space.description }}</p>
 
-        <div class="text-secondary mt-4 flex items-center gap-4 text-sm">
+        <div class="mt-4 flex items-center gap-4 text-sm text-[var(--text-secondary)]">
           <span>{{ space.fileCount }} {{ t('spacePublic.files') }}</span>
           <span>{{ space.viewCount }} {{ t('spacePublic.views') }}</span>
         </div>
@@ -15,7 +15,7 @@
       <button
         v-if="hasFiles"
         :disabled="downloading"
-        class="bg-primary flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+        class="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--text-inverse)] transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         @click="handleDownloadAll"
       >
         <svg v-if="downloading" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -73,10 +73,10 @@
           v-else
           class="flex aspect-square w-full flex-col items-center justify-center bg-[var(--bg-muted)]"
         >
-          <span class="mb-2 text-xs font-bold text-gray-400 uppercase">{{
+          <span class="mb-2 text-xs font-bold text-[var(--text-muted)] uppercase">{{
             file.name.split('.').pop()
           }}</span>
-          <span class="w-full truncate px-2 text-center text-xs text-gray-500">{{
+          <span class="w-full truncate px-2 text-center text-xs text-[var(--text-secondary)]">{{
             file.originalName || file.name
           }}</span>
         </div>
@@ -91,7 +91,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-if="space.files.length === 0" class="text-secondary py-20 text-center">
+    <div v-if="space.files.length === 0" class="py-20 text-center text-[var(--text-secondary)]">
       <p>{{ t('spacePublic.noContent') }}</p>
     </div>
 

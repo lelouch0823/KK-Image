@@ -132,7 +132,7 @@ const SYSTEM_FIELDS = [
     { key: 'stock_quantity', label: '库存', required: false, aliases: ['数量', '存货', '库存数'] }, 
     { key: 'description', label: '描述', required: false, aliases: ['详情', '备注', '介绍'] },
     { key: 'image_url', label: '图片链接', required: false, aliases: ['图片', '主图', 'Image'] },
-    { key: 'category', label: '分类', required: false, aliases: ['类别', '大类', '种类', '类目'] },
+    { key: 'category', label: '分类', required: false, aliases: ['类别', '小类', '种类', '类目'] },
     { key: 'brand', label: '品牌', required: false, aliases: ['牌子', '厂家'] },
     { key: 'series', label: '系列', required: false, aliases: ['系列名'] },
     { key: 'cost_price', label: '成本价', required: false, aliases: ['成本', '进价', '进货价'] },

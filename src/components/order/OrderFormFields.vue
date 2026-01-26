@@ -1,7 +1,7 @@
 <template>
   <div>
     <h4
-      class="text-primary mb-4 border-b border-[var(--border-color)] pb-2 text-sm font-medium"
+      class="mb-4 border-b border-[var(--border-color)] pb-2 text-sm font-medium text-[var(--text-main)]"
     >
       {{ t('order.detail.currentInfo') }}
     </h4>
@@ -9,61 +9,61 @@
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <!-- 商品名称 (全宽) -->
       <div class="md:col-span-2">
-        <label class="text-secondary mb-1 block text-xs font-medium">{{
+        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
           t('order.form.productName')
         }}</label>
         <input 
           :value="modelValue.name" 
           class="input" 
           :disabled="disabledFields.includes('name')"
-          :class="{ 'cursor-not-allowed bg-slate-100 dark:bg-slate-800': disabledFields.includes('name') }"
+          :class="{ 'cursor-not-allowed bg-[var(--bg-muted)]': disabledFields.includes('name') }"
           @input="updateField('name', $event.target.value)" 
         />
       </div>
 
       <!-- 品牌 -->
       <div>
-        <label class="text-secondary mb-1 block text-xs font-medium">{{
+        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
           t('order.form.brand')
         }}</label>
         <input 
           :value="modelValue.brand" 
           class="input" 
           :disabled="disabledFields.includes('brand')"
-          :class="{ 'cursor-not-allowed bg-slate-100 dark:bg-slate-800': disabledFields.includes('brand') }"
+          :class="{ 'cursor-not-allowed bg-[var(--bg-muted)]': disabledFields.includes('brand') }"
           @input="updateField('brand', $event.target.value)" 
         />
       </div>
 
       <!-- 系列 -->
       <div>
-        <label class="text-secondary mb-1 block text-xs font-medium">{{
+        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
           t('order.form.series')
         }}</label>
         <input 
           :value="modelValue.series" 
           class="input" 
           :disabled="disabledFields.includes('series')"
-          :class="{ 'cursor-not-allowed bg-slate-100 dark:bg-slate-800': disabledFields.includes('series') }"
+          :class="{ 'cursor-not-allowed bg-[var(--bg-muted)]': disabledFields.includes('series') }"
           @input="updateField('series', $event.target.value)" 
         />
       </div>
 
       <!-- 款号 (SKU) -->
       <div>
-        <label class="text-secondary mb-1 block text-xs font-medium">{{ t('order.form.sku') }}</label>
+        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{ t('order.form.sku') }}</label>
         <input 
           :value="modelValue.sku" 
           class="input" 
           :disabled="disabledFields.includes('sku')"
-          :class="{ 'cursor-not-allowed bg-slate-100 dark:bg-slate-800': disabledFields.includes('sku') }"
+          :class="{ 'cursor-not-allowed bg-[var(--bg-muted)]': disabledFields.includes('sku') }"
           @input="updateField('sku', $event.target.value)" 
         />
       </div>
 
       <!-- 规格尺寸 -->
       <div>
-        <label class="text-secondary mb-1 block text-xs font-medium">{{
+        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
           t('order.form.size')
         }}</label>
         <input :value="modelValue.size" class="input" @input="updateField('size', $event.target.value)" />
@@ -71,7 +71,7 @@
 
       <!-- 颜色 -->
       <div>
-        <label class="text-secondary mb-1 block text-xs font-medium">{{
+        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
           t('order.form.color')
         }}</label>
         <input :value="modelValue.color" class="input" @input="updateField('color', $event.target.value)" />
@@ -79,7 +79,7 @@
 
       <!-- 材质 -->
       <div>
-        <label class="text-secondary mb-1 block text-xs font-medium">{{
+        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
           t('order.form.material')
         }}</label>
         <input :value="modelValue.material" class="input" @input="updateField('material', $event.target.value)" />
@@ -87,7 +87,7 @@
 
       <!-- 期望到货时间 -->
       <div>
-        <label class="text-secondary mb-1 block text-xs font-medium">{{
+        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
           t('order.form.expectedArrival')
         }}</label>
         <input
@@ -102,7 +102,7 @@
 
       <!-- 状态 (仅管理员可见) -->
       <div v-if="showStatus">
-        <label class="text-secondary mb-1 block text-xs font-medium">{{ t('order.status') }}</label>
+        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{ t('order.status') }}</label>
         <StatusSelector
           :model-value="modelValue.status"
           :options="statuses"
@@ -113,7 +113,7 @@
 
       <!-- 备注 (全宽) -->
       <div class="md:col-span-2">
-        <label class="text-secondary mb-1 block text-xs font-medium">{{
+        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
           t('order.form.remark')
         }}</label>
         <textarea

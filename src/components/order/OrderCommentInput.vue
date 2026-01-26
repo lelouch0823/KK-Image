@@ -5,12 +5,12 @@
         v-model="text"
         type="text"
         :placeholder="t('order.detail.commentPlaceholder')"
-        class="focus:ring-primary/20 focus:ring-2 focus:outline-none h-10 flex-1 rounded-full border-0 bg-[var(--bg-muted)] px-4 text-sm transition-all"
+        class="h-10 flex-1 rounded-full border-0 bg-[var(--bg-muted)] px-4 text-sm transition-all focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none text-[var(--text-main)]"
         @keyup.enter="send"
       />
       <button
         :disabled="!text.trim() || loading"
-        class="bg-primary shadow-primary/20 flex size-10 flex-shrink-0 items-center justify-center rounded-full text-white shadow-lg transition-all hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+        class="bg-[var(--color-primary)] shadow-[var(--color-primary)]/20 flex size-10 flex-shrink-0 items-center justify-center rounded-full text-[var(--text-inverse)] shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         @click="send"
       >
         <svg v-if="!loading" class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,13 +1,13 @@
 <template>
-  <div class="border-border bg-surface rounded-xl border p-4 shadow-sm">
+  <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-sm">
     <div class="mb-3 flex items-center justify-between">
       <div class="flex items-center gap-2">
         <div
           class="size-8 rounded-lg"
           :class="
             isPublic
-              ? 'bg-primary/10 text-primary'
-              : 'text-secondary bg-[var(--bg-muted)]'
+              ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+              : 'bg-[var(--bg-muted)] text-[var(--text-secondary)]'
           "
         >
           <svg
@@ -25,7 +25,7 @@
           </svg>
         </div>
         <div>
-          <h4 class="text-primary text-sm font-semibold">
+          <h4 class="text-sm font-semibold text-[var(--text-main)]">
             {{ t('spaceManager.shareSettings') }}
           </h4>
           <p
@@ -49,7 +49,7 @@
           @change="$emit('update:isPublic', $event.target.checked)"
         />
         <div
-          class="peer bg-border-strong h-5 w-9 rounded-full peer-checked:bg-primary peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full"
+          class="peer h-5 w-9 rounded-full bg-[var(--border-strong)] transition-all peer-checked:bg-[var(--color-primary)] peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:content-[''] after:transition-all peer-checked:after:translate-x-full"
         ></div>
       </label>
     </div>
@@ -60,12 +60,12 @@
       class="animate-in fade-in slide-in-from-top-1 space-y-3 duration-200"
     >
       <div
-        class="text-primary rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] px-3 py-2 font-mono text-xs break-all"
+        class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] px-3 py-2 font-mono text-xs break-all text-[var(--text-main)]"
       >
         {{ shareUrl }}
       </div>
       <button
-        class="text-primary bg-primary/5 flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-medium transition-colors hover:bg-primary/10"
+        class="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--color-primary)]/5 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/10"
         @click.prevent="copyLink"
       >
         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -84,7 +84,7 @@
         <div class="mb-2 flex items-center justify-between">
           <div class="flex items-center gap-1.5">
             <svg
-              class="text-secondary size-3.5"
+              class="size-3.5 text-[var(--text-secondary)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -96,7 +96,7 @@
                 d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
               />
             </svg>
-            <span class="text-primary text-xs font-medium">{{
+            <span class="text-xs font-medium text-[var(--text-main)]">{{
               t('spaceManager.passwordLock')
             }}</span>
           </div>
@@ -116,14 +116,14 @@
           <input
             :value="password"
             type="text"
-            class="focus:border-primary flex-1 rounded-lg border border-[var(--border-color)] px-3 py-1.5 text-xs outline-none"
+            class="flex-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-sm text-[var(--text-main)] transition-all outline-none focus:border-[var(--color-primary)]"
             :placeholder="t('spaceManager.setPassword')"
             @input="$emit('update:password', $event.target.value)"
           />
         </div>
       </div>
     </div>
-    <div v-else class="text-secondary text-center text-[10px] italic">
+    <div v-else class="text-center text-[10px] text-[var(--text-secondary)] italic">>
       {{ t('spaceManager.shareCard.publishHint') }}
     </div>
   </div>

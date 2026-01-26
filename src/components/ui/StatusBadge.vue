@@ -16,7 +16,7 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'default',
-    validator: (v) => ['default', 'success', 'warning', 'error', 'info', 'primary'].includes(v),
+    validator: (v) => ['default', 'success', 'warning', 'error', 'info', 'primary', 'purple', 'cyan'].includes(v),
   },
   size: {
     type: String,
@@ -42,13 +42,13 @@ const variantClass = computed(() => {
   /* Premium Badge Colors */
   const variants = {
     default: 'bg-[var(--bg-muted)] text-[var(--text-secondary)] border border-[var(--border-color)]',
-    success: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
-    warning: 'bg-amber-50 text-amber-700 border border-amber-100',
-    error: 'bg-rose-50 text-rose-700 border border-rose-100',
-    info: 'bg-sky-50 text-sky-700 border border-sky-100',
-    primary: 'bg-[var(--color-primary-bg)] text-[var(--color-primary)] border border-blue-100',
-    purple: 'bg-purple-50 text-purple-700 border border-purple-100',
-    cyan: 'bg-cyan-50 text-cyan-700 border border-cyan-100',
+    success: 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border border-[var(--border-success)]',
+    warning: 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border border-[var(--border-warning)]',
+    error: 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border border-[var(--border-danger)]',
+    info: 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border border-[var(--border-info)]',
+    primary: 'bg-[var(--color-primary-bg)] text-[var(--color-primary)] border border-[var(--color-primary-light)]',
+    purple: 'bg-[var(--color-purple-bg)] text-[var(--color-purple-text)] border border-[var(--color-purple-text)]/20',
+    cyan: 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan-text)] border border-[var(--color-cyan-text)]/20',
   };
   return variants[props.variant] || variants.default;
 });
@@ -60,7 +60,7 @@ const dotClass = computed(() => {
     warning: 'bg-[var(--color-warning)]',
     error: 'bg-[var(--color-danger)]',
     info: 'bg-[var(--color-info)]',
-    primary: 'bg-primary',
+    primary: 'bg-[var(--color-primary)]',
     purple: 'bg-[var(--color-purple)]',
     cyan: 'bg-[var(--color-cyan)]',
   };

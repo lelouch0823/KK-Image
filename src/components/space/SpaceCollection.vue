@@ -2,7 +2,7 @@
   <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
     <div class="mb-12 text-center">
       <div
-        class="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-500"
+        class="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
       >
         <svg class="size-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -13,8 +13,8 @@
           ></path>
         </svg>
       </div>
-      <h1 class="text-primary text-2xl font-bold">{{ space.name }}</h1>
-      <p class="text-secondary mt-2">{{ space.description || t('spacePublic.noDesc') }}</p>
+      <h1 class="text-2xl font-bold text-[var(--text-main)]">{{ space.name }}</h1>
+      <p class="mt-2 text-[var(--text-secondary)]">{{ space.description || t('spacePublic.noDesc') }}</p>
     </div>
 
     <!-- Subspaces Grid -->
@@ -23,12 +23,12 @@
         v-for="sub in space.subspaces"
         :key="sub.id"
         :href="`/space/${sub.shareToken}`"
-        class="group flex items-start gap-4 rounded-xl border border-gray-100 bg-white p-6 transition-all hover:shadow-lg"
+        class="group flex items-start gap-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-6 transition-all hover:shadow-lg"
       >
         <div
-          class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50 transition-colors"
+          class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[var(--bg-muted)] transition-colors"
           :class="
-            sub.coverImage ? 'border border-gray-100' : 'group-hover:bg-primary group-hover:text-white'
+            sub.coverImage ? 'border border-[var(--border-subtle)]' : 'group-hover:bg-[var(--color-primary)] group-hover:text-[var(--text-inverse)]'
           "
         >
           <img
@@ -39,7 +39,7 @@
           />
           <svg
             v-else
-            class="size-6 text-gray-400 group-hover:text-white"
+            class="size-6 text-[var(--text-muted)] group-hover:text-[var(--text-inverse)]"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -53,12 +53,12 @@
           </svg>
         </div>
         <div>
-          <h3 class="text-primary font-semibold group-hover:text-primary">{{ sub.name }}</h3>
-          <p class="text-secondary mt-1 text-xs">{{ sub.fileCount }} items</p>
+          <h3 class="font-semibold text-[var(--text-main)] group-hover:text-[var(--color-primary)]">{{ sub.name }}</h3>
+          <p class="mt-1 text-xs text-[var(--text-secondary)]">{{ sub.fileCount }} items</p>
         </div>
         <div class="ml-auto">
           <svg
-            class="group-hover:text-primary size-5 text-gray-300 transition-colors"
+            class="size-5 text-[var(--text-muted)] transition-colors group-hover:text-[var(--color-primary)]"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -77,7 +77,7 @@
     <!-- Empty State -->
     <div
       v-if="!space.subspaces || space.subspaces.length === 0"
-      class="text-secondary rounded-xl border border-dashed border-gray-200 bg-gray-50 py-12 text-center"
+      class="rounded-xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-muted)]/30 py-12 text-center text-[var(--text-secondary)]"
     >
       <p>{{ t('spacePublic.noSubspaces') }}</p>
     </div>
@@ -87,7 +87,7 @@
 <script setup>
 import { useI18n } from '@/composables/useI18n';
 
-const props = defineProps({
+defineProps({
   space: { type: Object, required: true },
 });
 

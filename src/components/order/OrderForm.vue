@@ -2,9 +2,9 @@
   <div class="space-y-6">
     <!-- 标题 (仅销售端显示) -->
     <div v-if="mode !== 'admin'" class="text-center">
-      <h2 class="text-primary text-xl font-bold">{{ title || t('order.portal.newOrder') }}</h2>
-      <p v-if="subtitle" class="text-secondary mt-1 text-sm">{{ subtitle }}</p>
-      <p v-else-if="mode === 'sales'" class="text-secondary mt-1 text-sm">{{ t('order.portal.subtitle') }}</p>
+      <h2 class="text-xl font-bold text-[var(--color-primary)]">{{ title || t('order.portal.newOrder') }}</h2>
+      <p v-if="subtitle" class="mt-1 text-sm text-[var(--text-secondary)]">{{ subtitle }}</p>
+      <p v-else-if="mode === 'sales'" class="mt-1 text-sm text-[var(--text-secondary)]">{{ t('order.portal.subtitle') }}</p>
     </div>
 
     <form class="space-y-4" @submit.prevent="handleSubmit">
@@ -22,8 +22,8 @@
       <div class="space-y-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 sm:p-5">
         <!-- 商品名称 -->
         <div>
-          <label class="text-primary mb-2 block text-sm font-medium">
-            {{ t('order.form.productName') }} <span class="text-danger">*</span>
+          <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+            {{ t('order.form.productName') }} <span class="text-[var(--color-danger-text)]">*</span>
           </label>
           <AutocompleteInput
             v-model="form.name"
@@ -39,7 +39,7 @@
         <!-- 品牌和系列 -->
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label class="text-primary mb-2 block text-sm font-medium">
+            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
               {{ t('order.form.brand') }}
             </label>
             <AutocompleteInput
@@ -53,7 +53,7 @@
             />
           </div>
           <div>
-            <label class="text-primary mb-2 block text-sm font-medium">
+            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
               {{ t('order.form.series') }}
             </label>
             <AutocompleteInput
@@ -71,8 +71,8 @@
         <!-- Admin: 销售员 | SKU -->
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div v-if="mode === 'admin'">
-            <label class="text-primary mb-2 block text-sm font-medium">
-              {{ t('common.salesperson') }} <span class="text-danger">*</span>
+            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+              {{ t('common.salesperson') }} <span class="text-[var(--color-danger-text)]">*</span>
             </label>
             <Select
               v-model="adminForm.salespersonId"
@@ -81,7 +81,7 @@
             />
           </div>
           <div :class="{ 'md:col-span-2': mode !== 'admin' }">
-            <label class="text-primary mb-2 block text-sm font-medium">
+            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
               {{ t('order.form.sku') }}
             </label>
             <input
@@ -96,7 +96,7 @@
 
         <!-- 规格尺寸 -->
         <div>
-          <label class="text-primary mb-2 block text-sm font-medium">
+          <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
             {{ t('order.form.size') }}
           </label>
           <input
@@ -110,7 +110,7 @@
         <!-- 颜色材质 -->
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label class="text-primary mb-2 block text-sm font-medium">
+            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
               {{ t('order.form.color') }}
             </label>
             <AutocompleteInput
@@ -123,7 +123,7 @@
             />
           </div>
           <div>
-            <label class="text-primary mb-2 block text-sm font-medium">
+            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
               {{ t('order.form.material') }}
             </label>
             <AutocompleteInput
@@ -139,7 +139,7 @@
 
         <!-- 备注 -->
         <div>
-          <label class="text-primary mb-2 block text-sm font-medium">
+          <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
             {{ t('order.form.remark') }}
           </label>
           <textarea
@@ -153,7 +153,7 @@
         <!-- Admin: 状态 | 到货时间 -->
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div v-if="mode === 'admin'">
-            <label class="text-primary mb-2 block text-sm font-medium">
+            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
               {{ t('order.status') }}
             </label>
             <StatusSelector
@@ -163,7 +163,7 @@
             />
           </div>
           <div :class="{ 'md:col-span-2': mode !== 'admin' }">
-            <label class="text-primary mb-2 block text-sm font-medium">
+            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
               {{ t('order.form.expectedArrival') }}
             </label>
             <input
@@ -181,7 +181,7 @@
       <div class="flex gap-3">
         <button
           type="button"
-          class="text-secondary h-12 flex-1 rounded-xl border border-[var(--border-color)] font-medium transition-colors hover:bg-[var(--bg-hover)]"
+          class="h-12 flex-1 rounded-xl border border-[var(--border-color)] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
           @click="$emit('cancel')"
         >
           {{ t('common.cancel') }}
@@ -189,7 +189,7 @@
         <button
           type="submit"
           :disabled="!isValid || isSubmitting"
-          class="bg-primary shadow-primary/20 flex h-12 flex-1 items-center justify-center gap-2 rounded-xl font-medium text-white shadow-lg transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-900"
+          class="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] font-medium text-[var(--text-inverse)] shadow-lg shadow-[var(--color-primary)]/20 transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <svg
             v-if="isSubmitting"
@@ -257,13 +257,6 @@ const isDisabled = (field) => props.disabledFields.includes(field);
 const adminForm = reactive({
   salespersonId: '',
   status: 'pending',
-});
-
-const dashboard = reactive({
-    order_detail: '订单详情',
-    personal_stats: '个人统计',
-    dashboard: '概览',
-    file_management: '文件管理',
 });
 
 // 使用 composable 管理表单逻辑

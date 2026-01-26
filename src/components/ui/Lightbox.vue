@@ -10,7 +10,7 @@
     >
       <div
         v-if="visible"
-        class="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm"
+        class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md"
         @click.self="$emit('close')"
         @wheel.prevent="handleWheel"
       >
@@ -104,7 +104,7 @@
           <!-- PDF Viewer -->
           <div
             v-else-if="currentFile?.type === 'pdf'"
-            class="flex size-full max-w-5xl flex-col overflow-hidden rounded-lg bg-white shadow-2xl"
+            class="flex size-full max-w-5xl flex-col overflow-hidden rounded-lg bg-[var(--bg-card)] shadow-2xl"
           >
             <iframe :src="currentFile.url" class="w-full flex-1 border-none"></iframe>
           </div>

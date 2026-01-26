@@ -12,7 +12,7 @@
           type="text"
           required
           :placeholder="t('customer.form.namePlaceholder')"
-          class="focus:border-primary focus:ring-primary w-full rounded-lg border-gray-300 sm:text-sm"
+          class="w-full rounded-lg border-[var(--border-color)] text-sm transition-colors outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
         />
       </div>
 
@@ -24,7 +24,7 @@
         <input
           v-model="form.phone"
           type="tel"
-          class="focus:border-primary focus:ring-primary w-full rounded-lg border-[var(--border-color)] sm:text-sm"
+          class="w-full rounded-lg border-[var(--border-color)] text-sm transition-colors outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
         />
       </div>
 
@@ -36,7 +36,7 @@
         <input
           v-model="form.company"
           type="text"
-          class="focus:border-primary focus:ring-primary w-full rounded-lg border-gray-300 sm:text-sm"
+          class="w-full rounded-lg border-[var(--border-color)] text-sm transition-colors outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
         />
       </div>
 
@@ -48,7 +48,7 @@
         <input
           v-model="form.email"
           type="email"
-          class="focus:border-primary focus:ring-primary w-full rounded-lg border-gray-300 sm:text-sm"
+          class="w-full rounded-lg border-[var(--border-color)] text-sm transition-colors outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
         />
       </div>
 
@@ -63,12 +63,12 @@
           <span
             v-for="(tag, index) in form.tags"
             :key="index"
-            class="bg-primary/10 text-primary inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+            class="bg-primary/10 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium text-[var(--color-primary)]"
           >
             {{ tag }}
             <button
               type="button"
-              class="text-primary ml-1 hover:text-primary-hover"
+              class="ml-1 text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
               @click="removeTag(index)"
             >
               <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,34 +94,34 @@
 
       <!-- 地址 -->
       <div class="col-span-2">
-        <label class="mb-1 block text-sm font-medium text-gray-700">
+        <label class="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
           {{ t('customer.form.address') }}
         </label>
         <input
           v-model="form.address"
           type="text"
-          class="focus:border-primary focus:ring-primary w-full rounded-lg border-gray-300 sm:text-sm"
+          class="w-full rounded-lg border-[var(--border-color)] text-sm transition-colors outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
         />
       </div>
 
       <!-- 备注 -->
       <div class="col-span-2">
-        <label class="mb-1 block text-sm font-medium text-gray-700">
+        <label class="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
           {{ t('customer.form.remark') }}
         </label>
         <textarea
           v-model="form.remark"
           rows="3"
-          class="focus:border-primary focus:ring-primary w-full rounded-lg border-[var(--border-color)] sm:text-sm"
+          class="w-full rounded-lg border-[var(--border-color)] text-sm transition-colors outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
         ></textarea>
       </div>
     </div>
 
     <!-- 底部按钮 -->
-    <div class="mt-4 flex justify-end gap-3 border-t border-[var(--border-color-light)] pt-4">
+    <div class="mt-4 flex justify-end gap-3 border-t border-[var(--border-color)] pt-4">
       <button
         type="button"
-        class="text-secondary rounded-lg border border-[var(--border-color)] px-4 py-2 text-sm font-medium focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:outline-none hover:bg-[var(--bg-hover)]"
+        class="rounded-lg border border-[var(--border-color)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
         @click="$emit('cancel')"
       >
         {{ t('common.cancel') }}
@@ -129,7 +129,7 @@
       <button
         type="submit"
         :disabled="submitting"
-        class="bg-primary flex items-center gap-2 rounded-lg border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-hover focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        class="flex h-9 shrink-0 items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:bg-[var(--color-primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <svg
           v-if="submitting"

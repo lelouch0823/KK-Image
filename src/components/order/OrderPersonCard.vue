@@ -1,6 +1,6 @@
 <template>
   <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-sm">
-    <h3 class="text-secondary mb-3 text-xs font-medium tracking-wider uppercase">
+    <h3 class="mb-3 text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
       {{ title }}
     </h3>
     <div class="flex items-start gap-3">
@@ -11,19 +11,18 @@
         {{ name.charAt(0) }}
       </div>
       <div class="min-w-0 flex-1">
-        <p class="text-primary truncate text-sm font-medium">
+        <p class="truncate text-sm font-medium text-[var(--text-main)]">
           {{ name }}
         </p>
-        <p class="text-secondary truncate text-xs">{{ subtitle || '-' }}</p>
-        <p v-if="phone" class="text-secondary mt-1 text-xs">
+        <p class="truncate text-xs text-[var(--text-secondary)]">{{ subtitle || '-' }}</p>
+        <p v-if="phone" class="mt-1 text-xs text-[var(--text-secondary)]">
           {{ phone }}
         </p>
       </div>
-      <!-- 电话按钮 -->
       <a
         v-if="phone"
         :href="`tel:${phone}`"
-        class="text-secondary rounded-full p-2 transition-colors hover:text-primary hover:bg-[var(--bg-muted)]"
+        class="rounded-full p-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)]"
       >
         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path

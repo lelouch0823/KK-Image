@@ -10,8 +10,8 @@
     <template #header>
       <div class="flex items-center gap-3">
         <div>
-          <h3 class="text-primary text-lg font-semibold">{{ t('order.manage.editOrder') }}</h3>
-          <p class="text-secondary-text mt-0.5 text-sm">{{ order?.orderNo }}</p>
+          <h3 class="text-lg font-semibold text-[var(--color-primary)]">{{ t('order.manage.editOrder') }}</h3>
+          <p class="mt-0.5 text-sm text-[var(--text-secondary)]">{{ order?.orderNo }}</p>
         </div>
         <!-- 状态徽章 (只读显示) -->
         <span
@@ -48,7 +48,7 @@
         <!-- 图片管理 -->
         <div>
           <h4
-            class="text-primary border-border mb-3 border-b pb-2 text-sm font-medium"
+            class="mb-3 border-b border-[var(--border-subtle)] pb-2 text-sm font-medium text-[var(--color-primary)]"
           >
             {{ t('order.detail.images') }}
           </h4>
@@ -70,15 +70,15 @@
 
     <template #footer>
       <button
-        class="text-secondary-text border-border rounded-lg border px-5 py-2 font-medium transition-colors hover:bg-surface-hover"
+        class="rounded-lg border border-[var(--border-subtle)] px-5 py-2 font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
         @click="$emit('close')"
       >
         {{ t('common.cancel') }}
       </button>
       <button
         :class="[
-          !isValid || submitting ? 'cursor-not-allowed opacity-50' : 'hover:bg-primary-hover',
-          'bg-primary shadow-primary/20 flex items-center rounded-lg px-5 py-2 font-medium text-white shadow-lg transition-colors dark:text-surface'
+          !isValid || submitting ? 'cursor-not-allowed opacity-50' : 'hover:opacity-90',
+          'flex items-center rounded-lg bg-[var(--color-primary)] px-5 py-2 font-medium text-[var(--text-inverse)] shadow-lg shadow-[var(--color-primary)]/20 transition-all'
         ]"
         :disabled="!isValid || submitting"
         @click="handleSaveClick"

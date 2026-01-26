@@ -17,14 +17,14 @@
           class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition-colors"
           :class="
             selectedId === rootFolder.id
-              ? 'bg-indigo-50 text-indigo-700'
-              : 'text-gray-700 hover:bg-gray-50'
+              ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+              : 'text-[var(--text-main)] hover:bg-[var(--bg-hover)]'
           "
           @click="selectFolder(rootFolder)"
         >
           <svg
-            class="size-5 text-gray-400"
-            :class="selectedId === rootFolder.id ? 'text-indigo-500' : ''"
+            class="size-5"
+            :class="selectedId === rootFolder.id ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted)]'"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -46,8 +46,8 @@
           class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition-colors"
           :class="[
              selectedId === folder.id
-              ? 'bg-indigo-50 text-indigo-700'
-              : 'text-gray-700 hover:bg-gray-50',
+              ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+              : 'text-[var(--text-main)] hover:bg-[var(--bg-hover)]',
              isTargetDisabled(folder) ? 'cursor-not-allowed opacity-50' : ''
           ]"
           :style="{ paddingLeft: folder.level * 1.5 + 0.75 + 'rem' }"
@@ -61,7 +61,7 @@
 
         <div
           v-if="flattenedFolders.length === 0 && !loading"
-          class="text-secondary py-4 text-center text-sm"
+          class="py-4 text-center text-sm text-secondary"
         >
           {{ t('moveFile.empty') }}
         </div>
@@ -71,14 +71,14 @@
     <!-- Footer -->
     <template #footer>
       <button
-        class="text-secondary rounded-lg px-4 py-2 transition-colors hover:bg-gray-100"
+        class="rounded-lg px-4 py-2 text-secondary transition-colors hover:bg-gray-100"
         @click="close"
       >
         {{ t('moveFile.cancel') }}
       </button>
       <button
         :disabled="!selectedId || moving"
-        class="bg-primary flex items-center gap-2 rounded-lg px-6 py-2 font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50 dark:text-gray-900"
+        class="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-6 py-2 font-medium text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
         @click="confirmMove"
       >
         <span v-if="moving" class="size-4 animate-spin rounded-full border-b-2 border-white"></span>

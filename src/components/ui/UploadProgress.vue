@@ -14,7 +14,7 @@
           <div class="relative flex size-8 items-center justify-center">
             <svg
               v-if="isUploading"
-              class="size-5 animate-spin text-blue-600"
+              class="size-5 animate-spin text-[var(--color-info)]"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -34,7 +34,7 @@
             </svg>
             <svg
               v-else
-              class="size-5 text-green-500"
+              class="size-5 text-[var(--color-success)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -86,6 +86,7 @@
           <button
             v-else
             class="rounded-full p-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]"
+            @click.stop="toggleMinimize"
           >
             <span class="text-xs font-bold">{{ overallProgress }}%</span>
           </button>
@@ -93,7 +94,7 @@
           <!-- 🔧 NEW: 重试所有失败 -->
           <button
             v-if="!isMinimized && failedCount > 0"
-            class="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-orange-50 hover:text-orange-600"
+            class="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--color-warning-bg)] hover:text-[var(--color-warning-text)]"
             :title="t('common.retryAllFailed')"
             @click.stop="retryAllFailed"
           >
@@ -109,7 +110,7 @@
 
           <button
             v-if="!isMinimized && !isUploading"
-            class="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
+            class="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)]"
             :title="t('upload.clearCompleted')"
             @click.stop="clearCompleted"
           >
@@ -124,7 +125,7 @@
           </button>
           <button
             v-if="!isMinimized"
-            class="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
+            class="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)]"
             :title="t('common.clearAll')"
             @click.stop="clearAll"
           >
@@ -181,7 +182,7 @@
               <!-- Action Button -->
               <button
                 v-if="item.status === 'error'"
-                class="rounded-full border border-[var(--border-color)] bg-white p-1.5 text-orange-500 shadow-sm transition-all hover:bg-orange-50 hover:text-orange-700 dark:bg-[var(--bg-card)]"
+                class="rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] p-1.5 text-[var(--color-warning)] shadow-sm transition-all hover:bg-[var(--color-warning-bg)] hover:text-[var(--color-warning-text)]"
                 :title="t('upload.retry')"
                 @click="retryFile(item.id)"
               >
@@ -196,7 +197,7 @@
               </button>
               <button
                 v-else-if="item.status !== 'success'"
-                class="absolute top-1/2 right-2 -translate-y-1/2 rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] p-1.5 text-[var(--text-muted)] opacity-0 shadow-sm transition-all group-hover:opacity-100 hover:bg-red-50 hover:text-red-500"
+                class="absolute top-1/2 right-2 -translate-y-1/2 rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] p-1.5 text-[var(--text-muted)] opacity-0 shadow-sm transition-all group-hover:opacity-100 hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)]"
                 @click="removeFile(item.id)"
               >
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,26 +252,26 @@ const toggleMinimize = () => {
 const getStatusColor = (status) => {
   switch (status) {
     case 'uploading':
-      return 'text-blue-600';
+      return 'text-[var(--color-info)]';
     case 'success':
-      return 'text-green-600';
+      return 'text-[var(--color-success)]';
     case 'error':
-      return 'text-red-600';
+      return 'text-[var(--color-danger)]';
     default:
-      return 'text-gray-400';
+      return 'text-[var(--text-muted)]';
   }
 };
 
 const getProgressBarClass = (status) => {
   switch (status) {
     case 'uploading':
-      return 'bg-blue-500';
+      return 'bg-[var(--color-info)]';
     case 'success':
-      return 'bg-green-500';
+      return 'bg-[var(--color-success)]';
     case 'error':
-      return 'bg-red-500';
+      return 'bg-[var(--color-danger)]';
     default:
-      return 'bg-gray-300';
+      return 'bg-[var(--border-color)]';
   }
 };
 

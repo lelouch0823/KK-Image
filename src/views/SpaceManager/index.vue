@@ -3,8 +3,8 @@
     <!-- 页面标题 -->
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-primary text-xl font-semibold">{{ t('spaceManager.title') }}</h1>
-        <p class="text-secondary mt-1 text-sm">{{ t('spaceManager.subtitle') }}</p>
+        <h1 class="text-xl font-semibold text-[var(--color-primary)]">{{ t('spaceManager.title') }}</h1>
+        <p class="mt-1 text-sm text-[var(--text-secondary)]">{{ t('spaceManager.subtitle') }}</p>
       </div>
       <button v-if="spaces.length === 0" disabled class="invisible px-4 py-2">
         <!-- 占位符保持布局 -->
@@ -13,7 +13,7 @@
         <!-- 未来可扩展：导入、归档等按钮 -->
         <Tooltip :content="t('spaceManager.create')">
           <button
-            class="bg-primary flex size-9 items-center justify-center rounded-lg text-white shadow-sm transition-colors hover:bg-[var(--color-primary-hover)] dark:text-gray-900"
+            class="flex size-9 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--text-inverse)] shadow-sm transition-colors hover:bg-[var(--color-primary-hover)] dark:text-gray-900"
             @click="showCreateModal = true"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,8 +83,8 @@
             v-if="space.shareMode && space.shareMode !== 'none'"
             class="absolute top-2 right-2 flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium"
             :class="{
-              'bg-[var(--color-success)] text-white': space.shareMode === 'all',
-              'bg-blue-500 text-white': space.shareMode === 'selected',
+              'bg-[var(--color-success)] text-[var(--text-inverse)]': space.shareMode === 'all',
+              'bg-[var(--color-info)] text-[var(--text-inverse)]': space.shareMode === 'selected',
             }"
           >
             <svg v-if="space.shareMode === 'all'" class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,7 +97,7 @@
           </span>
           <span
             v-else-if="!space.isPublic"
-            class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-gray-500/80 px-2 py-1 text-xs font-medium text-white"
+            class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-[var(--text-secondary)]/80 px-2 py-1 text-xs font-medium text-[var(--text-inverse)]"
           >
             <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
@@ -108,12 +108,12 @@
 
         <!-- 信息 -->
         <div class="p-4">
-          <h3 class="text-primary truncate font-semibold">{{ space.name }}</h3>
-          <p v-if="space.description" class="text-secondary mt-1 line-clamp-2 text-sm">
+          <h3 class="truncate font-semibold text-[var(--text-main)]">{{ space.name }}</h3>
+          <p v-if="space.description" class="mt-1 line-clamp-2 text-sm text-[var(--text-secondary)]">
             {{ space.description }}
           </p>
 
-          <div class="text-secondary mt-3 flex items-center gap-4 text-xs">
+          <div class="mt-3 flex items-center gap-4 text-xs text-[var(--text-secondary)]">
             <span class="flex items-center gap-1">
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -149,7 +149,7 @@
         <div class="flex justify-end gap-2 px-4 pb-4">
           <Tooltip :content="t('spaceManager.copyLink')">
             <button
-              class="text-secondary flex size-8 items-center justify-center rounded-lg bg-[var(--bg-muted)] transition-colors hover:text-primary hover:bg-[var(--bg-hover)]"
+              class="flex size-8 items-center justify-center rounded-lg bg-[var(--bg-muted)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)]"
               @click.stop="handleCopyShareLink(space)"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,7 +164,7 @@
           </Tooltip>
           <Tooltip :content="t('spaceManager.deleteSpace')">
             <button
-              class="flex size-8 items-center justify-center rounded-lg bg-[var(--color-danger-bg)] text-[var(--color-danger)] transition-colors hover:bg-red-100"
+              class="flex size-8 items-center justify-center rounded-lg bg-[var(--color-danger)]/10 text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger)]/20"
               @click.stop="deleteSpaceConfirm(space)"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -195,10 +195,10 @@
           ></path>
         </svg>
       </div>
-      <h3 class="text-primary mb-2 text-lg font-medium">{{ t('spaceManager.emptyTitle') }}</h3>
-      <p class="text-secondary mb-6 text-sm">{{ t('spaceManager.createDesc') }}</p>
+      <h3 class="mb-2 text-lg font-medium text-[var(--text-main)]">{{ t('spaceManager.emptyTitle') }}</h3>
+      <p class="mb-6 text-sm text-[var(--text-secondary)]">{{ t('spaceManager.createDesc') }}</p>
       <button
-        class="bg-primary inline-flex items-center gap-2 rounded-lg px-6 py-3 text-white transition-colors hover:bg-[var(--color-primary-hover)] dark:text-gray-900"
+        class="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-6 py-3 text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)] dark:text-gray-900"
         @click="showCreateModal = true"
       >
         <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

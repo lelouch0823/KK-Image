@@ -23,7 +23,7 @@
       <div
         v-for="order in data"
         :key="order.id"
-        class="group overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm transition-all active:scale-[0.98] active:bg-[var(--bg-hover)] active:shadow-none"
+        class="group overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm transition-all active:scale-[0.98] active:bg-[var(--bg-hover)]"
         @click="$emit('detail', order)"
       >
         <div class="flex gap-3 p-4">

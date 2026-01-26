@@ -110,16 +110,15 @@
             </p>
         </div>
 
-        <!-- Actions -->
         <div class="flex gap-3 pt-2">
             <button 
-                class="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-600/20 transition-all hover:bg-indigo-700 active:scale-95"
+                class="flex-1 rounded-xl bg-[var(--color-primary)] py-2.5 text-sm font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:opacity-90 active:scale-95"
                 @click="$emit('edit', product)"
             >
                 {{ t('product.action.edit') }}
             </button>
             <button 
-                class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-5 py-2.5 text-sm font-medium text-[var(--text-main)] hover:bg-[var(--bg-hover)] active:scale-95"
+                class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-5 py-2.5 text-sm font-medium text-[var(--text-main)] transition-all hover:bg-[var(--bg-hover)] active:scale-95"
                 @click="$emit('close')"
             >
                 {{ t('common.close') }}
@@ -130,7 +129,7 @@
 </template>
 
 <script setup>
-import { computed, ref, toRefs } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppImage from '@/components/ui/AppImage.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -142,7 +141,7 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['edit', 'close']);
+defineEmits(['edit', 'close']);
 const { t } = useI18n();
 const currentIndex = ref(0);
 
@@ -173,14 +172,14 @@ const specs = computed(() => {
 const stockColorClass = computed(() => {
     const q = props.product.stockQuantity || 0;
     const t = props.product.alertThreshold || 10;
-    if (q <= t) return 'text-red-500 font-bold';
+    if (q <= t) return 'text-[var(--color-danger-text)] font-bold';
     return 'text-[var(--text-main)]';
 });
 
 const stockBgClass = computed(() => {
     const q = props.product.stockQuantity || 0;
     const t = props.product.alertThreshold || 10;
-     if (q <= t) return 'bg-red-500';
-    return 'bg-green-500';
+     if (q <= t) return 'bg-[var(--color-danger)]';
+    return 'bg-[var(--color-success)]';
 });
 </script>

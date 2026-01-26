@@ -45,18 +45,18 @@
       >
         <div 
           v-if="selectedCount > 0" 
-          class="flex flex-1 items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+          class="flex flex-1 items-center gap-2 rounded-xl bg-[var(--color-info)]/10 px-3 py-2 text-sm text-[var(--color-info)] dark:bg-[var(--color-info)]/20 dark:text-blue-300"
         >
           <span class="font-medium whitespace-nowrap">{{ t('fileManager.selected', { count: selectedCount }) }}</span>
-          <div class="mx-1 h-4 w-px bg-blue-200 dark:bg-blue-700"></div>
+          <div class="mx-1 h-4 w-px bg-[var(--color-info)]/20 dark:bg-blue-700"></div>
           <div class="ml-auto flex items-center gap-1 sm:ml-0">
-            <button class="px-1 hover:text-blue-900 hover:underline dark:hover:text-blue-100" @click="$emit('batch-move')">
+            <button class="px-1 transition-colors hover:text-[var(--color-info)] hover:underline dark:hover:text-blue-100" @click="$emit('batch-move')">
               {{ t('fileManager.actions.move') }}
             </button>
-            <button class="px-1 text-red-600 hover:text-red-800 hover:underline dark:text-red-400 dark:hover:text-red-300" @click="$emit('batch-delete')">
+            <button class="px-1 text-[var(--color-danger)] transition-colors hover:text-[var(--color-danger-hover)] hover:underline dark:text-red-400 dark:hover:text-red-300" @click="$emit('batch-delete')">
               {{ t('fileManager.actions.delete') }}
             </button>
-            <button class="px-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" @click="$emit('clear-selection')">
+            <button class="px-1 text-[var(--text-secondary)] transition-colors hover:text-[var(--text-main)] dark:text-gray-400 dark:hover:text-gray-300" @click="$emit('clear-selection')">
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
           </div>
@@ -86,7 +86,7 @@
 
       <Tooltip :content="t('fileManager.upload')">
         <button
-          class="bg-primary shadow-primary/20 flex size-10 items-center justify-center rounded-xl text-white shadow-lg transition-all hover:bg-primary-hover hover:shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 dark:text-gray-900"
+          class="flex size-10 items-center justify-center rounded-xl bg-[var(--color-primary)] text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:-translate-y-0.5 hover:bg-[var(--color-primary-hover)] hover:shadow-[var(--color-primary)]/30 active:translate-y-0 active:scale-95 dark:text-gray-900"
           @click="$refs.fileInput.click()"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -144,7 +144,7 @@ import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import Tooltip from '@/components/ui/Tooltip.vue';
 
-const props = defineProps({
+const _props = defineProps({
   breadcrumbs: {
     type: Array,
     required: true,

@@ -6,7 +6,7 @@
       <div class="flex items-center justify-between">
         <button
           v-if="mode !== 'sales'"
-          class="text-secondary flex items-center gap-2 transition-colors hover:text-primary"
+          class="flex items-center gap-2 text-[var(--text-secondary)] transition-colors hover:text-[var(--color-primary)]"
           @click="$emit('back')"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -23,7 +23,7 @@
         <!-- 销售端操作按钮 -->
         <div v-if="mode === 'sales'" class="flex gap-2">
           <button
-            class="text-primary flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:shadow-md active:scale-95"
+            class="flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary)] shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:shadow-md active:scale-95"
             @click="$emit('duplicate', order)"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,7 +38,7 @@
           </button>
           <button
             v-if="['pending', 'rejected', 'void'].includes(order.status)"
-            class="text-primary flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:shadow-md active:scale-95"
+            class="flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary)] shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:shadow-md active:scale-95"
             @click="showEditModal = true"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,7 +58,7 @@
         <!-- 管理端操作按钮 -->
         <div v-if="mode === 'admin' || !mode" class="flex gap-2">
           <button
-            class="text-primary flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:shadow-md active:scale-95"
+            class="flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary)] shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:shadow-md active:scale-95"
             @click="$emit('edit', order)"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,7 +72,7 @@
             {{ t('order.manage.editOrder') }}
           </button>
           <button
-            class="group text-secondary flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium shadow-sm transition-all hover:text-primary hover:bg-[var(--bg-hover)] hover:shadow-md active:scale-95"
+            class="group flex items-center gap-1.5 rounded-lg border border-[var(--border-hover)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium text-[var(--text-secondary)] shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)] hover:shadow-md active:scale-95"
             @click="handleSavePdf"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -134,7 +134,7 @@
 
           <!-- 时间轴 (PC端窄栏显示，移动端通用) -->
           <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
-            <h3 class="text-primary mb-4 text-sm font-medium">{{ t('order.detail.timeline') }}</h3>
+            <h3 class="mb-4 text-sm font-medium text-[var(--color-primary)]">{{ t('order.detail.timeline') }}</h3>
             <OrderTimeline :timeline="order.timeline" />
           </div>
 

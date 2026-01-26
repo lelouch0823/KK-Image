@@ -10,9 +10,9 @@
     <transition name="fade">
       <div
         v-if="isDragging"
-        class="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--color-info)] bg-[var(--color-info-bg)]/90 backdrop-blur-sm"
+        class="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--color-info)] bg-[var(--color-info)]/10 backdrop-blur-sm dark:bg-[var(--color-info)]/20"
       >
-        <div class="mb-4 animate-bounce rounded-full bg-white p-6 shadow-lg">
+        <div class="mb-4 animate-bounce rounded-full bg-[var(--bg-card)] p-6 shadow-lg">
           <svg
             class="size-12 text-[var(--color-info)]"
             fill="none"
@@ -127,7 +127,7 @@
                       class="group relative cursor-pointer rounded-xl border p-4 transition-all hover:-translate-y-1 hover:shadow-md"
                       :class="[
                         selectedIds.has(file.id)
-                          ? 'border-primary ring-primary bg-blue-50/50 ring-1 dark:bg-blue-900/30'
+                          ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 ring-1 ring-[var(--color-primary)] dark:bg-[var(--color-primary)]/20'
                           : 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-[var(--border-hover)]'
                       ]"
                        @click.stop="toggleSelect(file)"
@@ -138,12 +138,12 @@
                              <img
                                v-if="isImage(file)"
                                :src="file.url"
-                               class="mb-2 size-20 rounded bg-gray-50 object-cover shadow-sm dark:bg-gray-800"
+                               class="mb-2 size-20 rounded bg-[var(--bg-muted)] object-cover shadow-sm dark:bg-white/10"
                                loading="lazy"
                              />
                               <div
                                v-else
-                               class="text-secondary mb-2 flex size-20 items-center justify-center rounded bg-gray-100 text-sm font-bold uppercase dark:bg-gray-800"
+                               class="mb-2 flex size-20 items-center justify-center rounded bg-[var(--bg-muted)] text-sm font-bold text-[var(--text-secondary)] uppercase dark:bg-white/10"
                               >
                                 {{ getFileExtension(file.name) }}
                               </div>
@@ -509,9 +509,6 @@ onUnmounted(() => {
 // Wait, I don't have heroicons installed probably? I should stick to the simple createIcon helper or usage I had before.
 // Actually, I can just define the menu items with string icons or simple objects if ContextMenu supports it.
 // The ContextMenu component likely expects objects. Reverting to the local icon definition pattern for safety.
-
-const createIconPath = (d) => d; // Unused, can be removed
-// It used a `createIcon` helper that returned a VNode.
 
 import { h } from 'vue';
 const createIcon = (d) => {
