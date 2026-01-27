@@ -91,108 +91,90 @@
         
         <!-- Key Metrics Row -->
         <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <!-- Total Files -->
-           <div class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-sm backdrop-blur-md transition-all hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 dark:hover:shadow-[0_0_30px_rgba(59,130,246,0.1)]">
-             <div class="absolute -top-6 -right-6 rounded-full bg-blue-500/10 p-12 blur-2xl transition-transform group-hover:bg-blue-500/20"></div>
-             <div class="relative z-10 flex items-start justify-between">
-                <div>
-                  <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ t('stats.totalFiles') }}</p>
-                  <h3 class="mt-2 font-mono text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-                    {{ formatNumber(stats.storage?.totalFiles) }}
-                  </h3>
-                </div>
-                <div class="rounded-lg bg-blue-500/20 p-2 text-blue-400 ring-1 ring-blue-500/30">
-                  <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-             </div>
-             <!-- Progress Bar Simulation -->
-             <div class="mt-4 flex items-center gap-2 text-sm font-medium text-slate-500">
-               <span class="rounded bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-500">+{{ formatNumber(stats.storage?.todayUploads) }}</span>
-               {{ t('dashboard.todayUploads') }}
-             </div>
-           </div>
+          <!-- Total Files -->
+          <StatsCard
+            :title="t('stats.totalFiles')"
+            :value="formatNumber(stats.storage?.totalFiles)"
+            color="blue"
+          >
+            <template #icon>
+              <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </template>
+            <template #footer>
+              <div class="mt-4 flex items-center gap-2 text-sm font-medium text-slate-500">
+                <span class="rounded bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-500">+{{ formatNumber(stats.storage?.todayUploads) }}</span>
+                {{ t('dashboard.todayUploads') }}
+              </div>
+            </template>
+          </StatsCard>
 
-           <!-- Total Storage -->
-           <div class="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md transition-all hover:bg-white/10 hover:shadow-[0_0_30px_rgba(16,185,129,0.1)]">
-             <div class="absolute -top-6 -right-6 rounded-full bg-emerald-500/10 p-12 blur-2xl transition-transform group-hover:bg-emerald-500/20"></div>
-             <div class="relative z-10 flex items-start justify-between">
-                <div>
-                  <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ t('stats.totalStorage') }}</p>
-                  <h3 class="mt-2 font-mono text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-                    {{ formatSize(stats.storage?.totalSize) }}
-                  </h3>
-                </div>
-                <div class="rounded-lg bg-emerald-500/20 p-2 text-emerald-400 ring-1 ring-emerald-500/30">
-                  <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-                  </svg>
-                </div>
-             </div>
-             <!-- Progress Bar Simulation -->
+          <!-- Total Storage -->
+          <StatsCard
+            :title="t('stats.totalStorage')"
+            :value="formatSize(stats.storage?.totalSize)"
+            color="emerald"
+          >
+           <template #icon>
+              <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+              </svg>
+            </template>
+            <template #footer>
               <div class="mt-4 text-sm font-medium text-slate-500">
                 {{ t('stats.totalStorage') }}
               </div>
-           </div>
+            </template>
+          </StatsCard>
 
-           <!-- Monthly Visits -->
-           <div class="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md transition-all hover:bg-white/10 hover:shadow-[0_0_30px_rgba(139,92,246,0.1)]">
-             <div class="absolute -top-6 -right-6 rounded-full bg-purple-500/10 p-12 blur-2xl transition-transform group-hover:bg-purple-500/20"></div>
-             <div class="relative z-10 flex items-start justify-between">
-                <div>
-                  <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ t('stats.monthVisits') }}</p>
-                  <h3 class="mt-2 font-mono text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-                    {{ formatNumber(stats.traffic?.monthTotal) }}
-                  </h3>
-                </div>
-                <div class="rounded-lg bg-purple-500/20 p-2 text-purple-400 ring-1 ring-purple-500/30">
-                  <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                </div>
-             </div>
-             <div class="mt-4 text-sm font-medium text-slate-500">
-               {{ t('stats.trafficTrend') }}
-             </div>
-           </div>
+          <!-- Monthly Visits -->
+          <StatsCard
+            :title="t('stats.monthVisits')"
+            :value="formatNumber(stats.traffic?.monthTotal)"
+            color="purple"
+          >
+           <template #icon>
+              <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </template>
+            <template #footer>
+              <div class="mt-4 text-sm font-medium text-slate-500">
+                {{ t('stats.trafficTrend') }}
+              </div>
+            </template>
+          </StatsCard>
         </div>
 
         <!-- Charts Area -->
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <!-- Traffic Trend -->
-          <div class="rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-sm backdrop-blur-md lg:col-span-2 dark:border-white/10 dark:bg-white/5">
-            <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-              <span class="size-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span>
-              {{ t('stats.trafficTrend') }}
-            </h3>
-            <div class="relative h-80">
-              <canvas ref="trendChartRef"></canvas>
-            </div>
-          </div>
+          <StatsChartWrapper
+             class="lg:col-span-2"
+             :title="t('stats.trafficTrend')"
+             color="blue"
+          >
+            <canvas ref="trendChartRef"></canvas>
+          </StatsChartWrapper>
 
           <!-- File Distribution -->
-          <div class="rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5">
-            <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-              <span class="size-2 rounded-full bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.8)]"></span>
-              {{ t('stats.fileTypes') }}
-            </h3>
-            <div class="relative h-80">
-              <canvas ref="typeChartRef"></canvas>
-            </div>
-          </div>
+          <StatsChartWrapper
+             :title="t('stats.fileTypes')"
+             color="teal"
+          >
+             <canvas ref="typeChartRef"></canvas>
+          </StatsChartWrapper>
         </div>
 
         <!-- Bottom Grid -->
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <!-- Top Spaces -->
-            <div class="rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5">
-               <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                <span class="size-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]"></span>
-                {{ t('stats.topSpaces') }}
-              </h3>
-              
+            <StatsChartWrapper
+                :title="t('stats.topSpaces')"
+                color="orange"
+            >
               <div v-if="stats.traffic?.topSpaces?.length > 0" class="space-y-4">
                 <div
                     v-for="(space, index) in stats.traffic?.topSpaces"
@@ -224,55 +206,49 @@
                <div v-else class="flex h-40 items-center justify-center text-slate-500 dark:text-slate-400">
                     {{ t('stats.noData') }}
                 </div>
-            </div>
+            </StatsChartWrapper>
 
             <!-- Health Status -->
-            <div class="grid grid-cols-2 gap-4">
-                 <div class="col-span-2 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-                    <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-white">
-                        <span class="size-2 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.8)]"></span>
-                        {{ t('stats.statusOverview') }}
-                    </h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <!-- Normal -->
-                        <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
-                            <div class="mb-2 text-sm font-medium text-emerald-400">{{ t('stats.normal') }}</div>
-                            <div class="font-mono text-3xl font-bold text-emerald-200">{{ formatNumber(stats.health?.status?.normal) }}</div>
-                             <div class="mt-2 h-1 w-full rounded-full bg-emerald-500/20">
-                                <div class="h-full rounded-full bg-emerald-500 transition-all duration-1000" style="width: 100%"></div>
-                             </div>
-                        </div>
-                         <!-- Blocked -->
-                         <div class="rounded-xl border border-red-500/20 bg-red-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
-                            <div class="mb-2 text-sm font-medium text-red-400">{{ t('stats.blocked') }}</div>
-                            <div class="font-mono text-3xl font-bold text-red-200">{{ formatNumber(stats.health?.status?.blocked) }}</div>
-                             <div class="mt-2 h-1 w-full rounded-full bg-red-500/20">
-                                <div class="h-full rounded-full bg-red-500 transition-all duration-1000" :style="`width: ${stats.health?.status?.blocked > 0 ? '100%' : '0%'}`"></div>
-                             </div>
-                        </div>
-                         <!-- Whitelisted -->
-                         <div class="rounded-xl border border-blue-500/20 bg-blue-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
-                            <div class="mb-2 text-sm font-medium text-blue-400">{{ t('stats.whitelisted') }}</div>
-                            <div class="font-mono text-3xl font-bold text-blue-200">{{ formatNumber(stats.health?.status?.whitelisted) }}</div>
-                        </div>
-                        <!-- Liked -->
-                        <div class="rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
-                            <div class="mb-2 text-sm font-medium text-yellow-400">{{ t('stats.liked') }}</div>
-                            <div class="font-mono text-3xl font-bold text-yellow-200">{{ formatNumber(stats.health?.status?.liked) }}</div>
-                        </div>
-                    </div>
-                </div>
-                
-            </div>
+            <StatsChartWrapper
+                :title="t('stats.statusOverview')"
+                color="pink"
+            >
+                 <div class="align-content-start grid h-full grid-cols-2 gap-4">
+                     <!-- Normal -->
+                     <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
+                         <div class="mb-2 text-sm font-medium text-emerald-400">{{ t('stats.normal') }}</div>
+                         <div class="font-mono text-3xl font-bold text-emerald-200">{{ formatNumber(stats.health?.status?.normal) }}</div>
+                          <div class="mt-2 h-1 w-full rounded-full bg-emerald-500/20">
+                             <div class="h-full rounded-full bg-emerald-500 transition-all duration-1000" style="width: 100%"></div>
+                          </div>
+                     </div>
+                      <!-- Blocked -->
+                      <div class="rounded-xl border border-red-500/20 bg-red-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
+                         <div class="mb-2 text-sm font-medium text-red-400">{{ t('stats.blocked') }}</div>
+                         <div class="font-mono text-3xl font-bold text-red-200">{{ formatNumber(stats.health?.status?.blocked) }}</div>
+                          <div class="mt-2 h-1 w-full rounded-full bg-red-500/20">
+                             <div class="h-full rounded-full bg-red-500 transition-all duration-1000" :style="`width: ${stats.health?.status?.blocked > 0 ? '100%' : '0%'}`"></div>
+                          </div>
+                     </div>
+                      <!-- Whitelisted -->
+                      <div class="rounded-xl border border-blue-500/20 bg-blue-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
+                         <div class="mb-2 text-sm font-medium text-blue-400">{{ t('stats.whitelisted') }}</div>
+                         <div class="font-mono text-3xl font-bold text-blue-200">{{ formatNumber(stats.health?.status?.whitelisted) }}</div>
+                     </div>
+                     <!-- Liked -->
+                     <div class="rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
+                         <div class="mb-2 text-sm font-medium text-yellow-400">{{ t('stats.liked') }}</div>
+                         <div class="font-mono text-3xl font-bold text-yellow-200">{{ formatNumber(stats.health?.status?.liked) }}</div>
+                     </div>
+                 </div>
+            </StatsChartWrapper>
         </div>
 
         <!-- Large Files Table -->
-        <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-           <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-white">
-                <span class="size-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]"></span>
-                {{ t('stats.largeFiles') }}
-            </h3>
-            
+        <StatsChartWrapper
+             :title="t('stats.largeFiles')"
+             color="indigo"
+        >
              <div v-if="stats.storage?.largeFiles?.length > 0" class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                   <thead class="border-b border-gray-200 text-slate-500 dark:border-white/10 dark:text-slate-400">
@@ -309,7 +285,7 @@
                <div v-else class="flex h-32 items-center justify-center text-slate-500 dark:text-slate-400">
                     {{ t('stats.noData') }}
                 </div>
-        </div>
+        </StatsChartWrapper>
       </div>
     </div>
   </div>
@@ -320,10 +296,12 @@ import { ref, onMounted, onActivated, nextTick, onUnmounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
-import { formatSize, getChartColors } from '@/utils/formatters';
+import { formatSize } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import Chart from 'chart.js/auto';
 import 'chartjs-adapter-date-fns';
+import StatsCard from './stats/StatsCard.vue';
+import StatsChartWrapper from './stats/StatsChartWrapper.vue';
 
 // Configure Chart.js defaults for Dark Mode
 Chart.defaults.color = '#94a3b8'; // Slate-400
