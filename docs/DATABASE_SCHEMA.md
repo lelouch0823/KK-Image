@@ -1,6 +1,6 @@
 # Database Schema (SOTA)
 
-> **Last Updated**: 2026-01-14
+> **Last Updated**: 2026-01-27
 > **Database Engine**: Cloudflare D1 (SQLite)
 
 本文档描述 **kk-life** 的核心数据库结构。所有表结构定义源自 `scripts/init-database.sql`。
@@ -80,9 +80,18 @@
 | `template_data`| TEXT | JSON, 存储 SKU、价格等扩展字段 |
 | `password` | TEXT | 访问密码 (明文/简单哈希) |
 | `expires_at` | INTEGER | 过期时间戳 |
+| `share_mode` | TEXT | `all` (公开) / `sales` (指定销售) |
 
 ### `space_files` (关联表)
 多对多关联 Space 和 Files。
+
+### `space_salesperson_shares` (空间-销售员关联表)
+当 `share_mode = 'sales'` 时，记录有权限访问该空间的销售员。
+| Column | Type | Description |
+|--------|------|-------------|
+| `space_id` | TEXT | PK, FK -> spaces.id |
+| `salesperson_id` | TEXT | PK, FK -> salespersons.id |
+| `shared_at` | INTEGER | 授权时间 |
 
 ---
 
@@ -119,6 +128,8 @@
 | `original_data` | TEXT | JSON, 原始提交数据 (不可变) |
 | `current_data` | TEXT | JSON, 当前有效数据 |
 | `unread_by_admin`| INT | 1 = 管理员未读 |
+| `product_id` | TEXT | FK -> products.id |
+| `quantity` | INTEGER | 订单数量 (Default 1) |
 
 ### `order_timeline` (时间轴)
 记录订单的所有操作日志。

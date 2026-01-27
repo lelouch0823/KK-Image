@@ -101,6 +101,7 @@ sequenceDiagram
 
 ### 4.2 创建订单 (`pages/form`)
 - 填写客户信息、商品信息
+- **输入商品数量** (quantity)
 - 上传附件 (调用 `wx.chooseImage` + 后端 upload API)
 - 提交后自动跳转到订单详情
 
@@ -122,7 +123,7 @@ sequenceDiagram
 | 获取用户信息 | `GET /api/sales/:token/auth` |
 | 绑定微信 | `POST /api/sales/:token/bind-wechat` |
 | 订单列表 | `GET /api/sales/:token/orders` |
-| 创建订单 | `POST /api/sales/:token/orders` |
+| 创建订单 | `POST /api/sales/:token/orders` (Body: `{..., quantity}`) |
 | 订单详情 | `GET /api/sales/:token/orders/:id` |
 | 添加留言 | `POST /api/sales/:token/orders/:id/comment` |
 | 上传文件 | `POST /api/sales/:token/upload` |

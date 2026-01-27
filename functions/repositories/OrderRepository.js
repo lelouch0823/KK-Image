@@ -62,8 +62,8 @@ export class OrderRepository {
   }
 
   /** @see mutations.updateData */
-  async updateData(id, newData, actorType) {
-    return mutations.updateData(this.db, id, newData, actorType);
+  async updateData(id, newData, actorType, productId) {
+    return mutations.updateData(this.db, id, newData, actorType, productId);
   }
 
   /** @see mutations.updateStatus */

@@ -1,8 +1,8 @@
 -- ===========================================================================
 -- kk-life 数据库初始化脚本
 -- SOTA 全量架构 (Cloudflare D1 优化版)
--- 版本: 2.1.0
--- 更新时间: 2026-01-12
+-- 版本: 2.1.1
+-- 更新时间: 2026-01-27
 -- ===========================================================================
 -- 
 -- 使用说明:
@@ -165,6 +165,7 @@ CREATE TABLE IF NOT EXISTS space_salesperson_shares (
 );
 
 CREATE INDEX IF NOT EXISTS idx_space_shares_salesperson ON space_salesperson_shares(salesperson_id);
+-- [SOTA] 索引：按分享模式筛选
 
 -- 3.2 空间-文件关联表 (多对多)
 CREATE TABLE IF NOT EXISTS space_files (
@@ -335,6 +336,7 @@ CREATE TABLE IF NOT EXISTS orders (
     salesperson_id TEXT NOT NULL,           -- 归属销售员
     customer_id TEXT,                       -- 关联客户 (可选)
     product_id TEXT,                        -- 关联标准商品 (可选，用于标准化订单)
+    quantity INTEGER DEFAULT 1,             -- 订单数量
     original_data TEXT NOT NULL,            -- 原始提交数据 (JSON)
     current_data TEXT NOT NULL,             -- 当前最新数据 (JSON)
     -- 订单状态枚举 (完整生命周期)
@@ -508,7 +510,7 @@ INSERT OR IGNORE INTO folders (id, parent_id, name, description, share_token, is
 VALUES ('root', NULL, '根目录', '默认根目录', NULL, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000);
 
 -- ===========================================================================
--- Schema Version: 2.3.0 (2026-01-25)
--- Tables: 21 (Added products, SystemSettings)
+-- Schema Version: 2.4.0 (2026-01-27)
+-- Tables: 22 (Added space_salesperson_shares)
 -- SOTA: Inventory, Cost, SEO included in products
 -- ===========================================================================

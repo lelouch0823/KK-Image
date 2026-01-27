@@ -58,7 +58,7 @@ Base URL: `/api/sales/:accessToken`
 | GET | `/auth` | 获取当前销售员信息 (Session Check) |
 | POST | `/bind-wechat` | 绑定微信账号 (需 JWT) |
 | GET | `/orders` | 获取订单列表 |
-| POST | `/orders` | 创建新订单 |
+| POST | `/orders` | 创建新订单 (支持 `quantity`) |
 | GET | `/orders/:id` | 获取订单详情 |
 | POST | `/upload` | 上传文件 (图片/视频) |
 
@@ -75,7 +75,7 @@ Base URL: `/api/manage`
 | :--- | :--- | :--- |
 | GET | `/dashboard/overview` | 仪表盘统计数据 |
 | GET | `/orders` | 订单管理列表 |
-| PUT | `/orders/:id` | 修改订单 |
+| PATCH | `/orders/:id` | 修改订单 (支持 `productId` 绑定) |
 | POST | `/salespersons` | 创建销售员 |
 
 ---

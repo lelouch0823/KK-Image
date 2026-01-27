@@ -8,7 +8,7 @@
 
 ## 2. 核心状态 (Current Status)
 
-> **版本**: 2.1.0 (WeChat Edition)  
+> **版本**: 2.1.1 (WeChat Edition)  
 > **状态**: 🟢 生产就绪
 
 ### ✅ 核心业务模块
