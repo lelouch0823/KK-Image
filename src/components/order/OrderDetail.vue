@@ -162,7 +162,7 @@ import OrderPrintView from './OrderPrintView.vue';
 import OrderEditModal from '../OrderEditModal.vue';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
-import Lightbox from '@/components/common/Lightbox.vue';
+import Lightbox from '@/components/ui/Lightbox.vue';
 
 const props = defineProps({
   order: { type: Object, required: true },

@@ -2,31 +2,18 @@
   <div class="space-y-3">
     <!-- 加载状态 -->
     <template v-if="loading">
-      <div
-        v-for="i in 5"
-        :key="i"
-        class="animate-pulse rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4"
-      >
-        <div class="space-y-3">
-          <div class="flex justify-between">
-            <div class="h-4 w-1/3 rounded bg-[var(--bg-muted)]"></div>
-            <div class="h-4 w-1/4 rounded bg-[var(--bg-muted)]"></div>
-          </div>
-          <div class="h-3 w-1/2 rounded bg-[var(--bg-muted)]"></div>
-          <div class="h-3 w-2/3 rounded bg-[var(--bg-muted)]"></div>
-        </div>
-      </div>
+      <Skeleton template="list-card" :count="5" />
     </template>
 
     <!-- 客户卡片 -->
     <template v-else-if="data.length > 0">
-      <div
+      <AppCard
         v-for="customer in data"
         :key="customer.id"
-        class="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm transition-all active:scale-[0.98] active:bg-[var(--bg-hover)] active:shadow-none"
+        clickable
         @click="$emit('detail', customer)"
       >
-        <div class="flex flex-col gap-3 p-4">
+        <div class="flex flex-col gap-3">
           <!-- 头部信息: 姓名与公司 -->
           <div class="flex items-start justify-between gap-2">
             <div>
@@ -74,16 +61,15 @@
         </div>
 
         <!-- 底部操作栏 -->
-        <div
-          class="flex items-center justify-between border-t border-[var(--border-color)] bg-[var(--bg-muted)]/30 px-4 py-3"
-          @click.stop
-        >
-          <span class="text-xs text-[var(--text-secondary)]/50">{{
-            formatDate(customer.createdAt)
-          }}</span>
-          <!-- 可以放置更多操作，目前点击卡片看详情，右上角编辑 -->
-        </div>
-      </div>
+        <template #footer>
+          <div class="flex items-center justify-between" @click.stop>
+            <span class="text-xs text-[var(--text-secondary)]/50">{{
+              formatDate(customer.createdAt)
+            }}</span>
+            <!-- 可以放置更多操作，目前点击卡片看详情，右上角编辑 -->
+          </div>
+        </template>
+      </AppCard>
     </template>
 
     <!-- 空状态 -->
@@ -95,6 +81,8 @@
 import { useI18n } from '@/composables/useI18n';
 import { formatDate } from '@/utils/formatters';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
+import AppCard from '@/components/ui/AppCard.vue';
 
 defineProps({
   data: {

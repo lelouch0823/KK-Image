@@ -12,23 +12,86 @@
         v-if="visible"
         class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md"
         @click.self="$emit('close')"
-        @wheel.prevent="handleWheel"
+        @wheel="handleWheel"
       >
         <!-- Toolbar -->
         <div
-          class="absolute top-0 right-0 left-0 z-50 flex items-center justify-between bg-gradient-to-b from-black/50 to-transparent p-4"
+          class="absolute top-0 right-0 left-0 z-50 flex items-center justify-between bg-gradient-to-b from-black/50 to-transparent p-4 transition-colors"
         >
           <div class="px-2 text-sm font-medium text-white/90">
             {{ currentIndex + 1 }} / {{ total }}
           </div>
 
           <div class="flex items-center gap-4">
+            <!-- Zoom/Rotate Toolbar (Only for images) -->
+            <div v-if="currentFile?.type === 'image'" class="mr-4 flex items-center gap-2 border-r border-white/10 pr-4">
+              <!-- Rotate -->
+              <button
+                type="button"
+                class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
+                aria-label="Rotate image (R)"
+                title="Rotate (R)"
+                @click.stop="rotate"
+              >
+                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  ></path>
+                </svg>
+              </button>
+
+              <!-- Zoom In -->
+              <button
+                type="button"
+                class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
+                aria-label="Zoom in (+)"
+                title="Zoom In (+)"
+                @click.stop="zoomIn"
+              >
+                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                  ></path>
+                </svg>
+              </button>
+
+              <!-- Zoom Out -->
+              <button
+                type="button"
+                class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
+                aria-label="Zoom out (-)"
+                title="Zoom Out (-)"
+                @click.stop="zoomOut"
+              >
+                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"
+                  ></path>
+                </svg>
+              </button>
+
+              <!-- Zoom indicator -->
+              <span class="min-w-12 text-center text-sm font-medium text-white/70">
+                {{ Math.round(scale * 100) }}%
+              </span>
+            </div>
+
             <!-- Download Button -->
             <a
               v-if="currentFile"
               :href="currentFile.url"
               download
-              class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-md transition-colors hover:bg-white/20"
+              class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-md transition-colors hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white"
+              aria-label="Download file"
             >
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -43,7 +106,8 @@
 
             <!-- Close Button -->
             <button
-              class="flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white"
+              class="flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
+              aria-label="Close"
               @click="$emit('close')"
             >
               <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -61,7 +125,8 @@
         <!-- Navigation Buttons -->
         <button
           v-if="currentIndex > 0"
-          class="absolute top-1/2 left-4 z-50 flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white"
+          class="absolute top-1/2 left-4 z-50 flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
+          aria-label="Previous image"
           @click="$emit('prev')"
         >
           <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -75,7 +140,8 @@
         </button>
         <button
           v-if="currentIndex < total - 1"
-          class="absolute top-1/2 right-4 z-50 flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white"
+          class="absolute top-1/2 right-4 z-50 flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
+          aria-label="Next image"
           @click="$emit('next')"
         >
           <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,7 +156,7 @@
 
         <!-- Content -->
         <div
-          class="absolute inset-0 flex items-center justify-center p-4 py-20 sm:p-8 md:p-12"
+          class="absolute inset-0 flex items-center justify-center p-4 py-20 sm:p-8 md:p-12 overflow-hidden"
           @click.self="$emit('close')"
         >
           <!-- Image -->
@@ -98,7 +164,9 @@
             v-if="currentFile?.type === 'image'"
             :src="currentFile.url"
             :alt="currentFile.name"
-            class="animate-in zoom-in max-h-full max-w-full rounded-lg object-contain shadow-2xl duration-300"
+            class="max-h-full max-w-full rounded-lg object-contain shadow-2xl transition-transform duration-200"
+            :class="{ 'cursor-zoom-in': scale === 1, 'cursor-grab': scale > 1 }"
+            :style="{ transform: `scale(${scale}) rotate(${rotation}deg)` }"
           />
 
           <!-- PDF Viewer -->
@@ -140,7 +208,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 
 const props = defineProps({
@@ -166,11 +234,41 @@ const emit = defineEmits(['close', 'prev', 'next']);
 
 const { t } = useI18n();
 
+// Zoom & Rotate state
+const scale = ref(1);
+const rotation = ref(0);
+
+const zoomIn = () => {
+  if (scale.value < 3) scale.value += 0.5;
+};
+
+const zoomOut = () => {
+  if (scale.value > 0.5) scale.value -= 0.5;
+};
+
+const rotate = () => {
+  rotation.value = (rotation.value + 90) % 360;
+};
+
+// Reset state when file changes
+watch(() => props.currentFile, () => {
+  scale.value = 1;
+  rotation.value = 0;
+});
+
 const handleWheel = (e) => {
-  if (e.deltaY > 0) {
-    emit('next');
-  } else if (e.deltaY < 0) {
-    emit('prev');
+  if (e.ctrlKey || e.metaKey) {
+    // Zoom
+    e.preventDefault();
+    if (e.deltaY < 0) zoomIn();
+    else zoomOut();
+  } else {
+    // Navigation
+    if (e.deltaY > 0) {
+      emit('next');
+    } else if (e.deltaY < 0) {
+      emit('prev');
+    }
   }
 };
 
@@ -186,6 +284,18 @@ const handleKeydown = (e) => {
       break;
     case 'ArrowRight':
       emit('next');
+      break;
+    case '+':
+    case '=':
+      zoomIn();
+      break;
+    case '-':
+    case '_':
+      zoomOut();
+      break;
+    case 'r':
+    case 'R':
+      rotate();
       break;
   }
 };

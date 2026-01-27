@@ -36,22 +36,16 @@
     <template v-else>
       <!-- Key Metrics -->
       <div class="grid grid-cols-2 gap-4">
-        <div
-          class="rounded-2xl border border-[var(--color-info)]/20 bg-[var(--color-info)]/5 p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-        >
-          <div class="mb-1 text-sm font-medium text-[var(--color-info)]">
-            {{ t('spaceAnalytics.totalViews') }}
-          </div>
-          <div class="text-2xl font-bold text-[var(--text-main)]">{{ stats.total?.view_count || 0 }}</div>
-        </div>
-        <div
-          class="rounded-2xl border border-[var(--color-purple)]/20 bg-[var(--color-purple)]/5 p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-        >
-          <div class="mb-1 text-sm font-medium text-[var(--color-purple)]">
-            {{ t('spaceAnalytics.totalDownloads') }}
-          </div>
-          <div class="text-2xl font-bold text-[var(--text-main)]">{{ stats.total?.download_count || 0 }}</div>
-        </div>
+        <AppStatCard
+          :label="t('spaceAnalytics.totalViews')"
+          :value="stats.total?.view_count || 0"
+          variant="info"
+        />
+        <AppStatCard
+          :label="t('spaceAnalytics.totalDownloads')"
+          :value="stats.total?.download_count || 0"
+          variant="purple"
+        />
       </div>
 
       <!-- Chart with Time Range Selector -->
@@ -137,6 +131,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppStatCard from '@/components/ui/AppStatCard.vue';
 import {
   Chart as ChartJS,
   CategoryScale,

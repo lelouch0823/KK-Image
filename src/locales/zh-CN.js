@@ -419,6 +419,7 @@ export default {
     trendUp: '↑ 较上周',
     trendDown: '↓ 较上周',
     trendSame: '持平',
+    vsLastPeriod: '较上期',
   },
   stats: {
     analyzing: '正在分析数据...',

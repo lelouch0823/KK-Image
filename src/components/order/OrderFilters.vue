@@ -1,12 +1,6 @@
 <template>
-  <div class="flex-shrink-0 border-b border-[var(--border-color)] p-3 sm:p-4">
-    <!-- Header with Create Button -->
-    <div class="flex items-center justify-between gap-3">
-      <div class="min-w-0">
-        <h2 class="truncate text-base font-semibold text-[var(--text-main)] sm:text-lg">{{ t('order.manage.title') }}</h2>
-        <p class="hidden text-sm text-[var(--text-secondary)] sm:block">{{ t('order.manage.subtitle') }}</p>
-      </div>
-
+  <AppFilterBar :title="t('order.manage.title')" :subtitle="t('order.manage.subtitle')">
+    <template #actions>
       <!-- Desktop: Create + Export buttons -->
       <div class="hidden shrink-0 items-center gap-2 sm:flex">
         <button
@@ -86,10 +80,9 @@
           </svg>
         </button>
       </div>
-    </div>
+    </template>
 
-    <!-- Filters Row -->
-    <div class="mt-2.5 flex flex-wrap items-center gap-2 sm:mt-3">
+    <template #filters>
       <!-- 销售筛选 -->
       <div class="w-24 sm:w-36">
         <Select
@@ -122,8 +115,8 @@
           @search="$emit('search')"
         />
       </div>
-    </div>
-  </div>
+    </template>
+  </AppFilterBar>
 </template>
 
 <script setup>
@@ -131,6 +124,7 @@ import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import Select from '@/components/ui/Select.vue';
+import AppFilterBar from '@/components/ui/AppFilterBar.vue';
 
 const props = defineProps({
   filters: {

@@ -2,31 +2,19 @@
   <div class="space-y-3">
     <!-- 加载状态 -->
     <template v-if="loading">
-      <div
-        v-for="i in 5"
-        :key="i"
-        class="animate-pulse rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4"
-      >
-        <div class="flex gap-3">
-          <div class="size-16 flex-shrink-0 rounded-lg bg-[var(--bg-muted)]"></div>
-          <div class="flex-1 space-y-2">
-            <div class="h-4 w-3/4 rounded bg-[var(--bg-muted)]"></div>
-            <div class="h-3 w-1/2 rounded bg-[var(--bg-muted)]"></div>
-            <div class="h-3 w-1/3 rounded bg-[var(--bg-muted)]"></div>
-          </div>
-        </div>
-      </div>
+      <Skeleton template="list-card" :count="5" />
     </template>
 
     <!-- 订单卡片 -->
     <template v-else-if="data.length > 0">
-      <div
+      <AppCard
         v-for="order in data"
         :key="order.id"
-        class="group overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm transition-all active:scale-[0.98] active:bg-[var(--bg-hover)]"
+        clickable
+        class="group"
         @click="$emit('detail', order)"
       >
-        <div class="flex gap-3 p-4">
+        <div class="flex gap-3">
           <!-- 主图 -->
           <div
             class="size-16 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)]"
@@ -80,21 +68,20 @@
         </div>
 
         <!-- 底部操作栏 -->
-        <div
-          class="flex items-center justify-between border-t border-[var(--border-color)] bg-[var(--bg-muted)]/30 px-4 py-3"
-          @click.stop
-        >
-          <span class="text-xs text-[var(--text-secondary)]/50">{{
-            formatTime(order.createdAt)
-          }}</span>
-          <button
-            class="rounded-xl bg-[var(--color-primary)]/5 px-4 py-2 text-xs font-bold text-[var(--color-primary)] transition-all hover:bg-[var(--color-primary)]/10 active:scale-90"
-            @click="$emit('edit', order)"
-          >
-            {{ t('order.manage.editOrder') }}
-          </button>
-        </div>
-      </div>
+        <template #footer>
+          <div class="flex items-center justify-between" @click.stop>
+            <span class="text-xs text-[var(--text-secondary)]/50">{{
+              formatTime(order.createdAt)
+            }}</span>
+            <button
+              class="rounded-xl bg-[var(--color-primary)]/5 px-4 py-2 text-xs font-bold text-[var(--color-primary)] transition-all hover:bg-[var(--color-primary)]/10 active:scale-90"
+              @click="$emit('edit', order)"
+            >
+              {{ t('order.manage.editOrder') }}
+            </button>
+          </div>
+        </template>
+      </AppCard>
     </template>
 
     <!-- 空状态 -->
@@ -107,6 +94,8 @@ import { useI18n } from '@/composables/useI18n';
 import { formatDate } from '@/utils/formatters';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import AppImage from '@/components/ui/AppImage.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
+import AppCard from '@/components/ui/AppCard.vue';
 
 defineProps({
   data: {
