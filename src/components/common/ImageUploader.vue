@@ -6,138 +6,39 @@
 
     <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
       <!-- 已上传图片 (可拖拽) -->
-      <div
+      <UploadPreviewItem
         v-for="(file, index) in modelValue"
         :key="file.id"
-        class="group relative aspect-square cursor-move overflow-hidden rounded-lg border-2 bg-[var(--bg-muted)] transition-all"
-        :class="getDragClass(index)"
-        :data-sortable-index="index"
-        draggable="true"
-        @dragstart="handleDragStart(index, $event)"
-        @dragend="handleDragEnd"
-        @dragover.prevent="handleDragOver(index)"
-        @dragleave="handleDragLeave"
-        @drop.prevent="handleDrop(index)"
-        @touchstart="handleTouchStart(index, $event)"
-        @touchmove="handleTouchMove"
-        @touchend="handleTouchEnd"
-      >
-        <img :src="file.url" class="pointer-events-none size-full object-cover" />
-
-        <!-- 操作遮罩层 -->
-        <div
-          v-if="!readonly"
-          class="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100"
-        >
-          <!-- 替换按钮 -->
-          <label
-            class="flex size-8 cursor-pointer items-center justify-center rounded-full bg-white/90 transition-colors hover:bg-white dark:bg-black/50 dark:hover:bg-black/70"
-          >
-            <input
-              type="file"
-              accept="image/*"
-              class="hidden"
-              @change="(e) => replaceFile(index, e)"
-            />
-            <svg
-              class="text-secondary size-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              ></path>
-            </svg>
-          </label>
-          <!-- 删除按钮 -->
-          <button
-            type="button"
-            class="bg-danger flex size-8 items-center justify-center rounded-full transition-colors hover:bg-danger/90"
-            @click="removeFile(index)"
-          >
-            <svg class="size-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              ></path>
-            </svg>
-          </button>
-        </div>
-
-        <!-- 主图/封面标记 -->
-        <div
-          v-if="index === 0"
-          class="bg-primary absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] text-white shadow-sm dark:text-gray-900"
-        >
-          {{ coverText }}
-        </div>
-
-        <!-- 拖拽序号 -->
-        <div
-          class="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-black/50 text-[10px] text-white"
-        >
-          {{ index + 1 }}
-        </div>
-      </div>
+        :file="file"
+        :index="index"
+        :drag-class="getDragClass(index)"
+        :readonly="readonly"
+        :is-cover="index === 0"
+        :cover-text="coverText"
+        @drag-start="handleDragStart(index, $event)"
+        @drag-end="handleDragEnd"
+        @drag-over="handleDragOver(index)"
+        @drag-leave="handleDragLeave"
+        @drop="handleDrop(index)"
+        @touch-start="handleTouchStart(index, $event)"
+        @touch-move="handleTouchMove"
+        @touch-end="handleTouchEnd"
+        @replace="(e) => replaceFile(index, e)"
+        @remove="removeFile(index)"
+      />
 
       <!-- 上传按钮 -->
-      <label
+      <UploadButton
         v-if="!readonly && modelValue.length < maxFiles && !isProcessing"
-        class="hover:border-primary hover:bg-[var(--bg-hover)] group flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[var(--border-color)] transition-colors"
-      >
-        <input type="file" accept="image/*" multiple class="hidden" @change="handleFileSelect" />
-        <svg
-          class="text-muted size-6 transition-colors group-hover:text-primary"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 4v16m8-8H4"
-          ></path>
-        </svg>
-        <span class="text-secondary mt-1 text-xs transition-colors group-hover:text-primary">{{
-          uploadText
-        }}</span>
-      </label>
+        :text="uploadText"
+        @select="handleFileSelect"
+      />
 
       <!-- 处理中状态 -->
-      <div
+      <UploadProcessingIndicator
         v-if="isProcessing"
-        class="flex aspect-square animate-pulse flex-col items-center justify-center rounded-lg border-2 border-dashed border-[var(--color-upload-compressing)] bg-[var(--color-upload-compressing)]/5"
-      >
-        <svg
-          class="size-6 animate-spin text-[var(--color-upload-compressing)]"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            class="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="4"
-          ></circle>
-          <path
-            class="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          ></path>
-        </svg>
-        <span class="mt-1 text-[10px] font-medium text-[var(--color-upload-compressing)]">{{
-          processingStatus
-        }}</span>
-      </div>
+        :status="processingStatus"
+      />
     </div>
 
     <p v-if="hint" class="text-secondary mt-3 text-xs">{{ hint }}</p>
@@ -152,6 +53,9 @@ import { useDragSort } from '@/composables/useDragSort';
 import { useImageCompression } from '@/composables/useImageCompression';
 import { API } from '@/utils/constants';
 import { generateRandomId } from '@/utils/common';
+import UploadPreviewItem from './uploader/UploadPreviewItem.vue';
+import UploadProcessingIndicator from './uploader/UploadProcessingIndicator.vue';
+import UploadButton from './uploader/UploadButton.vue';
 
 
 const props = defineProps({

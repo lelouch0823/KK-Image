@@ -222,6 +222,9 @@ import { useI18n } from '@/composables/useI18n';
 import { useSearch } from '@/composables/useSearch';
 import { useToast } from '@/composables/useToast';
 import { useUploadQueue } from '@/composables/useUploadQueue';
+import { useFileDrag } from '@/composables/file-manager/useFileDrag';
+import { useFileSelection } from '@/composables/file-manager/useFileSelection';
+import { useFileNavigation } from '@/composables/file-manager/useFileNavigation';
 
 const { addToast } = useToast();
 const { addFiles, registerFolderRefresh, unregisterFolderRefresh } = useUploadQueue();
@@ -241,6 +244,9 @@ const {
   renameFile,
   renameFolder,
   batchDeleteFiles,
+  formatSize, 
+  getFileExtension, 
+  isImage,
 } = useFileManager();
 
 const { searchQuery } = useSearch();
@@ -262,14 +268,34 @@ const displayedFiles = computed(() => {
   );
 });
 
+// Setup New Composables
+const { 
+  selectedIds, 
+  selectedCount: selectedCountValue, // Rename to avoid conflict if any (though logic uses selectedIds.size mostly)
+  toggleSelect, 
+  selectAll, 
+  clearSelection 
+} = useFileSelection(displayedFiles);
+
+const { navigateTo } = useFileNavigation(loadFolderData, clearSelection);
+
+const handleFilesDropped = (droppedFiles) => {
+   addFiles(droppedFiles, currentFolder.value?.id);
+};
+
+const { 
+  isDragging, 
+  onDragEnter, 
+  onDragLeave, 
+  onDragOver, 
+  onDrop 
+} = useFileDrag(currentFolder, handleFilesDropped);
+
 // UI State
 const viewMode = ref('list');
 const modals = ref(null); // Ref to FileManagerModals component
 const itemsToMove = ref([]);
 const currentShareFile = ref(null);
-const selectedIds = ref(new Set());
-const isDragging = ref(false);
-const dragCounter = ref(0);
 
 // Confirm Dialog State
 const confirmData = ref({
@@ -288,14 +314,6 @@ const contextMenuData = ref({
   y: 0,
   items: [],
 });
-
-// Navigation
-const navigateTo = (id) => {
-  if (selectedIds.value.size > 0) {
-    selectedIds.value.clear();
-  }
-  loadFolderData(id);
-};
 
 // Handlers
 const handleCreateFolder = async (name) => {
@@ -319,22 +337,6 @@ const handleRenameSubmit = async ({ id, type, newName }) => {
 };
 
 // Batch Actions
-const toggleSelect = (item) => {
-  if (selectedIds.value.has(item.id)) {
-    selectedIds.value.delete(item.id);
-  } else {
-    selectedIds.value.add(item.id);
-  }
-};
-
-const selectAll = () => {
-  if (selectedIds.value.size === displayedFiles.value.length) {
-    selectedIds.value.clear();
-  } else {
-    displayedFiles.value.forEach(f => selectedIds.value.add(f.id));
-  }
-};
-
 const handleBatchDelete = () => {
   if (selectedIds.value.size === 0) return;
   
@@ -429,39 +431,6 @@ const handleShareUpdated = () => {
   loadFolderData(currentFolder.value?.id);
 };
 
-// Drag & Drop
-const onDragEnter = (e) => {
-  e.preventDefault();
-  dragCounter.value++;
-  if (currentFolder.value) {
-    isDragging.value = true;
-  }
-};
-
-const onDragLeave = (e) => {
-  e.preventDefault();
-  dragCounter.value--;
-  if (dragCounter.value === 0) {
-    isDragging.value = false;
-  }
-};
-
-const onDragOver = (e) => {
-  e.preventDefault();
-};
-
-const onDrop = (e) => {
-  e.preventDefault();
-  isDragging.value = false;
-  dragCounter.value = 0;
-
-  if (!currentFolder.value) return;
-
-  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-    addFiles(Array.from(e.dataTransfer.files), currentFolder.value.id);
-  }
-};
-
 const handleFileSelect = (files) => {
     if (!currentFolder.value) {
       addToast({ message: t('fileManager.selectFolderFirst'), type: 'warning' });
@@ -505,11 +474,6 @@ onUnmounted(() => {
 });
 
 // Context Menu Logic
-// Heroicons import removed in favor of local createIcon helper to avoid dependency issues
-// Wait, I don't have heroicons installed probably? I should stick to the simple createIcon helper or usage I had before.
-// Actually, I can just define the menu items with string icons or simple objects if ContextMenu supports it.
-// The ContextMenu component likely expects objects. Reverting to the local icon definition pattern for safety.
-
 import { h } from 'vue';
 const createIcon = (d) => {
   return {
@@ -597,10 +561,4 @@ const openContextMenu = (e, item, type) => {
     items: menuItems,
   };
 };
-
-// Utils need to be imported or available.
-// In <script setup>, imports are top level.
-// We imported useFileManager which provides these.
-const { formatSize, getFileExtension, isImage } = useFileManager();
-
 </script>
