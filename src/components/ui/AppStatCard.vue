@@ -103,11 +103,11 @@ const variantClass = computed(() => {
   const variants = {
     default: 'border-(--border-color) bg-(--bg-card)',
     info: 'border-info/20 bg-info/5 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)]',
-    purple: 'border-purple/20 bg-purple/5 hover:shadow-[0_0_30px_rgba(139,92,246,0.1)]',
+    purple: 'border-purple-500/20 bg-purple-500/5 hover:shadow-[0_0_30px_rgba(139,92,246,0.1)]',
     success: 'border-success/20 bg-success/5 hover:shadow-[0_0_30px_rgba(16,185,129,0.1)]',
     warning: 'border-warning/20 bg-warning/5 hover:shadow-[0_0_30px_rgba(245,158,11,0.1)]',
     danger: 'border-danger/20 bg-danger/5 hover:shadow-[0_0_30px_rgba(239,68,68,0.1)]',
-    cyan: 'border-cyan/20 bg-cyan/5 hover:shadow-[0_0_30px_rgba(6,182,212,0.1)]',
+    cyan: 'border-cyan-500/20 bg-cyan-500/5 hover:shadow-[0_0_30px_rgba(6,182,212,0.1)]',
   };
   return variants[props.variant] || variants.default;
 });
@@ -128,11 +128,11 @@ const labelClass = computed(() => {
   const labels = {
     default: 'text-(--text-secondary)',
     info: 'text-info',
-    purple: 'text-purple',
+    purple: 'text-purple-500',
     success: 'text-success',
     warning: 'text-warning',
     danger: 'text-danger',
-    cyan: 'text-cyan',
+    cyan: 'text-cyan-500',
   };
   return labels[props.variant] || labels.default;
 });

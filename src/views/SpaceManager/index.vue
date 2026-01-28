@@ -262,7 +262,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 const { spaces, loading, loadSpaces, deleteSpace } = useSpaces();
 const { addToast } = useToast();
 const { t } = useI18n();
-const { copyShareLink } = useClipboard();
+
 
 const showCreateModal = ref(false);
 const selectedSpace = ref(null);
@@ -277,6 +277,10 @@ const confirmData = ref({
   onConfirm: () => {},
 });
 
+const openCreateModal = () => {
+  showCreateModal.value = true;
+};
+
 const getTemplateLabel = (template) =>
   t(`spaceManager.templates.${template || 'custom'}`) || template;
 
@@ -284,15 +288,7 @@ const openSpaceDetail = (space) => {
   selectedSpace.value = space;
 };
 
-const handleCopyShareLink = async (space) => {
-  if (!space.shareUrl) {
-    addToast({ message: t('spaceManager.pleasePublicFirst'), type: 'warning' });
-    return;
-  }
-  await copyShareLink(space.shareUrl);
-};
-
-const deleteSpaceConfirm = (space) => {
+const confirmDelete = (space) => {
   confirmData.value = {
     show: true,
     title: t('common.delete'),

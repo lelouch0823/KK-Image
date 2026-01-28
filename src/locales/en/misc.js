@@ -1,0 +1,242 @@
+// Miscellaneous (share, fileSelector, moveFile, header, sidebar, etc.)
+export default {
+  // Share
+  share: {
+    management: 'Share Management',
+    titleFile: 'Share File',
+    titleFolder: 'Share Folder',
+    existingLink: 'Active Share Link',
+    expiration: 'Expiration',
+    days7: '7 Days',
+    days30: '30 Days',
+    permanent: 'Permanent',
+    regenerate: 'Regenerate',
+    generate: 'Generate Link',
+    update: 'Update Link',
+    directLink: 'Direct Link (Permanent)',
+    copiedClipboard: 'Copied to clipboard',
+    needUpdateExpiry: 'Update expiration?',
+    generateFailed: 'Generation failed',
+    linkCopied: 'Link copied',
+    unknownFile: 'Unknown File',
+    folderName: 'Folder Name',
+    linkToken: 'Link / Token',
+    expiry: 'Expiry',
+    actions: 'Actions',
+    total: '{count} total',
+    prevPage: 'Prev',
+    nextPage: 'Next',
+    noActiveShares: 'No active shares',
+    table: {
+      name: 'Name',
+      code: 'Code',
+      expires: 'Expires',
+    },
+  },
+
+  // File Selector
+  fileSelector: {
+    title: 'Select File',
+    selectedCount: '{count} files selected',
+    allFiles: 'All Files',
+    empty: 'Folder is empty',
+    cancel: 'Cancel',
+    add: 'Add',
+  },
+
+  // Move File
+  moveFile: {
+    title: 'Move to...',
+    root: 'Root',
+    empty: 'No other folders',
+    cancel: 'Cancel',
+    move: 'Move',
+    moving: 'Moving...',
+    moveSuccess: 'Move successful',
+    moveFailed: 'Move failed',
+    loadFailed: 'Failed to load folders',
+    opFailed: 'Operation failed',
+  },
+
+  // Header
+  header: {
+    searchPlaceholder: 'Search files...',
+    refresh: 'Refresh',
+  },
+
+  // Sidebar
+  sidebar: {
+    menu: 'MENU',
+    manage: 'MANAGE',
+    dashboard: 'Overview',
+    files: 'Files',
+    spaces: 'Shared Spaces',
+    stats: 'Statistics',
+    logout: 'Logout',
+    admin: 'Admin',
+    role: 'Administrator',
+    collapse: 'Collapse',
+    expand: 'Expand',
+  },
+
+  // Views
+  views: {
+    dashboard: 'Overview',
+    files: 'Files',
+    stats: 'Statistics',
+    customers: 'Customers',
+    products: 'Products',
+    admin: 'Admin',
+  },
+
+  // File Ops (Composables)
+  fileOps: {
+    loadFailed: 'Load failed',
+    folderCreateSuccess: 'Folder created',
+    createFailed: 'Create failed',
+    updateSuccess: 'Updated successfully',
+    updateFailed: 'Update failed',
+    deleteSuccess: 'Deleted successfully',
+    deleteFailed: 'Delete failed',
+    fileDeleted: 'File deleted',
+    renameSuccess: 'Rename successful',
+    renameFailed: 'Rename failed',
+    moveFailed: 'Move failed',
+  },
+
+  // Upload Queue
+  uploadQueue: {
+    selectFolderFirst: 'Please select folder first',
+    fileTooLarge: '{count} files exceed limit (100MB)',
+    uploadFailed: 'Upload failed',
+    parseError: 'Response parse error',
+    networkError: 'Network error',
+  },
+
+  // Batch Download
+  batchDownload: {
+    started: 'Download started',
+    failed: 'Batch download failed',
+  },
+
+  // Notifications
+  notification: {
+    title: 'Notifications',
+    markAllRead: 'Read All',
+    empty: 'No notifications',
+    newFeedback: 'New order feedback',
+    permissionDenied: 'Please allow notifications for updates',
+    newOrder: 'New order received',
+    reminder: {
+      pending_order_title: 'Pending Order Reminder',
+      pending_order_desc: 'Order {orderNo} has been pending for over 24 hours.',
+      deadline_title: 'Deadline Approaching',
+      deadline_desc: 'Order {orderNo} is due on {deadline}.',
+    },
+    order: {
+      created: 'New Order',
+      createdDesc: '{salesperson} submitted order {orderNo}',
+      updated: 'Order Updated',
+      updatedDesc: '{actor} modified order {orderNo}',
+      commented: 'New Comment',
+      commentedDesc: '{actor} commented on order {orderNo}',
+      statusChanged: 'Status Updated',
+      statusChangedDesc: 'Order {orderNo} is now {status}',
+      batchStatusChanged: 'Batch Status Updated',
+      batchStatusChangedDesc: '{count} orders were {action}',
+    },
+  },
+
+  // Search
+  search: {
+    history: 'Search History',
+    clearHistory: 'Clear History',
+    noHistory: 'No recent searches',
+  },
+
+  // Router
+  router: {
+    login: 'Login',
+    gallery_share: 'Gallery Share',
+    space_share: 'Shared Space',
+    sales_portal: 'Sales Portal',
+    order_list: 'Order List',
+    new_order: 'New Order',
+    order_detail: 'Order Detail',
+    personal_stats: 'My Stats',
+    dashboard: 'Dashboard',
+    file_management: 'Files',
+    space_management: 'Spaces',
+    salesperson_management: 'Sales',
+    product_management: 'Products',
+    product_detail: 'Product Detail',
+    order_management: 'Order Admin',
+    customer_management: 'Customers',
+    stats_analysis: 'Statistics',
+    system_settings: 'Settings',
+  },
+
+  // PWA
+  pwa: {
+    offlineReady: 'App ready for offline use',
+    newContent: 'New version available',
+    offlineReadyDesc: 'You can access this app anytime without internet.',
+    newContentDesc: 'Please refresh to get the latest features.',
+    reload: 'Refresh Now',
+    close: 'Close',
+  },
+
+  // Sales Stats
+  salesStats: {
+    title: 'Personal Stats',
+    totalOrders: 'Total Orders',
+    completedOrders: 'Completed',
+    monthOrders: 'This Month',
+  },
+
+  // AI Assistant
+  ai: {
+    assistant: 'AI Assistant',
+    subtitle: 'Data Analytics Assistant',
+    placeholder: 'Ask about orders, customers, or storage...',
+    error: 'AI Assistant unavailable',
+    networkError: 'Network request failed',
+    welcome: 'Hello! I am your AI assistant. I can help with orders, customers, sales, and file stats. How can I help you today?',
+    thinking: 'Thinking...',
+    toolLoading: 'Querying {tool} data...',
+    clear: 'Clear Chat',
+    clearConfirm: 'Clear all messages?',
+    copySuccess: 'Message copied',
+    modelSwitch: 'Model limit reached, switching to backup...',
+    generateReport: 'Generate Full Report',
+    generatingReport: 'Generating report...',
+    reportGenerated: 'Report generated in new window',
+    reportError: 'Failed to generate report',
+    toolNames: {
+      getOrderStats: 'Order Stats',
+      getRecentPendingOrders: 'Pending Orders',
+      getCustomerStats: 'Customer Stats',
+      getSpaceStats: 'Space Analytics',
+      getSalespersonStats: 'Sales Performance',
+      getFileStats: 'File Storage',
+    },
+    suggestions: {
+      dailyReport: 'Today\'s Data Report',
+      monthlySalesRanking: 'Monthly Ranking',
+      systemStatus: 'System Status',
+      pendingOrders: 'Pending Orders',
+      todayNewOrders: 'Today\'s New Orders',
+      weeklySalesTrend: 'Weekly Trend',
+      weeklyNewCustomers: 'New Customers (Weekly)',
+      customerCount: 'Total Customers',
+      spaceUsage: 'Space Usage',
+      recentActiveSpaces: 'Active Spaces',
+      downloadTop10: 'Top 10 Downloads',
+      storageUsage: 'Storage Usage',
+      largeFileAnalysis: 'Large File Analysis',
+      fileTypeDistribution: 'File Distribution',
+      myDailyPerformance: 'My Daily Performance',
+      monthlyCommission: 'Monthly Commission Est.',
+    },
+  },
+};

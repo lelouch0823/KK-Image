@@ -1,0 +1,35 @@
+// Customer Management
+export default {
+  manage: {
+    title: 'Customers',
+    subtitle: 'Manage customer profiles and view order history',
+    searchPlaceholder: 'Search name, phone, or company...',
+    addCustomer: 'New Customer',
+    editTitle: 'Edit Customer',
+    createTitle: 'Create Customer',
+    empty: 'No customer data',
+    deleteConfirm: 'Are you sure you want to delete this customer? This cannot be undone.',
+  },
+  form: {
+    name: 'Customer Name',
+    contact: 'Contact Info',
+    company: 'Company/Unit',
+    phone: 'Phone Number',
+    email: 'Email',
+    address: 'Address',
+    tags: 'Tags',
+    remark: 'Remarks',
+    namePlaceholder: 'Enter name',
+    basicInfo: 'Basic Info',
+    moreInfo: 'Additional Info',
+    tagInputPlaceholder: 'Enter tag and press Enter',
+  },
+  detail: {
+    title: 'Customer Details',
+    historyOrders: 'Order History',
+    totalSpent: 'Total Spent',
+    orderCount: 'Orders',
+    lastOrder: 'Last Order',
+    noOrders: 'No order history',
+  },
+};

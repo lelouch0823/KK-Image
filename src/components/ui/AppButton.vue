@@ -80,7 +80,7 @@ defineEmits(['click']);
 
 const variantClasses = computed(() => {
   const variants = {
-    primary: 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] focus:ring-[var(--color-primary)]/50',
+    primary: 'bg-[var(--color-primary)] text-[var(--text-inverse)] hover:bg-[var(--color-primary-hover)] focus:ring-[var(--color-primary)]/50',
     secondary: 'bg-[var(--bg-muted)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)] focus:ring-gray-500/50',
     danger: 'bg-[var(--color-danger)] text-white hover:bg-[var(--color-danger-hover)] focus:ring-[var(--color-danger)]/50',
     ghost: 'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] hover:text-[var(--text-main)] focus:ring-gray-500/30',

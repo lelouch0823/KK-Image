@@ -1,0 +1,21 @@
+// Upload Related
+export default {
+  uploading: 'Uploading {count} files',
+  complete: 'Upload Complete',
+  finished: 'Finished',
+  remaining: 'Remaining',
+  done: 'Done',
+  waiting: 'Waiting',
+  seconds: 'sec',
+  minutes: 'min',
+  hours: 'hr',
+  clearCompleted: 'Clear Completed',
+  retry: 'Retry',
+  compressing: 'Compressing...',
+  checkingDuplicate: 'Checking duplicate...',
+  instantUpload: 'Instant upload successful',
+  instantUploadSuccess: 'File already exists, instant upload successful',
+  failed: 'Upload failed: {message}',
+  compressFailed: 'Compression failed: {message}',
+  compressionSaved: 'Compressed {percent}%',
+};

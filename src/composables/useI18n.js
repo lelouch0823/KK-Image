@@ -1,9 +1,12 @@
 import { ref, computed } from 'vue';
-import zhCN from '@/locales/zh-CN';
+// 使用模块化的翻译文件
+import zhCN from '@/locales/zh-CN/index';
+import enUS from '@/locales/en/index';
 
 const currentLocale = ref('zh-CN');
 const messages = {
   'zh-CN': zhCN,
+  'en-US': enUS,
 };
 
 export function useI18n() {
