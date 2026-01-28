@@ -72,16 +72,25 @@ export async function updateData(db, id, newData, actorType, productId = undefin
     const timestamp = now();
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
 
-    let query = `
-      UPDATE orders 
-      SET current_data = ?, ${updateField} = 1, updated_at = ? 
-    `;
     const params = [JSON.stringify(newData), timestamp];
 
+    const colsToUpdate = ['current_data = ?', `${updateField} = 1`, 'updated_at = ?'];
+
+    // SOTA: Fix update quantity column from JSON
+    if (newData.quantity !== undefined) {
+        colsToUpdate.push('quantity = ?');
+        params.push(newData.quantity);
+    }
+
     if (productId !== undefined) {
-        query += `, product_id = ? `;
+        colsToUpdate.push('product_id = ?');
         params.push(productId);
     }
+
+    let query = `
+      UPDATE orders 
+      SET ${colsToUpdate.join(', ')} 
+    `;
 
     query += ` WHERE id = ?`;
     params.push(id);

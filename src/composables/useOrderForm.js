@@ -27,6 +27,7 @@ export function useOrderForm(options = {}) {
     name: '',
     brand: '',
     series: '',
+    sku: '',
     color: '',
     material: '',
     size: '',
@@ -85,7 +86,11 @@ export function useOrderForm(options = {}) {
     if (!data) {
       // 重置表单
       Object.keys(form).forEach((key) => {
-        form[key] = '';
+        if (key === 'quantity') {
+          form[key] = 1;
+        } else {
+          form[key] = '';
+        }
       });
       uploadedFiles.value = [];
       return;

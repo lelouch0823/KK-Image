@@ -86,7 +86,7 @@
 
     <!-- Quantity Cell -->
     <template #cell-quantity="{ value }">
-      <span class="font-mono font-medium text-primary">x {{ value || 1 }}</span>
+      <span class="font-mono font-medium text-primary">{{ value || 1 }}</span>
     </template>
 
     <!-- Salesperson Cell -->

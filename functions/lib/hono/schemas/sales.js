@@ -17,11 +17,13 @@ export const CreateOrderSchema = z.object({
     name: z.string().min(1, '产品名称必填'),
     brand: z.string().optional().default(''),
     series: z.string().optional().default(''),
+    sku: z.string().optional().default(''),
     size: z.string().optional().default(''),
     color: z.string().optional().default(''),
     material: z.string().optional().default(''),
     remark: z.string().optional().default(''),
     deadline: z.string().optional().default(''),
+    quantity: z.number().min(1, '数量至少为1').optional().default(1),
     fileIds: z.array(z.string()).optional().default([]),
 });
 

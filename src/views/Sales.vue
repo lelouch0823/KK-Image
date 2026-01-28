@@ -128,6 +128,7 @@
         <AppButton
           variant="primary"
           :text="t('sales.createOrder')"
+          class="whitespace-nowrap"
           @click="openCreateModal"
         >
           <template #icon-left>

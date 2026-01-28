@@ -42,6 +42,7 @@ app.post('/', async (c) => {
             remark: body.remark || '',
             deadline: body.deadline || '',
         },
+        quantity: body.quantity || 1,
         // Admin can set initial status
         status: body.status || 'pending',
         productId: body.productId || null,
