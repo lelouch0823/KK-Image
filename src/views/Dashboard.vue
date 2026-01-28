@@ -108,7 +108,7 @@
               </h3>
               <span
                 v-if="orderStats.pendingCount > 0"
-                class="rounded-full border border-danger/20 bg-danger-bg px-2 py-0.5 text-xs font-bold text-danger-text"
+                class="border-danger/20 bg-danger-bg text-danger-text rounded-full border px-2 py-0.5 text-xs font-bold"
               >
                 {{ orderStats.pendingCount }}
               </span>
@@ -197,9 +197,9 @@
                          <div v-for="item in recentShares" :key="item.id" class="flex items-center justify-between p-4 hover:bg-(--bg-hover)">
                               <div class="min-w-0 flex-1 pr-4">
                                  <div class="truncate font-medium text-(--text-main)">{{ item.name }}</div>
-                                 <div class="mt-0.5 font-mono text-xs text-primary/80">{{ item.shareToken }}</div>
+                                 <div class="text-primary/80 mt-0.5 font-mono text-xs">{{ item.shareToken }}</div>
                               </div>
-                              <div class="rounded bg-[var(--bg-muted)] px-2 py-1 text-xs whitespace-nowrap text-(--text-secondary)">
+                              <div class="rounded bg-(--bg-muted) px-2 py-1 text-xs whitespace-nowrap text-(--text-secondary)">
                                  {{ formatExpiry(item.expiresAt, t) }}
                               </div>
                          </div>
@@ -241,31 +241,31 @@
                          >
                              <template #cell-name="{ row }">
                                 <div class="flex items-center gap-3">
-                                    <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary-bg)] text-xs font-bold text-[var(--color-primary)] uppercase ring-1 ring-[var(--color-primary-light)] ring-inset">
+                                    <div class="bg-primary-bg text-primary ring-primary-light flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold uppercase ring-1 ring-inset">
                                        {{ row.type || getFileExtension(row.name) }}
                                    </div>
-                                   <span class="max-w-[200px] truncate text-[var(--text-main)]" :title="row.name">{{ row.name }}</span>
+                                   <span class="max-w-[200px] truncate text-(--text-main)" :title="row.name">{{ row.name }}</span>
                                </div>
                              </template>
                              <template #cell-size="{ row }">
                                  <span class="font-mono">{{ formatSize(row.size) }}</span>
                              </template>
                              <template #cell-timestamp="{ row }">
-                                 <span class="text-[var(--text-muted)]">{{ formatDate(row.timestamp) }}</span>
+                                 <span class="text-(--text-muted)">{{ formatDate(row.timestamp) }}</span>
                              </template>
                          </AppTable>
                      </div>
 
                       <!-- Mobile List -->
-                      <div class="divide-y divide-[var(--border-color)]/30 lg:hidden">
-                          <div v-for="(file, index) in recentFiles" :key="index" class="flex items-center gap-4 p-4 hover:bg-[var(--bg-hover)]">
-                              <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary-bg)] text-xs font-bold text-[var(--color-primary)] uppercase ring-1 ring-[var(--color-primary-light)] ring-inset">
+                       <div class="divide-(--border-color)/30 lg:hidden divide-y">
+                          <div v-for="(file, index) in recentFiles" :key="index" class="hover:bg-(--bg-hover) flex items-center gap-4 p-4">
+                              <div class="bg-primary-bg text-primary ring-primary-light flex size-10 shrink-0 items-center justify-center rounded-lg text-xs font-bold uppercase ring-1 ring-inset">
                                    {{ file.type || getFileExtension(file.name) }}
                               </div>
                               <div class="min-w-0 flex-1">
-                                  <div class="truncate text-sm font-medium text-[var(--text-main)]">{{ file.name }}</div>
-                                  <div class="mt-1 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-                                      <span class="font-mono text-[var(--text-muted)]">{{ formatSize(file.size) }}</span>
+                                  <div class="text-(--text-main) truncate text-sm font-medium">{{ file.name }}</div>
+                                  <div class="text-(--text-secondary) mt-1 flex items-center gap-2 text-xs">
+                                      <span class="text-(--text-muted) font-mono">{{ formatSize(file.size) }}</span>
                                       <span>·</span>
                                       <span>{{ formatDate(file.timestamp) }}</span>
                                   </div>
@@ -273,7 +273,7 @@
                           </div>
                       </div>
                 </div>
-                 <div v-else class="flex h-32 items-center justify-center text-sm text-[var(--text-secondary)]">
+                 <div v-else class="flex h-32 items-center justify-center text-sm text-(--text-secondary)">
                     {{ t('dashboard.noRecentFiles') }}
                 </div>
                  <template #footer>
@@ -408,7 +408,7 @@ const closeDetailModal = () => {
   viewingOrder.value = null;
 
   // 刷新统计数据，以防状态变更
-  fetchOrderStats();
+  fetchDashboardData();
 };
 
 const refreshOrderDetail = async () => {
@@ -418,43 +418,24 @@ const refreshOrderDetail = async () => {
       viewingOrder.value = fullOrder;
     }
   }
-  fetchOrderStats();
+  fetchDashboardData();
 };
 
-const fetchOrderStats = async () => {
+const fetchDashboardData = async () => {
   try {
     const res = await authFetchJson(API.MANAGE_DASHBOARD_OVERVIEW);
     if (res.success && res.data) {
       orderStats.value = res.data;
-    }
-  } catch (e) {
-    console.error('Order stats load failed', e);
-  }
-};
-
-const fetchStats = async () => {
-  try {
-    const res = await authFetchJson(API.STATS);
-
-    if (res.success && res.data) {
+      // SOTA: From consolidated API
       if (res.data.recentFiles) {
         recentFiles.value = res.data.recentFiles;
       }
+      if (res.data.recentShares) {
+        recentShares.value = res.data.recentShares;
+      }
     }
   } catch (e) {
-    console.error('Stats load failed', e);
-  }
-};
-
-const fetchRecentShares = async () => {
-  try {
-    const res = await authFetchJson(`${API.SHARES}?limit=5`);
-
-    if (res.success) {
-      recentShares.value = res.data.items;
-    }
-  } catch (e) {
-    console.error('Shares load failed', e);
+    console.error('Dashboard data load failed', e);
   }
 };
 
@@ -463,8 +444,7 @@ const handleCopyShareLink = async (item) => {
 };
 
 const handleEditUpdated = () => {
-  fetchRecentShares();
-  // Maybe also refresh manager if open? Manager does its own fetch on open.
+  fetchDashboardData();
 };
 
 const handleManagerEdit = (item) => {
@@ -473,18 +453,12 @@ const handleManagerEdit = (item) => {
   showEditShare.value = true;
 };
 
-// const revokeShare = (item) => { ... } (Removed logic as requested/unused)
-
 onMounted(() => {
-  fetchStats();
-  fetchRecentShares();
-  fetchOrderStats();
+  fetchDashboardData();
 });
 
 onActivated(() => {
-  fetchStats();
-  fetchRecentShares();
-  fetchOrderStats();
+  fetchDashboardData();
 });
 </script>
 
