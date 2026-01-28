@@ -3,50 +3,52 @@
     <!-- Create Folder Modal -->
     <Modal v-model="showCreateFolder" :title="t('fileManager.newFolder')" size="sm">
       <form @submit.prevent="handleCreateFolder">
-        <div class="mb-4">
-          <label class="text-primary mb-1 block text-sm font-medium">{{ t('fileManager.table.name') }}</label>
-          <input
-            v-model="newFolderName"
-            type="text"
-            required
-            class="input w-full"
-            :placeholder="t('fileManager.folderNamePlaceholder')"
-            autofocus
+        <AppInput
+          v-model="newFolderName"
+          :placeholder="t('fileManager.folderNamePlaceholder')"
+          class="mb-6"
+          required
+          v-focus
+        />
+        <div class="flex justify-end gap-3">
+          <AppButton
+            variant="secondary"
+            :text="t('common.cancel')"
+            @click="showCreateFolder = false"
+          />
+          <AppButton
+            type="submit"
+            variant="primary"
+            :text="t('common.create')"
+            :disabled="!newFolderName.trim()"
           />
         </div>
       </form>
-      <template #footer>
-        <button type="button" class="btn btn-secondary" @click="showCreateFolder = false">
-          {{ t('common.cancel') }}
-        </button>
-        <button class="btn btn-primary" @click="handleCreateFolder">
-          {{ t('common.confirm') }}
-        </button>
-      </template>
     </Modal>
 
     <!-- Rename Modal -->
     <Modal v-model="showRename" :title="t('fileManager.contextMenu.rename')" size="sm">
       <form @submit.prevent="handleRename">
-        <div class="mb-4">
-          <label class="text-primary mb-1 block text-sm font-medium">{{ t('fileManager.table.name') }}</label>
-          <input
-            v-model="renameName"
-            type="text"
-            required
-            class="input w-full"
-            autofocus
+        <AppInput
+          v-model="renameName"
+          class="mb-6"
+          required
+          v-focus
+        />
+        <div class="flex justify-end gap-3">
+          <AppButton
+            variant="secondary"
+            :text="t('common.cancel')"
+            @click="showRename = false"
+          />
+          <AppButton
+            type="submit"
+            variant="primary"
+            :text="t('common.save')"
+            :disabled="!renameName.trim()"
           />
         </div>
       </form>
-      <template #footer>
-        <button type="button" class="btn btn-secondary" @click="showRename = false">
-          {{ t('common.cancel') }}
-        </button>
-        <button class="btn btn-primary" @click="handleRename">
-          {{ t('common.save') }}
-        </button>
-      </template>
     </Modal>
 
     <!-- Move Item Modal -->
@@ -65,9 +67,11 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 import MoveItemModal from '@/components/MoveItemModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
 import ShareFileModal from '@/components/ShareFileModal.vue';

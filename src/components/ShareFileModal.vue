@@ -9,13 +9,13 @@
     <div>
       <!-- File Info -->
       <div
-        class="mb-6 flex items-center gap-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] p-3"
+        class="mb-6 flex items-center gap-3 rounded-lg border border-(--border-color) bg-(--bg-muted) p-3"
       >
-        <div class="rounded-md border border-[var(--border-color)] bg-white p-2 shadow-sm">
+        <div class="rounded-md border border-(--border-color) bg-white p-2 shadow-sm">
           <img v-if="fileIsImage" :src="file?.url" class="size-8 rounded object-cover" />
           <div
             v-else
-            class="text-secondary flex size-8 items-center justify-center rounded bg-[var(--bg-muted)] text-xs font-bold"
+            class="text-secondary flex size-8 items-center justify-center rounded bg-(--bg-muted) text-xs font-bold"
           >
             {{ fileExtension }}
           </div>
@@ -38,26 +38,23 @@
             type="text"
             readonly
             :value="shareUrl"
-            class="input flex-1 bg-[var(--bg-muted)] text-sm"
+            class="input flex-1 bg-(--bg-muted) text-sm"
             @click="$event.target.select()"
           />
           <Tooltip :content="t('common.copy')">
-            <button
-              class="text-secondary flex size-10 items-center justify-center rounded-lg border border-[var(--border-color)] bg-white transition-colors hover:text-primary hover:bg-[var(--bg-hover)]"
+            <AppButton
+              variant="secondary"
+              size="sm"
+              class="!w-10 !h-10 !p-0 shrink-0"
               @click="copyLink"
             >
-              <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
-                ></path>
-              </svg>
-            </button>
+              <template #icon-left>
+                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+              </template>
+            </AppButton>
           </Tooltip>
         </div>
-        <p v-if="copied" class="mt-2 flex items-center text-xs text-[var(--color-success)]">
+        <p v-if="copied" class="mt-2 flex items-center text-xs text-success">
           <svg class="mr-1 size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -73,9 +70,12 @@
 
     <!-- Footer -->
     <template #footer>
-      <button class="btn btn-primary w-full sm:w-auto" @click="close">
-        {{ t('common.complete') }}
-      </button>
+      <AppButton
+        variant="primary"
+        :text="t('common.complete')"
+        class="w-full sm:w-auto"
+        @click="close"
+      />
     </template>
   </Modal>
 </template>
@@ -88,6 +88,7 @@ import { useClipboard } from '@/composables/useClipboard';
 import { formatSize, getFileExtension, isImage } from '@/utils/formatters';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import Modal from '@/components/ui/Modal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import { ROUTES } from '@/utils/constants';
 
 const props = defineProps({

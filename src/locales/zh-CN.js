@@ -496,6 +496,12 @@ export default {
     passwordError: '密码错误',
     enterPasswordFirst: '请输入密码',
     poweredBy: 'Powered by kk-life',
+    zoomIn: '放大 (+)',
+    zoomOut: '缩小 (-)',
+    rotate: '旋转 (R)',
+    prev: '上一张',
+    next: '下一张',
+    close: '关闭',
   },
   // Composables 翻译
   spaces: {
@@ -536,6 +542,19 @@ export default {
     customers: '客户管理',
     products: '商品管理',
     admin: '管理后台',
+  },
+
+  // 空间管理 (用于 SpaceManager/index.vue)
+  space: {
+    name: '空间名称',
+    slug: '访问路径',
+    description: '描述',
+    namePlaceholder: '请输入空间名称',
+    slugPlaceholder: '请输入访问路径 (slug)',
+    descriptionPlaceholder: '请输入空间描述 (可选)',
+    create: '新建空间',
+    manage: '管理空间',
+    delete: '删除空间',
   },
 
   // 客户管理

@@ -29,8 +29,8 @@
               <button
                 type="button"
                 class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
-                aria-label="Rotate image (R)"
-                title="Rotate (R)"
+                :aria-label="t('gallery.rotate')"
+                :title="t('gallery.rotate')"
                 @click.stop="rotate"
               >
                 <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,8 +47,8 @@
               <button
                 type="button"
                 class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
-                aria-label="Zoom in (+)"
-                title="Zoom In (+)"
+                :aria-label="t('gallery.zoomIn')"
+                :title="t('gallery.zoomIn')"
                 @click.stop="zoomIn"
               >
                 <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,8 +65,8 @@
               <button
                 type="button"
                 class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
-                aria-label="Zoom out (-)"
-                title="Zoom Out (-)"
+                :aria-label="t('gallery.zoomOut')"
+                :title="t('gallery.zoomOut')"
                 @click.stop="zoomOut"
               >
                 <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,7 +107,7 @@
             <!-- Close Button -->
             <button
               class="flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
-              aria-label="Close"
+              :aria-label="t('gallery.close')"
               @click="$emit('close')"
             >
               <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,7 +126,7 @@
         <button
           v-if="currentIndex > 0"
           class="absolute top-1/2 left-4 z-50 flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
-          aria-label="Previous image"
+          :aria-label="t('gallery.prev')"
           @click="$emit('prev')"
         >
           <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,7 +141,7 @@
         <button
           v-if="currentIndex < total - 1"
           class="absolute top-1/2 right-4 z-50 flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
-          aria-label="Next image"
+          :aria-label="t('gallery.next')"
           @click="$emit('next')"
         >
           <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,7 +156,7 @@
 
         <!-- Content -->
         <div
-          class="absolute inset-0 flex items-center justify-center p-4 py-20 sm:p-8 md:p-12 overflow-hidden"
+          class="absolute inset-0 flex items-center justify-center overflow-hidden p-4 py-20 sm:p-8 md:p-12"
           @click.self="$emit('close')"
         >
           <!-- Image -->
@@ -263,6 +263,9 @@ const handleWheel = (e) => {
     if (e.deltaY < 0) zoomIn();
     else zoomOut();
   } else {
+    // Prevent background scroll
+    e.preventDefault();
+    
     // Navigation
     if (e.deltaY > 0) {
       emit('next');

@@ -70,20 +70,18 @@
 
     <!-- Footer -->
     <template #footer>
-      <button
-        class="rounded-lg px-4 py-2 text-secondary transition-colors hover:bg-gray-100"
+      <AppButton
+        variant="secondary"
+        :text="t('moveFile.cancel')"
         @click="close"
-      >
-        {{ t('moveFile.cancel') }}
-      </button>
-      <button
-        :disabled="!selectedId || moving"
-        class="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-6 py-2 font-medium text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+      />
+      <AppButton
+        variant="primary"
+        :text="moving ? t('moveFile.moving') : t('moveFile.move')"
+        :loading="moving"
+        :disabled="!selectedId"
         @click="confirmMove"
-      >
-        <span v-if="moving" class="size-4 animate-spin rounded-full border-b-2 border-white"></span>
-        <span>{{ moving ? t('moveFile.moving') : t('moveFile.move') }}</span>
-      </button>
+      />
     </template>
   </Modal>
 </template>
@@ -93,6 +91,7 @@ import { ref, watch, computed } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import Modal from '@/components/ui/Modal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 

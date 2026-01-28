@@ -45,21 +45,49 @@
       >
         <div 
           v-if="selectedCount > 0" 
-          class="flex flex-1 items-center gap-2 rounded-xl bg-[var(--color-info)]/10 px-3 py-2 text-sm text-[var(--color-info)] dark:bg-[var(--color-info)]/20 dark:text-blue-300"
+          class="flex items-center gap-1 overflow-hidden rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 px-2 py-1.5 transition-all"
         >
-          <span class="font-medium whitespace-nowrap">{{ t('fileManager.selected', { count: selectedCount }) }}</span>
-          <div class="mx-1 h-4 w-px bg-[var(--color-info)]/20 dark:bg-blue-700"></div>
-          <div class="ml-auto flex items-center gap-1 sm:ml-0">
-            <button class="px-1 transition-colors hover:text-[var(--color-info)] hover:underline dark:hover:text-blue-100" @click="$emit('batch-move')">
-              {{ t('fileManager.actions.move') }}
-            </button>
-            <button class="px-1 text-[var(--color-danger)] transition-colors hover:text-[var(--color-danger-hover)] hover:underline dark:text-red-400 dark:hover:text-red-300" @click="$emit('batch-delete')">
-              {{ t('fileManager.actions.delete') }}
-            </button>
-            <button class="px-1 text-[var(--text-secondary)] transition-colors hover:text-[var(--text-main)] dark:text-gray-400 dark:hover:text-gray-300" @click="$emit('clear-selection')">
-              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-          </div>
+          <span class="mr-2 text-xs font-medium text-[var(--color-primary)]">{{
+            t('fileManager.selected', { count: selectedCount })
+          }}</span>
+          
+          <div class="h-4 w-px bg-[var(--color-primary)]/20"></div>
+
+          <AppButton
+            variant="ghost"
+            size="sm"
+            class="!px-1.5 text-[var(--color-info)] hover:text-[var(--color-info)] hover:bg-[var(--color-info)]/10"
+            :title="t('fileManager.actions.move')"
+            @click="$emit('batch-move')"
+          >
+             <template #icon-left>
+               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
+             </template>
+          </AppButton>
+
+          <AppButton
+            variant="ghost"
+            size="sm"
+            class="!px-1.5 text-[var(--color-danger)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
+            :title="t('fileManager.actions.delete')"
+            @click="$emit('batch-delete')"
+          >
+             <template #icon-left>
+               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+             </template>
+          </AppButton>
+
+          <AppButton
+            variant="ghost"
+            size="sm"
+            class="!px-1.5 text-[var(--text-secondary)] hover:text-[var(--text-main)]"
+            :title="t('common.cancel')"
+            @click="$emit('clear-selection')"
+          >
+             <template #icon-left>
+               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+             </template>
+          </AppButton>
         </div>
       </Transition>
 
@@ -117,34 +145,49 @@
       </Tooltip>
 
       <!-- View Toggle -->
-      <div class="flex hidden items-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-1 lg:flex">
-        <button
-          class="rounded-lg p-1.5 transition-all"
-          :class="viewMode === 'list' ? 'text-primary bg-[var(--bg-hover)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'"
-          :title="t('fileManager.viewMode.list')"
-          @click="$emit('update:viewMode', 'list')"
+      <div class="flex items-center gap-2">
+        <AppInput
+          v-model="searchQuery"
+          size="sm"
+          :placeholder="t('common.search')"
+          class="w-40 sm:w-64"
         >
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-        </button>
-        <button
-          class="rounded-lg p-1.5 transition-all"
-          :class="viewMode === 'grid' ? 'text-primary bg-[var(--bg-hover)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'"
-          :title="t('fileManager.viewMode.grid')"
-          @click="$emit('update:viewMode', 'grid')"
-        >
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V16zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-        </button>
-      </div>
+          <template #prepend>
+             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+             </svg>
+          </template>
+        </AppInput>
+
+        <div class="flex items-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] p-1">
+            <AppButton
+                v-for="mode in ['grid', 'list']"
+                :key="mode"
+                size="sm"
+                variant="ghost"
+                class="!p-1.5 !h-7"
+                :class="{ 'bg-[var(--bg-card)] shadow-sm text-[var(--color-primary)]': viewMode === mode }"
+                @click="$emit('toggle-view', mode)"
+            >
+                <template #icon-left>
+                    <svg v-if="mode === 'grid'" class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V16zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                    <svg v-else class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </template>
+            </AppButton>
+        </div>
+    </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import Tooltip from '@/components/ui/Tooltip.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 
-const _props = defineProps({
+const props = defineProps({
   breadcrumbs: {
     type: Array,
     required: true,

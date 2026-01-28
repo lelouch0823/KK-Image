@@ -1,6 +1,6 @@
 <template>
   <div
-    class="overflow-hidden rounded-2xl border bg-[var(--bg-card)] transition-all duration-200"
+    class="overflow-hidden rounded-2xl border bg-(--bg-card) transition-all duration-200"
     :class="[
       borderClass,
       clickable
@@ -9,13 +9,16 @@
     ]"
     @click="clickable && $emit('click', $event)"
   >
-    <!-- Header -->
     <div
-      v-if="$slots.header"
-      class="border-b border-[var(--border-color)] px-4 py-3"
+      v-if="$slots.header || indicator"
+      class="border-b border-(--border-color) px-4 py-3"
       :class="headerClass"
     >
-      <slot name="header" />
+      <div v-if="indicator" class="flex items-center gap-2">
+        <span class="size-2 rounded-full" :class="indicatorClass"></span>
+        <slot name="header" />
+      </div>
+      <slot v-else name="header" />
     </div>
 
     <!-- Body -->
@@ -23,10 +26,17 @@
       <slot />
     </div>
 
+    <!-- Glow effect (if enabled) -->
+    <div
+      v-if="glow"
+      class="absolute -top-6 -right-6 rounded-full p-12 opacity-20 blur-2xl transition-transform group-hover:opacity-40"
+      :class="blobClass"
+    ></div>
+
     <!-- Footer -->
     <div
       v-if="$slots.footer"
-      class="border-t border-[var(--border-color)] bg-[var(--bg-muted)]/30 px-4 py-3"
+      class="border-t border-(--border-color) bg-(--bg-muted)/30 px-4 py-3"
       :class="footerClass"
     >
       <slot name="footer" />
@@ -44,9 +54,25 @@ const props = defineProps({
   headerClass: { type: String, default: '' },
   footerClass: { type: String, default: '' },
   activeBorder: { type: Boolean, default: false }, // Highlight border on active/selected
+  indicator: { type: String, default: null }, // Color for the title indicator (e.g. 'rose', 'blue')
 });
 
 defineEmits(['click']);
+
+const indicatorClass = computed(() => {
+  if (!props.indicator) return '';
+  const colors = {
+    blue: 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]',
+    teal: 'bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.8)]',
+    orange: 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]',
+    indigo: 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]',
+    pink: 'bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.8)]',
+    danger: 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]',
+    purple: 'bg-purple-500 shadow-[0_0_8px_rgba(139,92,246,0.8)]',
+    cyan: 'bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]',
+  };
+  return colors[props.indicator] || `bg-${props.indicator}-500`;
+});
 
 const bodyClass = computed(() => {
   return props.padding;
@@ -54,8 +80,8 @@ const bodyClass = computed(() => {
 
 const borderClass = computed(() => {
   if (props.selected || props.activeBorder) {
-    return 'border-[var(--color-primary)] ring-1 ring-[var(--color-primary)]';
+    return 'border-primary ring-1 ring-primary';
   }
-  return 'border-[var(--border-color)] hover:border-[var(--border-hover)]';
+  return 'border-(--border-color) hover:border-(--border-hover)';
 });
 </script>

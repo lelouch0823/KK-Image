@@ -1,0 +1,1598 @@
+commit abbea28463c71382613c2d77531f23b6dcb62ff3
+Author: kk <kaylalu84@gmail.com>
+Date:   Tue Jan 27 17:19:56 2026 +0800
+
+    refactor: Introduce `AppStatCard`, `AppCard`, and `AppFilterBar` UI components, relocate `Lightbox` to `ui/`, and integrate them into `CustomerCards` and `OrderFilters`.
+
+diff --git a/docs/plans/2026-01-27-common-ui-components.md b/docs/plans/2026-01-27-common-ui-components.md
+new file mode 100644
+index 0000000..d092e5a
+--- /dev/null
++++ b/docs/plans/2026-01-27-common-ui-components.md
+@@ -0,0 +1,449 @@
++# Common UI Components Extraction Plan
++
++> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
++
++**Goal:** Extract and standardize reusable UI components to reduce code duplication, improve maintainability, and ensure a consistent premium experience across the application.
++
++**Architecture:** We will create new components in `src/components/ui/` and gradually migrate existing usages. Each component will follow existing design system conventions (CSS variables). We prioritize high-impact, low-risk extractions first.
++
++**Tech Stack:** Vue 3 `<script setup>`, Tailwind CSS v4, CSS variables for theming.
++
++---
++
++## UI/UX Design Principles
++
++> [!IMPORTANT]
++> **All components MUST follow these UI/UX best practices:**
++
++### Interaction Guidelines
++| Rule | Implementation |
++|------|----------------|
++| **Cursor pointer** | Add `cursor-pointer` to all clickable/hoverable elements |
++| **Smooth transitions** | Use `transition-all duration-200` (150-300ms range) |
++| **Hover feedback** | Provide visual feedback via color, shadow, or opacity change |
++| **No layout shift** | Avoid `scale` transforms on hover; use `shadow`, `opacity`, or `-translate-y-1` |
++| **Focus states** | Add `focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]` for keyboard a11y |
++
++### Visual Quality
++| Rule | Implementation |
++|------|----------------|
++| **No emoji icons** | Use SVG icons (Heroicons style) everywhere |
++| **Consistent icon sizing** | Use fixed `size-5` or `size-6` with `viewBox="0 0 24 24"` |
++| **Light/dark mode contrast** | Test all components in both modes; ensure 4.5:1 contrast ratio |
++| **Glass elements in light mode** | Use `bg-white/80` minimum opacity for visibility |
++
++### Accessibility
++| Rule | Implementation |
++|------|----------------|
++| **Keyboard navigation** | Support `Escape`, `ArrowLeft`, `ArrowRight` in Lightbox |
++| **ARIA labels** | Add `aria-label` to icon-only buttons |
++| **Reduced motion** | Respect `prefers-reduced-motion` for animations |
++
++---
++
++## User Review Required
++
++> [!IMPORTANT]
++> **Lightbox Consolidation Strategy:** There are two Lightbox components:
++> - `ui/Lightbox.vue`: Supports PDF preview, keyboard navigation, file type detection.
++> - `common/Lightbox.vue`: Supports zoom/rotate, download event emission.
++>
++> **Proposed:** Merge zoom/rotate into `ui/Lightbox.vue` (the more complete one) and delete `common/Lightbox.vue`. This requires updating `OrderDetail.vue` import path.
++
++> [!NOTE]
++> **Skeleton Enhancement:** Instead of creating new skeleton templates, we will enhance the existing `Skeleton.vue` by adding a `template` prop with presets like `stat-card`, `list-item`, `grid-card`.
++
++---
++
++## Task 1: Unify Lightbox Component
++
++**Files:**
++- Modify: [Lightbox.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/ui/Lightbox.vue)
++- Delete: `src/components/common/Lightbox.vue`
++- Modify: [OrderDetail.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/order/OrderDetail.vue) (update import path)
++
++### UI/UX Enhancements for Lightbox
++- ✅ Add `cursor-zoom-in` on zoomable images
++- ✅ Add `cursor-grab` / `cursor-grabbing` for pan operation (future)
++- ✅ Use SVG icons for zoom/rotate buttons (no emoji)
++- ✅ Add `aria-label` to all icon buttons
++- ✅ Smooth zoom animation with `transition-transform duration-200`
++- ✅ Keyboard shortcuts: `+/-` for zoom, `R` for rotate
++
++**Step 1:** Add zoom/rotate state and methods to `ui/Lightbox.vue`
++```javascript
++// Add to script setup
++const scale = ref(1);
++const rotation = ref(0);
++
++const zoomIn = () => { if (scale.value < 3) scale.value += 0.5; };
++const zoomOut = () => { if (scale.value > 0.5) scale.value -= 0.5; };
++const rotate = () => { rotation.value = (rotation.value + 90) % 360; };
++
++// Reset on file change
++watch(() => props.currentFile, () => {
++  scale.value = 1;
++  rotation.value = 0;
++});
++
++// Enhanced keyboard handler
++const handleKeydown = (e) => {
++  if (!props.visible) return;
++  switch (e.key) {
++    case 'Escape': emit('close'); break;
++    case 'ArrowLeft': emit('prev'); break;
++    case 'ArrowRight': emit('next'); break;
++    case '+':
++    case '=': zoomIn(); break;
++    case '-': zoomOut(); break;
++    case 'r':
++    case 'R': rotate(); break;
++  }
++};
++```
++
++**Step 2:** Add zoom/rotate toolbar with accessible SVG buttons
++```vue
++<!-- Zoom/Rotate Toolbar -->
++<div class="flex items-center gap-2">
++  <!-- Rotate -->
++  <button
++    type="button"
++    class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
++    aria-label="Rotate image"
++    @click.stop="rotate"
++  >
++    <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
++    </svg>
++  </button>
++
++  <!-- Zoom In -->
++  <button
++    type="button"
++    class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
++    aria-label="Zoom in"
++    @click.stop="zoomIn"
++  >
++    <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
++    </svg>
++  </button>
++
++  <!-- Zoom Out -->
++  <button
++    type="button"
++    class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
++    aria-label="Zoom out"
++    @click.stop="zoomOut"
++  >
++    <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
++    </svg>
++  </button>
++
++  <!-- Zoom indicator -->
++  <span class="min-w-12 text-center text-sm font-medium text-white/70">
++    {{ Math.round(scale * 100) }}%
++  </span>
++</div>
++```
++
++**Step 3:** Apply transform to `<img>` element with smooth transition
++```html
++<img
++  ...
++  class="max-h-full max-w-full cursor-zoom-in object-contain transition-transform duration-200"
++  :style="{ transform: `scale(${scale}) rotate(${rotation}deg)` }"
++/>
++```
++
++**Step 4:** Update `OrderDetail.vue` import
++```diff
++-import Lightbox from '@/components/common/Lightbox.vue';
+++import Lightbox from '@/components/ui/Lightbox.vue';
++```
++
++**Step 5:** Delete `src/components/common/Lightbox.vue`
++
++**Step 6:** Verify in browser that both Gallery and OrderDetail work
++
++---
++
++## Task 2: Create AppStatCard Component
++
++**Files:**
++- Create: [AppStatCard.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/ui/AppStatCard.vue)
++
++**Analysis:** The stat card pattern is used in:
++- `Stats.vue` (via `StatsCard.vue`)
++- `SpaceAnalytics.vue` (inline)
++
++### UI/UX Enhancements for AppStatCard
++- ✅ Use `-translate-y-1` instead of `scale` for hover (no layout shift)
++- ✅ Add `cursor-default` to non-interactive cards
++- ✅ Add optional `clickable` prop with `cursor-pointer` and `active:scale-[0.98]`
++- ✅ Support icon slot with consistent `size-6` sizing
++- ✅ Add loading state with skeleton animation
++
++**Step 1:** Create `AppStatCard.vue` with enhanced props
++```vue
++<template>
++  <div
++    class="group rounded-2xl border p-4 shadow-sm transition-all duration-200"
++    :class="[
++      variantClass,
++      clickable
++        ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg active:scale-[0.98]'
++        : 'hover:-translate-y-0.5 hover:shadow-md'
++    ]"
++    @click="clickable && $emit('click')"
++  >
++    <!-- Loading State -->
++    <template v-if="loading">
++      <div class="animate-pulse">
++        <div class="mb-2 h-4 w-16 rounded bg-[var(--border-color)]" />
++        <div class="h-8 w-24 rounded bg-[var(--border-color)]" />
++      </div>
++    </template>
++
++    <!-- Content -->
++    <template v-else>
++      <div class="mb-1 flex items-center gap-2">
++        <!-- Icon Slot -->
++        <slot name="icon">
++          <div v-if="icon" class="size-6" :class="labelClass">
++            <component :is="icon" class="size-full" />
++          </div>
++        </slot>
++        <span class="text-sm font-medium" :class="labelClass">
++          <slot name="label">{{ label }}</slot>
++        </span>
++      </div>
++
++      <div class="text-2xl font-bold tabular-nums text-[var(--text-main)]">
++        <slot>{{ formattedValue }}</slot>
++      </div>
++
++      <!-- Trend/Footer -->
++      <div v-if="$slots.footer || trend" class="mt-2 flex items-center gap-1 text-xs">
++        <template v-if="trend">
++          <span :class="trend > 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'">
++            {{ trend > 0 ? '↑' : '↓' }} {{ Math.abs(trend) }}%
++          </span>
++          <span class="text-[var(--text-secondary)]">vs last period</span>
++        </template>
++        <slot name="footer" />
++      </div>
++    </template>
++  </div>
++</template>
++
++<script setup>
++import { computed } from 'vue';
++
++const props = defineProps({
++  label: { type: String, default: '' },
++  value: { type: [String, Number], default: '' },
++  variant: {
++    type: String,
++    default: 'default',
++    validator: v => ['default', 'info', 'purple', 'success', 'warning', 'danger', 'cyan'].includes(v),
++  },
++  clickable: { type: Boolean, default: false },
++  loading: { type: Boolean, default: false },
++  trend: { type: Number, default: null }, // percentage change
++  icon: { type: [Object, Function], default: null },
++});
++
++defineEmits(['click']);
++
++const formattedValue = computed(() => {
++  if (typeof props.value === 'number') {
++    return props.value.toLocaleString();
++  }
++  return props.value;
++});
++
++const variantClass = computed(() => {
++  const variants = {
++    default: 'border-[var(--border-color)] bg-[var(--bg-card)]',
++    info: 'border-[var(--color-info)]/20 bg-[var(--color-info)]/5',
++    purple: 'border-[var(--color-purple)]/20 bg-[var(--color-purple)]/5',
++    success: 'border-[var(--color-success)]/20 bg-[var(--color-success)]/5',
++    warning: 'border-[var(--color-warning)]/20 bg-[var(--color-warning)]/5',
++    danger: 'border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5',
++    cyan: 'border-[var(--color-cyan)]/20 bg-[var(--color-cyan)]/5',
++  };
++  return variants[props.variant] || variants.default;
++});
++
++const labelClass = computed(() => {
++  const labels = {
++    default: 'text-[var(--text-secondary)]',
++    info: 'text-[var(--color-info)]',
++    purple: 'text-[var(--color-purple)]',
++    success: 'text-[var(--color-success)]',
++    warning: 'text-[var(--color-warning)]',
++    danger: 'text-[var(--color-danger)]',
++    cyan: 'text-[var(--color-cyan)]',
++  };
++  return labels[props.variant] || labels.default;
++});
++</script>
++```
++
++**Step 2:** Replace inline stat cards in `SpaceAnalytics.vue` with `AppStatCard`
++
++**Step 3:** Verify SpaceAnalytics still renders correctly
++
++---
++
++## Task 3: Enhance Skeleton Component with Templates
++
++**Files:**
++- Modify: [Skeleton.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/ui/Skeleton.vue)
++
++### UI/UX Enhancements for Skeleton
++- ✅ Use subtle shimmer animation (not harsh pulse)
++- ✅ Match exact dimensions of real content to prevent layout shift
++- ✅ Support `prefers-reduced-motion` by disabling animation
++- ✅ Add `aria-label="Loading..."` for screen readers
++
++**Step 1:** Add `template` prop with presets
++```javascript
++const props = defineProps({
++  // ... existing props
++  template: {
++    type: String,
++    default: null,
++    validator: v => [null, 'stat-card', 'list-card', 'avatar', 'text-line'].includes(v),
++  },
++  count: { type: Number, default: 1 }, // Repeat count
++});
++```
++
++**Step 2:** Add template-based rendering with reduced-motion support
++```vue
++<template>
++  <div role="status" aria-label="Loading...">
++    <template v-for="i in count" :key="i">
++      <!-- Existing simple skeleton -->
++      <div
++        v-if="!template"
++        class="skeleton-shimmer rounded bg-[var(--bg-muted)]"
++        :class="sizeClass"
++      />
++
++      <!-- Stat Card Template -->
++      <div
++        v-else-if="template === 'stat-card'"
++        class="skeleton-shimmer rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] p-4"
++      >
++        <div class="mb-2 h-4 w-16 rounded bg-[var(--border-color)]" />
++        <div class="h-8 w-24 rounded bg-[var(--border-color)]" />
++      </div>
++
++      <!-- List Card Template -->
++      <div
++        v-else-if="template === 'list-card'"
++        class="skeleton-shimmer rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4"
++      >
++        <div class="flex gap-3">
++          <div class="size-16 flex-shrink-0 rounded-lg bg-[var(--bg-muted)]" />
++          <div class="flex-1 space-y-2">
++            <div class="h-4 w-3/4 rounded bg-[var(--bg-muted)]" />
++            <div class="h-3 w-1/2 rounded bg-[var(--bg-muted)]" />
++            <div class="h-3 w-1/3 rounded bg-[var(--bg-muted)]" />
++          </div>
++        </div>
++      </div>
++
++      <!-- Avatar Template -->
++      <div
++        v-else-if="template === 'avatar'"
++        class="skeleton-shimmer size-10 rounded-full bg-[var(--bg-muted)]"
++      />
++    </template>
++  </div>
++</template>
++
++<style scoped>
++.skeleton-shimmer {
++  animation: shimmer 1.5s infinite;
++  background: linear-gradient(
++    90deg,
++    var(--bg-muted) 0%,
++    var(--bg-hover) 50%,
++    var(--bg-muted) 100%
++  );
++  background-size: 200% 100%;
++}
++
++@keyframes shimmer {
++  0% { background-position: 200% 0; }
++  100% { background-position: -200% 0; }
++}
++
++@media (prefers-reduced-motion: reduce) {
++  .skeleton-shimmer {
++    animation: none;
++    background: var(--bg-muted);
++  }
++}
++</style>
++```
++
++**Step 3:** Update `OrderCards.vue` and `CustomerCards.vue` to use `<Skeleton template="list-card" :count="5" />`
++
++**Step 4:** Verify loading states render correctly
++
++---
++
++## Pre-Delivery Checklist
++
++Before considering each task complete, verify:
++
++### Visual Quality
++- [ ] No emojis used as icons (use SVG instead)
++- [ ] All icons from consistent icon set (Heroicons style)
++- [ ] Hover states don't cause layout shift
++- [ ] Transitions are 150-300ms
++
++### Interaction
++- [ ] All clickable elements have `cursor-pointer`
++- [ ] Hover states provide clear visual feedback
++- [ ] Focus states visible for keyboard navigation
++
++### Light/Dark Mode
++- [ ] Components visible in both light and dark modes
++- [ ] Text has sufficient contrast (4.5:1 minimum)
++- [ ] Borders visible in both modes
++
++### Accessibility
++- [ ] Icon-only buttons have `aria-label`
++- [ ] Keyboard shortcuts work (Lightbox: Escape, arrows, +/-, R)
++- [ ] `prefers-reduced-motion` respected for animations
++
++---
++
++## Verification Plan
++
++### Manual Verification
++1. **Lightbox:** Open an order with images, click to open lightbox, test:
++   - Zoom in/out with buttons and `+`/`-` keys
++   - Rotate with button and `R` key
++   - Navigate with arrows and keyboard
++   - Verify zoom indicator shows percentage
++2. **Lightbox:** Open Gallery, test PDF preview and image navigation
++3. **AppStatCard:** View SpaceAnalytics modal, confirm:
++   - Cards render correctly with colored variants
++   - Hover effect is `-translate-y-1` (no scale)
++   - Numbers are formatted with `toLocaleString()`
++4. **Skeleton:** Navigate to Order/Customer lists, confirm:
++   - Skeleton matches real content dimensions
++   - Shimmer animation is subtle
++   - Animation respects `prefers-reduced-motion`
++
++### Automated Tests
++- None required for UI components in this project's current test setup.
+diff --git a/src/components/SpaceAnalytics.vue b/src/components/SpaceAnalytics.vue
+index 22cba7b..d3c1f00 100644
+--- a/src/components/SpaceAnalytics.vue
++++ b/src/components/SpaceAnalytics.vue
+@@ -36,22 +36,16 @@
+     <template v-else>
+       <!-- Key Metrics -->
+       <div class="grid grid-cols-2 gap-4">
+-        <div
+-          class="rounded-2xl border border-[var(--color-info)]/20 bg-[var(--color-info)]/5 p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+-        >
+-          <div class="mb-1 text-sm font-medium text-[var(--color-info)]">
+-            {{ t('spaceAnalytics.totalViews') }}
+-          </div>
+-          <div class="text-2xl font-bold text-[var(--text-main)]">{{ stats.total?.view_count || 0 }}</div>
+-        </div>
+-        <div
+-          class="rounded-2xl border border-[var(--color-purple)]/20 bg-[var(--color-purple)]/5 p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+-        >
+-          <div class="mb-1 text-sm font-medium text-[var(--color-purple)]">
+-            {{ t('spaceAnalytics.totalDownloads') }}
+-          </div>
+-          <div class="text-2xl font-bold text-[var(--text-main)]">{{ stats.total?.download_count || 0 }}</div>
+-        </div>
++        <AppStatCard
++          :label="t('spaceAnalytics.totalViews')"
++          :value="stats.total?.view_count || 0"
++          variant="info"
++        />
++        <AppStatCard
++          :label="t('spaceAnalytics.totalDownloads')"
++          :value="stats.total?.download_count || 0"
++          variant="purple"
++        />
+       </div>
+ 
+       <!-- Chart with Time Range Selector -->
+@@ -137,6 +131,7 @@
+ <script setup>
+ import { ref, onMounted, computed, watch } from 'vue';
+ import { useI18n } from '@/composables/useI18n';
++import AppStatCard from '@/components/ui/AppStatCard.vue';
+ import {
+   Chart as ChartJS,
+   CategoryScale,
+diff --git a/src/components/common/Lightbox.vue b/src/components/common/Lightbox.vue
+deleted file mode 100644
+index ad9e5b1..0000000
+--- a/src/components/common/Lightbox.vue
++++ /dev/null
+@@ -1,199 +0,0 @@
+-<template>
+-  <Teleport to="body">
+-    <Transition
+-      enter-active-class="transition duration-300 ease-out"
+-      enter-from-class="opacity-0"
+-      enter-to-class="opacity-100"
+-      leave-active-class="transition duration-200 ease-in"
+-      leave-from-class="opacity-100"
+-      leave-to-class="opacity-0"
+-    >
+-      <div
+-        v-if="visible"
+-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm"
+-        @click.self="close"
+-        @wheel.prevent="handleWheel"
+-      >
+-        <!-- Top Bar -->
+-        <div class="absolute inset-x-0 top-0 flex items-center justify-between p-4 px-6 text-white/90">
+-          <div class="rounded-full bg-black/20 px-3 py-1 text-sm font-medium backdrop-blur-sm">
+-            {{ currentIndex + 1 }} / {{ total }}
+-          </div>
+-          
+-          <button
+-            class="rounded-full p-2 transition-colors hover:bg-white/10 active:scale-95"
+-            @click="close"
+-          >
+-            <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+-            </svg>
+-          </button>
+-        </div>
+-
+-        <!-- Previous Button -->
+-        <button
+-          v-if="hasPrev"
+-          class="absolute left-4 z-10 hidden rounded-full p-3 text-white/90 transition-colors hover:bg-white/10 active:scale-95 md:block"
+-          @click.stop="prev"
+-        >
+-          <svg class="size-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+-          </svg>
+-        </button>
+-
+-        <!-- Main Image Area -->
+-        <div class="relative flex size-full items-center justify-center overflow-hidden">
+-          <Transition
+-            mode="out-in"
+-            enter-active-class="transition duration-300 ease-out"
+-            enter-from-class="opacity-0 scale-95"
+-            enter-to-class="opacity-100 scale-100"
+-            leave-active-class="transition duration-200 ease-in"
+-            leave-from-class="opacity-100 scale-100"
+-            leave-to-class="opacity-0 scale-95"
+-          >
+-            <img
+-              v-if="currentFile"
+-              :key="currentFile.url"
+-              :src="currentFile.url"
+-              :style="{ transform: `scale(${scale}) rotate(${rotation}deg)` }"
+-              class="max-h-[85vh] max-w-[90vw] object-contain transition-transform duration-200"
+-              alt=""
+-              draggable="false"
+-              @click.stop
+-            />
+-          </Transition>
+-        </div>
+-
+-        <!-- Next Button -->
+-        <button
+-          v-if="hasNext"
+-          class="absolute right-4 z-10 hidden rounded-full p-3 text-white/90 transition-colors hover:bg-white/10 active:scale-95 md:block"
+-          @click.stop="next"
+-        >
+-          <svg class="size-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+-          </svg>
+-        </button>
+-
+-        <!-- Bottom Toolbar -->
+-        <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-6 pb-8">
+-          <div class="mx-auto flex max-w-3xl items-center justify-between text-white/90">
+-            <div class="truncate text-sm font-medium">
+-              {{ currentFile?.name || 'Image' }}
+-            </div>
+-
+-            <div class="flex items-center gap-4">
+-              <!-- Rotate -->
+-              <button
+-                class="text-white/70 transition-colors hover:text-white"
+-                title="Rotate"
+-                @click.stop="rotate"
+-              >
+-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+-                </svg>
+-              </button>
+-
+-              <!-- Zoom In -->
+-              <button
+-                class="text-white/70 transition-colors hover:text-white"
+-                title="Zoom In"
+-                @click.stop="zoomIn"
+-              >
+-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+-                </svg>
+-              </button>
+-
+-              <!-- Zoom Out -->
+-              <button
+-                class="text-white/70 transition-colors hover:text-white"
+-                title="Zoom Out"
+-                @click.stop="zoomOut"
+-              >
+-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+-                </svg>
+-              </button>
+-
+-              <!-- Download -->
+-              <button
+-                class="text-white/70 transition-colors hover:text-white"
+-                title="Download"
+-                @click.stop="download"
+-              >
+-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+-                </svg>
+-              </button>
+-            </div>
+-          </div>
+-        </div>
+-      </div>
+-    </Transition>
+-  </Teleport>
+-</template>
+-
+-<script setup>
+-import { ref, watch } from 'vue';
+-
+-const props = defineProps({
+-  visible: { type: Boolean, default: false },
+-  currentFile: { type: Object, default: null },
+-  currentIndex: { type: Number, default: 0 },
+-  total: { type: Number, default: 0 },
+-  hasPrev: { type: Boolean, default: false },
+-  hasNext: { type: Boolean, default: false },
+-});
+-
+-const emit = defineEmits(['close', 'prev', 'next', 'download']);
+-
+-// Zoom & Rotate state
+-const scale = ref(1);
+-const rotation = ref(0);
+-
+-// Reset state when file changes
+-watch(() => props.currentFile, () => {
+-  scale.value = 1;
+-  rotation.value = 0;
+-});
+-
+-const close = () => emit('close');
+-const prev = () => emit('prev');
+-const next = () => emit('next');
+-
+-const zoomIn = () => {
+-  if (scale.value < 3) scale.value += 0.5;
+-};
+-
+-const zoomOut = () => {
+-  if (scale.value > 0.5) scale.value -= 0.5;
+-};
+-
+-const rotate = () => {
+-  rotation.value = (rotation.value + 90) % 360;
+-};
+-
+-const download = () => {
+-  emit('download', props.currentFile);
+-};
+-
+-// Handle wheel for zoom/nav
+-const handleWheel = (e) => {
+-  if (e.ctrlKey || e.metaKey) {
+-    // Zoom
+-    if (e.deltaY < 0) zoomIn();
+-    else zoomOut();
+-  } else {
+-    // Navigation (handled by parent via composable usually, but we can emit events)
+-    // Here relying on parent's useLightbox handleWheel might be better, 
+-    // but since we preventDefault here, we should emit or handle.
+-    // However, the useLightbox hook attaches wheel listener to window/document usually?
+-    // Let's defer to the prop methods for nav.
+-    // Actually simplicity:
+-    if (e.deltaY > 0 && props.hasNext) next();
+-    if (e.deltaY < 0 && props.hasPrev) prev();
+-  }
+-};
+-</script>
+diff --git a/src/components/customer/CustomerCards.vue b/src/components/customer/CustomerCards.vue
+index b36eea9..97527a6 100644
+--- a/src/components/customer/CustomerCards.vue
++++ b/src/components/customer/CustomerCards.vue
+@@ -2,31 +2,18 @@
+   <div class="space-y-3">
+     <!-- 加载状态 -->
+     <template v-if="loading">
+-      <div
+-        v-for="i in 5"
+-        :key="i"
+-        class="animate-pulse rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4"
+-      >
+-        <div class="space-y-3">
+-          <div class="flex justify-between">
+-            <div class="h-4 w-1/3 rounded bg-[var(--bg-muted)]"></div>
+-            <div class="h-4 w-1/4 rounded bg-[var(--bg-muted)]"></div>
+-          </div>
+-          <div class="h-3 w-1/2 rounded bg-[var(--bg-muted)]"></div>
+-          <div class="h-3 w-2/3 rounded bg-[var(--bg-muted)]"></div>
+-        </div>
+-      </div>
++      <Skeleton template="list-card" :count="5" />
+     </template>
+ 
+     <!-- 客户卡片 -->
+     <template v-else-if="data.length > 0">
+-      <div
++      <AppCard
+         v-for="customer in data"
+         :key="customer.id"
+-        class="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm transition-all active:scale-[0.98] active:bg-[var(--bg-hover)] active:shadow-none"
++        clickable
+         @click="$emit('detail', customer)"
+       >
+-        <div class="flex flex-col gap-3 p-4">
++        <div class="flex flex-col gap-3">
+           <!-- 头部信息: 姓名与公司 -->
+           <div class="flex items-start justify-between gap-2">
+             <div>
+@@ -74,16 +61,15 @@
+         </div>
+ 
+         <!-- 底部操作栏 -->
+-        <div
+-          class="flex items-center justify-between border-t border-[var(--border-color)] bg-[var(--bg-muted)]/30 px-4 py-3"
+-          @click.stop
+-        >
+-          <span class="text-xs text-[var(--text-secondary)]/50">{{
+-            formatDate(customer.createdAt)
+-          }}</span>
+-          <!-- 可以放置更多操作，目前点击卡片看详情，右上角编辑 -->
+-        </div>
+-      </div>
++        <template #footer>
++          <div class="flex items-center justify-between" @click.stop>
++            <span class="text-xs text-[var(--text-secondary)]/50">{{
++              formatDate(customer.createdAt)
++            }}</span>
++            <!-- 可以放置更多操作，目前点击卡片看详情，右上角编辑 -->
++          </div>
++        </template>
++      </AppCard>
+     </template>
+ 
+     <!-- 空状态 -->
+@@ -95,6 +81,8 @@
+ import { useI18n } from '@/composables/useI18n';
+ import { formatDate } from '@/utils/formatters';
+ import EmptyState from '@/components/ui/EmptyState.vue';
++import Skeleton from '@/components/ui/Skeleton.vue';
++import AppCard from '@/components/ui/AppCard.vue';
+ 
+ defineProps({
+   data: {
+diff --git a/src/components/order/OrderCards.vue b/src/components/order/OrderCards.vue
+index 2b68c7a..1eb03fb 100644
+--- a/src/components/order/OrderCards.vue
++++ b/src/components/order/OrderCards.vue
+@@ -2,31 +2,19 @@
+   <div class="space-y-3">
+     <!-- 加载状态 -->
+     <template v-if="loading">
+-      <div
+-        v-for="i in 5"
+-        :key="i"
+-        class="animate-pulse rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4"
+-      >
+-        <div class="flex gap-3">
+-          <div class="size-16 flex-shrink-0 rounded-lg bg-[var(--bg-muted)]"></div>
+-          <div class="flex-1 space-y-2">
+-            <div class="h-4 w-3/4 rounded bg-[var(--bg-muted)]"></div>
+-            <div class="h-3 w-1/2 rounded bg-[var(--bg-muted)]"></div>
+-            <div class="h-3 w-1/3 rounded bg-[var(--bg-muted)]"></div>
+-          </div>
+-        </div>
+-      </div>
++      <Skeleton template="list-card" :count="5" />
+     </template>
+ 
+     <!-- 订单卡片 -->
+     <template v-else-if="data.length > 0">
+-      <div
++      <AppCard
+         v-for="order in data"
+         :key="order.id"
+-        class="group overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm transition-all active:scale-[0.98] active:bg-[var(--bg-hover)]"
++        clickable
++        class="group"
+         @click="$emit('detail', order)"
+       >
+-        <div class="flex gap-3 p-4">
++        <div class="flex gap-3">
+           <!-- 主图 -->
+           <div
+             class="size-16 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)]"
+@@ -80,21 +68,20 @@
+         </div>
+ 
+         <!-- 底部操作栏 -->
+-        <div
+-          class="flex items-center justify-between border-t border-[var(--border-color)] bg-[var(--bg-muted)]/30 px-4 py-3"
+-          @click.stop
+-        >
+-          <span class="text-xs text-[var(--text-secondary)]/50">{{
+-            formatTime(order.createdAt)
+-          }}</span>
+-          <button
+-            class="rounded-xl bg-[var(--color-primary)]/5 px-4 py-2 text-xs font-bold text-[var(--color-primary)] transition-all hover:bg-[var(--color-primary)]/10 active:scale-90"
+-            @click="$emit('edit', order)"
+-          >
+-            {{ t('order.manage.editOrder') }}
+-          </button>
+-        </div>
+-      </div>
++        <template #footer>
++          <div class="flex items-center justify-between" @click.stop>
++            <span class="text-xs text-[var(--text-secondary)]/50">{{
++              formatTime(order.createdAt)
++            }}</span>
++            <button
++              class="rounded-xl bg-[var(--color-primary)]/5 px-4 py-2 text-xs font-bold text-[var(--color-primary)] transition-all hover:bg-[var(--color-primary)]/10 active:scale-90"
++              @click="$emit('edit', order)"
++            >
++              {{ t('order.manage.editOrder') }}
++            </button>
++          </div>
++        </template>
++      </AppCard>
+     </template>
+ 
+     <!-- 空状态 -->
+@@ -107,6 +94,8 @@ import { useI18n } from '@/composables/useI18n';
+ import { formatDate } from '@/utils/formatters';
+ import EmptyState from '@/components/ui/EmptyState.vue';
+ import AppImage from '@/components/ui/AppImage.vue';
++import Skeleton from '@/components/ui/Skeleton.vue';
++import AppCard from '@/components/ui/AppCard.vue';
+ 
+ defineProps({
+   data: {
+diff --git a/src/components/order/OrderDetail.vue b/src/components/order/OrderDetail.vue
+index 1c91478..a014af7 100644
+--- a/src/components/order/OrderDetail.vue
++++ b/src/components/order/OrderDetail.vue
+@@ -162,7 +162,7 @@ import OrderPrintView from './OrderPrintView.vue';
+ import OrderEditModal from '../OrderEditModal.vue';
+ import Modal from '@/components/ui/Modal.vue';
+ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+-import Lightbox from '@/components/common/Lightbox.vue';
++import Lightbox from '@/components/ui/Lightbox.vue';
+ 
+ const props = defineProps({
+   order: { type: Object, required: true },
+diff --git a/src/components/order/OrderFilters.vue b/src/components/order/OrderFilters.vue
+index 44b0681..38fa454 100644
+--- a/src/components/order/OrderFilters.vue
++++ b/src/components/order/OrderFilters.vue
+@@ -1,12 +1,6 @@
+ <template>
+-  <div class="flex-shrink-0 border-b border-[var(--border-color)] p-3 sm:p-4">
+-    <!-- Header with Create Button -->
+-    <div class="flex items-center justify-between gap-3">
+-      <div class="min-w-0">
+-        <h2 class="truncate text-base font-semibold text-[var(--text-main)] sm:text-lg">{{ t('order.manage.title') }}</h2>
+-        <p class="hidden text-sm text-[var(--text-secondary)] sm:block">{{ t('order.manage.subtitle') }}</p>
+-      </div>
+-
++  <AppFilterBar :title="t('order.manage.title')" :subtitle="t('order.manage.subtitle')">
++    <template #actions>
+       <!-- Desktop: Create + Export buttons -->
+       <div class="hidden shrink-0 items-center gap-2 sm:flex">
+         <button
+@@ -86,10 +80,9 @@
+           </svg>
+         </button>
+       </div>
+-    </div>
++    </template>
+ 
+-    <!-- Filters Row -->
+-    <div class="mt-2.5 flex flex-wrap items-center gap-2 sm:mt-3">
++    <template #filters>
+       <!-- 销售筛选 -->
+       <div class="w-24 sm:w-36">
+         <Select
+@@ -122,8 +115,8 @@
+           @search="$emit('search')"
+         />
+       </div>
+-    </div>
+-  </div>
++    </template>
++  </AppFilterBar>
+ </template>
+ 
+ <script setup>
+@@ -131,6 +124,7 @@ import { computed, ref, onMounted, onUnmounted } from 'vue';
+ import { useI18n } from '@/composables/useI18n';
+ import SearchInput from '@/components/ui/SearchInput.vue';
+ import Select from '@/components/ui/Select.vue';
++import AppFilterBar from '@/components/ui/AppFilterBar.vue';
+ 
+ const props = defineProps({
+   filters: {
+diff --git a/src/components/ui/AppCard.vue b/src/components/ui/AppCard.vue
+new file mode 100644
+index 0000000..b15727a
+--- /dev/null
++++ b/src/components/ui/AppCard.vue
+@@ -0,0 +1,61 @@
++<template>
++  <div
++    class="overflow-hidden rounded-2xl border bg-[var(--bg-card)] transition-all duration-200"
++    :class="[
++      borderClass,
++      clickable
++        ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99] active:shadow-sm'
++        : 'shadow-sm',
++    ]"
++    @click="clickable && $emit('click', $event)"
++  >
++    <!-- Header -->
++    <div
++      v-if="$slots.header"
++      class="border-b border-[var(--border-color)] px-4 py-3"
++      :class="headerClass"
++    >
++      <slot name="header" />
++    </div>
++
++    <!-- Body -->
++    <div :class="bodyClass">
++      <slot />
++    </div>
++
++    <!-- Footer -->
++    <div
++      v-if="$slots.footer"
++      class="border-t border-[var(--border-color)] bg-[var(--bg-muted)]/30 px-4 py-3"
++      :class="footerClass"
++    >
++      <slot name="footer" />
++    </div>
++  </div>
++</template>
++
++<script setup>
++import { computed } from 'vue';
++
++const props = defineProps({
++  clickable: { type: Boolean, default: false },
++  selected: { type: Boolean, default: false },
++  padding: { type: String, default: 'p-4' },
++  headerClass: { type: String, default: '' },
++  footerClass: { type: String, default: '' },
++  activeBorder: { type: Boolean, default: false }, // Highlight border on active/selected
++});
++
++defineEmits(['click']);
++
++const bodyClass = computed(() => {
++  return props.padding;
++});
++
++const borderClass = computed(() => {
++  if (props.selected || props.activeBorder) {
++    return 'border-[var(--color-primary)] ring-1 ring-[var(--color-primary)]';
++  }
++  return 'border-[var(--border-color)] hover:border-[var(--border-hover)]';
++});
++</script>
+diff --git a/src/components/ui/AppFilterBar.vue b/src/components/ui/AppFilterBar.vue
+new file mode 100644
+index 0000000..a9cf6c7
+--- /dev/null
++++ b/src/components/ui/AppFilterBar.vue
+@@ -0,0 +1,41 @@
++<template>
++  <div class="flex-shrink-0 border-b border-[var(--border-color)] p-3 sm:p-4">
++    <!-- Header Row -->
++    <div class="flex items-center justify-between gap-3">
++      <!-- Title Area -->
++      <div class="min-w-0">
++        <slot name="title">
++          <h2 v-if="title" class="truncate text-base font-semibold text-[var(--text-main)] sm:text-lg">
++            {{ title }}
++          </h2>
++          <p v-if="subtitle" class="hidden text-sm text-[var(--text-secondary)] sm:block">
++            {{ subtitle }}
++          </p>
++        </slot>
++      </div>
++
++      <!-- Actions Area -->
++      <div class="flex shrink-0 items-center gap-2">
++        <slot name="actions" />
++      </div>
++    </div>
++
++    <!-- Filters Row -->
++    <div v-if="$slots.filters" class="mt-2.5 flex flex-wrap items-center gap-2 sm:mt-3">
++      <slot name="filters" />
++    </div>
++  </div>
++</template>
++
++<script setup>
++defineProps({
++  title: {
++    type: String,
++    default: '',
++  },
++  subtitle: {
++    type: String,
++    default: '',
++  },
++});
++</script>
+diff --git a/src/components/ui/AppStatCard.vue b/src/components/ui/AppStatCard.vue
+new file mode 100644
+index 0000000..5e827d4
+--- /dev/null
++++ b/src/components/ui/AppStatCard.vue
+@@ -0,0 +1,106 @@
++<template>
++  <div
++    class="group rounded-2xl border p-4 shadow-sm transition-all duration-200"
++    :class="[
++      variantClass,
++      clickable
++        ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg active:scale-[0.98]'
++        : 'hover:-translate-y-0.5 hover:shadow-md'
++    ]"
++    @click="clickable && $emit('click')"
++  >
++    <!-- Loading State -->
++    <template v-if="loading">
++      <div class="animate-pulse">
++        <div class="mb-2 h-4 w-16 rounded bg-[var(--border-color)]" />
++        <div class="h-8 w-24 rounded bg-[var(--border-color)]" />
++      </div>
++    </template>
++
++    <!-- Content -->
++    <template v-else>
++      <div class="mb-1 flex items-center gap-2">
++        <!-- Icon Slot -->
++        <slot name="icon">
++          <div v-if="icon" class="size-6" :class="labelClass">
++            <component :is="icon" class="size-full" />
++          </div>
++        </slot>
++        <span class="text-sm font-medium" :class="labelClass">
++          <slot name="label">{{ label }}</slot>
++        </span>
++      </div>
++
++      <div class="text-2xl font-bold tabular-nums text-[var(--text-main)]">
++        <slot>{{ formattedValue }}</slot>
++      </div>
++
++      <!-- Trend/Footer -->
++      <div v-if="$slots.footer || trend !== null" class="mt-2 flex items-center gap-1 text-xs">
++        <template v-if="trend !== null">
++          <span :class="trend > 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'">
++            {{ trend > 0 ? '↑' : '↓' }} {{ Math.abs(trend) }}%
++          </span>
++          <span class="text-[var(--text-secondary)]">{{ t('dashboard.vsLastPeriod') }}</span>
++        </template>
++        <slot name="footer" />
++      </div>
++    </template>
++  </div>
++</template>
++
++<script setup>
++import { computed } from 'vue';
++import { useI18n } from '@/composables/useI18n';
++
++const { t } = useI18n();
++
++const props = defineProps({
++  label: { type: String, default: '' },
++  value: { type: [String, Number], default: '' },
++  variant: {
++    type: String,
++    default: 'default',
++    validator: v => ['default', 'info', 'purple', 'success', 'warning', 'danger', 'cyan'].includes(v),
++  },
++  clickable: { type: Boolean, default: false },
++  loading: { type: Boolean, default: false },
++  trend: { type: Number, default: null }, // percentage change
++  icon: { type: [Object, Function], default: null },
++});
++
++defineEmits(['click']);
++
++const formattedValue = computed(() => {
++  if (typeof props.value === 'number') {
++    return props.value.toLocaleString();
++  }
++  return props.value;
++});
++
++const variantClass = computed(() => {
++  const variants = {
++    default: 'border-[var(--border-color)] bg-[var(--bg-card)]',
++    info: 'border-[var(--color-info)]/20 bg-[var(--color-info)]/5',
++    purple: 'border-[var(--color-purple)]/20 bg-[var(--color-purple)]/5',
++    success: 'border-[var(--color-success)]/20 bg-[var(--color-success)]/5',
++    warning: 'border-[var(--color-warning)]/20 bg-[var(--color-warning)]/5',
++    danger: 'border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5',
++    cyan: 'border-[var(--color-cyan)]/20 bg-[var(--color-cyan)]/5',
++  };
++  return variants[props.variant] || variants.default;
++});
++
++const labelClass = computed(() => {
++  const labels = {
++    default: 'text-[var(--text-secondary)]',
++    info: 'text-[var(--color-info)]',
++    purple: 'text-[var(--color-purple)]',
++    success: 'text-[var(--color-success)]',
++    warning: 'text-[var(--color-warning)]',
++    danger: 'text-[var(--color-danger)]',
++    cyan: 'text-[var(--color-cyan)]',
++  };
++  return labels[props.variant] || labels.default;
++});
++</script>
+diff --git a/src/components/ui/Lightbox.vue b/src/components/ui/Lightbox.vue
+index caaf13e..9196062 100644
+--- a/src/components/ui/Lightbox.vue
++++ b/src/components/ui/Lightbox.vue
+@@ -12,23 +12,86 @@
+         v-if="visible"
+         class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md"
+         @click.self="$emit('close')"
+-        @wheel.prevent="handleWheel"
++        @wheel="handleWheel"
+       >
+         <!-- Toolbar -->
+         <div
+-          class="absolute top-0 right-0 left-0 z-50 flex items-center justify-between bg-gradient-to-b from-black/50 to-transparent p-4"
++          class="absolute top-0 right-0 left-0 z-50 flex items-center justify-between bg-gradient-to-b from-black/50 to-transparent p-4 transition-colors"
+         >
+           <div class="px-2 text-sm font-medium text-white/90">
+             {{ currentIndex + 1 }} / {{ total }}
+           </div>
+ 
+           <div class="flex items-center gap-4">
++            <!-- Zoom/Rotate Toolbar (Only for images) -->
++            <div v-if="currentFile?.type === 'image'" class="mr-4 flex items-center gap-2 border-r border-white/10 pr-4">
++              <!-- Rotate -->
++              <button
++                type="button"
++                class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
++                aria-label="Rotate image (R)"
++                title="Rotate (R)"
++                @click.stop="rotate"
++              >
++                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                  <path
++                    stroke-linecap="round"
++                    stroke-linejoin="round"
++                    stroke-width="2"
++                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
++                  ></path>
++                </svg>
++              </button>
++
++              <!-- Zoom In -->
++              <button
++                type="button"
++                class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
++                aria-label="Zoom in (+)"
++                title="Zoom In (+)"
++                @click.stop="zoomIn"
++              >
++                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                  <path
++                    stroke-linecap="round"
++                    stroke-linejoin="round"
++                    stroke-width="2"
++                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
++                  ></path>
++                </svg>
++              </button>
++
++              <!-- Zoom Out -->
++              <button
++                type="button"
++                class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
++                aria-label="Zoom out (-)"
++                title="Zoom Out (-)"
++                @click.stop="zoomOut"
++              >
++                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                  <path
++                    stroke-linecap="round"
++                    stroke-linejoin="round"
++                    stroke-width="2"
++                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"
++                  ></path>
++                </svg>
++              </button>
++
++              <!-- Zoom indicator -->
++              <span class="min-w-12 text-center text-sm font-medium text-white/70">
++                {{ Math.round(scale * 100) }}%
++              </span>
++            </div>
++
+             <!-- Download Button -->
+             <a
+               v-if="currentFile"
+               :href="currentFile.url"
+               download
+-              class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-md transition-colors hover:bg-white/20"
++              class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-md transition-colors hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white"
++              aria-label="Download file"
+             >
+               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path
+@@ -43,7 +106,8 @@
+ 
+             <!-- Close Button -->
+             <button
+-              class="flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white"
++              class="flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
++              aria-label="Close"
+               @click="$emit('close')"
+             >
+               <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+@@ -61,7 +125,8 @@
+         <!-- Navigation Buttons -->
+         <button
+           v-if="currentIndex > 0"
+-          class="absolute top-1/2 left-4 z-50 flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white"
++          class="absolute top-1/2 left-4 z-50 flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
++          aria-label="Previous image"
+           @click="$emit('prev')"
+         >
+           <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+@@ -75,7 +140,8 @@
+         </button>
+         <button
+           v-if="currentIndex < total - 1"
+-          class="absolute top-1/2 right-4 z-50 flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white"
++          class="absolute top-1/2 right-4 z-50 flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
++          aria-label="Next image"
+           @click="$emit('next')"
+         >
+           <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+@@ -90,7 +156,7 @@
+ 
+         <!-- Content -->
+         <div
+-          class="absolute inset-0 flex items-center justify-center p-4 py-20 sm:p-8 md:p-12"
++          class="absolute inset-0 flex items-center justify-center p-4 py-20 sm:p-8 md:p-12 overflow-hidden"
+           @click.self="$emit('close')"
+         >
+           <!-- Image -->
+@@ -98,7 +164,9 @@
+             v-if="currentFile?.type === 'image'"
+             :src="currentFile.url"
+             :alt="currentFile.name"
+-            class="animate-in zoom-in max-h-full max-w-full rounded-lg object-contain shadow-2xl duration-300"
++            class="max-h-full max-w-full rounded-lg object-contain shadow-2xl transition-transform duration-200"
++            :class="{ 'cursor-zoom-in': scale === 1, 'cursor-grab': scale > 1 }"
++            :style="{ transform: `scale(${scale}) rotate(${rotation}deg)` }"
+           />
+ 
+           <!-- PDF Viewer -->
+@@ -140,7 +208,7 @@
+ </template>
+ 
+ <script setup>
+-import { onMounted, onUnmounted } from 'vue';
++import { ref, onMounted, onUnmounted, watch } from 'vue';
+ import { useI18n } from '@/composables/useI18n';
+ 
+ const props = defineProps({
+@@ -166,11 +234,41 @@ const emit = defineEmits(['close', 'prev', 'next']);
+ 
+ const { t } = useI18n();
+ 
++// Zoom & Rotate state
++const scale = ref(1);
++const rotation = ref(0);
++
++const zoomIn = () => {
++  if (scale.value < 3) scale.value += 0.5;
++};
++
++const zoomOut = () => {
++  if (scale.value > 0.5) scale.value -= 0.5;
++};
++
++const rotate = () => {
++  rotation.value = (rotation.value + 90) % 360;
++};
++
++// Reset state when file changes
++watch(() => props.currentFile, () => {
++  scale.value = 1;
++  rotation.value = 0;
++});
++
+ const handleWheel = (e) => {
+-  if (e.deltaY > 0) {
+-    emit('next');
+-  } else if (e.deltaY < 0) {
+-    emit('prev');
++  if (e.ctrlKey || e.metaKey) {
++    // Zoom
++    e.preventDefault();
++    if (e.deltaY < 0) zoomIn();
++    else zoomOut();
++  } else {
++    // Navigation
++    if (e.deltaY > 0) {
++      emit('next');
++    } else if (e.deltaY < 0) {
++      emit('prev');
++    }
+   }
+ };
+ 
+@@ -187,6 +285,18 @@ const handleKeydown = (e) => {
+     case 'ArrowRight':
+       emit('next');
+       break;
++    case '+':
++    case '=':
++      zoomIn();
++      break;
++    case '-':
++    case '_':
++      zoomOut();
++      break;
++    case 'r':
++    case 'R':
++      rotate();
++      break;
+   }
+ };
+ 
+diff --git a/src/components/ui/Skeleton.vue b/src/components/ui/Skeleton.vue
+index ffb44a5..e6b70fb 100644
+--- a/src/components/ui/Skeleton.vue
++++ b/src/components/ui/Skeleton.vue
+@@ -1,91 +1,139 @@
+ <template>
+-  <div class="animate-pulse" :class="containerClass">
+-    <!-- 预设形状 -->
+-    <template v-if="type === 'text'">
+-      <div class="bg-[var(--bg-active)] rounded" :class="widthClass"></div>
+-    </template>
++  <div role="status" :aria-label="t('common.loading')">
++    <template v-for="i in count" :key="i">
++      <!-- Simple Text/Block Skeleton -->
++      <div
++        v-if="!template"
++        class="skeleton-shimmer rounded bg-[var(--bg-muted)]"
++        :class="[widthClass, heightClass, containerClass]"
++        :style="customStyle"
++      />
+ 
+-    <template v-else-if="type === 'avatar'">
+-      <div class="rounded-full bg-[var(--bg-active)]" :class="avatarSizeClass"></div>
+-    </template>
++      <!-- Avatar Template -->
++      <div
++        v-else-if="template === 'avatar'"
++        class="skeleton-shimmer rounded-full bg-[var(--bg-muted)]"
++        :class="avatarSizeClass"
++      />
+ 
+-    <template v-else-if="type === 'image'">
+-      <div class="rounded-lg bg-[var(--bg-active)]" :class="imageSizeClass"></div>
+-    </template>
++      <!-- Stat Card Template -->
++      <div
++        v-else-if="template === 'stat-card'"
++        class="skeleton-shimmer rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] p-4"
++      >
++        <div class="mb-2 h-4 w-16 rounded bg-[var(--border-color)]" />
++        <div class="h-8 w-24 rounded bg-[var(--border-color)]" />
++      </div>
+ 
+-    <template v-else-if="type === 'card'">
+-      <div class="space-y-3 rounded-xl bg-[var(--bg-muted)] p-4">
+-        <div class="flex items-center gap-3">
+-          <div class="size-10 rounded-full bg-[var(--bg-active)]"></div>
++      <!-- List Card Template (for Order/Customer lists) -->
++      <div
++        v-else-if="template === 'list-card'"
++        class="skeleton-shimmer rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4"
++        :class="{ 'mb-3': i < count }"
++      >
++        <div class="flex gap-3">
++          <div class="size-16 flex-shrink-0 rounded-lg bg-[var(--bg-muted)]" />
+           <div class="flex-1 space-y-2">
+-            <div class="h-4 w-24 rounded bg-[var(--bg-active)]"></div>
+-            <div class="h-3 w-32 rounded bg-[var(--bg-active)]"></div>
++            <div class="h-4 w-3/4 rounded bg-[var(--bg-muted)]" />
++            <div class="h-3 w-1/2 rounded bg-[var(--bg-muted)]" />
++            <div class="h-3 w-1/3 rounded bg-[var(--bg-muted)]" />
+           </div>
+         </div>
+       </div>
+-    </template>
+-
+-    <template v-else-if="type === 'table-row'">
+-      <tr>
+-        <td v-for="i in columns" :key="i" class="p-4">
+-          <div class="h-4 w-2/3 rounded bg-[var(--bg-active)]"></div>
+-        </td>
+-      </tr>
+-    </template>
+ 
+-    <!-- 自定义形状 -->
+-    <template v-else>
+-      <div class="rounded bg-[var(--bg-active)]" :class="customClass"></div>
++      <!-- Table Row Template -->
++      <div v-else-if="template === 'table-row'" class="flex gap-4 py-4 border-b border-[var(--border-color)]">
++        <div v-for="c in columns" :key="c" class="h-4 flex-1 rounded bg-[var(--bg-muted)] skeleton-shimmer"></div>
++      </div>
+     </template>
+   </div>
+ </template>
+ 
+ <script setup>
+ import { computed } from 'vue';
++import { useI18n } from '@/composables/useI18n';
++
++const { t } = useI18n();
+ 
+ const props = defineProps({
+-  type: {
+-    type: String,
+-    default: 'text',
+-    validator: (v) => ['text', 'avatar', 'image', 'card', 'table-row', 'custom'].includes(v),
+-  },
+-  width: {
+-    type: String,
+-    default: 'full',
+-  },
+-  height: {
++  template: {
+     type: String,
+-    default: '',
+-  },
+-  count: {
+-    type: Number,
+-    default: 1,
+-  },
+-  columns: {
+-    type: Number,
+-    default: 4,
++    default: null,
++    validator: v => [null, 'stat-card', 'list-card', 'avatar', 'table-row'].includes(v),
+   },
++  width: { type: String, default: 'full' },
++  height: { type: String, default: '' },
++  count: { type: Number, default: 1 },
++  columns: { type: Number, default: 4 }, // For table-row
+   containerClass: { type: String, default: '' },
+-  customClass: { type: String, default: '' },
+ });
+ 
+ const widthClass = computed(() => {
+-  const widths = {
+-    full: 'w-full',
+-    '3/4': 'w-3/4',
+-    '2/3': 'w-2/3',
+-    '1/2': 'w-1/2',
+-    '1/3': 'w-1/3',
+-    '1/4': 'w-1/4',
+-  };
+-  return widths[props.width] || `w-[${props.width}]`;
++  if (['full', '3/4', '2/3', '1/2', '1/3', '1/4'].includes(props.width)) {
++    return `w-${props.width}`;
++  }
++  return '';
+ });
+ 
+-const avatarSizeClass = computed(() => {
+-  return props.height ? `w-${props.height} h-${props.height}` : 'w-10 h-10';
++const customStyle = computed(() => {
++  if (!['full', '3/4', '2/3', '1/2', '1/3', '1/4'].includes(props.width)) {
++    return { width: props.width };
++  }
++  return {};
++});
++
++const heightClass = computed(() => {
++  return props.height ? `h-${props.height}` : 'h-4';
+ });
+ 
+-const imageSizeClass = computed(() => {
+-  return props.height ? `h-${props.height}` : 'aspect-square w-full';
++const avatarSizeClass = computed(() => {
++  return props.height ? `size-${props.height}` : 'size-10';
+ });
+ </script>
++
++<style scoped>
++.skeleton-shimmer {
++  position: relative;
++  overflow: hidden;
++  background: var(--bg-muted);
++}
++
++.skeleton-shimmer::after {
++  content: '';
++  position: absolute;
++  top: 0;
++  right: 0;
++  bottom: 0;
++  left: 0;
++  transform: translateX(-100%);
++  background: linear-gradient(
++    90deg,
++    transparent 0%,
++    rgba(255, 255, 255, 0.05) 50%,
++    transparent 100%
++  );
++  animation: shimmer 2s infinite;
++}
++
++[data-theme='light'] .skeleton-shimmer::after {
++  background: linear-gradient(
++    90deg,
++    transparent 0%,
++    rgba(0, 0, 0, 0.05) 50%,
++    transparent 100%
++  );
++}
++
++@keyframes shimmer {
++  100% {
++    transform: translateX(100%);
++  }
++}
++
++@media (prefers-reduced-motion: reduce) {
++  .skeleton-shimmer::after {
++    animation: none;
++    display: none;
++  }
++}
++</style>
+diff --git a/src/locales/zh-CN.js b/src/locales/zh-CN.js
+index aaca961..dbb8db5 100644
+--- a/src/locales/zh-CN.js
++++ b/src/locales/zh-CN.js
+@@ -419,6 +419,7 @@ export default {
+     trendUp: '↑ 较上周',
+     trendDown: '↓ 较上周',
+     trendSame: '持平',
++    vsLastPeriod: '较上期',
+   },
+   stats: {
+     analyzing: '正在分析数据...',
