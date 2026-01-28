@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 

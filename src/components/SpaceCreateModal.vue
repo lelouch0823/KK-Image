@@ -132,6 +132,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { useModalStack } from '@/composables/useModalStack';
+import { useSpaces } from '@/composables/useSpaces';
 import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';

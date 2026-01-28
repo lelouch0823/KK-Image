@@ -1,18 +1,12 @@
-import sentryPlugin from '@cloudflare/pages-plugin-sentry';
+import { sentryCloudflare } from '@sentry/cloudflare';
 import { verifyJWT, ADMIN_AUTH_COOKIE } from './api/utils/auth.js';
 
 /**
  * Edge Middleware - 组合 Sentry 监控 + JWT 验证
  */
 export const onRequest = [
-  // 1. Sentry 监控（最外层，捕获所有错误）
-  (context) => {
-    const dsn = context.env.SENTRY_DSN;
-    if (dsn) {
-      return sentryPlugin({ dsn })(context);
-    }
-    return context.next();
-  },
+  // 1. Sentry 监控（内置自动捕获错误，支持 DSN 环境变量）
+  sentryCloudflare(),
 
   // 2. JWT 验证与重定向
   async (context) => {
