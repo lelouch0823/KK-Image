@@ -8,6 +8,9 @@ export function useOrderFilters(loadOrders) {
     const { t } = useI18n();
     const { addToast } = useToast();
 
+    // 初始化标志，用于在组件挂载时跳过 watch
+    const isInitializing = ref(true);
+
     const filterState = ref({
         salesperson: '',
         status: '',
@@ -17,9 +20,11 @@ export function useOrderFilters(loadOrders) {
     const filterDateRange = ref({ start: 0, end: 0 });
     const exporting = ref(false);
 
-    // Watch filter changes
+    // Watch filter changes (skip during initialization)
     watch(filterState, () => {
-        handleFilterChange();
+        if (!isInitializing.value) {
+            handleFilterChange();
+        }
     }, { deep: true });
 
     const handleFilterChange = () => {
@@ -31,6 +36,11 @@ export function useOrderFilters(loadOrders) {
             endTime: filterDateRange.value.end,
             page: 1,
         });
+    };
+
+    // 完成初始化，允许 watch 监听后续变化
+    const finishInitialization = () => {
+        isInitializing.value = false;
     };
 
     const handleDashboardFilter = (type) => {
@@ -90,6 +100,17 @@ export function useOrderFilters(loadOrders) {
         }
     };
 
+    const refreshOrders = (page) => {
+        loadOrders({
+            salesperson: filterState.value.salesperson,
+            status: filterState.value.status,
+            search: filterState.value.search,
+            startTime: filterDateRange.value.start,
+            endTime: filterDateRange.value.end,
+            page,
+        });
+    };
+
     return {
         filterState,
         filterDateRange,
@@ -97,5 +118,7 @@ export function useOrderFilters(loadOrders) {
         handleFilterChange,
         handleDashboardFilter,
         exportOrders,
+        refreshOrders,
+        finishInitialization,
     };
 }

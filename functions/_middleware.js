@@ -1,12 +1,17 @@
-import { sentryCloudflare } from '@sentry/cloudflare';
+import { sentryPagesPlugin } from '@sentry/cloudflare';
 import { verifyJWT, ADMIN_AUTH_COOKIE } from './api/utils/auth.js';
 
 /**
  * Edge Middleware - 组合 Sentry 监控 + JWT 验证
  */
 export const onRequest = [
-  // 1. Sentry 监控（内置自动捕获错误，支持 DSN 环境变量）
-  sentryCloudflare(),
+  // 1. Sentry Monitoring with optimized config
+  sentryPagesPlugin((context) => ({
+    dsn: context.env.SENTRY_DSN,
+    tracesSampleRate: Number(context.env.SENTRY_TRACES_SAMPLE_RATE || 0.2), // Default 20% sampling
+    environment: context.env.ENVIRONMENT || 'production',
+    attachStacktrace: true,
+  })),
 
   // 2. JWT 验证与重定向
   async (context) => {

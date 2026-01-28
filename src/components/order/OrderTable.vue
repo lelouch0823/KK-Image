@@ -185,7 +185,12 @@ import { formatDate } from '@/utils/formatters';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 
-const props = defineProps({
+const {
+  data,
+  loading = false,
+  selectable = false,
+  selectedIds = [],
+} = defineProps({
   data: {
     type: Array,
     required: true,
@@ -212,16 +217,16 @@ const formatTime = (timestamp) => formatDate(timestamp);
 
 // 检查是否全选
 const isAllSelected = computed(() => {
-  return props.data.length > 0 && props.selectedIds.length === props.data.length;
+  return data.length > 0 && selectedIds.length === data.length;
 });
 
 // 检查是否部分选中
 const isPartialSelected = computed(() => {
-  return props.selectedIds.length > 0 && props.selectedIds.length < props.data.length;
+  return selectedIds.length > 0 && selectedIds.length < data.length;
 });
 
 // 检查某一项是否选中
-const isSelected = (id) => props.selectedIds.includes(id);
+const isSelected = (id) => selectedIds.includes(id);
 
 // 切换全选
 const toggleSelectAll = () => {
@@ -230,7 +235,7 @@ const toggleSelectAll = () => {
   } else {
     emit(
       'update:selectedIds',
-      props.data.map((o) => o.id)
+      data.map((o) => o.id)
     );
   }
 };
@@ -240,10 +245,10 @@ const toggleSelect = (id) => {
   if (isSelected(id)) {
     emit(
       'update:selectedIds',
-      props.selectedIds.filter((i) => i !== id)
+      selectedIds.filter((i) => i !== id)
     );
   } else {
-    emit('update:selectedIds', [...props.selectedIds, id]);
+    emit('update:selectedIds', [...selectedIds, id]);
   }
 };
 </script>

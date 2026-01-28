@@ -24,6 +24,7 @@ export default {
   disable: '禁用',
   disableConfirm: '禁用后该销售将无法登录，确定继续？',
   orderCount: '订单数',
+  viewOrders: '查看该销售的订单',
   lastActive: '最后活跃',
   never: '从未',
   createSuccess: '销售创建成功',

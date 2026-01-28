@@ -46,6 +46,7 @@
           @edit="openModal"
           @delete="confirmDelete"
           @copy="copyAccessLink"
+          @view-orders="handleViewOrders"
         />
       </div>
 
@@ -57,6 +58,7 @@
           @edit="openModal"
           @delete="confirmDelete"
           @copy="copyAccessLink"
+          @view-orders="handleViewOrders"
         />
       </div>
     </div>
@@ -93,6 +95,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onActivated } from 'vue';
+import { useRouter } from 'vue-router';
 import { useSalespersons } from '@/composables/useSalespersons';
 import { useI18n } from '@/composables/useI18n';
 import SearchInput from '@/components/ui/SearchInput.vue';
@@ -115,6 +118,7 @@ const {
 } = useSalespersons();
 
 const { t } = useI18n();
+const router = useRouter();
 
 const searchQuery = ref('');
 const showModal = ref(false);
@@ -228,5 +232,13 @@ const handleResetToken = () => {
       }
     },
   };
+};
+
+// 查看销售订单 - 跳转到订单管理页面并筛选该销售
+const handleViewOrders = (person) => {
+  router.push({
+    name: 'Orders',
+    query: { salesperson: person.id },
+  });
 };
 </script>

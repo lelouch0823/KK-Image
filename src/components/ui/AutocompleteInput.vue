@@ -1,6 +1,7 @@
 <template>
-  <div ref="containerRef" class="relative">
+  <div ref="container" class="relative">
     <input
+      :id="inputId"
       v-model="inputValue"
       v-bind="$attrs"
       :placeholder="placeholder"
@@ -51,7 +52,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, useId, useTemplateRef } from 'vue';
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -64,10 +65,11 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'select']);
 
-const containerRef = ref(null);
+const containerRef = useTemplateRef('container');
 const inputValue = ref(props.modelValue);
 const showDropdown = ref(false);
 const highlightedIndex = ref(-1);
+const inputId = useId();
 
 // 同步外部值
 watch(

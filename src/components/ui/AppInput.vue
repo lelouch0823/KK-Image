@@ -1,7 +1,7 @@
 <template>
   <div class="w-full">
     <!-- Label -->
-    <label v-if="label" :for="id" class="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
+    <label v-if="label" :for="inputId" class="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
       {{ label }}
       <span v-if="required" class="text-[var(--color-danger)]">*</span>
     </label>
@@ -15,8 +15,8 @@
       <!-- Input -->
       <component
         :is="textarea ? 'textarea' : 'input'"
-        :id="id"
-        ref="inputRef"
+        :id="inputId"
+        ref="input"
         v-bind="$attrs"
         :value="modelValue"
         :type="!textarea ? type : undefined"
@@ -47,7 +47,7 @@
 </template>
 
 <script setup>
-import { computed, ref, useSlots } from 'vue';
+import { computed, ref, useSlots, useId, useTemplateRef } from 'vue';
 
 defineOptions({
   inheritAttrs: false,
@@ -59,7 +59,7 @@ const props = defineProps({
     default: '',
   },
   label: { type: String, default: '' },
-  id: { type: String, default: () => `input-${Math.random().toString(36).substr(2, 9)}` },
+  id: { type: String, default: undefined },
   type: { type: String, default: 'text' },
   error: { type: String, default: '' },
   hint: { type: String, default: '' },
@@ -71,7 +71,10 @@ const props = defineProps({
 
 defineEmits(['update:modelValue', 'blur', 'focus']);
 
-const inputRef = ref(null);
+const uid = useId();
+const inputId = computed(() => props.id || uid);
+
+const inputRef = useTemplateRef('input');
 const slots = useSlots();
 
 const inputClasses = computed(() => {

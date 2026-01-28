@@ -24,6 +24,7 @@ export default {
   disable: 'Disable',
   disableConfirm: 'They will be unable to login. Continue?',
   orderCount: 'Orders',
+  viewOrders: 'View orders for this salesperson',
   lastActive: 'Last Active',
   never: 'Never',
   createSuccess: 'Salesperson created',

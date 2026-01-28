@@ -159,6 +159,7 @@
 
 <script setup>
 import { onMounted, onActivated, watch, reactive } from 'vue';
+import { useRoute } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
 import { useNotifications } from '@/composables/useNotifications';
 import { useI18n } from '@/composables/useI18n';
@@ -195,11 +196,11 @@ const {
 } = useOrders();
 
 const { t } = useI18n();
+const route = useRoute();
 
 // SOTA: Auto-refresh on notification
 const { lastNotificationTime } = useNotifications();
 
-// Initialize Composables
 // Initialize Composables
 const {
   filterState,
@@ -209,6 +210,7 @@ const {
   handleDashboardFilter,
   exportOrders,
   refreshOrders,
+  finishInitialization,
 } = useOrderFilters(loadOrders);
 
 const {
@@ -246,32 +248,34 @@ const onEditSubmit = (payload) => handleEditSubmit(payload, pagination.page);
 const onBatchAction = (action) => handleBatchAction(action, pagination.page);
 
 // Watch for notifications to auto-refresh
+// Watch for notifications to auto-refresh
 watch(lastNotificationTime, () => {
   // Only refresh if not editing or viewing detail to avoid disruption
   if (!showEditModal.value && !showDetailModal.value && !showCreateModal.value) {
-    loadOrders({ page: pagination.page });
+    refreshOrders();
   }
 });
 
 // Lifecycle
 onMounted(() => {
-  loadOrders();
+  // 从 URL 参数读取销售筛选 (从销售管理页面跳转过来)
+  const salespersonParam = route.query.salesperson;
+  if (salespersonParam) {
+    filterState.value.salesperson = salespersonParam;
+  }
+  // 使用 refreshOrders以确保应用所有当前筛选条件
+  refreshOrders();
+  // 初始化完成后允许 watch 监听后续变化
+  finishInitialization();
 });
 
 onActivated(() => {
-  loadOrders({ page: pagination.page });
+  refreshOrders();
 });
 
 // Pagination change
 const changePage = (page) => {
-  loadOrders({
-    salesperson: filterState.value.salesperson,
-    status: filterState.value.status,
-    search: filterState.value.search,
-    startTime: filterDateRange.value.start,
-    endTime: filterDateRange.value.end,
-    page,
-  });
+  refreshOrders(page);
 };
 
 // Status Change Handler (Local wrapper)

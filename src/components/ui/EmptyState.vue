@@ -4,18 +4,18 @@
     <div class="relative mb-6">
       <!-- Decorative Blob -->
       <div 
-        class="absolute inset-0 scale-150 rounded-full bg-linear-to-tr from-[var(--color-primary-bg)] to-transparent opacity-60 blur-xl"
+        class="from-primary-bg absolute inset-0 scale-150 rounded-full to-transparent opacity-60 blur-xl"
       ></div>
       
       <!-- Icon Circle -->
       <div 
-        class="shadow-soft relative flex items-center justify-center rounded-2xl bg-[var(--bg-card)] transition-all duration-300 hover:-translate-y-1 hover:scale-105 hover:shadow-lg" 
+        class="bg-(--bg-card) shadow-soft relative flex items-center justify-center rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:scale-105 hover:shadow-lg" 
         :class="iconContainerClass"
       >
         <slot name="icon">
           <svg
             class="text-[var(--color-primary-light)] transition-colors duration-300 group-hover:text-[var(--color-primary)]"
-            :class="iconClass"
+            :class="[iconClass, iconSizeClass]"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -32,14 +32,14 @@
     </div>
 
     <!-- Title -->
-    <h3 class="text-lg font-semibold tracking-tight text-[var(--text-main)]" :class="titleClass">
+    <h3 class="text-main text-lg font-semibold tracking-tight" :class="titleClass">
       <slot name="title">{{ title }}</slot>
     </h3>
 
     <!-- Description -->
     <p
       v-if="description || $slots.description"
-      class="mt-2 max-w-sm text-sm leading-relaxed text-[var(--text-muted)]"
+      class="text-muted mt-2 max-w-sm text-sm leading-relaxed"
       :class="descriptionClass"
     >
       <slot name="description">{{ description }}</slot>
@@ -55,7 +55,16 @@
 <script setup>
 import { computed } from 'vue';
 
-const props = defineProps({
+const {
+  title = '',
+  description = '',
+  icon = 'folder',
+  size = 'md',
+  containerClass = '',
+  iconClass = '',
+  titleClass = '',
+  descriptionClass = '',
+} = defineProps({
   title: {
     type: String,
     default: '',
@@ -93,7 +102,7 @@ const iconPaths = {
   plus: 'M12 4v16m8-8H4',
 };
 
-const iconPath = computed(() => iconPaths[props.icon] || iconPaths.folder);
+const iconPath = computed(() => iconPaths[icon] || iconPaths.folder);
 
 const iconContainerClass = computed(() => {
   const sizes = {
@@ -101,7 +110,7 @@ const iconContainerClass = computed(() => {
     md: 'size-16',
     lg: 'size-20',
   };
-  return sizes[props.size];
+  return sizes[size];
 });
 
 const iconSizeClass = computed(() => {
@@ -111,6 +120,6 @@ const iconSizeClass = computed(() => {
         md: 'size-8',
         lg: 'size-10',
     };
-    return sizes[props.size];
-})
+    return sizes[size];
+});
 </script>

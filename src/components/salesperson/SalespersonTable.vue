@@ -33,7 +33,15 @@
           <td class="px-4 py-3 text-[var(--text-secondary)]">{{ person.store || '-' }}</td>
           <td class="px-4 py-3 text-[var(--text-secondary)]">{{ person.phone || '-' }}</td>
           <td class="px-4 py-3">
-            <StatusBadge variant="info">{{ person.orderCount }}</StatusBadge>
+            <button
+              v-if="person.orderCount > 0"
+              class="cursor-pointer text-info hover:underline"
+              :title="t('salesperson.viewOrders')"
+              @click="$emit('view-orders', person)"
+            >
+              <StatusBadge variant="info">{{ person.orderCount }}</StatusBadge>
+            </button>
+            <StatusBadge v-else variant="default">{{ person.orderCount }}</StatusBadge>
           </td>
           <td class="px-4 py-3 text-center">
             <StatusBadge :variant="person.isActive ? 'success' : 'default'">
@@ -116,7 +124,7 @@ defineProps({
   },
 });
 
-defineEmits(['edit', 'delete', 'copy']);
+defineEmits(['edit', 'delete', 'copy', 'view-orders']);
 
 const { t } = useI18n();
 </script>

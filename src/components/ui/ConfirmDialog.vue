@@ -106,6 +106,7 @@
               </p>
                 <AppInput
                   v-if="showInput"
+                  ref="inputField"
                   v-model="inputValue"
                   :placeholder="inputPlaceholder"
                   class="mt-2"
@@ -137,7 +138,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted, useTemplateRef } from 'vue';
 import { useModalStack } from '@/composables/useModalStack';
 import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
@@ -146,7 +147,7 @@ import AppInput from '@/components/ui/AppInput.vue';
 
 const { t } = useI18n();
 const inputValue = ref('');
-const inputField = ref(null);
+const inputField = useTemplateRef('inputField');
 
 const props = defineProps({
   modelValue: Boolean,

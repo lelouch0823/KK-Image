@@ -206,7 +206,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, onUnmounted, onActivated, watch, computed } from 'vue';
+import { onMounted, ref, onUnmounted, onActivated, watch, computed, useTemplateRef, onWatcherCleanup } from 'vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import ContextMenu from '@/components/ui/ContextMenu.vue';
 import FolderGrid from './FolderGrid.vue';
@@ -293,7 +293,7 @@ const {
 
 // UI State
 const viewMode = ref('list');
-const modals = ref(null); // Ref to FileManagerModals component
+const modals = useTemplateRef('modals'); // Ref to FileManagerModals component
 const itemsToMove = ref([]);
 const currentShareFile = ref(null);
 
@@ -443,14 +443,14 @@ const handleFileSelect = (files) => {
 // Auto Refresh
 watch(
   currentFolder,
-  (newFolder, oldFolder) => {
+  (newFolder) => {
     selectedIds.value.clear();
-    if (oldFolder?.id) {
-      unregisterFolderRefresh(oldFolder.id);
-    }
     if (newFolder?.id) {
       registerFolderRefresh(newFolder.id, () => {
         loadFolderData(newFolder.id, { silent: true });
+      });
+      onWatcherCleanup(() => {
+        unregisterFolderRefresh(newFolder.id);
       });
     }
   },
@@ -468,9 +468,10 @@ onActivated(() => {
 });
 
 onUnmounted(() => {
-    if (currentFolder.value?.id) {
-        unregisterFolderRefresh(currentFolder.value.id);
-    }
+  // Cleanup handled by onWatcherCleanup
+  if (mediaQuery) {
+    mediaQuery.removeEventListener('change', updateMobile);
+  }
 });
 
 // Context Menu Logic

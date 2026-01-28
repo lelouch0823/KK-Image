@@ -1,8 +1,9 @@
 <template>
-  <div ref="containerRef" class="relative">
+  <div ref="container" class="relative">
     <!-- Trigger -->
     <button
       type="button"
+      :id="triggerId"
       class="flex w-full items-center justify-between border border-[var(--border-color)] bg-[var(--bg-card)] text-left text-sm transition-all focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/10 focus:outline-none dark:bg-[var(--bg-muted)]"
       :class="[
         size === 'sm' ? 'h-9 rounded-lg px-2 focus:ring-2' : 'h-11 rounded-xl px-4 focus:ring-4',
@@ -73,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, useId, useTemplateRef } from 'vue';
 
 const props = defineProps({
   modelValue: {
@@ -102,8 +103,9 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'change']);
 
 const isOpen = ref(false);
-const containerRef = ref(null);
+const containerRef = useTemplateRef('container');
 const dropdownPosition = ref('bottom'); // 'bottom' or 'top'
+const triggerId = useId();
 
 const selectedLabel = computed(() => {
   const option = props.options.find((o) => o.value === props.modelValue);
