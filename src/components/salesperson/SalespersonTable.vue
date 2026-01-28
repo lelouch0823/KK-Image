@@ -80,7 +80,7 @@
         </button>
         <button
           class="rounded-lg p-1.5 text-(--text-secondary) transition-colors hover:bg-danger/10 hover:text-danger active:scale-90 disabled:cursor-not-allowed disabled:opacity-30"
-          :title="t('common.delete')"
+          :title="row.orderCount > 0 ? t('salesperson.cannotDeleteHasOrders') : t('common.delete')"
           :disabled="row.orderCount > 0"
           @click="$emit('delete', row)"
         >

@@ -30,6 +30,7 @@ export default {
   createSuccess: '销售创建成功',
   updateSuccess: '销售信息已更新',
   deleteConfirm: '确定要删除销售 "{name}" 吗？该操作不可恢复。',
+  cannotDeleteHasOrders: '该销售有关联订单，无法删除，请先禁用',
   deleteSuccess: '销售已删除',
   linkCopied: '链接已复制',
   linkReset: '链接已重置',
