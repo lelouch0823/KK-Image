@@ -38,6 +38,7 @@
           :model-value="form"
           :show-status="mode === 'admin'"
           :statuses="statuses"
+          :salespersons="salespersons"
           :disabled-fields="disabledFields"
           @update:model-value="updateForm"
         />
@@ -130,6 +131,7 @@ import { ref, reactive, computed, watch, nextTick } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import { getStatusBadgeClass } from '@/utils/status';
+import { generateRandomId } from '@/utils/common';
 import { useSalesToken } from '@/composables/useSalesToken';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
@@ -153,6 +155,10 @@ const props = defineProps({
       'rejected',
       'void',
     ],
+  },
+  salespersons: {
+    type: Array,
+    default: () => [],
   },
   zIndex: { type: [Number, String], default: 100 },
 });
@@ -189,6 +195,7 @@ const form = reactive({
   quantity: 1,
   remark: '',
   deadline: '',
+  salespersonId: '',
 });
 
 // 绑定商品后锁定的字段
@@ -226,7 +233,7 @@ const handleProductSelect = (product) => {
       uploadedFiles.value.push({
         url: mainImage,
         isLocal: false, // Treat as remote/pre-filled
-        id: undefined, // No ID yet implies it will be treated as "new" or needs handling by backend if logic differs
+        id: generateRandomId('prefill'), 
         // NOTE: In Edit mode, ImageUploader usually deals with existing (ID+URL) and new (File object).
         // If we pass an object with just URL and no ID, ImageUploader might treat it as a preview?
         // We need to ensure ImageUploader handles { url, isLocal: false } correctly.
@@ -320,7 +327,10 @@ watch(
         deadline: current.deadline || '',
         fileIds: (newOrder.files || []).map((f) => f.id).sort().join(','),
         productId: newOrder.productId || null,
+        salespersonId: newOrder.salespersonId || '',
       };
+
+      form.salespersonId = newOrder.salespersonId || '';
 
       uploadedFiles.value = (newOrder.files || []).map((f) => ({
         id: f.id,
@@ -356,6 +366,7 @@ const hasChanges = computed(() => {
     form.deadline !== init.deadline;
 
   if (props.mode === 'admin' && form.status !== init.status) return true;
+  if (props.mode === 'admin' && form.salespersonId !== init.salespersonId) return true;
   if (fieldsChanged) return true;
 
   // Check for new files (no ID) or count mismatch
@@ -436,6 +447,9 @@ const handleSubmit = async () => {
   // 移除状态更新逻辑，状态变更应使用 OrderStatusChanger 专用 API
   if (props.mode === 'admin' && form.status !== init.status) {
     updates.status = form.status;
+  }
+  if (props.mode === 'admin' && form.salespersonId !== init.salespersonId) {
+    updates.salespersonId = form.salespersonId;
   }
 
   const oldIds = (props.order.files || [])

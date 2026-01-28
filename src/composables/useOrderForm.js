@@ -51,7 +51,14 @@ export function useOrderForm(options = {}) {
 
   // 上传地址
   const { token: salesToken } = useSalesToken();
-  const uploadEndpoint = computed(() => API.SALES_UPLOAD(salesToken.value || ''));
+  const uploadEndpoint = computed(() => {
+    // 默认为销售模式，明确传入 isSalesMode=false 才切换为管理端地址
+    const isSales = options.isSalesMode !== false;
+    if (!isSales) {
+      return API.MANAGE_UPLOAD;
+    }
+    return API.SALES_UPLOAD(salesToken.value || '');
+  });
 
   // 表单是否有效
   const isValid = computed(() => {

@@ -62,11 +62,13 @@ app.post('/', async (c) => {
             const notifyRepo = new NotificationRepository(env.DB);
             // Notify Salesperson
             await notifyRepo.create({
-                event: 'ORDER_ASSIGNED', // Or ORDER_CREATED
+                type: 'order',
+                title: JSON.stringify({ key: 'notification.orderAssigned', params: { orderNo } }),
+                content: `Order ${orderNo} has been assigned to you`,
+                receiver: 'sales',
+                salespersonId: body.salespersonId,
                 orderId,
-                orderNo,
-                receiver: body.salespersonId, // Target the salesperson
-                actorName: 'Admin',
+                metadata: { actorName: 'Admin' },
             });
 
             // Webhook (if needed for admin creation)

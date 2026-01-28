@@ -33,7 +33,7 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
             if (res.success) {
                 addToast({ message: t('order.manage.createSuccess') || '订单创建成功', type: 'success' });
                 showCreateModal.value = false;
-                refreshOrders({ page: 1 });
+                refreshOrders(1);
             } else {
                 addToast({ message: res.error || t('common.operationFailed'), type: 'error' });
             }
@@ -68,7 +68,7 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
             const success = await updateOrder(editingOrder.value.id, updates, reason, fileIds);
             if (success) {
                 closeEditModal();
-                refreshOrders({ page: paginationPage });
+                refreshOrders(paginationPage);
             }
         } finally {
             isEditing.value = false;

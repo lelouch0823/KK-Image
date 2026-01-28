@@ -80,6 +80,18 @@
         @update:model-value="updateField('deadline', $event)"
       />
 
+      <!-- 销售员 (仅管理员可见) -->
+      <div v-if="showStatus">
+        <label class="mb-1 block text-xs font-medium text-(--text-secondary)">{{ t('common.salesperson') }}</label>
+        <Select
+          :model-value="modelValue.salespersonId"
+          :options="salespersonOptions"
+          :placeholder="t('salesperson.selectPlaceholder')"
+          class="w-full"
+          @update:model-value="updateField('salespersonId', $event)"
+        />
+      </div>
+
       <!-- 状态 (仅管理员可见) -->
       <div v-if="showStatus">
         <label class="mb-1 block text-xs font-medium text-(--text-secondary)">{{ t('order.status') }}</label>
@@ -111,6 +123,7 @@ import { useI18n } from '@/composables/useI18n';
 import { getTodayISOString } from '@/utils/common';
 import StatusSelector from '@/components/ui/StatusSelector.vue';
 import AppInput from '@/components/ui/AppInput.vue';
+import Select from '@/components/ui/Select.vue';
 
 const props = defineProps({
   modelValue: {
@@ -125,6 +138,10 @@ const props = defineProps({
     type: Array,
     default: () => ['pending', 'confirmed', 'production', 'shipping', 'completed', 'rejected', 'void'],
   },
+  salespersons: {
+    type: Array,
+    default: () => [],
+  },
   disabledFields: {
     type: Array,
     default: () => [],
@@ -135,6 +152,13 @@ const emit = defineEmits(['update:modelValue']);
 
 const { t } = useI18n();
 const minDate = computed(() => getTodayISOString());
+
+const salespersonOptions = computed(() =>
+  props.salespersons.map((sp) => ({
+    label: `${sp.name}${sp.store ? ` (${sp.store})` : ''}`,
+    value: sp.id,
+  }))
+);
 
 const updateField = (field, value) => {
   if (props.disabledFields.includes(field)) return; // Prevent updates on disabled fields

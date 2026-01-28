@@ -156,6 +156,7 @@
       :order="editingOrder"
       :submitting="isEditing"
       :statuses="statuses"
+      :salespersons="salespersons"
       @close="closeEditModal"
       @submit="onEditSubmit"
     />
