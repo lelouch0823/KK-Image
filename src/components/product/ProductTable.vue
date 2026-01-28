@@ -7,6 +7,12 @@
     :empty-text="t('product.table.empty')"
     @row-click="$emit('view', $event)"
   >
+    <template #toolbar>
+      <slot name="toolbar" />
+    </template>
+    <template #footer>
+      <slot name="footer" />
+    </template>
     <!-- Product Info Cell -->
     <template #cell-product="{ row }">
       <div class="flex items-center gap-4">

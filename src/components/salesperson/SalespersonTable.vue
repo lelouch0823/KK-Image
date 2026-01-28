@@ -6,6 +6,12 @@
     row-key="id"
     :empty-text="t('salesperson.emptyList')"
   >
+    <template #toolbar>
+      <slot name="toolbar" />
+    </template>
+    <template #footer>
+      <slot name="footer" />
+    </template>
     <!-- Name Cell -->
     <template #cell-name="{ value }">
       <div class="font-medium text-(--text-main)">{{ value }}</div>

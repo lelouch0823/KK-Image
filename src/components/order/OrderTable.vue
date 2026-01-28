@@ -7,6 +7,12 @@
     class="h-full"
     @row-click="$emit('detail', $event)"
   >
+    <template #toolbar>
+      <slot name="toolbar" />
+    </template>
+    <template #footer>
+      <slot name="footer" />
+    </template>
     <!-- Custom Header for Selection -->
     <template #header-selection>
       <div class="flex items-center justify-center">

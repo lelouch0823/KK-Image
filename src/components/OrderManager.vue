@@ -1,33 +1,17 @@
 <template>
-  <div
-    class="flex flex-col rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] backdrop-blur-sm transition-all duration-500 lg:h-full"
-  >
-    <!-- 头部操作栏 -->
-    <OrderFilters
-      v-model:filters="filterState"
-      :salespersons="salespersons"
-      :statuses="statuses"
-      :exporting="exporting"
-      :show-create="true"
-      @search="handleFilterChange"
-      @export="exportOrders"
-      @create="showCreateModal = true"
-      @show-stats="showStatsModal = true"
-    />
-
-    <!-- 订单统计仪表盘 (Desktop only inline) -->
-
-
+  <div class="flex flex-col gap-4 lg:h-full">
+    
+    <!-- 订单统计仪表盘 (Desktop only inline) - NOTE: This seems unused or legacy comment, keeping structure but cleaning up -->
+    
     <!-- Mobile Stats Modal -->
-    <!-- Stats Modal -->
     <Modal v-model="showStatsModal" :title="t('dashboard.stats')">
       <OrderDashboard @filter="(type) => { handleDashboardFilter(type); showStatsModal = false; }" />
     </Modal>
 
     <!-- 订单列表 -->
-    <div class="lg:flex-1 lg:overflow-auto">
+    <div class="lg:flex-1 lg:overflow-hidden">
       <!-- 桌面表格视图 (lg+) -->
-      <div class="hidden lg:block">
+      <div class="h-full hidden lg:block">
         <OrderTable
           v-model:selected-ids="selectedIds"
           :data="orders"
@@ -37,6 +21,23 @@
           @edit="openEditModal"
           @void="handleVoidOrder"
         >
+          <!-- Toolbar Slot: Filters -->
+          <template #toolbar>
+            <OrderFilters
+              v-model:filters="filterState"
+              :salespersons="salespersons"
+              :statuses="statuses"
+              :exporting="exporting"
+              :show-create="true"
+              @search="handleFilterChange"
+              @export="exportOrders"
+              @create="showCreateModal = true"
+              @show-stats="showStatsModal = true"
+              class="border-none p-0 bg-transparent shadow-none" 
+            />
+          </template>
+
+          <!-- Status Slot -->
           <template #status="{ order }">
             <OrderStatusChanger
               :status="order.status"
@@ -44,11 +45,35 @@
               @change="(e) => handleStatusChange(order, e)"
             />
           </template>
+
+          <!-- Footer Slot: Pagination -->
+          <template #footer>
+             <Pagination
+                v-if="pagination.totalPages > 1"
+                v-model:current-page="pagination.page"
+                :total-pages="pagination.totalPages"
+                @change="changePage"
+                class="justify-end"
+              />
+          </template>
         </OrderTable>
       </div>
 
       <!-- 移动端卡片视图 (<lg) -->
-      <div class="p-4 lg:hidden">
+      <div class="h-full p-4 lg:hidden overflow-y-auto">
+         <!-- Mobile view needs its own filters since it doesn't use OrderTable -->
+         <OrderFilters
+              v-model:filters="filterState"
+              :salespersons="salespersons"
+              :statuses="statuses"
+              :exporting="exporting"
+              :show-create="true"
+              @search="handleFilterChange"
+              @export="exportOrders"
+              @create="showCreateModal = true"
+              @show-stats="showStatsModal = true"
+              class="mb-4"
+         />
         <OrderCards
           :data="orders"
           :loading="loading"
@@ -63,27 +88,16 @@
             />
           </template>
         </OrderCards>
+        <!-- Mobile Pagination -->
+        <div class="mt-4 pb-20">
+             <Pagination
+                v-if="pagination.totalPages > 1"
+                v-model:current-page="pagination.page"
+                :total-pages="pagination.totalPages"
+                @change="changePage"
+              />
+        </div>
       </div>
-    </div>
-
-    <!-- 批量操作浮动栏 -->
-    <OrderBatchActions
-      :selected-count="selectedIds.length"
-      :processing="batchProcessing"
-      @action="onBatchAction"
-      @cancel="selectedIds = []"
-    />
-
-    <!-- 分页 -->
-    <div
-      v-if="pagination.totalPages > 1"
-      class="flex-shrink-0 border-t border-[var(--border-color)] p-4"
-    >
-      <Pagination
-        v-model:current-page="pagination.page"
-        :total-pages="pagination.totalPages"
-        @change="changePage"
-      />
     </div>
 
     <!-- Create Modal -->

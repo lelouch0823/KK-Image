@@ -116,7 +116,7 @@
           </div>
 
           <!-- 操作按钮 -->
-          <div class="mt-6 flex justify-end gap-3">
+          <div class="flex justify-end gap-3 px-6 pb-6">
             <AppButton
               variant="secondary"
               :text="cancelText || t('common.cancel')"
