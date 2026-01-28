@@ -1,7 +1,7 @@
 <template>
   <table class="relative w-full text-center text-sm">
     <thead class="sticky top-0 z-10 bg-[var(--bg-card)]/90 font-medium text-[var(--text-secondary)] shadow-sm backdrop-blur-sm">
-      <tr>
+      <tr class="border-b border-[var(--border-color)]">
         <!-- 批量选择 checkbox -->
         <th v-if="selectable" class="w-10 px-4 py-3">
           <input

@@ -1,7 +1,7 @@
 <template>
   <table class="w-full border-collapse">
-    <thead class="sticky top-0 z-10 border-b border-[var(--border-color)] bg-[var(--bg-muted)]/90 backdrop-blur-md">
-      <tr>
+    <thead class="sticky top-0 z-10 bg-[var(--bg-card)]/90 font-medium text-[var(--text-secondary)] shadow-sm backdrop-blur-sm">
+      <tr class="border-b border-[var(--border-color)]">
         <th class="rounded-tl-xl px-6 py-4 text-center text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase">{{ t('product.table.header.product') }}</th>
         <th class="hidden px-6 py-4 text-center text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase md:table-cell">{{ t('product.form.sku') }}</th>
         <th class="hidden px-6 py-4 text-center text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase lg:table-cell">{{ t('product.table.header.category') }}</th>

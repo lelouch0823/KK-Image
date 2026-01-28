@@ -1,7 +1,7 @@
 <template>
   <table class="w-full text-left text-sm">
     <thead class="sticky top-0 z-10 bg-[var(--bg-card)]/90 font-medium text-[var(--text-secondary)] shadow-sm backdrop-blur-sm">
-      <tr>
+      <tr class="border-b border-[var(--border-color)]">
         <th class="px-4 py-3">{{ t('salesperson.name') }}</th>
         <th class="px-4 py-3">{{ t('salesperson.store') }}</th>
         <th class="px-4 py-3">{{ t('salesperson.phone') }}</th>

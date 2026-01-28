@@ -7,8 +7,8 @@
 
     <div class="overflow-x-auto">
       <table class="w-full text-left text-sm">
-        <thead class="bg-[var(--bg-muted)]/50 text-[var(--text-secondary)]">
-          <tr class="border-b border-[var(--border-color)]/50">
+        <thead class="sticky top-0 z-10 bg-[var(--bg-card)]/90 font-medium text-[var(--text-secondary)] shadow-sm backdrop-blur-sm">
+          <tr class="border-b border-[var(--border-color)]">
             <th
               v-for="col in columns"
               :key="col.key"
