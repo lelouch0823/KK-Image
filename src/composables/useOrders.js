@@ -236,14 +236,34 @@ export function useOrders() {
   /**
    * 销售端: 加载订单列表
    */
-  const loadSalesOrders = async (token) => {
+  const loadSalesOrders = async (token, page = 1, append = false) => {
     if (!token) return;
-    resource.loading.value = true;
+    if (!append) resource.loading.value = true;
+    
+    const MAX_ITEMS = 100; // 限制列表最大长度，防止 OOM
+    
     try {
-      const res = await authFetch(API.SALES_ORDER_LIST(token)).then(r => r.json());
+      const query = new URLSearchParams({
+          page: page.toString(),
+          limit: '20'
+      });
+      const res = await authFetch(`${API.SALES_ORDER_LIST(token)}?${query.toString()}`).then(r => r.json());
 
       if (res.success) {
-        resource.items.value = res.data.orders;
+        if (append) {
+            const combined = [...resource.items.value, ...res.data.orders];
+            // 超过最大长度时，移除最早的项目
+            resource.items.value = combined.length > MAX_ITEMS 
+                ? combined.slice(-MAX_ITEMS) 
+                : combined;
+        } else {
+            resource.items.value = res.data.orders;
+        }
+        
+        // Update pagination info
+        if (res.data.pagination) {
+            Object.assign(resource.pagination, res.data.pagination);
+        }
       } else {
         addToast({ message: res.message || t('common.loadFailed'), type: 'error' });
       }

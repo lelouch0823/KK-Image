@@ -5,6 +5,7 @@ import common from './common';
 import formatters from './formatters';
 import upload from './upload';
 import auth from './auth';
+import sales from './sales';
 import fileManager from './fileManager';
 import dashboard from './dashboard';
 import stats from './stats';
@@ -21,6 +22,8 @@ export default {
   common,
   formatters,
   upload,
+  auth,
+  sales,
   fileManager,
   dashboard,
   stats,
@@ -30,7 +33,7 @@ export default {
   salesperson,
   settings,
   customer,
-  auth,
+
 
   // 从 space.js 展开
   spaceManager: spaceModule.spaceManager,

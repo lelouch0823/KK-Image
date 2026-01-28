@@ -133,16 +133,19 @@ const form = ref({
   isActive: true,
 });
 
-// 监听 salesperson 变化，填充表单
+// 监听 salesperson 或 visible 变化，填充/重置表单
 watch(
-  () => props.salesperson,
-  (person) => {
+  [() => props.salesperson, () => props.modelValue],
+  ([person, visible]) => {
+    // 只有当弹窗显示时才处理表单数据
+    if (!visible) return;
+
     if (person) {
       form.value = {
         name: person.name || '',
         store: person.store || '',
         phone: person.phone || '',
-        password: '',
+        password: person.plainPassword || '',
         isActive: person.isActive !== false,
       };
     } else {

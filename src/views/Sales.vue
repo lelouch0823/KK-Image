@@ -171,7 +171,8 @@ const {
   orders,
   checkSalesAuth,
   loginSales,
-  loadSalesOrders
+  loadSalesOrders,
+  pagination: ordersPagination,
 } = useOrders();
 
 const { t } = useI18n();
@@ -210,7 +211,8 @@ provide('salesContext', {
     orders,
     loading: ordersLoading,
     salesperson, // In case needed
-    loadOrders: () => loadSalesOrders(accessToken.value),
+    loadOrders: (page, append) => loadSalesOrders(accessToken.value, page, append),
+    pagination: ordersPagination,
     prefillData,
     setPrefillData: (data) => { prefillData.value = data }
 });
@@ -224,6 +226,10 @@ const toggleNotifications = () => showNotifications.value = !showNotifications.v
 const handleNotificationNavigate = async (orderId) => {
   showNotifications.value = false;
   router.push(`/sales/${accessToken.value}/detail/${orderId}`);
+};
+
+const openCreateModal = () => {
+    router.push(`/sales/${accessToken.value}/create`);
 };
 
 // Auto-refresh logic (Centralized)

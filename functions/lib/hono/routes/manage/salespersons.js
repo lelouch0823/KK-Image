@@ -44,6 +44,7 @@ app.get('/', async (c) => {
                 phone: s.phone,
                 accessToken: s.access_token,
                 isActive: !!s.is_active,
+                plainPassword: s.plain_password,
                 orderCount: s.order_count,
                 createdAt: s.created_at,
                 updatedAt: s.updated_at,
@@ -103,6 +104,7 @@ app.get('/:id', async (c) => {
             phone: salesperson.phone,
             accessToken: salesperson.access_token,
             isActive: !!salesperson.is_active,
+            plainPassword: salesperson.plain_password,
             createdAt: salesperson.created_at,
             updatedAt: salesperson.updated_at
         }

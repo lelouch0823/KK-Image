@@ -62,12 +62,13 @@
       :is-pulling="isPulling"
       @refresh="loadOrders"
       @view="handleViewOrder"
+      :loading-more="loadingMore"
     />
   </div>
 </template>
 
 <script setup>
-import { inject, ref, computed } from 'vue';
+import { inject, ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePullToRefresh } from '@/composables/usePullToRefresh';
@@ -78,7 +79,7 @@ const route = useRoute();
 const { t } = useI18n();
 
 // Inject shared state from Sales.vue (Layout)
-const { orders, loading, loadOrders } = inject('salesContext');
+const { orders, loading, loadOrders, pagination } = inject('salesContext');
 
 // Local Filtering
 const searchQuery = ref('');
@@ -111,4 +112,37 @@ const handleViewOrder = (order) => {
   
   router.push(`/sales/${route.params.token}/detail/${order.id}`);
 };
+
+// Infinite Scroll
+const loadingMore = ref(false);
+
+const handleScroll = async () => {
+    // Basic throttle/debounce could be added if needed, or check loading state
+    if (loading.value || loadingMore.value) return;
+    if (filteredOrders.value.length !== orders.value.length) return; // Don't load more while searching
+
+    const scrollHeight = document.documentElement.scrollHeight;
+    const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+    const clientHeight = document.documentElement.clientHeight;
+
+    // Threshold: 100px from bottom
+    if (scrollTop + clientHeight >= scrollHeight - 100) {
+        if (pagination && pagination.page < pagination.totalPages) {
+            loadingMore.value = true;
+            try {
+                await loadOrders(pagination.page + 1, true);
+            } finally {
+                loadingMore.value = false;
+            }
+        }
+    }
+};
+
+onMounted(() => {
+    window.addEventListener('scroll', handleScroll);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('scroll', handleScroll);
+});
 </script>
