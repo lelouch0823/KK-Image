@@ -24,23 +24,23 @@ const props = defineProps({
 
 const computedClasses = computed(() => {
   const variants = {
-    default: 'bg-gray-100 text-gray-600 border-transparent dark:bg-gray-800 dark:text-gray-300',
-    primary: 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] border-[var(--color-primary)]/20',
-    success: 'bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/20',
-    warning: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-[var(--color-warning)]/20',
-    danger: 'bg-[var(--color-danger)]/10 text-[var(--color-danger)] border-[var(--color-danger)]/20',
-    info: 'bg-[var(--color-info)]/10 text-[var(--color-info)] border-[var(--color-info)]/20',
-    purple: 'bg-[var(--color-purple)]/10 text-[var(--color-purple)] border-[var(--color-purple)]/20',
+    default: 'bg-(--bg-muted) text-(--text-secondary) border-transparent',
+    primary: 'bg-primary/10 text-primary border-primary/20',
+    success: 'bg-success/10 text-success border-success/20',
+    warning: 'bg-warning/10 text-warning border-warning/20',
+    danger: 'bg-danger/10 text-danger border-danger/20',
+    info: 'bg-info/10 text-info border-info/20',
+    purple: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
   };
 
   const outlines = {
-    default: 'bg-transparent text-gray-500 border-gray-300 dark:text-gray-400 dark:border-gray-700',
-    primary: 'bg-transparent text-[var(--color-primary)] border-[var(--color-primary)]',
-    success: 'bg-transparent text-[var(--color-success)] border-[var(--color-success)]',
-    warning: 'bg-transparent text-[var(--color-warning)] border-[var(--color-warning)]',
-    danger: 'bg-transparent text-[var(--color-danger)] border-[var(--color-danger)]',
-    info: 'bg-transparent text-[var(--color-info)] border-[var(--color-info)]',
-    purple: 'bg-transparent text-[var(--color-purple)] border-[var(--color-purple)]',
+    default: 'bg-transparent text-(--text-muted) border-(--border-color)',
+    primary: 'bg-transparent text-primary border-primary',
+    success: 'bg-transparent text-success border-success',
+    warning: 'bg-transparent text-warning border-warning',
+    danger: 'bg-transparent text-danger border-danger',
+    info: 'bg-transparent text-info border-info',
+    purple: 'bg-transparent text-purple-500 border-purple-500',
   };
 
   return props.outline ? outlines[props.variant] : variants[props.variant];

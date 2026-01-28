@@ -42,8 +42,7 @@ export function useSpaces() {
         addToast({ message: res.message || t('spaces.loadFailed'), type: 'error' });
         return null;
       }
-    } catch (err) {
-      console.error(t('spaces.loadDetailFailed'), err);
+    } catch (_err) {
       addToast({ message: t('spaces.networkError'), type: 'error' });
       return null;
     }
@@ -69,8 +68,7 @@ export function useSpaces() {
         addToast({ message: res.message || t('spaces.addFileFailed'), type: 'error' });
         return false;
       }
-    } catch (err) {
-      console.error(t('spaces.addFileFailed'), err);
+    } catch (_err) {
       addToast({ message: t('spaces.networkError'), type: 'error' });
       return false;
     }
@@ -94,8 +92,7 @@ export function useSpaces() {
         addToast({ message: res.message || t('spaces.removeFileFailed'), type: 'error' });
         return false;
       }
-    } catch (err) {
-      console.error(t('spaces.removeFileFailed'), err);
+    } catch (_err) {
       addToast({ message: t('spaces.networkError'), type: 'error' });
       return false;
     }
@@ -114,8 +111,7 @@ export function useSpaces() {
         addToast({ message: res.message || t('spaces.loadFailed'), type: 'error' });
         return [];
       }
-    } catch (err) {
-      console.error(t('spaces.loadFailed'), err);
+    } catch (_err) {
       addToast({ message: t('spaces.networkError'), type: 'error' });
       return [];
     }
@@ -139,8 +135,7 @@ export function useSpaces() {
         addToast({ message: res.message || t('spaces.createFailed'), type: 'error' });
         return null;
       }
-    } catch (err) {
-      console.error(t('spaces.createFailed'), err);
+    } catch (_err) {
       addToast({ message: t('spaces.networkError'), type: 'error' });
       return null;
     }

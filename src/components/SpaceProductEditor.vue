@@ -14,7 +14,7 @@
           :class="
             mobileTab === 'info'
               ? 'border-primary text-primary'
-              : 'text-secondary border-transparent'
+              : 'text-(--text-secondary) border-transparent'
           "
           @click="mobileTab = 'info'"
         >
@@ -25,7 +25,7 @@
           :class="
             mobileTab === 'media'
               ? 'border-primary text-primary'
-              : 'text-secondary border-transparent'
+              : 'text-(--text-secondary) border-transparent'
           "
           @click="mobileTab = 'media'"
         >
@@ -166,7 +166,7 @@
         <!-- 底部操作栏 -->
         <div class="flex gap-3 border-t border-[var(--border-color)] px-6 py-4">
           <button
-            class="text-secondary flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors hover:text-primary"
+            class="text-(--text-secondary) flex items-center gap-1.5 rounded-lg border border-(--border-color) px-4 py-2 transition-colors hover:text-primary"
             @click="openPreview"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -187,7 +187,7 @@
           </button>
           <button
             :disabled="saving"
-            class="bg-primary flex-1 rounded-lg py-2 text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+            class="bg-primary flex-1 rounded-lg py-2 text-(--text-inverse) transition-colors hover:bg-primary-hover disabled:opacity-50"
             @click="saveChanges"
           >
             {{ saving ? t('spaceManager.saving') : t('spaceManager.save') }}

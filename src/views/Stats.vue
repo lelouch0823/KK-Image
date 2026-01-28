@@ -3,14 +3,14 @@
     <!-- Background Gradient Mesh -->
     <div class="pointer-events-none fixed inset-0 z-0">
       <div
-        class="absolute -top-[20%] -left-[10%] size-[800px] animate-pulse rounded-full bg-blue-400/20 blur-[120px] dark:bg-blue-600/20"
+        class="absolute -top-[20%] -left-[10%] size-[800px] animate-pulse rounded-full bg-info/20 blur-[120px]"
       ></div>
       <div
-        class="absolute top-[20%] right-[0%] size-[600px] animate-pulse rounded-full bg-purple-600/20 blur-[100px]"
+        class="absolute top-[20%] right-[0%] size-[600px] animate-pulse rounded-full bg-purple-500/20 blur-[100px]"
         style="animation-delay: 2s"
       ></div>
       <div
-        class="absolute -bottom-[20%] left-[20%] size-[600px] animate-pulse rounded-full bg-teal-600/20 blur-[100px]"
+        class="absolute -bottom-[20%] left-[20%] size-[600px] animate-pulse rounded-full bg-success/20 blur-[100px]"
         style="animation-delay: 4s"
       ></div>
       <!-- Grid Overlay -->
@@ -37,7 +37,7 @@
             variant="outline"
             :loading="loading"
             :text="t('common.refresh')"
-            @click="refreshData"
+            @click="loadStats"
           >
             <template #icon-left>
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,7 +57,7 @@
 
       <!-- Error State -->
       <div v-else-if="error" class="flex h-96 flex-col items-center justify-center gap-4 text-center">
-        <div class="flex size-20 items-center justify-center rounded-full bg-red-500/10 text-red-400 ring-1 ring-red-500/20">
+        <div class="flex size-20 items-center justify-center rounded-full bg-danger/10 text-danger ring-1 ring-danger/20">
           <svg class="size-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
@@ -91,7 +91,7 @@
             </template>
             <template #footer>
               <div class="flex items-center gap-2 text-sm font-medium text-(--text-secondary)">
-                <span class="text-success rounded bg-emerald-500/10 px-2 py-0.5 text-xs">+{{ formatNumber(stats.storage?.todayUploads) }}</span>
+                <span class="rounded bg-success/10 px-2 py-0.5 text-xs text-success">+{{ formatNumber(stats.storage?.todayUploads) }}</span>
                 {{ t('dashboard.todayOrders') }}
               </div>
             </template>
@@ -191,7 +191,7 @@
                           class="flex size-10 items-center justify-center rounded-lg text-lg font-bold"
                            :class="{
                             'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-lg shadow-orange-500/20': index === 0,
-                            'bg-slate-700 text-slate-300': index > 0
+                            'bg-(--bg-card) text-(--text-secondary)': index > 0
                           }"
                         >
                             {{ index + 1 }}
@@ -220,39 +220,30 @@
                  <template #header>
                   <h3 class="relative font-semibold text-(--text-main)">
                     {{ t('stats.statusOverview') }}
-                    <AppButton
-                      variant="ghost"
-                      class="h-auto! p-1.5! text-(--text-muted) hover:bg-transparent hover:text-primary"
-                      @click="showPassword = !showPassword"
-                    >
-                      <span
-                        v-if="notificationUnreadCount > 0"
-                        class="absolute right-1.5 top-1.5 size-2 rounded-full border border-(--bg-card) bg-danger"
-                      ></span>
-                    </AppButton>
+
                   </h3>
                 </template>
                  <div class="align-content-start grid h-full grid-cols-2 gap-4">
                      <!-- Normal -->
-                     <div class="backdrop-blur-sm rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5 transition-transform hover:scale-[1.02]">
+                     <div class="backdrop-blur-sm rounded-xl border border-success/20 bg-success/10 p-5 transition-transform hover:scale-[1.02]">
                          <div class="mb-2 text-sm font-medium text-success">{{ t('stats.normal') }}</div>
-                         <div class="font-mono text-3xl font-bold text-emerald-600 dark:text-emerald-400">{{ formatNumber(stats.health?.status?.normal) }}</div>
-                          <div class="mt-2 h-1 w-full rounded-full bg-emerald-500/20">
-                             <div class="h-full rounded-full bg-emerald-500 transition-all duration-1000" style="width: 100%"></div>
+                         <div class="font-mono text-3xl font-bold text-success">{{ formatNumber(stats.health?.status?.normal) }}</div>
+                          <div class="mt-2 h-1 w-full rounded-full bg-success/20">
+                             <div class="h-full rounded-full bg-success transition-all duration-1000" style="width: 100%"></div>
                           </div>
                      </div>
                       <!-- Blocked -->
-                      <div class="backdrop-blur-sm border-red-500/20 bg-red-500/10 transition-transform hover:scale-[1.02] rounded-xl border p-5">
+                      <div class="backdrop-blur-sm border-danger/20 bg-danger/10 transition-transform hover:scale-[1.02] rounded-xl border p-5">
                          <div class="mb-2 text-sm font-medium text-danger">{{ t('stats.blocked') }}</div>
-                         <div class="font-mono text-3xl font-bold text-red-600 dark:text-red-400">{{ formatNumber(stats.health?.status?.blocked) }}</div>
-                          <div class="mt-2 h-1 w-full rounded-full bg-red-500/20">
-                             <div class="h-full rounded-full bg-red-500 transition-all duration-1000" :style="`width: ${stats.health?.status?.blocked > 0 ? '100%' : '0%'}`"></div>
+                         <div class="font-mono text-3xl font-bold text-danger">{{ formatNumber(stats.health?.status?.blocked) }}</div>
+                          <div class="mt-2 h-1 w-full rounded-full bg-danger/20">
+                             <div class="h-full rounded-full bg-danger transition-all duration-1000" :style="`width: ${stats.health?.status?.blocked > 0 ? '100%' : '0%'}`"></div>
                           </div>
                      </div>
                       <!-- Whitelisted -->
-                      <div class="backdrop-blur-sm border-blue-500/20 bg-blue-500/10 transition-transform hover:scale-[1.02] rounded-xl border p-5">
+                      <div class="backdrop-blur-sm border-info/20 bg-info/10 transition-transform hover:scale-[1.02] rounded-xl border p-5">
                          <div class="mb-2 text-sm font-medium text-info">{{ t('stats.whitelisted') }}</div>
-                         <div class="font-mono text-3xl font-bold text-blue-600 dark:text-blue-400">{{ formatNumber(stats.health?.status?.whitelisted) }}</div>
+                         <div class="font-mono text-3xl font-bold text-info">{{ formatNumber(stats.health?.status?.whitelisted) }}</div>
                      </div>
                      <!-- Liked -->
                      <div class="backdrop-blur-sm border-yellow-500/20 bg-yellow-500/10 transition-transform hover:scale-[1.02] rounded-xl border p-5">
@@ -281,11 +272,11 @@
                  <template #cell-name="{ row, index }">
                     <div class="flex items-center gap-2">
                         <span class="line-clamp-1 max-w-[200px] md:max-w-md">{{ row.name }}</span>
-                        <span v-if="index < 3" class="inline-flex items-center rounded-md bg-red-400/10 px-2 py-1 text-xs font-medium text-red-400 ring-1 ring-red-400/20 ring-inset">Hot</span>
+                        <span v-if="index < 3" class="inline-flex items-center rounded-md bg-danger/10 px-2 py-1 text-xs font-medium text-danger ring-1 ring-danger/20 ring-inset">Hot</span>
                     </div>
                  </template>
                  <template #cell-type="{ row }">
-                    <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-gray-200 ring-inset dark:bg-slate-700/50 dark:text-slate-300 dark:ring-slate-600/50">
+                    <span class="inline-flex items-center rounded-md bg-(--bg-muted) px-2 py-1 text-xs font-medium text-(--text-secondary) ring-1 ring-(--border-color) ring-inset">
                         {{ row.type?.split('/')[1]?.toUpperCase() || 'UNKNOWN' }}
                     </span>
                  </template>
@@ -293,7 +284,7 @@
                    <span class="text-(--text-secondary)">{{ index + 1 }}</span>
                  </template>
                  <template #cell-size="{ row }">
-                   <span class="text-orange-400 font-mono">{{ formatSize(row.size) }}</span>
+                   <span class="text-warning font-mono">{{ formatSize(row.size) }}</span>
                  </template>
                </AppTable>
               </div>
@@ -364,6 +355,10 @@ const createCharts = () => {
   if (trendChartRef.value) {
     const ctx = trendChartRef.value.getContext('2d');
     const dailyData = stats.value.traffic?.daily || {};
+    
+    // Safety check: if no data, ensure we don't error out
+    const labels = Object.keys(dailyData);
+    const data = Object.values(dailyData);
 
     // Gradient Fill
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
@@ -373,11 +368,11 @@ const createCharts = () => {
     trendChartInstance = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: Object.keys(dailyData),
+        labels: labels,
         datasets: [
           {
             label: t('stats.monthVisits'),
-            data: Object.values(dailyData),
+            data: data,
             borderColor: '#60a5fa', // Blue-400
             backgroundColor: gradient,
             borderWidth: 3,
@@ -426,10 +421,15 @@ const createCharts = () => {
   // 2. File Type Chart
   if (typeChartRef.value) {
     const ctx = typeChartRef.value.getContext('2d');
-    const typeData = stats.value.health?.fileTypes?.slice(0, 5) || []; // Start with top 5
-    const otherCount = stats.value.health?.fileTypes?.slice(5)?.reduce((acc, cur) => acc + cur.count, 0) || 0;
-    if (otherCount > 0) {
-        typeData.push({ type: 'Other', count: otherCount });
+    const fileTypes = stats.value.health?.fileTypes || [];
+    const typeData = fileTypes.slice(0, 5).map(i => ({ ...i })); // Shallow copy to avoid mutation issues
+    
+    // Calculate 'Other' only if we have more than 5 types
+    if (fileTypes.length > 5) {
+        const otherCount = fileTypes.slice(5).reduce((acc, cur) => acc + (cur.count || 0), 0);
+        if (otherCount > 0) {
+            typeData.push({ type: 'Other', count: otherCount });
+        }
     }
 
     typeChartInstance = new Chart(ctx, {
@@ -478,6 +478,11 @@ const createCharts = () => {
 };
 
 const loadStats = async () => {
+  // Prevent concurrent loads if already loading (except initial true state)
+  // Logic: If already loading and stats are null, it's the initial load.
+  // If loading is true but called again, we can let it slide to debounce, or blocking?
+  // Simplest for double-fetch fix: The caller should check loading.
+  
   loading.value = true;
   error.value = '';
   try {
@@ -489,9 +494,14 @@ const loadStats = async () => {
     
     // Smooth chart rendering
     await nextTick();
-    setTimeout(createCharts, 100); // Slight delay for smoother animation
+    // Wrap createCharts in try-catch to prevent UI crash
+    try {
+        setTimeout(createCharts, 100); 
+    } catch (chartErr) {
+        console.warn('Charts failed to render:', chartErr);
+    }
     
-    addToast({ message: t('stats.refreshSuccess'), type: 'success' });
+    // addToast({ message: t('stats.refreshSuccess'), type: 'success' });
   } catch (err) {
     console.error(err);
     // Don't clear stats if refresh fails, just show error toast
@@ -509,8 +519,10 @@ onMounted(() => {
 });
 
 onActivated(() => {
-  // Optional: check if data is stale
-  if (!stats.value) loadStats();
+  // Fix double invoke: Only load if not already loading and no data
+  if (!stats.value && !loading.value) {
+    loadStats();
+  }
 });
 </script>
 

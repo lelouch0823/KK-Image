@@ -1,7 +1,7 @@
 {
   "name": "kk-life",
   "version": "2.0.0",
-  "description": "Free image hosting solution using Cloudflare Pages and Telegram Bot API",
+  "description": "Full-stack Cloudflare-native management system for products, sales, and reservations, powered by Pages, D1, R2, and KV.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,7 +17,11 @@
     "dev:full": "pnpm build && pnpm start",
     "deploy": "pnpm build && wrangler pages deploy dist",
     "deploy:check": "node scripts/deploy-check.js",
-    "deploy:verify": "pnpm build && pnpm start & sleep 5 && pnpm deploy:check && pkill -f wrangler"
+    "deploy:verify": "pnpm build && pnpm start & sleep 5 && pnpm deploy:check && pkill -f wrangler",
+    "deploy:preview": "pnpm build && wrangler pages deploy dist --branch preview",
+    "deploy:prod": "pnpm build && wrangler pages deploy dist --branch main",
+    "db:migrate:preview": "wrangler d1 migrations apply DB --env preview --remote",
+    "db:migrate:prod": "wrangler d1 migrations apply DB --env production --remote"
   },
   "dependencies": {
     "@cloudflare/pages-plugin-sentry": "^1.1.3",

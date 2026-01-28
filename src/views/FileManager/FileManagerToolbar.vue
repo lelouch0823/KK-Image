@@ -114,7 +114,7 @@
 
       <Tooltip :content="t('fileManager.upload')">
         <button
-          class="flex size-10 items-center justify-center rounded-xl bg-[var(--color-primary)] text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:-translate-y-0.5 hover:bg-[var(--color-primary-hover)] hover:shadow-[var(--color-primary)]/30 active:translate-y-0 active:scale-95 dark:text-gray-900"
+          class="flex size-10 items-center justify-center rounded-xl bg-primary text-(--text-inverse) shadow-primary/20 shadow-lg transition-all hover:-translate-y-0.5 hover:bg-primary-hover hover:shadow-primary/30 active:translate-y-0 active:scale-95 dark:text-gray-900"
           @click="$refs.fileInput.click()"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

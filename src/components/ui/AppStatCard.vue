@@ -81,12 +81,12 @@ defineEmits(['click']);
 
 const shadowColor = computed(() => {
   const colors = {
-    default: '148, 163, 184',
-    info: '59, 130, 246',
-    purple: '139, 92, 246',
-    success: '16, 185, 129',
-    warning: '245, 158, 11',
-    danger: '239, 68, 68',
+    default: 'var(--color-text-secondary)',
+    info: 'var(--color-info)',
+    purple: '139, 92, 246', // Keep partial raw for complex shadow if needed, or map to var
+    success: 'var(--color-success)',
+    warning: 'var(--color-warning)',
+    danger: 'var(--color-danger)',
     cyan: '6, 182, 212',
   };
   return colors[props.variant] || colors.default;
@@ -102,23 +102,23 @@ const formattedValue = computed(() => {
 const variantClass = computed(() => {
   const variants = {
     default: 'border-(--border-color) bg-(--bg-card)',
-    info: 'border-info/20 bg-info/5 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)]',
-    purple: 'border-purple-500/20 bg-purple-500/5 hover:shadow-[0_0_30px_rgba(139,92,246,0.1)]',
-    success: 'border-success/20 bg-success/5 hover:shadow-[0_0_30px_rgba(16,185,129,0.1)]',
-    warning: 'border-warning/20 bg-warning/5 hover:shadow-[0_0_30px_rgba(245,158,11,0.1)]',
-    danger: 'border-danger/20 bg-danger/5 hover:shadow-[0_0_30px_rgba(239,68,68,0.1)]',
-    cyan: 'border-cyan-500/20 bg-cyan-500/5 hover:shadow-[0_0_30px_rgba(6,182,212,0.1)]',
+    info: 'border-info/20 bg-info/5 hover:shadow-lg hover:shadow-info/10',
+    purple: 'border-purple-500/20 bg-purple-500/5 hover:shadow-lg hover:shadow-purple-500/10',
+    success: 'border-success/20 bg-success/5 hover:shadow-lg hover:shadow-success/10',
+    warning: 'border-warning/20 bg-warning/5 hover:shadow-lg hover:shadow-warning/10',
+    danger: 'border-danger/20 bg-danger/5 hover:shadow-lg hover:shadow-danger/10',
+    cyan: 'border-cyan-500/20 bg-cyan-500/5 hover:shadow-lg hover:shadow-cyan-500/10',
   };
   return variants[props.variant] || variants.default;
 });
 
 const blobClass = computed(() => {
   const blobs = {
-    info: 'bg-blue-500',
+    info: 'bg-info',
     purple: 'bg-purple-500',
-    success: 'bg-emerald-500',
-    warning: 'bg-amber-500',
-    danger: 'bg-red-500',
+    success: 'bg-success',
+    warning: 'bg-warning',
+    danger: 'bg-danger',
     cyan: 'bg-cyan-500',
   };
   return blobs[props.variant] || 'bg-slate-500';

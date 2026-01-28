@@ -66,7 +66,6 @@ export function useFileManager() {
         }
       }
     } catch (_e) {
-      console.error(_e);
       if (!silent) {
         error(t('fileOps.loadFailed'));
       }

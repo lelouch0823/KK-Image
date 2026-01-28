@@ -117,7 +117,7 @@
               <!-- Cloudflare Turnstile Widget -->
               <div v-if="turnstileEnabled" class="mb-6">
                 <div
-                  ref="turnstileElement"
+                  ref="turnstileContainer"
                   class="cf-turnstile"
                   :data-sitekey="turnstileSiteKey"
                   data-callback="onTurnstileSuccess"

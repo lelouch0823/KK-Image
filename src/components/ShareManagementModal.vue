@@ -243,10 +243,10 @@ const fetchShares = async () => {
 
 // 格式化过期时间类名
 const getExpiryClass = (ts) => {
-  if (!ts) return 'text-green-600';
-  if (ts < Date.now()) return 'text-red-500 font-medium';
-  if (ts - Date.now() < 24 * 60 * 60 * 1000 * 3) return 'text-orange-500'; // < 3 days
-  return 'text-secondary';
+  if (!ts) return 'text-success';
+  if (ts < Date.now()) return 'text-danger font-medium';
+  if (ts - Date.now() < 24 * 60 * 60 * 1000 * 3) return 'text-warning'; // < 3 days
+  return 'text-(--text-secondary)';
 };
 
 const copyLink = async (item) => {
