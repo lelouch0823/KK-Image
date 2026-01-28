@@ -125,28 +125,29 @@ export async function updateStatus(db, id, newStatus, actorType) {
 }
 
 /**
- * 更新订单关联的文件
+ * 更新订单关联的文件 (SOTA: 使用 batch 合并删除和插入)
  * @param {D1Database} db
  * @param {string} orderId
  * @param {Array<string>} fileIds
  */
 export async function updateFiles(db, orderId, fileIds) {
-    await db.prepare(`DELETE FROM order_files WHERE order_id = ?`).bind(orderId).run();
+    const timestamp = now();
+    const statements = [
+        db.prepare(`DELETE FROM order_files WHERE order_id = ?`).bind(orderId)
+    ];
 
     if (fileIds && fileIds.length > 0) {
-        const timestamp = now();
-        const statements = fileIds.map((fileId, index) =>
-            db
-                .prepare(
-                    `
-          INSERT INTO order_files (id, order_id, file_id, section, sort_order, added_at) 
-          VALUES (?, ?, ?, 'product', ?, ?)
-          `
-                )
-                .bind(generateId(), orderId, fileId, index, timestamp)
-        );
-        await db.batch(statements);
+        fileIds.forEach((fileId, index) => {
+            statements.push(
+                db.prepare(`
+                    INSERT INTO order_files (id, order_id, file_id, section, sort_order, added_at) 
+                    VALUES (?, ?, ?, 'product', ?, ?)
+                `).bind(generateId(), orderId, fileId, index, timestamp)
+            );
+        });
     }
+
+    await db.batch(statements);
 }
 
 /**
