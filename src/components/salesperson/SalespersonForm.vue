@@ -6,90 +6,67 @@
   >
     <form class="space-y-5" @submit.prevent="handleSubmit">
       <!-- 姓名 -->
-      <div>
-        <label class="mb-1.5 block text-sm font-medium text-[var(--text-main)]">
-          {{ t('salesperson.name') }} <span class="text-[var(--color-danger)]">*</span>
-        </label>
-        <input
-          v-model="form.name"
-          type="text"
-          :placeholder="t('salesperson.namePlaceholder')"
-          class="flex h-11 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] px-3 text-sm text-[var(--text-main)] transition-all outline-none placeholder:text-[var(--text-secondary)]/50 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20"
-          required
-        />
-      </div>
+      <AppInput
+        v-model="form.name"
+        :label="t('salesperson.name')"
+        :placeholder="t('salesperson.namePlaceholder')"
+        required
+        size="lg"
+      />
 
       <!-- 门店 -->
-      <div>
-        <label class="mb-1.5 block text-sm font-medium text-[var(--text-main)]">
-          {{ t('salesperson.store') }}
-        </label>
-        <input
-          v-model="form.store"
-          type="text"
-          :placeholder="t('salesperson.storePlaceholder')"
-          class="flex h-11 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] px-3 text-sm text-[var(--text-main)] transition-all outline-none placeholder:text-[var(--text-secondary)]/50 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20"
-        />
-      </div>
+      <AppInput
+        v-model="form.store"
+        :label="t('salesperson.store')"
+        :placeholder="t('salesperson.storePlaceholder')"
+        size="lg"
+      />
 
       <!-- 电话 -->
-      <div>
-        <label class="mb-1.5 block text-sm font-medium text-[var(--text-main)]">
-          {{ t('salesperson.phone') }}
-        </label>
-        <input
-          v-model="form.phone"
-          type="tel"
-          :placeholder="t('salesperson.phonePlaceholder')"
-          class="flex h-11 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] px-3 text-sm text-[var(--text-main)] transition-all outline-none placeholder:text-[var(--text-secondary)]/50 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20"
-        />
-      </div>
+      <AppInput
+        v-model="form.phone"
+        type="tel"
+        :label="t('salesperson.phone')"
+        :placeholder="t('salesperson.phonePlaceholder')"
+        size="lg"
+      />
 
       <!-- 密码 -->
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-[var(--text-main)]">
-          {{ t('salesperson.password') }}
-          <span v-if="!isEditing" class="text-[var(--color-danger)]">*</span>
-        </label>
-        <input
+        <AppInput
           v-model="form.password"
           type="text"
-          :placeholder="
-            isEditing ? t('salesperson.leaveBlankToKeep') : t('salesperson.passwordPlaceholder')
-          "
-          class="flex h-11 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] px-3 text-sm text-[var(--text-main)] transition-all outline-none placeholder:text-[var(--text-secondary)]/50 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20"
+          :label="t('salesperson.password')"
+          :placeholder="isEditing ? t('salesperson.leaveBlankToKeep') : t('salesperson.passwordPlaceholder')"
           :required="!isEditing"
+          :hint="t('salesperson.passwordHint')"
+          size="lg"
         />
-        <p class="mt-1.5 text-xs text-[var(--text-secondary)]">
-          {{ t('salesperson.passwordHint') }}
-        </p>
       </div>
 
       <!-- 状态 & 重置链接 (编辑模式) -->
-      <div v-if="isEditing" class="space-y-5 border-t border-[var(--border-color)] pt-5">
+      <div v-if="isEditing" class="space-y-5 border-t border-(--border-color) pt-5">
         <label class="group flex cursor-pointer items-center justify-between">
           <span
-            class="text-sm font-medium text-[var(--text-main)] transition-colors group-hover:text-[var(--color-primary)]"
-            >{{ t('salesperson.activeStatus') }}</span
-          >
+            class="text-sm font-medium text-(--text-main) transition-colors group-hover:text-primary"
+          >{{ t('salesperson.activeStatus') }}</span>
           <div class="relative inline-flex cursor-pointer items-center">
             <input v-model="form.isActive" type="checkbox" class="peer sr-only" />
             <div
-              class="h-6 w-11 rounded-full bg-[var(--bg-muted)] transition-all peer peer-checked:bg-[var(--color-primary)] peer-focus:ring-2 peer-focus:ring-[var(--color-primary)]/20 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:size-5 after:rounded-full after:border after:border-[var(--border-color)] after:bg-[var(--bg-card)] after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-[var(--bg-card)]"
+              class="h-6 w-11 rounded-full bg-(--bg-muted) transition-all peer peer-checked:bg-primary peer-focus:ring-2 peer-focus:ring-primary/20 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:size-5 after:rounded-full after:border after:border-(--border-color) after:bg-(--bg-card) after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-(--bg-card)"
             ></div>
           </div>
         </label>
 
         <div class="flex items-center justify-between">
-          <span class="text-sm text-[var(--text-secondary)]">{{ t('salesperson.uuid') }}</span>
+          <span class="text-sm text-(--text-secondary)">{{ t('salesperson.uuid') }}</span>
           <div class="flex items-center gap-2">
             <code
-              class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] px-2 py-1.5 font-mono text-xs text-[var(--color-primary)]"
-              >{{ salesperson.uuid }}</code
-            >
+              class="rounded-lg border border-(--border-color) bg-(--bg-muted) px-2 py-1.5 font-mono text-xs text-primary"
+            >{{ salesperson.uuid }}</code>
             <button
               type="button"
-              class="px-2 py-1 text-xs font-semibold text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] hover:underline"
+              class="px-2 py-1 text-xs font-semibold text-primary transition-colors hover:text-primary-hover hover:underline"
               @click="$emit('resetToken', salesperson.uuid)"
             >
               {{ t('salesperson.resetLink') }}
@@ -100,40 +77,17 @@
     </form>
 
     <template #footer>
-      <button
-        class="rounded-xl bg-[var(--bg-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] active:scale-95"
+      <AppButton
+        variant="secondary"
+        :text="t('common.cancel')"
         @click="visible = false"
-      >
-        {{ t('common.cancel') }}
-      </button>
-      <button
-        :disabled="submitting"
-        class="flex items-center rounded-xl bg-[var(--color-primary)] px-6 py-2.5 text-sm font-bold text-[var(--text-inverse)] shadow-lg shadow-[var(--color-primary)]/20 transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+      />
+      <AppButton
+        variant="primary"
+        :text="submitting ? t('common.saving') : t('common.save')"
+        :loading="submitting"
         @click="handleSubmit"
-      >
-        <svg
-          v-if="submitting"
-          class="mr-2 size-4 animate-spin"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            class="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="4"
-          ></circle>
-          <path
-            class="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-          ></path>
-        </svg>
-        {{ submitting ? t('common.saving') : t('common.save') }}
-      </button>
+      />
     </template>
   </Modal>
 </template>
@@ -142,6 +96,8 @@
 import { ref, watch, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
+import AppInput from '@/components/ui/AppInput.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 
 const props = defineProps({
   modelValue: {

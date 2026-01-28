@@ -19,7 +19,9 @@
               ]"
               :style="{ width: col.width }"
             >
-              {{ col.label }}
+              <slot :name="`header-${col.key}`" :column="col">
+                {{ col.label }}
+              </slot>
             </th>
           </tr>
         </thead>

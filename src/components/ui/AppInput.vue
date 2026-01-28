@@ -1,14 +1,14 @@
 <template>
   <div class="w-full">
     <!-- Label -->
-    <label v-if="label" :for="inputId" class="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
+    <label v-if="label" :for="inputId" class="mb-1 block text-sm font-medium text-(--text-secondary)">
       {{ label }}
-      <span v-if="required" class="text-[var(--color-danger)]">*</span>
+      <span v-if="required" class="text-danger">*</span>
     </label>
 
     <div class="relative">
       <!-- Prepend Icon -->
-      <div v-if="$slots.prepend && !textarea" class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--text-muted)]">
+      <div v-if="$slots.prepend && !textarea" class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-(--text-muted)">
         <slot name="prepend" />
       </div>
 
@@ -16,16 +16,16 @@
       <component
         :is="textarea ? 'textarea' : 'input'"
         :id="inputId"
-        ref="input"
+        ref="inputEl"
         v-bind="$attrs"
         :value="modelValue"
         :type="!textarea ? type : undefined"
         :disabled="disabled"
         :required="required"
-        class="block w-full rounded-lg border bg-[var(--bg-input)] text-[var(--text-main)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+        class="block w-full rounded-lg border bg-(--bg-input) text-(--text-main) placeholder-(--text-muted) transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
         :class="[
           inputClasses,
-          error ? 'border-[var(--color-danger)] focus:border-[var(--color-danger)] focus:ring-[var(--color-danger)]' : 'border-[var(--border-color)]',
+          error ? 'border-danger focus:border-danger focus:ring-danger' : 'border-(--border-color)',
           textarea ? 'resize-y' : ''
         ]"
         @input="$emit('update:modelValue', $event.target.value)"
@@ -34,20 +34,20 @@
       />
 
       <!-- Append Icon -->
-      <div v-if="$slots.append && !textarea" class="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--text-muted)]">
+      <div v-if="$slots.append && !textarea" class="absolute inset-y-0 right-0 flex items-center pr-3 text-(--text-muted)">
         <slot name="append" />
       </div>
     </div>
 
     <!-- Error Message -->
-    <p v-if="error" class="mt-1 text-xs text-[var(--color-danger)]">{{ error }}</p>
+    <p v-if="error" class="mt-1 text-xs text-danger">{{ error }}</p>
     <!-- Helper Text -->
-    <p v-else-if="hint" class="mt-1 text-xs text-[var(--text-muted)]">{{ hint }}</p>
+    <p v-else-if="hint" class="mt-1 text-xs text-(--text-muted)">{{ hint }}</p>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, useSlots, useId, useTemplateRef } from 'vue';
+import { computed, useSlots, useId, useTemplateRef } from 'vue';
 
 defineOptions({
   inheritAttrs: false,
@@ -74,8 +74,15 @@ defineEmits(['update:modelValue', 'blur', 'focus']);
 const uid = useId();
 const inputId = computed(() => props.id || uid);
 
-const inputRef = useTemplateRef('input');
+const inputEl = useTemplateRef('inputEl');
 const slots = useSlots();
+
+// Expose input element for external focus control
+defineExpose({
+  focus: () => inputEl.value?.focus(),
+  blur: () => inputEl.value?.blur(),
+  el: inputEl,
+});
 
 const inputClasses = computed(() => {
   const sizes = {
