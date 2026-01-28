@@ -79,10 +79,9 @@ const route = useRoute();
 const { t } = useI18n();
 
 // Inject shared state from Sales.vue (Layout)
-const { orders, loading, loadOrders, pagination } = inject('salesContext');
+const { orders, loading, loadOrders, pagination, searchQuery } = inject('salesContext');
 
 // Local Filtering
-const searchQuery = ref('');
 const filteredOrders = computed(() => {
   if (!searchQuery.value.trim()) return orders.value;
   

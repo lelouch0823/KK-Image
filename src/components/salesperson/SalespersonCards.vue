@@ -33,10 +33,18 @@
             <div class="mt-0.5 truncate text-xs text-[var(--text-secondary)]">
               {{ person.store || '-' }}
             </div>
-            <!-- 订单数 -->
-            <div class="mt-2 flex items-center justify-center gap-1">
+            <!-- 订单数 (可点击跳转) -->
+            <button
+              v-if="person.orderCount > 0"
+              class="mt-2 flex items-center justify-center gap-1"
+              @click="$emit('view-orders', person)"
+            >
               <span class="text-secondary text-xs">{{ t('salesperson.table.orders') }}:</span>
               <StatusBadge variant="info" size="xs">{{ person.orderCount }}</StatusBadge>
+            </button>
+            <div v-else class="mt-2 flex items-center justify-center gap-1">
+              <span class="text-secondary text-xs">{{ t('salesperson.table.orders') }}:</span>
+              <StatusBadge variant="default" size="xs">{{ person.orderCount }}</StatusBadge>
             </div>
             <!-- 状态标签 -->
             <div class="mt-2">
@@ -122,7 +130,7 @@ defineProps({
   },
 });
 
-defineEmits(['edit', 'delete', 'copy']);
+defineEmits(['edit', 'delete', 'copy', 'view-orders']);
 
 const { t } = useI18n();
 </script>

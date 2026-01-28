@@ -102,40 +102,32 @@
             </div>
 
             <!-- Header Actions -->
+            <!-- 统计按钮 - 移动端只显示图标 -->
             <AppButton
               v-if="!isStatsPage"
               variant="ghost"
               size="sm"
-              class="hidden sm:flex"
-              :text="t('salesStats.title')"
+              class="!size-9 !p-0 sm:!size-auto sm:!px-3 sm:!py-2"
+              :title="t('salesStats.title')"
               @click="router.push(`/sales/${accessToken}/stats`)"
             >
               <template #icon-left>
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                <svg class="size-5 sm:size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+              </template>
+              <template #default>
+                <span class="hidden sm:inline">{{ t('salesStats.title') }}</span>
               </template>
             </AppButton>
-            <div class="flex gap-2">
-        <AppInput
-          v-model="searchQuery"
-          size="sm"
-          :placeholder="t('common.search')"
-          class="w-64"
-        >
-          <template #prepend>
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-          </template>
-        </AppInput>
-        <AppButton
-          variant="primary"
-          :text="t('sales.createOrder')"
-          class="whitespace-nowrap"
-          @click="openCreateModal"
-        >
-          <template #icon-left>
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-          </template>
-        </AppButton>
-      </div>
+            <AppButton
+              variant="primary"
+              :text="t('sales.createOrder')"
+              class="whitespace-nowrap"
+              @click="openCreateModal"
+            >
+              <template #icon-left>
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+              </template>
+            </AppButton>
           </div>
         </div>
       </header>
@@ -161,7 +153,6 @@ import { useNotifications } from '@/composables/useNotifications';
 import OrderLogin from '@/components/order/OrderLogin.vue';
 import SalesNotificationList from '@/components/order/SalesNotificationList.vue';
 import AppButton from '@/components/ui/AppButton.vue';
-import AppInput from '@/components/ui/AppInput.vue';
 import { onClickOutside } from '@vueuse/core';
 
 const route = useRoute();
@@ -207,6 +198,9 @@ const loginError = ref('');
 const salesperson = ref(null);
 const prefillData = ref(null); // Shared state for duplicating order
 
+// 搜索状态（共享给子组件）
+const searchQuery = ref('');
+
 // Provide context to child views
 provide('salesContext', {
     orders,
@@ -215,7 +209,8 @@ provide('salesContext', {
     loadOrders: (page, append) => loadSalesOrders(accessToken.value, page, append),
     pagination: ordersPagination,
     prefillData,
-    setPrefillData: (data) => { prefillData.value = data }
+    setPrefillData: (data) => { prefillData.value = data },
+    searchQuery, // 共享搜索状态
 });
 
 // Notifications Logic

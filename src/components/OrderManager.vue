@@ -263,13 +263,23 @@ const onEditSubmit = (payload) => handleEditSubmit(payload, pagination.page);
 const onBatchAction = (action) => handleBatchAction(action, pagination.page);
 
 // Watch for notifications to auto-refresh
-// Watch for notifications to auto-refresh
 watch(lastNotificationTime, () => {
   // Only refresh if not editing or viewing detail to avoid disruption
   if (!showEditModal.value && !showDetailModal.value && !showCreateModal.value) {
     refreshOrders();
   }
 });
+
+// SOTA: 监听路由 query 中 salesperson 参数变化，响应从销售管理跳转过来的筛选
+watch(
+  () => route.query.salesperson,
+  (newVal) => {
+    // 更新筛选状态
+    filterState.value.salesperson = newVal || '';
+    // 刷新订单列表
+    refreshOrders();
+  }
+);
 
 // Lifecycle
 onMounted(() => {

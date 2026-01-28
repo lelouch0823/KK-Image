@@ -10,21 +10,24 @@
     >
       <div
         v-if="visible"
-        class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md"
+        class="fixed inset-0 bg-black/95 backdrop-blur-md"
+        :style="zIndexStyle"
         @click.self="$emit('close')"
         @wheel="handleWheel"
+        @touchstart="handleTouchStart"
+        @touchend="handleTouchEnd"
       >
         <!-- Toolbar -->
         <div
-          class="absolute top-0 right-0 left-0 z-50 flex items-center justify-between bg-gradient-to-b from-black/50 to-transparent p-4 transition-colors"
+          class="absolute top-0 right-0 left-0 z-10 flex items-center justify-between bg-gradient-to-b from-black/50 to-transparent p-4 transition-colors"
         >
           <div class="px-2 text-sm font-medium text-white/90">
             {{ currentIndex + 1 }} / {{ total }}
           </div>
 
           <div class="flex items-center gap-4">
-            <!-- Zoom/Rotate Toolbar (Only for images) -->
-            <div v-if="currentFile?.type === 'image'" class="mr-4 flex items-center gap-2 border-r border-white/10 pr-4">
+            <!-- Zoom/Rotate Toolbar (Only for images) - Hidden on mobile -->
+            <div v-if="isImage" class="mr-4 hidden items-center gap-2 border-r border-white/10 pr-4 sm:flex">
               <!-- Rotate -->
               <button
                 type="button"
@@ -101,7 +104,7 @@
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                 ></path>
               </svg>
-              {{ t('gallery.download') }}
+              <span class="hidden sm:inline">{{ t('gallery.download') }}</span>
             </a>
 
             <!-- Close Button -->
@@ -125,7 +128,7 @@
         <!-- Navigation Buttons -->
         <button
           v-if="currentIndex > 0"
-          class="absolute top-1/2 left-4 z-50 flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
+          class="absolute top-1/2 left-4 z-10 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white sm:flex"
           :aria-label="t('gallery.prev')"
           @click="$emit('prev')"
         >
@@ -140,7 +143,7 @@
         </button>
         <button
           v-if="currentIndex < total - 1"
-          class="absolute top-1/2 right-4 z-50 flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
+          class="absolute top-1/2 right-4 z-10 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white sm:flex"
           :aria-label="t('gallery.next')"
           @click="$emit('next')"
         >
@@ -161,7 +164,7 @@
         >
           <!-- Image -->
           <img
-            v-if="currentFile?.type === 'image'"
+            v-if="isImage"
             :src="currentFile.url"
             :alt="currentFile.name"
             class="max-h-full max-w-full rounded-lg object-contain shadow-2xl transition-transform duration-200"
@@ -171,7 +174,7 @@
 
           <!-- PDF Viewer -->
           <div
-            v-else-if="currentFile?.type === 'pdf'"
+            v-else-if="isPdf"
             class="flex size-full max-w-5xl flex-col overflow-hidden rounded-lg bg-[var(--bg-card)] shadow-2xl"
           >
             <iframe :src="currentFile.url" class="w-full flex-1 border-none"></iframe>
@@ -208,8 +211,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { useModalStack } from '@/composables/useModalStack';
 
 const props = defineProps({
   visible: {
@@ -234,6 +238,54 @@ const emit = defineEmits(['close', 'prev', 'next']);
 
 const { t } = useI18n();
 
+// SOTA: 使用 Modal 堆叠管理器，确保 Lightbox 始终显示在所有 Modal 之上
+const { generateModalId, register, unregister, getZIndex } = useModalStack();
+const lightboxId = ref(generateModalId());
+
+// 动态计算 z-index 样式
+const zIndexStyle = computed(() => ({
+  zIndex: getZIndex(lightboxId.value),
+}));
+
+// 注册/注销 Lightbox
+watch(
+  () => props.visible,
+  (visible) => {
+    if (visible) {
+      register(lightboxId.value);
+    } else {
+      unregister(lightboxId.value);
+    }
+  },
+  { immediate: true }
+);
+
+onUnmounted(() => {
+  unregister(lightboxId.value);
+});
+
+// 类型识别
+const isImage = computed(() => {
+  if (!props.currentFile) return false;
+  const f = props.currentFile;
+  // 优先检查显式的 type 字段，然后检查 mimeType，最后检查 URL 扩展名
+  return (
+    f.type === 'image' ||
+    f.mimeType?.startsWith('image/') ||
+    /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?.*)?$/i.test(f.url || '')
+  );
+});
+
+const isPdf = computed(() => {
+  if (!props.currentFile) return false;
+  const f = props.currentFile;
+  return (
+    f.type === 'pdf' ||
+    f.mimeType === 'application/pdf' ||
+    /\.pdf(\?.*)?$/i.test(f.url || '')
+  );
+});
+
 // Zoom & Rotate state
 const scale = ref(1);
 const rotation = ref(0);
@@ -251,10 +303,14 @@ const rotate = () => {
 };
 
 // Reset state when file changes
-watch(() => props.currentFile, () => {
-  scale.value = 1;
-  rotation.value = 0;
-});
+watch(
+  () => props.currentFile,
+  () => {
+    scale.value = 1;
+    rotation.value = 0;
+  }
+);
+
 
 const handleWheel = (e) => {
   if (e.ctrlKey || e.metaKey) {
@@ -300,6 +356,34 @@ const handleKeydown = (e) => {
     case 'R':
       rotate();
       break;
+  }
+};
+
+// 触摸手势处理
+const touchStartX = ref(0);
+const touchStartY = ref(0);
+
+const handleTouchStart = (e) => {
+  touchStartX.value = e.touches[0].clientX;
+  touchStartY.value = e.touches[0].clientY;
+};
+
+const handleTouchEnd = (e) => {
+  if (scale.value > 1) return; // 放大时不触发滑动切换
+
+  const touchEndX = e.changedTouches[0].clientX;
+  const touchEndY = e.changedTouches[0].clientY;
+  
+  const deltaX = touchEndX - touchStartX.value;
+  const deltaY = touchEndY - touchStartY.value;
+
+  // 水平滑动 (阈值 50px)
+  if (Math.abs(deltaX) > 50 && Math.abs(deltaY) < 100) {
+    if (deltaX > 0) {
+      emit('prev');
+    } else {
+      emit('next');
+    }
   }
 };
 
