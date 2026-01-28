@@ -5,11 +5,12 @@
     :loading="loading"
     row-key="id"
     :empty-text="t('salesperson.emptyList')"
+    no-border
   >
-    <template #toolbar>
+    <template v-if="$slots.toolbar" #toolbar>
       <slot name="toolbar" />
     </template>
-    <template #footer>
+    <template v-if="$slots.footer" #footer>
       <slot name="footer" />
     </template>
     <!-- Name Cell -->

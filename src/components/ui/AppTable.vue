@@ -1,5 +1,10 @@
 <template>
-  <div class="w-full overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm">
+  <div 
+    class="w-full overflow-hidden"
+    :class="[
+      noBorder ? '' : 'rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm'
+    ]"
+  >
     <!-- Toolbar / Header Slot -->
     <div v-if="$slots.toolbar" class="border-b border-[var(--border-color)] px-4 py-3">
       <slot name="toolbar" />
@@ -113,6 +118,10 @@ defineProps({
   emptyText: {
     type: String,
     default: '',
+  },
+  noBorder: {
+    type: Boolean,
+    default: false,
   },
 });
 
