@@ -62,16 +62,32 @@
       :is-pulling="isPulling"
       @refresh="loadOrders"
       @view="handleViewOrder"
-      :loading-more="loadingMore"
+      :loading-more="infiniteScroll.isLoading.value"
     />
+
+    <!-- Infinite Scroll Trigger -->
+    <div class="pb-20">
+      <div 
+        v-if="infiniteScroll.canLoadMore.value && filteredOrders.length === orders.length"
+        :ref="(el) => infiniteScroll.triggerRef.value = el"
+        class="flex items-center justify-center py-4 text-sm text-(--text-secondary)"
+      >
+        <div v-if="infiniteScroll.isLoading.value" class="border-t-primary size-5 animate-spin rounded-full border-2 border-(--border-color)"></div>
+        <span v-else>↑ {{ t('common.loading') }}</span>
+      </div>
+      <div v-else-if="orders.length > 0 && !infiniteScroll.canLoadMore.value" class="py-4 text-center text-sm text-(--text-secondary)">
+        {{ t('common.total') }} {{ pagination?.total || orders.length }} {{ t('common.items') }}
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { inject, ref, computed, onMounted, onUnmounted } from 'vue';
+import { inject, computed, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePullToRefresh } from '@/composables/usePullToRefresh';
+import { useInfiniteScroll } from '@/composables/useInfiniteScroll';
 import OrderList from '@/components/order/OrderList.vue';
 
 const router = useRouter();
@@ -112,36 +128,27 @@ const handleViewOrder = (order) => {
   router.push(`/sales/${route.params.token}/detail/${order.id}`);
 };
 
-// Infinite Scroll
-const loadingMore = ref(false);
+// Infinite Scroll using composable
+const infiniteScroll = useInfiniteScroll(async () => {
+  // Don't load more while searching
+  if (filteredOrders.value.length !== orders.value.length) {
+    infiniteScroll.setCanLoadMore(false);
+    return;
+  }
+  if (!pagination || pagination.page >= pagination.totalPages) {
+    infiniteScroll.setCanLoadMore(false);
+    return;
+  }
+  await loadOrders(pagination.page + 1, true);
+  infiniteScroll.setCanLoadMore(pagination.page < pagination.totalPages);
+}, { rootMargin: '200px' });
 
-const handleScroll = async () => {
-    // Basic throttle/debounce could be added if needed, or check loading state
-    if (loading.value || loadingMore.value) return;
-    if (filteredOrders.value.length !== orders.value.length) return; // Don't load more while searching
-
-    const scrollHeight = document.documentElement.scrollHeight;
-    const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-    const clientHeight = document.documentElement.clientHeight;
-
-    // Threshold: 100px from bottom
-    if (scrollTop + clientHeight >= scrollHeight - 100) {
-        if (pagination && pagination.page < pagination.totalPages) {
-            loadingMore.value = true;
-            try {
-                await loadOrders(pagination.page + 1, true);
-            } finally {
-                loadingMore.value = false;
-            }
-        }
-    }
-};
-
-onMounted(() => {
-    window.addEventListener('scroll', handleScroll);
-});
-
-onUnmounted(() => {
-    window.removeEventListener('scroll', handleScroll);
+// Watch for search changes to reset infinite scroll
+watch(searchQuery, () => {
+  if (searchQuery.value.trim()) {
+    infiniteScroll.setCanLoadMore(false);
+  } else {
+    infiniteScroll.setCanLoadMore(pagination?.page < pagination?.totalPages);
+  }
 });
 </script>

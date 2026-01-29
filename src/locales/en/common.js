@@ -67,4 +67,5 @@ export default {
   click_to_upload: 'Click to select files',
   or_drag_drop: 'or drag and drop here',
   create: 'Create',
+  total: 'Total',
 };

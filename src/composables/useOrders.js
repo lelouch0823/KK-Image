@@ -28,14 +28,18 @@ export function useOrders() {
 
   /**
    * 加载管理端订单列表（增强版，提取额外数据）
+   * @param {Object} params - 查询参数
+   * @param {boolean} [append=false] - 是否追加到现有列表（用于无限滚动）
    */
-  const loadOrders = async (params = {}) => {
+  const loadOrders = async (params = {}, append = false) => {
     // 复用 useResource 的状态管理，但自定义请求逻辑以获取 metadata
     // 取消之前的请求
     resource.abort();
 
     resource.loading.value = true;
     resource.error.value = null;
+
+    const MAX_ITEMS = 200; // 限制列表最大长度，防止 OOM
 
     try {
       const query = new URLSearchParams({
@@ -56,8 +60,16 @@ export function useOrders() {
       const res = await authFetch(`${API.MANAGE_ORDERS}?${cleanParams.toString()}`).then(r => r.json());
 
       if (res.success) {
-        // 只有当订单数据发生变化或强制更新时才进行赋值，减少渲染压力
-        resource.items.value = res.data.orders;
+        // 追加模式：合并新数据，限制最大长度
+        if (append) {
+          const combined = [...resource.items.value, ...res.data.orders];
+          resource.items.value = combined.length > MAX_ITEMS 
+            ? combined.slice(-MAX_ITEMS) 
+            : combined;
+        } else {
+          // 替换模式：直接赋值
+          resource.items.value = res.data.orders;
+        }
 
         // 提取额外数据（元数据几乎不随分页变化，仅在缺失时加载）
         if (res.data.salespersons && salespersons.value.length === 0) {
@@ -67,10 +79,21 @@ export function useOrders() {
           statuses.value = res.data.statuses;
         }
 
-        // 更新分页
+        // Update pagination
         if (res.data.pagination) {
           Object.assign(resource.pagination, res.data.pagination);
+        } else if (res.data.total !== undefined) {
+             // Fallback: Manually calculate pagination if only total is provided
+             const currentLimit = parseInt(params.limit || resource.pagination.limit) || 20;
+             const total = parseInt(res.data.total) || 0;
+             resource.pagination.page = parseInt(params.page || resource.pagination.page) || 1;
+             resource.pagination.limit = currentLimit;
+             resource.pagination.total = total;
+             resource.pagination.totalPages = Math.ceil(total / currentLimit) || 1;
         }
+
+        // Ensure totalPages is valid
+        if (resource.pagination.totalPages < 1) resource.pagination.totalPages = 1;
 
         return true;
       } else {

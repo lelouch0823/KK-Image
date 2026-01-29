@@ -2,8 +2,8 @@
   <div ref="container" class="relative">
     <!-- Trigger -->
     <button
-      type="button"
       :id="triggerId"
+      type="button"
       class="flex w-full items-center justify-between border border-[var(--border-color)] bg-[var(--bg-card)] text-left text-sm transition-all focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/10 focus:outline-none dark:bg-[var(--bg-muted)]"
       :class="[
         size === 'sm' ? 'h-9 rounded-lg px-2 focus:ring-2' : 'h-11 rounded-xl px-4 focus:ring-4',
@@ -64,7 +64,7 @@
               }"
               @click="select(option)"
             >
-              <span class="truncate block text-left flex-1">{{ option.label }}</span>
+              <span class="block flex-1 truncate text-left">{{ option.label }}</span>
               <svg
                 v-if="modelValue === option.value"
                 class="text-primary ml-2 size-4 flex-shrink-0"
@@ -176,10 +176,10 @@ const select = (option) => {
 // Close on scroll or resize to prevent detached dropdown
 watch(isOpen, (val) => {
     if (val) {
-        window.addEventListener('scroll', close, { capture: true });
+        // window.addEventListener('scroll', close, { capture: true }); // Removed: Causes dropdown to close on any scroll
         window.addEventListener('resize', close);
     } else {
-        window.removeEventListener('scroll', close, { capture: true });
+        // window.removeEventListener('scroll', close, { capture: true });
         window.removeEventListener('resize', close);
     }
 });
@@ -217,7 +217,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
-  window.removeEventListener('scroll', close, { capture: true });
+  // window.removeEventListener('scroll', close, { capture: true });
   window.removeEventListener('resize', close);
 });
 </script>

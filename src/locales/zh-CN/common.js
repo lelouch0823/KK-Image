@@ -70,4 +70,5 @@ export default {
   noSearchResults: '未找到结果',
   noResultsDesc: '未能找到与 "{query}" 匹配的内容',
   clearSearch: '清除搜索',
+  total: '共',
 };

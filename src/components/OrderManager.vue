@@ -9,9 +9,9 @@
     </Modal>
 
     <!-- 订单列表 -->
-    <div class="lg:flex-1 lg:overflow-hidden">
+    <div class="lg:flex-1 lg:overflow-y-auto">
       <!-- 桌面表格视图 (lg+) -->
-      <div class="h-full hidden lg:block">
+      <div class="hidden lg:block">
         <OrderTable
           v-model:selected-ids="selectedIds"
           :data="orders"
@@ -33,7 +33,7 @@
               @export="exportOrders"
               @create="showCreateModal = true"
               @show-stats="showStatsModal = true"
-              class="border-none p-0 bg-transparent shadow-none" 
+              class="bg-transparent border-none p-0 shadow-none" 
             />
           </template>
 
@@ -48,19 +48,23 @@
 
           <!-- Footer Slot: Pagination -->
           <template #footer>
-             <Pagination
-                v-if="pagination.totalPages > 1"
-                v-model:current-page="pagination.page"
-                :total-pages="pagination.totalPages"
-                @change="changePage"
-                class="justify-end"
-              />
+             <div class="flex w-full items-center justify-end gap-4">
+                <span v-if="pagination.total > 0" class="text-sm text-[var(--text-secondary)]">
+                  {{ t('common.total') }} {{ pagination.total }}
+                </span>
+                <Pagination
+                  v-if="pagination.totalPages > 1"
+                  v-model:current-page="pagination.page"
+                  :total-pages="pagination.totalPages"
+                  @change="changePage"
+                />
+             </div>
           </template>
         </OrderTable>
       </div>
 
       <!-- 移动端卡片视图 (<lg) -->
-      <div class="h-full p-4 lg:hidden overflow-y-auto">
+      <div class="h-full overflow-y-auto p-4 lg:hidden">
          <!-- Mobile view needs its own filters since it doesn't use OrderTable -->
          <OrderFilters
               v-model:filters="filterState"
@@ -88,14 +92,25 @@
             />
           </template>
         </OrderCards>
-        <!-- Mobile Pagination -->
+        <!-- Mobile Infinite Scroll Trigger -->
         <div class="mt-4 pb-20">
-             <Pagination
-                v-if="pagination.totalPages > 1"
-                v-model:current-page="pagination.page"
-                :total-pages="pagination.totalPages"
-                @change="changePage"
-              />
+          <!-- Loading More Indicator -->
+          <div v-if="mobileInfiniteScroll.isLoading.value" class="flex items-center justify-center py-4">
+            <div class="border-t-primary size-5 animate-spin rounded-full border-2 border-(--border-color)"></div>
+            <span class="text-secondary ml-2 text-sm">{{ t('common.loading') }}</span>
+          </div>
+          <!-- Intersection Observer Trigger -->
+          <div 
+            v-else-if="mobileInfiniteScroll.canLoadMore.value"
+            :ref="(el) => mobileInfiniteScroll.triggerRef.value = el"
+            class="flex items-center justify-center py-4 text-sm text-(--text-secondary)"
+          >
+            ↑ {{ t('common.loading') }}
+          </div>
+          <!-- End of List -->
+          <div v-else-if="orders.length > 0" class="py-4 text-center text-sm text-(--text-secondary)">
+            {{ t('common.total') }} {{ pagination.total }} {{ t('common.items') }}
+          </div>
         </div>
       </div>
     </div>
@@ -139,8 +154,8 @@
         </div>
       </template>
       <OrderDetail
-        ref="detailRef"
         v-if="viewingOrder"
+        ref="detailRef"
         :order="viewingOrder"
         mode="admin"
         @back="closeDetailModal"
@@ -181,13 +196,13 @@ import { useI18n } from '@/composables/useI18n';
 import { useOrderFilters } from '@/composables/order/useOrderFilters';
 import { useOrderModals } from '@/composables/order/useOrderModals';
 import { useOrderBatch } from '@/composables/order/useOrderBatch';
+import { useInfiniteScroll } from '@/composables/useInfiniteScroll';
 
 // Components
 import Pagination from '@/components/ui/Pagination.vue';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import OrderFilters from './order/OrderFilters.vue';
-import OrderBatchActions from './order/OrderBatchActions.vue';
 import OrderTable from './order/OrderTable.vue';
 import OrderCards from './order/OrderCards.vue';
 import OrderStatusChanger from './OrderStatusChanger.vue';
@@ -257,6 +272,19 @@ const {
 
 // Status changing state (local UI state)
 const statusChanging = reactive({});
+
+// Mobile infinite scroll using composable
+const mobileInfiniteScroll = useInfiniteScroll(async () => {
+  if (loading.value) return;
+  if (pagination.page >= pagination.totalPages) {
+    mobileInfiniteScroll.setCanLoadMore(false);
+    return;
+  }
+  // Pass append = true to add items instead of replacing
+  await loadOrders({ page: pagination.page + 1 }, true);
+  // Update canLoadMore based on new pagination state
+  mobileInfiniteScroll.setCanLoadMore(pagination.page < pagination.totalPages);
+});
 
 // Wrappers to inject pagination
 const onEditSubmit = (payload) => handleEditSubmit(payload, pagination.page);
