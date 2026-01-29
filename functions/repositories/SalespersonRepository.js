@@ -140,8 +140,8 @@ export class SalespersonRepository {
         await this.db
           .prepare(
             `
-                    INSERT INTO salespersons (id, name, store, phone, access_token, password_hash, plain_password, is_active, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                    INSERT INTO salespersons (id, name, store, phone, access_token, password_hash, is_active, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
                 `
           )
           .bind(
@@ -151,7 +151,6 @@ export class SalespersonRepository {
             phone || null,
             accessToken,
             passwordHash,
-            password,
             timestamp,
             timestamp
           )
@@ -202,8 +201,6 @@ export class SalespersonRepository {
       const passwordHash = await hashPassword(data.password, this.jwtSecret);
       updates.push('password_hash = ?');
       values.push(passwordHash);
-      updates.push('plain_password = ?');
-      values.push(data.password);
     }
     if (data.isActive !== undefined) {
       updates.push('is_active = ?');
@@ -250,7 +247,7 @@ export class SalespersonRepository {
    * @param {string} id
    * @returns {Promise<string>} New token
    */
-  async resetToken(id) {
+  async resetAccessToken(id) {
     const newToken = generateShareToken(12);
     const result = await this.db
       .prepare(
