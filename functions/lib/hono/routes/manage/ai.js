@@ -232,7 +232,12 @@ async function handleToolCallsToSSE(toolCalls, fullContent, messages, executeToo
 
         await sseStream.writeSSE({ event: 'tool_call', data: JSON.stringify({ name: tc.name, status: 'started' }) });
 
-        const args = tc.arguments ? JSON.parse(tc.arguments) : {};
+        let args = {};
+        try {
+            args = tc.arguments ? JSON.parse(tc.arguments) : {};
+        } catch (_parseErr) {
+            console.warn(`[AI Stream] Failed to parse tool arguments: ${tc.arguments}`);
+        }
         const result = await executeTool(tc.name, args);
 
         await sseStream.writeSSE({ event: 'tool_result', data: JSON.stringify({ name: tc.name, summary: MSG.AI.TOOLS.RESULT_READY }) });
