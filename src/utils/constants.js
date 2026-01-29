@@ -100,8 +100,13 @@ export const API = {
   MANAGE_PRODUCTS: `${API_PREFIX}/products`,
   MANAGE_PRODUCT_BY_ID: (id) => `${API_PREFIX}/products/${id}`,
 
-  NOTIFICATIONS: '/api/notifications',
-  NOTIFICATIONS_READ: (id) => `/api/notifications/${id}/read`,
+  NOTIFICATIONS: '/api/manage/notifications',
+  NOTIFICATIONS_READ: (id) => `/api/manage/notifications/${id}/read`,
+  AI: {
+    CHAT: '/api/manage/ai/chat',
+    STREAM: '/api/manage/ai/stream',
+    REPORT: '/api/manage/ai/report',
+  },
 
   // 销售端通知 API
   SALES_NOTIFICATIONS: (token) => `/api/sales/${token}/notifications`,

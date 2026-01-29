@@ -37,6 +37,7 @@ import manageProductsRoutes from './routes/manage/products/index.js'; // NEW
 import manageProductDetailRoutes from './routes/manage/products/[id].js'; // NEW
 import salesRoutes from './routes/sales.js';
 import manageNotificationsRoutes from './routes/manage/notifications.js';
+import manageAiRoutes from './routes/manage/ai.js';
 
 export const app = new Hono();
 
@@ -82,7 +83,6 @@ app.use('/api/*', rateLimitMiddleware);
 
 app.use('/api/v1/*', authMiddleware);
 app.use('/api/manage/*', authMiddleware);
-app.use('/api/notifications/*', authMiddleware); // 新增: 通知 API 需要认证
 // 注意：/api/sales/login 和 wechat-login 在 authMiddleware 内部通过 publicRoutes 排除
 app.use('/api/sales/*', authMiddleware);
 
@@ -114,7 +114,8 @@ app.route('/api/manage/backups', manageBackupsRoutes);
 app.route('/api/manage/settings', manageSettingsRoutes);
 app.route('/api/manage/products', manageProductsRoutes); // NEW: List & Create
 app.route('/api/manage/products', manageProductDetailRoutes); // NEW: Detail operations (/:id...)
-app.route('/api/notifications', manageNotificationsRoutes); // 新增: 挂载通知路由
+app.route('/api/manage/notifications', manageNotificationsRoutes); // REST: 统一到 manage 命名空间
+app.route('/api/manage/ai', manageAiRoutes); // NEW: AI 路由
 app.route('/api/sales', salesRoutes);
 
 // ============================================

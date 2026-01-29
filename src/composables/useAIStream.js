@@ -1,4 +1,5 @@
 import { ref, computed, onUnmounted } from 'vue';
+import { API_URLS } from '@/utils/constants';
 import { SSEParser } from '@/utils/streaming';
 import { useSmoothTypewriter } from '@/composables/useSmoothTypewriter';
 import { useToast } from '@/composables/useToast';
@@ -58,7 +59,7 @@ export function useAIStream() {
         resetTypewriter();
 
         try {
-            const response = await fetch('/api/ai/stream', {
+            const response = await fetch(API_URLS.AI.STREAM, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ messages, context }),

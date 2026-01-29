@@ -1,5 +1,5 @@
 <template>
-  <div class="pointer-events-none fixed right-6 bottom-6 z-[9999]">
+  <div class="pointer-events-none fixed right-6 bottom-6 z-9999">
     <transition
       enter-active-class="transition duration-300 ease-out"
       enter-from-class="translate-y-4 transform scale-95 opacity-0"
@@ -10,10 +10,10 @@
     >
       <div
         v-if="isOpen"
-        class="border-border pointer-events-auto absolute right-0 bottom-0 flex h-[600px] w-[420px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border bg-[var(--bg-card)] shadow-2xl backdrop-blur-xl"
+        class="border-border pointer-events-auto absolute right-0 bottom-0 flex h-[600px] w-[420px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border bg-(--bg-card) shadow-2xl backdrop-blur-xl"
       >
         <!-- Header -->
-        <div class="bg-primary flex items-center justify-between p-4 text-[var(--text-inverse)]">
+        <div class="bg-primary flex items-center justify-between p-4 text-(--text-inverse)">
           <div class="flex items-center gap-3">
             <div class="flex size-8 items-center justify-center rounded-lg bg-white/20">
               <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,6 +100,7 @@
 <script setup>
 import { ref, nextTick, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
+import { API_URLS } from '@/utils/constants';
 import { renderMarkdown } from '@/utils/ai-markdown';
 import ChatMessage from '@/components/common/ai/ChatMessage.vue';
 import AISuggestions from '@/components/common/ai/AISuggestions.vue';
@@ -287,7 +288,7 @@ const generateReport = async () => {
   isGeneratingReport.value = true;
   
   try {
-    const response = await fetch('/api/ai/report', {
+    const response = await fetch(API_URLS.AI.REPORT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ context: context.value })

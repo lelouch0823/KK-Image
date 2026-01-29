@@ -1,0 +1,256 @@
+import { Hono } from 'hono';
+import { streamSSE } from 'hono/streaming';
+import { MSG } from '../../../api/utils/messages.js';
+import { AI_TOOLS } from '../../../api/utils/ai-prompts.js';
+import { OrderStatsRepository } from '../../../../repositories/OrderStatsRepository.js';
+import { SystemStatsRepository } from '../../../../repositories/SystemStatsRepository.js';
+import { callAIStream, callAI, callAIAuto, parseSSEChunk, SYSTEM_PROMPT } from '../../../../utils/ai-utils.js';
+import { executeAITool } from '../../../../utils/ai-tool-executor.js';
+import { extractToolCallsFromText } from '../../../../utils/ai-stream-helpers.js';
+import { DateUtils } from '../../../api/utils/date.js';
+import { success, error } from '../../../api/utils/response.js';
+
+const app = new Hono();
+
+/**
+ * 报告生成的 System Prompt
+ */
+const REPORT_SYSTEM_PROMPT = (date, toolResults) => `
+你是一个专业的报告生成 AI。根据以下数据生成一份精美的 HTML 报告。
+
+当前日期：${date}
+
+**可用数据**：
+${JSON.stringify(toolResults, null, 2)}
+
+**要求**：
+1. 生成一个完整的 HTML 文档（包含 <!DOCTYPE html>、<html>、<head>、<body>）
+2. 在 <head> 中引入 Chart.js CDN：<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+3. 使用内联 CSS 美化页面，设计要求：
+   - 最大宽度 1200px，居中显示
+   - 使用系统字体 (system-ui)
+   - 卡片式布局，圆角 + 阴影
+   - 主色调：#6366f1（靛蓝色）
+4. 用 <canvas> 和 Chart.js 渲染图表：
+   - 订单趋势用折线图或柱状图
+   - 文件类型分布用饼图或环形图
+   - 销售排行用水平柱状图
+5. 用 HTML <table> 展示待处理订单列表
+6. 在页面顶部显示报告标题和生成时间
+7. 只输出 HTML 代码，不要输出其他任何内容
+
+生成的 HTML 应该是一个完整的、可直接在浏览器中打开的网页。
+`;
+
+/**
+ * POST /chat - AI 聊天 (非流式)
+ */
+app.post('/chat', async (c) => {
+    const { env } = c;
+    const { messages: history, context: clientContext = {} } = await c.req.json();
+
+    try {
+        const orderStatsRepo = new OrderStatsRepository(env.DB);
+        const systemStatsRepo = new SystemStatsRepository(env.DB);
+
+        const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
+        const systemContent = SYSTEM_PROMPT(todayDate, clientContext);
+
+        let messages = [{ role: "system", content: systemContent }, ...history];
+
+        let response = await callAI(messages, AI_TOOLS, env);
+        let choice = response.choices[0];
+
+        if (choice.message.tool_calls) {
+            messages.push(choice.message);
+            for (const toolCall of choice.message.tool_calls) {
+                const functionName = toolCall.function.name;
+                const args = JSON.parse(toolCall.function.arguments);
+                const result = await executeAITool(functionName, args, { orderStatsRepo, systemStatsRepo });
+
+                messages.push({
+                    tool_call_id: toolCall.id,
+                    role: "tool",
+                    name: functionName,
+                    content: JSON.stringify(result)
+                });
+            }
+            response = await callAI(messages, [], env);
+        }
+
+        return success({ message: response.choices[0].message });
+    } catch (err) {
+        return error(`${MSG.AI.ERROR}: ${err.message}`, 500);
+    }
+});
+
+/**
+ * POST /report - AI 报告生成
+ */
+app.post('/report', async (c) => {
+    const { env } = c;
+    try {
+        const orderStatsRepo = new OrderStatsRepository(env.DB);
+        const systemStatsRepo = new SystemStatsRepository(env.DB);
+
+        const todayStart = DateUtils.getChinaDayStart();
+        const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000;
+        const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000;
+
+        const [orderStats, pendingOrders, customerStats, spaceStats, salespersonStats, fileStats] = await Promise.all([
+            orderStatsRepo.getAdminStats(todayStart, weekStart, monthStart),
+            orderStatsRepo.getRecentPending(5),
+            systemStatsRepo.getCustomerStats(),
+            systemStatsRepo.getSpaceStats(),
+            systemStatsRepo.getSalespersonStats(),
+            systemStatsRepo.getFileStats()
+        ]);
+
+        const toolResults = { orderStats, pendingOrders, customerStats, spaceStats, salespersonStats, fileStats };
+        const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
+        const messages = [
+            { role: 'system', content: REPORT_SYSTEM_PROMPT(todayDate, toolResults) },
+            { role: 'user', content: '请根据以上数据生成完整的 HTML 报告。' }
+        ];
+
+        const result = await callAIAuto({ messages, tools: [], env, preferStream: true });
+        let cleanHtml = result.content || '';
+        
+        // 清理 Markdown 代码块
+        cleanHtml = cleanHtml.replace(/^```html\n?|```$/g, '').trim();
+
+        return success({ html: cleanHtml });
+    } catch (err) {
+        return error(`${MSG.AI.ERROR}: ${err.message}`, 500);
+    }
+});
+
+/**
+ * POST /stream - AI 流式聊天 (SSE)
+ */
+app.post('/stream', async (c) => {
+    const { env } = c;
+    const { messages: history, context: clientContext = {} } = await c.req.json();
+
+    return streamSSE(c, async (stream) => {
+        try {
+            const orderStatsRepo = new OrderStatsRepository(env.DB);
+            const systemStatsRepo = new SystemStatsRepository(env.DB);
+
+            const executeTool = async (name, args) => {
+                return await executeAITool(name, args, { orderStatsRepo, systemStatsRepo });
+            };
+
+            const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
+            const systemContent = SYSTEM_PROMPT(todayDate, clientContext);
+            let messages = [{ role: "system", content: systemContent }, ...history];
+
+            const streamResult = await callAIStream(messages, AI_TOOLS, env);
+            const aiStream = streamResult.body;
+
+            if (streamResult.switched) {
+                await stream.writeSSE({ event: 'model_switch', data: JSON.stringify({ model: streamResult.model, reason: 'rate_limit' }) });
+            }
+
+            const { fullContent, toolCalls } = await processStreamToSSE(aiStream, stream);
+
+            if (toolCalls.length > 0) {
+                await handleToolCallsToSSE(toolCalls, fullContent, messages, executeTool, stream, env);
+            }
+
+            await stream.writeSSE({ event: 'done', data: '{}' });
+        } catch (err) {
+            console.error('[AI Hono Stream] Error:', err);
+            await stream.writeSSE({ event: 'error', data: JSON.stringify({ message: err.message }) });
+        }
+    });
+});
+
+/**
+ * 内部辅助：处理流并发送到 SSE
+ */
+async function processStreamToSSE(aiStream, sseStream) {
+    const reader = aiStream.getReader();
+    const decoder = new TextDecoder();
+    let fullContent = '';
+    let toolCalls = [];
+    let buffer = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n');
+        buffer = parts.pop();
+
+        for (const part of parts) {
+            const chunks = parseSSEChunk(part + '\n');
+            for (const chunk of chunks) {
+                if (chunk.done) continue;
+                const delta = chunk.choices?.[0]?.delta;
+                if (!delta) continue;
+
+                if (delta.content) {
+                    fullContent += delta.content;
+                    await sseStream.writeSSE({ event: 'text_delta', data: JSON.stringify({ content: delta.content }) });
+                }
+
+                if (delta.tool_calls) {
+                    for (const tc of delta.tool_calls) {
+                        if (tc.index !== undefined) {
+                            if (!toolCalls[tc.index]) toolCalls[tc.index] = { id: '', name: '', arguments: '' };
+                            if (tc.id) toolCalls[tc.index].id = tc.id;
+                            if (tc.function?.name) toolCalls[tc.index].name = tc.function.name;
+                            if (tc.function?.arguments) toolCalls[tc.index].arguments += tc.function.arguments;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. 检查是否需要从文本中提取工具调用 (某些模型的兼容)
+    if (toolCalls.length === 0 && fullContent) {
+        const { cleanText, toolCalls: textToolCalls } = extractToolCallsFromText(fullContent);
+        if (textToolCalls.length > 0) {
+            console.log(`[AI Stream] Detected ${textToolCalls.length} text-based tool calls`);
+            toolCalls = textToolCalls;
+            fullContent = cleanText;
+        }
+    }
+
+    return { fullContent, toolCalls };
+}
+
+/**
+ * 内部辅助：处理工具调用并发送到 SSE
+ */
+async function handleToolCallsToSSE(toolCalls, fullContent, messages, executeTool, sseStream, env) {
+    for (const tc of toolCalls) {
+        if (!tc.name) continue;
+
+        await sseStream.writeSSE({ event: 'tool_call', data: JSON.stringify({ name: tc.name, status: 'started' }) });
+
+        const args = tc.arguments ? JSON.parse(tc.arguments) : {};
+        const result = await executeTool(tc.name, args);
+
+        await sseStream.writeSSE({ event: 'tool_result', data: JSON.stringify({ name: tc.name, summary: MSG.AI.TOOLS.RESULT_READY }) });
+
+        messages.push({
+            role: 'assistant',
+            content: fullContent || null,
+            tool_calls: [{ id: tc.id, type: 'function', function: { name: tc.name, arguments: tc.arguments } }]
+        });
+        messages.push({
+            role: 'tool',
+            tool_call_id: tc.id,
+            content: JSON.stringify(result)
+        });
+    }
+
+    const finalResult = await callAIStream(messages, [], env);
+    await processStreamToSSE(finalResult.body, sseStream);
+}
+
+export default app;
