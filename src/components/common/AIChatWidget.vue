@@ -100,7 +100,7 @@
 <script setup>
 import { ref, nextTick, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { API_URLS } from '@/utils/constants';
+import { API as API_URLS } from '@/utils/constants';
 import { renderMarkdown } from '@/utils/ai-markdown';
 import ChatMessage from '@/components/common/ai/ChatMessage.vue';
 import AISuggestions from '@/components/common/ai/AISuggestions.vue';

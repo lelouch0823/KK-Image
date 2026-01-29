@@ -1,5 +1,5 @@
 import { ref, computed, onUnmounted } from 'vue';
-import { API_URLS } from '@/utils/constants';
+import { API as API_URLS } from '@/utils/constants';
 import { SSEParser } from '@/utils/streaming';
 import { useSmoothTypewriter } from '@/composables/useSmoothTypewriter';
 import { useToast } from '@/composables/useToast';
