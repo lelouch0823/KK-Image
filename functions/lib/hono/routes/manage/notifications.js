@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { NotificationRepository } from '../../../../repositories/NotificationRepository.js';
-import { success, error } from '../../../api/utils/response.js';
-import { MSG } from '../../../api/utils/messages.js';
+import { success, error } from '../../../../api/utils/response.js';
+import { MSG } from '../../../../api/utils/messages.js';
 
 const app = new Hono();
 
