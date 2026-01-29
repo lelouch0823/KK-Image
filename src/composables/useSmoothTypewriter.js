@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { ref, onUnmounted } from 'vue';
 
 /**
  * SOTA 丝滑打字机效果 Composable
@@ -23,6 +23,14 @@ export function useSmoothTypewriter() {
     let lastFrameTime = 0;     // 上一帧的时间戳
     let accumulatedTime = 0;   // 累积未处理的时间毫秒
     let rafId = null;          // requestAnimationFrame 的 ID
+
+    // 组件卸载时自动清理定时器
+    onUnmounted(() => {
+        if (rafId) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+        }
+    });
 
     // 参数配置
     const BASE_SPEED = 20;     // 基础速度：字符间隔毫秒 (约 50 字/秒)

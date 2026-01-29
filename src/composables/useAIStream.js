@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import { SSEParser } from '@/utils/streaming';
 import { useSmoothTypewriter } from '@/composables/useSmoothTypewriter';
 import { useToast } from '@/composables/useToast';
@@ -22,6 +22,14 @@ export function useAIStream() {
 
     // 请求取消控制器
     let abortController = null;
+
+    // 组件卸载时自动取消请求
+    onUnmounted(() => {
+        if (abortController) {
+            abortController.abort();
+            abortController = null;
+        }
+    });
 
     const {
         fullContent,

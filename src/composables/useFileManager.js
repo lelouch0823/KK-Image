@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { ref, onUnmounted } from 'vue';
 import { useToast } from './useToast';
 import { useAuth } from './useAuth';
 import { useI18n } from './useI18n';
@@ -18,6 +18,16 @@ export function useFileManager() {
   const breadcrumbs = ref([]);
   const selectedFiles = ref([]);
 
+  let abortController = null;
+
+  // 组件卸载时取消请求
+  onUnmounted(() => {
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
+    }
+  });
+
   /**
    * 加载文件夹数据
    * @param {string|null} folderId - 文件夹ID，null表示根目录
@@ -32,9 +42,17 @@ export function useFileManager() {
       selectedFiles.value = [];
     }
 
+    // 取消之前的请求
+    if (abortController) {
+      abortController.abort();
+    }
+    abortController = new AbortController();
+
     try {
       if (folderId) {
-        const res = await authFetch(API.FOLDER_BY_ID(folderId)).then((r) => r.json());
+        const res = await authFetch(API.FOLDER_BY_ID(folderId), {
+          signal: abortController.signal
+        }).then((r) => r.json());
         if (res.success) {
           currentFolder.value = res.data;
           subfolders.value = res.data.subfolders;
@@ -46,8 +64,8 @@ export function useFileManager() {
       } else {
         // 根目录：并行加载文件夹和文件
         const [foldersRes, filesRes] = await Promise.all([
-          authFetch(API.FOLDERS).then((r) => r.json()),
-          authFetch(API.FILES).then((r) => r.json()),
+          authFetch(API.FOLDERS, { signal: abortController.signal }).then((r) => r.json()),
+          authFetch(API.FILES, { signal: abortController.signal }).then((r) => r.json()),
         ]);
 
         if (foldersRes.success) {
@@ -66,6 +84,7 @@ export function useFileManager() {
         }
       }
     } catch (_e) {
+      if (_e.name === 'AbortError') return;
       if (!silent) {
         error(t('fileOps.loadFailed'));
       }
