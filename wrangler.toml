@@ -101,7 +101,7 @@ ModerateContentApiKey = ""
 SENTRY_DSN = ""
 
 # AI 助手配置 (OpenAI 兼容 API)
-AI_API_KEY = "ms-a5a227b4-b186-4411-8842-e78f6eebc8d6"
+AI_API_KEY = "" # SOTA: 敏感凭据必须通过 Cloudflare Dashboard 设置
 AI_API_URL = "https://api-inference.modelscope.cn/v1/"
 # 模型优先级列表（逗号分隔，按顺序尝试，额度不足时自动切换）
 AI_MODELS = "deepseek-ai/DeepSeek-V3.2,Qwen/Qwen3-Coder-480B-A35B-Instruct,Qwen/QwQ-32B,Qwen/Qwen3-32B,Qwen/Qwen3-Next-80B-A3B-Instruct"
@@ -148,14 +148,14 @@ ModerateContentApiKey = ""
 SENTRY_DSN = ""
 
 # AI 助手配置
-AI_API_KEY = "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"
+AI_API_KEY = "" # SOTA: 敏感凭据必须通过 Cloudflare Dashboard 设置
 AI_API_URL = "https://integrate.api.nvidia.com/v1"
 AI_MODELS = "minimaxai/minimax-m2.1"
 AI_MODEL_SWITCH_THRESHOLD = "5"
 
 # Cloudflare Turnstile 防滥用验证
 TURNSTILE_SITE_KEY = "0x4AAAAAACJfZho-HoWMjX2s"
-TURNSTILE_SECRET_KEY = "0x4AAAAAACJfZgVVRfDSbOF7Kf9bU1kmmHI"
+TURNSTILE_SECRET_KEY = "" # SOTA: 敏感凭据必须通过 Cloudflare Dashboard 设置
 
 # 微信小程序配置
 # 用于销售端一键登录 ({appid, secret} from mp.weixin.qq.com)
