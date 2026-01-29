@@ -173,7 +173,7 @@
 </template>
 
 <script setup>
-import { onMounted, onActivated, watch, reactive } from 'vue';
+import { onMounted, onUnmounted, onActivated, watch, reactive } from 'vue';
 import { useRoute } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
 import { useNotifications } from '@/composables/useNotifications';
@@ -319,4 +319,8 @@ const handleStatusChange = async (order, { status, note }) => {
     statusChanging[order.id] = false;
   }
 };
+onUnmounted(() => {
+  // 清理局部 UI 状态
+  Object.keys(statusChanging).forEach(key => delete statusChanging[key]);
+});
 </script>

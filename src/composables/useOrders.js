@@ -9,19 +9,22 @@ import { useToast } from './useToast';
 import { useI18n } from './useI18n';
 import { API } from '@/utils/constants';
 
+// ============================================================
+// 全局共享状态 (Single Source of Truth)
+// ============================================================
+const sharedResource = useResource(API.MANAGE_ORDERS, {
+  listPath: 'data.orders',
+});
+const salespersons = ref([]);
+const statuses = ref([]);
+
 export function useOrders() {
   const { authFetch } = useAuth();
   const { addToast } = useToast();
   const { t } = useI18n();
 
-  // 使用 useResource 管理管理端订单列表
-  const resource = useResource(API.MANAGE_ORDERS, {
-    listPath: 'data.orders',
-  });
-
-  // 额外状态（Orders 特有）
-  const salespersons = ref([]);
-  const statuses = ref([]);
+  // 使用共享资源
+  const resource = sharedResource;
 
   /**
    * 加载管理端订单列表（增强版，提取额外数据）
@@ -54,12 +57,15 @@ export function useOrders() {
 
       if (res.success) {
         // 只有当订单数据发生变化或强制更新时才进行赋值，减少渲染压力
-        // 这里可以做简单的深比较，但如果是分页请求，通常直接更新
         resource.items.value = res.data.orders;
 
-        // 提取额外数据（元数据几乎不随分页变化，可以只在第一页加载或单独缓存）
-        if (res.data.salespersons) salespersons.value = res.data.salespersons;
-        if (res.data.statuses) statuses.value = res.data.statuses;
+        // 提取额外数据（元数据几乎不随分页变化，仅在缺失时加载）
+        if (res.data.salespersons && salespersons.value.length === 0) {
+          salespersons.value = res.data.salespersons;
+        }
+        if (res.data.statuses && statuses.value.length === 0) {
+          statuses.value = res.data.statuses;
+        }
 
         // 更新分页
         if (res.data.pagination) {
