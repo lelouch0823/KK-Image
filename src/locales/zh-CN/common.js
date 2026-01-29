@@ -67,4 +67,7 @@ export default {
   click_to_upload: '点击选择文件',
   or_drag_drop: '或将文件拖拽到此处',
   create: '创建',
+  noSearchResults: '未找到结果',
+  noResultsDesc: '未能找到与 "{query}" 匹配的内容',
+  clearSearch: '清除搜索',
 };

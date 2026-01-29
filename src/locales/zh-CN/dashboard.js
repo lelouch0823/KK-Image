@@ -1,5 +1,8 @@
 // 仪表盘
 export default {
+  title: '控制台',
+  liveStatus: '实时监测',
+  lastUpdated: '最后刷新',
   stats: '数据概览',
   todayOrders: '今日订单',
   pendingOrders: '待处理订单',

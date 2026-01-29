@@ -49,6 +49,24 @@
       @clear-selection="selectedIds.clear()"
     />
 
+    <!-- Error State -->
+    <div v-if="error" class="flex flex-1 flex-col items-center justify-center p-6">
+      <EmptyState
+        icon="inbox"
+        :title="t('common.error')"
+        :description="error"
+        type="danger"
+      >
+        <template #action>
+          <AppButton
+            variant="primary"
+            :text="t('common.retry')"
+            @click="loadFolderData(currentFolder?.id)"
+          />
+        </template>
+      </EmptyState>
+    </div>
+
     <!-- Folder Info & Select All -->
     <div
       v-if="currentFolder"
@@ -77,7 +95,7 @@
     </div>
 
     <!-- Content Area -->
-    <div v-else class="flex flex-1 flex-col" @contextmenu.prevent="openBackgroundContextMenu($event)">
+    <div v-else-if="!loading && !error" class="flex flex-1 flex-col" @contextmenu.prevent="openBackgroundContextMenu($event)">
       <!-- Subfolders -->
       <div v-if="displayedSubfolders.length > 0" class="p-6 pb-0">
         <FolderGrid
@@ -166,11 +184,19 @@
 
       <!-- Empty State -->
       <EmptyState
-        v-if="!loading && displayedSubfolders.length === 0 && displayedFiles.length === 0"
-        icon="folder"
-        :title="t('fileManager.emptyFolder')"
-        :description="t('fileManager.emptyDesc')"
-      />
+        v-if="displayedSubfolders.length === 0 && displayedFiles.length === 0"
+        :icon="searchQuery ? 'search' : 'folder'"
+        :title="searchQuery ? t('common.noSearchResults') : t('fileManager.emptyFolder')"
+        :description="searchQuery ? t('common.noResultsDesc', { query: searchQuery }) : t('fileManager.emptyDesc')"
+      >
+        <template v-if="searchQuery" #action>
+          <AppButton
+            variant="secondary"
+            :text="t('common.clearSearch')"
+            @click="searchQuery = ''"
+          />
+        </template>
+      </EmptyState>
     </div>
 
     <!-- Modals Wrapper -->
@@ -248,6 +274,7 @@ const {
   formatSize, 
   getFileExtension, 
   isImage,
+  error,
 } = useFileManager();
 
 const { searchQuery } = useSearch();

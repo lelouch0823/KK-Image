@@ -22,6 +22,43 @@
 
     <!-- Main Content -->
     <div class="relative z-10 px-4 py-6 sm:px-6 lg:px-8">
+      <!-- Header Area -->
+      <div class="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-(--text-main) sm:text-3xl">
+            {{ t('dashboard.title') }}
+          </h1>
+          <div class="mt-1 flex items-center gap-2 text-sm text-(--text-secondary)">
+            <span class="flex items-center gap-1.5">
+              <span class="relative flex size-2">
+                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75"></span>
+                <span class="relative inline-flex size-2 rounded-full bg-success"></span>
+              </span>
+              {{ t('dashboard.liveStatus') }}
+            </span>
+            <span>·</span>
+            <span>{{ t('dashboard.lastUpdated') }}: {{ lastUpdatedTime }}</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button
+            class="flex items-center gap-2 rounded-xl border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-medium text-(--text-main) shadow-sm transition-all hover:bg-(--bg-hover) active:scale-95"
+            @click="handleRefresh"
+          >
+            <svg 
+              class="size-4" 
+              :class="{ 'animate-spin': isRefreshing }"
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {{ t('common.refresh') }}
+          </button>
+        </div>
+      </div>
       
       <!-- Metrics Grid -->
       <div class="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -347,6 +384,8 @@ const { authFetchJson } = useAuth();
 const { t } = useI18n();
 const { getOrder } = useOrders();
 const { copyShareLink } = useClipboard();
+const isRefreshing = ref(false);
+const lastUpdatedTime = ref(new Date().toLocaleTimeString());
 
 const recentFiles = ref([]);
 const recentShares = ref([]);
@@ -433,10 +472,20 @@ const fetchDashboardData = async () => {
       if (res.data.recentShares) {
         recentShares.value = res.data.recentShares;
       }
+      lastUpdatedTime.value = new Date().toLocaleTimeString();
     }
   } catch (e) {
     console.error('Dashboard data load failed', e);
   }
+};
+
+const handleRefresh = async () => {
+  if (isRefreshing.value) return;
+  isRefreshing.value = true;
+  await fetchDashboardData();
+  setTimeout(() => {
+    isRefreshing.value = false;
+  }, 500); // 保证动画转动至少一下，改善手感
 };
 
 const handleCopyShareLink = async (item) => {
