@@ -8,7 +8,10 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'jsdom',
-        include: ['src/**/__tests__/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+        include: [
+            'src/**/__tests__/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+            'functions/**/__tests__/*.{test,spec}.js'
+        ],
         root: fileURLToPath(new URL('./', import.meta.url)),
     },
     resolve: {
