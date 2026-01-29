@@ -135,11 +135,11 @@
                        @contextmenu.prevent.stop="openContextMenu($event, file, 'file')"
                     >
                          <div class="flex flex-col items-center">
-                             <img
+                             <AppImage
                                v-if="isImage(file)"
                                :src="file.url"
-                               class="mb-2 size-20 rounded bg-[var(--bg-muted)] object-cover shadow-sm dark:bg-white/10"
-                               loading="lazy"
+                               class="mb-2 size-20 shadow-sm"
+                               fit="cover"
                              />
                               <div
                                v-else
@@ -216,6 +216,7 @@ import Skeleton from '@/components/ui/Skeleton.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import FileManagerToolbar from './FileManagerToolbar.vue';
 import FileManagerModals from './FileManagerModals.vue';
+import AppImage from '@/components/ui/AppImage.vue';
 
 import { useFileManager } from '@/composables/useFileManager';
 import { useI18n } from '@/composables/useI18n';
@@ -271,7 +272,6 @@ const displayedFiles = computed(() => {
 // Setup New Composables
 const { 
   selectedIds, 
-  selectedCount: selectedCountValue, // Rename to avoid conflict if any (though logic uses selectedIds.size mostly)
   toggleSelect, 
   selectAll, 
   clearSelection 
@@ -469,9 +469,6 @@ onActivated(() => {
 
 onUnmounted(() => {
   // Cleanup handled by onWatcherCleanup
-  if (mediaQuery) {
-    mediaQuery.removeEventListener('change', updateMobile);
-  }
 });
 
 // Context Menu Logic

@@ -53,12 +53,13 @@ export function useOrders() {
       const res = await authFetch(`${API.MANAGE_ORDERS}?${cleanParams.toString()}`).then(r => r.json());
 
       if (res.success) {
-        // 更新列表数据
+        // 只有当订单数据发生变化或强制更新时才进行赋值，减少渲染压力
+        // 这里可以做简单的深比较，但如果是分页请求，通常直接更新
         resource.items.value = res.data.orders;
 
-        // 提取额外数据
-        salespersons.value = res.data.salespersons || [];
-        statuses.value = res.data.statuses || [];
+        // 提取额外数据（元数据几乎不随分页变化，可以只在第一页加载或单独缓存）
+        if (res.data.salespersons) salespersons.value = res.data.salespersons;
+        if (res.data.statuses) statuses.value = res.data.statuses;
 
         // 更新分页
         if (res.data.pagination) {

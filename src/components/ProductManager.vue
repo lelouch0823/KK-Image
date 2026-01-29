@@ -181,14 +181,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, defineAsyncComponent } from 'vue';
 import { useProducts } from '@/composables/useProducts';
-import ProductStats from './product/ProductStats.vue';
+const ProductStats = defineAsyncComponent(() => import('./product/ProductStats.vue'));
 import ProductFilters from './product/ProductFilters.vue';
 import ProductTable from './product/ProductTable.vue';
 import ProductCreateModal from './product/ProductCreateModal.vue'; 
 import ProductDetail from './product/ProductDetail.vue'; 
-import ProductImportModal from './product/ProductImportModal.vue';
+const ProductImportModal = defineAsyncComponent(() => import('./product/ProductImportModal.vue'));
 import ProductGrid from './product/ProductGrid.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';

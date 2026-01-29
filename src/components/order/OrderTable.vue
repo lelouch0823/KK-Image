@@ -5,6 +5,8 @@
     :loading="loading"
     row-key="id"
     class="h-full"
+    :virtual="data.length > 50"
+    :estimate-size="64"
     @row-click="$emit('detail', $event)"
   >
     <template #toolbar>
@@ -20,7 +22,7 @@
           type="checkbox"
           :checked="isAllSelected"
           :indeterminate="isPartialSelected"
-          class="size-4 cursor-pointer rounded-lg border-(--border-color) bg-(--bg-muted) text-primary transition-all focus:ring-primary/20"
+          class="text-primary size-4 cursor-pointer rounded-lg border-(--border-color) bg-(--bg-muted) transition-all focus:ring-primary/20"
           @change="toggleSelectAll"
         />
       </div>

@@ -5,6 +5,8 @@
     :loading="loading"
     row-key="id"
     :empty-text="t('product.table.empty')"
+    :virtual="products.length > 50"
+    :estimate-size="64"
     @row-click="$emit('view', $event)"
   >
     <template #toolbar>

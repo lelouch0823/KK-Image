@@ -5,6 +5,8 @@
       :data="files"
       row-key="id"
       :empty-text="t('fileManager.emptyFolder')"
+      :virtual="files.length > 50"
+      :estimate-size="64"
       @row-click="$emit('preview', $event)"
     >
       <template #cell-name="{ row }">
@@ -26,11 +28,11 @@
 
           <!-- Thumbnail -->
           <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-muted)] text-[var(--text-secondary)]">
-            <img
+            <AppImage
               v-if="isImage(row)"
               :src="row.url"
-              class="size-full rounded-lg object-cover"
-              loading="lazy"
+              class="size-full"
+              fit="cover"
             />
             <svg v-else class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -102,6 +104,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useFileManager } from '@/composables/useFileManager';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppImage from '@/components/ui/AppImage.vue';
 
 const props = defineProps({
   files: {
