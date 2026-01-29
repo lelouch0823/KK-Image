@@ -8,56 +8,22 @@
  * @throws {Error} - 如果任意任务失败
  */
 export async function runConcurrent(tasks, limit = 3) {
+    if (!tasks || tasks.length === 0) return [];
+    
     const results = new Array(tasks.length);
-    const executing = new Set();
     let index = 0;
 
-    const runTask = async () => {
-        if (index >= tasks.length) return;
-
-        const i = index++;
-        const task = tasks[i];
-
-        const p = Promise.resolve().then(() => task());
-
-        // 追踪执行中任务
-        executing.add(p);
-
-        try {
-            results[i] = await p;
-        } finally {
-            executing.delete(p);
-        }
-
-        // 链式调用下一个
-        if (index < tasks.length) {
-            await runTask();
-        }
-    };
-
-    // 启动初始批次
-    const initialExec = [];
-    while (initialExec.length < limit && index < tasks.length) {
-        initialExec.push(runTask());
-    }
-
-    // 等待所有初始链完成 (runTask 内部会递归等待)
-    // 注意：runTask 是 async，但它内部 await p。
-    // 上面的实现有缺陷：runTask 递归调用 await runTask() 会导致调用栈随任务数增长? 
-    // 不，await runTask() 是尾调用位置，但在 JS async中不是真正的尾递归优化。
-    // 更好的方式是 while 循环 + Promise.race (如之前版本)，或者纯 Promise 链。
-
     // SOTA 迭代器模式实现:
-    await Promise.all(
-        Array.from({ length: Math.min(limit, tasks.length) }, async () => {
-            while (index < tasks.length) {
-                const i = index++;
-                const task = tasks[i];
-                results[i] = await task(); // 执行并存储结果
-            }
-        })
-    );
+    // 创建指定数量的 "worker" 协程，每个 worker 负责不断从任务池中提取任务并执行
+    const workers = Array.from({ length: Math.min(limit, tasks.length) }, async () => {
+        while (index < tasks.length) {
+            const i = index++;
+            const task = tasks[i];
+            results[i] = await task(); // 执行并存储结果
+        }
+    });
 
+    await Promise.all(workers);
     return results;
 }
 
