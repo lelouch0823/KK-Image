@@ -17,8 +17,15 @@
         <div
           v-for="person in data"
           :key="person.id"
-          class="group overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+          class="group relative overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
         >
+          <!-- 状态标签 (Top Right) -->
+          <div class="absolute top-3 right-3 z-10">
+            <StatusBadge :variant="person.isActive ? 'success' : 'default'" size="xs">
+              {{ person.isActive ? t('salesperson.active') : t('salesperson.disabled') }}
+            </StatusBadge>
+          </div>
+
           <!-- 卡片主体 -->
           <div class="p-4 text-center">
             <!-- 头像 -->
@@ -34,23 +41,19 @@
               {{ person.store || '-' }}
             </div>
             <!-- 订单数 (可点击跳转) -->
-            <button
-              v-if="person.orderCount > 0"
-              class="mt-2 flex items-center justify-center gap-1"
-              @click="$emit('view-orders', person)"
-            >
-              <span class="text-secondary text-xs">{{ t('salesperson.table.orders') }}:</span>
-              <StatusBadge variant="info" size="xs">{{ person.orderCount }}</StatusBadge>
-            </button>
-            <div v-else class="mt-2 flex items-center justify-center gap-1">
-              <span class="text-secondary text-xs">{{ t('salesperson.table.orders') }}:</span>
-              <StatusBadge variant="default" size="xs">{{ person.orderCount }}</StatusBadge>
-            </div>
-            <!-- 状态标签 -->
-            <div class="mt-2">
-              <StatusBadge :variant="person.isActive ? 'success' : 'default'" size="sm">
-                {{ person.isActive ? t('salesperson.active') : t('salesperson.disabled') }}
-              </StatusBadge>
+            <div class="mt-4 flex justify-center">
+                <button
+                v-if="person.orderCount > 0"
+                class="flex items-center justify-center gap-1 transition-opacity hover:opacity-80"
+                @click="$emit('view-orders', person)"
+                >
+                <span class="text-secondary text-xs">{{ t('salesperson.table.orders') }}:</span>
+                <StatusBadge variant="info" size="xs">{{ person.orderCount }}</StatusBadge>
+                </button>
+                <div v-else class="flex items-center justify-center gap-1">
+                <span class="text-secondary text-xs">{{ t('salesperson.table.orders') }}:</span>
+                <StatusBadge variant="default" size="xs">{{ person.orderCount }}</StatusBadge>
+                </div>
             </div>
           </div>
 

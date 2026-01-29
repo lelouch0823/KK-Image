@@ -1,12 +1,26 @@
 <template>
   <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm">
     <!-- 头部操作栏 -->
+    <!-- 头部操作栏 -->
     <div
-      class="flex flex-col justify-between gap-4 border-b border-[var(--border-color)] p-4 sm:flex-row sm:items-center"
+      class="flex flex-col gap-4 border-b border-[var(--border-color)] p-4 sm:flex-row sm:items-center sm:justify-between"
     >
-      <div>
-        <h2 class="text-lg font-semibold text-[var(--text-main)]">{{ t('salesperson.title') }}</h2>
-        <p class="mt-1 text-sm text-[var(--text-secondary)]">{{ t('salesperson.subtitle') }}</p>
+      <!-- Title Section -->
+      <div class="flex items-center justify-between sm:block">
+        <div>
+          <h2 class="text-lg font-semibold text-[var(--text-main)]">{{ t('salesperson.title') }}</h2>
+          <p class="mt-1 text-sm text-[var(--text-secondary)]">{{ t('salesperson.subtitle') }}</p>
+        </div>
+
+        <!-- Mobile Create Button -->
+        <button
+          class="flex size-9 items-center justify-center rounded-xl bg-[var(--color-primary)] text-white shadow-lg shadow-[var(--color-primary)]/20 transition-all active:scale-95 sm:hidden dark:text-gray-900"
+          @click="openModal()"
+        >
+          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+        </button>
       </div>
 
       <div class="flex flex-wrap items-center gap-3">
@@ -18,9 +32,9 @@
           @search="handleSearch"
         />
 
-        <!-- 新建按钮 -->
+        <!-- 新建按钮 (Desktop) -->
         <button
-          class="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white shadow-[var(--color-primary)]/10 shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 dark:text-gray-900"
+          class="hidden sm:flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white shadow-[var(--color-primary)]/10 shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 dark:text-gray-900"
           @click="openModal()"
         >
           <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

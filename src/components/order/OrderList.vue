@@ -52,20 +52,26 @@
         <div
           v-for="order in visibleItems"
           :key="order.id"
-          class="order-item group relative cursor-pointer overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg active:scale-[0.98]"
-          :class="getStatusBorderClass(order.status)"
+          class="order-item group relative cursor-pointer overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md active:scale-[0.98]"
           :style="{ height: `${ITEM_HEIGHT - 12}px` }"
           @click="$emit('view', order)"
         >
-          <div class="flex items-start gap-3">
+          <!-- 状态 Badge (右上角) -->
+          <div class="absolute top-3 right-3 z-10">
+              <StatusBadge :variant="getStatusVariant(order.status)" size="sm" class="!px-2 !py-0.5 !text-[10px]">
+                  {{ t(`order.statuses.${order.status}`) }}
+              </StatusBadge>
+          </div>
+
+          <div class="flex h-full gap-3">
             <!-- 主图 -->
-            <div class="size-20 shrink-0 overflow-hidden rounded-lg bg-(--bg-muted) shadow-sm">
+            <div class="size-20 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-muted)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)]">
               <AppImage
                 v-if="order.mainImage"
                 :src="order.mainImage"
                 :blurhash="order.mainImageBlurhash"
                 fit="cover"
-                class="order-list-image size-full"
+                class="order-list-image size-full transition-transform duration-500 group-hover:scale-110"
                 rounded="none"
               />
               <div v-else class="flex size-full items-center justify-center">
@@ -81,51 +87,42 @@
             </div>
 
             <!-- 信息 -->
-            <div class="min-w-0 flex-1">
-              <div class="flex items-start justify-between gap-2">
-                <h4 class="text-primary truncate font-medium">
+            <div class="flex min-w-0 flex-1 flex-col justify-between py-0.5">
+              <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-secondary font-mono text-[10px] tracking-wide">{{ order.orderNo }}</span>
+                    <!-- New Update Red Dot -->
+                    <div v-if="order.hasNewFeedback" class="relative flex size-2">
+                      <span class="absolute inline-flex size-full animate-ping rounded-full bg-danger opacity-75"></span>
+                      <span class="relative inline-flex size-2 rounded-full bg-danger"></span>
+                    </div>
+                </div>
+                <!-- 预留右侧 Badge 空间，防止文字重叠 -->
+                <h4 class="text-primary mt-0.5 truncate pr-16 text-sm font-bold leading-tight">
                   {{ order.productName || t('order.form.productName') }}
                 </h4>
-                <!-- 红点 -->
-                <div v-if="order.hasNewFeedback" class="shrink-0">
-                  <span
-                    class="inline-flex items-center gap-1 rounded-full bg-danger-bg px-2 py-0.5 text-xs font-medium text-danger-text"
-                  >
-                    <span class="size-1.5 animate-pulse rounded-full bg-danger"></span>
-                    {{ t('order.portal.hasUpdate') }}
-                  </span>
+              </div>
+
+              <div class="flex items-end justify-between">
+                <!-- 客户信息 (针对销售端显示) -->
+                <div class="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                    <svg class="size-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    <span class="truncate max-w-[80px]">{{ order.customer?.name || t('common.unknown') }}</span>
+                    <span class="text-[var(--border-color)]">|</span>
+                    <span>{{ formatTime(order.createdAt) }}</span>
                 </div>
-              </div>
-
-              <div class="mt-1 flex items-center gap-2 text-xs">
-                <span class="text-secondary rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono">{{ order.orderNo }}</span>
-              </div>
-
-              <div class="mt-2 flex items-center justify-between">
-                <!-- 状态标签 -->
-                <StatusBadge :variant="getStatusVariant(order.status)" size="sm">
-                  {{ t(`order.statuses.${order.status}`) }}
-                </StatusBadge>
-
-                <!-- 时间 -->
-                <span class="text-secondary text-xs">{{ formatTime(order.createdAt) }}</span>
+                
+                <!-- 箭头 -->
+                <svg
+                  class="text-quaternary size-4 shrink-0 -rotate-90 opacity-50 transition-transform group-hover:translate-x-1 group-hover:opacity-100"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
               </div>
             </div>
-
-            <!-- 箭头 -->
-            <svg
-              class="text-muted size-5 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5l7 7-7 7"
-              ></path>
-            </svg>
           </div>
         </div>
       </div>
@@ -157,7 +154,11 @@ import Skeleton from '@/components/ui/Skeleton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 
 // 常量：每个订单项的高度 (包含 margin)
-const ITEM_HEIGHT = 116; // 104px 卡片 + 12px margin
+// Card Height (20*4 + 1.5*2) + Padding (12*2) = 80 + 24 = 104px content height
+// Border (2px) = 106px
+// Margin Bottom (12px) = 118px
+// Adjusting to fit strictly: let's use 108px content + 12px margin = 120px
+const ITEM_HEIGHT = 120; // Re-calibrated
 const BUFFER_SIZE = 5; // 上下各多渲染 5 个项目
 
 const props = defineProps({
@@ -224,23 +225,6 @@ onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
   window.removeEventListener('resize', handleResize);
 });
-
-// 状态边框样式
-const getStatusBorderClass = (status) => {
-  const variant = getStatusVariant(status);
-  switch (variant) {
-    case 'success':
-      return 'border-l-4 border-l-success';
-    case 'warning':
-      return 'border-l-4 border-l-warning';
-    case 'danger':
-      return 'border-l-4 border-l-danger';
-    case 'info':
-      return 'border-l-4 border-l-info';
-    default:
-      return 'border-l-4 border-l-(--text-muted)';
-  }
-};
 
 // 格式化时间
 const formatTime = (timestamp) => formatRelativeTime(timestamp, t);

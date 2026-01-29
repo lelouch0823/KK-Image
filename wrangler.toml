@@ -25,6 +25,10 @@ mode = "smart"
 
 # 存储配置
 STORAGE_MODE = "single"
+# 主存储提供者：telegram, r2, s3
+# - telegram: 使用 Telegram Bot API（需配置 TG_Bot_Token 和 TG_Chat_ID）
+# - r2: 使用 Cloudflare R2（需配置 R2 桶绑定）
+# - s3: 使用 S3 兼容服务（需配置 S3_* 变量）
 STORAGE_PROVIDER = "r2"
 STORAGE_PRIMARY = "r2"
 S3_REGION = "auto"
@@ -34,13 +38,23 @@ STORAGE_FALLBACK_ENABLED = "true"
 STORAGE_FALLBACK_CHAIN = "r2,s3,telegram"
 STORAGE_FALLBACK_TIMEOUT = "3000"
 
-# 管理员认证 (开发默认值，生产环境通过 Dashboard 覆盖)
+# -----------------------------------------------------------------------------
+# 🔐 管理员认证（生产环境通过 Dashboard 设置）
+# -----------------------------------------------------------------------------
 BASIC_USER = "admin"
 BASIC_PASS = "123"
-JWT_SECRET = "kk-image-jwt-secret-dev"
 
-# 功能开关
+# JWT 密钥（生产环境必须通过 Dashboard 设置安全随机字符串）
+JWT_SECRET = "kk-image-jwt-secret-change-in-production"
+
+# -----------------------------------------------------------------------------
+# 🛡️ 功能开关（可选）
+# -----------------------------------------------------------------------------
+
+# 白名单模式：仅允许白名单中的图片显示
 WhiteList_Mode = "false"
+
+# 禁用遥测
 disable_telemetry = "false"
 
 # AI 配置 (非敏感项)

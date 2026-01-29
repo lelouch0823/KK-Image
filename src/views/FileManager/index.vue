@@ -97,7 +97,7 @@
     <!-- Content Area -->
     <div v-else-if="!loading && !error" class="flex flex-1 flex-col" @contextmenu.prevent="openBackgroundContextMenu($event)">
       <!-- Subfolders -->
-      <div v-if="displayedSubfolders.length > 0" class="p-6 pb-0">
+      <div v-if="displayedSubfolders.length > 0" class="p-4 pb-0 lg:p-6 lg:pb-0">
         <FolderGrid
           :folders="displayedSubfolders"
           :selected-ids="selectedIds"
@@ -110,11 +110,11 @@
       <!-- Divider -->
       <div
         v-if="displayedSubfolders.length > 0 && displayedFiles.length > 0"
-        class="m-6 h-px bg-[var(--border-color)]"
+        class="mx-4 my-4 h-px bg-[var(--border-color)] lg:mx-6 lg:my-6"
       ></div>
 
       <!-- Files -->
-      <div v-if="displayedFiles.length > 0" class="flex-1 p-4 pt-0 lg:p-6" @click="selectedIds.clear()">
+      <div v-if="displayedFiles.length > 0" class="flex-1 px-4 pb-4 pt-0 lg:px-6 lg:pb-6" @click="selectedIds.clear()">
         <h3
           v-if="displayedSubfolders.length > 0"
           class="text-secondary my-4 text-sm font-semibold lg:mt-6"

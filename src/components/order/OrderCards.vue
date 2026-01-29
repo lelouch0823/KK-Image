@@ -54,7 +54,7 @@
                   class="size-2.5 flex-shrink-0 animate-pulse rounded-full border-2 border-[var(--bg-card)] bg-[var(--color-danger)]"
                 ></span>
               </div>
-              <div @click.stop>
+              <div @click.stop class="shrink-0">
                 <slot name="status" :order="order"></slot>
               </div>
             </div>
