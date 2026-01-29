@@ -145,7 +145,7 @@ watch(
         name: person.name || '',
         store: person.store || '',
         phone: person.phone || '',
-        password: person.plainPassword || '',
+        password: '',
         isActive: person.isActive !== false,
       };
     } else {
