@@ -278,4 +278,25 @@ export class SalespersonRepository {
       .first();
     return result.count > 0;
   }
+
+  /**
+   * 记录登录信息
+   * @param {string} id
+   * @param {string} ip
+   * @param {string} device
+   * @returns {Promise<boolean>}
+   */
+  async recordLogin(id, ip, device) {
+    const result = await this.db
+      .prepare(
+        `
+            UPDATE salespersons 
+            SET last_login_at = ?, last_login_ip = ?, last_login_device = ?, updated_at = ?
+            WHERE id = ?
+        `
+      )
+      .bind(now(), ip || null, device || null, now(), id)
+      .run();
+    return result.success;
+  }
 }

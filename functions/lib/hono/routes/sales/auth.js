@@ -42,6 +42,12 @@ app.post('/login', zValidator('json', SalesLoginSchema), async (c) => {
             COOKIE_MAX_AGE
         );
 
+        // 记录登录信息
+        const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
+        const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'Unknown';
+        const userAgent = c.req.header('User-Agent') || 'Unknown';
+        await repo.recordLogin(salesperson.id, ip, userAgent);
+
         // 设置 HttpOnly Cookie
         setCookie(c, SALES_TOKEN_COOKIE, token, {
             httpOnly: true,
@@ -105,6 +111,11 @@ app.post('/wechat-login', zValidator('json', WechatLoginSchema), async (c) => {
             COOKIE_MAX_AGE
         );
 
+        // 记录登录信息
+        const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'Unknown';
+        const userAgent = c.req.header('User-Agent') || 'Unknown';
+        await repo.recordLogin(salesperson.id, ip, userAgent);
+
         // 设置 HttpOnly Cookie
         setCookie(c, SALES_TOKEN_COOKIE, token, {
             httpOnly: true,
@@ -154,6 +165,11 @@ app.post('/:token/auth', async (c) => {
             env,
             COOKIE_MAX_AGE
         );
+
+        // 记录登录信息
+        const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'Unknown';
+        const userAgent = c.req.header('User-Agent') || 'Unknown';
+        await repo.recordLogin(salesperson.id, ip, userAgent);
 
         // 设置 HttpOnly Cookie
         setCookie(c, SALES_TOKEN_COOKIE, token, {

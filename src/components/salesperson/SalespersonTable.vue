@@ -6,6 +6,8 @@
     row-key="id"
     :empty-text="t('salesperson.emptyList')"
     no-border
+    clickable
+    @row-click="$emit('view-detail', $event)"
   >
     <template v-if="$slots.toolbar" #toolbar>
       <slot name="toolbar" />
@@ -34,7 +36,7 @@
         v-if="value > 0"
         class="cursor-pointer text-info hover:underline"
         :title="t('salesperson.viewOrders')"
-        @click="$emit('view-orders', row)"
+        @click.stop="$emit('view-orders', row)"
       >
         <StatusBadge variant="info">{{ value }}</StatusBadge>
       </button>
@@ -54,7 +56,7 @@
         <button
           class="rounded-lg p-1.5 text-(--text-secondary) transition-colors hover:bg-(--bg-hover) hover:text-primary active:scale-90"
           :title="t('salesperson.copyLink')"
-          @click="$emit('copy', row.accessToken)"
+          @click.stop="$emit('copy', row.accessToken)"
         >
           <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -68,7 +70,7 @@
         <button
           class="rounded-lg p-1.5 text-(--text-secondary) transition-colors hover:bg-info-bg hover:text-info active:scale-90"
           :title="t('salesperson.edit')"
-          @click="$emit('edit', row)"
+          @click.stop="$emit('edit', row)"
         >
           <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -83,7 +85,7 @@
           class="rounded-lg p-1.5 text-(--text-secondary) transition-colors hover:bg-danger/10 hover:text-danger active:scale-90 disabled:cursor-not-allowed disabled:opacity-30"
           :title="row.orderCount > 0 ? t('salesperson.cannotDeleteHasOrders') : t('common.delete')"
           :disabled="row.orderCount > 0"
-          @click="$emit('delete', row)"
+          @click.stop="$emit('delete', row)"
         >
           <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -116,7 +118,7 @@ const props = defineProps({
   },
 });
 
-defineEmits(['edit', 'delete', 'copy', 'view-orders']);
+defineEmits(['edit', 'delete', 'copy', 'view-orders', 'view-detail']);
 
 const { t } = useI18n();
 

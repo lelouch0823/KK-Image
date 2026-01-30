@@ -61,6 +61,7 @@
           @delete="confirmDelete"
           @copy="copyAccessLink"
           @view-orders="handleViewOrders"
+          @view-detail="handleViewDetail"
         />
       </div>
 
@@ -73,6 +74,7 @@
           @delete="confirmDelete"
           @copy="copyAccessLink"
           @view-orders="handleViewOrders"
+          @view-detail="handleViewDetail"
         />
       </div>
     </div>
@@ -93,6 +95,14 @@
       :submitting="submitting"
       @submit="handleSubmit"
       @reset-token="handleResetToken"
+    />
+
+    <!-- 详情弹窗 -->
+    <SalespersonDetailModal
+      v-model="showDetailModal"
+      :person="detailPerson"
+      @view-orders="handleViewOrders"
+      @copy="copyAccessLink"
     />
 
     <!-- 确认弹窗 -->
@@ -118,6 +128,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import SalespersonTable from './salesperson/SalespersonTable.vue';
 import SalespersonCards from './salesperson/SalespersonCards.vue';
 import SalespersonForm from './salesperson/SalespersonForm.vue';
+import SalespersonDetailModal from './salesperson/SalespersonDetailModal.vue';
 
 const {
   salespersons,
@@ -138,6 +149,8 @@ const searchQuery = ref('');
 const showModal = ref(false);
 const submitting = ref(false);
 const editingSalesperson = ref(null);
+const showDetailModal = ref(false);
+const detailPerson = ref(null);
 
 // 确认弹窗状态
 const confirmData = ref({
@@ -254,5 +267,10 @@ const handleViewOrders = (person) => {
     name: 'Orders',
     query: { salesperson: person.id },
   });
+};
+
+const handleViewDetail = (person) => {
+  detailPerson.value = person;
+  showDetailModal.value = true;
 };
 </script>

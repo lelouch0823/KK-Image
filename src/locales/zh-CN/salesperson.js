@@ -27,6 +27,9 @@ export default {
   viewOrders: '查看该销售的订单',
   lastActive: '最后活跃',
   never: '从未',
+  // never: '从未', // Removed duplicate
+  lastLogin: '上次登录',
+  loginDevice: '登录设备',
   createSuccess: '销售创建成功',
   updateSuccess: '销售信息已更新',
   deleteConfirm: '确定要删除销售 "{name}" 吗？该操作不可恢复。',

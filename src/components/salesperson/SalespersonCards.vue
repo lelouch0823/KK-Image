@@ -17,7 +17,8 @@
         <div
           v-for="person in data"
           :key="person.id"
-          class="group relative overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+          class="group relative overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer"
+          @click="$emit('view-detail', person)"
         >
           <!-- 状态标签 (Top Right) -->
           <div class="absolute top-3 right-3 z-10">
@@ -45,7 +46,7 @@
                 <button
                 v-if="person.orderCount > 0"
                 class="flex items-center justify-center gap-1 transition-opacity hover:opacity-80"
-                @click="$emit('view-orders', person)"
+                @click.stop="$emit('view-orders', person)"
                 >
                 <span class="text-secondary text-xs">{{ t('salesperson.table.orders') }}:</span>
                 <StatusBadge variant="info" size="xs">{{ person.orderCount }}</StatusBadge>
@@ -65,7 +66,7 @@
             <button
               class="rounded-xl p-2 text-[var(--text-secondary)] transition-all hover:bg-[var(--color-primary)]/5 hover:text-[var(--color-primary)] active:scale-90"
               :title="t('salesperson.copyLink')"
-              @click="$emit('copy', person.accessToken)"
+              @click.stop="$emit('copy', person.accessToken)"
             >
               <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -80,7 +81,7 @@
             <button
               class="rounded-xl p-2 text-[var(--text-secondary)] transition-all hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)] active:scale-90"
               :title="t('salesperson.edit')"
-              @click="$emit('edit', person)"
+              @click.stop="$emit('edit', person)"
             >
               <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -96,7 +97,7 @@
               class="rounded-xl p-2 text-[var(--text-secondary)] transition-all hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)] active:scale-90 disabled:cursor-not-allowed disabled:opacity-30"
               :title="t('common.delete')"
               :disabled="person.orderCount > 0"
-              @click="$emit('delete', person)"
+              @click.stop="$emit('delete', person)"
             >
               <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -133,7 +134,7 @@ defineProps({
   },
 });
 
-defineEmits(['edit', 'delete', 'copy', 'view-orders']);
+defineEmits(['edit', 'delete', 'copy', 'view-orders', 'view-detail']);
 
 const { t } = useI18n();
 </script>

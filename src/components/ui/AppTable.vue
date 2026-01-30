@@ -73,6 +73,7 @@
                   :key="data[virtualRow.index]?.[rowKey] || virtualRow.index"
                   :data-index="virtualRow.index"
                   class="group absolute top-0 left-0 w-full transition-colors hover:bg-(--bg-hover)"
+                  :class="{ 'cursor-pointer': clickable }"
                   :style="{
                     height: `${virtualRow.size}px`,
                     transform: `translateY(${virtualRow.start}px)`,
@@ -108,6 +109,7 @@
               v-for="(row, index) in data"
               :key="row[rowKey] || index"
               class="group transition-colors hover:bg-(--bg-hover)"
+              :class="{ 'cursor-pointer': clickable }"
               @click="$emit('row-click', row)"
             >
               <td
@@ -173,6 +175,10 @@ const props = defineProps({
   estimateSize: {
     type: Number,
     default: 64, // 预估行高，TanStack 会自动动态测量
+  },
+  clickable: {
+    type: Boolean,
+    default: false,
   },
 });
 
