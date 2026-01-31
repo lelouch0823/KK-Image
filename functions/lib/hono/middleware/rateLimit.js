@@ -64,7 +64,7 @@ export function rateLimit(options = {}) {
     const kv = c.env.RATE_LIMIT_KV || c.env.KV;
     if (!kv) return next();
 
-    const ip = c.req.header('CF-Connecting-IP') || 'unknown';
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
     const windowKey = Math.floor(Date.now() / window);
     const key = `${keyPrefix}:${ip}:${windowKey}`;
 

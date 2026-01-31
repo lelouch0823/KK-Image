@@ -109,6 +109,10 @@ TURNSTILE_SITE_KEY = "0x4AAAAAACJfZho-HoWMjX2s"
 binding = "img_url"
 id = "7bedbd0e77b64e548b280114c38a5541"
 
+[[env.production.kv_namespaces]]
+binding = "KV"
+id = "bd08207a24304cdda4a2989d693fa05e"
+
 # 生产环境 R2 存储桶绑定
 [[env.production.r2_buckets]]
 binding = "R2_BUCKET"
@@ -168,6 +172,11 @@ database_name = "kk-life-db-test"
 database_id = "969b18c0-8c41-474b-8730-5141285fd259"
 migrations_dir = "migrations"
 
+# 预览环境 KV 命名空间绑定
+[[env.preview.kv_namespaces]]
+binding = "KV"
+id = "bf021825476e44d890655a419424d28a"
+
 # 预览环境 R2 存储桶绑定
 [[env.preview.r2_buckets]]
 binding = "R2_BUCKET"
@@ -197,3 +206,8 @@ binding = "DB"
 database_name = "kk-life-db"
 database_id = "98401861-5d57-4cb8-b092-ba707f8257a3"
 migrations_dir = "migrations"
+
+# KV 命名空间 (本地开发 - wrangler 自动创建本地存储)
+[[kv_namespaces]]
+binding = "KV"
+id = "bd08207a24304cdda4a2989d693fa05e"

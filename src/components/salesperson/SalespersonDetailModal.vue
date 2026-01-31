@@ -1,6 +1,7 @@
 <template>
   <Modal
-    v-model="modelValue"
+    :modelValue="modelValue"
+    @update:modelValue="emit('update:modelValue', $event)"
     :title="t('salesperson.title')"
     size="md"
     @close="close"
@@ -9,20 +10,7 @@
     <template #header>
         <div class="flex items-center justify-between w-full">
             <h3 class="text-lg font-semibold text-[var(--text-main)]">{{ t('salesperson.title') }}</h3>
-             <button
-                type="button"
-                class="-mr-1 p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text-main)]"
-                @click="close"
-            >
-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M6 18L18 6M6 6l12 12"
-                    ></path>
-                </svg>
-            </button>
+
         </div>
     </template>
 
@@ -57,10 +45,6 @@
         </div>
 
         <!-- Orders -->
-        <div class="flex items-center justify-between">
-          <span class="text-sm text-[var(--text-secondary)]">{{ t('salesperson.orderCount') }}</span>
-          <StatusBadge variant="info" size="sm">{{ person.orderCount }}</StatusBadge>
-        </div>
         <div class="flex items-center justify-between">
           <span class="text-sm text-[var(--text-secondary)]">{{ t('salesperson.orderCount') }}</span>
           <StatusBadge variant="info" size="sm">{{ person.orderCount }}</StatusBadge>

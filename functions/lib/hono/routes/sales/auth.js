@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { setCookie } from 'hono/cookie';
 import { SalesLoginSchema, WechatLoginSchema } from '../../schemas/sales.js';
-import { generateJWT, MSG } from '../../_shared/utils.js';
+import { generateJWT, MSG, hashPassword } from '../../_shared/utils.js';
 import { SalespersonRepository } from '../../../../repositories/SalespersonRepository.js';
 import {
     checkLoginLockout,
@@ -58,10 +58,9 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', SalesLoginSchema
         if (!salesperson) {
             // 记录失败（用户不存在也计入，防止用户名枚举）
             await recordLoginFailure(kv, ip, username, c.executionCtx);
-            return c.json({ success: false, error: '用户不存在或密码错误' }, 400);
+            return c.json({ success: false, error: MSG.AUTH.INVALID_CREDENTIALS }, 401);
         }
 
-        const { hashPassword } = await import('../../_shared/utils.js');
         const passwordHash = await hashPassword(password, env.JWT_SECRET);
 
         if (salesperson.password_hash !== passwordHash) {
@@ -82,9 +81,9 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', SalesLoginSchema
 
             return c.json({
                 success: false,
-                error: '密码错误',
+                error: MSG.AUTH.INVALID_CREDENTIALS,
                 remaining: failureResult.remaining,
-            }, 400);
+            }, 401);
         }
 
         // 登录成功，清除失败记录
@@ -222,7 +221,6 @@ app.post('/:token/auth', loginRateLimitMiddleware, async (c) => {
         if (!salesperson) return c.json({ success: false, error: MSG.SALESPERSON.NOT_FOUND }, 404);
         if (!salesperson.is_active) return c.json({ success: false, error: MSG.SALESPERSON.DISABLED }, 403);
 
-        const { hashPassword } = await import('../../_shared/utils.js');
         const inputHash = await hashPassword(password, env.JWT_SECRET);
 
         if (inputHash !== salesperson.password_hash) {
