@@ -4,6 +4,13 @@ import { setCookie } from 'hono/cookie';
 import { SalesLoginSchema, WechatLoginSchema } from '../../schemas/sales.js';
 import { generateJWT, MSG } from '../../_shared/utils.js';
 import { SalespersonRepository } from '../../../../repositories/SalespersonRepository.js';
+import {
+    checkLoginLockout,
+    recordLoginFailure,
+    clearLoginFailures,
+    loginRateLimitMiddleware,
+    formatRetryAfter,
+} from '../../middleware/rateLimit.js';
 
 const app = new Hono();
 
@@ -12,11 +19,34 @@ const SALES_TOKEN_COOKIE = 'sales_token';
 const COOKIE_MAX_AGE = 7 * 24 * 3600; // 7天
 
 /**
+ * 生成锁定错误消息
+ */
+function getLockedMessage(retryAfter) {
+    return MSG.AUTH.ACCOUNT_LOCKED.replace('{time}', formatRetryAfter(retryAfter));
+}
+
+/**
  * POST /login - 用户名密码登录
  */
-app.post('/login', zValidator('json', SalesLoginSchema), async (c) => {
+app.post('/login', loginRateLimitMiddleware, zValidator('json', SalesLoginSchema), async (c) => {
     const { username, password } = c.req.valid('json');
     const { env } = c;
+    const kv = env.RATE_LIMIT_KV || env.KV;
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+
+    // 检查是否被锁定
+    const lockoutStatus = await checkLoginLockout(kv, ip, username);
+    if (lockoutStatus.locked) {
+        return c.json(
+            {
+                success: false,
+                error: getLockedMessage(lockoutStatus.retryAfter),
+                retryAfter: lockoutStatus.retryAfter,
+            },
+            429,
+            { 'Retry-After': String(lockoutStatus.retryAfter) }
+        );
+    }
 
     try {
         const salesperson = await env.DB.prepare(`
@@ -26,15 +56,39 @@ app.post('/login', zValidator('json', SalesLoginSchema), async (c) => {
     `).bind(username.trim(), username.trim()).first();
 
         if (!salesperson) {
-            return c.json({ success: false, error: '用户不存在' }, 400);
+            // 记录失败（用户不存在也计入，防止用户名枚举）
+            await recordLoginFailure(kv, ip, username, c.executionCtx);
+            return c.json({ success: false, error: '用户不存在或密码错误' }, 400);
         }
 
         const { hashPassword } = await import('../../_shared/utils.js');
         const passwordHash = await hashPassword(password, env.JWT_SECRET);
 
         if (salesperson.password_hash !== passwordHash) {
-            return c.json({ success: false, error: '密码错误' }, 400);
+            // 记录登录失败
+            const failureResult = await recordLoginFailure(kv, ip, username, c.executionCtx);
+
+            if (failureResult.locked) {
+                return c.json(
+                    {
+                        success: false,
+                        error: getLockedMessage(failureResult.retryAfter),
+                        retryAfter: failureResult.retryAfter,
+                    },
+                    429,
+                    { 'Retry-After': String(failureResult.retryAfter) }
+                );
+            }
+
+            return c.json({
+                success: false,
+                error: '密码错误',
+                remaining: failureResult.remaining,
+            }, 400);
         }
+
+        // 登录成功，清除失败记录
+        await clearLoginFailures(kv, ip, username, c.executionCtx);
 
         const token = await generateJWT(
             { id: salesperson.id, name: salesperson.name, type: 'salesperson' },
@@ -44,7 +98,6 @@ app.post('/login', zValidator('json', SalesLoginSchema), async (c) => {
 
         // 记录登录信息
         const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
-        const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'Unknown';
         const userAgent = c.req.header('User-Agent') || 'Unknown';
         await repo.recordLogin(salesperson.id, ip, userAgent);
 
@@ -76,7 +129,7 @@ app.post('/login', zValidator('json', SalesLoginSchema), async (c) => {
 /**
  * POST /wechat-login - 微信登录
  */
-app.post('/wechat-login', zValidator('json', WechatLoginSchema), async (c) => {
+app.post('/wechat-login', loginRateLimitMiddleware, zValidator('json', WechatLoginSchema), async (c) => {
     const { code } = c.req.valid('json');
     const { env } = c;
 
@@ -141,10 +194,26 @@ app.post('/wechat-login', zValidator('json', WechatLoginSchema), async (c) => {
 /**
  * POST /:token/auth - 路径 Token 登录验证 (用于分享链接跳转)
  */
-app.post('/:token/auth', async (c) => {
+app.post('/:token/auth', loginRateLimitMiddleware, async (c) => {
     const accessToken = c.req.param('token');
     const { password } = await c.req.json();
     const { env } = c;
+    const kv = env.RATE_LIMIT_KV || env.KV;
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+
+    // 检查是否被锁定（使用 accessToken 作为用户标识）
+    const lockoutStatus = await checkLoginLockout(kv, ip, accessToken);
+    if (lockoutStatus.locked) {
+        return c.json(
+            {
+                success: false,
+                error: getLockedMessage(lockoutStatus.retryAfter),
+                retryAfter: lockoutStatus.retryAfter,
+            },
+            429,
+            { 'Retry-After': String(lockoutStatus.retryAfter) }
+        );
+    }
 
     try {
         const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
@@ -157,8 +226,30 @@ app.post('/:token/auth', async (c) => {
         const inputHash = await hashPassword(password, env.JWT_SECRET);
 
         if (inputHash !== salesperson.password_hash) {
-            return c.json({ success: false, error: MSG.SALESPERSON.INVALID_PASSWORD }, 401);
+            // 记录登录失败
+            const failureResult = await recordLoginFailure(kv, ip, accessToken, c.executionCtx);
+
+            if (failureResult.locked) {
+                return c.json(
+                    {
+                        success: false,
+                        error: getLockedMessage(failureResult.retryAfter),
+                        retryAfter: failureResult.retryAfter,
+                    },
+                    429,
+                    { 'Retry-After': String(failureResult.retryAfter) }
+                );
+            }
+
+            return c.json({
+                success: false,
+                error: MSG.SALESPERSON.INVALID_PASSWORD,
+                remaining: failureResult.remaining,
+            }, 401);
         }
+
+        // 登录成功，清除失败记录
+        await clearLoginFailures(kv, ip, accessToken, c.executionCtx);
 
         const token = await generateJWT(
             { id: salesperson.id, name: salesperson.name, type: 'salesperson' },
@@ -167,7 +258,6 @@ app.post('/:token/auth', async (c) => {
         );
 
         // 记录登录信息
-        const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'Unknown';
         const userAgent = c.req.header('User-Agent') || 'Unknown';
         await repo.recordLogin(salesperson.id, ip, userAgent);
 
