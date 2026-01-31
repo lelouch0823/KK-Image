@@ -24,8 +24,8 @@ export const onRequest = [
       return next();
     }
 
-    // 只保护 admin 相关页面
-    const isAdminPath = pathname.includes('admin');
+    // 只保护 admin 相关页面（使用精确路径匹配）
+    const isAdminPath = pathname.startsWith('/admin') || pathname === '/admin.html';
     if (!isAdminPath) {
       return next();
     }

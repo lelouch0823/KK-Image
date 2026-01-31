@@ -48,7 +48,11 @@ export class CustomerRepository {
    * @returns {Promise<{results: Array, total: number, pages: number}>}
    */
   async list({ page = 1, limit = 20, search = '' }) {
-    const offset = (page - 1) * limit;
+    // 验证分页参数
+    const safePage = Math.max(1, Math.floor(Number(page) || 1));
+    const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 20)));
+    const offset = (safePage - 1) * safeLimit;
+
     let whereClause = '1=1';
     const bindings = [];
 
@@ -70,13 +74,13 @@ export class CustomerRepository {
       this.db
         .prepare(
           `
-                SELECT * FROM customers 
-                WHERE ${whereClause} 
-                ORDER BY created_at DESC 
+                SELECT * FROM customers
+                WHERE ${whereClause}
+                ORDER BY created_at DESC
                 LIMIT ? OFFSET ?
             `
         )
-        .bind(...bindings, limit, offset)
+        .bind(...bindings, safeLimit, offset)
         .all(),
     ]);
 
@@ -100,7 +104,7 @@ export class CustomerRepository {
     return {
       results,
       total: countResult.total,
-      pages: Math.ceil(countResult.total / limit),
+      pages: Math.ceil(countResult.total / safeLimit),
     };
   }
 

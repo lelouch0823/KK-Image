@@ -25,10 +25,20 @@ export class FolderRepository {
      */
     async findTopLevel() {
         const { results } = await this.db.prepare(`
-            SELECT f.*, 
-                (SELECT COUNT(*) FROM folders WHERE parent_id = f.id) as subfolder_count,
-                (SELECT COUNT(*) FROM files WHERE folder_id = f.id) as file_count
-            FROM folders f 
+            SELECT f.*,
+                COALESCE(sub.subfolder_count, 0) as subfolder_count,
+                COALESCE(fc.file_count, 0) as file_count
+            FROM folders f
+            LEFT JOIN (
+                SELECT parent_id, COUNT(*) as subfolder_count
+                FROM folders
+                GROUP BY parent_id
+            ) sub ON sub.parent_id = f.id
+            LEFT JOIN (
+                SELECT folder_id, COUNT(*) as file_count
+                FROM files
+                GROUP BY folder_id
+            ) fc ON fc.folder_id = f.id
             WHERE (f.parent_id IS NULL OR f.parent_id = 'root')
             ORDER BY f.created_at DESC
         `).all();
@@ -40,10 +50,20 @@ export class FolderRepository {
      */
     async findByParent(parentId) {
         const { results } = await this.db.prepare(`
-            SELECT f.*, 
-                (SELECT COUNT(*) FROM folders WHERE parent_id = f.id) as subfolder_count,
-                (SELECT COUNT(*) FROM files WHERE folder_id = f.id) as file_count
-            FROM folders f 
+            SELECT f.*,
+                COALESCE(sub.subfolder_count, 0) as subfolder_count,
+                COALESCE(fc.file_count, 0) as file_count
+            FROM folders f
+            LEFT JOIN (
+                SELECT parent_id, COUNT(*) as subfolder_count
+                FROM folders
+                GROUP BY parent_id
+            ) sub ON sub.parent_id = f.id
+            LEFT JOIN (
+                SELECT folder_id, COUNT(*) as file_count
+                FROM files
+                GROUP BY folder_id
+            ) fc ON fc.folder_id = f.id
             WHERE f.parent_id = ?
             ORDER BY f.created_at DESC
         `).bind(parentId).all();
@@ -163,7 +183,11 @@ export class FolderRepository {
      * 获取所有已分享的文件夹 (含分页)
      */
     async findShared({ page = 1, limit = 20 } = {}) {
-        const offset = (page - 1) * limit;
+        // 验证分页参数
+        const safePage = Math.max(1, Math.floor(Number(page) || 1));
+        const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 20)));
+        const offset = (safePage - 1) * safeLimit;
+
         const totalResult = await this.db.prepare(
             'SELECT COUNT(*) as total FROM folders WHERE share_token IS NOT NULL'
         ).first();
@@ -171,14 +195,14 @@ export class FolderRepository {
 
         const { results } = await this.db.prepare(
             'SELECT * FROM folders WHERE share_token IS NOT NULL ORDER BY updated_at DESC LIMIT ? OFFSET ?'
-        ).bind(limit, offset).all();
+        ).bind(safeLimit, offset).all();
 
         return {
             items: results,
             total,
-            page,
-            limit,
-            totalPages: Math.ceil(total / limit)
+            page: safePage,
+            limit: safeLimit,
+            totalPages: Math.ceil(total / safeLimit)
         };
     }
 }

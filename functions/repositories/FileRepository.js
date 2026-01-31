@@ -1,9 +1,16 @@
 /**
  * 文件仓库 (File Repository)
  * ===================================
- * 
+ *
  * 负责文件记录 (Files) 的数据库基础操作。
  */
+
+/** 允许更新的列名白名单 */
+const ALLOWED_UPDATE_COLUMNS = new Set([
+    'name', 'original_name', 'folder_id', 'storage_key',
+    'size', 'mime_type', 'content_hash', 'original_hash',
+    'status', 'metadata', 'tags'
+]);
 
 export class FileRepository {
     constructor(db) {
@@ -74,6 +81,10 @@ export class FileRepository {
      * @param {Object} pagination
      */
     async findAll(filter = {}, { page = 1, limit = 50 } = {}) {
+        // 验证分页参数
+        const safePage = Math.max(1, Math.floor(Number(page) || 1));
+        const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 50)));
+
         let sql = 'SELECT * FROM files';
         const bindings = [];
         const where = [];
@@ -95,16 +106,16 @@ export class FileRepository {
         const total = countResult?.total || 0;
 
         sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-        bindings.push(limit, (page - 1) * limit);
+        bindings.push(safeLimit, (safePage - 1) * safeLimit);
 
         const { results } = await this.db.prepare(sql).bind(...bindings).all();
 
         return {
             items: results,
             total,
-            page,
-            limit,
-            totalPages: Math.ceil(total / limit)
+            page: safePage,
+            limit: safeLimit,
+            totalPages: Math.ceil(total / safeLimit)
         };
     }
 
@@ -114,12 +125,13 @@ export class FileRepository {
      * @param {Object} updates
      */
     async update(id, updates) {
-        const keys = Object.keys(updates);
-        if (keys.length === 0) return;
+        // 过滤只允许更新的列名（防止 SQL 注入）
+        const safeKeys = Object.keys(updates).filter(k => ALLOWED_UPDATE_COLUMNS.has(k));
+        if (safeKeys.length === 0) return;
 
-        const setClause = keys.map(k => `${k} = ?`).join(', ');
-        const values = Object.values(updates);
-        values.push(new Date().getTime()); // updated_at
+        const setClause = safeKeys.map(k => `${k} = ?`).join(', ');
+        const values = safeKeys.map(k => updates[k]);
+        values.push(Date.now()); // updated_at
         values.push(id);
 
         await this.db.prepare(`UPDATE files SET ${setClause}, updated_at = ? WHERE id = ?`)
