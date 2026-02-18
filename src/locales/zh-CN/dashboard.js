@@ -37,4 +37,13 @@ export default {
   trendDown: '↓ 较上周',
   trendSame: '持平',
   vsLastPeriod: '较上期',
+  vsYesterday: '较昨日',
+  actionNeeded: '需要处理',
+  acrossProjects: '跨所有项目',
+  noActiveSharesDesc: '当前没有活跃的分享链接',
+  shareFile: '去分享文件',
+  viewHistory: '查看分享历史',
+  awaitingAction: '等待处理',
+  browseAllFiles: '浏览所有文件',
+  noRecentFilesDesc: '最近没有上传或更新的文件',
 };

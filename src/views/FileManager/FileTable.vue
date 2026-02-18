@@ -1,5 +1,5 @@
 <template>
-  <div class="overflow-x-auto rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm">
+  <div class="h-full">
     <AppTable
       :columns="columns"
       :data="files"
@@ -7,6 +7,7 @@
       :empty-text="t('fileManager.emptyFolder')"
       :virtual="files.length > 50"
       :estimate-size="64"
+      no-border
       @row-click="$emit('preview', $event)"
     >
       <template #cell-name="{ row }">
@@ -99,14 +100,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useFileManager } from '@/composables/useFileManager';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 
-const props = defineProps({
+defineProps({
   files: {
     type: Array,
     required: true,
@@ -117,10 +118,10 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['share', 'move', 'delete', 'context-menu', 'select', 'toggle-select', 'preview', 'toggle']);
+defineEmits(['share', 'move', 'delete', 'context-menu', 'select', 'toggle-select', 'preview', 'toggle']);
 
 const { t } = useI18n();
-const { formatSize, formatDate, getFileExtension, isImage } = useFileManager();
+const { formatSize, formatDate, isImage } = useFileManager();
 
 const columns = computed(() => [
   { key: 'name', label: t('fileManager.table.name') },

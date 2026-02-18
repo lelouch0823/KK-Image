@@ -1,11 +1,11 @@
 <template>
-  <div class="relative min-h-screen w-full overflow-hidden bg-[#0B0E14] font-sans text-slate-300 transition-colors duration-300">
+  <div class="relative min-h-screen w-full overflow-hidden bg-[var(--bg-page)] font-sans text-[var(--text-secondary)] transition-colors duration-300">
     <!-- Fixed Background Gradient Mesh -->
     <div class="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       <!-- Top Left Blob -->
-      <div class="absolute -top-[10%] -left-[10%] size-[50%]  rounded-full bg-indigo-950/10 blur-[120px]"></div>
+      <div class="absolute -top-[10%] -left-[10%] size-[50%] rounded-full bg-indigo-500/5 blur-[120px] dark:bg-indigo-950/10"></div>
       <!-- Top Right Blob -->
-      <div class="absolute top-[20%] right-[10%] size-[40%]  rounded-full bg-purple-950/10 blur-[120px]"></div>
+      <div class="absolute top-[20%] right-[10%] size-[40%] rounded-full bg-purple-500/5 blur-[120px] dark:bg-purple-950/10"></div>
     </div>
 
     <!-- Main Content -->
@@ -13,10 +13,10 @@
       <!-- Header Area -->
       <div class="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight text-slate-100 sm:text-3xl">
+          <h1 class="text-2xl font-bold tracking-tight text-[var(--text-main)] sm:text-3xl">
             {{ t('dashboard.title') }}
           </h1>
-          <div class="mt-1 flex items-center gap-2 text-sm text-slate-500">
+          <div class="mt-1 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
             <span class="flex items-center gap-1.5">
               <span class="relative flex size-2">
                 <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75"></span>
@@ -31,33 +31,34 @@
 
         <div class="flex items-center gap-3">
           <button
-            class="flex items-center gap-2 rounded-xl border border-white/5 bg-[#161b26] px-4 py-2 text-sm font-medium text-slate-300 shadow-sm transition-all hover:bg-[#1c2230] active:scale-95"
+            class="flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] shadow-sm transition-all hover:bg-[var(--bg-hover)] active:scale-95 dark:bg-[#161b26] dark:hover:bg-[#1c2230]"
             @click="handleRefresh"
           >
             <span class="material-symbols-outlined text-lg" :class="{ 'animate-spin': isRefreshing }">refresh</span>
             {{ t('common.refresh') }}
           </button>
+
         </div>
       </div>
       
       <!-- Metrics Grid -->
       <div class="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <!-- Today Orders -->
-        <div class="glass-panel group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-white/5 border-r-white/5  border-l-blue-500/50 p-6 transition-all duration-300 hover:bg-[#161b26]">
+        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-[var(--border-subtle)] border-r-[var(--border-subtle)] border-l-blue-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-[var(--bg-hover)] dark:border-y-white/5 dark:border-r-white/5 dark:bg-[#11141d]/60 dark:shadow-lg dark:hover:bg-[#161b26]">
            <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
                <span class="material-symbols-outlined rotate-12 transform text-8xl text-blue-500 select-none">schedule</span>
            </div>
            <div class="relative z-10 flex items-start justify-between">
               <div>
-                 <p class="mb-1 text-xs font-semibold tracking-wider text-slate-500 uppercase">{{ t('dashboard.todayOrders') }}</p>
-                 <h2 class="mb-2 text-3xl font-bold text-slate-100">{{ orderStats.todayCount }}</h2>
+                 <p class="mb-1 text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase">{{ t('dashboard.todayOrders') }}</p>
+                 <h2 class="mb-2 text-3xl font-bold text-[var(--text-main)]">{{ orderStats.todayCount }}</h2>
                      <div class="flex items-center gap-1 text-xs font-medium text-emerald-500">
                     <span class="material-symbols-outlined text-sm">trending_up</span>
                     <span>+12% {{ t('dashboard.vsYesterday') }}</span> 
                  </div>
               </div>
-              <div class="flex size-10  items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10">
-                 <span class="material-symbols-outlined text-xl text-blue-400">schedule</span>
+              <div class="flex size-10 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10">
+                 <span class="material-symbols-outlined text-xl text-blue-500 dark:text-blue-400">schedule</span>
               </div>
            </div>
            <div class="mt-4 h-12 w-full">
@@ -66,21 +67,21 @@
         </div>
 
         <!-- Pending Orders (Pending Processing) -->
-        <div class="glass-panel group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-white/5 border-r-white/5  border-l-red-500/50 p-6 transition-all duration-300 hover:bg-[#161b26]">
+        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-[var(--border-subtle)] border-r-[var(--border-subtle)] border-l-red-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-[var(--bg-hover)] dark:border-y-white/5 dark:border-r-white/5 dark:bg-[#11141d]/60 dark:shadow-lg dark:hover:bg-[#161b26]">
            <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
                <span class="material-symbols-outlined rotate-12 transform text-8xl text-red-500 select-none">error</span>
            </div>
            <div class="relative z-10 flex items-start justify-between">
               <div>
-                 <p class="mb-1 text-xs font-semibold tracking-wider text-slate-500 uppercase">{{ t('dashboard.pendingOrders') }}</p>
-                 <h2 class="mb-2 text-3xl font-bold text-red-400">{{ orderStats.pendingCount }}</h2>
-                 <div class="flex items-center gap-1 text-xs font-medium text-red-400/80">
+                 <p class="mb-1 text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase">{{ t('dashboard.pendingOrders') }}</p>
+                 <h2 class="mb-2 text-3xl font-bold text-red-500 dark:text-red-400">{{ orderStats.pendingCount }}</h2>
+                 <div class="flex items-center gap-1 text-xs font-medium text-red-500/80 dark:text-red-400/80">
                     <span class="material-symbols-outlined text-sm">priority_high</span>
                     <span>{{ t('dashboard.actionNeeded') }}</span>
                  </div>
               </div>
-              <div class="flex size-10  items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10">
-                 <span class="material-symbols-outlined text-xl text-red-400">error_outline</span>
+              <div class="flex size-10 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10">
+                 <span class="material-symbols-outlined text-xl text-red-500 dark:text-red-400">error_outline</span>
               </div>
            </div>
            <div class="mt-4 h-12 w-full opacity-60">
@@ -89,17 +90,17 @@
         </div>
 
         <!-- Weekly Orders -->
-        <div class="glass-panel group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-white/5 border-r-white/5  border-l-emerald-500/50 p-6 transition-all duration-300 hover:bg-[#161b26]">
+        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-[var(--border-subtle)] border-r-[var(--border-subtle)] border-l-emerald-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-[var(--bg-hover)] dark:border-y-white/5 dark:border-r-white/5 dark:bg-[#11141d]/60 dark:shadow-lg dark:hover:bg-[#161b26]">
            <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
                <span class="material-symbols-outlined rotate-12 transform text-8xl text-emerald-500 select-none">bar_chart</span>
            </div>
            <div class="relative z-10 flex items-start justify-between">
               <div>
                  <div class="flex items-center gap-2">
-                    <p class="mb-1 text-xs font-semibold tracking-wider text-slate-500 uppercase">{{ t('dashboard.weekOrders') }}</p>
+                    <p class="mb-1 text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase">{{ t('dashboard.weekOrders') }}</p>
                  </div>
-                 <h2 class="mb-2 text-3xl font-bold text-slate-100">{{ orderStats.weekCount || 0 }}</h2>
-                 <div class="flex items-center gap-1 text-xs font-medium text-slate-500">
+                 <h2 class="mb-2 text-3xl font-bold text-[var(--text-main)]">{{ orderStats.weekCount || 0 }}</h2>
+                 <div class="flex items-center gap-1 text-xs font-medium text-[var(--text-secondary)]">
                     <span class="material-symbols-outlined text-sm">horizontal_rule</span>
                     <span v-if="weekTrend === 0">{{ t('dashboard.trendSame') }}</span>
                     <span v-else :class="weekTrend > 0 ? 'text-emerald-500' : 'text-red-500'">
@@ -107,8 +108,8 @@
                     </span>
                  </div>
               </div>
-              <div class="flex size-10  items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10">
-                 <span class="material-symbols-outlined text-xl text-emerald-400">bar_chart</span>
+              <div class="flex size-10 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10">
+                 <span class="material-symbols-outlined text-xl text-emerald-500 dark:text-emerald-400">bar_chart</span>
               </div>
            </div>
            <div class="mt-4 h-12 w-full">
@@ -117,20 +118,20 @@
         </div>
 
         <!-- Active Shares -->
-        <div class="glass-panel group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-white/5 border-r-white/5  border-l-purple-500/50 p-6 transition-all duration-300 hover:bg-[#161b26]">
+        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-[var(--border-subtle)] border-r-[var(--border-subtle)] border-l-purple-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-[var(--bg-hover)] dark:border-y-white/5 dark:border-r-white/5 dark:bg-[#11141d]/60 dark:shadow-lg dark:hover:bg-[#161b26]">
            <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
                <span class="material-symbols-outlined rotate-12 transform text-8xl text-purple-500 select-none">share</span>
            </div>
            <div class="relative z-10 flex items-start justify-between">
               <div>
-                 <p class="mb-1 text-xs font-semibold tracking-wider text-slate-500 uppercase">{{ t('dashboard.activeShares') }}</p>
-                 <h2 class="mb-2 text-3xl font-bold text-slate-100">{{ orderStats.activeSharesCount || 0 }}</h2>
-                 <div class="flex items-center gap-1 text-xs font-medium text-slate-500">
+                 <p class="mb-1 text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase">{{ t('dashboard.activeShares') }}</p>
+                 <h2 class="mb-2 text-3xl font-bold text-[var(--text-main)]">{{ orderStats.activeSharesCount || 0 }}</h2>
+                 <div class="flex items-center gap-1 text-xs font-medium text-[var(--text-secondary)]">
                     <span>{{ t('dashboard.acrossProjects') }}</span>
                  </div>
               </div>
-              <div class="flex size-10  items-center justify-center rounded-lg border border-purple-500/20 bg-purple-500/10">
-                 <span class="material-symbols-outlined text-xl text-purple-400">share</span>
+              <div class="flex size-10 items-center justify-center rounded-lg border border-purple-500/20 bg-purple-500/10">
+                 <span class="material-symbols-outlined text-xl text-purple-500 dark:text-purple-400">share</span>
               </div>
            </div>
            <div class="mt-4 h-12 w-full">
@@ -144,54 +145,54 @@
         
         <!-- Pending Orders List (Left Column - 5 cols) -->
         <div class="flex flex-col gap-6 lg:col-span-5">
-            <div class="glass-panel flex h-full min-h-[400px] flex-col overflow-hidden rounded-2xl border border-white/5 p-0 shadow-lg">
-                <div class="flex items-center justify-between border-b border-white/5 bg-[#13161f] p-5">
+            <div class="flex h-full min-h-[400px] flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-white/70 shadow-sm backdrop-blur-md dark:border-white/5 dark:bg-[#11141d]/60 dark:shadow-lg">
+                <div class="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 dark:border-white/5 dark:bg-[#13161f]">
                     <div class="flex items-center gap-2">
-                        <div class="size-1.5  rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
-                        <h3 class="text-sm font-semibold text-slate-200">{{ t('dashboard.pendingOrders') }}</h3>
+                        <div class="size-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
+                        <h3 class="text-sm font-semibold text-[var(--text-main)]">{{ t('dashboard.pendingOrders') }}</h3>
                     </div>
-                    <span v-if="orderStats.pendingCount > 0" class="rounded border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-xs font-bold text-red-400">
+                    <span v-if="orderStats.pendingCount > 0" class="rounded border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-xs font-bold text-red-500 dark:text-red-400">
                         {{ orderStats.pendingCount }}
                     </span>
                 </div>
                 
-                <div class="custom-scrollbar flex-1 overflow-y-auto bg-[#0f1219]/50">
-                    <div v-if="orderStats.recentPendingOrders.length > 0" class="divide-y divide-white/5">
+                <div class="custom-scrollbar flex-1 overflow-y-auto bg-[var(--bg-muted)]/50 dark:bg-[#0f1219]/50">
+                    <div v-if="orderStats.recentPendingOrders.length > 0" class="divide-y divide-[var(--border-subtle)] dark:divide-white/5">
                         <div
                             v-for="order in orderStats.recentPendingOrders"
                             :key="order.id"
-                            class="group cursor-pointer border-l-2 border-transparent p-4 transition-colors hover:border-indigo-500/50 hover:bg-[#161b26]"
+                            class="group cursor-pointer border-l-2 border-transparent p-4 transition-colors hover:border-indigo-500/50 hover:bg-[var(--bg-hover)] dark:hover:bg-[#161b26]"
                             @click="viewOrder(order)"
                         >
                             <div class="mb-1 flex items-start justify-between">
-                                <span class="font-mono text-xs font-medium text-indigo-300 group-hover:text-indigo-200">
+                                <span class="font-mono text-xs font-medium text-indigo-600 group-hover:text-indigo-500 dark:text-indigo-300 dark:group-hover:text-indigo-200">
                                     {{ order.orderNo }}
                                 </span>
-                                <span class="rounded border border-white/5 bg-[#1a202c] px-1.5 py-0.5 text-[10px] text-slate-500">
+                                <span class="rounded border border-[var(--border-subtle)] bg-white px-1.5 py-0.5 text-[10px] text-[var(--text-secondary)] dark:border-white/5 dark:bg-[#1a202c] dark:text-slate-500">
                                     {{ formatRelativeTime(order.createdAt, t) }}
                                 </span>
                             </div>
-                            <div class="mb-2 text-xs text-slate-500">{{ order.name }}</div>
+                            <div class="mb-2 text-xs text-[var(--text-secondary)]">{{ order.name }}</div>
                             
                             <!-- Visual Progress Bar -->
                             <div class="flex items-center gap-2">
-                                <div class="h-1 w-16 overflow-hidden rounded-full bg-[#1f2937]">
+                                <div class="h-1 w-16 overflow-hidden rounded-full bg-[var(--bg-secondary)] dark:bg-[#1f2937]">
                                     <div class="h-full w-1/3 bg-red-500/80 shadow-[0_0_5px_rgba(239,68,68,0.5)]"></div> 
                                 </div>
-                                <span class="text-[10px] font-bold tracking-wider text-slate-600 uppercase">{{ t('dashboard.awaitingAction') }}</span>
+                                <span class="text-[10px] font-bold tracking-wider text-[var(--text-muted)] uppercase">{{ t('dashboard.awaitingAction') }}</span>
                             </div>
                         </div>
                     </div>
                     <div v-else class="flex h-full flex-col items-center justify-center p-8 text-center text-sm text-[var(--text-secondary)]">
                          <div class="flex flex-col items-center gap-2">
-                             <span class="material-symbols-outlined text-3xl text-slate-700 opacity-50">task_alt</span>
+                             <span class="material-symbols-outlined text-3xl text-[var(--text-muted)] opacity-50">task_alt</span>
                              {{ t('dashboard.noPendingOrders') }}
                          </div>
                     </div>
                 </div>
                 
                 <!-- Footer -->
-                <div class="border-t border-white/5 bg-[#13161f] p-4 text-center">
+                <div class="border-t border-[var(--border-subtle)] bg-[var(--bg-card)] p-4 text-center dark:border-white/5 dark:bg-[#13161f]">
                     <router-link to="/manage/orders?status=pending" class="flex w-full items-center justify-center gap-1 text-xs font-medium text-indigo-400 transition-colors hover:text-indigo-300">
                         {{ t('dashboard.viewAllPending') }}
                         <span class="material-symbols-outlined text-sm">arrow_forward</span>
@@ -204,98 +205,104 @@
         <div class="flex flex-col gap-6 lg:col-span-7">
             
             <!-- Shared Links Card -->
-            <div class="glass-panel relative flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-white/5 p-0 shadow-lg">
-                <div class="pointer-events-none absolute top-0 right-0 size-64  rounded-full bg-purple-900/10 blur-3xl"></div>
-                <div class="flex items-center gap-2 border-b border-white/5 bg-[#13161f] p-5">
-                    <div class="size-1.5  rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
-                    <h3 class="text-sm font-semibold text-slate-200">{{ t('dashboard.recentShares') }}</h3>
+            <div class="relative flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-white/70 shadow-sm backdrop-blur-md dark:border-white/5 dark:bg-[#11141d]/60 dark:shadow-lg">
+                <div class="pointer-events-none absolute top-0 right-0 size-64 rounded-full bg-purple-500/5 blur-3xl dark:bg-purple-900/10"></div>
+                <div class="flex items-center gap-2 border-b border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 dark:border-white/5 dark:bg-[#13161f]">
+                    <div class="size-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
+                    <h3 class="text-sm font-semibold text-[var(--text-main)]">{{ t('dashboard.recentShares') }}</h3>
                 </div>
 
-                <div v-if="recentShares.length === 0" class="flex flex-1 flex-col items-center justify-center bg-[#0f1219]/30 p-10 text-center">
-                    <div class="mb-4 flex size-16  items-center justify-center rounded-full border border-white/5 bg-[#151921] shadow-inner">
-                        <span class="material-symbols-outlined text-3xl text-slate-700">link_off</span>
+                <div v-if="recentShares.length === 0" class="flex flex-1 flex-col items-center justify-center bg-[var(--bg-muted)]/30 p-10 text-center dark:bg-[#0f1219]/30">
+                    <div class="mb-4 flex size-16 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--bg-card)] shadow-inner dark:border-white/5 dark:bg-[#151921]">
+                        <span class="material-symbols-outlined text-3xl text-[var(--text-muted)]">link_off</span>
                     </div>
-                    <h4 class="mb-1 text-base font-medium text-slate-300">{{ t('dashboard.noActiveShares') }}</h4>
-                    <p class="mx-auto max-w-xs text-xs text-slate-600">{{ t('dashboard.noActiveSharesDesc') }}</p>
+                    <h4 class="mb-1 text-base font-medium text-[var(--text-main)]">{{ t('dashboard.noActiveShares') }}</h4>
+                    <p class="mx-auto max-w-xs text-xs text-[var(--text-secondary)]">{{ t('dashboard.noActiveSharesDesc') }}</p>
                     <button class="mt-6 rounded-lg border border-indigo-500/20 bg-indigo-600/90 px-5 py-2 text-xs font-medium text-white shadow-lg shadow-indigo-900/20 transition-colors hover:bg-indigo-500" @click="showShareManager = true">
                         {{ t('dashboard.shareFile') }}
                     </button>
                 </div>
                 
-                <div v-else class="flex-1 overflow-auto bg-[#0f1219]/30">
+                <div v-else class="flex-1 overflow-auto bg-[var(--bg-muted)]/30 dark:bg-[#0f1219]/30">
                      <!-- List for Shares -->
-                     <ul class="divide-y divide-white/5">
-                        <li v-for="item in recentShares" :key="item.id" class="flex items-center justify-between p-4 transition-colors hover:bg-[#161b26]">
+                     <ul class="divide-y divide-[var(--border-subtle)] dark:divide-white/5">
+                        <li v-for="item in recentShares" :key="item.id" class="flex items-center justify-between p-4 transition-colors hover:bg-[var(--bg-hover)] dark:hover:bg-[#161b26]">
                             <div class="flex items-center gap-3">
-                                <div class="flex size-8  items-center justify-center rounded border border-purple-500/20 bg-purple-500/10 text-purple-400">
+                                <div class="flex size-8 items-center justify-center rounded border border-purple-500/20 bg-purple-500/10 text-purple-600 dark:text-purple-400">
                                     <span class="material-symbols-outlined text-lg">folder_shared</span>
                                 </div>
                                 <div>
-                                    <div class="text-sm font-medium text-slate-300">{{ item.name }}</div>
-                                    <div class="cursor-pointer font-mono text-[10px] text-slate-500 hover:text-indigo-400" @click="handleCopyShareLink(item)">
+                                    <div class="text-sm font-medium text-[var(--text-main)]">{{ item.name }}</div>
+                                    <div class="cursor-pointer font-mono text-[10px] text-[var(--text-secondary)] hover:text-indigo-500 dark:hover:text-indigo-400" @click="handleCopyShareLink(item)">
                                         {{ item.shareToken }}
                                     </div>
                                 </div>
                             </div>
-                            <div class="rounded border border-white/5 bg-[#1a202c] px-2 py-1 text-[10px] text-slate-500">
+                            <div class="rounded border border-[var(--border-subtle)] bg-white px-2 py-1 text-[10px] text-[var(--text-secondary)] dark:border-white/5 dark:bg-[#1a202c]">
                                 {{ formatExpiry(item.expiresAt, t) }}
                             </div>
                         </li>
                      </ul>
                 </div>
 
-                <div class="border-t border-white/5 bg-[#11141d] p-3 text-center">
-                    <button class="flex w-full items-center justify-center gap-1 text-xs font-medium text-indigo-400 transition-colors hover:text-indigo-300" @click="showShareManager = true">
+                <div class="border-t border-[var(--border-subtle)] bg-[var(--bg-card)] p-3 text-center dark:border-white/5 dark:bg-[#11141d]">
+                    <button class="flex w-full items-center justify-center gap-1 text-xs font-medium text-indigo-500 transition-colors hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300" @click="showShareManager = true">
                          {{ t('dashboard.viewHistory') }} <span class="material-symbols-outlined text-sm">arrow_forward</span>
                     </button>
                 </div>
             </div>
 
             <!-- Recent Files Card -->
-            <div class="glass-panel relative flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-white/5 p-0 shadow-lg">
-                <div class="pointer-events-none absolute bottom-0 left-0 size-64  rounded-full bg-cyan-900/10 blur-3xl"></div>
-                <div class="flex items-center gap-2 border-b border-white/5 bg-[#13161f] p-5">
-                    <div class="size-1.5  rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"></div>
-                    <h3 class="text-sm font-semibold text-slate-200">{{ t('dashboard.recentFiles') }}</h3>
+            <div class="relative flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-white/70 shadow-sm backdrop-blur-md dark:border-white/5 dark:bg-[#11141d]/60 dark:shadow-lg">
+                <div class="pointer-events-none absolute bottom-0 left-0 size-64 rounded-full bg-cyan-500/5 blur-3xl dark:bg-cyan-900/10"></div>
+                <div class="flex items-center gap-2 border-b border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 dark:border-white/5 dark:bg-[#13161f]">
+                    <div class="size-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"></div>
+                    <h3 class="text-sm font-semibold text-[var(--text-main)]">{{ t('dashboard.recentFiles') }}</h3>
                 </div>
 
-                <div v-if="recentFiles.length === 0" class="flex flex-1 flex-col items-center justify-center bg-[#0f1219]/30 p-10 text-center">
-                    <div class="mb-4 flex size-16  items-center justify-center rounded-full border border-white/5 bg-[#151921] shadow-inner">
-                        <span class="material-symbols-outlined text-3xl text-slate-700">folder_off</span>
+                <div v-if="recentFiles.length === 0" class="flex flex-1 flex-col items-center justify-center bg-[var(--bg-muted)]/30 p-10 text-center dark:bg-[#0f1219]/30">
+                    <div class="mb-4 flex size-16 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--bg-card)] shadow-inner dark:border-white/5 dark:bg-[#151921]">
+                        <span class="material-symbols-outlined text-3xl text-[var(--text-muted)]">folder_off</span>
                     </div>
-                    <h4 class="mb-1 text-base font-medium text-slate-300">{{ t('dashboard.noRecentFiles') }}</h4>
-                    <p class="mx-auto max-w-xs text-xs text-slate-600">{{ t('dashboard.noRecentFilesDesc') }}</p>
+                    <h4 class="mb-1 text-base font-medium text-[var(--text-main)]">{{ t('dashboard.noRecentFiles') }}</h4>
+                    <p class="mx-auto max-w-xs text-xs text-[var(--text-secondary)]">{{ t('dashboard.noRecentFilesDesc') }}</p>
                     <div class="pointer-events-none mt-8 grid w-full max-w-sm grid-cols-2 gap-4 opacity-30 blur-[1px]">
-                        <div class="flex items-center gap-3 rounded-lg border border-white/5 bg-[#151921] p-3">
-                            <span class="material-symbols-outlined text-blue-400">description</span>
-                            <div class="h-1.5 w-20 rounded bg-slate-800"></div>
+                        <div class="flex items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-white p-3 dark:border-white/5 dark:bg-[#151921]">
+                            <span class="material-symbols-outlined text-blue-500 dark:text-blue-400">description</span>
+                            <div class="h-1.5 w-20 rounded bg-slate-200 dark:bg-slate-800"></div>
                         </div>
-                        <div class="flex items-center gap-3 rounded-lg border border-white/5 bg-[#151921] p-3">
-                            <span class="material-symbols-outlined text-green-400">image</span>
-                            <div class="h-1.5 w-16 rounded bg-slate-800"></div>
+                        <div class="flex items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-white p-3 dark:border-white/5 dark:bg-[#151921]">
+                            <span class="material-symbols-outlined text-green-500 dark:text-green-400">image</span>
+                            <div class="h-1.5 w-16 rounded bg-slate-200 dark:bg-slate-800"></div>
                         </div>
                     </div>
                 </div>
 
-                <div v-else class="flex-1 overflow-auto bg-[#0f1219]/30">
+                <div v-else class="flex-1 overflow-auto bg-[var(--bg-muted)]/30 dark:bg-[#0f1219]/30">
                     <!-- List for Files -->
-                    <ul class="divide-y divide-white/5">
-                        <li v-for="(file, index) in recentFiles" :key="index" class="flex items-center justify-between p-4 transition-colors hover:bg-[#161b26]">
+                    <ul class="divide-y divide-[var(--border-subtle)] dark:divide-white/5">
+                        <li v-for="(file, index) in recentFiles" :key="index" class="flex items-center justify-between p-4 transition-colors hover:bg-[var(--bg-hover)] dark:hover:bg-[#161b26]">
                             <div class="flex items-center gap-3 overflow-hidden">
-                                <div class="shadow-glow-cyan flex size-8 shrink-0 items-center justify-center rounded-lg border border-cyan-500/20 bg-[#1a202c] text-xs font-bold text-cyan-400 uppercase">
-                                     {{ file.type || getFileExtension(file.name) }}
+                                <div class="shadow-glow-cyan flex size-8 shrink-0 items-center justify-center rounded-lg border border-cyan-500/20 bg-[var(--bg-card)] overflow-hidden text-xs font-bold text-cyan-600 uppercase dark:bg-[#1a202c] dark:text-cyan-400">
+                                     <AppImage
+                                       v-if="isImage(file)"
+                                       :src="file.url"
+                                       class="size-full"
+                                       fit="cover"
+                                     />
+                                     <span v-else class="material-symbols-outlined text-lg">description</span>
                                 </div>
                                 <div class="min-w-0">
-                                    <div class="max-w-[150px] truncate text-sm font-medium text-slate-300 sm:max-w-xs">{{ file.name }}</div>
-                                    <div class="text-[10px] text-slate-500">{{ formatSize(file.size) }} • {{ formatDate(file.timestamp) }}</div>
+                                    <div class="max-w-[150px] truncate text-sm font-medium text-[var(--text-main)] sm:max-w-xs">{{ file.name }}</div>
+                                    <div class="text-[10px] text-[var(--text-secondary)]">{{ formatSize(file.size) }} • {{ formatDate(file.timestamp) }}</div>
                                 </div>
                             </div>
                         </li>
                     </ul>
                 </div>
 
-                <div class="border-t border-white/5 bg-[#11141d] p-3 text-center">
-                    <button class="flex w-full items-center justify-center gap-1 text-xs font-medium text-indigo-400 transition-colors hover:text-indigo-300" @click="router.push('/admin/files')">
+                <div class="border-t border-[var(--border-subtle)] bg-[var(--bg-card)] p-3 text-center dark:border-white/5 dark:bg-[#11141d]">
+                    <button class="flex w-full items-center justify-center gap-1 text-xs font-medium text-indigo-500 transition-colors hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300" @click="router.push('/admin/files')">
                          {{ t('dashboard.browseAllFiles') }} <span class="material-symbols-outlined text-sm">arrow_forward</span>
                     </button>
                 </div>
@@ -303,7 +310,7 @@
         </div>
       </div>
       
-      <footer class="mt-auto py-4 text-center text-[10px] text-slate-700">
+      <footer class="mt-auto py-4 text-center text-[10px] text-[var(--text-muted)]">
         {{ t('dashboard.footer') }}
       </footer>
     </div>
@@ -351,10 +358,11 @@ import {
   formatSize,
   formatDate,
   formatExpiry,
-  getFileExtension,
   formatRelativeTime,
+  isImage,
 } from '@/utils/formatters';
 import { API } from '@/utils/constants';
+import AppImage from '@/components/ui/AppImage.vue';
 import Chart from 'chart.js/auto';
 
 const router = useRouter();
@@ -588,12 +596,7 @@ onActivated(() => {
 </script>
 
 <style scoped>
-.glass-panel {
-    background: rgba(17, 20, 29, 0.6);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
-}
+
 
 .custom-scrollbar::-webkit-scrollbar {
     width: 4px;

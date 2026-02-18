@@ -34,4 +34,13 @@ export default {
   trendDown: '↓ vs last week',
   trendSame: 'No change',
   vsLastPeriod: 'vs last period',
+  vsYesterday: 'vs Yesterday',
+  actionNeeded: 'Action Needed',
+  acrossProjects: 'Across Projects',
+  noActiveSharesDesc: 'No active share links found',
+  shareFile: 'Share a File',
+  viewHistory: 'View History',
+  awaitingAction: 'Awaiting Action',
+  browseAllFiles: 'Browse All Files',
+  noRecentFilesDesc: 'No files uploaded recently',
 };

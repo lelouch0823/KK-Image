@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { OrderStatsRepository } from '../../../../repositories/OrderStatsRepository.js';
 import { StatsRepository } from '../../../../repositories/StatsRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
-import { MSG, getChinaDayStart } from '../../_shared/utils.js';
+import { MSG, getChinaDayStart, getFileUrl } from '../../_shared/utils.js';
 
 const app = new Hono();
 
@@ -24,7 +24,6 @@ app.get('/overview', async (c) => {
         const lastWeekStartTimestamp = weekStartTimestamp - 7 * 24 * 60 * 60 * 1000;
         const now = Date.now();
 
-<<<<<<< HEAD
         const [
             todayCount,
             pendingCount,
@@ -41,7 +40,7 @@ app.get('/overview', async (c) => {
         ] = await Promise.all([
             statsRepo.countCreatedAfter(todayStartTimestamp),
             statsRepo.countByStatus('pending'),
-            statsRepo.getRecentPending(20),
+            statsRepo.getRecentPending(8),
             statsRepo.countCreatedAfter(weekStartTimestamp),
             statsRepo.countCreatedBetween(lastWeekStartTimestamp, weekStartTimestamp),
             env.DB.prepare(`
@@ -54,9 +53,12 @@ app.get('/overview', async (c) => {
             statsRepo.getLast7DaysShareTrend(weekStartTimestamp),
             // SOTA: 在概览中直接包含最近文件和分享，减少 RTT
             globalStatsRepo.db.prepare(
-                `SELECT id, name, size, mime_type as type, created_at as timestamp 
+                `SELECT id, name, size, mime_type as type, storage_key, created_at as timestamp 
                  FROM files ORDER BY created_at DESC LIMIT 5`
-            ).all().then(r => r.results),
+            ).all().then(r => r.results.map(f => ({
+                ...f,
+                url: getFileUrl(f.storage_key)
+            }))),
             folderRepo.findShared({ limit: 5 }).then(r => r.items)
         ]);
 

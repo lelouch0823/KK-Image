@@ -54,4 +54,7 @@ export default {
     download: '下载',
     delete: '删除',
   },
+  manage: {
+    selectAll: '全选',
+  },
 };
