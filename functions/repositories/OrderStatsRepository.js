@@ -249,7 +249,6 @@ export class OrderStatsRepository {
           .bind(monthStart)
           .all(),
       ]);
-
     return {
       today: todayResult.count,
       week: weekResult.count,
@@ -260,5 +259,88 @@ export class OrderStatsRepository {
       }, {}),
       recentTrend: recentTrend.results,
     };
+  }
+
+  /**
+   * 获取今日每小时订单趋势
+   * @param {number} todayStart
+   */
+  async getTodayHourlyTrend(todayStart) {
+    const result = await this.db
+      .prepare(
+        `
+            SELECT STRFTIME('%H', created_at / 1000, 'unixepoch', '+8 hours') as hour, COUNT(*) as count 
+            FROM orders 
+            WHERE created_at >= ?
+            GROUP BY hour
+            ORDER BY hour ASC
+        `
+      )
+      .bind(todayStart)
+      .all();
+    return result.results;
+  }
+
+  /**
+   * 获取过去7天订单趋势
+   * @param {number} startTimestamp
+   */
+  async getLast7DaysOrderTrend(startTimestamp) {
+    const result = await this.db
+      .prepare(
+        `
+            SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count 
+            FROM orders 
+            WHERE created_at >= ?
+            GROUP BY date
+            ORDER BY date ASC
+        `
+      )
+      .bind(startTimestamp)
+      .all();
+    return result.results;
+  }
+
+  /**
+   * 获取过去7天待处理订单趋势 (实际是新创建的订单中处于Pending状态的，或者所有新创建的Pending，这里按创建时间统计Pending订单)
+   * 另一种解读是：每天处于Pending状态的快照（无法回溯）。
+   * 采用方案：统计每天创建的且当前仍是 Pending 的订单 (或者创建时是Pending -> 也就是所有创建的订单).
+   * 修正：为了展示"待处理负载"，展示每天新产生的"待处理"订单。
+   */
+  async getLast7DaysPendingTrend(startTimestamp) {
+    const result = await this.db
+      .prepare(
+        `
+            SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count 
+            FROM orders 
+            WHERE created_at >= ? AND status = 'pending'
+            GROUP BY date
+            ORDER BY date ASC
+        `
+      )
+      .bind(startTimestamp)
+      .all();
+    return result.results;
+  }
+
+  /**
+   * 获取过去7天分享链接创建趋势
+   * (虽然是 FolderRepository 的职责，但为了 Dashboard 便捷，暂时放在这里)
+   * @param {number} startTimestamp
+   */
+  async getLast7DaysShareTrend(startTimestamp) {
+    const result = await this.db
+      .prepare(
+        `
+            SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count 
+            FROM folders 
+            WHERE is_public = 1 AND created_at >= ?
+            GROUP BY date
+            ORDER BY date ASC
+        `
+      )
+      .bind(startTimestamp)
+      .all();
+    return result.results;
   }
 }
