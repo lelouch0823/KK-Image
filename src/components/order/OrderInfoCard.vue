@@ -46,7 +46,7 @@
       </div>
       <!-- 期望到货时间 (全宽) -->
       <div class="col-span-1 flex flex-col sm:col-span-2 sm:flex-row">
-        <span class="mb-1 flex-shrink-0 whitespace-nowrap text-sm text-[var(--text-secondary)] sm:mb-0 sm:w-28">{{
+        <span class="mb-1 flex-shrink-0 text-sm whitespace-nowrap text-[var(--text-secondary)] sm:mb-0 sm:w-28">{{
           t('order.form.expectedArrival')
         }}</span>
         <span class="text-sm text-[var(--text-main)]">{{ formatDeadline(data.deadline) }}</span>

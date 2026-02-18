@@ -6,15 +6,15 @@
       class="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all duration-200"
       :class="[
         currentTab === item.id
-          ? 'bg-[var(--color-primary-bg)] text-[var(--color-primary)] ring-[var(--color-primary-light)] shadow-sm ring-1 ring-inset'
-          : 'text-[var(--text-secondary)] hover:text-[var(--color-primary)] hover:bg-[var(--bg-hover)]',
+          ? 'bg-[var(--color-primary-bg)] text-[var(--color-primary)] shadow-sm ring-1 ring-[var(--color-primary-light)] ring-inset'
+          : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)]',
       ]"
       @click="$emit('update:currentTab', item.id)"
     >
       <component
         :is="item.icon"
         class="size-5 shrink-0 transition-colors"
-        :class="[currentTab === item.id ? 'text-[var(--color-primary)]' : 'group-hover:text-[var(--color-primary)] text-[var(--text-muted)]']"
+        :class="[currentTab === item.id ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--color-primary)]']"
       />
       <span>{{ item.label }}</span>
       <span

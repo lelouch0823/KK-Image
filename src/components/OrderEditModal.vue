@@ -78,7 +78,7 @@
       <button
         :class="[
           !isValid || submitting ? 'cursor-not-allowed opacity-50' : 'hover:opacity-90',
-          'flex items-center rounded-lg bg-[var(--color-primary)] px-5 py-2 font-medium text-[var(--text-inverse)] shadow-lg shadow-[var(--color-primary)]/20 transition-all'
+          'flex items-center rounded-lg bg-[var(--color-primary)] px-5 py-2 font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all'
         ]"
         :disabled="!isValid || submitting"
         @click="handleSaveClick"

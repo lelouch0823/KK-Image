@@ -9,7 +9,7 @@
         <div class="ml-3 flex h-7 items-center">
           <button
             type="button"
-            class="focus:ring-[var(--color-primary)] focus:ring-2 focus:ring-offset-2 focus:outline-none rounded-md bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-colors"
+            class="rounded-md bg-[var(--bg-card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-main)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:outline-none"
             @click="$emit('close')"
           >
             <span class="sr-only">{{ t('common.close') }}</span>
@@ -66,7 +66,7 @@
           <!-- 操作栏 -->
           <div class="mb-6 flex justify-start gap-4">
             <button
-              class="focus:ring-[var(--color-primary)] focus:ring-2 focus:ring-offset-2 focus:outline-none inline-flex items-center rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-sm leading-4 font-medium text-[var(--text-main)] shadow-sm hover:bg-[var(--bg-hover)] transition-colors"
+              class="inline-flex items-center rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-sm leading-4 font-medium text-[var(--text-main)] shadow-sm transition-colors hover:bg-[var(--bg-hover)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:outline-none"
               @click="$emit('edit', customer)"
             >
               <svg
@@ -85,7 +85,7 @@
               {{ t('common.edit') }}
             </button>
             <button
-              class="inline-flex items-center rounded-md border border-transparent bg-[var(--color-danger)] px-3 py-2 text-sm leading-4 font-medium text-[var(--text-inverse)] shadow-sm hover:opacity-90 active:scale-95 transition-all"
+              class="inline-flex items-center rounded-md border border-transparent bg-[var(--color-danger)] px-3 py-2 text-sm leading-4 font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:opacity-90 active:scale-95"
               @click="handleDelete"
             >
               <svg
@@ -131,7 +131,7 @@
                   <span
                     v-for="tag in customer?.tags"
                     :key="tag"
-                    class="bg-[var(--color-primary-bg)] text-[var(--color-primary)] rounded px-2 py-0.5 text-xs font-medium"
+                    class="rounded bg-[var(--color-primary-bg)] px-2 py-0.5 text-xs font-medium text-[var(--color-primary)]"
                   >
                     {{ tag }}
                   </span>

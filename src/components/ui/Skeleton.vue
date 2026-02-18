@@ -42,8 +42,8 @@
       </div>
 
       <!-- Table Row Template -->
-      <div v-else-if="template === 'table-row'" class="flex gap-4 py-4 border-b border-[var(--border-color)]">
-        <div v-for="c in columns" :key="c" class="h-4 flex-1 rounded bg-[var(--bg-muted)] skeleton-shimmer"></div>
+      <div v-else-if="template === 'table-row'" class="flex gap-4 border-b border-[var(--border-color)] py-4">
+        <div v-for="c in columns" :key="c" class="skeleton-shimmer h-4 flex-1 rounded bg-[var(--bg-muted)]"></div>
       </div>
     </template>
   </div>

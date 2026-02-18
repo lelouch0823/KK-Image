@@ -32,7 +32,7 @@
             />
             <button
               type="button"
-              class="absolute top-2.5 right-3 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+              class="absolute top-2.5 right-3 text-[var(--text-muted)] transition-colors hover:text-[var(--text-main)]"
               @click="showKey = !showKey"
             >
               <!-- Eye Icon -->

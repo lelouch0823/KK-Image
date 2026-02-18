@@ -126,17 +126,19 @@
     --color-secondary: var(--color-gray-400);
     --color-secondary-hover: var(--color-gray-200);
 
-    --bg-page: #0F172A;
-    --bg-card: #1E293B;
-    --bg-hover: #334155;
-    --bg-active: #475569;
-    --bg-muted: #0F172A;
-    --bg-secondary: #020617;
+    --bg-page: #0B0E14;
+    /* Deep charcoal/near-black */
+    --bg-card: #11141d;
+    /* Slightly lighter for cards */
+    --bg-hover: #161b26;
+    --bg-active: #1f2937;
+    --bg-muted: #0e1118;
+    --bg-secondary: #0B0E14;
 
-    --border-color: rgba(255, 255, 255, 0.1);
-    --border-hover: rgba(255, 255, 255, 0.2);
-    --border-subtle: rgba(255, 255, 255, 0.05);
-    --border-strong: rgba(255, 255, 255, 0.3);
+    --border-color: rgba(255, 255, 255, 0.06);
+    --border-hover: rgba(255, 255, 255, 0.15);
+    --border-subtle: rgba(255, 255, 255, 0.03);
+    --border-strong: rgba(255, 255, 255, 0.2);
 
     --border-success: rgba(16, 185, 129, 0.3);
     --border-warning: rgba(245, 158, 11, 0.3);
@@ -150,8 +152,8 @@
 
 
     --color-overlay-blur: rgba(0, 0, 0, 0.7);
-    --color-overlay-dim: rgba(0, 0, 0, 0.5);
-    --color-modal-bg: #1E293B;
+    --color-overlay-dim: rgba(0, 0, 0, 0.6);
+    --color-modal-bg: #11141d;
 
     --color-chart-grid: rgba(255, 255, 255, 0.05);
 }

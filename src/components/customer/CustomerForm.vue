@@ -121,7 +121,7 @@
     <div class="mt-4 flex justify-end gap-3 border-t border-[var(--border-color)] pt-4">
       <button
         type="button"
-        class="rounded-lg border border-[var(--border-color)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
+        class="rounded-lg border border-[var(--border-color)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:outline-none"
         @click="$emit('cancel')"
       >
         {{ t('common.cancel') }}
@@ -129,7 +129,7 @@
       <button
         type="submit"
         :disabled="submitting"
-        class="flex h-9 shrink-0 items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:bg-[var(--color-primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        class="flex h-9 shrink-0 items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:bg-[var(--color-primary-hover)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       >
         <svg
           v-if="submitting"

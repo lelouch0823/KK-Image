@@ -156,7 +156,7 @@
 
         <!-- Content -->
         <div
-          class="absolute inset-0 flex items-center justify-center p-4 py-20 sm:p-8 md:p-12 overflow-hidden"
+          class="absolute inset-0 flex items-center justify-center overflow-hidden p-4 py-20 sm:p-8 md:p-12"
           @click.self="$emit('close')"
         >
           <!-- Image -->

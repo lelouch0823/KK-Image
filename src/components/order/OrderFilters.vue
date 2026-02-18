@@ -5,7 +5,7 @@
       <div class="hidden shrink-0 items-center gap-2 sm:flex">
         <button
           v-if="showCreate"
-          class="bg-[var(--color-primary)] shadow-[var(--color-primary)]/20 flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:opacity-90 active:scale-95"
+          class="flex h-9 items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-sm transition-all hover:opacity-90 active:scale-95"
           @click="$emit('create')"
         >
           <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,7 +45,7 @@
       <div class="flex shrink-0 items-center gap-1 sm:hidden">
         <button
           v-if="showCreate"
-          class="bg-[var(--color-primary)] flex size-9 items-center justify-center rounded-lg text-[var(--text-inverse)] shadow-sm transition-all active:scale-95"
+          class="flex size-9 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--text-inverse)] shadow-sm transition-all active:scale-95"
           :title="t('order.manage.create')"
           @click="$emit('create')"
         >

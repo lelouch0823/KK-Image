@@ -1,6 +1,6 @@
 <template>
   <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-sm">
-    <h3 class="mb-3 text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
+    <h3 class="mb-3 text-xs font-medium tracking-wider text-[var(--text-secondary)] uppercase">
       {{ title }}
     </h3>
     <div class="flex items-start gap-3">

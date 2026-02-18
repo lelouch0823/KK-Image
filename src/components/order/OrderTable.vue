@@ -113,7 +113,7 @@
             <div class="flex items-center justify-center gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
               <!-- 查看 -->
               <button
-                class="rounded-lg p-1.5 transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)] text-[var(--text-secondary)]"
+                class="rounded-lg p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)]"
                 :title="t('common.view')"
                 @click="$emit('detail', order)"
               >
@@ -134,7 +134,7 @@
               </button>
               <!-- 编辑 -->
               <button
-                class="rounded-lg p-1.5 transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)] text-[var(--text-secondary)]"
+                class="rounded-lg p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)]"
                 :title="t('common.edit')"
                 @click="$emit('edit', order)"
               >

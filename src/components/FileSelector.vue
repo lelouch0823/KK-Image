@@ -40,7 +40,7 @@
       <template v-for="folder in breadcrumbs" :key="folder.id">
         <span class="text-[var(--border-color)]">/</span>
         <button
-          class="hover:text-[var(--color-primary)] transition-colors"
+          class="transition-colors hover:text-[var(--color-primary)]"
           :class="currentFolderId === folder.id ? 'text-primary font-semibold' : 'text-secondary'"
           @click="navigateTo(folder.id)"
         >
@@ -63,7 +63,7 @@
           class="group relative flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 bg-[var(--color-info-bg)] transition-all hover:opacity-80"
           :class="
             selectedFolderIds.includes(folder.id)
-              ? 'border-[var(--color-primary)] ring-[var(--color-primary-light)] ring-2'
+              ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary-light)]'
               : 'border-transparent'
           "
           @click="navigateTo(folder.id, folder)"
@@ -157,7 +157,7 @@
 
       <div
         v-if="!loading && currentFolders.length === 0 && files.length === 0"
-        class="text-[var(--text-secondary)] flex h-full flex-col items-center justify-center pb-10"
+        class="flex h-full flex-col items-center justify-center pb-10 text-[var(--text-secondary)]"
       >
         <div class="mb-4 flex size-16 items-center justify-center rounded-full bg-[var(--bg-muted)]">
           <svg class="size-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -26,7 +26,7 @@
           v-else
           class="text-secondary min-w-[32px] rounded-md px-3 py-1 text-sm transition-colors hover:bg-[var(--bg-hover)]"
           :class="
-            page === currentPage ? 'bg-primary text-[var(--text-inverse)] font-bold' : ''
+            page === currentPage ? 'bg-primary font-bold text-[var(--text-inverse)]' : ''
           "
           @click="goToPage(page)"
         >

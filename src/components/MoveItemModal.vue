@@ -61,7 +61,7 @@
 
         <div
           v-if="flattenedFolders.length === 0 && !loading"
-          class="py-4 text-center text-sm text-secondary"
+          class="text-secondary py-4 text-center text-sm"
         >
           {{ t('moveFile.empty') }}
         </div>
@@ -71,7 +71,7 @@
     <!-- Footer -->
     <template #footer>
       <button
-        class="rounded-lg px-4 py-2 text-secondary transition-colors hover:bg-gray-100"
+        class="text-secondary rounded-lg px-4 py-2 transition-colors hover:bg-gray-100"
         @click="close"
       >
         {{ t('moveFile.cancel') }}

@@ -12,7 +12,7 @@
         <th class="rounded-tr-xl p-4 pr-8 text-center text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase">{{ t('product.table.header.actions') }}</th>
       </tr>
     </thead>
-    <tbody class="divide-border-subtle bg-[var(--bg-card)]/50 divide-y">
+    <tbody class="divide-border-subtle divide-y bg-[var(--bg-card)]/50">
       <tr 
         v-for="product in products" 
         :key="product.id"

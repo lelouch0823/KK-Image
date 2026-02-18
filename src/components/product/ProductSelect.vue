@@ -12,7 +12,7 @@
       <input
         v-model="searchQuery"
         type="text"
-        class="w-full rounded-lg border-[var(--border-color)] bg-[var(--bg-muted)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-main)] transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--color-primary)] focus:bg-[var(--bg-card)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+        class="w-full rounded-lg border-[var(--border-color)] bg-[var(--bg-muted)] py-2.5 pr-4 pl-10 text-sm text-[var(--text-main)] transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--color-primary)] focus:bg-[var(--bg-card)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none"
         :placeholder="t('product.filters.search_placeholder') || 'Search products...'"
         @focus="open"
         @input="handleInput"

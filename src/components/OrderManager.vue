@@ -125,8 +125,8 @@
         </div>
       </template>
       <OrderDetail
-        ref="detailRef"
         v-if="viewingOrder"
+        ref="detailRef"
         :order="viewingOrder"
         mode="admin"
         @back="closeDetailModal"

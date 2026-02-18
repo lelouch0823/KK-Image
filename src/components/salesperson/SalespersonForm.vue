@@ -75,7 +75,7 @@
           <div class="relative inline-flex cursor-pointer items-center">
             <input v-model="form.isActive" type="checkbox" class="peer sr-only" />
             <div
-              class="h-6 w-11 rounded-full bg-[var(--bg-muted)] transition-all peer peer-checked:bg-[var(--color-primary)] peer-focus:ring-2 peer-focus:ring-[var(--color-primary)]/20 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:size-5 after:rounded-full after:border after:border-[var(--border-color)] after:bg-[var(--bg-card)] after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-[var(--bg-card)]"
+              class="peer h-6 w-11 rounded-full bg-[var(--bg-muted)] transition-all peer-checked:bg-[var(--color-primary)] peer-focus:ring-2 peer-focus:ring-[var(--color-primary)]/20 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:size-5 after:rounded-full after:border after:border-[var(--border-color)] after:bg-[var(--bg-card)] after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-[var(--bg-card)]"
             ></div>
           </div>
         </label>
@@ -108,7 +108,7 @@
       </button>
       <button
         :disabled="submitting"
-        class="flex items-center rounded-xl bg-[var(--color-primary)] px-6 py-2.5 text-sm font-bold text-[var(--text-inverse)] shadow-lg shadow-[var(--color-primary)]/20 transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+        class="flex items-center rounded-xl bg-[var(--color-primary)] px-6 py-2.5 text-sm font-bold text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         @click="handleSubmit"
       >
         <svg

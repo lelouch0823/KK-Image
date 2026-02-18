@@ -12,11 +12,11 @@
       class="sticky right-0 bottom-0 left-0 z-20 flex items-center justify-between gap-4 border-t border-[var(--border-color)] bg-[var(--bg-card)] bg-[var(--bg-card)]/90 px-4 py-3.5 shadow-xl shadow-black/10 backdrop-blur-md"
     >
       <div class="flex items-center gap-3">
-        <span class="text-[var(--color-primary)] text-sm font-medium">
+        <span class="text-sm font-medium text-[var(--color-primary)]">
           {{ t('order.manage.selectedCount', { count: selectedCount }) }}
         </span>
         <button
-          class="text-[var(--text-secondary)] text-sm transition-colors hover:text-[var(--color-primary)]"
+          class="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--color-primary)]"
           @click="$emit('cancel')"
         >
           {{ t('order.manage.cancelSelect') }}

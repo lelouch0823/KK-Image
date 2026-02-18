@@ -203,7 +203,7 @@
         <button
           type="submit"
           :disabled="!isValid || isSubmitting"
-          class="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] font-medium text-[var(--text-inverse)] shadow-lg shadow-[var(--color-primary)]/20 transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          class="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <svg
             v-if="isSubmitting"

@@ -31,7 +31,7 @@
         </span>
       </div>
 
-      <div class="text-2xl font-bold tabular-nums text-[var(--text-main)]">
+      <div class="text-2xl font-bold text-[var(--text-main)] tabular-nums">
         <slot>{{ formattedValue }}</slot>
       </div>
 
