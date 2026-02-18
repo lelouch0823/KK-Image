@@ -1,0 +1,22 @@
+// Auth & Login
+export default {
+  loginTitle: 'Login',
+  welcome: 'Welcome Back',
+  subtitle: 'Login to manage your images and files',
+  username: 'Username',
+  usernamePlaceholder: 'Enter username',
+  password: 'Password',
+  passwordPlaceholder: 'Enter password',
+  loginButton: 'Login',
+  loggingIn: 'Logging in...',
+  inputRequired: 'Username and password are required',
+  loginSuccess: 'Login successful',
+  loginFailed: 'Login failed, please try again later',
+  logout: 'Logout',
+  copyright: '© {year} kk-life',
+  passwordRequired: 'Password Required',
+  passwordSubtitle: 'This content is password protected',
+  passwordAccessPlaceholder: 'Enter access password',
+  preparingWorkspace: 'Preparing your workspace...',
+  verifying: 'Verifying identity...',
+};

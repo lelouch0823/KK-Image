@@ -1,7 +1,7 @@
 <template>
   <div>
     <h4
-      class="mb-4 border-b border-[var(--border-color)] pb-2 text-sm font-medium text-[var(--text-main)]"
+      class="mb-4 border-b border-(--border-color) pb-2 text-sm font-medium text-(--text-main)"
     >
       {{ t('order.detail.currentInfo') }}
     </h4>
@@ -9,114 +9,92 @@
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <!-- 商品名称 (全宽) -->
       <div class="md:col-span-2">
-        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
-          t('order.form.productName')
-        }}</label>
-        <input 
-          :value="modelValue.name" 
-          class="input" 
+        <AppInput
+          :model-value="modelValue.name"
+          :label="t('order.form.productName')"
           :disabled="disabledFields.includes('name')"
-          :class="{ 'cursor-not-allowed bg-[var(--bg-muted)]': disabledFields.includes('name') }"
-          @input="updateField('name', $event.target.value)" 
+          @update:model-value="updateField('name', $event)"
         />
       </div>
 
       <!-- 品牌 -->
-      <div>
-        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
-          t('order.form.brand')
-        }}</label>
-        <input 
-          :value="modelValue.brand" 
-          class="input" 
-          :disabled="disabledFields.includes('brand')"
-          :class="{ 'cursor-not-allowed bg-[var(--bg-muted)]': disabledFields.includes('brand') }"
-          @input="updateField('brand', $event.target.value)" 
-        />
-      </div>
+      <AppInput
+        :model-value="modelValue.brand"
+        :label="t('order.form.brand')"
+        :disabled="disabledFields.includes('brand')"
+        @update:model-value="updateField('brand', $event)"
+      />
 
       <!-- 系列 -->
-      <div>
-        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
-          t('order.form.series')
-        }}</label>
-        <input 
-          :value="modelValue.series" 
-          class="input" 
-          :disabled="disabledFields.includes('series')"
-          :class="{ 'cursor-not-allowed bg-[var(--bg-muted)]': disabledFields.includes('series') }"
-          @input="updateField('series', $event.target.value)" 
-        />
-      </div>
+      <AppInput
+        :model-value="modelValue.series"
+        :label="t('order.form.series')"
+        :disabled="disabledFields.includes('series')"
+        @update:model-value="updateField('series', $event)"
+      />
 
       <!-- 款号 (SKU) -->
-      <div>
-        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{ t('order.form.sku') }}</label>
-        <input 
-          :value="modelValue.sku" 
-          class="input" 
-          :disabled="disabledFields.includes('sku')"
-          :class="{ 'cursor-not-allowed bg-[var(--bg-muted)]': disabledFields.includes('sku') }"
-          @input="updateField('sku', $event.target.value)" 
-        />
-      </div>
+      <AppInput
+        :model-value="modelValue.sku"
+        :label="t('order.form.sku')"
+        :disabled="disabledFields.includes('sku')"
+        @update:model-value="updateField('sku', $event)"
+      />
 
       <!-- 规格尺寸 -->
-      <div>
-        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
-          t('order.form.size')
-        }}</label>
-        <input :value="modelValue.size" class="input" @input="updateField('size', $event.target.value)" />
-      </div>
+      <AppInput
+        :model-value="modelValue.size"
+        :label="t('order.form.size')"
+        @update:model-value="updateField('size', $event)"
+      />
 
       <!-- 数量 -->
-      <div>
-        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
-          t('order.form.quantity')
-        }}</label>
-        <input 
-          :value="modelValue.quantity" 
-          type="number" 
-          min="1" 
-          class="input" 
-          @input="updateField('quantity', parseInt($event.target.value) || 1)" 
-        />
-      </div>
+      <AppInput
+        :model-value="modelValue.quantity"
+        type="number"
+        :label="t('order.form.quantity')"
+        min="1"
+        @update:model-value="updateField('quantity', parseInt($event) || 1)"
+      />
 
       <!-- 颜色 -->
-      <div>
-        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
-          t('order.form.color')
-        }}</label>
-        <input :value="modelValue.color" class="input" @input="updateField('color', $event.target.value)" />
-      </div>
+      <AppInput
+        :model-value="modelValue.color"
+        :label="t('order.form.color')"
+        @update:model-value="updateField('color', $event)"
+      />
 
       <!-- 材质 -->
-      <div>
-        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
-          t('order.form.material')
-        }}</label>
-        <input :value="modelValue.material" class="input" @input="updateField('material', $event.target.value)" />
-      </div>
+      <AppInput
+        :model-value="modelValue.material"
+        :label="t('order.form.material')"
+        @update:model-value="updateField('material', $event)"
+      />
 
       <!-- 期望到货时间 -->
-      <div>
-        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
-          t('order.form.expectedArrival')
-        }}</label>
-        <input
-          :value="modelValue.deadline"
-          type="date"
-          :min="minDate"
-          class="input appearance-none"
-          :class="{ 'text-muted': !modelValue.deadline }"
-          @input="updateField('deadline', $event.target.value)"
+      <AppInput
+        :model-value="modelValue.deadline"
+        type="date"
+        :label="t('order.form.expectedArrival')"
+        :min="minDate"
+        @update:model-value="updateField('deadline', $event)"
+      />
+
+      <!-- 销售员 (仅管理员可见) -->
+      <div v-if="showStatus">
+        <label class="mb-1 block text-xs font-medium text-(--text-secondary)">{{ t('common.salesperson') }}</label>
+        <Select
+          :model-value="modelValue.salespersonId"
+          :options="salespersonOptions"
+          :placeholder="t('salesperson.selectPlaceholder')"
+          class="w-full"
+          @update:model-value="updateField('salespersonId', $event)"
         />
       </div>
 
       <!-- 状态 (仅管理员可见) -->
       <div v-if="showStatus">
-        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{ t('order.status') }}</label>
+        <label class="mb-1 block text-xs font-medium text-(--text-secondary)">{{ t('order.status') }}</label>
         <StatusSelector
           :model-value="modelValue.status"
           :options="statuses"
@@ -127,15 +105,13 @@
 
       <!-- 备注 (全宽) -->
       <div class="md:col-span-2">
-        <label class="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{{
-          t('order.form.remark')
-        }}</label>
-        <textarea
-          :value="modelValue.remark"
-          rows="3"
-          class="input h-auto resize-none py-2"
-          @input="updateField('remark', $event.target.value)"
-        ></textarea>
+        <AppInput
+          :model-value="modelValue.remark"
+          :label="t('order.form.remark')"
+          textarea
+          :rows="3"
+          @update:model-value="updateField('remark', $event)"
+        />
       </div>
     </div>
   </div>
@@ -146,6 +122,8 @@ import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { getTodayISOString } from '@/utils/common';
 import StatusSelector from '@/components/ui/StatusSelector.vue';
+import AppInput from '@/components/ui/AppInput.vue';
+import Select from '@/components/ui/Select.vue';
 
 const props = defineProps({
   modelValue: {
@@ -160,6 +138,10 @@ const props = defineProps({
     type: Array,
     default: () => ['pending', 'confirmed', 'production', 'shipping', 'completed', 'rejected', 'void'],
   },
+  salespersons: {
+    type: Array,
+    default: () => [],
+  },
   disabledFields: {
     type: Array,
     default: () => [],
@@ -170,6 +152,13 @@ const emit = defineEmits(['update:modelValue']);
 
 const { t } = useI18n();
 const minDate = computed(() => getTodayISOString());
+
+const salespersonOptions = computed(() =>
+  props.salespersons.map((sp) => ({
+    label: `${sp.name}${sp.store ? ` (${sp.store})` : ''}`,
+    value: sp.id,
+  }))
+);
 
 const updateField = (field, value) => {
   if (props.disabledFields.includes(field)) return; // Prevent updates on disabled fields

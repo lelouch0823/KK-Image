@@ -7,7 +7,7 @@
 -- but usually D1 migrations are applied sequentially.
 -- However, to be safe and idempotent, we might need a more complex approach or just assume it is not there.
 -- Given this is "0028", it likely is not there.
-ALTER TABLE spaces ADD COLUMN share_mode TEXT DEFAULT 'all';
+-- ALTER TABLE spaces ADD COLUMN share_mode TEXT DEFAULT 'all';
 
 -- Create space_salesperson_shares table
 CREATE TABLE IF NOT EXISTS space_salesperson_shares (

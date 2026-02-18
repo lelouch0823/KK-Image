@@ -1,5 +1,5 @@
 <template>
-  <div ref="containerRef" class="relative">
+  <div ref="container" class="relative">
     <!-- Trigger -->
     <button
       type="button"
@@ -71,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, useTemplateRef } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 
 defineProps({
@@ -89,7 +89,7 @@ const emit = defineEmits(['update:modelValue']);
 
 const { t } = useI18n();
 const isOpen = ref(false);
-const containerRef = ref(null);
+const containerRef = useTemplateRef('container');
 const dropdownPosition = ref('bottom');
 
 const toggle = async () => {

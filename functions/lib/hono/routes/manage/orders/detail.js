@@ -75,7 +75,7 @@ app.patch('/:id', async (c) => {
     }
 
     // 管理员允许修改的所有字段
-    const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline'];
+    const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
 
     const _result = await processOrderUpdate({
         env,

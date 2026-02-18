@@ -1,17 +1,22 @@
 import { Hono } from 'hono';
 import { OrderStatsRepository } from '../../../../repositories/OrderStatsRepository.js';
+import { StatsRepository } from '../../../../repositories/StatsRepository.js';
+import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { MSG, getChinaDayStart } from '../../_shared/utils.js';
 
 const app = new Hono();
 
 /**
- * GET /overview - 获取仪表盘概览数据
+ * GET /overview - 获取仪表盘概览数据 (SOTA: 聚合接口)
  */
 app.get('/overview', async (c) => {
     const { env } = c;
 
     try {
         const statsRepo = new OrderStatsRepository(env.DB);
+        const globalStatsRepo = new StatsRepository(env.DB);
+        const folderRepo = new FolderRepository(env.DB);
+
         const todayStartTimestamp = getChinaDayStart();
 
         // 计算本周和上周的时间范围
@@ -19,20 +24,40 @@ app.get('/overview', async (c) => {
         const lastWeekStartTimestamp = weekStartTimestamp - 7 * 24 * 60 * 60 * 1000;
         const now = Date.now();
 
-        const [todayCount, pendingCount, recentPendingOrders, weekCount, lastWeekCount, activeSharesCount, todayHourlyTrend, pendingTrend, weekTrendData, shareTrend] = await Promise.all([
+<<<<<<< HEAD
+        const [
+            todayCount,
+            pendingCount,
+            recentPendingOrders,
+            weekCount,
+            lastWeekCount,
+            activeSharesCount,
+            todayHourlyTrend,
+            pendingTrend,
+            weekTrendData,
+            shareTrend,
+            recentFiles,
+            recentShares
+        ] = await Promise.all([
             statsRepo.countCreatedAfter(todayStartTimestamp),
             statsRepo.countByStatus('pending'),
             statsRepo.getRecentPending(20),
             statsRepo.countCreatedAfter(weekStartTimestamp),
             statsRepo.countCreatedBetween(lastWeekStartTimestamp, weekStartTimestamp),
             env.DB.prepare(`
-        SELECT COUNT(*) as count FROM folders 
-        WHERE is_public = 1 AND (share_expires_at IS NULL OR share_expires_at > ?)
-      `).bind(now).first().then(r => r?.count || 0),
+                SELECT COUNT(*) as count FROM folders 
+                WHERE is_public = 1 AND (share_expires_at IS NULL OR share_expires_at > ?)
+            `).bind(now).first().then(r => r?.count || 0),
             statsRepo.getTodayHourlyTrend(todayStartTimestamp),
-            statsRepo.getLast7DaysPendingTrend(weekStartTimestamp), // Using weekStartTimestamp (last 7 days)
+            statsRepo.getLast7DaysPendingTrend(weekStartTimestamp),
             statsRepo.getLast7DaysOrderTrend(weekStartTimestamp),
             statsRepo.getLast7DaysShareTrend(weekStartTimestamp),
+            // SOTA: 在概览中直接包含最近文件和分享，减少 RTT
+            globalStatsRepo.db.prepare(
+                `SELECT id, name, size, mime_type as type, created_at as timestamp 
+                 FROM files ORDER BY created_at DESC LIMIT 5`
+            ).all().then(r => r.results),
+            folderRepo.findShared({ limit: 5 }).then(r => r.items)
         ]);
 
         return c.json({
@@ -45,11 +70,13 @@ app.get('/overview', async (c) => {
                 lastWeekCount,
                 activeSharesCount,
                 charts: {
-                    today: todayHourlyTrend, // Array of { hour: '00', count: 5 }
-                    pending: pendingTrend,   // Array of { date: '2023-10-27', count: 10 }
-                    week: weekTrendData,     // Array of { date: '2023-10-27', count: 50 }
-                    shares: shareTrend       // Array of { date: '2023-10-27', count: 2 }
-                }
+                    today: todayHourlyTrend,
+                    pending: pendingTrend,
+                    week: weekTrendData,
+                    shares: shareTrend
+                },
+                recentFiles,
+                recentShares
             },
         });
     } catch (err) {

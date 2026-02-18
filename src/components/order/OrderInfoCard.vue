@@ -17,8 +17,11 @@
         <span class="mb-1 flex-shrink-0 text-sm text-[var(--text-secondary)] sm:mb-0 sm:w-20">{{ t('order.form.productName') }}</span>
         <div class="flex items-center gap-2 overflow-hidden">
             <span class="truncate text-sm text-[var(--text-main)]">{{ data.name || '-' }}</span>
-            <span class="flex-shrink-0 rounded bg-[var(--color-primary)]/10 px-1.5 py-0.5 text-xs font-medium text-[var(--color-primary)]">x {{ quantity }}</span>
         </div>
+      </div>
+      <div class="flex flex-col sm:flex-row">
+        <span class="mb-1 flex-shrink-0 text-sm text-[var(--text-secondary)] sm:mb-0 sm:w-20">{{ t('order.form.quantity') }}</span>
+        <span class="text-sm font-medium text-[var(--text-main)]">{{ quantity }}</span>
       </div>
       <div class="flex flex-col sm:flex-row">
         <span class="mb-1 flex-shrink-0 text-sm text-[var(--text-secondary)] sm:mb-0 sm:w-20">{{ t('order.form.brand') }}</span>

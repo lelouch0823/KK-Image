@@ -1,18 +1,17 @@
-import sentryPlugin from '@cloudflare/pages-plugin-sentry';
+import { sentryPagesPlugin } from '@sentry/cloudflare';
 import { verifyJWT, ADMIN_AUTH_COOKIE } from './api/utils/auth.js';
 
 /**
  * Edge Middleware - 组合 Sentry 监控 + JWT 验证
  */
 export const onRequest = [
-  // 1. Sentry 监控（最外层，捕获所有错误）
-  (context) => {
-    const dsn = context.env.SENTRY_DSN;
-    if (dsn) {
-      return sentryPlugin({ dsn })(context);
-    }
-    return context.next();
-  },
+  // 1. Sentry Monitoring with optimized config
+  sentryPagesPlugin((context) => ({
+    dsn: context.env.SENTRY_DSN,
+    tracesSampleRate: Number(context.env.SENTRY_TRACES_SAMPLE_RATE || 0.2), // Default 20% sampling
+    environment: context.env.ENVIRONMENT || 'production',
+    attachStacktrace: true,
+  })),
 
   // 2. JWT 验证与重定向
   async (context) => {
@@ -25,8 +24,8 @@ export const onRequest = [
       return next();
     }
 
-    // 只保护 admin 相关页面
-    const isAdminPath = pathname.includes('admin');
+    // 只保护 admin 相关页面（使用精确路径匹配）
+    const isAdminPath = pathname.startsWith('/admin') || pathname === '/admin.html';
     if (!isAdminPath) {
       return next();
     }

@@ -1,20 +1,24 @@
 <template>
   <TransitionGroup name="list" tag="div" class="space-y-3">
-    <div
+    <AppCard
       v-for="file in files"
       :key="file.id"
-      class="group relative flex items-center gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-sm transition-all duration-300 active:scale-[0.98] active:bg-[var(--bg-muted)]"
-      @click="$emit('preview', file)"
+      padding="p-3"
+      class="group relative flex items-center gap-3 transition-all duration-300 active:scale-[0.98] active:bg-(--bg-muted)"
+      selected-border
+      :selected="selectedIds?.has(file.id)"
+      @click="$emit('select', file)"
     >
-      <!-- Thumbnail -->
       <div
-        class="relative size-14 shrink-0 overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)]"
+        class="relative size-14 shrink-0 overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-muted)"
       >
-        <img
+        <AppImage
           v-if="isImage(file)"
           :src="file.url"
-          class="size-full object-cover transition-transform duration-500 group-active:scale-110"
-          loading="lazy"
+          class="size-full transition-transform duration-500 group-active:scale-110"
+          width="56"
+          height="56"
+          rounded="none"
         />
         <div
           v-else
@@ -38,34 +42,40 @@
 
       <!-- Actions -->
       <div class="flex items-center gap-1">
-        <button
-          class="text-secondary flex size-8 items-center justify-center rounded-lg transition-colors active:text-primary active:bg-[var(--bg-active)]"
+        <AppButton
+          variant="ghost"
+          size="sm"
+          class="!p-1.5 !h-8 !w-8"
           @click.stop="$emit('share', file)"
         >
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-            ></path>
-          </svg>
-        </button>
-        <button
-          class="text-secondary flex size-8 items-center justify-center rounded-lg transition-colors active:text-primary active:bg-[var(--bg-active)]"
+          <template #icon-left>
+            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+            </svg>
+          </template>
+        </AppButton>
+        <AppButton
+          variant="ghost"
+          size="sm"
+          class="!p-1.5 !h-8 !w-8"
           @click.stop="$emit('context-menu', $event, file)"
         >
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
-          </svg>
-        </button>
+          <template #icon-left>
+            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+            </svg>
+          </template>
+        </AppButton>
       </div>
-    </div>
+    </AppCard>
   </TransitionGroup>
 </template>
 
 <script setup>
 import { useFileManager } from '@/composables/useFileManager';
+import AppCard from '@/components/ui/AppCard.vue';
+import AppImage from '@/components/ui/AppImage.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 
 defineProps({
   files: {

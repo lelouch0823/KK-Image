@@ -1,0 +1,41 @@
+// 统计分析
+export default {
+  analyzing: '正在分析数据...',
+  loadFailed: '数据加载失败',
+  retry: '重新加载',
+  // 存储分析
+  totalFiles: '文件总数',
+  totalStorage: '总存储量',
+  storageGrowth: '存储增长趋势',
+  largeFiles: '大文件 Top 10',
+  // 访问统计
+  monthVisits: '本月访问',
+  trafficTrend: '访问趋势 (30天)',
+  topSpaces: '热门空间 Top 5',
+  hot: '热门',
+  views: '次访问',
+  downloads: '次下载',
+  // 资产健康
+  fileTypes: '文件类型分布',
+  statusOverview: '资产健康度',
+  normal: '正常',
+  blocked: '已屏蔽',
+  whitelisted: '白名单',
+  liked: '已收藏',
+  // 旧字段 (保留兼容)
+  todayUploads: '今日上传',
+  weekUploads: '本周上传',
+  uploadTrend: '上传趋势',
+  recentActivity: '最近活动',
+  dailyUpload: '每日上传',
+  refreshSuccess: '统计刷新成功',
+  loadError: '数据加载失败',
+  justNow: '刚刚',
+  minutesAgo: '{count}分钟前',
+  hoursAgo: '{count}小时前',
+  unknown: '未知',
+  noData: '暂无数据',
+  fileName: '文件名',
+  fileType: '类型',
+  fileSize: '大小',
+};

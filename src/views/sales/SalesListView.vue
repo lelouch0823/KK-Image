@@ -6,10 +6,10 @@
     @touchend="handleTouchEnd"
   >
     <!-- Search Bar -->
-    <div class="sticky top-14 z-20 -mx-4 mb-4 border-b border-[var(--border-color)] bg-[var(--bg-page)]/95 px-4 py-2 backdrop-blur-sm sm:top-20 sm:mx-0 sm:rounded-xl sm:border">
-      <div class="relative">
+    <div class="sticky top-14 z-20 -mx-4 mb-4 border-b border-[var(--border-color)] bg-[var(--bg-page)]/85 px-4 py-3 backdrop-blur-md transition-all sm:top-20 sm:mx-0 sm:rounded-xl sm:border sm:bg-[var(--bg-card)]/90 sm:shadow-sm">
+      <div class="relative group">
         <svg
-          class="text-secondary absolute top-1/2 left-3 size-4 -translate-y-1/2"
+          class="text-secondary absolute top-1/2 left-3.5 size-5 -translate-y-1/2 transition-colors group-focus-within:text-primary"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -25,11 +25,11 @@
           v-model="searchQuery"
           type="text"
           :placeholder="t('common.searchPlaceholder')"
-          class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] py-2 pr-4 pl-9 text-sm transition-all outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+          class="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] py-2.5 pr-10 pl-11 text-sm shadow-sm transition-all outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--color-primary)] focus:bg-[var(--bg-card)] focus:ring-4 focus:ring-[var(--color-primary)]/10"
         />
         <button
             v-if="searchQuery"
-            class="text-secondary absolute top-1/2 right-3 -translate-y-1/2 hover:text-primary"
+            class="text-secondary absolute top-1/2 right-3 -translate-y-1/2 rounded-full p-1 hover:bg-[var(--bg-muted)] hover:text-primary"
             @click="searchQuery = ''"
         >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,15 +62,32 @@
       :is-pulling="isPulling"
       @refresh="loadOrders"
       @view="handleViewOrder"
+      :loading-more="infiniteScroll.isLoading.value"
     />
+
+    <!-- Infinite Scroll Trigger -->
+    <div class="pb-20">
+      <div 
+        v-if="infiniteScroll.canLoadMore.value && filteredOrders.length === orders.length"
+        :ref="(el) => infiniteScroll.triggerRef.value = el"
+        class="flex items-center justify-center py-4 text-sm text-(--text-secondary)"
+      >
+        <div v-if="infiniteScroll.isLoading.value" class="border-t-primary size-5 animate-spin rounded-full border-2 border-(--border-color)"></div>
+        <span v-else>↑ {{ t('common.loading') }}</span>
+      </div>
+      <div v-else-if="orders.length > 0 && !infiniteScroll.canLoadMore.value" class="py-4 text-center text-sm text-(--text-secondary)">
+        {{ t('common.total') }} {{ pagination?.total || orders.length }} {{ t('common.items') }}
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { inject, ref, computed } from 'vue';
+import { inject, computed, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePullToRefresh } from '@/composables/usePullToRefresh';
+import { useInfiniteScroll } from '@/composables/useInfiniteScroll';
 import OrderList from '@/components/order/OrderList.vue';
 
 const router = useRouter();
@@ -78,10 +95,9 @@ const route = useRoute();
 const { t } = useI18n();
 
 // Inject shared state from Sales.vue (Layout)
-const { orders, loading, loadOrders } = inject('salesContext');
+const { orders, loading, loadOrders, pagination, searchQuery } = inject('salesContext');
 
 // Local Filtering
-const searchQuery = ref('');
 const filteredOrders = computed(() => {
   if (!searchQuery.value.trim()) return orders.value;
   
@@ -111,4 +127,28 @@ const handleViewOrder = (order) => {
   
   router.push(`/sales/${route.params.token}/detail/${order.id}`);
 };
+
+// Infinite Scroll using composable
+const infiniteScroll = useInfiniteScroll(async () => {
+  // Don't load more while searching
+  if (filteredOrders.value.length !== orders.value.length) {
+    infiniteScroll.setCanLoadMore(false);
+    return;
+  }
+  if (!pagination || pagination.page >= pagination.totalPages) {
+    infiniteScroll.setCanLoadMore(false);
+    return;
+  }
+  await loadOrders(pagination.page + 1, true);
+  infiniteScroll.setCanLoadMore(pagination.page < pagination.totalPages);
+}, { rootMargin: '200px' });
+
+// Watch for search changes to reset infinite scroll
+watch(searchQuery, () => {
+  if (searchQuery.value.trim()) {
+    infiniteScroll.setCanLoadMore(false);
+  } else {
+    infiniteScroll.setCanLoadMore(pagination?.page < pagination?.totalPages);
+  }
+});
 </script>

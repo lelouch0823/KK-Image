@@ -110,13 +110,13 @@ export class RedundancyManager {
   }
 
   /**
-   * 异步镜像上传（后台处理）
+   * 异步镜像上传（后台处理，SOTA: 并发执行）
    * @private
    */
   _mirrorAsync(file, options, mirrors, primaryFileId, _storageInfo) {
-    // 后台镜像任务
+    // 后台镜像任务 - 使用 Promise.all 并发执行所有镜像
     const mirrorTask = async () => {
-      for (const mirrorName of mirrors) {
+      await Promise.all(mirrors.map(async (mirrorName) => {
         try {
           const provider = getStorageProvider(this.env, mirrorName);
           const result = await provider.upload(file, options);
@@ -137,7 +137,7 @@ export class RedundancyManager {
             );
           }
         }
-      }
+      }));
     };
 
     // 使用 context.waitUntil 确保后台任务完成

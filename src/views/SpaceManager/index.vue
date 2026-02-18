@@ -13,7 +13,7 @@
         <!-- 未来可扩展：导入、归档等按钮 -->
         <Tooltip :content="t('spaceManager.create')">
           <button
-            class="flex size-9 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--text-inverse)] shadow-sm transition-colors hover:bg-[var(--color-primary-hover)] dark:text-gray-900"
+            class="flex size-9 items-center justify-center rounded-lg bg-primary text-(--text-inverse) shadow-sm transition-colors hover:bg-primary-hover dark:text-gray-900"
             @click="showCreateModal = true"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,11 +48,13 @@
           class="relative aspect-video overflow-hidden bg-gradient-to-br from-[var(--bg-muted)] to-[var(--bg-page)]"
         >
           <!-- 实际封面图 -->
-          <img
+          <AppImage
             v-if="space.coverUrl"
             :src="space.coverUrl"
             :alt="space.name"
-            class="size-full object-cover"
+            class="size-full"
+            fit="cover"
+            rounded="none"
           />
           <!-- 占位图 -->
           <div v-else class="absolute inset-0 flex items-center justify-center">
@@ -147,36 +149,34 @@
 
         <!-- 操作菜单 -->
         <div class="flex justify-end gap-2 px-4 pb-4">
-          <Tooltip :content="t('spaceManager.copyLink')">
-            <button
-              class="flex size-8 items-center justify-center rounded-lg bg-[var(--bg-muted)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)]"
-              @click.stop="handleCopyShareLink(space)"
-            >
+          <AppButton
+            variant="ghost"
+            block
+            size="sm"
+            :text="t('space.manage')"
+            @click.stop="manageSpace(space)"
+          >
+            <template #icon-left>
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                ></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
               </svg>
-            </button>
-          </Tooltip>
-          <Tooltip :content="t('spaceManager.deleteSpace')">
-            <button
-              class="flex size-8 items-center justify-center rounded-lg bg-[var(--color-danger)]/10 text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger)]/20"
-              @click.stop="deleteSpaceConfirm(space)"
-            >
+            </template>
+          </AppButton>
+          <AppButton
+            variant="ghost"
+            block
+            size="sm"
+            class="text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger-hover)]"
+            :text="t('space.delete')"
+            @click.stop="confirmDelete(space)"
+          >
+            <template #icon-left>
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                ></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
               </svg>
-            </button>
-          </Tooltip>
+            </template>
+          </AppButton>
         </div>
       </div>
     </div>
@@ -197,20 +197,17 @@
       </div>
       <h3 class="mb-2 text-lg font-medium text-[var(--text-main)]">{{ t('spaceManager.emptyTitle') }}</h3>
       <p class="mb-6 text-sm text-[var(--text-secondary)]">{{ t('spaceManager.createDesc') }}</p>
-      <button
-        class="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-6 py-3 text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)] dark:text-gray-900"
-        @click="showCreateModal = true"
+      <!-- Create Button -->
+      <AppButton
+        :text="t('space.create')"
+        @click="openCreateModal"
       >
-        <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 4v16m8-8H4"
-          ></path>
-        </svg>
-        {{ t('spaceManager.createFirst') }}
-      </button>
+        <template #icon-left>
+          <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+        </template>
+      </AppButton>
     </div>
 
     <!-- 创建空间弹窗 -->
@@ -259,11 +256,13 @@ import SpaceDetailModal from '@/components/SpaceDetailModal.vue';
 import SpaceProductEditor from '@/components/SpaceProductEditor.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
+import AppImage from '@/components/ui/AppImage.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 
 const { spaces, loading, loadSpaces, deleteSpace } = useSpaces();
 const { addToast } = useToast();
 const { t } = useI18n();
-const { copyShareLink } = useClipboard();
+
 
 const showCreateModal = ref(false);
 const selectedSpace = ref(null);
@@ -278,6 +277,10 @@ const confirmData = ref({
   onConfirm: () => {},
 });
 
+const openCreateModal = () => {
+  showCreateModal.value = true;
+};
+
 const getTemplateLabel = (template) =>
   t(`spaceManager.templates.${template || 'custom'}`) || template;
 
@@ -285,15 +288,7 @@ const openSpaceDetail = (space) => {
   selectedSpace.value = space;
 };
 
-const handleCopyShareLink = async (space) => {
-  if (!space.shareUrl) {
-    addToast({ message: t('spaceManager.pleasePublicFirst'), type: 'warning' });
-    return;
-  }
-  await copyShareLink(space.shareUrl);
-};
-
-const deleteSpaceConfirm = (space) => {
+const confirmDelete = (space) => {
   confirmData.value = {
     show: true,
     title: t('common.delete'),

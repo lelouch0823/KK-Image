@@ -10,6 +10,7 @@ export const MSG = {
     EXPIRED: '登录已过期，请重新登录',
     FORBIDDEN: '权限不足',
     INVALID_CREDENTIALS: '用户名或密码错误',
+    ACCOUNT_LOCKED: '登录失败次数过多，账户已被临时锁定，请 {time} 后重试',
     VERIFY_FAILED: '人机验证失败',
     VERIFY_SKIPPED: '验证已跳过',
     VERIFY_SUCCESS: '验证通过',

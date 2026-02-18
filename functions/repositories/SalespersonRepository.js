@@ -77,12 +77,16 @@ export class SalespersonRepository {
    * @returns {Promise<{results: Array, total: number, pages: number}>}
    */
   async list({ page = 1, limit = 50, search = '' }) {
-    const offset = (page - 1) * limit;
+    // 验证分页参数
+    const safePage = Math.max(1, Math.floor(Number(page) || 1));
+    const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 50)));
+    const offset = (safePage - 1) * safeLimit;
+
     let whereClause = '1=1';
     const bindings = [];
 
     if (search) {
-      whereClause += ' AND (name LIKE ? OR store LIKE ? OR phone LIKE ?)';
+      whereClause += ' AND (s.name LIKE ? OR s.store LIKE ? OR s.phone LIKE ?)';
       const term = `%${search}%`;
       bindings.push(term, term, term);
     }
@@ -91,7 +95,7 @@ export class SalespersonRepository {
       this.db
         .prepare(
           `
-                SELECT COUNT(*) as total FROM salespersons WHERE ${whereClause}
+                SELECT COUNT(*) as total FROM salespersons s WHERE ${whereClause}
             `
         )
         .bind(...bindings)
@@ -99,23 +103,28 @@ export class SalespersonRepository {
       this.db
         .prepare(
           `
-                SELECT 
+                SELECT
                     s.*,
-                    (SELECT COUNT(*) FROM orders WHERE salesperson_id = s.id) as order_count
+                    COALESCE(oc.order_count, 0) as order_count
                 FROM salespersons s
-                WHERE ${whereClause} 
-                ORDER BY s.created_at DESC 
+                LEFT JOIN (
+                    SELECT salesperson_id, COUNT(*) as order_count
+                    FROM orders
+                    GROUP BY salesperson_id
+                ) oc ON oc.salesperson_id = s.id
+                WHERE ${whereClause}
+                ORDER BY s.created_at DESC
                 LIMIT ? OFFSET ?
             `
         )
-        .bind(...bindings, limit, offset)
+        .bind(...bindings, safeLimit, offset)
         .all(),
     ]);
 
     return {
       results: listResult.results,
       total: countResult.total,
-      pages: Math.ceil(countResult.total / limit),
+      pages: Math.ceil(countResult.total / safeLimit),
     };
   }
 
@@ -247,7 +256,7 @@ export class SalespersonRepository {
    * @param {string} id
    * @returns {Promise<string>} New token
    */
-  async resetToken(id) {
+  async resetAccessToken(id) {
     const newToken = generateShareToken(12);
     const result = await this.db
       .prepare(
@@ -277,5 +286,26 @@ export class SalespersonRepository {
       .bind(id)
       .first();
     return result.count > 0;
+  }
+
+  /**
+   * 记录登录信息
+   * @param {string} id
+   * @param {string} ip
+   * @param {string} device
+   * @returns {Promise<boolean>}
+   */
+  async recordLogin(id, ip, device) {
+    const result = await this.db
+      .prepare(
+        `
+            UPDATE salespersons 
+            SET last_login_at = ?, last_login_ip = ?, last_login_device = ?, updated_at = ?
+            WHERE id = ?
+        `
+      )
+      .bind(now(), ip || null, device || null, now(), id)
+      .run();
+    return result.success;
   }
 }

@@ -1,39 +1,56 @@
 <template>
-  <div class="flex items-center justify-between border-b border-[var(--border-color)] px-6 py-4">
-    <!-- Breadcrumbs -->
-    <div 
-      class="scrollbar-thin flex max-w-2xl items-center gap-2 overflow-x-auto" 
-      :class="{ 'hidden lg:flex': selectedCount > 0 }"
-    >
-      <button
-        class="flex items-center gap-1 text-sm font-medium whitespace-nowrap transition-colors"
-        :class="!currentFolder ? 'text-primary' : 'text-secondary hover:text-primary'"
-        @click="$emit('navigate', null)"
+  <!-- 移动端: 两行布局 | 桌面端: 单行布局 -->
+  <div class="flex flex-col gap-3 border-b border-[var(--border-color)] px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-6 lg:py-4">
+    <!-- 第一行: 面包屑 + 上传按钮 -->
+    <div class="flex items-center justify-between gap-3">
+      <!-- Breadcrumbs -->
+      <div 
+        class="scrollbar-thin flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto lg:max-w-2xl lg:gap-2" 
+        :class="{ 'hidden lg:flex': selectedCount > 0 }"
       >
-        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-          ></path>
-        </svg>
-        {{ t('fileManager.root') }}
-      </button>
-      <template v-for="(crumb, index) in breadcrumbs" :key="crumb.id">
-        <span class="text-secondary text-sm">/</span>
         <button
-          class="text-sm font-medium whitespace-nowrap transition-colors"
-          :class="index === breadcrumbs.length - 1 ? 'text-primary' : 'text-secondary hover:text-primary'"
-          @click="$emit('navigate', crumb.id)"
+          class="flex shrink-0 items-center gap-1 text-sm font-medium whitespace-nowrap transition-colors"
+          :class="!currentFolder ? 'text-primary' : 'text-secondary hover:text-primary'"
+          @click="$emit('navigate', null)"
         >
-          {{ crumb.name }}
+          <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+            ></path>
+          </svg>
+          <span class="hidden sm:inline">{{ t('fileManager.root') }}</span>
         </button>
-      </template>
+        <template v-for="(crumb, index) in breadcrumbs" :key="crumb.id">
+          <span class="text-secondary text-xs lg:text-sm">/</span>
+          <button
+            class="max-w-24 truncate text-sm font-medium whitespace-nowrap transition-colors sm:max-w-none"
+            :class="index === breadcrumbs.length - 1 ? 'text-primary' : 'text-secondary hover:text-primary'"
+            @click="$emit('navigate', crumb.id)"
+          >
+            {{ crumb.name }}
+          </button>
+        </template>
+      </div>
+
+      <!-- 移动端: 上传按钮 (始终可见) -->
+      <div class="flex shrink-0 items-center gap-2 lg:hidden">
+        <input ref="fileInputMobile" type="file" multiple class="hidden" @change="handleFileSelect" />
+        <button
+          class="flex size-9 items-center justify-center rounded-xl bg-primary text-(--text-inverse) shadow-lg shadow-primary/20 transition-all active:scale-95 dark:text-gray-900"
+          @click="$refs.fileInputMobile.click()"
+        >
+          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+          </svg>
+        </button>
+      </div>
     </div>
 
-    <!-- Actions -->
-    <div class="flex items-center gap-3">
+    <!-- 第二行: 搜索 + 操作按钮 + 视图切换 -->
+    <div class="flex items-center gap-2 lg:gap-3">
       <!-- Batch Actions -->
       <Transition
         enter-active-class="transition duration-200 ease-out"
@@ -45,28 +62,56 @@
       >
         <div 
           v-if="selectedCount > 0" 
-          class="flex flex-1 items-center gap-2 rounded-xl bg-[var(--color-info)]/10 px-3 py-2 text-sm text-[var(--color-info)] dark:bg-[var(--color-info)]/20 dark:text-blue-300"
+          class="flex items-center gap-1 overflow-hidden rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 px-2 py-1.5 transition-all"
         >
-          <span class="font-medium whitespace-nowrap">{{ t('fileManager.selected', { count: selectedCount }) }}</span>
-          <div class="mx-1 h-4 w-px bg-[var(--color-info)]/20 dark:bg-blue-700"></div>
-          <div class="ml-auto flex items-center gap-1 sm:ml-0">
-            <button class="px-1 transition-colors hover:text-[var(--color-info)] hover:underline dark:hover:text-blue-100" @click="$emit('batch-move')">
-              {{ t('fileManager.actions.move') }}
-            </button>
-            <button class="px-1 text-[var(--color-danger)] transition-colors hover:text-[var(--color-danger-hover)] hover:underline dark:text-red-400 dark:hover:text-red-300" @click="$emit('batch-delete')">
-              {{ t('fileManager.actions.delete') }}
-            </button>
-            <button class="px-1 text-[var(--text-secondary)] transition-colors hover:text-[var(--text-main)] dark:text-gray-400 dark:hover:text-gray-300" @click="$emit('clear-selection')">
-              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-          </div>
+          <span class="mr-1 text-xs font-medium text-[var(--color-primary)] lg:mr-2">{{
+            t('fileManager.selected', { count: selectedCount })
+          }}</span>
+          
+          <div class="h-4 w-px bg-[var(--color-primary)]/20"></div>
+
+          <AppButton
+            variant="ghost"
+            size="sm"
+            class="!px-1.5 text-[var(--color-info)] hover:text-[var(--color-info)] hover:bg-[var(--color-info)]/10"
+            :title="t('fileManager.actions.move')"
+            @click="$emit('batch-move')"
+          >
+             <template #icon-left>
+               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
+             </template>
+          </AppButton>
+
+          <AppButton
+            variant="ghost"
+            size="sm"
+            class="!px-1.5 text-[var(--color-danger)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
+            :title="t('fileManager.actions.delete')"
+            @click="$emit('batch-delete')"
+          >
+             <template #icon-left>
+               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+             </template>
+          </AppButton>
+
+          <AppButton
+            variant="ghost"
+            size="sm"
+            class="!px-1.5 text-[var(--text-secondary)] hover:text-[var(--text-main)]"
+            :title="t('common.cancel')"
+            @click="$emit('clear-selection')"
+          >
+             <template #icon-left>
+               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+             </template>
+          </AppButton>
         </div>
       </Transition>
 
       <div v-if="selectedCount > 0" class="hidden h-6 w-px bg-[var(--border-color)] lg:block"></div>
 
-      <!-- Regular Actions -->
-      <Tooltip v-if="currentFolder" :content="t('fileManager.shareFolder')">
+      <!-- Regular Actions (桌面端显示完整, 移动端简化) -->
+      <Tooltip v-if="currentFolder" :content="t('fileManager.shareFolder')" class="hidden lg:block">
         <button
           class="text-secondary flex size-10 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:text-primary hover:bg-[var(--bg-hover)] active:scale-95"
           @click="$emit('share-folder')"
@@ -82,58 +127,63 @@
         </button>
       </Tooltip>
 
+      <!-- 桌面端上传按钮 -->
       <input ref="fileInput" type="file" multiple class="hidden" @change="handleFileSelect" />
+      <div class="hidden lg:block">
+        <Tooltip :content="t('fileManager.upload')">
+          <button
+            class="flex size-10 items-center justify-center rounded-xl bg-primary text-(--text-inverse) shadow-primary/20 shadow-lg transition-all hover:-translate-y-0.5 hover:bg-primary-hover hover:shadow-primary/30 active:translate-y-0 active:scale-95 dark:text-gray-900"
+            @click="$refs.fileInput.click()"
+          >
+            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+            </svg>
+          </button>
+        </Tooltip>
+      </div>
 
-      <Tooltip :content="t('fileManager.upload')">
-        <button
-          class="flex size-10 items-center justify-center rounded-xl bg-[var(--color-primary)] text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:-translate-y-0.5 hover:bg-[var(--color-primary-hover)] hover:shadow-[var(--color-primary)]/30 active:translate-y-0 active:scale-95 dark:text-gray-900"
-          @click="$refs.fileInput.click()"
-        >
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-            ></path>
-          </svg>
-        </button>
-      </Tooltip>
-
+      <!-- 新建文件夹 -->
       <Tooltip :content="t('fileManager.newFolder')">
         <button
-          class="text-secondary flex size-10 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:text-primary hover:bg-[var(--bg-hover)] active:scale-95"
+          class="text-secondary flex size-9 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:text-primary hover:bg-[var(--bg-hover)] active:scale-95 lg:size-10"
           @click="$emit('create-folder')"
         >
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-            ></path>
+          <svg class="size-4 lg:size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
           </svg>
         </button>
       </Tooltip>
 
-      <!-- View Toggle -->
-      <div class="flex hidden items-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-1 lg:flex">
-        <button
-          class="rounded-lg p-1.5 transition-all"
-          :class="viewMode === 'list' ? 'text-primary bg-[var(--bg-hover)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'"
-          :title="t('fileManager.viewMode.list')"
-          @click="$emit('update:viewMode', 'list')"
-        >
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-        </button>
-        <button
-          class="rounded-lg p-1.5 transition-all"
-          :class="viewMode === 'grid' ? 'text-primary bg-[var(--bg-hover)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'"
-          :title="t('fileManager.viewMode.grid')"
-          @click="$emit('update:viewMode', 'grid')"
-        >
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V16zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-        </button>
+      <!-- 搜索框: 移动端收缩, 桌面端展开 -->
+      <AppInput
+        v-model="searchQuery"
+        size="sm"
+        :placeholder="t('common.search')"
+        class="w-28 sm:w-40 lg:w-64"
+      >
+        <template #prepend>
+           <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+           </svg>
+        </template>
+      </AppInput>
+
+      <!-- 视图切换 -->
+      <div class="hidden items-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] p-1 sm:flex">
+          <AppButton
+              v-for="mode in ['grid', 'list']"
+              :key="mode"
+              size="sm"
+              variant="ghost"
+              class="!p-1.5 !h-7"
+              :class="{ 'bg-[var(--bg-card)] shadow-sm text-[var(--color-primary)]': viewMode === mode }"
+              @click="$emit('update:viewMode', mode)"
+          >
+              <template #icon-left>
+                  <svg v-if="mode === 'grid'" class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V16zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                  <svg v-else class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+              </template>
+          </AppButton>
       </div>
     </div>
   </div>
@@ -142,9 +192,12 @@
 <script setup>
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { useSearch } from '@/composables/useSearch';
 import Tooltip from '@/components/ui/Tooltip.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 
-const _props = defineProps({
+defineProps({
   breadcrumbs: {
     type: Array,
     required: true,
@@ -175,7 +228,9 @@ const emit = defineEmits([
 ]);
 
 const { t } = useI18n();
+const { searchQuery } = useSearch();
 const fileInput = ref(null);
+const fileInputMobile = ref(null);
 
 const handleFileSelect = (e) => {
   if (e.target.files.length > 0) {

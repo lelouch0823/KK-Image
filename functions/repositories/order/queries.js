@@ -66,7 +66,11 @@ export async function findByIdAndSalesperson(db, id, salespersonId) {
  * @returns {Promise<Object>}
  */
 export async function listBySalesperson(db, salespersonId, { status, page = 1, limit = 20 } = {}) {
-    const offset = (page - 1) * limit;
+    // 验证分页参数
+    const safePage = Math.max(1, Math.floor(Number(page) || 1));
+    const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 20)));
+    const offset = (safePage - 1) * safeLimit;
+
     let where = 'WHERE salesperson_id = ?';
     const params = [salespersonId];
 
@@ -83,8 +87,8 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
     const { results } = await db
         .prepare(
             `
-      SELECT 
-          o.id, o.order_no, o.current_data, o.status, 
+      SELECT
+          o.id, o.order_no, o.current_data, o.status,
           o.unread_by_sales as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
           f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
@@ -102,22 +106,22 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
       FROM orders o
       LEFT JOIN files f ON o.main_image_id = f.id
       ${where}
-      ORDER BY 
+      ORDER BY
           o.unread_by_sales DESC,
           status_priority ASC,
           o.created_at DESC
       LIMIT ? OFFSET ?
       `
         )
-        .bind(...params, limit, offset)
+        .bind(...params, safeLimit, offset)
         .all();
 
     return {
         items: results.map(mapOrderListItem),
         total: countResult.total,
-        page,
-        limit,
-        totalPages: Math.ceil(countResult.total / limit),
+        page: safePage,
+        limit: safeLimit,
+        totalPages: Math.ceil(countResult.total / safeLimit),
     };
 }
 
@@ -131,7 +135,11 @@ export async function listForAdmin(
     db,
     { salespersonId, customerId, status, search, startTime, endTime, page = 1, limit = 20 } = {}
 ) {
-    const offset = (page - 1) * limit;
+    // 验证分页参数
+    const safePage = Math.max(1, Math.floor(Number(page) || 1));
+    const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 20)));
+    const offset = (safePage - 1) * safeLimit;
+
     let whereClause = '1=1';
     const bindParams = [];
 
@@ -169,7 +177,7 @@ export async function listForAdmin(
     const { results } = await db
         .prepare(
             `
-      SELECT 
+      SELECT
           o.id, o.order_no, o.salesperson_id, o.current_data, o.status, o.product_id, o.quantity,
           o.unread_by_admin as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
@@ -190,14 +198,14 @@ export async function listForAdmin(
       LEFT JOIN salespersons s ON o.salesperson_id = s.id
       LEFT JOIN files f ON o.main_image_id = f.id
       WHERE ${whereClause}
-      ORDER BY 
+      ORDER BY
           o.unread_by_admin DESC,
           status_priority ASC,
           o.created_at DESC
       LIMIT ? OFFSET ?
       `
         )
-        .bind(...bindParams, limit, offset)
+        .bind(...bindParams, safeLimit, offset)
         .all();
 
     return {
@@ -207,9 +215,9 @@ export async function listForAdmin(
             store: order.salesperson_store,
         })),
         total: countResult.total,
-        page,
-        limit,
-        totalPages: Math.ceil(countResult.total / limit),
+        page: safePage,
+        limit: safeLimit,
+        totalPages: Math.ceil(countResult.total / safeLimit),
     };
 }
 

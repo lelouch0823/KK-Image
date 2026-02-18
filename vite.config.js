@@ -52,7 +52,10 @@ export default defineConfig({
       output: {
         // 代码分割配置
         manualChunks: {
-          'vue-vendor': ['vue']
+          'vue-vendor': ['vue', 'vue-router', '@vueuse/core'],
+          'chart-vendor': ['chart.js', 'vue-chartjs', 'chartjs-adapter-date-fns'],
+          'xlsx-vendor': ['xlsx'],
+          'pdf-vendor': ['html2pdf.js']
         },
         // 静态资源文件名
         assetFileNames: (assetInfo) => {

@@ -2,6 +2,7 @@
   <div class="relative">
     <input
       :value="modelValue"
+      :id="inputId"
       type="text"
       :placeholder="placeholder"
       class="input pl-9"
@@ -42,6 +43,7 @@
 </template>
 
 <script setup>
+import { useId } from 'vue';
 const props = defineProps({
   modelValue: {
     type: String,
@@ -85,4 +87,6 @@ const clear = () => {
   emit('search', '');
   emit('clear');
 };
+
+const inputId = useId();
 </script>

@@ -9,30 +9,37 @@ import { useToast } from './useToast';
 import { useI18n } from './useI18n';
 import { API } from '@/utils/constants';
 
+// ============================================================
+// 全局共享状态 (Single Source of Truth)
+// ============================================================
+const sharedResource = useResource(API.MANAGE_ORDERS, {
+  listPath: 'data.orders',
+});
+const salespersons = ref([]);
+const statuses = ref([]);
+
 export function useOrders() {
   const { authFetch } = useAuth();
   const { addToast } = useToast();
   const { t } = useI18n();
 
-  // 使用 useResource 管理管理端订单列表
-  const resource = useResource(API.MANAGE_ORDERS, {
-    listPath: 'data.orders',
-  });
-
-  // 额外状态（Orders 特有）
-  const salespersons = ref([]);
-  const statuses = ref([]);
+  // 使用共享资源
+  const resource = sharedResource;
 
   /**
    * 加载管理端订单列表（增强版，提取额外数据）
+   * @param {Object} params - 查询参数
+   * @param {boolean} [append=false] - 是否追加到现有列表（用于无限滚动）
    */
-  const loadOrders = async (params = {}) => {
+  const loadOrders = async (params = {}, append = false) => {
     // 复用 useResource 的状态管理，但自定义请求逻辑以获取 metadata
     // 取消之前的请求
     resource.abort();
 
     resource.loading.value = true;
     resource.error.value = null;
+
+    const MAX_ITEMS = 200; // 限制列表最大长度，防止 OOM
 
     try {
       const query = new URLSearchParams({
@@ -53,17 +60,40 @@ export function useOrders() {
       const res = await authFetch(`${API.MANAGE_ORDERS}?${cleanParams.toString()}`).then(r => r.json());
 
       if (res.success) {
-        // 更新列表数据
-        resource.items.value = res.data.orders;
+        // 追加模式：合并新数据，限制最大长度
+        if (append) {
+          const combined = [...resource.items.value, ...res.data.orders];
+          resource.items.value = combined.length > MAX_ITEMS 
+            ? combined.slice(-MAX_ITEMS) 
+            : combined;
+        } else {
+          // 替换模式：直接赋值
+          resource.items.value = res.data.orders;
+        }
 
-        // 提取额外数据
-        salespersons.value = res.data.salespersons || [];
-        statuses.value = res.data.statuses || [];
+        // 提取额外数据（元数据几乎不随分页变化，仅在缺失时加载）
+        if (res.data.salespersons && salespersons.value.length === 0) {
+          salespersons.value = res.data.salespersons;
+        }
+        if (res.data.statuses && statuses.value.length === 0) {
+          statuses.value = res.data.statuses;
+        }
 
-        // 更新分页
+        // Update pagination
         if (res.data.pagination) {
           Object.assign(resource.pagination, res.data.pagination);
+        } else if (res.data.total !== undefined) {
+             // Fallback: Manually calculate pagination if only total is provided
+             const currentLimit = parseInt(params.limit || resource.pagination.limit) || 20;
+             const total = parseInt(res.data.total) || 0;
+             resource.pagination.page = parseInt(params.page || resource.pagination.page) || 1;
+             resource.pagination.limit = currentLimit;
+             resource.pagination.total = total;
+             resource.pagination.totalPages = Math.ceil(total / currentLimit) || 1;
         }
+
+        // Ensure totalPages is valid
+        if (resource.pagination.totalPages < 1) resource.pagination.totalPages = 1;
 
         return true;
       } else {
@@ -236,14 +266,34 @@ export function useOrders() {
   /**
    * 销售端: 加载订单列表
    */
-  const loadSalesOrders = async (token) => {
+  const loadSalesOrders = async (token, page = 1, append = false) => {
     if (!token) return;
-    resource.loading.value = true;
+    if (!append) resource.loading.value = true;
+    
+    const MAX_ITEMS = 100; // 限制列表最大长度，防止 OOM
+    
     try {
-      const res = await authFetch(API.SALES_ORDER_LIST(token)).then(r => r.json());
+      const query = new URLSearchParams({
+          page: page.toString(),
+          limit: '20'
+      });
+      const res = await authFetch(`${API.SALES_ORDER_LIST(token)}?${query.toString()}`).then(r => r.json());
 
       if (res.success) {
-        resource.items.value = res.data.orders;
+        if (append) {
+            const combined = [...resource.items.value, ...res.data.orders];
+            // 超过最大长度时，移除最早的项目
+            resource.items.value = combined.length > MAX_ITEMS 
+                ? combined.slice(-MAX_ITEMS) 
+                : combined;
+        } else {
+            resource.items.value = res.data.orders;
+        }
+        
+        // Update pagination info
+        if (res.data.pagination) {
+            Object.assign(resource.pagination, res.data.pagination);
+        }
       } else {
         addToast({ message: res.message || t('common.loadFailed'), type: 'error' });
       }

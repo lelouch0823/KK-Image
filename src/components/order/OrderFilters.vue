@@ -126,7 +126,13 @@ import SearchInput from '@/components/ui/SearchInput.vue';
 import Select from '@/components/ui/Select.vue';
 import AppFilterBar from '@/components/ui/AppFilterBar.vue';
 
-const props = defineProps({
+const {
+  filters,
+  salespersons = [],
+  statuses = [],
+  exporting = false,
+  showCreate = false,
+} = defineProps({
   filters: {
     type: Object,
     required: true,
@@ -179,7 +185,7 @@ const salespersonOptions = computed(() => [
     label: isMobile.value ? t('order.manage.salesShort') : t('order.manage.allSalespersons'), 
     value: '' 
   },
-  ...props.salespersons.map(s => ({ label: s.name, value: s.id }))
+  ...salespersons.map(s => ({ label: s.name, value: s.id }))
 ]);
 
 const statusOptions = computed(() => [
@@ -187,7 +193,7 @@ const statusOptions = computed(() => [
     label: isMobile.value ? t('order.manage.statusShort') : t('order.manage.allStatuses'), 
     value: '' 
   },
-  ...props.statuses.map(s => ({ label: t(`order.statuses.${s}`), value: s }))
+  ...statuses.map(s => ({ label: t(`order.statuses.${s}`), value: s }))
 ]);
 </script>
 

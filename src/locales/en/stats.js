@@ -1,0 +1,41 @@
+// Statistics
+export default {
+  analyzing: 'Analyzing data...',
+  loadFailed: 'Failed to load data',
+  retry: 'Reload',
+  // Storage
+  totalFiles: 'Total Files',
+  totalStorage: 'Total Storage',
+  storageGrowth: 'Storage Growth',
+  largeFiles: 'Top 10 Large Files',
+  // Visits
+  monthVisits: 'Monthly Visits',
+  trafficTrend: 'Traffic Trend (30D)',
+  topSpaces: 'Top 5 Hot Spaces',
+  hot: 'Hot',
+  views: 'Views',
+  downloads: 'Downloads',
+  // Health
+  fileTypes: 'File Types',
+  statusOverview: 'Asset Status',
+  normal: 'Normal',
+  blocked: 'Blocked',
+  whitelisted: 'Whitelisted',
+  liked: 'Favorites',
+  // Old/Misc
+  todayUploads: 'Today Uploads',
+  weekUploads: 'Weekly Uploads',
+  uploadTrend: 'Upload Trend',
+  recentActivity: 'Recent Activity',
+  dailyUpload: 'Daily Upload',
+  refreshSuccess: 'Stats refreshed',
+  loadError: 'Failed to load data',
+  justNow: 'Just now',
+  minutesAgo: '{count}m ago',
+  hoursAgo: '{count}h ago',
+  unknown: 'Unknown',
+  noData: 'No Data',
+  fileName: 'File Name',
+  fileType: 'Type',
+  fileSize: 'Size',
+};

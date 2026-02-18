@@ -19,10 +19,15 @@ export class SpaceRepository {
         const { results } = await this.db
             .prepare(
                 `
-        SELECT s.*, 
-          (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
+        SELECT s.*,
+          COALESCE(sf_count.file_count, 0) as file_count,
           f.storage_key as cover_storage_key
         FROM spaces s
+        LEFT JOIN (
+            SELECT space_id, COUNT(*) as file_count
+            FROM space_files
+            GROUP BY space_id
+        ) sf_count ON sf_count.space_id = s.id
         LEFT JOIN files f ON s.cover_file_id = f.id
         ORDER BY s.updated_at DESC
       `
@@ -216,10 +221,15 @@ export class SpaceRepository {
         const { results } = await this.db
             .prepare(
                 `
-        SELECT s.*, 
-            (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
+        SELECT s.*,
+            COALESCE(sf_count.file_count, 0) as file_count,
             f.storage_key as cover_storage_key
         FROM spaces s
+        LEFT JOIN (
+            SELECT space_id, COUNT(*) as file_count
+            FROM space_files
+            GROUP BY space_id
+        ) sf_count ON sf_count.space_id = s.id
         LEFT JOIN files f ON s.cover_file_id = f.id
         WHERE s.parent_id = ?
         ORDER BY s.sort_order ASC, s.updated_at DESC

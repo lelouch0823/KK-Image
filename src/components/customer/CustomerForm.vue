@@ -4,71 +4,57 @@
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <!-- 客户名称 -->
       <div class="col-span-2 sm:col-span-1">
-        <label class="text-secondary mb-1 block text-sm font-medium">
-          {{ t('customer.form.name') }} <span class="text-[var(--color-danger)]">*</span>
-        </label>
-        <input
+        <AppInput
           v-model="form.name"
-          type="text"
-          required
+          :label="t('customer.form.name')"
           :placeholder="t('customer.form.namePlaceholder')"
-          class="w-full rounded-lg border-[var(--border-color)] text-sm transition-colors outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+          required
         />
       </div>
 
       <!-- 电话 -->
       <div class="col-span-2 sm:col-span-1">
-        <label class="mb-1 block text-sm font-medium text-gray-700">
-          {{ t('customer.form.phone') }}
-        </label>
-        <input
+        <AppInput
           v-model="form.phone"
           type="tel"
-          class="w-full rounded-lg border-[var(--border-color)] text-sm transition-colors outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+          :label="t('customer.form.phone')"
         />
       </div>
 
       <!-- 公司 -->
       <div class="col-span-2 sm:col-span-1">
-        <label class="mb-1 block text-sm font-medium text-gray-700">
-          {{ t('customer.form.company') }}
-        </label>
-        <input
+        <AppInput
           v-model="form.company"
-          type="text"
-          class="w-full rounded-lg border-[var(--border-color)] text-sm transition-colors outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+          :label="t('customer.form.company')"
         />
       </div>
 
       <!-- 邮箱 -->
       <div class="col-span-2 sm:col-span-1">
-        <label class="mb-1 block text-sm font-medium text-gray-700">
-          {{ t('customer.form.email') }}
-        </label>
-        <input
+        <AppInput
           v-model="form.email"
           type="email"
-          class="w-full rounded-lg border-[var(--border-color)] text-sm transition-colors outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+          :label="t('customer.form.email')"
         />
       </div>
 
       <!-- 标签 -->
       <div class="col-span-2">
-        <label class="mb-1 block text-sm font-medium text-gray-700">
+        <label class="mb-1 block text-sm font-medium text-(--text-secondary)">
           {{ t('customer.form.tags') }}
         </label>
         <div
-          class="mb-2 flex flex-wrap gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] p-2"
+          class="mb-2 flex flex-wrap gap-2 rounded-lg border border-(--border-color) bg-(--bg-muted) p-2 transition-colors focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20"
         >
           <span
             v-for="(tag, index) in form.tags"
             :key="index"
-            class="bg-primary/10 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium text-[var(--color-primary)]"
+            class="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
           >
             {{ tag }}
             <button
               type="button"
-              class="ml-1 text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+              class="ml-1 text-primary transition-colors hover:text-primary-hover"
               @click="removeTag(index)"
             >
               <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,7 +71,7 @@
             v-model="tagInput"
             type="text"
             :placeholder="t('customer.form.tagInputPlaceholder')"
-            class="min-w-[100px] flex-1 border-none bg-transparent p-0 text-sm focus:ring-0"
+            class="min-w-[100px] flex-1 border-none bg-transparent p-0 text-sm text-(--text-main) placeholder:text-(--text-secondary)/50 focus:ring-0 focus:outline-none"
             @keydown.enter.prevent="addTag"
             @keydown.backspace="handleBackspace"
           />
@@ -94,65 +80,36 @@
 
       <!-- 地址 -->
       <div class="col-span-2">
-        <label class="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
-          {{ t('customer.form.address') }}
-        </label>
-        <input
+        <AppInput
           v-model="form.address"
-          type="text"
-          class="w-full rounded-lg border-[var(--border-color)] text-sm transition-colors outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+          :label="t('customer.form.address')"
         />
       </div>
 
       <!-- 备注 -->
       <div class="col-span-2">
-        <label class="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
-          {{ t('customer.form.remark') }}
-        </label>
-        <textarea
+        <AppInput
           v-model="form.remark"
-          rows="3"
-          class="w-full rounded-lg border-[var(--border-color)] text-sm transition-colors outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
-        ></textarea>
+          :label="t('customer.form.remark')"
+          textarea
+          :rows="3"
+        />
       </div>
     </div>
 
     <!-- 底部按钮 -->
-    <div class="mt-4 flex justify-end gap-3 border-t border-[var(--border-color)] pt-4">
-      <button
-        type="button"
-        class="rounded-lg border border-[var(--border-color)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:outline-none"
+    <div class="mt-4 flex justify-end gap-3 border-t border-(--border-color) pt-4">
+      <AppButton
+        variant="secondary"
+        :text="t('common.cancel')"
         @click="$emit('cancel')"
-      >
-        {{ t('common.cancel') }}
-      </button>
-      <button
+      />
+      <AppButton
         type="submit"
-        :disabled="submitting"
-        class="flex h-9 shrink-0 items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:bg-[var(--color-primary-hover)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <svg
-          v-if="submitting"
-          class="mr-2 -ml-1 size-4 animate-spin text-white"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            class="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="4"
-          ></circle>
-          <path
-            class="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-          ></path>
-        </svg>
-        {{ t('common.save') }}
-      </button>
+        variant="primary"
+        :text="t('common.save')"
+        :loading="submitting"
+      />
     </div>
   </form>
 </template>
@@ -160,6 +117,8 @@
 <script setup>
 import { ref, reactive, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppInput from '@/components/ui/AppInput.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 
 const props = defineProps({
   initialData: {

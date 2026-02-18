@@ -160,21 +160,20 @@ app.post(
 
     try {
       const repo = new FileRepository(env.DB);
-      // 获取这些文件的信息用于 R2/CAS 删券
-      const { items: files } = await repo.findAll({ ids: ids }); // FindAll doesn't support ids yet, let's just do direct query for this one or improve repo
-      // Wait, let's keep it simple for now as it's a batch operation
+      // 获取这些文件的信息用于 R2/CAS 清理
       const placeholders = ids.map(() => '?').join(',');
       const { results } = await env.DB.prepare(
         `SELECT storage_key, content_hash FROM files WHERE id IN (${placeholders})`
       ).bind(...ids).all();
 
-      for (const f of results) {
+      // SOTA: 并发删除 R2 对象和 CAS 引用
+      await Promise.all(results.map(async (f) => {
         if (f.content_hash) {
           await decrementRefCount(env, f.content_hash);
         } else if (env.R2_BUCKET && f.storage_key) {
-          await env.R2_BUCKET.delete(f.storage_key).catch(() => { });
+          await env.R2_BUCKET.delete(f.storage_key).catch(() => {});
         }
-      }
+      }));
 
       await repo.deleteBatch(ids);
       return c.json({ success: true, message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', results.length) });

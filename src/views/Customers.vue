@@ -1,15 +1,15 @@
 <template>
   <!-- Root Container: Flex Row for Push Layout -->
-  <div class="flex h-full overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] shadow-sm">
+  <div class="flex h-full overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-page) shadow-sm">
     <!-- Left Side: Main Content -->
-    <div class="flex min-w-0 flex-1 flex-col bg-[var(--bg-card)]">
+    <div class="flex min-w-0 flex-1 flex-col bg-(--bg-card)">
       <!-- 头部操作栏 -->
       <div
-        class="flex flex-shrink-0 flex-col justify-between gap-4 border-b border-[var(--border-color)] p-4 sm:flex-row sm:items-center"
+        class="flex flex-shrink-0 flex-col justify-between gap-4 border-b border-(--border-color) p-4 sm:flex-row sm:items-center"
       >
         <div>
-          <h2 class="text-lg font-semibold text-[var(--color-primary)]">{{ t('customer.manage.title') }}</h2>
-          <p class="mt-1 text-sm text-[var(--text-secondary)]">{{ t('customer.manage.subtitle') }}</p>
+          <h2 class="text-lg font-semibold text-primary">{{ t('customer.manage.title') }}</h2>
+          <p class="mt-1 text-sm text-(--text-secondary)">{{ t('customer.manage.subtitle') }}</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
@@ -22,20 +22,17 @@
           />
 
           <!-- 添加按钮 -->
-          <button
-            class="flex h-9 shrink-0 items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:bg-[var(--color-primary-hover)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:outline-none"
+          <AppButton
+            variant="primary"
+            :text="t('customer.manage.addCustomer')"
             @click="openCreateModal"
           >
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            {{ t('customer.manage.addCustomer') }}
-          </button>
+            <template #icon-left>
+              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+            </template>
+          </AppButton>
         </div>
       </div>
 
@@ -44,7 +41,7 @@
         <!-- 桌面端表格 (lg+) -->
           <div class="relative hidden w-full lg:block">
            <table class="w-full text-left text-sm">
-              <thead class="sticky top-0 z-10 bg-[var(--bg-card)]/90 font-medium text-[var(--text-secondary)] shadow-sm backdrop-blur-sm">
+              <thead class="sticky top-0 z-10 bg-(--bg-card)/90 font-medium text-(--text-secondary) shadow-sm backdrop-blur-sm">
               <tr>
                   <th class="px-4 py-3">{{ t('customer.form.name') }}</th>
                   <th class="px-4 py-3">{{ t('customer.form.contact') }}</th>
@@ -54,11 +51,11 @@
                   <th class="px-4 py-3 text-right">{{ t('common.actions') }}</th>
               </tr>
               </thead>
-              <tbody class="divide-y divide-[var(--border-color)]">
+              <tbody class="divide-y divide-(--border-color)">
               <template v-if="loading">
                   <tr v-for="i in 5" :key="i" class="animate-pulse">
                   <td v-for="j in 6" :key="j" class="p-4">
-                      <div class="h-4 w-2/3 rounded bg-[var(--bg-subtle)]"></div>
+                      <div class="h-4 w-2/3 rounded bg-(--bg-subtle)"></div>
                   </td>
                   </tr>
               </template>
@@ -67,12 +64,12 @@
                   <tr
                   v-for="customer in customers"
                   :key="customer.id"
-                  class="group cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
+                  class="group cursor-pointer transition-colors hover:bg-(--bg-hover)"
                   :class="{ 'bg-primary-50 dark:bg-primary/10': viewingCustomer?.id === customer.id }"
                   @click="openDetail(customer)"
                   >
-                  <td class="px-4 py-3 font-medium text-[var(--text-main)]">{{ customer.name }}</td>
-                  <td class="px-4 py-3 text-[var(--text-secondary)]">
+                  <td class="px-4 py-3 font-medium text-(--text-main)">{{ customer.name }}</td>
+                  <td class="px-4 py-3 text-(--text-secondary)">
                       <div class="flex flex-col gap-1">
                       <!-- 电话 -->
                       <div v-if="customer.phone" class="flex items-center gap-1">
@@ -102,34 +99,33 @@
                       <span v-if="!customer.phone && !customer.email" class="text-muted">-</span>
                       </div>
                   </td>
-                  <td class="px-4 py-3 text-[var(--text-secondary)]">{{ customer.company || '-' }}</td>
+                  <td class="px-4 py-3 text-(--text-secondary)">{{ customer.company || '-' }}</td>
                   <td class="px-4 py-3">
                       <div class="flex flex-wrap gap-1">
                         <span
                           v-for="tag in customer.tags"
                           :key="tag"
-                          class="rounded bg-[var(--color-primary)]/10 px-2.5 py-0.5 text-xs text-[var(--color-primary)]"
+                          class="rounded bg-primary/10 px-2.5 py-0.5 text-xs text-primary"
                         >
                           {{ tag }}
                       </span>
                       </div>
                   </td>
-                  <td class="px-4 py-3 text-xs text-[var(--text-secondary)]">{{ formatDate(customer.createdAt) }}</td>
+                  <td class="px-4 py-3 text-xs text-(--text-secondary)">{{ formatDate(customer.createdAt) }}</td>
                   <td class="px-4 py-3 text-right" @click.stop>
-                      <button
-                      class="rounded-lg p-1.5 text-[var(--text-secondary)] opacity-0 transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)] focus:opacity-100"
-                      :title="t('common.edit')"
-                      @click="openEditModal(customer)"
+                      <AppButton
+                        variant="ghost"
+                        size="sm"
+                        class="opacity-0 group-hover:opacity-100 !p-1.5"
+                        :title="t('common.edit')"
+                        @click="openEditModal(customer)"
                       >
-                      <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                          />
-                      </svg>
-                      </button>
+                        <template #icon-left>
+                          <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </template>
+                      </AppButton>
                   </td>
                   </tr>
               </template>
@@ -157,7 +153,7 @@
       <!-- 分页 -->
       <div
         v-if="pagination.totalPages > 1"
-        class="flex-shrink-0 border-t border-[var(--border-color)] p-4"
+        class="flex-shrink-0 border-t border-(--border-color) p-4"
       >
         <Pagination
           :current-page="pagination.page"
@@ -170,7 +166,7 @@
     <!-- Right Side: Detail Panel (Desktop Push) -->
     <div
       v-if="showDetailPanel"
-      class="hidden w-96 shrink-0 flex-col border-l border-[var(--border-color)] bg-[var(--bg-card)] transition-all duration-300 ease-in-out lg:flex"
+      class="hidden w-96 shrink-0 flex-col border-l border-(--border-color) bg-(--bg-card) transition-all duration-300 ease-in-out lg:flex"
     >
       <CustomerDetailContent
         :customer="viewingCustomer"
@@ -218,6 +214,7 @@ import CustomerForm from '@/components/customer/CustomerForm.vue';
 import CustomerDetailPanel from '@/components/customer/CustomerDetailPanel.vue';
 import CustomerDetailContent from '@/components/customer/CustomerDetailContent.vue';
 import CustomerCards from '@/components/customer/CustomerCards.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 
 const { t } = useI18n();
 const { addToast } = useToast();

@@ -6,13 +6,39 @@
       <div class="absolute -top-[10%] -left-[10%] size-[50%]  rounded-full bg-indigo-950/10 blur-[120px]"></div>
       <!-- Top Right Blob -->
       <div class="absolute top-[20%] right-[10%] size-[40%]  rounded-full bg-purple-950/10 blur-[120px]"></div>
-      
-      <!-- Grid Overlay (Optional, keeping slightly visible if needed or remove if strictly following code.html which doesn't seem to have the grid in the same way, but code.html has a simple background. The code.html doesn't have the grid overlay, so I'll remove it to be "SOTA" match, or keep it subtle.) -->
-      <!-- Keeping consistent with the original Vue file's grid but making it very subtle if preferred. code.html does NOT have it. I will REMOVE it to match code.html cleaner look. -->
     </div>
 
     <!-- Main Content -->
     <div class="relative z-10 flex h-full flex-col px-4 py-8 sm:px-6 lg:px-8">
+      <!-- Header Area -->
+      <div class="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-slate-100 sm:text-3xl">
+            {{ t('dashboard.title') }}
+          </h1>
+          <div class="mt-1 flex items-center gap-2 text-sm text-slate-500">
+            <span class="flex items-center gap-1.5">
+              <span class="relative flex size-2">
+                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75"></span>
+                <span class="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
+              </span>
+              {{ t('dashboard.liveStatus') }}
+            </span>
+            <span>·</span>
+            <span>{{ t('dashboard.lastUpdated') }}: {{ lastUpdatedTime }}</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button
+            class="flex items-center gap-2 rounded-xl border border-white/5 bg-[#161b26] px-4 py-2 text-sm font-medium text-slate-300 shadow-sm transition-all hover:bg-[#1c2230] active:scale-95"
+            @click="handleRefresh"
+          >
+            <span class="material-symbols-outlined text-lg" :class="{ 'animate-spin': isRefreshing }">refresh</span>
+            {{ t('common.refresh') }}
+          </button>
+        </div>
+      </div>
       
       <!-- Metrics Grid -->
       <div class="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -28,7 +54,6 @@
                      <div class="flex items-center gap-1 text-xs font-medium text-emerald-500">
                     <span class="material-symbols-outlined text-sm">trending_up</span>
                     <span>+12% {{ t('dashboard.vsYesterday') }}</span> 
-                    <!-- Note: Real percentage would require yesterday's data which we might not have perfectly calculated yet, keeping static or 'weekTrend' if appropriate. implementation plan said match code.html visual -->
                  </div>
               </div>
               <div class="flex size-10  items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10">
@@ -146,16 +171,12 @@
                                     {{ formatRelativeTime(order.createdAt, t) }}
                                 </span>
                             </div>
-                            <!-- Mocking 'Items' or using description if available, preserving structure -->
                             <div class="mb-2 text-xs text-slate-500">{{ order.name }}</div>
                             
-                            <!-- Visual Progress Bar (Mock visual based on status) -->
+                            <!-- Visual Progress Bar -->
                             <div class="flex items-center gap-2">
                                 <div class="h-1 w-16 overflow-hidden rounded-full bg-[#1f2937]">
-                                    <div
-class="h-full bg-red-500/80 shadow-[0_0_5px_rgba(239,68,68,0.5)]" 
-                                         :class="{'w-1/3': true}"></div> 
-                                         <!-- Width/Color could be dynamic based on status if we had more detailed steps -->
+                                    <div class="h-full w-1/3 bg-red-500/80 shadow-[0_0_5px_rgba(239,68,68,0.5)]"></div> 
                                 </div>
                                 <span class="text-[10px] font-bold tracking-wider text-slate-600 uppercase">{{ t('dashboard.awaitingAction') }}</span>
                             </div>
@@ -279,7 +300,6 @@ class="h-full bg-red-500/80 shadow-[0_0_5px_rgba(239,68,68,0.5)]"
                     </button>
                 </div>
             </div>
-
         </div>
       </div>
       
@@ -335,13 +355,15 @@ import {
   formatRelativeTime,
 } from '@/utils/formatters';
 import { API } from '@/utils/constants';
-import Chart from 'chart.js/auto'; // Using Chart.js auto import
+import Chart from 'chart.js/auto';
 
 const router = useRouter();
 const { authFetchJson } = useAuth();
 const { t } = useI18n();
 const { getOrder } = useOrders();
 const { copyShareLink } = useClipboard();
+const isRefreshing = ref(false);
+const lastUpdatedTime = ref(new Date().toLocaleTimeString());
 
 const recentFiles = ref([]);
 const recentShares = ref([]);
@@ -380,34 +402,92 @@ const confirmData = ref({
 // Chart Instances
 let charts = {};
 
-const initialChartData = ref(null);
+// Order Management
+const viewOrder = async (order) => {
+  const fullOrder = await getOrder(order.id);
+  if (fullOrder) {
+    viewingOrder.value = fullOrder;
+    showDetailModal.value = true;
+  }
+};
 
-const fetchOrderStats = async () => {
+const closeDetailModal = () => {
+  showDetailModal.value = false;
+  viewingOrder.value = null;
+  fetchDashboardData();
+};
+
+const refreshOrderDetail = async () => {
+  if (viewingOrder.value) {
+    const fullOrder = await getOrder(viewingOrder.value.id);
+    if (fullOrder) {
+      viewingOrder.value = fullOrder;
+    }
+  }
+  fetchDashboardData();
+};
+
+// Data Fetching
+const fetchDashboardData = async () => {
   try {
     const res = await authFetchJson(API.MANAGE_DASHBOARD_OVERVIEW);
     if (res.success && res.data) {
       orderStats.value = res.data;
+      
+      // Update Lists
+      if (res.data.recentFiles) {
+        recentFiles.value = res.data.recentFiles;
+      }
+      if (res.data.recentShares) {
+        recentShares.value = res.data.recentShares;
+      }
+
+      // Update Charts
       if (res.data.charts) {
-          initialChartData.value = res.data.charts;
-          // If charts are already initialized, update them
           if (Object.keys(charts).length > 0) {
               updateCharts(res.data.charts);
+          } else {
+             // If charts not initialized but we have data, we might be in early stage.
+             // initCharts calls updateCharts eventually.
           }
       }
+      
+      lastUpdatedTime.value = new Date().toLocaleTimeString();
     }
   } catch (e) {
-    console.error('Order stats load failed', e);
+    console.error('Dashboard data load failed', e);
   }
 };
 
+const handleRefresh = async () => {
+  if (isRefreshing.value) return;
+  isRefreshing.value = true;
+  await fetchDashboardData();
+  setTimeout(() => {
+    isRefreshing.value = false;
+  }, 500);
+};
+
+const handleCopyShareLink = async (item) => {
+  await copyShareLink(item.shareUrl, { successMessage: t('dashboard.linkCopied') });
+};
+
+const handleManagerEdit = (item) => {
+  editingFolder.value = item;
+  showEditShare.value = true;
+};
+
+const handleEditUpdated = () => {
+  fetchDashboardData();
+};
+
+// Charts Logic
 const updateCharts = (data) => {
-    // Helper to process trend data (fill missing days/hours)
     const processTrend = (trendData, type) => {
         const labels = [];
         const values = [];
         
         if (type === 'hourly') {
-            // Fill 00-23 hours
             const map = {};
             trendData.forEach(item => map[item.hour] = item.count);
             for (let i = 0; i < 24; i++) {
@@ -416,14 +496,13 @@ const updateCharts = (data) => {
                 values.push(map[hour] || 0);
             }
         } else {
-            // Fill last 7 days
             const map = {};
             trendData.forEach(item => map[item.date] = item.count);
             for (let i = 6; i >= 0; i--) {
                 const d = new Date();
                 d.setDate(d.getDate() - i);
-                const dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
-                labels.push(dateStr.slice(5)); // MM-DD
+                const dateStr = d.toISOString().split('T')[0];
+                labels.push(dateStr.slice(5));
                 values.push(map[dateStr] || 0);
             }
         }
@@ -445,12 +524,10 @@ const updateCharts = (data) => {
 };
 
 const initCharts = () => {
-    // Helper to create chart
     const createChart = (id, color, data, labels) => {
         const canvas = document.getElementById(id);
-        if (!canvas) return; // Guard
+        if (!canvas) return;
         
-        // Destroy existing chart if present
         if (charts[id]) {
             charts[id].destroy();
         }
@@ -484,71 +561,26 @@ const initCharts = () => {
         });
     };
 
-    // Initialize with empty or initial data
-    // If we have initialChartData, use it inside updateCharts logic basically
-    // But createChart needs initial data. Let's create empty/dummy structure first then update.
-    // Or if initialChartData is ready, use it directly.
+    createChart('chart1', 'rgba(59, 130, 246, 1)', [], []);
+    createChart('chart2', 'rgba(248, 113, 113, 1)', [], []);
+    createChart('chart3', 'rgba(16, 185, 129, 1)', [], []);
+    createChart('chart4', 'rgba(168, 85, 247, 1)', [], []);
     
-    // Initialize 4 charts
-    createChart('chart1', 'rgba(59, 130, 246, 1)', [], []); // Blue
-    createChart('chart2', 'rgba(248, 113, 113, 1)', [], []); // Red
-    createChart('chart3', 'rgba(16, 185, 129, 1)', [], []); // Green/Emerald
-    createChart('chart4', 'rgba(168, 85, 247, 1)', [], []); // Purple
-
-    if (initialChartData.value) {
-        updateCharts(initialChartData.value);
+    // Check if we have data in orderStats from fetchDashboardData (which might have finished before nextTick)
+    if (orderStats.value && orderStats.value.charts) {
+        updateCharts(orderStats.value.charts);
     }
-};
-
-const fetchStats = async () => {
-  try {
-    const res = await authFetchJson(API.STATS);
-    if (res.success && res.data) {
-      if (res.data.recentFiles) {
-        recentFiles.value = res.data.recentFiles;
-      }
-    }
-  } catch (e) {
-    console.error('Stats load failed', e);
-  }
-};
-
-const fetchRecentShares = async () => {
-  try {
-    const res = await authFetchJson(`${API.SHARES}?limit=5`);
-    if (res.success) {
-      recentShares.value = res.data.items;
-    }
-  } catch (e) {
-    console.error('Shares load failed', e);
-  }
-};
-
-const handleCopyShareLink = async (item) => {
-  await copyShareLink(item.shareUrl, { successMessage: t('dashboard.linkCopied') });
-};
-
-const handleEditUpdated = () => {
-  fetchRecentShares();
-};
-
-const handleManagerEdit = (item) => {
-  editingFolder.value = item;
-  showEditShare.value = true;
 };
 
 onMounted(async () => {
-  await Promise.all([fetchStats(), fetchRecentShares(), fetchOrderStats()]);
+  await fetchDashboardData();
   nextTick(() => {
     initCharts();
   });
 });
 
 onActivated(() => {
-  // Re-fetch and Re-init charts if needed (canvas might be cleared on deactivation/reactivation)
-  fetchStats();
-  fetchRecentShares();
-  fetchOrderStats();
+  fetchDashboardData();
   nextTick(() => {
     initCharts();
   });
@@ -556,7 +588,6 @@ onActivated(() => {
 </script>
 
 <style scoped>
-/* Scoped styles that Tailwind v4 might not cover directly or for specific effects */
 .glass-panel {
     background: rgba(17, 20, 29, 0.6);
     backdrop-filter: blur(8px);

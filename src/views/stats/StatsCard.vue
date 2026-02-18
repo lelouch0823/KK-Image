@@ -49,32 +49,32 @@ const props = defineProps({
 const colors = {
   blue: {
     wrapper: 'dark:hover:shadow-[0_0_30px_rgba(59,130,246,0.1)]',
-    blob: 'bg-blue-500/10 group-hover:bg-blue-500/20',
-    iconBg: 'bg-blue-500/20 text-blue-400 ring-blue-500/30',
+    blob: 'bg-info/10 group-hover:bg-info/20',
+    iconBg: 'bg-info/20 text-info ring-info/30',
     shadow: '59,130,246',
   },
   emerald: {
     wrapper: 'dark:hover:shadow-[0_0_30px_rgba(16,185,129,0.1)]',
-    blob: 'bg-emerald-500/10 group-hover:bg-emerald-500/20',
-    iconBg: 'bg-emerald-500/20 text-emerald-400 ring-emerald-500/30',
+    blob: 'bg-success/10 group-hover:bg-success/20',
+    iconBg: 'bg-success/20 text-success ring-success/30',
     shadow: '16,185,129',
   },
   purple: {
     wrapper: 'dark:hover:shadow-[0_0_30px_rgba(139,92,246,0.1)]',
     blob: 'bg-purple-500/10 group-hover:bg-purple-500/20',
-    iconBg: 'bg-purple-500/20 text-purple-400 ring-purple-500/30',
+    iconBg: 'bg-purple-500/20 text-purple-500 ring-purple-500/30',
     shadow: '139,92,246',
   },
     orange: {
     wrapper: 'dark:hover:shadow-[0_0_30px_rgba(249,115,22,0.1)]',
-    blob: 'bg-orange-500/10 group-hover:bg-orange-500/20',
-    iconBg: 'bg-orange-500/20 text-orange-400 ring-orange-500/30',
+    blob: 'bg-warning/10 group-hover:bg-warning/20',
+    iconBg: 'bg-warning/20 text-warning ring-warning/30',
     shadow: '249,115,22',
   },
   pink: {
     wrapper: 'dark:hover:shadow-[0_0_30px_rgba(236,72,153,0.1)]',
-    blob: 'bg-pink-500/10 group-hover:bg-pink-500/20',
-    iconBg: 'bg-pink-500/20 text-pink-400 ring-pink-500/30',
+    blob: 'bg-danger/10 group-hover:bg-danger/20',
+    iconBg: 'bg-danger/20 text-danger ring-danger/30',
     shadow: '236,72,153',
   },
 };

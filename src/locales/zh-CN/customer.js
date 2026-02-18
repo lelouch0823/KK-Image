@@ -1,0 +1,35 @@
+// 客户管理
+export default {
+  manage: {
+    title: '客户管理',
+    subtitle: '管理客户档案及查看历史订单',
+    searchPlaceholder: '搜索客户名称/电话/公司...',
+    addCustomer: '新建客户',
+    editTitle: '编辑客户',
+    createTitle: '新建客户',
+    empty: '暂无客户数据',
+    deleteConfirm: '确定要删除该客户吗？此操作不可恢复。',
+  },
+  form: {
+    name: '客户名称',
+    contact: '联系方式',
+    company: '公司/单位',
+    phone: '电话号码',
+    email: '电子邮箱',
+    address: '详细地址',
+    tags: '标签',
+    remark: '备注信息',
+    namePlaceholder: '请输入客户姓名',
+    basicInfo: '基本信息',
+    moreInfo: '更多信息',
+    tagInputPlaceholder: '输入标签后回车',
+  },
+  detail: {
+    title: '客户详情',
+    historyOrders: '历史订单',
+    totalSpent: '总消费',
+    orderCount: '订单数',
+    lastOrder: '最近下单',
+    noOrders: '暂无订单记录',
+  },
+};

@@ -1,131 +1,112 @@
 <template>
   <div class="overflow-x-auto rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm">
-    <table class="w-full">
-      <thead>
-        <tr
-          class="border-b border-[var(--border-color)] bg-[var(--bg-muted)]/50 text-left text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase"
-        >
-          <th class="w-12 px-4 py-3">
-             <!-- Checkbox column placeholder or Select All -->
-          </th>
-          <th class="px-4 py-3">{{ t('fileManager.table.name') }}</th>
-          <th class="w-32 px-4 py-3">{{ t('fileManager.table.size') }}</th>
-          <th class="w-24 px-4 py-3">{{ t('fileManager.table.type') }}</th>
-          <th class="w-48 px-4 py-3">{{ t('fileManager.table.uploadedAt') }}</th>
-          <th class="w-32 px-4 py-3 text-right">{{ t('fileManager.table.actions') }}</th>
-        </tr>
-      </thead>
-      <TransitionGroup name="list" tag="tbody" class="divide-y divide-[var(--border-color)]">
-        <tr
-          v-for="file in files"
-          :key="file.id"
-          class="group cursor-pointer transition-colors duration-200 hover:bg-[var(--bg-hover)]"
-          :class="{ 'bg-blue-50/60 dark:bg-blue-900/20': selectedIds.has(file.id) }"
-          @click="$emit('toggle-select', file)"
-          @contextmenu.prevent="handleContextMenu($event, file)"
-        >
-          <td class="px-4 py-3">
-            <div class="flex items-center justify-center">
-              <input
-                type="checkbox"
-                class="checkbox checkbox-sm checkbox-primary rounded transition-all"
-                :checked="selectedIds.has(file.id)"
-                @click.stop="$emit('toggle-select', file)"
-              />
-            </div>
-          </td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-3">
-              <!-- Thumbnail -->
-              <div class="relative size-10 shrink-0 overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)]">
-                 <img
-                  v-if="isImage(file)"
-                  :src="file.url"
-                  class="size-full object-cover"
-                  loading="lazy"
-                />
-                <div
-                  v-else
-                  class="text-secondary flex size-full items-center justify-center text-[10px] font-bold uppercase"
-                >
-                  {{ getFileExtension(file.name) }}
-                </div>
-              </div>
-              
-              <!-- Name -->
-              <div class="min-w-0 flex-1">
-                 <div class="text-primary truncate text-sm font-medium transition-colors group-hover:text-primary-focus">
-                    {{ file.originalName || file.name }}
-                 </div>
-              </div>
-            </div>
-          </td>
-          <td class="text-secondary font-tabular-nums px-4 py-3 text-sm">{{ formatSize(file.size) }}</td>
-          <td class="text-secondary px-4 py-3 text-xs tracking-wide uppercase">
-            <span class="rounded bg-[var(--bg-muted)] px-1.5 py-0.5">
-               {{ getFileExtension(file.name) }}
-            </span>
-          </td>
-          <td class="text-secondary px-4 py-3 text-sm">{{ formatDate(file.createdAt) }}</td>
-          <td class="px-4 py-3 text-right">
-            <div class="flex items-center justify-end gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100" :class="{ 'opacity-100': contextMenuOpen }">
-              <Tooltip :content="t('fileManager.actions.share')" placement="top">
-                <button
-                  class="text-secondary rounded-lg p-1.5 transition-colors hover:text-primary hover:bg-[var(--bg-active)]"
-                  @click.stop="$emit('share', file)"
-                >
-                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                    ></path>
-                  </svg>
-                </button>
-              </Tooltip>
-              
-               <Tooltip :content="t('fileManager.actions.move')" placement="top">
-                <button
-                  class="text-secondary rounded-lg p-1.5 transition-colors hover:text-primary hover:bg-[var(--bg-active)]"
-                  @click.stop="$emit('move', file)"
-                >
-                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
-                  </svg>
-                </button>
-              </Tooltip>
+    <AppTable
+      :columns="columns"
+      :data="files"
+      row-key="id"
+      :empty-text="t('fileManager.emptyFolder')"
+      :virtual="files.length > 50"
+      :estimate-size="64"
+      @row-click="$emit('preview', $event)"
+    >
+      <template #cell-name="{ row }">
+        <div class="flex items-center gap-3">
+          <!-- Checkbox -->
+          <div 
+            class="flex size-5 shrink-0 items-center justify-center rounded border transition-colors"
+            :class="[
+              selectedIds.has(row.id)
+                ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+                : 'border-[var(--border-color)] bg-[var(--bg-card)] group-hover:border-[var(--text-secondary)]'
+            ]"
+            @click.stop="$emit('toggle', row)"
+          >
+            <svg v-if="selectedIds.has(row.id)" class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
 
-              <Tooltip :content="t('fileManager.actions.delete')" placement="top" danger>
-                <button
-                  class="text-secondary rounded-lg p-1.5 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
-                  @click.stop="$emit('delete', file)"
-                >
-                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    ></path>
-                  </svg>
-                </button>
-              </Tooltip>
-            </div>
-          </td>
-        </tr>
-      </TransitionGroup>
-    </table>
+          <!-- Thumbnail -->
+          <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-muted)] text-[var(--text-secondary)]">
+            <AppImage
+              v-if="isImage(row)"
+              :src="row.url"
+              class="size-full"
+              fit="cover"
+            />
+            <svg v-else class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+
+          <!-- Name -->
+          <span class="font-medium text-[var(--text-main)] truncate max-w-[200px] sm:max-w-xs">
+            {{ row.originalName || row.name }}
+          </span>
+        </div>
+      </template>
+
+      <template #cell-size="{ value }">
+        <span class="font-mono text-[var(--text-secondary)]">{{ formatSize(value) }}</span>
+      </template>
+
+      <template #cell-type="{ value }">
+        <span class="inline-flex rounded bg-[var(--bg-muted)] px-2 py-0.5 text-xs text-[var(--text-secondary)] uppercase">
+          {{ value?.split('/')[1] || 'FILE' }}
+        </span>
+      </template>
+
+      <template #cell-createdAt="{ value }">
+        <span class="text-[var(--text-muted)]">{{ formatDate(value) }}</span>
+      </template>
+
+      <template #cell-actions="{ row }">
+        <div class="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <AppButton
+            variant="ghost"
+            size="sm"
+            class="!p-1.5 !h-8 !w-8"
+            :title="t('fileManager.actions.share')"
+            @click.stop="$emit('share', row)"
+          >
+            <template #icon-left>
+              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+            </template>
+          </AppButton>
+          <AppButton
+            variant="ghost"
+            size="sm"
+            class="!p-1.5 !h-8 !w-8"
+            @click.stop="$emit('context-menu', $event, row)"
+          >
+            <template #icon-left>
+              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+              </svg>
+            </template>
+          </AppButton>
+        </div>
+      </template>
+    </AppTable>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useFileManager } from '@/composables/useFileManager';
-import Tooltip from '@/components/ui/Tooltip.vue';
+import AppTable from '@/components/ui/AppTable.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppImage from '@/components/ui/AppImage.vue';
 
-defineProps({
+const props = defineProps({
   files: {
     type: Array,
     required: true,
@@ -136,14 +117,16 @@ defineProps({
   },
 });
 
-const emit = defineEmits(['share', 'move', 'delete', 'context-menu', 'select', 'toggle-select']);
+const emit = defineEmits(['share', 'move', 'delete', 'context-menu', 'select', 'toggle-select', 'preview', 'toggle']);
 
 const { t } = useI18n();
 const { formatSize, formatDate, getFileExtension, isImage } = useFileManager();
 
-const contextMenuOpen = ref(false);
-
-const handleContextMenu = (e, file) => {
-  emit('context-menu', e, file);
-};
+const columns = computed(() => [
+  { key: 'name', label: t('fileManager.table.name') },
+  { key: 'size', label: t('fileManager.table.size'), class: 'hidden sm:table-cell' },
+  { key: 'type', label: t('fileManager.table.type'), class: 'hidden md:table-cell' },
+  { key: 'createdAt', label: t('fileManager.table.uploadedAt'), class: 'hidden lg:table-cell' },
+  { key: 'actions', label: t('fileManager.table.actions'), align: 'right' },
+]);
 </script>

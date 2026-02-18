@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { ref, onUnmounted } from 'vue';
 import { useToast } from './useToast';
 import { useAuth } from './useAuth';
 import { useI18n } from './useI18n';
@@ -6,17 +6,28 @@ import { formatSize, formatDate, getFileExtension, isImage } from '@/utils/forma
 import { API } from '@/utils/constants';
 
 export function useFileManager() {
-  const { error, success } = useToast();
+  const toast = useToast();
   const { authFetch } = useAuth();
   const { t } = useI18n();
 
   // 状态
   const loading = ref(false);
+  const error = ref(null);
   const currentFolder = ref(null); // null = root
   const subfolders = ref([]);
   const files = ref([]);
   const breadcrumbs = ref([]);
   const selectedFiles = ref([]);
+
+  let abortController = null;
+
+  // 组件卸载时取消请求
+  onUnmounted(() => {
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
+    }
+  });
 
   /**
    * 加载文件夹数据
@@ -29,25 +40,35 @@ export function useFileManager() {
 
     if (!silent) {
       loading.value = true;
+      error.value = null;
       selectedFiles.value = [];
     }
 
+    // 取消之前的请求
+    if (abortController) {
+      abortController.abort();
+    }
+    abortController = new AbortController();
+
     try {
       if (folderId) {
-        const res = await authFetch(API.FOLDER_BY_ID(folderId)).then((r) => r.json());
+        const res = await authFetch(API.FOLDER_BY_ID(folderId), {
+          signal: abortController.signal
+        }).then((r) => r.json());
         if (res.success) {
           currentFolder.value = res.data;
           subfolders.value = res.data.subfolders;
           files.value = res.data.files;
           breadcrumbs.value = res.data.breadcrumbs || [];
         } else {
-          error(res.message);
+          toast.error(res.message);
+          error.value = res.message;
         }
       } else {
         // 根目录：并行加载文件夹和文件
         const [foldersRes, filesRes] = await Promise.all([
-          authFetch(API.FOLDERS).then((r) => r.json()),
-          authFetch(API.FILES).then((r) => r.json()),
+          authFetch(API.FOLDERS, { signal: abortController.signal }).then((r) => r.json()),
+          authFetch(API.FILES, { signal: abortController.signal }).then((r) => r.json()),
         ]);
 
         if (foldersRes.success) {
@@ -55,7 +76,8 @@ export function useFileManager() {
           subfolders.value = foldersRes.data;
           breadcrumbs.value = [];
         } else {
-          error(foldersRes.message);
+          toast.error(foldersRes.message);
+          error.value = foldersRes.message;
         }
 
         if (filesRes.success && filesRes.data) {
@@ -66,9 +88,11 @@ export function useFileManager() {
         }
       }
     } catch (_e) {
-      console.error(_e);
+      if (_e.name === 'AbortError') return;
       if (!silent) {
-        error(t('fileOps.loadFailed'));
+        const msg = t('fileOps.loadFailed');
+        toast.error(msg);
+        error.value = msg;
       }
     } finally {
       if (!silent) {
@@ -91,7 +115,7 @@ export function useFileManager() {
       }).then((r) => r.json());
 
       if (res.success) {
-        success(t('fileOps.folderCreateSuccess'));
+        toast.success(t('fileOps.folderCreateSuccess'));
         loadFolderData(currentFolder.value?.id);
         return true;
       } else {
@@ -113,7 +137,7 @@ export function useFileManager() {
       }).then((r) => r.json());
 
       if (res.success) {
-        success(t('fileOps.updateSuccess'));
+        toast.success(t('fileOps.updateSuccess'));
         loadFolderData(currentFolder.value?.id);
         return true;
       } else {
@@ -133,7 +157,7 @@ export function useFileManager() {
       }).then((r) => r.json());
 
       if (res.success) {
-        success(t('fileOps.deleteSuccess'));
+        toast.success(t('fileOps.deleteSuccess'));
         if (currentFolder.value && currentFolder.value.id === id) {
           loadFolderData(currentFolder.value.parentId);
         } else {
@@ -157,7 +181,7 @@ export function useFileManager() {
       }).then((r) => r.json());
 
       if (res.success) {
-        success(t('fileOps.fileDeleted'));
+        toast.success(t('fileOps.fileDeleted'));
         // Refresh current view (works for root too since id will be null/undefined)
         loadFolderData(currentFolder.value?.id);
       } else {
@@ -172,6 +196,7 @@ export function useFileManager() {
 
   return {
     loading,
+    error,
     currentFolder,
     subfolders,
     files,
@@ -194,7 +219,7 @@ export function useFileManager() {
         }).then((r) => r.json());
 
         if (res.success) {
-          success(t('fileOps.renameSuccess'));
+          toast.success(t('fileOps.renameSuccess'));
           loadFolderData(currentFolder.value?.id);
           return true;
         } else {
@@ -224,7 +249,7 @@ export function useFileManager() {
         }).then((r) => r.json());
 
         if (res.success) {
-          success(res.message);
+          toast.success(res.message);
           loadFolderData(currentFolder.value?.id);
           return true;
         } else {
@@ -246,7 +271,7 @@ export function useFileManager() {
         }).then((r) => r.json());
 
         if (res.success) {
-          success(res.message);
+          toast.success(res.message);
           loadFolderData(currentFolder.value?.id);
           return true;
         } else {

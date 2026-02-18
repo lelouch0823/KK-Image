@@ -104,52 +104,32 @@
               >
                 {{ inputLabel }}
               </p>
-              <input
-                ref="inputField"
-                v-model="inputValue"
-                :type="inputType"
-                :placeholder="inputPlaceholder"
-                class="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-4 py-2.5 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] transition-all outline-none focus:border-[var(--color-primary)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
-                @keyup.enter="handleConfirm"
-              />
+                <AppInput
+                  v-if="showInput"
+                  ref="inputField"
+                  v-model="inputValue"
+                  :placeholder="inputPlaceholder"
+                  class="mt-2"
+                  @keyup.enter="!isConfirmDisabled && handleConfirm()"
+                />
             </div>
           </div>
 
           <!-- 操作按钮 -->
-          <div class="flex items-center gap-3 px-6 pb-6">
-            <button
+          <div class="flex justify-end gap-3 px-6 pb-6">
+            <AppButton
+              variant="secondary"
+              :text="cancelText || t('common.cancel')"
               :disabled="loading"
-              class="flex-1 rounded-xl bg-[var(--bg-muted)] px-4 py-2.5 text-sm font-semibold text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] active:scale-95 disabled:opacity-50"
               @click="handleCancel"
-            >
-              {{ cancelText || t('common.cancel') }}
-            </button>
-            <button
+            />
+            <AppButton
+              :variant="confirmButtonVariant"
+              :text="confirmText || t('common.confirm')"
+              :loading="loading"
               :disabled="isConfirmDisabled"
-              :class="[
-                'flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all active:scale-95',
-                typeClasses.btn,
-                isConfirmDisabled ? 'cursor-not-allowed opacity-70' : '',
-              ]"
               @click="handleConfirm"
-            >
-              <svg v-if="loading" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                ></circle>
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                ></path>
-              </svg>
-              {{ confirmText || t('common.confirm') }}
-            </button>
+            />
           </div>
         </div>
       </div>
@@ -158,13 +138,16 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted, useTemplateRef } from 'vue';
 import { useModalStack } from '@/composables/useModalStack';
 import { useI18n } from '@/composables/useI18n';
+import Modal from '@/components/ui/Modal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 
 const { t } = useI18n();
 const inputValue = ref('');
-const inputField = ref(null);
+const inputField = useTemplateRef('inputField');
 
 const props = defineProps({
   modelValue: Boolean,

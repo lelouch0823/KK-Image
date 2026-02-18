@@ -178,15 +178,10 @@ export class ProductRepository {
         const sets = Object.keys(updateData).map(k => `${k} = ?`).join(', ');
         const values = [...Object.values(updateData), id];
 
-        console.log('[ProductRepository.updateWithMeta] SQL:', `UPDATE products SET ${sets} WHERE id = ?`);
-        console.log('[ProductRepository.updateWithMeta] Values:', JSON.stringify(values));
-
         try {
             const result = await this.db.prepare(`UPDATE products SET ${sets} WHERE id = ?`)
                 .bind(...values)
                 .run();
-
-            console.log('[ProductRepository.updateWithMeta] D1 Result:', JSON.stringify(result));
 
             return {
                 success: result.success,
@@ -221,6 +216,10 @@ export class ProductRepository {
      * @param {Object} filters { search, category, brand, status, page, limit }
      */
     async search(filters = {}) {
+        // 验证分页参数
+        const safePage = Math.max(1, Math.floor(Number(filters.page) || 1));
+        const safeLimit = filters.limit ? Math.min(100, Math.max(1, Math.floor(Number(filters.limit)))) : 0;
+
         let query = 'SELECT * FROM products WHERE 1=1';
         const params = [];
 
@@ -245,29 +244,20 @@ export class ProductRepository {
             params.push(term, term, term);
         }
 
+        // 保存 WHERE 子句用于 COUNT 查询
+        const whereClause = query.substring(query.indexOf('WHERE'));
+        const countParams = [...params];
+
         query += ' ORDER BY created_at DESC';
 
-        if (filters.limit) {
+        if (safeLimit > 0) {
             query += ' LIMIT ? OFFSET ?';
-            params.push(filters.limit, (filters.page - 1) * filters.limit);
+            params.push(safeLimit, (safePage - 1) * safeLimit);
         }
 
         const results = await this.db.prepare(query).bind(...params).all();
 
-        // Count total for pagination
-        // let countQuery = 'SELECT COUNT(*) as total FROM products WHERE 1=1';
-        // Re-use logic for WHERE clause... (simplified here for brevity, ideally reuse builder)
-        // For simplicity in this v1, just running a simple count if no complex filters, 
-        // or we can just return the results.
-        // Let's implement a proper simple count with same WHERE clauses
-        const whereClause = query.substring(query.indexOf('WHERE'));
-        // Strip ORDER BY and LIMIT
-        const whereClauseClean = whereClause.split(' ORDER BY')[0];
-
-        // We need to re-bind params excluding limit/offset
-        const countParams = params.slice(0, params.length - (filters.limit ? 2 : 0));
-
-        const countResult = await this.db.prepare(`SELECT COUNT(*) as total FROM products ${whereClauseClean}`)
+        const countResult = await this.db.prepare(`SELECT COUNT(*) as total FROM products ${whereClause}`)
             .bind(...countParams)
             .first();
 

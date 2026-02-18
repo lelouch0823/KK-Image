@@ -63,7 +63,9 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
             deadline: data.deadline,
             brand: data.brand,
             series: data.series,
+            sku: data.sku,
         },
+        quantity: data.quantity,
         mainImageId: data.fileIds[0] || null,
         fileIds: data.fileIds,
         timeline: {
@@ -172,7 +174,7 @@ app.patch('/:id', async (c) => {
     const { processOrderUpdate } = await import('../../../../api/utils/order-utils.js');
 
     // 销售端允许修改的字段
-    const SALES_EDITABLE_FIELDS = ['name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline'];
+    const SALES_EDITABLE_FIELDS = ['name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
 
     const _result = await processOrderUpdate({
         env,

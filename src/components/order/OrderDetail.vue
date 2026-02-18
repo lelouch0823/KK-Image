@@ -149,7 +149,7 @@ import { API } from '@/utils/constants';
 import { useSalesToken } from '@/composables/useSalesToken';
 import { useLightbox } from '@/composables/useLightbox';
 import { formatTimelineTime } from '@/utils/formatters';
-import html2pdf from 'html2pdf.js';
+
 
 // Sub-components
 import OrderTimeline from './OrderTimeline.vue';
@@ -354,13 +354,16 @@ const handleSavePdf = () => {
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
   };
 
-  html2pdf()
-    .set(opt)
-    .from(clone)
-    .save()
-    .then(() => {
-      document.body.removeChild(clone);
-    });
+  import('html2pdf.js').then((module) => {
+    const html2pdf = module.default;
+    html2pdf()
+      .set(opt)
+      .from(clone)
+      .save()
+      .then(() => {
+        document.body.removeChild(clone);
+      });
+  });
 };
 
 defineExpose({ handleSavePdf, handleVoid });

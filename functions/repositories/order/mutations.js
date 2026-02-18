@@ -72,16 +72,25 @@ export async function updateData(db, id, newData, actorType, productId = undefin
     const timestamp = now();
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
 
-    let query = `
-      UPDATE orders 
-      SET current_data = ?, ${updateField} = 1, updated_at = ? 
-    `;
     const params = [JSON.stringify(newData), timestamp];
 
+    const colsToUpdate = ['current_data = ?', `${updateField} = 1`, 'updated_at = ?'];
+
+    // SOTA: Fix update quantity column from JSON
+    if (newData.quantity !== undefined) {
+        colsToUpdate.push('quantity = ?');
+        params.push(newData.quantity);
+    }
+
     if (productId !== undefined) {
-        query += `, product_id = ? `;
+        colsToUpdate.push('product_id = ?');
         params.push(productId);
     }
+
+    let query = `
+      UPDATE orders 
+      SET ${colsToUpdate.join(', ')} 
+    `;
 
     query += ` WHERE id = ?`;
     params.push(id);
@@ -116,28 +125,29 @@ export async function updateStatus(db, id, newStatus, actorType) {
 }
 
 /**
- * 更新订单关联的文件
+ * 更新订单关联的文件 (SOTA: 使用 batch 合并删除和插入)
  * @param {D1Database} db
  * @param {string} orderId
  * @param {Array<string>} fileIds
  */
 export async function updateFiles(db, orderId, fileIds) {
-    await db.prepare(`DELETE FROM order_files WHERE order_id = ?`).bind(orderId).run();
+    const timestamp = now();
+    const statements = [
+        db.prepare(`DELETE FROM order_files WHERE order_id = ?`).bind(orderId)
+    ];
 
     if (fileIds && fileIds.length > 0) {
-        const timestamp = now();
-        const statements = fileIds.map((fileId, index) =>
-            db
-                .prepare(
-                    `
-          INSERT INTO order_files (id, order_id, file_id, section, sort_order, added_at) 
-          VALUES (?, ?, ?, 'product', ?, ?)
-          `
-                )
-                .bind(generateId(), orderId, fileId, index, timestamp)
-        );
-        await db.batch(statements);
+        fileIds.forEach((fileId, index) => {
+            statements.push(
+                db.prepare(`
+                    INSERT INTO order_files (id, order_id, file_id, section, sort_order, added_at) 
+                    VALUES (?, ?, ?, 'product', ?, ?)
+                `).bind(generateId(), orderId, fileId, index, timestamp)
+            );
+        });
     }
+
+    await db.batch(statements);
 }
 
 /**

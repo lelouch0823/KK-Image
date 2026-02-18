@@ -1,0 +1,21 @@
+// 上传相关
+export default {
+  uploading: '正在上传 {count} 个文件',
+  complete: '上传完成',
+  finished: '完成',
+  remaining: '剩余',
+  done: '完成',
+  waiting: '等待',
+  seconds: '秒',
+  minutes: '分',
+  hours: '小时',
+  clearCompleted: '清除已完成',
+  retry: '重试',
+  compressing: '压缩中...',
+  checkingDuplicate: '检查重复...',
+  instantUpload: '秒传成功',
+  instantUploadSuccess: '文件已存在，秒传成功',
+  failed: '上传失败: {message}',
+  compressFailed: '压缩失败: {message}',
+  compressionSaved: '已压缩 {percent}%',
+};

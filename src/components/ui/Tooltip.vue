@@ -6,7 +6,7 @@
     @focusin="handleFocus"
     @focusout="handleBlur"
   >
-    <div ref="triggerRef" :aria-describedby="tooltipId">
+    <div ref="trigger" :aria-describedby="tooltipId">
       <slot></slot>
     </div>
 
@@ -22,7 +22,7 @@
         <div
           v-if="isVisible && content"
           :id="tooltipId"
-          ref="contentRef"
+          ref="content"
           role="tooltip"
           :style="positionStyle"
           class="pointer-events-none fixed z-[9999] rounded-lg bg-[var(--text-main)] px-2.5 py-1.5 text-xs font-medium whitespace-nowrap text-[var(--bg-card)] shadow-lg"
@@ -35,7 +35,7 @@
 </template>
 
 <script setup>
-import { ref, onUnmounted, computed, nextTick } from 'vue';
+import { ref, onUnmounted, computed, nextTick, useTemplateRef } from 'vue';
 import { generateRandomId } from '@/utils/common';
 
 const props = defineProps({
@@ -55,8 +55,8 @@ const props = defineProps({
 });
 
 const isVisible = ref(false);
-const triggerRef = ref(null);
-const contentRef = ref(null);
+const triggerRef = useTemplateRef('trigger');
+const contentRef = useTemplateRef('content');
 const tooltipId = generateRandomId('tooltip');
 let timer = null;
 

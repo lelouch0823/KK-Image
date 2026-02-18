@@ -41,51 +41,44 @@
               </div>
             </template>
 
-            <!-- Sub-pages: Back Button & Page Title -->
             <template v-else>
-              <button
-                class="group flex items-center gap-2 transition-colors"
+              <AppButton
+                variant="secondary"
+                size="sm"
+                class="group !p-0 !size-8"
                 @click="router.push(`/sales/${accessToken}`)"
               >
-                <div
-                  class="text-secondary flex size-8 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] transition-colors group-hover:text-primary group-hover:bg-[var(--bg-hover)]"
-                >
-                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
-                </div>
-                <h1 class="text-primary text-sm font-semibold">{{ pageTitle }}</h1>
-              </button>
+                <template #icon-left>
+                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                </template>
+              </AppButton>
+              <h1 class="text-primary text-sm font-semibold">{{ pageTitle }}</h1>
             </template>
           </div>
           <div class="flex items-center gap-2">
             <!-- 通知铃铛 -->
             <div ref="notificationRef" class="relative">
-              <button
-                class="relative flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] transition-colors hover:bg-[var(--bg-hover)]"
-                :class="{ 'bg-[var(--bg-hover)]': showNotifications }"
+              <AppButton
+                variant="secondary"
+                size="sm"
+                class="relative !size-9 !p-0"
+                :class="{ 'bg-(--bg-hover)': showNotifications }"
                 :title="t('notification.title')"
                 @click="toggleNotifications"
               >
-                <svg class="text-secondary size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                  />
-                </svg>
-                <!-- 红点 -->
-                <span
-                  v-if="notificationUnreadCount > 0"
-                  class="absolute top-1.5 right-1.5 size-2 rounded-full border border-[var(--bg-card)] bg-[var(--color-danger)]"
-                ></span>
-              </button>
+                <template #icon-left>
+                  <svg class="text-secondary size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                </template>
+                <template #default>
+                  <!-- 红点 -->
+                  <span
+                    v-if="notificationUnreadCount > 0"
+                    class="absolute top-1.5 right-1.5 size-2 rounded-full border border-(--bg-card) bg-danger"
+                  ></span>
+                </template>
+              </AppButton>
 
               <!-- 下拉弹窗 -->
               <Transition
@@ -109,38 +102,32 @@
             </div>
 
             <!-- Header Actions -->
-            <button
+            <!-- 统计按钮 - 移动端只显示图标 -->
+            <AppButton
               v-if="!isStatsPage"
-              class="text-secondary hidden items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)] sm:flex"
+              variant="ghost"
+              size="sm"
+              class="!size-9 !p-0 sm:!size-auto sm:!px-3 sm:!py-2"
               :title="t('salesStats.title')"
               @click="router.push(`/sales/${accessToken}/stats`)"
             >
-              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                ></path>
-              </svg>
-              {{ t('salesStats.title') }}
-            </button>
-            
-            <button
-               v-if="isListPage"
-              class="bg-primary flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)]"
-              @click="router.push(`/sales/${accessToken}/create`)"
+              <template #icon-left>
+                <svg class="size-5 sm:size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+              </template>
+              <template #default>
+                <span class="hidden sm:inline">{{ t('salesStats.title') }}</span>
+              </template>
+            </AppButton>
+            <AppButton
+              variant="primary"
+              :text="t('sales.createOrder')"
+              class="whitespace-nowrap"
+              @click="openCreateModal"
             >
-              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 4v16m8-8H4"
-                ></path>
-              </svg>
-              {{ t('order.portal.newOrder') }}
-            </button>
+              <template #icon-left>
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+              </template>
+            </AppButton>
           </div>
         </div>
       </header>
@@ -165,6 +152,7 @@ import { useOrders } from '@/composables/useOrders';
 import { useNotifications } from '@/composables/useNotifications';
 import OrderLogin from '@/components/order/OrderLogin.vue';
 import SalesNotificationList from '@/components/order/SalesNotificationList.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import { onClickOutside } from '@vueuse/core';
 
 const route = useRoute();
@@ -175,7 +163,8 @@ const {
   orders,
   checkSalesAuth,
   loginSales,
-  loadSalesOrders
+  loadSalesOrders,
+  pagination: ordersPagination,
 } = useOrders();
 
 const { t } = useI18n();
@@ -209,14 +198,19 @@ const loginError = ref('');
 const salesperson = ref(null);
 const prefillData = ref(null); // Shared state for duplicating order
 
+// 搜索状态（共享给子组件）
+const searchQuery = ref('');
+
 // Provide context to child views
 provide('salesContext', {
     orders,
     loading: ordersLoading,
     salesperson, // In case needed
-    loadOrders: () => loadSalesOrders(accessToken.value),
+    loadOrders: (page, append) => loadSalesOrders(accessToken.value, page, append),
+    pagination: ordersPagination,
     prefillData,
-    setPrefillData: (data) => { prefillData.value = data }
+    setPrefillData: (data) => { prefillData.value = data },
+    searchQuery, // 共享搜索状态
 });
 
 // Notifications Logic
@@ -228,6 +222,10 @@ const toggleNotifications = () => showNotifications.value = !showNotifications.v
 const handleNotificationNavigate = async (orderId) => {
   showNotifications.value = false;
   router.push(`/sales/${accessToken.value}/detail/${orderId}`);
+};
+
+const openCreateModal = () => {
+    router.push(`/sales/${accessToken.value}/create`);
 };
 
 // Auto-refresh logic (Centralized)

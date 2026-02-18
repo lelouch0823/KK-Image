@@ -46,7 +46,9 @@ export function useDragSort(items, options = {}) {
     const [removed] = newItems.splice(dragIndex.value, 1);
     newItems.splice(targetIndex, 0, removed);
 
-    items.value = newItems;
+    // SOTA: Do NOT mutate items.value directly if it's a computed property.
+    // Component should rely on onReorder callback or emit to update parent state.
+    // items.value = newItems; // Removed mutation
 
     if (onReorder) {
       onReorder(newItems, dragIndex.value, targetIndex);

@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 /**
  * 灯箱预览 Composable
@@ -89,15 +89,15 @@ export function useLightbox(files, options = {}) {
   };
 
   // 计算属性
-  const hasPrev = () => currentIndex.value > 0;
-  const hasNext = () => {
+  const hasPrev = computed(() => currentIndex.value > 0);
+  const hasNext = computed(() => {
     const filesArray = files.value || files;
     return currentIndex.value < filesArray.length - 1;
-  };
-  const total = () => {
+  });
+  const total = computed(() => {
     const filesArray = files.value || files;
     return filesArray.length;
-  };
+  });
 
   // 注册键盘事件
   onMounted(() => {

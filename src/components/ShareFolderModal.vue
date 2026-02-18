@@ -9,16 +9,16 @@
     <div>
       <!-- Folder Info -->
       <div
-        class="mb-6 flex items-center gap-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] p-3"
+        class="mb-6 flex items-center gap-3 rounded-lg border border-(--border-color) bg-(--bg-muted) p-3"
       >
-        <div class="rounded-md bg-[var(--bg-card)] p-2 shadow-sm">
-          <svg class="size-6 text-[var(--color-warning)]" fill="currentColor" viewBox="0 0 20 20">
+        <div class="rounded-md bg-(--bg-card) p-2 shadow-sm">
+          <svg class="size-6 text-warning" fill="currentColor" viewBox="0 0 20 20">
             <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
           </svg>
         </div>
         <div>
-          <div class="font-medium text-[var(--text-main)]">{{ folder?.name }}</div>
-          <div class="text-xs text-[var(--text-secondary)]">
+          <div class="font-medium text-(--text-main)">{{ folder?.name }}</div>
+          <div class="text-xs text-(--text-secondary)">
             {{ t('fileManager.totalFiles', { count: folder?.fileCount || 0 }) }}
           </div>
         </div>
@@ -27,13 +27,13 @@
       <!-- 🔧 NEW: 显示已有分享链接 -->
       <div
         v-if="existingShareUrl && !shareUrl"
-        class="mb-6 rounded-lg border border-[var(--color-info)]/20 bg-[var(--color-info-bg)] p-4"
+        class="mb-6 rounded-lg border border-info/20 bg-info-bg p-4"
       >
         <div class="mb-2 flex items-center justify-between">
-          <span class="text-sm font-medium text-[var(--color-info-text)]">{{
+          <span class="text-sm font-medium text-info-text">{{
             t('share.existingLink')
           }}</span>
-          <span class="text-xs text-[var(--color-info)]">{{
+          <span class="text-xs text-info">{{
             formatExpiry(folder?.shareExpiresAt)
           }}</span>
         </div>
@@ -42,88 +42,79 @@
             type="text"
             readonly
             :value="existingShareUrl"
-            class="input flex-1 bg-[var(--bg-card)] text-sm"
+            class="input flex-1 bg-(--bg-card) text-sm"
             @click="$event.target.select()"
           />
           <Tooltip :content="t('share.copyLink')">
-            <button
-              class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-info)]"
+            <AppButton
+              variant="secondary"
+              size="sm"
+              class="!w-9 !h-9 !p-0 shrink-0"
+              :title="t('share.copyLink')"
               @click="copyExistingLink"
             >
-              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
-                ></path>
-              </svg>
-            </button>
+              <template #icon-left>
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+              </template>
+            </AppButton>
           </Tooltip>
         </div>
-        <p v-if="existingCopied" class="mt-2 text-xs text-[var(--color-info)]">
+        <p v-if="existingCopied" class="mt-2 text-xs text-info">
           ✓ {{ t('share.copiedClipboard') }}
         </p>
-        <div class="mt-3 flex items-center justify-between border-t border-[var(--color-info)]/20 pt-3">
-          <span class="text-xs text-[var(--color-info)] opacity-80">{{
+        <div class="mt-3 flex items-center justify-between border-t border-info/20 pt-3">
+          <span class="text-xs text-info opacity-80">{{
             t('share.needUpdateExpiry')
           }}</span>
-          <button
-            class="text-xs font-medium text-[var(--color-info-text)] hover:underline"
+          <AppButton
+            variant="ghost"
+            size="xs"
+            class="text-info-text hover:text-info-text/80 text-xs font-medium !p-0 h-auto hover:bg-transparent"
+            :text="t('share.regenerate')"
             @click="showExpiryOptions = true"
-          >
-            {{ t('share.regenerate') }}
-          </button>
+          />
         </div>
       </div>
 
       <!-- Expiration Options -->
       <div v-if="!existingShareUrl || showExpiryOptions" class="mb-6">
-        <label class="mb-3 block text-sm font-medium text-[var(--text-main)]">{{
+        <label class="mb-3 block text-sm font-medium text-(--text-main)">{{
           t('share.expiration')
         }}</label>
         <div class="grid grid-cols-3 gap-3">
-          <button
+          <AppButton
             v-for="opt in options"
             :key="opt.value"
-            class="rounded-lg border px-3 py-2 text-center text-sm transition-all"
-            :class="
-              expiry === opt.value
-                ? 'border-[var(--color-primary)] bg-[var(--color-primary-bg)] font-medium text-[var(--color-primary)] ring-1 ring-[var(--color-primary)]'
-                : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--border-hover)]'
-            "
+            :variant="expiry === opt.value ? 'primary' : 'secondary'"
+            :text="opt.label"
+            class="w-full text-sm"
             @click="expiry = opt.value"
-          >
-            {{ opt.label }}
-          </button>
+          />
         </div>
       </div>
 
       <!-- Generated Link -->
       <div v-if="shareUrl" class="mb-4">
-        <label class="mb-2 block text-sm font-medium text-[var(--text-main)]">{{ t('share.generate') }}</label>
+        <label class="mb-2 block text-sm font-medium text-(--text-main)">{{ t('share.generate') }}</label>
         <div class="flex gap-2">
           <input
             type="text"
             readonly
             :value="shareUrl"
-            class="input flex-1 bg-[var(--bg-muted)] text-sm"
+            class="input flex-1 bg-(--bg-muted) text-sm"
             @click="$event.target.select()"
           />
           <Tooltip :content="t('common.copy')">
-            <button
-              class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-success)]"
+            <AppButton
+              variant="secondary"
+              size="sm"
+              class="!w-9 !h-9 !p-0 shrink-0"
               @click="copyLink"
             >
-              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
-                ></path>
-              </svg>
-            </button>
+              <template #icon-left>
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+              </template>
+            </AppButton>
           </Tooltip>
         </div>
         <p v-if="copied" class="mt-2 flex items-center text-xs text-[var(--color-success)]">
@@ -142,28 +133,28 @@
 
     <!-- Footer -->
     <template #footer>
-      <button
+      <AppButton
         v-if="existingShareUrl && !showExpiryOptions && !shareUrl"
-        class="btn btn-primary w-full sm:w-auto"
+        variant="primary"
+        :text="t('common.complete')"
+        class="w-full sm:w-auto"
         @click="close"
-      >
-        {{ t('common.complete') }}
-      </button>
-      <button
+      />
+      <AppButton
         v-else-if="!shareUrl"
-        :disabled="loading"
-        class="btn btn-primary w-full sm:w-auto"
+        variant="primary"
+        :text="existingShareUrl ? t('share.update') : t('share.generate')"
+        :loading="loading"
+        class="w-full sm:w-auto"
         @click="generateLink"
-      >
-        <span
-          v-if="loading"
-          class="mr-2 size-4 animate-spin rounded-full border-b-2 border-white"
-        ></span>
-        {{ existingShareUrl ? t('share.update') : t('share.generate') }}
-      </button>
-      <button v-else class="btn btn-primary w-full sm:w-auto" @click="close">
-        {{ t('common.complete') }}
-      </button>
+      />
+      <AppButton
+        v-else
+        variant="primary"
+        :text="t('common.complete')"
+        class="w-full sm:w-auto"
+        @click="close"
+      />
     </template>
   </Modal>
 </template>
@@ -178,6 +169,7 @@ import { formatExpiry } from '@/utils/formatters';
 import { useI18n } from '@/composables/useI18n';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import Modal from '@/components/ui/Modal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

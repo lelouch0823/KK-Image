@@ -1,0 +1,22 @@
+// 登录/认证
+export default {
+  loginTitle: '登录',
+  welcome: '欢迎回来',
+  subtitle: '登录以管理您的图片和文件',
+  username: '用户名',
+  usernamePlaceholder: '请输入用户名',
+  password: '密码',
+  passwordPlaceholder: '请输入密码',
+  loginButton: '登录',
+  loggingIn: '登录中...',
+  inputRequired: '请输入用户名和密码',
+  loginSuccess: '登录成功',
+  loginFailed: '登录失败，请稍后重试',
+  logout: '退出登录',
+  copyright: '© {year} kk-life',
+  passwordRequired: '需要密码',
+  passwordSubtitle: '此内容受密码保护',
+  passwordAccessPlaceholder: '请输入访问密码',
+  preparingWorkspace: '正在为您准备工作台...',
+  verifying: '正在验证身份...',
+};

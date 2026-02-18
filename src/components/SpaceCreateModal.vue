@@ -51,73 +51,46 @@
         v-if="form.template === 'product'"
         class="space-y-4 border-t border-[var(--border-subtle)] pt-2"
       >
-        <!-- 商品名称 (覆盖通用名称) -->
-        <div>
-          <label class="mb-1 block text-sm font-medium text-[var(--text-main)]"
-            >{{ t('spaceManager.productName') }} *</label
-          >
-          <input
+        <!-- Form -->
+        <form class="space-y-4" @submit.prevent="handleSubmit">
+          <AppInput
             v-model="form.name"
-            type="text"
+            :label="t('space.name')"
+            :placeholder="t('space.namePlaceholder')"
             required
-            class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 transition-all outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
-            :placeholder="t('spaceManager.productNamePlaceholder')"
           />
-        </div>
 
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="mb-1 block text-sm font-medium text-[var(--text-main)]">{{
-              t('spaceManager.brand')
-            }}</label>
-            <input
-              v-model="form.templateData.brand"
-              type="text"
-              class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 transition-all outline-none focus:border-[var(--color-primary)]"
-              :placeholder="t('spaceManager.brandPlaceholder')"
-            />
-          </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium text-[var(--text-main)]">{{
-              t('spaceManager.series')
-            }}</label>
-            <input
-              v-model="form.templateData.series"
-              type="text"
-              class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 transition-all outline-none focus:border-[var(--color-primary)]"
-              :placeholder="t('spaceManager.seriesPlaceholder')"
-            />
-          </div>
-        </div>
+          <AppInput
+            v-model="form.slug"
+            :label="t('space.slug')"
+            :placeholder="t('space.slugPlaceholder')"
+            required
+          />
 
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="mb-1 block text-sm font-medium text-[var(--text-main)]">{{
-              t('spaceManager.price')
-            }}</label>
-            <div class="relative">
-              <span class="absolute top-2.5 left-3 text-[var(--text-secondary)]">¥</span>
-              <input
-                v-model="form.templateData.price"
-                type="number"
-                step="0.01"
-                class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] py-2.5 pr-4 pl-8 transition-all outline-none focus:border-[var(--color-primary)]"
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium text-[var(--text-main)]">{{
-              t('spaceManager.material')
-            }}</label>
-            <input
-              v-model="form.templateData.material"
-              type="text"
-              class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 transition-all outline-none focus:border-[var(--color-primary)]"
-              :placeholder="t('spaceManager.materialPlaceholder')"
+          <AppInput
+            v-model="form.description"
+            :label="t('space.description')"
+            :placeholder="t('space.descriptionPlaceholder')"
+            textarea
+            rows="3"
+          />
+
+          <!-- Actions -->
+          <div class="mt-6 flex justify-end gap-3">
+            <AppButton
+              variant="secondary"
+              :text="t('common.cancel')"
+              :disabled="loading"
+              @click="close"
+            />
+            <AppButton
+              type="submit"
+              variant="primary"
+              :text="isEdit ? t('common.save') : t('common.create')"
+              :loading="loading"
             />
           </div>
-        </div>
+        </form>
       </div>
 
       <!-- 动态表单: 通用模版 -->
@@ -157,9 +130,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, watch, computed } from 'vue';
+import { useModalStack } from '@/composables/useModalStack';
 import { useSpaces } from '@/composables/useSpaces';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 import Modal from '@/components/ui/Modal.vue';
 
 const props = defineProps({

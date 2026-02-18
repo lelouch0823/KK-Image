@@ -1,14 +1,14 @@
 # =============================================================================
 # kk-life Wrangler 配置文件
 # 参考: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
-# Trigger Reload
+# SOTA: 遵循 Cloudflare 官方最佳实践
 # =============================================================================
 
 name = "kk-life"
 compatibility_date = "2025-01-01"
 pages_build_output_dir = "./dist"
 
-# 兼容性标志 - nodejs_compat 启用 Node.js 兼容 API
+# SOTA: nodejs_compat_v2 是最新的 Node.js 兼容模式
 compatibility_flags = ["nodejs_compat"]
 
 # =============================================================================
@@ -18,58 +18,22 @@ compatibility_flags = ["nodejs_compat"]
 mode = "smart"
 
 # =============================================================================
-# 环境变量配置
+# 环境变量配置 (顶层 = 开发默认值)
+# SOTA: 敏感凭据使用 .dev.vars 文件或 Dashboard 设置，不在此定义
 # =============================================================================
 [vars]
 
-# -----------------------------------------------------------------------------
-# 🔧 存储配置（必需选择其一）
-# -----------------------------------------------------------------------------
-
-# 存储模式：single（单一）, smart（智能路由）, redundant（冗余备份）
+# 存储配置
 STORAGE_MODE = "single"
-
 # 主存储提供者：telegram, r2, s3
 # - telegram: 使用 Telegram Bot API（需配置 TG_Bot_Token 和 TG_Chat_ID）
 # - r2: 使用 Cloudflare R2（需配置 R2 桶绑定）
 # - s3: 使用 S3 兼容服务（需配置 S3_* 变量）
 STORAGE_PROVIDER = "r2"
 STORAGE_PRIMARY = "r2"
-
-# -----------------------------------------------------------------------------
-# 📦 Telegram 存储配置（使用 telegram 存储时必需）
-# -----------------------------------------------------------------------------
-
-# Telegram Bot Token - 通过 @BotFather 获取
-# 注意：生产环境请通过 Cloudflare Dashboard 设置，不要直接写在此文件
-TG_Bot_Token = ""
-TG_Chat_ID = ""
-
-# -----------------------------------------------------------------------------
-# ☁️ S3 兼容存储配置（使用 s3 存储时必需）
-# -----------------------------------------------------------------------------
-
-S3_ENDPOINT = ""
-S3_BUCKET = ""
-S3_ACCESS_KEY_ID = ""
-S3_SECRET_ACCESS_KEY = ""
 S3_REGION = "auto"
-
-# -----------------------------------------------------------------------------
-# 🔄 冗余和回退配置（可选）
-# -----------------------------------------------------------------------------
-
-# 镜像存储列表（冗余模式，逗号分隔）
 STORAGE_MIRRORS = ""
-
-# 异步镜像：true（后台同步，快速响应）, false（同步等待，确保一致）
 STORAGE_MIRROR_ASYNC = "true"
-
-# 智能路由规则（JSON 格式，STORAGE_MODE = "smart" 时生效）
-# 示例: '[{"condition":"size < 5242880","storage":"telegram"},{"default":true,"storage":"r2"}]'
-# STORAGE_RULES = ""
-
-# 回退设置
 STORAGE_FALLBACK_ENABLED = "true"
 STORAGE_FALLBACK_CHAIN = "r2,s3,telegram"
 STORAGE_FALLBACK_TIMEOUT = "3000"
@@ -77,7 +41,6 @@ STORAGE_FALLBACK_TIMEOUT = "3000"
 # -----------------------------------------------------------------------------
 # 🔐 管理员认证（生产环境通过 Dashboard 设置）
 # -----------------------------------------------------------------------------
-# 注意：以下为占位符，生产环境请在 Cloudflare Dashboard -> Settings -> Environment Variables 中配置
 BASIC_USER = "admin"
 BASIC_PASS = "123"
 
@@ -94,48 +57,36 @@ WhiteList_Mode = "false"
 # 禁用遥测
 disable_telemetry = "false"
 
-# 内容审查 API Key（ModerateContent.com）
-ModerateContentApiKey = ""
-
-# Sentry 错误监控 DSN
-SENTRY_DSN = ""
-
-# AI 助手配置 (OpenAI 兼容 API)
-AI_API_KEY = "ms-a5a227b4-b186-4411-8842-e78f6eebc8d6"
+# AI 配置 (非敏感项)
 AI_API_URL = "https://api-inference.modelscope.cn/v1/"
-# 模型优先级列表（逗号分隔，按顺序尝试，额度不足时自动切换）
-AI_MODELS = "deepseek-ai/DeepSeek-V3.2,Qwen/Qwen3-Coder-480B-A35B-Instruct,Qwen/QwQ-32B,Qwen/Qwen3-32B,Qwen/Qwen3-Next-80B-A3B-Instruct"
-# 切换阈值：剩余额度低于此值时切换（默认5）
+AI_MODELS = "deepseek-ai/DeepSeek-V3.2,Qwen/Qwen3-Coder-480B-A35B-Instruct,Qwen/QwQ-32B"
 AI_MODEL_SWITCH_THRESHOLD = "5"
 
 # =============================================================================
 # 生产环境配置
-# ⚠️ 敏感凭据必须通过 Cloudflare Dashboard -> Settings -> Environment Variables 设置
+# ⚠️ 敏感凭据必须通过以下方式设置：
+#   1. Cloudflare Dashboard -> Settings -> Environment Variables
+#   2. wrangler pages secret put <SECRET_NAME>
+#
+# 需通过 Dashboard 设置的敏感变量：
+#   - BASIC_PASS (管理员密码)
+#   - JWT_SECRET (JWT 签名密钥)
+#   - TG_Bot_Token, TG_Chat_ID (Telegram 存储)
+#   - S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY (S3)
+#   - AI_API_KEY (AI 助手)
+#   - ModerateContentApiKey (内容审查)
+#   - SENTRY_DSN (错误监控)
+#   - TURNSTILE_SECRET_KEY (Turnstile 验证)
+#   - WECHAT_APPID, WECHAT_SECRET (微信登录)
 # =============================================================================
 [env.production.vars]
 COMPRESS_STATIC_ASSETS = "true"
-# 注意：BASIC_USER, BASIC_PASS, JWT_SECRET 必须通过 Dashboard 设置，不要在此文件中配置
 STORAGE_MODE = "single"
 STORAGE_PROVIDER = "r2"
 STORAGE_PRIMARY = "r2"
-# ⚠️ SOTA 安全最佳实践说明：
-# 虽然在此文件中直接定义 Secrets (如 JWT_SECRET) 可以工作，但这会将密码暴露在代码库中。
-# 推荐做法：
-# 1. 在此文件中将敏感值留空或仅设为开发默认值。
-# 2. 生产环境密码请使用命令行上传：`npx wrangler pages secret put JWT_SECRET`
-# 3. 或在 Cloudflare Dashboard -> Settings -> Environment Variables 中手动添加。
-# Cloudflare 后台设置的 Secret 优先级高于此文件。
 
+# 非敏感默认值
 BASIC_USER = "admin"
-BASIC_PASS = "123"
-JWT_SECRET = "kk-image-jwt-secret-change-in-production"
-
-TG_Bot_Token = ""
-TG_Chat_ID = ""
-S3_ENDPOINT = ""
-S3_BUCKET = ""
-S3_ACCESS_KEY_ID = ""
-S3_SECRET_ACCESS_KEY = ""
 S3_REGION = "auto"
 STORAGE_MIRRORS = ""
 STORAGE_MIRROR_ASYNC = "true"
@@ -144,29 +95,23 @@ STORAGE_FALLBACK_CHAIN = "r2,s3,telegram"
 STORAGE_FALLBACK_TIMEOUT = "3000"
 WhiteList_Mode = "false"
 disable_telemetry = "false"
-ModerateContentApiKey = ""
-SENTRY_DSN = ""
 
-# AI 助手配置
-AI_API_KEY = "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"
+# AI 配置
 AI_API_URL = "https://integrate.api.nvidia.com/v1"
 AI_MODELS = "minimaxai/minimax-m2.1"
 AI_MODEL_SWITCH_THRESHOLD = "5"
 
-# Cloudflare Turnstile 防滥用验证
+# Turnstile 站点 Key (可公开)
 TURNSTILE_SITE_KEY = "0x4AAAAAACJfZho-HoWMjX2s"
-TURNSTILE_SECRET_KEY = "0x4AAAAAACJfZgVVRfDSbOF7Kf9bU1kmmHI"
-
-# 微信小程序配置
-# 用于销售端一键登录 ({appid, secret} from mp.weixin.qq.com)
-WECHAT_APPID = ""
-WECHAT_SECRET = ""
 
 # 生产环境 KV 命名空间绑定
 [[env.production.kv_namespaces]]
 binding = "img_url"
 id = "7bedbd0e77b64e548b280114c38a5541"
 
+[[env.production.kv_namespaces]]
+binding = "KV"
+id = "bd08207a24304cdda4a2989d693fa05e"
 
 # 生产环境 R2 存储桶绑定
 [[env.production.r2_buckets]]
@@ -184,50 +129,53 @@ database_name = "kk-life-db"
 database_id = "98401861-5d57-4cb8-b092-ba707f8257a3"
 
 # =============================================================================
-# 预览环境配置
+# 预览环境配置 (用于 PR 预览和集成测试)
 # =============================================================================
 [env.preview.vars]
 COMPRESS_STATIC_ASSETS = "false"
-# 开发环境测试值（仅供本地测试）
-TG_Bot_Token = "123456789:ABCdefGHIjklMNOpqrSTUvwxYZ"
-TG_Chat_ID = "-1001234567890"
-BASIC_USER = "admin"
-BASIC_PASS = "1"
-JWT_SECRET = "kk-image-jwt-secret-preview"
-
-# 存储配置
 STORAGE_MODE = "single"
 STORAGE_PROVIDER = "r2"
 STORAGE_PRIMARY = "r2"
-S3_ENDPOINT = ""
-S3_BUCKET = ""
-S3_ACCESS_KEY_ID = ""
-S3_SECRET_ACCESS_KEY = ""
 S3_REGION = "auto"
 STORAGE_MIRRORS = ""
 STORAGE_MIRROR_ASYNC = "true"
 STORAGE_FALLBACK_ENABLED = "true"
 STORAGE_FALLBACK_CHAIN = "r2,s3,telegram"
 STORAGE_FALLBACK_TIMEOUT = "3000"
-
-# 功能开关
 WhiteList_Mode = "false"
 disable_telemetry = "false"
-ModerateContentApiKey = ""
-SENTRY_DSN = ""
 
-# AI 助手配置
-AI_API_KEY = ""
+# AI 配置 (预览环境)
 AI_API_URL = "https://api.openai.com/v1"
 AI_MODELS = "gpt-4o"
 AI_MODEL_SWITCH_THRESHOLD = "5"
 
-# 预览环境数据库绑定
+# SOTA: 预览环境敏感变量应通过 .dev.vars.preview 或 Dashboard 设置
+# 以下为测试占位符，实际值不应提交到代码库
+BASIC_USER = "admin"
+BASIC_PASS = "preview123"
+JWT_SECRET = "kk-image-jwt-secret-preview"
+TG_Bot_Token = ""
+TG_Chat_ID = ""
+S3_ENDPOINT = ""
+S3_BUCKET = ""
+S3_ACCESS_KEY_ID = ""
+S3_SECRET_ACCESS_KEY = ""
+ModerateContentApiKey = ""
+SENTRY_DSN = ""
+AI_API_KEY = ""
+
+# 预览环境 D1 数据库绑定
 [[env.preview.d1_databases]]
 binding = "DB"
 database_name = "kk-life-db-test"
 database_id = "969b18c0-8c41-474b-8730-5141285fd259"
 migrations_dir = "migrations"
+
+# 预览环境 KV 命名空间绑定
+[[env.preview.kv_namespaces]]
+binding = "KV"
+id = "bf021825476e44d890655a419424d28a"
 
 # 预览环境 R2 存储桶绑定
 [[env.preview.r2_buckets]]
@@ -239,26 +187,11 @@ binding = "R2_BACKUP_BUCKET"
 bucket_name = "kk-life-backup-test"
 
 # =============================================================================
-# KV 命名空间绑定
-# 通过 `wrangler kv namespace create <NAME>` 创建
+# 顶层绑定 (本地开发默认使用)
+# SOTA: Bindings 不可继承，每个环境需单独定义
 # =============================================================================
 
-# 注意: 以下 KV 命名空间已迁移至 D1 数据库，不再使用
-# - USERS_KV -> users 表
-# - WEBHOOKS_KV -> webhooks 表
-# - WEBHOOK_LOGS_KV -> webhook_logs 表
-# - img_url (镜像状态) -> storage_mirrors 表
-
-# 如果仍需 KV 用于其他目的（如遗留兼容），可保留以下配置：
-# [[kv_namespaces]]
-# binding = "img_url"
-# id = "7bedbd0e77b64e548b280114c38a5541"
-
-# =============================================================================
-# R2 存储桶绑定
-# 通过 `wrangler r2 bucket create <NAME>` 创建
-# =============================================================================
-
+# R2 存储桶 (本地开发)
 [[r2_buckets]]
 binding = "R2_BUCKET"
 bucket_name = "kk-life-storage"
@@ -267,14 +200,14 @@ bucket_name = "kk-life-storage"
 binding = "R2_BACKUP_BUCKET"
 bucket_name = "kk-life-backup"
 
-# =============================================================================
-# D1 数据库绑定
-# 通过 `wrangler d1 create <NAME>` 创建
-# =============================================================================
-
+# D1 数据库 (本地开发)
 [[d1_databases]]
 binding = "DB"
 database_name = "kk-life-db"
 database_id = "98401861-5d57-4cb8-b092-ba707f8257a3"
 migrations_dir = "migrations"
 
+# KV 命名空间 (本地开发 - wrangler 自动创建本地存储)
+[[kv_namespaces]]
+binding = "KV"
+id = "bd08207a24304cdda4a2989d693fa05e"

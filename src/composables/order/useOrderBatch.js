@@ -51,7 +51,7 @@ export function useOrderBatch(refreshOrders, batchAction, changeStatus) {
                     const result = await batchAction(selectedIds.value, action);
                     if (result) {
                         selectedIds.value = [];
-                        await refreshOrders({ page: paginationPage });
+                        await refreshOrders(paginationPage);
                         confirmData.value.show = false;
                     }
                 } finally {

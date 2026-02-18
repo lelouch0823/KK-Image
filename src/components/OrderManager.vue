@@ -1,31 +1,15 @@
 <template>
-  <div
-    class="flex flex-col rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] backdrop-blur-sm transition-all duration-500 lg:h-full"
-  >
-    <!-- 头部操作栏 -->
-    <OrderFilters
-      v-model:filters="filterState"
-      :salespersons="salespersons"
-      :statuses="statuses"
-      :exporting="exporting"
-      :show-create="true"
-      @search="handleFilterChange"
-      @export="exportOrders"
-      @create="showCreateModal = true"
-      @show-stats="showStatsModal = true"
-    />
-
-    <!-- 订单统计仪表盘 (Desktop only inline) -->
-
-
+  <div class="flex flex-col gap-4 lg:h-full">
+    
+    <!-- 订单统计仪表盘 (Desktop only inline) - NOTE: This seems unused or legacy comment, keeping structure but cleaning up -->
+    
     <!-- Mobile Stats Modal -->
-    <!-- Stats Modal -->
     <Modal v-model="showStatsModal" :title="t('dashboard.stats')">
       <OrderDashboard @filter="(type) => { handleDashboardFilter(type); showStatsModal = false; }" />
     </Modal>
 
     <!-- 订单列表 -->
-    <div class="lg:flex-1 lg:overflow-auto">
+    <div class="lg:flex-1 lg:overflow-y-auto">
       <!-- 桌面表格视图 (lg+) -->
       <div class="hidden lg:block">
         <OrderTable
@@ -37,6 +21,23 @@
           @edit="openEditModal"
           @void="handleVoidOrder"
         >
+          <!-- Toolbar Slot: Filters -->
+          <template #toolbar>
+            <OrderFilters
+              v-model:filters="filterState"
+              :salespersons="salespersons"
+              :statuses="statuses"
+              :exporting="exporting"
+              :show-create="true"
+              @search="handleFilterChange"
+              @export="exportOrders"
+              @create="showCreateModal = true"
+              @show-stats="showStatsModal = true"
+              class="bg-transparent border-none p-0 shadow-none" 
+            />
+          </template>
+
+          <!-- Status Slot -->
           <template #status="{ order }">
             <OrderStatusChanger
               :status="order.status"
@@ -44,11 +45,39 @@
               @change="(e) => handleStatusChange(order, e)"
             />
           </template>
+
+          <!-- Footer Slot: Pagination -->
+          <template #footer>
+             <div class="flex w-full items-center justify-end gap-4">
+                <span v-if="pagination.total > 0" class="text-sm text-[var(--text-secondary)]">
+                  {{ t('common.total') }} {{ pagination.total }}
+                </span>
+                <Pagination
+                  v-if="pagination.totalPages > 1"
+                  v-model:current-page="pagination.page"
+                  :total-pages="pagination.totalPages"
+                  @change="changePage"
+                />
+             </div>
+          </template>
         </OrderTable>
       </div>
 
       <!-- 移动端卡片视图 (<lg) -->
-      <div class="p-4 lg:hidden">
+      <div class="h-full overflow-y-auto p-4 lg:hidden">
+         <!-- Mobile view needs its own filters since it doesn't use OrderTable -->
+         <OrderFilters
+              v-model:filters="filterState"
+              :salespersons="salespersons"
+              :statuses="statuses"
+              :exporting="exporting"
+              :show-create="true"
+              @search="handleFilterChange"
+              @export="exportOrders"
+              @create="showCreateModal = true"
+              @show-stats="showStatsModal = true"
+              class="mb-4"
+         />
         <OrderCards
           :data="orders"
           :loading="loading"
@@ -63,27 +92,27 @@
             />
           </template>
         </OrderCards>
+        <!-- Mobile Infinite Scroll Trigger -->
+        <div class="mt-4 pb-20">
+          <!-- Loading More Indicator -->
+          <div v-if="mobileInfiniteScroll.isLoading.value" class="flex items-center justify-center py-4">
+            <div class="border-t-primary size-5 animate-spin rounded-full border-2 border-(--border-color)"></div>
+            <span class="text-secondary ml-2 text-sm">{{ t('common.loading') }}</span>
+          </div>
+          <!-- Intersection Observer Trigger -->
+          <div 
+            v-else-if="mobileInfiniteScroll.canLoadMore.value"
+            :ref="(el) => mobileInfiniteScroll.triggerRef.value = el"
+            class="flex items-center justify-center py-4 text-sm text-(--text-secondary)"
+          >
+            ↑ {{ t('common.loading') }}
+          </div>
+          <!-- End of List -->
+          <div v-else-if="orders.length > 0" class="py-4 text-center text-sm text-(--text-secondary)">
+            {{ t('common.total') }} {{ pagination.total }} {{ t('common.items') }}
+          </div>
+        </div>
       </div>
-    </div>
-
-    <!-- 批量操作浮动栏 -->
-    <OrderBatchActions
-      :selected-count="selectedIds.length"
-      :processing="batchProcessing"
-      @action="onBatchAction"
-      @cancel="selectedIds = []"
-    />
-
-    <!-- 分页 -->
-    <div
-      v-if="pagination.totalPages > 1"
-      class="flex-shrink-0 border-t border-[var(--border-color)] p-4"
-    >
-      <Pagination
-        v-model:current-page="pagination.page"
-        :total-pages="pagination.totalPages"
-        @change="changePage"
-      />
     </div>
 
     <!-- Create Modal -->
@@ -142,6 +171,7 @@
       :order="editingOrder"
       :submitting="isEditing"
       :statuses="statuses"
+      :salespersons="salespersons"
       @close="closeEditModal"
       @submit="onEditSubmit"
     />
@@ -158,20 +188,21 @@
 </template>
 
 <script setup>
-import { onMounted, onActivated, watch, reactive } from 'vue';
+import { onMounted, onUnmounted, onActivated, watch, reactive } from 'vue';
+import { useRoute } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
 import { useNotifications } from '@/composables/useNotifications';
 import { useI18n } from '@/composables/useI18n';
 import { useOrderFilters } from '@/composables/order/useOrderFilters';
 import { useOrderModals } from '@/composables/order/useOrderModals';
 import { useOrderBatch } from '@/composables/order/useOrderBatch';
+import { useInfiniteScroll } from '@/composables/useInfiniteScroll';
 
 // Components
 import Pagination from '@/components/ui/Pagination.vue';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import OrderFilters from './order/OrderFilters.vue';
-import OrderBatchActions from './order/OrderBatchActions.vue';
 import OrderTable from './order/OrderTable.vue';
 import OrderCards from './order/OrderCards.vue';
 import OrderStatusChanger from './OrderStatusChanger.vue';
@@ -195,11 +226,11 @@ const {
 } = useOrders();
 
 const { t } = useI18n();
+const route = useRoute();
 
 // SOTA: Auto-refresh on notification
 const { lastNotificationTime } = useNotifications();
 
-// Initialize Composables
 // Initialize Composables
 const {
   filterState,
@@ -209,6 +240,7 @@ const {
   handleDashboardFilter,
   exportOrders,
   refreshOrders,
+  finishInitialization,
 } = useOrderFilters(loadOrders);
 
 const {
@@ -241,6 +273,19 @@ const {
 // Status changing state (local UI state)
 const statusChanging = reactive({});
 
+// Mobile infinite scroll using composable
+const mobileInfiniteScroll = useInfiniteScroll(async () => {
+  if (loading.value) return;
+  if (pagination.page >= pagination.totalPages) {
+    mobileInfiniteScroll.setCanLoadMore(false);
+    return;
+  }
+  // Pass append = true to add items instead of replacing
+  await loadOrders({ page: pagination.page + 1 }, true);
+  // Update canLoadMore based on new pagination state
+  mobileInfiniteScroll.setCanLoadMore(pagination.page < pagination.totalPages);
+});
+
 // Wrappers to inject pagination
 const onEditSubmit = (payload) => handleEditSubmit(payload, pagination.page);
 const onBatchAction = (action) => handleBatchAction(action, pagination.page);
@@ -249,29 +294,41 @@ const onBatchAction = (action) => handleBatchAction(action, pagination.page);
 watch(lastNotificationTime, () => {
   // Only refresh if not editing or viewing detail to avoid disruption
   if (!showEditModal.value && !showDetailModal.value && !showCreateModal.value) {
-    loadOrders({ page: pagination.page });
+    refreshOrders();
   }
 });
 
+// SOTA: 监听路由 query 中 salesperson 参数变化，响应从销售管理跳转过来的筛选
+watch(
+  () => route.query.salesperson,
+  (newVal) => {
+    // 更新筛选状态
+    filterState.value.salesperson = newVal || '';
+    // 刷新订单列表
+    refreshOrders();
+  }
+);
+
 // Lifecycle
 onMounted(() => {
-  loadOrders();
+  // 从 URL 参数读取销售筛选 (从销售管理页面跳转过来)
+  const salespersonParam = route.query.salesperson;
+  if (salespersonParam) {
+    filterState.value.salesperson = salespersonParam;
+  }
+  // 使用 refreshOrders以确保应用所有当前筛选条件
+  refreshOrders();
+  // 初始化完成后允许 watch 监听后续变化
+  finishInitialization();
 });
 
 onActivated(() => {
-  loadOrders({ page: pagination.page });
+  refreshOrders();
 });
 
 // Pagination change
 const changePage = (page) => {
-  loadOrders({
-    salesperson: filterState.value.salesperson,
-    status: filterState.value.status,
-    search: filterState.value.search,
-    startTime: filterDateRange.value.start,
-    endTime: filterDateRange.value.end,
-    page,
-  });
+  refreshOrders(page);
 };
 
 // Status Change Handler (Local wrapper)
@@ -290,4 +347,8 @@ const handleStatusChange = async (order, { status, note }) => {
     statusChanging[order.id] = false;
   }
 };
+onUnmounted(() => {
+  // 清理局部 UI 状态
+  Object.keys(statusChanging).forEach(key => delete statusChanging[key]);
+});
 </script>

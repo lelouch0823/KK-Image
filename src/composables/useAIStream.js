@@ -1,4 +1,5 @@
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
+import { API as API_URLS } from '@/utils/constants';
 import { SSEParser } from '@/utils/streaming';
 import { useSmoothTypewriter } from '@/composables/useSmoothTypewriter';
 import { useToast } from '@/composables/useToast';
@@ -22,6 +23,14 @@ export function useAIStream() {
 
     // 请求取消控制器
     let abortController = null;
+
+    // 组件卸载时自动取消请求
+    onUnmounted(() => {
+        if (abortController) {
+            abortController.abort();
+            abortController = null;
+        }
+    });
 
     const {
         fullContent,
@@ -50,7 +59,7 @@ export function useAIStream() {
         resetTypewriter();
 
         try {
-            const response = await fetch('/api/ai/stream', {
+            const response = await fetch(API_URLS.AI.STREAM, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ messages, context }),

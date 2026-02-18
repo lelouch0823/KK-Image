@@ -13,30 +13,24 @@ export class StatsRepository {
      */
     async getGlobalStats(todayStart) {
         const [
-            filesStats, 
-            foldersStats, 
-            albumsStats, 
-            spacesStats, 
-            recentFiles, 
-            todayStats,
+            counts,
+            recentFiles,
             fileStatusStats
         ] = await Promise.all([
             this.db.prepare(
                 `SELECT 
-                    COUNT(*) as total,
-                    COALESCE(SUM(size), 0) as total_size,
-                    COUNT(DISTINCT mime_type) as type_count
-                FROM files`
-            ).first(),
-            this.db.prepare('SELECT COUNT(*) as total FROM folders WHERE id != "root"').first(),
-            this.db.prepare('SELECT COUNT(*) as total FROM albums').first(),
-            this.db.prepare('SELECT COUNT(*) as total FROM spaces').first(),
+                    (SELECT COUNT(*) FROM files) as total_files,
+                    (SELECT COALESCE(SUM(size), 0) FROM files) as total_size,
+                    (SELECT COUNT(DISTINCT mime_type) FROM files) as type_count,
+                    (SELECT COUNT(*) FROM files WHERE created_at >= ?) as today_uploads,
+                    (SELECT COUNT(*) FROM folders WHERE id != "root") as folder_count,
+                    (SELECT COUNT(*) FROM albums) as album_count,
+                    (SELECT COUNT(*) FROM spaces) as space_count`
+            ).bind(todayStart).first(),
             this.db.prepare(
                 `SELECT id, name, size, mime_type as type, created_at 
                 FROM files ORDER BY created_at DESC LIMIT 10`
             ).all(),
-            this.db.prepare('SELECT COUNT(*) as count FROM files WHERE created_at >= ?')
-                .bind(todayStart).first(),
             // Status counts
             this.db.prepare(`
                 SELECT status, COUNT(*) as count 
@@ -88,14 +82,14 @@ export class StatsRepository {
 
         return {
             files: {
-                total: filesStats?.total || 0,
-                totalSize: filesStats?.total_size || 0,
-                typeCount: filesStats?.type_count || 0,
-                todayUploads: todayStats?.count || 0,
+                total: counts?.total_files || 0,
+                totalSize: counts?.total_size || 0,
+                typeCount: counts?.type_count || 0,
+                todayUploads: counts?.today_uploads || 0,
             },
-            folders: { total: foldersStats?.total || 0 },
-            albums: { total: albumsStats?.total || 0 },
-            spaces: { total: spacesStats?.total || 0 },
+            folders: { total: counts?.folder_count || 0 },
+            albums: { total: counts?.album_count || 0 },
+            spaces: { total: counts?.space_count || 0 },
             
             // For Frontend: Health & Distribution
             fileTypes: typeStats, // List for Chart

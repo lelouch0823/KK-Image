@@ -46,99 +46,97 @@
                 </div>
               </td>
               <td class="px-6 py-3">
-                <span :class="getExpiryClass(item.expiresAt)">{{
-                  formatExpiry(item.expiresAt, t)
-                }}</span>
+                <span :class="getExpiryClass(item.expiresAt)">{{ formatExpiry(item.expiresAt, t) }}</span>
               </td>
               <td class="px-6 py-3 text-right">
-                <button class="text-primary mr-3 hover:text-blue-600" @click="editShare(item)">
-                  {{ t('common.edit') }}
-                </button>
-                <button class="text-red-500 hover:text-red-700" @click="revokeShare(item)">
-                  {{ t('common.cancelShare') }}
-                </button>
+                <div class="flex justify-end gap-2">
+                  <AppButton
+                    variant="secondary"
+                    size="sm"
+                    class="!p-1.5 !h-8 !w-8 bg-[var(--bg-card)]"
+                    @click="editShare(item)"
+                  >
+                    <template #icon-left>
+                      <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    </template>
+                  </AppButton>
+                  <AppButton
+                    variant="secondary"
+                    size="sm"
+                    class="!p-1.5 !h-8 !w-8 bg-[var(--bg-card)] text-[var(--color-danger)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
+                    @click="revokeShare(item)"
+                  >
+                    <template #icon-left>
+                      <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </template>
+                  </AppButton>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Mobile Cards -->
-      <div class="space-y-4 lg:hidden">
-        <div
-          v-for="item in shares"
-          :key="item.id"
-          class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] p-4"
+      <!-- Mobile Table -->
+      <div v-if="shares.length > 0" class="lg:hidden flex-1 overflow-hidden">
+        <AppTable
+            :columns="columns"
+            :data="shares"
+            :loading="loading"
         >
-          <div class="mb-3 flex items-start justify-between">
-            <div class="text-primary text-base font-medium">{{ item.name }}</div>
-            <div class="flex gap-2">
-              <button
-                class="text-primary rounded border border-[var(--border-color)] bg-[var(--bg-card)] p-1.5 shadow-sm"
-                @click="editShare(item)"
-              >
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  ></path>
-                </svg>
-              </button>
-              <button
-                class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] p-1.5 text-red-500 shadow-sm"
-                @click="revokeShare(item)"
-              >
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  ></path>
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div class="text-secondary flex flex-col gap-2 text-sm">
-            <div class="flex items-center justify-between">
-              <span>{{ t('share.linkToken') }}:</span>
-              <div class="flex items-center gap-2">
-                <span class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-0.5 font-mono">{{
-                  item.shareToken
-                }}</span>
-                <button class="text-primary" @click="copyLink(item)">
-                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
-                    ></path>
-                  </svg>
+            <template #cell-name="{ row }">
+                <div class="flex flex-col">
+                    <span class="font-medium text-[var(--text-main)]">{{ row.name }}</span>
+                    <span class="text-xs text-[var(--text-secondary)]">{{ row.spaceName }}</span>
+                </div>
+            </template>
+            <template #cell-code="{ row }">
+                <button
+                    class="font-mono text-xs text-[var(--color-primary)] hover:underline"
+                    @click="copyLink(row)"
+                >
+                    {{ row.shareToken }}
                 </button>
-              </div>
-            </div>
-            <div class="flex items-center justify-between">
-              <span>{{ t('share.expiry') }}:</span>
-              <span :class="getExpiryClass(item.expiresAt)">{{
-                formatExpiry(item.expiresAt, t)
-              }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Empty State -->
-      <div v-if="shares.length === 0 && !loading" class="text-secondary py-12 text-center">
-        {{ t('common.noData') }}
-      </div>
-
-      <!-- Loading -->
-      <div v-if="loading" class="text-secondary py-12 text-center">
-        {{ t('common.loading') }}
-      </div>
+            </template>
+            <template #cell-expiresAt="{ row }">
+                 <span :class="isExpired(row.expiresAt) ? 'text-[var(--color-danger)]' : 'text-[var(--text-secondary)]'">
+                    {{ formatExpiry(row.expiresAt, t) }}
+                 </span>
+            </template>
+            <template #cell-actions="{ row }">
+                <div class="flex justify-end gap-2">
+                    <AppButton
+                        variant="ghost"
+                        size="sm"
+                        class="text-[var(--text-secondary)] hover:text-[var(--color-primary)]"
+                        :title="t('common.copyLink')"
+                        @click="copyLink(row)"
+                    >
+                        <template #icon-left>
+                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </template>
+                    </AppButton>
+                    <AppButton
+                        variant="ghost"
+                        size="sm"
+                        class="text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
+                        :title="t('common.cancelShare')"
+                        @click="confirmRevoke(row)"
+                    >
+                        <template #icon-left>
+                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </template>
+                    </AppButton>
+                </div>
+            </template>
+        </AppTable>
+    </div>
+    <div v-else-if="!loading" class="flex flex-1 flex-col items-center justify-center text-[var(--text-secondary)]">
+      <svg class="mb-3 size-12 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+      </svg>
+      <p>{{ t('share.noActiveShares') }}</p>
+    </div>
     </div>
 
     <!-- Footer / Pagination -->
@@ -180,7 +178,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
@@ -189,6 +187,8 @@ import { formatExpiry } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import AppTable from '@/components/ui/AppTable.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -217,6 +217,13 @@ const confirmData = ref({
   onConfirm: () => {},
 });
 
+const columns = computed(() => [
+    { key: 'name', label: t('share.table.name') },
+    { key: 'code', label: t('share.table.code') },
+    { key: 'expiresAt', label: t('share.table.expires') },
+    { key: 'actions', label: t('common.actions'), align: 'right' },
+]);
+
 const fetchShares = async () => {
   loading.value = true;
   try {
@@ -236,10 +243,10 @@ const fetchShares = async () => {
 
 // 格式化过期时间类名
 const getExpiryClass = (ts) => {
-  if (!ts) return 'text-green-600';
-  if (ts < Date.now()) return 'text-red-500 font-medium';
-  if (ts - Date.now() < 24 * 60 * 60 * 1000 * 3) return 'text-orange-500'; // < 3 days
-  return 'text-secondary';
+  if (!ts) return 'text-success';
+  if (ts < Date.now()) return 'text-danger font-medium';
+  if (ts - Date.now() < 24 * 60 * 60 * 1000 * 3) return 'text-warning'; // < 3 days
+  return 'text-(--text-secondary)';
 };
 
 const copyLink = async (item) => {
