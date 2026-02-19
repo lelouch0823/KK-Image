@@ -99,6 +99,31 @@ export function useSpaces() {
   };
 
   /**
+   * 重新排序空间文件
+   * @param {string} spaceId
+   * @param {Array<string>} fileIds - Sorted list of file IDs
+   */
+  const reorderSpaceFiles = async (spaceId, fileIds) => {
+    try {
+      const res = await authFetch(API.SPACE_FILES(spaceId) + '/order', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileIds }),
+      }).then(r => r.json());
+
+      if (res.success) {
+        return true;
+      } else {
+        addToast({ message: res.message || t('spaces.reorderFailed'), type: 'error' });
+        return false;
+      }
+    } catch (_err) {
+      addToast({ message: t('spaces.networkError'), type: 'error' });
+      return false;
+    }
+  };
+
+  /**
    * 加载子空间列表
    */
   const loadSubspaces = async (parentId) => {
@@ -154,6 +179,7 @@ export function useSpaces() {
     deleteSpace: resource.deleteItem,
     addFilesToSpace,
     removeFilesFromSpace,
+    reorderSpaceFiles,
     loadSubspaces,
     createSubspace,
   };

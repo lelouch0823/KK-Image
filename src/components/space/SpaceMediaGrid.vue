@@ -6,9 +6,15 @@
       class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4"
     >
       <div
-        v-for="file in files"
+        v-for="(file, index) in localFiles"
         :key="file.id"
-        class="group relative aspect-square overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] transition-shadow hover:shadow-md"
+        class="group relative aspect-square overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] transition-shadow hover:shadow-md cursor-grab active:cursor-grabbing"
+        draggable="true"
+        @dragstart="onDragStart($event, index)"
+        @dragenter="onDragEnter($event, index)"
+        @dragover.prevent
+        @dragend="onDragEnd"
+        @drop="onDrop($event, index)"
       >
         <AppImage
           v-if="isImageFile(file)"
@@ -98,11 +104,12 @@
 </template>
 
 <script setup>
+import { ref, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { isImage } from '@/utils/formatters';
 import AppImage from '@/components/ui/AppImage.vue';
 
-defineProps({
+const props = defineProps({
   files: {
     type: Array,
     default: () => [],
@@ -113,9 +120,51 @@ defineProps({
   },
 });
 
-defineEmits(['setCover', 'remove', 'addFiles']);
+const emit = defineEmits(['setCover', 'remove', 'addFiles', 'reorder']);
 
 const { t } = useI18n();
+
+// Local copy of files for optimistic UI updates
+const localFiles = ref([...props.files]);
+
+// Watch for external changes
+watch(() => props.files, (newFiles) => {
+  localFiles.value = [...newFiles];
+});
+
+// Drag and Drop Logic
+const dragIndex = ref(null);
+
+const onDragStart = (e, index) => {
+  dragIndex.value = index;
+  e.dataTransfer.effectAllowed = 'move';
+  // Optional: Set a drag image or custom opacity
+  e.target.style.opacity = '0.5';
+};
+
+const onDragEnter = (_e, _index) => {
+  // Optional: Add visual feedback for drop target
+};
+
+const onDragEnd = (e) => {
+  dragIndex.value = null;
+  e.target.style.opacity = '1';
+};
+
+const onDrop = (e, dropIndex) => {
+  const startIndex = dragIndex.value;
+  if (startIndex === null || startIndex === dropIndex) return;
+
+  // Reorder local files
+  const items = [...localFiles.value];
+  const [draggedItem] = items.splice(startIndex, 1);
+  items.splice(dropIndex, 0, draggedItem);
+  
+  localFiles.value = items;
+  
+  // Emit reorder event with new list
+  emit('reorder', items);
+};
 
 // 检查文件是否为图片
 const isImageFile = (file) => isImage(file);

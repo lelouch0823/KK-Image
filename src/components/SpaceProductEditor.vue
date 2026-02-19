@@ -293,6 +293,7 @@
             @set-cover="setCover"
             @remove="removeFile"
             @add-files="showFileSelector = true"
+            @reorder="handleReorder"
           />
         </div>
 
@@ -338,7 +339,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'updated']);
 
-const { updateSpace, addFilesToSpace, removeFilesFromSpace, loadSpace } = useSpaces();
+const { updateSpace, addFilesToSpace, removeFilesFromSpace, reorderSpaceFiles, loadSpace } = useSpaces();
 const { addToast } = useToast();
 const { t } = useI18n();
 
@@ -456,6 +457,20 @@ const removeFile = (fileId) => {
 const setCover = (file) => {
   form.value.coverFileId = file.id;
   addToast({ message: t('spaceManager.coverSet'), type: 'success' });
+};
+
+const handleReorder = async (newFiles) => {
+  // Optimistic update
+  files.value = newFiles;
+  
+  const fileIds = newFiles.map(f => f.id);
+  const success = await reorderSpaceFiles(props.space.id, fileIds);
+  
+  if (!success) {
+    // Revert logic could be implemented here if strict consistency is needed,
+    // but usually reloading the space or showing an error is enough.
+    await initData(); 
+  }
 };
 
 onMounted(initData);

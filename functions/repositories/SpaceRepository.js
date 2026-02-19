@@ -213,6 +213,30 @@ export class SpaceRepository {
     }
 
     /**
+     * 更新文件排序
+     * @param {string} spaceId
+     * @param {Array<string>} fileIds - Sorted list of file IDs
+     * @returns {Promise<void>}
+     */
+    async reorderFiles(spaceId, fileIds) {
+        // Use a transaction batch for performance
+        const statements = fileIds.map((fileId, index) =>
+            this.db
+                .prepare('UPDATE space_files SET sort_order = ? WHERE space_id = ? AND file_id = ?')
+                .bind(index, spaceId, fileId)
+        );
+
+        // Update space updated_at
+        statements.push(
+            this.db
+                .prepare('UPDATE spaces SET updated_at = ? WHERE id = ?')
+                .bind(Date.now(), spaceId)
+        );
+
+        await this.db.batch(statements);
+    }
+
+    /**
      * 获取子空间列表
      * @param {string} parentId
      * @returns {Promise<Array>}

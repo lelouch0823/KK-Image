@@ -68,4 +68,30 @@ files.delete('/', requirePermission('files:write'), async (c) => {
   }
 });
 
+/**
+ * PUT /files/order - 更新文件排序
+ */
+files.put('/order', requirePermission('files:write'), async (c) => {
+  const { env } = c;
+  const spaceId = c.req.param('id');
+  const { fileIds } = await c.req.json();
+  const repo = new SpaceRepository(env.DB);
+
+  try {
+    if (!fileIds?.length) {
+      return c.json({ success: false, error: MSG.COMMON.INVALID_PARAMS }, 400);
+    }
+
+    await repo.reorderFiles(spaceId, fileIds);
+
+    return c.json({
+      success: true,
+      message: MSG.COMMON.UPDATE_SUCCESS,
+    });
+  } catch (err) {
+    console.error(`${MSG.COMMON.OP_FAILED}:`, err);
+    return c.json({ success: false, error: `${MSG.COMMON.OP_FAILED}: ${err.message}` }, 500);
+  }
+});
+
 export default files;
