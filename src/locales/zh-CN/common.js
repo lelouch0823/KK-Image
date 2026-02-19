@@ -24,6 +24,13 @@ export default {
   networkError: '网络错误',
   networkErrorRetry: '网络错误，请稍后重试',
   loadFailed: '加载失败',
+  fileNotFound: '文件未找到',
+  fileNotFoundDesc: '您访问的文件不存在或已被删除。',
+  backHome: '返回首页',
+  pageNotFound: '页面未找到',
+  pageNotFoundDesc: '您访问的页面不存在。',
+  orderNotFound: '订单不存在',
+  orderNotFoundDesc: '您访问的订单不存在或已被删除。',
   operationFailed: '操作失败',
   error: {
     unauthorized: '未授权，请重新登录',

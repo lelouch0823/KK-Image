@@ -111,6 +111,7 @@ export default {
     uploadFailed: 'Upload failed',
     parseError: 'Response parse error',
     networkError: 'Network error',
+    instantUpload: 'Instant upload successful',
   },
 
   // Batch Download

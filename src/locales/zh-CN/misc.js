@@ -104,6 +104,7 @@ export default {
     uploadFailed: '上传失败',
     parseError: '响应解析失败',
     networkError: '网络错误',
+    instantUpload: '秒传成功',
   },
 
   // 批量下载

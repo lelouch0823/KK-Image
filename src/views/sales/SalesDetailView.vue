@@ -11,8 +11,21 @@
     @refresh="handleRefresh"
     @duplicate="handleDuplicate"
   />
-  <div v-else class="py-12 text-center text-[var(--text-secondary)]">
-    {{ t('order.detail.notFound') || '订单不存在' }}
+  <div v-else class="flex h-screen items-center justify-center">
+    <EmptyState
+      icon="search"
+      :title="t('common.orderNotFound')"
+      :description="t('common.orderNotFoundDesc')"
+    >
+      <template #action>
+        <router-link
+          :to="`/sales/${token}`"
+          class="inline-flex items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition-all hover:bg-[var(--color-primary-hover)] active:scale-95"
+        >
+          {{ t('order.backToList') || '返回列表' }}
+        </router-link>
+      </template>
+    </EmptyState>
   </div>
 </template>
 
@@ -22,6 +35,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
 import { useI18n } from '@/composables/useI18n'; // Assuming simple t function or similar
 import OrderDetail from '@/components/order/OrderDetail.vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
 
 const route = useRoute();
 const router = useRouter();

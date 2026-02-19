@@ -1,0 +1,25 @@
+<template>
+  <div class="flex h-screen w-full items-center justify-center bg-[var(--bg-page)]">
+    <EmptyState
+      icon="file"
+      :title="t('common.fileNotFound')"
+      :description="t('common.fileNotFoundDesc')"
+    >
+      <template #action>
+        <router-link
+          to="/"
+          class="inline-flex items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition-all hover:bg-[var(--color-primary-hover)] active:scale-95"
+        >
+          {{ t('common.backHome') }}
+        </router-link>
+      </template>
+    </EmptyState>
+  </div>
+</template>
+
+<script setup>
+import EmptyState from '@/components/ui/EmptyState.vue';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
+</script>

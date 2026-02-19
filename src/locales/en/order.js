@@ -85,6 +85,7 @@ export default {
     correctionReason: 'Reason for change',
     submittedBy: 'Submitter Info',
     notFound: 'Order not found',
+    backToList: 'Back to List',
     status: 'Status',
   },
 

@@ -137,7 +137,21 @@ const routes = [
                 component: () => import('@/views/Settings.vue'),
                 meta: { titleKey: 'router.system_settings' },
             },
+            // Admin catch-all (prevents redirect to login for auth users)
+            {
+                path: ':pathMatch(.*)*',
+                name: 'AdminNotFound',
+                component: () => import('@/views/NotFound.vue'),
+                meta: { titleKey: 'common.pageNotFound' },
+            },
         ],
+    },
+    // File not found fallback (prevents dashboard redirect for missing files)
+    {
+        path: '/file/:pathMatch(.*)*',
+        name: 'FileNotFound',
+        component: () => import('@/views/FileNotFound.vue'),
+        meta: { titleKey: 'common.fileNotFound' },
     },
     // Catch-all
     {

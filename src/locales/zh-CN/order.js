@@ -85,6 +85,7 @@ export default {
     correctionReason: '修正理由',
     submittedBy: '提交人信息',
     notFound: '未找到订单',
+    backToList: '返回列表',
   },
 
   // 管理端

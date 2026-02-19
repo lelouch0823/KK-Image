@@ -24,6 +24,13 @@ export default {
   networkError: 'Network Error',
   networkErrorRetry: 'Network error, please try again later',
   loadFailed: 'Load Failed',
+  fileNotFound: 'File Not Found',
+  fileNotFoundDesc: 'The file you are looking for does not exist or has been deleted.',
+  backHome: 'Back to Home',
+  pageNotFound: 'Page Not Found',
+  pageNotFoundDesc: 'The page you are looking for does not exist.',
+  orderNotFound: 'Order Not Found',
+  orderNotFoundDesc: 'The order you are looking for does not exist or has been deleted.',
   operationFailed: 'Operation Failed',
   error: {
     unauthorized: 'Unauthorized, please login again',

@@ -17,8 +17,104 @@
             class="bg-surface size-full select-none"
             rounded="none"
           />
-            <div v-else-if="isPdf(currentFile)" class="flex size-full flex-col bg-[var(--bg-card)]">
-              <iframe :src="currentFile.url" class="size-full border-0" title="PDF Preview"></iframe>
+            <div
+              v-else-if="currentFile && isPdf(currentFile) && !showPdfPreview"
+              class="flex size-full flex-col items-center justify-center gap-6 bg-[var(--bg-muted)] p-8 text-center"
+            >
+              <!-- PDF Icon -->
+              <div class="flex size-24 items-center justify-center rounded-2xl bg-[var(--bg-card)] shadow-sm">
+                <svg class="size-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+
+              <!-- File Info -->
+              <div>
+                <h3 class="font-medium text-[var(--text-main)]">{{ currentFile.name }}</h3>
+                <p class="mt-1 text-sm text-[var(--text-secondary)]">PDF • {{ formatSize(currentFile.size) }}</p>
+              </div>
+
+              <!-- Actions -->
+              <div class="flex flex-wrap justify-center gap-3">
+                <button
+                  class="flex items-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--bg-surface-hover)]"
+                  @click.stop="showPdfPreview = true"
+                >
+                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                  {{ t('spacePublic.viewInline') }}
+                </button>
+
+                <a
+                  :href="currentFile.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex items-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--bg-surface-hover)]"
+                  @click.stop
+                >
+                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                  {{ t('spacePublic.openPreview') }}
+                </a>
+
+                <a
+                  :href="currentFile.url"
+                  download
+                  class="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)]"
+                  @click.stop
+                >
+                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+                  {{ t('spacePublic.download') }}
+                </a>
+              </div>
+            </div>
+
+            <!-- Inline PDF Preview (Iframe) -->
+            <div
+              v-else-if="currentFile && isPdf(currentFile) && showPdfPreview"
+              class="relative flex size-full flex-col bg-[var(--bg-card)]"
+            >
+              <iframe
+                :src="currentFile.url"
+                class="size-full border-0"
+                title="PDF Preview"
+              ></iframe>
+              <button
+                class="absolute top-4 right-4 rounded-lg bg-black/50 px-3 py-1 text-sm text-white backdrop-blur-sm transition-colors hover:bg-black/70"
+                @click="showPdfPreview = false"
+              >
+                {{ t('spacePublic.backToCard') }}
+              </button>
             </div>
 
             <!-- Generic File Preview -->
@@ -115,7 +211,7 @@
                 ? 'border-primary ring-primary/20 ring-2'
                 : 'border-transparent'
             "
-            @click="currentIndex = index"
+            @click="currentIndex = index; showPdfPreview = false;"
           >
             <AppImage
               v-if="isImage(file)"
@@ -127,9 +223,20 @@
             />
             <div
               v-else
-              class="bg-surface-muted text-secondary-text flex size-full items-center justify-center text-xs font-bold uppercase"
+              class="bg-surface-muted text-secondary-text flex size-full flex-col items-center justify-center gap-1 text-xs font-bold uppercase"
             >
-              {{ file.name.split('.').pop() }}
+              <template v-if="isPdf(file)">
+                <svg class="size-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  />
+                </svg>
+                <span class="text-[10px]">PDF</span>
+              </template>
+              <span v-else>{{ file.name.split('.').pop() }}</span>
             </div>
           </button>
         </div>
@@ -335,7 +442,6 @@
 import { ref, computed } from 'vue';
 import { isImage, isPdf, formatSize } from '@/utils/formatters';
 import { useBatchDownload } from '@/composables/useBatchDownload';
-import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import AppImage from '@/components/ui/AppImage.vue';
 
@@ -343,7 +449,8 @@ const props = defineProps({
   space: { type: Object, required: true },
 });
 
-const { addToast } = useToast();
+const showPdfPreview = ref(false);
+
 const { t } = useI18n();
 const { downloading, downloadProgress, downloadAll } = useBatchDownload();
 
@@ -370,6 +477,7 @@ const handleDownloadAll = () => {
 };
 
 const nextImage = () => {
+  showPdfPreview.value = false;
   if (currentIndex.value < props.space.files.length - 1) {
     currentIndex.value++;
   } else {
@@ -378,6 +486,7 @@ const nextImage = () => {
 };
 
 const prevImage = () => {
+  showPdfPreview.value = false;
   if (currentIndex.value > 0) {
     currentIndex.value--;
   } else {
