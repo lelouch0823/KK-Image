@@ -304,8 +304,9 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
   }
 });
 
-import { RedundancyManager } from '../../../../storage/redundancy.js';
 import { triggerWebhook } from '../../_shared/utils.js';
+
+import { storeFile } from '../../../../api/utils/file-utils.js';
 
 /**
  * POST /api/manage/folders/:id/upload - 上传文件到文件夹
@@ -315,81 +316,65 @@ app.post('/:id/upload', requirePermission('files:write'), async (c) => {
   const { env } = c;
   const user = c.get('user');
 
+  console.log(`[Upload] Starting upload to folder ${folderId} by user ${user.id}`);
+
   try {
     // 1. 验证文件夹是否存在
     const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?')
       .bind(folderId)
       .first();
     if (!folder) {
+      console.warn(`[Upload] Folder not found: ${folderId}`);
       return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
     }
 
     // 2. 获取上传文件
     const formData = await c.req.parseBody();
-    const uploadFile = formData['file']; // Hono uses ['file'] for file input
+    const uploadFile = formData['file'];
 
-    if (!uploadFile || !(uploadFile instanceof File)) {
+    if (!uploadFile) {
+      console.error('[Upload] No file found in params');
       return c.json({ success: false, error: MSG.COMMON.UPLOAD_NO_FILE }, 400);
     }
 
-    const fileName = uploadFile.name;
-    const fileSize = uploadFile.size;
-    const fileType = uploadFile.type;
-
-    // 3. 使用 RedundancyManager 处理存储
-    // 构建 context 模拟对象，适配 RedundancyManager
-    const mockContext = {
-      request: c.req.raw,
-      env: env,
-      waitUntil: (promise) => c.executionCtx.waitUntil(promise),
-    };
-
-    const redundancyManager = new RedundancyManager(env, mockContext);
-    const result = await redundancyManager.upload(uploadFile, {
-      fileName: fileName,
-      contentType: fileType,
-    });
-
-    if (!result.success) {
-      throw new Error(result.error);
+    // 检查是否为 File 实例 (本地模拟环境有时 formData 解析可能有差异，增加兼容性)
+    if (!(uploadFile instanceof File)) {
+      console.warn('[Upload] uploadFile is not a File instance:', typeof uploadFile);
+      // 尝试容错，如果它有 arrayBuffer 属性
     }
 
-    const fileId = result.fileId;
-    const nowMs = Date.now();
+    // 3. 获取前端提供的哈希（如果有）
+    const url = new URL(c.req.url);
+    const contentHash = url.searchParams.get('contentHash');
+    const originalHash = url.searchParams.get('originalHash');
 
-    // 4. 保存数据库记录
-    const fileRepo = new FileRepository(env.DB);
-    await fileRepo.create({
-      id: fileId,
-      folderId: folderId,
-      name: fileName,
-      originalName: fileName,
-      size: fileSize,
-      mimeType: fileType,
-      storageKey: fileId,
+    console.log(`[Upload] Processing file: ${uploadFile.name} (size: ${uploadFile.size}, hash: ${contentHash})`);
+
+    // 4. 使用统一的 storeFile 处理上传
+    const result = await storeFile(env, uploadFile, {
+      contentHash,
+      originalHash,
+      folderId,
       createdBy: user.id,
-      createdAt: nowMs,
-      updatedAt: nowMs
     });
 
-    // 5. 触发 Webhook
-    const fileInfo = {
-      id: fileId,
-      filename: fileName,
-      size: fileSize,
-      type: fileType,
-      uploadTime: timestampToIso(nowMs),
-      url: getFileUrl(fileId),
-      uploader: user.name || user.username || user.id,
-      storage: result.metadata?.storage,
-    };
+    console.log(`[Upload] Success. ID: ${result.id}, Instant: ${result.instantUpload}`);
 
+    // 5. 触发 Webhook（后台执行）
     c.executionCtx.waitUntil(
       (async () => {
         try {
           await triggerWebhook(env, 'file.uploaded', {
-            file: fileInfo,
-            user: user,
+            file: {
+              id: result.id,
+              filename: result.name,
+              size: result.size,
+              type: result.type,
+              uploadTime: timestampToIso(Date.now()),
+              url: getFileUrl(result.storageKey),
+              uploader: user.name || user.username || user.id,
+            },
+            user,
           });
         } catch (e) {
           console.error('Webhook trigger failed:', e);
@@ -399,11 +384,13 @@ app.post('/:id/upload', requirePermission('files:write'), async (c) => {
 
     return c.json({
       success: true,
+      message: result.instantUpload ? MSG.FILE.INSTANT_UPLOAD : MSG.FILE.UPLOAD_SUCCESS,
       data: {
-        id: fileId,
-        name: fileName,
-        url: `/file/${fileId}`,
-        src: `/file/${fileId}`, // 兼容旧前端
+        id: result.id,
+        name: result.name,
+        url: `/file/${result.storageKey}`,
+        src: `/file/${result.storageKey}`, // 兼容旧前端
+        instantUpload: result.instantUpload,
       },
     });
   } catch (err) {
@@ -413,3 +400,4 @@ app.post('/:id/upload', requirePermission('files:write'), async (c) => {
 });
 
 export default app;
+

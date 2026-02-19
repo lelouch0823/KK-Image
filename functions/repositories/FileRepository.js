@@ -44,17 +44,51 @@ export class FileRepository {
         ).bind(
             data.id,
             data.folderId || 'root',
-            data.name,
-            data.originalName,
+            data.name || 'unnamed',
+            data.originalName || data.name || 'unnamed',
             data.storageKey,
-            data.size,
-            data.mimeType,
-            data.contentHash,
-            data.originalHash,
-            data.createdBy,
+            data.size || 0,
+            data.mimeType || 'application/octet-stream',
+            data.contentHash || null,
+            data.originalHash || null,
+            data.createdBy || null,
             data.createdAt || Date.now(),
             data.updatedAt || Date.now()
         ).run();
+    }
+
+    /**
+     * 批量创建文件记录 (SOTA: 使用 D1 batch)
+     * @param {Array<Object>} items
+     * @returns {Promise<void>}
+     */
+    async createBatch(items) {
+        if (!items.length) return;
+
+        const stmts = items.map((data) =>
+            this.db.prepare(
+                `INSERT INTO files (
+                    id, folder_id, name, original_name, storage_key,
+                    size, mime_type, content_hash, original_hash, created_by,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(
+                data.id,
+                data.folderId || 'root',
+                data.name || 'unnamed',
+                data.originalName || data.name || 'unnamed',
+                data.storageKey,
+                data.size || 0,
+                data.mimeType || 'application/octet-stream',
+                data.contentHash || null,
+                data.originalHash || null,
+                data.createdBy || null,
+                data.createdAt || Date.now(),
+                data.updatedAt || Date.now()
+            )
+        );
+
+        await this.db.batch(stmts);
     }
 
     /**
@@ -169,5 +203,25 @@ export class FileRepository {
         await this.db.prepare(`DELETE FROM files WHERE id IN (${placeholders})`)
             .bind(...ids)
             .run();
+    }
+
+    /**
+     * 在指定文件夹中查找同名文件
+     * @param {string} folderId 
+     * @param {string} name 
+     * @returns {Promise<Object|null>}
+     */
+    async findByNameInFolder(folderId, name) {
+        let sql = 'SELECT * FROM files WHERE name = ?';
+        const bindings = [name];
+
+        if (folderId && folderId !== 'root') {
+            sql += ' AND folder_id = ?';
+            bindings.push(folderId);
+        } else {
+            sql += " AND (folder_id = 'root' OR folder_id IS NULL)";
+        }
+
+        return await this.db.prepare(sql).bind(...bindings).first();
     }
 }

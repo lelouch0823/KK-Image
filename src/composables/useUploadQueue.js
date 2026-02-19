@@ -14,7 +14,6 @@ const concurrency = 3;
 let activeUploads = 0;
 
 // 用于通知特定文件夹刷新的回调 Map
-// key = folderId, value = callback function
 const folderRefreshCallbacks = shallowRef(new Map());
 
 export function useUploadQueue() {
@@ -40,14 +39,14 @@ export function useUploadQueue() {
     () => queue.value.filter((item) => item.status === 'success').length
   );
 
-  // 🔧 NEW: 计算总速度 (所有正在上传文件的速度之和)
+  // 总速度 (所有正在上传文件的速度之和)
   const totalSpeed = computed(() => {
     return queue.value
       .filter((item) => item.status === 'uploading' && item.speed > 0)
       .reduce((acc, item) => acc + item.speed, 0);
   });
 
-  // 🔧 NEW: 计算预估剩余时间 (秒)
+  // 预估剩余时间 (秒)
   const estimatedTimeRemaining = computed(() => {
     if (totalSpeed.value === 0) return null;
     const remainingBytes = queue.value
@@ -60,9 +59,7 @@ export function useUploadQueue() {
   });
 
   /**
-   * 🔧 NEW: 注册文件夹刷新回调
-   * @param {string} folderId
-   * @param {Function} callback
+   * 注册文件夹刷新回调
    */
   const registerFolderRefresh = (folderId, callback) => {
     if (!folderId) return;
@@ -72,8 +69,7 @@ export function useUploadQueue() {
   };
 
   /**
-   * 🔧 NEW: 注销文件夹刷新回调
-   * @param {string} folderId
+   * 注销文件夹刷新回调
    */
   const unregisterFolderRefresh = (folderId) => {
     if (!folderId) return;
@@ -121,13 +117,15 @@ export function useUploadQueue() {
       size: file.size,
       folderId,
       progress: 0,
-      status: 'pending',
+      status: 'pending',  // pending → hashing → uploading → success/error
       error: null,
       xhr: null,
-      // 🔧 NEW: 速度追踪
+      // 速度追踪
       speed: 0,
       lastLoaded: 0,
       lastTime: 0,
+      // 哈希
+      hash: null,
     }));
 
     queue.value.push(...newItems);
@@ -155,11 +153,94 @@ export function useUploadQueue() {
 
     activeUploads++;
     isUploading.value = true;
-    uploadFile(nextItem);
+    handleUpload(nextItem);
   };
 
+  // ============================================================
+  // SOTA: 哈希计算 + 秒传预检
+  // ============================================================
+
   /**
-   * 上传单个文件
+   * 使用 Web Crypto API 计算 SHA-256
+   * @param {File} file
+   * @returns {Promise<string>} 十六进制哈希
+   */
+  async function computeHash(file) {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+
+  /**
+   * 检查哈希是否已存在（秒传预检）
+   * @param {string} hash
+   * @returns {Promise<Object|null>} 已存在的文件信息或 null
+   */
+  async function checkHash(hash) {
+    try {
+      const res = await fetch(API.CHECK_HASH, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ original_hash: hash }),
+      });
+
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data.success && data.data?.exists) {
+        return data.data.file;
+      }
+    } catch (_e) {
+      // 预检失败不阻塞上传
+    }
+    return null;
+  }
+
+  /**
+   * 完整上传流程：哈希 → 预检 → 上传
+   */
+  async function handleUpload(item) {
+    // ── 阶段 1: 哈希计算 (文件 < 50MB) ──
+    if (item.size < 50 * 1024 * 1024) {
+      item.status = 'hashing';
+      try {
+        item.hash = await computeHash(item.file);
+
+        // ── 阶段 2: 秒传预检 ──
+        const existing = await checkHash(item.hash);
+        if (existing) {
+          // 秒传成功！
+          item.status = 'success';
+          item.progress = 100;
+          activeUploads--;
+
+          addToast({
+            message: `${item.name} ${t('uploadQueue.instantUpload')}`,
+            type: 'success',
+            duration: 2000,
+          });
+
+          // 触发文件夹刷新
+          const callback = folderRefreshCallbacks.value.get(item.folderId);
+          if (callback) callback();
+
+          processQueue();
+          return;
+        }
+      } catch (_e) {
+        // 哈希失败不阻塞，继续正常上传
+        item.hash = null;
+      }
+    }
+
+    // ── 阶段 3: 实际上传 ──
+    uploadFile(item);
+  }
+
+  /**
+   * 上传单个文件 (XHR)
    */
   const uploadFile = (item) => {
     item.status = 'uploading';
@@ -173,16 +254,14 @@ export function useUploadQueue() {
     const xhr = new XMLHttpRequest();
     item.xhr = xhr;
 
-    // 🔧 IMPROVED: 进度监听 + 速度计算
+    // 进度监听 + 速度计算
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {
         item.progress = Math.round((e.loaded / e.total) * 100);
 
-        // 计算速度 (bytes/second)
         const now = Date.now();
-        const timeDiff = (now - item.lastTime) / 1000; // seconds
+        const timeDiff = (now - item.lastTime) / 1000;
         if (timeDiff > 0.5) {
-          // 每 500ms 更新一次速度
           const bytesDiff = e.loaded - item.lastLoaded;
           item.speed = Math.round(bytesDiff / timeDiff);
           item.lastLoaded = e.loaded;
@@ -193,7 +272,7 @@ export function useUploadQueue() {
 
     xhr.onload = () => {
       activeUploads--;
-      item.speed = 0; // 上传完成，重置速度
+      item.speed = 0;
 
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
@@ -202,7 +281,7 @@ export function useUploadQueue() {
             item.status = 'success';
             item.progress = 100;
 
-            // 🔧 NEW: 触发该文件夹的刷新回调
+            // 触发该文件夹的刷新回调
             const callback = folderRefreshCallbacks.value.get(item.folderId);
             if (callback) {
               callback();
@@ -230,9 +309,16 @@ export function useUploadQueue() {
       processQueue();
     };
 
-    const url = API.FOLDER_UPLOAD(item.folderId);
+    // 构建上传 URL，附加哈希参数
+    let url = API.FOLDER_UPLOAD(item.folderId);
+    if (item.hash) {
+      const params = new URLSearchParams();
+      params.set('contentHash', item.hash);
+      params.set('originalHash', item.hash);
+      url += `?${params.toString()}`;
+    }
+
     xhr.open('POST', url, true);
-    // 使用 cookies 认证 (通过 withCredentials)
     xhr.withCredentials = true;
     xhr.send(formData);
 
@@ -256,7 +342,7 @@ export function useUploadQueue() {
   };
 
   /**
-   * 🔧 NEW: 重试失败的文件
+   * 重试失败的文件
    */
   const retryFile = (id) => {
     const item = queue.value.find((item) => item.id === id);
@@ -265,12 +351,13 @@ export function useUploadQueue() {
       item.progress = 0;
       item.error = null;
       item.speed = 0;
+      item.hash = null;
       processQueue();
     }
   };
 
   /**
-   * 🔧 NEW: 重试所有失败的文件
+   * 重试所有失败的文件
    */
   const retryAllFailed = () => {
     queue.value
@@ -280,6 +367,7 @@ export function useUploadQueue() {
         item.progress = 0;
         item.error = null;
         item.speed = 0;
+        item.hash = null;
       });
     processQueue();
   };
@@ -308,22 +396,22 @@ export function useUploadQueue() {
   return {
     queue,
     isUploading,
-    isMinimized, // 🔧 FIX: 现在是全局共享的
+    isMinimized,
     overallProgress,
     hasItems,
     activeCount,
     pendingCount,
     completedCount,
-    totalSpeed, // 🔧 NEW
-    estimatedTimeRemaining, // 🔧 NEW
+    totalSpeed,
+    estimatedTimeRemaining,
 
     addFiles,
     removeFile,
-    retryFile, // 🔧 NEW
-    retryAllFailed, // 🔧 NEW
+    retryFile,
+    retryAllFailed,
     clearCompleted,
     clearAll,
-    registerFolderRefresh, // 🔧 NEW
-    unregisterFolderRefresh, // 🔧 NEW
+    registerFolderRefresh,
+    unregisterFolderRefresh,
   };
 }

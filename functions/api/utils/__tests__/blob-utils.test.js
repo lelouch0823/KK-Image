@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { 
+import {
   getBlobByHash,
-  createBlob, 
+  createBlob,
   incrementRefCount,
   decrementRefCount,
   createFileReference,
@@ -15,6 +15,8 @@ describe('Blob Utils', () => {
       bind: vi.fn().mockReturnThis(),
       run: vi.fn().mockResolvedValue({ success: true }),
       first: vi.fn(),
+      all: vi.fn().mockResolvedValue({ results: [] }),
+      batch: vi.fn(),
     },
     R2_BUCKET: {
       get: vi.fn(),
@@ -25,6 +27,9 @@ describe('Blob Utils', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // 重置链式调用 mock
+    env.DB.prepare.mockReturnThis();
+    env.DB.bind.mockReturnThis();
   });
 
   describe('createBlob', () => {
@@ -56,33 +61,49 @@ describe('Blob Utils', () => {
 
   describe('decrementRefCount', () => {
     it('should decrement ref_count and delete if last reference', async () => {
-      // 1. Mock ref_count = 1
-      env.DB.first.mockResolvedValueOnce({ ref_count: 1 });
+      // batch 返回: [updateResult, selectResult]
+      env.DB.batch.mockResolvedValueOnce([
+        { success: true },
+        { results: [{ ref_count: 0 }] },
+      ]);
+      env.DB.run.mockResolvedValueOnce({ success: true });
+
       const deleted = await decrementRefCount(env, 'hash1');
-      
+
       expect(deleted).toBe(true);
-      expect(env.DB.prepare).toHaveBeenCalledWith(expect.stringContaining('DELETE FROM blobs'));
+      expect(env.DB.batch).toHaveBeenCalled();
       expect(env.R2_BUCKET.delete).toHaveBeenCalledWith('hash1');
     });
 
     it('should handle R2 deletion failure gracefully', async () => {
-      env.DB.first.mockResolvedValueOnce({ ref_count: 1 });
+      env.DB.batch.mockResolvedValueOnce([
+        { success: true },
+        { results: [{ ref_count: 0 }] },
+      ]);
+      env.DB.run.mockResolvedValueOnce({ success: true });
       env.R2_BUCKET.delete.mockRejectedValueOnce(new Error('R2 Error'));
-      
+
       const deleted = await decrementRefCount(env, 'hash1');
-      expect(deleted).toBe(true); // Still returns true because DB record was deleted
+      expect(deleted).toBe(true);
     });
 
     it('should just decrement ref_count if not last reference', async () => {
-      env.DB.first.mockResolvedValueOnce({ ref_count: 2 });
+      env.DB.batch.mockResolvedValueOnce([
+        { success: true },
+        { results: [{ ref_count: 1 }] },
+      ]);
+
       const deleted = await decrementRefCount(env, 'hash1');
-      
+
       expect(deleted).toBe(false);
-      expect(env.DB.prepare).toHaveBeenCalledWith(expect.stringContaining('UPDATE blobs SET ref_count = ref_count - 1'));
+      expect(env.DB.batch).toHaveBeenCalled();
     });
 
-    it('should return false if hash not found', async () => {
-      env.DB.first.mockResolvedValueOnce(null);
+    it('should return false if hash not found after update', async () => {
+      env.DB.batch.mockResolvedValueOnce([
+        { success: true },
+        { results: [] },
+      ]);
       expect(await decrementRefCount(env, 'h1')).toBe(false);
     });
 

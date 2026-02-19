@@ -43,10 +43,12 @@ export const MSG = {
     NAME_REQUIRED: '文件名不能为空',
     NAME_TOO_LONG: '文件名过长',
     SELECT_FILE: '请选择要上传的文件',
-    INVALID_TYPE: '仅支持 JPG、PNG、GIF、WebP 格式',
-    SIZE_LIMIT: '文件大小不能超过 10MB',
+    INVALID_TYPE: '不支持该文件类型',
+    DANGEROUS_TYPE: '出于安全考虑，禁止上传此类文件',
+    SIZE_LIMIT: '文件大小超出上传限制',
     UPLOAD_SUCCESS: '上传成功',
     INSTANT_UPLOAD: '秒传成功',
+    HASH_MATCH: '文件已存在，已秒传',
   },
 
   FOLDER: {

@@ -52,6 +52,9 @@ export async function incrementRefCount(env, hash) {
 
 /**
  * 减少 blob 引用计数，如果为 0 则删除 R2 对象
+ *
+ * SOTA: 使用 D1 batch 保证原子性，避免 TOCTOU 竞态
+ *
  * @param {Object} env - Cloudflare 环境
  * @param {string} hash - SHA-256 哈希
  * @returns {Promise<boolean>} 是否删除了 R2 对象
@@ -59,18 +62,29 @@ export async function incrementRefCount(env, hash) {
 export async function decrementRefCount(env, hash) {
   if (!hash) return false;
 
-  // 先检查当前引用计数
-  const blob = await env.DB.prepare('SELECT ref_count FROM blobs WHERE content_hash = ?')
-    .bind(hash)
-    .first();
+  // 原子减少引用计数
+  const updateStmt = env.DB.prepare(
+    'UPDATE blobs SET ref_count = ref_count - 1 WHERE content_hash = ?'
+  ).bind(hash);
 
+  // 查询更新后的引用计数
+  const selectStmt = env.DB.prepare(
+    'SELECT ref_count FROM blobs WHERE content_hash = ?'
+  ).bind(hash);
+
+  // 使用 batch 保证原子性
+  const [, selectResult] = await env.DB.batch([updateStmt, selectStmt]);
+  const blob = selectResult.results?.[0];
+
+  // 如果不存在（可能已被其他请求删除），直接返回
   if (!blob) return false;
 
-  if (blob.ref_count <= 1) {
-    // 最后一个引用，删除 blob 和 R2 对象
-    await env.DB.prepare('DELETE FROM blobs WHERE content_hash = ?').bind(hash).run();
+  if (blob.ref_count <= 0) {
+    // 引用计数归零，清除 blob 记录和 R2 对象
+    await env.DB.prepare('DELETE FROM blobs WHERE content_hash = ? AND ref_count <= 0')
+      .bind(hash)
+      .run();
 
-    // 删除 R2 对象
     if (env.R2_BUCKET) {
       try {
         await env.R2_BUCKET.delete(hash);
@@ -79,13 +93,9 @@ export async function decrementRefCount(env, hash) {
       }
     }
     return true;
-  } else {
-    // 减少引用计数
-    await env.DB.prepare('UPDATE blobs SET ref_count = ref_count - 1 WHERE content_hash = ?')
-      .bind(hash)
-      .run();
-    return false;
   }
+
+  return false;
 }
 
 /**

@@ -8,19 +8,26 @@ import {
 } from '../../schemas/file.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache, invalidateCache } from '../../middleware/cache.js';
-import { getFileUrl, generateId, now, MSG } from '../../_shared/utils.js';
+import { getFileUrl, generateId, MSG } from '../../_shared/utils.js';
 import { decrementRefCount } from '../../../../api/utils/blob-utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 
 const app = new Hono();
 
+/** sort 列名白名单 - 二次防御 SQL 注入 */
+const ALLOWED_SORT_COLUMNS = {
+  created_at: 'created_at',
+  name: 'name',
+  size: 'size',
+  updated_at: 'updated_at',
+};
+
 /**
  * 构建缓存失效 URL
  */
 const getFileCacheUrls = (c) => {
   const origin = new URL(c.req.url).origin;
-  // 简单清除根列表和第一页，复杂查询暂不处理
   return [
     `${origin}/api/v1/files`,
     `${origin}/api/v1/files?page=1&limit=20`,
@@ -35,18 +42,9 @@ app.get('/', zValidator('query', FileQuerySchema), withCache(30), async (c) => {
   const { env } = c;
 
   try {
-    const repo = new FileRepository(env.DB);
-    // Note: Our current findAll doesn't support all advanced filters yet, let's stick to simple one for now or keep direct SQL for complex filters
-    // Actually, I'll use direct SQL for complex public listing but repo for internal logic
-    // But let's try to use Repo pattern as much as possible.
-    // For now, I'll use the existing direct SQL logic but wrap it in a Repository method if needed later.
-    // Actually, I already defined a basic findAll. Let's stick to it and add more filters if needed.
-
-    // For now, I'll keep the direct SQL in this route for performance and complexity, but it's okay because it's v1.
-    // Wait, let's be SOTA and move it to Repo.
-
-    // Simple enough to keep here for now as v1 is legacy-ish but we are refactoring.
-    // I'll skip refactoring the GET list for now as it has complex search logic.
+    // 二次验证 sort 列名（Zod 已校验，这里做防御性编程）
+    const safeSort = ALLOWED_SORT_COLUMNS[sort] || 'created_at';
+    const safeOrder = order === 'asc' ? 'ASC' : 'DESC';
 
     let sql = 'SELECT * FROM files WHERE 1=1';
     const bindings = [];
@@ -77,7 +75,7 @@ app.get('/', zValidator('query', FileQuerySchema), withCache(30), async (c) => {
     const countResult = await env.DB.prepare(countSql).bind(...bindings).first();
     const total = countResult?.total || 0;
 
-    sql += ` ORDER BY ${sort} ${order} LIMIT ? OFFSET ?`;
+    sql += ` ORDER BY ${safeSort} ${safeOrder} LIMIT ? OFFSET ?`;
     bindings.push(limit, (page - 1) * limit);
 
     const { results } = await env.DB.prepare(sql).bind(...bindings).all();
