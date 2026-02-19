@@ -101,10 +101,13 @@
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm"
       @click.self="lightbox.visible = false"
     >
-      <img
+      <AppImage
         v-if="lightbox.file && isImage(lightbox.file)"
         :src="lightbox.file.url"
-        class="max-h-full max-w-full object-contain p-4"
+        :blurhash="lightbox.file.blurhash"
+        fit="contain"
+        class="size-full max-h-screen max-w-screen p-4"
+        rounded="none"
       />
       <button
         class="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"

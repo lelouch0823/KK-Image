@@ -68,11 +68,13 @@
             <div
               class="size-16 shrink-0 overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)]"
             >
-              <img
+              <AppImage
                 v-if="sub.coverUrl"
                 :src="sub.coverUrl"
                 :alt="sub.name"
-                class="size-full object-cover"
+                class="size-full"
+                fit="cover"
+                rounded="none"
               />
               <div v-else class="flex size-full items-center justify-center">
                 <svg
@@ -201,6 +203,7 @@ import { useClipboard } from '@/composables/useClipboard';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import AppImage from '@/components/ui/AppImage.vue';
 
 const props = defineProps({
   spaceId: { type: String, required: true },

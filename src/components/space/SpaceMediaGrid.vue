@@ -10,12 +10,13 @@
         :key="file.id"
         class="group relative aspect-square overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] transition-shadow hover:shadow-md"
       >
-        <img
+        <AppImage
           v-if="isImageFile(file)"
           :src="file.url"
-          class="size-full object-cover"
-          loading="lazy"
-          alt=""
+          :blurhash="file.blurhash"
+          class="size-full"
+          fit="cover"
+          rounded="none"
         />
         <div v-else class="flex size-full flex-col items-center justify-center p-4">
           <span class="text-muted mb-2 text-xs font-bold uppercase">{{
@@ -99,6 +100,7 @@
 <script setup>
 import { useI18n } from '@/composables/useI18n';
 import { isImage } from '@/utils/formatters';
+import AppImage from '@/components/ui/AppImage.vue';
 
 defineProps({
   files: {

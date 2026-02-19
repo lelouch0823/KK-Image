@@ -12,7 +12,14 @@
         class="mb-6 flex items-center gap-3 rounded-lg border border-(--border-color) bg-(--bg-muted) p-3"
       >
         <div class="rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] p-2 shadow-sm">
-          <img v-if="fileIsImage" :src="file?.url" class="size-8 rounded object-cover" />
+          <AppImage
+            v-if="fileIsImage"
+            :src="file?.url"
+            :blurhash="file?.blurhash"
+            class="size-8"
+            fit="cover"
+            rounded="sm"
+          />
           <div
             v-else
             class="text-secondary flex size-8 items-center justify-center rounded bg-(--bg-muted) text-xs font-bold"
@@ -89,6 +96,7 @@ import { formatSize, getFileExtension, isImage } from '@/utils/formatters';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import Modal from '@/components/ui/Modal.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppImage from '@/components/ui/AppImage.vue';
 import { ROUTES } from '@/utils/constants';
 
 const props = defineProps({

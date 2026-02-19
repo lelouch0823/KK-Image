@@ -169,11 +169,13 @@
                     <div
                       class="flex size-8 shrink-0 items-center justify-center rounded bg-[var(--bg-muted)] text-[var(--text-muted)] grayscale opacity-80"
                     >
-                      <img
+                      <AppImage
                         v-if="isImage(file.name) && file.thumbnail"
                         :src="file.thumbnail"
-                        class="size-full rounded object-cover"
-                        alt=""
+                        :blurhash="file.blurhash"
+                        class="size-full"
+                        fit="cover"
+                        rounded="sm"
                       />
                       <svg
                         v-else-if="file.type === 'folder'"
@@ -279,6 +281,7 @@ import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import AppCheckbox from '@/components/ui/AppCheckbox.vue';
+import AppImage from '@/components/ui/AppImage.vue';
 
 const props = defineProps({
   modelValue: {

@@ -206,10 +206,13 @@
                 <StatusBadge :status="order.status" class="origin-right scale-90" />
               </div>
               <div class="mt-2 flex gap-2 border-t border-[var(--border-color)] pt-2 text-xs text-[var(--text-secondary)]">
-                <img
+                <AppImage
                   v-if="order.mainImage"
                   :src="order.mainImage"
-                  class="size-12 rounded object-cover"
+                  :blurhash="order.mainImageBlurhash"
+                  class="size-12"
+                  fit="cover"
+                  rounded="sm"
                 />
                 <div class="flex flex-1 flex-col justify-center">
                   <p>{{ t('common.salesperson') }}: {{ order.salespersonName || '-' }}</p>
@@ -244,6 +247,7 @@ import { formatDate, formatCurrency } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import AppImage from '@/components/ui/AppImage.vue';
 
 const props = defineProps({
   customer: { type: Object, default: () => ({}) },

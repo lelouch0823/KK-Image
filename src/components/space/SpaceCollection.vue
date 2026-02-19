@@ -31,11 +31,12 @@
             sub.coverImage ? 'border border-[var(--border-subtle)]' : 'group-hover:bg-[var(--color-primary)] group-hover:text-[var(--text-inverse)]'
           "
         >
-          <img
+          <AppImage
             v-if="sub.coverImage"
             :src="sub.coverImage"
-            class="size-full object-cover transition-transform group-hover:scale-110"
-            alt="Cover"
+            class="size-full transition-transform group-hover:scale-110"
+            fit="cover"
+            rounded="none"
           />
           <svg
             v-else
@@ -86,6 +87,7 @@
 
 <script setup>
 import { useI18n } from '@/composables/useI18n';
+import AppImage from '@/components/ui/AppImage.vue';
 
 defineProps({
   space: { type: Object, required: true },

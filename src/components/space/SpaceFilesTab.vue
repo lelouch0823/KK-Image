@@ -71,11 +71,13 @@
             </svg>
             {{ t('spaceManager.cover') }}
           </div>
-          <img
+          <AppImage
             v-if="file.mimeType?.startsWith('image/')"
             :src="file.url"
-            class="size-full object-cover"
-            alt=""
+            :blurhash="file.blurhash"
+            class="size-full"
+            fit="cover"
+            rounded="none"
           />
           <div
             v-else
@@ -126,6 +128,7 @@
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import Tooltip from '@/components/ui/Tooltip.vue';
+import AppImage from '@/components/ui/AppImage.vue';
 
 const props = defineProps({
   files: {

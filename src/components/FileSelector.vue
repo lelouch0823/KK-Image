@@ -122,12 +122,14 @@
           @click="toggleSelect(file.id)"
         >
           <!-- 图片预览 -->
-          <img
+          <AppImage
             v-if="isImage(file)"
             :src="file.url"
             :alt="file.name"
-            class="size-full object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
+            :blurhash="file.blurhash"
+            class="size-full transition-transform duration-300 group-hover:scale-105"
+            fit="cover"
+            rounded="none"
           />
           <!-- 非图片 -->
           <div v-else class="flex size-full flex-col items-center justify-center bg-[var(--bg-muted)]">
@@ -203,6 +205,7 @@ import { API } from '@/utils/constants';
 import { isImage } from '@/utils/formatters';
 import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
+import AppImage from '@/components/ui/AppImage.vue';
 
 const emit = defineEmits(['close', 'select']);
 const { t } = useI18n();
