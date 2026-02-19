@@ -38,6 +38,7 @@ import manageProductDetailRoutes from './routes/manage/products/[id].js'; // NEW
 import salesRoutes from './routes/sales.js';
 import manageNotificationsRoutes from './routes/manage/notifications.js';
 import manageAiRoutes from './routes/manage/ai.js';
+import manageTrashRoutes from './routes/manage/trash.js'; // NEW
 
 export const app = new Hono();
 
@@ -116,6 +117,7 @@ app.route('/api/manage/products', manageProductsRoutes); // NEW: List & Create
 app.route('/api/manage/products', manageProductDetailRoutes); // NEW: Detail operations (/:id...)
 app.route('/api/manage/notifications', manageNotificationsRoutes); // REST: 统一到 manage 命名空间
 app.route('/api/manage/ai', manageAiRoutes); // NEW: AI 路由
+app.route('/api/manage/trash', manageTrashRoutes); // NEW: 回收站路由
 app.route('/api/sales', salesRoutes);
 
 // ============================================

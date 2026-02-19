@@ -56,6 +56,9 @@ app.get('/', zValidator('query', FileQuerySchema), withCache(30), async (c) => {
       sql += " AND (folder_id = 'root' OR folder_id IS NULL)";
     }
 
+    // 过滤已删除文件
+    sql += ' AND (is_deleted IS NULL OR is_deleted = 0)';
+
     if (search) {
       sql += ' AND (name LIKE ? OR original_name LIKE ?)';
       bindings.push(`%${search}%`, `%${search}%`);
@@ -231,13 +234,9 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
     const file = await repo.findById(id);
     if (!file) return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
 
-    if (file.content_hash) {
-      await decrementRefCount(env, file.content_hash);
-    } else if (file.storage_key && env.R2_BUCKET) {
-      await env.R2_BUCKET.delete(file.storage_key);
-    }
+    // 软删除 (Recycle Bin)
+    await repo.softDelete(id);
 
-    await repo.delete(id);
     // 使缓存失效
     c.executionCtx.waitUntil(invalidateCache(getFileCacheUrls(c)));
 
@@ -261,28 +260,15 @@ app.post(
     try {
       const repo = new FileRepository(env.DB);
 
-      // 获取存储键和内容哈希
-      const placeholders = ids.map(() => '?').join(',');
-      const { results } = await env.DB.prepare(
-        `SELECT id, storage_key, content_hash FROM files WHERE id IN (${placeholders})`
-      ).bind(...ids).all();
+      // 软删除
+      await repo.softDeleteBatch(ids);
 
-      // CAS: 分别处理有 content_hash 和没有的文件
-      for (const f of results) {
-        if (f.content_hash) {
-          await decrementRefCount(env, f.content_hash);
-        } else if (f.storage_key && env.R2_BUCKET) {
-          await env.R2_BUCKET.delete(f.storage_key).catch(() => { });
-        }
-      }
-
-      await repo.deleteBatch(ids);
       // 使缓存失效
       c.executionCtx.waitUntil(invalidateCache(getFileCacheUrls(c)));
 
       return c.json({
         success: true,
-        message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', results.length),
+        message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', ids.length),
       });
     } catch (err) {
       return c.json({ success: false, error: err.message }, 500);

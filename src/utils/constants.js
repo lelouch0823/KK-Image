@@ -67,6 +67,12 @@ export const API = {
   MANAGE_UPLOAD: `${API_PREFIX}/upload`,
   CHECK_HASH: '/api/v1/files/check-hash', // 原始文件 hash 预检查
 
+  // 回收站
+  TRASH: `${API_PREFIX}/trash`,
+  TRASH_RESTORE: `${API_PREFIX}/trash/restore`,
+  TRASH_DELETE: `${API_PREFIX}/trash/delete`, // Permanent delete specific items
+  TRASH_EMPTY: `${API_PREFIX}/trash/empty`,
+
   // 认证
   LOGIN: '/api/v1/auth/login',
   LOGOUT: '/api/v1/auth/logout',

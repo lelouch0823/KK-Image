@@ -24,7 +24,7 @@ export class FileRepository {
      */
     async findByFolder(folderId) {
         const { results } = await this.db.prepare(
-            'SELECT * FROM files WHERE folder_id = ? ORDER BY created_at DESC'
+            "SELECT * FROM files WHERE folder_id = ? AND is_deleted = 0 ORDER BY created_at DESC"
         ).bind(folderId).all();
         return results;
     }
@@ -39,8 +39,8 @@ export class FileRepository {
             `INSERT INTO files (
                 id, folder_id, name, original_name, storage_key, 
                 size, mime_type, content_hash, original_hash, created_by, 
-                created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                created_at, updated_at, is_deleted
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
         ).bind(
             data.id,
             data.folderId || 'root',
@@ -70,8 +70,8 @@ export class FileRepository {
                 `INSERT INTO files (
                     id, folder_id, name, original_name, storage_key,
                     size, mime_type, content_hash, original_hash, created_by,
-                    created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                    created_at, updated_at, is_deleted
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
             ).bind(
                 data.id,
                 data.folderId || 'root',
@@ -101,11 +101,12 @@ export class FileRepository {
     }
 
     /**
-     * 根据原始哈希查询文件 (用于跨设备秒传)
+     * 根据原始哈希查询文件 (用于跨设备秒传) - 仅查询活跃文件
      */
     async findByOriginalHash(hash) {
         return await this.db.prepare(
-            'SELECT id, name, storage_key, mime_type, size FROM files WHERE original_hash = ? LIMIT 1'
+
+            "SELECT id, name, storage_key, mime_type, size FROM files WHERE original_hash = ? AND (is_deleted IS NULL OR is_deleted = 0) LIMIT 1"
         ).bind(hash).first();
     }
 
@@ -118,10 +119,10 @@ export class FileRepository {
         // 验证分页参数
         const safePage = Math.max(1, Math.floor(Number(page) || 1));
         const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 50)));
-
-        let sql = 'SELECT * FROM files';
         const bindings = [];
-        const where = [];
+
+        let sql = "SELECT * FROM files";
+        const where = ["(is_deleted IS NULL OR is_deleted = 0)"]; // Default filter: non-deleted
 
         if (filter.folderId) {
             where.push('folder_id = ?');
@@ -186,7 +187,7 @@ export class FileRepository {
     }
 
     /**
-     * 根据 ID 删除文件记录
+     * 根据 ID 删除文件记录 (物理删除)
      * @param {string} id
      */
     async delete(id) {
@@ -194,7 +195,7 @@ export class FileRepository {
     }
 
     /**
-     * 批量删除文件记录
+     * 批量删除文件记录 (物理删除)
      * @param {Array<string>} ids
      */
     async deleteBatch(ids) {
@@ -205,14 +206,86 @@ export class FileRepository {
             .run();
     }
 
+    // --- 回收站相关 ---
+
     /**
-     * 在指定文件夹中查找同名文件
+     * 软删除 (移入回收站)
+     * @param {string} id 
+     */
+    async softDelete(id) {
+        await this.db.prepare("UPDATE files SET is_deleted = 1, deleted_at = ? WHERE id = ?")
+            .bind(Date.now(), id)
+            .run();
+    }
+
+    /**
+     * 批量软删除
+     * @param {Array<string>} ids 
+     */
+    async softDeleteBatch(ids) {
+        if (!ids.length) return;
+        const placeholders = ids.map(() => '?').join(',');
+        await this.db.prepare(`UPDATE files SET is_deleted = 1, deleted_at = ? WHERE id IN (${placeholders})`)
+            .bind(Date.now(), ...ids)
+            .run();
+    }
+
+    /**
+     * 还原文件
+     * @param {Array<string>} ids 
+     */
+    async restoreBatch(ids) {
+        if (!ids.length) return;
+        const placeholders = ids.map(() => '?').join(',');
+        await this.db.prepare(`UPDATE files SET is_deleted = 0, deleted_at = NULL WHERE id IN (${placeholders})`)
+            .bind(...ids)
+            .run();
+    }
+
+    /**
+     * 获取回收站文件
+     */
+    async findTrash() {
+        return this.findTrashWithPaths();
+    }
+
+    /**
+     * 获取回收站文件 (带路径)
+     */
+    async findTrashWithPaths() {
+        const { results } = await this.db.prepare(`
+            WITH RECURSIVE folder_paths(id, path) AS (
+                SELECT id, name
+                FROM folders
+                WHERE parent_id IS NULL OR parent_id = 'root'
+                
+                UNION ALL
+                
+                SELECT f.id, fp.path || '/' || f.name
+                FROM folders f
+                JOIN folder_paths fp ON f.parent_id = fp.id
+            )
+            SELECT f.*, 
+                CASE 
+                    WHEN f.folder_id = 'root' OR f.folder_id IS NULL THEN '/'
+                    ELSE COALESCE('/' || fp.path, '/')
+                END as original_path
+            FROM files f
+            LEFT JOIN folder_paths fp ON f.folder_id = fp.id
+            WHERE f.is_deleted = 1
+            ORDER BY f.deleted_at DESC
+        `).all();
+        return results;
+    }
+
+    /**
+     * 在指定文件夹中查找同名文件 (仅查找 active)
      * @param {string} folderId 
      * @param {string} name 
      * @returns {Promise<Object|null>}
      */
     async findByNameInFolder(folderId, name) {
-        let sql = 'SELECT * FROM files WHERE name = ?';
+        let sql = "SELECT * FROM files WHERE name = ? AND (is_deleted IS NULL OR is_deleted = 0)";
         const bindings = [name];
 
         if (folderId && folderId !== 'root') {

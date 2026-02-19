@@ -154,6 +154,18 @@
         </button>
       </Tooltip>
 
+      <!-- 回收站 -->
+      <Tooltip :content="t('trash.title')">
+        <button
+          class="text-secondary flex size-9 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:text-[var(--color-danger)] hover:bg-red-50 hover:border-red-200 active:scale-95 lg:size-10"
+          @click="$emit('open-trash')"
+        >
+          <svg class="size-4 lg:size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+        </button>
+      </Tooltip>
+
       <!-- 搜索框: 移动端收缩, 桌面端展开 -->
       <AppInput
         v-model="searchQuery"
@@ -224,7 +236,9 @@ const emit = defineEmits([
   'share-folder',
   'batch-move',
   'batch-delete',
+  'batch-delete',
   'clear-selection',
+  'open-trash', // NEW
 ]);
 
 const { t } = useI18n();

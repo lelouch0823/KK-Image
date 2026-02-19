@@ -284,6 +284,104 @@ export function useFileManager() {
       }
     },
 
+    // 🗑️ 回收站操作
+    loadTrashData: async (options = {}) => {
+      const { silent = false } = options;
+      if (!silent) {
+        loading.value = true;
+        error.value = null;
+        selectedFiles.value = [];
+      }
+
+      try {
+        const res = await authFetch(API.TRASH).then((r) => r.json());
+        if (res.success) {
+          // 回收站模式下，files.value 存储回收站项目
+          files.value = res.data;
+          currentFolder.value = { isTrash: true, name: t('trash.title') };
+          breadcrumbs.value = [{ name: t('trash.title'), path: '/admin/trash' }];
+        } else {
+          toast.error(res.message);
+          error.value = res.message;
+        }
+      } catch (_e) {
+        if (!silent) {
+          toast.error(t('fileOps.loadFailed'));
+          error.value = t('fileOps.loadFailed');
+        }
+      } finally {
+        if (!silent) loading.value = false;
+      }
+    },
+
+    restoreTrashItems: async (ids) => {
+      try {
+        const fileIds = ids.filter(id => files.value.find(f => f.id === id && f.type === 'file'));
+        const folderIds = ids.filter(id => files.value.find(f => f.id === id && f.type === 'folder'));
+
+        const res = await authFetch(API.TRASH_RESTORE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileIds, folderIds }),
+        }).then((r) => r.json());
+
+        if (res.success) {
+          toast.success(t('trash.restoreSuccess'));
+          // 重新加载回收站
+          return true;
+        } else {
+          toast.error(res.message);
+          return false;
+        }
+      } catch (_e) {
+        toast.error(t('common.networkError'));
+        return false;
+      }
+    },
+
+    deleteTrashItems: async (ids) => {
+      try {
+        const fileIds = ids.filter(id => files.value.find(f => f.id === id && f.type === 'file'));
+        const folderIds = ids.filter(id => files.value.find(f => f.id === id && f.type === 'folder'));
+
+        const res = await authFetch(API.TRASH_DELETE, {
+          method: 'POST', // 或 DELETE with body
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileIds, folderIds }),
+        }).then((r) => r.json());
+
+        if (res.success) {
+          toast.success(t('trash.deleteSuccess'));
+          return true;
+        } else {
+          toast.error(res.message);
+          return false;
+        }
+      } catch (_e) {
+        toast.error(t('common.networkError'));
+        return false;
+      }
+    },
+
+    emptyTrash: async () => {
+      try {
+        const res = await authFetch(API.TRASH_EMPTY, {
+          method: 'DELETE',
+        }).then((r) => r.json());
+
+        if (res.success) {
+          toast.success(t('trash.emptySuccess'));
+          return true;
+        } else {
+          toast.error(res.message);
+          return false;
+        }
+      } catch (_e) {
+        toast.error(t('common.networkError'));
+        return false;
+      }
+    },
+
     // 从 utils 导出的辅助函数
     isImage,
     getFileExtension,

@@ -265,7 +265,7 @@ app.put(
 );
 
 /**
- * DELETE /api/manage/folders/:id - 删除文件夹
+ * DELETE /api/manage/folders/:id - 移入回收站
  */
 app.delete('/:id', requirePermission('folders:delete'), async (c) => {
   const { env } = c;
@@ -286,16 +286,8 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
       return c.json({ success: false, error: MSG.FOLDER.SYSTEM_FOLDER_DELETE }, 403);
     }
 
-    // 获取所有子文件的存储键 (递归)
-    const storageKeys = await folderRepo.getAllStorageKeysRecursive(folderId);
-
-    // 从 R2 删除文件
-    if (env.R2_BUCKET && storageKeys.length > 0) {
-      await Promise.all(storageKeys.map((key) => env.R2_BUCKET.delete(key).catch(() => { })));
-    }
-
-    // 删除文件夹（级联删除）
-    await folderRepo.deleteRecursive(folderId);
+    // 软删除
+    await folderRepo.softDelete(folderId);
 
     return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
   } catch (err) {

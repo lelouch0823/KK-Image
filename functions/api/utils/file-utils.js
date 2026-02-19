@@ -156,13 +156,13 @@ export async function storeFile(env, file, options = {}) {
     throw new Error(MSG.FILE.DANGEROUS_TYPE);
   }
 
-  // 2b. MIME 类型白名单
-  if (!skipTypeCheck) {
-    const allowed = resolveAllowedMimes(options);
-    if (!isMimeAllowed(mimeType, allowed)) {
-      throw new Error(MSG.FILE.INVALID_TYPE);
-    }
-  }
+  // 2b. MIME 类型白名单 (Disabled per user request)
+  // if (!skipTypeCheck) {
+  //   const allowed = resolveAllowedMimes(options);
+  //   if (!isMimeAllowed(mimeType, allowed)) {
+  //     throw new Error(MSG.FILE.INVALID_TYPE);
+  //   }
+  // }
 
   // 2c. 文件大小限制
   const maxSize = resolveMaxSize(env, options);

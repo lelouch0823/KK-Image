@@ -9,6 +9,7 @@ import {
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache, invalidateCache } from '../../middleware/cache.js';
 import { generateId, generateShareToken, now, MSG } from '../../_shared/utils.js';
+import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 
 const app = new Hono();
 
@@ -39,6 +40,9 @@ app.get('/', zValidator('query', FolderQuerySchema), withCache(30), async (c) =>
     sql += ' AND parent_id = ?';
     bindings.push(parentId);
   }
+
+  // 过滤已删除文件夹
+  sql += ' AND (is_deleted IS NULL OR is_deleted = 0)';
 
   if (search) {
     sql += ' AND name LIKE ?';
@@ -258,7 +262,9 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
     );
   }
 
-  await env.DB.prepare('DELETE FROM folders WHERE id = ?').bind(id).run();
+  // 软删除
+  const repo = new FolderRepository(env.DB);
+  await repo.softDelete(id);
 
   // 使缓存失效
   c.executionCtx.waitUntil(invalidateCache(getFolderCacheUrls(c)));

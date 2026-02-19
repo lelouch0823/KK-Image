@@ -94,6 +94,7 @@ const routes = [
                 component: () => import('@/views/FileManager/index.vue'),
                 meta: { titleKey: 'router.file_management' },
             },
+
             {
                 path: 'spaces',
                 name: 'Spaces',

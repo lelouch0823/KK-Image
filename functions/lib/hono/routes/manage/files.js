@@ -5,7 +5,6 @@ import { requirePermission } from '../../middleware/auth.js';
 import { getFileUrl, MSG } from '../../_shared/utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
-import { decrementRefCount } from '../../../../api/utils/blob-utils.js';
 
 const app = new Hono();
 
@@ -123,7 +122,7 @@ app.put(
 );
 
 /**
- * DELETE /api/manage/files/:id - 删除单个文件
+ * DELETE /api/manage/files/:id - 移入回收站
  */
 app.delete('/:id', requirePermission('files:delete'), async (c) => {
   const { env } = c;
@@ -134,13 +133,8 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
     const file = await repo.findById(fileId);
     if (!file) return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
 
-    if (file.content_hash) {
-      await decrementRefCount(env, file.content_hash);
-    } else if (env.R2_BUCKET && file.storage_key) {
-      await env.R2_BUCKET.delete(file.storage_key).catch(() => { });
-    }
-
-    await repo.delete(fileId);
+    // 软删除
+    await repo.softDelete(fileId);
     return c.json({ success: true, message: MSG.FILE.DELETE_SUCCESS });
   } catch (err) {
     return c.json({ success: false, error: err.message }, 500);
@@ -148,7 +142,7 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
 });
 
 /**
- * POST /api/manage/files/batch/delete - 批量删除文件
+ * POST /api/manage/files/batch/delete - 批量移入回收站
  */
 app.post(
   '/batch/delete',
@@ -160,23 +154,9 @@ app.post(
 
     try {
       const repo = new FileRepository(env.DB);
-      // 获取这些文件的信息用于 R2/CAS 清理
-      const placeholders = ids.map(() => '?').join(',');
-      const { results } = await env.DB.prepare(
-        `SELECT storage_key, content_hash FROM files WHERE id IN (${placeholders})`
-      ).bind(...ids).all();
-
-      // SOTA: 并发删除 R2 对象和 CAS 引用
-      await Promise.all(results.map(async (f) => {
-        if (f.content_hash) {
-          await decrementRefCount(env, f.content_hash);
-        } else if (env.R2_BUCKET && f.storage_key) {
-          await env.R2_BUCKET.delete(f.storage_key).catch(() => {});
-        }
-      }));
-
-      await repo.deleteBatch(ids);
-      return c.json({ success: true, message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', results.length) });
+      // SOTA: 软删除
+      await repo.softDeleteBatch(ids);
+      return c.json({ success: true, message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', ids.length) });
     } catch (err) {
       return c.json({ success: false, error: err.message }, 500);
     }

@@ -47,6 +47,7 @@
       @batch-move="handleBatchMove"
       @batch-delete="handleBatchDelete"
       @clear-selection="selectedIds.clear()"
+      @open-trash="showTrashModal = true"
     />
 
     <!-- Error State -->
@@ -228,6 +229,9 @@
        :y="contextMenuData.y"
        :items="contextMenuData.items"
     />
+
+    <!-- Recycling Bin Modal -->
+    <TrashModal v-model="showTrashModal" @change="loadFolderData(currentFolder?.id)" />
   </div>
 </template>
 
@@ -242,6 +246,7 @@ import Skeleton from '@/components/ui/Skeleton.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import FileManagerToolbar from './FileManagerToolbar.vue';
 import FileManagerModals from './FileManagerModals.vue';
+import TrashModal from './TrashModal.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 
 import { useFileManager } from '@/composables/useFileManager';
@@ -321,6 +326,7 @@ const {
 // UI State
 const viewMode = ref('list');
 const modals = useTemplateRef('modals'); // Ref to FileManagerModals component
+const showTrashModal = ref(false); // NEW
 const itemsToMove = ref([]);
 const currentShareFile = ref(null);
 

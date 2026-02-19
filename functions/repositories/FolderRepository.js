@@ -11,17 +11,17 @@ export class FolderRepository {
     }
 
     /**
-     * 获取所有文件夹（极简列表，用于选择器）
+     * 获取所有文件夹（极简列表，用于选择器）- 仅 active
      */
     async findAllMinimal() {
         const { results } = await this.db.prepare(
-            'SELECT id, parent_id, name FROM folders ORDER BY name ASC'
+            "SELECT id, parent_id, name FROM folders WHERE is_deleted = 0 ORDER BY name ASC"
         ).all();
         return results;
     }
 
     /**
-     * 获取顶层文件夹列表（含子文件夹和文件计数）
+     * 获取顶层文件夹列表（含子文件夹和文件计数）- 仅 active
      */
     async findTopLevel() {
         const { results } = await this.db.prepare(`
@@ -32,21 +32,24 @@ export class FolderRepository {
             LEFT JOIN (
                 SELECT parent_id, COUNT(*) as subfolder_count
                 FROM folders
+                WHERE is_deleted = 0
                 GROUP BY parent_id
             ) sub ON sub.parent_id = f.id
             LEFT JOIN (
                 SELECT folder_id, COUNT(*) as file_count
                 FROM files
+                WHERE is_deleted = 0
                 GROUP BY folder_id
             ) fc ON fc.folder_id = f.id
             WHERE (f.parent_id IS NULL OR f.parent_id = 'root')
+              AND f.is_deleted = 0
             ORDER BY f.created_at DESC
         `).all();
         return results;
     }
 
     /**
-     * 获取子文件夹列表
+     * 获取子文件夹列表 - 仅 active
      */
     async findByParent(parentId) {
         const { results } = await this.db.prepare(`
@@ -57,21 +60,26 @@ export class FolderRepository {
             LEFT JOIN (
                 SELECT parent_id, COUNT(*) as subfolder_count
                 FROM folders
+                WHERE is_deleted = 0
                 GROUP BY parent_id
             ) sub ON sub.parent_id = f.id
             LEFT JOIN (
                 SELECT folder_id, COUNT(*) as file_count
                 FROM files
+                WHERE is_deleted = 0
                 GROUP BY folder_id
             ) fc ON fc.folder_id = f.id
             WHERE f.parent_id = ?
+              AND f.is_deleted = 0
             ORDER BY f.created_at DESC
         `).bind(parentId).all();
         return results;
     }
 
     /**
-     * 根据 ID 获取文件夹
+     * 根据 ID 获取文件夹 (可能需要获取 deleted 的，所以不强制 status='active'，让上层决定)
+     * 但 Breadcrumbs 可能会用到，这里暂时保持原样，或者上层业务逻辑判断 status。
+     * 一般 findById 用于鉴权等，不应限制。
      */
     async findById(id) {
         return await this.db.prepare('SELECT * FROM folders WHERE id = ?').bind(id).first();
@@ -79,24 +87,25 @@ export class FolderRepository {
 
     /**
      * 递归获取面包屑导航 (SOTA: 使用 WITH RECURSIVE 一次查询)
+     * 此处应仅包含 active 的祖先？如果父文件夹 deleted，子文件夹不应该显示？
      */
     async getBreadcrumbs(folderId) {
         if (!folderId || folderId === 'root') return [];
 
         const { results } = await this.db.prepare(`
             WITH RECURSIVE ancestors AS (
-                SELECT id, name, parent_id, 1 as depth
+                SELECT id, name, parent_id, 1 as depth, is_deleted
                 FROM folders
                 WHERE id = ?
                 
                 UNION ALL
                 
-                SELECT f.id, f.name, f.parent_id, a.depth + 1
+                SELECT f.id, f.name, f.parent_id, a.depth + 1, f.is_deleted
                 FROM folders f
                 JOIN ancestors a ON f.id = a.parent_id
                 WHERE a.parent_id IS NOT NULL AND a.parent_id != 'root'
             )
-            SELECT id, name FROM ancestors ORDER BY depth DESC
+            SELECT id, name FROM ancestors WHERE is_deleted = 0 ORDER BY depth DESC
         `).bind(folderId).all();
 
         return results.map(f => ({ id: f.id, name: f.name }));
@@ -107,8 +116,8 @@ export class FolderRepository {
      */
     async create(data) {
         await this.db.prepare(
-            `INSERT INTO folders (id, parent_id, name, description, share_token, is_public, password, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            `INSERT INTO folders (id, parent_id, name, description, share_token, is_public, password, created_at, updated_at, is_deleted)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
         ).bind(
             data.id,
             data.parentId || null,
@@ -129,6 +138,62 @@ export class FolderRepository {
         await this.db.prepare(`UPDATE folders SET ${updates.join(', ')} WHERE id = ?`)
             .bind(...values, id)
             .run();
+    }
+
+    // --- 回收站相关 ---
+
+    /**
+     * 软删除
+     */
+    async softDelete(id) {
+        await this.db.prepare("UPDATE folders SET is_deleted = 1, deleted_at = ? WHERE id = ?")
+            .bind(Date.now(), id)
+            .run();
+    }
+
+    /**
+     * 还原
+     */
+    async restore(id) {
+        await this.db.prepare("UPDATE folders SET is_deleted = 0, deleted_at = NULL WHERE id = ?")
+            .bind(id)
+            .run();
+    }
+
+    /**
+     * 获取回收站文件夹
+     */
+    async findTrash() {
+        return this.findTrashWithPaths();
+    }
+
+    /**
+     * 获取回收站文件夹 (带路径)
+     */
+    async findTrashWithPaths() {
+        const { results } = await this.db.prepare(`
+            WITH RECURSIVE folder_paths(id, path) AS (
+                SELECT id, name
+                FROM folders
+                WHERE parent_id IS NULL OR parent_id = 'root'
+                
+                UNION ALL
+                
+                SELECT f.id, fp.path || '/' || f.name
+                FROM folders f
+                JOIN folder_paths fp ON f.parent_id = fp.id
+            )
+            SELECT f.*,
+                CASE
+                    WHEN f.parent_id = 'root' OR f.parent_id IS NULL THEN '/'
+                    ELSE COALESCE('/' || fp.path, '/')
+                END as original_path
+            FROM folders f
+            LEFT JOIN folder_paths fp ON f.parent_id = fp.id
+            WHERE f.is_deleted = 1
+            ORDER BY f.deleted_at DESC
+        `).all();
+        return results;
     }
 
     /**

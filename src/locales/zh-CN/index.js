@@ -17,6 +17,7 @@ import settings from './settings';
 import gallery from './gallery';
 import customer from './customer';
 import misc from './misc';
+import trash from './trash';
 
 export default {
   common,
@@ -58,4 +59,5 @@ export default {
   pwa: misc.pwa,
   salesStats: misc.salesStats,
   ai: misc.ai,
+  trash,
 };

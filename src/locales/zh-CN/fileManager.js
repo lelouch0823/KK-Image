@@ -14,6 +14,7 @@ export default {
   selected: '已选择 {count} 项',
   deleteConfirm: '确定要删除选中的 {count} 个项目吗？',
   deleteFolderConfirm: '确定要删除文件夹 "{name}" 及其内容吗？',
+  deleteFileConfirm: '确定要删除此文件吗？',
   uploadSuccess: '文件上传成功',
   createFolderSuccess: '文件夹创建成功',
   moveSuccess: '移动成功',

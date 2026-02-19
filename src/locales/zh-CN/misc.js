@@ -71,6 +71,7 @@ export default {
     role: '管理员',
     collapse: '收起侧边栏',
     expand: '展开侧边栏',
+    trash: '回收站',
   },
 
   // 视图
@@ -81,6 +82,7 @@ export default {
     customers: '客户管理',
     products: '商品管理',
     admin: '管理后台',
+    trash: '回收站',
   },
 
   // 文件操作 (Composables)
@@ -165,6 +167,7 @@ export default {
     customer_management: '客户管理',
     stats_analysis: '统计分析',
     system_settings: '系统设置',
+    trash: '回收站',
   },
 
   // PWA
