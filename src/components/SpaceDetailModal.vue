@@ -10,7 +10,7 @@
       <div class="flex items-center gap-3">
         <div>
           <div class="flex items-center gap-2">
-            <h2 class="text-lg font-semibold text-(--text-main)">
+            <h2 class="text-lg font-semibold text-[var(--text-main)]">
               {{ spaceData?.name || t('spaceManager.detailTitle') }}
             </h2>
             <StatusBadge v-if="spaceData?.isPublic" variant="success" dot>
@@ -20,7 +20,7 @@
               {{ t('spaceManager.publicOff') }}
             </StatusBadge>
           </div>
-          <p class="mt-0.5 text-sm text-(--text-secondary)">
+          <p class="mt-0.5 text-sm text-[var(--text-secondary)]">
             {{ getTemplateLabel(spaceData?.template) }} ·
             {{ t('fileManager.totalFiles', { count: spaceData?.files?.length || 0 }) }}
           </p>
@@ -31,14 +31,14 @@
     <!-- Content -->
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
       <!-- Tabs Header -->
-      <div class="shrink-0 border-b border-(--border-color) bg-(--bg-card) px-6">
+      <div class="shrink-0 border-b border-[var(--border-color)] bg-[var(--bg-card)] px-6">
         <div class="flex space-x-6">
           <button
             class="border-b-2 px-1 py-3 text-sm font-medium transition-colors duration-200"
             :class="
               activeTab === 'files'
                 ? 'border-primary text-primary'
-                : 'border-transparent text-(--text-secondary) hover:text-(--text-main)'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-main)]'
             "
             @click="activeTab = 'files'"
           >
@@ -109,13 +109,13 @@
     <!-- Footer -->
     <template #footer>
       <button
-        class="px-4 py-2 text-sm font-medium text-(--text-secondary) transition-colors hover:text-primary"
+        class="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-primary"
         @click="$emit('close')"
       >
         {{ t('spaceManager.close') }}
       </button>
       <button
-        class="rounded-lg bg-(--bg-muted) px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-(--bg-hover)"
+        class="rounded-lg bg-[var(--bg-muted)] px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-[var(--bg-hover)]"
         @click="openPreview"
       >
         {{ t('spaceManager.preview') }}

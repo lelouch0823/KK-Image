@@ -4,7 +4,7 @@
       <div class="border-border bg-surface rounded-2xl border p-8 shadow-lg">
         <div class="mb-6 text-center">
           <div
-            class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-gray-100"
+            class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-[var(--bg-muted)]"
           >
             <svg
               class="text-secondary size-7"

@@ -101,6 +101,18 @@ export const isImage = (file) => {
 };
 
 /**
+ * 判断是否为 PDF 文件
+ * @param {Object|string} file - 文件对象或文件名
+ * @returns {boolean} 是否为 PDF
+ */
+export const isPdf = (file) => {
+  if (!file) return false;
+  const filename = typeof file === 'string' ? file : file.name || file.originalName || '';
+  if (!filename) return false;
+  return getFileExtension(filename).toLowerCase() === 'pdf';
+};
+
+/**
  * 格式化相对时间 (刚刚, x分钟前, x小时前, 或日期)
  * @param {number|string} timestamp - 时间戳
  * @param {function} t - i18n t function

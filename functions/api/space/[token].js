@@ -9,6 +9,7 @@ import { success, error } from '../utils/response.js';
 import { MSG } from '../utils/messages.js';
 import { timingSafeCompare, isAdminAuthenticated } from '../utils/auth.js';
 import { getFileType } from '../utils/file-utils.js';
+import { getFileUrl } from '../utils/url.js';
 
 /**
  * 获取空间数据 (GET/POST 共享逻辑)
@@ -52,8 +53,8 @@ async function getSpaceData(space, env) {
       size: f.size,
       type: getFileType(f.mime_type, f.name),
       mimeType: f.mime_type,
-      url: `/file/${f.storage_key}`,
-      thumbnailUrl: getFileType(f.mime_type, f.name) === 'image' ? `/file/${f.storage_key}` : null,
+      url: getFileUrl(f.storage_key),
+      thumbnailUrl: getFileType(f.mime_type, f.name) === 'image' ? getFileUrl(f.storage_key) : null,
     });
   });
 
@@ -88,7 +89,7 @@ async function getSpaceData(space, env) {
       template: s.template,
       fileCount: s.file_count,
       shareUrl: s.share_token ? `/space/${s.share_token}` : null,
-      coverImage: s.cover_storage_key ? `/file/${s.cover_storage_key}` : null,
+      coverImage: s.cover_storage_key ? getFileUrl(s.cover_storage_key) : null,
     })),
   };
 }

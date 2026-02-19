@@ -11,7 +11,7 @@
       <div
         class="mb-6 flex items-center gap-3 rounded-lg border border-(--border-color) bg-(--bg-muted) p-3"
       >
-        <div class="rounded-md border border-(--border-color) bg-white p-2 shadow-sm">
+        <div class="rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] p-2 shadow-sm">
           <img v-if="fileIsImage" :src="file?.url" class="size-8 rounded object-cover" />
           <div
             v-else

@@ -5,7 +5,7 @@
   >
     <!-- 移动端: 全屏底部抽屉 | 桌面端: 居中弹窗 -->
     <div
-      class="flex size-full flex-col overflow-hidden rounded-t-2xl bg-white lg:mx-4 lg:h-[90vh] lg:max-w-5xl lg:flex-row lg:rounded-2xl lg:rounded-t-2xl"
+      class="flex size-full flex-col overflow-hidden rounded-t-2xl bg-white dark:bg-gray-900 lg:mx-4 lg:h-[90vh] lg:max-w-5xl lg:flex-row lg:rounded-2xl lg:rounded-t-2xl"
     >
       <!-- 移动端: 顶部标签栏 -->
       <div class="flex items-center border-b border-[var(--border-color)] px-4 py-3 lg:hidden">
@@ -198,7 +198,7 @@
       <!-- 右侧：媒体资源管理 + 数据分析 -->
       <div
         v-show="mobileTab === 'media' || isDesktop"
-        class="flex flex-1 flex-col bg-white"
+        class="flex flex-1 flex-col bg-white dark:bg-gray-900"
         :class="{ 'hidden lg:flex': mobileTab !== 'media' }"
       >
         <!-- 右侧标签头 (桌面端) -->
@@ -211,7 +211,7 @@
               :class="
                 activeRightTab === 'media'
                   ? 'border-primary text-primary'
-                  : 'text-secondary border-transparent hover:text-[var(--text-main)]'
+                  : 'text-secondary border-transparent hover:text-[var(--text-main)] dark:text-gray-400 dark:hover:text-gray-200'
               "
               @click="activeRightTab = 'media'"
             >
@@ -222,7 +222,7 @@
               :class="
                 activeRightTab === 'analytics'
                   ? 'border-primary text-primary'
-                  : 'text-secondary border-transparent hover:text-[var(--text-main)]'
+                  : 'text-secondary border-transparent hover:text-[var(--text-main)] dark:text-gray-400 dark:hover:text-gray-200'
               "
               @click="activeRightTab = 'analytics'"
             >

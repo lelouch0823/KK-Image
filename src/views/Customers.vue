@@ -96,7 +96,7 @@
                           <span class="max-w-[180px] truncate" :title="customer.email">{{ customer.email }}</span>
                       </div>
                       <!-- 无联系方式 -->
-                      <span v-if="!customer.phone && !customer.email" class="text-muted">-</span>
+                      <span v-if="!customer.phone && !customer.email" class="text-(--text-muted)">-</span>
                       </div>
                   </td>
                   <td class="px-4 py-3 text-(--text-secondary)">{{ customer.company || '-' }}</td>

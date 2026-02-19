@@ -196,7 +196,8 @@ crud.post(
 /**
  * PUT /:id - 更新共享空间
  */
-crud.put(
+crud.on(
+  ['PUT', 'PATCH'],
   '/:id',
   requirePermission('files:write'),
   zValidator('json', UpdateSpaceSchema),

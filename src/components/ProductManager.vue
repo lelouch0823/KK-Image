@@ -14,7 +14,7 @@
         <div class="flex shrink-0 items-center gap-1 sm:gap-2">
             <!-- Create Button -->
             <button 
-                class="bg-primary shadow-primary/20 flex items-center justify-center gap-2 rounded-lg text-sm font-medium text-white shadow-sm transition-all hover:bg-primary-hover active:scale-95 max-sm:size-9 sm:h-9 sm:px-4 dark:text-gray-900"
+                class="bg-primary shadow-primary/20 flex items-center justify-center gap-2 rounded-lg text-sm font-medium text-white shadow-sm transition-all hover:bg-primary-hover active:scale-95 max-sm:size-9 sm:h-9 sm:px-4"
                 :title="t('product.action.create')"
                 @click="handleCreate"
             >
@@ -115,8 +115,8 @@
     <!-- 2. Content Area (Table/Grid) -->
     <div class="relative flex-1 lg:min-h-[400px] lg:overflow-hidden">
       <!-- Loading Overlay -->
-      <div v-if="loading" class="absolute inset-0 z-10 flex items-center justify-center bg-white/50 backdrop-blur-[1px] dark:bg-slate-900/50">
-        <div class="size-10 animate-spin rounded-full border-b-2 border-indigo-500"></div>
+      <div v-if="loading" class="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-page)]/50 backdrop-blur-[1px]">
+        <div class="size-10 animate-spin rounded-full border-b-2 border-primary"></div>
       </div>
 
       <!-- Desktop Table (Show only if data exists) -->
@@ -169,7 +169,7 @@
     </div>
     
     <!-- Footer / Pagination -->
-     <div class="flex-shrink-0 border-t border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/30">
+     <div class="flex-shrink-0 border-t border-[var(--border-color)] bg-[var(--bg-muted)] p-4">
         <Pagination
             v-model:current-page="pagination.page"
             :total-pages="pagination.totalPages"

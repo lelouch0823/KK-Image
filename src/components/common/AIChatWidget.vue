@@ -13,7 +13,7 @@
         class="border-border pointer-events-auto absolute right-0 bottom-0 flex h-[600px] w-[420px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border bg-(--bg-card) shadow-2xl backdrop-blur-xl"
       >
         <!-- Header -->
-        <div class="bg-primary flex items-center justify-between p-4 text-(--text-inverse)">
+        <div class="bg-primary flex items-center justify-between p-4 text-[var(--text-inverse)]">
           <div class="flex items-center gap-3">
             <div class="flex size-8 items-center justify-center rounded-lg bg-white/20">
               <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,7 +63,7 @@
         </div>
 
         <!-- Input Area -->
-        <div class="border-border bg-surface border-t px-4 pt-1 pb-4">
+        <div class="border-[var(--border-color)] bg-[var(--bg-card)] border-t px-4 pt-1 pb-4">
           <AISuggestions 
             class="mb-2" 
             :suggestions="suggestions" 
@@ -79,7 +79,7 @@
               :disabled="isStreamingLoading"
               type="text"
               :placeholder="t('ai.placeholder')"
-              class="focus:ring-primary/20 focus:bg-surface focus:ring-2 bg-surface-muted w-full rounded-xl border-none py-3 pr-12 pl-4 text-sm transition-all"
+              class="focus:ring-primary/20 focus:ring-2 bg-[var(--bg-muted)] w-full rounded-xl border-none py-3 pr-12 pl-4 text-sm transition-all dark:bg-white/5"
             />
             <button
               :disabled="!userInput.trim() || isStreamingLoading"
@@ -350,11 +350,12 @@ const generateReport = async () => {
   font-size: 0.9em;
 }
 .markdown-body pre {
-  background-color: var(--color-gray-100);
+  background-color: var(--bg-muted);
   padding: 0.75em;
   border-radius: var(--radius-lg);
   overflow-x: auto;
   margin-bottom: 0.5em;
+  border: 1px solid var(--border-color);
 }
 .markdown-body pre code {
   background-color: transparent;

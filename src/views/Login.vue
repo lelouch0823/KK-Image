@@ -11,12 +11,12 @@
         <div class="px-8 pt-10 pb-6 text-center">
           <!-- Logo -->
           <div
-            class="from-primary mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br to-black text-2xl font-bold text-white shadow-lg"
+            class="mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-2xl font-bold text-white shadow-lg dark:from-blue-500 dark:to-indigo-600"
           >
             KK
           </div>
           <h1 class="text-primary mb-2 text-2xl font-bold">{{ t('auth.welcome') }}</h1>
-          <p class="text-secondary text-sm">{{ t('auth.subtitle') }}</p>
+          <p class="text-(--text-secondary) text-sm">{{ t('auth.subtitle') }}</p>
         </div>
 
         <!-- 登录与转场容器 -->
@@ -121,7 +121,7 @@
                   class="cf-turnstile"
                   :data-sitekey="turnstileSiteKey"
                   data-callback="onTurnstileSuccess"
-                  data-theme="light"
+                  :data-theme="document.documentElement.classList.contains('dark') ? 'dark' : 'light'"
                 ></div>
               </div>
 

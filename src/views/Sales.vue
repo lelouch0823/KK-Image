@@ -37,7 +37,7 @@
               </div>
               <div>
                 <h1 class="text-primary text-sm font-semibold">{{ t('order.portal.myOrders') }}</h1>
-                <p class="text-secondary text-xs">{{ salesperson?.name }}</p>
+                <p class="text-(--text-secondary) text-xs">{{ salesperson?.name }}</p>
               </div>
             </template>
 

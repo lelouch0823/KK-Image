@@ -57,7 +57,7 @@ export class OrderStatsRepository {
       )
       .bind(timestamp)
       .first();
-    return result.count;
+    return result?.count || 0;
   }
 
   /**
@@ -74,7 +74,7 @@ export class OrderStatsRepository {
       )
       .bind(status)
       .first();
-    return result.count;
+    return result?.count || 0;
   }
 
   /**
@@ -93,7 +93,7 @@ export class OrderStatsRepository {
       )
       .bind(startTimestamp, endTimestamp)
       .first();
-    return result.count;
+    return result?.count || 0;
   }
 
   /**

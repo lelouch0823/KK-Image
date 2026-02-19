@@ -26,7 +26,7 @@
     <div class="relative">
       <button
         type="button"
-        class="flex w-full items-center justify-between rounded-xl border border-[var(--border-color)] bg-white px-4 py-3 text-left transition-colors hover:border-[var(--border-hover)]"
+        class="flex w-full items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-3 text-left transition-colors hover:border-[var(--border-hover)]"
         @click="isOpen = !isOpen"
       >
         <span class="text-secondary">{{ placeholder }}</span>
@@ -52,7 +52,7 @@
       >
         <div
           v-if="isOpen"
-          class="absolute z-50 mt-2 max-h-60 w-full overflow-auto rounded-xl border border-[var(--border-color)] bg-white shadow-xl"
+          class="absolute z-50 mt-2 max-h-60 w-full overflow-auto rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-xl"
         >
           <!-- 加载中 -->
           <div v-if="loading" class="flex items-center justify-center py-4">

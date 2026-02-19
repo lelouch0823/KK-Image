@@ -17,9 +17,48 @@
             class="bg-surface size-full select-none"
             rounded="none"
           />
-          <div v-else class="text-secondary flex size-full items-center justify-center">
-            {{ t('spacePublic.noPreview') }}
-          </div>
+            <div v-else-if="isPdf(currentFile)" class="flex size-full flex-col bg-[var(--bg-card)]">
+              <iframe :src="currentFile.url" class="size-full border-0" title="PDF Preview"></iframe>
+            </div>
+
+            <!-- Generic File Preview -->
+            <div
+              v-else
+              class="text-secondary flex size-full flex-col items-center justify-center gap-4 bg-[var(--bg-muted)] p-8 text-center"
+            >
+              <div class="flex size-20 items-center justify-center rounded-2xl bg-[var(--bg-card)] shadow-sm">
+                <svg class="size-10 text-[var(--color-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-medium text-[var(--text-main)]">{{ currentFile.name }}</h3>
+                <p class="mt-1 text-sm text-[var(--text-secondary)]">
+                  {{ formatSize(currentFile.size) }}
+                </p>
+              </div>
+              <a
+                :href="currentFile.url"
+                download
+                class="hover:bg-primary-hover hover:text-white mt-2 inline-flex items-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm font-medium text-[var(--text-main)] transition-colors"
+                @click.stop
+              >
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                {{ t('spacePublic.download') }}
+              </a>
+            </div>
 
           <!-- Navigation Arrows (Hidden on mobile) -->
           <button
@@ -109,7 +148,7 @@
           <p v-if="templateData.series" class="text-secondary mt-1 text-lg">
             {{ templateData.series }}
           </p>
-          <p v-if="templateData.sku" class="mt-2 font-mono text-xs text-gray-400">
+          <p v-if="templateData.sku" class="mt-2 font-mono text-xs text-[var(--text-muted)]">
             SKU: {{ templateData.sku }}
           </p>
         </div>
@@ -135,7 +174,7 @@
               v-if="templateData.series"
               class="border-l-2 border-[var(--color-primary-light,rgba(59,130,246,0.5))] pl-3"
             >
-            >
+
               <dt class="text-sm font-medium text-[var(--text-secondary)]">{{ t('spaceManager.series') }}</dt>
               <dd class="mt-1 text-sm font-semibold text-[var(--text-primary)]">{{ templateData.series }}</dd>
             </div>
@@ -143,7 +182,7 @@
               v-if="templateData.material"
               class="border-l-2 border-[var(--color-primary-light,rgba(59,130,246,0.5))] pl-3"
             >
-            >
+
               <dt class="text-sm font-medium text-[var(--text-secondary)]">{{ t('spaceManager.material') }}</dt>
               <dd class="mt-1 text-sm font-semibold text-[var(--text-primary)]">{{ templateData.material }}</dd>
             </div>
@@ -151,7 +190,7 @@
               v-if="templateData.sku"
               class="border-l-2 border-[var(--color-primary-light,rgba(59,130,246,0.5))] pl-3"
             >
-            >
+
               <dt class="text-sm font-medium text-[var(--text-secondary)]">SKU</dt>
               <dd class="mt-1 text-sm font-semibold break-all text-[var(--text-primary)]">
                 {{ templateData.sku }}
@@ -224,7 +263,7 @@
             }}
           </button>
 
-          <p class="mt-3 text-center text-xs text-gray-400">
+          <p class="mt-3 text-center text-xs text-[var(--text-muted)]">
             {{ space.viewCount }} {{ t('spacePublic.views') }} • {{ space.downloadCount }}
             {{ t('spacePublic.downloads') }}
           </p>
@@ -294,7 +333,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { isImage } from '@/utils/formatters';
+import { isImage, isPdf, formatSize } from '@/utils/formatters';
 import { useBatchDownload } from '@/composables/useBatchDownload';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';

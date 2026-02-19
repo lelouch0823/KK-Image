@@ -1,10 +1,10 @@
 <template>
   <div class="flex min-h-screen items-center justify-center bg-[var(--bg-page)] px-4">
     <div class="w-full max-w-sm">
-      <div class="rounded-2xl border border-[var(--border-color)] bg-white p-8 shadow-lg">
+      <div class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-8 shadow-lg">
         <div class="mb-6 text-center">
           <div
-            class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-gray-100"
+            class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-[var(--bg-muted)]"
           >
             <svg
               class="text-secondary size-7"
@@ -30,7 +30,7 @@
             v-model="passwordInput"
             type="password"
             :placeholder="placeholder || t('auth.passwordAccessPlaceholder')"
-            class="focus:border-primary focus:bg-white focus:outline-none mb-4 h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-4 text-sm transition-colors"
+            class="focus:border-primary focus:bg-[var(--bg-card)] focus:outline-none mb-4 h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-4 text-sm transition-colors"
             autofocus
           />
           <button

@@ -31,7 +31,7 @@
 
         <div class="flex items-center gap-3">
           <button
-            class="flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] shadow-sm transition-all hover:bg-[var(--bg-hover)] active:scale-95 dark:bg-[#161b26] dark:hover:bg-[#1c2230]"
+            class="flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] shadow-sm transition-all hover:bg-[var(--bg-hover)] active:scale-95 dark:bg-[var(--bg-hover)] dark:hover:bg-[#1c2230]"
             @click="handleRefresh"
           >
             <span class="material-symbols-outlined text-lg" :class="{ 'animate-spin': isRefreshing }">refresh</span>
@@ -44,7 +44,7 @@
       <!-- Metrics Grid -->
       <div class="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <!-- Today Orders -->
-        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-[var(--border-subtle)] border-r-[var(--border-subtle)] border-l-blue-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-[var(--bg-hover)] dark:border-y-white/5 dark:border-r-white/5 dark:bg-[#11141d]/60 dark:shadow-lg dark:hover:bg-[#161b26]">
+        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-[var(--border-subtle)] border-r-[var(--border-subtle)] border-l-blue-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-[var(--bg-hover)] dark:border-y-white/5 dark:border-r-white/5 dark:bg-[var(--bg-card)]/60 dark:shadow-lg dark:hover:bg-[#161b26]">
            <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
                <span class="material-symbols-outlined rotate-12 transform text-8xl text-blue-500 select-none">schedule</span>
            </div>
@@ -67,7 +67,7 @@
         </div>
 
         <!-- Pending Orders (Pending Processing) -->
-        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-[var(--border-subtle)] border-r-[var(--border-subtle)] border-l-red-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-[var(--bg-hover)] dark:border-y-white/5 dark:border-r-white/5 dark:bg-[#11141d]/60 dark:shadow-lg dark:hover:bg-[#161b26]">
+        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-[var(--border-subtle)] border-r-[var(--border-subtle)] border-l-red-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-[var(--bg-hover)] dark:border-y-white/5 dark:border-r-white/5 dark:bg-[var(--bg-card)]/60 dark:shadow-lg dark:hover:bg-[#161b26]">
            <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
                <span class="material-symbols-outlined rotate-12 transform text-8xl text-red-500 select-none">error</span>
            </div>
@@ -90,7 +90,7 @@
         </div>
 
         <!-- Weekly Orders -->
-        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-[var(--border-subtle)] border-r-[var(--border-subtle)] border-l-emerald-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-[var(--bg-hover)] dark:border-y-white/5 dark:border-r-white/5 dark:bg-[#11141d]/60 dark:shadow-lg dark:hover:bg-[#161b26]">
+        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-[var(--border-subtle)] border-r-[var(--border-subtle)] border-l-emerald-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-[var(--bg-hover)] dark:border-y-white/5 dark:border-r-white/5 dark:bg-[var(--bg-card)]/60 dark:shadow-lg dark:hover:bg-[#161b26]">
            <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
                <span class="material-symbols-outlined rotate-12 transform text-8xl text-emerald-500 select-none">bar_chart</span>
            </div>
@@ -118,7 +118,7 @@
         </div>
 
         <!-- Active Shares -->
-        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-[var(--border-subtle)] border-r-[var(--border-subtle)] border-l-purple-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-[var(--bg-hover)] dark:border-y-white/5 dark:border-r-white/5 dark:bg-[#11141d]/60 dark:shadow-lg dark:hover:bg-[#161b26]">
+        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-[var(--border-subtle)] border-r-[var(--border-subtle)] border-l-purple-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-[var(--bg-hover)] dark:border-y-white/5 dark:border-r-white/5 dark:bg-[var(--bg-card)]/60 dark:shadow-lg dark:hover:bg-[#161b26]">
            <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
                <span class="material-symbols-outlined rotate-12 transform text-8xl text-purple-500 select-none">share</span>
            </div>
@@ -145,8 +145,8 @@
         
         <!-- Pending Orders List (Left Column - 5 cols) -->
         <div class="flex flex-col gap-6 lg:col-span-5">
-            <div class="flex h-full min-h-[400px] flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-white/70 shadow-sm backdrop-blur-md dark:border-white/5 dark:bg-[#11141d]/60 dark:shadow-lg">
-                <div class="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 dark:border-white/5 dark:bg-[#13161f]">
+            <div class="flex h-full min-h-[400px] flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-white/70 shadow-sm backdrop-blur-md dark:border-white/5 dark:bg-[var(--bg-card)]/60 dark:shadow-lg">
+                <div class="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 dark:border-white/5 dark:bg-[var(--bg-card)]/50">
                     <div class="flex items-center gap-2">
                         <div class="size-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
                         <h3 class="text-sm font-semibold text-[var(--text-main)]">{{ t('dashboard.pendingOrders') }}</h3>
@@ -192,7 +192,7 @@
                 </div>
                 
                 <!-- Footer -->
-                <div class="border-t border-[var(--border-subtle)] bg-[var(--bg-card)] p-4 text-center dark:border-white/5 dark:bg-[#13161f]">
+                <div class="border-t border-[var(--border-subtle)] bg-[var(--bg-card)] p-4 text-center dark:border-white/5 dark:bg-[var(--bg-card)]/50">
                     <router-link to="/manage/orders?status=pending" class="flex w-full items-center justify-center gap-1 text-xs font-medium text-indigo-400 transition-colors hover:text-indigo-300">
                         {{ t('dashboard.viewAllPending') }}
                         <span class="material-symbols-outlined text-sm">arrow_forward</span>
@@ -205,9 +205,9 @@
         <div class="flex flex-col gap-6 lg:col-span-7">
             
             <!-- Shared Links Card -->
-            <div class="relative flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-white/70 shadow-sm backdrop-blur-md dark:border-white/5 dark:bg-[#11141d]/60 dark:shadow-lg">
+            <div class="relative flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-white/70 shadow-sm backdrop-blur-md dark:border-white/5 dark:bg-[var(--bg-card)]/60 dark:shadow-lg">
                 <div class="pointer-events-none absolute top-0 right-0 size-64 rounded-full bg-purple-500/5 blur-3xl dark:bg-purple-900/10"></div>
-                <div class="flex items-center gap-2 border-b border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 dark:border-white/5 dark:bg-[#13161f]">
+                <div class="flex items-center gap-2 border-b border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 dark:border-white/5 dark:bg-[var(--bg-card)]/50">
                     <div class="size-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
                     <h3 class="text-sm font-semibold text-[var(--text-main)]">{{ t('dashboard.recentShares') }}</h3>
                 </div>
@@ -253,9 +253,9 @@
             </div>
 
             <!-- Recent Files Card -->
-            <div class="relative flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-white/70 shadow-sm backdrop-blur-md dark:border-white/5 dark:bg-[#11141d]/60 dark:shadow-lg">
+            <div class="relative flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-white/70 shadow-sm backdrop-blur-md dark:border-white/5 dark:bg-[var(--bg-card)]/60 dark:shadow-lg">
                 <div class="pointer-events-none absolute bottom-0 left-0 size-64 rounded-full bg-cyan-500/5 blur-3xl dark:bg-cyan-900/10"></div>
-                <div class="flex items-center gap-2 border-b border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 dark:border-white/5 dark:bg-[#13161f]">
+                <div class="flex items-center gap-2 border-b border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 dark:border-white/5 dark:bg-[var(--bg-card)]/50">
                     <div class="size-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"></div>
                     <h3 class="text-sm font-semibold text-[var(--text-main)]">{{ t('dashboard.recentFiles') }}</h3>
                 </div>

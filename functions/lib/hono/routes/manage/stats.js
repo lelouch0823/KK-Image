@@ -17,6 +17,13 @@ app.get('/', requirePermission('stats:read'), withCache(60), async (c) => {
     const repo = new StatsRepository(env.DB);
     const data = await repo.getGlobalStats(todayStart);
 
+    console.log('[Stats] Global Stats loaded:', {
+      files: data.files.total,
+      traffic: data.traffic.monthTotal,
+      storage: data.files.totalSize
+    });
+
+
     return c.json({
       success: true,
       data: {

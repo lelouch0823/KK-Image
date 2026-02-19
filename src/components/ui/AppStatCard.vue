@@ -128,11 +128,11 @@ const labelClass = computed(() => {
   const labels = {
     default: 'text-(--text-secondary)',
     info: 'text-info',
-    purple: 'text-purple-500',
+    purple: 'text-purple-600 dark:text-purple-400',
     success: 'text-success',
     warning: 'text-warning',
     danger: 'text-danger',
-    cyan: 'text-cyan-500',
+    cyan: 'text-cyan-600 dark:text-cyan-400',
   };
   return labels[props.variant] || labels.default;
 });

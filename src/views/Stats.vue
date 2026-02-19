@@ -312,9 +312,13 @@ import AppTable from '@/components/ui/AppTable.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 
-// Configure Chart.js defaults for Dark Mode
-Chart.defaults.color = '#94a3b8'; // Slate-400
-Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+// Configure Chart.js defaults
+const configureChartDefaults = () => {
+  const isDark = document.documentElement.classList.contains('dark');
+  Chart.defaults.color = isDark ? '#94a3b8' : '#64748b'; // Slate-400 : Slate-500
+  Chart.defaults.borderColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+};
+configureChartDefaults();
 
 const { addToast } = useToast();
 const { authFetch } = useAuth();
@@ -392,10 +396,10 @@ const createCharts = () => {
         plugins: {
             legend: { display: false },
             tooltip: {
-                backgroundColor: 'rgba(15, 23, 42, 0.9)', // Slate-900
-                titleColor: '#f8fafc',
-                bodyColor: '#e2e8f0',
-                borderColor: 'rgba(255, 255, 255, 0.1)',
+                backgroundColor: document.documentElement.classList.contains('dark') ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)', 
+                titleColor: document.documentElement.classList.contains('dark') ? '#f8fafc' : '#1e293b',
+                bodyColor: document.documentElement.classList.contains('dark') ? '#e2e8f0' : '#475569',
+                borderColor: 'var(--border-color)',
                 borderWidth: 1,
                 padding: 12,
                 displayColors: false,
@@ -404,13 +408,13 @@ const createCharts = () => {
         scales: {
           x: { 
               grid: { display: false }, 
-              ticks: { maxTicksLimit: 7, color: '#64748b' } 
+              ticks: { maxTicksLimit: 7, color: 'var(--text-secondary)' } 
           },
           y: {
             border: { display: false },
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            grid: { color: 'var(--border-color)', opacity: 0.1 },
             beginAtZero: true,
-            ticks: { color: '#64748b' }
+            ticks: { color: 'var(--text-secondary)' }
           },
         },
         interaction: { intersect: false, mode: 'index' },
@@ -462,13 +466,13 @@ const createCharts = () => {
               labels: { 
                   usePointStyle: true, 
                   padding: 20,
-                  color: '#cbd5e1', // slate-300
+                  color: 'var(--text-secondary)',
                   font: { size: 12 }
               } 
           },
           tooltip: {
-                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                borderColor: 'rgba(255, 255, 255, 0.1)',
+                backgroundColor: document.documentElement.classList.contains('dark') ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                borderColor: 'var(--border-color)',
                 borderWidth: 1,
           }
         },
@@ -524,6 +528,20 @@ onActivated(() => {
     loadStats();
   }
 });
+
+// Watch for theme changes to update charts
+if (typeof window !== 'undefined') {
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.attributeName === 'class') {
+        configureChartDefaults();
+        createCharts();
+      }
+    });
+  });
+  observer.observe(document.documentElement, { attributes: true });
+  onUnmounted(() => observer.disconnect());
+}
 </script>
 
 <style scoped>

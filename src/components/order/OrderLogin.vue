@@ -22,7 +22,7 @@
       </div>
 
       <!-- 登录表单 -->
-      <div class="rounded-2xl border border-[var(--border-color)] bg-white p-6 shadow-xl">
+      <div class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6 shadow-xl">
         <form @submit.prevent="handleSubmit">
           <!-- 密码输入 -->
           <div class="mb-5">
@@ -35,7 +35,7 @@
                 :type="showPassword ? 'text' : 'password'"
                 :placeholder="t('auth.passwordPlaceholder')"
                 autocomplete="current-password"
-                class="focus:border-primary focus:ring-primary/10 focus:bg-white focus:ring-4 focus:outline-none placeholder:text-muted/60 h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-4 pr-12 text-sm transition-all"
+                class="focus:border-primary focus:ring-primary/10 focus:bg-[var(--bg-card)] focus:ring-4 focus:outline-none placeholder:text-muted/60 h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-4 pr-12 text-sm transition-all"
               />
               <button
                 type="button"
