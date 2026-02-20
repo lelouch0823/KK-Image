@@ -394,6 +394,7 @@
 
     <!-- SOTA Mobile Sticky Bottom Bar -->
     <div
+      v-if="currentFile"
       class="fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t border-[var(--border-color)] bg-[var(--bg-card)] p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden"
     >
       <div class="flex flex-1 gap-2">
