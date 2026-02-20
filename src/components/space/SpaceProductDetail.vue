@@ -271,15 +271,21 @@
           </p>
         </div>
 
-        <div v-if="templateData.price" class="flex items-baseline gap-1">
+        <div v-if="templateData.price && Number(templateData.price) > 0" class="flex items-baseline gap-1">
           <span class="text-sm text-[var(--text-secondary)]">¥</span>
           <span class="text-main text-3xl font-bold">{{
             formatPrice(templateData.price)
           }}</span>
         </div>
+        <div v-else-if="templateData.price" class="flex items-center gap-2 rounded-lg bg-[var(--color-primary-light,rgba(59,130,246,0.1))] px-4 py-2 text-[var(--color-primary)]">
+           <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+           </svg>
+           <span class="text-sm font-medium">{{ t('spacePublic.inquiryPrice') || 'Contact for Price' }}</span>
+        </div>
 
         <!-- SOTA Product Parameters Table -->
-        <div class="border-b border-[var(--border-color)] pb-6">
+        <div v-if="hasAnySpecs" class="border-b border-[var(--border-color)] pb-6">
           <dl class="grid grid-cols-1 gap-4  sm:grid-cols-2">
             <div
               v-if="templateData.brand"
@@ -394,6 +400,15 @@
       class="border-border bg-surface fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden"
     >
       <div class="flex flex-1 gap-2">
+        <div v-if="templateData.price && Number(templateData.price) > 0" class="mr-auto flex flex-col justify-center px-1">
+           <span class="text-[10px] leading-none text-[var(--text-secondary)]">{{ t('spaceManager.price') }}</span>
+           <div class="mt-0.5 flex items-baseline gap-0.5">
+             <span class="text-xs text-[var(--color-primary)]">¥</span>
+             <span class="text-lg leading-none font-bold text-[var(--color-primary)]">{{ formatPrice(templateData.price).split('.')[0] }}</span>
+             <span class="text-[10px] font-medium text-[var(--color-primary)] opacity-80">.{{ formatPrice(templateData.price).split('.')[1] }}</span>
+           </div>
+        </div>
+        
         <a
           v-if="currentFile"
           :href="currentFile.url"
@@ -412,7 +427,7 @@
         </a>
 
         <button
-          v-if="hasMultipleFiles"
+          v-if="hasMultipleFiles || (displayFiles.length > 0 && isDesktop)"
           :disabled="downloading"
           class="bg-primary shadow-primary/20 flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-medium text-[var(--text-inverse)] shadow-lg transition-transform active:scale-95 disabled:scale-100 disabled:opacity-50"
           @click="handleDownloadAll"
@@ -466,6 +481,15 @@ const { t } = useI18n();
 const { downloading, downloadProgress, downloadAll } = useBatchDownload();
 
 const templateData = computed(() => props.space.templateData || {});
+
+const hasAnySpecs = computed(() => {
+  return !!(
+    templateData.value.brand ||
+    templateData.value.series ||
+    templateData.value.material ||
+    templateData.value.sku
+  );
+});
 
 const displayFiles = computed(() => {
   const media = [];

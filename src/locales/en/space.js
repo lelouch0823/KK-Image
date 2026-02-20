@@ -147,6 +147,7 @@ export default {
     backToCard: 'Close Preview',
     downloadCurrent: 'Download Current',
     downloadAll: 'Download All (ZIP)',
+    inquiryPrice: 'Inquiry Price',
     packing: 'Packing...',
     downloadAllSimple: 'Download All',
     passwordProtected: 'This space is password protected',
