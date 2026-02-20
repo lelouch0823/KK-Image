@@ -277,15 +277,19 @@
             formatPrice(templateData.price)
           }}</span>
         </div>
-        <div v-else-if="templateData.price" class="flex items-center gap-2 rounded-lg bg-[var(--color-primary-light,rgba(59,130,246,0.1))] px-4 py-2 text-[var(--color-primary)]">
-           <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-           </svg>
-           <span class="text-sm font-medium">{{ t('spacePublic.inquiryPrice') || 'Contact for Price' }}</span>
+        <div v-else-if="templateData.price" class="flex items-center justify-center gap-2 rounded-xl border border-[var(--color-primary-light,rgba(59,130,246,0.1))] bg-[var(--color-primary-light,rgba(59,130,246,0.05))] p-6 text-[var(--color-primary)]">
+           <div class="flex flex-col items-center gap-2">
+             <div class="flex size-10 items-center justify-center rounded-full bg-[var(--color-primary-light,rgba(59,130,246,0.1))]">
+               <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+               </svg>
+             </div>
+             <span class="text-sm font-semibold tracking-wide">{{ t('spacePublic.inquiryPrice') || 'Contact for Price' }}</span>
+           </div>
         </div>
 
         <!-- SOTA Product Parameters Table -->
-        <div v-if="hasAnySpecs" class="border-b border-[var(--border-color)] pb-6">
+        <div v-if="hasAnySpecs" class="pb-2">
           <dl class="grid grid-cols-1 gap-4  sm:grid-cols-2">
             <div
               v-if="templateData.brand"
@@ -323,7 +327,7 @@
           </dl>
         </div>
 
-        <div v-if="space.description" class="prose prose-sm prose-gray dark:prose-invert text-secondary-text max-w-none">
+        <div v-if="space.description" class="prose prose-sm prose-gray dark:prose-invert text-secondary-text max-w-none border-t border-[var(--border-color)] pt-6">
           <h3 class="text-main text-sm font-medium">{{ t('spacePublic.description') }}</h3>
           <p class="whitespace-pre-line">{{ space.description }}</p>
         </div>
