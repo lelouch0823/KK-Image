@@ -52,6 +52,9 @@ export default {
   search: 'Search...',
   refresh: 'Refresh',
   actions: 'Actions',
+  action: {
+    retry: 'Retry',
+  },
   confirmVoid: 'Are you sure you want to void this order? This action cannot be undone.',
   success: 'Operation Successful',
   view: 'View',

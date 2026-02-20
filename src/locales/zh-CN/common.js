@@ -52,6 +52,9 @@ export default {
   search: '搜索...',
   refresh: '刷新',
   actions: '操作',
+  action: {
+    retry: '重试',
+  },
   confirmVoid: '确定要作废此订单吗？此操作不可撤销。',
   success: '操作成功',
   view: '查看',
