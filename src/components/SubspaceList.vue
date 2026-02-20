@@ -7,7 +7,7 @@
       <div class="flex items-center gap-3">
         <Tooltip :content="t('spaceManager.createSubspace')">
           <button
-            class="bg-primary flex size-8 items-center justify-center rounded-lg text-sm font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)]"
+            class="bg-primary flex size-8 items-center justify-center rounded-lg text-sm font-medium text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)]"
             @click="showCreateModal = true"
           >
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,7 +48,7 @@
         </div>
         <p class="text-sm">{{ t('spaceManager.emptySubspaces') }}</p>
         <button
-          class="bg-primary mt-4 rounded-lg px-4 py-2 text-sm text-white transition-colors hover:bg-[var(--color-primary-hover)]"
+          class="bg-primary mt-4 rounded-lg px-4 py-2 text-sm text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)]"
           @click="showCreateModal = true"
         >
           {{ t('spaceManager.createFirst') }}

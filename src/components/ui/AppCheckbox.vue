@@ -2,14 +2,14 @@
   <div class="relative flex items-center justify-center">
     <input
       type="checkbox"
-      class="peer size-5 cursor-pointer appearance-none rounded-md border-2 border-[var(--border-color)] bg-[var(--bg-card)] transition-all duration-200 ease-in-out hover:border-[var(--color-primary)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:ring-offset-2 checked:border-[var(--color-primary)]! checked:bg-[var(--color-primary)]! disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/20 dark:bg-white/5 dark:focus:ring-offset-gray-900"
+      class="peer size-5 cursor-pointer appearance-none rounded-md border-2 border-[var(--border-color)] bg-[var(--bg-card)] transition-all duration-200 ease-in-out checked:border-[var(--color-primary)]! checked:bg-[var(--color-primary)]! hover:border-[var(--color-primary)]/50 focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/20 dark:bg-white/5 dark:focus:ring-offset-gray-900"
       :checked="isChecked"
       :value="value"
       :disabled="disabled"
       @change="handleChange"
     />
     <svg
-      class="pointer-events-none absolute left-1/2 top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 transition-opacity duration-200 peer-checked:opacity-100"
+      class="pointer-events-none absolute top-1/2 left-1/2 size-3.5 -translate-1/2 text-[var(--bg-card)] opacity-0 transition-opacity duration-200 peer-checked:opacity-100"
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"

@@ -39,7 +39,7 @@
       <div class="flex shrink-0 items-center gap-2 lg:hidden">
         <input ref="fileInputMobile" type="file" multiple class="hidden" @change="handleFileSelect" />
         <button
-          class="flex size-9 items-center justify-center rounded-xl bg-primary text-(--text-inverse) shadow-lg shadow-primary/20 transition-all active:scale-95 dark:text-gray-900"
+          class="bg-primary shadow-primary/20 flex size-9 items-center justify-center rounded-xl text-(--text-inverse) shadow-lg transition-all active:scale-95 dark:text-gray-900"
           @click="$refs.fileInputMobile.click()"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,7 +73,7 @@
           <AppButton
             variant="ghost"
             size="sm"
-            class="!px-1.5 text-[var(--color-info)] hover:text-[var(--color-info)] hover:bg-[var(--color-info)]/10"
+            class="!px-1.5 text-[var(--color-info)] hover:bg-[var(--color-info)]/10 hover:text-[var(--color-info)]"
             :title="t('fileManager.actions.move')"
             @click="$emit('batch-move')"
           >
@@ -85,7 +85,7 @@
           <AppButton
             variant="ghost"
             size="sm"
-            class="!px-1.5 text-[var(--color-danger)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
+            class="!px-1.5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)]"
             :title="t('fileManager.actions.delete')"
             @click="$emit('batch-delete')"
           >
@@ -132,7 +132,7 @@
       <div class="hidden lg:block">
         <Tooltip :content="t('fileManager.upload')">
           <button
-            class="flex size-10 items-center justify-center rounded-xl bg-primary text-(--text-inverse) shadow-primary/20 shadow-lg transition-all hover:-translate-y-0.5 hover:bg-primary-hover hover:shadow-primary/30 active:translate-y-0 active:scale-95 dark:text-gray-900"
+            class="bg-primary shadow-primary/20 flex size-10 items-center justify-center rounded-xl text-(--text-inverse) shadow-lg transition-all hover:bg-primary-hover hover:shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 dark:text-gray-900"
             @click="$refs.fileInput.click()"
           >
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -157,7 +157,7 @@
       <!-- 回收站 -->
       <Tooltip :content="t('trash.title')">
         <button
-          class="text-secondary flex size-9 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:text-[var(--color-danger)] hover:bg-red-50 hover:border-red-200 active:scale-95 lg:size-10"
+          class="text-secondary flex size-9 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:border-red-200 hover:bg-red-50 hover:text-[var(--color-danger)] active:scale-95 lg:size-10"
           @click="$emit('open-trash')"
         >
           <svg class="size-4 lg:size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -187,8 +187,8 @@
               :key="mode"
               size="sm"
               variant="ghost"
-              class="!p-1.5 !h-7"
-              :class="{ 'bg-[var(--bg-card)] shadow-sm text-[var(--color-primary)]': viewMode === mode }"
+              class="!h-7 !p-1.5"
+              :class="{ 'bg-[var(--bg-card)] text-[var(--color-primary)] shadow-sm': viewMode === mode }"
               @click="$emit('update:viewMode', mode)"
           >
               <template #icon-left>

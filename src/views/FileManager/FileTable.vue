@@ -17,7 +17,7 @@
             class="flex size-5 shrink-0 items-center justify-center rounded border transition-colors"
             :class="[
               selectedIds.has(row.id)
-                ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+                ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--text-inverse)]'
                 : 'border-[var(--border-color)] bg-[var(--bg-card)] group-hover:border-[var(--text-secondary)]'
             ]"
             @click.stop="$emit('toggle', row)"
@@ -46,7 +46,7 @@
           </div>
 
           <!-- Name -->
-          <span class="font-medium text-[var(--text-main)] truncate max-w-[200px] sm:max-w-xs">
+          <span class="max-w-[200px] truncate font-medium text-[var(--text-main)] sm:max-w-xs">
             {{ row.originalName || row.name }}
           </span>
         </div>
@@ -71,7 +71,7 @@
           <AppButton
             variant="ghost"
             size="sm"
-            class="!p-1.5 !h-8 !w-8"
+            class="!size-8  !p-1.5"
             :title="t('fileManager.actions.share')"
             @click.stop="$emit('share', row)"
           >
@@ -84,7 +84,7 @@
           <AppButton
             variant="ghost"
             size="sm"
-            class="!p-1.5 !h-8 !w-8"
+            class="!size-8  !p-1.5"
             @click.stop="$emit('context-menu', $event, row)"
           >
             <template #icon-left>

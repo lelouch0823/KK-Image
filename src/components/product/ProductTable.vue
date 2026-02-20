@@ -60,7 +60,7 @@
 
     <!-- Category Cell -->
     <template #cell-category="{ value }">
-       <span v-if="value" class="inline-flex items-center rounded-full bg-info-bg px-2 py-0.5 text-xs font-medium text-info">
+       <span v-if="value" class="bg-info-bg text-info inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
           {{ value }}
        </span>
        <span v-else class="text-(--text-muted)">-</span>
@@ -112,14 +112,14 @@
     <template #cell-actions="{ row }">
       <div class="flex items-center justify-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
           <button 
-            class="rounded-lg p-1.5 text-(--text-muted) transition-colors hover:bg-info-bg hover:text-info"
+            class="hover:bg-info-bg hover:text-info rounded-lg p-1.5 text-(--text-muted) transition-colors"
             :title="t('common.edit') || 'Edit'"
             @click.stop="$emit('edit', row)"
           >
               <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
           </button>
           <button 
-            class="rounded-lg p-1.5 text-(--text-muted) transition-colors hover:bg-danger-bg hover:text-danger"
+            class="hover:bg-danger-bg hover:text-danger rounded-lg p-1.5 text-(--text-muted) transition-colors"
             :title="t('common.delete') || 'Delete'"
             @click.stop="$emit('delete', row)"
           >

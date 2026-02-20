@@ -111,11 +111,11 @@
       <!-- Divider -->
       <div
         v-if="displayedSubfolders.length > 0 && displayedFiles.length > 0"
-        class="mx-4 my-4 h-px bg-[var(--border-color)] lg:mx-6 lg:my-6"
+        class="m-4  h-px bg-[var(--border-color)] lg:m-6 "
       ></div>
 
       <!-- Files -->
-      <div v-if="displayedFiles.length > 0" class="flex-1 px-4 pb-4 pt-0 lg:px-6 lg:pb-6" @click="selectedIds.clear()">
+      <div v-if="displayedFiles.length > 0" class="flex-1 px-4 pt-0 pb-4 lg:px-6 lg:pb-6" @click="selectedIds.clear()">
         <h3
           v-if="displayedSubfolders.length > 0"
           class="text-secondary my-4 text-sm font-semibold lg:mt-6"

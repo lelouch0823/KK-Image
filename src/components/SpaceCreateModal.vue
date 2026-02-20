@@ -49,21 +49,19 @@
       <!-- 动态表单: 商品模版 -->
       <div
         v-if="form.template === 'product'"
-        class="space-y-4 border-t border-[var(--border-subtle)] pt-2"
+        class="space-y-4 border-t border-[var(--border-subtle)] pt-4"
       >
-        <!-- Form -->
-        <form class="space-y-4" @submit.prevent="handleSubmit">
+        <div class="space-y-4">
+          <ProductBindingSection
+            :bound-product="boundProduct"
+            @select="handleProductSelect"
+            @unbind="unbindProduct"
+          />
+
           <AppInput
             v-model="form.name"
             :label="t('space.name')"
             :placeholder="t('space.namePlaceholder')"
-            required
-          />
-
-          <AppInput
-            v-model="form.slug"
-            :label="t('space.slug')"
-            :placeholder="t('space.slugPlaceholder')"
             required
           />
 
@@ -74,23 +72,7 @@
             textarea
             rows="3"
           />
-
-          <!-- Actions -->
-          <div class="mt-6 flex justify-end gap-3">
-            <AppButton
-              variant="secondary"
-              :text="t('common.cancel')"
-              :disabled="loading"
-              @click="close"
-            />
-            <AppButton
-              type="submit"
-              variant="primary"
-              :text="isEdit ? t('common.save') : t('common.create')"
-              :loading="loading"
-            />
-          </div>
-        </form>
+        </div>
       </div>
 
       <!-- 动态表单: 通用模版 -->
@@ -134,9 +116,9 @@ import { ref, watch, computed } from 'vue';
 import { useModalStack } from '@/composables/useModalStack';
 import { useSpaces } from '@/composables/useSpaces';
 import { useI18n } from '@/composables/useI18n';
-import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import Modal from '@/components/ui/Modal.vue';
+import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
 
 const props = defineProps({
   parentId: { type: String, default: null }, // 如果提供则为创建子空间
@@ -149,15 +131,19 @@ const { t } = useI18n();
 
 const isSubspace = computed(() => !!props.parentId);
 
+const boundProduct = ref(null);
+
 const form = ref({
   name: '',
   description: '',
   template: 'gallery',
+  productId: null,
   templateData: {
     brand: '',
     series: '',
     price: '',
     material: '',
+    sku: '',
   },
 });
 
@@ -203,6 +189,31 @@ const submitButtonText = computed(() => {
     ? t('spaceManager.createProduct')
     : t('spaceManager.createSpace');
 });
+
+const handleProductSelect = (product) => {
+  let mainImage = null;
+  if (product.images) {
+    const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
+    mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
+  }
+  
+  boundProduct.value = {
+    id: product.id,
+    name: product.name,
+    sku: product.sku,
+    brand: product.brand,
+    series: product.series,
+    mainImage,
+  };
+  form.value.productId = product.id;
+
+  if (!form.value.name) form.value.name = product.name || '';
+};
+
+const unbindProduct = () => {
+  boundProduct.value = null;
+  form.value.productId = null;
+};
 
 const handleSubmit = async () => {
   if (!form.value.name.trim()) return;

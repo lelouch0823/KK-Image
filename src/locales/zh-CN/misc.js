@@ -15,7 +15,9 @@ export default {
     update: '更新分享链接',
     directLink: '文件直链 (永久有效)',
     copiedClipboard: '已复制到剪贴板',
-    needUpdateExpiry: '需要更新有效期？',
+    copyLink: '复制链接',
+    networkError: '网络错误',
+    needUpdateExpiry: '是否需要更新有效时间？',
     generateFailed: '生成失败',
     linkCopied: '链接已复制',
     unknownFile: '未知文件',
@@ -26,6 +28,12 @@ export default {
     total: '共 {count} 条',
     prevPage: '上一页',
     nextPage: '下一页',
+    noActiveShares: '暂无活跃分享',
+    table: {
+      name: '文件名称',
+      code: '提取码',
+      expires: '过期时间',
+    },
   },
 
   // 文件选择器
@@ -95,6 +103,9 @@ export default {
     deleteSuccess: '删除成功',
     deleteFailed: '删除失败',
     fileDeleted: '文件已删除',
+    renameSuccess: '重命名成功',
+    renameFailed: '重命名失败',
+    moveFailed: '移动失败',
   },
 
   // 上传队列

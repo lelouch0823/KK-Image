@@ -14,7 +14,7 @@
     <!-- Background Blob (for glow mode) -->
     <div
       v-if="glow"
-      class="absolute -top-6 -right-6 rounded-full p-12 blur-2xl transition-transform opacity-20 group-hover:opacity-40"
+      class="absolute -top-6 -right-6 rounded-full p-12 opacity-20 blur-2xl transition-transform group-hover:opacity-40"
       :class="blobClass"
     ></div>
     <template v-if="loading">
@@ -38,7 +38,7 @@
         </span>
       </div>
 
-      <div class="text-2xl font-bold text-(--text-main) tabular-nums transition-colors group-hover:text-primary">
+      <div class="group-hover:text-primary text-2xl font-bold text-(--text-main) tabular-nums transition-colors">
         <slot>{{ formattedValue }}</slot>
       </div>
 

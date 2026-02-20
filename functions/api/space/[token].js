@@ -10,6 +10,7 @@ import { MSG } from '../utils/messages.js';
 import { timingSafeCompare, isAdminAuthenticated } from '../utils/auth.js';
 import { getFileType } from '../utils/file-utils.js';
 import { getFileUrl } from '../utils/url.js';
+import { projectSpaceTemplateData } from '../../lib/hono/routes/manage/spaces/transformers.js';
 
 /**
  * 获取空间数据 (GET/POST 共享逻辑)
@@ -27,11 +28,13 @@ async function getSpaceData(space, env) {
       .bind(space.id)
       .all(),
     env.DB.prepare(
-      `SELECT s.id, s.name, s.template, s.share_token, s.description,
+      `SELECT s.id, s.name, s.template, s.share_token, s.description, s.template_data, s.product_id,
               (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
-              f.storage_key as cover_storage_key
+              f.storage_key as cover_storage_key,
+              p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
        FROM spaces s
        LEFT JOIN files f ON s.cover_file_id = f.id
+       LEFT JOIN products p ON s.product_id = p.id
        WHERE s.parent_id = ? AND s.is_public = 1
        ORDER BY s.sort_order ASC, s.name ASC`
     )
@@ -60,6 +63,33 @@ async function getSpaceData(space, env) {
 
   const allFiles = Object.values(groupedFiles).flat();
 
+  // 注入商品自带的图片到文件列表中 (置于首部)
+  if (space.p_images) {
+    try {
+      const pImages = typeof space.p_images === 'string' ? JSON.parse(space.p_images) : space.p_images;
+      if (Array.isArray(pImages) && pImages.length > 0) {
+        const productFiles = pImages.map((imgUrl, index) => ({
+          id: `product-img-${index}`,
+          name: `Product Image ${index + 1}`,
+          size: 0,
+          type: 'image',
+          mimeType: 'image/jpeg', // Assumption for rendering
+          url: imgUrl,
+          thumbnailUrl: imgUrl,
+        }));
+
+        // prepend to allFiles
+        allFiles.unshift(...productFiles);
+
+        // Also add to 'default' section grouping if needed for specific templates
+        if (!groupedFiles['default']) groupedFiles['default'] = [];
+        groupedFiles['default'].unshift(...productFiles);
+      }
+    } catch (_e) {
+      // ignore json parse error
+    }
+  }
+
   // 封面图片 - 优先使用显式设置的封面，否则回退到第一张图片
   let coverImage = null;
   if (space.cover_file_id) {
@@ -75,7 +105,7 @@ async function getSpaceData(space, env) {
     name: space.name,
     description: space.description,
     template: space.template,
-    templateData: space.template_data ? JSON.parse(space.template_data) : null,
+    templateData: projectSpaceTemplateData(space),
     coverImage,
     coverFileId: space.cover_file_id,
     fileCount: allFiles.length,
@@ -87,6 +117,7 @@ async function getSpaceData(space, env) {
       name: s.name,
       description: s.description,
       template: s.template,
+      templateData: projectSpaceTemplateData(s),
       fileCount: s.file_count,
       shareUrl: s.share_token ? `/space/${s.share_token}` : null,
       coverImage: s.cover_storage_key ? getFileUrl(s.cover_storage_key) : null,
@@ -100,9 +131,13 @@ export async function onRequestGet(context) {
 
   try {
     // 查找空间
-    const space = await env.DB.prepare('SELECT * FROM spaces WHERE share_token = ?')
-      .bind(shareToken)
-      .first();
+    const space = await env.DB.prepare(`
+        SELECT s.*,
+            p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
+        FROM spaces s
+        LEFT JOIN products p ON s.product_id = p.id
+        WHERE s.share_token = ?
+    `).bind(shareToken).first();
 
     if (!space) {
       return error(MSG.SPACE.NOT_FOUND, 404);
@@ -176,9 +211,13 @@ export async function onRequestPost(context) {
     }
 
     // 查找空间
-    const space = await env.DB.prepare('SELECT * FROM spaces WHERE share_token = ?')
-      .bind(shareToken)
-      .first();
+    const space = await env.DB.prepare(`
+        SELECT s.*,
+            p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
+        FROM spaces s
+        LEFT JOIN products p ON s.product_id = p.id
+        WHERE s.share_token = ?
+    `).bind(shareToken).first();
 
     if (!space) {
       return error(MSG.SPACE.NOT_FOUND, 404);

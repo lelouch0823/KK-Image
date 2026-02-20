@@ -1,10 +1,9 @@
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { 
-  triggerWebhook, 
-  registerWebhook, 
-  deleteWebhook, 
-  getWebhooks,
-  WEBHOOK_EVENTS
+import {
+  triggerWebhook,
+  registerWebhook,
+  deleteWebhook
 } from '../webhook';
 
 describe('Webhook Utils Final 100%', () => {
@@ -22,28 +21,28 @@ describe('Webhook Utils Final 100%', () => {
       batch: vi.fn().mockResolvedValue([])
     };
     env = { DB: db };
-    global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
   });
 
   it('registerWebhook and deleteWebhook success paths', async () => {
-     db.first.mockResolvedValueOnce(null); // No existing for register
-     const res = await registerWebhook(env, { url: 'https://h.com' });
-     expect(res.id).toBeDefined();
+    db.first.mockResolvedValueOnce(null); // No existing for register
+    const res = await registerWebhook(env, { url: 'https://h.com' });
+    expect(res.id).toBeDefined();
 
-     db.first.mockResolvedValueOnce({ id: res.id }); // Found for delete
-     expect(await deleteWebhook(env, res.id)).toBe(true);
+    db.first.mockResolvedValueOnce({ id: res.id }); // Found for delete
+    expect(await deleteWebhook(env, res.id)).toBe(true);
   });
 
   it('triggerWebhook coverage (including logs and retries)', async () => {
-      db.all.mockResolvedValueOnce({ results: [{ id: 'w1', url: 'https://h.com', enabled: 1 }] });
-      global.fetch.mockRejectedValue(new Error('!'));
-      
-      vi.useFakeTimers();
-      const p = triggerWebhook(env, 'e', {});
-      await vi.runAllTimersAsync();
-      await p;
-      
-      expect(db.prepare).toHaveBeenCalled(); // Should log execution
-      vi.useRealTimers();
+    db.all.mockResolvedValueOnce({ results: [{ id: 'w1', url: 'https://h.com', enabled: 1 }] });
+    globalThis.fetch.mockRejectedValue(new Error('!'));
+
+    vi.useFakeTimers();
+    const p = triggerWebhook(env, 'e', {});
+    await vi.runAllTimersAsync();
+    await p;
+
+    expect(db.prepare).toHaveBeenCalled(); // Should log execution
+    vi.useRealTimers();
   });
 });

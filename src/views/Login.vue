@@ -16,7 +16,7 @@
             KK
           </div>
           <h1 class="text-primary mb-2 text-2xl font-bold">{{ t('auth.welcome') }}</h1>
-          <p class="text-(--text-secondary) text-sm">{{ t('auth.subtitle') }}</p>
+          <p class="text-sm text-(--text-secondary)">{{ t('auth.subtitle') }}</p>
         </div>
 
         <!-- 登录与转场容器 -->
@@ -164,7 +164,7 @@
               <div class="relative mb-6">
                 <div class="bg-primary/20 absolute inset-0 size-16 animate-ping rounded-full"></div>
                 <div
-                  class="bg-primary relative flex size-16 items-center justify-center rounded-full text-white shadow-lg"
+                  class="bg-primary relative flex size-16 items-center justify-center rounded-full text-[var(--text-inverse)] shadow-lg"
                 >
                   <svg class="size-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path

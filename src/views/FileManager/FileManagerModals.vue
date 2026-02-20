@@ -5,10 +5,10 @@
       <form @submit.prevent="handleCreateFolder">
         <AppInput
           v-model="newFolderName"
+          v-focus
           :placeholder="t('fileManager.folderNamePlaceholder')"
           class="mb-6"
           required
-          v-focus
         />
         <div class="flex justify-end gap-3">
           <AppButton
@@ -31,9 +31,9 @@
       <form @submit.prevent="handleRename">
         <AppInput
           v-model="renameName"
+          v-focus
           class="mb-6"
           required
-          v-focus
         />
         <div class="flex justify-end gap-3">
           <AppButton

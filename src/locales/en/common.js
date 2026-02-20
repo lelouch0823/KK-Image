@@ -75,7 +75,15 @@ export default {
   salesperson: 'Salesperson',
   close: 'Close',
   click_to_upload: 'Click to select files',
-  or_drag_drop: 'or drag and drop here',
+  or_drag_drop: 'or drag and drop',
   create: 'Create',
+  noSearchResults: 'No matching content found for "{query}"',
+  noResultsDesc: 'Failed to find matching content for "{query}"',
+  clearSearch: 'Clear Search',
   total: 'Total',
+  text: {
+    create_first_item: 'Click to create the first item',
+    empty_data: 'Nothing here',
+    no_description: 'No description',
+  },
 };

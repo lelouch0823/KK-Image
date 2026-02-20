@@ -26,8 +26,8 @@
               </span>
               <button
                 class="flex items-center gap-1.5 rounded-lg bg-[var(--color-primary-bg)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary-hover)]"
-                @click="handleRestoreSelected"
                 :disabled="loading"
+                @click="handleRestoreSelected"
               >
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -41,8 +41,8 @@
               </button>
               <button
                 class="flex items-center gap-1.5 rounded-lg bg-[var(--color-danger-bg)] px-3 py-1.5 text-sm font-medium text-[var(--color-danger)] transition-colors hover:bg-red-100"
-                @click="handleDeleteSelected"
                 :disabled="loading"
+                @click="handleDeleteSelected"
               >
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -61,8 +61,8 @@
           <button
             v-if="files.length > 0"
             class="group relative flex items-center gap-2 rounded-lg border border-[var(--color-danger)]/30 bg-[var(--bg-card)] px-4 py-2 text-sm font-medium text-[var(--color-danger)] transition-all hover:bg-[var(--color-danger)]/10 hover:shadow-sm disabled:opacity-50"
-            @click="showEmptyConfirm = true"
             :disabled="loading || selectedIds.length > 0"
+            @click="showEmptyConfirm = true"
           >
             <svg
               class="size-4 transition-transform duration-300 group-hover:rotate-12"
@@ -94,7 +94,7 @@
         <!-- 空状态 -->
         <div
           v-else-if="files.length === 0"
-          class="flex h-full flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-500"
+          class="animate-in fade-in zoom-in flex h-full flex-col items-center justify-center text-center duration-500"
         >
           <div class="relative mb-6">
             <div
@@ -123,7 +123,7 @@
         <!-- 文件列表 -->
         <div v-else class="h-full overflow-y-auto rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm">
           <table class="w-full text-left text-sm">
-            <thead class="bg-[var(--bg-muted)] sticky top-0 z-10 backdrop-blur-sm">
+            <thead class="sticky top-0 z-10 bg-[var(--bg-muted)] backdrop-blur-sm">
               <tr>
                 <th class="w-12 px-4 py-3">
                   <AppCheckbox
@@ -143,12 +143,12 @@
                 <th class="px-4 py-3 font-medium text-[var(--text-secondary)]">
                   {{ t('trash.deletedAt') }}
                 </th>
-                <th class="w-32 px-4 py-3 font-medium text-[var(--text-secondary)] text-right">
+                <th class="w-32 px-4 py-3 text-right font-medium text-[var(--text-secondary)]">
                   {{ t('fileManager.table.actions') }}
                 </th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-[var(--border-color)] relative">
+            <tbody class="relative divide-y divide-[var(--border-color)]">
               <transition-group name="list">
               <tr
                 v-for="(file, index) in files"
@@ -159,15 +159,15 @@
               >
                 <td class="px-4 py-3">
                   <AppCheckbox
-                    :value="file.id"
                     v-model="selectedIds"
+                    :value="file.id"
                   />
                 </td>
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-3">
                     <!-- 图标 (Grayscale filter) -->
                     <div
-                      class="flex size-8 shrink-0 items-center justify-center rounded bg-[var(--bg-muted)] text-[var(--text-muted)] grayscale opacity-80"
+                      class="flex size-8 shrink-0 items-center justify-center rounded bg-[var(--bg-muted)] text-[var(--text-muted)] opacity-80 grayscale"
                     >
                       <AppImage
                         v-if="isImage(file.name) && file.thumbnail"

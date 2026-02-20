@@ -122,6 +122,7 @@ export default {
     auto_matched: '匹配结果',
     image_match_stats: '{matched} / {total}',
     upload_and_continue: '上传并继续',
+    uploading: '上传中...',
     mapping_confirm: '确认映射',
     back: '上一步',
     match_hint: '未匹配到任何图片，确定要继续吗？这些商品将没有图片。',

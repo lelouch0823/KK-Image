@@ -240,7 +240,7 @@ const loadFoldersStructure = async () => {
       allFolders.value = result.data || [];
     }
   } catch (err) {
-    console.error(t('moveFile.loadFailed'), err);
+    console.error(t('common.loadFailed'), err);
   }
 };
 
@@ -305,7 +305,7 @@ const loadFiles = async () => {
       }
     }
   } catch (err) {
-    console.error(t('fileManager.loadFailed'), err);
+    console.error(t('common.loadFailed'), err);
     files.value = [];
   } finally {
     loading.value = false;

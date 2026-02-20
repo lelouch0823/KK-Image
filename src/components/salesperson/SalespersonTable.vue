@@ -34,7 +34,7 @@
     <template #cell-orderCount="{ row, value }">
       <button
         v-if="value > 0"
-        class="cursor-pointer text-info hover:underline"
+        class="text-info cursor-pointer hover:underline"
         :title="t('salesperson.viewOrders')"
         @click.stop="$emit('view-orders', row)"
       >
@@ -52,9 +52,9 @@
 
     <!-- Actions Cell -->
     <template #cell-actions="{ row }">
-      <div class="flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 mobile:opacity-100">
+      <div class="mobile:opacity-100 flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
         <button
-          class="rounded-lg p-1.5 text-(--text-secondary) transition-colors hover:bg-(--bg-hover) hover:text-primary active:scale-90"
+          class="hover:text-primary hover:bg-(--bg-hover) rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90"
           :title="t('salesperson.copyLink')"
           @click.stop="$emit('copy', row.accessToken)"
         >
@@ -68,7 +68,7 @@
           </svg>
         </button>
         <button
-          class="rounded-lg p-1.5 text-(--text-secondary) transition-colors hover:bg-info-bg hover:text-info active:scale-90"
+          class="hover:bg-info-bg hover:text-info rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90"
           :title="t('salesperson.edit')"
           @click.stop="$emit('edit', row)"
         >
@@ -82,7 +82,7 @@
           </svg>
         </button>
         <button
-          class="rounded-lg p-1.5 text-(--text-secondary) transition-colors hover:bg-danger/10 hover:text-danger active:scale-90 disabled:cursor-not-allowed disabled:opacity-30"
+          class="hover:bg-danger/10 hover:text-danger rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90 disabled:cursor-not-allowed disabled:opacity-30"
           :title="row.orderCount > 0 ? t('salesperson.cannotDeleteHasOrders') : t('common.delete')"
           :disabled="row.orderCount > 0"
           @click.stop="$emit('delete', row)"

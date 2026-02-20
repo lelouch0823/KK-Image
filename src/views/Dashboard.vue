@@ -19,7 +19,7 @@
           <div class="mt-1 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
             <span class="flex items-center gap-1.5">
               <span class="relative flex size-2">
-                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75"></span>
+                <span class="absolute inline-flex size-full  animate-ping rounded-full bg-emerald-500 opacity-75"></span>
                 <span class="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
               </span>
               {{ t('dashboard.liveStatus') }}
@@ -283,7 +283,7 @@
                     <ul class="divide-y divide-[var(--border-subtle)] dark:divide-white/5">
                         <li v-for="(file, index) in recentFiles" :key="index" class="flex items-center justify-between p-4 transition-colors hover:bg-[var(--bg-hover)] dark:hover:bg-[#161b26]">
                             <div class="flex items-center gap-3 overflow-hidden">
-                                <div class="shadow-glow-cyan flex size-8 shrink-0 items-center justify-center rounded-lg border border-cyan-500/20 bg-[var(--bg-card)] overflow-hidden text-xs font-bold text-cyan-600 uppercase dark:bg-[#1a202c] dark:text-cyan-400">
+                                <div class="shadow-glow-cyan flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-cyan-500/20 bg-[var(--bg-card)] text-xs font-bold text-cyan-600 uppercase dark:bg-[#1a202c] dark:text-cyan-400">
                                      <AppImage
                                        v-if="isImage(file)"
                                        :src="file.url"

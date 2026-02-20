@@ -13,7 +13,7 @@
         <!-- 未来可扩展：导入、归档等按钮 -->
         <Tooltip :content="t('spaceManager.create')">
           <button
-            class="flex size-9 items-center justify-center rounded-lg bg-primary text-(--text-inverse) shadow-sm transition-colors hover:bg-primary-hover dark:text-gray-900"
+            class="bg-primary flex size-9 items-center justify-center rounded-lg text-(--text-inverse) shadow-sm transition-colors hover:bg-primary-hover dark:text-gray-900"
             @click="showCreateModal = true"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

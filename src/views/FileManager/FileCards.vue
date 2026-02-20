@@ -45,7 +45,7 @@
         <AppButton
           variant="ghost"
           size="sm"
-          class="!p-1.5 !h-8 !w-8"
+          class="!size-8  !p-1.5"
           @click.stop="$emit('share', file)"
         >
           <template #icon-left>
@@ -57,7 +57,7 @@
         <AppButton
           variant="ghost"
           size="sm"
-          class="!p-1.5 !h-8 !w-8"
+          class="!size-8  !p-1.5"
           @click.stop="$emit('context-menu', $event, file)"
         >
           <template #icon-left>

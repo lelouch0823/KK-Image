@@ -61,7 +61,7 @@
 
         <div
           v-if="flattenedFolders.length === 0 && !loading"
-          class="py-4 text-center text-sm text-secondary"
+          class="text-secondary py-4 text-center text-sm"
         >
           {{ t('moveFile.empty') }}
         </div>

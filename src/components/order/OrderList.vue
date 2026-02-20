@@ -93,12 +93,12 @@
                     <span class="text-secondary font-mono text-[10px] tracking-wide">{{ order.orderNo }}</span>
                     <!-- New Update Red Dot -->
                     <div v-if="order.hasNewFeedback" class="relative flex size-2">
-                      <span class="absolute inline-flex size-full animate-ping rounded-full bg-danger opacity-75"></span>
-                      <span class="relative inline-flex size-2 rounded-full bg-danger"></span>
+                      <span class="bg-danger absolute inline-flex size-full animate-ping rounded-full opacity-75"></span>
+                      <span class="bg-danger relative inline-flex size-2 rounded-full"></span>
                     </div>
                 </div>
                 <!-- 预留右侧 Badge 空间，防止文字重叠 -->
-                <h4 class="text-primary mt-0.5 truncate pr-16 text-sm font-bold leading-tight">
+                <h4 class="text-primary mt-0.5 truncate pr-16 text-sm leading-tight font-bold">
                   {{ order.productName || t('order.form.productName') }}
                 </h4>
               </div>
@@ -107,7 +107,7 @@
                 <!-- 客户信息 (针对销售端显示) -->
                 <div class="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
                     <svg class="size-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                    <span class="truncate max-w-[80px]">{{ order.customer?.name || t('common.unknown') }}</span>
+                    <span class="max-w-[80px] truncate">{{ order.customer?.name || t('common.unknown') }}</span>
                     <span class="text-[var(--border-color)]">|</span>
                     <span>{{ formatTime(order.createdAt) }}</span>
                 </div>

@@ -49,7 +49,7 @@
           @change="$emit('update:isPublic', $event.target.checked)"
         />
         <div
-          class="peer h-5 w-9 rounded-full bg-[var(--border-strong)] transition-all peer-checked:bg-[var(--color-primary)] peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full"
+          class="peer h-5 w-9 rounded-full bg-[var(--border-strong)] transition-all peer-checked:bg-[var(--color-primary)] peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-[var(--bg-card)] after:transition-all after:content-[''] peer-checked:after:translate-x-full"
         ></div>
       </label>
     </div>
@@ -108,7 +108,7 @@
               @change="$emit('update:passwordEnabled', $event.target.checked)"
             />
             <div
-              class="peer h-4 w-7 rounded-full bg-[var(--color-gray-200)] peer-checked:bg-primary after:absolute after:top-[2px] after:left-[2px] after:h-3 after:w-3 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full"
+              class="peer h-4 w-7 rounded-full bg-[var(--color-gray-200)] peer-checked:bg-primary after:absolute after:top-[2px] after:left-[2px] after:h-3 after:w-3 after:rounded-full after:bg-[var(--bg-card)] after:transition-all after:content-[''] peer-checked:after:translate-x-full"
             ></div>
           </label>
         </div>

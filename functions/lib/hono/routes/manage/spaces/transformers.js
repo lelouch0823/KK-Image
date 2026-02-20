@@ -6,6 +6,34 @@
 import { getShareUrl, getFileUrl } from '../../../_shared/utils.js';
 
 /**
+ * 投影商品字段到空间模版数据中
+ * @param {Object} space 
+ * @returns {Object} 包含商品字段的 templateData
+ */
+export function projectSpaceTemplateData(space) {
+  const templateData = space.template_data ? JSON.parse(space.template_data) : {};
+
+  // 如果绑定了产品，用产品表 JOIN 过来的数据覆盖空间的模板字段
+  if (space.product_id) {
+    if (space.p_brand !== undefined) templateData.brand = space.p_brand || '';
+    if (space.p_series !== undefined) templateData.series = space.p_series || '';
+    if (space.p_sku !== undefined) templateData.sku = space.p_sku || '';
+    if (space.p_price !== undefined) templateData.price = space.p_price !== null ? String(space.p_price) : '';
+
+    if (space.p_specs) {
+      try {
+        const specs = typeof space.p_specs === 'string' ? JSON.parse(space.p_specs) : space.p_specs;
+        if (specs?.material) templateData.material = specs.material || '';
+      } catch (_e) {
+        // console.error 忽略 JSON 解析错误
+      }
+    }
+  }
+
+  return templateData;
+}
+
+/**
  * 转换空间列表项
  * @param {Object} space - 数据库空间记录
  * @returns {Object} API 响应格式
@@ -50,7 +78,7 @@ export function transformSpaceDetail(space, files = []) {
     shareMode: space.share_mode || 'none',
     expiresAt: space.expires_at,
     template: space.template,
-    templateData: space.template_data ? JSON.parse(space.template_data) : {},
+    templateData: projectSpaceTemplateData(space),
     coverFileId: space.cover_file_id,
     viewCount: space.view_count,
     productId: space.product_id || null,

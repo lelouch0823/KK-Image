@@ -1,6 +1,6 @@
 <template>
   <span
-    class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-bold border transition-colors duration-200"
+    class="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-bold transition-colors duration-200"
     :class="computedClasses"
   >
     <span v-if="dot" class="size-1.5 rounded-full bg-current opacity-75"></span>

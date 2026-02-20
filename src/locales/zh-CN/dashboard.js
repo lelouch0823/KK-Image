@@ -46,4 +46,5 @@ export default {
   awaitingAction: '等待处理',
   browseAllFiles: '浏览所有文件',
   noRecentFilesDesc: '最近没有上传或更新的文件',
+  footer: 'KK-Image 版权所有',
 };

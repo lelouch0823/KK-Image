@@ -64,7 +64,7 @@
     <!-- 主图/封面标记 -->
     <div
       v-if="isCover"
-      class="bg-primary absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] text-white shadow-sm dark:text-gray-900"
+      class="bg-primary absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] text-[var(--text-inverse)] shadow-sm "
     >
       {{ coverText }}
     </div>

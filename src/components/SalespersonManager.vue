@@ -14,7 +14,7 @@
 
         <!-- Mobile Create Button -->
         <button
-          class="flex size-9 items-center justify-center rounded-xl bg-[var(--color-primary)] text-white shadow-lg shadow-[var(--color-primary)]/20 transition-all active:scale-95 sm:hidden dark:text-gray-900"
+          class="flex size-9 items-center justify-center rounded-xl bg-[var(--color-primary)] text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all active:scale-95 sm:hidden "
           @click="openModal()"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -34,7 +34,7 @@
 
         <!-- 新建按钮 (Desktop) -->
         <button
-          class="hidden sm:flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white shadow-[var(--color-primary)]/10 shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 dark:text-gray-900"
+          class="hidden items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/10 shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 sm:flex "
           @click="openModal()"
         >
           <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

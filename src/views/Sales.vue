@@ -37,7 +37,7 @@
               </div>
               <div>
                 <h1 class="text-primary text-sm font-semibold">{{ t('order.portal.myOrders') }}</h1>
-                <p class="text-(--text-secondary) text-xs">{{ salesperson?.name }}</p>
+                <p class="text-xs text-(--text-secondary)">{{ salesperson?.name }}</p>
               </div>
             </template>
 
@@ -45,7 +45,7 @@
               <AppButton
                 variant="secondary"
                 size="sm"
-                class="group !p-0 !size-8"
+                class="group !size-8 !p-0"
                 @click="router.push(`/sales/${accessToken}`)"
               >
                 <template #icon-left>
@@ -75,7 +75,7 @@
                   <!-- 红点 -->
                   <span
                     v-if="notificationUnreadCount > 0"
-                    class="absolute top-1.5 right-1.5 size-2 rounded-full border border-(--bg-card) bg-danger"
+                    class="bg-danger absolute top-1.5 right-1.5 size-2 rounded-full border border-(--bg-card)"
                   ></span>
                 </template>
               </AppButton>

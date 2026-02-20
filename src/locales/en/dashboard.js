@@ -43,4 +43,9 @@ export default {
   awaitingAction: 'Awaiting Action',
   browseAllFiles: 'Browse All Files',
   noRecentFilesDesc: 'No files uploaded recently',
+  title: 'Dashboard',
+  liveStatus: 'Live Status',
+  lastUpdated: 'Last Updated',
+  viewAllPending: 'View all pending orders',
+  footer: 'KK-Image All Rights Reserved',
 };

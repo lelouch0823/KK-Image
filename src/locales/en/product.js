@@ -122,6 +122,7 @@ export default {
     auto_matched: 'Matched',
     image_match_stats: '{matched} / {total}',
     upload_and_continue: 'Upload & Continue',
+    uploading: 'Uploading...',
     mapping_confirm: 'Confirm Mapping',
     back: 'Back',
     match_hint: 'No images matched. Continue without images?',

@@ -67,7 +67,7 @@ export function useBatchDownload() {
 
       addToast({ message: t('batchDownload.started'), type: 'success' });
     } catch (_e) {
-      addToast({ message: t('common.downloadFailed'), type: 'error' });
+      addToast({ message: t('batchDownload.failed'), type: 'error' });
     } finally {
       downloading.value = false;
       downloadProgress.value = 0;

@@ -24,16 +24,29 @@
         <div class="truncate font-medium text-[var(--text-main)]">{{ boundProduct.name }}</div>
         <div class="mt-0.5 text-xs text-[var(--text-secondary)]">{{ t('product.form.sku') }}: {{ boundProduct.sku }}</div>
       </div>
-      <button 
-        type="button" 
-        class="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)]"
-        :title="t('order.binding.unbind')"
-        @click="$emit('unbind')"
-      >
-        <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+      <div class="flex items-center gap-1">
+        <a 
+          :href="`/admin/products?edit=${boundProduct.id}`"
+          target="_blank"
+          class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/10"
+          :title="t('product.action.edit')"
+        >
+          <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+          {{ t('product.action.edit') }}
+        </a>
+        <button 
+          type="button" 
+          class="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)]"
+          :title="t('order.binding.unbind')"
+          @click="$emit('unbind')"
+        >
+          <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- Product Selector -->

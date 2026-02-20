@@ -29,7 +29,7 @@
             class="flex size-6 items-center justify-center rounded-full border-2 text-xs font-medium transition-all"
             :class="
               index <= currentStepIndex
-                ? 'bg-primary border-primary text-white'
+                ? 'bg-primary border-primary text-[var(--text-inverse)]'
                 : 'text-secondary border-[var(--border-hover)] bg-[var(--bg-card)]'
             "
           >

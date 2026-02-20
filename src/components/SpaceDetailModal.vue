@@ -109,13 +109,13 @@
     <!-- Footer -->
     <template #footer>
       <button
-        class="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-primary"
+        class="hover:text-primary px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors"
         @click="$emit('close')"
       >
         {{ t('spaceManager.close') }}
       </button>
       <button
-        class="rounded-lg bg-[var(--bg-muted)] px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-[var(--bg-hover)]"
+        class="text-primary rounded-lg bg-[var(--bg-muted)] px-4 py-2 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
         @click="openPreview"
       >
         {{ t('spaceManager.preview') }}

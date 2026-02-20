@@ -52,7 +52,7 @@
             <AppButton
               variant="secondary"
               size="sm"
-              class="!w-10 !h-10 !p-0 shrink-0"
+              class="!size-10  shrink-0 !p-0"
               @click="copyLink"
             >
               <template #icon-left>
@@ -61,7 +61,7 @@
             </AppButton>
           </Tooltip>
         </div>
-        <p v-if="copied" class="mt-2 flex items-center text-xs text-success">
+        <p v-if="copied" class="text-success mt-2 flex items-center text-xs">
           <svg class="mr-1 size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"

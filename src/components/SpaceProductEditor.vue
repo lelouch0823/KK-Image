@@ -5,7 +5,7 @@
   >
     <!-- 移动端: 全屏底部抽屉 | 桌面端: 居中弹窗 -->
     <div
-      class="flex size-full flex-col overflow-hidden rounded-t-2xl bg-white dark:bg-gray-900 lg:mx-4 lg:h-[90vh] lg:max-w-5xl lg:flex-row lg:rounded-2xl lg:rounded-t-2xl"
+      class="flex size-full flex-col overflow-hidden rounded-t-2xl bg-white lg:mx-4 lg:h-[90vh] lg:max-w-5xl lg:flex-row lg:rounded-2xl lg:rounded-t-2xl dark:bg-gray-900"
     >
       <!-- 移动端: 顶部标签栏 -->
       <div class="flex items-center border-b border-[var(--border-color)] px-4 py-3 lg:hidden">
@@ -14,7 +14,7 @@
           :class="
             mobileTab === 'info'
               ? 'border-primary text-primary'
-              : 'text-(--text-secondary) border-transparent'
+              : 'border-transparent text-(--text-secondary)'
           "
           @click="mobileTab = 'info'"
         >
@@ -25,7 +25,7 @@
           :class="
             mobileTab === 'media'
               ? 'border-primary text-primary'
-              : 'text-(--text-secondary) border-transparent'
+              : 'border-transparent text-(--text-secondary)'
           "
           @click="mobileTab = 'media'"
         >
@@ -82,6 +82,13 @@
               @select="handleProductSelect"
               @unbind="unbindProduct"
             />
+            
+            <div v-if="boundProduct" class="mt-3 flex items-start gap-2 rounded-lg border border-blue-500/20 bg-blue-50/50 p-3 text-sm text-blue-800 dark:border-blue-500/30 dark:bg-blue-900/20 dark:text-blue-300">
+                <svg class="mt-0.5 size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p>该空间已绑定商品，品牌、系列、价格等核心参数由商品关联系统自动接管。如需修改，请点击上方的<strong>“编辑”</strong>按钮前往商品库修改。保存该空间后修改即可全局生效。</p>
+            </div>
           </div>
 
           <div>
@@ -102,7 +109,8 @@
             <input
               v-model="form.templateData.brand"
               type="text"
-              class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none"
+              :disabled="!!boundProduct"
+              class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-[var(--bg-hover)] disabled:text-[var(--text-muted)]"
             />
           </div>
 
@@ -113,7 +121,8 @@
             <input
               v-model="form.templateData.series"
               type="text"
-              class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none"
+              :disabled="!!boundProduct"
+              class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-[var(--bg-hover)] disabled:text-[var(--text-muted)]"
             />
           </div>
 
@@ -125,7 +134,8 @@
               <input
                 v-model="form.templateData.price"
                 type="number"
-                class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none"
+                :disabled="!!boundProduct"
+                class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-[var(--bg-hover)] disabled:text-[var(--text-muted)]"
               />
             </div>
             <div>
@@ -135,7 +145,8 @@
               <input
                 v-model="form.templateData.material"
                 type="text"
-                class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none"
+                :disabled="!!boundProduct"
+                class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-[var(--bg-hover)] disabled:text-[var(--text-muted)]"
               />
             </div>
           </div>
@@ -146,7 +157,8 @@
               v-model="form.templateData.sku"
               type="text"
               :placeholder="t('spaceManager.skuPlaceholder')"
-              class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none"
+              :disabled="!!boundProduct"
+              class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-[var(--bg-hover)] disabled:text-[var(--text-muted)]"
             />
           </div>
 
@@ -175,7 +187,7 @@
         <!-- 底部操作栏 -->
         <div class="flex gap-3 border-t border-[var(--border-color)] px-6 py-4">
           <button
-            class="text-(--text-secondary) flex items-center gap-1.5 rounded-lg border border-(--border-color) px-4 py-2 transition-colors hover:text-primary"
+            class="hover:text-primary flex items-center gap-1.5 rounded-lg border border-(--border-color) px-4 py-2 text-(--text-secondary) transition-colors"
             @click="openPreview"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -276,7 +288,7 @@
         >
           <span class="text-primary text-sm font-medium">{{ t('spaceManager.media') }}</span>
           <button
-            class="bg-primary flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-white"
+            class="bg-primary flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-[var(--text-inverse)]"
             @click="showFileSelector = true"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -299,6 +311,7 @@
           <SpaceMediaGrid
             :files="files"
             :cover-file-id="form.coverFileId"
+            :product-images="productImages"
             @set-cover="setCover"
             @remove="removeFile"
             @add-files="showFileSelector = true"
@@ -395,6 +408,18 @@ const shareUrl = computed(() => {
   return `${window.location.origin}${ROUTES.SPACE(props.space.shareToken)}`;
 });
 
+const productImages = computed(() => {
+  if (!boundProduct.value || !boundProduct.value._images) return [];
+  try {
+    const imgs = typeof boundProduct.value._images === 'string' 
+      ? JSON.parse(boundProduct.value._images) 
+      : boundProduct.value._images;
+    return Array.isArray(imgs) ? imgs : [];
+  } catch (_e) {
+    return [];
+  }
+});
+
 const initData = async () => {
   const data = await loadSpace(props.space.id);
   if (data) {
@@ -413,6 +438,7 @@ const initData = async () => {
           brand: product.brand,
           series: product.series,
           mainImage,
+          _images: product.images, // Store raw images for computed property
         };
       }
     } else {
@@ -476,17 +502,18 @@ const handleProductSelect = (product) => {
     brand: product.brand,
     series: product.series,
     mainImage,
+    _images: product.images, // Store raw images
   };
   form.value.productId = product.id;
 
-  // Auto-fill template data if empty
+  // Force overwrite template data from product
   if (!form.value.name) form.value.name = product.name || '';
-  if (!form.value.templateData.brand) form.value.templateData.brand = product.brand || '';
-  if (!form.value.templateData.series) form.value.templateData.series = product.series || '';
-  if (!form.value.templateData.sku) form.value.templateData.sku = product.sku || '';
+  form.value.templateData.brand = product.brand || '';
+  form.value.templateData.series = product.series || '';
+  form.value.templateData.sku = product.sku || '';
   
   let priceStr = product.price != null ? String(product.price) : '';
-  if (!form.value.templateData.price) form.value.templateData.price = priceStr;
+  form.value.templateData.price = priceStr;
   
   let materialStr = '';
   try {
@@ -495,7 +522,7 @@ const handleProductSelect = (product) => {
   } catch {
      /* ignore */
   }
-  if (!form.value.templateData.material) form.value.templateData.material = materialStr;
+  form.value.templateData.material = materialStr;
 };
 
 const unbindProduct = () => {

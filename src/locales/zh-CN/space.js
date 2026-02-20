@@ -198,5 +198,6 @@ export default {
     addFileSuccess: '文件添加成功',
     removeFileSuccess: '文件已移除',
     removeFileFailed: '移除失败',
+    reorderFailed: '重新排序失败',
   },
 };

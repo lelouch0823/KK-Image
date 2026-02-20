@@ -1,8 +1,8 @@
 <template>
   <div class="relative">
     <input
-      :value="modelValue"
       :id="inputId"
+      :value="modelValue"
       type="text"
       :placeholder="placeholder"
       class="input pl-9"

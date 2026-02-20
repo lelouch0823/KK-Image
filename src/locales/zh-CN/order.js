@@ -86,6 +86,7 @@ export default {
     submittedBy: '提交人信息',
     notFound: '未找到订单',
     backToList: '返回列表',
+    status: '状态',
   },
 
   // 管理端

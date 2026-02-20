@@ -8,7 +8,7 @@
       <template #action>
         <router-link
           to="/"
-          class="inline-flex items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition-all hover:bg-[var(--color-primary-hover)] active:scale-95"
+          class="inline-flex items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--text-inverse)] transition-all hover:bg-[var(--color-primary-hover)] active:scale-95"
         >
           {{ t('common.backHome') }}
         </router-link>

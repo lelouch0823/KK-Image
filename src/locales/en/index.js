@@ -14,6 +14,8 @@ import settings from './settings';
 import gallery from './gallery';
 import customer from './customer';
 import misc from './misc';
+import sales from './sales'; // New import
+import trash from './trash'; // New import
 
 export default {
   common,
@@ -29,8 +31,8 @@ export default {
   settings,
   customer,
   auth,
-
-  // Expanded from space.js
+  sales,
+  trash,
   spaceManager: spaceModule.spaceManager,
   spacePublic: spaceModule.spacePublic,
   spaceAnalytics: spaceModule.spaceAnalytics,

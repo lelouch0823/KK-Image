@@ -17,7 +17,7 @@
         <div
           v-for="person in data"
           :key="person.id"
-          class="group relative overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer"
+          class="group relative cursor-pointer overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
           @click="$emit('view-detail', person)"
         >
           <!-- 状态标签 (Top Right) -->
@@ -31,7 +31,7 @@
           <div class="p-4 text-center">
             <!-- 头像 -->
             <div
-              class="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] text-lg font-semibold text-white shadow-inner shadow-black/5 transition-transform group-hover:scale-110"
+              class="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] text-lg font-semibold text-[var(--text-inverse)] shadow-inner shadow-black/5 transition-transform group-hover:scale-110"
             >
               {{ person.name?.charAt(0) || '?' }}
             </div>

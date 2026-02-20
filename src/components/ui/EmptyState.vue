@@ -9,7 +9,7 @@
       
       <!-- Icon Circle -->
       <div 
-        class="bg-(--bg-card) shadow-soft relative flex items-center justify-center rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:scale-105 hover:shadow-lg" 
+        class="shadow-soft relative flex items-center justify-center rounded-2xl bg-(--bg-card) transition-all duration-300 hover:-translate-y-1 hover:scale-105 hover:shadow-lg" 
         :class="iconContainerClass"
       >
         <slot name="icon">

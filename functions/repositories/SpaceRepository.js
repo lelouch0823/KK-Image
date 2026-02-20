@@ -21,7 +21,8 @@ export class SpaceRepository {
                 `
         SELECT s.*,
           COALESCE(sf_count.file_count, 0) as file_count,
-          f.storage_key as cover_storage_key
+          f.storage_key as cover_storage_key,
+          p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
         FROM spaces s
         LEFT JOIN (
             SELECT space_id, COUNT(*) as file_count
@@ -29,6 +30,7 @@ export class SpaceRepository {
             GROUP BY space_id
         ) sf_count ON sf_count.space_id = s.id
         LEFT JOIN files f ON s.cover_file_id = f.id
+        LEFT JOIN products p ON s.product_id = p.id
         ORDER BY s.updated_at DESC
       `
             )
@@ -42,7 +44,13 @@ export class SpaceRepository {
      * @returns {Promise<Object|null>}
      */
     async findById(id) {
-        return await this.db.prepare('SELECT * FROM spaces WHERE id = ?').bind(id).first();
+        return await this.db.prepare(`
+            SELECT s.*,
+              p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
+            FROM spaces s
+            LEFT JOIN products p ON s.product_id = p.id
+            WHERE s.id = ?
+        `).bind(id).first();
     }
 
     /**
@@ -248,7 +256,8 @@ export class SpaceRepository {
                 `
         SELECT s.*,
             COALESCE(sf_count.file_count, 0) as file_count,
-            f.storage_key as cover_storage_key
+            f.storage_key as cover_storage_key,
+            p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
         FROM spaces s
         LEFT JOIN (
             SELECT space_id, COUNT(*) as file_count
@@ -256,6 +265,7 @@ export class SpaceRepository {
             GROUP BY space_id
         ) sf_count ON sf_count.space_id = s.id
         LEFT JOIN files f ON s.cover_file_id = f.id
+        LEFT JOIN products p ON s.product_id = p.id
         WHERE s.parent_id = ?
         ORDER BY s.sort_order ASC, s.updated_at DESC
       `
@@ -345,9 +355,11 @@ export class SpaceRepository {
         const { results } = await this.db.prepare(`
             SELECT s.*, 
                 (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
-                f.storage_key as cover_storage_key
+                f.storage_key as cover_storage_key,
+                p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
             FROM spaces s
             LEFT JOIN files f ON s.cover_file_id = f.id
+            LEFT JOIN products p ON s.product_id = p.id
             WHERE s.share_mode = 'all'
                OR (s.share_mode = 'selected' AND EXISTS (
                    SELECT 1 FROM space_salesperson_shares sss 
@@ -366,8 +378,10 @@ export class SpaceRepository {
      */
     async findByIdForSalesperson(spaceId, salespersonId) {
         const space = await this.db.prepare(`
-            SELECT s.* 
+            SELECT s.*,
+                p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
             FROM spaces s
+            LEFT JOIN products p ON s.product_id = p.id
             WHERE s.id = ?
               AND (s.share_mode = 'all'
                    OR (s.share_mode = 'selected' AND EXISTS (

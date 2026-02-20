@@ -83,7 +83,7 @@
                 <a
                   :href="currentFile.url"
                   download
-                  class="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)]"
+                  class="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)]"
                   @click.stop
                 >
                   <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,7 +141,7 @@
               <a
                 :href="currentFile.url"
                 download
-                class="hover:bg-primary-hover hover:text-white mt-2 inline-flex items-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm font-medium text-[var(--text-main)] transition-colors"
+                class="hover:bg-primary-hover hover:text-[var(--text-inverse)] mt-2 inline-flex items-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm font-medium text-[var(--text-main)] transition-colors"
                 @click.stop
               >
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -316,7 +316,7 @@
             v-if="currentFile"
             :href="currentFile.url"
             download
-            class="bg-primary shadow-primary/20 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-white shadow-lg transition-colors hover:bg-primary-hover"
+            class="bg-primary shadow-primary/20 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-[var(--text-inverse)] shadow-lg transition-colors hover:bg-primary-hover"
           >
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -403,7 +403,7 @@
         <button
           v-if="hasMultipleFiles"
           :disabled="downloading"
-          class="bg-primary shadow-primary/20 flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-medium text-white shadow-lg transition-transform active:scale-95 disabled:scale-100 disabled:opacity-50"
+          class="bg-primary shadow-primary/20 flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-medium text-[var(--text-inverse)] shadow-lg transition-transform active:scale-95 disabled:scale-100 disabled:opacity-50"
           @click="handleDownloadAll"
         >
           <svg v-if="downloading" class="size-5 animate-spin" fill="none" viewBox="0 0 24 24">

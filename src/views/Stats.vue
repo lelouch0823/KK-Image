@@ -3,14 +3,14 @@
     <!-- Background Gradient Mesh -->
     <div class="pointer-events-none fixed inset-0 z-0">
       <div
-        class="absolute -top-[20%] -left-[10%] size-[800px] animate-pulse rounded-full bg-info/20 blur-[120px]"
+        class="bg-info/20 absolute -top-[20%] -left-[10%] size-[800px] animate-pulse rounded-full blur-[120px]"
       ></div>
       <div
         class="absolute top-[20%] right-[0%] size-[600px] animate-pulse rounded-full bg-purple-500/20 blur-[100px]"
         style="animation-delay: 2s"
       ></div>
       <div
-        class="absolute -bottom-[20%] left-[20%] size-[600px] animate-pulse rounded-full bg-success/20 blur-[100px]"
+        class="bg-success/20 absolute -bottom-[20%] left-[20%] size-[600px] animate-pulse rounded-full blur-[100px]"
         style="animation-delay: 4s"
       ></div>
       <!-- Grid Overlay -->
@@ -51,13 +51,13 @@
       <!-- Loading State -->
       <div v-if="loading && !stats" class="grid grid-cols-1 gap-6 md:grid-cols-3">
         <Skeleton v-for="i in 3" :key="i" template="stat-card" />
-        <Skeleton class="lg:col-span-2 h-[400px]" />
+        <Skeleton class="h-[400px] lg:col-span-2" />
         <Skeleton class="h-[400px]" />
       </div>
 
       <!-- Error State -->
       <div v-else-if="error" class="flex h-96 flex-col items-center justify-center gap-4 text-center">
-        <div class="flex size-20 items-center justify-center rounded-full bg-danger/10 text-danger ring-1 ring-danger/20">
+        <div class="bg-danger/10 text-danger ring-danger/20 flex size-20 items-center justify-center rounded-full ring-1">
           <svg class="size-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
@@ -91,7 +91,7 @@
             </template>
             <template #footer>
               <div class="flex items-center gap-2 text-sm font-medium text-(--text-secondary)">
-                <span class="rounded bg-success/10 px-2 py-0.5 text-xs text-success">+{{ formatNumber(stats.storage?.todayUploads) }}</span>
+                <span class="bg-success/10 text-success rounded px-2 py-0.5 text-xs">+{{ formatNumber(stats.storage?.todayUploads) }}</span>
                 {{ t('dashboard.todayOrders') }}
               </div>
             </template>
@@ -197,7 +197,7 @@
                             {{ index + 1 }}
                         </div>
                         <div>
-                           <div class="font-medium text-(--text-main) transition-colors group-hover:text-primary">{{ space.name }}</div>
+                           <div class="group-hover:text-primary font-medium text-(--text-main) transition-colors">{{ space.name }}</div>
                             <div class="mt-1 text-xs text-(--text-muted)">ID: {{ space.id.slice(0,8) }}</div>
                         </div>
                     </div>
@@ -225,29 +225,29 @@
                 </template>
                  <div class="align-content-start grid h-full grid-cols-2 gap-4">
                      <!-- Normal -->
-                     <div class="backdrop-blur-sm rounded-xl border border-success/20 bg-success/10 p-5 transition-transform hover:scale-[1.02]">
-                         <div class="mb-2 text-sm font-medium text-success">{{ t('stats.normal') }}</div>
-                         <div class="font-mono text-3xl font-bold text-success">{{ formatNumber(stats.health?.status?.normal) }}</div>
-                          <div class="mt-2 h-1 w-full rounded-full bg-success/20">
-                             <div class="h-full rounded-full bg-success transition-all duration-1000" style="width: 100%"></div>
+                     <div class="border-success/20 bg-success/10 rounded-xl border p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
+                         <div class="text-success mb-2 text-sm font-medium">{{ t('stats.normal') }}</div>
+                         <div class="text-success font-mono text-3xl font-bold">{{ formatNumber(stats.health?.status?.normal) }}</div>
+                          <div class="bg-success/20 mt-2 h-1 w-full rounded-full">
+                             <div class="bg-success h-full rounded-full transition-all duration-1000" style="width: 100%"></div>
                           </div>
                      </div>
                       <!-- Blocked -->
-                      <div class="backdrop-blur-sm border-danger/20 bg-danger/10 transition-transform hover:scale-[1.02] rounded-xl border p-5">
-                         <div class="mb-2 text-sm font-medium text-danger">{{ t('stats.blocked') }}</div>
-                         <div class="font-mono text-3xl font-bold text-danger">{{ formatNumber(stats.health?.status?.blocked) }}</div>
-                          <div class="mt-2 h-1 w-full rounded-full bg-danger/20">
-                             <div class="h-full rounded-full bg-danger transition-all duration-1000" :style="`width: ${stats.health?.status?.blocked > 0 ? '100%' : '0%'}`"></div>
+                      <div class="border-danger/20 bg-danger/10 rounded-xl border p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
+                         <div class="text-danger mb-2 text-sm font-medium">{{ t('stats.blocked') }}</div>
+                         <div class="text-danger font-mono text-3xl font-bold">{{ formatNumber(stats.health?.status?.blocked) }}</div>
+                          <div class="bg-danger/20 mt-2 h-1 w-full rounded-full">
+                             <div class="bg-danger h-full rounded-full transition-all duration-1000" :style="`width: ${stats.health?.status?.blocked > 0 ? '100%' : '0%'}`"></div>
                           </div>
                      </div>
                       <!-- Whitelisted -->
-                      <div class="backdrop-blur-sm border-info/20 bg-info/10 transition-transform hover:scale-[1.02] rounded-xl border p-5">
-                         <div class="mb-2 text-sm font-medium text-info">{{ t('stats.whitelisted') }}</div>
-                         <div class="font-mono text-3xl font-bold text-info">{{ formatNumber(stats.health?.status?.whitelisted) }}</div>
+                      <div class="border-info/20 bg-info/10 rounded-xl border p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
+                         <div class="text-info mb-2 text-sm font-medium">{{ t('stats.whitelisted') }}</div>
+                         <div class="text-info font-mono text-3xl font-bold">{{ formatNumber(stats.health?.status?.whitelisted) }}</div>
                      </div>
                      <!-- Liked -->
-                     <div class="backdrop-blur-sm border-yellow-500/20 bg-yellow-500/10 transition-transform hover:scale-[1.02] rounded-xl border p-5">
-                         <div class="mb-2 text-sm font-medium text-warning">{{ t('stats.liked') }}</div>
+                     <div class="rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
+                         <div class="text-warning mb-2 text-sm font-medium">{{ t('stats.liked') }}</div>
                          <div class="font-mono text-3xl font-bold text-amber-600 dark:text-amber-400">{{ formatNumber(stats.health?.status?.liked) }}</div>
                      </div>
                  </div>
@@ -272,7 +272,7 @@
                  <template #cell-name="{ row, index }">
                     <div class="flex items-center gap-2">
                         <span class="line-clamp-1 max-w-[200px] md:max-w-md">{{ row.name }}</span>
-                        <span v-if="index < 3" class="inline-flex items-center rounded-md bg-danger/10 px-2 py-1 text-xs font-medium text-danger ring-1 ring-danger/20 ring-inset">Hot</span>
+                        <span v-if="index < 3" class="bg-danger/10 text-danger ring-danger/20 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset">Hot</span>
                     </div>
                  </template>
                  <template #cell-type="{ row }">

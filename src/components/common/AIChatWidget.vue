@@ -63,7 +63,7 @@
         </div>
 
         <!-- Input Area -->
-        <div class="border-[var(--border-color)] bg-[var(--bg-card)] border-t px-4 pt-1 pb-4">
+        <div class="border-t border-[var(--border-color)] bg-[var(--bg-card)] px-4 pt-1 pb-4">
           <AISuggestions 
             class="mb-2" 
             :suggestions="suggestions" 
@@ -79,7 +79,7 @@
               :disabled="isStreamingLoading"
               type="text"
               :placeholder="t('ai.placeholder')"
-              class="focus:ring-primary/20 focus:ring-2 bg-[var(--bg-muted)] w-full rounded-xl border-none py-3 pr-12 pl-4 text-sm transition-all dark:bg-white/5"
+              class="focus:ring-primary/20 focus:ring-2 w-full rounded-xl border-none bg-[var(--bg-muted)] py-3 pr-12 pl-4 text-sm transition-all dark:bg-white/5"
             />
             <button
               :disabled="!userInput.trim() || isStreamingLoading"

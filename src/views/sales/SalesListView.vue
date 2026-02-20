@@ -7,7 +7,7 @@
   >
     <!-- Search Bar -->
     <div class="sticky top-14 z-20 -mx-4 mb-4 border-b border-[var(--border-color)] bg-[var(--bg-page)]/85 px-4 py-3 backdrop-blur-md transition-all sm:top-20 sm:mx-0 sm:rounded-xl sm:border sm:bg-[var(--bg-card)]/90 sm:shadow-sm">
-      <div class="relative group">
+      <div class="group relative">
         <svg
           class="text-secondary absolute top-1/2 left-3.5 size-5 -translate-y-1/2 transition-colors group-focus-within:text-primary"
           fill="none"
@@ -29,7 +29,7 @@
         />
         <button
             v-if="searchQuery"
-            class="text-secondary absolute top-1/2 right-3 -translate-y-1/2 rounded-full p-1 hover:bg-[var(--bg-muted)] hover:text-primary"
+            class="text-secondary absolute top-1/2 right-3 -translate-y-1/2 rounded-full p-1 hover:text-primary hover:bg-[var(--bg-muted)]"
             @click="searchQuery = ''"
         >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,9 +60,9 @@
       :orders="filteredOrders"
       :loading="loading"
       :is-pulling="isPulling"
+      :loading-more="infiniteScroll.isLoading.value"
       @refresh="loadOrders"
       @view="handleViewOrder"
-      :loading-more="infiniteScroll.isLoading.value"
     />
 
     <!-- Infinite Scroll Trigger -->

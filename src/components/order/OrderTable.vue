@@ -34,7 +34,7 @@
         <input
           type="checkbox"
           :checked="isSelected(row.id)"
-          class="size-4 cursor-pointer rounded-lg border-(--border-color) bg-(--bg-muted) text-primary transition-all focus:ring-primary/20"
+          class="text-primary size-4 cursor-pointer rounded-lg border-(--border-color) bg-(--bg-muted) transition-all focus:ring-primary/20"
           @change="toggleSelect(row.id)"
         />
       </div>
@@ -78,7 +78,7 @@
             {{ row.productName || '-' }}
             <span
               v-if="row.hasNewFeedback"
-              class="size-2.5 animate-pulse rounded-full border-2 border-(--bg-card) bg-danger"
+              class="bg-danger size-2.5 animate-pulse rounded-full border-2 border-(--bg-card)"
               :title="t('order.portal.hasUpdate')"
             ></span>
           </div>
@@ -88,7 +88,7 @@
 
     <!-- Quantity Cell -->
     <template #cell-quantity="{ value }">
-      <span class="font-mono font-medium text-primary">{{ value || 1 }}</span>
+      <span class="text-primary font-mono font-medium">{{ value || 1 }}</span>
     </template>
 
     <!-- Salesperson Cell -->
@@ -109,7 +109,7 @@
     <template #cell-status="{ row }">
       <slot name="status" :order="row">
          <!-- Fallback if no slot provided -->
-        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-(--bg-muted) text-(--text-secondary)">
+        <span class="inline-flex items-center rounded-full bg-(--bg-muted) px-2 py-0.5 text-xs font-medium text-(--text-secondary)">
           {{ row.status }}
         </span>
       </slot>
@@ -124,8 +124,8 @@
     <template #cell-actions="{ row }">
       <div class="flex items-center justify-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
         <button
-          class="rounded-lg p-1.5 text-(--text-secondary) transition-colors hover:bg-(--color-info-bg) hover:text-info active:scale-90"
-          :title="t('common.detail')"
+          class="hover:text-info hover:bg-(--color-info-bg) rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90"
+          :title="t('common.view')"
           @click.stop="$emit('detail', row)"
         >
           <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -134,7 +134,7 @@
           </svg>
         </button>
         <button
-          class="rounded-lg p-1.5 text-(--text-secondary) transition-colors hover:bg-(--bg-hover) hover:text-primary active:scale-90"
+          class="hover:text-primary hover:bg-(--bg-hover) rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90"
           :title="t('common.edit')"
           @click.stop="$emit('edit', row)"
         >
@@ -144,8 +144,8 @@
         </button>
         <button
           v-if="row.status !== 'void'"
-          class="rounded-lg p-1.5 text-(--text-secondary) transition-colors hover:bg-danger/10 hover:text-danger active:scale-90"
-          :title="t('order.action.void')"
+          class="hover:bg-danger/10 hover:text-danger rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90"
+          :title="t('order.actions.void')"
           @click.stop="$emit('void', row)"
         >
           <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

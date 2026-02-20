@@ -12,7 +12,7 @@
         class="mb-6 flex items-center gap-3 rounded-lg border border-(--border-color) bg-(--bg-muted) p-3"
       >
         <div class="rounded-md bg-(--bg-card) p-2 shadow-sm">
-          <svg class="size-6 text-warning" fill="currentColor" viewBox="0 0 20 20">
+          <svg class="text-warning size-6" fill="currentColor" viewBox="0 0 20 20">
             <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
           </svg>
         </div>
@@ -27,13 +27,13 @@
       <!-- 🔧 NEW: 显示已有分享链接 -->
       <div
         v-if="existingShareUrl && !shareUrl"
-        class="mb-6 rounded-lg border border-info/20 bg-info-bg p-4"
+        class="border-info/20 bg-info-bg mb-6 rounded-lg border p-4"
       >
         <div class="mb-2 flex items-center justify-between">
-          <span class="text-sm font-medium text-info-text">{{
+          <span class="text-info-text text-sm font-medium">{{
             t('share.existingLink')
           }}</span>
-          <span class="text-xs text-info">{{
+          <span class="text-info text-xs">{{
             formatExpiry(folder?.shareExpiresAt)
           }}</span>
         </div>
@@ -49,7 +49,7 @@
             <AppButton
               variant="secondary"
               size="sm"
-              class="!w-9 !h-9 !p-0 shrink-0"
+              class="!size-9  shrink-0 !p-0"
               :title="t('share.copyLink')"
               @click="copyExistingLink"
             >
@@ -59,17 +59,17 @@
             </AppButton>
           </Tooltip>
         </div>
-        <p v-if="existingCopied" class="mt-2 text-xs text-info">
+        <p v-if="existingCopied" class="text-info mt-2 text-xs">
           ✓ {{ t('share.copiedClipboard') }}
         </p>
-        <div class="mt-3 flex items-center justify-between border-t border-info/20 pt-3">
-          <span class="text-xs text-info opacity-80">{{
+        <div class="border-info/20 mt-3 flex items-center justify-between border-t pt-3">
+          <span class="text-info text-xs opacity-80">{{
             t('share.needUpdateExpiry')
           }}</span>
           <AppButton
             variant="ghost"
             size="xs"
-            class="text-info-text hover:text-info-text/80 text-xs font-medium !p-0 h-auto hover:bg-transparent"
+            class="text-info-text h-auto !p-0 text-xs font-medium hover:text-info-text/80 hover:bg-transparent"
             :text="t('share.regenerate')"
             @click="showExpiryOptions = true"
           />
@@ -108,7 +108,7 @@
             <AppButton
               variant="secondary"
               size="sm"
-              class="!w-9 !h-9 !p-0 shrink-0"
+              class="!size-9  shrink-0 !p-0"
               @click="copyLink"
             >
               <template #icon-left>
@@ -236,7 +236,7 @@ const generateLink = async () => {
       error(res.message || t('share.generateFailed'));
     }
   } catch (_e) {
-    error(t('share.networkError') || '网络错误');
+    error(t('common.networkError') || '网络错误');
   } finally {
     loading.value = false;
   }

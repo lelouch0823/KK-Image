@@ -29,11 +29,11 @@
               :statuses="statuses"
               :exporting="exporting"
               :show-create="true"
+              class="border-none bg-transparent p-0 shadow-none"
               @search="handleFilterChange"
               @export="exportOrders"
               @create="showCreateModal = true"
-              @show-stats="showStatsModal = true"
-              class="bg-transparent border-none p-0 shadow-none" 
+              @show-stats="showStatsModal = true" 
             />
           </template>
 
@@ -72,11 +72,11 @@
               :statuses="statuses"
               :exporting="exporting"
               :show-create="true"
+              class="mb-4"
               @search="handleFilterChange"
               @export="exportOrders"
               @create="showCreateModal = true"
               @show-stats="showStatsModal = true"
-              class="mb-4"
          />
         <OrderCards
           :data="orders"
@@ -132,7 +132,7 @@
           <div class="flex items-center gap-2">
             <!-- Edit Button -->
             <button
-               class="flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)]/10 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
+               class="flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)]/10 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-[var(--text-inverse)]"
                @click="handleEditFromDetail(viewingOrder)"
             >
                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

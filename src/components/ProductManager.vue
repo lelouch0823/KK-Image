@@ -14,7 +14,7 @@
         <div class="flex shrink-0 items-center gap-1 sm:gap-2">
             <!-- Create Button -->
             <button 
-                class="bg-primary shadow-primary/20 flex items-center justify-center gap-2 rounded-lg text-sm font-medium text-white shadow-sm transition-all hover:bg-primary-hover active:scale-95 max-sm:size-9 sm:h-9 sm:px-4"
+                class="bg-primary shadow-primary/20 flex items-center justify-center gap-2 rounded-lg text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:bg-primary-hover active:scale-95 max-sm:size-9 sm:h-9 sm:px-4"
                 :title="t('product.action.create')"
                 @click="handleCreate"
             >
@@ -96,7 +96,7 @@
                     {{ t('product.manager.detail_title') || t('router.product_detail') }}
                 </h3>
                 <button 
-                    class="flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)]/10 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
+                    class="flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)]/10 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-[var(--text-inverse)]"
                     @click="handleEditFromDetail(viewingProduct)"
                 >
                     <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -116,7 +116,7 @@
     <div class="relative flex-1 lg:min-h-[400px] lg:overflow-hidden">
       <!-- Loading Overlay -->
       <div v-if="loading" class="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-page)]/50 backdrop-blur-[1px]">
-        <div class="size-10 animate-spin rounded-full border-b-2 border-primary"></div>
+        <div class="border-primary size-10 animate-spin rounded-full border-b-2"></div>
       </div>
 
       <!-- Desktop Table (Show only if data exists) -->
@@ -182,6 +182,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, defineAsyncComponent } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useProducts } from '@/composables/useProducts';
 const ProductStats = defineAsyncComponent(() => import('./product/ProductStats.vue'));
 import ProductFilters from './product/ProductFilters.vue';
@@ -193,12 +194,13 @@ import ProductGrid from './product/ProductGrid.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Modal from '@/components/ui/Modal.vue';
-
-
 import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
-const { products, loading, error, pagination, loadProducts, deleteProduct } = useProducts();
+const route = useRoute();
+const router = useRouter();
+
+const { products, loading, error, pagination, loadProducts, deleteProduct, loadProduct } = useProducts();
 
 const showStatsModal = ref(false);
 const showCreateModal = ref(false); 
@@ -213,8 +215,20 @@ const filters = reactive({
     status: ''
 });
 
-onMounted(() => {
+onMounted(async () => {
     loadProducts();
+    
+    // Auto-open edit modal if query param is present
+    if (route.query.edit) {
+        const product = await loadProduct(route.query.edit);
+        if (product) {
+            handleEdit(product);
+            // Clean up the query param without reloading page
+            const query = { ...route.query };
+            delete query.edit;
+            router.replace({ query });
+        }
+    }
 });
 
 const handleCreate = () => {

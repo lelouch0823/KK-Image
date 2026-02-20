@@ -81,4 +81,9 @@ export default {
   noResultsDesc: '未能找到与 "{query}" 匹配的内容',
   clearSearch: '清除搜索',
   total: '共',
+  text: {
+    create_first_item: '点击创建第一个项目',
+    empty_data: '这里什么也没有',
+    no_description: '暂无描述',
+  },
 };

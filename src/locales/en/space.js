@@ -197,5 +197,6 @@ export default {
     addFileSuccess: 'File added',
     removeFileSuccess: 'File removed',
     removeFileFailed: 'Remove failed',
+    reorderFailed: 'Failed to reorder',
   },
 };

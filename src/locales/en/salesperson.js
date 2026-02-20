@@ -43,4 +43,7 @@ export default {
   table: {
     orders: 'Linked Orders',
   },
+  lastLogin: 'Last Login',
+  loginDevice: 'Login Device',
+  cannotDeleteHasOrders: 'Cannot delete salesperson with existing orders',
 };

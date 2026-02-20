@@ -8,7 +8,7 @@
         class="flex flex-shrink-0 flex-col justify-between gap-4 border-b border-(--border-color) p-4 sm:flex-row sm:items-center"
       >
         <div>
-          <h2 class="text-lg font-semibold text-primary">{{ t('customer.manage.title') }}</h2>
+          <h2 class="text-primary text-lg font-semibold">{{ t('customer.manage.title') }}</h2>
           <p class="mt-1 text-sm text-(--text-secondary)">{{ t('customer.manage.subtitle') }}</p>
         </div>
 
@@ -105,7 +105,7 @@
                         <span
                           v-for="tag in customer.tags"
                           :key="tag"
-                          class="rounded bg-primary/10 px-2.5 py-0.5 text-xs text-primary"
+                          class="bg-primary/10 text-primary rounded px-2.5 py-0.5 text-xs"
                         >
                           {{ tag }}
                       </span>
@@ -116,7 +116,7 @@
                       <AppButton
                         variant="ghost"
                         size="sm"
-                        class="opacity-0 group-hover:opacity-100 !p-1.5"
+                        class="!p-1.5 opacity-0 group-hover:opacity-100"
                         :title="t('common.edit')"
                         @click="openEditModal(customer)"
                       >

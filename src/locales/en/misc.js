@@ -15,6 +15,8 @@ export default {
     update: 'Update Link',
     directLink: 'Direct Link (Permanent)',
     copiedClipboard: 'Copied to clipboard',
+    copyLink: 'Copy Link',
+    networkError: 'Network Error',
     needUpdateExpiry: 'Update expiration?',
     generateFailed: 'Generation failed',
     linkCopied: 'Link copied',
@@ -77,6 +79,7 @@ export default {
     role: 'Administrator',
     collapse: 'Collapse',
     expand: 'Expand',
+    trash: 'Recycle Bin',
   },
 
   // Views
@@ -87,6 +90,7 @@ export default {
     customers: 'Customers',
     products: 'Products',
     admin: 'Admin',
+    trash: 'Recycle Bin',
   },
 
   // File Ops (Composables)
@@ -175,6 +179,7 @@ export default {
     customer_management: 'Customers',
     stats_analysis: 'Statistics',
     system_settings: 'Settings',
+    trash: 'Recycle Bin',
   },
 
   // PWA

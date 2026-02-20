@@ -48,12 +48,12 @@
       <div v-if="isEditing" class="space-y-5 border-t border-(--border-color) pt-5">
         <label class="group flex cursor-pointer items-center justify-between">
           <span
-            class="text-sm font-medium text-(--text-main) transition-colors group-hover:text-primary"
+            class="group-hover:text-primary text-sm font-medium text-(--text-main) transition-colors"
           >{{ t('salesperson.activeStatus') }}</span>
           <div class="relative inline-flex cursor-pointer items-center">
             <input v-model="form.isActive" type="checkbox" class="peer sr-only" />
             <div
-              class="h-6 w-11 rounded-full bg-(--bg-muted) transition-all peer peer-checked:bg-primary peer-focus:ring-2 peer-focus:ring-primary/20 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:size-5 after:rounded-full after:border after:border-(--border-color) after:bg-(--bg-card) after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-(--bg-card)"
+              class="peer h-6 w-11 rounded-full bg-(--bg-muted) transition-all peer-checked:bg-primary peer-focus:ring-primary/20 peer-focus:ring-2 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:size-5 after:rounded-full after:border after:border-(--border-color) after:bg-(--bg-card) after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-(--bg-card)"
             ></div>
           </div>
         </label>
@@ -62,11 +62,11 @@
           <span class="text-sm text-(--text-secondary)">{{ t('salesperson.uuid') }}</span>
           <div class="flex items-center gap-2">
             <code
-              class="rounded-lg border border-(--border-color) bg-(--bg-muted) px-2 py-1.5 font-mono text-xs text-primary"
+              class="text-primary rounded-lg border border-(--border-color) bg-(--bg-muted) px-2 py-1.5 font-mono text-xs"
             >{{ salesperson.uuid }}</code>
             <button
               type="button"
-              class="px-2 py-1 text-xs font-semibold text-primary transition-colors hover:text-primary-hover hover:underline"
+              class="text-primary px-2 py-1 text-xs font-semibold transition-colors hover:text-primary-hover hover:underline"
               @click="$emit('resetToken', salesperson.uuid)"
             >
               {{ t('salesperson.resetLink') }}

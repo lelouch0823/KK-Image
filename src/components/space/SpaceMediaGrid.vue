@@ -2,13 +2,32 @@
   <div class="h-full">
     <!-- 有文件时显示网格 -->
     <div
-      v-if="files.length > 0"
+      v-if="files.length > 0 || productImages.length > 0"
       class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4"
     >
+      <!-- Product Images (Read-only) -->
+      <div
+        v-for="(imgSrc, index) in productImages"
+        :key="`product-img-${index}`"
+        class="group relative aspect-square overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)]"
+      >
+        <AppImage
+          :src="imgSrc"
+          class="size-full opacity-90 transition-opacity hover:opacity-100"
+          fit="cover"
+          rounded="none"
+        />
+        <!-- 商品图标记 -->
+        <div class="absolute top-2 left-2 rounded-full bg-blue-500/90 px-2 py-0.5 text-[10px] text-white shadow-sm backdrop-blur-sm">
+          {{ t('product.text.image') || '商品图' }}
+        </div>
+      </div>
+
+      <!-- Space Files (Draggable) -->
       <div
         v-for="(file, index) in localFiles"
         :key="file.id"
-        class="group relative aspect-square overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] transition-shadow hover:shadow-md cursor-grab active:cursor-grabbing"
+        class="group relative aspect-square cursor-grab overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] transition-shadow hover:shadow-md active:cursor-grabbing"
         draggable="true"
         @dragstart="onDragStart($event, index)"
         @dragenter="onDragEnter($event, index)"
@@ -117,6 +136,10 @@ const props = defineProps({
   coverFileId: {
     type: [String, null],
     default: null,
+  },
+  productImages: {
+    type: Array,
+    default: () => [],
   },
 });
 

@@ -80,7 +80,7 @@
               <span
                 class="flex size-5 items-center justify-center rounded border"
                 :class="selectedIds.includes(sp.id)
-                  ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+                  ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--text-inverse)]'
                   : 'border-[var(--border-color)]'"
               >
                 <svg v-if="selectedIds.includes(sp.id)" class="size-3" fill="currentColor" viewBox="0 0 20 20">

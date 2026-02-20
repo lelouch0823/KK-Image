@@ -31,7 +31,7 @@
                   }}</span>
                   <button
                     class="text-primary hover:text-blue-600"
-                    :title="t('common.copyLink') || '复制链接'"
+                    :title="t('share.copyLink') || '复制链接'"
                     @click="copyLink(item)"
                   >
                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,7 +53,7 @@
                   <AppButton
                     variant="secondary"
                     size="sm"
-                    class="!p-1.5 !h-8 !w-8 bg-[var(--bg-card)]"
+                    class="!size-8  bg-[var(--bg-card)] !p-1.5"
                     @click="editShare(item)"
                   >
                     <template #icon-left>
@@ -63,7 +63,7 @@
                   <AppButton
                     variant="secondary"
                     size="sm"
-                    class="!p-1.5 !h-8 !w-8 bg-[var(--bg-card)] text-[var(--color-danger)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
+                    class="!size-8  bg-[var(--bg-card)] !p-1.5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)]"
                     @click="revokeShare(item)"
                   >
                     <template #icon-left>
@@ -78,7 +78,7 @@
       </div>
 
       <!-- Mobile Table -->
-      <div v-if="shares.length > 0" class="lg:hidden flex-1 overflow-hidden">
+      <div v-if="shares.length > 0" class="flex-1 overflow-hidden lg:hidden">
         <AppTable
             :columns="columns"
             :data="shares"
@@ -109,7 +109,7 @@
                         variant="ghost"
                         size="sm"
                         class="text-[var(--text-secondary)] hover:text-[var(--color-primary)]"
-                        :title="t('common.copyLink')"
+                        :title="t('share.copyLink')"
                         @click="copyLink(row)"
                     >
                         <template #icon-left>

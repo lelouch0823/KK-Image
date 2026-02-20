@@ -44,17 +44,17 @@
           {{ t('customer.form.tags') }}
         </label>
         <div
-          class="mb-2 flex flex-wrap gap-2 rounded-lg border border-(--border-color) bg-(--bg-muted) p-2 transition-colors focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20"
+          class="focus-within:border-primary focus-within:ring-primary/20 focus-within:ring-1 mb-2 flex flex-wrap gap-2 rounded-lg border border-(--border-color) bg-(--bg-muted) p-2 transition-colors"
         >
           <span
             v-for="(tag, index) in form.tags"
             :key="index"
-            class="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
+            class="bg-primary/10 text-primary inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
           >
             {{ tag }}
             <button
               type="button"
-              class="ml-1 text-primary transition-colors hover:text-primary-hover"
+              class="text-primary ml-1 transition-colors hover:text-primary-hover"
               @click="removeTag(index)"
             >
               <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
