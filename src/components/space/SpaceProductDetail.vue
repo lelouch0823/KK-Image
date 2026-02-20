@@ -397,7 +397,7 @@
       v-if="currentFile"
       class="fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t border-[var(--border-color)] bg-[var(--bg-card)] p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden"
     >
-      <div class="flex flex-1 gap-2">
+      <div class="flex flex-1 items-center gap-2">
         <div v-if="templateData.price && Number(templateData.price) > 0" class="mr-auto flex flex-col justify-center px-1">
            <span class="text-[10px] leading-none text-[var(--text-secondary)]">{{ t('spaceManager.price') }}</span>
            <div class="mt-0.5 flex items-baseline gap-0.5">
