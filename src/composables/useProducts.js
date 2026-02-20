@@ -11,6 +11,14 @@ export function useProducts() {
         });
     };
 
+    const loadProduct = async (id) => {
+        const res = await resource.rawRequest(`/${id}`);
+        if (res.success) {
+            return res.data;
+        }
+        return null;
+    };
+
     return {
         products: resource.items,
         loading: resource.loading,
@@ -20,7 +28,8 @@ export function useProducts() {
         createProduct: resource.createItem,
         updateProduct: resource.updateItem,
         deleteProduct: resource.deleteItem,
-        importProducts
+        importProducts,
+        loadProduct
     };
 }
 

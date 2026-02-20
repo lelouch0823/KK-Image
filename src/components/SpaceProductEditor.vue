@@ -75,6 +75,15 @@
 
         <!-- 表单区域 -->
         <div class="flex-1 space-y-4 overflow-y-auto p-6">
+          <!-- 引入实际商品关联选块 (SOTA 独立组件) -->
+          <div class="mb-4">
+            <ProductBindingSection
+              :bound-product="boundProduct"
+              @select="handleProductSelect"
+              @unbind="unbindProduct"
+            />
+          </div>
+
           <div>
             <label class="text-primary mb-1 block text-sm font-medium">{{
               t('spaceManager.productName')
@@ -321,6 +330,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
+import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { ROUTES } from '@/utils/constants';
@@ -332,6 +342,7 @@ import SpaceAnalytics from './SpaceAnalytics.vue';
 import SpaceShareCard from './space/SpaceShareCard.vue';
 import SpaceMediaGrid from './space/SpaceMediaGrid.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
 
 const props = defineProps({
   space: { type: Object, required: true },
@@ -340,6 +351,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'updated']);
 
 const { updateSpace, addFilesToSpace, removeFilesFromSpace, reorderSpaceFiles, loadSpace } = useSpaces();
+const { loadProduct } = useProducts();
 const { addToast } = useToast();
 const { t } = useI18n();
 
@@ -350,6 +362,7 @@ const activeRightTab = ref('media');
 const passwordEnabled = ref(false);
 const mobileTab = ref('info');
 const isDesktop = ref(window.innerWidth >= 1024);
+const boundProduct = ref(null);
 
 // 确认弹窗状态
 const confirmData = ref({
@@ -367,6 +380,7 @@ const form = ref({
   isPublic: false,
   coverFileId: null,
   password: '',
+  productId: null,
   templateData: {
     brand: '',
     series: '',
@@ -384,12 +398,34 @@ const shareUrl = computed(() => {
 const initData = async () => {
   const data = await loadSpace(props.space.id);
   if (data) {
+    if (data.productId) {
+      const product = await loadProduct(data.productId);
+      if (product) {
+        let mainImage = null;
+        if (product.images) {
+           const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
+           mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
+        }
+        boundProduct.value = {
+          id: product.id,
+          name: product.name,
+          sku: product.sku,
+          brand: product.brand,
+          series: product.series,
+          mainImage,
+        };
+      }
+    } else {
+      boundProduct.value = null;
+    }
+
     form.value = {
       name: data.name || '',
       description: data.description || '',
       isPublic: data.isPublic || false,
       coverFileId: data.coverFileId || null,
       password: data.password || '',
+      productId: data.productId || null,
       templateData: {
         brand: data.templateData?.brand || '',
         series: data.templateData?.series || '',
@@ -424,6 +460,47 @@ const openPreview = () => {
   } else {
     addToast({ message: t('spaceManager.saveFirst'), type: 'warning' });
   }
+};
+
+const handleProductSelect = (product) => {
+  let mainImage = null;
+  if (product.images) {
+    const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
+    mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
+  }
+  
+  boundProduct.value = {
+    id: product.id,
+    name: product.name,
+    sku: product.sku,
+    brand: product.brand,
+    series: product.series,
+    mainImage,
+  };
+  form.value.productId = product.id;
+
+  // Auto-fill template data if empty
+  if (!form.value.name) form.value.name = product.name || '';
+  if (!form.value.templateData.brand) form.value.templateData.brand = product.brand || '';
+  if (!form.value.templateData.series) form.value.templateData.series = product.series || '';
+  if (!form.value.templateData.sku) form.value.templateData.sku = product.sku || '';
+  
+  let priceStr = product.price != null ? String(product.price) : '';
+  if (!form.value.templateData.price) form.value.templateData.price = priceStr;
+  
+  let materialStr = '';
+  try {
+     const specs = typeof product.specifications === 'string' ? JSON.parse(product.specifications) : product.specifications;
+     materialStr = specs?.material || '';
+  } catch {
+     /* ignore */
+  }
+  if (!form.value.templateData.material) form.value.templateData.material = materialStr;
+};
+
+const unbindProduct = () => {
+  boundProduct.value = null;
+  form.value.productId = null;
 };
 
 const addFiles = async (fileIds) => {
