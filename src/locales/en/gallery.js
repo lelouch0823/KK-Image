@@ -13,6 +13,7 @@ export default {
   networkError: 'Network error, please try again',
   cannotLoad: 'Cannot load gallery',
   noFiles: 'Empty Gallery',
+  noImages: 'No images in this folder.',
   noFilesDesc: 'No files have been added to this gallery yet',
   previewNotSupported: 'Preview not supported',
   scrollHint: 'Wheel to switch • ESC to close',

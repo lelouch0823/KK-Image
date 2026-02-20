@@ -88,6 +88,14 @@
         @success="handleModalSuccess"
     />
 
+    <!-- Quick Share Space Modal -->
+    <SpaceCreateModal
+        v-if="showShareModal"
+        :initial-product="sharingProduct"
+        @close="showShareModal = false"
+        @created="handleShareCreated"
+    />
+
     <!-- Detail Modal -->
     <Modal v-model="showDetailModal" size="4xl">
         <template #header>
@@ -126,6 +134,7 @@
            @view="handleView"
            @edit="handleEdit" 
            @delete="handleDelete" 
+           @share="handleShare"
         />
       </div>
 
@@ -135,6 +144,7 @@
             :products="products" 
             @view="handleView"
             @edit="handleEdit"
+            @share="handleShare"
         />
       </div>
 
@@ -191,6 +201,7 @@ import ProductCreateModal from './product/ProductCreateModal.vue';
 import ProductDetail from './product/ProductDetail.vue'; 
 const ProductImportModal = defineAsyncComponent(() => import('./product/ProductImportModal.vue'));
 import ProductGrid from './product/ProductGrid.vue';
+import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Modal from '@/components/ui/Modal.vue';
@@ -206,9 +217,11 @@ const showStatsModal = ref(false);
 const showCreateModal = ref(false); 
 const showDetailModal = ref(false);
 const showImportModal = ref(false);
+const showShareModal = ref(false);
 const isEditMode = ref(false);
 const editingProduct = ref(null);
 const viewingProduct = ref(null);
+const sharingProduct = ref(null);
 
 const filters = reactive({
     search: '',
@@ -246,6 +259,17 @@ const handleEdit = (product) => {
 const handleView = (product) => {
     viewingProduct.value = { ...product };
     showDetailModal.value = true;
+};
+
+const handleShare = (product) => {
+    sharingProduct.value = { ...product };
+    showShareModal.value = true;
+};
+
+const handleShareCreated = (space) => {
+    showShareModal.value = false;
+    // Redirect to the space management page automatically for this new space
+    router.push(`/manage/space/${space.id}`);
 };
 
 const handleEditFromDetail = (product) => {

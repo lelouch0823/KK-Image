@@ -29,6 +29,22 @@ export function useSpaces() {
   };
 
   /**
+   * 按商品加载关联空间列表
+   */
+  const loadProductSpaces = async (productId) => {
+    try {
+      const res = await authFetch(API.SPACE_BY_PRODUCT(productId)).then(r => r.json());
+      if (res.success) {
+        return res.data;
+      } else {
+        return [];
+      }
+    } catch (_err) {
+      return [];
+    }
+  };
+
+  /**
    * 获取空间详情
    */
   const loadSpace = async (spaceId) => {
@@ -173,6 +189,7 @@ export function useSpaces() {
     error: resource.error,
     pagination: resource.pagination,
     loadSpaces,
+    loadProductSpaces,
     loadSpace,
     createSpace: resource.createItem,
     updateSpace: resource.updateItem,

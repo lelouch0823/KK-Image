@@ -1,116 +1,65 @@
-# Space Product Association Implementation Plan
+---
+description: 分析 KK-Image 中 Space 和 Product 的架构关系及合并可行性分析
+---
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+# Product 与 Space 架构合并的可行性分析
 
-**Goal:** 允许在共享空间 (Space) 编辑器中关联实际的商品 (Product)，完善空间与商品的绑定功能。
+当前系统中，`Product` (商品) 和 `Space` (共享空间) 是解耦的。用户的疑问是：**如果直接在「商品」里面提供添加文件（图片/视频/文档）的功能，是不是「共享空间」这个概念就多余了？**
 
-**Architecture:** 
-此功能分为三层实现：
-1. 数据库层：通过新增 migration 向 `spaces` 表添加 `product_id` 外键。
-2. API层：修改后端的 Zod 验证规则 ( `crud.js` )，以及 `SpaceRepository.js` 中的查询和更新语句，读取并保存 `product_id`（并关联查询产品基础信息）。
-3. 前端层：在 `SpaceProductEditor.vue` 的左侧商品信息栏 ( `info` tab ) 引入 `ProductBindingSection.vue`，实现商品的选择、解绑，以及提交给后端保存。
+本分析旨在从**产品业务逻辑**、**使用场景**、**开发成本**等角度，深度剖析这两种架构（解耦 vs 把功能合并到商品）的利弊。
 
-**Tech Stack:** Vue 3, Cloudflare D1 (SQLite), Hono (Cloudflare Workers)
+## 1. 当前架构：Product 与 Space 解耦
+
+### 概念定义
+*   **Product (商品库)**：代表**客观实体**。它管理的是公司的基础物料（SKU、品牌、价格、材质、基础商品白底图等）。
+*   **Space (共享空间)**：代表**对外分发渠道/应用场景**。它类似一个“网盘文件夹”或“展示网页”，用于将物料打包、分享给特定的客户或场景。
+
+### 优势
+1.  **一对多的复用性**：一个客观的「商品」，可以关联到无数个「空间」。
+    *   *场景*：针对不同地区的代理商（比如欧洲代理和亚洲代理），可以为一个商品创建两个甚至多个不同的 Space。其中欧洲 Space 放英文海报和高价，亚洲 Space 放中文实拍图和低价。底层还是同一个 SKU，统计数据依然可以归拢。如果直接把文件塞在商品里，做不到这种“千人千面”的分发。
+2.  **灵活的权限控制**：空间带有独立的权限控制（如提取提取码 `Password`、分享链接、过期时间 `Expires At`）。商品本身是内部数据，不应直接暴露给外部；通过 Space 可以控制这批文件“给谁看、看多久”。
+3.  **异构数据的聚合 (子空间)**：当前的 Space 支持嵌套（子空间聚合）。一个大型分发可以打包多个商品（多个 Space）形成一个合集（Collection 模板）。
+
+### 劣势
+1.  **操作繁琐**：对于某些只想要“传几张图发给客户看”的极简业务员来说，必须先建商品，再建空间绑定商品，然后再传图，链路过长。
+2.  **概念认知成本**：新用户需要理解“商品”和“空间”的区别。
 
 ---
 
-### Task 1: 数据库 Migration
+## 2. 拟议架构：功能合并到 Product
 
-**Files:**
-- Create: `migrations/0033_add_product_id_to_spaces.sql`
+这是用户提出的设想：直接在 `Product` 模型中加入 `media_files`，取消独立的 `Space` 实体，对外分享直接分享 `Product` 的链接。
 
-**Step 1: Write the failing test**
-不需要传统测试框架。执行前通过 D1 手动测试 `PRAGMA table_info(spaces)` 不应包含 `product_id`。
+### 优势
+1.  **极简心智模型**：所见即所得。业务员直接在商品详情里上传图片、视频、PDF，然后点击“分享”即可。这符合大多数初级电商 ERP 或电子图册系统的做法。
+2.  **开发收敛**：少了一个核心数据模型（`spaces` 和 `space_files` 表可被废弃），减少了连接查询，数据结构更为简单。
 
-**Step 2: Write minimal implementation**
-在 `migrations/0033_add_product_id_to_spaces.sql` 编写如下 SQL 语句：
-```sql
--- Migration: 0033_add_product_id_to_spaces.sql
--- Description: Add product_id to spaces to allow associating actual products with spaces
-
-ALTER TABLE spaces ADD COLUMN product_id TEXT REFERENCES products(id) ON DELETE SET NULL;
-CREATE INDEX IF NOT EXISTS idx_spaces_product_id ON spaces(product_id);
-```
-
-**Step 3: Run test to verify it passes**
-Run: `npm run db:migrate:local` （假设使用本地 Wrangler D1 migration 命令，具体根据此项目配置执行，比如 `npx wrangler d1 migrations apply database --local`）
-Expected: 成功执行迁移。
-
-**Step 4: Commit**
-```bash
-git add migrations/0033_add_product_id_to_spaces.sql
-git commit -m "feat(db): add product_id to spaces table"
-```
+### 劣势 (核心冲突)
+1.  **无法应对定制化分享 (Personalization)**：
+    *   如果文件直接挂载在商品上，那就是全局共享的。如果销售 A 想给客户发一套精修图，销售 B 想给他的客户发另一套内部买家秀，两人就会在同一个商品下相互干扰。而在解耦架构中，他们可以各自创建自己的 Space。
+2.  **临时文件的污染**：
+    *   在分发场景中，销售经常会上传一些针对特定客户的“报价单”、“合同”或“临时搭配视频”。如果取消 Space，这些文件只能传到 Product 下，会导致核心商品库被大量无关或临时的垃圾文件污染。
+3.  **生命周期不一致**：
+    *   **商品**的生命周期很长（从上架到停产），而**分享链路**的生命周期往往很短（一次促销活动、一次展会发出的链接）。把短生命周期的文件/权限和长生命周期的核心物料绑定，会导致系统越来越重。
+4.  **损失了现有的“空间模板”能力**：
+    *   当前系统支持 `Gallery`, `Portfolio`, `Document` 等多种呈现模板。如果合并到 Product，就意味着默认所有的分享都是千篇一律的“商品落地页”，失去了现有的页面构建灵活性。
 
 ---
 
-### Task 2: 后端 API 和 Repository 更新
+## 3. 结论与产品建议
 
-**Files:**
-- Modify: `functions/lib/hono/routes/manage/spaces/crud.js`
-- Modify: `functions/repositories/SpaceRepository.js`
+**结论：不建议将「分享文件网盘」功能直接内聚到「商品」本身，因为这会破坏系统的高级分发能力（一对多、定制化、隔离展示）。目前的“商品（客观物料） + 空​​间（业务分发）”的抽象是更健壮、更具备扩展性的 ToB SOTA (State of the Art) 设计。**
 
-**Step 1: Write minimal implementation (Repository)**
-在 `functions/repositories/SpaceRepository.js` 中：
-1. `getWithFiles(id)` 和 `findAll()` 和 `findByIdForSalesperson()` 中，使用 `LEFT JOIN products p ON s.product_id = p.id` 扩展查询，返回 `product_id` 以及关联的产品信息（如 `p.name as product_name, p.sku as product_sku, p.images as product_images` 等，若需要）。但由于前端只需要简单的 id 取回即可，我们可以仅返回 `product_id`。为了优化前端 `ProductBindingSection`，建议在 `getWithFiles` 中联表查询绑定产品的基础信息。
-2. `create(data)` 增加 `data.productId` 的插入。
-3. `update()` 中收集并更新 `product_id = ?`。
+### 优化建议：降低用户的操作摩擦力
 
-**Step 2: Write minimal implementation (crud.js)**
-在 `functions/lib/hono/routes/manage/spaces/crud.js` 中：
-1. `CreateSpaceSchema` 和 `UpdateSpaceSchema` 增加：
-   ```javascript
-   productId: z.string().optional().nullable(),
-   ```
-2. 在 `crud.post('/')` 和 `crud.on(['PUT', 'PATCH'])` 中，从 `data` 获取 `productId`，并在调用 `repo.create` 和构建 `updates/values` 数组时传入 `productId`。
+用户觉得“共用空间多余”，很可能是因为**当前的操作路径太重**。我们可以保留底层的双实体的解耦架构，但在 **UI/UX 交互上进行“伪合并”**：
 
-**Step 3: Commit**
-```bash
-git add functions/lib/hono/routes/manage/spaces/crud.js functions/repositories/SpaceRepository.js
-git commit -m "feat(api): support product_id field for spaces"
-```
+1.  **在商品列表提供「一键生成分享空间」**：
+    *   在 ProductManager 列表中，提供一个“快捷分享”按钮。用户点击后，系统在后台自动创建一个隐藏的、关联该商品的默认 Space，并直接跳转到该 Space 的上传/页面。
+    *   **效果**：用户感觉自己是在分享“商品”，但底层仍然利用了 Space 的隔离能力。
+2.  **商品详情页内嵌空间的入口**：
+    *   在查看某个具体商品时，下方列出“基于该商品创建的分享链接（Spaces）”，方便用户管理，让产品与空间的血缘关系更直观。
+3.  **弱化「空间」的技术名词**：
+    *   将前端的文案从“空间 (Space)” 调整为更易懂的 “微网站 (Microsites)”、“画册 (Catalogs)” 或 “分享链接 (Share Links)”。
 
----
-
-### Task 3: 前端 SpaceProductEditor.vue 引入选品组件
-
-**Files:**
-- Modify: `src/components/SpaceProductEditor.vue`
-
-**Step 1: Write minimal implementation**
-1. 在 `<script setup>` 中引入：
-   ```javascript
-   import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
-   ```
-2. 新增响应式状态：
-   ```javascript
-   const boundProduct = ref(null);
-   // form.value 增加 productId: null
-   ```
-3. `initData` 方法中处理绑定的产品数据。如果在 Task 2 中 `loadSpace` 接口返回了 `product` 相关字段，则在这里初始化 `boundProduct.value = { ... }` 和 `form.value.productId`。如果未返回全量数据，可自行调用 `loadProduct` 补全。
-4. 提供 `@select` 和 `@unbind` 对应的 handler 方法。
-5. 在左侧面板的 UI 中 (在 `<div class="flex-1 space-y-4 overflow-y-auto p-6">` 的顶部) 插入 `<ProductBindingSection>`:
-   ```html
-   <div class="mb-4">
-     <ProductBindingSection
-       :bound-product="boundProduct"
-       @select="handleProductSelect"
-       @unbind="unbindProduct"
-     />
-   </div>
-   ```
-
-**Step 2: Commit**
-```bash
-git add src/components/SpaceProductEditor.vue
-git commit -m "feat(ui): add product binding section in space editor"
-```
-
----
-
-### Task 4: 手动功能验收 (Manual Verification)
-
-在完成以上 Task 之后：
-1. **测试用例 1: 绑定产品**：打开一个共享空间设置，在左侧栏使用商品搜索选择一个商品。点击保存，刷新页面，确保左侧成功显示刚刚绑定的商品且不丢失。
-2. **测试用例 2: 解绑产品**：点击已绑定的商品右侧删除按钮，保存，刷新页面，确认绑定解除。
-3. **测试用例 3: 数据流向查询**：通过数据库客户端查询 `spaces` 表，确认 `product_id` 正确写入。
+综上所述，如果从长远的 ToB 及销售分发工具的维度考虑，**当前的架构抽象是完全没问题的**，无需合并数据表。重点是要解决目前的**交互痛点**。

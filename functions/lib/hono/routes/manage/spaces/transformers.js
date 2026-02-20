@@ -11,6 +11,8 @@ import { getShareUrl, getFileUrl } from '../../../_shared/utils.js';
  * @returns {Object} 包含商品字段的 templateData
  */
 export function projectSpaceTemplateData(space) {
+  console.log('--- projectSpaceTemplateData ---');
+  console.log('Space input:', { id: space.id, p_brand: space.p_brand, p_sku: space.p_sku, product_id: space.product_id });
   const templateData = space.template_data ? JSON.parse(space.template_data) : {};
 
   // 如果绑定了产品，用产品表 JOIN 过来的数据覆盖空间的模板字段
@@ -26,6 +28,14 @@ export function projectSpaceTemplateData(space) {
         if (specs?.material) templateData.material = specs.material || '';
       } catch (_e) {
         // console.error 忽略 JSON 解析错误
+      }
+    }
+
+    if (space.p_images) {
+      try {
+        templateData.images = typeof space.p_images === 'string' ? JSON.parse(space.p_images) : space.p_images;
+      } catch (_e) {
+        // ignore
       }
     }
   }

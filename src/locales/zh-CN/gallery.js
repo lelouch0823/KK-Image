@@ -13,6 +13,7 @@ export default {
   networkError: '网络错误，请稍后重试',
   cannotLoad: '无法加载相册',
   noFiles: '暂无文件',
+  noImages: '该相册暂无图片',
   noFilesDesc: '该相册还没有添加任何文件',
   previewNotSupported: '此文件不支持预览',
   scrollHint: '支持滚轮切换 • ESC 关闭',

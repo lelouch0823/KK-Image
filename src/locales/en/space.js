@@ -123,6 +123,8 @@ export default {
     selectSalespersons: 'Select Visible Salespersons',
     selectSalespersonsPlaceholder: 'Click to select salespersons',
     publicLink: 'Public Link',
+    associatedLinks: 'Associated Share Links',
+    noAssociatedLinks: 'No shared spaces linked to this product yet.',
   },
 
   // Public Space Page
@@ -198,5 +200,7 @@ export default {
     removeFileSuccess: 'File removed',
     removeFileFailed: 'Remove failed',
     reorderFailed: 'Failed to reorder',
+    copyUrlSuccess: 'Link copied to clipboard!',
+    copyUrlFailed: 'Failed to copy link',
   },
 };

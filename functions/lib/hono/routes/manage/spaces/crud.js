@@ -59,6 +59,26 @@ crud.get('/', async (c) => {
 });
 
 /**
+ * GET /product/:productId - 获取与特定商品关联的共享空间
+ */
+crud.get('/product/:productId', async (c) => {
+  const { env } = c;
+  const productId = c.req.param('productId');
+  const repo = new SpaceRepository(env.DB);
+
+  try {
+    const results = await repo.findByProductId(productId);
+    return c.json({
+      success: true,
+      data: results.map(transformSpaceListItem),
+    });
+  } catch (err) {
+    console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
+    return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
+  }
+});
+
+/**
  * GET /:id - 获取共享空间详情
  */
 crud.get('/:id', async (c) => {

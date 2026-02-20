@@ -6,8 +6,8 @@
     @update:model-value="$emit('close')"
   >
     <form class="space-y-4" @submit.prevent="handleSubmit">
-      <!-- 模版选择 -->
-      <div>
+      <!-- 模版选择 (如果有初始商品传入，则隐藏或置灰其他模板以强调当前语境) -->
+      <div v-if="!initialProduct">
         <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">{{
           t('spaceManager.selectTemplate')
         }}</label>
@@ -112,8 +112,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
-import { useModalStack } from '@/composables/useModalStack';
+import { ref, computed } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useI18n } from '@/composables/useI18n';
 import AppInput from '@/components/ui/AppInput.vue';
@@ -122,6 +121,7 @@ import ProductBindingSection from '@/components/order/ProductBindingSection.vue'
 
 const props = defineProps({
   parentId: { type: String, default: null }, // 如果提供则为创建子空间
+  initialProduct: { type: Object, default: null }, // 快捷分享：初始绑定的商品对象
 });
 
 const emit = defineEmits(['close', 'created']);
@@ -136,9 +136,10 @@ const boundProduct = ref(null);
 const form = ref({
   name: '',
   description: '',
-  template: 'gallery',
-  productId: null,
+  template: props.initialProduct ? 'product' : 'gallery',
+  productId: props.initialProduct ? props.initialProduct.id : null,
   templateData: {
+
     brand: '',
     series: '',
     price: '',
@@ -185,9 +186,7 @@ const templates = computed(() => [
 const submitButtonText = computed(() => {
   if (submitting.value) return t('spaceManager.creating');
   if (isSubspace.value) return t('spaceManager.createSubspace');
-  return form.value.template === 'product'
-    ? t('spaceManager.createProduct')
-    : t('spaceManager.createSpace');
+  return t('spaceManager.createSpace');
 });
 
 const handleProductSelect = (product) => {
@@ -235,4 +234,18 @@ const handleSubmit = async () => {
     emit('created', result);
   }
 };
+
+// Handle optional initialization for Pseudo-Merge quick-share flows
+import { onMounted } from 'vue';
+onMounted(() => {
+  if (props.initialProduct) {
+    handleProductSelect(props.initialProduct);
+    
+    // Auto-generate a default share name if not provided
+    if (form.value.name === props.initialProduct.name || !form.value.name) {
+      const dateStr = new Date().toLocaleDateString();
+      form.value.name = `${props.initialProduct.name} - ${dateStr}`;
+    }
+  }
+});
 </script>

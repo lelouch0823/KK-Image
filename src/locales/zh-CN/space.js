@@ -124,6 +124,8 @@ export default {
     selectSalespersons: '选择可见销售员',
     selectSalespersonsPlaceholder: '点击选择销售员',
     publicLink: '公开链接',
+    associatedLinks: '关联分享链接',
+    noAssociatedLinks: '暂无关联的分享空间',
   },
 
   // spacePublic (公共空间页面)
@@ -199,5 +201,7 @@ export default {
     removeFileSuccess: '文件已移除',
     removeFileFailed: '移除失败',
     reorderFailed: '重新排序失败',
+    copyUrlSuccess: '链接已复制到剪贴板！',
+    copyUrlFailed: '复制链接失败',
   },
 };

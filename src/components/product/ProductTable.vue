@@ -112,6 +112,13 @@
     <template #cell-actions="{ row }">
       <div class="flex items-center justify-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
           <button 
+            class="hover:bg-primary/10 rounded-lg p-1.5 text-[var(--color-primary)] transition-colors"
+            :title="t('spaceManager.quickShare') || 'Share'"
+            @click.stop="$emit('share', row)"
+          >
+              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+          </button>
+          <button 
             class="hover:bg-info-bg hover:text-info rounded-lg p-1.5 text-(--text-muted) transition-colors"
             :title="t('common.edit') || 'Edit'"
             @click.stop="$emit('edit', row)"
@@ -143,7 +150,7 @@ defineProps({
     products: { type: Array, default: () => [] },
     loading: { type: Boolean, default: false }
 });
-defineEmits(['edit', 'delete', 'view']);
+defineEmits(['edit', 'delete', 'view', 'share']);
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isLargeScreen = breakpoints.greater('lg');

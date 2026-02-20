@@ -51,6 +51,7 @@ export const API = {
   SPACE_FILES: (id) => `${API_PREFIX}/spaces/${id}/files`,
   SPACE_STATS: (id) => `${API_PREFIX}/spaces/${id}/stats`,
   SPACE_SUBSPACES: (id) => `${API_PREFIX}/spaces/${id}/subspaces`,
+  SPACE_BY_PRODUCT: (productId) => `${API_PREFIX}/spaces/product/${productId}`,
 
   // 公开访问
   PUBLIC_GALLERY: (token) => `/api/gallery/${token}`,

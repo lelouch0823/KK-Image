@@ -39,6 +39,34 @@ export class SpaceRepository {
     }
 
     /**
+     * 根据 Product ID 获取相关空间列表
+     * @param {string} productId
+     * @returns {Promise<Array>}
+     */
+    async findByProductId(productId) {
+        const { results } = await this.db
+            .prepare(
+                `
+        SELECT s.*,
+          COALESCE(sf_count.file_count, 0) as file_count,
+          f.storage_key as cover_storage_key
+        FROM spaces s
+        LEFT JOIN (
+            SELECT space_id, COUNT(*) as file_count
+            FROM space_files
+            GROUP BY space_id
+        ) sf_count ON sf_count.space_id = s.id
+        LEFT JOIN files f ON s.cover_file_id = f.id
+        WHERE s.product_id = ?
+        ORDER BY s.updated_at DESC
+      `
+            )
+            .bind(productId)
+            .all();
+        return results;
+    }
+
+    /**
      * 根据 ID 获取空间详情
      * @param {string} id
      * @returns {Promise<Object|null>}

@@ -119,7 +119,7 @@
 
             <!-- Generic File Preview -->
             <div
-              v-else
+              v-else-if="currentFile"
               class="text-secondary flex size-full flex-col items-center justify-center gap-4 bg-[var(--bg-muted)] p-8 text-center"
             >
               <div class="flex size-20 items-center justify-center rounded-2xl bg-[var(--bg-card)] shadow-sm">
@@ -154,6 +154,17 @@
                 </svg>
                 {{ t('spacePublic.download') }}
               </a>
+            </div>
+
+            <!-- No Media State -->
+            <div
+              v-else
+              class="text-secondary flex size-full flex-col items-center justify-center gap-4 bg-[var(--bg-muted)] p-8 text-center"
+            >
+               <svg class="size-12 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+               </svg>
+               <p>{{ t('gallery.noImages') }}</p>
             </div>
 
           <!-- Navigation Arrows (Hidden on mobile) -->
@@ -192,7 +203,7 @@
             class="pointer-events-none absolute right-0 bottom-3 left-0 flex justify-center gap-1.5 lg:hidden"
           >
             <span
-              v-for="(file, idx) in space.files"
+              v-for="(file, idx) in displayFiles"
               :key="file.id"
               class="size-1.5 rounded-full transition-all"
               :class="currentIndex === idx ? 'w-3 bg-white' : 'bg-white/50'"
@@ -203,7 +214,7 @@
         <!-- Thumbnails -->
         <div v-if="hasMultipleFiles" class="scrollbar-hide flex gap-3 overflow-x-auto pb-2">
           <button
-            v-for="(file, index) in space.files"
+            v-for="(file, index) in displayFiles"
             :key="file.id"
             class="relative size-20 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all"
             :class="
@@ -371,8 +382,8 @@
           </button>
 
           <p class="mt-3 text-center text-xs text-[var(--text-muted)]">
-            {{ space.viewCount }} {{ t('spacePublic.views') }} • {{ space.downloadCount }}
-            {{ t('spacePublic.downloads') }}
+            <span>{{ space.viewCount || 0 }} {{ t('spacePublic.views') }}</span>
+            <span v-if="space.downloadCount !== undefined"> • {{ space.downloadCount }} {{ t('spacePublic.downloads') }}</span>
           </p>
         </div>
       </div>
@@ -456,29 +467,48 @@ const { downloading, downloadProgress, downloadAll } = useBatchDownload();
 
 const templateData = computed(() => props.space.templateData || {});
 
+const displayFiles = computed(() => {
+  const media = [];
+  if (templateData.value.images && Array.isArray(templateData.value.images)) {
+    templateData.value.images.forEach((img, idx) => {
+      media.push({
+        id: `p-img-${idx}`,
+        url: `/file/${img}`,
+        name: img.split('/').pop() || img,
+        size: 0,
+        mimeType: 'image/jpeg',
+      });
+    });
+  }
+  if (props.space.files && Array.isArray(props.space.files)) {
+    media.push(...props.space.files);
+  }
+  return media;
+});
+
 // 初始化索引：优先定位到封面图，否则默认第一张
 const getCoverIndex = () => {
-  if (props.space.coverFileId && props.space.files) {
-    const idx = props.space.files.findIndex((f) => f.id === props.space.coverFileId);
+  if (props.space.coverFileId) {
+    const idx = displayFiles.value.findIndex((f) => f.id === props.space.coverFileId);
     return idx >= 0 ? idx : 0;
   }
   return 0;
 };
 const currentIndex = ref(getCoverIndex());
 
-const hasMultipleFiles = computed(() => props.space.files && props.space.files.length > 1);
+const hasMultipleFiles = computed(() => displayFiles.value.length > 1);
 const currentFile = computed(() => {
-  if (!props.space.files || props.space.files.length === 0) return null;
-  return props.space.files[currentIndex.value];
+  if (displayFiles.value.length === 0) return null;
+  return displayFiles.value[currentIndex.value] || displayFiles.value[0];
 });
 
 const handleDownloadAll = () => {
-  downloadAll(props.space.files, props.space.name);
+  downloadAll(displayFiles.value, props.space.name);
 };
 
 const nextImage = () => {
   showPdfPreview.value = false;
-  if (currentIndex.value < props.space.files.length - 1) {
+  if (currentIndex.value < displayFiles.value.length - 1) {
     currentIndex.value++;
   } else {
     currentIndex.value = 0;
@@ -490,7 +520,7 @@ const prevImage = () => {
   if (currentIndex.value > 0) {
     currentIndex.value--;
   } else {
-    currentIndex.value = props.space.files.length - 1;
+    currentIndex.value = displayFiles.value.length - 1;
   }
 };
 
