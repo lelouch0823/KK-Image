@@ -126,8 +126,8 @@ export class SpaceRepository {
         await this.db
             .prepare(
                 `
-        INSERT INTO spaces (id, name, description, is_public, password, share_token, expires_at, template, template_data, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO spaces (id, name, description, is_public, password, share_token, expires_at, template, template_data, product_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
             )
             .bind(
@@ -140,6 +140,7 @@ export class SpaceRepository {
                 data.expiresAt,
                 data.template,
                 data.templateData,
+                data.productId || null,
                 data.createdAt,
                 data.updatedAt
             )

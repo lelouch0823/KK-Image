@@ -26,6 +26,7 @@ export function transformSpaceListItem(space) {
     coverFileId: space.cover_file_id,
     coverUrl: space.cover_storage_key ? getFileUrl(space.cover_storage_key) : null,
     viewCount: space.view_count || 0,
+    productId: space.product_id || null,
     createdAt: space.created_at,
     updatedAt: space.updated_at,
   };
@@ -52,6 +53,7 @@ export function transformSpaceDetail(space, files = []) {
     templateData: space.template_data ? JSON.parse(space.template_data) : {},
     coverFileId: space.cover_file_id,
     viewCount: space.view_count,
+    productId: space.product_id || null,
     createdAt: space.created_at,
     updatedAt: space.updated_at,
     files: files.map(transformFile),
