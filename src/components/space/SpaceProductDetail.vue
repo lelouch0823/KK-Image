@@ -1,6 +1,6 @@
 <template>
-  <div class="mx-auto max-w-7xl px-4 py-8 pb-20 sm:px-6 lg:px-8">
-    <div class="flex flex-col gap-8 lg:flex-row lg:gap-12">
+  <div class="mx-auto w-full max-w-7xl px-4 py-8 pb-20 sm:px-6 lg:px-8">
+    <div class="flex w-full flex-col gap-8 lg:flex-row lg:gap-12">
       <!-- Left: Media Gallery -->
       <div class="w-full space-y-4 lg:w-2/3">
         <!-- Main Image -->
@@ -260,7 +260,7 @@
         <div>
           <div
             v-if="templateData.brand"
-            class="mb-3 inline-flex items-center rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1 text-xs font-medium text-[var(--text-main)] shadow-sm"
+            class="mb-3 inline-flex items-center rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1 text-xs font-medium whitespace-nowrap text-[var(--text-main)] shadow-sm"
           >
             {{ templateData.brand }}
           </div>
@@ -291,31 +291,31 @@
           <dl class="divide-y divide-[var(--border-color)] text-sm">
             <div
               v-if="templateData.brand"
-              class="flex flex-col gap-1 px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-5"
+              class="flex flex-col gap-1 px-4 py-3 sm:grid sm:grid-cols-[100px_1fr] sm:gap-4 sm:px-5"
             >
               <dt class="font-medium text-[var(--text-secondary)]">{{ t('spaceManager.brand') }}</dt>
-              <dd class="font-semibold text-[var(--text-main)] sm:col-span-2">{{ templateData.brand }}</dd>
+              <dd class="font-semibold text-[var(--text-main)]">{{ templateData.brand }}</dd>
             </div>
             <div
               v-if="templateData.series"
-              class="flex flex-col gap-1 px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-5"
+              class="flex flex-col gap-1 px-4 py-3 sm:grid sm:grid-cols-[100px_1fr] sm:gap-4 sm:px-5"
             >
               <dt class="font-medium text-[var(--text-secondary)]">{{ t('spaceManager.series') }}</dt>
-              <dd class="font-semibold text-[var(--text-main)] sm:col-span-2">{{ templateData.series }}</dd>
+              <dd class="font-semibold text-[var(--text-main)]">{{ templateData.series }}</dd>
             </div>
             <div
               v-if="templateData.material"
-              class="flex flex-col gap-1 px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-5"
+              class="flex flex-col gap-1 px-4 py-3 sm:grid sm:grid-cols-[100px_1fr] sm:gap-4 sm:px-5"
             >
               <dt class="font-medium text-[var(--text-secondary)]">{{ t('spaceManager.material') }}</dt>
-              <dd class="font-semibold text-[var(--text-main)] sm:col-span-2">{{ templateData.material }}</dd>
+              <dd class="font-semibold text-[var(--text-main)]">{{ templateData.material }}</dd>
             </div>
             <div
               v-if="templateData.sku"
-              class="flex flex-col gap-1 px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-5"
+              class="flex flex-col gap-1 px-4 py-3 sm:grid sm:grid-cols-[100px_1fr] sm:gap-4 sm:px-5"
             >
               <dt class="font-medium text-[var(--text-secondary)]">SKU</dt>
-              <dd class="font-semibold break-all text-[var(--text-main)] sm:col-span-2">{{ templateData.sku }}</dd>
+              <dd class="font-semibold break-all text-[var(--text-main)]">{{ templateData.sku }}</dd>
             </div>
           </dl>
         </div>
