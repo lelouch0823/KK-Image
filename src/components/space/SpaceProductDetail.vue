@@ -5,7 +5,7 @@
       <div class="w-full space-y-4 lg:w-2/3">
         <!-- Main Image -->
         <div
-          class="group border-border bg-surface-muted relative aspect-video touch-pan-y overflow-hidden rounded-2xl border shadow-sm"
+          class="group relative aspect-video touch-pan-y overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-muted)] shadow-sm"
           @touchstart="handleTouchStart"
           @touchend="handleTouchEnd"
         >
@@ -159,12 +159,14 @@
             <!-- No Media State -->
             <div
               v-else
-              class="text-secondary flex size-full flex-col items-center justify-center gap-4 bg-[var(--bg-muted)] p-8 text-center"
+              class="flex size-full flex-col items-center justify-center gap-4 bg-[var(--bg-muted)] p-8 text-center text-[var(--text-secondary)]"
             >
-               <svg class="size-12 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-               </svg>
-               <p>{{ t('gallery.noImages') }}</p>
+               <div class="flex size-16 items-center justify-center rounded-2xl bg-[var(--bg-card)] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                 <svg class="size-8 text-[var(--text-muted)] opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                 </svg>
+               </div>
+               <p class="text-sm font-medium">{{ t('gallery.noImages') }}</p>
             </div>
 
           <!-- Navigation Arrows (Hidden on mobile) -->
@@ -216,10 +218,10 @@
           <button
             v-for="(file, index) in displayFiles"
             :key="file.id"
-            class="relative size-20 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all"
+            class="relative size-20 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all hover:opacity-80 active:scale-95"
             :class="
               currentIndex === index
-                ? 'border-primary ring-primary/20 ring-2'
+                ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary-light,rgba(59,130,246,0.2))]'
                 : 'border-transparent'
             "
             @click="currentIndex = index; showPdfPreview = false;"
@@ -254,75 +256,66 @@
       </div>
 
       <!-- Right: Product Info -->
-      <div class="w-full space-y-8 lg:w-1/3">
+      <div class="w-full space-y-6 lg:w-1/3 xl:space-y-8">
         <div>
           <div
             v-if="templateData.brand"
-            class="text-primary bg-surface-muted mb-2 inline-block rounded px-2 py-1 text-sm font-medium"
+            class="mb-3 inline-flex items-center rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1 text-xs font-medium text-[var(--text-main)] shadow-sm"
           >
             {{ templateData.brand }}
           </div>
-          <h1 class="text-main text-3xl leading-tight font-bold">{{ space.name }}</h1>
-          <p v-if="templateData.series" class="text-secondary mt-1 text-lg">
+          <h1 class="text-2xl leading-tight font-semibold tracking-tight text-[var(--text-main)] sm:text-3xl">{{ space.name }}</h1>
+          <p v-if="templateData.series" class="mt-2 text-base text-[var(--text-secondary)] sm:text-lg">
             {{ templateData.series }}
           </p>
-          <p v-if="templateData.sku" class="mt-2 font-mono text-xs text-[var(--text-muted)]">
+          <p v-if="templateData.sku" class="mt-3 font-mono text-xs font-medium text-[var(--text-muted)]">
             SKU: {{ templateData.sku }}
           </p>
         </div>
 
         <div v-if="templateData.price && Number(templateData.price) > 0" class="flex items-baseline gap-1">
-          <span class="text-sm text-[var(--text-secondary)]">¥</span>
-          <span class="text-main text-3xl font-bold">{{
-            formatPrice(templateData.price)
-          }}</span>
+          <span class="text-sm font-medium text-[var(--text-secondary)]">¥</span>
+          <span class="text-3xl font-bold tracking-tight text-[var(--text-main)]">{{ formatPrice(templateData.price) }}</span>
         </div>
-        <div v-else-if="templateData.price" class="flex items-center justify-center gap-2 rounded-xl border border-[var(--color-primary-light,rgba(59,130,246,0.1))] bg-[var(--color-primary-light,rgba(59,130,246,0.05))] p-6 text-[var(--color-primary)]">
-           <div class="flex flex-col items-center gap-2">
-             <div class="flex size-10 items-center justify-center rounded-full bg-[var(--color-primary-light,rgba(59,130,246,0.1))]">
-               <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-               </svg>
-             </div>
-             <span class="text-sm font-semibold tracking-wide">{{ t('spacePublic.inquiryPrice') || 'Contact for Price' }}</span>
+        <div v-else-if="templateData.price" class="flex items-center gap-3 rounded-xl border border-[var(--color-primary-light,rgba(59,130,246,0.1))] bg-[var(--color-primary-light,rgba(59,130,246,0.05))] p-4 text-[var(--color-primary)]">
+           <div class="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-light,rgba(59,130,246,0.15))]">
+             <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+             </svg>
            </div>
+           <span class="text-sm font-semibold tracking-wide">{{ t('spacePublic.inquiryPrice') || 'Contact for Price' }}</span>
         </div>
 
         <!-- SOTA Product Parameters Table -->
-        <div v-if="hasAnySpecs" class="pb-2">
-          <dl class="grid grid-cols-1 gap-4  sm:grid-cols-2">
+        <div v-if="hasAnySpecs" class="overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)]">
+          <dl class="divide-y divide-[var(--border-color)] text-sm">
             <div
               v-if="templateData.brand"
-              class="border-primary-light border-l-2 pl-3"
+              class="flex flex-col gap-1 px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-5"
             >
-              <dt class="text-secondary-text text-sm font-medium">{{ t('spaceManager.brand') }}</dt>
-              <dd class="text-main mt-1 text-sm font-semibold">{{ templateData.brand }}</dd>
+              <dt class="font-medium text-[var(--text-secondary)]">{{ t('spaceManager.brand') }}</dt>
+              <dd class="font-semibold text-[var(--text-main)] sm:col-span-2">{{ templateData.brand }}</dd>
             </div>
             <div
               v-if="templateData.series"
-              class="border-l-2 border-[var(--color-primary-light,rgba(59,130,246,0.5))] pl-3"
+              class="flex flex-col gap-1 px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-5"
             >
-
-              <dt class="text-sm font-medium text-[var(--text-secondary)]">{{ t('spaceManager.series') }}</dt>
-              <dd class="mt-1 text-sm font-semibold text-[var(--text-primary)]">{{ templateData.series }}</dd>
+              <dt class="font-medium text-[var(--text-secondary)]">{{ t('spaceManager.series') }}</dt>
+              <dd class="font-semibold text-[var(--text-main)] sm:col-span-2">{{ templateData.series }}</dd>
             </div>
             <div
               v-if="templateData.material"
-              class="border-l-2 border-[var(--color-primary-light,rgba(59,130,246,0.5))] pl-3"
+              class="flex flex-col gap-1 px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-5"
             >
-
-              <dt class="text-sm font-medium text-[var(--text-secondary)]">{{ t('spaceManager.material') }}</dt>
-              <dd class="mt-1 text-sm font-semibold text-[var(--text-primary)]">{{ templateData.material }}</dd>
+              <dt class="font-medium text-[var(--text-secondary)]">{{ t('spaceManager.material') }}</dt>
+              <dd class="font-semibold text-[var(--text-main)] sm:col-span-2">{{ templateData.material }}</dd>
             </div>
             <div
               v-if="templateData.sku"
-              class="border-l-2 border-[var(--color-primary-light,rgba(59,130,246,0.5))] pl-3"
+              class="flex flex-col gap-1 px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-5"
             >
-
-              <dt class="text-sm font-medium text-[var(--text-secondary)]">SKU</dt>
-              <dd class="mt-1 text-sm font-semibold break-all text-[var(--text-primary)]">
-                {{ templateData.sku }}
-              </dd>
+              <dt class="font-medium text-[var(--text-secondary)]">SKU</dt>
+              <dd class="font-semibold break-all text-[var(--text-main)] sm:col-span-2">{{ templateData.sku }}</dd>
             </div>
           </dl>
         </div>
@@ -337,7 +330,7 @@
             v-if="currentFile"
             :href="currentFile.url"
             download
-            class="bg-primary shadow-primary/20 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-[var(--text-inverse)] shadow-lg transition-colors hover:bg-primary-hover"
+            class="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] py-3 font-medium text-[var(--text-inverse)] shadow-[var(--color-primary-light,rgba(59,130,246,0.2))] shadow-lg transition-all hover:-translate-y-[1px] hover:bg-[var(--color-primary-hover)] active:translate-y-0"
           >
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -353,7 +346,7 @@
           <button
             v-if="hasMultipleFiles"
             :disabled="downloading"
-            class="text-primary border-border bg-surface flex w-full items-center justify-center gap-2 rounded-xl border py-3 font-medium transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+            class="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] py-3 font-medium text-[var(--color-primary)] transition-all hover:-translate-y-[1px] hover:bg-[var(--bg-surface-hover)] hover:shadow-sm active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             @click="handleDownloadAll"
           >
             <svg
@@ -401,14 +394,14 @@
 
     <!-- SOTA Mobile Sticky Bottom Bar -->
     <div
-      class="border-border bg-surface fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden"
+      class="fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t border-[var(--border-color)] bg-[var(--bg-card)] p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden"
     >
       <div class="flex flex-1 gap-2">
         <div v-if="templateData.price && Number(templateData.price) > 0" class="mr-auto flex flex-col justify-center px-1">
            <span class="text-[10px] leading-none text-[var(--text-secondary)]">{{ t('spaceManager.price') }}</span>
            <div class="mt-0.5 flex items-baseline gap-0.5">
-             <span class="text-xs text-[var(--color-primary)]">¥</span>
-             <span class="text-lg leading-none font-bold text-[var(--color-primary)]">{{ formatPrice(templateData.price).split('.')[0] }}</span>
+             <span class="text-[10px] text-[var(--color-primary)]">¥</span>
+             <span class="text-lg leading-none font-bold tracking-tight text-[var(--color-primary)]">{{ formatPrice(templateData.price).split('.')[0] }}</span>
              <span class="text-[10px] font-medium text-[var(--color-primary)] opacity-80">.{{ formatPrice(templateData.price).split('.')[1] }}</span>
            </div>
         </div>
@@ -417,7 +410,7 @@
           v-if="currentFile"
           :href="currentFile.url"
           download
-          class="text-primary bg-surface-muted flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-medium transition-transform active:scale-95"
+          class="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--color-primary-light,rgba(59,130,246,0.2))] bg-[var(--color-primary-light,rgba(59,130,246,0.05))] py-3 font-medium text-[var(--color-primary)] transition-transform active:scale-95"
         >
           <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -427,13 +420,13 @@
               d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
             ></path>
           </svg>
-          <span class="text-sm">{{ t('spacePublic.download') }}</span>
+          <span class="text-sm font-semibold">{{ t('spacePublic.download') }}</span>
         </a>
 
         <button
           v-if="hasMultipleFiles || (displayFiles.length > 0 && isDesktop)"
           :disabled="downloading"
-          class="bg-primary shadow-primary/20 flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-medium text-[var(--text-inverse)] shadow-lg transition-transform active:scale-95 disabled:scale-100 disabled:opacity-50"
+          class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] py-3 font-medium text-[var(--text-inverse)] shadow-[var(--color-primary-light,rgba(59,130,246,0.2))] shadow-lg transition-transform active:scale-95 disabled:scale-100 disabled:opacity-50"
           @click="handleDownloadAll"
         >
           <svg v-if="downloading" class="size-5 animate-spin" fill="none" viewBox="0 0 24 24">
