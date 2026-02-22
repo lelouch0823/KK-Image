@@ -395,7 +395,8 @@
     <!-- SOTA Mobile Sticky Bottom Bar -->
     <div
       v-if="currentFile"
-      class="fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t border-[var(--border-color)] bg-[var(--bg-card)] p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden"
+      class="fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t border-[var(--border-color)] bg-[var(--bg-card)] p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] transition-transform duration-300 ease-in-out lg:hidden"
+      :class="isScrolling ? 'translate-y-full' : 'translate-y-0'"
     >
       <div class="flex flex-1 items-center gap-2">
         <div v-if="templateData.price && Number(templateData.price) > 0" class="mr-auto flex flex-col justify-center px-1">
@@ -463,7 +464,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { isImage, isPdf, formatSize } from '@/utils/formatters';
 import { useBatchDownload } from '@/composables/useBatchDownload';
 import { useI18n } from '@/composables/useI18n';
@@ -572,4 +573,29 @@ const handleSwipe = () => {
     prevImage(); // Swipe Right -> Prev
   }
 };
+
+// Smart Scroll Hide for Mobile Bar
+const isScrolling = ref(false);
+let scrollTimeout = null;
+
+const handleScroll = () => {
+  isScrolling.value = true;
+  if (scrollTimeout) {
+    clearTimeout(scrollTimeout);
+  }
+  scrollTimeout = setTimeout(() => {
+    isScrolling.value = false;
+  }, 1000);
+};
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll, { passive: true });
+});
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll);
+  if (scrollTimeout) {
+    clearTimeout(scrollTimeout);
+  }
+});
 </script>
