@@ -59,6 +59,7 @@ export default {
   success: 'Operation Successful',
   view: 'View',
   items: 'Items',
+  selected: 'Selected',
   verifying: 'Verifying Identity...',
   addImage: 'Add Image',
   createdAt: 'Created At',

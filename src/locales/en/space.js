@@ -224,4 +224,7 @@ export default {
     viewSpace: 'View Space',
     loadFailed: 'Failed to load spaces',
   },
+  salesperson: {
+    noAvailable: 'No salesperson information available',
+  },
 };

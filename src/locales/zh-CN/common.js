@@ -59,6 +59,7 @@ export default {
   success: '操作成功',
   view: '查看',
   items: '项',
+  selected: '已选',
   verifying: '正在验证身份...',
   addImage: '添加图片',
   createdAt: '创建时间',

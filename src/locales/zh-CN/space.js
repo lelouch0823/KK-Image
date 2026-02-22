@@ -224,4 +224,7 @@ export default {
     viewSpace: '查看空间',
     loadFailed: '加载空间列表失败',
   },
+  salesperson: {
+    noAvailable: '暂无销售员信息',
+  },
 };
