@@ -21,9 +21,7 @@
           </svg>
           <input
             v-model="searchQuery"
-            type="text"
-            class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] py-2.5 pr-4 pl-9 text-sm text-[var(--text-main)] transition-colors outline-none focus:border-[var(--color-primary)] focus:bg-[var(--bg-card)]"
-            :placeholder="t('common.search') || '搜索销售员姓名...'"
+            class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] py-2.5 pr-4 pl-9 text-sm text-[var(--text-main)] transition-colors outline-none focus:border-[var(--color-primary)] focus:bg-[var(--bg-card)] dark:focus:bg-[var(--bg-muted)]"
           />
         </div>
       </div>
@@ -54,7 +52,7 @@
             type="button"
             class="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200"
             :class="localSelectedIds.includes(sp.id)
-              ? 'bg-[var(--color-primary)]/5 ring-1 ring-[var(--color-primary)]/20 ring-inset'
+              ? 'bg-[var(--color-primary)]/10 ring-1 ring-[var(--color-primary)]/30 ring-inset dark:bg-[var(--color-primary)]/20 dark:ring-[var(--color-primary)]/50'
               : 'hover:bg-[var(--bg-hover)] hover:shadow-sm'"
             @click="toggleSelection(sp.id)"
           >
@@ -64,8 +62,8 @@
               :class="[
                 multiple ? 'size-5 rounded' : 'size-5 rounded-full',
                 localSelectedIds.includes(sp.id)
-                  ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-[var(--color-primary)]/20 shadow-sm'
-                  : 'border-[var(--border-strong)] bg-[var(--bg-card)] group-hover:border-[var(--color-primary)]'
+                  ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-[var(--color-primary)]/20 shadow-sm dark:shadow-none'
+                  : 'border-[var(--border-strong)] bg-[var(--bg-card)] group-hover:border-[var(--color-primary)] dark:bg-[var(--bg-muted)]'
               ]"
             >
               <template v-if="localSelectedIds.includes(sp.id)">
@@ -82,8 +80,8 @@
             <div
               class="flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-medium shadow-sm"
               :class="localSelectedIds.includes(sp.id)
-                ? 'bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary)]/70 text-white'
-                : 'border border-[var(--border-color)] bg-[var(--bg-muted)] text-[var(--text-secondary)]'"
+                ? 'bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary)]/70 text-white shadow-[var(--color-primary)]/30 dark:shadow-none'
+                : 'border border-[var(--border-color)] bg-[var(--bg-muted)] text-[var(--text-secondary)] dark:bg-[var(--bg-card)]'"
             >
               {{ sp.name.charAt(0).toUpperCase() }}
             </div>
