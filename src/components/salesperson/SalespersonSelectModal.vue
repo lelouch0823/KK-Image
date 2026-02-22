@@ -7,12 +7,12 @@
     @update:model-value="$emit('update:show', $event)"
     @close="$emit('close')"
   >
-    <div class="flex flex-col h-[60vh] md:h-[500px]">
+    <div class="flex h-[60vh] flex-col md:h-[500px]">
       <!-- 搜索栏 -->
       <div class="border-b border-[var(--border-color)] px-4 py-3">
         <div class="relative">
           <svg
-            class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]"
+            class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--text-muted)]"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -22,7 +22,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] py-2.5 pl-9 pr-4 text-sm text-[var(--text-main)] outline-none transition-colors focus:border-[var(--color-primary)] focus:bg-[var(--bg-card)]"
+            class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] py-2.5 pr-4 pl-9 text-sm text-[var(--text-main)] transition-colors outline-none focus:border-[var(--color-primary)] focus:bg-[var(--bg-card)]"
             :placeholder="t('common.search') || '搜索销售员姓名...'"
           />
         </div>
@@ -52,29 +52,50 @@
             v-for="sp in filteredSalespersons"
             :key="sp.id"
             type="button"
-            class="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[var(--bg-hover)]"
+            class="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200"
+            :class="localSelectedIds.includes(sp.id)
+              ? 'bg-[var(--color-primary)]/5 ring-1 ring-[var(--color-primary)]/20 ring-inset'
+              : 'hover:bg-[var(--bg-hover)] hover:shadow-sm'"
             @click="toggleSelection(sp.id)"
           >
-            <!-- 勾选复选框 -->
+            <!-- 单选与多选形态自适应 -->
             <span
-              class="flex size-5 shrink-0 items-center justify-center rounded border transition-colors"
-              :class="localSelectedIds.includes(sp.id)
-                ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
-                : 'border-[var(--border-strong)] bg-[var(--bg-card)] group-hover:border-[var(--color-primary)]'"
+              class="flex flex-shrink-0 items-center justify-center border transition-all duration-200"
+              :class="[
+                multiple ? 'size-5 rounded' : 'size-5 rounded-full',
+                localSelectedIds.includes(sp.id)
+                  ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-[var(--color-primary)]/20 shadow-sm'
+                  : 'border-[var(--border-strong)] bg-[var(--bg-card)] group-hover:border-[var(--color-primary)]'
+              ]"
             >
-              <svg v-if="localSelectedIds.includes(sp.id)" class="size-3.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-              </svg>
+              <template v-if="localSelectedIds.includes(sp.id)">
+                <!-- Checkbox SVG -->
+                <svg v-if="multiple" class="size-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <!-- Radio Dot -->
+                <div v-else class="size-2 rounded-full bg-white"></div>
+              </template>
             </span>
             
             <!-- 头像占位 -->
-            <div class="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] font-medium text-xs">
+            <div
+              class="flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-medium shadow-sm"
+              :class="localSelectedIds.includes(sp.id)
+                ? 'bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary)]/70 text-white'
+                : 'border border-[var(--border-color)] bg-[var(--bg-muted)] text-[var(--text-secondary)]'"
+            >
               {{ sp.name.charAt(0).toUpperCase() }}
             </div>
 
             <!-- 信息 -->
             <div class="flex-1 overflow-hidden">
-              <div class="truncate text-sm font-medium text-[var(--text-main)]">{{ sp.name }}</div>
+              <div
+                class="truncate text-sm font-medium transition-colors"
+                :class="localSelectedIds.includes(sp.id) ? 'text-[var(--color-primary)]' : 'text-[var(--text-main)]'"
+              >
+                {{ sp.name }}
+              </div>
               <div v-if="sp.store" class="truncate text-xs text-[var(--text-secondary)]">{{ sp.store }}</div>
             </div>
           </button>
@@ -108,7 +129,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import Modal from '@/components/ui/Modal.vue';
@@ -121,6 +142,14 @@ const props = defineProps({
   initialSelectedIds: {
     type: Array,
     default: () => [],
+  },
+  multiple: {
+    type: Boolean,
+    default: true,
+  },
+  maxSelection: {
+    type: Number,
+    default: 0, // 0 = 无限制
   },
 });
 
@@ -171,10 +200,25 @@ const filteredSalespersons = computed(() => {
 });
 
 const toggleSelection = (id) => {
+  if (!props.multiple) {
+    // 单选模式：直接替换，如果点击已选，允许取消（取决于业务需求，目前保持可取消状态以便灵活，或强制不取消）
+    if (localSelectedIds.value[0] === id) {
+      localSelectedIds.value = [];
+    } else {
+      localSelectedIds.value = [id];
+    }
+    return;
+  }
+
+  // 多选模式
   const index = localSelectedIds.value.indexOf(id);
   if (index > -1) {
     localSelectedIds.value.splice(index, 1);
   } else {
+    if (props.maxSelection > 0 && localSelectedIds.value.length >= props.maxSelection) {
+      // TODO: 若需要提示用户超过最大可选数量，可以在此处追加 Toast
+      return;
+    }
     localSelectedIds.value.push(id);
   }
 };
