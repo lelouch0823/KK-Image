@@ -69,6 +69,12 @@ const routes = [
                 component: () => import('@/views/sales/SalesStatsView.vue'),
                 meta: { titleKey: 'router.personal_stats' },
             },
+            {
+                path: 'spaces',
+                name: 'SalesSpaces',
+                component: () => import('@/views/sales/SalesSpacesView.vue'),
+                meta: { titleKey: 'router.sales_spaces' },
+            },
         ],
     },
     {

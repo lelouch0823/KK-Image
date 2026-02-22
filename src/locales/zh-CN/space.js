@@ -204,4 +204,19 @@ export default {
     copyUrlSuccess: '链接已复制到剪贴板！',
     copyUrlFailed: '复制链接失败',
   },
+  // 销售端底部 TabBar
+  salesTab: {
+    orders: '订单',
+    spaces: '分享',
+  },
+  // 销售端空间列表
+  salesSpaces: {
+    title: '共享空间',
+    subtitle: '查看为您开放的共享空间',
+    empty: '暂无可用的共享空间',
+    emptyDesc: '管理员还未为您分配任何共享空间',
+    fileCount: '{count} 个文件',
+    viewSpace: '查看空间',
+    loadFailed: '加载空间列表失败',
+  },
 };

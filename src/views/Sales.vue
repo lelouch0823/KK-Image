@@ -22,7 +22,7 @@
         <div class="mx-auto flex h-14 max-w-screen-xl items-center justify-between px-4 sm:px-6">
           <div class="flex items-center gap-3">
             <!-- List Page: Logo & User Info -->
-            <template v-if="isListPage">
+            <template v-if="isListPage || isSpacesPage">
               <div
                 class="from-primary flex size-8 items-center justify-center rounded-lg bg-gradient-to-br to-[var(--color-gray-700)]"
               >
@@ -36,7 +36,7 @@
                 </svg>
               </div>
               <div>
-                <h1 class="text-primary text-sm font-semibold">{{ t('order.portal.myOrders') }}</h1>
+                <h1 class="text-primary text-sm font-semibold">{{ isSpacesPage ? t('salesSpaces.title') : t('order.portal.myOrders') }}</h1>
                 <p class="text-xs text-(--text-secondary)">{{ salesperson?.name }}</p>
               </div>
             </template>
@@ -104,7 +104,7 @@
             <!-- Header Actions -->
             <!-- 统计按钮 - 移动端只显示图标 -->
             <AppButton
-              v-if="!isStatsPage"
+              v-if="!isStatsPage && !isSpacesPage"
               variant="ghost"
               size="sm"
               class="!size-9 !p-0 sm:!size-auto sm:!px-3 sm:!py-2"
@@ -119,6 +119,7 @@
               </template>
             </AppButton>
             <AppButton
+              v-if="!isSpacesPage"
               variant="primary"
               :text="t('sales.createOrder')"
               class="whitespace-nowrap"
@@ -133,12 +134,35 @@
       </header>
 
       <!-- Content Area using Router View -->
-      <main class="mx-auto max-w-screen-xl px-4 py-6 sm:px-6">
+      <main class="mx-auto max-w-screen-xl px-4 py-6 pb-24 sm:px-6">
           <router-view />
       </main>
 
-      <!-- Safe Area -->
-      <div class="h-[env(safe-area-inset-bottom)]"></div>
+      <!-- Bottom TabBar -->
+      <nav class="fixed right-0 bottom-0 left-0 z-40 border-t border-[var(--border-color)] bg-[var(--bg-card)]/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg">
+        <div class="mx-auto flex h-14 max-w-screen-xl items-center justify-around">
+          <router-link
+            :to="`/sales/${accessToken}`"
+            class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-colors"
+            :class="isOrderTab ? 'text-[var(--color-primary)]' : 'text-[var(--text-secondary)]'"
+          >
+            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" :stroke-width="isOrderTab ? '2.5' : '1.5'" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span class="text-[10px] font-medium">{{ t('salesTab.orders') }}</span>
+          </router-link>
+          <router-link
+            :to="`/sales/${accessToken}/spaces`"
+            class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-colors"
+            :class="isSpacesPage ? 'text-[var(--color-primary)]' : 'text-[var(--text-secondary)]'"
+          >
+            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" :stroke-width="isSpacesPage ? '2.5' : '1.5'" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+            <span class="text-[10px] font-medium">{{ t('salesTab.spaces') }}</span>
+          </router-link>
+        </div>
+      </nav>
     </div>
   </div>
 </template>
@@ -182,12 +206,15 @@ const accessToken = computed(() => route.params.token);
 // Derived state for Header Actions
 const isStatsPage = computed(() => route.path.endsWith('/stats'));
 const isListPage = computed(() => route.path === `/sales/${accessToken.value}` || route.path === `/sales/${accessToken.value}/`);
+const isSpacesPage = computed(() => route.path.endsWith('/spaces'));
+const isOrderTab = computed(() => isListPage.value || route.path.includes('/create') || route.path.includes('/detail') || isStatsPage.value);
 
 const pageTitle = computed(() => {
   if (isListPage.value) return t('order.portal.myOrders');
   if (route.path.includes('/create')) return t('order.portal.newOrder');
   if (route.path.includes('/detail')) return t('order.detail.title');
   if (route.path.includes('/stats')) return t('salesStats.title');
+  if (isSpacesPage.value) return t('salesSpaces.title');
   return '';
 });
 
@@ -205,12 +232,13 @@ const searchQuery = ref('');
 provide('salesContext', {
     orders,
     loading: ordersLoading,
-    salesperson, // In case needed
+    salesperson,
+    accessToken,
     loadOrders: (page, append) => loadSalesOrders(accessToken.value, page, append),
     pagination: ordersPagination,
     prefillData,
     setPrefillData: (data) => { prefillData.value = data },
-    searchQuery, // 共享搜索状态
+    searchQuery,
 });
 
 // Notifications Logic

@@ -96,8 +96,11 @@
         :share-url="shareUrl"
         :view-count="spaceData?.viewCount"
         :publishing="publishing"
+        :share-mode="spaceData?.shareMode || 'none'"
+        :shared-salespersons="spaceData?.sharedSalespersons || []"
         @publish="publishSpace"
         @unpublish="unpublishSpace"
+        @update-share-settings="handleUpdateShareSettings"
       />
 
       <!-- CONTENT: ANALYTICS -->
@@ -213,6 +216,15 @@ const unpublishSpace = async () => {
   await loadData();
   publishing.value = false;
   addToast({ message: t('spaceManager.shareCard.unpublishSuccess'), type: 'success' });
+  emit('updated');
+};
+
+const handleUpdateShareSettings = async (settings) => {
+  publishing.value = true;
+  await updateSpace(props.space.id, settings);
+  await loadData();
+  publishing.value = false;
+  addToast({ message: t('common.saveSuccess'), type: 'success' });
   emit('updated');
 };
 

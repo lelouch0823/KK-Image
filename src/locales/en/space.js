@@ -204,4 +204,19 @@ export default {
     copyUrlSuccess: 'Link copied to clipboard!',
     copyUrlFailed: 'Failed to copy link',
   },
+  // Sales portal tab bar
+  salesTab: {
+    orders: 'Orders',
+    spaces: 'Shares',
+  },
+  // Sales spaces list
+  salesSpaces: {
+    title: 'Shared Spaces',
+    subtitle: 'Browse shared spaces available to you',
+    empty: 'No shared spaces available',
+    emptyDesc: 'Your admin has not shared any spaces with you yet',
+    fileCount: '{count} files',
+    viewSpace: 'View Space',
+    loadFailed: 'Failed to load spaces',
+  },
 };

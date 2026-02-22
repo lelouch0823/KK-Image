@@ -88,6 +88,8 @@ export const API = {
   SALES_ORDER_READ: (token, id) => `/api/sales/${token}/orders/${id}/read`,
   SALES_UPLOAD: (token) => `/api/sales/${token}/upload`,
   SALES_STATS: (token) => `/api/sales/${token}/stats`,
+  SALES_SPACES: (token) => `/api/sales/${token}/spaces`,
+  SALES_SPACE_DETAIL: (token, id) => `/api/sales/${token}/spaces/${id}`,
 
   // 管理端订单 API
   MANAGE_ORDERS: `/api/manage/orders`,
