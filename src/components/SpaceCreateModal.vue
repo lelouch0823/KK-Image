@@ -93,6 +93,17 @@
       </div>
     </form>
 
+    <div class="px-6 pt-4 pb-2">
+      <label class="mb-2 block text-sm font-medium text-[var(--text-main)]">{{
+        t('spaceManager.shareSettings') || '销售可见性设置'
+      }}</label>
+      <SpaceVisibilitySelector
+        v-model="form.shareMode"
+        v-model:selected-salespersons="form.sharedSalespersonIds"
+        class="!border-dashed !bg-transparent shadow-none"
+      />
+    </div>
+
     <template #footer>
       <button
         class="rounded-lg px-4 py-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
@@ -116,6 +127,7 @@ import { ref, computed } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useI18n } from '@/composables/useI18n';
 import AppInput from '@/components/ui/AppInput.vue';
+import SpaceVisibilitySelector from '@/components/space/SpaceVisibilitySelector.vue';
 import Modal from '@/components/ui/Modal.vue';
 import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
 
@@ -138,6 +150,8 @@ const form = ref({
   description: '',
   template: props.initialProduct ? 'product' : 'gallery',
   productId: props.initialProduct ? props.initialProduct.id : null,
+  shareMode: 'none',
+  sharedSalespersonIds: [],
   templateData: {
 
     brand: '',

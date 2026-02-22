@@ -174,13 +174,26 @@
           </div>
 
           <!-- Share Card -->
-          <div class="border-t border-[var(--border-color)] pt-4">
-            <SpaceShareCard
-              v-model:is-public="form.isPublic"
-              v-model:password-enabled="passwordEnabled"
-              v-model:password="form.password"
-              :share-url="shareUrl"
-            />
+          <div class="border-t border-[var(--border-color)]">
+            <div class="p-6 pt-4 pb-2">
+              <label class="mb-2 block text-sm font-medium text-[var(--text-main)]">{{
+                t('spaceManager.shareSettings') || '销售可见性设置'
+              }}</label>
+              <SpaceVisibilitySelector
+                v-model="form.shareMode"
+                v-model:selected-salespersons="form.sharedSalespersonIds"
+                class="!border-dashed !bg-transparent shadow-none"
+              />
+            </div>
+            
+            <div class="px-6 pt-2 pb-6">
+              <SpaceShareCard
+                v-model:is-public="form.isPublic"
+                v-model:password-enabled="passwordEnabled"
+                v-model:password="form.password"
+                :share-url="shareUrl"
+              />
+            </div>
           </div>
         </div>
 
@@ -353,6 +366,7 @@ import FileSelector from '@/components/FileSelector.vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import SpaceAnalytics from './SpaceAnalytics.vue';
 import SpaceShareCard from './space/SpaceShareCard.vue';
+import SpaceVisibilitySelector from './space/SpaceVisibilitySelector.vue';
 import SpaceMediaGrid from './space/SpaceMediaGrid.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
@@ -391,6 +405,8 @@ const form = ref({
   name: '',
   description: '',
   isPublic: false,
+  shareMode: 'none',
+  sharedSalespersonIds: [],
   coverFileId: null,
   password: '',
   productId: null,
@@ -449,6 +465,8 @@ const initData = async () => {
       name: data.name || '',
       description: data.description || '',
       isPublic: data.isPublic || false,
+      shareMode: data.shareMode || 'none',
+      sharedSalespersonIds: data.sharedSalespersons ? data.sharedSalespersons.map(sp => sp.id) : [],
       coverFileId: data.coverFileId || null,
       password: data.password || '',
       productId: data.productId || null,
