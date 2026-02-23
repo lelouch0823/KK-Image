@@ -19,6 +19,7 @@ app.get('/', (c) => {
     data: {
       id: user.id,
       name: user.name || user.username || 'Admin',
+      role: user.role || 'admin',
       permissions: user.permissions || [],
       avatar: user.avatar || '/assets/default-avatar.png',
       email: user.email,

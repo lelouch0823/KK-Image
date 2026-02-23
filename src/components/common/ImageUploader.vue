@@ -138,6 +138,7 @@ const uploadFile = async (file, hash, originalHash) => {
   const params = [];
   if (hash) params.push(`contentHash=${hash}`);
   if (originalHash) params.push(`originalHash=${originalHash}`);
+  
   if (params.length) {
     const separator = uploadUrl.includes('?') ? '&' : '?';
     // Add context if prop provided

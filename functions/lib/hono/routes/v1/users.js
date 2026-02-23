@@ -3,6 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { CreateUserSchema, UpdateUserSchema } from '../../schemas/user.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { generateId, hashPassword, MSG } from '../../_shared/utils.js';
+import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
 
 const app = new Hono();
 
@@ -129,6 +130,10 @@ app.post('/', requirePermission('admin:full'), zValidator('json', CreateUserSche
       )
       .run();
 
+    // 审计日志 (SOTA: 非阻塞记录)
+    const { userId: opUserId, ip } = getAuditContext(c);
+    c.executionCtx.waitUntil(logAudit(env.DB, { userId: opUserId, action: 'user:create', targetType: 'user', targetId: id, payload: { username: data.username, role: data.role || 'user' }, ip }));
+
     return c.json(
       {
         success: true,
@@ -252,6 +257,10 @@ app.delete('/:id', requirePermission('admin:full'), async (c) => {
     }
 
     await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
+
+    // 审计日志 (SOTA: 非阻塞记录)
+    const { userId: opUserId, ip } = getAuditContext(c);
+    c.executionCtx.waitUntil(logAudit(env.DB, { userId: opUserId, action: 'user:delete', targetType: 'user', targetId: id, ip }));
 
     return c.json({ success: true, message: MSG.USER.DELETE_SUCCESS });
   } catch (err) {

@@ -82,6 +82,7 @@ export default {
     cost: '成本',
     lowStock: '库存不足',
     units: '件',
+    image: '商品图',
   },
   import: {
     title: '商品导入',
@@ -128,8 +129,14 @@ export default {
     match_hint: '未匹配到任何图片，确定要继续吗？这些商品将没有图片。',
     upload_success: '成功上传 {count} 张图片',
     upload_failed: '图片上传失败: {message}',
+    stats: {
+      all_failed: '全部导入失败',
+    },
     stats_summary: '导入完成: {success} 成功, {failed} 失败',
     error_missing_fields: '请至少映射"商品名称"和"SKU"字段',
     confirm_mapping: '确认映射',
+    fields: {
+      image_url: '图片链接',
+    },
   },
 };

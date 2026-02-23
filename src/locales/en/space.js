@@ -130,6 +130,8 @@ export default {
     publicLink: 'Public Link',
     associatedLinks: 'Associated Share Links',
     noAssociatedLinks: 'No shared spaces linked to this product yet.',
+    quickShare: 'Quick Share',
+    select: 'Select',
   },
 
   // Public Space Page
@@ -161,6 +163,7 @@ export default {
     verifying: 'Verifying...',
     verifyFailed: 'Verification failed',
     protectedBy: 'Protected by Cloudflare Turnstile',
+    copied: 'Link copied',
   },
 
   // Space Analytics

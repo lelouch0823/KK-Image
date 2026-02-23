@@ -42,8 +42,8 @@
         <!-- Cover Image -->
         <div class="relative aspect-video overflow-hidden bg-[var(--bg-muted)]">
           <AppImage
-            v-if="space.cover_storage_key"
-            :src="`/file/${space.cover_storage_key}`"
+            v-if="getCoverUrl(space)"
+            :src="getCoverUrl(space)"
             fit="cover"
             class="size-full transition-transform duration-300 group-hover:scale-105"
             rounded="none"
@@ -105,6 +105,26 @@ const getTemplateLabel = (key) => {
     collection: t('spaceManager.templates.collection'),
   };
   return labels[key] || key;
+};
+
+const getCoverUrl = (space) => {
+  const getUrl = (key) => {
+    if (!key) return null;
+    return key.startsWith('http') || key.startsWith('//') ? key : `/file/${key}`;
+  };
+
+  if (space.cover_storage_key) return getUrl(space.cover_storage_key);
+  if (space.p_images) {
+    try {
+      const images = typeof space.p_images === 'string' ? JSON.parse(space.p_images) : space.p_images;
+      if (images && images.length > 0) {
+         return images[0].url || getUrl(images[0].storage_key);
+      }
+    } catch (_err) {
+      // Ignore parse error
+    }
+  }
+  return null;
 };
 
 const loadSpaces = async () => {

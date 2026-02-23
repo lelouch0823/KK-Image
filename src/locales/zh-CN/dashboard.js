@@ -7,6 +7,7 @@ export default {
   todayOrders: '今日订单',
   pendingOrders: '待处理订单',
   weekOrders: '本周订单',
+  monthOrders: '本月订单',
   activeShares: '活跃分享',
   noPendingOrders: '暂无待处理订单',
   totalFiles: '文件总数',

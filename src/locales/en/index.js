@@ -38,6 +38,8 @@ export default {
   spaceAnalytics: spaceModule.spaceAnalytics,
   space: spaceModule.space,
   spaces: spaceModule.spaces,
+  salesTab: spaceModule.salesTab,
+  salesSpaces: spaceModule.salesSpaces,
 
   // Expanded from misc.js
   share: misc.share,
@@ -55,4 +57,5 @@ export default {
   pwa: misc.pwa,
   salesStats: misc.salesStats,
   ai: misc.ai,
+  auditLogs: misc.auditLogs,
 };

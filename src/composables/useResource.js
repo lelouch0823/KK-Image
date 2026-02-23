@@ -189,6 +189,8 @@ export function useResource(apiEndpoint, options = {}) {
                 if (!res.ok) {
                     if (res.status === 401) {
                         throw new Error('UNAUTHORIZED');
+                    } else if (res.status === 403) {
+                        throw new Error('FORBIDDEN');
                     } else if (res.status >= 500) {
                         throw new Error('SERVER_ERROR');
                     }
@@ -241,10 +243,12 @@ export function useResource(apiEndpoint, options = {}) {
 
             if (e.message === 'UNAUTHORIZED') {
                 error.value = t('common.error.unauthorized') || '未授权';
+            } else if (e.message === 'FORBIDDEN') {
+                error.value = t('common.validation_error') || '无权操作';
             } else if (e.message === 'SERVER_ERROR') {
                 error.value = t('common.error.server_error') || '服务器错误';
             } else {
-                error.value = t('common.networkError');
+                error.value = e.data?.error || t('common.networkError');
             }
 
             addToast({ message: error.value, type: 'error' });

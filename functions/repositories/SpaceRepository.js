@@ -407,8 +407,10 @@ export class SpaceRepository {
     async findByIdForSalesperson(spaceId, salespersonId) {
         const space = await this.db.prepare(`
             SELECT s.*,
+                f.storage_key as cover_storage_key,
                 p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
             FROM spaces s
+            LEFT JOIN files f ON s.cover_file_id = f.id
             LEFT JOIN products p ON s.product_id = p.id
             WHERE s.id = ?
               AND (s.share_mode = 'all'

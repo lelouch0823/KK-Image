@@ -98,50 +98,55 @@ const routes = [
                 path: 'files',
                 name: 'Files',
                 component: () => import('@/views/FileManager/index.vue'),
-                meta: { titleKey: 'router.file_management' },
+                meta: { titleKey: 'router.file_management', roles: ['admin', 'manager', 'sales', 'viewer'] },
             },
-
             {
                 path: 'spaces',
                 name: 'Spaces',
                 component: () => import('@/views/SpaceManager/index.vue'),
-                meta: { titleKey: 'router.space_management' },
+                meta: { titleKey: 'router.space_management', roles: ['admin', 'manager', 'sales', 'viewer'] },
             },
             {
                 path: 'salespersons',
                 name: 'Salespersons',
                 component: () => import('@/components/SalespersonManager.vue'), // 暂时兼容
-                meta: { titleKey: 'router.salesperson_management' },
+                meta: { titleKey: 'router.salesperson_management', roles: ['admin', 'manager'] },
             },
             {
                 path: 'products',
                 name: 'Products',
                 component: () => import('@/components/ProductManager.vue'),
-                meta: { titleKey: 'router.product_management' },
+                meta: { titleKey: 'router.product_management', roles: ['admin', 'manager', 'sales', 'viewer'] },
             },
             {
                 path: 'orders',
                 name: 'Orders',
                 component: () => import('@/components/OrderManager.vue'), // 暂时兼容
-                meta: { titleKey: 'router.order_management' },
+                meta: { titleKey: 'router.order_management', roles: ['admin', 'manager', 'sales'] },
             },
             {
                 path: 'customers',
                 name: 'Customers',
                 component: () => import('@/views/Customers.vue'),
-                meta: { titleKey: 'router.customer_management' },
+                meta: { titleKey: 'router.customer_management', roles: ['admin', 'manager'] },
             },
             {
                 path: 'stats',
                 name: 'Stats',
                 component: () => import('@/views/Stats.vue'),
-                meta: { titleKey: 'router.stats_analysis' },
+                meta: { titleKey: 'router.stats_analysis', roles: ['admin', 'manager', 'viewer'] },
             },
             {
                 path: 'settings',
                 name: 'Settings',
                 component: () => import('@/views/Settings.vue'),
-                meta: { titleKey: 'router.system_settings' },
+                meta: { titleKey: 'router.system_settings', roles: ['admin'] },
+            },
+            {
+                path: 'audit-logs',
+                name: 'AuditLogs',
+                component: () => import('@/views/AuditLogs.vue'),
+                meta: { titleKey: 'router.audit_logs', roles: ['admin'] },
             },
             // Admin catch-all (prevents redirect to login for auth users)
             {
@@ -191,7 +196,7 @@ router.beforeEach(async (to, from, next) => {
         document.title = `${t(to.meta.titleKey)} | ${APP_NAME}`;
     }
 
-    const { checkAuth, isAuthenticated } = useAuth();
+    const { checkAuth, isAuthenticated, currentUser } = useAuth();
 
     // 检查认证状态 (如果尚未检查过)
     // 这里可以优化：如果已经 isAuthenticated.value 为 true，是否还需要 checkAuth?
@@ -211,6 +216,15 @@ router.beforeEach(async (to, from, next) => {
                 query: { redirect: to.fullPath },
             });
         } else {
+            // 验证 RBAC 角色
+            const requireRoles = to.meta.roles;
+            if (requireRoles && requireRoles.length > 0) {
+                const userRole = currentUser.value?.role;
+                if (!userRole || !requireRoles.includes(userRole)) {
+                    // 权限不足，回退到主页或 403 页面
+                    return next({ name: 'Dashboard' });
+                }
+            }
             next();
         }
     }

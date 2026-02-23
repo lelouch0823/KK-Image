@@ -87,7 +87,7 @@ export default {
     passwordUpdated: '密码已更新',
     saveFirst: '请先保存更改',
     createSubspace: '创建子空间',
-    subspaces: '个子空间',
+    subspaces: '{count} 个子空间',
     emptySubspaces: '暂无子空间',
     passwordLock: '密码锁',
     setPassword: '设置访问密码',
@@ -131,6 +131,8 @@ export default {
     publicLink: '公开链接',
     associatedLinks: '关联分享链接',
     noAssociatedLinks: '暂无关联的分享空间',
+    quickShare: '快速分享',
+    select: '选择',
   },
 
   // spacePublic (公共空间页面)
@@ -161,6 +163,10 @@ export default {
     verifying: '验证中...',
     verifyFailed: '验证失败，请重试',
     protectedBy: '由 Cloudflare Turnstile 保护',
+    backToCard: '返回卡片',
+    downloads: '次下载',
+    openPreview: '打开预览',
+    viewInline: '内联查看',
   },
 
   // spaceAnalytics

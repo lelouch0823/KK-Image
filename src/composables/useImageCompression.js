@@ -11,6 +11,8 @@
 
 import imageCompression from 'browser-image-compression';
 
+import { useWatermarkSettings } from './useWatermarkSettings';
+
 /**
  * 默认压缩配置
  */
@@ -59,11 +61,114 @@ async function computeSHA256(file) {
 }
 
 /**
+ * 绘制水印
+ * @param {File} file - 原始图片文件
+ * @param {Object} watermarkOptions - 水印配置选项
+ * @returns {Promise<File>} 绘制好水印的新 File
+ */
+async function drawWatermark(file, watermarkOptions) {
+  if (!watermarkOptions || !watermarkOptions.enabled) return file;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.warn('Canvas 2D context not available. Skipping watermark.');
+        return resolve(file);
+      }
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      const { text, position, opacity, color, sizeRatio } = watermarkOptions;
+
+      // Calculate font size
+      const fontSize = Math.max(12, Math.floor(Math.min(canvas.width, canvas.height) * sizeRatio));
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.fillStyle = color;
+      ctx.globalAlpha = opacity;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+
+      const metrics = ctx.measureText(text);
+      const textWidth = metrics.width;
+      const textHeight = fontSize; // Approximate
+
+      const padding = Math.max(10, fontSize / 2);
+
+      let x = 0;
+      let y = 0;
+
+      switch (position) {
+        case 'bottom-right':
+          x = canvas.width - (textWidth / 2) - padding;
+          y = canvas.height - (textHeight / 2) - padding;
+          break;
+        case 'bottom-left':
+          x = (textWidth / 2) + padding;
+          y = canvas.height - (textHeight / 2) - padding;
+          break;
+        case 'top-right':
+          x = canvas.width - (textWidth / 2) - padding;
+          y = (textHeight / 2) + padding;
+          break;
+        case 'top-left':
+          x = (textWidth / 2) + padding;
+          y = (textHeight / 2) + padding;
+          break;
+        case 'center':
+          x = canvas.width / 2;
+          y = canvas.height / 2;
+          break;
+        default:
+          x = canvas.width - (textWidth / 2) - padding;
+          y = canvas.height - (textHeight / 2) - padding;
+      }
+
+      // Add a subtle shadow to improve visibility on differently colored backgrounds
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+
+      ctx.fillText(text, x, y);
+
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          console.warn('Canvas toBlob failed. Skipping watermark.');
+          return resolve(file);
+        }
+        // Retain the original file mime type if possible, or use png as safe fallback
+
+        const watermarkedFile = new File([blob], `wm_${file.name}`, {
+          type: blob.type || file.type,
+          lastModified: Date.now()
+        });
+        resolve(watermarkedFile);
+      }, file.type, 1.0); // Try to preserve original quality here before browser-image-compression
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      console.warn('Failed to load image for watermarking. Skipping watermark.');
+      resolve(file); // fallback to original file
+    };
+    img.src = url;
+  });
+}
+
+/**
  * 图片压缩 Composable
  * @param {Object} customOptions - 自定义压缩选项
  */
 export function useImageCompression(customOptions = {}) {
   const options = { ...DEFAULT_OPTIONS, ...customOptions };
+  const { loadSettings, getSettingsParsed } = useWatermarkSettings();
 
   /**
    * 压缩单张图片
@@ -78,7 +183,7 @@ export function useImageCompression(customOptions = {}) {
    *   ratio: number
    * }>}
    */
-  const compressImage = async (file, onProgress = () => {}) => {
+  const compressImage = async (file, onProgress = () => { }) => {
     if (!file || !file.type.startsWith('image/')) {
       throw new Error('Invalid image file');
     }
@@ -88,7 +193,7 @@ export function useImageCompression(customOptions = {}) {
     // ⚡ SOTA: 先计算原始文件 hash (用于预检查去重)
     const originalHash = await computeSHA256(file);
 
-    // 如果是 GIF，跳过压缩（保留动画）
+    // 如果是 GIF，跳过压缩和水印（保留动画）
     if (file.type === 'image/gif') {
       return {
         file,
@@ -101,10 +206,18 @@ export function useImageCompression(customOptions = {}) {
       };
     }
 
-    // 执行压缩
+    // 1. Load and apply watermark if configured
+    await loadSettings();
+    const wmConfig = getSettingsParsed();
+    let fileToCompress = file;
+    if (wmConfig && wmConfig.enabled) {
+      fileToCompress = await drawWatermark(file, wmConfig);
+    }
+
+    // 2. 执行压缩
     let compressedBlob;
     try {
-      compressedBlob = await imageCompression(file, {
+      compressedBlob = await imageCompression(fileToCompress, {
         ...options,
         onProgress: (progress) => onProgress(Math.round(progress)),
       });
@@ -115,7 +228,7 @@ export function useImageCompression(customOptions = {}) {
       );
       // Fallback: 禁用 Web Worker 重试
       try {
-        compressedBlob = await imageCompression(file, {
+        compressedBlob = await imageCompression(fileToCompress, {
           ...options,
           useWebWorker: false,
           onProgress: (progress) => onProgress(Math.round(progress)),
@@ -140,7 +253,7 @@ export function useImageCompression(customOptions = {}) {
     return {
       file: compressedFile,
       hash, // 压缩后 hash
-      originalHash, // 原始文件 hash
+      originalHash, // 原始文件 hash (注意：即使用户启用了水印，这里传回去给服务器做去重的 originalHash 依然是打水印前最纯净的原始图片 Hash，确保了预检命中)
       originalSize,
       compressedSize: compressedFile.size,
       ratio: compressedFile.size / originalSize,
@@ -153,7 +266,7 @@ export function useImageCompression(customOptions = {}) {
    * @param {Function} onItemProgress - 单项进度回调 (index, progress)
    * @returns {Promise<Array>}
    */
-  const compressImages = async (files, onItemProgress = () => {}) => {
+  const compressImages = async (files, onItemProgress = () => { }) => {
     const results = [];
 
     for (let i = 0; i < files.length; i++) {

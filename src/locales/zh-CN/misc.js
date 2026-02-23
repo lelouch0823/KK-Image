@@ -180,6 +180,8 @@ export default {
     stats_analysis: '统计分析',
     system_settings: '系统设置',
     trash: '回收站',
+    audit_logs: '操作审计日志',
+    sales_spaces: '共享空间',
   },
 
   // PWA
@@ -244,5 +246,18 @@ export default {
       myDailyPerformance: '我的业绩日报',
       monthlyCommission: '本月提成预估',
     },
+  },
+
+  // 审计日志
+  auditLogs: {
+    title: '操作审计日志',
+    allActions: '全部操作',
+    time: '时间',
+    user: '操作用户',
+    action: '操作类型',
+    target: '目标对象',
+    details: '详情',
+    empty: '暂无审计日志',
+    pagination: '第 {page} 页 / 共 {total} 页',
   },
 };

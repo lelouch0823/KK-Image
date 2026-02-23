@@ -204,17 +204,51 @@ export function useUploadQueue() {
   }
 
   /**
-   * 完整上传流程：哈希 → 预检 → 上传
+   * 完整上传流程：压缩/水印 → 哈希 → 预检 → 上传
    */
   async function handleUpload(item) {
+    let finalFile = item.file;
+    let finalHash = null;
+
+    // ── 阶段 0: 尝试压缩和水印 (仅限图片) ──
+    if (finalFile.type.startsWith('image/') && finalFile.type !== 'image/gif') {
+      item.status = 'compressing';
+      try {
+        const { useImageCompression } = await import('@/composables/useImageCompression');
+        const { compressImage } = useImageCompression();
+
+        // compressImage 内部包含了 drawWatermark 的逻辑
+        const result = await compressImage(finalFile, (progress) => {
+          item.progress = progress; // Show compression progress
+        });
+
+        finalFile = result.file;
+        finalHash = result.hash;
+        // Optionally store original hash for cross-device deduplication if needed
+        item.originalHash = result.originalHash;
+      } catch (e) {
+        console.warn('Compression or watermark failed, falling back to original file', e);
+      }
+    }
+
+    // 更新 item 以使用新文件
+    item.file = finalFile;
+    item.size = finalFile.size;
+    item.progress = 0; // 重置进度供后续使用
+
     // ── 阶段 1: 哈希计算 (文件 < 50MB) ──
     if (item.size < 50 * 1024 * 1024) {
       item.status = 'hashing';
       try {
-        item.hash = await computeHash(item.file);
+        // 如果前面压缩时已经计算过 hash，可以直接复用
+        item.hash = finalHash || await computeHash(item.file);
 
         // ── 阶段 2: 秒传预检 ──
-        const existing = await checkHash(item.hash);
+        // 对于带水印的图片，这里预检的是 (带水印后的文件哈希)，
+        // 这意味着同一个水印配置下重复上传同一张图能够秒传，但我们也可以传 original_hash 作为备用。
+        // SOTA: 这里简化逻辑，直接预检 finalHash，确保如果图片改动(加水印)能被正确存储。
+        let checkHashStr = item.originalHash || item.hash; // 优先使用原始高质图的hash去预检
+        const existing = await checkHash(checkHashStr);
         if (existing) {
           // 秒传成功！
           item.status = 'success';
@@ -236,7 +270,7 @@ export function useUploadQueue() {
         }
       } catch (_e) {
         // 哈希失败不阻塞，继续正常上传
-        item.hash = null;
+        if (!item.hash) item.hash = null;
       }
     }
 
@@ -325,7 +359,8 @@ export function useUploadQueue() {
     const params = new URLSearchParams();
     if (item.hash) {
       params.set('contentHash', item.hash);
-      params.set('originalHash', item.hash);
+      // originalHash 包含用户指定的未打水印大图源的Hash，用于服务端真正的判重
+      params.set('originalHash', item.originalHash || item.hash);
     }
 
     // 注入额外参数

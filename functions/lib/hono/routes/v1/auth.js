@@ -55,7 +55,37 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', LoginSchema), as
     return c.json({ success: false, error: MSG.AUTH.UNCONFIGURED }, 503);
   }
 
-  if (username !== env.BASIC_USER || password !== env.BASIC_PASS) {
+  // 1. Check Root Admin
+  let authenticatedUser = null;
+  if (username === env.BASIC_USER && password === env.BASIC_PASS) {
+    authenticatedUser = { id: username, name: 'Administrator', type: 'admin', role: 'admin', permissions: ['admin:full'] };
+  } else {
+    // 2. Check Database Users
+    try {
+      const dbUser = await env.DB.prepare('SELECT id, password_hash, name, role, permissions FROM users WHERE username = ?')
+        .bind(username)
+        .first();
+
+      if (dbUser) {
+        // verify password
+        const { verifyPassword } = await import('../../_shared/utils.js');
+        const isValid = await verifyPassword(password, dbUser.password_hash, env.JWT_SECRET);
+        if (isValid) {
+          authenticatedUser = {
+            id: dbUser.id,
+            name: dbUser.name,
+            type: 'user', // generic type string 
+            role: dbUser.role, // role for RBAC
+            permissions: dbUser.permissions ? JSON.parse(dbUser.permissions) : []
+          };
+        }
+      }
+    } catch (e) {
+      console.error('Error checking DB user auth', e);
+    }
+  }
+
+  if (!authenticatedUser) {
     // 记录登录失败
     const failureResult = await recordLoginFailure(kv, ip, username, c.executionCtx);
 
@@ -78,7 +108,7 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', LoginSchema), as
   await clearLoginFailures(kv, ip, username, c.executionCtx);
 
   // 生成 JWT
-  const user = { id: username, name: 'Administrator', type: 'admin', permissions: ['admin:full'] };
+  const user = authenticatedUser;
   const expiresIn = 7 * 24 * 60 * 60; // 7 天
   const token = await generateJWT(user, env, expiresIn);
 
@@ -121,8 +151,38 @@ app.post('/token', loginRateLimitMiddleware, zValidator('json', TokenSchema), as
     );
   }
 
-  // 验证凭据
-  if (username !== env.BASIC_USER || password !== env.BASIC_PASS) {
+  // 1. Check Root Admin
+  let authenticatedUser = null;
+  if (username === env.BASIC_USER && password === env.BASIC_PASS) {
+    authenticatedUser = { id: username, name: 'Administrator', type: 'admin', role: 'admin', permissions: ['admin:full'] };
+  } else {
+    // 2. Check Database Users
+    try {
+      const dbUser = await env.DB.prepare('SELECT id, password_hash, name, role, permissions FROM users WHERE username = ?')
+        .bind(username)
+        .first();
+
+      if (dbUser) {
+        // verify password
+        const { verifyPassword } = await import('../../_shared/utils.js');
+        const isValid = await verifyPassword(password, dbUser.password_hash, env.JWT_SECRET);
+        if (isValid) {
+          authenticatedUser = {
+            id: dbUser.id,
+            name: dbUser.name,
+            type: 'user',
+            role: dbUser.role,
+            permissions: dbUser.permissions ? JSON.parse(dbUser.permissions) : []
+          };
+        }
+      }
+    } catch (e) {
+      console.error('Error checking DB user token auth', e);
+    }
+  }
+
+  // 验证凭据失败
+  if (!authenticatedUser) {
     // 记录登录失败
     const failureResult = await recordLoginFailure(kv, ip, username, c.executionCtx);
 
@@ -144,12 +204,7 @@ app.post('/token', loginRateLimitMiddleware, zValidator('json', TokenSchema), as
   // 登录成功，清除失败记录
   await clearLoginFailures(kv, ip, username, c.executionCtx);
 
-  const user = {
-    id: username,
-    name: 'Administrator',
-    type: 'admin',
-    permissions: ['admin:full'],
-  };
+  const user = authenticatedUser;
 
   const token = await generateJWT(user, env, expiresIn);
 
@@ -216,6 +271,7 @@ app.get('/me', async (c) => {
       id: user.id,
       name: user.name,
       type: user.type,
+      role: user.role || 'admin', // Ensure role acts as a fallback or actual DB state
       permissions: user.permissions || [],
     },
   });

@@ -32,6 +32,7 @@ import SettingsLayout from '@/components/settings/SettingsLayout.vue';
 import SettingsSidebar from '@/components/settings/SettingsSidebar.vue';
 import BackupSettings from '@/components/settings/tabs/BackupSettings.vue';
 import AISettings from '@/components/settings/tabs/AISettings.vue';
+import WatermarkSettings from '@/components/settings/tabs/WatermarkSettings.vue';
 
 const { t } = useI18n();
 
@@ -44,22 +45,29 @@ const CloudArrowUpIcon = {
   template: `<svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" /></svg>`
 };
 
+const PhotoIcon = {
+  template: `<svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>`
+};
+
 const currentTab = ref('ai');
 
 const tabs = {
   ai: AISettings,
+  watermark: WatermarkSettings,
   backups: BackupSettings,
 };
 
 // Computes dynamic title and description based on current tab
 const activeTitle = computed(() => {
   if (currentTab.value === 'ai') return t('settings.ai.title', 'AI Configuration');
+  if (currentTab.value === 'watermark') return t('settings.watermark.title', 'Watermark Settings');
   if (currentTab.value === 'backups') return t('settings.backup.title', 'System Backups');
   return t('settings.title', 'System Settings');
 });
 
 const activeDescription = computed(() => {
   if (currentTab.value === 'ai') return t('settings.ai.description', 'Manage API keys and model preferences for the AI assistant.');
+  if (currentTab.value === 'watermark') return t('settings.watermark.description', 'Configure global text watermark applied to uploaded images.');
   if (currentTab.value === 'backups') return t('settings.backup.description', 'Create and download full system backups including database and stored files.');
   return t('settings.subtitle', 'Manage your application preferences, AI configurations, and system backups.');
 });
@@ -69,6 +77,11 @@ const navigationItems = computed(() => [
     id: 'ai', 
     label: t('settings.ai.title', 'AI Configuration'), 
     icon: SparklesIcon,
+  },
+  { 
+    id: 'watermark', 
+    label: t('settings.watermark.title', 'Watermark'), 
+    icon: PhotoIcon,
     badge: 'New'
   },
   { 
@@ -80,3 +93,4 @@ const navigationItems = computed(() => [
 
 const activeComponent = computed(() => tabs[currentTab.value] || AISettings);
 </script>
+

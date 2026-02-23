@@ -5,6 +5,7 @@ import { requirePermission } from '../../middleware/auth.js';
 import { getFileUrl, MSG } from '../../_shared/utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
+import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
 
 const app = new Hono();
 
@@ -135,6 +136,11 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
 
     // 软删除
     await repo.softDelete(fileId);
+
+    // 审计日志 (SOTA: 非阻塞记录)
+    const { userId, ip } = getAuditContext(c);
+    c.executionCtx.waitUntil(logAudit(env.DB, { userId, action: 'files:delete', targetType: 'file', targetId: fileId, payload: { name: file.name }, ip }));
+
     return c.json({ success: true, message: MSG.FILE.DELETE_SUCCESS });
   } catch (err) {
     return c.json({ success: false, error: err.message }, 500);
@@ -156,6 +162,10 @@ app.post(
       const repo = new FileRepository(env.DB);
       // SOTA: 软删除
       await repo.softDeleteBatch(ids);
+
+      // 审计日志 (SOTA: 非阻塞记录)
+      const { userId, ip } = getAuditContext(c);
+      c.executionCtx.waitUntil(logAudit(env.DB, { userId, action: 'files:batch_delete', targetType: 'file', payload: { ids }, ip }));
       return c.json({ success: true, message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', ids.length) });
     } catch (err) {
       return c.json({ success: false, error: err.message }, 500);

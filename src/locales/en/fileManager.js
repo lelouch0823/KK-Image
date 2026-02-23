@@ -37,6 +37,7 @@ export default {
     open: 'Open',
     rename: 'Rename',
     download: 'Download',
+    tag: 'Tag',
   },
   renameSuccess: 'Rename successful',
   renameFailed: 'Rename failed',
@@ -58,4 +59,9 @@ export default {
   manage: {
     selectAll: 'Select All',
   },
+  taggingItems: 'Assigning to {count} file(s):',
+  newTagPlaceholder: 'New Tag Name',
+  noTags: 'No tags available.',
+  tagCreated: 'Tag created successfully',
+  tagAssigned: 'Assigned tag to {count} file(s)',
 };

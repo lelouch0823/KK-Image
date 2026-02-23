@@ -37,6 +37,7 @@ export default {
     open: '打开',
     rename: '重命名',
     download: '下载',
+    tag: '标签',
   },
   renameSuccess: '重命名成功',
   renameFailed: '重命名失败',
@@ -58,4 +59,9 @@ export default {
   manage: {
     selectAll: '全选',
   },
+  taggingItems: '正在为 {count} 个文件分配标签：',
+  newTagPlaceholder: '输入新标签名称',
+  noTags: '暂无可用标签',
+  tagCreated: '标签创建成功',
+  tagAssigned: '成功为 {count} 个文件分配标签',
 };

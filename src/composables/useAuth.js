@@ -89,6 +89,15 @@ export function useAuth() {
         currentUser.value = null;
       }
 
+      // HTTP 错误抛出，交由拦截器或业务层处理
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const err = new Error(errorData.error || response.statusText);
+        err.status = response.status;
+        err.data = errorData;
+        throw err;
+      }
+
       return response;
     } catch (error) {
       if (error.name === 'AbortError') {

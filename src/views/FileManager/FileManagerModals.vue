@@ -63,11 +63,14 @@
 
     <!-- Share File Modal -->
     <ShareFileModal v-model="showShareFile" :file="shareFile" />
+
+    <!-- Tag Modal -->
+    <TagModal v-model="showTag" :items="itemsToTag" @tagged="$emit('tagged')" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
 import AppButton from '@/components/ui/AppButton.vue';
@@ -75,17 +78,20 @@ import AppInput from '@/components/ui/AppInput.vue';
 import MoveItemModal from '@/components/MoveItemModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
 import ShareFileModal from '@/components/ShareFileModal.vue';
+import TagModal from '@/components/TagModal.vue';
 
-const props = defineProps({
-  currentFolder: Object,
-  itemsToMove: Array,
-  shareFile: Object,
+defineProps({
+  currentFolder: { type: Object, default: null },
+  itemsToMove: { type: Array, default: () => [] },
+  itemsToTag: { type: Array, default: () => [] },
+  shareFile: { type: Object, default: null },
 });
 
 const emit = defineEmits([
   'create-folder',
   'rename',
   'moved',
+  'tagged',
   'share-updated'
 ]);
 
@@ -102,6 +108,7 @@ const renameTarget = ref(null);
 const showMove = ref(false);
 const showShareFolder = ref(false);
 const showShareFile = ref(false);
+const showTag = ref(false);
 
 // Methods to be called by parent
 const openCreateFolder = () => {
@@ -117,6 +124,10 @@ const openRename = (target) => { // target: { id, type, name }
 
 const openMove = () => {
   showMove.value = true;
+};
+
+const openTag = () => {
+  showTag.value = true;
 };
 
 const shareFolderTarget = ref(null);
@@ -147,6 +158,7 @@ defineExpose({
   openRename,
   openMove,
   openShareFolder,
-  openShareFile
+  openShareFile,
+  openTag
 });
 </script>

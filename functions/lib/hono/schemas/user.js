@@ -22,7 +22,7 @@ export const CreateUserSchema = z.object({
   password: z.string().min(6).max(100),
   name: z.string().min(1).max(100),
   email: z.string().email().optional(),
-  role: z.enum(['admin', 'user', 'viewer']).default('user'),
+  role: z.enum(['admin', 'manager', 'sales', 'viewer', 'user']).default('user'),
   permissions: z.array(z.string()).optional(),
 });
 
@@ -33,7 +33,7 @@ export const UpdateUserSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   email: z.string().email().optional(),
   password: z.string().min(6).max(100).optional(),
-  role: z.enum(['admin', 'user', 'viewer']).optional(),
+  role: z.enum(['admin', 'manager', 'sales', 'viewer', 'user']).optional(),
   permissions: z.array(z.string()).optional(),
 });
 

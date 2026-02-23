@@ -82,6 +82,7 @@ export default {
     cost: 'Cost',
     lowStock: 'Low Stock',
     units: 'pcs',
+    image: 'Product Image',
   },
   import: {
     title: 'Import Products',
@@ -128,6 +129,9 @@ export default {
     match_hint: 'No images matched. Continue without images?',
     upload_success: 'Successfully uploaded {count} images',
     upload_failed: 'Image upload failed: {message}',
+    stats: {
+      all_failed: 'All imports failed',
+    },
     stats_summary: 'Import Complete: {success} Success, {failed} Failed',
     error_missing_fields: 'Product Name and SKU are required',
     confirm_mapping: 'Confirm Mapping',

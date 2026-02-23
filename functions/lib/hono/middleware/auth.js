@@ -1,4 +1,5 @@
 import { verifyJWT, verifyApiKey, ADMIN_AUTH_COOKIE, MSG } from '../_shared/utils.js';
+import { hasPermission } from '../../../api/utils/permissions.js';
 
 /**
  * 公开路由列表（无需认证）
@@ -108,12 +109,17 @@ export function requirePermission(permission) {
       return c.json({ success: false, error: 'Unauthorized' }, 401);
     }
 
-    // 管理员拥有所有权限
+    // 兼容旧版逻辑：如果是 admin 用户或者是系统管理 token
     if (user.type === 'admin' || user.permissions?.includes('admin:full')) {
       return next();
     }
 
-    // 检查特定权限
+    // 新增 RBAC 基于角色的校验
+    if (user.role && hasPermission(user.role, permission)) {
+      return next();
+    }
+
+    // 如果没有配置系统 role，还可以兼容退回到之前的 permissions 数组检查
     if (user.permissions?.includes(permission)) {
       return next();
     }

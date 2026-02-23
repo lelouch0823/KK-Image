@@ -46,6 +46,7 @@
       @share-folder="openShareFolderModal"
       @batch-move="handleBatchMove"
       @batch-delete="handleBatchDelete"
+      @batch-tag="handleBatchTag"
       @clear-selection="selectedIds.clear()"
       @open-trash="showTrashModal = true"
     />
@@ -205,10 +206,12 @@
       ref="modals"
       :current-folder="currentFolder"
       :items-to-move="itemsToMove"
+      :items-to-tag="itemsToTag"
       :share-file="currentShareFile"
       @create-folder="handleCreateFolder"
       @rename="handleRenameSubmit"
       @moved="handleMoved"
+      @tagged="handleTagged"
       @share-updated="handleShareUpdated"
     />
 
@@ -282,7 +285,7 @@ const {
   error,
 } = useFileManager();
 
-const { searchQuery } = useSearch();
+const { searchQuery, searchResults } = useSearch();
 
 // Computed Data
 const displayedSubfolders = computed(() => {
@@ -293,12 +296,14 @@ const displayedSubfolders = computed(() => {
 
 const displayedFiles = computed(() => {
   if (!searchQuery.value) return files.value;
-  const query = searchQuery.value.toLowerCase();
-  return files.value.filter(
-    (f) =>
-      f.name.toLowerCase().includes(query) ||
-      (f.originalName && f.originalName.toLowerCase().includes(query))
-  );
+  // If actively searching globally:
+  return searchResults.value.map(file => {
+    // Re-map format if necessary, assuming server returns standard file obj
+    return {
+      ...file,
+      url: `/api/v1/files/${file.id}` // basic standard resolution mapping 
+    };
+  });
 });
 
 // Setup New Composables
@@ -328,6 +333,7 @@ const viewMode = ref('list');
 const modals = useTemplateRef('modals'); // Ref to FileManagerModals component
 const showTrashModal = ref(false); // NEW
 const itemsToMove = ref([]);
+const itemsToTag = ref([]);
 const currentShareFile = ref(null);
 
 // Confirm Dialog State
@@ -399,6 +405,17 @@ const handleBatchMove = () => {
   modals.value.openMove();
 };
 
+const handleBatchTag = () => {
+  if (selectedIds.value.size === 0) return;
+  // Tags only apply to files currently, but could check type if needed
+  itemsToTag.value = Array.from(selectedIds.value).map(id => {
+    // find the file to pass its existing metadata if needed
+    const file = files.value.find(f => f.id === id);
+    return file || { id, type: 'file' };
+  });
+  modals.value.openTag();
+};
+
 const handleMoveFile = (file) => {
   itemsToMove.value = [{ id: file.id, type: 'file' }];
   modals.value.openMove();
@@ -410,6 +427,11 @@ const handleMoveFolder = (folder) => {
 };
 
 const handleMoved = () => {
+  loadFolderData(currentFolder.value?.id);
+  selectedIds.value.clear();
+};
+
+const handleTagged = () => {
   loadFolderData(currentFolder.value?.id);
   selectedIds.value.clear();
 };

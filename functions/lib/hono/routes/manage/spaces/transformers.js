@@ -62,7 +62,9 @@ export function transformSpaceListItem(space) {
     expiresAt: space.expires_at,
     template: space.template,
     coverFileId: space.cover_file_id,
-    coverUrl: space.cover_storage_key ? getFileUrl(space.cover_storage_key) : null,
+    coverUrl: space.cover_storage_key
+      ? (space.cover_storage_key.startsWith('http') ? space.cover_storage_key : getFileUrl(space.cover_storage_key))
+      : null,
     viewCount: space.view_count || 0,
     productId: space.product_id || null,
     createdAt: space.created_at,
@@ -90,6 +92,9 @@ export function transformSpaceDetail(space, files = []) {
     template: space.template,
     templateData: projectSpaceTemplateData(space),
     coverFileId: space.cover_file_id,
+    coverUrl: space.cover_storage_key
+      ? (space.cover_storage_key.startsWith('http') ? space.cover_storage_key : getFileUrl(space.cover_storage_key))
+      : null,
     viewCount: space.view_count,
     productId: space.product_id || null,
     createdAt: space.created_at,

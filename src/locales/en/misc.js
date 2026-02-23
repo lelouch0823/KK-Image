@@ -180,6 +180,8 @@ export default {
     stats_analysis: 'Statistics',
     system_settings: 'Settings',
     trash: 'Recycle Bin',
+    audit_logs: 'Audit Logs',
+    sales_spaces: 'Shared Spaces',
   },
 
   // PWA
@@ -244,5 +246,18 @@ export default {
       myDailyPerformance: 'My Daily Performance',
       monthlyCommission: 'Monthly Commission Est.',
     },
+  },
+
+  // Audit Logs
+  auditLogs: {
+    title: 'Audit Logs',
+    allActions: 'All Actions',
+    time: 'Time',
+    user: 'User',
+    action: 'Action',
+    target: 'Target',
+    details: 'Details',
+    empty: 'No audit logs found.',
+    pagination: 'Page {page} of {total}',
   },
 };
