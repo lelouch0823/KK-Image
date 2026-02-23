@@ -98,13 +98,29 @@ app.get('/', async (c) => {
     const { results } = await env.DB.prepare(sql).bind(...bindParams).all();
 
     // 获取可用的品牌和分类（用于前端筛选下拉）
-    const { results: categories } = await env.DB
-        .prepare("SELECT DISTINCT category FROM products WHERE status = 'active' AND category IS NOT NULL AND category != '' ORDER BY category")
-        .all();
+    // 当前要求：基于已绑定订单的实际商品类目动态生成
+    const filterSql = `
+        SELECT DISTINCT p.category
+        FROM orders o
+        JOIN products p ON o.product_id = p.id
+        WHERE o.status IN (${STATUS_IN_CLAUSE}) 
+          AND o.product_id IS NOT NULL 
+          AND p.category IS NOT NULL 
+          AND p.category != ''
+        ORDER BY p.category
+    `;
+    const { results: categories } = await env.DB.prepare(filterSql).bind(...ACTIVE_STATUSES).all();
 
-    const { results: brands } = await env.DB
-        .prepare("SELECT DISTINCT brand FROM products WHERE status = 'active' AND brand IS NOT NULL AND brand != '' ORDER BY brand")
-        .all();
+    const brandSql = `
+        SELECT DISTINCT COALESCE(p.brand, json_extract(o.current_data, '$.brand')) as brand
+        FROM orders o
+        LEFT JOIN products p ON o.product_id = p.id
+        WHERE o.status IN (${STATUS_IN_CLAUSE}) 
+          AND o.product_id IS NOT NULL 
+        ORDER BY brand
+    `;
+    const { results: rawBrands } = await env.DB.prepare(brandSql).bind(...ACTIVE_STATUSES).all();
+    const brands = rawBrands.filter(r => r.brand && r.brand !== '-');
 
     return c.json({
         success: true,
