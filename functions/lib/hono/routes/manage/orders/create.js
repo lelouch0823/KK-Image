@@ -87,14 +87,43 @@ app.post('/', async (c) => {
  */
 app.post('/batch', async (c) => {
     const { env } = c;
+    const user = c.get('user');
     const { ids, action, value, reason } = await c.req.json();
     const repo = new OrderRepository(env.DB);
+    const actorName = user?.name || 'Admin';
 
     if (action === 'status') {
+        const updateReason = reason || MSG.ORDER.ACTIONS.BATCH_PREFIX + MSG.ORDER.ACTIONS[value];
+        
+        // 1. 先查询需要通知的订单信息
+        const { results: orders } = await env.DB.prepare(
+            `SELECT id, order_no, salesperson_id FROM orders WHERE id IN (${ids.map(() => '?').join(',')})`
+        ).bind(...ids).all();
+
+        // 2. 更新状态
         await repo.batchUpdateStatus(ids, value, {
             actorType: 'admin',
-            reason: reason || MSG.ORDER.ACTIONS.BATCH_PREFIX + MSG.ORDER.ACTIONS[value]
+            actorName: actorName,
+            reason: updateReason
         });
+
+        // 3. SOTA: 发送批量通知给销售
+        if (orders && orders.length > 0) {
+            const notifications = orders.filter(o => o.salesperson_id).map(order => ({
+                event: 'ORDER_BATCH_STATUS_CHANGED',
+                orderId: order.id,
+                orderNo: order.order_no,
+                receiver: 'sales',
+                salespersonId: order.salesperson_id,
+                actorName: actorName,
+                extra: { status: value }
+            }));
+
+            if (notifications.length > 0) {
+                const { createBatchOrderNotifications } = await import('../../../../../api/utils/order-utils.js');
+                await createBatchOrderNotifications(env.DB, notifications);
+            }
+        }
     }
 
     return c.json({ success: true, message: MSG.ORDER.BATCH_RESULT.replace('{valid}', ids.length) });
