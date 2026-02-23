@@ -8,10 +8,10 @@
         <!-- Add existing file -->
         <Tooltip :content="t('spaceManager.addFile')">
           <button
-            class="flex size-8 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+            class="group flex h-9 items-center justify-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 text-sm font-medium text-[var(--text-secondary)] shadow-sm transition-all hover:border-[var(--color-primary-light)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] hover:shadow-md active:scale-95"
             @click="$emit('addFiles')"
           >
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="size-4 text-[var(--text-muted)] transition-colors group-hover:text-[var(--text-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -19,16 +19,17 @@
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
               />
             </svg>
+            <span>{{ t('spaceManager.addFile') || 'Select Files' }}</span>
           </button>
         </Tooltip>
 
         <!-- Upload new file -->
         <Tooltip :content="t('common.upload')">
           <button
-            class="bg-primary flex size-8 items-center justify-center rounded-lg text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-colors hover:bg-[var(--color-primary-hover)]"
+            class="group bg-primary shadow-primary/20 flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium text-[var(--text-inverse)] shadow-lg transition-all hover:-translate-y-0.5 hover:bg-[var(--color-primary-hover)] active:scale-95"
             @click="$emit('upload')"
           >
-            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="size-4.5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -36,6 +37,7 @@
                 d="M12 4v16m8-8H4"
               />
             </svg>
+            <span>{{ t('common.upload') || 'Upload' }}</span>
           </button>
         </Tooltip>
         
