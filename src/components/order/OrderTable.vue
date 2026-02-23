@@ -75,7 +75,7 @@
         <!-- Name & Dot -->
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2 font-bold text-(--text-main)">
-            <span class="truncate block" :title="row.productName || '-'">{{ row.productName || '-' }}</span>
+            <span class="block truncate" :title="row.productName || '-'">{{ row.productName || '-' }}</span>
             <span
               v-if="row.hasNewFeedback"
               class="bg-danger size-2.5 shrink-0 animate-pulse rounded-full border-2 border-(--bg-card)"
@@ -93,16 +93,16 @@
 
     <!-- Salesperson Cell -->
     <template #cell-salesperson="{ row }">
-      <div v-if="row.salespersonName" class="flex flex-col min-w-0">
-        <span class="font-medium truncate block" :title="row.salespersonName">{{ row.salespersonName }}</span>
-        <span class="text-xs text-(--text-secondary) truncate block" :title="row.store">{{ row.store }}</span>
+      <div v-if="row.salespersonName" class="flex min-w-0 flex-col">
+        <span class="block truncate font-medium" :title="row.salespersonName">{{ row.salespersonName }}</span>
+        <span class="block truncate text-xs text-(--text-secondary)" :title="row.store">{{ row.store }}</span>
       </div>
       <span v-else class="text-(--text-muted)">-</span>
     </template>
 
     <!-- Order No Cell -->
     <template #cell-orderNo="{ value }">
-      <span class="font-mono text-xs text-(--text-secondary) truncate block" :title="value">{{ value }}</span>
+      <span class="block truncate font-mono text-xs text-(--text-secondary)" :title="value">{{ value }}</span>
     </template>
 
     <!-- Status Cell -->

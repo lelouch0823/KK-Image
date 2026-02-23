@@ -47,8 +47,8 @@
           <!-- 信息 -->
           <div class="min-w-0 flex-1">
             <div class="flex items-start justify-between gap-2">
-              <div class="flex items-center gap-2 truncate font-bold text-[var(--text-main)] min-w-0 flex-1 pr-2">
-                <span class="truncate block" :title="order.productName || '-'">{{ order.productName || '-' }}</span>
+              <div class="flex min-w-0 flex-1 items-center gap-2 truncate pr-2 font-bold text-[var(--text-main)]">
+                <span class="block truncate" :title="order.productName || '-'">{{ order.productName || '-' }}</span>
                 <span
                   v-if="order.hasNewFeedback"
                   class="size-2.5 flex-shrink-0 animate-pulse rounded-full border-2 border-[var(--bg-card)] bg-[var(--color-danger)]"

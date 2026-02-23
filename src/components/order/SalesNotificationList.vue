@@ -84,9 +84,9 @@
               </div>
 
               <!-- Unread indicator dot & Mark Read Action -->
-              <div v-if="item.is_read === 0" class="shrink-0 self-center flex items-center gap-2">
+              <div v-if="item.is_read === 0" class="flex shrink-0 items-center gap-2 self-center">
                 <button 
-                  class="hidden group-hover:flex items-center justify-center size-6 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-primary transition-colors"
+                  class="text-primary hidden size-6 items-center justify-center rounded-full transition-colors group-hover:flex hover:bg-black/5 dark:hover:bg-white/10"
                   title="标记为已读"
                   @click.stop="markAsRead(item.id)"
                 >

@@ -112,11 +112,11 @@
                     "
                     class="mt-1 flex items-start gap-2 text-xs"
                   >
-                    <span class="text-[var(--color-danger-text)]/60 line-through min-w-0 flex-1 break-words">
+                    <span class="min-w-0 flex-1 break-words text-[var(--color-danger-text)]/60 line-through">
                       {{ getDisplayValue(update, 'oldValue') }}</span
                     >
                     <svg
-                      class="size-3 shrink-0 mt-0.5 text-[var(--text-secondary)]"
+                      class="mt-0.5 size-3 shrink-0 text-[var(--text-secondary)]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -128,7 +128,7 @@
                         d="M14 5l7 7m0 0l-7 7m7-7H3"
                       ></path>
                     </svg>
-                    <span class="font-medium text-[var(--color-success-text)] min-w-0 flex-1 break-words">{{
+                    <span class="min-w-0 flex-1 font-medium break-words text-[var(--color-success-text)]">{{
                       getDisplayValue(update, 'newValue')
                     }}</span>
                   </div>
@@ -136,7 +136,7 @@
                   <!-- 个别理由 (如果有不同) -->
                   <p
                     v-if="update.reason && !getCommonReason(item.updates)"
-                    class="mt-1 text-xs text-[var(--text-secondary)] break-words whitespace-pre-wrap"
+                    class="mt-1 text-xs break-words whitespace-pre-wrap text-[var(--text-secondary)]"
                   >
                     {{ t('order.timeline.reason') }}: {{ getReasonText(update.reason) }}
                   </p>
@@ -148,7 +148,7 @@
                 v-if="getCommonReason(item.updates)"
                 class="mt-3 border-t border-dashed border-[var(--border-color)] pt-2"
               >
-                <p class="text-xs text-[var(--text-secondary)] break-words whitespace-pre-wrap">
+                <p class="text-xs break-words whitespace-pre-wrap text-[var(--text-secondary)]">
                   <span class="font-medium">{{ t('order.timeline.reason') }}:</span>
                   {{ getReasonText(getCommonReason(item.updates)) }}
                 </p>
@@ -179,7 +179,7 @@
                   formatImageCount(item.newValue)
                 }}</span>
               </div>
-              <p v-if="item.reason" class="mt-1 text-xs text-[var(--text-secondary)] break-words whitespace-pre-wrap">
+              <p v-if="item.reason" class="mt-1 text-xs break-words whitespace-pre-wrap text-[var(--text-secondary)]">
                 {{ t('order.timeline.reason') }}: {{ getReasonText(item.reason) }}
               </p>
             </div>
@@ -190,13 +190,13 @@
               <StatusBadge :variant="getStatusVariant(item.newValue)" size="sm" class="ml-1">
                 {{ t(`order.statuses.${item.newValue}`) }}
               </StatusBadge>
-              <span v-if="item.reason" class="mt-1 block text-xs text-[var(--text-secondary)] break-words whitespace-pre-wrap">{{
+              <span v-if="item.reason" class="mt-1 block text-xs break-words whitespace-pre-wrap text-[var(--text-secondary)]">{{
                 getReasonText(item.reason)
               }}</span>
             </p>
 
             <!-- 留言 -->
-            <p v-else class="text-sm text-[var(--color-primary)] break-words whitespace-pre-wrap">{{ item.comment }}</p>
+            <p v-else class="text-sm break-words whitespace-pre-wrap text-[var(--color-primary)]">{{ item.comment }}</p>
           </div>
         </div>
       </div>
@@ -290,15 +290,15 @@
                     "
                     class="mt-0.5 flex items-start gap-2 text-xs"
                   >
-                    <span class="text-[var(--text-muted)] line-through min-w-0 flex-1 break-words">{{
+                    <span class="min-w-0 flex-1 break-words text-[var(--text-muted)] line-through">{{
                       getDisplayValue(update, 'oldValue')
                     }}</span>
-                    <span class="text-[var(--text-muted)]/50 shrink-0">→</span>
-                    <span class="text-[var(--text-main)] min-w-0 flex-1 break-words">{{
+                    <span class="shrink-0 text-[var(--text-muted)]/50">→</span>
+                    <span class="min-w-0 flex-1 break-words text-[var(--text-main)]">{{
                       getDisplayValue(update, 'newValue')
                     }}</span>
                   </div>
-                  <div v-if="update.reason" class="mt-0.5 text-xs text-[var(--text-muted)] break-words whitespace-pre-wrap">
+                  <div v-if="update.reason" class="mt-0.5 text-xs break-words whitespace-pre-wrap text-[var(--text-muted)]">
                     {{ t('order.timeline.reason') }}: {{ getReasonText(update.reason) }}
                   </div>
                 </div>
@@ -310,11 +310,11 @@
                   {{ t('order.timeline.statusChanged') }}
                   <span class="font-medium">{{ t(`order.statuses.${item.newValue}`) }}</span>
                 </div>
-                <div v-if="item.reason" class="mt-1 text-xs text-[var(--text-muted)] break-words whitespace-pre-wrap">{{ getReasonText(item.reason) }}</div>
+                <div v-if="item.reason" class="mt-1 text-xs break-words whitespace-pre-wrap text-[var(--text-muted)]">{{ getReasonText(item.reason) }}</div>
               </div>
 
               <!-- Comment -->
-              <div v-else class="text-[var(--text-main)] italic break-words whitespace-pre-wrap">"{{ item.comment }}"</div>
+              <div v-else class="break-words whitespace-pre-wrap text-[var(--text-main)] italic">"{{ item.comment }}"</div>
             </td>
           </tr>
         </tbody>
