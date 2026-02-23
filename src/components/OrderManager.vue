@@ -201,7 +201,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, onActivated, watch, reactive } from 'vue';
+import { onMounted, onUnmounted, onActivated, watch, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
 import { useNotifications } from '@/composables/useNotifications';
