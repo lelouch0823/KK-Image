@@ -26,6 +26,7 @@ app.post('/', requirePermission('files:write'), async (c) => {
 
         let folderId = 'root';
         const context = url.searchParams.get('context');
+        const spaceId = url.searchParams.get('spaceId');
 
         if (context === 'product') {
             const { ensureProductFolder } = await import('../../../../api/utils/folder-utils.js');
@@ -36,6 +37,12 @@ app.post('/', requirePermission('files:write'), async (c) => {
                 const { ensureOrderFolder } = await import('../../../../api/utils/folder-utils.js');
                 folderId = await ensureOrderFolder(env, order.order_no);
             }
+        } else if (spaceId) {
+            const space = await env.DB.prepare('SELECT name FROM spaces WHERE id = ?').bind(spaceId).first();
+            if (space?.name) {
+                const { ensureSpaceFolder } = await import('../../../../api/utils/folder-utils.js');
+                folderId = await ensureSpaceFolder(env, space.name);
+            }
         }
 
         const result = await storeFile(env, file, {
@@ -44,6 +51,23 @@ app.post('/', requirePermission('files:write'), async (c) => {
             folderId,
             createdBy: user.id || 'admin',
         });
+
+        // 如果传了 spaceId，则将文件关联到该空间
+        if (spaceId && result?.file?.id) {
+            // 获取当前空间的最大 sort_order
+            const maxOrderRow = await env.DB.prepare(
+                'SELECT MAX(sort_order) as max_order FROM space_files WHERE space_id = ?'
+            ).bind(spaceId).first();
+            const nextOrder = (maxOrderRow?.max_order ?? -1) + 1;
+
+            await env.DB.prepare(
+                'INSERT INTO space_files (space_id, file_id, sort_order, added_at) VALUES (?, ?, ?, ?)'
+            ).bind(spaceId, result.file.id, nextOrder, Date.now()).run();
+
+            // 更新空间的 updated_at
+            await env.DB.prepare('UPDATE spaces SET updated_at = ? WHERE id = ?')
+                .bind(Date.now(), spaceId).run();
+        }
 
         return c.json({
             success: true,

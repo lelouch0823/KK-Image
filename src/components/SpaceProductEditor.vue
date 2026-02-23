@@ -328,7 +328,15 @@
             @set-cover="setCover"
             @remove="removeFile"
             @add-files="showFileSelector = true"
+            @upload="$refs.fileInput.click()"
             @reorder="handleReorder"
+          />
+          <input
+            ref="fileInput"
+            type="file"
+            multiple
+            class="hidden"
+            @change="handleNativeUpload"
           />
         </div>
 
@@ -354,12 +362,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { ROUTES } from '@/utils/constants';
+
+import { useUploadQueue } from '@/composables/useUploadQueue';
 
 // Components
 import FileSelector from '@/components/FileSelector.vue';
@@ -381,6 +391,7 @@ const { updateSpace, addFilesToSpace, removeFilesFromSpace, reorderSpaceFiles, l
 const { loadProduct } = useProducts();
 const { addToast } = useToast();
 const { t } = useI18n();
+const { addFiles: enqueueFiles, registerFolderRefresh, unregisterFolderRefresh } = useUploadQueue();
 
 const showFileSelector = ref(false);
 const saving = ref(false);
@@ -581,6 +592,17 @@ const setCover = (file) => {
   addToast({ message: t('spaceManager.coverSet'), type: 'success' });
 };
 
+const handleNativeUpload = (event) => {
+  const selectedFiles = event.target.files;
+  if (!selectedFiles || selectedFiles.length === 0) return;
+
+  // Use Space details or ID to determine upload targets.
+  enqueueFiles(selectedFiles, null, { spaceId: props.space.id });
+
+  // Clear the input so the same files can be selected again
+  event.target.value = '';
+};
+
 const handleReorder = async (newFiles) => {
   // Optimistic update
   files.value = newFiles;
@@ -595,5 +617,15 @@ const handleReorder = async (newFiles) => {
   }
 };
 
-onMounted(initData);
+onMounted(() => {
+  initData();
+  registerFolderRefresh(`space_${props.space.id}`, () => {
+    initData();
+    emit('updated');
+  });
+});
+
+onUnmounted(() => {
+  unregisterFolderRefresh(`space_${props.space.id}`);
+});
 </script>

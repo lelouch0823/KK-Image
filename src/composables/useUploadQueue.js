@@ -80,9 +80,12 @@ export function useUploadQueue() {
 
   /**
    * 添加文件到上传队列
+   * @param {FileList|Array<File>} files 文件列表
+   * @param {string} folderId 目标文件夹ID (如果是 root 可以传 'root'，若是直接传到 space 可忽略，只要 options 提供了 spaceId)
+   * @param {Object} [options] 额外参数，例如 { spaceId: '123' }
    */
-  const addFiles = (files, folderId) => {
-    if (!folderId) {
+  const addFiles = (files, folderId, options = {}) => {
+    if (!folderId && !options.spaceId) {
       addToast({ message: t('uploadQueue.selectFolderFirst'), type: 'warning' });
       return;
     }
@@ -126,6 +129,8 @@ export function useUploadQueue() {
       lastTime: 0,
       // 哈希
       hash: null,
+      // 额外参数
+      options,
     }));
 
     queue.value.push(...newItems);
@@ -309,13 +314,32 @@ export function useUploadQueue() {
       processQueue();
     };
 
-    // 构建上传 URL，附加哈希参数
-    let url = API.FOLDER_UPLOAD(item.folderId);
+    // 构建上传 URL
+    let url = API.FOLDER_UPLOAD(item.folderId || 'root'); // Default to root if missing but we have spaceId
+
+    // 如果有额外参数 (如 spaceId)，我们可以直接覆写为 MANAGE_UPLOAD (基础上传接口)
+    if (item.options?.spaceId) {
+      url = API.MANAGE_UPLOAD;
+    }
+
+    const params = new URLSearchParams();
     if (item.hash) {
-      const params = new URLSearchParams();
       params.set('contentHash', item.hash);
       params.set('originalHash', item.hash);
-      url += `?${params.toString()}`;
+    }
+
+    // 注入额外参数
+    if (item.options) {
+      Object.keys(item.options).forEach(k => {
+        if (item.options[k]) {
+          params.set(k, item.options[k]);
+        }
+      });
+    }
+
+    const queryStr = params.toString();
+    if (queryStr) {
+      url += `?${queryStr}`;
     }
 
     xhr.open('POST', url, true);

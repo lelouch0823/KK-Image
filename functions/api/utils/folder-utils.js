@@ -91,3 +91,21 @@ export async function ensureOrderFolder(env, orderNoOrId) {
     return 'root'; // Fallback
   }
 }
+
+/**
+ * 确保共享空间文件夹结构存在
+ * _System -> Spaces -> [SpaceName]
+ * @param {Object} env
+ * @param {string} spaceName 空间名称
+ * @returns {Promise<string>} 空间专属文件夹ID
+ */
+export async function ensureSpaceFolder(env, spaceName) {
+  try {
+    const rootId = await ensureSystemRoot(env);
+    const subId = await ensureFolder(env, 'Spaces', rootId, true);
+    return await ensureFolder(env, spaceName, subId, false);
+  } catch (e) {
+    console.error('Ensure space folder error:', e);
+    return 'root';
+  }
+}

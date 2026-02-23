@@ -5,10 +5,28 @@
       class="flex shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-card)] p-4"
     >
       <div class="flex items-center gap-3">
+        <!-- Add existing file -->
         <Tooltip :content="t('spaceManager.addFile')">
           <button
-            class="bg-primary flex size-8 items-center justify-center rounded-lg text-sm font-medium text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)]"
+            class="flex size-8 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
             @click="$emit('addFiles')"
+          >
+            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+              />
+            </svg>
+          </button>
+        </Tooltip>
+
+        <!-- Upload new file -->
+        <Tooltip :content="t('common.upload')">
+          <button
+            class="bg-primary flex size-8 items-center justify-center rounded-lg text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-colors hover:bg-[var(--color-primary-hover)]"
+            @click="$emit('upload')"
           >
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -20,6 +38,7 @@
             </svg>
           </button>
         </Tooltip>
+        
         <span class="text-secondary text-xs">{{
           t('fileManager.totalFiles', { count: files?.length || 0 })
         }}</span>
@@ -141,7 +160,7 @@ const props = defineProps({
   },
 });
 
-defineEmits(['addFiles', 'setCover', 'remove']);
+defineEmits(['addFiles', 'upload', 'setCover', 'remove']);
 
 const { t } = useI18n();
 
