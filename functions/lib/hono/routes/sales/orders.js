@@ -211,6 +211,30 @@ app.delete('/:id', async (c) => {
 
     await orderRepo.updateStatus(orderId, 'void', 'sales');
 
+    // SOTA: 记录时间轴
+    const { OrderTimelineRepository } = await import('../../../../repositories/OrderTimelineRepository.js');
+    const tplRepo = new OrderTimelineRepository(env.DB);
+    await tplRepo.addTimelineEntry(orderId, {
+        actionType: 'status_changed',
+        actorType: 'salesperson',
+        actorId: salesperson.id,
+        actorName: salesperson.name,
+        oldValue: order.status,
+        newValue: 'void',
+        reason: 'Salesperson voided the order',
+    });
+
+    // SOTA: 通知管理员
+    const { createOrderNotification } = await import('../../../../api/utils/order-utils.js');
+    await createOrderNotification(env.DB, {
+        event: 'ORDER_UPDATED_BY_SALES',
+        orderId: orderId,
+        orderNo: order.orderNo,
+        receiver: 'admin',
+        actorName: salesperson.name,
+        extra: { status: 'void' }
+    });
+
     return c.json({ success: true, message: MSG.ORDER.VOID_SUCCESS });
 });
 
