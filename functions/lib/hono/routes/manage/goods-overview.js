@@ -40,15 +40,15 @@ app.get('/', async (c) => {
     const sort = url.searchParams.get('sort') || 'shortage';
 
     // 构建 WHERE 子句
-    let productWhere = "p.status = 'active'";
+    let whereClause = `o.status IN (${STATUS_IN_CLAUSE}) AND o.product_id IS NOT NULL`;
     const bindParams = [...ACTIVE_STATUSES]; // 用于 IN 子句
 
     if (category) {
-        productWhere += ' AND p.category = ?';
+        whereClause += ' AND p.category = ?';
         bindParams.push(category);
     }
     if (brand) {
-        productWhere += ' AND p.brand = ?';
+        whereClause += ` AND COALESCE(p.brand, json_extract(o.current_data, '$.brand')) = ?`;
         bindParams.push(brand);
     }
 
@@ -59,7 +59,7 @@ app.get('/', async (c) => {
             orderBy = 'total_demand DESC, shortage DESC';
             break;
         case 'name':
-            orderBy = 'p.name ASC';
+            orderBy = 'name ASC';
             break;
         case 'shortage':
         default:
@@ -72,20 +72,25 @@ app.get('/', async (c) => {
 
     const sql = `
         SELECT 
-            p.id, p.name, p.sku, p.brand, p.category, 
-            p.stock_quantity, p.alert_threshold, p.images,
+            COALESCE(p.id, o.id) as id,
+            COALESCE(p.name, json_extract(o.current_data, '$.name')) as name,
+            COALESCE(p.sku, '-') as sku,
+            COALESCE(p.brand, json_extract(o.current_data, '$.brand'), '-') as brand,
+            COALESCE(p.category, '-') as category,
+            COALESCE(p.stock_quantity, 0) as stock_quantity,
+            COALESCE(p.alert_threshold, 10) as alert_threshold,
+            p.images,
             COALESCE(SUM(CASE WHEN o.status = 'confirmed' THEN o.quantity ELSE 0 END), 0) as confirmed_qty,
             COALESCE(SUM(CASE WHEN o.status = 'production' THEN o.quantity ELSE 0 END), 0) as production_qty,
             COALESCE(SUM(CASE WHEN o.status = 'shipping' THEN o.quantity ELSE 0 END), 0) as shipping_qty,
             COALESCE(SUM(CASE WHEN o.status = 'arrived' THEN o.quantity ELSE 0 END), 0) as arrived_qty,
             COALESCE(SUM(o.quantity), 0) as total_demand,
             COUNT(o.id) as order_count,
-            COALESCE(SUM(o.quantity), 0) - p.stock_quantity as shortage
-        FROM products p
-        INNER JOIN orders o ON o.product_id = p.id 
-            AND o.status IN (${STATUS_IN_CLAUSE})
-        WHERE ${productWhere}
-        GROUP BY p.id
+            COALESCE(SUM(o.quantity), 0) - COALESCE(MAX(p.stock_quantity), 0) as shortage
+        FROM orders o
+        LEFT JOIN products p ON o.product_id = p.id AND p.status = 'active'
+        WHERE ${whereClause}
+        GROUP BY COALESCE(p.id, json_extract(o.current_data, '$.name'))
         ${havingClause}
         ORDER BY ${orderBy}
     `;
@@ -127,13 +132,13 @@ app.get('/summary', async (c) => {
      */
     const { results } = await env.DB.prepare(`
         SELECT 
-            COUNT(DISTINCT p.id) as total_products,
+            COUNT(DISTINCT COALESCE(p.id, json_extract(o.current_data, '$.name'))) as total_products,
             COALESCE(SUM(o.quantity), 0) as total_demand,
             -- 不同商品数
-            COUNT(DISTINCT CASE WHEN o.status = 'confirmed' THEN p.id END) as confirmed_products,
-            COUNT(DISTINCT CASE WHEN o.status = 'production' THEN p.id END) as production_products,
-            COUNT(DISTINCT CASE WHEN o.status = 'shipping'  THEN p.id END) as shipping_products,
-            COUNT(DISTINCT CASE WHEN o.status = 'arrived'   THEN p.id END) as arrived_products,
+            COUNT(DISTINCT CASE WHEN o.status = 'confirmed' THEN COALESCE(p.id, json_extract(o.current_data, '$.name')) END) as confirmed_products,
+            COUNT(DISTINCT CASE WHEN o.status = 'production' THEN COALESCE(p.id, json_extract(o.current_data, '$.name')) END) as production_products,
+            COUNT(DISTINCT CASE WHEN o.status = 'shipping'  THEN COALESCE(p.id, json_extract(o.current_data, '$.name')) END) as shipping_products,
+            COUNT(DISTINCT CASE WHEN o.status = 'arrived'   THEN COALESCE(p.id, json_extract(o.current_data, '$.name')) END) as arrived_products,
             -- 件数
             COALESCE(SUM(CASE WHEN o.status = 'confirmed' THEN o.quantity ELSE 0 END), 0) as confirmed_qty,
             COALESCE(SUM(CASE WHEN o.status = 'production' THEN o.quantity ELSE 0 END), 0) as production_qty,
@@ -145,9 +150,8 @@ app.get('/summary', async (c) => {
             COUNT(CASE WHEN o.status = 'shipping' THEN 1 END) as shipping_orders,
             COUNT(CASE WHEN o.status = 'arrived' THEN 1 END) as arrived_orders
         FROM orders o
-        INNER JOIN products p ON o.product_id = p.id AND p.status = 'active'
-        WHERE o.product_id IS NOT NULL
-            AND o.status IN (${STATUS_IN_CLAUSE})
+        LEFT JOIN products p ON o.product_id = p.id AND p.status = 'active'
+        WHERE o.status IN (${STATUS_IN_CLAUSE}) AND o.product_id IS NOT NULL
     `).bind(...ACTIVE_STATUSES).all();
 
     const row = results[0] || {};
@@ -155,13 +159,12 @@ app.get('/summary', async (c) => {
     // 缺货商品数 — 需要单独统计
     const { results: shortageResults } = await env.DB.prepare(`
         SELECT COUNT(*) as count FROM (
-            SELECT p.id,
-                COALESCE(SUM(o.quantity), 0) - p.stock_quantity as shortage
-            FROM products p
-            INNER JOIN orders o ON o.product_id = p.id 
-                AND o.status IN (${STATUS_IN_CLAUSE})
-            WHERE p.status = 'active'
-            GROUP BY p.id
+            SELECT COALESCE(p.id, json_extract(o.current_data, '$.name')) as id,
+                COALESCE(SUM(o.quantity), 0) - COALESCE(MAX(p.stock_quantity), 0) as shortage
+            FROM orders o
+            LEFT JOIN products p ON o.product_id = p.id AND p.status = 'active'
+            WHERE o.status IN (${STATUS_IN_CLAUSE}) AND o.product_id IS NOT NULL
+            GROUP BY COALESCE(p.id, json_extract(o.current_data, '$.name'))
             HAVING shortage > 0
         )
     `).bind(...ACTIVE_STATUSES).all();
@@ -190,19 +193,22 @@ app.get('/export', async (c) => {
 
     const { results } = await env.DB.prepare(`
         SELECT 
-            p.name, p.sku, p.brand, p.category, p.stock_quantity,
+            COALESCE(p.name, json_extract(o.current_data, '$.name')) as name, 
+            COALESCE(p.sku, '-') as sku, 
+            COALESCE(p.brand, json_extract(o.current_data, '$.brand'), '-') as brand, 
+            COALESCE(p.category, '-') as category, 
+            COALESCE(p.stock_quantity, 0) as stock_quantity,
             COALESCE(SUM(CASE WHEN o.status = 'confirmed' THEN o.quantity ELSE 0 END), 0) as confirmed_qty,
             COALESCE(SUM(CASE WHEN o.status = 'production' THEN o.quantity ELSE 0 END), 0) as production_qty,
             COALESCE(SUM(CASE WHEN o.status = 'shipping' THEN o.quantity ELSE 0 END), 0) as shipping_qty,
             COALESCE(SUM(CASE WHEN o.status = 'arrived' THEN o.quantity ELSE 0 END), 0) as arrived_qty,
             COALESCE(SUM(o.quantity), 0) as total_demand,
             COUNT(o.id) as order_count,
-            COALESCE(SUM(o.quantity), 0) - p.stock_quantity as shortage
-        FROM products p
-        INNER JOIN orders o ON o.product_id = p.id 
-            AND o.status IN (${STATUS_IN_CLAUSE})
-        WHERE p.status = 'active'
-        GROUP BY p.id
+            COALESCE(SUM(o.quantity), 0) - COALESCE(MAX(p.stock_quantity), 0) as shortage
+        FROM orders o
+        LEFT JOIN products p ON o.product_id = p.id AND p.status = 'active'
+        WHERE o.status IN (${STATUS_IN_CLAUSE}) AND o.product_id IS NOT NULL
+        GROUP BY COALESCE(p.id, json_extract(o.current_data, '$.name'))
         HAVING total_demand > 0
         ORDER BY shortage DESC, total_demand DESC
     `).bind(...ACTIVE_STATUSES).all();

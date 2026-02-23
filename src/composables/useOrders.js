@@ -63,8 +63,8 @@ export function useOrders() {
         // 追加模式：合并新数据，限制最大长度
         if (append) {
           const combined = [...resource.items.value, ...res.data.orders];
-          resource.items.value = combined.length > MAX_ITEMS 
-            ? combined.slice(-MAX_ITEMS) 
+          resource.items.value = combined.length > MAX_ITEMS
+            ? combined.slice(-MAX_ITEMS)
             : combined;
         } else {
           // 替换模式：直接赋值
@@ -83,13 +83,13 @@ export function useOrders() {
         if (res.data.pagination) {
           Object.assign(resource.pagination, res.data.pagination);
         } else if (res.data.total !== undefined) {
-             // Fallback: Manually calculate pagination if only total is provided
-             const currentLimit = parseInt(params.limit || resource.pagination.limit) || 20;
-             const total = parseInt(res.data.total) || 0;
-             resource.pagination.page = parseInt(params.page || resource.pagination.page) || 1;
-             resource.pagination.limit = currentLimit;
-             resource.pagination.total = total;
-             resource.pagination.totalPages = Math.ceil(total / currentLimit) || 1;
+          // Fallback: Manually calculate pagination if only total is provided
+          const currentLimit = parseInt(params.limit || resource.pagination.limit) || 20;
+          const total = parseInt(res.data.total) || 0;
+          resource.pagination.page = parseInt(params.page || resource.pagination.page) || 1;
+          resource.pagination.limit = currentLimit;
+          resource.pagination.total = total;
+          resource.pagination.totalPages = Math.ceil(total / currentLimit) || 1;
         }
 
         // Ensure totalPages is valid
@@ -133,7 +133,7 @@ export function useOrders() {
   /**
    * 更新订单信息
    */
-  const updateOrder = async (id, updates, reason, fileIds) => {
+  const updateOrder = async (id, updates, reason, fileIds, productId) => {
     const idx = resource.items.value.findIndex(item => item.id === id);
     const oldItem = idx !== -1 ? { ...resource.items.value[idx] } : null;
 
@@ -145,6 +145,7 @@ export function useOrders() {
     try {
       const body = { updates, reason };
       if (fileIds) body.fileIds = fileIds;
+      if (productId !== undefined) body.productId = productId;
 
       const res = await authFetch(API.MANAGE_ORDER_UPDATE(id), {
         method: 'PATCH',
@@ -269,30 +270,30 @@ export function useOrders() {
   const loadSalesOrders = async (token, page = 1, append = false) => {
     if (!token) return;
     if (!append) resource.loading.value = true;
-    
+
     const MAX_ITEMS = 100; // 限制列表最大长度，防止 OOM
-    
+
     try {
       const query = new URLSearchParams({
-          page: page.toString(),
-          limit: '20'
+        page: page.toString(),
+        limit: '20'
       });
       const res = await authFetch(`${API.SALES_ORDER_LIST(token)}?${query.toString()}`).then(r => r.json());
 
       if (res.success) {
         if (append) {
-            const combined = [...resource.items.value, ...res.data.orders];
-            // 超过最大长度时，移除最早的项目
-            resource.items.value = combined.length > MAX_ITEMS 
-                ? combined.slice(-MAX_ITEMS) 
-                : combined;
+          const combined = [...resource.items.value, ...res.data.orders];
+          // 超过最大长度时，移除最早的项目
+          resource.items.value = combined.length > MAX_ITEMS
+            ? combined.slice(-MAX_ITEMS)
+            : combined;
         } else {
-            resource.items.value = res.data.orders;
+          resource.items.value = res.data.orders;
         }
-        
+
         // Update pagination info
         if (res.data.pagination) {
-            Object.assign(resource.pagination, res.data.pagination);
+          Object.assign(resource.pagination, res.data.pagination);
         }
       } else {
         addToast({ message: res.message || t('common.loadFailed'), type: 'error' });

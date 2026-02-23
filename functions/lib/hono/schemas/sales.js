@@ -25,6 +25,7 @@ export const CreateOrderSchema = z.object({
     deadline: z.string().optional().default(''),
     quantity: z.number().min(1, '数量至少为1').optional().default(1),
     fileIds: z.array(z.string()).optional().default([]),
+    productId: z.string().nullable().optional(),
 });
 
 export const AddCommentSchema = z.object({

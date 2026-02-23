@@ -310,8 +310,11 @@ export async function processOrderUpdate(options) {
   // 2. 检测文件变更
   const filesChanged = await updateOrderFiles(env, orderId, orderNo, fileIds, actor, reason);
 
-  // 3. 如果有任何变更，更新订单并发送通知
-  if (dataChanged || filesChanged) {
+  // 3. SOTA: 检测 productId 变更（productId 是 orders 表顶级列，独立于 current_data JSON）
+  const productIdChanged = options.productId !== undefined;
+
+  // 4. 如果有任何变更（数据/文件/商品绑定），更新订单并发送通知
+  if (dataChanged || filesChanged || productIdChanged) {
     const orderRepo = new OrderRepository(env.DB);
     const actorTypeStr = actor.type === 'admin' ? 'admin' : 'sales';
 

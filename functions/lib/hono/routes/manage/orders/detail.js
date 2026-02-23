@@ -74,7 +74,7 @@ app.patch('/:id', async (c) => {
         }
     }
 
-    // 管理员允许修改的所有字段
+    // 管理员允许修改的所有字段（productId 是顶级表列，通过 options.productId 单独传递处理）
     const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
 
     const _result = await processOrderUpdate({
@@ -185,20 +185,20 @@ app.post('/:id/comment', async (c) => {
  */
 app.delete('/:id', async (c) => {
     const { env, get } = c;
-    
+
     // Auth Check: Ensure only superadmin/admin can perform this action
     const actorType = get('actorType');
-    const userRole = get('userRole'); 
-    
+    const userRole = get('userRole');
+
     if (actorType !== 'admin' || !['admin', 'superadmin'].includes(userRole)) {
         return c.json({ success: false, message: MSG.AUTH.PERMISSION_DENIED }, 403);
     }
-    
+
     const id = c.req.param('id');
     const orderRepo = new OrderRepository(env.DB);
-    
+
     await orderRepo.deleteOrderCascading(id);
-    
+
     return c.json({ success: true, message: MSG.ORDER.DELETE_SUCCESS });
 });
 
