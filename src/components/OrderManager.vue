@@ -4,7 +4,7 @@
     <!-- 订单统计仪表盘 (Desktop only inline) - NOTE: This seems unused or legacy comment, keeping structure but cleaning up -->
     
     <!-- Mobile Stats Modal -->
-    <Modal v-model="showStatsModal" :title="t('dashboard.stats')">
+    <Modal v-model="showStatsModal" :title="t('dashboard.stats')" size="xl">
       <OrderDashboard @filter="(type) => { handleDashboardFilter(type); showStatsModal = false; }" />
     </Modal>
 
@@ -42,7 +42,7 @@
             <OrderStatusChanger
               :status="order.status"
               :loading="statusChanging[order.id]"
-              @change="(e) => handleStatusChange(order, e)"
+              :on-status-change="(e) => handleStatusChange(order, e)"
             />
           </template>
 
@@ -88,7 +88,7 @@
             <OrderStatusChanger
               :status="order.status"
               :loading="statusChanging[order.id]"
-              @change="(e) => handleStatusChange(order, e)"
+              :on-status-change="(e) => handleStatusChange(order, e)"
             />
           </template>
         </OrderCards>

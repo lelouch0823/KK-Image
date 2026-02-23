@@ -211,6 +211,8 @@ import { STATUS_OPTIONS, STATUS_STYLES, STATUS_DOTS } from '@/utils/status';
 const props = defineProps({
   status: { type: String, required: true },
   loading: Boolean,
+  // 异步回调：返回 Promise 以便弹窗等待 API 完成后再关闭
+  onStatusChange: { type: Function, default: null },
 });
 
 const emit = defineEmits(['change']);
@@ -263,10 +265,18 @@ const handleConfirm = async () => {
 
   submitting.value = true;
   try {
-    await emit('change', {
+    const payload = {
       status: selectedStatus.value,
       note: statusNote.value,
-    });
+    };
+
+    // SOTA: 使用 onStatusChange prop 回调实现真正的异步等待
+    // 确保弹窗在 API 调用完成后才关闭，避免用户打开详情时数据未刷新
+    if (props.onStatusChange) {
+      await props.onStatusChange(payload);
+    } else {
+      emit('change', payload);
+    }
     showModal.value = false;
   } finally {
     submitting.value = false;
