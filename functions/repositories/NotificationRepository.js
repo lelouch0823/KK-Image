@@ -179,12 +179,22 @@ export class NotificationRepository {
     // ========================================
 
     /**
-     * 标记单个通知为已读
+     * 标记管理端单个通知为已读
      * @param {string} id - 通知 ID
      * @returns {Promise<void>}
      */
-    async markAsRead(id) {
-        await this.db.prepare(`UPDATE notifications SET is_read = 1 WHERE id = ?`).bind(id).run();
+    async markAsReadForAdmin(id) {
+        await this.db.prepare(`UPDATE notifications SET is_read = 1 WHERE id = ? AND receiver = 'admin'`).bind(id).run();
+    }
+
+    /**
+     * 标记销售端单个通知为已读
+     * @param {string} id - 通知 ID
+     * @param {string} salespersonId - 销售员 ID
+     * @returns {Promise<void>}
+     */
+    async markAsReadForSalesperson(id, salespersonId) {
+        await this.db.prepare(`UPDATE notifications SET is_read = 1 WHERE id = ? AND receiver = 'sales' AND salesperson_id = ?`).bind(id, salespersonId).run();
     }
 
     /**
