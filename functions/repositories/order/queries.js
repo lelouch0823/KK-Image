@@ -59,6 +59,27 @@ export async function findByIdAndSalesperson(db, id, salespersonId) {
 }
 
 /**
+ * 获取超时未处理订单 (状态为 pending 且创建时间早于阈值)
+ * @param {D1Database} db
+ * @param {number} thresholdTimestamp
+ * @returns {Promise<Array<Object>>}
+ */
+export async function findStalePending(db, thresholdTimestamp) {
+    const { results } = await db
+        .prepare(
+            `
+      SELECT o.id, o.order_no, o.salesperson_id, o.status, o.created_at
+      FROM orders o
+      WHERE o.status = 'pending' AND o.created_at < ?
+      `
+        )
+        .bind(thresholdTimestamp)
+        .all();
+
+    return results;
+}
+
+/**
  * 销售员订单列表（带 SOTA 多级排序）
  * @param {D1Database} db
  * @param {string} salespersonId

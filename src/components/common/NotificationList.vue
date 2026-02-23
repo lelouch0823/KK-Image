@@ -85,8 +85,15 @@
               <p class="text-muted mt-1.5 text-xs">{{ formatDate(item.created_at) }}</p>
             </div>
 
-            <!-- Unread indicator dot -->
-            <div v-if="item.is_read === 0" class="shrink-0 self-center">
+            <!-- Unread indicator dot & Mark Read Action -->
+            <div v-if="item.is_read === 0" class="shrink-0 self-center flex items-center gap-2">
+              <button 
+                class="hidden group-hover:flex items-center justify-center size-6 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-primary transition-colors"
+                title="标记为已读"
+                @click.stop="markAsRead(item.id)"
+              >
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              </button>
               <div class="bg-primary size-2 rounded-full"></div>
             </div>
           </div>

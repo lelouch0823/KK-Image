@@ -42,6 +42,11 @@ export class OrderRepository {
     return queries.listBySalesperson(this.db, salespersonId, options);
   }
 
+  /** @see queries.findStalePending */
+  async findStalePending(thresholdTimestamp) {
+    return queries.findStalePending(this.db, thresholdTimestamp);
+  }
+
   /** @see queries.listForAdmin */
   async listForAdmin(options) {
     return queries.listForAdmin(this.db, options);

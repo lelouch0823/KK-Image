@@ -47,15 +47,15 @@ export async function onRequest(context) {
         notifications.push(
           env.DB.prepare(
             `
-                    INSERT INTO notifications (id, type, title, content, link, is_read, metadata, created_at)
-                    VALUES (?, 'order', ?, ?, ?, 0, ?, ?)
+                    INSERT INTO notifications (id, type, title, content, link, is_read, receiver, salesperson_id, metadata, created_at)
+                    VALUES (?, 'order', ?, ?, ?, 0, 'admin', null, ?, ?)
                 `
           ).bind(
             id,
             'notification.reminder.pending_order_title',
             JSON.stringify({
               key: 'notification.reminder.pending_order_desc',
-              orderNo: order.orderNo,
+              orderNo: order.order_no,
             }),
             `/manage/orders?id=${order.id}`,
             JSON.stringify({ orderId: order.id, subType: 'pending_timeout' }),
@@ -75,7 +75,7 @@ export async function onRequest(context) {
     // 暂时保留直接 SQL，后续可升级 Repository
     const { results: deadlineOrders } = await env.DB.prepare(
       `
-            SELECT id, order_no, current_data FROM orders 
+            SELECT id, order_no, salesperson_id, current_data FROM orders 
             WHERE status IN ('confirmed', 'in_progress')
             AND json_extract(current_data, '$.deadline') BETWEEN ? AND ?
         `
@@ -103,11 +103,34 @@ export async function onRequest(context) {
         notifications.push(
           env.DB.prepare(
             `
-                    INSERT INTO notifications (id, type, title, content, link, is_read, metadata, created_at)
-                    VALUES (?, 'deadline', ?, ?, ?, 0, ?, ?)
+                    INSERT INTO notifications (id, type, title, content, link, is_read, receiver, salesperson_id, metadata, created_at)
+                    VALUES (?, 'deadline', ?, ?, ?, 0, 'sales', ?, ?, ?)
                 `
           ).bind(
             id,
+            'notification.reminder.deadline_title',
+            JSON.stringify({
+              key: 'notification.reminder.deadline_desc',
+              orderNo: order.order_no,
+              deadline,
+            }),
+            `/orders/${order.id}`,
+            order.salesperson_id,
+            JSON.stringify({ orderId: order.id, deadline }),
+            now
+          )
+        );
+        
+        // SOTA: Also notify admin
+        const adminId = crypto.randomUUID();
+        notifications.push(
+          env.DB.prepare(
+            `
+                    INSERT INTO notifications (id, type, title, content, link, is_read, receiver, salesperson_id, metadata, created_at)
+                    VALUES (?, 'deadline', ?, ?, ?, 0, 'admin', null, ?, ?)
+                `
+          ).bind(
+            adminId,
             'notification.reminder.deadline_title',
             JSON.stringify({
               key: 'notification.reminder.deadline_desc',
