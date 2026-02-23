@@ -80,6 +80,7 @@ export default {
     collapse: '收起侧边栏',
     expand: '展开侧边栏',
     trash: '回收站',
+    goodsOverview: '订货总览',
   },
 
   // 视图
@@ -91,6 +92,7 @@ export default {
     products: '商品管理',
     admin: '管理后台',
     trash: '回收站',
+    goodsOverview: '订货总览',
   },
 
   // 文件操作 (Composables)
@@ -182,6 +184,7 @@ export default {
     trash: '回收站',
     audit_logs: '操作审计日志',
     sales_spaces: '共享空间',
+    goods_overview: '订货总览',
   },
 
   // PWA

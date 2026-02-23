@@ -109,6 +109,11 @@ export const API = {
   MANAGE_PRODUCTS: `${API_PREFIX}/products`,
   MANAGE_PRODUCT_BY_ID: (id) => `${API_PREFIX}/products/${id}`,
 
+  // 订货总览
+  MANAGE_GOODS_OVERVIEW: `${API_PREFIX}/goods-overview`,
+  MANAGE_GOODS_OVERVIEW_SUMMARY: `${API_PREFIX}/goods-overview/summary`,
+  MANAGE_GOODS_OVERVIEW_EXPORT: `${API_PREFIX}/goods-overview/export`,
+
   NOTIFICATIONS: '/api/manage/notifications',
   NOTIFICATIONS_READ: (id) => `/api/manage/notifications/${id}/read`,
   AI: {

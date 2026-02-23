@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { error, success } from '../../../../api/utils/response';
+import { error, success } from '../../../../api/utils/response.js';
 
 const app = new Hono();
 

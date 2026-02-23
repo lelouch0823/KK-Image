@@ -80,6 +80,7 @@ export default {
     collapse: 'Collapse',
     expand: 'Expand',
     trash: 'Recycle Bin',
+    goodsOverview: 'Goods Overview',
   },
 
   // Views
@@ -91,6 +92,7 @@ export default {
     products: 'Products',
     admin: 'Admin',
     trash: 'Recycle Bin',
+    goodsOverview: 'Goods Overview',
   },
 
   // File Ops (Composables)
@@ -182,6 +184,7 @@ export default {
     trash: 'Recycle Bin',
     audit_logs: 'Audit Logs',
     sales_spaces: 'Shared Spaces',
+    goods_overview: 'Goods Overview',
   },
 
   // PWA

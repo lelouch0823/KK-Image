@@ -87,6 +87,11 @@ export default {
     notFound: '未找到订单',
     backToList: '返回列表',
     status: '状态',
+    dangerZone: '危险操作区',
+    deletePermanently: '永久删除此订单',
+    dangerWarning: '此操作不可逆，所有与该订单相关的数据、关联文件和图片将被永久清除！',
+    typeOrderNoToConfirm: '请输入单号 {orderNo} 以确认操作',
+    deleteSuccess: '订单删除成功',
   },
 
   // 管理端
