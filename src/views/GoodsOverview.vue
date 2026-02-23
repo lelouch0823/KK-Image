@@ -20,13 +20,13 @@
 
     <!-- 管道概览卡片 -->
     <div v-if="summary" class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-      <!-- 待生产 -->
+      <!-- 待订货 -->
       <div class="group relative overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-4 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl sm:p-5">
         <div class="relative z-10 flex items-start justify-between">
           <div>
             <h3 class="text-xs font-medium text-[var(--text-secondary)] sm:text-sm">{{ t('goodsOverview.pipeline.confirmed') }}</h3>
             <div class="mt-1.5 font-[Outfit] text-2xl font-bold tracking-tight text-[var(--text-main)] sm:mt-2 sm:text-3xl">
-              {{ summary.byStatus.confirmed.qty }}
+              {{ summary.byStatus.confirmed.products }}
             </div>
           </div>
           <div class="flex size-9 items-center justify-center rounded-xl bg-[var(--color-warning-bg)] text-[var(--color-warning)] transition-colors group-hover:bg-[var(--color-warning)] group-hover:text-white sm:size-10">
@@ -35,8 +35,10 @@
             </svg>
           </div>
         </div>
-        <div class="relative z-10 mt-2 text-xs font-medium text-[var(--text-secondary)]">
-          {{ t('goodsOverview.orderCount', { count: summary.byStatus.confirmed.count }) }}
+        <div class="relative z-10 mt-2 flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
+          <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.confirmed.count }) }}</span>
+          <span class="text-[var(--text-muted)]">·</span>
+          <span>{{ summary.byStatus.confirmed.qty }} {{ t('goodsOverview.unit') }}</span>
         </div>
         <div class="absolute -top-4 -right-4 -z-0 size-24 rounded-full bg-[var(--color-warning-bg)] opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-100"></div>
       </div>
@@ -47,7 +49,7 @@
           <div>
             <h3 class="text-xs font-medium text-[var(--text-secondary)] sm:text-sm">{{ t('goodsOverview.pipeline.production') }}</h3>
             <div class="mt-1.5 font-[Outfit] text-2xl font-bold tracking-tight text-[var(--text-main)] sm:mt-2 sm:text-3xl">
-              {{ summary.byStatus.production.qty }}
+              {{ summary.byStatus.production.products }}
             </div>
           </div>
           <div class="flex size-9 items-center justify-center rounded-xl bg-[var(--color-info-bg)] text-[var(--color-info)] transition-colors group-hover:bg-[var(--color-info)] group-hover:text-white sm:size-10">
@@ -56,8 +58,10 @@
             </svg>
           </div>
         </div>
-        <div class="relative z-10 mt-2 text-xs font-medium text-[var(--text-secondary)]">
-          {{ t('goodsOverview.orderCount', { count: summary.byStatus.production.count }) }}
+        <div class="relative z-10 mt-2 flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
+          <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.production.count }) }}</span>
+          <span class="text-[var(--text-muted)]">·</span>
+          <span>{{ summary.byStatus.production.qty }} {{ t('goodsOverview.unit') }}</span>
         </div>
         <div class="absolute -top-4 -right-4 -z-0 size-24 rounded-full bg-[var(--color-info-bg)] opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-100"></div>
       </div>
@@ -68,7 +72,7 @@
           <div>
             <h3 class="text-xs font-medium text-[var(--text-secondary)] sm:text-sm">{{ t('goodsOverview.pipeline.shipping') }}</h3>
             <div class="mt-1.5 font-[Outfit] text-2xl font-bold tracking-tight text-[var(--text-main)] sm:mt-2 sm:text-3xl">
-              {{ summary.byStatus.shipping.qty }}
+              {{ summary.byStatus.shipping.products }}
             </div>
           </div>
           <div class="flex size-9 items-center justify-center rounded-xl bg-[var(--color-purple-bg)] text-[var(--color-purple)] transition-colors group-hover:bg-[var(--color-purple)] group-hover:text-white sm:size-10">
@@ -77,8 +81,10 @@
             </svg>
           </div>
         </div>
-        <div class="relative z-10 mt-2 text-xs font-medium text-[var(--text-secondary)]">
-          {{ t('goodsOverview.orderCount', { count: summary.byStatus.shipping.count }) }}
+        <div class="relative z-10 mt-2 flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
+          <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.shipping.count }) }}</span>
+          <span class="text-[var(--text-muted)]">·</span>
+          <span>{{ summary.byStatus.shipping.qty }} {{ t('goodsOverview.unit') }}</span>
         </div>
         <div class="absolute -top-4 -right-4 -z-0 size-24 rounded-full bg-[var(--color-purple-bg)] opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-100"></div>
       </div>
@@ -89,7 +95,7 @@
           <div>
             <h3 class="text-xs font-medium text-[var(--text-secondary)] sm:text-sm">{{ t('goodsOverview.pipeline.arrived') }}</h3>
             <div class="mt-1.5 font-[Outfit] text-2xl font-bold tracking-tight text-[var(--text-main)] sm:mt-2 sm:text-3xl">
-              {{ summary.byStatus.arrived.qty }}
+              {{ summary.byStatus.arrived.products }}
             </div>
           </div>
           <div class="flex size-9 items-center justify-center rounded-xl bg-[var(--color-success-bg)] text-[var(--color-success)] transition-colors group-hover:bg-[var(--color-success)] group-hover:text-white sm:size-10">
@@ -98,8 +104,10 @@
             </svg>
           </div>
         </div>
-        <div class="relative z-10 mt-2 text-xs font-medium text-[var(--text-secondary)]">
-          {{ t('goodsOverview.orderCount', { count: summary.byStatus.arrived.count }) }}
+        <div class="relative z-10 mt-2 flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
+          <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.arrived.count }) }}</span>
+          <span class="text-[var(--text-muted)]">·</span>
+          <span>{{ summary.byStatus.arrived.qty }} {{ t('goodsOverview.unit') }}</span>
         </div>
         <div class="absolute -top-4 -right-4 -z-0 size-24 rounded-full bg-[var(--color-success-bg)] opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-100"></div>
       </div>
@@ -211,7 +219,7 @@
               <td class="hidden px-4 py-3 text-[var(--text-secondary)] md:table-cell">{{ item.brand || '-' }}</td>
               <!-- 库存 -->
               <td class="px-4 py-3 text-center font-medium text-[var(--text-main)]">{{ item.stockQuantity }}</td>
-              <!-- 待生产 -->
+              <!-- 待订货 -->
               <td class="px-4 py-3 text-center">
                 <span v-if="item.confirmedQty > 0" class="font-medium text-[var(--color-warning)]">{{ item.confirmedQty }}</span>
                 <span v-else class="text-[var(--text-muted)]">-</span>

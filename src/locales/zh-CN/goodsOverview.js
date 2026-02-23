@@ -2,7 +2,7 @@
 export default {
     subtitle: '根据已确认订单分析订货需求与供应链状态',
     pipeline: {
-        confirmed: '待生产',
+        confirmed: '待订货',
         production: '生产中',
         shipping: '运输中',
         arrived: '已到货',
@@ -13,6 +13,7 @@ export default {
         shortageCount: '缺货商品',
     },
     orderCount: '{count} 个订单',
+    unit: '件',
     table: {
         name: '商品名称',
         sku: 'SKU',

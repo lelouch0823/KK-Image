@@ -119,15 +119,27 @@ app.get('/', async (c) => {
 app.get('/summary', async (c) => {
     const { env } = c;
 
-    // 按商品聚合后的统计
+    /**
+     * 按商品聚合后的统计
+     * - products: 各状态下涉及的 **不同商品数**（用户最关心的数字）
+     * - qty: 各状态下的总件数
+     * - orders: 各状态下的订单条数
+     */
     const { results } = await env.DB.prepare(`
         SELECT 
             COUNT(DISTINCT p.id) as total_products,
             COALESCE(SUM(o.quantity), 0) as total_demand,
+            -- 不同商品数
+            COUNT(DISTINCT CASE WHEN o.status = 'confirmed' THEN p.id END) as confirmed_products,
+            COUNT(DISTINCT CASE WHEN o.status = 'production' THEN p.id END) as production_products,
+            COUNT(DISTINCT CASE WHEN o.status = 'shipping'  THEN p.id END) as shipping_products,
+            COUNT(DISTINCT CASE WHEN o.status = 'arrived'   THEN p.id END) as arrived_products,
+            -- 件数
             COALESCE(SUM(CASE WHEN o.status = 'confirmed' THEN o.quantity ELSE 0 END), 0) as confirmed_qty,
             COALESCE(SUM(CASE WHEN o.status = 'production' THEN o.quantity ELSE 0 END), 0) as production_qty,
             COALESCE(SUM(CASE WHEN o.status = 'shipping' THEN o.quantity ELSE 0 END), 0) as shipping_qty,
             COALESCE(SUM(CASE WHEN o.status = 'arrived' THEN o.quantity ELSE 0 END), 0) as arrived_qty,
+            -- 订单条数
             COUNT(CASE WHEN o.status = 'confirmed' THEN 1 END) as confirmed_orders,
             COUNT(CASE WHEN o.status = 'production' THEN 1 END) as production_orders,
             COUNT(CASE WHEN o.status = 'shipping' THEN 1 END) as shipping_orders,
@@ -161,10 +173,10 @@ app.get('/summary', async (c) => {
             totalDemand: row.total_demand || 0,
             shortageCount: shortageResults[0]?.count || 0,
             byStatus: {
-                confirmed: { count: row.confirmed_orders || 0, qty: row.confirmed_qty || 0 },
-                production: { count: row.production_orders || 0, qty: row.production_qty || 0 },
-                shipping: { count: row.shipping_orders || 0, qty: row.shipping_qty || 0 },
-                arrived: { count: row.arrived_orders || 0, qty: row.arrived_qty || 0 },
+                confirmed: { products: row.confirmed_products || 0, count: row.confirmed_orders || 0, qty: row.confirmed_qty || 0 },
+                production: { products: row.production_products || 0, count: row.production_orders || 0, qty: row.production_qty || 0 },
+                shipping: { products: row.shipping_products || 0, count: row.shipping_orders || 0, qty: row.shipping_qty || 0 },
+                arrived: { products: row.arrived_products || 0, count: row.arrived_orders || 0, qty: row.arrived_qty || 0 },
             },
         },
     });
@@ -197,7 +209,7 @@ app.get('/export', async (c) => {
 
     const escapeCSV = (v) => (v === null || v === undefined ? '' : `"${String(v).replace(/"/g, '""')}"`);
 
-    const headers = ['商品名称', 'SKU', '品牌', '分类', '当前库存', '待生产', '生产中', '运输中', '已到货', '总需求', '订单数', '缺口'];
+    const headers = ['商品名称', 'SKU', '品牌', '分类', '当前库存', '待订货', '生产中', '运输中', '已到货', '总需求', '订单数', '缺口'];
     const rows = results.map(r => [
         escapeCSV(r.name),
         escapeCSV(r.sku),

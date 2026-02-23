@@ -2,7 +2,7 @@
 export default {
     subtitle: 'Analyze order demand and supply chain status from confirmed orders',
     pipeline: {
-        confirmed: 'Pending Production',
+        confirmed: 'To Order',
         production: 'In Production',
         shipping: 'In Transit',
         arrived: 'Arrived',
@@ -13,6 +13,7 @@ export default {
         shortageCount: 'Shortage Products',
     },
     orderCount: '{count} orders',
+    unit: 'pcs',
     table: {
         name: 'Product',
         sku: 'SKU',
