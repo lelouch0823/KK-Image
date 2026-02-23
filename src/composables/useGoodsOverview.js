@@ -91,6 +91,9 @@ export function useGoodsOverview() {
      * 初始化：同时加载列表和统计
      */
     const init = async () => {
+        // 重置数据以触发骨架屏展示
+        summary.value = null;
+        items.value = [];
         await Promise.all([loadData(), loadSummary()]);
     };
 
