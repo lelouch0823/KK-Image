@@ -27,7 +27,11 @@ app.post('/:id/read', async (c) => {
     const { env } = c;
 
     const notifyRepo = new NotificationRepository(env.DB);
-    await notifyRepo.markAsRead(notificationId, salesperson.id);
+    if (notificationId === 'all') {
+        await notifyRepo.markAllAsReadForSalesperson(salesperson.id);
+    } else {
+        await notifyRepo.markAsReadForSalesperson(notificationId, salesperson.id);
+    }
 
     return c.json({ success: true, message: '已读成功' });
 });

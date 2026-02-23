@@ -66,7 +66,7 @@ app.post('/:id/read', async (c) => {
         if (notificationId === 'all') {
             await notifyRepo.markAllAsReadForAdmin();
         } else {
-            await notifyRepo.markAsRead(notificationId);
+            await notifyRepo.markAsReadForAdmin(notificationId);
         }
 
         return success(null, MSG.COMMON.UPDATE_SUCCESS);
