@@ -73,12 +73,12 @@
         </div>
         
         <!-- Name & Dot -->
-        <div>
+        <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2 font-bold text-(--text-main)">
-            {{ row.productName || '-' }}
+            <span class="truncate block" :title="row.productName || '-'">{{ row.productName || '-' }}</span>
             <span
               v-if="row.hasNewFeedback"
-              class="bg-danger size-2.5 animate-pulse rounded-full border-2 border-(--bg-card)"
+              class="bg-danger size-2.5 shrink-0 animate-pulse rounded-full border-2 border-(--bg-card)"
               :title="t('order.portal.hasUpdate')"
             ></span>
           </div>
@@ -93,16 +93,16 @@
 
     <!-- Salesperson Cell -->
     <template #cell-salesperson="{ row }">
-      <div v-if="row.salespersonName" class="flex flex-col">
-        <span class="font-medium">{{ row.salespersonName }}</span>
-        <span class="text-xs text-(--text-secondary)">{{ row.store }}</span>
+      <div v-if="row.salespersonName" class="flex flex-col min-w-0">
+        <span class="font-medium truncate block" :title="row.salespersonName">{{ row.salespersonName }}</span>
+        <span class="text-xs text-(--text-secondary) truncate block" :title="row.store">{{ row.store }}</span>
       </div>
       <span v-else class="text-(--text-muted)">-</span>
     </template>
 
     <!-- Order No Cell -->
     <template #cell-orderNo="{ value }">
-      <span class="font-mono text-xs text-(--text-secondary)">{{ value }}</span>
+      <span class="font-mono text-xs text-(--text-secondary) truncate block" :title="value">{{ value }}</span>
     </template>
 
     <!-- Status Cell -->

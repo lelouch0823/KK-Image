@@ -68,10 +68,11 @@
                 <p
                   class="group-hover:text-primary truncate pr-4 text-sm font-medium text-[var(--text-main)] transition-colors"
                   :class="{ 'font-semibold': item.is_read === 0 }"
+                  :title="renderText(item.title)"
                 >
                   {{ renderText(item.title) }}
                 </p>
-                <p class="text-secondary mt-0.5 line-clamp-2 text-xs leading-relaxed">
+                <p class="text-secondary mt-0.5 line-clamp-2 text-xs leading-relaxed" :title="renderText(item.content)">
                   {{ renderText(item.content) }}
                 </p>
                 <p class="text-muted mt-2 flex items-center gap-1.5 text-[10px] font-medium tracking-wider uppercase">

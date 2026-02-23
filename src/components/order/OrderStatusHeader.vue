@@ -1,13 +1,16 @@
 <template>
   <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-sm">
-    <div class="flex items-start justify-between">
-      <div>
-        <p class="text-secondary mb-1 font-mono text-xs">{{ orderNo }}</p>
-        <h2 class="text-primary text-lg font-bold">
+    <div class="flex items-start justify-between gap-4">
+      <div class="min-w-0 flex-1">
+        <p class="text-secondary mb-1 truncate font-mono text-xs">{{ orderNo }}</p>
+        <h2
+          class="text-primary truncate text-lg font-bold"
+          :title="productName || t('order.form.productName')"
+        >
           {{ productName || t('order.form.productName') }}
         </h2>
       </div>
-      <StatusBadge :variant="getStatusVariant(status)" size="md" dot>
+      <StatusBadge class="shrink-0" :variant="getStatusVariant(status)" size="md" dot>
         {{ t(`order.statuses.${status}`) }}
       </StatusBadge>
     </div>

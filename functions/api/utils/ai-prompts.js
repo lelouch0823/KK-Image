@@ -11,6 +11,9 @@ export const TOOL_DESCRIPTIONS = {
   GET_SPACE_STATS: '获取共享空间统计数据，包括空间总数、总访问量、总下载量和关联文件数。',
   GET_SALESPERSON_STATS: '获取销售人员统计和业绩排行。返回数据包括：销售总人数、活跃人数、以及 Top 5 销售人员的详细信息（姓名 name、门店 store、订单数 orderCount）。',
   GET_FILE_STATS: '获取文件存储统计数据，包括文件总数、总存储大小和各类型文件分布。',
+  SEARCH_ORDERS: '搜索订单列表（支持按状态、关键字搜索）。可以获取特定状态的订单，或者根据关键字查找。',
+  SEARCH_PRODUCTS: '搜索商品列表（支持按商品名称、SKU、分类、品牌搜索）。',
+  SEARCH_CUSTOMERS: '搜索客户列表（支持按姓名、手机号、公司名称搜索）。',
 };
 
 /**
@@ -69,6 +72,52 @@ export const AI_TOOLS = [
       description: TOOL_DESCRIPTIONS.GET_FILE_STATS,
       parameters: { type: 'object', properties: {} }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'searchOrders',
+      description: TOOL_DESCRIPTIONS.SEARCH_ORDERS,
+      parameters: {
+        type: 'object',
+        properties: {
+          search: { type: 'string', description: '搜索关键字（如订单号、客户信息等）' },
+          status: { type: 'string', description: '订单状态 (如 pending, production, shipping, arrived, void 等)' },
+          limit: { type: 'number', description: '最多返回的记录数，默认为 10' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'searchProducts',
+      description: TOOL_DESCRIPTIONS.SEARCH_PRODUCTS,
+      parameters: {
+        type: 'object',
+        properties: {
+          search: { type: 'string', description: '搜索关键字（如商品名称、SKU等）' },
+          category: { type: 'string', description: '商品分类' },
+          brand: { type: 'string', description: '品牌' },
+          status: { type: 'string', description: '状态 (如 active, inactive)' },
+          limit: { type: 'number', description: '最多返回的记录数，默认为 10' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'searchCustomers',
+      description: TOOL_DESCRIPTIONS.SEARCH_CUSTOMERS,
+      parameters: {
+        type: 'object',
+        properties: {
+          search: { type: 'string', description: '搜索关键字（姓名、手机号、公司名称）' },
+          limit: { type: 'number', description: '最多返回的记录数，默认为 10' }
+        }
+      }
+    }
   }
 ];
 
@@ -88,6 +137,7 @@ export const SYSTEM_PROMPT = (date, context = {}) => {
 
 你可以查询以下数据：
 - 订单统计：今日/本周/本月订单数、待处理订单列表
+- 具体业务数据搜索：可按条件搜索订单列表、商品列表、客户列表
 - 客户统计：客户总数、近期新增客户
 - 销售统计：销售人员列表、业绩排行
 - 共享空间：空间数量、访问量、下载量

@@ -1,0 +1,120 @@
+<template>
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 scale-95"
+      enter-to-class="opacity-100 scale-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 scale-100"
+      leave-to-class="opacity-0 scale-95"
+    >
+      <div v-if="modelValue" class="fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-0">
+        <div class="fixed inset-0 bg-[var(--color-overlay-blur)] backdrop-blur-sm transition-opacity" @click="close"></div>
+        <div class="relative w-full max-w-md transform overflow-hidden rounded-2xl border border-[var(--border-danger)] bg-[var(--bg-card)] shadow-xl transition-all">
+          <div class="p-6 sm:p-8">
+            <div class="mx-auto mb-5 flex size-12 items-center justify-center rounded-full bg-[var(--color-danger-bg)]">
+              <svg class="size-6 text-[var(--color-danger)]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            
+            <h3 class="mb-2 text-center text-lg font-bold leading-6 text-[var(--text-main)]">
+              {{ title }}
+            </h3>
+            <div class="mt-2 text-center">
+              <p class="whitespace-pre-line text-sm leading-relaxed text-[var(--text-secondary)]">
+                <slot name="description">{{ description }}</slot>
+              </p>
+            </div>
+
+            <div class="mt-6">
+              <label class="mb-1 block text-sm font-medium text-[var(--text-main)]">
+                {{ displayRequireTextLabel }} <span class="select-all rounded bg-[var(--bg-page)] px-1 font-mono text-[var(--text-secondary)]">{{ requiredText }}</span>
+              </label>
+              <input 
+                ref="inputRef"
+                type="text" 
+                v-model="inputValue"
+                :placeholder="requiredText"
+                class="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-4 py-2.5 font-mono text-sm text-[var(--text-main)] outline-none transition-all focus:border-[var(--color-danger)] focus:ring-4 focus:ring-[var(--border-danger)]"
+                @keyup.enter="handleConfirm"
+              />
+            </div>
+          </div>
+          
+          <div class="flex flex-col-reverse gap-3 bg-[var(--bg-page)]/50 px-6 py-4 sm:flex-row sm:justify-end sm:px-8">
+            <button
+              type="button"
+              class="inline-flex w-full items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-main)] shadow-sm transition-colors hover:bg-[var(--bg-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 disabled:opacity-50 sm:w-auto"
+              @click="close"
+              :disabled="loading"
+            >
+              {{ displayCancelText }}
+            </button>
+             <button
+              type="button"
+              class="inline-flex w-full items-center justify-center rounded-xl border border-transparent bg-[var(--color-danger)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--color-danger-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-danger)] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+              :disabled="!isValid || loading"
+              @click="handleConfirm"
+            >
+              <svg v-if="loading" class="-ml-1 mr-2 size-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              {{ displayConfirmText }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+</template>
+
+<script setup>
+import { ref, computed, watch, nextTick } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
+
+const props = defineProps({
+  modelValue: Boolean,
+  title: { type: String, required: true },
+  description: { type: String, default: '' },
+  requiredText: { type: String, required: true },
+  requireTextLabel: { type: String, default: '' },
+  confirmText: { type: String, default: '' },
+  cancelText: { type: String, default: '' },
+  loading: Boolean
+});
+
+const emit = defineEmits(['update:modelValue', 'confirm']);
+const inputValue = ref('');
+const inputRef = ref(null);
+
+const isValid = computed(() => inputValue.value === props.requiredText);
+
+const displayRequireTextLabel = computed(() => props.requireTextLabel || t('common.requireTextLabel') || 'Please type:');
+const displayConfirmText = computed(() => props.confirmText || t('common.confirm') || 'Confirm');
+const displayCancelText = computed(() => props.cancelText || t('common.cancel') || 'Cancel');
+
+watch(() => props.modelValue, async (newVal) => {
+  if (newVal) {
+    inputValue.value = '';
+    await nextTick();
+    if (inputRef.value) {
+      inputRef.value.focus();
+    }
+  }
+});
+
+const close = () => {
+  if (props.loading) return;
+  emit('update:modelValue', false);
+};
+
+const handleConfirm = () => {
+  if (isValid.value && !props.loading) {
+    emit('confirm');
+  }
+};
+</script>

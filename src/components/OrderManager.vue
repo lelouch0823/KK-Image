@@ -162,6 +162,7 @@
         @comment="handleAdminComment"
         @refresh="refreshAfterComment"
         @edit="handleEditFromDetail"
+        @delete-order="() => showDeleteModal = true"
       />
     </Modal>
 
@@ -183,6 +184,18 @@
       :type="confirmData.type"
       :loading="confirmData.loading"
       @confirm="confirmData.onConfirm"
+    />
+
+    <!-- Destructive Delete Modal -->
+    <DestructiveConfirmModal
+      v-model="showDeleteModal"
+      :title="t('order.detail.deletePermanently')"
+      :description="t('order.detail.dangerWarning')"
+      :required-text="viewingOrder?.orderNo || ''"
+      :require-text-label="t('order.detail.typeOrderNoToConfirm', '输入订单号确认:')"
+      :confirm-text="t('order.detail.deletePermanently')"
+      :loading="isDeleting"
+      @confirm="executeOrderDeletion(viewingOrder)"
     />
   </div>
 </template>
@@ -210,6 +223,10 @@ import OrderEditModal from './OrderEditModal.vue';
 import OrderDetail from './order/OrderDetail.vue';
 import OrderDashboard from './order/OrderDashboard.vue';
 import OrderCreateModal from '@/components/OrderCreateModal.vue';
+import DestructiveConfirmModal from '@/components/common/DestructiveConfirmModal.vue';
+import { useAuth } from '@/composables/useAuth';
+import { useToast } from '@/composables/useToast';
+import { API } from '@/utils/constants';
 
 const {
   orders,
@@ -226,6 +243,8 @@ const {
 } = useOrders();
 
 const { t } = useI18n();
+const { addToast } = useToast();
+const { authFetch } = useAuth();
 const route = useRoute();
 const router = useRouter();
 
@@ -273,6 +292,31 @@ const {
 
 // Status changing state (local UI state)
 const statusChanging = reactive({});
+const showDeleteModal = ref(false);
+const isDeleting = ref(false);
+
+const executeOrderDeletion = async (order) => {
+  if (!order || isDeleting.value) return;
+  isDeleting.value = true;
+  try {
+    const res = await authFetch(API.MANAGE_ORDER_UPDATE(order.id), {
+      method: 'DELETE',
+    }).then(r => r.json());
+
+    if (res.success) {
+      addToast({ message: res.message || t('order.detail.deleteSuccess', '订单彻底删除成功'), type: 'success' });
+      showDeleteModal.value = false;
+      closeDetailModal();
+      refreshOrders();
+    } else {
+      addToast({ message: res.error || res.message || t('common.operationFailed'), type: 'error' });
+    }
+  } catch (_e) {
+    addToast({ message: t('common.networkError'), type: 'error' });
+  } finally {
+    isDeleting.value = false;
+  }
+};
 
 // Mobile infinite scroll using composable
 const mobileInfiniteScroll = useInfiniteScroll(async () => {

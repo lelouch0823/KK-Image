@@ -181,12 +181,24 @@ app.post('/:id/comment', async (c) => {
 });
 
 /**
- * DELETE /:id - 删除订单
+ * DELETE /:id - 彻底删除订单 (Cascading Delete)
  */
 app.delete('/:id', async (c) => {
-    const { env } = c;
+    const { env, get } = c;
+    
+    // Auth Check: Ensure only superadmin/admin can perform this action
+    const actorType = get('actorType');
+    const userRole = get('userRole'); 
+    
+    if (actorType !== 'admin' || !['admin', 'superadmin'].includes(userRole)) {
+        return c.json({ success: false, message: MSG.AUTH.PERMISSION_DENIED }, 403);
+    }
+    
     const id = c.req.param('id');
-    await env.DB.prepare('DELETE FROM orders WHERE id = ?').bind(id).run();
+    const orderRepo = new OrderRepository(env.DB);
+    
+    await orderRepo.deleteOrderCascading(id);
+    
     return c.json({ success: true, message: MSG.ORDER.DELETE_SUCCESS });
 });
 

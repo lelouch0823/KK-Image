@@ -12,7 +12,7 @@ import { DateUtils } from '../api/utils/date.js';
  * @returns {Promise<any>} 工具执行结果
  */
 export async function executeAITool(name, args, repos) {
-    const { orderStatsRepo, systemStatsRepo } = repos;
+    const { orderStatsRepo, systemStatsRepo, orderRepo, productRepo, customerRepo } = repos;
 
     try {
         switch (name) {
@@ -41,6 +41,40 @@ export async function executeAITool(name, args, repos) {
             // --- 文件存储 ---
             case 'getFileStats':
                 return await systemStatsRepo.getFileStats();
+
+            // --- 具体业务数据搜索 ---
+            case 'searchOrders': {
+                const limit = args.limit ? Math.min(args.limit, 20) : 10;
+                // 注意：由于 AI 没有登录上下文，我们在管理端搜索，无需 salespersonId
+                const res = await orderRepo.listForAdmin({
+                    search: args.search,
+                    status: args.status,
+                    limit: limit,
+                    page: 1
+                });
+                return res.items;
+            }
+            case 'searchProducts': {
+                const limit = args.limit ? Math.min(args.limit, 20) : 10;
+                const res = await productRepo.search({
+                    search: args.search,
+                    category: args.category,
+                    brand: args.brand,
+                    status: args.status,
+                    limit: limit,
+                    page: 1
+                });
+                return res.items;
+            }
+            case 'searchCustomers': {
+                const limit = args.limit ? Math.min(args.limit, 20) : 10;
+                const res = await customerRepo.list({
+                    search: args.search,
+                    limit: limit,
+                    page: 1
+                });
+                return res.results;
+            }
 
             default:
                 console.warn(`[AI Tool] Unknown tool: ${name}`);

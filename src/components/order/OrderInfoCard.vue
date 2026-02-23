@@ -13,52 +13,52 @@
     </div>
 
     <div class="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-      <div class="flex flex-col sm:flex-row">
+      <div class="flex flex-col sm:flex-row min-w-0">
         <span class="mb-1 flex-shrink-0 text-sm text-[var(--text-secondary)] sm:mb-0 sm:w-20">{{ t('order.form.productName') }}</span>
-        <div class="flex items-center gap-2 overflow-hidden">
-            <span class="truncate text-sm text-[var(--text-main)]">{{ data.name || '-' }}</span>
+        <div class="flex items-center gap-2 min-w-0 flex-1">
+            <span class="truncate text-sm text-[var(--text-main)]" :title="data.name">{{ data.name || '-' }}</span>
         </div>
       </div>
-      <div class="flex flex-col sm:flex-row">
+      <div class="flex flex-col sm:flex-row min-w-0">
         <span class="mb-1 flex-shrink-0 text-sm text-[var(--text-secondary)] sm:mb-0 sm:w-20">{{ t('order.form.quantity') }}</span>
-        <span class="text-sm font-medium text-[var(--text-main)]">{{ quantity }}</span>
+        <span class="truncate text-sm font-medium text-[var(--text-main)] min-w-0 flex-1" :title="quantity">{{ quantity }}</span>
       </div>
-      <div class="flex flex-col sm:flex-row">
+      <div class="flex flex-col sm:flex-row min-w-0">
         <span class="mb-1 flex-shrink-0 text-sm text-[var(--text-secondary)] sm:mb-0 sm:w-20">{{ t('order.form.brand') }}</span>
-        <span class="truncate text-sm text-[var(--text-main)]">{{ data.brand || '-' }}</span>
+        <span class="truncate text-sm text-[var(--text-main)] min-w-0 flex-1" :title="data.brand">{{ data.brand || '-' }}</span>
       </div>
-      <div class="flex flex-col sm:flex-row">
+      <div class="flex flex-col sm:flex-row min-w-0">
         <span class="mb-1 flex-shrink-0 text-sm text-[var(--text-secondary)] sm:mb-0 sm:w-20">{{ t('order.form.series') }}</span>
-        <span class="truncate text-sm text-[var(--text-main)]">{{ data.series || '-' }}</span>
+        <span class="truncate text-sm text-[var(--text-main)] min-w-0 flex-1" :title="data.series">{{ data.series || '-' }}</span>
       </div>
-      <div class="flex flex-col sm:flex-row">
+      <div class="flex flex-col sm:flex-row min-w-0">
         <span class="mb-1 flex-shrink-0 text-sm text-[var(--text-secondary)] sm:mb-0 sm:w-20">{{ t('order.form.sku') }}</span>
-        <span class="truncate text-sm text-[var(--text-main)]">{{ data.sku || '-' }}</span>
+        <span class="truncate text-sm text-[var(--text-main)] min-w-0 flex-1" :title="data.sku">{{ data.sku || '-' }}</span>
       </div>
-      <div class="flex flex-col sm:flex-row">
+      <div class="flex flex-col sm:flex-row min-w-0">
         <span class="mb-1 flex-shrink-0 text-sm text-[var(--text-secondary)] sm:mb-0 sm:w-20">{{ t('order.form.size') }}</span>
-        <span class="truncate text-sm text-[var(--text-main)]">{{ data.size || '-' }}</span>
+        <span class="truncate text-sm text-[var(--text-main)] min-w-0 flex-1" :title="data.size">{{ data.size || '-' }}</span>
       </div>
-      <div class="flex flex-col sm:flex-row">
+      <div class="flex flex-col sm:flex-row min-w-0">
         <span class="mb-1 flex-shrink-0 text-sm text-[var(--text-secondary)] sm:mb-0 sm:w-20">{{ t('order.form.color') }}</span>
-        <span class="truncate text-sm text-[var(--text-main)]">{{ data.color || '-' }}</span>
+        <span class="truncate text-sm text-[var(--text-main)] min-w-0 flex-1" :title="data.color">{{ data.color || '-' }}</span>
       </div>
-      <div class="flex flex-col sm:flex-row">
+      <div class="flex flex-col sm:flex-row min-w-0">
         <span class="mb-1 flex-shrink-0 text-sm text-[var(--text-secondary)] sm:mb-0 sm:w-20">{{ t('order.form.material') }}</span>
-        <span class="truncate text-sm text-[var(--text-main)]">{{ data.material || '-' }}</span>
+        <span class="truncate text-sm text-[var(--text-main)] min-w-0 flex-1" :title="data.material">{{ data.material || '-' }}</span>
       </div>
       <!-- 期望到货时间 (全宽) -->
-      <div class="col-span-1 flex flex-col sm:col-span-2 sm:flex-row">
+      <div class="col-span-1 flex flex-col sm:col-span-2 sm:flex-row min-w-0">
         <span class="mb-1 flex-shrink-0 text-sm whitespace-nowrap text-[var(--text-secondary)] sm:mb-0 sm:w-28">{{
           t('order.form.expectedArrival')
         }}</span>
-        <span class="text-sm text-[var(--text-main)]">{{ formatDeadline(data.deadline) }}</span>
+        <span class="text-sm text-[var(--text-main)] min-w-0 flex-1 truncate" :title="formatDeadline(data.deadline)">{{ formatDeadline(data.deadline) }}</span>
       </div>
       <!-- 备注 (全宽) -->
-      <div class="col-span-1 flex flex-col sm:col-span-2 sm:flex-row">
+      <div class="col-span-1 flex flex-col sm:col-span-2 sm:flex-row min-w-0">
         <span class="mb-2 flex-shrink-0 text-sm text-[var(--text-secondary)] sm:mb-0 sm:w-28">{{ t('order.form.remark') }}</span>
         <p
-          class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] p-2 text-sm whitespace-pre-wrap text-[var(--text-main)]"
+          class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] p-2 text-sm whitespace-pre-wrap break-words text-[var(--text-main)]"
         >
           {{ data.remark || '-' }}
         </p>

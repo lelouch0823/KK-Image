@@ -47,8 +47,8 @@
           <!-- 信息 -->
           <div class="min-w-0 flex-1">
             <div class="flex items-start justify-between gap-2">
-              <div class="flex items-center gap-2 truncate font-bold text-[var(--text-main)]">
-                {{ order.productName || '-' }}
+              <div class="flex items-center gap-2 truncate font-bold text-[var(--text-main)] min-w-0 flex-1 pr-2">
+                <span class="truncate block" :title="order.productName || '-'">{{ order.productName || '-' }}</span>
                 <span
                   v-if="order.hasNewFeedback"
                   class="size-2.5 flex-shrink-0 animate-pulse rounded-full border-2 border-[var(--bg-card)] bg-[var(--color-danger)]"
@@ -58,10 +58,10 @@
                 <slot name="status" :order="order"></slot>
               </div>
             </div>
-            <div class="mt-1.5 text-xs font-medium text-[var(--text-secondary)]">
-              {{ order.salesperson?.name }} · {{ order.salesperson?.store }}
+            <div class="mt-1.5 truncate text-xs font-medium text-[var(--text-secondary)]" :title="`${order.salesperson?.name || ''} ${order.salesperson?.store ? '· ' + order.salesperson?.store : ''}`">
+              {{ order.salesperson?.name }} <template v-if="order.salesperson?.store">· {{ order.salesperson?.store }}</template>
             </div>
-            <div class="mt-1 font-mono text-xs text-[var(--text-secondary)]/60 select-all">
+            <div class="mt-1 truncate font-mono text-xs text-[var(--text-secondary)]/60 select-all" :title="order.orderNo">
               {{ order.orderNo }}
             </div>
           </div>

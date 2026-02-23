@@ -207,3 +207,18 @@ export async function setUnread(db, id, actorType) {
         .bind(timestamp, id)
         .run();
 }
+
+/**
+ * 彻底删除订单及其关联数据 (Cascading Delete)
+ * @param {D1Database} db
+ * @param {string} id
+ */
+export async function deleteWithRelations(db, id) {
+    const statements = [
+        db.prepare('DELETE FROM order_timeline WHERE order_id = ?').bind(id),
+        db.prepare('DELETE FROM order_files WHERE order_id = ?').bind(id),
+        db.prepare('DELETE FROM orders WHERE id = ?').bind(id)
+    ];
+
+    await db.batch(statements);
+}

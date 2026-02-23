@@ -4,6 +4,9 @@ import { MSG } from '../../../../api/utils/messages.js';
 import { AI_TOOLS } from '../../../../api/utils/ai-prompts.js';
 import { OrderStatsRepository } from '../../../../repositories/OrderStatsRepository.js';
 import { SystemStatsRepository } from '../../../../repositories/SystemStatsRepository.js';
+import { OrderRepository } from '../../../../repositories/OrderRepository.js';
+import { ProductRepository } from '../../../../repositories/ProductRepository.js';
+import { CustomerRepository } from '../../../../repositories/CustomerRepository.js';
 import { callAIStream, callAI, callAIAuto, parseSSEChunk, SYSTEM_PROMPT } from '../../../../utils/ai-utils.js';
 import { executeAITool } from '../../../../utils/ai-tool-executor.js';
 import { extractToolCallsFromText } from '../../../../utils/ai-stream-helpers.js';
@@ -52,6 +55,9 @@ app.post('/chat', async (c) => {
     try {
         const orderStatsRepo = new OrderStatsRepository(env.DB);
         const systemStatsRepo = new SystemStatsRepository(env.DB);
+        const orderRepo = new OrderRepository(env.DB);
+        const productRepo = new ProductRepository(env.DB);
+        const customerRepo = new CustomerRepository(env.DB);
 
         const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
         const systemContent = SYSTEM_PROMPT(todayDate, clientContext);
@@ -66,7 +72,9 @@ app.post('/chat', async (c) => {
             for (const toolCall of choice.message.tool_calls) {
                 const functionName = toolCall.function.name;
                 const args = JSON.parse(toolCall.function.arguments);
-                const result = await executeAITool(functionName, args, { orderStatsRepo, systemStatsRepo });
+                const result = await executeAITool(functionName, args, { 
+                    orderStatsRepo, systemStatsRepo, orderRepo, productRepo, customerRepo 
+                });
 
                 messages.push({
                     tool_call_id: toolCall.id,
@@ -136,9 +144,14 @@ app.post('/stream', async (c) => {
         try {
             const orderStatsRepo = new OrderStatsRepository(env.DB);
             const systemStatsRepo = new SystemStatsRepository(env.DB);
+            const orderRepo = new OrderRepository(env.DB);
+            const productRepo = new ProductRepository(env.DB);
+            const customerRepo = new CustomerRepository(env.DB);
 
             const executeTool = async (name, args) => {
-                return await executeAITool(name, args, { orderStatsRepo, systemStatsRepo });
+                return await executeAITool(name, args, { 
+                    orderStatsRepo, systemStatsRepo, orderRepo, productRepo, customerRepo 
+                });
             };
 
             const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
