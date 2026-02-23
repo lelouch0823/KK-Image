@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { API } from '@/utils/constants';
+import { useAuth } from '@/composables/useAuth';
 
 // Global state to share across components (e.g. Header and List)
 const notifications = ref([]);
@@ -18,6 +19,8 @@ let salesToken = null;
  * 支持管理端和销售端两种模式
  */
 export function useNotifications() {
+  const { authFetch } = useAuth();
+
   /**
    * 设置销售端模式
    * @param {string} token - 销售端访问 token
@@ -62,7 +65,7 @@ export function useNotifications() {
   const fetchNotifications = async () => {
     loading.value = true;
     try {
-      const res = await fetch(getApiUrl());
+      const res = await authFetch(getApiUrl());
       const result = await res.json();
       if (result.success) {
         const newUnreadCount = result.data.unreadCount;
@@ -95,7 +98,7 @@ export function useNotifications() {
       unreadCount.value = Math.max(0, unreadCount.value - 1);
 
       try {
-        await fetch(getReadApiUrl(id), { method: 'POST' });
+        await authFetch(getReadApiUrl(id), { method: 'POST' });
       } catch (e) {
         // Revert if failed (optional, usually ignore)
         console.error('Failed to mark as read', e);
@@ -112,7 +115,7 @@ export function useNotifications() {
     unreadCount.value = 0;
 
     try {
-      await fetch(getReadApiUrl('all'), { method: 'POST' });
+      await authFetch(getReadApiUrl('all'), { method: 'POST' });
     } catch (e) {
       console.error('Failed to mark all as read', e);
     }
