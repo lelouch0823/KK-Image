@@ -189,7 +189,7 @@
 
 <script setup>
 import { onMounted, onUnmounted, onActivated, watch, reactive } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
 import { useNotifications } from '@/composables/useNotifications';
 import { useI18n } from '@/composables/useI18n';
@@ -227,6 +227,7 @@ const {
 
 const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 
 // SOTA: Auto-refresh on notification
 const { lastNotificationTime } = useNotifications();
@@ -309,6 +310,32 @@ watch(
   }
 );
 
+// SOTA: 监听路由 query 中 id 参数变化，响应从通知中心跳转过来的定位
+watch(
+  () => route.query.id,
+  async (newId) => {
+    if (newId) {
+      const success = await openDetailModal({ id: newId });
+      if (!success) {
+        // 如果数据获取失败或订单不存在，清理 URL 避免不断重试或刷新时报错
+        const query = { ...route.query };
+        delete query.id;
+        router.replace({ query });
+      }
+    }
+  },
+  { immediate: true }
+);
+
+// SOTA: 当弹窗关闭时，自动清理 URL 中的 id 参数，保持状态干净
+watch(showDetailModal, (isOpen) => {
+  if (!isOpen && route.query.id) {
+    const query = { ...route.query };
+    delete query.id;
+    router.replace({ query });
+  }
+});
+
 // Lifecycle
 onMounted(() => {
   // 从 URL 参数读取销售筛选 (从销售管理页面跳转过来)
@@ -316,6 +343,7 @@ onMounted(() => {
   if (salespersonParam) {
     filterState.value.salesperson = salespersonParam;
   }
+
   // 使用 refreshOrders以确保应用所有当前筛选条件
   refreshOrders();
   // 初始化完成后允许 watch 监听后续变化

@@ -86,7 +86,9 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
             if (idx !== -1 && orders.value[idx].hasNewFeedback) {
                 orders.value[idx].hasNewFeedback = false;
             }
+            return true;
         }
+        return false;
     };
 
     const closeDetailModal = () => {
