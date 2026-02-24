@@ -52,7 +52,7 @@
 
 #### [NEW] [OrderPickerModal.vue](file:///o:/Code/KK-Image/src/components/purchase-order/OrderPickerModal.vue)
 
-**职责：** 弹窗列出所有 `confirmed` 状态的客户订单，支持搜索 + 多选。
+**职责：** 弹窗列出所有 `confirmed` 状态的预订单，支持搜索 + 多选。
 
 **核心功能：**
 - 调用 `useOrders().loadOrders({ status: 'confirmed', limit: 100 })` 获取列表
@@ -82,7 +82,7 @@
 
 将现有极简弹窗替换为包含「采购商品列表」的完整创建面板：
 
-- 新增本地 `reactive` 数组 `poItems`：`[{ product_id, product_name, sku, brand, quantity, unit_cost, customer_order_id?, order_no?, required_quantity? }]`
+- 新增本地 `reactive` 数组 `poItems`：`[{ product_id, product_name, sku, brand, quantity, unit_cost, pre_order_id?, order_no?, required_quantity? }]`
 - 新增「+ 关联预定单」按钮 → 打开 `OrderPickerModal`
 - 新增「+ 增加商品」按钮 → 打开 `ProductPickerModal`
 - 采购商品列表表格：
@@ -90,7 +90,7 @@
   - 数量 < `required_quantity` 时，数字标红 `text-[var(--color-danger)]`
 - 提交时：如果存在 quantity < required_quantity 的行，弹出二次确认弹窗
 - 提交逻辑：
-  - 有 `customer_order_id` 的 items → 调用 `createFromOrders` 前先做 items 数据清洗
+  - 有 `pre_order_id` 的 items → 调用 `createFromOrders` 前先做 items 数据清洗
   - 所有情况都走 `POST /` (创建 PO) + `POST /:id/items` (批量添加明细) 的两步流程
 
 **修改 2：增强 Detail Panel (line 310-344)**
@@ -168,8 +168,8 @@ async updateItem(itemId, updates) {
 ```javascript
 // 选择器
 'selection.orderTitle': '关联预定单',
-'selection.orderSubtitle': '选择已确认的客户订单，系统将自动导入商品信息',
-'selection.emptyOrders': '暂无已确认的客户订单',
+'selection.orderSubtitle': '选择已确认的预订单，系统将自动导入商品信息',
+'selection.emptyOrders': '暂无已确认的预订单',
 'selection.productTitle': '增加商品',
 'selection.productSubtitle': '搜索并选择要采购的商品',
 'selection.recommendedBrand': '推荐（同品牌）',
@@ -195,7 +195,7 @@ async updateItem(itemId, updates) {
 
 ### 采购单 ↔ 商品库存联动 (PO-Inventory Linkage)
 
-> **当前问题：** `PurchaseOrderService.updateStatus()` 在状态变更时只级联更新客户订单状态，**完全不碰** `products.stock_quantity`。这意味着即使采购单到货了，商品库存依然为 0，订货总览的 `shortage` 永远不能被消除。
+> **当前问题：** `PurchaseOrderService.updateStatus()` 在状态变更时只级联更新预订单状态，**完全不碰** `products.stock_quantity`。这意味着即使采购单到货了，商品库存依然为 0，订货总览的 `shortage` 永远不能被消除。
 
 #### 设计分析：什么时候该更新库存？
 
@@ -217,7 +217,7 @@ async updateItem(itemId, updates) {
 **为什么选择 `arrived` 而不是 `completed`？**
 - `arrived` = 货到了，物理上进了仓库，理应立刻反映到库存
 - `completed` = 财务结算完毕（属于成本层操作），此时库存早已入库
-- 这样最贴合实际：采购员收货→标记到货→库存立刻加上→客户订单同步变成"已到货"
+- 这样最贴合实际：采购员收货→标记到货→库存立刻加上→预订单同步变成"已到货"
 
 ---
 
@@ -291,7 +291,7 @@ async _updateInventory(items, direction = 'increment') {
                                            │
                 ┌──────────────────────────┤
                 ▼                          ▼
-      客户订单状态级联             商品库存 +N
+      预订单状态级联             商品库存 +N
       confirmed → production     products.stock_quantity += poi.quantity
       production → shipping      (按 product_id 聚合)
       shipping → arrived
@@ -330,7 +330,7 @@ async adjustStock(productId, delta) {
 #### 前端展示联动
 
 在 `PurchaseOrders.vue` **详情面板**中，当用户点击「标记到货」时：
-- Toast 提示增强：`"状态已更新，同步更新了 N 个客户订单，库存已入库 M 件"`
+- Toast 提示增强：`"状态已更新，同步更新了 N 个预订单，库存已入库 M 件"`
 - 这需要后端 `updateStatus` 返回库存变更信息
 
 修改 `updateStatus` 返回值：

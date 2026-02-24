@@ -3,7 +3,7 @@
  * =========================================
  *
  * 核心业务逻辑层，封装：
- * 1. 状态机级联 (Cascading State Machine) — 采购单状态变更时自动流转客户订单
+ * 1. 状态机级联 (Cascading State Machine) — 采购单状态变更时自动流转预订单
  * 2. 动态成本分摊 (Cost Allocation) — 运费/关税按件数或金额比例分摊到明细
  * 3. 智能建议采购 — 基于订货总览缺口推荐待采购商品
  *
@@ -14,13 +14,13 @@ import { PurchaseOrderRepository } from '../repositories/PurchaseOrderRepository
 import { NotFoundError, BadRequestError } from '../lib/hono/errors.js';
 
 /**
- * 采购单状态 → 客户订单状态 映射
- * 当采购单状态变更时，自动联动更新关联的客户订单状态
+ * 采购单状态 → 预订单状态 映射
+ * 当采购单状态变更时，自动联动更新关联的预订单状态
  */
 const PO_TO_ORDER_STATUS_MAP = {
-  ordered: 'production',    // 已下单 → 客户订单变为 "生产中/采购中"
-  shipping: 'shipping',     // 在途 → 客户订单变为 "运输中"
-  arrived: 'arrived',       // 已到货 → 客户订单变为 "已到货"
+  ordered: 'production',    // 已下单 → 预订单变为 "生产中/采购中"
+  shipping: 'shipping',     // 在途 → 预订单变为 "运输中"
+  arrived: 'arrived',       // 已到货 → 预订单变为 "已到货"
 };
 
 export class PurchaseOrderService {
@@ -35,7 +35,7 @@ export class PurchaseOrderService {
   // ─── 状态机级联 (Cascading State Machine) ────────────
 
   /**
-   * 变更采购单状态，并级联更新关联客户订单
+   * 变更采购单状态，并级联更新关联预订单
    * @param {string} poId - 采购单 ID
    * @param {string} newStatus - 目标状态
    * @returns {Promise<{success: boolean, cascadedOrders: number}>}
@@ -61,7 +61,7 @@ export class PurchaseOrderService {
     // 2. 更新采购单状态
     await this.repo.updateStatus(poId, newStatus);
 
-    // 3. 级联更新客户订单状态
+    // 3. 级联更新预订单状态
     let cascadedOrders = 0;
     const targetOrderStatus = PO_TO_ORDER_STATUS_MAP[newStatus];
 
@@ -178,7 +178,7 @@ export class PurchaseOrderService {
 
   /**
    * 获取建议采购清单
-   * 基于订货总览中 shortage > 0 的商品，以及 status = 'confirmed' 的客户订单
+   * 基于订货总览中 shortage > 0 的商品，以及 status = 'confirmed' 的预订单
    *
    * @returns {Promise<Array>} 建议列表
    */
@@ -216,22 +216,22 @@ export class PurchaseOrderService {
       total_demand: row.total_demand,
       shortage: row.shortage,
       order_count: row.order_count,
-      // 关联的客户订单 ID 列表
+      // 关联的预订单 ID 列表
       order_ids: row.order_ids ? row.order_ids.split(',') : [],
       images: this._parseJson(row.images),
     }));
   }
 
   /**
-   * 从客户订单快速创建采购单
-   * @param {string[]} orderIds - 客户订单 ID 列表
+   * 从预订单快速创建采购单
+   * @param {string[]} orderIds - 预订单 ID 列表
    * @param {Object} poData - 采购单基本信息
    * @returns {Promise<Object>} 创建的采购单
    */
   async createFromOrders(orderIds, poData = {}) {
     // 1. 查询选中的订单及其关联商品
     if (!orderIds || orderIds.length === 0) {
-      throw new BadRequestError('请至少选择一个客户订单');
+      throw new BadRequestError('请至少选择一个预订单');
     }
 
     const placeholders = orderIds.map(() => '?').join(',');
@@ -255,7 +255,7 @@ export class PurchaseOrderService {
     // 3. 添加明细
     const items = orders.map(order => ({
       product_id: order.product_id,
-      customer_order_id: order.id,
+      pre_order_id: order.id,
       quantity: order.quantity || 1,
       unit_cost: order.cost_price || 0,
     }));

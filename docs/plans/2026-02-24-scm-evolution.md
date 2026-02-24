@@ -5,7 +5,7 @@
 **Goal:** 抛弃简易的单品静态成本模式，引入真实供应链场景下的【采购单 (Purchase Orders)】概念。支持多订单/多缺口的智能合并采购，并在结算后自动进行跨国运费、关税的动态分摊，同时建立采购与客订的 SOTA 状态机级联。
 
 **Architecture:** 
-1. **数据库扩容**：增加 `purchase_orders` (主表) 和 `purchase_order_items` (明细表)。明细表中通过 `customer_order_id` 强关联前端客户订单，不关联的表示为“补充公共库存”。
+1. **数据库扩容**：增加 `purchase_orders` (主表) 和 `purchase_order_items` (明细表)。明细表中通过 `pre_order_id` 强关联前端预订单，不关联的表示为“补充公共库存”。
 2. **状态机级联 (Cascading State)**：用底层事件总线或服务层封装状态转移机制。当采购单(PO)改变状态时，自动计算并流转其所有绑定的客订单(CO)状态。
 3. **文案级分离 (Decoupled Vocabulary)**：将底层状态机状态定为技术语义（如 `purchasing`, `shipping`），在 `manage` (后台管理) 渲染为“已订购/发往国内”，在对外客户端 `sales` 渲染为“海外备货中”。
 4. **动态成本分摊 (Moving Average Cost Allocations)**：当采购单到货结算实际 `shipping_cost` + `tariff_cost` 时，按商品金额或件数比例反算到 `products` 表的移动加权成本。
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS purchase_order_items (
     id TEXT PRIMARY KEY,
     po_id TEXT NOT NULL,
     product_id TEXT NOT NULL,
-    customer_order_id TEXT,                 -- 绑定的客户订单ID (NULL 表示补库存)
+    pre_order_id TEXT,                 -- 绑定的预订单ID (NULL 表示补库存)
     
     quantity INTEGER DEFAULT 1,             -- 采购数量
     unit_cost REAL DEFAULT 0,               -- 单件入货成本 (外币或人民币本位)
@@ -67,11 +67,11 @@ CREATE TABLE IF NOT EXISTS purchase_order_items (
     
     FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
-    FOREIGN KEY (customer_order_id) REFERENCES orders(id) ON DELETE SET NULL
+    FOREIGN KEY (pre_order_id) REFERENCES orders(id) ON DELETE SET NULL
 );
 
 CREATE INDEX idx_po_items_po ON purchase_order_items(po_id);
-CREATE INDEX idx_po_items_order ON purchase_order_items(customer_order_id);
+CREATE INDEX idx_po_items_order ON purchase_order_items(pre_order_id);
 ```
 
 **Step 2: Run migration locally**
@@ -94,13 +94,13 @@ git commit -m "feat(db): 建立真实采购单(Purchase Orders)及明细关联�
 
 **Step 1: Write state machine logic**
 创建 `PurchaseOrderService.js` 封装 `updateStatus`，当 `status` 变更为：
-- `ordered`: 将关联的所有 `customer_order_id` 状态变更为 `production` (代表采购中)。
+- `ordered`: 将关联的所有 `pre_order_id` 状态变更为 `production` (代表采购中)。
 - `shipping`: 关联客订单变更为 `shipping`。
 - `arrived`: 关联客订单变更为 `arrived`。
 - `completed`: 触发【成本动态分摊算法】：`总运费 / 总商品价值(或件数) = 分摊权重`，更新 `purchase_order_items` 中的 `allocated_freight/tariff`，并将此批 `unit_cost + 分摊附加费` 滚入 `products` 表计算新的加权平均 `cost_price`。
 
 **Step 2: API Endpoints**
-- `POST /` - 接收 `items[]` (包含客户订单 ids 及补库数量) 生成草稿单。
+- `POST /` - 接收 `items[]` (包含预订单 ids 及补库数量) 生成草稿单。
 - `PATCH /:id/status` - 流转状态，触发服务级联。
 - `PUT /:id/costs` - 结算环节填入国际运费和关税。
 
@@ -126,7 +126,7 @@ git commit -m "feat(api): 增加采购单核心服务、状态级联引擎与成
 
 **Step 2: Demand-Driven UI**
 在 `GoodsOverview.vue` 列表每行增加一个【多选框】，顶部加入一个【一键生成采购单】按钮。
-弹窗内显示左侧“智能分配”（列出此商品的 `confirmed` 客户订单），右侧显示“公共库存数量”，最后汇总出一张采购草稿。
+弹窗内显示左侧“智能分配”（列出此商品的 `confirmed` 预订单），右侧显示“公共库存数量”，最后汇总出一张采购草稿。
 
 **Step 3: Commit**
 ```bash

@@ -3,7 +3,7 @@
  * ==================================
  *
  * 支持采购单的创建、查询、状态变更、明细管理和成本分摊。
- * 采购单状态变更时自动级联更新关联客户订单状态。
+ * 采购单状态变更时自动级联更新关联预订单状态。
  *
  * @module routes/manage/purchase-orders
  */
@@ -97,14 +97,14 @@ app.post('/', async (c) => {
 });
 
 /**
- * POST /from-orders — 从客户订单快速创建采购单
+ * POST /from-orders — 从预订单快速创建采购单
  * Body: { order_ids: string[], remark?, allocation_method? }
  */
 app.post('/from-orders', async (c) => {
   const body = await c.req.json();
 
   if (!body.order_ids || body.order_ids.length === 0) {
-    throw new BadRequestError('请至少选择一个客户订单');
+    throw new BadRequestError('请至少选择一个预订单');
   }
 
   const service = new PurchaseOrderService(c.env.DB);
@@ -153,7 +153,7 @@ app.patch('/:id/status', async (c) => {
     data: {
       ...result,
       message: result.cascadedOrders > 0
-        ? `状态已更新，同步更新了 ${result.cascadedOrders} 个客户订单`
+        ? `状态已更新，同步更新了 ${result.cascadedOrders} 个预订单`
         : '状态已更新',
     },
   });
@@ -163,7 +163,7 @@ app.patch('/:id/status', async (c) => {
 
 /**
  * POST /:id/items — 添加明细
- * Body: { items: [{ product_id, customer_order_id?, quantity, unit_cost }] }
+ * Body: { items: [{ product_id, pre_order_id?, quantity, unit_cost }] }
  */
 app.post('/:id/items', async (c) => {
   const body = await c.req.json();

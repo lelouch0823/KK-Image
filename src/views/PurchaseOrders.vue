@@ -532,7 +532,7 @@
                           <!-- 来源标签 -->
                           <td class="px-4 py-3 text-center">
                             <span
-                              v-if="item.customer_order_id"
+                              v-if="item.pre_order_id"
                               class="inline-flex items-center gap-1 rounded-full bg-[var(--color-info)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--color-info)]"
                             >
                               <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
@@ -723,7 +723,7 @@ const showShortageConfirm = ref(false);
 const pickerTarget = ref('create'); // 'create' or 'detail'
 
 // 采购明细列表 (本地编辑用)
-// 结构: { product_id, product_name, sku, brand, image, quantity, unit_cost, customer_order_id?, order_no?, required_quantity? }
+// 结构: { product_id, product_name, sku, brand, image, quantity, unit_cost, pre_order_id?, order_no?, required_quantity? }
 const poItems = reactive([]);
 
 const createForm = reactive({
@@ -792,8 +792,8 @@ const handleOrdersSelected = async (orders) => {
   for (const order of orders) {
     // 避免重复添加同一个订单
     const isDuplicate = pickerTarget.value === 'create'
-      ? poItems.some(i => i.customer_order_id === order.id)
-      : detail.value?.items?.some(i => i.customer_order_id === order.id);
+      ? poItems.some(i => i.pre_order_id === order.id)
+      : detail.value?.items?.some(i => i.pre_order_id === order.id);
     if (isDuplicate) continue;
 
     // 解析 current_data 获取商品详情
@@ -814,7 +814,7 @@ const handleOrdersSelected = async (orders) => {
       image: data.images?.[0] || null,
       quantity: order.quantity || 1,
       unit_cost: data.cost_price || data.price || 0,
-      customer_order_id: order.id,
+      pre_order_id: order.id,
       order_no: order.orderNo || order.order_no || '',
       required_quantity: order.quantity || 1, // 预定需求量
     });
@@ -828,7 +828,7 @@ const handleOrdersSelected = async (orders) => {
     // 详情草稿面板：直接调用接口添加明细
     const newItems = itemsToAdd.map(i => ({
       product_id: i.product_id,
-      customer_order_id: i.customer_order_id,
+      pre_order_id: i.pre_order_id,
       quantity: i.quantity,
       unit_cost: i.unit_cost,
     }));
@@ -847,8 +847,8 @@ const handleProductsSelected = async (products) => {
   for (const product of products) {
     // 如果该商品已经存在于列表中（非订单关联），跳过
     const isDuplicate = pickerTarget.value === 'create'
-      ? poItems.some(i => i.product_id === product.id && !i.customer_order_id)
-      : detail.value?.items?.some(i => i.product_id === product.id && !i.customer_order_id);
+      ? poItems.some(i => i.product_id === product.id && !i.pre_order_id)
+      : detail.value?.items?.some(i => i.product_id === product.id && !i.pre_order_id);
     if (isDuplicate) continue;
 
     let mainImage = null;
@@ -865,7 +865,7 @@ const handleProductsSelected = async (products) => {
       image: mainImage,
       quantity: 1,
       unit_cost: product.cost_price || product.price || 0,
-      customer_order_id: null,
+      pre_order_id: null,
       order_no: null,
       required_quantity: null, // 补货无需求限制
     });
@@ -878,7 +878,7 @@ const handleProductsSelected = async (products) => {
   } else if (pickerTarget.value === 'detail' && detail.value) {
     const newItems = itemsToAdd.map(i => ({
       product_id: i.product_id,
-      customer_order_id: null,
+      pre_order_id: null,
       quantity: i.quantity,
       unit_cost: i.unit_cost,
     }));
@@ -901,11 +901,11 @@ const totalCreateQty = computed(() => poItems.reduce((sum, i) => sum + (i.quanti
 const shortageItems = computed(() => poItems.filter(i => i.required_quantity && i.quantity < i.required_quantity));
 const excludeOrderIds = computed(() => {
   const items = pickerTarget.value === 'detail' && detail.value ? (detail.value.items || []) : poItems;
-  return items.filter(i => i.customer_order_id).map(i => i.customer_order_id);
+  return items.filter(i => i.pre_order_id).map(i => i.pre_order_id);
 });
 const excludeProductIds = computed(() => {
   const items = pickerTarget.value === 'detail' && detail.value ? (detail.value.items || []) : poItems;
-  return items.filter(i => !i.customer_order_id && i.product_id).map(i => i.product_id);
+  return items.filter(i => !i.pre_order_id && i.product_id).map(i => i.product_id);
 });
 const existingBrands = computed(() => {
   const items = pickerTarget.value === 'detail' && detail.value ? (detail.value.items || []) : poItems;
@@ -956,7 +956,7 @@ const executeCreate = async () => {
   // Step 2: 批量添加明细
   const items = poItems.map(item => ({
     product_id: item.product_id,
-    customer_order_id: item.customer_order_id || null,
+    pre_order_id: item.pre_order_id || null,
     quantity: item.quantity || 1,
     unit_cost: item.unit_cost || 0,
   }));
@@ -987,7 +987,7 @@ const handleStatusUpdate = async (newStatus) => {
 };
 
 const handleCreateFromSuggestions = async () => {
-  // 将建议中的客户订单汇总
+  // 将建议中的预订单汇总
   const allOrderIds = selectedSuggestions.value.flatMap(s => s.order_ids || []);
   if (allOrderIds.length === 0) return;
 

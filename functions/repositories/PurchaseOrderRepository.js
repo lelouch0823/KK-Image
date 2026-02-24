@@ -87,7 +87,7 @@ export class PurchaseOrderRepository {
         o.order_no AS customer_order_no
       FROM purchase_order_items poi
       LEFT JOIN products p ON poi.product_id = p.id
-      LEFT JOIN orders o ON poi.customer_order_id = o.id
+      LEFT JOIN orders o ON poi.pre_order_id = o.id
       ORDER BY poi.created_at ASC
     `).bind().all();
 
@@ -200,7 +200,7 @@ export class PurchaseOrderRepository {
   /**
    * 批量添加明细
    * @param {string} poId
-   * @param {Array<{product_id, customer_order_id, quantity, unit_cost}>} items
+   * @param {Array<{product_id, pre_order_id, quantity, unit_cost}>} items
    */
   async addItems(poId, items) {
     if (!items || items.length === 0) return [];
@@ -215,13 +215,13 @@ export class PurchaseOrderRepository {
 
       stmts.push(
         this.db.prepare(`
-          INSERT INTO purchase_order_items (id, po_id, product_id, customer_order_id, quantity, unit_cost, created_at)
+          INSERT INTO purchase_order_items (id, po_id, product_id, pre_order_id, quantity, unit_cost, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?)
         `).bind(
           id,
           poId,
           item.product_id,
-          item.customer_order_id || null,
+          item.pre_order_id || null,
           item.quantity || 1,
           item.unit_cost || 0,
           now
@@ -276,14 +276,14 @@ export class PurchaseOrderRepository {
   }
 
   /**
-   * 获取采购单的所有关联客户订单 ID
+   * 获取采购单的所有关联预订单 ID
    */
   async getLinkedOrderIds(poId) {
     const { results } = await this.db
-      .prepare(`SELECT DISTINCT customer_order_id FROM purchase_order_items WHERE po_id = ? AND customer_order_id IS NOT NULL`)
+      .prepare(`SELECT DISTINCT pre_order_id FROM purchase_order_items WHERE po_id = ? AND pre_order_id IS NOT NULL`)
       .bind(poId)
       .all();
-    return results.map(r => r.customer_order_id);
+    return results.map(r => r.pre_order_id);
   }
 
   /**
