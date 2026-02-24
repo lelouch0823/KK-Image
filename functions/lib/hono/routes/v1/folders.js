@@ -19,99 +19,42 @@ const getFolderCacheUrls = createCacheInvalidator('/api/v1/folders', ['parentId=
 
 /**
  * GET /api/v1/folders - 获取文件夹列表
+ * SOTA: 使用 Repository 的 list() 方法，通过 JOIN 消除 N+1 查询
  */
 app.get('/', zValidator('query', FolderQuerySchema), withCache(30), async (c) => {
-  const { page, limit, parentId, search, includeFiles: _includeFiles } = c.req.valid('query');
-  const { env } = c;
+  const { page, limit, parentId, search } = c.req.valid('query');
+  const repo = new FolderRepository(c.env.DB);
 
-  let sql = 'SELECT * FROM folders WHERE 1=1';
-  const bindings = [];
-
-  if (parentId === null || parentId === 'null') {
-    sql += ' AND parent_id IS NULL';
-  } else if (parentId) {
-    sql += ' AND parent_id = ?';
-    bindings.push(parentId);
-  }
-
-  // 过滤已删除文件夹
-  sql += ' AND (is_deleted IS NULL OR is_deleted = 0)';
-
-  if (search) {
-    sql += ' AND name LIKE ?';
-    bindings.push(`%${search}%`);
-  }
-
-  // 获取总数
-  const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as total');
-  const countResult = await env.DB.prepare(countSql)
-    .bind(...bindings)
-    .first();
-  const total = countResult?.total || 0;
-
-  // 分页查询
-  sql += ' ORDER BY name ASC LIMIT ? OFFSET ?';
-  bindings.push(limit, (page - 1) * limit);
-
-  const { results: folders } = await env.DB.prepare(sql)
-    .bind(...bindings)
-    .all();
-
-  // 添加文件计数
-  const foldersWithStats = await Promise.all(
-    folders.map(async (folder) => {
-      const fileCount = await env.DB.prepare(
-        'SELECT COUNT(*) as count FROM files WHERE folder_id = ?'
-      )
-        .bind(folder.id)
-        .first();
-
-      const subfolderCount = await env.DB.prepare(
-        'SELECT COUNT(*) as count FROM folders WHERE parent_id = ?'
-      )
-        .bind(folder.id)
-        .first();
-
-      return {
-        ...folder,
-        fileCount: fileCount?.count || 0,
-        subfolderCount: subfolderCount?.count || 0,
-      };
-    })
-  );
+  const result = await repo.list({ parentId, search, page, limit });
 
   return c.json({
     success: true,
-    data: foldersWithStats,
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    data: result.items,
+    pagination: {
+      page: result.page,
+      limit: result.limit,
+      total: result.total,
+      totalPages: result.totalPages,
+    },
   });
 });
 
 /**
- * GET /api/v1/folders/:id - 获取单个文件夹
+ * GET /api/v1/folders/:id - 获取单个文件夹详情
  */
 app.get('/:id', withCache(60), async (c) => {
   const id = c.req.param('id');
-  const { env } = c;
+  const repo = new FolderRepository(c.env.DB);
 
-  const folder = await env.DB.prepare('SELECT * FROM folders WHERE id = ?').bind(id).first();
-
-  if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
-
-  // 获取文件和子文件夹
-  const [filesResult, subfoldersResult] = await Promise.all([
-    env.DB.prepare('SELECT * FROM files WHERE folder_id = ? ORDER BY created_at DESC')
-      .bind(id)
-      .all(),
-    env.DB.prepare('SELECT * FROM folders WHERE parent_id = ? ORDER BY name ASC').bind(id).all(),
-  ]);
+  const detail = await repo.findDetail(id);
+  if (!detail) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
 
   return c.json({
     success: true,
     data: {
-      ...folder,
-      files: filesResult.results,
-      subfolders: subfoldersResult.results,
+      ...detail.folder,
+      files: detail.files,
+      subfolders: detail.subfolders,
     },
   });
 });
@@ -125,14 +68,11 @@ app.post(
   zValidator('json', CreateFolderSchema),
   async (c) => {
     const data = c.req.valid('json');
-    const _user = c.get('user');
-    const { env } = c;
+    const repo = new FolderRepository(c.env.DB);
 
     // 验证父文件夹存在
     if (data.parentId) {
-      const parent = await env.DB.prepare('SELECT id FROM folders WHERE id = ?')
-        .bind(data.parentId)
-        .first();
+      const parent = await repo.findById(data.parentId);
       if (!parent) throw new NotFoundError(MSG.FOLDER.PARENT_NOT_FOUND);
     }
 
@@ -140,33 +80,22 @@ app.post(
     const shareToken = generateShareToken(16);
     const timestamp = now();
 
-    await env.DB.prepare(
-      `
-      INSERT INTO folders (id, name, parent_id, description, is_public, password, share_token, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `
-    )
-      .bind(
-        id,
-        data.name,
-        data.parentId || null,
-        data.description || null,
-        data.isPublic ? 1 : 0,
-        data.password || null,
-        shareToken,
-        timestamp,
-        timestamp
-      )
-      .run();
+    await repo.create({
+      id,
+      name: data.name,
+      parentId: data.parentId || null,
+      description: data.description || null,
+      isPublic: data.isPublic,
+      password: data.password || null,
+      shareToken,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
 
-    // 使缓存失效
     c.executionCtx.waitUntil(invalidateCache(getFolderCacheUrls(c)));
 
     return c.json(
-      {
-        success: true,
-        data: { id, shareToken, ...data, createdAt: timestamp },
-      },
+      { success: true, data: { id, shareToken, ...data, createdAt: timestamp } },
       201
     );
   }
@@ -182,9 +111,9 @@ app.put(
   async (c) => {
     const id = c.req.param('id');
     const data = c.req.valid('json');
-    const { env } = c;
+    const repo = new FolderRepository(c.env.DB);
 
-    const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(id).first();
+    const folder = await repo.findById(id);
     if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
 
     const updates = [];
@@ -192,6 +121,10 @@ app.put(
 
     for (const [key, value] of Object.entries(data)) {
       if (value !== undefined) {
+        if (key === 'parentId' && value) {
+          const isDescendant = await repo.isDescendantOrSelf(id, value);
+          if (isDescendant) throw new BadRequestError(MSG.FOLDER.MOVE_TO_SELF);
+        }
         const dbKey = key === 'isPublic' ? 'is_public' : key === 'parentId' ? 'parent_id' : key;
         updates.push(`${dbKey} = ?`);
         values.push(key === 'isPublic' ? (value ? 1 : 0) : value);
@@ -202,13 +135,9 @@ app.put(
 
     updates.push('updated_at = ?');
     values.push(now());
-    values.push(id);
 
-    await env.DB.prepare(`UPDATE folders SET ${updates.join(', ')} WHERE id = ?`)
-      .bind(...values)
-      .run();
+    await repo.update(id, updates, values);
 
-    // 使缓存失效
     c.executionCtx.waitUntil(invalidateCache(getFolderCacheUrls(c)));
 
     return c.json({ success: true, message: MSG.FOLDER.UPDATE_SUCCESS });
@@ -220,36 +149,18 @@ app.put(
  */
 app.delete('/:id', requirePermission('folders:delete'), async (c) => {
   const id = c.req.param('id');
-  const { env } = c;
+  const repo = new FolderRepository(c.env.DB);
 
-  const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(id).first();
+  const folder = await repo.findById(id);
   if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
 
-  // 检查是否有子文件夹或文件
-  const subfoldersCount = await env.DB.prepare(
-    'SELECT COUNT(*) as count FROM folders WHERE parent_id = ?'
-  )
-    .bind(id)
-    .first();
-  const filesCount = await env.DB.prepare('SELECT COUNT(*) as count FROM files WHERE folder_id = ?')
-    .bind(id)
-    .first();
-
-  if ((subfoldersCount?.count || 0) > 0 || (filesCount?.count || 0) > 0) {
-    return c.json(
-      {
-        success: false,
-        error: MSG.FOLDER.EMPTY_INVALID,
-      },
-      400
-    );
+  // SOTA: 使用 Repository 封装的 canDelete 检查
+  const { canDelete } = await repo.canDelete(id);
+  if (!canDelete) {
+    throw new BadRequestError(MSG.FOLDER.EMPTY_INVALID);
   }
 
-  // 软删除
-  const repo = new FolderRepository(env.DB);
   await repo.softDelete(id);
-
-  // 使缓存失效
   c.executionCtx.waitUntil(invalidateCache(getFolderCacheUrls(c)));
 
   return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
@@ -265,35 +176,20 @@ app.put(
   async (c) => {
     const id = c.req.param('id');
     const { isPublic, password, expiresAt } = c.req.valid('json');
-    const { env } = c;
+    const repo = new FolderRepository(c.env.DB);
 
-    const expiresAtTs = expiresAt ? new Date(expiresAt).getTime() : null;
-    await env.DB.prepare(
-      `
-      UPDATE folders SET is_public = ?, password = ?, share_expires_at = ?, updated_at = ?
-      WHERE id = ?
-    `
-    )
-      .bind(isPublic ? 1 : 0, password || null, expiresAtTs, now(), id)
-      .run();
+    // SOTA: 使用 Repository 封装的分享设置更新
+    const shareInfo = await repo.updateShareSettings(id, { isPublic, password, expiresAt });
 
-    // 使缓存失效
     c.executionCtx.waitUntil(invalidateCache(getFolderCacheUrls(c)));
-
-    // 获取更新后的分享信息
-    const folder = await env.DB.prepare(
-      'SELECT share_token, is_public, password, share_expires_at FROM folders WHERE id = ?'
-    )
-      .bind(id)
-      .first();
 
     return c.json({
       success: true,
       data: {
-        shareToken: folder?.share_token,
-        isPublic: !!folder?.is_public,
-        hasPassword: !!folder?.password,
-        expiresAt: folder?.share_expires_at,
+        shareToken: shareInfo?.share_token,
+        isPublic: !!shareInfo?.is_public,
+        hasPassword: !!shareInfo?.password,
+        expiresAt: shareInfo?.share_expires_at,
       },
     });
   }

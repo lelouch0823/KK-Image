@@ -1,13 +1,15 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
-import { generateId, now } from '../../../../api/utils/id.js';
+import { generateId, now } from '../../_shared/utils.js';
 import { BadRequestError, ConflictError } from '../../errors.js';
+import { TagRepository } from '../../../../repositories/TagRepository.js';
 
 const tagsRoute = new Hono();
 
 // GET 获取所有标签
 tagsRoute.get('/', requirePermission('read'), async (c) => {
-    const { results } = await c.env.DB.prepare(`SELECT * FROM tags ORDER BY name ASC`).all();
+    const repo = new TagRepository(c.env.DB);
+    const results = await repo.findAll();
     return c.json({ success: true, tags: results });
 });
 
@@ -19,17 +21,16 @@ tagsRoute.post('/', requirePermission('write'), async (c) => {
     }
 
     const id = generateId();
+    const repo = new TagRepository(c.env.DB);
 
     // 保留 try-catch 用于区分 UNIQUE 约束冲突
     try {
-        await c.env.DB.prepare(`INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?)`)
-            .bind(id, name.trim(), color || null, now())
-            .run();
+        await repo.create({ id, name: name.trim(), color, createdAt: now() });
     } catch (error) {
         if (error.message.includes('UNIQUE constraint failed')) {
             throw new ConflictError('Tag already exists');
         }
-        throw error; // 非 UNIQUE 错误继续冒泡到全局处理器
+        throw error;
     }
 
     return c.json({ success: true, tag: { id, name: name.trim(), color } });
@@ -40,9 +41,8 @@ tagsRoute.post('/assign', requirePermission('write'), async (c) => {
     const { file_id, tag_id } = await c.req.json();
     if (!file_id || !tag_id) throw new BadRequestError('Missing IDs');
 
-    await c.env.DB.prepare(`INSERT INTO file_tags (file_id, tag_id, created_at) VALUES (?, ?, ?)`)
-        .bind(file_id, tag_id, now())
-        .run();
+    const repo = new TagRepository(c.env.DB);
+    await repo.assignToFile({ fileId: file_id, tagId: tag_id, createdAt: now() });
     return c.json({ success: true });
 });
 
@@ -50,9 +50,8 @@ tagsRoute.post('/assign', requirePermission('write'), async (c) => {
 tagsRoute.delete('/assign', requirePermission('write'), async (c) => {
     const { file_id, tag_id } = await c.req.json();
 
-    await c.env.DB.prepare(`DELETE FROM file_tags WHERE file_id = ? AND tag_id = ?`)
-        .bind(file_id, tag_id)
-        .run();
+    const repo = new TagRepository(c.env.DB);
+    await repo.removeFromFile(file_id, tag_id);
     return c.json({ success: true });
 });
 

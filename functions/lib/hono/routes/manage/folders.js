@@ -205,8 +205,11 @@ app.put(
       values.push(data.password || null);
     }
     if (data.parentId !== undefined) {
-      if (data.parentId === folderId) {
-        throw new BadRequestError(MSG.FOLDER.MOVE_TO_SELF);
+      if (data.parentId) {
+        const isDescendant = await folderRepo.isDescendantOrSelf(folderId, data.parentId);
+        if (isDescendant) {
+          throw new BadRequestError(MSG.FOLDER.MOVE_TO_SELF);
+        }
       }
       updates.push('parent_id = ?');
       values.push(data.parentId);

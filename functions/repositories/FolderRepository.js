@@ -270,4 +270,140 @@ export class FolderRepository {
             totalPages: Math.ceil(total / safeLimit)
         };
     }
+
+    /**
+     * 分页查询文件夹列表（含统计，使用 JOIN 消除 N+1 问题）
+     * @param {{ parentId?: string|null, search?: string, page?: number, limit?: number }} options
+     * @returns {Promise<{ items: Object[], total: number, page: number, limit: number, totalPages: number }>}
+     */
+    async list({ parentId, search, page = 1, limit = 20 } = {}) {
+        const conditions = ['f.is_deleted = 0'];
+        const bindings = [];
+
+        if (parentId === null || parentId === 'null') {
+            conditions.push('f.parent_id IS NULL');
+        } else if (parentId) {
+            conditions.push('f.parent_id = ?');
+            bindings.push(parentId);
+        }
+
+        if (search) {
+            conditions.push('f.name LIKE ?');
+            bindings.push(`%${search}%`);
+        }
+
+        const where = conditions.join(' AND ');
+
+        // 总数查询
+        const countResult = await this.db.prepare(
+            `SELECT COUNT(*) as total FROM folders f WHERE ${where}`
+        ).bind(...bindings).first();
+        const total = countResult?.total || 0;
+
+        // 分页 + 统计查询（使用 LEFT JOIN 一次性获取 fileCount/subfolderCount）
+        const offset = (page - 1) * limit;
+        const { results } = await this.db.prepare(`
+            SELECT f.*,
+                COALESCE(sub.subfolder_count, 0) as subfolderCount,
+                COALESCE(fc.file_count, 0) as fileCount
+            FROM folders f
+            LEFT JOIN (
+                SELECT parent_id, COUNT(*) as subfolder_count
+                FROM folders WHERE is_deleted = 0
+                GROUP BY parent_id
+            ) sub ON sub.parent_id = f.id
+            LEFT JOIN (
+                SELECT folder_id, COUNT(*) as file_count
+                FROM files WHERE is_deleted = 0
+                GROUP BY folder_id
+            ) fc ON fc.folder_id = f.id
+            WHERE ${where}
+            ORDER BY f.name ASC
+            LIMIT ? OFFSET ?
+        `).bind(...bindings, limit, offset).all();
+
+        return { items: results, total, page, limit, totalPages: Math.ceil(total / limit) };
+    }
+
+    /**
+     * 获取文件夹详情（含子文件夹和文件列表）
+     * @param {string} id
+     * @returns {Promise<{ folder: Object, files: Object[], subfolders: Object[] } | null>}
+     */
+    async findDetail(id) {
+        const folder = await this.findById(id);
+        if (!folder) return null;
+
+        const [filesResult, subfoldersResult] = await Promise.all([
+            this.db.prepare(
+                'SELECT * FROM files WHERE folder_id = ? AND (is_deleted IS NULL OR is_deleted = 0) ORDER BY created_at DESC'
+            ).bind(id).all(),
+            this.db.prepare(
+                'SELECT * FROM folders WHERE parent_id = ? AND is_deleted = 0 ORDER BY name ASC'
+            ).bind(id).all(),
+        ]);
+
+        return {
+            folder,
+            files: filesResult.results,
+            subfolders: subfoldersResult.results,
+        };
+    }
+
+    /**
+     * 更新文件夹分享设置
+     * @param {string} id
+     * @param {{ isPublic: boolean, password?: string, expiresAt?: string|null }} settings
+     * @returns {Promise<Object>} 更新后的分享信息
+     */
+    async updateShareSettings(id, { isPublic, password, expiresAt }) {
+        const expiresAtTs = expiresAt ? new Date(expiresAt).getTime() : null;
+        const timestamp = Date.now();
+
+        await this.db.prepare(
+            'UPDATE folders SET is_public = ?, password = ?, share_expires_at = ?, updated_at = ? WHERE id = ?'
+        ).bind(isPublic ? 1 : 0, password || null, expiresAtTs, timestamp, id).run();
+
+        return this.db.prepare(
+            'SELECT share_token, is_public, password, share_expires_at FROM folders WHERE id = ?'
+        ).bind(id).first();
+    }
+
+    /**
+     * 检查 targetId 是否为 folderId 的后代（或者就是 folderId 本身）
+     * 用于防止将文件夹移动到自身或其子文件夹中造成死循环
+     * @param {string} folderId 当前移动的文件夹ID
+     * @param {string|null} targetId 目标父文件夹ID
+     * @returns {Promise<boolean>}
+     */
+    async isDescendantOrSelf(folderId, targetId) {
+        if (!targetId) return false; // 移动到根目录总是允许的
+        if (folderId === targetId) return true;
+
+        const { results } = await this.db.prepare(`
+            WITH RECURSIVE descendant_folders AS (
+                SELECT id FROM folders WHERE id = ?
+                UNION ALL
+                SELECT f.id FROM folders f JOIN descendant_folders df ON f.parent_id = df.id
+            )
+            SELECT 1 as found FROM descendant_folders WHERE id = ? LIMIT 1
+        `).bind(folderId, targetId).all();
+
+        return results.length > 0;
+    }
+
+    /**
+     * 检查文件夹是否可删除（无子文件夹且无文件）
+     * @param {string} id
+     * @returns {Promise<{ canDelete: boolean, subfolderCount: number, fileCount: number }>}
+     */
+    async canDelete(id) {
+        const [subfoldersResult, filesResult] = await Promise.all([
+            this.db.prepare('SELECT COUNT(*) as count FROM folders WHERE parent_id = ?').bind(id).first(),
+            this.db.prepare('SELECT COUNT(*) as count FROM files WHERE folder_id = ?').bind(id).first(),
+        ]);
+        const subfolderCount = subfoldersResult?.count || 0;
+        const fileCount = filesResult?.count || 0;
+        return { canDelete: subfolderCount === 0 && fileCount === 0, subfolderCount, fileCount };
+    }
 }
