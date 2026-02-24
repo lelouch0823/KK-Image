@@ -12,7 +12,7 @@ import { DateUtils } from '../api/utils/date.js';
  * @returns {Promise<any>} 工具执行结果
  */
 export async function executeAITool(name, args, repos) {
-    const { orderStatsRepo, systemStatsRepo, orderRepo, orderTimelineRepo, productRepo, customerRepo } = repos;
+    const { orderStatsRepo, systemStatsRepo, orderRepo, orderTimelineRepo, productRepo, customerRepo, goodsOverviewRepo } = repos;
 
     try {
         switch (name) {
@@ -93,6 +93,22 @@ export async function executeAITool(name, args, repos) {
                 if (!args.id) return { error: true, message: 'Missing customer ID' };
                 const dt = await customerRepo.findById(args.id);
                 return dt || { error: true, message: 'Customer not found' };
+            }
+
+            // --- 订货总览 (Goods Overview) ---
+            case 'getGoodsOverviewSummary': {
+                return await goodsOverviewRepo.getSummary();
+            }
+            case 'getGoodsOverviewList': {
+                const filters = {
+                    category: args.category || '',
+                    brand: args.brand || '',
+                    shortageOnly: args.shortageOnly === true,
+                    sort: args.sort || 'shortage'
+                };
+                const items = await goodsOverviewRepo.getList(filters);
+                const limit = args.limit ? Math.min(args.limit, 20) : 10;
+                return items.slice(0, limit);
             }
 
             default:

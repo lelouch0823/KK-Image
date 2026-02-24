@@ -17,6 +17,8 @@ export const TOOL_DESCRIPTIONS = {
   GET_ORDER_DETAIL: '根据订单ID获取指定订单详情，包括当前状态、明细数据以及近期的操作时间轴日志(Timeline)。',
   GET_PRODUCT_DETAIL: '根据商品ID获取指定商品详情数据。',
   GET_CUSTOMER_DETAIL: '根据客户ID获取指定客户详情数据。',
+  GET_GOODS_OVERVIEW_SUMMARY: '获取订货总览的统计摘要，包括总商品数、总需求件数、缺货商品数，以及按状态分组的详情。',
+  GET_GOODS_OVERVIEW_LIST: '获取订货总览（商品管道分析）的商品列表，支持按类别、品牌筛选，以及仅筛选缺货商品。',
 };
 
 /**
@@ -157,6 +159,31 @@ export const AI_TOOLS = [
         required: ['id']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getGoodsOverviewSummary',
+      description: TOOL_DESCRIPTIONS.GET_GOODS_OVERVIEW_SUMMARY,
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getGoodsOverviewList',
+      description: TOOL_DESCRIPTIONS.GET_GOODS_OVERVIEW_LIST,
+      parameters: {
+        type: 'object',
+        properties: {
+          category: { type: 'string', description: '过滤商品分类' },
+          brand: { type: 'string', description: '过滤品牌' },
+          shortageOnly: { type: 'boolean', description: '是否仅获取存在缺货的商品' },
+          sort: { type: 'string', description: '排序字段 (shortage, demand, name)，默认 shortage' },
+          limit: { type: 'number', description: '最多返回的记录数，默认为 10' }
+        }
+      }
+    }
   }
 ];
 
@@ -176,6 +203,7 @@ export const SYSTEM_PROMPT = (date, context = {}) => {
 
 你可以查询以下数据：
 - 订单统计：今日/本周/本月订单数、待处理订单列表
+- 订货总览 (商品管道分析)：总计或缺货商品的汇总统表、列表清单
 - 具体业务数据搜索：可按条件搜索订单列表、商品列表、客户列表
 - 实体详细查询：若上下文提供了“选中的记录ID”，你可以查询该指定对象的详情和相关操作日志（时间线）
 - 客户统计：客户总数、近期新增客户

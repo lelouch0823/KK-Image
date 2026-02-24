@@ -8,6 +8,7 @@ import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 import { OrderTimelineRepository } from '../../../../repositories/OrderTimelineRepository.js';
 import { ProductRepository } from '../../../../repositories/ProductRepository.js';
 import { CustomerRepository } from '../../../../repositories/CustomerRepository.js';
+import { GoodsOverviewRepository } from '../../../../repositories/GoodsOverviewRepository.js';
 import { callAIStream, callAI, callAIAuto, parseSSEChunk, SYSTEM_PROMPT } from '../../../../utils/ai-utils.js';
 import { executeAITool } from '../../../../utils/ai-tool-executor.js';
 import { extractToolCallsFromText } from '../../../../utils/ai-stream-helpers.js';
@@ -60,6 +61,7 @@ app.post('/chat', async (c) => {
         const orderTimelineRepo = new OrderTimelineRepository(env.DB);
         const productRepo = new ProductRepository(env.DB);
         const customerRepo = new CustomerRepository(env.DB);
+        const goodsOverviewRepo = new GoodsOverviewRepository(env.DB);
 
         const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
         const systemContent = SYSTEM_PROMPT(todayDate, clientContext);
@@ -75,7 +77,7 @@ app.post('/chat', async (c) => {
                 const functionName = toolCall.function.name;
                 const args = JSON.parse(toolCall.function.arguments);
                 const result = await executeAITool(functionName, args, { 
-                    orderStatsRepo, systemStatsRepo, orderRepo, orderTimelineRepo, productRepo, customerRepo 
+                    orderStatsRepo, systemStatsRepo, orderRepo, orderTimelineRepo, productRepo, customerRepo, goodsOverviewRepo
                 });
 
                 messages.push({
@@ -150,10 +152,11 @@ app.post('/stream', async (c) => {
             const orderTimelineRepo = new OrderTimelineRepository(env.DB);
             const productRepo = new ProductRepository(env.DB);
             const customerRepo = new CustomerRepository(env.DB);
+            const goodsOverviewRepo = new GoodsOverviewRepository(env.DB);
 
             const executeTool = async (name, args) => {
                 return await executeAITool(name, args, { 
-                    orderStatsRepo, systemStatsRepo, orderRepo, orderTimelineRepo, productRepo, customerRepo 
+                    orderStatsRepo, systemStatsRepo, orderRepo, orderTimelineRepo, productRepo, customerRepo, goodsOverviewRepo
                 });
             };
 
