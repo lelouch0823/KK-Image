@@ -14,6 +14,9 @@ export const TOOL_DESCRIPTIONS = {
   SEARCH_ORDERS: '搜索订单列表（支持按状态、关键字搜索）。可以获取特定状态的订单，或者根据关键字查找。',
   SEARCH_PRODUCTS: '搜索商品列表（支持按商品名称、SKU、分类、品牌搜索）。',
   SEARCH_CUSTOMERS: '搜索客户列表（支持按姓名、手机号、公司名称搜索）。',
+  GET_ORDER_DETAIL: '根据订单ID获取指定订单详情，包括当前状态、明细数据以及近期的操作时间轴日志(Timeline)。',
+  GET_PRODUCT_DETAIL: '根据商品ID获取指定商品详情数据。',
+  GET_CUSTOMER_DETAIL: '根据客户ID获取指定客户详情数据。',
 };
 
 /**
@@ -118,6 +121,42 @@ export const AI_TOOLS = [
         }
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getOrderDetail',
+      description: TOOL_DESCRIPTIONS.GET_ORDER_DETAIL,
+      parameters: {
+        type: 'object',
+        properties: { id: { type: 'string', description: '订单ID (UUID)' } },
+        required: ['id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getProductDetail',
+      description: TOOL_DESCRIPTIONS.GET_PRODUCT_DETAIL,
+      parameters: {
+        type: 'object',
+        properties: { id: { type: 'string', description: '商品ID (UUID)' } },
+        required: ['id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getCustomerDetail',
+      description: TOOL_DESCRIPTIONS.GET_CUSTOMER_DETAIL,
+      parameters: {
+        type: 'object',
+        properties: { id: { type: 'string', description: '客户ID (UUID)' } },
+        required: ['id']
+      }
+    }
   }
 ];
 
@@ -138,6 +177,7 @@ export const SYSTEM_PROMPT = (date, context = {}) => {
 你可以查询以下数据：
 - 订单统计：今日/本周/本月订单数、待处理订单列表
 - 具体业务数据搜索：可按条件搜索订单列表、商品列表、客户列表
+- 实体详细查询：若上下文提供了“选中的记录ID”，你可以查询该指定对象的详情和相关操作日志（时间线）
 - 客户统计：客户总数、近期新增客户
 - 销售统计：销售人员列表、业绩排行
 - 共享空间：空间数量、访问量、下载量

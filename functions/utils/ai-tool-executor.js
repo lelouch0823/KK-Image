@@ -12,7 +12,7 @@ import { DateUtils } from '../api/utils/date.js';
  * @returns {Promise<any>} 工具执行结果
  */
 export async function executeAITool(name, args, repos) {
-    const { orderStatsRepo, systemStatsRepo, orderRepo, productRepo, customerRepo } = repos;
+    const { orderStatsRepo, systemStatsRepo, orderRepo, orderTimelineRepo, productRepo, customerRepo } = repos;
 
     try {
         switch (name) {
@@ -74,6 +74,25 @@ export async function executeAITool(name, args, repos) {
                     page: 1
                 });
                 return res.results;
+            }
+
+            // --- 具体实体详情查询 ---
+            case 'getOrderDetail': {
+                if (!args.id) return { error: true, message: 'Missing order ID' };
+                const dt = await orderRepo.findById(args.id);
+                if (!dt) return { error: true, message: 'Order not found' };
+                const timeline = await orderTimelineRepo.getTimeline(args.id);
+                return { detail: dt, timeline: timeline.slice(0, 10) }; // 只返回最近10条日志防 token 超限
+            }
+            case 'getProductDetail': {
+                if (!args.id) return { error: true, message: 'Missing product ID' };
+                const dt = await productRepo.findById(args.id);
+                return dt || { error: true, message: 'Product not found' };
+            }
+            case 'getCustomerDetail': {
+                if (!args.id) return { error: true, message: 'Missing customer ID' };
+                const dt = await customerRepo.findById(args.id);
+                return dt || { error: true, message: 'Customer not found' };
             }
 
             default:
