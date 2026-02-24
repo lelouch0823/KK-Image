@@ -38,17 +38,21 @@ app.get('/', async (c) => {
         sort: url.searchParams.get('sort') || 'shortage'
     };
 
-    const overviewRepo = new GoodsOverviewRepository(env.DB);
-    const items = await overviewRepo.getList(filters);
-    const availableFilters = await overviewRepo.getAvailableFilters();
+    try {
+        const overviewRepo = new GoodsOverviewRepository(env.DB);
+        const [items, availableFilters] = await Promise.all([
+            overviewRepo.getList(filters),
+            overviewRepo.getAvailableFilters()
+        ]);
 
-    return c.json({
-        success: true,
-        data: {
-            items,
-            filters: availableFilters,
-        },
-    });
+        return c.json({
+            success: true,
+            data: { items, filters: availableFilters },
+        });
+    } catch (err) {
+        console.error('[GoodsOverview] 列表查询失败:', err);
+        return c.json({ success: false, error: err.message }, 500);
+    }
 });
 
 /**
@@ -56,13 +60,19 @@ app.get('/', async (c) => {
  */
 app.get('/summary', async (c) => {
     const { env } = c;
-    const overviewRepo = new GoodsOverviewRepository(env.DB);
-    const summaryData = await overviewRepo.getSummary();
 
-    return c.json({
-        success: true,
-        data: summaryData,
-    });
+    try {
+        const overviewRepo = new GoodsOverviewRepository(env.DB);
+        const summaryData = await overviewRepo.getSummary();
+
+        return c.json({
+            success: true,
+            data: summaryData,
+        });
+    } catch (err) {
+        console.error('[GoodsOverview] 统计概览查询失败:', err);
+        return c.json({ success: false, error: err.message }, 500);
+    }
 });
 
 /**
@@ -70,38 +80,43 @@ app.get('/summary', async (c) => {
  */
 app.get('/export', async (c) => {
     const { env } = c;
-    const overviewRepo = new GoodsOverviewRepository(env.DB);
-    
-    // 复用仓储获取列表，避免硬编码重复
-    const results = await overviewRepo.getList({ sort: 'demand' });
 
-    const escapeCSV = (v) => (v === null || v === undefined ? '' : `"${String(v).replace(/"/g, '""')}"`);
+    try {
+        const overviewRepo = new GoodsOverviewRepository(env.DB);
+        // 复用仓储获取列表，避免硬编码重复
+        const results = await overviewRepo.getList({ sort: 'demand' });
 
-    const headers = ['商品名称', 'SKU', '品牌', '分类', '当前库存', '待订货', '生产中', '运输中', '已到货', '总需求', '订单数', '缺口'];
-    const rows = results.map(r => [
-        escapeCSV(r.name),
-        escapeCSV(r.sku),
-        escapeCSV(r.brand),
-        escapeCSV(r.category),
-        r.stockQuantity,
-        r.confirmedQty,
-        r.productionQty,
-        r.shippingQty,
-        r.arrivedQty,
-        r.totalDemand,
-        r.orderCount,
-        r.shortage,
-    ].join(','));
+        const escapeCSV = (v) => (v === null || v === undefined ? '' : `"${String(v).replace(/"/g, '""')}"`);
 
-    const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n');
-    const filename = `goods_overview_${getChinaDateStr()}.csv`;
+        const headers = ['商品名称', 'SKU', '品牌', '分类', '当前库存', '待订货', '生产中', '运输中', '已到货', '总需求', '订单数', '缺口'];
+        const rows = results.map(r => [
+            escapeCSV(r.name),
+            escapeCSV(r.sku),
+            escapeCSV(r.brand),
+            escapeCSV(r.category),
+            r.stockQuantity,
+            r.confirmedQty,
+            r.productionQty,
+            r.shippingQty,
+            r.arrivedQty,
+            r.totalDemand,
+            r.orderCount,
+            r.shortage,
+        ].join(','));
 
-    return new Response(csv, {
-        headers: {
-            'Content-Type': 'text/csv; charset=utf-8',
-            'Content-Disposition': `attachment; filename="${filename}"`,
-        },
-    });
+        const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+        const filename = `goods_overview_${getChinaDateStr()}.csv`;
+
+        return new Response(csv, {
+            headers: {
+                'Content-Type': 'text/csv; charset=utf-8',
+                'Content-Disposition': `attachment; filename="${filename}"`,
+            },
+        });
+    } catch (err) {
+        console.error('[GoodsOverview] CSV导出失败:', err);
+        return c.json({ success: false, error: err.message }, 500);
+    }
 });
 
 export default app;

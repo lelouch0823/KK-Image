@@ -144,9 +144,12 @@ export class GoodsOverviewRepository {
 
   /**
    * 全局状态概览 (Summary)
+   * @returns {Promise<{totalProducts: number, totalDemand: number, shortageCount: number, byStatus: Object}>}
    */
   async getSummary() {
-    const { results } = await this.db.prepare(`
+    // SOTA: 并行执行两个独立查询，遵循 OrderStatsRepository 的 Promise.all 模式
+    const [mainResult, shortageResult] = await Promise.all([
+      this.db.prepare(`
         SELECT 
             COUNT(DISTINCT COALESCE(p.id, json_extract(o.current_data, '$.name'))) as total_products,
             COALESCE(SUM(o.quantity), 0) as total_demand,
@@ -168,11 +171,9 @@ export class GoodsOverviewRepository {
         FROM orders o
         LEFT JOIN products p ON o.product_id = p.id AND p.status = 'active'
         WHERE o.status IN (${this.STATUS_IN_CLAUSE}) AND o.product_id IS NOT NULL
-    `).bind(...this.ACTIVE_STATUSES).all();
+      `).bind(...this.ACTIVE_STATUSES).all(),
 
-    const row = results[0] || {};
-
-    const { results: shortageResults } = await this.db.prepare(`
+      this.db.prepare(`
         SELECT COUNT(*) as count FROM (
             SELECT COALESCE(p.id, json_extract(o.current_data, '$.name')) as id,
                 COALESCE(SUM(o.quantity), 0) - COALESCE(MAX(p.stock_quantity), 0) as shortage
@@ -182,12 +183,15 @@ export class GoodsOverviewRepository {
             GROUP BY COALESCE(p.id, json_extract(o.current_data, '$.name'))
             HAVING shortage > 0
         )
-    `).bind(...this.ACTIVE_STATUSES).all();
+      `).bind(...this.ACTIVE_STATUSES).all(),
+    ]);
+
+    const row = mainResult.results[0] || {};
 
     return {
       totalProducts: row.total_products || 0,
       totalDemand: row.total_demand || 0,
-      shortageCount: shortageResults[0]?.count || 0,
+      shortageCount: shortageResult.results[0]?.count || 0,
       byStatus: {
         confirmed: { products: row.confirmed_products || 0, count: row.confirmed_orders || 0, qty: row.confirmed_qty || 0 },
         production: { products: row.production_products || 0, count: row.production_orders || 0, qty: row.production_qty || 0 },
