@@ -14,6 +14,7 @@ import {
 
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
+import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors.js';
 
 const app = new Hono();
 
@@ -40,31 +41,26 @@ app.get('/', async (c) => {
   const all = url.searchParams.get('all') === 'true';
   const folderRepo = new FolderRepository(env.DB);
 
-  try {
-    let results;
-    if (all) {
-      results = await folderRepo.findAllMinimal();
-    } else if (parentId) {
-      results = await folderRepo.findByParent(parentId);
-    } else {
-      results = await folderRepo.findTopLevel();
-    }
-
-    return c.json({
-      success: true,
-      data: results.map((folder) => ({
-        ...folder,
-        isPublic: Boolean(folder.is_public),
-        createdAt: folder.created_at,
-        updatedAt: folder.updated_at,
-        subfolderCount: folder.subfolder_count,
-        fileCount: folder.file_count,
-      })),
-    });
-  } catch (err) {
-    console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
+  let results;
+  if (all) {
+    results = await folderRepo.findAllMinimal();
+  } else if (parentId) {
+    results = await folderRepo.findByParent(parentId);
+  } else {
+    results = await folderRepo.findTopLevel();
   }
+
+  return c.json({
+    success: true,
+    data: results.map((folder) => ({
+      ...folder,
+      isPublic: Boolean(folder.is_public),
+      createdAt: folder.created_at,
+      updatedAt: folder.updated_at,
+      subfolderCount: folder.subfolder_count,
+      fileCount: folder.file_count,
+    })),
+  });
 });
 
 /**
@@ -76,56 +72,49 @@ app.get('/:id', async (c) => {
   const folderRepo = new FolderRepository(env.DB);
   const fileRepo = new FileRepository(env.DB);
 
-  try {
-    const folder = await folderRepo.findById(folderId);
-    if (!folder) {
-      return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
-    }
+  const folder = await folderRepo.findById(folderId);
+  if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
 
-    // 并行获取子文件夹和文件
-    const [subfolders, files, breadcrumbs] = await Promise.all([
-      folderRepo.findByParent(folderId),
-      fileRepo.findByFolder(folderId),
-      folderRepo.getBreadcrumbs(folderId)
-    ]);
+  // 并行获取子文件夹和文件
+  const [subfolders, files, breadcrumbs] = await Promise.all([
+    folderRepo.findByParent(folderId),
+    fileRepo.findByFolder(folderId),
+    folderRepo.getBreadcrumbs(folderId)
+  ]);
 
-    return c.json({
-      success: true,
-      data: {
-        id: folder.id,
-        name: folder.name,
-        description: folder.description,
-        parentId: folder.parent_id,
-        shareToken: folder.share_token,
-        isPublic: Boolean(folder.is_public),
-        hasPassword: !!folder.password,
-        createdAt: folder.created_at,
-        updatedAt: folder.updated_at,
-        shareUrl: getShareUrl(folder.share_token),
-        breadcrumbs,
-        subfolders: subfolders.map((f) => ({
-          id: f.id,
-          name: f.name,
-          subfolderCount: f.subfolder_count,
-          fileCount: f.file_count,
-          isPublic: Boolean(f.is_public),
-          createdAt: f.created_at,
-        })),
-        files: files.map((f) => ({
-          id: f.id,
-          name: f.name,
-          originalName: f.original_name,
-          size: f.size,
-          mimeType: f.mime_type,
-          url: getFileUrl(f.storage_key),
-          createdAt: f.created_at,
-        })),
-      },
-    });
-  } catch (err) {
-    console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
-  }
+  return c.json({
+    success: true,
+    data: {
+      id: folder.id,
+      name: folder.name,
+      description: folder.description,
+      parentId: folder.parent_id,
+      shareToken: folder.share_token,
+      isPublic: Boolean(folder.is_public),
+      hasPassword: !!folder.password,
+      createdAt: folder.created_at,
+      updatedAt: folder.updated_at,
+      shareUrl: getShareUrl(folder.share_token),
+      breadcrumbs,
+      subfolders: subfolders.map((f) => ({
+        id: f.id,
+        name: f.name,
+        subfolderCount: f.subfolder_count,
+        fileCount: f.file_count,
+        isPublic: Boolean(f.is_public),
+        createdAt: f.created_at,
+      })),
+      files: files.map((f) => ({
+        id: f.id,
+        name: f.name,
+        originalName: f.original_name,
+        size: f.size,
+        mimeType: f.mime_type,
+        url: getFileUrl(f.storage_key),
+        createdAt: f.created_at,
+      })),
+    },
+  });
 });
 
 /**
@@ -140,50 +129,43 @@ app.post(
     const { name, description, parentId, isPublic, password } = c.req.valid('json');
     const folderRepo = new FolderRepository(env.DB);
 
-    try {
-      if (parentId) {
-        const parent = await folderRepo.findById(parentId);
-        if (!parent) {
-          return c.json({ success: false, error: MSG.FOLDER.PARENT_NOT_FOUND }, 400);
-        }
-      }
-
-      const folderId = generateId();
-      const shareToken = isPublic ? generateShareToken() : null;
-      const nowMs = Date.now();
-
-      await folderRepo.create({
-        id: folderId,
-        parentId: parentId || null,
-        name: name.trim(),
-        description: description.trim(),
-        shareToken,
-        isPublic,
-        password: password || null,
-        createdAt: nowMs,
-        updatedAt: nowMs
-      });
-
-      return c.json(
-        {
-          success: true,
-          data: {
-            id: folderId,
-            name: name.trim(),
-            description: description.trim(),
-            parentId,
-            shareToken,
-            isPublic,
-            shareUrl: getShareUrl(shareToken),
-            createdAt: nowMs,
-          },
-        },
-        201
-      );
-    } catch (err) {
-      console.error(`${MSG.COMMON.CREATE_FAILED}:`, err);
-      return c.json({ success: false, error: `${MSG.COMMON.CREATE_FAILED}: ${err.message}` }, 500);
+    if (parentId) {
+      const parent = await folderRepo.findById(parentId);
+      if (!parent) throw new BadRequestError(MSG.FOLDER.PARENT_NOT_FOUND);
     }
+
+    const folderId = generateId();
+    const shareToken = isPublic ? generateShareToken() : null;
+    const nowMs = Date.now();
+
+    await folderRepo.create({
+      id: folderId,
+      parentId: parentId || null,
+      name: name.trim(),
+      description: description.trim(),
+      shareToken,
+      isPublic,
+      password: password || null,
+      createdAt: nowMs,
+      updatedAt: nowMs
+    });
+
+    return c.json(
+      {
+        success: true,
+        data: {
+          id: folderId,
+          name: name.trim(),
+          description: description.trim(),
+          parentId,
+          shareToken,
+          isPublic,
+          shareUrl: getShareUrl(shareToken),
+          createdAt: nowMs,
+        },
+      },
+      201
+    );
   }
 );
 
@@ -200,67 +182,60 @@ app.put(
     const data = c.req.valid('json');
     const folderRepo = new FolderRepository(env.DB);
 
-    try {
-      const folder = await folderRepo.findById(folderId);
-      if (!folder) {
-        return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
-      }
+    const folder = await folderRepo.findById(folderId);
+    if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
 
-      const updates = [];
-      const values = [];
+    const updates = [];
+    const values = [];
 
-      if (data.name !== undefined) {
-        updates.push('name = ?');
-        values.push(data.name.trim());
-      }
-      if (data.description !== undefined) {
-        updates.push('description = ?');
-        values.push(data.description.trim());
-      }
-      if (data.isPublic !== undefined) {
-        updates.push('is_public = ?');
-        values.push(data.isPublic ? 1 : 0);
-      }
-      if (data.password !== undefined) {
-        updates.push('password = ?');
-        values.push(data.password || null);
-      }
-      if (data.parentId !== undefined) {
-        if (data.parentId === folderId) {
-          return c.json({ success: false, error: MSG.FOLDER.MOVE_TO_SELF }, 400);
-        }
-        updates.push('parent_id = ?');
-        values.push(data.parentId);
-      }
-      if (data.shareExpiresAt !== undefined) {
-        updates.push('share_expires_at = ?');
-        values.push(data.shareExpiresAt);
-      }
-
-      // 自动生成分享令牌
-      if ((data.isPublic === true || data.shareExpiresAt !== undefined) && !folder.share_token) {
-        updates.push('share_token = ?');
-        values.push(generateShareToken());
-      }
-
-      updates.push('updated_at = ?');
-      values.push(Date.now());
-      values.push(folderId);
-
-      const updated = await folderRepo.update(folderId, updates, values);
-
-      return c.json({
-        success: true,
-        data: {
-          ...updated,
-          isPublic: Boolean(updated.is_public),
-          shareUrl: getShareUrl(updated.share_token),
-        },
-      });
-    } catch (err) {
-      console.error(`${MSG.COMMON.UPDATE_FAILED}:`, err);
-      return c.json({ success: false, error: `${MSG.COMMON.UPDATE_FAILED}: ${err.message}` }, 500);
+    if (data.name !== undefined) {
+      updates.push('name = ?');
+      values.push(data.name.trim());
     }
+    if (data.description !== undefined) {
+      updates.push('description = ?');
+      values.push(data.description.trim());
+    }
+    if (data.isPublic !== undefined) {
+      updates.push('is_public = ?');
+      values.push(data.isPublic ? 1 : 0);
+    }
+    if (data.password !== undefined) {
+      updates.push('password = ?');
+      values.push(data.password || null);
+    }
+    if (data.parentId !== undefined) {
+      if (data.parentId === folderId) {
+        throw new BadRequestError(MSG.FOLDER.MOVE_TO_SELF);
+      }
+      updates.push('parent_id = ?');
+      values.push(data.parentId);
+    }
+    if (data.shareExpiresAt !== undefined) {
+      updates.push('share_expires_at = ?');
+      values.push(data.shareExpiresAt);
+    }
+
+    // 自动生成分享令牌
+    if ((data.isPublic === true || data.shareExpiresAt !== undefined) && !folder.share_token) {
+      updates.push('share_token = ?');
+      values.push(generateShareToken());
+    }
+
+    updates.push('updated_at = ?');
+    values.push(Date.now());
+    values.push(folderId);
+
+    const updated = await folderRepo.update(folderId, updates, values);
+
+    return c.json({
+      success: true,
+      data: {
+        ...updated,
+        isPublic: Boolean(updated.is_public),
+        shareUrl: getShareUrl(updated.share_token),
+      },
+    });
   }
 );
 
@@ -272,28 +247,17 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
   const folderId = c.req.param('id');
   const folderRepo = new FolderRepository(env.DB);
 
-  try {
-    if (folderId === 'root') {
-      return c.json({ success: false, error: MSG.FOLDER.ROOT_CANNOT_DELETE }, 400);
-    }
+  if (folderId === 'root') throw new BadRequestError(MSG.FOLDER.ROOT_CANNOT_DELETE);
 
-    const folder = await folderRepo.findById(folderId);
-    if (!folder) {
-      return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
-    }
+  const folder = await folderRepo.findById(folderId);
+  if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
 
-    if (folder.is_system) {
-      return c.json({ success: false, error: MSG.FOLDER.SYSTEM_FOLDER_DELETE }, 403);
-    }
+  if (folder.is_system) throw new ForbiddenError(MSG.FOLDER.SYSTEM_FOLDER_DELETE);
 
-    // 软删除
-    await folderRepo.softDelete(folderId);
+  // 软删除
+  await folderRepo.softDelete(folderId);
 
-    return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
-  } catch (err) {
-    console.error(`${MSG.COMMON.DELETE_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.DELETE_FAILED}: ${err.message}` }, 500);
-  }
+  return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
 });
 
 import { triggerWebhook } from '../../_shared/utils.js';
@@ -308,88 +272,64 @@ app.post('/:id/upload', requirePermission('files:write'), async (c) => {
   const { env } = c;
   const user = c.get('user');
 
-  console.log(`[Upload] Starting upload to folder ${folderId} by user ${user.id}`);
+  // 1. 验证文件夹是否存在
+  const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?')
+    .bind(folderId)
+    .first();
+  if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
 
-  try {
-    // 1. 验证文件夹是否存在
-    const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?')
-      .bind(folderId)
-      .first();
-    if (!folder) {
-      console.warn(`[Upload] Folder not found: ${folderId}`);
-      return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
-    }
+  // 2. 获取上传文件
+  const formData = await c.req.parseBody();
+  const uploadFile = formData['file'];
 
-    // 2. 获取上传文件
-    const formData = await c.req.parseBody();
-    const uploadFile = formData['file'];
+  if (!uploadFile) throw new BadRequestError(MSG.COMMON.UPLOAD_NO_FILE);
 
-    if (!uploadFile) {
-      console.error('[Upload] No file found in params');
-      return c.json({ success: false, error: MSG.COMMON.UPLOAD_NO_FILE }, 400);
-    }
+  // 3. 获取前端提供的哈希（如果有）
+  const url = new URL(c.req.url);
+  const contentHash = url.searchParams.get('contentHash');
+  const originalHash = url.searchParams.get('originalHash');
 
-    // 检查是否为 File 实例 (本地模拟环境有时 formData 解析可能有差异，增加兼容性)
-    if (!(uploadFile instanceof File)) {
-      console.warn('[Upload] uploadFile is not a File instance:', typeof uploadFile);
-      // 尝试容错，如果它有 arrayBuffer 属性
-    }
+  // 4. 使用统一的 storeFile 处理上传
+  const result = await storeFile(env, uploadFile, {
+    contentHash,
+    originalHash,
+    folderId,
+    createdBy: user.id,
+  });
 
-    // 3. 获取前端提供的哈希（如果有）
-    const url = new URL(c.req.url);
-    const contentHash = url.searchParams.get('contentHash');
-    const originalHash = url.searchParams.get('originalHash');
+  // 5. 触发 Webhook（后台执行，保留 try-catch 因为是非阻塞后台任务）
+  c.executionCtx.waitUntil(
+    (async () => {
+      try {
+        await triggerWebhook(env, 'file.uploaded', {
+          file: {
+            id: result.id,
+            filename: result.name,
+            size: result.size,
+            type: result.type,
+            uploadTime: timestampToIso(Date.now()),
+            url: getFileUrl(result.storageKey),
+            uploader: user.name || user.username || user.id,
+          },
+          user,
+        });
+      } catch (e) {
+        console.error('Webhook trigger failed:', e);
+      }
+    })()
+  );
 
-    console.log(`[Upload] Processing file: ${uploadFile.name} (size: ${uploadFile.size}, hash: ${contentHash})`);
-
-    // 4. 使用统一的 storeFile 处理上传
-    const result = await storeFile(env, uploadFile, {
-      contentHash,
-      originalHash,
-      folderId,
-      createdBy: user.id,
-    });
-
-    console.log(`[Upload] Success. ID: ${result.id}, Instant: ${result.instantUpload}`);
-
-    // 5. 触发 Webhook（后台执行）
-    c.executionCtx.waitUntil(
-      (async () => {
-        try {
-          await triggerWebhook(env, 'file.uploaded', {
-            file: {
-              id: result.id,
-              filename: result.name,
-              size: result.size,
-              type: result.type,
-              uploadTime: timestampToIso(Date.now()),
-              url: getFileUrl(result.storageKey),
-              uploader: user.name || user.username || user.id,
-            },
-            user,
-          });
-        } catch (e) {
-          console.error('Webhook trigger failed:', e);
-        }
-      })()
-    );
-
-    return c.json({
-      success: true,
-      message: result.instantUpload ? MSG.FILE.INSTANT_UPLOAD : MSG.FILE.UPLOAD_SUCCESS,
-      data: {
-        id: result.id,
-        name: result.name,
-        url: `/file/${result.storageKey}`,
-        src: `/file/${result.storageKey}`, // 兼容旧前端
-        instantUpload: result.instantUpload,
-      },
-    });
-  } catch (err) {
-    console.error('Upload failed:', err);
-    return c.json({ success: false, error: `${MSG.COMMON.UPLOAD_FAILED}: ${err.message}` }, 500);
-  }
+  return c.json({
+    success: true,
+    message: result.instantUpload ? MSG.FILE.INSTANT_UPLOAD : MSG.FILE.UPLOAD_SUCCESS,
+    data: {
+      id: result.id,
+      name: result.name,
+      url: `/file/${result.storageKey}`,
+      src: `/file/${result.storageKey}`, // 兼容旧前端
+      instantUpload: result.instantUpload,
+    },
+  });
 });
 
 export default app;
-

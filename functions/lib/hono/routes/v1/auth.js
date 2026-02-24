@@ -60,28 +60,23 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', LoginSchema), as
   if (username === env.BASIC_USER && password === env.BASIC_PASS) {
     authenticatedUser = { id: username, name: 'Administrator', type: 'admin', role: 'admin', permissions: ['admin:full'] };
   } else {
-    // 2. Check Database Users
-    try {
-      const dbUser = await env.DB.prepare('SELECT id, password_hash, name, role, permissions FROM users WHERE username = ?')
-        .bind(username)
-        .first();
+    // 2. 查询数据库用户（DB 故障时让错误冒泡到全局处理器）
+    const dbUser = await env.DB.prepare('SELECT id, password_hash, name, role, permissions FROM users WHERE username = ?')
+      .bind(username)
+      .first();
 
-      if (dbUser) {
-        // verify password
-        const { verifyPassword } = await import('../../_shared/utils.js');
-        const isValid = await verifyPassword(password, dbUser.password_hash, env.JWT_SECRET);
-        if (isValid) {
-          authenticatedUser = {
-            id: dbUser.id,
-            name: dbUser.name,
-            type: 'user', // generic type string 
-            role: dbUser.role, // role for RBAC
-            permissions: dbUser.permissions ? JSON.parse(dbUser.permissions) : []
-          };
-        }
+    if (dbUser) {
+      const { verifyPassword } = await import('../../_shared/utils.js');
+      const isValid = await verifyPassword(password, dbUser.password_hash, env.JWT_SECRET);
+      if (isValid) {
+        authenticatedUser = {
+          id: dbUser.id,
+          name: dbUser.name,
+          type: 'user',
+          role: dbUser.role,
+          permissions: dbUser.permissions ? JSON.parse(dbUser.permissions) : []
+        };
       }
-    } catch (e) {
-      console.error('Error checking DB user auth', e);
     }
   }
 
@@ -156,28 +151,23 @@ app.post('/token', loginRateLimitMiddleware, zValidator('json', TokenSchema), as
   if (username === env.BASIC_USER && password === env.BASIC_PASS) {
     authenticatedUser = { id: username, name: 'Administrator', type: 'admin', role: 'admin', permissions: ['admin:full'] };
   } else {
-    // 2. Check Database Users
-    try {
-      const dbUser = await env.DB.prepare('SELECT id, password_hash, name, role, permissions FROM users WHERE username = ?')
-        .bind(username)
-        .first();
+    // 2. 查询数据库用户（DB 故障时让错误冒泡到全局处理器）
+    const dbUser = await env.DB.prepare('SELECT id, password_hash, name, role, permissions FROM users WHERE username = ?')
+      .bind(username)
+      .first();
 
-      if (dbUser) {
-        // verify password
-        const { verifyPassword } = await import('../../_shared/utils.js');
-        const isValid = await verifyPassword(password, dbUser.password_hash, env.JWT_SECRET);
-        if (isValid) {
-          authenticatedUser = {
-            id: dbUser.id,
-            name: dbUser.name,
-            type: 'user',
-            role: dbUser.role,
-            permissions: dbUser.permissions ? JSON.parse(dbUser.permissions) : []
-          };
-        }
+    if (dbUser) {
+      const { verifyPassword } = await import('../../_shared/utils.js');
+      const isValid = await verifyPassword(password, dbUser.password_hash, env.JWT_SECRET);
+      if (isValid) {
+        authenticatedUser = {
+          id: dbUser.id,
+          name: dbUser.name,
+          type: 'user',
+          role: dbUser.role,
+          permissions: dbUser.permissions ? JSON.parse(dbUser.permissions) : []
+        };
       }
-    } catch (e) {
-      console.error('Error checking DB user token auth', e);
     }
   }
 

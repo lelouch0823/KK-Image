@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { OrderStatsRepository } from '../../../../repositories/OrderStatsRepository.js';
 import { StatsRepository } from '../../../../repositories/StatsRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
-import { MSG, getChinaDayStart, getFileUrl } from '../../_shared/utils.js';
+import { getChinaDayStart, getFileUrl } from '../../_shared/utils.js';
 
 const app = new Hono();
 
@@ -12,7 +12,7 @@ const app = new Hono();
 app.get('/overview', async (c) => {
     const { env } = c;
 
-    try {
+
         const statsRepo = new OrderStatsRepository(env.DB);
         const globalStatsRepo = new StatsRepository(env.DB);
         const folderRepo = new FolderRepository(env.DB);
@@ -81,10 +81,7 @@ app.get('/overview', async (c) => {
                 recentShares
             },
         });
-    } catch (err) {
-        console.error('Dashboard overview error:', err);
-        return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
-    }
+
 });
 
 export default app;

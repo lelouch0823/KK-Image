@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { NotificationRepository } from '../../../../repositories/NotificationRepository.js';
-import { success, error } from '../../../../api/utils/response.js';
+import { success } from '../../../../api/utils/response.js';
 import { MSG } from '../../../../api/utils/messages.js';
+import { BadRequestError } from '../../errors.js';
 
 const app = new Hono();
 
@@ -13,13 +14,9 @@ app.get('/', async (c) => {
     const limit = parseInt(c.req.query('limit') || '20');
     const unreadOnly = c.req.query('unread_only') === 'true';
 
-    try {
-        const notifyRepo = new NotificationRepository(env.DB);
-        const result = await notifyRepo.listForAdmin({ unreadOnly, limit });
-        return success(result);
-    } catch (err) {
-        return error(`${MSG.COMMON.LOAD_FAILED}: ${err.message}`, 500);
-    }
+    const notifyRepo = new NotificationRepository(env.DB);
+    const result = await notifyRepo.listForAdmin({ unreadOnly, limit });
+    return success(result);
 });
 
 /**
@@ -27,29 +24,23 @@ app.get('/', async (c) => {
  */
 app.post('/', async (c) => {
     const { env } = c;
-    try {
-        const body = await c.req.json();
-        const { type = 'system', title, content = '', link = '', metadata = null, orderId = null } = body;
+    const body = await c.req.json();
+    const { type = 'system', title, content = '', link = '', metadata = null, orderId = null } = body;
 
-        if (!title) {
-            return error(MSG.COMMON.INVALID_PARAMS, 400);
-        }
+    if (!title) throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);
 
-        const notifyRepo = new NotificationRepository(env.DB);
-        const result = await notifyRepo.create({
-            type,
-            title,
-            content,
-            link,
-            receiver: 'admin',
-            orderId,
-            metadata,
-        });
+    const notifyRepo = new NotificationRepository(env.DB);
+    const result = await notifyRepo.create({
+        type,
+        title,
+        content,
+        link,
+        receiver: 'admin',
+        orderId,
+        metadata,
+    });
 
-        return success(result, MSG.COMMON.CREATE_SUCCESS);
-    } catch (err) {
-        return error(`${MSG.COMMON.OP_FAILED}: ${err.message}`, 500);
-    }
+    return success(result, MSG.COMMON.CREATE_SUCCESS);
 });
 
 /**
@@ -59,20 +50,16 @@ app.post('/:id/read', async (c) => {
     const notificationId = c.req.param('id');
     const { env } = c;
 
-    try {
-        const notifyRepo = new NotificationRepository(env.DB);
+    const notifyRepo = new NotificationRepository(env.DB);
 
-        // 特殊 ID 'all' 处理全部已读
-        if (notificationId === 'all') {
-            await notifyRepo.markAllAsReadForAdmin();
-        } else {
-            await notifyRepo.markAsReadForAdmin(notificationId);
-        }
-
-        return success(null, MSG.COMMON.UPDATE_SUCCESS);
-    } catch (err) {
-        return error(`${MSG.COMMON.OP_FAILED}: ${err.message}`, 500);
+    // 特殊 ID 'all' 处理全部已读
+    if (notificationId === 'all') {
+        await notifyRepo.markAllAsReadForAdmin();
+    } else {
+        await notifyRepo.markAsReadForAdmin(notificationId);
     }
+
+    return success(null, MSG.COMMON.UPDATE_SUCCESS);
 });
 
 export default app;

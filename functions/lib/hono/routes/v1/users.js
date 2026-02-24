@@ -4,6 +4,7 @@ import { CreateUserSchema, UpdateUserSchema } from '../../schemas/user.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { generateId, hashPassword, MSG } from '../../_shared/utils.js';
 import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
+import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
 
 const app = new Hono();
 
@@ -13,27 +14,22 @@ const app = new Hono();
 app.get('/', requirePermission('admin:full'), async (c) => {
   const { env } = c;
 
-  try {
-    const { results } = await env.DB.prepare(
-      'SELECT id, username, name, email, role, permissions, created_at, updated_at FROM users'
-    ).all();
+  const { results } = await env.DB.prepare(
+    'SELECT id, username, name, email, role, permissions, created_at, updated_at FROM users'
+  ).all();
 
-    const safeUsers = results.map((u) => ({
-      id: u.id,
-      username: u.username,
-      name: u.name,
-      email: u.email,
-      role: u.role,
-      permissions: u.permissions ? JSON.parse(u.permissions) : [],
-      createdAt: u.created_at,
-      updatedAt: u.updated_at,
-    }));
+  const safeUsers = results.map((u) => ({
+    id: u.id,
+    username: u.username,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    permissions: u.permissions ? JSON.parse(u.permissions) : [],
+    createdAt: u.created_at,
+    updatedAt: u.updated_at,
+  }));
 
-    return c.json({ success: true, data: safeUsers });
-  } catch (err) {
-    console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
-  }
+  return c.json({ success: true, data: safeUsers });
 });
 
 /**
@@ -60,34 +56,27 @@ app.get('/:id', requirePermission('admin:full'), async (c) => {
   const id = c.req.param('id');
   const { env } = c;
 
-  try {
-    const user = await env.DB.prepare(
-      'SELECT id, username, name, email, role, permissions, created_at, updated_at FROM users WHERE id = ?'
-    )
-      .bind(id)
-      .first();
+  const user = await env.DB.prepare(
+    'SELECT id, username, name, email, role, permissions, created_at, updated_at FROM users WHERE id = ?'
+  )
+    .bind(id)
+    .first();
 
-    if (!user) {
-      return c.json({ success: false, error: MSG.USER.NOT_FOUND }, 404);
-    }
+  if (!user) throw new NotFoundError(MSG.USER.NOT_FOUND);
 
-    return c.json({
-      success: true,
-      data: {
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        permissions: user.permissions ? JSON.parse(user.permissions) : [],
-        createdAt: user.created_at,
-        updatedAt: user.updated_at,
-      },
-    });
-  } catch (err) {
-    console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
-  }
+  return c.json({
+    success: true,
+    data: {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      permissions: user.permissions ? JSON.parse(user.permissions) : [],
+      createdAt: user.created_at,
+      updatedAt: user.updated_at,
+    },
+  });
 });
 
 /**
@@ -97,62 +86,53 @@ app.post('/', requirePermission('admin:full'), zValidator('json', CreateUserSche
   const data = c.req.valid('json');
   const { env } = c;
 
-  try {
-    // 检查用户名是否已存在
-    const existing = await env.DB.prepare('SELECT id FROM users WHERE username = ?')
-      .bind(data.username)
-      .first();
+  // 检查用户名是否已存在
+  const existing = await env.DB.prepare('SELECT id FROM users WHERE username = ?')
+    .bind(data.username)
+    .first();
 
-    if (existing) {
-      return c.json({ success: false, error: MSG.USER.EXISTS }, 409);
-    }
+  if (existing) throw new ConflictError(MSG.USER.EXISTS);
 
-    const id = generateId();
-    const passwordHash = await hashPassword(data.password, env.JWT_SECRET);
-    const nowMs = Date.now();
-    const permissions = JSON.stringify(data.permissions || []);
+  const id = generateId();
+  const passwordHash = await hashPassword(data.password, env.JWT_SECRET);
+  const nowMs = Date.now();
+  const permissions = JSON.stringify(data.permissions || []);
 
-    await env.DB.prepare(
-      `
-                INSERT INTO users (id, username, password_hash, name, email, role, permissions, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `
+  await env.DB.prepare(
+    `INSERT INTO users (id, username, password_hash, name, email, role, permissions, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(
+      id,
+      data.username,
+      passwordHash,
+      data.name || null,
+      data.email || null,
+      data.role || 'user',
+      permissions,
+      nowMs
     )
-      .bind(
+    .run();
+
+  // 审计日志 (SOTA: 非阻塞记录)
+  const { userId: opUserId, ip } = getAuditContext(c);
+  c.executionCtx.waitUntil(logAudit(env.DB, { userId: opUserId, action: 'user:create', targetType: 'user', targetId: id, payload: { username: data.username, role: data.role || 'user' }, ip }));
+
+  return c.json(
+    {
+      success: true,
+      data: {
         id,
-        data.username,
-        passwordHash,
-        data.name || null,
-        data.email || null,
-        data.role || 'user',
-        permissions,
-        nowMs
-      )
-      .run();
-
-    // 审计日志 (SOTA: 非阻塞记录)
-    const { userId: opUserId, ip } = getAuditContext(c);
-    c.executionCtx.waitUntil(logAudit(env.DB, { userId: opUserId, action: 'user:create', targetType: 'user', targetId: id, payload: { username: data.username, role: data.role || 'user' }, ip }));
-
-    return c.json(
-      {
-        success: true,
-        data: {
-          id,
-          username: data.username,
-          name: data.name,
-          email: data.email,
-          role: data.role || 'user',
-          permissions: data.permissions || [],
-          createdAt: nowMs,
-        },
+        username: data.username,
+        name: data.name,
+        email: data.email,
+        role: data.role || 'user',
+        permissions: data.permissions || [],
+        createdAt: nowMs,
       },
-      201
-    );
-  } catch (err) {
-    console.error(`${MSG.COMMON.CREATE_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.CREATE_FAILED}: ${err.message}` }, 500);
-  }
+    },
+    201
+  );
 });
 
 /**
@@ -167,73 +147,65 @@ app.put(
     const data = c.req.valid('json');
     const { env } = c;
 
-    try {
-      const existing = await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(id).first();
+    const existing = await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(id).first();
+    if (!existing) throw new NotFoundError(MSG.USER.NOT_FOUND);
 
-      if (!existing) {
-        return c.json({ success: false, error: MSG.USER.NOT_FOUND }, 404);
-      }
+    const updates = [];
+    const values = [];
 
-      const updates = [];
-      const values = [];
-
-      if (data.name !== undefined) {
-        updates.push('name = ?');
-        values.push(data.name);
-      }
-      if (data.email !== undefined) {
-        updates.push('email = ?');
-        values.push(data.email);
-      }
-      if (data.role !== undefined) {
-        updates.push('role = ?');
-        values.push(data.role);
-      }
-      if (data.permissions !== undefined) {
-        updates.push('permissions = ?');
-        values.push(JSON.stringify(data.permissions));
-      }
-      if (data.password) {
-        updates.push('password_hash = ?');
-        values.push(await hashPassword(data.password, env.JWT_SECRET));
-      }
-
-      if (updates.length === 0) {
-        return c.json({ success: false, error: MSG.COMMON.NO_UPDATE_FIELDS }, 400);
-      }
-
-      updates.push('updated_at = ?');
-      values.push(Date.now());
-      values.push(id);
-
-      await env.DB.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`)
-        .bind(...values)
-        .run();
-
-      // 获取更新后的用户
-      const user = await env.DB.prepare(
-        'SELECT id, username, name, email, role, permissions, created_at, updated_at FROM users WHERE id = ?'
-      )
-        .bind(id)
-        .first();
-
-      return c.json({
-        success: true,
-        data: {
-          id: user.id,
-          username: user.username,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          permissions: user.permissions ? JSON.parse(user.permissions) : [],
-          createdAt: user.created_at,
-          updatedAt: user.updated_at,
-        },
-      });
-    } catch (err) {
-      console.error(`${MSG.COMMON.UPDATE_FAILED}:`, err);
-      return c.json({ success: false, error: `${MSG.COMMON.UPDATE_FAILED}: ${err.message}` }, 500);
+    if (data.name !== undefined) {
+      updates.push('name = ?');
+      values.push(data.name);
     }
+    if (data.email !== undefined) {
+      updates.push('email = ?');
+      values.push(data.email);
+    }
+    if (data.role !== undefined) {
+      updates.push('role = ?');
+      values.push(data.role);
+    }
+    if (data.permissions !== undefined) {
+      updates.push('permissions = ?');
+      values.push(JSON.stringify(data.permissions));
+    }
+    if (data.password) {
+      updates.push('password_hash = ?');
+      values.push(await hashPassword(data.password, env.JWT_SECRET));
+    }
+
+    if (updates.length === 0) {
+      throw new BadRequestError(MSG.COMMON.NO_UPDATE_FIELDS);
+    }
+
+    updates.push('updated_at = ?');
+    values.push(Date.now());
+    values.push(id);
+
+    await env.DB.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`)
+      .bind(...values)
+      .run();
+
+    // 获取更新后的用户
+    const user = await env.DB.prepare(
+      'SELECT id, username, name, email, role, permissions, created_at, updated_at FROM users WHERE id = ?'
+    )
+      .bind(id)
+      .first();
+
+    return c.json({
+      success: true,
+      data: {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        permissions: user.permissions ? JSON.parse(user.permissions) : [],
+        createdAt: user.created_at,
+        updatedAt: user.updated_at,
+      },
+    });
   }
 );
 
@@ -246,27 +218,19 @@ app.delete('/:id', requirePermission('admin:full'), async (c) => {
   const { env } = c;
 
   if (currentUser.id === id) {
-    return c.json({ success: false, error: MSG.USER.CANNOT_DELETE_SELF }, 400);
+    throw new BadRequestError(MSG.USER.CANNOT_DELETE_SELF);
   }
 
-  try {
-    const existing = await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(id).first();
+  const existing = await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(id).first();
+  if (!existing) throw new NotFoundError(MSG.USER.NOT_FOUND);
 
-    if (!existing) {
-      return c.json({ success: false, error: MSG.USER.NOT_FOUND }, 404);
-    }
+  await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
 
-    await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
+  // 审计日志 (SOTA: 非阻塞记录)
+  const { userId: opUserId, ip } = getAuditContext(c);
+  c.executionCtx.waitUntil(logAudit(env.DB, { userId: opUserId, action: 'user:delete', targetType: 'user', targetId: id, ip }));
 
-    // 审计日志 (SOTA: 非阻塞记录)
-    const { userId: opUserId, ip } = getAuditContext(c);
-    c.executionCtx.waitUntil(logAudit(env.DB, { userId: opUserId, action: 'user:delete', targetType: 'user', targetId: id, ip }));
-
-    return c.json({ success: true, message: MSG.USER.DELETE_SUCCESS });
-  } catch (err) {
-    console.error(`${MSG.COMMON.DELETE_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.DELETE_FAILED}: ${err.message}` }, 500);
-  }
+  return c.json({ success: true, message: MSG.USER.DELETE_SUCCESS });
 });
 
 export default app;

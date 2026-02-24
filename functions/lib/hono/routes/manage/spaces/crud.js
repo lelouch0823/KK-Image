@@ -18,6 +18,7 @@ import {
   transformSpaceListItem,
   transformSpaceDetail,
 } from './transformers.js';
+import { NotFoundError } from '../../../errors.js';
 
 const crud = new Hono();
 
@@ -46,16 +47,11 @@ crud.get('/', async (c) => {
   const { env } = c;
   const repo = new SpaceRepository(env.DB);
 
-  try {
-    const results = await repo.findAll();
-    return c.json({
-      success: true,
-      data: results.map(transformSpaceListItem),
-    });
-  } catch (err) {
-    console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
-  }
+  const results = await repo.findAll();
+  return c.json({
+    success: true,
+    data: results.map(transformSpaceListItem),
+  });
 });
 
 /**
@@ -66,16 +62,11 @@ crud.get('/product/:productId', async (c) => {
   const productId = c.req.param('productId');
   const repo = new SpaceRepository(env.DB);
 
-  try {
-    const results = await repo.findByProductId(productId);
-    return c.json({
-      success: true,
-      data: results.map(transformSpaceListItem),
-    });
-  } catch (err) {
-    console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
-  }
+  const results = await repo.findByProductId(productId);
+  return c.json({
+    success: true,
+    data: results.map(transformSpaceListItem),
+  });
 });
 
 /**
@@ -86,27 +77,20 @@ crud.get('/:id', async (c) => {
   const spaceId = c.req.param('id');
   const repo = new SpaceRepository(env.DB);
 
-  try {
-    const result = await repo.getWithFiles(spaceId);
-    if (!result) {
-      return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
-    }
+  const result = await repo.getWithFiles(spaceId);
+  if (!result) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
 
-    // 获取已分享的销售员列表 (用于前端显示)
-    const sharedSalespersons = await repo.getSharedSalespersons(spaceId);
+  // 获取已分享的销售员列表 (用于前端显示)
+  const sharedSalespersons = await repo.getSharedSalespersons(spaceId);
 
-    return c.json({
-      success: true,
-      data: {
-        ...transformSpaceDetail(result.space, result.files),
-        shareMode: result.space.share_mode || 'none',
-        sharedSalespersons: sharedSalespersons,
-      },
-    });
-  } catch (err) {
-    console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
-  }
+  return c.json({
+    success: true,
+    data: {
+      ...transformSpaceDetail(result.space, result.files),
+      shareMode: result.space.share_mode || 'none',
+      sharedSalespersons: sharedSalespersons,
+    },
+  });
 });
 
 /**
@@ -119,41 +103,35 @@ crud.get('/:id/stats', async (c) => {
   const repo = new SpaceRepository(env.DB);
   const days = Math.min(Math.max(parseInt(c.req.query('days') || '7', 10), 1), 30);
 
-  try {
-    // 计算时间范围起点 (UTC+8 时区处理)
-    const { getChinaDayStart, getChinaDateStr } = await import('../../../_shared/utils.js');
-    const todayStart = getChinaDayStart();
-    const startTimestamp = todayStart - (days - 1) * 86400000;
+  // 计算时间范围起点 (UTC+8 时区处理)
+  const { getChinaDayStart, getChinaDateStr } = await import('../../../_shared/utils.js');
+  const todayStart = getChinaDayStart();
+  const startTimestamp = todayStart - (days - 1) * 86400000;
 
-    const stats = await repo.getStats(spaceId, days, startTimestamp);
-    if (!stats) {
-      return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
-    }
+  const stats = await repo.getStats(spaceId, days, startTimestamp);
+  if (!stats) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
 
-    // 构建日期 -> 访问数的映射，补全缺失日期
-    const trendMap = new Map(stats.trendData.map((d) => [d.date, d.count]));
-    const trend = [];
-    for (let i = days - 1; i >= 0; i--) {
-      const dateStr = getChinaDateStr(todayStart - i * 86400000);
-      trend.push({ date: dateStr, count: trendMap.get(dateStr) || 0 });
-    }
-
-    return c.json({
-      success: true,
-      data: {
-        total: {
-          view_count: stats.viewCount,
-          download_count: stats.downloadCount,
-        },
-        fileCount: stats.fileCount,
-        totalSize: stats.totalSize,
-        trend,
-        days,
-      },
-    });
-  } catch (err) {
-    return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
+  // 构建日期 -> 访问数的映射，补全缺失日期
+  const trendMap = new Map(stats.trendData.map((d) => [d.date, d.count]));
+  const trend = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const dateStr = getChinaDateStr(todayStart - i * 86400000);
+    trend.push({ date: dateStr, count: trendMap.get(dateStr) || 0 });
   }
+
+  return c.json({
+    success: true,
+    data: {
+      total: {
+        view_count: stats.viewCount,
+        download_count: stats.downloadCount,
+      },
+      fileCount: stats.fileCount,
+      totalSize: stats.totalSize,
+      trend,
+      days,
+    },
+  });
 });
 
 /**
@@ -169,49 +147,44 @@ crud.post(
       c.req.valid('json');
     const repo = new SpaceRepository(env.DB);
 
-    try {
-      const spaceId = generateId();
-      const shareToken = generateShareToken();
-      const nowMs = Date.now();
+    const spaceId = generateId();
+    const shareToken = generateShareToken();
+    const nowMs = Date.now();
 
-      const newSpace = {
-        id: spaceId,
-        name: name.trim(),
-        description: description.trim(),
-        isPublic,
-        password: password || null,
-        shareToken,
-        expiresAt: expiresAt || null,
-        template,
-        templateData: JSON.stringify(templateData),
-        productId,
-        createdAt: nowMs,
-        updatedAt: nowMs,
-      };
+    const newSpace = {
+      id: spaceId,
+      name: name.trim(),
+      description: description.trim(),
+      isPublic,
+      password: password || null,
+      shareToken,
+      expiresAt: expiresAt || null,
+      template,
+      templateData: JSON.stringify(templateData),
+      productId,
+      createdAt: nowMs,
+      updatedAt: nowMs,
+    };
 
-      await repo.create(newSpace);
+    await repo.create(newSpace);
 
-      return c.json(
-        {
-          success: true,
-          data: {
-            id: spaceId,
-            name: name.trim(),
-            description: description.trim(),
-            isPublic,
-            shareToken,
-            shareUrl: getShareUrl(shareToken, 'space'),
-            expiresAt,
-            template,
-            createdAt: nowMs,
-          },
+    return c.json(
+      {
+        success: true,
+        data: {
+          id: spaceId,
+          name: name.trim(),
+          description: description.trim(),
+          isPublic,
+          shareToken,
+          shareUrl: getShareUrl(shareToken, 'space'),
+          expiresAt,
+          template,
+          createdAt: nowMs,
         },
-        201
-      );
-    } catch (err) {
-      console.error(`${MSG.COMMON.CREATE_FAILED}:`, err);
-      return c.json({ success: false, error: `${MSG.COMMON.CREATE_FAILED}: ${err.message}` }, 500);
-    }
+      },
+      201
+    );
   }
 );
 
@@ -229,82 +202,75 @@ crud.on(
     const data = c.req.valid('json');
     const repo = new SpaceRepository(env.DB);
 
-    try {
-      const space = await repo.findById(spaceId);
-      if (!space) {
-        return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
-      }
+    const space = await repo.findById(spaceId);
+    if (!space) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
 
-      const updates = [];
-      const values = [];
+    const updates = [];
+    const values = [];
 
-      if (data.name !== undefined) {
-        updates.push('name = ?');
-        values.push(data.name.trim());
-      }
-      if (data.description !== undefined) {
-        updates.push('description = ?');
-        values.push(data.description.trim());
-      }
-      if (data.isPublic !== undefined) {
-        updates.push('is_public = ?');
-        values.push(data.isPublic ? 1 : 0);
-      }
-      if (data.password !== undefined) {
-        updates.push('password = ?');
-        values.push(data.password || null);
-      }
-      if (data.expiresAt !== undefined) {
-        updates.push('expires_at = ?');
-        values.push(data.expiresAt);
-      }
-      if (data.coverFileId !== undefined) {
-        updates.push('cover_file_id = ?');
-        values.push(data.coverFileId || null);
-      }
-      if (data.template !== undefined) {
-        updates.push('template = ?');
-        values.push(data.template);
-      }
-      if (data.templateData !== undefined) {
-        updates.push('template_data = ?');
-        values.push(JSON.stringify(data.templateData));
-      }
-      if (data.productId !== undefined) {
-        updates.push('product_id = ?');
-        values.push(data.productId || null);
-      }
-      // 处理新的分享模式
-      if (data.shareMode !== undefined) {
-        updates.push('share_mode = ?');
-        values.push(data.shareMode);
-      }
-
-      updates.push('updated_at = ?');
-      values.push(Date.now());
-      values.push(spaceId);
-
-      const updated = await repo.update(spaceId, updates, values);
-
-      // 处理选择性分享的销售员列表
-      if (data.sharedSalespersonIds !== undefined) {
-        await repo.updateSharedSalespersons(spaceId, data.sharedSalespersonIds);
-      }
-
-      return c.json({
-        success: true,
-        data: {
-          ...updated,
-          isPublic: Boolean(updated.is_public),
-          hasPassword: !!updated.password,
-          shareUrl: getShareUrl(updated.share_token, 'space'),
-          shareMode: updated.share_mode || 'none',
-        },
-      });
-    } catch (err) {
-      console.error(`${MSG.COMMON.UPDATE_FAILED}:`, err);
-      return c.json({ success: false, error: `${MSG.COMMON.UPDATE_FAILED}: ${err.message}` }, 500);
+    if (data.name !== undefined) {
+      updates.push('name = ?');
+      values.push(data.name.trim());
     }
+    if (data.description !== undefined) {
+      updates.push('description = ?');
+      values.push(data.description.trim());
+    }
+    if (data.isPublic !== undefined) {
+      updates.push('is_public = ?');
+      values.push(data.isPublic ? 1 : 0);
+    }
+    if (data.password !== undefined) {
+      updates.push('password = ?');
+      values.push(data.password || null);
+    }
+    if (data.expiresAt !== undefined) {
+      updates.push('expires_at = ?');
+      values.push(data.expiresAt);
+    }
+    if (data.coverFileId !== undefined) {
+      updates.push('cover_file_id = ?');
+      values.push(data.coverFileId || null);
+    }
+    if (data.template !== undefined) {
+      updates.push('template = ?');
+      values.push(data.template);
+    }
+    if (data.templateData !== undefined) {
+      updates.push('template_data = ?');
+      values.push(JSON.stringify(data.templateData));
+    }
+    if (data.productId !== undefined) {
+      updates.push('product_id = ?');
+      values.push(data.productId || null);
+    }
+    // 处理新的分享模式
+    if (data.shareMode !== undefined) {
+      updates.push('share_mode = ?');
+      values.push(data.shareMode);
+    }
+
+    updates.push('updated_at = ?');
+    values.push(Date.now());
+    values.push(spaceId);
+
+    const updated = await repo.update(spaceId, updates, values);
+
+    // 处理选择性分享的销售员列表
+    if (data.sharedSalespersonIds !== undefined) {
+      await repo.updateSharedSalespersons(spaceId, data.sharedSalespersonIds);
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        ...updated,
+        isPublic: Boolean(updated.is_public),
+        hasPassword: !!updated.password,
+        shareUrl: getShareUrl(updated.share_token, 'space'),
+        shareMode: updated.share_mode || 'none',
+      },
+    });
   }
 );
 
@@ -316,19 +282,12 @@ crud.delete('/:id', requirePermission('files:delete'), async (c) => {
   const spaceId = c.req.param('id');
   const repo = new SpaceRepository(env.DB);
 
-  try {
-    const space = await repo.findById(spaceId);
-    if (!space) {
-      return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
-    }
+  const space = await repo.findById(spaceId);
+  if (!space) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
 
-    await repo.delete(spaceId);
+  await repo.delete(spaceId);
 
-    return c.json({ success: true, message: MSG.SPACE.DELETE_SUCCESS });
-  } catch (err) {
-    console.error(`${MSG.COMMON.DELETE_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.DELETE_FAILED}: ${err.message}` }, 500);
-  }
+  return c.json({ success: true, message: MSG.SPACE.DELETE_SUCCESS });
 });
 
 export default crud;

@@ -8,6 +8,7 @@ import { Hono } from 'hono';
 import { requirePermission } from '../../../middleware/auth.js';
 import { MSG } from '../../../_shared/utils.js';
 import { SpaceRepository } from '../../../../../repositories/SpaceRepository.js';
+import { NotFoundError, BadRequestError } from '../../../errors.js';
 
 const files = new Hono();
 
@@ -20,26 +21,17 @@ files.post('/', requirePermission('files:write'), async (c) => {
   const { fileIds } = await c.req.json();
   const repo = new SpaceRepository(env.DB);
 
-  try {
-    if (!fileIds?.length) {
-      return c.json({ success: false, error: MSG.COMMON.INVALID_PARAMS }, 400);
-    }
+  if (!fileIds?.length) throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);
 
-    const space = await repo.findById(spaceId);
-    if (!space) {
-      return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
-    }
+  const space = await repo.findById(spaceId);
+  if (!space) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
 
-    await repo.addFiles(spaceId, fileIds);
+  await repo.addFiles(spaceId, fileIds);
 
-    return c.json({
-      success: true,
-      message: MSG.SPACE.ADD_FILES_SUCCESS.replace('{count}', fileIds.length),
-    });
-  } catch (err) {
-    console.error(`${MSG.COMMON.OP_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.OP_FAILED}: ${err.message}` }, 500);
-  }
+  return c.json({
+    success: true,
+    message: MSG.SPACE.ADD_FILES_SUCCESS.replace('{count}', fileIds.length),
+  });
 });
 
 /**
@@ -51,21 +43,14 @@ files.delete('/', requirePermission('files:write'), async (c) => {
   const { fileIds } = await c.req.json();
   const repo = new SpaceRepository(env.DB);
 
-  try {
-    if (!fileIds?.length) {
-      return c.json({ success: false, error: MSG.COMMON.INVALID_PARAMS }, 400);
-    }
+  if (!fileIds?.length) throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);
 
-    await repo.removeFiles(spaceId, fileIds);
+  await repo.removeFiles(spaceId, fileIds);
 
-    return c.json({
-      success: true,
-      message: MSG.SPACE.REMOVE_FILES_SUCCESS.replace('{count}', fileIds.length),
-    });
-  } catch (err) {
-    console.error(`${MSG.COMMON.OP_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.OP_FAILED}: ${err.message}` }, 500);
-  }
+  return c.json({
+    success: true,
+    message: MSG.SPACE.REMOVE_FILES_SUCCESS.replace('{count}', fileIds.length),
+  });
 });
 
 /**
@@ -77,21 +62,14 @@ files.put('/order', requirePermission('files:write'), async (c) => {
   const { fileIds } = await c.req.json();
   const repo = new SpaceRepository(env.DB);
 
-  try {
-    if (!fileIds?.length) {
-      return c.json({ success: false, error: MSG.COMMON.INVALID_PARAMS }, 400);
-    }
+  if (!fileIds?.length) throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);
 
-    await repo.reorderFiles(spaceId, fileIds);
+  await repo.reorderFiles(spaceId, fileIds);
 
-    return c.json({
-      success: true,
-      message: MSG.COMMON.UPDATE_SUCCESS,
-    });
-  } catch (err) {
-    console.error(`${MSG.COMMON.OP_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.OP_FAILED}: ${err.message}` }, 500);
-  }
+  return c.json({
+    success: true,
+    message: MSG.COMMON.UPDATE_SUCCESS,
+  });
 });
 
 export default files;

@@ -10,6 +10,7 @@ import {
   getFileUrl,
 } from '../../_shared/utils.js';
 import { AlbumRepository } from '../../../../repositories/AlbumRepository.js';
+import { NotFoundError, BadRequestError } from '../../errors.js';
 
 const app = new Hono();
 
@@ -32,28 +33,24 @@ const AlbumFilesSchema = z.object({
  */
 app.get('/', async (c) => {
   const { env } = c;
-  try {
-    const repo = new AlbumRepository(env.DB);
-    const results = await repo.findAll();
+  const repo = new AlbumRepository(env.DB);
+  const results = await repo.findAll();
 
-    return c.json({
-      success: true,
-      data: results.map((album) => ({
-        id: album.id,
-        name: album.name,
-        description: album.description,
-        isPublic: Boolean(album.is_public),
-        shareToken: album.share_token,
-        shareUrl: getShareUrl(album.share_token),
-        fileCount: album.file_count,
-        coverUrl: album.cover_key ? getFileUrl(album.cover_key) : null,
-        createdAt: album.created_at,
-        updatedAt: album.updated_at,
-      })),
-    });
-  } catch (err) {
-    return c.json({ success: false, error: err.message }, 500);
-  }
+  return c.json({
+    success: true,
+    data: results.map((album) => ({
+      id: album.id,
+      name: album.name,
+      description: album.description,
+      isPublic: Boolean(album.is_public),
+      shareToken: album.share_token,
+      shareUrl: getShareUrl(album.share_token),
+      fileCount: album.file_count,
+      coverUrl: album.cover_key ? getFileUrl(album.cover_key) : null,
+      createdAt: album.created_at,
+      updatedAt: album.updated_at,
+    })),
+  });
 });
 
 /**
@@ -63,38 +60,34 @@ app.get('/:id', async (c) => {
   const { env } = c;
   const albumId = c.req.param('id');
 
-  try {
-    const repo = new AlbumRepository(env.DB);
-    const album = await repo.findById(albumId);
-    if (!album) return c.json({ success: false, error: MSG.ALBUM.NOT_FOUND }, 404);
+  const repo = new AlbumRepository(env.DB);
+  const album = await repo.findById(albumId);
+  if (!album) throw new NotFoundError(MSG.ALBUM.NOT_FOUND);
 
-    const files = await repo.getFiles(albumId);
+  const files = await repo.getFiles(albumId);
 
-    return c.json({
-      success: true,
-      data: {
-        id: album.id,
-        name: album.name,
-        description: album.description,
-        isPublic: Boolean(album.is_public),
-        shareToken: album.share_token,
-        shareUrl: getShareUrl(album.share_token),
-        createdAt: album.created_at,
-        updatedAt: album.updated_at,
-        files: files.map((f) => ({
-          id: f.id,
-          name: f.name,
-          originalName: f.original_name,
-          size: f.size,
-          mimeType: f.mime_type,
-          url: getFileUrl(f.storage_key),
-          createdAt: f.created_at,
-        })),
-      },
-    });
-  } catch (err) {
-    return c.json({ success: false, error: err.message }, 500);
-  }
+  return c.json({
+    success: true,
+    data: {
+      id: album.id,
+      name: album.name,
+      description: album.description,
+      isPublic: Boolean(album.is_public),
+      shareToken: album.share_token,
+      shareUrl: getShareUrl(album.share_token),
+      createdAt: album.created_at,
+      updatedAt: album.updated_at,
+      files: files.map((f) => ({
+        id: f.id,
+        name: f.name,
+        originalName: f.original_name,
+        size: f.size,
+        mimeType: f.mime_type,
+        url: getFileUrl(f.storage_key),
+        createdAt: f.created_at,
+      })),
+    },
+  });
 });
 
 /**
@@ -108,30 +101,26 @@ app.post(
     const { env } = c;
     const { name, description, isPublic, coverFileId } = c.req.valid('json');
 
-    try {
-      const repo = new AlbumRepository(env.DB);
-      const albumId = generateId();
-      const shareToken = isPublic ? generateShareToken() : null;
-      const nowMs = Date.now();
+    const repo = new AlbumRepository(env.DB);
+    const albumId = generateId();
+    const shareToken = isPublic ? generateShareToken() : null;
+    const nowMs = Date.now();
 
-      await repo.create({
-        id: albumId,
-        name: name.trim(),
-        description: description.trim(),
-        isPublic,
-        shareToken,
-        coverFileId,
-        createdAt: nowMs,
-        updatedAt: nowMs
-      });
+    await repo.create({
+      id: albumId,
+      name: name.trim(),
+      description: description.trim(),
+      isPublic,
+      shareToken,
+      coverFileId,
+      createdAt: nowMs,
+      updatedAt: nowMs
+    });
 
-      return c.json({
-        success: true,
-        data: { id: albumId, shareUrl: getShareUrl(shareToken) }
-      }, 201);
-    } catch (err) {
-      return c.json({ success: false, error: err.message }, 500);
-    }
+    return c.json({
+      success: true,
+      data: { id: albumId, shareUrl: getShareUrl(shareToken) }
+    }, 201);
   }
 );
 
@@ -147,51 +136,47 @@ app.put(
     const albumId = c.req.param('id');
     const data = c.req.valid('json');
 
-    try {
-      const repo = new AlbumRepository(env.DB);
-      const album = await repo.findById(albumId);
-      if (!album) return c.json({ success: false, error: MSG.ALBUM.NOT_FOUND }, 404);
+    const repo = new AlbumRepository(env.DB);
+    const album = await repo.findById(albumId);
+    if (!album) throw new NotFoundError(MSG.ALBUM.NOT_FOUND);
 
-      const updates = [];
-      const values = [];
+    const updates = [];
+    const values = [];
 
-      if (data.name !== undefined) {
-        updates.push('name = ?');
-        values.push(data.name.trim());
-      }
-      if (data.description !== undefined) {
-        updates.push('description = ?');
-        values.push(data.description.trim());
-      }
-      if (data.isPublic !== undefined) {
-        updates.push('is_public = ?');
-        values.push(data.isPublic ? 1 : 0);
-        if (data.isPublic && !album.share_token) {
-          updates.push('share_token = ?');
-          values.push(generateShareToken());
-        }
-      }
-      if (data.coverFileId !== undefined) {
-        updates.push('cover_file_id = ?');
-        values.push(data.coverFileId);
-      }
-
-      updates.push('updated_at = ?');
-      values.push(Date.now());
-
-      const updated = await repo.update(albumId, updates, values);
-
-      return c.json({
-        success: true,
-        data: {
-          ...updated,
-          isPublic: Boolean(updated.is_public),
-          shareUrl: getShareUrl(updated.share_token),
-        },
-      });
-    } catch (err) {
-      return c.json({ success: false, error: err.message }, 500);
+    if (data.name !== undefined) {
+      updates.push('name = ?');
+      values.push(data.name.trim());
     }
+    if (data.description !== undefined) {
+      updates.push('description = ?');
+      values.push(data.description.trim());
+    }
+    if (data.isPublic !== undefined) {
+      updates.push('is_public = ?');
+      values.push(data.isPublic ? 1 : 0);
+      if (data.isPublic && !album.share_token) {
+        updates.push('share_token = ?');
+        values.push(generateShareToken());
+      }
+    }
+    if (data.coverFileId !== undefined) {
+      updates.push('cover_file_id = ?');
+      values.push(data.coverFileId);
+    }
+
+    updates.push('updated_at = ?');
+    values.push(Date.now());
+
+    const updated = await repo.update(albumId, updates, values);
+
+    return c.json({
+      success: true,
+      data: {
+        ...updated,
+        isPublic: Boolean(updated.is_public),
+        shareUrl: getShareUrl(updated.share_token),
+      },
+    });
   }
 );
 
@@ -202,16 +187,12 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   const { env } = c;
   const albumId = c.req.param('id');
 
-  try {
-    const repo = new AlbumRepository(env.DB);
-    const album = await repo.findById(albumId);
-    if (!album) return c.json({ success: false, error: MSG.ALBUM.NOT_FOUND }, 404);
+  const repo = new AlbumRepository(env.DB);
+  const album = await repo.findById(albumId);
+  if (!album) throw new NotFoundError(MSG.ALBUM.NOT_FOUND);
 
-    await repo.delete(albumId);
-    return c.json({ success: true, message: MSG.ALBUM.DELETE_SUCCESS });
-  } catch (err) {
-    return c.json({ success: false, error: err.message }, 500);
-  }
+  await repo.delete(albumId);
+  return c.json({ success: true, message: MSG.ALBUM.DELETE_SUCCESS });
 });
 
 /**
@@ -226,20 +207,16 @@ app.post(
     const albumId = c.req.param('id');
     const { fileIds } = c.req.valid('json');
 
-    try {
-      const repo = new AlbumRepository(env.DB);
-      const album = await repo.findById(albumId);
-      if (!album) return c.json({ success: false, error: MSG.ALBUM.NOT_FOUND }, 404);
+    const repo = new AlbumRepository(env.DB);
+    const album = await repo.findById(albumId);
+    if (!album) throw new NotFoundError(MSG.ALBUM.NOT_FOUND);
 
-      await repo.addFiles(albumId, fileIds);
+    await repo.addFiles(albumId, fileIds);
 
-      return c.json({
-        success: true,
-        message: MSG.ALBUM.ADD_FILES_SUCCESS.replace('{count}', fileIds.length),
-      });
-    } catch (err) {
-      return c.json({ success: false, error: err.message }, 500);
-    }
+    return c.json({
+      success: true,
+      message: MSG.ALBUM.ADD_FILES_SUCCESS.replace('{count}', fileIds.length),
+    });
   }
 );
 
@@ -251,19 +228,15 @@ app.delete('/:id/files', requirePermission('files:write'), async (c) => {
   const albumId = c.req.param('id');
   const { fileIds } = await c.req.json();
 
-  try {
-    if (!fileIds?.length) return c.json({ success: false, error: MSG.COMMON.INVALID_PARAMS }, 400);
+  if (!fileIds?.length) throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);
 
-    const repo = new AlbumRepository(env.DB);
-    await repo.removeFiles(albumId, fileIds);
+  const repo = new AlbumRepository(env.DB);
+  await repo.removeFiles(albumId, fileIds);
 
-    return c.json({
-      success: true,
-      message: MSG.ALBUM.REMOVE_FILES_SUCCESS.replace('{count}', fileIds.length),
-    });
-  } catch (err) {
-    return c.json({ success: false, error: err.message }, 500);
-  }
+  return c.json({
+    success: true,
+    message: MSG.ALBUM.REMOVE_FILES_SUCCESS.replace('{count}', fileIds.length),
+  });
 });
 
 export default app;

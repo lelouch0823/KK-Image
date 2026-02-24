@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
-import { MSG, getChinaDayStart } from '../../_shared/utils.js';
+import { getChinaDayStart } from '../../_shared/utils.js';
 import { StatsRepository } from '../../../../repositories/StatsRepository.js';
 
 const app = new Hono();
@@ -12,41 +12,29 @@ const app = new Hono();
 app.get('/', requirePermission('stats:read'), withCache(60), async (c) => {
   const { env } = c;
 
-  try {
-    const todayStart = getChinaDayStart();
-    const repo = new StatsRepository(env.DB);
-    const data = await repo.getGlobalStats(todayStart);
+  const todayStart = getChinaDayStart();
+  const repo = new StatsRepository(env.DB);
+  const data = await repo.getGlobalStats(todayStart);
 
-    console.log('[Stats] Global Stats loaded:', {
-      files: data.files.total,
-      traffic: data.traffic.monthTotal,
-      storage: data.files.totalSize
-    });
-
-
-    return c.json({
-      success: true,
-      data: {
-        // Transform for frontend Stats.vue
-        storage: {
-          totalFiles: data.files.total,
-          totalSize: data.files.totalSize,
-          todayUploads: data.files.todayUploads,
-          used: data.files.totalSize,
-          limit: null
-        },
-        traffic: data.traffic,
-        health: {
-          status: data.status,
-          fileTypes: data.fileTypes
-        },
-        generatedAt: new Date().toISOString(),
+  return c.json({
+    success: true,
+    data: {
+      // 转换为前端 Stats.vue 所需格式
+      storage: {
+        totalFiles: data.files.total,
+        totalSize: data.files.totalSize,
+        todayUploads: data.files.todayUploads,
+        used: data.files.totalSize,
+        limit: null
       },
-    });
-  } catch (err) {
-    console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
-  }
+      traffic: data.traffic,
+      health: {
+        status: data.status,
+        fileTypes: data.fileTypes
+      },
+      generatedAt: new Date().toISOString(),
+    },
+  });
 });
 
 /**
@@ -56,24 +44,19 @@ app.get('/uploads', requirePermission('stats:read'), async (c) => {
   const { env } = c;
   const days = parseInt(c.req.query('days') || '30');
 
-  try {
-    const todayStart = getChinaDayStart();
-    const startTime = todayStart - (days - 1) * 24 * 60 * 60 * 1000;
+  const todayStart = getChinaDayStart();
+  const startTime = todayStart - (days - 1) * 24 * 60 * 60 * 1000;
 
-    const repo = new StatsRepository(env.DB);
-    const results = await repo.getUploadTrends(startTime);
+  const repo = new StatsRepository(env.DB);
+  const results = await repo.getUploadTrends(startTime);
 
-    return c.json({
-      success: true,
-      data: {
-        period: days,
-        uploads: results,
-      },
-    });
-  } catch (err) {
-    console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
-  }
+  return c.json({
+    success: true,
+    data: {
+      period: days,
+      uploads: results,
+    },
+  });
 });
 
 export default app;

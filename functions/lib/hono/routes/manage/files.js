@@ -6,6 +6,7 @@ import { getFileUrl, MSG } from '../../_shared/utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
+import { NotFoundError } from '../../errors.js';
 
 const app = new Hono();
 
@@ -32,34 +33,29 @@ app.get('/', async (c) => {
   const page = parseInt(c.req.query('page') || '1');
   const limit = parseInt(c.req.query('limit') || '50');
 
-  try {
-    const repo = new FileRepository(env.DB);
-    const filter = folderId ? { folderId } : { rootOnly: true };
-    const result = await repo.findAll(filter, { page, limit });
+  const repo = new FileRepository(env.DB);
+  const filter = folderId ? { folderId } : { rootOnly: true };
+  const result = await repo.findAll(filter, { page, limit });
 
-    return c.json({
-      success: true,
-      data: result.items.map((f) => ({
-        id: f.id,
-        name: f.name,
-        originalName: f.original_name,
-        size: f.size,
-        mimeType: f.mime_type,
-        url: getFileUrl(f.storage_key),
-        folderId: f.folder_id,
-        createdAt: f.created_at,
-      })),
-      pagination: {
-        page: result.page,
-        limit: result.limit,
-        total: result.total,
-        totalPages: result.totalPages,
-      },
-    });
-  } catch (err) {
-    console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
-  }
+  return c.json({
+    success: true,
+    data: result.items.map((f) => ({
+      id: f.id,
+      name: f.name,
+      originalName: f.original_name,
+      size: f.size,
+      mimeType: f.mime_type,
+      url: getFileUrl(f.storage_key),
+      folderId: f.folder_id,
+      createdAt: f.created_at,
+    })),
+    pagination: {
+      page: result.page,
+      limit: result.limit,
+      total: result.total,
+      totalPages: result.totalPages,
+    },
+  });
 });
 
 /**
@@ -69,32 +65,25 @@ app.get('/:id', async (c) => {
   const { env } = c;
   const fileId = c.req.param('id');
 
-  try {
-    const repo = new FileRepository(env.DB);
-    const file = await repo.findById(fileId);
+  const repo = new FileRepository(env.DB);
+  const file = await repo.findById(fileId);
+  if (!file) throw new NotFoundError(MSG.FILE.NOT_FOUND);
 
-    if (!file) {
-      return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
-    }
-
-    return c.json({
-      success: true,
-      data: {
-        id: file.id,
-        name: file.name,
-        originalName: file.original_name,
-        size: file.size,
-        mimeType: file.mime_type,
-        url: getFileUrl(file.storage_key),
-        folderId: file.folder_id,
-        storageKey: file.storage_key,
-        createdAt: file.created_at,
-        updatedAt: file.updated_at,
-      },
-    });
-  } catch (err) {
-    return c.json({ success: false, error: err.message }, 500);
-  }
+  return c.json({
+    success: true,
+    data: {
+      id: file.id,
+      name: file.name,
+      originalName: file.original_name,
+      size: file.size,
+      mimeType: file.mime_type,
+      url: getFileUrl(file.storage_key),
+      folderId: file.folder_id,
+      storageKey: file.storage_key,
+      createdAt: file.created_at,
+      updatedAt: file.updated_at,
+    },
+  });
 });
 
 /**
@@ -109,16 +98,12 @@ app.put(
     const fileId = c.req.param('id');
     const { name } = c.req.valid('json');
 
-    try {
-      const repo = new FileRepository(env.DB);
-      const file = await repo.findById(fileId);
-      if (!file) return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
+    const repo = new FileRepository(env.DB);
+    const file = await repo.findById(fileId);
+    if (!file) throw new NotFoundError(MSG.FILE.NOT_FOUND);
 
-      await repo.update(fileId, { name });
-      return c.json({ success: true, message: MSG.FILE.RENAME_SUCCESS });
-    } catch (err) {
-      return c.json({ success: false, error: err.message }, 500);
-    }
+    await repo.update(fileId, { name });
+    return c.json({ success: true, message: MSG.FILE.RENAME_SUCCESS });
   }
 );
 
@@ -129,22 +114,18 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   const { env } = c;
   const fileId = c.req.param('id');
 
-  try {
-    const repo = new FileRepository(env.DB);
-    const file = await repo.findById(fileId);
-    if (!file) return c.json({ success: false, error: MSG.FILE.NOT_FOUND }, 404);
+  const repo = new FileRepository(env.DB);
+  const file = await repo.findById(fileId);
+  if (!file) throw new NotFoundError(MSG.FILE.NOT_FOUND);
 
-    // 软删除
-    await repo.softDelete(fileId);
+  // 软删除
+  await repo.softDelete(fileId);
 
-    // 审计日志 (SOTA: 非阻塞记录)
-    const { userId, ip } = getAuditContext(c);
-    c.executionCtx.waitUntil(logAudit(env.DB, { userId, action: 'files:delete', targetType: 'file', targetId: fileId, payload: { name: file.name }, ip }));
+  // 审计日志 (SOTA: 非阻塞记录)
+  const { userId, ip } = getAuditContext(c);
+  c.executionCtx.waitUntil(logAudit(env.DB, { userId, action: 'files:delete', targetType: 'file', targetId: fileId, payload: { name: file.name }, ip }));
 
-    return c.json({ success: true, message: MSG.FILE.DELETE_SUCCESS });
-  } catch (err) {
-    return c.json({ success: false, error: err.message }, 500);
-  }
+  return c.json({ success: true, message: MSG.FILE.DELETE_SUCCESS });
 });
 
 /**
@@ -158,18 +139,14 @@ app.post(
     const { env } = c;
     const { ids } = c.req.valid('json');
 
-    try {
-      const repo = new FileRepository(env.DB);
-      // SOTA: 软删除
-      await repo.softDeleteBatch(ids);
+    const repo = new FileRepository(env.DB);
+    // SOTA: 软删除
+    await repo.softDeleteBatch(ids);
 
-      // 审计日志 (SOTA: 非阻塞记录)
-      const { userId, ip } = getAuditContext(c);
-      c.executionCtx.waitUntil(logAudit(env.DB, { userId, action: 'files:batch_delete', targetType: 'file', payload: { ids }, ip }));
-      return c.json({ success: true, message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', ids.length) });
-    } catch (err) {
-      return c.json({ success: false, error: err.message }, 500);
-    }
+    // 审计日志 (SOTA: 非阻塞记录)
+    const { userId, ip } = getAuditContext(c);
+    c.executionCtx.waitUntil(logAudit(env.DB, { userId, action: 'files:batch_delete', targetType: 'file', payload: { ids }, ip }));
+    return c.json({ success: true, message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', ids.length) });
   }
 );
 
@@ -184,20 +161,16 @@ app.post(
     const { env } = c;
     const { ids, targetFolderId } = c.req.valid('json');
 
-    try {
-      if (targetFolderId && targetFolderId !== 'root') {
-        const folderRepo = new FolderRepository(env.DB);
-        const folder = await folderRepo.findById(targetFolderId);
-        if (!folder) return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
-      }
-
-      const repo = new FileRepository(env.DB);
-      await repo.moveBatch(ids, targetFolderId || 'root');
-
-      return c.json({ success: true, message: MSG.FILE.MOVE_SUCCESS.replace('{count}', ids.length) });
-    } catch (err) {
-      return c.json({ success: false, error: err.message }, 500);
+    if (targetFolderId && targetFolderId !== 'root') {
+      const folderRepo = new FolderRepository(env.DB);
+      const folder = await folderRepo.findById(targetFolderId);
+      if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
     }
+
+    const repo = new FileRepository(env.DB);
+    await repo.moveBatch(ids, targetFolderId || 'root');
+
+    return c.json({ success: true, message: MSG.FILE.MOVE_SUCCESS.replace('{count}', ids.length) });
   }
 );
 

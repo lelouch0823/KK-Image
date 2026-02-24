@@ -15,33 +15,28 @@ app.get(
     const page = parseInt(c.req.query('page') || '1');
     const limit = parseInt(c.req.query('limit') || '20');
 
-    try {
-      const repo = new FolderRepository(env.DB);
-      const result = await repo.findShared({ page, limit });
+    const repo = new FolderRepository(env.DB);
+    const result = await repo.findShared({ page, limit });
 
-      const items = result.items.map((folder) => ({
-        id: folder.id,
-        name: folder.name,
-        shareToken: folder.share_token,
-        shareUrl: `/gallery/${folder.share_token}`,
-        isPublic: !!folder.is_public,
-        createdAt: folder.created_at,
-        expiresAt: folder.share_expires_at,
-      }));
+    const items = result.items.map((folder) => ({
+      id: folder.id,
+      name: folder.name,
+      shareToken: folder.share_token,
+      shareUrl: `/gallery/${folder.share_token}`,
+      isPublic: !!folder.is_public,
+      createdAt: folder.created_at,
+      expiresAt: folder.share_expires_at,
+    }));
 
-      return c.json({
-        success: true,
-        data: {
-          items,
-          total: result.total,
-          page: result.page,
-          totalPages: result.totalPages,
-        },
-      });
-    } catch (err) {
-      console.error('Failed to fetch shares:', err);
-      return c.json({ success: false, error: err.message }, 500);
-    }
+    return c.json({
+      success: true,
+      data: {
+        items,
+        total: result.total,
+        page: result.page,
+        totalPages: result.totalPages,
+      },
+    });
   }
 );
 

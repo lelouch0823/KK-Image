@@ -3,7 +3,7 @@ import { requirePermission } from '../../middleware/auth.js';
 
 const searchRoute = new Hono();
 
-// GET /api/manage/search - Perform full text search
+// GET /api/manage/search - 全文搜索
 searchRoute.get('/', requirePermission('read'), async (c) => {
     const query = c.req.query('q');
 
@@ -11,10 +11,8 @@ searchRoute.get('/', requirePermission('read'), async (c) => {
         return c.json({ success: true, data: [] });
     }
 
-    try {
-        // Basic FTS query matching files by name. 
-        // Uses glob syntax (*) to match partial words if desired.
-        const stmt = c.env.DB.prepare(`
+    // 基础 FTS 查询，按文件名匹配
+    const stmt = c.env.DB.prepare(`
       SELECT f.* 
       FROM files f
       JOIN files_fts ON f.rowid = files_fts.rowid 
@@ -23,16 +21,12 @@ searchRoute.get('/', requirePermission('read'), async (c) => {
       LIMIT 20
     `).bind(`"${query}"*`);
 
-        const { results } = await stmt.all();
+    const { results } = await stmt.all();
 
-        return c.json({
-            success: true,
-            data: results
-        });
-    } catch (error) {
-        console.error('Search error:', error);
-        return c.json({ success: false, error: 'Search failed' }, 500);
-    }
+    return c.json({
+        success: true,
+        data: results
+    });
 });
 
 export default searchRoute;

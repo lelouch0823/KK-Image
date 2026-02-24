@@ -16,7 +16,7 @@ app.get('/', requirePermission('admin:full'), async (c) => {
     const targetType = c.req.query('targetType');
     const offset = (page - 1) * pageSize;
 
-    try {
+
         let whereClause = '';
         const conditions = [];
         const bindings = [];
@@ -65,10 +65,7 @@ app.get('/', requirePermission('admin:full'), async (c) => {
                 totalPages: Math.ceil((countResult?.total || 0) / pageSize),
             },
         });
-    } catch (err) {
-        console.error('[AuditLogs] 查询失败:', err);
-        return c.json({ success: false, error: `查询审计日志失败: ${err.message}` }, 500);
-    }
+
 });
 
 /**
@@ -77,7 +74,7 @@ app.get('/', requirePermission('admin:full'), async (c) => {
 app.get('/actions', requirePermission('admin:full'), async (c) => {
     const { env } = c;
 
-    try {
+
         const { results } = await env.DB.prepare(
             'SELECT DISTINCT action FROM audit_logs ORDER BY action'
         ).all();
@@ -86,9 +83,7 @@ app.get('/actions', requirePermission('admin:full'), async (c) => {
             success: true,
             data: results.map((r) => r.action),
         });
-    } catch (err) {
-        return c.json({ success: false, error: err.message }, 500);
-    }
+
 });
 
 export default app;

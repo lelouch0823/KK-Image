@@ -16,6 +16,7 @@ import {
   getShareUrl,
 } from '../../../_shared/utils.js';
 import { transformSpaceListItem } from './transformers.js';
+import { NotFoundError } from '../../../errors.js';
 
 const subspaces = new Hono();
 
@@ -38,16 +39,11 @@ subspaces.get('/', async (c) => {
   const parentId = c.req.param('id');
   const repo = new SpaceRepository(env.DB);
 
-  try {
-    const results = await repo.findSubspaces(parentId);
-    return c.json({
-      success: true,
-      data: results.map(transformSpaceListItem),
-    });
-  } catch (err) {
-    console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
-    return c.json({ success: false, error: `${MSG.COMMON.LOAD_FAILED}: ${err.message}` }, 500);
-  }
+  const results = await repo.findSubspaces(parentId);
+  return c.json({
+    success: true,
+    data: results.map(transformSpaceListItem),
+  });
 });
 
 /**
@@ -64,55 +60,48 @@ subspaces.post(
       c.req.valid('json');
     const repo = new SpaceRepository(env.DB);
 
-    try {
-      // 验证父空间存在
-      const parent = await repo.findById(parentId);
-      if (!parent) {
-        return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
-      }
+    // 验证父空间存在
+    const parent = await repo.findById(parentId);
+    if (!parent) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
 
-      const spaceId = generateId();
-      const shareToken = generateShareToken();
-      const nowMs = Date.now();
+    const spaceId = generateId();
+    const shareToken = generateShareToken();
+    const nowMs = Date.now();
 
-      const newSubspace = {
-        id: spaceId,
-        parentId,
-        name: name.trim(),
-        description: description.trim(),
-        isPublic,
-        password: password || null,
-        shareToken,
-        expiresAt: expiresAt || null,
-        template,
-        templateData: JSON.stringify(templateData),
-        createdAt: nowMs,
-        updatedAt: nowMs,
-      };
+    const newSubspace = {
+      id: spaceId,
+      parentId,
+      name: name.trim(),
+      description: description.trim(),
+      isPublic,
+      password: password || null,
+      shareToken,
+      expiresAt: expiresAt || null,
+      template,
+      templateData: JSON.stringify(templateData),
+      createdAt: nowMs,
+      updatedAt: nowMs,
+    };
 
-      await repo.createSubspace(newSubspace);
+    await repo.createSubspace(newSubspace);
 
-      return c.json(
-        {
-          success: true,
-          data: {
-            id: spaceId,
-            parentId,
-            name: name.trim(),
-            description: description.trim(),
-            isPublic,
-            shareToken,
-            shareUrl: getShareUrl(shareToken, 'space'),
-            template,
-            createdAt: nowMs,
-          },
+    return c.json(
+      {
+        success: true,
+        data: {
+          id: spaceId,
+          parentId,
+          name: name.trim(),
+          description: description.trim(),
+          isPublic,
+          shareToken,
+          shareUrl: getShareUrl(shareToken, 'space'),
+          template,
+          createdAt: nowMs,
         },
-        201
-      );
-    } catch (err) {
-      console.error(`${MSG.COMMON.CREATE_FAILED}:`, err);
-      return c.json({ success: false, error: `${MSG.COMMON.CREATE_FAILED}: ${err.message}` }, 500);
-    }
+      },
+      201
+    );
   }
 );
 

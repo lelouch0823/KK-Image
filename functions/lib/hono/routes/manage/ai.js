@@ -13,7 +13,7 @@ import { callAIStream, callAI, callAIAuto, parseSSEChunk, SYSTEM_PROMPT } from '
 import { executeAITool } from '../../../../utils/ai-tool-executor.js';
 import { extractToolCallsFromText } from '../../../../utils/ai-stream-helpers.js';
 import { DateUtils } from '../../../../api/utils/date.js';
-import { success, error } from '../../../../api/utils/response.js';
+import { success } from '../../../../api/utils/response.js';
 
 const app = new Hono();
 
@@ -54,7 +54,7 @@ app.post('/chat', async (c) => {
     const { env } = c;
     const { messages: history, context: clientContext = {} } = await c.req.json();
 
-    try {
+
         const orderStatsRepo = new OrderStatsRepository(env.DB);
         const systemStatsRepo = new SystemStatsRepository(env.DB);
         const orderRepo = new OrderRepository(env.DB);
@@ -91,9 +91,6 @@ app.post('/chat', async (c) => {
         }
 
         return success({ message: response.choices[0].message });
-    } catch (err) {
-        return error(`${MSG.AI.ERROR}: ${err.message}`, 500);
-    }
 });
 
 /**
@@ -101,8 +98,7 @@ app.post('/chat', async (c) => {
  */
 app.post('/report', async (c) => {
     const { env } = c;
-    try {
-        const orderStatsRepo = new OrderStatsRepository(env.DB);
+    const orderStatsRepo = new OrderStatsRepository(env.DB);
         const systemStatsRepo = new SystemStatsRepository(env.DB);
 
         const todayStart = DateUtils.getChinaDayStart();
@@ -131,10 +127,7 @@ app.post('/report', async (c) => {
         // 清理 Markdown 代码块
         cleanHtml = cleanHtml.replace(/^```html\n?|```$/g, '').trim();
 
-        return success({ html: cleanHtml });
-    } catch (err) {
-        return error(`${MSG.AI.ERROR}: ${err.message}`, 500);
-    }
+    return success({ html: cleanHtml });
 });
 
 /**

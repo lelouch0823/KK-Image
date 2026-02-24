@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { invalidateCache, getProductCacheUrls } from '../../../middleware/cache.js';
+import { BadRequestError } from '../../../errors.js';
 
 const app = new Hono();
 
@@ -14,29 +15,23 @@ app.post('/', async (c) => {
     const items = body.items;
 
     if (!Array.isArray(items) || items.length === 0) {
-        return c.json({ success: false, error: 'Invalid items array' }, 400);
+        throw new BadRequestError('Invalid items array');
     }
 
-    // Limit batch size to prevent timeouts
+    // 限制批量大小以防止超时
     if (items.length > 500) {
-        return c.json({ success: false, error: 'Batch size limit exceeded (max 500)' }, 400);
+        throw new BadRequestError('Batch size limit exceeded (max 500)');
     }
 
     const repo = new ProductRepository(env.DB);
+    const result = await repo.createBatch(items);
 
-    try {
-        const result = await repo.createBatch(items);
-
-        // Cache Invalidation
-        if (result.success && result.count > 0) {
-            c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
-        }
-
-        return c.json(result);
-    } catch (e) {
-        console.error('Batch import error:', e);
-        return c.json({ success: false, error: e.message }, 500);
+    // 缓存失效
+    if (result.success && result.count > 0) {
+        c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
     }
+
+    return c.json(result);
 });
 
 export default app;

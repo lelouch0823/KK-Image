@@ -54,8 +54,7 @@ export const app = new Hono();
 // 全局中间件（洋葱模型，从外到内执行）
 // ============================================
 
-// 1. 错误处理（最外层，捕获所有错误）
-app.use('*', errorHandler);
+// 1. 错误处理已迁移至文件末尾的 app.onError
 
 // 2. 日志记录
 app.use('*', logger());
@@ -143,5 +142,8 @@ app.notFound((c) => {
     404
   );
 });
+
+// 全局异常捕获
+app.onError(errorHandler);
 
 export default app;
