@@ -14,7 +14,7 @@ import {
 
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
-import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors.js';
+import { NotFoundError, BadRequestError, ForbiddenError, ConflictError } from '../../errors.js';
 
 const app = new Hono();
 
@@ -134,6 +134,9 @@ app.post(
       if (!parent) throw new BadRequestError(MSG.FOLDER.PARENT_NOT_FOUND);
     }
 
+    const hasConflict = await folderRepo.checkNameConflict(parentId, name.trim());
+    if (hasConflict) throw new ConflictError(MSG.FOLDER.NAME_CONFLICT || "当前目录下已存在同名文件夹");
+
     const folderId = generateId();
     const shareToken = isPublic ? generateShareToken() : null;
     const nowMs = Date.now();
@@ -187,6 +190,19 @@ app.put(
 
     const updates = [];
     const values = [];
+
+    // 判断是否需要进行重名校验
+    let checkParentId = folder.parent_id;
+    let checkName = folder.name;
+    if (data.parentId !== undefined) checkParentId = data.parentId || null;
+    if (data.name !== undefined) checkName = data.name.trim();
+
+    if (data.name !== undefined || data.parentId !== undefined) {
+      if (checkParentId !== folder.parent_id || checkName !== folder.name) {
+        const hasConflict = await folderRepo.checkNameConflict(checkParentId, checkName, folderId);
+        if (hasConflict) throw new ConflictError(MSG.FOLDER.NAME_CONFLICT || "在目标目录下已存在同名文件夹");
+      }
+    }
 
     if (data.name !== undefined) {
       updates.push('name = ?');

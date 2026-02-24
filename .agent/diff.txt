@@ -1,0 +1,346 @@
+diff --git a/functions/api/utils/messages.js b/functions/api/utils/messages.js
+index 5a9c7ad..f742233 100644
+--- a/functions/api/utils/messages.js
++++ b/functions/api/utils/messages.js
+@@ -49,6 +49,7 @@ export const MSG = {
+     UPLOAD_SUCCESS: '上传成功',
+     INSTANT_UPLOAD: '秒传成功',
+     HASH_MATCH: '文件已存在，已秒传',
++    NAME_CONFLICT: '当前目录下已存在同名文件',
+   },
+ 
+   FOLDER: {
+@@ -62,6 +63,7 @@ export const MSG = {
+     UPDATE_SUCCESS: '文件夹已更新',
+     NAME_REQUIRED: '文件夹名不能为空',
+     NAME_TOO_LONG: '文件夹名过长',
++    NAME_CONFLICT: '当前目录下已存在同名文件夹',
+   },
+ 
+   ALBUM: {
+diff --git a/functions/lib/hono/routes/manage/files.js b/functions/lib/hono/routes/manage/files.js
+index a119dec..3717e8c 100644
+--- a/functions/lib/hono/routes/manage/files.js
++++ b/functions/lib/hono/routes/manage/files.js
+@@ -6,7 +6,7 @@ import { getFileUrl, MSG } from '../../_shared/utils.js';
+ import { FileRepository } from '../../../../repositories/FileRepository.js';
+ import { FolderRepository } from '../../../../repositories/FolderRepository.js';
+ import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
+-import { NotFoundError } from '../../errors.js';
++import { NotFoundError, ConflictError } from '../../errors.js';
+ import { parsePagination } from '../../_shared/route-helpers.js';
+ 
+ const app = new Hono();
+@@ -102,7 +102,12 @@ app.put(
+     const file = await repo.findById(fileId);
+     if (!file) throw new NotFoundError(MSG.FILE.NOT_FOUND);
+ 
+-    await repo.update(fileId, { name });
++    if (name.trim() !== file.name) {
++      const hasConflict = await repo.checkNameConflict(file.folder_id, name.trim(), fileId);
++      if (hasConflict) throw new ConflictError(MSG.FILE.NAME_CONFLICT || "当前目录下已存在同名文件");
++    }
++
++    await repo.update(fileId, { name: name.trim() });
+     return c.json({ success: true, message: MSG.FILE.RENAME_SUCCESS });
+   }
+ );
+@@ -168,6 +173,18 @@ app.post(
+     }
+ 
+     const repo = new FileRepository(env.DB);
++    
++    // 获取要移动的文件记录以提取原名
++    const targetFiles = await repo.findByIds(ids);
++    const validNames = targetFiles.map(f => f.name);
++
++    if (validNames.length > 0) {
++      const conflicts = await repo.findConflictingNames(targetFolderId || 'root', validNames);
++      if (conflicts.length > 0) {
++        throw new ConflictError(`目标目录下已存在同名文件: ${conflicts.slice(0, 3).join(', ')}${conflicts.length > 3 ? ' 等' : ''}`);
++      }
++    }
++
+     await repo.moveBatch(ids, targetFolderId || 'root');
+ 
+     return c.json({ success: true, message: MSG.FILE.MOVE_SUCCESS.replace('{count}', ids.length) });
+diff --git a/functions/lib/hono/routes/manage/folders.js b/functions/lib/hono/routes/manage/folders.js
+index bcf64c9..1d527ba 100644
+--- a/functions/lib/hono/routes/manage/folders.js
++++ b/functions/lib/hono/routes/manage/folders.js
+@@ -14,7 +14,7 @@ import {
+ 
+ import { FolderRepository } from '../../../../repositories/FolderRepository.js';
+ import { FileRepository } from '../../../../repositories/FileRepository.js';
+-import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors.js';
++import { NotFoundError, BadRequestError, ForbiddenError, ConflictError } from '../../errors.js';
+ 
+ const app = new Hono();
+ 
+@@ -134,6 +134,9 @@ app.post(
+       if (!parent) throw new BadRequestError(MSG.FOLDER.PARENT_NOT_FOUND);
+     }
+ 
++    const hasConflict = await folderRepo.checkNameConflict(parentId, name.trim());
++    if (hasConflict) throw new ConflictError(MSG.FOLDER.NAME_CONFLICT || "当前目录下已存在同名文件夹");
++
+     const folderId = generateId();
+     const shareToken = isPublic ? generateShareToken() : null;
+     const nowMs = Date.now();
+@@ -188,6 +191,19 @@ app.put(
+     const updates = [];
+     const values = [];
+ 
++    // 判断是否需要进行重名校验
++    let checkParentId = folder.parent_id;
++    let checkName = folder.name;
++    if (data.parentId !== undefined) checkParentId = data.parentId || null;
++    if (data.name !== undefined) checkName = data.name.trim();
++
++    if (data.name !== undefined || data.parentId !== undefined) {
++      if (checkParentId !== folder.parent_id || checkName !== folder.name) {
++        const hasConflict = await folderRepo.checkNameConflict(checkParentId, checkName, folderId);
++        if (hasConflict) throw new ConflictError(MSG.FOLDER.NAME_CONFLICT || "在目标目录下已存在同名文件夹");
++      }
++    }
++
+     if (data.name !== undefined) {
+       updates.push('name = ?');
+       values.push(data.name.trim());
+diff --git a/functions/lib/hono/routes/v1/files.js b/functions/lib/hono/routes/v1/files.js
+index 6a02ee3..79d851c 100644
+--- a/functions/lib/hono/routes/v1/files.js
++++ b/functions/lib/hono/routes/v1/files.js
+@@ -11,7 +11,7 @@ import { withCache, invalidateCache } from '../../middleware/cache.js';
+ import { getFileUrl, generateId, MSG } from '../../_shared/utils.js';
+ import { FileRepository } from '../../../../repositories/FileRepository.js';
+ import { FolderRepository } from '../../../../repositories/FolderRepository.js';
+-import { NotFoundError, BadRequestError } from '../../errors.js';
++import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
+ 
+ const app = new Hono();
+ 
+@@ -153,12 +153,18 @@ app.post('/', requirePermission('files:write'), zValidator('json', CreateFileSch
+   const { env } = c;
+ 
+   const repo = new FileRepository(env.DB);
++
++  if (data.name) {
++    const hasConflict = await repo.checkNameConflict(data.folderId || null, data.name.trim());
++    if (hasConflict) throw new ConflictError(MSG.FILE.NAME_CONFLICT || "当前目录下已存在同名文件");
++  }
++
+   const id = generateId();
+   const nowMs = Date.now();
+ 
+   await repo.create({
+     id,
+-    name: data.name,
++    name: data.name.trim(),
+     folderId: data.folderId,
+     isPublic: data.isPublic,
+     storageKey: id,
+@@ -189,7 +195,21 @@ app.put('/:id', requirePermission('files:write'), async (c) => {
+   if (!file) throw new NotFoundError(MSG.FILE.NOT_FOUND);
+ 
+   const updates = {};
+-  if (data.name !== undefined) updates.name = data.name;
++  
++  // 重名冲突检查
++  let checkFolderId = file.folder_id;
++  let checkName = file.name;
++  if (data.folderId !== undefined) checkFolderId = data.folderId || null;
++  if (data.name !== undefined) checkName = data.name.trim();
++
++  if (data.name !== undefined || data.folderId !== undefined) {
++    if (checkFolderId !== file.folder_id || checkName !== file.name) {
++      const hasConflict = await repo.checkNameConflict(checkFolderId, checkName, id);
++      if (hasConflict) throw new ConflictError(MSG.FILE.NAME_CONFLICT || "当前目录下已存在同名文件");
++    }
++  }
++
++  if (data.name !== undefined) updates.name = data.name.trim();
+   if (data.folderId !== undefined) updates.folder_id = data.folderId;
+   if (data.isPublic !== undefined) updates.is_public = data.isPublic ? 1 : 0;
+ 
+@@ -270,6 +290,17 @@ app.post(
+       if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
+     }
+ 
++    // 批量重名检查
++    const targetFiles = await fileRepo.findByIds(ids);
++    const validNames = targetFiles.map(f => f.name);
++
++    if (validNames.length > 0) {
++      const conflicts = await fileRepo.findConflictingNames(targetFolderId || 'root', validNames);
++      if (conflicts.length > 0) {
++        throw new ConflictError(`目标目录下已存在同名文件: ${conflicts.slice(0, 3).join(', ')}${conflicts.length > 3 ? ' 等' : ''}`);
++      }
++    }
++
+     await fileRepo.moveBatch(ids, targetFolderId || 'root');
+     // 使缓存失效
+     c.executionCtx.waitUntil(invalidateCache(getFileCacheUrls(c)));
+diff --git a/functions/lib/hono/routes/v1/folders.js b/functions/lib/hono/routes/v1/folders.js
+index 8fa0405..2a04121 100644
+--- a/functions/lib/hono/routes/v1/folders.js
++++ b/functions/lib/hono/routes/v1/folders.js
+@@ -11,7 +11,7 @@ import { withCache, invalidateCache } from '../../middleware/cache.js';
+ import { generateId, generateShareToken, now, MSG } from '../../_shared/utils.js';
+ import { FolderRepository } from '../../../../repositories/FolderRepository.js';
+ import { createCacheInvalidator } from '../../_shared/route-helpers.js';
+-import { NotFoundError, BadRequestError } from '../../errors.js';
++import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
+ 
+ const app = new Hono();
+ 
+@@ -76,6 +76,9 @@ app.post(
+       if (!parent) throw new NotFoundError(MSG.FOLDER.PARENT_NOT_FOUND);
+     }
+ 
++    const hasConflict = await repo.checkNameConflict(data.parentId || null, data.name.trim());
++    if (hasConflict) throw new ConflictError(MSG.FOLDER.NAME_CONFLICT || "当前目录下已存在同名文件夹");
++
+     const id = generateId();
+     const shareToken = generateShareToken(16);
+     const timestamp = now();
+@@ -116,6 +119,19 @@ app.put(
+     const folder = await repo.findById(id);
+     if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
+ 
++    // 判断是否需要进行重名校验
++    let checkParentId = folder.parent_id;
++    let checkName = folder.name;
++    if (data.parentId !== undefined) checkParentId = data.parentId || null;
++    if (data.name !== undefined) checkName = data.name.trim();
++
++    if (data.name !== undefined || data.parentId !== undefined) {
++      if (checkParentId !== folder.parent_id || checkName !== folder.name) {
++        const hasConflict = await repo.checkNameConflict(checkParentId, checkName, id);
++        if (hasConflict) throw new ConflictError(MSG.FOLDER.NAME_CONFLICT || "在目标目录下已存在同名文件夹");
++      }
++    }
++
+     const updates = [];
+     const values = [];
+ 
+diff --git a/functions/repositories/FileRepository.js b/functions/repositories/FileRepository.js
+index d316a66..5453e3b 100644
+--- a/functions/repositories/FileRepository.js
++++ b/functions/repositories/FileRepository.js
+@@ -297,4 +297,69 @@ export class FileRepository {
+ 
+         return await this.db.prepare(sql).bind(...bindings).first();
+     }
++
++    /**
++     * 在指定文件夹中检查同名文件（支持排除自己）
++     * @param {string} folderId
++     * @param {string} name
++     * @param {string} [excludeId]
++     * @returns {Promise<boolean>}
++     */
++    async checkNameConflict(folderId, name, excludeId = null) {
++        let sql = "SELECT 1 as exist FROM files WHERE name = ? AND (is_deleted IS NULL OR is_deleted = 0)";
++        const bindings = [name];
++
++        if (folderId && folderId !== 'root') {
++            sql += " AND folder_id = ?";
++            bindings.push(folderId);
++        } else {
++            sql += " AND (folder_id = 'root' OR folder_id IS NULL)";
++        }
++
++        if (excludeId) {
++            sql += " AND id != ?";
++            bindings.push(excludeId);
++        }
++
++        sql += " LIMIT 1";
++        const result = await this.db.prepare(sql).bind(...bindings).first();
++        return !!result;
++    }
++
++    /**
++     * 批量查询当前移动的多个文件名字，在目标文件夹中是否有重名
++     * @param {string} folderId 
++     * @param {Array<string>} names 
++     * @returns {Promise<Array<string>>} - 返回有冲突的文件名数组
++     */
++    async findConflictingNames(folderId, names) {
++        if (!names || names.length === 0) return [];
++        
++        const placeholders = names.map(() => '?').join(',');
++        const bindings = [...names];
++        
++        let sql = `SELECT name FROM files WHERE name IN (${placeholders}) AND (is_deleted IS NULL OR is_deleted = 0)`;
++        
++        if (folderId && folderId !== 'root') {
++            sql += " AND folder_id = ?";
++            bindings.push(folderId);
++        } else {
++            sql += " AND (folder_id = 'root' OR folder_id IS NULL)";
++        }
++
++        const { results } = await this.db.prepare(sql).bind(...bindings).all();
++        return results.map(r => r.name);
++    }
++    
++    /**
++     * 获取指定 ID 集合的文件记录
++     * @param {Array<string>} ids 
++     * @returns {Promise<Array<Object>>}
++     */
++    async findByIds(ids) {
++        if (!ids || ids.length === 0) return [];
++        const placeholders = ids.map(() => '?').join(',');
++        const { results } = await this.db.prepare(`SELECT * FROM files WHERE id IN (${placeholders})`).bind(...ids).all();
++        return results;
++    }
+ }
+diff --git a/functions/repositories/FolderRepository.js b/functions/repositories/FolderRepository.js
+index 7dd7a0f..b852ee7 100644
+--- a/functions/repositories/FolderRepository.js
++++ b/functions/repositories/FolderRepository.js
+@@ -399,11 +399,39 @@ export class FolderRepository {
+      */
+     async canDelete(id) {
+         const [subfoldersResult, filesResult] = await Promise.all([
+-            this.db.prepare('SELECT COUNT(*) as count FROM folders WHERE parent_id = ?').bind(id).first(),
+-            this.db.prepare('SELECT COUNT(*) as count FROM files WHERE folder_id = ?').bind(id).first(),
++            this.db.prepare('SELECT COUNT(*) as count FROM folders WHERE parent_id = ? AND is_deleted = 0').bind(id).first(),
++            this.db.prepare('SELECT COUNT(*) as count FROM files WHERE folder_id = ? AND (is_deleted IS NULL OR is_deleted = 0)').bind(id).first(),
+         ]);
+         const subfolderCount = subfoldersResult?.count || 0;
+         const fileCount = filesResult?.count || 0;
+         return { canDelete: subfolderCount === 0 && fileCount === 0, subfolderCount, fileCount };
+     }
++
++    /**
++     * 在父目录下检查是否存在同名文件夹
++     * @param {string} parentId
++     * @param {string} name
++     * @param {string} [excludeId] - 排除自身（用于重命名检查）
++     * @returns {Promise<boolean>}
++     */
++    async checkNameConflict(parentId, name, excludeId = null) {
++        let sql = "SELECT 1 as exist FROM folders WHERE name = ? AND is_deleted = 0";
++        const bindings = [name];
++
++        if (parentId && parentId !== 'root') {
++            sql += " AND parent_id = ?";
++            bindings.push(parentId);
++        } else {
++            sql += " AND (parent_id IS NULL OR parent_id = 'root')";
++        }
++
++        if (excludeId) {
++            sql += " AND id != ?";
++            bindings.push(excludeId);
++        }
++
++        sql += " LIMIT 1";
++        const result = await this.db.prepare(sql).bind(...bindings).first();
++        return !!result;
++    }
+ }

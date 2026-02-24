@@ -11,7 +11,7 @@ import { withCache, invalidateCache } from '../../middleware/cache.js';
 import { generateId, generateShareToken, now, MSG } from '../../_shared/utils.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { createCacheInvalidator } from '../../_shared/route-helpers.js';
-import { NotFoundError, BadRequestError } from '../../errors.js';
+import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
 
 const app = new Hono();
 
@@ -76,6 +76,9 @@ app.post(
       if (!parent) throw new NotFoundError(MSG.FOLDER.PARENT_NOT_FOUND);
     }
 
+    const hasConflict = await repo.checkNameConflict(data.parentId || null, data.name.trim());
+    if (hasConflict) throw new ConflictError(MSG.FOLDER.NAME_CONFLICT || "当前目录下已存在同名文件夹");
+
     const id = generateId();
     const shareToken = generateShareToken(16);
     const timestamp = now();
@@ -115,6 +118,19 @@ app.put(
 
     const folder = await repo.findById(id);
     if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
+
+    // 判断是否需要进行重名校验
+    let checkParentId = folder.parent_id;
+    let checkName = folder.name;
+    if (data.parentId !== undefined) checkParentId = data.parentId || null;
+    if (data.name !== undefined) checkName = data.name.trim();
+
+    if (data.name !== undefined || data.parentId !== undefined) {
+      if (checkParentId !== folder.parent_id || checkName !== folder.name) {
+        const hasConflict = await repo.checkNameConflict(checkParentId, checkName, id);
+        if (hasConflict) throw new ConflictError(MSG.FOLDER.NAME_CONFLICT || "在目标目录下已存在同名文件夹");
+      }
+    }
 
     const updates = [];
     const values = [];

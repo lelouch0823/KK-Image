@@ -399,11 +399,39 @@ export class FolderRepository {
      */
     async canDelete(id) {
         const [subfoldersResult, filesResult] = await Promise.all([
-            this.db.prepare('SELECT COUNT(*) as count FROM folders WHERE parent_id = ?').bind(id).first(),
-            this.db.prepare('SELECT COUNT(*) as count FROM files WHERE folder_id = ?').bind(id).first(),
+            this.db.prepare('SELECT COUNT(*) as count FROM folders WHERE parent_id = ? AND is_deleted = 0').bind(id).first(),
+            this.db.prepare('SELECT COUNT(*) as count FROM files WHERE folder_id = ? AND (is_deleted IS NULL OR is_deleted = 0)').bind(id).first(),
         ]);
         const subfolderCount = subfoldersResult?.count || 0;
         const fileCount = filesResult?.count || 0;
         return { canDelete: subfolderCount === 0 && fileCount === 0, subfolderCount, fileCount };
+    }
+
+    /**
+     * 在父目录下检查是否存在同名文件夹
+     * @param {string} parentId
+     * @param {string} name
+     * @param {string} [excludeId] - 排除自身（用于重命名检查）
+     * @returns {Promise<boolean>}
+     */
+    async checkNameConflict(parentId, name, excludeId = null) {
+        let sql = "SELECT 1 as exist FROM folders WHERE name = ? AND is_deleted = 0";
+        const bindings = [name];
+
+        if (parentId && parentId !== 'root') {
+            sql += " AND parent_id = ?";
+            bindings.push(parentId);
+        } else {
+            sql += " AND (parent_id IS NULL OR parent_id = 'root')";
+        }
+
+        if (excludeId) {
+            sql += " AND id != ?";
+            bindings.push(excludeId);
+        }
+
+        sql += " LIMIT 1";
+        const result = await this.db.prepare(sql).bind(...bindings).first();
+        return !!result;
     }
 }

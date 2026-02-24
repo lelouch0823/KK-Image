@@ -49,6 +49,7 @@ export const MSG = {
     UPLOAD_SUCCESS: '上传成功',
     INSTANT_UPLOAD: '秒传成功',
     HASH_MATCH: '文件已存在，已秒传',
+    NAME_CONFLICT: '当前目录下已存在同名文件',
   },
 
   FOLDER: {
@@ -62,6 +63,7 @@ export const MSG = {
     UPDATE_SUCCESS: '文件夹已更新',
     NAME_REQUIRED: '文件夹名不能为空',
     NAME_TOO_LONG: '文件夹名过长',
+    NAME_CONFLICT: '当前目录下已存在同名文件夹',
   },
 
   ALBUM: {

@@ -6,7 +6,7 @@ import { getFileUrl, MSG } from '../../_shared/utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
-import { NotFoundError } from '../../errors.js';
+import { NotFoundError, ConflictError } from '../../errors.js';
 import { parsePagination } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
@@ -102,7 +102,12 @@ app.put(
     const file = await repo.findById(fileId);
     if (!file) throw new NotFoundError(MSG.FILE.NOT_FOUND);
 
-    await repo.update(fileId, { name });
+    if (name.trim() !== file.name) {
+      const hasConflict = await repo.checkNameConflict(file.folder_id, name.trim(), fileId);
+      if (hasConflict) throw new ConflictError(MSG.FILE.NAME_CONFLICT || "当前目录下已存在同名文件");
+    }
+
+    await repo.update(fileId, { name: name.trim() });
     return c.json({ success: true, message: MSG.FILE.RENAME_SUCCESS });
   }
 );
@@ -168,6 +173,18 @@ app.post(
     }
 
     const repo = new FileRepository(env.DB);
+    
+    // 获取要移动的文件记录以提取原名
+    const targetFiles = await repo.findByIds(ids);
+    const validNames = targetFiles.map(f => f.name);
+
+    if (validNames.length > 0) {
+      const conflicts = await repo.findConflictingNames(targetFolderId || 'root', validNames);
+      if (conflicts.length > 0) {
+        throw new ConflictError(`目标目录下已存在同名文件: ${conflicts.slice(0, 3).join(', ')}${conflicts.length > 3 ? ' 等' : ''}`);
+      }
+    }
+
     await repo.moveBatch(ids, targetFolderId || 'root');
 
     return c.json({ success: true, message: MSG.FILE.MOVE_SUCCESS.replace('{count}', ids.length) });

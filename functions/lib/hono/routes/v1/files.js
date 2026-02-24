@@ -11,7 +11,7 @@ import { withCache, invalidateCache } from '../../middleware/cache.js';
 import { getFileUrl, generateId, MSG } from '../../_shared/utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
-import { NotFoundError, BadRequestError } from '../../errors.js';
+import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
 
 const app = new Hono();
 
@@ -153,12 +153,18 @@ app.post('/', requirePermission('files:write'), zValidator('json', CreateFileSch
   const { env } = c;
 
   const repo = new FileRepository(env.DB);
+
+  if (data.name) {
+    const hasConflict = await repo.checkNameConflict(data.folderId || null, data.name.trim());
+    if (hasConflict) throw new ConflictError(MSG.FILE.NAME_CONFLICT || "当前目录下已存在同名文件");
+  }
+
   const id = generateId();
   const nowMs = Date.now();
 
   await repo.create({
     id,
-    name: data.name,
+    name: data.name.trim(),
     folderId: data.folderId,
     isPublic: data.isPublic,
     storageKey: id,
@@ -189,7 +195,21 @@ app.put('/:id', requirePermission('files:write'), async (c) => {
   if (!file) throw new NotFoundError(MSG.FILE.NOT_FOUND);
 
   const updates = {};
-  if (data.name !== undefined) updates.name = data.name;
+  
+  // 重名冲突检查
+  let checkFolderId = file.folder_id;
+  let checkName = file.name;
+  if (data.folderId !== undefined) checkFolderId = data.folderId || null;
+  if (data.name !== undefined) checkName = data.name.trim();
+
+  if (data.name !== undefined || data.folderId !== undefined) {
+    if (checkFolderId !== file.folder_id || checkName !== file.name) {
+      const hasConflict = await repo.checkNameConflict(checkFolderId, checkName, id);
+      if (hasConflict) throw new ConflictError(MSG.FILE.NAME_CONFLICT || "当前目录下已存在同名文件");
+    }
+  }
+
+  if (data.name !== undefined) updates.name = data.name.trim();
   if (data.folderId !== undefined) updates.folder_id = data.folderId;
   if (data.isPublic !== undefined) updates.is_public = data.isPublic ? 1 : 0;
 
@@ -268,6 +288,17 @@ app.post(
     if (targetFolderId && targetFolderId !== 'root') {
       const folder = await folderRepo.findById(targetFolderId);
       if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
+    }
+
+    // 批量重名检查
+    const targetFiles = await fileRepo.findByIds(ids);
+    const validNames = targetFiles.map(f => f.name);
+
+    if (validNames.length > 0) {
+      const conflicts = await fileRepo.findConflictingNames(targetFolderId || 'root', validNames);
+      if (conflicts.length > 0) {
+        throw new ConflictError(`目标目录下已存在同名文件: ${conflicts.slice(0, 3).join(', ')}${conflicts.length > 3 ? ' 等' : ''}`);
+      }
     }
 
     await fileRepo.moveBatch(ids, targetFolderId || 'root');

@@ -297,4 +297,69 @@ export class FileRepository {
 
         return await this.db.prepare(sql).bind(...bindings).first();
     }
+
+    /**
+     * 在指定文件夹中检查同名文件（支持排除自己）
+     * @param {string} folderId
+     * @param {string} name
+     * @param {string} [excludeId]
+     * @returns {Promise<boolean>}
+     */
+    async checkNameConflict(folderId, name, excludeId = null) {
+        let sql = "SELECT 1 as exist FROM files WHERE name = ? AND (is_deleted IS NULL OR is_deleted = 0)";
+        const bindings = [name];
+
+        if (folderId && folderId !== 'root') {
+            sql += " AND folder_id = ?";
+            bindings.push(folderId);
+        } else {
+            sql += " AND (folder_id = 'root' OR folder_id IS NULL)";
+        }
+
+        if (excludeId) {
+            sql += " AND id != ?";
+            bindings.push(excludeId);
+        }
+
+        sql += " LIMIT 1";
+        const result = await this.db.prepare(sql).bind(...bindings).first();
+        return !!result;
+    }
+
+    /**
+     * 批量查询当前移动的多个文件名字，在目标文件夹中是否有重名
+     * @param {string} folderId 
+     * @param {Array<string>} names 
+     * @returns {Promise<Array<string>>} - 返回有冲突的文件名数组
+     */
+    async findConflictingNames(folderId, names) {
+        if (!names || names.length === 0) return [];
+        
+        const placeholders = names.map(() => '?').join(',');
+        const bindings = [...names];
+        
+        let sql = `SELECT name FROM files WHERE name IN (${placeholders}) AND (is_deleted IS NULL OR is_deleted = 0)`;
+        
+        if (folderId && folderId !== 'root') {
+            sql += " AND folder_id = ?";
+            bindings.push(folderId);
+        } else {
+            sql += " AND (folder_id = 'root' OR folder_id IS NULL)";
+        }
+
+        const { results } = await this.db.prepare(sql).bind(...bindings).all();
+        return results.map(r => r.name);
+    }
+    
+    /**
+     * 获取指定 ID 集合的文件记录
+     * @param {Array<string>} ids 
+     * @returns {Promise<Array<Object>>}
+     */
+    async findByIds(ids) {
+        if (!ids || ids.length === 0) return [];
+        const placeholders = ids.map(() => '?').join(',');
+        const { results } = await this.db.prepare(`SELECT * FROM files WHERE id IN (${placeholders})`).bind(...ids).all();
+        return results;
+    }
 }
