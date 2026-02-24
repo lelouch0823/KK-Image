@@ -63,6 +63,7 @@ export default {
   confirmVoid: 'Are you sure you want to void this order? This action cannot be undone.',
   success: 'Operation Successful',
   view: 'View',
+  viewDetails: 'View Details',
   items: 'Items',
   selected: 'Selected',
   verifying: 'Verifying Identity...',

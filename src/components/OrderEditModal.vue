@@ -69,6 +69,27 @@
 
     </div>
 
+    <!-- Danger Zone (Admin Only) -->
+    <div v-if="mode === 'admin'" class="mt-8 rounded-2xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5 p-4 sm:p-5">
+      <h3 class="mb-2 flex items-center gap-2 text-base font-bold text-[var(--text-main)]">
+        <svg class="size-4 text-[var(--color-danger)]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        {{ t('order.detail.dangerZone') || '危险区域 / Danger Zone' }}
+      </h3>
+      <div class="sm:flex sm:items-center sm:justify-between">
+        <p class="mb-4 text-sm text-[var(--text-secondary)] sm:mb-0 sm:max-w-xl">
+          {{ t('order.detail.dangerWarning') || '此操作不可逆。订单及其关联的客户信息、图片文件、留言和所有历史记录将被永久擦除。建议优先使用“作废”功能。' }}
+        </p>
+        <button 
+          class="inline-flex w-full shrink-0 items-center justify-center rounded-lg bg-[var(--color-danger)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--color-danger)]/90 focus:ring-2 focus:ring-[var(--color-danger)] focus:ring-offset-2 sm:w-auto"
+          @click="$emit('delete-order')"
+        >
+          {{ t('order.detail.deletePermanently') || '彻底删除订单' }}
+        </button>
+      </div>
+    </div>
+
     <template #footer>
       <button
         class="rounded-lg border border-[var(--border-subtle)] px-5 py-2 font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
@@ -163,7 +184,7 @@ const props = defineProps({
   zIndex: { type: [Number, String], default: 100 },
 });
 
-const emit = defineEmits(['close', 'submit']);
+const emit = defineEmits(['close', 'submit', 'delete-order']);
 
 const { t } = useI18n();
 const editReason = ref('');

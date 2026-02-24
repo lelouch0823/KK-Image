@@ -212,6 +212,21 @@ export class ProductRepository {
     }
 
     /**
+     * 原子增减库存
+     * @param {string} productId
+     * @param {number} delta - 正数加库存，负数减库存
+     */
+    async adjustStock(productId, delta) {
+        const now = Date.now();
+        const result = await this.db.prepare(
+            `UPDATE products 
+             SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ? 
+             WHERE id = ?`
+        ).bind(delta, now, productId).run();
+        return result.meta?.changes > 0;
+    }
+
+    /**
      * 根据条件搜索
      * @param {Object} filters { search, category, brand, status, page, limit }
      */

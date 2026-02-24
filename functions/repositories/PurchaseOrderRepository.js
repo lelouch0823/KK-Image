@@ -253,6 +253,29 @@ export class PurchaseOrderRepository {
   }
 
   /**
+   * 更新单条明细项（数量/单价）
+   * @param {string} itemId - 明细 ID
+   * @param {Object} updates - { quantity?, unit_cost? }
+   * @returns {Promise<boolean>} 是否更新成功
+   */
+  async updateItem(itemId, updates) {
+    const fields = [];
+    const values = [];
+
+    if (updates.quantity !== undefined) { fields.push('quantity = ?'); values.push(updates.quantity); }
+    if (updates.unit_cost !== undefined) { fields.push('unit_cost = ?'); values.push(updates.unit_cost); }
+
+    if (fields.length === 0) return false;
+
+    values.push(itemId);
+    const result = await this.db.prepare(
+      `UPDATE purchase_order_items SET ${fields.join(', ')} WHERE id = ?`
+    ).bind(...values).run();
+
+    return (result.meta?.changes || 0) > 0;
+  }
+
+  /**
    * 获取采购单的所有关联客户订单 ID
    */
   async getLinkedOrderIds(poId) {

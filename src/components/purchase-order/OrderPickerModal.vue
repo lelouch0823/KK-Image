@@ -84,20 +84,23 @@
               </label>
 
               <!-- 订单卡片 -->
-              <label
+              <div
                 v-for="order in filteredOrders"
                 :key="order.id"
                 class="group flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-all duration-200"
                 :class="isSelected(order.id)
                   ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 shadow-sm'
                   : 'border-[var(--border-subtle)] hover:border-[var(--border-color)] hover:bg-[var(--bg-hover)]'"
+                @click="viewOrder(order)"
               >
-                <input
-                  type="checkbox"
-                  :checked="isSelected(order.id)"
-                  class="mt-0.5 size-4 cursor-pointer rounded border-[var(--border-color)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
-                  @change="toggleSelect(order)"
-                />
+                <div class="pt-0.5" @click.stop>
+                  <input
+                    type="checkbox"
+                    :checked="isSelected(order.id)"
+                    class="size-4 cursor-pointer rounded border-[var(--border-color)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                    @change="toggleSelect(order)"
+                  />
+                </div>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-2">
                     <code class="truncate rounded bg-[var(--bg-muted)] px-1.5 py-0.5 font-mono text-xs text-[var(--text-secondary)]">{{ order.orderNo }}</code>
@@ -112,7 +115,7 @@
                     <span v-if="order.brand" class="rounded bg-[var(--bg-muted)] px-1.5 py-0.5">{{ order.brand }}</span>
                   </div>
                 </div>
-              </label>
+              </div>
             </div>
           </div>
 
@@ -143,6 +146,30 @@
         </div>
       </div>
     </transition>
+
+    <!-- 订单详情弹窗 -->
+    <Modal
+      v-model="showDetailModal"
+      :title="t('order.detail.title') || '预定单详情'"
+      size="5xl"
+      body-class="p-0 bg-[var(--bg-page)] relative min-h-[50vh]"
+    >
+      <div v-if="loadingDetail" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--bg-page)]/80 backdrop-blur-sm">
+        <svg class="size-8 animate-spin text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <div class="mt-4 text-sm text-[var(--text-secondary)]">{{ t('common.loading') }}</div>
+      </div>
+      
+      <div class="h-[75vh] overflow-y-auto p-4 sm:p-6" v-if="viewingOrder">
+        <OrderDetail
+          :order="viewingOrder"
+          mode="admin"
+          @close="showDetailModal = false"
+        />
+      </div>
+    </Modal>
   </Teleport>
 </template>
 
@@ -160,6 +187,8 @@
 import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useOrders } from '@/composables/useOrders';
+import Modal from '@/components/ui/Modal.vue';
+import OrderDetail from '@/components/order/OrderDetail.vue';
 
 const props = defineProps({
   /** 控制弹窗可见性 */
@@ -171,11 +200,31 @@ const props = defineProps({
 const emit = defineEmits(['close', 'confirm']);
 
 const { t } = useI18n();
-const { loadOrders, orders, loading } = useOrders();
+const { loadOrders, orders, loading, getOrder } = useOrders();
 
 // ─── 状态 ────────────────────────────────────────────
 const searchQuery = ref('');
 const selected = ref([]);
+
+const showDetailModal = ref(false);
+const loadingDetail = ref(false);
+const viewingOrder = ref(null);
+
+const viewOrder = async (order) => {
+  showDetailModal.value = true;
+  loadingDetail.value = true;
+  
+  // 获取完整的订单详情（包含图片等），以免详情页部分信息缺失
+  const fullOrder = await getOrder(order.id);
+  
+  if (fullOrder) {
+    viewingOrder.value = fullOrder;
+  } else {
+    showDetailModal.value = false;
+  }
+  
+  loadingDetail.value = false;
+};
 
 // ─── 前端过滤 ────────────────────────────────────────
 const filteredOrders = computed(() => {
@@ -186,6 +235,9 @@ const filteredOrders = computed(() => {
     const excludeSet = new Set(props.excludeIds);
     list = list.filter(o => !excludeSet.has(o.id));
   }
+
+  // 严格过滤仅已确认状态
+  list = list.filter(o => o.status === 'confirmed');
 
   // 搜索过滤
   if (searchQuery.value.trim()) {

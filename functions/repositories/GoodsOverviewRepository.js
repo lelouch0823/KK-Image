@@ -94,7 +94,7 @@ export class GoodsOverviewRepository {
 
     const sql = `
         SELECT 
-            COALESCE(p.id, o.id) as id,
+            o.product_id as id,
             COALESCE(p.name, json_extract(o.current_data, '$.name')) as name,
             COALESCE(p.sku, '-') as sku,
             COALESCE(p.brand, json_extract(o.current_data, '$.brand'), '-') as brand,
@@ -124,7 +124,7 @@ export class GoodsOverviewRepository {
           GROUP BY product_id
         ) pc ON pc.product_id = p.id
         WHERE ${whereClause}
-        GROUP BY COALESCE(p.id, json_extract(o.current_data, '$.name'))
+        GROUP BY o.product_id
         ${havingClause}
         ORDER BY ${orderBy}
     `;
@@ -175,13 +175,13 @@ export class GoodsOverviewRepository {
     const [mainResult, shortageResult] = await Promise.all([
       this.db.prepare(`
         SELECT 
-            COUNT(DISTINCT COALESCE(p.id, json_extract(o.current_data, '$.name'))) as total_products,
+            COUNT(DISTINCT o.product_id) as total_products,
             COALESCE(SUM(o.quantity), 0) as total_demand,
             -- 不同商品数
-            COUNT(DISTINCT CASE WHEN o.status = 'confirmed' THEN COALESCE(p.id, json_extract(o.current_data, '$.name')) END) as confirmed_products,
-            COUNT(DISTINCT CASE WHEN o.status = 'production' THEN COALESCE(p.id, json_extract(o.current_data, '$.name')) END) as production_products,
-            COUNT(DISTINCT CASE WHEN o.status = 'shipping'  THEN COALESCE(p.id, json_extract(o.current_data, '$.name')) END) as shipping_products,
-            COUNT(DISTINCT CASE WHEN o.status = 'arrived'   THEN COALESCE(p.id, json_extract(o.current_data, '$.name')) END) as arrived_products,
+            COUNT(DISTINCT CASE WHEN o.status = 'confirmed' THEN o.product_id END) as confirmed_products,
+            COUNT(DISTINCT CASE WHEN o.status = 'production' THEN o.product_id END) as production_products,
+            COUNT(DISTINCT CASE WHEN o.status = 'shipping'  THEN o.product_id END) as shipping_products,
+            COUNT(DISTINCT CASE WHEN o.status = 'arrived'   THEN o.product_id END) as arrived_products,
             -- 件数
             COALESCE(SUM(CASE WHEN o.status = 'confirmed' THEN o.quantity ELSE 0 END), 0) as confirmed_qty,
             COALESCE(SUM(CASE WHEN o.status = 'production' THEN o.quantity ELSE 0 END), 0) as production_qty,
@@ -199,12 +199,12 @@ export class GoodsOverviewRepository {
 
       this.db.prepare(`
         SELECT COUNT(*) as count FROM (
-            SELECT COALESCE(p.id, json_extract(o.current_data, '$.name')) as id,
+            SELECT o.product_id as id,
                 COALESCE(SUM(o.quantity), 0) - COALESCE(MAX(p.stock_quantity), 0) as shortage
             FROM orders o
             LEFT JOIN products p ON o.product_id = p.id AND p.status = 'active'
             WHERE o.status IN (${this.STATUS_IN_CLAUSE}) AND o.product_id IS NOT NULL
-            GROUP BY COALESCE(p.id, json_extract(o.current_data, '$.name'))
+            GROUP BY o.product_id
             HAVING shortage > 0
         )
       `).bind(...this.ACTIVE_STATUSES).all(),

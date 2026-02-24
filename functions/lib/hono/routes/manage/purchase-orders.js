@@ -184,6 +184,25 @@ app.post('/:id/items', async (c) => {
 });
 
 /**
+ * PATCH /:id/items/:itemId — 更新单条明细（数量/单价）
+ * Body: { quantity?, unit_cost? }
+ */
+app.patch('/:id/items/:itemId', async (c) => {
+  const body = await c.req.json();
+  const repo = new PurchaseOrderRepository(c.env.DB);
+
+  // 校验采购单存在且为草稿状态
+  const po = await repo.findById(c.req.param('id'));
+  if (!po) throw new NotFoundError('采购单不存在');
+  if (po.status !== 'draft') throw new BadRequestError('仅草稿状态允许修改明细');
+
+  const updated = await repo.updateItem(c.req.param('itemId'), body);
+  if (!updated) throw new NotFoundError('明细不存在');
+
+  return c.json({ success: true });
+});
+
+/**
  * DELETE /:id/items/:itemId — 删除明细
  */
 app.delete('/:id/items/:itemId', async (c) => {

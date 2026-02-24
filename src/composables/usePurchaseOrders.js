@@ -215,6 +215,27 @@ export function usePurchaseOrders() {
     }
   };
 
+  const updateItem = async (poId, itemId, updates) => {
+    try {
+      const res = await fetch(API.MANAGE_PURCHASE_ORDER_ITEM(poId, itemId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        addToast({ message: t('purchaseOrder.toast.itemUpdated') || '明细已更新', type: 'success' });
+        return true;
+      }
+      addToast({ message: json.error, type: 'error' });
+      return false;
+    } catch (e) {
+      console.error('updateItem failed:', e);
+      return false;
+    }
+  };
+
   const removeItem = async (poId, itemId) => {
     try {
       const res = await fetch(API.MANAGE_PURCHASE_ORDER_ITEM(poId, itemId), {
@@ -300,7 +321,7 @@ export function usePurchaseOrders() {
     // 状态
     updateStatus,
     // 明细
-    addItems, removeItem,
+    addItems, removeItem, updateItem,
     // 成本
     allocateCosts,
     // 建议

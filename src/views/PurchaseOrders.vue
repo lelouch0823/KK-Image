@@ -309,12 +309,24 @@
 
               <!-- 明细列表 -->
               <div class="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-4 shadow-sm">
-                <h3 class="mb-3 text-sm font-semibold text-[var(--text-main)]">{{ t('purchaseOrder.detail.items') }} ({{ detail.items?.length || 0 }})</h3>
+                <div class="mb-3 flex items-center justify-between">
+                  <h3 class="text-sm font-semibold text-[var(--text-main)]">{{ t('purchaseOrder.detail.items') }} ({{ detail.items?.length || 0 }})</h3>
+                  <div v-if="detail.status === 'draft'" class="flex items-center gap-2">
+                    <button type="button" class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 px-2.5 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/10" @click="openOrderPicker('detail')">
+                      <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                      {{ t('purchaseOrder.action.linkOrders') }}
+                    </button>
+                    <button type="button" class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--border-color)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--bg-hover)]" @click="openProductPicker('detail')">
+                      <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                      {{ t('purchaseOrder.action.addProduct') }}
+                    </button>
+                  </div>
+                </div>
                 <div v-if="detail.items && detail.items.length > 0" class="space-y-3">
                   <div
                     v-for="item in detail.items"
                     :key="item.id"
-                    class="flex items-center justify-between rounded-xl border border-[var(--border-subtle)] p-3 transition-colors hover:bg-[var(--bg-hover)]"
+                    class="group flex flex-col justify-between gap-3 rounded-xl border border-[var(--border-subtle)] p-3 transition-colors hover:bg-[var(--bg-hover)] sm:flex-row sm:items-center"
                   >
                     <div class="flex items-center gap-3">
                       <div class="flex size-10 items-center justify-center rounded-xl bg-[var(--bg-muted)]">
@@ -323,7 +335,13 @@
                         </svg>
                       </div>
                       <div>
-                        <div class="text-sm font-medium text-[var(--text-main)]">{{ item.product_name || '—' }}</div>
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm font-medium text-[var(--text-main)]">{{ item.product_name || '—' }}</span>
+                          <span v-if="detail.status === 'draft'" class="flex cursor-pointer items-center gap-0.5 text-xs text-[var(--color-danger)] opacity-0 transition-opacity group-hover:opacity-100" @click="handleDetailRemoveItem(item.id)">
+                            <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            {{ t('common.delete') }}
+                          </span>
+                        </div>
                         <div class="text-xs text-[var(--text-secondary)]">
                           {{ item.product_sku || '' }}
                           <span v-if="item.customer_order_no" class="ml-2 text-[var(--color-info)]">→ {{ item.customer_order_no }}</span>
@@ -331,7 +349,21 @@
                         </div>
                       </div>
                     </div>
-                    <div class="text-right">
+                    
+                    <div v-if="detail.status === 'draft'" class="flex items-center justify-end gap-3 pl-12 sm:pl-0">
+                      <div class="flex flex-col items-center">
+                        <span class="mb-1 text-[10px] text-[var(--text-secondary)]">{{ t('purchaseOrder.table.quantity') }}</span>
+                        <input type="number" min="1" v-model.number="item.quantity" @change="handleDetailUpdateItem(item.id, 'quantity', item.quantity)" class="w-16 rounded-md border border-[var(--border-color)] bg-[var(--bg-page)] px-2 py-1 text-center font-[Outfit] text-sm text-[var(--text-main)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]" />
+                      </div>
+                      <div class="flex flex-col items-center">
+                        <span class="mb-1 text-[10px] text-[var(--text-secondary)]">{{ t('purchaseOrder.table.unitCost') }}</span>
+                        <div class="relative">
+                          <span class="absolute left-2 top-1.5 text-xs text-[var(--text-secondary)]">¥</span>
+                          <input type="number" step="0.01" min="0" v-model.number="item.unit_cost" @change="handleDetailUpdateItem(item.id, 'unit_cost', item.unit_cost)" class="w-20 rounded-md border border-[var(--border-color)] bg-[var(--bg-page)] py-1 pl-5 pr-2 text-right font-[Outfit] text-sm text-[var(--text-main)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]" />
+                        </div>
+                      </div>
+                    </div>
+                    <div v-else class="text-right">
                       <div class="font-[Outfit] text-sm font-medium text-[var(--text-main)]">×{{ item.quantity }} · ¥{{ (item.unit_cost || 0).toFixed(2) }}</div>
                       <div v-if="item.allocated_freight > 0 || item.allocated_tariff > 0" class="text-xs text-[var(--text-secondary)]">
                         {{ t('purchaseOrder.allocation.freight') }} ¥{{ (item.allocated_freight || 0).toFixed(2) }}
@@ -406,7 +438,7 @@
                       <button
                         type="button"
                         class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/10"
-                        @click="openOrderPicker"
+                        @click="openOrderPicker('create')"
                       >
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                         {{ t('purchaseOrder.action.linkOrders') }}
@@ -414,7 +446,7 @@
                       <button
                         type="button"
                         class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--border-color)] px-3 py-1.5 text-xs font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--bg-hover)]"
-                        @click="openProductPicker"
+                        @click="openProductPicker('create')"
                       >
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                         {{ t('purchaseOrder.action.addProduct') }}
@@ -674,7 +706,7 @@ const {
   filters, statusConfig,
   loadList, loadStats, loadDetail,
   createPO, createFromOrders, updateStatus,
-  loadSuggestions, addItems,
+  loadSuggestions, addItems, removeItem, updateItem,
 } = usePurchaseOrders();
 
 // ─── 本地状态 ────────────────────────────────────────
@@ -688,6 +720,7 @@ const selectedSuggestions = ref([]);
 const showOrderPicker = ref(false);
 const showProductPicker = ref(false);
 const showShortageConfirm = ref(false);
+const pickerTarget = ref('create'); // 'create' or 'detail'
 
 // 采购明细列表 (本地编辑用)
 // 结构: { product_id, product_name, sku, brand, image, quantity, unit_cost, customer_order_id?, order_no?, required_quantity? }
@@ -749,15 +782,19 @@ const openDetail = async (id) => {
   await loadDetail(id);
 };
 
-// ─── 新建采购单 - 选择器打开 ──────────────────────
-const openOrderPicker = () => { showOrderPicker.value = true; };
-const openProductPicker = () => { showProductPicker.value = true; };
+// ─── 新建/编辑采购单 - 选择器打开 ──────────────────────
+const openOrderPicker = (target = 'create') => { pickerTarget.value = target; showOrderPicker.value = true; };
+const openProductPicker = (target = 'create') => { pickerTarget.value = target; showProductPicker.value = true; };
 
-// 从预定单选择器接收选中的订单 → 转化为 poItems 行
-const handleOrdersSelected = (orders) => {
+// 从预定单选择器接收选中的订单 → 转化为 poItems 行或直接添加到草稿
+const handleOrdersSelected = async (orders) => {
+  const itemsToAdd = [];
   for (const order of orders) {
     // 避免重复添加同一个订单
-    if (poItems.some(i => i.customer_order_id === order.id)) continue;
+    const isDuplicate = pickerTarget.value === 'create'
+      ? poItems.some(i => i.customer_order_id === order.id)
+      : detail.value?.items?.some(i => i.customer_order_id === order.id);
+    if (isDuplicate) continue;
 
     // 解析 current_data 获取商品详情
     let data = {};
@@ -769,7 +806,7 @@ const handleOrdersSelected = (orders) => {
         : {};
     } catch { /* 忽略 */ }
 
-    poItems.push({
+    itemsToAdd.push({
       product_id: order.productId || order.product_id || null,
       product_name: order.productName || data.name || '—',
       sku: data.sku || '—',
@@ -782,13 +819,37 @@ const handleOrdersSelected = (orders) => {
       required_quantity: order.quantity || 1, // 预定需求量
     });
   }
+
+  if (itemsToAdd.length === 0) return;
+
+  if (pickerTarget.value === 'create') {
+    poItems.push(...itemsToAdd);
+  } else if (pickerTarget.value === 'detail' && detail.value) {
+    // 详情草稿面板：直接调用接口添加明细
+    const newItems = itemsToAdd.map(i => ({
+      product_id: i.product_id,
+      customer_order_id: i.customer_order_id,
+      quantity: i.quantity,
+      unit_cost: i.unit_cost,
+    }));
+    const success = await addItems(detail.value.id, newItems);
+    if (success) {
+      await loadDetail(detail.value.id);
+      loadList();
+      loadStats();
+    }
+  }
 };
 
-// 从商品选择器接收选中的商品 → 转化为 poItems 行 (补货)
-const handleProductsSelected = (products) => {
+// 从商品选择器接收选中的商品 → 转化为 poItems 行或直接添加到草稿 (补货)
+const handleProductsSelected = async (products) => {
+  const itemsToAdd = [];
   for (const product of products) {
     // 如果该商品已经存在于列表中（非订单关联），跳过
-    if (poItems.some(i => i.product_id === product.id && !i.customer_order_id)) continue;
+    const isDuplicate = pickerTarget.value === 'create'
+      ? poItems.some(i => i.product_id === product.id && !i.customer_order_id)
+      : detail.value?.items?.some(i => i.product_id === product.id && !i.customer_order_id);
+    if (isDuplicate) continue;
 
     let mainImage = null;
     try {
@@ -796,7 +857,7 @@ const handleProductsSelected = (products) => {
       mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
     } catch { /* 忽略 */ }
 
-    poItems.push({
+    itemsToAdd.push({
       product_id: product.id,
       product_name: product.name,
       sku: product.sku || '—',
@@ -809,6 +870,25 @@ const handleProductsSelected = (products) => {
       required_quantity: null, // 补货无需求限制
     });
   }
+
+  if (itemsToAdd.length === 0) return;
+
+  if (pickerTarget.value === 'create') {
+    poItems.push(...itemsToAdd);
+  } else if (pickerTarget.value === 'detail' && detail.value) {
+    const newItems = itemsToAdd.map(i => ({
+      product_id: i.product_id,
+      customer_order_id: null,
+      quantity: i.quantity,
+      unit_cost: i.unit_cost,
+    }));
+    const success = await addItems(detail.value.id, newItems);
+    if (success) {
+      await loadDetail(detail.value.id);
+      loadList();
+      loadStats();
+    }
+  }
 };
 
 // 删除单条明细
@@ -819,9 +899,39 @@ const removePoItem = (idx) => {
 // 计算属性
 const totalCreateQty = computed(() => poItems.reduce((sum, i) => sum + (i.quantity || 0), 0));
 const shortageItems = computed(() => poItems.filter(i => i.required_quantity && i.quantity < i.required_quantity));
-const excludeOrderIds = computed(() => poItems.filter(i => i.customer_order_id).map(i => i.customer_order_id));
-const excludeProductIds = computed(() => poItems.filter(i => !i.customer_order_id && i.product_id).map(i => i.product_id));
-const existingBrands = computed(() => [...new Set(poItems.map(i => i.brand).filter(Boolean))]);
+const excludeOrderIds = computed(() => {
+  const items = pickerTarget.value === 'detail' && detail.value ? (detail.value.items || []) : poItems;
+  return items.filter(i => i.customer_order_id).map(i => i.customer_order_id);
+});
+const excludeProductIds = computed(() => {
+  const items = pickerTarget.value === 'detail' && detail.value ? (detail.value.items || []) : poItems;
+  return items.filter(i => !i.customer_order_id && i.product_id).map(i => i.product_id);
+});
+const existingBrands = computed(() => {
+  const items = pickerTarget.value === 'detail' && detail.value ? (detail.value.items || []) : poItems;
+  return [...new Set(items.map(i => i.brand).filter(Boolean))];
+});
+
+// 详情明细编辑处理
+const handleDetailUpdateItem = async (itemId, field, value) => {
+  if (!detail.value || detail.value.status !== 'draft') return;
+  const success = await updateItem(detail.value.id, itemId, { [field]: value });
+  if (success) {
+    await loadDetail(detail.value.id);
+    loadList();
+    loadStats();
+  }
+};
+
+const handleDetailRemoveItem = async (itemId) => {
+  if (!detail.value || detail.value.status !== 'draft') return;
+  const success = await removeItem(detail.value.id, itemId);
+  if (success) {
+    await loadDetail(detail.value.id);
+    loadList();
+    loadStats();
+  }
+};
 
 // 创建采购单
 const handleCreate = async () => {

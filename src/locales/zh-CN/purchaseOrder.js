@@ -45,6 +45,7 @@ export default {
     items: '采购明细',
     linkedOrder: '关联订单',
     publicStock: '补公共库存',
+    orderLocked: '与预定单关联的商品请通过管理关联订单来变更',
   },
 
   // 表单
@@ -62,7 +63,9 @@ export default {
     unitCost: '单件入货成本',
     quantity: '数量',
     itemList: '采购商品',
-    noItems: '请通过上方按钮添加采购商品',
+    linkOrders: '关联预定单',
+    addProducts: '增加商品',
+    noItems: '暂未添加采购商品，请通过上方按钮引入',
     source: '来源',
     sourceOrder: '预定单',
     sourceStock: '补货',
@@ -93,6 +96,7 @@ export default {
     created: '采购单已创建',
     createdFromOrders: '已从客户订单生成采购单',
     updated: '采购单已更新',
+    itemUpdated: '明细已更新',
     statusUpdated: '状态已更新',
     itemsAdded: '商品已添加',
     itemRemoved: '商品已移除',
