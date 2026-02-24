@@ -19,6 +19,7 @@ import customer from './customer';
 import misc from './misc';
 import trash from './trash';
 import goodsOverview from './goodsOverview';
+import purchaseOrder from './purchaseOrder';
 
 export default {
   common,
@@ -65,4 +66,5 @@ export default {
   auditLogs: misc.auditLogs,
   trash,
   goodsOverview,
+  purchaseOrder,
 };

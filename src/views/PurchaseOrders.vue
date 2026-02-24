@@ -354,59 +354,247 @@
       </transition>
     </Teleport>
 
-    <!-- ==================== 新建采购单 Modal ==================== -->
+    <!-- ==================== 新建采购单 Modal (增强版) ==================== -->
     <Teleport to="body">
       <transition name="fade">
         <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div class="absolute inset-0 bg-[var(--color-overlay-dim)] backdrop-blur-sm" @click="showCreateModal = false"></div>
-          <div class="relative w-full max-w-lg rounded-2xl bg-[var(--color-modal-bg)] p-6 shadow-xl">
-            <h2 class="mb-4 text-lg font-bold text-[var(--text-main)]">{{ t('purchaseOrder.action.create') }}</h2>
-            <div class="space-y-4">
-              <div>
-                <label class="text-xs font-medium text-[var(--text-secondary)]">{{ t('purchaseOrder.form.remark') }}</label>
-                <input
-                  v-model="createForm.remark"
-                  type="text"
-                  class="mt-1 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] px-3 py-2.5 text-sm text-[var(--text-main)] focus:ring-2 focus:ring-[var(--color-primary)] focus:outline-none"
-                  :placeholder="t('purchaseOrder.form.remarkPlaceholder')"
-                />
-              </div>
-              <div class="grid grid-cols-2 gap-4">
+          <div class="relative flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-[var(--color-modal-bg)] shadow-xl" style="max-height: calc(100vh - 3rem)">
+            <!-- 头部 -->
+            <div class="flex items-center justify-between border-b border-[var(--border-color)] px-6 py-4">
+              <h2 class="text-lg font-bold text-[var(--text-main)]">{{ t('purchaseOrder.action.create') }}</h2>
+              <button type="button" class="cursor-pointer rounded-lg p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]" @click="showCreateModal = false">
+                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+
+            <!-- 可滚动主体 -->
+            <div class="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+              <div class="space-y-5">
+                <!-- 基础信息 -->
                 <div>
-                  <label class="text-xs font-medium text-[var(--text-secondary)]">{{ t('purchaseOrder.form.estimatedShipping') }}</label>
-                  <input v-model.number="createForm.estimated_shipping_cost" type="number" step="0.01" class="mt-1 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] px-3 py-2.5 text-sm text-[var(--text-main)] focus:ring-2 focus:ring-[var(--color-primary)] focus:outline-none" />
+                  <label class="text-xs font-medium text-[var(--text-secondary)]">{{ t('purchaseOrder.form.remark') }}</label>
+                  <input v-model="createForm.remark" type="text" class="mt-1 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] px-3 py-2.5 text-sm text-[var(--text-main)] focus:ring-2 focus:ring-[var(--color-primary)] focus:outline-none" :placeholder="t('purchaseOrder.form.remarkPlaceholder')" />
                 </div>
-                <div>
-                  <label class="text-xs font-medium text-[var(--text-secondary)]">{{ t('purchaseOrder.form.estimatedTariff') }}</label>
-                  <input v-model.number="createForm.estimated_tariff_cost" type="number" step="0.01" class="mt-1 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] px-3 py-2.5 text-sm text-[var(--text-main)] focus:ring-2 focus:ring-[var(--color-primary)] focus:outline-none" />
+                <div class="grid grid-cols-3 gap-4">
+                  <div>
+                    <label class="text-xs font-medium text-[var(--text-secondary)]">{{ t('purchaseOrder.form.estimatedShipping') }}</label>
+                    <input v-model.number="createForm.estimated_shipping_cost" type="number" step="0.01" class="mt-1 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] px-3 py-2.5 text-sm text-[var(--text-main)] focus:ring-2 focus:ring-[var(--color-primary)] focus:outline-none" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium text-[var(--text-secondary)]">{{ t('purchaseOrder.form.estimatedTariff') }}</label>
+                    <input v-model.number="createForm.estimated_tariff_cost" type="number" step="0.01" class="mt-1 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] px-3 py-2.5 text-sm text-[var(--text-main)] focus:ring-2 focus:ring-[var(--color-primary)] focus:outline-none" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium text-[var(--text-secondary)]">{{ t('purchaseOrder.form.allocationMethod') }}</label>
+                    <select v-model="createForm.allocation_method" class="mt-1 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] px-3 py-2.5 text-sm text-[var(--text-main)] focus:ring-2 focus:ring-[var(--color-primary)] focus:outline-none">
+                      <option value="by_quantity">{{ t('purchaseOrder.form.byQuantity') }}</option>
+                      <option value="by_value">{{ t('purchaseOrder.form.byValue') }}</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label class="text-xs font-medium text-[var(--text-secondary)]">{{ t('purchaseOrder.form.allocationMethod') }}</label>
-                <select v-model="createForm.allocation_method" class="mt-1 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] px-3 py-2.5 text-sm text-[var(--text-main)] focus:ring-2 focus:ring-[var(--color-primary)] focus:outline-none">
-                  <option value="by_quantity">{{ t('purchaseOrder.form.byQuantity') }}</option>
-                  <option value="by_value">{{ t('purchaseOrder.form.byValue') }}</option>
-                </select>
+
+                <!-- 分隔线 + 采购商品列表 -->
+                <div class="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] shadow-sm">
+                  <!-- 列表头部 -->
+                  <div class="flex items-center justify-between border-b border-[var(--border-subtle)] px-4 py-3">
+                    <h3 class="text-sm font-semibold text-[var(--text-main)]">
+                      {{ t('purchaseOrder.form.itemList') }}
+                      <span v-if="poItems.length > 0" class="ml-1 font-[Outfit] text-xs font-normal text-[var(--text-secondary)]">({{ poItems.length }})</span>
+                    </h3>
+                    <div class="flex items-center gap-2">
+                      <button
+                        type="button"
+                        class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/10"
+                        @click="openOrderPicker"
+                      >
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        {{ t('purchaseOrder.action.linkOrders') }}
+                      </button>
+                      <button
+                        type="button"
+                        class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--border-color)] px-3 py-1.5 text-xs font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--bg-hover)]"
+                        @click="openProductPicker"
+                      >
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        {{ t('purchaseOrder.action.addProduct') }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- 空状态 -->
+                  <div v-if="poItems.length === 0" class="flex flex-col items-center py-10">
+                    <div class="flex size-14 items-center justify-center rounded-2xl bg-[var(--bg-muted)]">
+                      <svg class="size-7 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                      </svg>
+                    </div>
+                    <p class="mt-3 text-sm text-[var(--text-secondary)]">{{ t('purchaseOrder.form.noItems') }}</p>
+                  </div>
+
+                  <!-- 商品表格 -->
+                  <div v-else class="overflow-x-auto">
+                    <table class="w-full">
+                      <thead>
+                        <tr class="border-b border-[var(--border-subtle)] text-left text-xs font-medium text-[var(--text-secondary)]">
+                          <th class="px-4 py-2.5">{{ t('purchaseOrder.table.product') }}</th>
+                          <th class="px-4 py-2.5 text-center">{{ t('purchaseOrder.table.quantity') }}</th>
+                          <th class="px-4 py-2.5 text-right">{{ t('purchaseOrder.table.unitCost') }}</th>
+                          <th class="px-4 py-2.5 text-center">{{ t('purchaseOrder.form.source') }}</th>
+                          <th class="w-10 px-2 py-2.5"></th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-[var(--border-subtle)]">
+                        <tr v-for="(item, idx) in poItems" :key="idx" class="group transition-colors hover:bg-[var(--bg-hover)]">
+                          <!-- 商品信息 -->
+                          <td class="px-4 py-3">
+                            <div class="flex items-center gap-2.5">
+                              <div class="size-8 shrink-0 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)]">
+                                <img v-if="item.image" :src="'/file/' + item.image" class="size-full object-cover" />
+                                <div v-else class="flex size-full items-center justify-center text-[var(--text-muted)]">
+                                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                </div>
+                              </div>
+                              <div class="min-w-0">
+                                <div class="truncate text-sm font-medium text-[var(--text-main)]">{{ item.product_name }}</div>
+                                <div class="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                                  <span class="font-mono">{{ item.sku }}</span>
+                                  <span v-if="item.brand">· {{ item.brand }}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <!-- 数量 (可编辑) -->
+                          <td class="px-4 py-3 text-center">
+                            <div class="flex flex-col items-center">
+                              <input
+                                v-model.number="item.quantity"
+                                type="number"
+                                min="1"
+                                class="w-20 rounded-lg border px-2 py-1.5 text-center font-[Outfit] text-sm transition-colors focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none"
+                                :class="item.required_quantity && item.quantity < item.required_quantity
+                                  ? 'border-[var(--color-danger)] text-[var(--color-danger)] bg-[var(--color-danger)]/5'
+                                  : 'border-[var(--border-color)] text-[var(--text-main)] bg-[var(--bg-page)]'"
+                              />
+                              <span
+                                v-if="item.required_quantity && item.quantity < item.required_quantity"
+                                class="mt-1 text-[10px] font-medium text-[var(--color-danger)]"
+                              >
+                                {{ t('purchaseOrder.form.quantityWarning') }} ({{ item.required_quantity }})
+                              </span>
+                            </div>
+                          </td>
+
+                          <!-- 单价 (可编辑) -->
+                          <td class="px-4 py-3 text-right">
+                            <input
+                              v-model.number="item.unit_cost"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              class="w-24 rounded-lg border border-[var(--border-color)] bg-[var(--bg-page)] px-2 py-1.5 text-right font-[Outfit] text-sm text-[var(--text-main)] transition-colors focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none"
+                            />
+                          </td>
+
+                          <!-- 来源标签 -->
+                          <td class="px-4 py-3 text-center">
+                            <span
+                              v-if="item.customer_order_id"
+                              class="inline-flex items-center gap-1 rounded-full bg-[var(--color-info)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--color-info)]"
+                            >
+                              <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                              {{ t('purchaseOrder.form.sourceOrder') }}
+                            </span>
+                            <span v-else class="inline-flex items-center gap-1 rounded-full bg-[var(--bg-muted)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">
+                              <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                              {{ t('purchaseOrder.form.sourceStock') }}
+                            </span>
+                          </td>
+
+                          <!-- 删除按钮 -->
+                          <td class="px-2 py-3">
+                            <button
+                              type="button"
+                              class="cursor-pointer rounded-lg p-1.5 text-[var(--text-muted)] opacity-0 transition-all group-hover:opacity-100 hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)]"
+                              @click="removePoItem(idx)"
+                            >
+                              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="mt-6 flex justify-end gap-3">
-              <button
-                class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
-                @click="showCreateModal = false"
-              >
+
+            <!-- 底部操作栏 -->
+            <div class="flex items-center justify-between border-t border-[var(--border-color)] px-6 py-4">
+              <div class="text-sm text-[var(--text-secondary)]">
+                <span v-if="poItems.length > 0">
+                  {{ poItems.length }} {{ t('purchaseOrder.form.itemsCount') }} · {{ t('purchaseOrder.form.totalQty') }}: <strong class="font-[Outfit]">{{ totalCreateQty }}</strong>
+                </span>
+              </div>
+              <div class="flex items-center gap-3">
+                <button type="button" class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]" @click="showCreateModal = false">
+                  {{ t('common.cancel') }}
+                </button>
+                <button
+                  type="button"
+                  :disabled="poItems.length === 0"
+                  class="cursor-pointer rounded-xl bg-[var(--color-primary)] px-5 py-2.5 text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  @click="handleCreate"
+                >
+                  {{ t('common.create') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
+    <!-- 二次确认弹窗 (数量不足) -->
+    <Teleport to="body">
+      <transition name="fade">
+        <div v-if="showShortageConfirm" class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-[var(--color-overlay-dim)] backdrop-blur-sm" @click="showShortageConfirm = false"></div>
+          <div class="relative w-full max-w-md rounded-2xl bg-[var(--color-modal-bg)] p-6 shadow-xl">
+            <div class="mb-4 flex items-center gap-3">
+              <div class="flex size-10 items-center justify-center rounded-full bg-[var(--color-warning)]/10">
+                <svg class="size-5 text-[var(--color-warning)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+              </div>
+              <h3 class="text-base font-bold text-[var(--text-main)]">{{ t('purchaseOrder.form.confirmShortageTitle') }}</h3>
+            </div>
+            <p class="mb-5 text-sm text-[var(--text-secondary)]">{{ t('purchaseOrder.form.confirmShortage') }}</p>
+            <div class="mb-5 max-h-40 overflow-y-auto rounded-xl border border-[var(--color-warning)]/20 bg-[var(--color-warning)]/5 p-3">
+              <div v-for="item in shortageItems" :key="item.product_id" class="flex items-center justify-between py-1 text-sm">
+                <span class="text-[var(--text-main)]">{{ item.product_name }}</span>
+                <span class="font-[Outfit] text-[var(--color-danger)]">
+                  {{ item.quantity }} / {{ item.required_quantity }}
+                </span>
+              </div>
+            </div>
+            <div class="flex justify-end gap-3">
+              <button type="button" class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]" @click="showShortageConfirm = false">
                 {{ t('common.cancel') }}
               </button>
-              <button
-                class="cursor-pointer rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-medium text-[var(--text-inverse)] transition-colors hover:opacity-90"
-                @click="handleCreate"
-              >
-                {{ t('common.create') }}
+              <button type="button" class="cursor-pointer rounded-xl bg-[var(--color-warning)] px-4 py-2.5 text-sm font-medium text-white hover:opacity-90" @click="executeCreate">
+                {{ t('purchaseOrder.form.confirmCreate') }}
               </button>
             </div>
           </div>
         </div>
       </transition>
     </Teleport>
+
+    <!-- 预定单 / 商品 选择弹窗 -->
+    <OrderPickerModal :visible="showOrderPicker" :exclude-ids="excludeOrderIds" @close="showOrderPicker = false" @confirm="handleOrdersSelected" />
+    <ProductPickerModal :visible="showProductPicker" :existing-brands="existingBrands" :exclude-ids="excludeProductIds" @close="showProductPicker = false" @confirm="handleProductsSelected" />
 
     <!-- ==================== 智能建议 Modal ==================== -->
     <Teleport to="body">
@@ -476,6 +664,8 @@
 import { ref, reactive, computed, onActivated, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { usePurchaseOrders } from '@/composables/usePurchaseOrders';
+import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
+import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
 
 const { t } = useI18n();
 const {
@@ -484,7 +674,7 @@ const {
   filters, statusConfig,
   loadList, loadStats, loadDetail,
   createPO, createFromOrders, updateStatus,
-  loadSuggestions,
+  loadSuggestions, addItems,
 } = usePurchaseOrders();
 
 // ─── 本地状态 ────────────────────────────────────────
@@ -493,6 +683,15 @@ const showDetail = ref(false);
 const showCreateModal = ref(false);
 const showSuggestions = ref(false);
 const selectedSuggestions = ref([]);
+
+// ─── 新建采购单增强状态 ──────────────────────────────
+const showOrderPicker = ref(false);
+const showProductPicker = ref(false);
+const showShortageConfirm = ref(false);
+
+// 采购明细列表 (本地编辑用)
+// 结构: { product_id, product_name, sku, brand, image, quantity, unit_cost, customer_order_id?, order_no?, required_quantity? }
+const poItems = reactive([]);
 
 const createForm = reactive({
   remark: '',
@@ -550,17 +749,121 @@ const openDetail = async (id) => {
   await loadDetail(id);
 };
 
-const handleCreate = async () => {
-  const result = await createPO({ ...createForm });
-  if (result) {
-    showCreateModal.value = false;
-    createForm.remark = '';
-    createForm.estimated_shipping_cost = 0;
-    createForm.estimated_tariff_cost = 0;
-    createForm.allocation_method = 'by_quantity';
-    loadList();
-    loadStats();
+// ─── 新建采购单 - 选择器打开 ──────────────────────
+const openOrderPicker = () => { showOrderPicker.value = true; };
+const openProductPicker = () => { showProductPicker.value = true; };
+
+// 从预定单选择器接收选中的订单 → 转化为 poItems 行
+const handleOrdersSelected = (orders) => {
+  for (const order of orders) {
+    // 避免重复添加同一个订单
+    if (poItems.some(i => i.customer_order_id === order.id)) continue;
+
+    // 解析 current_data 获取商品详情
+    let data = {};
+    try {
+      data = order.currentData || order.current_data
+        ? (typeof (order.currentData || order.current_data) === 'string'
+          ? JSON.parse(order.currentData || order.current_data)
+          : (order.currentData || order.current_data))
+        : {};
+    } catch { /* 忽略 */ }
+
+    poItems.push({
+      product_id: order.productId || order.product_id || null,
+      product_name: order.productName || data.name || '—',
+      sku: data.sku || '—',
+      brand: data.brand || order.brand || '',
+      image: data.images?.[0] || null,
+      quantity: order.quantity || 1,
+      unit_cost: data.cost_price || data.price || 0,
+      customer_order_id: order.id,
+      order_no: order.orderNo || order.order_no || '',
+      required_quantity: order.quantity || 1, // 预定需求量
+    });
   }
+};
+
+// 从商品选择器接收选中的商品 → 转化为 poItems 行 (补货)
+const handleProductsSelected = (products) => {
+  for (const product of products) {
+    // 如果该商品已经存在于列表中（非订单关联），跳过
+    if (poItems.some(i => i.product_id === product.id && !i.customer_order_id)) continue;
+
+    let mainImage = null;
+    try {
+      const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
+      mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
+    } catch { /* 忽略 */ }
+
+    poItems.push({
+      product_id: product.id,
+      product_name: product.name,
+      sku: product.sku || '—',
+      brand: product.brand || '',
+      image: mainImage,
+      quantity: 1,
+      unit_cost: product.cost_price || product.price || 0,
+      customer_order_id: null,
+      order_no: null,
+      required_quantity: null, // 补货无需求限制
+    });
+  }
+};
+
+// 删除单条明细
+const removePoItem = (idx) => {
+  poItems.splice(idx, 1);
+};
+
+// 计算属性
+const totalCreateQty = computed(() => poItems.reduce((sum, i) => sum + (i.quantity || 0), 0));
+const shortageItems = computed(() => poItems.filter(i => i.required_quantity && i.quantity < i.required_quantity));
+const excludeOrderIds = computed(() => poItems.filter(i => i.customer_order_id).map(i => i.customer_order_id));
+const excludeProductIds = computed(() => poItems.filter(i => !i.customer_order_id && i.product_id).map(i => i.product_id));
+const existingBrands = computed(() => [...new Set(poItems.map(i => i.brand).filter(Boolean))]);
+
+// 创建采购单
+const handleCreate = async () => {
+  if (poItems.length === 0) return;
+
+  // 如果有数量低于需求的，弹出二次确认
+  if (shortageItems.value.length > 0) {
+    showShortageConfirm.value = true;
+    return;
+  }
+
+  await executeCreate();
+};
+
+const executeCreate = async () => {
+  showShortageConfirm.value = false;
+
+  // Step 1: 创建空采购单
+  const result = await createPO({ ...createForm });
+  if (!result) return;
+
+  // Step 2: 批量添加明细
+  const items = poItems.map(item => ({
+    product_id: item.product_id,
+    customer_order_id: item.customer_order_id || null,
+    quantity: item.quantity || 1,
+    unit_cost: item.unit_cost || 0,
+  }));
+
+  if (items.length > 0) {
+    await addItems(result.id, items);
+  }
+
+  // Reset
+  showCreateModal.value = false;
+  createForm.remark = '';
+  createForm.estimated_shipping_cost = 0;
+  createForm.estimated_tariff_cost = 0;
+  createForm.allocation_method = 'by_quantity';
+  poItems.splice(0, poItems.length); // 清空
+  loadList();
+  loadStats();
 };
 
 const handleStatusUpdate = async (newStatus) => {

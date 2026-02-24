@@ -81,6 +81,7 @@ export default {
     expand: '展开侧边栏',
     trash: '回收站',
     goodsOverview: '订货总览',
+    purchaseOrders: '采购管理',
   },
 
   // 视图
@@ -93,6 +94,7 @@ export default {
     admin: '管理后台',
     trash: '回收站',
     goodsOverview: '订货总览',
+    purchaseOrders: '采购管理',
   },
 
   // 文件操作 (Composables)
@@ -182,9 +184,10 @@ export default {
     stats_analysis: '统计分析',
     system_settings: '系统设置',
     trash: '回收站',
-    audit_logs: '操作审计日志',
+    audit_logs: '操作审计',
     sales_spaces: '共享空间',
     goods_overview: '订货总览',
+    purchase_orders: '采购管理',
   },
 
   // PWA
@@ -253,7 +256,7 @@ export default {
 
   // 审计日志
   auditLogs: {
-    title: '操作审计日志',
+    title: '操作审计',
     allActions: '全部操作',
     time: '时间',
     user: '操作用户',

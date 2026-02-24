@@ -23,6 +23,10 @@ export class GoodsOverviewRepository {
       images = row.images ? JSON.parse(row.images) : [];
     } catch { /* ignore */ }
 
+    const avgUnitCost = row.avg_unit_cost || 0;
+    const avgFreight = row.avg_freight || 0;
+    const avgTariff = row.avg_tariff || 0;
+
     return {
       id: row.id,
       name: row.name,
@@ -39,6 +43,11 @@ export class GoodsOverviewRepository {
       totalDemand: row.total_demand,
       orderCount: row.order_count,
       shortage: row.shortage,
+      // 成本数据 (来自采购单明细聚合)
+      avgUnitCost: Math.round(avgUnitCost * 100) / 100,
+      avgFreight: Math.round(avgFreight * 100) / 100,
+      avgTariff: Math.round(avgTariff * 100) / 100,
+      landedCost: Math.round((avgUnitCost + avgFreight + avgTariff) * 100) / 100,
     };
   }
 
@@ -71,6 +80,9 @@ export class GoodsOverviewRepository {
       case 'name':
         orderBy = 'name ASC';
         break;
+      case 'cost':
+        orderBy = '(COALESCE(pc.avg_unit_cost, 0) + COALESCE(pc.avg_freight, 0) + COALESCE(pc.avg_tariff, 0)) DESC, shortage DESC';
+        break;
       case 'shortage':
       default:
         orderBy = 'shortage DESC, total_demand DESC';
@@ -96,9 +108,21 @@ export class GoodsOverviewRepository {
             COALESCE(SUM(CASE WHEN o.status = 'arrived' THEN o.quantity ELSE 0 END), 0) as arrived_qty,
             COALESCE(SUM(o.quantity), 0) as total_demand,
             COUNT(o.id) as order_count,
-            COALESCE(SUM(o.quantity), 0) - COALESCE(MAX(p.stock_quantity), 0) as shortage
+            COALESCE(SUM(o.quantity), 0) - COALESCE(MAX(p.stock_quantity), 0) as shortage,
+            COALESCE(pc.avg_unit_cost, 0) as avg_unit_cost,
+            COALESCE(pc.avg_freight, 0) as avg_freight,
+            COALESCE(pc.avg_tariff, 0) as avg_tariff
         FROM orders o
         LEFT JOIN products p ON o.product_id = p.id AND p.status = 'active'
+        LEFT JOIN (
+          SELECT product_id,
+            AVG(unit_cost) as avg_unit_cost,
+            AVG(allocated_freight) as avg_freight,
+            AVG(allocated_tariff) as avg_tariff
+          FROM purchase_order_items
+          WHERE product_id IS NOT NULL
+          GROUP BY product_id
+        ) pc ON pc.product_id = p.id
         WHERE ${whereClause}
         GROUP BY COALESCE(p.id, json_extract(o.current_data, '$.name'))
         ${havingClause}

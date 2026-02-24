@@ -23,6 +23,9 @@ export default {
         totalDemand: 'Total Demand',
         shortage: 'Shortage',
         status: 'Status',
+        unitCost: 'Unit Cost',
+        freight: 'Freight',
+        landedCost: 'Landed Cost',
     },
     status: {
         shortage: 'Shortage',
@@ -38,7 +41,19 @@ export default {
         shortage: 'Sort by Shortage',
         demand: 'Sort by Demand',
         name: 'Sort by Name',
+        cost: 'Sort by Landed Cost',
     },
     export: 'Export CSV',
     empty: 'No products require ordering',
+
+    // Batch operations
+    batch: {
+        selected: '{count} selected',
+        createPO: 'Create Purchase Order',
+        selectAll: 'Select All',
+        deselectAll: 'Deselect All',
+    },
+    toast: {
+        poCreated: 'Purchase order created from selected items',
+    },
 };

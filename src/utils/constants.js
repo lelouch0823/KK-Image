@@ -114,6 +114,17 @@ export const API = {
   MANAGE_GOODS_OVERVIEW_SUMMARY: `${API_PREFIX}/goods-overview/summary`,
   MANAGE_GOODS_OVERVIEW_EXPORT: `${API_PREFIX}/goods-overview/export`,
 
+  // 采购单管理
+  MANAGE_PURCHASE_ORDERS: `${API_PREFIX}/purchase-orders`,
+  MANAGE_PURCHASE_ORDER_BY_ID: (id) => `${API_PREFIX}/purchase-orders/${id}`,
+  MANAGE_PURCHASE_ORDER_STATUS: (id) => `${API_PREFIX}/purchase-orders/${id}/status`,
+  MANAGE_PURCHASE_ORDER_ITEMS: (id) => `${API_PREFIX}/purchase-orders/${id}/items`,
+  MANAGE_PURCHASE_ORDER_ITEM: (id, itemId) => `${API_PREFIX}/purchase-orders/${id}/items/${itemId}`,
+  MANAGE_PURCHASE_ORDER_ALLOCATE: (id) => `${API_PREFIX}/purchase-orders/${id}/allocate`,
+  MANAGE_PURCHASE_ORDER_FROM_ORDERS: `${API_PREFIX}/purchase-orders/from-orders`,
+  MANAGE_PURCHASE_ORDER_SUGGESTIONS: `${API_PREFIX}/purchase-orders/suggestions`,
+  MANAGE_PURCHASE_ORDER_STATS: `${API_PREFIX}/purchase-orders/stats`,
+
   NOTIFICATIONS: '/api/manage/notifications',
   NOTIFICATIONS_READ: (id) => `/api/manage/notifications/${id}/read`,
   AI: {

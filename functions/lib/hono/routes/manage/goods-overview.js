@@ -14,7 +14,7 @@
 
 import { Hono } from 'hono';
 import { getChinaDateStr } from '../../_shared/utils.js';
-import { GoodsOverviewRepository } from '../../../repositories/GoodsOverviewRepository.js';
+import { GoodsOverviewRepository } from '../../../../repositories/GoodsOverviewRepository.js';
 
 const app = new Hono();
 
@@ -77,7 +77,7 @@ app.get('/export', async (c) => {
 
     const escapeCSV = (v) => (v === null || v === undefined ? '' : `"${String(v).replace(/"/g, '""')}"`);
 
-    const headers = ['商品名称', 'SKU', '品牌', '分类', '当前库存', '待订货', '生产中', '运输中', '已到货', '总需求', '订单数', '缺口'];
+    const headers = ['商品名称', 'SKU', '品牌', '分类', '当前库存', '待订货', '生产中', '运输中', '已到货', '总需求', '订单数', '缺口', '入货成本', '运费分摊', '关税分摊', '到岸成本'];
     const rows = results.map(r => [
         escapeCSV(r.name),
         escapeCSV(r.sku),
@@ -91,6 +91,10 @@ app.get('/export', async (c) => {
         r.totalDemand,
         r.orderCount,
         r.shortage,
+        r.avgUnitCost,
+        r.avgFreight,
+        r.avgTariff,
+        r.landedCost,
     ].join(','));
 
     const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n');

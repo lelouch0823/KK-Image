@@ -194,6 +194,7 @@
         <option value="shortage">{{ t('goodsOverview.sort.shortage') }}</option>
         <option value="demand">{{ t('goodsOverview.sort.demand') }}</option>
         <option value="name">{{ t('goodsOverview.sort.name') }}</option>
+        <option value="cost">{{ t('goodsOverview.sort.cost') }}</option>
       </select>
     </div>
 
@@ -244,6 +245,9 @@
         <table class="w-full text-left text-sm">
           <thead>
             <tr class="border-b border-[var(--border-color)] bg-[var(--bg-muted)]">
+              <th class="w-10 px-3 py-3">
+                <input type="checkbox" :checked="isAllSelected" class="size-4 cursor-pointer rounded border-[var(--border-color)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]" @change="toggleSelectAll" />
+              </th>
               <th class="px-4 py-3 font-semibold text-[var(--text-secondary)]">{{ t('goodsOverview.table.name') }}</th>
               <th class="px-4 py-3 font-semibold text-[var(--text-secondary)]">{{ t('goodsOverview.table.sku') }}</th>
               <th class="hidden px-4 py-3 font-semibold text-[var(--text-secondary)] md:table-cell">{{ t('goodsOverview.table.brand') }}</th>
@@ -254,6 +258,9 @@
               <th class="px-4 py-3 text-center font-semibold text-[var(--color-success)]">{{ t('goodsOverview.pipeline.arrived') }}</th>
               <th class="px-4 py-3 text-center font-semibold text-[var(--text-secondary)]">{{ t('goodsOverview.table.totalDemand') }}</th>
               <th class="px-4 py-3 text-center font-semibold text-[var(--text-secondary)]">{{ t('goodsOverview.table.shortage') }}</th>
+              <th class="hidden px-4 py-3 text-center font-semibold text-[var(--text-secondary)] lg:table-cell">{{ t('goodsOverview.table.unitCost') }}</th>
+              <th class="hidden px-4 py-3 text-center font-semibold text-[var(--text-secondary)] lg:table-cell">{{ t('goodsOverview.table.freight') }}</th>
+              <th class="hidden px-4 py-3 text-center font-semibold text-[var(--text-secondary)] lg:table-cell">{{ t('goodsOverview.table.landedCost') }}</th>
               <th class="px-4 py-3 text-center font-semibold text-[var(--text-secondary)]">{{ t('goodsOverview.table.status') }}</th>
             </tr>
           </thead>
@@ -261,8 +268,13 @@
             <tr
               v-for="item in items"
               :key="item.id"
-              class="transition-colors hover:bg-[var(--bg-hover)]"
+              class="cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
+              :class="{ 'bg-[var(--color-primary)]/5': isSelected(item) }"
             >
+              <!-- 复选框 -->
+              <td class="px-3 py-3">
+                <input type="checkbox" :checked="isSelected(item)" class="size-4 cursor-pointer rounded border-[var(--border-color)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]" @change="toggleSelect(item)" />
+              </td>
               <!-- 商品名称 -->
               <td class="px-4 py-3">
                 <div class="text-primary max-w-[200px] truncate font-medium">{{ item.name }}</div>
@@ -308,6 +320,19 @@
                   {{ item.shortage > 0 ? '+' + item.shortage : item.shortage }}
                 </span>
               </td>
+              <!-- 入货成本 -->
+              <td class="hidden px-4 py-3 text-center font-[Outfit] text-[var(--text-secondary)] lg:table-cell">
+                {{ item.avgUnitCost > 0 ? '¥' + item.avgUnitCost.toFixed(2) : '—' }}
+              </td>
+              <!-- 运费分摊 -->
+              <td class="hidden px-4 py-3 text-center font-[Outfit] text-[var(--text-secondary)] lg:table-cell">
+                {{ item.avgFreight > 0 ? '¥' + item.avgFreight.toFixed(2) : '—' }}
+              </td>
+              <!-- 到岸成本 -->
+              <td class="hidden px-4 py-3 text-center lg:table-cell">
+                <span v-if="item.landedCost > 0" class="font-[Outfit] font-semibold text-[var(--text-main)]">¥{{ item.landedCost.toFixed(2) }}</span>
+                <span v-else class="text-[var(--text-muted)]">—</span>
+              </td>
               <!-- 状态标签 -->
               <td class="px-4 py-3 text-center">
                 <span
@@ -334,16 +359,62 @@
         </table>
       </div>
     </div>
+
+    <!-- ===== 浮动操作栏 ===== -->
+    <transition name="slide-up">
+      <div
+        v-if="selectedItems.length > 0"
+        class="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] px-6 py-3 shadow-2xl backdrop-blur-xl"
+      >
+        <span class="text-sm font-medium text-[var(--text-main)]">
+          {{ t('goodsOverview.batch.selected', { count: selectedItems.length }) }}
+        </span>
+        <button
+          class="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--text-inverse)] transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="isCreatingPO"
+          @click="handleCreatePO"
+        >
+          <svg v-if="isCreatingPO" class="h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          {{ t('goodsOverview.batch.createPO') }}
+        </button>
+        <button
+          class="cursor-pointer rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+          :disabled="isCreatingPO"
+          @click="clearSelection"
+        >
+          {{ t('goodsOverview.batch.deselectAll') }}
+        </button>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
 import { onActivated } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { useToast } from '@/composables/useToast';
 import { useGoodsOverview } from '@/composables/useGoodsOverview';
 
 const { t } = useI18n();
-const { items, summary, loading, filters, availableFilters, exportCSV, init } = useGoodsOverview();
+const { addToast } = useToast();
+const {
+  items, summary, loading, filters, availableFilters,
+  selectedItems, isAllSelected, toggleSelect, toggleSelectAll, isSelected, clearSelection,
+  exportCSV, createPOFromSelected, isCreatingPO, init,
+} = useGoodsOverview();
+
+const handleCreatePO = async () => {
+  if (isCreatingPO.value) return;
+  const result = await createPOFromSelected();
+  if (result.success) {
+    addToast({ type: 'success', message: t('goodsOverview.toast.poCreated') });
+  } else {
+    addToast({ type: 'error', message: result.error || '生成采购单失败' });
+  }
+};
 
 // 使用 onActivated 代替 onMounted，确保在 keep-alive 环境下
 // 每次导航进入该页面时都会重新拉取最新数据
@@ -378,5 +449,16 @@ onActivated(() => {
     animation: none;
     display: none;
   }
+}
+
+/* 浮动操作栏入场动画 */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s ease;
+}
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateX(-50%) translateY(100%);
+  opacity: 0;
 }
 </style>

@@ -23,6 +23,9 @@ export default {
         totalDemand: '总需求',
         shortage: '缺口',
         status: '状态',
+        unitCost: '入货成本',
+        freight: '运费分摊',
+        landedCost: '到岸成本',
     },
     status: {
         shortage: '缺货',
@@ -38,7 +41,19 @@ export default {
         shortage: '按缺口排序',
         demand: '按需求量排序',
         name: '按名称排序',
+        cost: '按到岸成本排序',
     },
     export: '导出 CSV',
     empty: '暂无需要订货的商品',
+
+    // 批量操作
+    batch: {
+        selected: '已选 {count} 项',
+        createPO: '一键生成采购单',
+        selectAll: '全选',
+        deselectAll: '取消全选',
+    },
+    toast: {
+        poCreated: '已从选中商品生成采购单',
+    },
 };

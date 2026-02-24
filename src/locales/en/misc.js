@@ -81,6 +81,7 @@ export default {
     expand: 'Expand',
     trash: 'Recycle Bin',
     goodsOverview: 'Goods Overview',
+    purchaseOrders: 'Procurement',
   },
 
   // Views
@@ -93,6 +94,7 @@ export default {
     admin: 'Admin',
     trash: 'Recycle Bin',
     goodsOverview: 'Goods Overview',
+    purchaseOrders: 'Procurement',
   },
 
   // File Ops (Composables)
@@ -185,6 +187,7 @@ export default {
     audit_logs: 'Audit Logs',
     sales_spaces: 'Shared Spaces',
     goods_overview: 'Goods Overview',
+    purchase_orders: 'Procurement',
   },
 
   // PWA

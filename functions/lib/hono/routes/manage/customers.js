@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { CustomerRepository } from '../../../../repositories/CustomerRepository.js';
 import { MSG } from '../../_shared/utils.js';
-import { withCache, invalidateCache } from '../../../middleware/cache.js';
-import { NotFoundError, BadRequestError } from '../../../errors.js';
+import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { NotFoundError, BadRequestError } from '../../errors.js';
 import { parsePagination, createCacheInvalidator } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
