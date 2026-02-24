@@ -73,13 +73,14 @@ export default {
     dashboard: '概览',
     files: '文件管理',
     spaces: '共享空间',
-    stats: '统计',
+    stats: '数据统计',
     logout: '退出登录',
     admin: '管理员',
     role: '管理员',
     collapse: '收起侧边栏',
     expand: '展开侧边栏',
     trash: '回收站',
+    goodsOverview: '订货总览',
   },
 
   // 视图
@@ -91,6 +92,7 @@ export default {
     products: '商品管理',
     admin: '管理后台',
     trash: '回收站',
+    goodsOverview: '订货总览',
   },
 
   // 文件操作 (Composables)
@@ -182,6 +184,7 @@ export default {
     trash: '回收站',
     audit_logs: '操作审计日志',
     sales_spaces: '共享空间',
+    goods_overview: '订货总览',
   },
 
   // PWA

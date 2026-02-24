@@ -16,6 +16,7 @@ import customer from './customer';
 import misc from './misc';
 import sales from './sales'; // New import
 import trash from './trash'; // New import
+import goodsOverview from './goodsOverview';
 
 export default {
   common,
@@ -33,6 +34,7 @@ export default {
   auth,
   sales,
   trash,
+  goodsOverview,
   spaceManager: spaceModule.spaceManager,
   spacePublic: spaceModule.spacePublic,
   spaceAnalytics: spaceModule.spaceAnalytics,

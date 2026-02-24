@@ -125,6 +125,12 @@ const routes = [
                 meta: { titleKey: 'router.order_management', roles: ['admin', 'manager', 'sales'] },
             },
             {
+                path: 'goods-overview',
+                name: 'GoodsOverview',
+                component: () => import('@/views/GoodsOverview.vue'),
+                meta: { titleKey: 'router.goods_overview', roles: ['admin', 'manager'] },
+            },
+            {
                 path: 'customers',
                 name: 'Customers',
                 component: () => import('@/views/Customers.vue'),

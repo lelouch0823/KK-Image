@@ -87,6 +87,11 @@ export default {
     notFound: 'Order not found',
     backToList: 'Back to List',
     status: 'Status',
+    dangerZone: 'Danger Zone',
+    deletePermanently: 'Permanently delete this order',
+    dangerWarning: 'This action is irreversible. All data, linked files, and images related to this order will be permanently removed!',
+    typeOrderNoToConfirm: 'Type {orderNo} to confirm',
+    deleteSuccess: 'Order deleted successfully',
   },
 
   // Management Side

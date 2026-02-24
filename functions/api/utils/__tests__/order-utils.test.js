@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { 
-  processOrderUpdate, 
-  createOrderNotification, 
+import {
+  processOrderUpdate,
+  createOrderNotification,
   updateOrderFiles
 } from '../order-utils';
 
@@ -31,47 +31,86 @@ describe('Order Utils Full Coverage Final', () => {
   });
 
   describe('processOrderUpdate', () => {
+    // ==== 现有基础测试 ====
+
     it('should handle admin with NO salespersonId', async () => {
-       const options = {
-         env, orderId: 'o1', orderNo: 'n1',
-         currentData: { status: 'pending' }, updates: { status: 'completed' },
-         allowedFields: ['status'],
-         actor: { id: 'a1', type: 'admin' },
-         salespersonId: null
-       };
-       const res = await processOrderUpdate(options);
-       expect(res.hasChanges).toBe(true);
+      const options = {
+        env, orderId: 'o1', orderNo: 'n1',
+        currentData: { status: 'pending' }, updates: { status: 'completed' },
+        allowedFields: ['status'],
+        actor: { id: 'a1', type: 'admin' },
+        salespersonId: null
+      };
+      const res = await processOrderUpdate(options);
+      expect(res.hasChanges).toBe(true);
     });
 
     it('should handle non-admin actor', async () => {
-       const options = {
-         env, orderId: 'o1', orderNo: 'n1',
-         currentData: { status: 'pending' }, updates: { status: 'shipped' },
-         allowedFields: ['status'],
-         actor: { id: 's1', type: 'salesperson', name: 'S1' }
-       };
-       const res = await processOrderUpdate(options);
-       expect(res.hasChanges).toBe(true);
+      const options = {
+        env, orderId: 'o1', orderNo: 'n1',
+        currentData: { status: 'pending' }, updates: { status: 'shipped' },
+        allowedFields: ['status'],
+        actor: { id: 's1', type: 'salesperson', name: 'S1' }
+      };
+      const res = await processOrderUpdate(options);
+      expect(res.hasChanges).toBe(true);
     });
-    
+
     it('should return NO changes if updates identical', async () => {
-        const options = {
-          env,
-          currentData: { a: 1 },
-          updates: { a: 1 },
-          allowedFields: ['a'],
-          actor: { id: 'a1', type: 'admin' }
-        };
-        const result = await processOrderUpdate(options);
-        expect(result.hasChanges).toBe(false);
+      const options = {
+        env,
+        orderId: 'o1', orderNo: 'n1',
+        currentData: { a: 1 },
+        updates: { a: 1 },
+        allowedFields: ['a'],
+        actor: { id: 'a1', type: 'admin' },
+        productId: undefined // 明确表示没有变更产品ID
+      };
+      const result = await processOrderUpdate(options);
+      expect(result.hasChanges).toBe(false);
+      // 确保没有触发数据库更新
+      // (在内部 processOrderUpdate 调用的是通过 new 实例化的 OrderRepository)
+    });
+
+    // ==== 针对 productId 关联变更的新增测试 ====
+
+    it('should return changes if ONLY productId is updated (Critical Bug Fix)', async () => {
+      const options = {
+        env,
+        orderId: 'o1', orderNo: 'n1',
+        currentData: { name: 'productA' },
+        updates: {}, // 数据字段未变更
+        fileIds: undefined, // 文件未变更
+        allowedFields: ['name'],
+        actor: { id: 'a1', type: 'admin' },
+        productId: 'pid_123' // 只有 productId 发生了变更（前端传入新的绑定）
+      };
+      const result = await processOrderUpdate(options);
+      expect(result.hasChanges).toBe(true);
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle combined updates of data and productId', async () => {
+      const options = {
+        env,
+        orderId: 'o1', orderNo: 'n1',
+        currentData: { name: 'productA', quantity: 1 },
+        updates: { quantity: 5 }, // 数量变更
+        allowedFields: ['name', 'quantity'],
+        actor: { id: 's1', type: 'salesperson', name: 'S1' },
+        productId: 'pid_456' // 产品关联变更
+      };
+      const result = await processOrderUpdate(options);
+      expect(result.hasChanges).toBe(true);
+      expect(result.newData.quantity).toBe(5);
     });
   });
 
   describe('updateOrderFiles', () => {
     it('should handle archiving when fileIds change', async () => {
-       db.all.mockResolvedValueOnce({ results: [{ file_id: 'old' }] });
-       const res = await updateOrderFiles(env, 'o1', 'n1', ['new'], { id: 'a1', type: 'admin' });
-       expect(res).toBe(true);
+      db.all.mockResolvedValueOnce({ results: [{ file_id: 'old' }] });
+      const res = await updateOrderFiles(env, 'o1', 'n1', ['new'], { id: 'a1', type: 'admin' });
+      expect(res).toBe(true);
     });
   });
 });

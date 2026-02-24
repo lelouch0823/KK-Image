@@ -18,25 +18,25 @@
               </svg>
             </div>
             
-            <h3 class="mb-2 text-center text-lg font-bold leading-6 text-[var(--text-main)]">
+            <h3 class="mb-2 text-center text-lg leading-6 font-bold text-[var(--text-main)]">
               {{ title }}
             </h3>
             <div class="mt-2 text-center">
-              <p class="whitespace-pre-line text-sm leading-relaxed text-[var(--text-secondary)]">
+              <p class="text-sm leading-relaxed whitespace-pre-line text-[var(--text-secondary)]">
                 <slot name="description">{{ description }}</slot>
               </p>
             </div>
 
             <div class="mt-6">
               <label class="mb-1 block text-sm font-medium text-[var(--text-main)]">
-                {{ displayRequireTextLabel }} <span class="select-all rounded bg-[var(--bg-page)] px-1 font-mono text-[var(--text-secondary)]">{{ requiredText }}</span>
+                {{ displayRequireTextLabel }} <span class="rounded bg-[var(--bg-page)] px-1 font-mono text-[var(--text-secondary)] select-all">{{ requiredText }}</span>
               </label>
               <input 
                 ref="inputRef"
-                type="text" 
-                v-model="inputValue"
+                v-model="inputValue" 
+                type="text"
                 :placeholder="requiredText"
-                class="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-4 py-2.5 font-mono text-sm text-[var(--text-main)] outline-none transition-all focus:border-[var(--color-danger)] focus:ring-4 focus:ring-[var(--border-danger)]"
+                class="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-4 py-2.5 font-mono text-sm text-[var(--text-main)] transition-all outline-none focus:border-[var(--color-danger)] focus:ring-4 focus:ring-[var(--border-danger)]"
                 @keyup.enter="handleConfirm"
               />
             </div>
@@ -45,19 +45,19 @@
           <div class="flex flex-col-reverse gap-3 bg-[var(--bg-page)]/50 px-6 py-4 sm:flex-row sm:justify-end sm:px-8">
             <button
               type="button"
-              class="inline-flex w-full items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-main)] shadow-sm transition-colors hover:bg-[var(--bg-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 disabled:opacity-50 sm:w-auto"
-              @click="close"
+              class="inline-flex w-full items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-main)] shadow-sm transition-colors hover:bg-[var(--bg-muted)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:outline-none disabled:opacity-50 sm:w-auto"
               :disabled="loading"
+              @click="close"
             >
               {{ displayCancelText }}
             </button>
              <button
               type="button"
-              class="inline-flex w-full items-center justify-center rounded-xl border border-transparent bg-[var(--color-danger)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--color-danger-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-danger)] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+              class="inline-flex w-full items-center justify-center rounded-xl border border-transparent bg-[var(--color-danger)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--color-danger-text)] focus:ring-2 focus:ring-[var(--color-danger)] focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               :disabled="!isValid || loading"
               @click="handleConfirm"
             >
-              <svg v-if="loading" class="-ml-1 mr-2 size-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+              <svg v-if="loading" class="mr-2 -ml-1 size-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>

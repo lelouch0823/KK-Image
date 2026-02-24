@@ -61,11 +61,11 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
         }
     };
 
-    const handleEditSubmit = async ({ updates, reason, fileIds }, paginationPage) => {
+    const handleEditSubmit = async ({ updates, reason, fileIds, productId }, paginationPage) => {
         if (isEditing.value) return;
         isEditing.value = true;
         try {
-            const success = await updateOrder(editingOrder.value.id, updates, reason, fileIds);
+            const success = await updateOrder(editingOrder.value.id, updates, reason, fileIds, productId);
             if (success) {
                 closeEditModal();
                 refreshOrders(paginationPage);

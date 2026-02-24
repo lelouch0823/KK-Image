@@ -68,6 +68,7 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
         quantity: data.quantity,
         mainImageId: data.fileIds[0] || null,
         fileIds: data.fileIds,
+        productId: data.productId || null,
         timeline: {
             actionType: 'created',
             actorType: 'salesperson',
@@ -163,9 +164,9 @@ app.patch('/:id', async (c) => {
         return c.json({ success: false, error: MSG.ORDER.ONLY_PENDING_CAN_EDIT }, 403);
     }
 
-    const { updates: updatesFromBody, reason, fileIds } = body;
+    const { updates: updatesFromBody, reason, fileIds, productId } = body;
     const updatesObj = updatesFromBody || body;
-    const { reason: _unusedReason, fileIds: _unusedFileIds, updates: _unusedUpdates, ...updates } = updatesObj;
+    const { reason: _unusedReason, fileIds: _unusedFileIds, updates: _unusedUpdates, productId: _unusedProductId, ...updates } = updatesObj;
 
     if (!reason || !reason.trim()) {
         return c.json({ success: false, error: MSG.ORDER.REASON_REQUIRED }, 400);
@@ -174,6 +175,7 @@ app.patch('/:id', async (c) => {
     const { processOrderUpdate } = await import('../../../../api/utils/order-utils.js');
 
     // 销售端允许修改的字段
+    // SOTA: productId 是顶级表列，通过 options.productId 单独传递处理，不应加入 JSON data 字段列表
     const SALES_EDITABLE_FIELDS = ['name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
 
     const _result = await processOrderUpdate({
@@ -183,6 +185,7 @@ app.patch('/:id', async (c) => {
         currentData: order.currentData,
         updates,
         fileIds,
+        productId,
         allowedFields: SALES_EDITABLE_FIELDS,
         actor: { type: 'salesperson', id: salesperson.id, name: salesperson.name },
         reason: reason.trim(),

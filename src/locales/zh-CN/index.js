@@ -18,6 +18,7 @@ import gallery from './gallery';
 import customer from './customer';
 import misc from './misc';
 import trash from './trash';
+import goodsOverview from './goodsOverview';
 
 export default {
   common,
@@ -63,4 +64,5 @@ export default {
   ai: misc.ai,
   auditLogs: misc.auditLogs,
   trash,
+  goodsOverview,
 };

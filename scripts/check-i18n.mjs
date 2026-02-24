@@ -127,6 +127,9 @@ function flattenKeys(obj, prefix = '') {
         const fullKey = prefix ? `${prefix}.${k}` : k;
         if (v && typeof v === 'object' && !Array.isArray(v)) {
             keys.push(...flattenKeys(v, fullKey));
+        } else if (Array.isArray(v)) {
+            keys.push(fullKey);
+            v.forEach((_, i) => keys.push(`${fullKey}.${i}`));
         } else {
             keys.push(fullKey);
         }

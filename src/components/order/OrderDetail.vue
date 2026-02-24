@@ -7,7 +7,7 @@
       <!-- 主要内容区域 Grid -->
       <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
         <!-- 左侧：图片区域 (PC端占 8列) -->
-        <div class="order-last space-y-4 lg:order-first lg:col-span-8 min-w-0">
+        <div class="order-last min-w-0 space-y-4 lg:order-first lg:col-span-8">
           <!-- 商品图片 -->
           <OrderFileGrid :files="order.files" @preview="handlePreview" />
 
@@ -21,7 +21,7 @@
         </div>
 
         <!-- 右侧：信息区域 (PC端占 4列) -->
-        <div class="space-y-4 lg:col-span-4 min-w-0">
+        <div class="min-w-0 space-y-4 lg:col-span-4">
           <!-- 客户信息 (仅当有有效客户数据时显示) -->
           <OrderPersonCard
             v-if="hasCustomerInfo"
@@ -78,9 +78,9 @@
           <p class="text-secondary mb-2 text-xs">{{ formatTime(correction.createdAt) }}</p>
           <div class="flex items-start gap-2 text-sm">
             <span class="text-secondary shrink-0 pt-0.5">{{ correction.fieldName }}:</span>
-            <span class="text-danger/60 line-through min-w-0 flex-1 break-words"> {{ correction.oldValue }}</span>
+            <span class="text-danger/60 min-w-0 flex-1 break-words line-through"> {{ correction.oldValue }}</span>
             <svg
-              class="text-secondary size-4 shrink-0 mt-0.5"
+              class="text-secondary mt-0.5 size-4 shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -92,7 +92,7 @@
                 d="M14 5l7 7m0 0l-7 7m7-7H3"
               />
             </svg>
-            <span class="text-success font-medium min-w-0 flex-1 break-words">{{ correction.newValue }}</span>
+            <span class="text-success min-w-0 flex-1 font-medium break-words">{{ correction.newValue }}</span>
           </div>
           <p class="text-secondary mt-2 text-xs break-words whitespace-pre-wrap">
             <span class="text-primary font-medium">{{ t('order.detail.correctionReason') }}:</span>
@@ -140,20 +140,20 @@
     />
 
     <!-- Danger Zone (Admin Only) -->
-    <div v-if="mode === 'admin'" class="mt-12 rounded-2xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5 p-5 sm:p-6 mb-8 mt-auto">
-      <h3 class="text-lg font-bold text-[var(--text-main)] mb-2 flex items-center gap-2">
+    <div v-if="mode === 'admin'" class="mt-12 mt-auto mb-8 rounded-2xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5 p-5 sm:p-6">
+      <h3 class="mb-2 flex items-center gap-2 text-lg font-bold text-[var(--text-main)]">
         <svg class="size-5 text-[var(--color-danger)]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
         {{ t('order.detail.dangerZone') || '危险区域 / Danger Zone' }}
       </h3>
       <div class="sm:flex sm:items-center sm:justify-between">
-        <p class="text-sm text-[var(--text-secondary)] sm:max-w-xl mb-4 sm:mb-0">
+        <p class="mb-4 text-sm text-[var(--text-secondary)] sm:mb-0 sm:max-w-xl">
           {{ t('order.detail.dangerWarning') || '此操作不可逆。订单及其关联的客户信息、图片文件、留言和所有历史记录将被永久擦除。由于财务留痕规定，我们建议您优先使用“作废”功能处理正常业务取消。' }}
         </p>
         <button 
+          class="inline-flex w-full shrink-0 items-center justify-center rounded-xl bg-[var(--color-danger)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--color-danger)]/90 focus:ring-2 focus:ring-[var(--color-danger)] focus:ring-offset-2 sm:w-auto"
           @click="$emit('delete-order', order)"
-          class="shrink-0 w-full sm:w-auto inline-flex justify-center items-center rounded-xl bg-[var(--color-danger)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[var(--color-danger)]/90 transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-danger)]"
         >
           {{ t('order.detail.deletePermanently') || '彻底删除订单' }}
         </button>
@@ -320,7 +320,7 @@ const executeVoid = async () => {
 const handleUpdate = async (payload) => {
   if (!salesToken.value) return;
 
-  const { updates, fileIds, reason } = payload;
+  const { updates, fileIds, reason, productId } = payload;
 
   submitting.value = true;
   try {
@@ -328,6 +328,9 @@ const handleUpdate = async (payload) => {
     const requestBody = { updates, reason };
     if (fileIds) {
       requestBody.fileIds = fileIds;
+    }
+    if (productId !== undefined) {
+      requestBody.productId = productId;
     }
     
     const res = await fetch(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {
