@@ -1,4 +1,3 @@
-
 import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { OrderStatsRepository } from '../../../../../repositories/OrderStatsRepository.js';
@@ -11,54 +10,49 @@ const app = new Hono();
  */
 app.get('/', async (c) => {
     const { env } = c;
-    try {
-        const url = new URL(c.req.url);
-        const page = parseInt(url.searchParams.get('page') || '1', 10);
-        const limit = parseInt(url.searchParams.get('limit') || '20', 10);
-        const salespersonId = url.searchParams.get('salesperson');
-        const status = url.searchParams.get('status');
-        const search = url.searchParams.get('search');
-        const startTime = parseInt(url.searchParams.get('startTime') || '0', 10);
-        const endTime = parseInt(url.searchParams.get('endTime') || '0', 10);
+    const url = new URL(c.req.url);
+    const page = parseInt(url.searchParams.get('page') || '1', 10);
+    const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+    const salespersonId = url.searchParams.get('salesperson');
+    const status = url.searchParams.get('status');
+    const search = url.searchParams.get('search');
+    const startTime = parseInt(url.searchParams.get('startTime') || '0', 10);
+    const endTime = parseInt(url.searchParams.get('endTime') || '0', 10);
 
-        const orderRepo = new OrderRepository(env.DB);
-        const [result, { results: salespersons }] = await Promise.all([
-            orderRepo.listForAdmin({
-                salespersonId,
-                status: status && ORDER_STATUSES.includes(status) ? status : null,
-                search,
-                startTime,
-                endTime,
-                page,
-                limit,
-            }),
-            env.DB.prepare(
-                'SELECT id, name, store FROM salespersons WHERE is_active = 1 ORDER BY name'
-            ).all()
-        ]);
+    const orderRepo = new OrderRepository(env.DB);
+    const [result, { results: salespersons }] = await Promise.all([
+        orderRepo.listForAdmin({
+            salespersonId,
+            status: status && ORDER_STATUSES.includes(status) ? status : null,
+            search,
+            startTime,
+            endTime,
+            page,
+            limit,
+        }),
+        env.DB.prepare(
+            'SELECT id, name, store FROM salespersons WHERE is_active = 1 ORDER BY name'
+        ).all()
+    ]);
 
-        return c.json({
-            success: true,
-            data: {
-                orders: result.items,
-                salespersons: salespersons.map((s) => ({
-                    id: s.id,
-                    name: s.name,
-                    store: s.store,
-                })),
-                statuses: ORDER_STATUSES,
-                pagination: {
-                    page: result.page,
-                    limit: result.limit,
-                    total: result.total,
-                    totalPages: result.totalPages,
-                },
+    return c.json({
+        success: true,
+        data: {
+            orders: result.items,
+            salespersons: salespersons.map((s) => ({
+                id: s.id,
+                name: s.name,
+                store: s.store,
+            })),
+            statuses: ORDER_STATUSES,
+            pagination: {
+                page: result.page,
+                limit: result.limit,
+                total: result.total,
+                totalPages: result.totalPages,
             },
-        });
-    } catch (err) {
-        console.error('[Orders/List] 操作失败:', err);
-        return c.json({ success: false, error: err.message }, 500);
-    }
+        },
+    });
 });
 
 /**
@@ -66,40 +60,35 @@ app.get('/', async (c) => {
  */
 app.get('/stats', async (c) => {
     const { env } = c;
-    try {
-        const statsRepo = new OrderStatsRepository(env.DB);
-        const todayStart = getChinaDayStart();
-        const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000;
-        const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000;
+    const statsRepo = new OrderStatsRepository(env.DB);
+    const todayStart = getChinaDayStart();
+    const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000;
+    const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000;
 
-        const stats = await statsRepo.getAdminStats(todayStart, weekStart, monthStart);
+    const stats = await statsRepo.getAdminStats(todayStart, weekStart, monthStart);
 
-        const trendMap = new Map();
-        stats.recentTrend.forEach((row) => trendMap.set(row.date, row.count));
+    const trendMap = new Map();
+    stats.recentTrend.forEach((row) => trendMap.set(row.date, row.count));
 
-        const monthTrend = [];
-        for (let i = 29; i >= 0; i--) {
-            const dateStr = getChinaDateStr(todayStart - i * 24 * 60 * 60 * 1000);
-            monthTrend.push({
-                date: dateStr,
-                count: trendMap.get(dateStr) || 0,
-            });
-        }
-
-        return c.json({
-            success: true,
-            data: {
-                todayCount: stats.today,
-                pendingCount: stats.statusDistribution['pending'] || 0,
-                weekCount: stats.week,
-                statusDistribution: stats.statusDistribution,
-                monthTrend,
-            },
+    const monthTrend = [];
+    for (let i = 29; i >= 0; i--) {
+        const dateStr = getChinaDateStr(todayStart - i * 24 * 60 * 60 * 1000);
+        monthTrend.push({
+            date: dateStr,
+            count: trendMap.get(dateStr) || 0,
         });
-    } catch (err) {
-        console.error('[Orders/List] 操作失败:', err);
-        return c.json({ success: false, error: err.message }, 500);
     }
+
+    return c.json({
+        success: true,
+        data: {
+            todayCount: stats.today,
+            pendingCount: stats.statusDistribution['pending'] || 0,
+            weekCount: stats.week,
+            statusDistribution: stats.statusDistribution,
+            monthTrend,
+        },
+    });
 });
 
 /**
@@ -107,42 +96,41 @@ app.get('/stats', async (c) => {
  */
 app.get('/export', async (c) => {
     const { env } = c;
-    try {
-        const url = new URL(c.req.url);
-        const salespersonId = url.searchParams.get('salesperson');
-        const status = url.searchParams.get('status');
-        const search = url.searchParams.get('search');
-        const fromDate = url.searchParams.get('from');
-        const toDate = url.searchParams.get('to');
+    const url = new URL(c.req.url);
+    const salespersonId = url.searchParams.get('salesperson');
+    const status = url.searchParams.get('status');
+    const search = url.searchParams.get('search');
+    const fromDate = url.searchParams.get('from');
+    const toDate = url.searchParams.get('to');
 
-        let whereClause = '1=1';
-        const bindParams = [];
+    let whereClause = '1=1';
+    const bindParams = [];
 
-        if (salespersonId) {
-            whereClause += ' AND o.salesperson_id = ?';
-            bindParams.push(salespersonId);
-        }
-        if (status && ORDER_STATUSES.includes(status)) {
-            whereClause += ' AND o.status = ?';
-            bindParams.push(status);
-        }
-        if (search) {
-            whereClause += ' AND (o.order_no LIKE ? OR o.current_data LIKE ?)';
-            const searchPattern = `%${search}%`;
-            bindParams.push(searchPattern, searchPattern);
-        }
+    if (salespersonId) {
+        whereClause += ' AND o.salesperson_id = ?';
+        bindParams.push(salespersonId);
+    }
+    if (status && ORDER_STATUSES.includes(status)) {
+        whereClause += ' AND o.status = ?';
+        bindParams.push(status);
+    }
+    if (search) {
+        whereClause += ' AND (o.order_no LIKE ? OR o.current_data LIKE ?)';
+        const searchPattern = `%${search}%`;
+        bindParams.push(searchPattern, searchPattern);
+    }
 
-        const { DateUtils } = await import('../../../_shared/utils.js');
-        if (fromDate) {
-            whereClause += ' AND o.created_at >= ?';
-            bindParams.push(DateUtils.parseChinaDate(fromDate));
-        }
-        if (toDate) {
-            whereClause += ' AND o.created_at <= ?';
-            bindParams.push(DateUtils.parseChinaDate(toDate) + 86400000);
-        }
+    const { DateUtils } = await import('../../../_shared/utils.js');
+    if (fromDate) {
+        whereClause += ' AND o.created_at >= ?';
+        bindParams.push(DateUtils.parseChinaDate(fromDate));
+    }
+    if (toDate) {
+        whereClause += ' AND o.created_at <= ?';
+        bindParams.push(DateUtils.parseChinaDate(toDate) + 86400000);
+    }
 
-        const { results: orders } = await env.DB.prepare(`
+    const { results: orders } = await env.DB.prepare(`
     SELECT o.*, s.name as salesperson_name, s.store as salesperson_store
     FROM orders o
     LEFT JOIN salespersons s ON o.salesperson_id = s.id
@@ -151,42 +139,38 @@ app.get('/export', async (c) => {
     LIMIT 10000
     `).bind(...bindParams).all();
 
-        // CSV generation logic (concise)
-        const columns = [
-            { key: 'order_no', label: MSG.EXPORT.HEADERS.ORDER_NO },
-            { key: 'product_name', label: MSG.EXPORT.HEADERS.PRODUCT_NAME },
-            { key: 'status', label: MSG.EXPORT.HEADERS.STATUS },
-            { key: 'salesperson', label: MSG.EXPORT.HEADERS.SALESPERSON },
-            { key: 'created_at', label: MSG.EXPORT.HEADERS.CREATED_AT },
-        ];
+    // CSV generation logic (concise)
+    const columns = [
+        { key: 'order_no', label: MSG.EXPORT.HEADERS.ORDER_NO },
+        { key: 'product_name', label: MSG.EXPORT.HEADERS.PRODUCT_NAME },
+        { key: 'status', label: MSG.EXPORT.HEADERS.STATUS },
+        { key: 'salesperson', label: MSG.EXPORT.HEADERS.SALESPERSON },
+        { key: 'created_at', label: MSG.EXPORT.HEADERS.CREATED_AT },
+    ];
 
-        const escapeCSV = (v) => (v === null || v === undefined ? '' : `"${String(v).replace(/"/g, '""')}"`);
+    const escapeCSV = (v) => (v === null || v === undefined ? '' : `"${String(v).replace(/"/g, '""')}"`);
 
-        const header = columns.map(c => c.label).join(',');
-        const rows = orders.map(o => {
-            const data = JSON.parse(o.current_data || '{}');
-            return [
-                escapeCSV(o.order_no),
-                escapeCSV(data.name),
-                escapeCSV(MSG.ORDER.STATUS?.[o.status] || o.status),
-                escapeCSV(o.salesperson_name),
-                escapeCSV(getChinaDateStr(o.created_at))
-            ].join(',');
-        });
+    const header = columns.map(c => c.label).join(',');
+    const rows = orders.map(o => {
+        const data = JSON.parse(o.current_data || '{}');
+        return [
+            escapeCSV(o.order_no),
+            escapeCSV(data.name),
+            escapeCSV(MSG.ORDER.STATUS?.[o.status] || o.status),
+            escapeCSV(o.salesperson_name),
+            escapeCSV(getChinaDateStr(o.created_at))
+        ].join(',');
+    });
 
-        const csv = '\uFEFF' + [header, ...rows].join('\n');
-        const filename = `orders_${getChinaDateStr()}.csv`;
+    const csv = '\uFEFF' + [header, ...rows].join('\n');
+    const filename = `orders_${getChinaDateStr()}.csv`;
 
-        return new Response(csv, {
-            headers: {
-                'Content-Type': 'text/csv; charset=utf-8',
-                'Content-Disposition': `attachment; filename="${filename}"`,
-            },
-        });
-    } catch (err) {
-        console.error('[Orders/List] 操作失败:', err);
-        return c.json({ success: false, error: err.message }, 500);
-    }
+    return new Response(csv, {
+        headers: {
+            'Content-Type': 'text/csv; charset=utf-8',
+            'Content-Disposition': `attachment; filename="${filename}"`,
+        },
+    });
 });
 
 export default app;

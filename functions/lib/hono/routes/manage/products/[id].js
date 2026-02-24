@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { invalidateCache } from '../../../middleware/cache.js';
+import { NotFoundError, BadRequestError } from '../../../errors.js';
 
 const app = new Hono();
 
@@ -20,20 +21,15 @@ const getProductCacheUrls = (c) => {
  */
 app.get('/:id', async (c) => {
     const { env } = c;
-    try {
-        const id = c.req.param('id');
-        const repo = new ProductRepository(env.DB);
-        const product = await repo.findById(id);
+    const id = c.req.param('id');
+    const repo = new ProductRepository(env.DB);
+    const product = await repo.findById(id);
 
-        if (!product) {
-            return c.json({ success: false, error: 'Product not found' }, 404);
-        }
-
-        return c.json({ success: true, data: product });
-    } catch (err) {
-        console.error('[Products/:id] 操作失败:', err);
-        return c.json({ success: false, error: err.message }, 500);
+    if (!product) {
+        throw new NotFoundError('Product not found');
     }
+
+    return c.json({ success: true, data: product });
 });
 
 /**
@@ -41,25 +37,20 @@ app.get('/:id', async (c) => {
  */
 app.patch('/:id', async (c) => {
     const { env } = c;
-    try {
-        const id = c.req.param('id');
-        const body = await c.req.json();
-        const repo = new ProductRepository(env.DB);
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const repo = new ProductRepository(env.DB);
 
-        const result = await repo.updateWithMeta(id, body);
+    const result = await repo.updateWithMeta(id, body);
 
-        if (result.success && result.changes > 0) {
-            // 使缓存失效
-            c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
-            return c.json({ success: true, message: 'Product updated', changes: result.changes });
-        } else if (result.success && result.changes === 0) {
-            return c.json({ success: false, error: 'No rows updated. Product may not exist.' }, 404);
-        } else {
-            return c.json({ success: false, error: result.error || 'Update failed' }, 400);
-        }
-    } catch (err) {
-        console.error('[Products/:id] 操作失败:', err);
-        return c.json({ success: false, error: err.message }, 500);
+    if (result.success && result.changes > 0) {
+        // 使缓存失效
+        c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
+        return c.json({ success: true, message: 'Product updated', changes: result.changes });
+    } else if (result.success && result.changes === 0) {
+        throw new NotFoundError('No rows updated. Product may not exist.');
+    } else {
+        throw new BadRequestError(result.error || 'Update failed');
     }
 });
 
@@ -68,23 +59,18 @@ app.patch('/:id', async (c) => {
  */
 app.put('/:id', async (c) => {
     const { env } = c;
-    try {
-        const id = c.req.param('id');
-        const body = await c.req.json();
-        const repo = new ProductRepository(env.DB);
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const repo = new ProductRepository(env.DB);
 
-        const success = await repo.update(id, body);
+    const success = await repo.update(id, body);
 
-        if (success) {
-            // 使缓存失效
-            c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
-            return c.json({ success: true, message: 'Product updated' });
-        } else {
-            return c.json({ success: false, error: 'Update failed or no changes' }, 400);
-        }
-    } catch (err) {
-        console.error('[Products/:id] 操作失败:', err);
-        return c.json({ success: false, error: err.message }, 500);
+    if (success) {
+        // 使缓存失效
+        c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
+        return c.json({ success: true, message: 'Product updated' });
+    } else {
+        throw new BadRequestError('Update failed or no changes');
     }
 });
 
@@ -93,22 +79,17 @@ app.put('/:id', async (c) => {
  */
 app.delete('/:id', async (c) => {
     const { env } = c;
-    try {
-        const id = c.req.param('id');
-        const repo = new ProductRepository(env.DB);
+    const id = c.req.param('id');
+    const repo = new ProductRepository(env.DB);
 
-        const success = await repo.update(id, { status: 'archived' });
+    const success = await repo.update(id, { status: 'archived' });
 
-        if (success) {
-            // 使缓存失效
-            c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
-            return c.json({ success: true, message: 'Product archived' });
-        } else {
-            return c.json({ success: false, error: 'Delete failed' }, 400);
-        }
-    } catch (err) {
-        console.error('[Products/:id] 操作失败:', err);
-        return c.json({ success: false, error: err.message }, 500);
+    if (success) {
+        // 使缓存失效
+        c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
+        return c.json({ success: true, message: 'Product archived' });
+    } else {
+        throw new BadRequestError('Delete failed');
     }
 });
 
