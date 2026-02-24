@@ -3,8 +3,17 @@ import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { SalespersonRepository } from '../../../../repositories/SalespersonRepository.js';
 import { MSG } from '../../_shared/utils.js';
+import { withCache, invalidateCache } from '../../../middleware/cache.js';
 
 const app = new Hono();
+
+const getCacheUrls = (c) => {
+    const origin = new URL(c.req.url).origin;
+    return [
+        `${origin}/api/manage/salespersons`,
+        `${origin}/api/manage/salespersons?page=1&limit=50`
+    ];
+};
 
 // 验证 Schema
 const CreateSalespersonSchema = z.object({
@@ -25,7 +34,7 @@ const UpdateSalespersonSchema = z.object({
 /**
  * GET / - 获取销售列表
  */
-app.get('/', async (c) => {
+app.get('/', withCache(60), async (c) => {
     const { env } = c;
     try {
         const page = parseInt(c.req.query('page') || '1', 10);
@@ -78,6 +87,8 @@ app.post('/', zValidator('json', CreateSalespersonSchema), async (c) => {
             phone: body.phone || null,
             password: body.password,
         });
+
+        c.executionCtx.waitUntil(invalidateCache(getCacheUrls(c)));
 
         return c.json({
             success: true,
@@ -148,6 +159,8 @@ const updateHandler = async (c) => {
             return c.json({ success: false, error: MSG.SALESPERSON.NOT_FOUND }, 404);
         }
 
+        c.executionCtx.waitUntil(invalidateCache(getCacheUrls(c)));
+
         return c.json({
             success: true,
             message: MSG.SALESPERSON.UPDATE_SUCCESS,
@@ -184,6 +197,8 @@ app.delete('/:id', async (c) => {
             return c.json({ success: false, error: MSG.SALESPERSON.NOT_FOUND }, 404);
         }
 
+        c.executionCtx.waitUntil(invalidateCache(getCacheUrls(c)));
+
         return c.json({ success: true, message: MSG.SALESPERSON.DELETE_SUCCESS });
     } catch (err) {
         console.error('[Salespersons] 操作失败:', err);
@@ -205,6 +220,8 @@ app.post('/:id/reset-token', async (c) => {
         if (!newToken) {
             return c.json({ success: false, error: MSG.SALESPERSON.NOT_FOUND }, 404);
         }
+
+        c.executionCtx.waitUntil(invalidateCache(getCacheUrls(c)));
 
         return c.json({
             success: true,

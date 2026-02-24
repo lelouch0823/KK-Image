@@ -12,10 +12,15 @@ export class StatsRepository {
      * 获取系统核心统计数据
      */
     async getGlobalStats(todayStart) {
+        const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+
         const [
             counts,
             recentFiles,
-            fileStatusStats
+            fileStatusStats,
+            typeStatsResult,
+            topSpacesResult,
+            trafficLogsResult
         ] = await Promise.all([
             this.db.prepare(
                 `SELECT 
@@ -36,39 +41,34 @@ export class StatsRepository {
                 SELECT status, COUNT(*) as count 
                 FROM files 
                 GROUP BY status
-            `).all()
+            `).all(),
+            this.db.prepare(
+                `SELECT 
+                    mime_type as type,
+                    COUNT(*) as count,
+                    COALESCE(SUM(size), 0) as size
+                FROM files GROUP BY mime_type ORDER BY count DESC`
+            ).all(),
+            this.db.prepare(
+                `SELECT id, name, view_count as views, created_at 
+                 FROM spaces 
+                 ORDER BY view_count DESC 
+                 LIMIT 5`
+            ).all(),
+            this.db.prepare(`
+                SELECT 
+                    DATE(accessed_at / 1000, 'unixepoch', '+8 hours') as date,
+                    COUNT(*) as count
+                FROM space_access_logs
+                WHERE accessed_at >= ?
+                GROUP BY date
+                ORDER BY date ASC
+            `).bind(thirtyDaysAgo).all()
         ]);
 
-        const { results: typeStats } = await this.db.prepare(
-            `SELECT 
-                mime_type as type,
-                COUNT(*) as count,
-                COALESCE(SUM(size), 0) as size
-            FROM files GROUP BY mime_type ORDER BY count DESC`
-        ).all();
-
-        // Top Spaces
-        const { results: topSpaces } = await this.db.prepare(
-            `SELECT id, name, view_count as views, created_at 
-             FROM spaces 
-             ORDER BY view_count DESC 
-             LIMIT 5`
-        ).all();
-
-        // Traffic (Month Logic - simplify to sum of view counts if no logs, or Logs log)
-        // Since we want daily trends, we should query space_access_logs if available.
-        // Assuming space_access_logs is populated:
-        // Get last 30 days logs
-        const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-        const { results: trafficLogs } = await this.db.prepare(`
-            SELECT 
-                DATE(accessed_at / 1000, 'unixepoch', '+8 hours') as date,
-                COUNT(*) as count
-            FROM space_access_logs
-            WHERE accessed_at >= ?
-            GROUP BY date
-            ORDER BY date ASC
-        `).bind(thirtyDaysAgo).all();
+        const typeStats = typeStatsResult.results;
+        const topSpaces = topSpacesResult.results;
+        const trafficLogs = trafficLogsResult.results;
 
         const monthTotalTraffic = trafficLogs.reduce((acc, log) => acc + log.count, 0);
         

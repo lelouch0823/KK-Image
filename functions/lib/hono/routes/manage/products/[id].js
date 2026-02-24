@@ -20,22 +20,20 @@ const getProductCacheUrls = (c) => {
  */
 app.get('/:id', async (c) => {
     const { env } = c;
-    const id = c.req.param('id');
-
-    const product = await env.DB.prepare('SELECT * FROM products WHERE id = ?').bind(id).first();
-
-    if (!product) {
-        return c.json({ success: false, error: 'Product not found' }, 404);
-    }
-
     try {
-        product.images = JSON.parse(product.images || '[]');
-        product.specifications = JSON.parse(product.specifications || '{}');
-    } catch (_e) {
-        // ignore
-    }
+        const id = c.req.param('id');
+        const repo = new ProductRepository(env.DB);
+        const product = await repo.findById(id);
 
-    return c.json({ success: true, data: product });
+        if (!product) {
+            return c.json({ success: false, error: 'Product not found' }, 404);
+        }
+
+        return c.json({ success: true, data: product });
+    } catch (err) {
+        console.error('[Products/:id] 操作失败:', err);
+        return c.json({ success: false, error: err.message }, 500);
+    }
 });
 
 /**
@@ -43,25 +41,25 @@ app.get('/:id', async (c) => {
  */
 app.patch('/:id', async (c) => {
     const { env } = c;
-    const id = c.req.param('id');
-    const body = await c.req.json();
-    const repo = new ProductRepository(env.DB);
+    try {
+        const id = c.req.param('id');
+        const body = await c.req.json();
+        const repo = new ProductRepository(env.DB);
 
-    console.log('[PATCH /products/:id] ID:', id);
-    console.log('[PATCH /products/:id] Body:', JSON.stringify(body));
+        const result = await repo.updateWithMeta(id, body);
 
-    const result = await repo.updateWithMeta(id, body);
-
-    console.log('[PATCH /products/:id] Result:', JSON.stringify(result));
-
-    if (result.success && result.changes > 0) {
-        // 使缓存失效
-        c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
-        return c.json({ success: true, message: 'Product updated', changes: result.changes });
-    } else if (result.success && result.changes === 0) {
-        return c.json({ success: false, error: 'No rows updated. Product may not exist.' }, 404);
-    } else {
-        return c.json({ success: false, error: result.error || 'Update failed' }, 400);
+        if (result.success && result.changes > 0) {
+            // 使缓存失效
+            c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
+            return c.json({ success: true, message: 'Product updated', changes: result.changes });
+        } else if (result.success && result.changes === 0) {
+            return c.json({ success: false, error: 'No rows updated. Product may not exist.' }, 404);
+        } else {
+            return c.json({ success: false, error: result.error || 'Update failed' }, 400);
+        }
+    } catch (err) {
+        console.error('[Products/:id] 操作失败:', err);
+        return c.json({ success: false, error: err.message }, 500);
     }
 });
 
@@ -70,18 +68,23 @@ app.patch('/:id', async (c) => {
  */
 app.put('/:id', async (c) => {
     const { env } = c;
-    const id = c.req.param('id');
-    const body = await c.req.json();
-    const repo = new ProductRepository(env.DB);
+    try {
+        const id = c.req.param('id');
+        const body = await c.req.json();
+        const repo = new ProductRepository(env.DB);
 
-    const success = await repo.update(id, body);
+        const success = await repo.update(id, body);
 
-    if (success) {
-        // 使缓存失效
-        c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
-        return c.json({ success: true, message: 'Product updated' });
-    } else {
-        return c.json({ success: false, error: 'Update failed or no changes' }, 400);
+        if (success) {
+            // 使缓存失效
+            c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
+            return c.json({ success: true, message: 'Product updated' });
+        } else {
+            return c.json({ success: false, error: 'Update failed or no changes' }, 400);
+        }
+    } catch (err) {
+        console.error('[Products/:id] 操作失败:', err);
+        return c.json({ success: false, error: err.message }, 500);
     }
 });
 
@@ -90,17 +93,22 @@ app.put('/:id', async (c) => {
  */
 app.delete('/:id', async (c) => {
     const { env } = c;
-    const id = c.req.param('id');
-    const repo = new ProductRepository(env.DB);
+    try {
+        const id = c.req.param('id');
+        const repo = new ProductRepository(env.DB);
 
-    const success = await repo.update(id, { status: 'archived' });
+        const success = await repo.update(id, { status: 'archived' });
 
-    if (success) {
-        // 使缓存失效
-        c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
-        return c.json({ success: true, message: 'Product archived' });
-    } else {
-        return c.json({ success: false, error: 'Delete failed' }, 400);
+        if (success) {
+            // 使缓存失效
+            c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
+            return c.json({ success: true, message: 'Product archived' });
+        } else {
+            return c.json({ success: false, error: 'Delete failed' }, 400);
+        }
+    } catch (err) {
+        console.error('[Products/:id] 操作失败:', err);
+        return c.json({ success: false, error: err.message }, 500);
     }
 });
 

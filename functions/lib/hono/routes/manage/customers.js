@@ -3,8 +3,17 @@ import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { CustomerRepository } from '../../../../repositories/CustomerRepository.js';
 import { MSG } from '../../_shared/utils.js';
+import { withCache, invalidateCache } from '../../../middleware/cache.js';
 
 const app = new Hono();
+
+const getCacheUrls = (c) => {
+    const origin = new URL(c.req.url).origin;
+    return [
+        `${origin}/api/manage/customers`,
+        `${origin}/api/manage/customers?page=1&limit=20`
+    ];
+};
 
 // 验证 Schema
 const CreateCustomerSchema = z.object({
@@ -20,9 +29,9 @@ const CreateCustomerSchema = z.object({
 const UpdateCustomerSchema = CreateCustomerSchema.partial();
 
 /**
- * GET / - 获取客户列表
+ * GET / - 分页查询客户列表
  */
-app.get('/', async (c) => {
+app.get('/', withCache(60), async (c) => {
     const { env } = c;
     try {
         const search = c.req.query('search') || '';
@@ -143,6 +152,8 @@ app.put('/:id', zValidator('json', UpdateCustomerSchema), async (c) => {
             return c.json({ success: false, error: MSG.COMMON.NOT_FOUND }, 404);
         }
 
+        c.executionCtx.waitUntil(invalidateCache(getCacheUrls(c)));
+
         return c.json({
             success: true,
             message: MSG.COMMON.UPDATE_SUCCESS,
@@ -161,21 +172,22 @@ app.delete('/:id', async (c) => {
     const { env } = c;
     try {
         const id = c.req.param('id');
-
         const repo = new CustomerRepository(env.DB);
 
         // 检查是否有关联订单
         const hasOrders = await repo.hasOrders(id);
         if (hasOrders) {
-            return c.json({ success: false, error: MSG.CUSTOMER.CANNOT_DELETE_HAS_ORDERS }, 400);
+            return c.json({ success: false, error: MSG.CUSTOMER.HAS_ORDERS }, 400);
         }
 
         const deleted = await repo.delete(id);
         if (!deleted) {
-            return c.json({ success: false, error: MSG.COMMON.NOT_FOUND }, 404);
+            return c.json({ success: false, error: MSG.CUSTOMER.NOT_FOUND }, 404);
         }
 
-        return c.json({ success: true, message: MSG.COMMON.DELETE_SUCCESS });
+        c.executionCtx.waitUntil(invalidateCache(getCacheUrls(c)));
+
+        return c.json({ success: true, message: MSG.CUSTOMER.DELETE_SUCCESS });
     } catch (err) {
         console.error('[Customers] 操作失败:', err);
         return c.json({ success: false, error: err.message }, 500);

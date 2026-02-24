@@ -1,7 +1,14 @@
 import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
-import { withCache } from '../../../middleware/cache.js';
+import { withCache, invalidateCache } from '../../../middleware/cache.js';
 
+const getProductCacheUrls = (c) => {
+    const origin = new URL(c.req.url).origin;
+    return [
+        `${origin}/api/manage/products`,
+        `${origin}/api/manage/products?page=1&limit=20`,
+    ];
+};
 import batch from './batch.js';
 import exportRoute from './export.js';
 
@@ -22,27 +29,32 @@ app.route('/export', exportRoute);
  */
 app.get('/', withCache(60), async (c) => {
     const { env } = c;
-    const { search, category, brand, status, page = 1, limit = 20 } = c.req.query();
+    try {
+        const { search, category, brand, status, page = 1, limit = 20 } = c.req.query();
 
-    const repo = new ProductRepository(env.DB);
-    const result = await repo.search({
-        search,
-        category,
-        brand,
-        status,
-        page: parseInt(page),
-        limit: parseInt(limit)
-    });
-
-    return c.json({
-        success: true,
-        data: result.items,
-        meta: {
-            total: result.total,
+        const repo = new ProductRepository(env.DB);
+        const result = await repo.search({
+            search,
+            category,
+            brand,
+            status,
             page: parseInt(page),
             limit: parseInt(limit)
-        }
-    });
+        });
+
+        return c.json({
+            success: true,
+            data: result.items,
+            meta: {
+                total: result.total,
+                page: parseInt(page),
+                limit: parseInt(limit)
+            }
+        });
+    } catch (err) {
+        console.error('[Products] 操作失败:', err);
+        return c.json({ success: false, error: err.message }, 500);
+    }
 });
 
 /**
@@ -66,6 +78,9 @@ app.post('/', async (c) => {
 
     try {
         const product = await repo.create(body);
+
+        c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
+
         return c.json({ success: true, data: product }, 201);
     } catch (e) {
         return c.json({ success: false, error: e.message }, 500);
