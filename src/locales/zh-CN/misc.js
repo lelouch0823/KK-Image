@@ -73,7 +73,7 @@ export default {
     dashboard: '概览',
     files: '文件管理',
     spaces: '共享空间',
-    stats: '统计',
+    stats: '数据统计',
     logout: '退出登录',
     admin: '管理员',
     role: '管理员',

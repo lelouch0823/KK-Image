@@ -193,7 +193,7 @@
                 
                 <!-- Footer -->
                 <div class="border-t border-[var(--border-subtle)] bg-[var(--bg-card)] p-4 text-center dark:border-white/5 dark:bg-[var(--bg-card)]/50">
-                    <router-link to="/manage/orders?status=pending" class="flex w-full items-center justify-center gap-1 text-xs font-medium text-indigo-400 transition-colors hover:text-indigo-300">
+                    <router-link to="/orders?status=pending" class="flex w-full items-center justify-center gap-1 text-xs font-medium text-indigo-400 transition-colors hover:text-indigo-300">
                         {{ t('dashboard.viewAllPending') }}
                         <span class="material-symbols-outlined text-sm">arrow_forward</span>
                     </router-link>
