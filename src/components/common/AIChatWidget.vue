@@ -13,7 +13,7 @@
         class="border-border pointer-events-auto absolute right-0 bottom-0 flex h-[600px] w-[420px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border bg-(--bg-card) shadow-2xl backdrop-blur-xl"
       >
         <!-- Header -->
-        <div class="bg-primary flex items-center justify-between p-4 text-[var(--text-inverse)]">
+        <div class="bg-primary flex items-center justify-between p-4 text-(--text-inverse)">
           <div class="flex items-center gap-3">
             <div class="flex size-8 items-center justify-center rounded-lg bg-white/20">
               <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,7 +63,7 @@
         </div>
 
         <!-- Input Area -->
-        <div class="border-t border-[var(--border-color)] bg-[var(--bg-card)] px-4 pt-1 pb-4">
+        <div class="border-t border-(--border-color) bg-(--bg-card) px-4 pt-1 pb-4">
           <AISuggestions 
             class="mb-2" 
             :suggestions="suggestions" 
@@ -79,7 +79,7 @@
               :disabled="isStreamingLoading"
               type="text"
               :placeholder="t('ai.placeholder')"
-              class="focus:ring-primary/20 focus:ring-2 w-full rounded-xl border-none bg-[var(--bg-muted)] py-3 pr-12 pl-4 text-sm transition-all dark:bg-white/5"
+              class="focus:ring-primary/20 focus:ring-2 w-full rounded-xl border-none bg-(--bg-muted) py-3 pr-12 pl-4 text-sm transition-all dark:bg-white/5"
             />
             <button
               :disabled="!userInput.trim() || isStreamingLoading"
@@ -327,62 +327,105 @@ const generateReport = async () => {
 .markdown-body {
   font-size: 0.875rem;
   line-height: 1.6;
+  color: var(--text-main);
+  word-break: break-word;
 }
-.markdown-body p {
-  margin-bottom: 0.5em;
+.markdown-body > *:first-child {
+  margin-top: 0;
 }
-.markdown-body p:last-child {
+.markdown-body > *:last-child {
   margin-bottom: 0;
 }
-.markdown-body ul, .markdown-body ol {
-  padding-left: 1.25em;
-  margin-bottom: 0.5em;
-  list-style-type: disc;
-}
-.markdown-body ol {
-  list-style-type: decimal;
-}
-.markdown-body code {
-  background-color: var(--bg-muted);
-  padding: 0.2em 0.4em;
-  border-radius: var(--radius-sm);
-  font-family: monospace;
-  font-size: 0.9em;
-}
-.markdown-body pre {
-  background-color: var(--bg-muted);
-  padding: 0.75em;
-  border-radius: var(--radius-lg);
-  overflow-x: auto;
-  margin-bottom: 0.5em;
-  border: 1px solid var(--border-color);
-}
-.markdown-body pre code {
-  background-color: transparent;
-  padding: 0;
-  font-size: 0.85em;
-}
-.markdown-body strong {
-  font-weight: 600;
+.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6 {
   color: var(--text-main);
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+  line-height: 1.3;
+}
+.markdown-body h1 { font-size: 1.25em; }
+.markdown-body h2 { font-size: 1.15em; }
+.markdown-body h3 { font-size: 1.05em; }
+.markdown-body p {
+  margin-top: 0;
+  margin-bottom: 0.75em;
 }
 .markdown-body a {
   color: var(--color-info);
-  text-decoration: underline;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.markdown-body a:hover {
+  border-bottom-color: var(--color-info);
+}
+.markdown-body ul, .markdown-body ol {
+  padding-left: 1.5em;
+  margin-top: 0;
+  margin-bottom: 0.75em;
+}
+.markdown-body ul { list-style-type: disc; }
+.markdown-body ol { list-style-type: decimal; }
+.markdown-body li { margin-bottom: 0.25em; }
+.markdown-body li > p { margin-bottom: 0.25em; }
+.markdown-body blockquote {
+  margin: 0 0 0.75em 0;
+  padding: 0.5em 1em;
+  color: var(--text-secondary);
+  border-left: 3px solid var(--color-primary);
+  background-color: color-mix(in srgb, var(--color-primary) 5%, transparent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.markdown-body blockquote p:last-child { margin-bottom: 0; }
+.markdown-body code {
+  color: var(--text-main);
+  background-color: var(--bg-muted);
+  padding: 0.2em 0.4em;
+  border-radius: var(--radius-sm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.85em;
+}
+.markdown-body pre {
+  background-color: var(--bg-muted);
+  padding: 1em;
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+  margin-top: 0;
+  margin-bottom: 0.75em;
+  border: 1px solid var(--border-color);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.markdown-body pre code {
+  color: var(--text-main);
+  background-color: transparent;
+  padding: 0;
+  font-size: 0.85em;
+  border-radius: 0;
+  white-space: pre;
+  word-break: normal;
 }
 .markdown-body table {
   width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
-  margin-bottom: 0.5em;
-  font-size: 0.85em;
+  margin-top: 0;
+  margin-bottom: 0.75em;
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
 }
 .markdown-body th, .markdown-body td {
+  padding: 0.5em 0.75em;
   border: 1px solid var(--border-color);
-  padding: 0.4em 0.6em;
-  text-align: left;
+  font-size: 0.85em;
 }
 .markdown-body th {
-  background-color: var(--bg-muted);
   font-weight: 600;
+  background-color: var(--bg-muted);
+  color: var(--text-secondary);
+  text-align: left;
+}
+.markdown-body tr:nth-child(2n) {
+  background-color: color-mix(in srgb, var(--bg-muted) 30%, transparent);
 }
 </style>
