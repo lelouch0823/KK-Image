@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
 import { MSG } from '../../_shared/utils.js';
+import { NotFoundError } from '../../errors.js';
 
 const app = new Hono();
 
@@ -53,9 +54,7 @@ app.get('/:filename', requirePermission('admin:full'), async (c) => {
     const filename = c.req.param('filename');
     const object = await env.R2_BACKUP_BUCKET.get(filename);
 
-    if (!object) {
-        return c.json({ success: false, error: MSG.COMMON.NOT_FOUND }, 404);
-    }
+    if (!object) throw new NotFoundError(MSG.COMMON.NOT_FOUND);
 
     const headers = new Headers();
     object.writeHttpMetadata(headers);

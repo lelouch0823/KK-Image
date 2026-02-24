@@ -1,30 +1,21 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { setCookie } from 'hono/cookie';
 import { SalesLoginSchema, WechatLoginSchema } from '../../schemas/sales.js';
-import { generateJWT, MSG, hashPassword } from '../../_shared/utils.js';
+import { MSG, hashPassword } from '../../_shared/utils.js';
 import { SalespersonRepository } from '../../../../repositories/SalespersonRepository.js';
-import {
-    checkLoginLockout,
-    recordLoginFailure,
-    clearLoginFailures,
-    loginRateLimitMiddleware,
-    formatRetryAfter,
-} from '../../middleware/rateLimit.js';
+import { loginRateLimitMiddleware } from '../../middleware/rateLimit.js';
 import { NotFoundError, ForbiddenError } from '../../errors.js';
+import {
+  checkAndRespondLockout,
+  handleLoginFailure,
+  clearFailures,
+  generateSalesToken,
+  SALES_COOKIE_MAX_AGE,
+  getClientIp,
+  getUserAgent,
+} from '../../_shared/auth-helpers.js';
 
 const app = new Hono();
-
-// Cookie 配置常量
-const SALES_TOKEN_COOKIE = 'sales_token';
-const COOKIE_MAX_AGE = 7 * 24 * 3600; // 7天
-
-/**
- * 生成锁定错误消息
- */
-function getLockedMessage(retryAfter) {
-    return MSG.AUTH.ACCOUNT_LOCKED.replace('{time}', formatRetryAfter(retryAfter));
-}
 
 /**
  * POST /login - 用户名密码登录
@@ -32,22 +23,10 @@ function getLockedMessage(retryAfter) {
 app.post('/login', loginRateLimitMiddleware, zValidator('json', SalesLoginSchema), async (c) => {
     const { username, password } = c.req.valid('json');
     const { env } = c;
-    const kv = env.RATE_LIMIT_KV || env.KV;
-    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
 
     // 检查是否被锁定
-    const lockoutStatus = await checkLoginLockout(kv, ip, username);
-    if (lockoutStatus.locked) {
-        return c.json(
-            {
-                success: false,
-                error: getLockedMessage(lockoutStatus.retryAfter),
-                retryAfter: lockoutStatus.retryAfter,
-            },
-            429,
-            { 'Retry-After': String(lockoutStatus.retryAfter) }
-        );
-    }
+    const lockoutRes = await checkAndRespondLockout(c, username);
+    if (lockoutRes) return lockoutRes;
 
     const salesperson = await env.DB.prepare(`
       SELECT id, name, store, phone, access_token, password_hash, is_active
@@ -57,57 +36,26 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', SalesLoginSchema
 
     if (!salesperson) {
         // 记录失败（用户不存在也计入，防止用户名枚举）
-        await recordLoginFailure(kv, ip, username, c.executionCtx);
-        return c.json({ success: false, error: MSG.AUTH.INVALID_CREDENTIALS }, 401);
+        return handleLoginFailure(c, username);
     }
 
     const passwordHash = await hashPassword(password, env.JWT_SECRET);
 
     if (salesperson.password_hash !== passwordHash) {
-        // 记录登录失败
-        const failureResult = await recordLoginFailure(kv, ip, username, c.executionCtx);
-
-        if (failureResult.locked) {
-            return c.json(
-                {
-                    success: false,
-                    error: getLockedMessage(failureResult.retryAfter),
-                    retryAfter: failureResult.retryAfter,
-                },
-                429,
-                { 'Retry-After': String(failureResult.retryAfter) }
-            );
-        }
-
-        return c.json({
-            success: false,
-            error: MSG.AUTH.INVALID_CREDENTIALS,
-            remaining: failureResult.remaining,
-        }, 401);
+        return handleLoginFailure(c, username);
     }
 
     // 登录成功，清除失败记录
-    await clearLoginFailures(kv, ip, username, c.executionCtx);
+    await clearFailures(c, username);
 
-    const token = await generateJWT(
-        { id: salesperson.id, name: salesperson.name, type: 'salesperson' },
-        env,
-        COOKIE_MAX_AGE
-    );
+    // SOTA: 使用提取的辅助函数生成 JWT + Cookie
+    const token = await generateSalesToken(c, salesperson);
 
     // 记录登录信息
     const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
-    const userAgent = c.req.header('User-Agent') || 'Unknown';
+    const ip = getClientIp(c);
+    const userAgent = getUserAgent(c);
     await repo.recordLogin(salesperson.id, ip, userAgent);
-
-    // 设置 HttpOnly Cookie
-    setCookie(c, SALES_TOKEN_COOKIE, token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'Lax',
-        maxAge: COOKIE_MAX_AGE,
-        path: '/api/sales',
-    });
 
     return c.json({
         success: true,
@@ -117,7 +65,7 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', SalesLoginSchema
             store: salesperson.store,
             token: token,
             accessToken: salesperson.access_token,
-            expiresIn: COOKIE_MAX_AGE,
+            expiresIn: SALES_COOKIE_MAX_AGE,
         }
     });
 });
@@ -153,32 +101,20 @@ app.post('/wechat-login', loginRateLimitMiddleware, zValidator('json', WechatLog
         throw new ForbiddenError(MSG.SALESPERSON.DISABLED);
     }
 
-    const token = await generateJWT(
-        { id: salesperson.id, name: salesperson.name, type: 'salesperson' },
-        env,
-        COOKIE_MAX_AGE
-    );
+    // SOTA: 使用提取的辅助函数生成 JWT + Cookie
+    const token = await generateSalesToken(c, salesperson);
 
     // 记录登录信息
-    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'Unknown';
-    const userAgent = c.req.header('User-Agent') || 'Unknown';
+    const ip = getClientIp(c);
+    const userAgent = getUserAgent(c);
     await repo.recordLogin(salesperson.id, ip, userAgent);
-
-    // 设置 HttpOnly Cookie
-    setCookie(c, SALES_TOKEN_COOKIE, token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'Lax',
-        maxAge: COOKIE_MAX_AGE,
-        path: '/api/sales',
-    });
 
     return c.json({
         success: true,
         data: {
             token,
             user: { id: salesperson.id, name: salesperson.name, store: salesperson.store },
-            expiresIn: COOKIE_MAX_AGE
+            expiresIn: SALES_COOKIE_MAX_AGE
         }
     });
 });
@@ -190,22 +126,10 @@ app.post('/:token/auth', loginRateLimitMiddleware, async (c) => {
     const accessToken = c.req.param('token');
     const { password } = await c.req.json();
     const { env } = c;
-    const kv = env.RATE_LIMIT_KV || env.KV;
-    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
 
     // 检查是否被锁定（使用 accessToken 作为用户标识）
-    const lockoutStatus = await checkLoginLockout(kv, ip, accessToken);
-    if (lockoutStatus.locked) {
-        return c.json(
-            {
-                success: false,
-                error: getLockedMessage(lockoutStatus.retryAfter),
-                retryAfter: lockoutStatus.retryAfter,
-            },
-            429,
-            { 'Retry-After': String(lockoutStatus.retryAfter) }
-        );
-    }
+    const lockoutRes = await checkAndRespondLockout(c, accessToken);
+    if (lockoutRes) return lockoutRes;
 
     const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
     const salesperson = await repo.findByToken(accessToken);
@@ -216,49 +140,19 @@ app.post('/:token/auth', loginRateLimitMiddleware, async (c) => {
     const inputHash = await hashPassword(password, env.JWT_SECRET);
 
     if (inputHash !== salesperson.password_hash) {
-        // 记录登录失败
-        const failureResult = await recordLoginFailure(kv, ip, accessToken, c.executionCtx);
-
-        if (failureResult.locked) {
-            return c.json(
-                {
-                    success: false,
-                    error: getLockedMessage(failureResult.retryAfter),
-                    retryAfter: failureResult.retryAfter,
-                },
-                429,
-                { 'Retry-After': String(failureResult.retryAfter) }
-            );
-        }
-
-        return c.json({
-            success: false,
-            error: MSG.SALESPERSON.INVALID_PASSWORD,
-            remaining: failureResult.remaining,
-        }, 401);
+        return handleLoginFailure(c, accessToken, MSG.SALESPERSON.INVALID_PASSWORD);
     }
 
     // 登录成功，清除失败记录
-    await clearLoginFailures(kv, ip, accessToken, c.executionCtx);
+    await clearFailures(c, accessToken);
 
-    const token = await generateJWT(
-        { id: salesperson.id, name: salesperson.name, type: 'salesperson' },
-        env,
-        COOKIE_MAX_AGE
-    );
+    // SOTA: 使用提取的辅助函数生成 JWT + Cookie
+    const token = await generateSalesToken(c, salesperson);
 
     // 记录登录信息
-    const userAgent = c.req.header('User-Agent') || 'Unknown';
+    const ip = getClientIp(c);
+    const userAgent = getUserAgent(c);
     await repo.recordLogin(salesperson.id, ip, userAgent);
-
-    // 设置 HttpOnly Cookie
-    setCookie(c, SALES_TOKEN_COOKIE, token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'Lax',
-        maxAge: COOKIE_MAX_AGE,
-        path: '/api/sales',
-    });
 
     return c.json({
         success: true,
@@ -267,7 +161,7 @@ app.post('/:token/auth', loginRateLimitMiddleware, async (c) => {
             name: salesperson.name,
             store: salesperson.store,
             token: token,
-            expiresIn: COOKIE_MAX_AGE,
+            expiresIn: SALES_COOKIE_MAX_AGE,
         }
     });
 });

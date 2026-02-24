@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { NotificationRepository } from '../../../../repositories/NotificationRepository.js';
-import { success } from '../../../../api/utils/response.js';
-import { MSG } from '../../../../api/utils/messages.js';
+import { MSG } from '../../_shared/utils.js';
 import { BadRequestError } from '../../errors.js';
 
 const app = new Hono();
@@ -16,7 +15,7 @@ app.get('/', async (c) => {
 
     const notifyRepo = new NotificationRepository(env.DB);
     const result = await notifyRepo.listForAdmin({ unreadOnly, limit });
-    return success(result);
+    return c.json({ success: true, data: result });
 });
 
 /**
@@ -40,7 +39,7 @@ app.post('/', async (c) => {
         metadata,
     });
 
-    return success(result, MSG.COMMON.CREATE_SUCCESS);
+    return c.json({ success: true, message: MSG.COMMON.CREATE_SUCCESS, data: result });
 });
 
 /**
@@ -59,7 +58,7 @@ app.post('/:id/read', async (c) => {
         await notifyRepo.markAsReadForAdmin(notificationId);
     }
 
-    return success(null, MSG.COMMON.UPDATE_SUCCESS);
+    return c.json({ success: true, message: MSG.COMMON.UPDATE_SUCCESS });
 });
 
 export default app;

@@ -3,6 +3,8 @@ import { zValidator } from '@hono/zod-validator';
 import { CreateOrderSchema, AddCommentSchema } from '../../schemas/sales.js';
 import { MSG, generateId, generateOrderNo, triggerWebhook } from '../../_shared/utils.js';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
+import { parsePagination } from '../../_shared/route-helpers.js';
+import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors.js';
 
 const app = new Hono();
 
@@ -12,8 +14,7 @@ const app = new Hono();
 app.get('/', async (c) => {
     const salesperson = c.get('salesperson');
     const { env } = c;
-    const page = parseInt(c.req.query('page') || '1');
-    const limit = parseInt(c.req.query('limit') || '20');
+    const { page, limit } = parsePagination(c);
     const status = c.req.query('status');
 
     const orderRepo = new OrderRepository(env.DB);
@@ -110,7 +111,7 @@ app.get('/:id', async (c) => {
     const orderRepo = new OrderRepository(env.DB);
     const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
 
-    if (!order) return c.json({ success: false, error: MSG.ORDER.NOT_FOUND }, 404);
+    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
 
     const { OrderTimelineRepository } = await import('../../../../repositories/OrderTimelineRepository.js');
     const tplRepo = new OrderTimelineRepository(env.DB);
@@ -157,11 +158,11 @@ app.patch('/:id', async (c) => {
 
     const orderRepo = new OrderRepository(env.DB);
     const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
-    if (!order) return c.json({ success: false, error: MSG.ORDER.NOT_FOUND }, 404);
+    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
 
     const editableStatuses = ['pending', 'rejected', 'void'];
     if (!editableStatuses.includes(order.status)) {
-        return c.json({ success: false, error: MSG.ORDER.ONLY_PENDING_CAN_EDIT }, 403);
+        throw new ForbiddenError(MSG.ORDER.ONLY_PENDING_CAN_EDIT);
     }
 
     const { updates: updatesFromBody, reason, fileIds, productId } = body;
@@ -169,7 +170,7 @@ app.patch('/:id', async (c) => {
     const { reason: _unusedReason, fileIds: _unusedFileIds, updates: _unusedUpdates, productId: _unusedProductId, ...updates } = updatesObj;
 
     if (!reason || !reason.trim()) {
-        return c.json({ success: false, error: MSG.ORDER.REASON_REQUIRED }, 400);
+        throw new BadRequestError(MSG.ORDER.REASON_REQUIRED);
     }
 
     const { processOrderUpdate } = await import('../../../../api/utils/order-utils.js');
@@ -209,8 +210,8 @@ app.delete('/:id', async (c) => {
     const orderRepo = new OrderRepository(env.DB);
     const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
 
-    if (!order) return c.json({ success: false, error: MSG.ORDER.NOT_FOUND }, 404);
-    if (order.status !== 'pending') return c.json({ success: false, error: MSG.ORDER.ONLY_PENDING_CAN_VOID }, 403);
+    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
+    if (order.status !== 'pending') throw new ForbiddenError(MSG.ORDER.ONLY_PENDING_CAN_VOID);
 
     await orderRepo.updateStatus(orderId, 'void', 'sales');
 
@@ -252,7 +253,7 @@ app.post('/:id/comment', zValidator('json', AddCommentSchema), async (c) => {
 
     const orderRepo = new OrderRepository(env.DB);
     const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
-    if (!order) return c.json({ success: false, error: MSG.ORDER.NOT_FOUND }, 404);
+    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
 
     const { OrderTimelineRepository } = await import('../../../../repositories/OrderTimelineRepository.js');
     const tplRepo = new OrderTimelineRepository(env.DB);

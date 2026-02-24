@@ -2,22 +2,15 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { LoginSchema, TokenSchema } from '../../schemas/user.js';
 import { generateJWT, ADMIN_AUTH_COOKIE, verifyTurnstile, MSG } from '../../_shared/utils.js';
+import { loginRateLimitMiddleware } from '../../middleware/rateLimit.js';
 import {
-  checkLoginLockout,
-  recordLoginFailure,
-  clearLoginFailures,
-  loginRateLimitMiddleware,
-  formatRetryAfter,
-} from '../../middleware/rateLimit.js';
+  checkAndRespondLockout,
+  handleLoginFailure,
+  clearFailures,
+  authenticateAdminUser,
+} from '../../_shared/auth-helpers.js';
 
 const app = new Hono();
-
-/**
- * 生成锁定错误消息
- */
-function getLockedMessage(retryAfter) {
-  return MSG.AUTH.ACCOUNT_LOCKED.replace('{time}', formatRetryAfter(retryAfter));
-}
 
 /**
  * POST /api/v1/auth/login - 用户登录
@@ -25,22 +18,10 @@ function getLockedMessage(retryAfter) {
 app.post('/login', loginRateLimitMiddleware, zValidator('json', LoginSchema), async (c) => {
   const { username, password, turnstileToken } = c.req.valid('json');
   const { env } = c;
-  const kv = env.RATE_LIMIT_KV || env.KV;
-  const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
 
   // 检查是否被锁定
-  const lockoutStatus = await checkLoginLockout(kv, ip, username);
-  if (lockoutStatus.locked) {
-    return c.json(
-      {
-        success: false,
-        error: getLockedMessage(lockoutStatus.retryAfter),
-        retryAfter: lockoutStatus.retryAfter,
-      },
-      429,
-      { 'Retry-After': String(lockoutStatus.retryAfter) }
-    );
-  }
+  const lockoutRes = await checkAndRespondLockout(c, username);
+  if (lockoutRes) return lockoutRes;
 
   // Turnstile 验证（如果配置）
   if (env.TURNSTILE_SECRET_KEY && turnstileToken) {
@@ -55,52 +36,15 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', LoginSchema), as
     return c.json({ success: false, error: MSG.AUTH.UNCONFIGURED }, 503);
   }
 
-  // 1. Check Root Admin
-  let authenticatedUser = null;
-  if (username === env.BASIC_USER && password === env.BASIC_PASS) {
-    authenticatedUser = { id: username, name: 'Administrator', type: 'admin', role: 'admin', permissions: ['admin:full'] };
-  } else {
-    // 2. 查询数据库用户（DB 故障时让错误冒泡到全局处理器）
-    const dbUser = await env.DB.prepare('SELECT id, password_hash, name, role, permissions FROM users WHERE username = ?')
-      .bind(username)
-      .first();
-
-    if (dbUser) {
-      const { verifyPassword } = await import('../../_shared/utils.js');
-      const isValid = await verifyPassword(password, dbUser.password_hash, env.JWT_SECRET);
-      if (isValid) {
-        authenticatedUser = {
-          id: dbUser.id,
-          name: dbUser.name,
-          type: 'user',
-          role: dbUser.role,
-          permissions: dbUser.permissions ? JSON.parse(dbUser.permissions) : []
-        };
-      }
-    }
-  }
+  // SOTA: 使用提取的认证函数，消除重复逻辑
+  const authenticatedUser = await authenticateAdminUser(env, username, password);
 
   if (!authenticatedUser) {
-    // 记录登录失败
-    const failureResult = await recordLoginFailure(kv, ip, username, c.executionCtx);
-
-    const errorResponse = {
-      success: false,
-      error: MSG.AUTH.INVALID_CREDENTIALS,
-      remaining: failureResult.remaining,
-    };
-
-    if (failureResult.locked) {
-      errorResponse.error = getLockedMessage(failureResult.retryAfter);
-      errorResponse.retryAfter = failureResult.retryAfter;
-      return c.json(errorResponse, 429, { 'Retry-After': String(failureResult.retryAfter) });
-    }
-
-    return c.json(errorResponse, 401);
+    return handleLoginFailure(c, username);
   }
 
   // 登录成功，清除失败记录
-  await clearLoginFailures(kv, ip, username, c.executionCtx);
+  await clearFailures(c, username);
 
   // 生成 JWT
   const user = authenticatedUser;
@@ -129,73 +73,22 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', LoginSchema), as
 app.post('/token', loginRateLimitMiddleware, zValidator('json', TokenSchema), async (c) => {
   const { username, password, expiresIn } = c.req.valid('json');
   const { env } = c;
-  const kv = env.RATE_LIMIT_KV || env.KV;
-  const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
 
   // 检查是否被锁定
-  const lockoutStatus = await checkLoginLockout(kv, ip, username);
-  if (lockoutStatus.locked) {
-    return c.json(
-      {
-        success: false,
-        error: getLockedMessage(lockoutStatus.retryAfter),
-        retryAfter: lockoutStatus.retryAfter,
-      },
-      429,
-      { 'Retry-After': String(lockoutStatus.retryAfter) }
-    );
-  }
+  const lockoutRes = await checkAndRespondLockout(c, username);
+  if (lockoutRes) return lockoutRes;
 
-  // 1. Check Root Admin
-  let authenticatedUser = null;
-  if (username === env.BASIC_USER && password === env.BASIC_PASS) {
-    authenticatedUser = { id: username, name: 'Administrator', type: 'admin', role: 'admin', permissions: ['admin:full'] };
-  } else {
-    // 2. 查询数据库用户（DB 故障时让错误冒泡到全局处理器）
-    const dbUser = await env.DB.prepare('SELECT id, password_hash, name, role, permissions FROM users WHERE username = ?')
-      .bind(username)
-      .first();
+  // SOTA: 使用提取的认证函数，消除重复逻辑
+  const authenticatedUser = await authenticateAdminUser(env, username, password);
 
-    if (dbUser) {
-      const { verifyPassword } = await import('../../_shared/utils.js');
-      const isValid = await verifyPassword(password, dbUser.password_hash, env.JWT_SECRET);
-      if (isValid) {
-        authenticatedUser = {
-          id: dbUser.id,
-          name: dbUser.name,
-          type: 'user',
-          role: dbUser.role,
-          permissions: dbUser.permissions ? JSON.parse(dbUser.permissions) : []
-        };
-      }
-    }
-  }
-
-  // 验证凭据失败
   if (!authenticatedUser) {
-    // 记录登录失败
-    const failureResult = await recordLoginFailure(kv, ip, username, c.executionCtx);
-
-    if (failureResult.locked) {
-      return c.json(
-        {
-          success: false,
-          error: getLockedMessage(failureResult.retryAfter),
-          retryAfter: failureResult.retryAfter,
-        },
-        429,
-        { 'Retry-After': String(failureResult.retryAfter) }
-      );
-    }
-
-    return c.json({ success: false, error: MSG.AUTH.INVALID_CREDENTIALS }, 401);
+    return handleLoginFailure(c, username);
   }
 
   // 登录成功，清除失败记录
-  await clearLoginFailures(kv, ip, username, c.executionCtx);
+  await clearFailures(c, username);
 
   const user = authenticatedUser;
-
   const token = await generateJWT(user, env, expiresIn);
 
   return c.json({
@@ -261,7 +154,7 @@ app.get('/me', async (c) => {
       id: user.id,
       name: user.name,
       type: user.type,
-      role: user.role || 'admin', // Ensure role acts as a fallback or actual DB state
+      role: user.role || 'admin',
       permissions: user.permissions || [],
     },
   });

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { UnauthorizedError } from '../../errors.js';
 
 const app = new Hono();
 
@@ -10,9 +11,7 @@ app.get('/', (c) => {
 
   // 如果没有用户（中间件未通过），通常会先被 authMiddleware 拦截
   // 但为了安全起见，这里再检查一次
-  if (!user) {
-    return c.json({ success: false, error: 'Unauthorized' }, 401);
-  }
+  if (!user) throw new UnauthorizedError('Unauthorized');
 
   return c.json({
     success: true,

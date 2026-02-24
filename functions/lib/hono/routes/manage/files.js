@@ -7,6 +7,7 @@ import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
 import { NotFoundError } from '../../errors.js';
+import { parsePagination } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 
@@ -30,8 +31,7 @@ const RenameFileSchema = z.object({
 app.get('/', async (c) => {
   const { env } = c;
   const folderId = c.req.query('folder_id');
-  const page = parseInt(c.req.query('page') || '1');
-  const limit = parseInt(c.req.query('limit') || '50');
+  const { page, limit } = parsePagination(c, { limit: 50 });
 
   const repo = new FileRepository(env.DB);
   const filter = folderId ? { folderId } : { rootOnly: true };

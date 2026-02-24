@@ -125,4 +125,17 @@ export class StatsRepository {
         `).bind(startTime).all();
         return results;
     }
+
+    /**
+     * 获取最近上传的文件
+     * @param {number} limit - 返回数量
+     * @returns {Promise<Object[]>}
+     */
+    async getRecentFiles(limit = 5) {
+        const { results } = await this.db.prepare(
+            `SELECT id, name, size, mime_type as type, storage_key, created_at as timestamp
+             FROM files ORDER BY created_at DESC LIMIT ?`
+        ).bind(limit).all();
+        return results;
+    }
 }

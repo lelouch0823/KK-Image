@@ -10,19 +10,12 @@ import { requirePermission } from '../../middleware/auth.js';
 import { withCache, invalidateCache } from '../../middleware/cache.js';
 import { generateId, generateShareToken, now, MSG } from '../../_shared/utils.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
+import { createCacheInvalidator } from '../../_shared/route-helpers.js';
+import { NotFoundError, BadRequestError } from '../../errors.js';
 
 const app = new Hono();
 
-/**
- * 构建缓存失效 URL
- */
-const getFolderCacheUrls = (c) => {
-  const origin = new URL(c.req.url).origin;
-  return [
-    `${origin}/api/v1/folders`,
-    `${origin}/api/v1/folders?parentId=null`,
-  ];
-};
+const getFolderCacheUrls = createCacheInvalidator('/api/v1/folders', ['parentId=null']);
 
 /**
  * GET /api/v1/folders - 获取文件夹列表
@@ -103,9 +96,7 @@ app.get('/:id', withCache(60), async (c) => {
 
   const folder = await env.DB.prepare('SELECT * FROM folders WHERE id = ?').bind(id).first();
 
-  if (!folder) {
-    return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
-  }
+  if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
 
   // 获取文件和子文件夹
   const [filesResult, subfoldersResult] = await Promise.all([
@@ -142,9 +133,7 @@ app.post(
       const parent = await env.DB.prepare('SELECT id FROM folders WHERE id = ?')
         .bind(data.parentId)
         .first();
-      if (!parent) {
-        return c.json({ success: false, error: MSG.FOLDER.PARENT_NOT_FOUND }, 404);
-      }
+      if (!parent) throw new NotFoundError(MSG.FOLDER.PARENT_NOT_FOUND);
     }
 
     const id = generateId();
@@ -196,9 +185,7 @@ app.put(
     const { env } = c;
 
     const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(id).first();
-    if (!folder) {
-      return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
-    }
+    if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
 
     const updates = [];
     const values = [];
@@ -211,9 +198,7 @@ app.put(
       }
     }
 
-    if (updates.length === 0) {
-      return c.json({ success: false, error: MSG.COMMON.NO_UPDATE_FIELDS }, 400);
-    }
+    if (updates.length === 0) throw new BadRequestError(MSG.COMMON.NO_UPDATE_FIELDS);
 
     updates.push('updated_at = ?');
     values.push(now());
@@ -238,9 +223,7 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
   const { env } = c;
 
   const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(id).first();
-  if (!folder) {
-    return c.json({ success: false, error: MSG.FOLDER.NOT_FOUND }, 404);
-  }
+  if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
 
   // 检查是否有子文件夹或文件
   const subfoldersCount = await env.DB.prepare(

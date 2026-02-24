@@ -5,16 +5,11 @@ import { CustomerRepository } from '../../../../repositories/CustomerRepository.
 import { MSG } from '../../_shared/utils.js';
 import { withCache, invalidateCache } from '../../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
+import { parsePagination, createCacheInvalidator } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 
-const getCacheUrls = (c) => {
-    const origin = new URL(c.req.url).origin;
-    return [
-        `${origin}/api/manage/customers`,
-        `${origin}/api/manage/customers?page=1&limit=20`
-    ];
-};
+const getCacheUrls = createCacheInvalidator('/api/manage/customers', ['page=1&limit=20']);
 
 // 验证 Schema
 const CreateCustomerSchema = z.object({
@@ -34,9 +29,8 @@ const UpdateCustomerSchema = CreateCustomerSchema.partial();
  */
 app.get('/', withCache(60), async (c) => {
     const { env } = c;
+    const { page, limit } = parsePagination(c);
     const search = c.req.query('search') || '';
-    const page = parseInt(c.req.query('page') || '1');
-    const limit = parseInt(c.req.query('limit') || '20');
 
     const repo = new CustomerRepository(env.DB);
     const { results, total, pages } = await repo.list({ page, limit, search });

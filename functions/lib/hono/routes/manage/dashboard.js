@@ -51,14 +51,13 @@ app.get('/overview', async (c) => {
             statsRepo.getLast7DaysPendingTrend(weekStartTimestamp),
             statsRepo.getLast7DaysOrderTrend(weekStartTimestamp),
             statsRepo.getLast7DaysShareTrend(weekStartTimestamp),
-            // SOTA: 在概览中直接包含最近文件和分享，减少 RTT
-            globalStatsRepo.db.prepare(
-                `SELECT id, name, size, mime_type as type, storage_key, created_at as timestamp 
-                 FROM files ORDER BY created_at DESC LIMIT 5`
-            ).all().then(r => r.results.map(f => ({
-                ...f,
-                url: getFileUrl(f.storage_key)
-            }))),
+            // SOTA: 使用 Repository 封装的方法，不直接访问 db 属性
+            globalStatsRepo.getRecentFiles(5).then(files =>
+                files.map(f => ({
+                    ...f,
+                    url: getFileUrl(f.storage_key)
+                }))
+            ),
             folderRepo.findShared({ limit: 5 }).then(r => r.items)
         ]);
 

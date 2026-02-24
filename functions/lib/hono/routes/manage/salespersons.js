@@ -5,16 +5,11 @@ import { SalespersonRepository } from '../../../../repositories/SalespersonRepos
 import { MSG } from '../../_shared/utils.js';
 import { withCache, invalidateCache } from '../../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
+import { parsePagination, createCacheInvalidator } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 
-const getCacheUrls = (c) => {
-    const origin = new URL(c.req.url).origin;
-    return [
-        `${origin}/api/manage/salespersons`,
-        `${origin}/api/manage/salespersons?page=1&limit=50`
-    ];
-};
+const getCacheUrls = createCacheInvalidator('/api/manage/salespersons', ['page=1&limit=50']);
 
 // 验证 Schema
 const CreateSalespersonSchema = z.object({
@@ -37,8 +32,7 @@ const UpdateSalespersonSchema = z.object({
  */
 app.get('/', withCache(60), async (c) => {
     const { env } = c;
-    const page = parseInt(c.req.query('page') || '1', 10);
-    const limit = parseInt(c.req.query('limit') || '50', 10);
+    const { page, limit } = parsePagination(c, { limit: 50 });
     const search = c.req.query('search') || '';
 
     const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);

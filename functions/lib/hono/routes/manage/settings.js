@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { success } from '../../../../api/utils/response.js';
 import { BadRequestError } from '../../errors.js';
 
 const app = new Hono();
@@ -22,11 +21,11 @@ app.get('/', async (c) => {
       { key: 'AI_MODELS', value: c.env.AI_MODELS || 'gpt-4o', category: 'ai' }
     ];
 
-    return success(c, aiDefaults.reduce((acc, curr) => {
+    return c.json({ success: true, data: aiDefaults.reduce((acc, curr) => {
       if (!acc[curr.category]) acc[curr.category] = {};
       acc[curr.category][curr.key] = curr.value;
       return acc;
-    }, {}));
+    }, {}) });
   }
 
   results.forEach(row => {
@@ -36,7 +35,7 @@ app.get('/', async (c) => {
     settings[row.category][row.key] = row.value;
   });
 
-  return success(c, settings);
+  return c.json({ success: true, data: settings });
 });
 
 // 批量更新或创建设置
@@ -61,7 +60,7 @@ app.post('/batch', async (c) => {
 
   await c.env.DB.batch(batch);
 
-  return success(c, { count: settings.length });
+  return c.json({ success: true, data: { count: settings.length } });
 });
 
 // 单个更新
@@ -77,7 +76,7 @@ app.put('/:key', async (c) => {
      "updatedAt" = strftime('%s', 'now')`
   ).bind(key, value, category || 'general', description || null).run();
 
-  return success(c, { key, value });
+  return c.json({ success: true, data: { key, value } });
 });
 
 export default app;
