@@ -126,7 +126,7 @@
         <table class="w-full text-left text-sm">
           <thead>
             <tr class="border-b border-[var(--border-color)] bg-[var(--bg-muted)]">
-              <th v-for="i in 7" :key="'th-sk-' + i" class="px-4 py-3">
+              <th v-for="i in 5" :key="'th-sk-' + i" class="px-4 py-3">
                 <div class="skeleton-shimmer h-4 w-16 rounded bg-[var(--border-color)]" />
               </th>
             </tr>
@@ -137,9 +137,7 @@
               <td class="px-4 py-3.5"><div class="skeleton-shimmer h-5 w-16 rounded-full bg-[var(--bg-muted)]" /></td>
               <td class="px-4 py-3.5"><div class="skeleton-shimmer h-4 w-8 rounded bg-[var(--bg-muted)]" /></td>
               <td class="px-4 py-3.5"><div class="skeleton-shimmer h-4 w-20 rounded bg-[var(--bg-muted)]" /></td>
-              <td class="px-4 py-3.5"><div class="skeleton-shimmer h-4 w-16 rounded bg-[var(--bg-muted)]" /></td>
               <td class="px-4 py-3.5"><div class="skeleton-shimmer h-4 w-20 rounded bg-[var(--bg-muted)]" /></td>
-              <td class="px-4 py-3.5 text-right"><div class="skeleton-shimmer ml-auto h-4 w-14 rounded bg-[var(--bg-muted)]" /></td>
             </tr>
           </tbody>
         </table>
@@ -162,9 +160,8 @@
               <th class="px-4 py-3 font-semibold text-[var(--text-secondary)]">{{ t('purchaseOrder.table.status') }}</th>
               <th class="px-4 py-3 text-center font-semibold text-[var(--text-secondary)]">{{ t('purchaseOrder.table.itemCount') }}</th>
               <th class="px-4 py-3 font-semibold text-[var(--text-secondary)]">{{ t('purchaseOrder.table.totalGoodsCost') }}</th>
-              <th class="hidden px-4 py-3 font-semibold text-[var(--text-secondary)] md:table-cell">{{ t('purchaseOrder.table.estimatedShipping') }}</th>
+              <th class="px-4 py-3 font-semibold text-[var(--text-secondary)]">{{ t('purchaseOrder.form.remark') }}</th>
               <th class="px-4 py-3 font-semibold text-[var(--text-secondary)]">{{ t('purchaseOrder.table.createdAt') }}</th>
-              <th class="px-4 py-3 font-semibold text-[var(--text-secondary)]"></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-[var(--border-subtle)]">
@@ -190,16 +187,8 @@
               </td>
               <td class="px-4 py-3 text-center font-medium text-[var(--text-main)]">{{ po.item_count || 0 }}</td>
               <td class="px-4 py-3 font-[Outfit] font-medium text-[var(--text-main)]">¥{{ (po.total_goods_cost || 0).toFixed(2) }}</td>
-              <td class="hidden px-4 py-3 text-[var(--text-secondary)] md:table-cell">¥{{ (po.estimated_shipping_cost || 0).toFixed(2) }}</td>
+              <td class="px-4 py-3 text-[var(--text-secondary)] max-w-[150px] truncate" :title="po.remark">{{ po.remark || '-' }}</td>
               <td class="px-4 py-3 text-[var(--text-secondary)]">{{ formatDate(po.created_at) }}</td>
-              <td class="px-4 py-3 text-right">
-                <button
-                  class="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--bg-active)]"
-                  @click.stop="openDetail(po.id)"
-                >
-                  {{ t('common.viewDetails') }}
-                </button>
-              </td>
             </tr>
           </tbody>
         </table>
@@ -229,15 +218,15 @@
       </div>
     </div>
 
-    <!-- ==================== 详情面板 (侧滑) ==================== -->
+    <!-- ==================== 详情面板 (弹窗) ==================== -->
     <Teleport to="body">
-      <transition name="slide">
-        <div v-if="showDetail && detail" class="fixed inset-0 z-50 flex justify-end">
+      <transition name="fade">
+        <div v-if="showDetail && detail" class="fixed inset-0 z-50 flex items-center justify-center p-4">
           <!-- 背景遮罩 -->
-          <div class="absolute inset-0 bg-[var(--color-overlay-blur)] backdrop-blur-sm" @click="showDetail = false"></div>
+          <div class="absolute inset-0 bg-[var(--color-overlay-dim)] backdrop-blur-sm" @click="showDetail = false"></div>
           <!-- 面板 -->
-          <div class="relative w-full max-w-2xl overflow-y-auto bg-[var(--bg-page)] shadow-2xl">
-            <div class="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-card)] px-6 py-4">
+          <div class="relative flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-[var(--color-modal-bg)] shadow-xl" style="max-height: calc(100vh - 3rem)">
+            <div class="flex shrink-0 items-center justify-between border-b border-[var(--border-color)] px-6 py-4">
               <div>
                 <h2 class="text-lg font-bold text-[var(--text-main)]">{{ detail.po_no }}</h2>
                 <span
@@ -257,21 +246,31 @@
               </button>
             </div>
 
-            <div class="space-y-6 p-6">
-              <!-- 状态操作按钮 -->
-              <div v-if="nextStatuses.length > 0" class="flex flex-wrap gap-2">
-                <button
-                  v-for="ns in nextStatuses"
-                  :key="ns"
-                  class="cursor-pointer rounded-xl px-4 py-2 text-sm font-medium transition-colors"
-                  :class="ns === 'cancelled'
-                    ? 'border border-[var(--color-danger)] text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)]'
-                    : 'bg-[var(--color-primary)] text-[var(--text-inverse)] hover:opacity-90'"
-                  @click="handleStatusUpdate(ns)"
-                >
-                  {{ t('purchaseOrder.action.updateStatus') }}: {{ statusConfig[ns]?.label || ns }}
-                </button>
-              </div>
+            <div class="flex h-full min-h-0 flex-col">
+              <div class="flex-1 space-y-6 overflow-y-auto p-6">
+                <!-- 状态可视化 (Stepper) -->
+                <div class="mb-4">
+                  <div class="relative flex items-center justify-between">
+                    <div class="absolute top-1/2 left-0 h-0.5 w-full -translate-y-1/2 bg-[var(--border-color)]"></div>
+                    <div 
+                      class="absolute top-1/2 left-0 h-0.5 -translate-y-1/2 bg-[var(--color-primary)] transition-all duration-500"
+                      :style="{ width: getStepperProgress(detail.status) }"
+                    ></div>
+                    
+                    <div v-for="step in stepsList" :key="step.value" class="relative z-10 flex flex-col items-center gap-2">
+                      <div 
+                        class="flex size-6 items-center justify-center rounded-full border-2 transition-colors duration-300"
+                        :class="getStepIconClasses(detail.status, step.value)"
+                      >
+                        <svg v-if="isStepCompleted(detail.status, step.value)" class="size-3.5 text-[var(--text-inverse)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <div v-else-if="detail.status === step.value" class="size-2 rounded-full bg-[var(--color-primary)]"></div>
+                      </div>
+                      <span class="text-xs font-medium" :class="detail.status === step.value ? 'text-[var(--text-main)]' : isStepCompleted(detail.status, step.value) ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'">
+                        {{ step.label }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
               <!-- 费用信息 -->
               <div class="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-4 shadow-sm">
@@ -329,23 +328,43 @@
                     class="group flex flex-col justify-between gap-3 rounded-xl border border-[var(--border-subtle)] p-3 transition-colors hover:bg-[var(--bg-hover)] sm:flex-row sm:items-center"
                   >
                     <div class="flex items-center gap-3">
-                      <div class="flex size-10 items-center justify-center rounded-xl bg-[var(--bg-muted)]">
-                        <svg class="size-5 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                        </svg>
+                      <!-- 商品主图 -->
+                      <div class="size-14 shrink-0 overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-muted)] shadow-sm">
+                        <img v-if="item.product_images?.[0]" :src="getFileUrl(item.product_images[0])" :alt="item.product_name" class="size-full object-cover" />
+                        <div v-else class="flex size-full items-center justify-center">
+                          <svg class="size-6 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                          </svg>
+                        </div>
                       </div>
-                      <div>
-                        <div class="flex items-center gap-2">
-                          <span class="text-sm font-medium text-[var(--text-main)]">{{ item.product_name || '—' }}</span>
-                          <span v-if="detail.status === 'draft'" class="flex cursor-pointer items-center gap-0.5 text-xs text-[var(--color-danger)] opacity-0 transition-opacity group-hover:opacity-100" @click="handleDetailRemoveItem(item.id)">
+                      
+                      <!-- 商品信息 -->
+                      <div class="flex flex-col gap-1">
+                        <div class="flex cursor-pointer items-center gap-2 transition-colors hover:text-[var(--color-primary)]" @click="handleViewProductDetail(item.product_id)">
+                          <span class="line-clamp-1 text-sm font-medium text-[var(--text-main)]" :title="item.product_name">{{ item.product_name || '—' }}</span>
+                          <span v-if="item.product_brand" class="shrink-0 rounded bg-[var(--bg-muted)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">{{ item.product_brand }}</span>
+                          <span v-if="detail.status === 'draft'" class="flex shrink-0 cursor-pointer items-center gap-0.5 text-xs text-[var(--color-danger)] opacity-0 transition-opacity group-hover:opacity-100" @click="handleDetailRemoveItem(item.id)">
                             <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             {{ t('common.delete') }}
                           </span>
                         </div>
-                        <div class="text-xs text-[var(--text-secondary)]">
-                          {{ item.product_sku || '' }}
-                          <span v-if="item.customer_order_no" class="ml-2 text-[var(--color-info)]">→ {{ item.customer_order_no }}</span>
-                          <span v-else class="ml-2 text-[var(--color-warning)]">{{ t('purchaseOrder.detail.publicStock') }}</span>
+                        <div class="flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                          <code class="rounded bg-[var(--bg-muted)] px-1 py-0.5 font-mono text-[10px]">{{ item.product_sku || '-' }}</code>
+                          <span class="text-[var(--text-muted)]">·</span>
+                          <span v-if="item.customer_order_no" class="inline-flex items-center gap-1 rounded bg-[var(--color-info)]/10 px-1 py-0.5 text-[10px] font-medium text-[var(--color-info)]">
+                            <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                            {{ item.customer_order_no }}
+                          </span>
+                          <span v-else class="inline-flex items-center gap-1 rounded bg-[var(--color-warning)]/10 px-1 py-0.5 text-[10px] font-medium text-[var(--color-warning)]">
+                            <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            {{ t('purchaseOrder.detail.publicStock') }}
+                          </span>
+                        </div>
+                        <!-- Specs -->
+                        <div v-if="item.product_specifications && Object.keys(item.product_specifications).length > 0" class="mt-0.5 flex flex-wrap gap-1">
+                          <span v-for="(val, key) in item.product_specifications" :key="key" class="rounded border border-[var(--border-subtle)] bg-[var(--bg-page)] px-1.5 py-0.5 text-[10px] text-[var(--text-secondary)]">
+                            {{ key }}: {{ val }}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -380,6 +399,33 @@
                 <h3 class="mb-2 text-sm font-semibold text-[var(--text-main)]">{{ t('purchaseOrder.form.remark') }}</h3>
                 <p class="text-sm text-[var(--text-secondary)]">{{ detail.remark }}</p>
               </div>
+            </div>
+            
+            <!-- Footer Fixed Action Bar -->
+            <div class="flex items-center justify-between border-t border-[var(--border-color)] bg-[var(--bg-card)] px-6 py-4">
+              <div class="flex items-center gap-3">
+                <!-- 左侧：次要/辅助操作 -->
+                <button
+                  v-if="nextStatuses.includes('cancelled')"
+                  class="cursor-pointer rounded-xl px-4 py-2 text-sm font-medium text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger)]/10"
+                  @click="handleStatusUpdate('cancelled')"
+                >
+                  {{ t('purchaseOrder.action.cancelOrder') }}
+                </button>
+              </div>
+              
+              <div class="flex items-center gap-3">
+                <!-- 右侧：主要操作 -->
+                <button
+                  v-for="ns in nextStatuses.filter(s => s !== 'cancelled')"
+                  :key="ns"
+                  class="cursor-pointer rounded-xl bg-[var(--color-primary)] px-6 py-2.5 text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:bg-[var(--color-primary)]/90 hover:shadow"
+                  @click="handleStatusUpdate(ns)"
+                >
+                  {{ t('purchaseOrder.action.updateTo') }}: {{ statusConfig[ns]?.label || ns }}
+                </button>
+              </div>
+            </div>
             </div>
           </div>
         </div>
@@ -588,6 +634,14 @@
       </transition>
     </Teleport>
 
+    <!-- 商品详情弹窗 -->
+    <ProductDetailModal
+      v-if="viewProductId"
+      :show="!!viewProductId"
+      :product-id="viewProductId"
+      @close="viewProductId = null"
+    />
+
     <!-- 二次确认弹窗 (数量不足) -->
     <Teleport to="body">
       <transition name="fade">
@@ -694,10 +748,12 @@
 
 <script setup>
 import { ref, reactive, computed, onActivated, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePurchaseOrders } from '@/composables/usePurchaseOrders';
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
 import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
+import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
 
 const { t } = useI18n();
 const {
@@ -708,6 +764,9 @@ const {
   createPO, createFromOrders, updateStatus,
   loadSuggestions, addItems, removeItem, updateItem,
 } = usePurchaseOrders();
+
+const route = useRoute();
+const router = useRouter();
 
 // ─── 本地状态 ────────────────────────────────────────
 
@@ -746,7 +805,55 @@ const statCards = computed(() => {
     { key: 'completed', label: t('purchaseOrder.status.completed'), count: stats.value.completed_count || 0, iconColor: 'var(--color-success)', iconBg: 'var(--color-success-bg)' },
   ];
 });
+const stepsList = [
+  { value: 'draft', label: t('purchaseOrder.status.draft') },
+  { value: 'ordered', label: t('purchaseOrder.status.ordered') },
+  { value: 'shipping', label: t('purchaseOrder.status.shipping') },
+  { value: 'arrived', label: t('purchaseOrder.status.arrived') },
+  { value: 'completed', label: t('purchaseOrder.status.completed') }
+];
 
+const getStepIndex = (status) => {
+  return stepsList.findIndex(s => s.value === status);
+};
+
+const isStepCompleted = (currentStatus, stepStatus) => {
+  if (currentStatus === 'cancelled') return false;
+  return getStepIndex(currentStatus) > getStepIndex(stepStatus);
+};
+
+const getStepperProgress = (currentStatus) => {
+  if (currentStatus === 'cancelled') return '0%';
+  const currentIndex = getStepIndex(currentStatus);
+  if (currentIndex <= 0) return '0%';
+  return `${(currentIndex / (stepsList.length - 1)) * 100}%`;
+};
+
+const getStepIconClasses = (currentStatus, stepStatus) => {
+  if (currentStatus === 'cancelled') {
+    return 'border-[var(--border-subtle)] bg-[var(--bg-muted)] text-[var(--text-muted)]';
+  }
+  const currentIndex = getStepIndex(currentStatus);
+  const stepIndex = getStepIndex(stepStatus);
+  
+  if (currentIndex > stepIndex) {
+    return 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--text-inverse)]';
+  } else if (currentIndex === stepIndex) {
+    return 'border-[var(--color-primary)] bg-[var(--bg-card)]';
+  } else {
+    return 'border-[var(--border-strong)] bg-[var(--bg-muted)]';
+  }
+};
+
+const handleStatusUpdate = async (newStatus) => {
+  if (!detail.value) return;
+  const success = await updateStatus(detail.value.id, newStatus);
+  if (success) {
+    await loadDetail(detail.value.id);
+    loadList();
+    loadStats();
+  }
+};
 const statusTabs = computed(() => [
   { value: '', label: t('purchaseOrder.filter.all') },
   { value: 'draft', label: t('purchaseOrder.status.draft') },
@@ -976,15 +1083,7 @@ const executeCreate = async () => {
   loadStats();
 };
 
-const handleStatusUpdate = async (newStatus) => {
-  if (!detail.value) return;
-  const success = await updateStatus(detail.value.id, newStatus);
-  if (success) {
-    await loadDetail(detail.value.id);
-    loadList();
-    loadStats();
-  }
-};
+
 
 const handleCreateFromSuggestions = async () => {
   // 将建议中的预订单汇总
@@ -1008,6 +1107,17 @@ const handleCreateFromSuggestions = async () => {
 // 每次导航进入该页面时都会重新拉取最新数据
 onActivated(async () => {
   await Promise.all([loadList(), loadStats()]);
+
+  if (route.query.id) {
+    const targetId = route.query.id;
+    // 使用 replace 移除 URL 上的参数防止反复触发打开详情
+    let newQuery = { ...route.query };
+    delete newQuery.id;
+    router.replace({ path: route.path, query: newQuery });
+    
+    // 打开关联的详情弹窗
+    openDetail(targetId);
+  }
 });
 
 // 筛选变化时自动重新加载列表

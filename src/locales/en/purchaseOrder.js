@@ -80,6 +80,8 @@ export default {
     linkOrders: 'Link Orders',
     removeItem: 'Remove',
     updateStatus: 'Change Status',
+    updateTo: 'Update to',
+    cancelOrder: 'Cancel Order',
     allocate: 'Allocate Costs',
     viewSuggestions: 'View Suggestions',
     settle: 'Enter Actual Costs',

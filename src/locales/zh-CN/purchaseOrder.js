@@ -6,8 +6,8 @@ export default {
   // 采购单状态 (管理端视角)
   status: {
     draft: '草稿',
-    ordered: '已向海外下单',
-    shipping: '国际物流在途',
+    ordered: '已下单',
+    shipping: '运输中',
     arrived: '已入库待结算',
     completed: '已结算',
     cancelled: '已取消',
@@ -86,6 +86,8 @@ export default {
     linkOrders: '关联预定单',
     removeItem: '移除',
     updateStatus: '变更状态',
+    updateTo: '变更状态',
+    cancelOrder: '取消订单',
     allocate: '执行成本分摊',
     viewSuggestions: '查看智能建议',
     settle: '填写实际费用',

@@ -84,6 +84,7 @@ export class PurchaseOrderRepository {
         p.sku AS product_sku,
         p.brand AS product_brand,
         p.images AS product_images,
+        p.specifications AS product_specifications,
         o.order_no AS customer_order_no
       FROM purchase_order_items poi
       LEFT JOIN products p ON poi.product_id = p.id
@@ -99,6 +100,7 @@ export class PurchaseOrderRepository {
       items: poItems.map(item => ({
         ...item,
         product_images: this._parseJson(item.product_images),
+        product_specifications: this._parseJson(item.product_specifications),
       })),
     };
   }
@@ -129,7 +131,7 @@ export class PurchaseOrderRepository {
     const { results } = await this.db
       .prepare(`
         SELECT po.*,
-          (SELECT COUNT(*) FROM purchase_order_items WHERE po_id = po.id) AS item_count,
+          (SELECT COALESCE(SUM(quantity), 0) FROM purchase_order_items WHERE po_id = po.id) AS item_count,
           (SELECT COALESCE(SUM(quantity * unit_cost), 0) FROM purchase_order_items WHERE po_id = po.id) AS total_goods_cost
         FROM purchase_orders po
         WHERE ${where}

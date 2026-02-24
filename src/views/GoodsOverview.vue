@@ -394,12 +394,14 @@
 
 <script setup>
 import { onActivated } from 'vue';
+import { useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useGoodsOverview } from '@/composables/useGoodsOverview';
 
 const { t } = useI18n();
 const { addToast } = useToast();
+const router = useRouter();
 const {
   items, summary, loading, filters, availableFilters,
   selectedItems, isAllSelected, toggleSelect, toggleSelectAll, isSelected, clearSelection,
@@ -411,6 +413,7 @@ const handleCreatePO = async () => {
   const result = await createPOFromSelected();
   if (result.success) {
     addToast({ type: 'success', message: t('goodsOverview.toast.poCreated') });
+    router.push({ path: '/purchase-orders', query: { id: result.data.id } });
   } else {
     addToast({ type: 'error', message: result.error || '生成采购单失败' });
   }
