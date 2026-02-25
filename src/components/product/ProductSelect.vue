@@ -73,7 +73,7 @@
                 <span class="ml-2 flex-shrink-0 text-xs text-[var(--text-muted)]">¥{{ product.price }}</span>
               </div>
               <div class="mt-0.5 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-                <span class="rounded bg-[var(--bg-muted)] px-1.5 py-0.5 font-mono">{{ product.sku }}</span>
+                <span class="rounded bg-[var(--bg-muted)] px-1.5 py-0.5 font-mono">{{ product.spu }}</span>
                 <span v-if="product.category" class="truncate">{{ product.category }}</span>
               </div>
             </div>

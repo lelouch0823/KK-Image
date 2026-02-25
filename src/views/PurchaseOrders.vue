@@ -919,7 +919,7 @@ const handleOrdersSelected = async (orders) => {
     itemsToAdd.push({
       product_id: order.productId || order.product_id || null,
       product_name: order.productName || data.name || '—',
-      sku: data.sku || '—',
+      sku: data.spu || '—',
       brand: data.brand || order.brand || '',
       image: data.images?.[0] || null,
       quantity: order.quantity || 1,
@@ -970,7 +970,7 @@ const handleProductsSelected = async (products) => {
     itemsToAdd.push({
       product_id: product.id,
       product_name: product.name,
-      sku: product.sku || '—',
+      sku: product.spu || '—',
       brand: product.brand || '',
       image: mainImage,
       quantity: 1,

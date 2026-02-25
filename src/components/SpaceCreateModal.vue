@@ -227,7 +227,7 @@ const handleProductSelect = (product) => {
   boundProduct.value = {
     id: product.id,
     name: product.name,
-    sku: variant ? variant.sku : product.sku,
+    sku: variant ? variant.sku : product.spu,
     brand: product.brand,
     series: product.series,
     mainImage,

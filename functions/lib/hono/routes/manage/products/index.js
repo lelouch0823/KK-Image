@@ -59,16 +59,21 @@ app.post('/', async (c) => {
     const { env } = c;
     const body = await c.req.json();
 
-    if (!body.name || !body.sku) {
-        throw new BadRequestError('Name and SKU are required');
+    if (!body.name) {
+        throw new BadRequestError('Name is required');
     }
 
     const repo = new ProductRepository(env.DB);
 
-    // Check SKU uniqueness
-    const existing = await repo.findBySku(body.sku);
-    if (existing) {
-        throw new ConflictError('SKU already exists');
+    const normalizedSpu = typeof body.spu === 'string' ? body.spu.trim() : '';
+
+    // 仅在 spu 非空时检查唯一性
+    if (normalizedSpu) {
+        body.spu = normalizedSpu;
+        const existing = await repo.findBySpu(normalizedSpu);
+        if (existing) {
+            throw new ConflictError('SPU already exists');
+        }
     }
 
     let product = null;

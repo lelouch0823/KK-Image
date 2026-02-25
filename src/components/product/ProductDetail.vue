@@ -89,7 +89,7 @@
                      <span v-if="product.brand" class="mb-1 inline-block text-xs font-semibold tracking-wider text-[var(--color-primary)] uppercase">{{ product.brand }}</span>
                      <h2 class="line-clamp-2 text-xl font-bold text-[var(--text-main)]">{{ product.name }}</h2>
                      <div class="mt-1 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                         <span v-if="product.sku" class="rounded bg-[var(--bg-muted)] px-1.5 py-0.5 font-mono text-xs">{{ product.sku }}</span>
+                         <span v-if="product.spu" class="rounded bg-[var(--bg-muted)] px-1.5 py-0.5 font-mono text-xs">{{ product.spu }}</span>
                          <span v-if="product.series">&bull; {{ product.series }}</span>
                      </div>
                  </div>

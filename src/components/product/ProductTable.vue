@@ -49,8 +49,8 @@
       </div>
     </template>
 
-    <!-- SKU Cell -->
-    <template #cell-sku="{ value }">
+    <!-- SPU Cell -->
+    <template #cell-spu="{ value }">
       <div class="flex flex-col items-center gap-1">
           <div class="w-fit rounded bg-(--bg-muted) px-2 py-0.5 font-mono text-sm text-(--text-main) dark:bg-(--bg-secondary)">
               {{ value }}
@@ -157,7 +157,7 @@ const isLargeScreen = breakpoints.greater('lg');
 
 const columns = computed(() => [
   { key: 'product', label: t('product.table.header.product'), align: 'left', width: '300px' },
-  { key: 'sku', label: t('product.form.sku'), align: 'center', class: 'hidden md:table-cell' },
+  { key: 'spu', label: t('product.form.spu'), align: 'center', class: 'hidden md:table-cell' },
   { key: 'category', label: t('product.table.header.category'), align: 'center', class: 'hidden lg:table-cell' },
   { key: 'price', label: t('product.table.header.price'), align: 'center' },
   { key: 'stock', label: t('product.table.header.stock'), align: 'center' },
@@ -167,7 +167,7 @@ const columns = computed(() => [
 ]);
 
 // Note: For AppTable data access, we use slot scopes which give us `row`.
-// So key names in `columns` correspond to slots like `#cell-sku`. 
+// So key names in `columns` correspond to slots like `#cell-spu`. 
 // Column `key` is mostly for slot naming. 
 
 const getFileUrl = (id) => `/file/${id}`;

@@ -28,7 +28,7 @@ app.get('/', async (c) => {
             await writer.write(encoder.encode('\uFEFF'));
 
             // Write Header
-            const header = 'ID,Name,SKU,Category,Brand,Price,Stock,Status,Created At\n';
+            const header = 'ID,Name,SPU,Category,Brand,Price,Stock,Status,Created At\n';
             await writer.write(encoder.encode(header));
 
             while (hasMore) {
@@ -57,7 +57,7 @@ app.get('/', async (c) => {
                     const line = [
                         item.id,
                         item.name,
-                        item.sku,
+                        item.spu,
                         item.category,
                         item.brand,
                         item.price,

@@ -22,7 +22,7 @@
       </div>
       <div class="min-w-0 flex-1">
         <div class="truncate font-medium text-[var(--text-main)]">{{ boundProduct.name }}</div>
-        <div class="mt-0.5 text-xs text-[var(--text-secondary)]">{{ t('product.form.sku') }}: {{ displaySku }}</div>
+        <div class="mt-0.5 text-xs text-[var(--text-secondary)]">{{ t('product.form.spu') }}: {{ displaySku }}</div>
         <!-- Variant Selector -->
         <div v-if="variants.length > 0" class="mt-2">
            <select v-model="selectedVariantId" @change="onVariantChange" class="w-full text-xs rounded border border-[var(--border-subtle)] bg-[var(--bg-card)] p-1.5 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none">

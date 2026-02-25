@@ -81,7 +81,7 @@ const handleProductSelect = (product) => {
   boundProduct.value = {
     id: product.id,
     name: product.name,
-    sku: variant ? variant.sku : product.sku,
+    sku: variant ? variant.sku : product.spu,
     brand: product.brand,
     series: product.series,
     variantId: variant ? variant.id : null,
@@ -95,7 +95,7 @@ const handleProductSelect = (product) => {
     name: product.name || '',
     brand: product.brand || '',
     series: product.series || '',
-    sku: variant ? variant.sku : (product.sku || ''),
+    sku: variant ? variant.sku : (product.spu || ''),
   };
   
   // Auto-fill image if available

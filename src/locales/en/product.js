@@ -25,6 +25,7 @@ export default {
     cost: 'Cost Price',
     inventory: 'Inventory',
     sku: 'SKU Code',
+    spu: 'SPU Code',
     stock: 'Current Stock',
     alert_at: 'Alert Threshold',
     options_title: 'Options',
@@ -32,6 +33,7 @@ export default {
     option_name: 'Option Name',
     option_values: 'Option Values',
     variants_title: 'Product Variants (SKU)',
+    manage_variant_images: 'Manage Variant Images',
     organization: 'Organization',
     slug_seo: 'SEO Slug',
     slug_placeholder: 'Leave blank to auto-generate',
@@ -49,7 +51,7 @@ export default {
     empty: 'No product data',
   },
   filters: {
-    search_placeholder: 'Search name/SKU...',
+    search_placeholder: 'Search name/SPU...',
     status: {
       all: 'All',
       short_label: 'Status',
@@ -138,7 +140,7 @@ export default {
       all_failed: 'All imports failed',
     },
     stats_summary: 'Import Complete: {success} Success, {failed} Failed',
-    error_missing_fields: 'Product Name and SKU are required',
+    error_missing_fields: 'Product Name is required',
     confirm_mapping: 'Confirm Mapping',
     fields: {
       image_url: 'Image URL',

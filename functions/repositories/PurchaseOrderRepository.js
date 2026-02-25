@@ -81,7 +81,7 @@ export class PurchaseOrderRepository {
       SELECT 
         poi.*,
         p.name AS product_name,
-        p.sku AS product_sku,
+        p.spu AS product_sku,
         p.brand AS product_brand,
         p.images AS product_images,
         p.specifications AS product_specifications,

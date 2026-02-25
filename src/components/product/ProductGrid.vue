@@ -41,10 +41,10 @@
                     {{ product.name }}
                 </h3>
                 
-                <!-- SKU + Stock Row -->
+                <!-- SPU + Stock Row -->
                 <div class="mt-1.5 flex items-center gap-2">
                     <span class="rounded bg-[var(--bg-muted)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--text-secondary)]">
-                        {{ product.sku }}
+                        {{ product.spu }}
                     </span>
                     <span class="text-[11px] text-[var(--text-secondary)]">
                         {{ t('product.table.header.stock') }}: {{ product.stock_quantity }}

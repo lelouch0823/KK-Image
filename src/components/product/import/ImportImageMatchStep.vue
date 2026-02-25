@@ -46,18 +46,18 @@
             <div class="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
                     <div 
                     v-for="item in localImages" 
-                    :key="item.sku"
+                    :key="getItemMatchKey(item)"
                     class="flex items-center gap-2 rounded border p-2 text-xs"
-                    :class="imageMatches.has(item.sku) 
+                    :class="imageMatches.has(getItemMatchKey(item))
                         ? 'border-[var(--color-success)]/20 bg-[var(--color-success)]/5 text-[var(--color-success-text)]' 
                         : 'border-[var(--color-warning)]/20 bg-[var(--color-warning)]/5 text-[var(--color-warning-text)]'"
                     >
-                    <div class="size-2 shrink-0 rounded-full" :class="imageMatches.has(item.sku) ? 'bg-[var(--color-success)]' : 'bg-[var(--color-warning)]'"></div>
+                    <div class="size-2 shrink-0 rounded-full" :class="imageMatches.has(getItemMatchKey(item)) ? 'bg-[var(--color-success)]' : 'bg-[var(--color-warning)]'"></div>
                     <div class="min-w-0 flex-1 truncate">
-                        <div class="font-medium">{{ item.sku }}</div>
+                        <div class="font-medium">{{ getItemMatchKey(item) }}</div>
                         <div class="opacity-75">{{ item.image_url }}</div>
                     </div>
-                    <div v-if="imageMatches.has(item.sku)">
+                    <div v-if="imageMatches.has(getItemMatchKey(item))">
                         <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                         </svg>
@@ -71,6 +71,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { getItemMatchKey } from './match-keys.js';
 
 const props = defineProps({
     parsedItems: {

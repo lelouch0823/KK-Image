@@ -145,7 +145,7 @@ export function useGoodsOverview() {
             const poItems = selectedItems.value.map(item => ({
                 product_id: item.id,
                 product_name: item.name,
-                product_sku: item.sku,
+                product_sku: item.spu,
                 quantity: Math.max(item.shortage, 0),
                 unit_cost: item.avgUnitCost || 0,
             }));

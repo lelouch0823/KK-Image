@@ -214,9 +214,8 @@
                       <div class="space-y-4 rounded-xl border border-(--border-color) bg-(--bg-muted)/50 p-4">
                          <h4 class="font-bold text-(--text-main)">{{ t('product.form.inventory') }}</h4>
                          <AppInput
-                           v-model="form.sku"
-                           :label="t('product.form.sku')"
-                           required
+                           v-model="form.spu"
+                           :label="t('product.form.spu')"
                            class="font-mono uppercase"
                          />
                           <div class="grid grid-cols-2 gap-4">
@@ -295,6 +294,7 @@ import AppInput from '@/components/ui/AppInput.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import Select from '@/components/ui/Select.vue';
 import { API } from '@/utils/constants';
+import { buildVariantSku } from './variant-sku.js';
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -329,7 +329,7 @@ const form = reactive({
     category: '',
     price: null,
     costPrice: null,
-    sku: '',
+    spu: '',
     stockQuantity: 0,
     alertThreshold: 10,
     slug: '',
@@ -361,7 +361,7 @@ function fillFormFromData(data) {
         category: data.category || '',
         price: data.price ?? null,
         costPrice: data.cost_price ?? null,
-        sku: data.sku || '',
+        spu: data.spu || '',
         stockQuantity: data.stock_quantity ?? 0,
         alertThreshold: data.alert_threshold ?? 10,
         slug: data.slug || '',
@@ -390,7 +390,7 @@ function resetForm() {
         category: '',
         price: null,
         costPrice: null,
-        sku: '',
+        spu: '',
         stockQuantity: 0,
         alertThreshold: 10,
         slug: '',
@@ -462,10 +462,8 @@ const generateVariants = () => {
         const old = oldVariantsMap.get(key);
         if (old) return old;
         
-        const suffix = Object.values(combo).map(val => val.substring(0, 3).toUpperCase()).join('-');
-        
         return {
-            sku: form.sku ? `${form.sku}-${suffix}` : '',
+            sku: buildVariantSku({ spu: form.spu, optionsValues: combo, seed: `${Date.now()}-${Math.random()}` }),
             price: form.price || 0,
             stock_quantity: 0,
             options_values: combo,
@@ -475,9 +473,9 @@ const generateVariants = () => {
 };
 
 const handleSubmit = async () => {
-    if (!form.name || !form.sku) {
+    if (!form.name) {
         addToast({ 
-            message: t('common.validation_error', '请填写必填项 (商品名称, SKU)'), 
+            message: t('common.validation_error', '请填写必填项 (商品名称)'), 
             type: 'error' 
         });
         return;
@@ -497,7 +495,7 @@ const handleSubmit = async () => {
             category: form.category,
             price: form.price,
             cost_price: form.costPrice,
-            sku: form.sku,
+            spu: form.spu || undefined,
             stock_quantity: form.stockQuantity,
             alert_threshold: form.alertThreshold,
             slug: form.slug || undefined,

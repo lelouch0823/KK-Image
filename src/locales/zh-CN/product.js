@@ -25,6 +25,7 @@ export default {
     cost: '成本价格',
     inventory: '库存信息',
     sku: 'SKU 编码',
+    spu: 'SPU 编码',
     stock: '当前库存',
     alert_at: '预警阈值',
     options_title: '规格选项',
@@ -32,6 +33,7 @@ export default {
     option_name: '规格名称',
     option_values: '规格值',
     variants_title: '商品规格 (SKU)',
+    manage_variant_images: '管理规格图片',
     organization: '组织与属性',
     slug_seo: 'SEO 链接标识 (Slug)',
     slug_placeholder: '留空自动生成',
@@ -49,7 +51,7 @@ export default {
     empty: '暂无商品数据',
   },
   filters: {
-    search_placeholder: '搜索商品名称/SKU...',
+    search_placeholder: '搜索商品名称/SPU...',
     status: {
       all: '全部',
       short_label: '状态',
@@ -138,7 +140,7 @@ export default {
       all_failed: '全部导入失败',
     },
     stats_summary: '导入完成: {success} 成功, {failed} 失败',
-    error_missing_fields: '请至少映射"商品名称"和"SKU"字段',
+    error_missing_fields: '请至少映射"商品名称"字段',
     confirm_mapping: '确认映射',
     fields: {
       image_url: '图片链接',

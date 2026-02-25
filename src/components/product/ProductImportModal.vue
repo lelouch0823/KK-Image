@@ -99,6 +99,7 @@ import ImportUploadStep from '@/components/product/import/ImportUploadStep.vue';
 import ImportMappingStep from '@/components/product/import/ImportMappingStep.vue';
 import ImportImageMatchStep from '@/components/product/import/ImportImageMatchStep.vue';
 import ImportPreviewStep from '@/components/product/import/ImportPreviewStep.vue';
+import { extractInternalCodes, getItemMatchKey } from '@/components/product/import/match-keys.js';
 
 defineProps({
     modelValue: {
@@ -127,7 +128,7 @@ const fieldMapping = ref({});
 
 const SYSTEM_FIELDS = [
     { key: 'name', label: t('product.form.name'), required: true, aliases: ['品名', '标题', 'Name'] },
-    { key: 'sku', label: t('product.form.sku'), required: true, aliases: ['款号', '货号', '编码', 'Code'] },
+    { key: 'spu', label: t('product.form.spu'), required: false, aliases: ['款号', '货号', '编码', 'Code', 'SPU'] },
     { key: 'price', label: t('product.form.price'), required: false, aliases: ['售价', '销售价', '单价', '金额'] }, 
     { key: 'stock_quantity', label: t('product.form.stock'), required: false, aliases: ['数量', '存货', '库存数'] }, 
     { key: 'description', label: t('product.form.description'), required: false, aliases: ['详情', '备注', '介绍'] },
@@ -218,7 +219,7 @@ const processFile = async (file) => {
 
 const handleConfirmMapping = () => {
     // Validate required
-    if (!fieldMapping.value['name'] || !fieldMapping.value['sku']) {
+    if (!fieldMapping.value['name']) {
         addToast({ type: 'error', message: t('product.import.error_missing_fields', '请至少映射“商品名称”和“SKU”字段') });
         return;
     }
@@ -234,10 +235,11 @@ const handleConfirmMapping = () => {
                 }
             }
         });
+        Object.assign(item, extractInternalCodes(fileHeaders.value, row));
         // Default Status
         item.status = 'active';
         return item;
-    }).filter(i => i.name && i.sku);
+    }).filter(i => i.name);
 
     parsedItems.value = mappedData;
 
@@ -257,7 +259,7 @@ const handleConfirmMapping = () => {
 
 // --- Image Matching Logic (Step 5) ---
 const imageUploadFiles = ref([]);
-const imageMatches = ref(new Map()); // sku -> File
+const imageMatches = ref(new Map()); // spu -> File
 
 const handleImageFiles = (files) => {
     // Convert FileList to Array
@@ -283,7 +285,7 @@ const performImageMatch = () => {
         );
         
         if (match) {
-            newMatches.set(item.sku, match);
+            newMatches.set(getItemMatchKey(item), match);
         }
     });
     imageMatches.value = newMatches;
@@ -306,7 +308,7 @@ const handleUploadImagesAndNext = async () => {
         const matches = Array.from(imageMatches.value.entries());
         let uploadedCount = 0;
         
-        for (const [sku, file] of matches) {
+        for (const [key, file] of matches) {
             const formData = new FormData();
             formData.append('file', file);
             
@@ -319,7 +321,7 @@ const handleUploadImagesAndNext = async () => {
             
             if (data.success) {
                 // Update item with returned ID (or URL if needed, but CreateModal uses ID)
-                const item = parsedItems.value.find(i => i.sku === sku);
+                const item = parsedItems.value.find(i => getItemMatchKey(i) === key);
                 if (item) {
                      // The backend expects array of IDs for 'images' field
                      // But parsedItems currently has 'image_url' field string.

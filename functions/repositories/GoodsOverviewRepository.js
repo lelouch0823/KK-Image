@@ -96,7 +96,7 @@ export class GoodsOverviewRepository {
         SELECT 
             o.product_id as id,
             COALESCE(p.name, json_extract(o.current_data, '$.name')) as name,
-            COALESCE(p.sku, '-') as sku,
+            COALESCE(p.spu, '-') as sku,
             COALESCE(p.brand, json_extract(o.current_data, '$.brand'), '-') as brand,
             COALESCE(p.category, '-') as category,
             COALESCE(p.stock_quantity, 0) as stock_quantity,

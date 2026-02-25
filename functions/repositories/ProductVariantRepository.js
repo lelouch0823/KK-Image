@@ -5,6 +5,13 @@ export class ProductVariantRepository {
         this.db = db;
     }
 
+    buildVariantSku(inputSku, variantId) {
+        const normalized = String(inputSku || '').trim();
+        if (normalized) return normalized;
+        const seed = String(variantId || generateId()).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        return `SKU-${seed.slice(0, 8)}`;
+    }
+
     async createBatch(productId, variantsData) {
         if (!variantsData || variantsData.length === 0) return [];
         const timestamp = now();
@@ -13,19 +20,22 @@ export class ProductVariantRepository {
 
         for (const v of variantsData) {
             const id = v.id || generateId();
+            const sku = this.buildVariantSku(v.sku, id);
             statements.push(
                 this.db.prepare(
                     `INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, options_values, image_id, status, created_at, updated_at)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
                 ).bind(
-                    id, productId, v.sku, Number(v.price) || 0, v.cost_price ? Number(v.cost_price) : null, Number(v.stock_quantity) || 0, 
+                    id, productId, sku, Number(v.price) || 0, v.cost_price ? Number(v.cost_price) : null, Number(v.stock_quantity) || 0, 
                     JSON.stringify(v.options_values || {}), v.image_id || null, v.status || 'active', timestamp, timestamp
                 )
             );
-            results.push({ ...v, id, product_id: productId });
+            results.push({ ...v, id, sku, product_id: productId });
         }
         await this.db.batch(statements);
-        return results;
+        const insertedRows = await this.findByProductId(productId);
+        const idSet = new Set(results.map((item) => item.id));
+        return insertedRows.filter((row) => idSet.has(row.id));
     }
 
     async findByProductId(productId) {
@@ -89,6 +99,7 @@ export class ProductVariantRepository {
         const results = [];
         for (const v of variantsData) {
             const id = v.id || generateId();
+            const sku = this.buildVariantSku(v.sku, id);
             statements.push(
                 this.db.prepare(
                     `INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, options_values, image_id, status, created_at, updated_at)
@@ -103,11 +114,11 @@ export class ProductVariantRepository {
                         status = excluded.status,
                         updated_at = excluded.updated_at`
                 ).bind(
-                    id, productId, v.sku, Number(v.price) || 0, v.cost_price ? Number(v.cost_price) : null, Number(v.stock_quantity) || 0, 
+                    id, productId, sku, Number(v.price) || 0, v.cost_price ? Number(v.cost_price) : null, Number(v.stock_quantity) || 0, 
                     JSON.stringify(v.options_values || {}), v.image_id || null, v.status || 'active', timestamp, timestamp
                 )
             );
-            results.push({ ...v, id, product_id: productId });
+            results.push({ ...v, id, sku, product_id: productId });
         }
         await this.db.batch(statements);
         return results;

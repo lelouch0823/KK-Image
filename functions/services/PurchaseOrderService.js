@@ -188,7 +188,7 @@ export class PurchaseOrderService {
       SELECT 
         p.id AS product_id,
         p.name AS product_name,
-        p.sku,
+        p.spu AS sku,
         p.brand,
         p.cost_price,
         p.stock_quantity,
@@ -237,7 +237,7 @@ export class PurchaseOrderService {
     const placeholders = orderIds.map(() => '?').join(',');
     const { results: orders } = await this.db.prepare(`
       SELECT o.id, o.order_no, o.product_id, o.quantity,
-             p.name, p.sku, p.cost_price
+             p.name, p.spu AS sku, p.cost_price
       FROM orders o
       LEFT JOIN products p ON o.product_id = p.id
       WHERE o.id IN (${placeholders})

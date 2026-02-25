@@ -15,7 +15,7 @@ export class ProductRepository {
         const product = {
             id,
             name: data.name,
-            sku: data.sku,
+            spu: data.spu || null,
             slug: data.slug || null,
             category: data.category || null,
             brand: data.brand || null,
@@ -41,7 +41,8 @@ export class ProductRepository {
 
         await this.db.prepare(query).bind(...values).run();
 
-        return product;
+        const inserted = await this.findById(id);
+        return inserted || product;
     }
     /**
      * 批量创建商品
@@ -59,8 +60,8 @@ export class ProductRepository {
         // 1. Prepare data
         for (const data of items) {
             // Basic validation
-            if (!data.name || !data.sku) {
-                errors.push({ sku: data.sku || 'UNKNOWN', error: 'Missing name or sku' });
+            if (!data.name) {
+                errors.push({ spu: data.spu || 'UNKNOWN', error: 'Missing name' });
                 continue;
             }
 
@@ -73,7 +74,7 @@ export class ProductRepository {
             const product = {
                 id,
                 name: data.name,
-                sku: data.sku,
+                spu: data.spu || null,
                 slug: data.slug || null,
                 category: data.category || null,
                 brand: data.brand || null,
@@ -119,10 +120,10 @@ export class ProductRepository {
                         successCount++;
                     } else {
                         // If changes is 0, it means INSERT OR IGNORE ignored it (duplicate)
-                        errors.push({ sku: validItems[index].data.sku, error: 'Duplicate SKU or insert failed' });
+                        errors.push({ spu: validItems[index].data.spu, error: 'Duplicate SPU or insert failed' });
                     }
                 } else {
-                    errors.push({ sku: validItems[index].data.sku, error: 'Database error' });
+                    errors.push({ spu: validItems[index].data.spu, error: 'Database error' });
                 }
             });
 
@@ -152,7 +153,7 @@ export class ProductRepository {
      */
     async updateWithMeta(id, updates) {
         const allowedFields = [
-            'name', 'sku', 'slug', 'category', 'brand', 'series',
+            'name', 'spu', 'slug', 'category', 'brand', 'series',
             'price', 'cost_price', 'stock_quantity', 'alert_threshold',
             'description', 'images', 'specifications', 'options', 'status'
         ];
@@ -196,11 +197,11 @@ export class ProductRepository {
     }
 
     /**
-     * 根据 SKU 查找
-     * @param {string} sku 
+     * 根据 SPU 查找
+     * @param {string} spu 
      */
-    async findBySku(sku) {
-        const result = await this.db.prepare('SELECT * FROM products WHERE sku = ?').bind(sku).first();
+    async findBySpu(spu) {
+        const result = await this.db.prepare('SELECT * FROM products WHERE spu = ?').bind(spu).first();
         return this._parseResult(result);
     }
 
@@ -256,7 +257,7 @@ export class ProductRepository {
         }
 
         if (filters.search) {
-            query += ' AND (name LIKE ? OR sku LIKE ? OR series LIKE ?)';
+            query += ' AND (name LIKE ? OR spu LIKE ? OR series LIKE ?)';
             const term = `%${filters.search}%`;
             params.push(term, term, term);
         }

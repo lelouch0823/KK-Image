@@ -97,7 +97,7 @@ app.patch('/:id', async (c) => {
             finalUpdates.brand = product.brand;
             finalUpdates.series = product.series;
             if (!normalizedVariantId) {
-                finalUpdates.sku = product.sku;
+                finalUpdates.sku = product.spu;
             }
             // 可以在此同步更多字段，如 material
             if (product.specifications?.material) {

@@ -474,7 +474,7 @@ const initData = async () => {
         boundProduct.value = {
           id: product.id,
           name: product.name,
-          sku: product.sku,
+          sku: product.spu,
           brand: product.brand,
           series: product.series,
           mainImage,
@@ -552,7 +552,7 @@ const handleProductSelect = (product) => {
   boundProduct.value = {
     id: product.id,
     name: product.name,
-    sku: variant ? variant.sku : product.sku,
+    sku: variant ? variant.sku : product.spu,
     brand: product.brand,
     series: product.series,
     mainImage,
@@ -565,7 +565,7 @@ const handleProductSelect = (product) => {
   if (!form.value.name) form.value.name = product.name || '';
   form.value.templateData.brand = product.brand || '';
   form.value.templateData.series = product.series || '';
-  form.value.templateData.sku = variant ? variant.sku : (product.sku || '');
+  form.value.templateData.sku = variant ? variant.sku : (product.spu || '');
   
   let priceStr = variant ? String(variant.price || '') : (product.price != null ? String(product.price) : '');
   form.value.templateData.price = priceStr;

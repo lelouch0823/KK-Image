@@ -289,7 +289,7 @@
               </td>
               <!-- SKU -->
               <td class="px-4 py-3">
-                <code class="rounded bg-[var(--bg-muted)] px-1.5 py-0.5 text-xs text-[var(--text-secondary)]">{{ item.sku }}</code>
+                <code class="rounded bg-[var(--bg-muted)] px-1.5 py-0.5 text-xs text-[var(--text-secondary)]">{{ item.spu }}</code>
               </td>
               <!-- 品牌 -->
               <td class="hidden px-4 py-3 text-[var(--text-secondary)] md:table-cell">{{ item.brand || '-' }}</td>
