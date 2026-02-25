@@ -1,210 +1,231 @@
 import { execSync } from 'child_process';
+import { writeFileSync, unlinkSync } from 'fs';
+import { join } from 'path';
 import crypto from 'crypto';
 
-const BATCH_SIZE = 10;
 const TOTAL_PRODUCTS = 50;
+const DB_BINDING = process.argv.includes('--remote') ? 'DB --remote' : 'DB --local';
 
-// Categories for realistic mock data
-const categories = ['Handbag', 'Wallet', 'Accessories', 'Jewelry', 'Watch'];
-const brands = ['Hermes', 'Chanel', 'Dior', 'Louis Vuitton', 'Gucci', 'Prada'];
-const seriesList = ['Birkin', 'Kelly', 'Constance', 'Classic Flap', 'Boy', 'Lady Dior', 'Speedy', 'Neverfull'];
+// Public, royalty-free image sources (Pexels free-to-use license).
+const IMAGE_URLS = [
+  'https://images.pexels.com/photos/994517/pexels-photo-994517.jpeg?auto=compress&cs=tinysrgb&w=1200',
+  'https://images.pexels.com/photos/934063/pexels-photo-934063.jpeg?auto=compress&cs=tinysrgb&w=1200',
+  'https://images.pexels.com/photos/1152077/pexels-photo-1152077.jpeg?auto=compress&cs=tinysrgb&w=1200',
+  'https://images.pexels.com/photos/1078958/pexels-photo-1078958.jpeg?auto=compress&cs=tinysrgb&w=1200',
+  'https://images.pexels.com/photos/95916/pexels-photo-95916.jpeg?auto=compress&cs=tinysrgb&w=1200',
+  'https://images.pexels.com/photos/1464625/pexels-photo-1464625.jpeg?auto=compress&cs=tinysrgb&w=1200',
+  'https://images.pexels.com/photos/19090/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=1200',
+  'https://images.pexels.com/photos/298863/pexels-photo-298863.jpeg?auto=compress&cs=tinysrgb&w=1200',
+  'https://images.pexels.com/photos/904350/pexels-photo-904350.jpeg?auto=compress&cs=tinysrgb&w=1200',
+  'https://images.pexels.com/photos/1126993/pexels-photo-1126993.jpeg?auto=compress&cs=tinysrgb&w=1200',
+  'https://images.pexels.com/photos/1036623/pexels-photo-1036623.jpeg?auto=compress&cs=tinysrgb&w=1200',
+  'https://images.pexels.com/photos/1464624/pexels-photo-1464624.jpeg?auto=compress&cs=tinysrgb&w=1200',
+];
 
-// Helper to get a random item
-function randomItem(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
+const BRANDS = ['Aster', 'Northline', 'Morrin', 'Velra', 'Noma'];
+const CATEGORIES = ['T-Shirt', 'Hoodie', 'Jacket', 'Pants', 'Sneaker'];
+const COLORS = ['黑', '白', '黄', '蓝', '灰', '军绿'];
+const MATERIALS = ['棉', '涤纶', '牛仔', '羊毛'];
+const SIZES = ['XS', 'S', 'M', 'L', 'XL'];
+
+function id() {
+  return crypto.randomUUID();
 }
 
-// Generate realistic product names
-function generateProductName(brand, series, category) {
-    const adjectives = ['Classic', 'Vintage', 'Modern', 'Elegant', 'Mini', 'Nano', 'Maxi', 'Limited Edition'];
-    const adj = randomItem(adjectives);
-    return `${adj} ${brand} ${series} ${category}`;
+function pick(arr, i) {
+  return arr[i % arr.length];
 }
 
-// Helper to generate a UUID v4
-function uuidv4() {
-    return crypto.randomUUID();
+function esc(value) {
+  return String(value ?? '').replace(/'/g, "''");
 }
 
-// Create a batch of mock products
-function generateProducts(count, startIndex = 0) {
-    const products = [];
-    const now = Math.floor(Date.now() / 1000);
+function makeDimensions(index) {
+  if (index % 3 === 0) {
+    return [
+      { name: '颜色', values: [pick(COLORS, index), pick(COLORS, index + 1)] },
+      { name: '材质', values: [pick(MATERIALS, index), pick(MATERIALS, index + 1)] },
+      { name: '尺码', values: ['S', 'M', 'L'] },
+    ];
+  }
+  if (index % 3 === 1) {
+    return [
+      { name: '颜色', values: [pick(COLORS, index), pick(COLORS, index + 2), pick(COLORS, index + 4)] },
+      { name: '尺码', values: ['M', 'L', 'XL'] },
+    ];
+  }
+  return [
+    { name: '颜色', values: [pick(COLORS, index), pick(COLORS, index + 3), pick(COLORS, index + 5)] },
+  ];
+}
 
-    for (let i = 0; i < count; i++) {
-        const brand = randomItem(brands);
-        const category = randomItem(categories);
-        const series = randomItem(seriesList);
-        const name = generateProductName(brand, series, category);
-
-        // Simulate Unsplash images
-        // Unsplash source URL with keywords matching the product type
-        // We store these as a mock file ID mimicking the structure of real files.
-        // However, the products DB essentially accepts file_ids. If we directly use URLs, we would need 
-        // real files in the `files` table. Let's create mock file IDs for them or just an empty array if images aren't purely required. 
-        // The user specifically requested "pictures you can use copyright-free pictures from the internet."
-        // Let's create dummy file entries for these images so the frontend can render them.
-
-        const product = {
-            id: uuidv4(),
-            name: name,
-            sku: `MOCK-${now}-${startIndex + i}`,
-            slug: `mock-product-${now}-${startIndex + i}`,
-            category: category,
-            brand: brand,
-            series: series,
-            price: Math.floor(Math.random() * 50000) + 1000,
-            cost_price: Math.floor(Math.random() * 20000) + 500,
-            stock_quantity: Math.floor(Math.random() * 50) + 1,
-            alert_threshold: Math.floor(Math.random() * 5) + 1,
-            description: `This is a beautiful ${name} carefully crafted for elegance.`,
-            images: '[]', // We'll add images locally in a subsequent step if needed, or bind to external URLs manually. 
-            // To support external images, we need to inject them into the `files` table first.
-            specifications: JSON.stringify({
-                color: randomItem(['Black', 'White', 'Red', 'Blue', 'Gold']),
-                hardware: randomItem(['Gold', 'Silver', 'Rose Gold']),
-                material: randomItem(['Leather', 'Canvas', 'Exotic'])
-            }),
-            status: 'active',
-            created_at: now,
-            updated_at: now
-        };
-
-        products.push(product);
+function cartesianOptions(dimensions) {
+  return dimensions.reduce((acc, dim) => {
+    const next = [];
+    for (const oldVal of acc) {
+      for (const value of dim.values) {
+        next.push({ ...oldVal, [dim.name]: value });
+      }
     }
-    return products;
+    return next;
+  }, [{}]);
 }
 
-// Generate product mock items along with mock files
-function generateFilesAndProducts(count) {
-    const files = [];
-    const products = Array.from({ length: count }, (_, i) => {
-        const id = uuidv4();
-        const now = Math.floor(Date.now() / 1000);
+function buildSku(productCode, options, idx) {
+  const suffix = Object.values(options).map((v) => String(v).slice(0, 2).toUpperCase()).join('-');
+  return `${productCode}-${suffix}-${String(idx + 1).padStart(3, '0')}`;
+}
 
-        const brand = randomItem(brands);
-        const category = randomItem(categories);
-        const series = randomItem(seriesList);
-        const name = generateProductName(brand, series, category);
+function buildSeedRows() {
+  const now = Date.now();
+  const files = [];
+  const products = [];
+  const variants = [];
 
-        // Let's create 1-3 pictures for each product
-        const numImages = Math.floor(Math.random() * 3) + 1;
-        const imageIds = [];
-        for (let j = 0; j < numImages; j++) {
-            const fileId = uuidv4();
-            const imageUrl = `https://picsum.photos/seed/${fileId}/800/800`; // Picsum for random images
-            const thumbnail = `https://picsum.photos/seed/${fileId}/400/400`;
-            files.push({
-                id: fileId,
-                name: `${name.replace(/\s+/g, '_')}_${j + 1}.jpg`,
-                original_name: `${name}_${j + 1}.jpg`,
-                size: Math.floor(Math.random() * 5000000) + 100000,
-                mime_type: 'image/jpeg',
-                storage_key: imageUrl,
-                folder_id: 'root',
-                status: 'normal',
-                created_by: 'system',
-                created_at: now,
-                updated_at: now
-            });
-            imageIds.push(fileId);
-        }
+  for (let i = 0; i < TOTAL_PRODUCTS; i++) {
+    const productId = id();
+    const brand = pick(BRANDS, i);
+    const category = pick(CATEGORIES, i);
+    const series = `Series-${String((i % 7) + 1).padStart(2, '0')}`;
+    const productCode = `P-SEED-${String(i + 1).padStart(4, '0')}`;
+    const productName = `${brand} ${category} ${String(i + 1).padStart(2, '0')}`;
+    const dimensions = makeDimensions(i);
+    const combinations = cartesianOptions(dimensions);
 
-        return {
-            id: uuidv4(),
-            name: name,
-            sku: `MOCK-${Date.now()}-${i}`,
-            slug: `mock-product-${Date.now()}-${i}`,
-            category: category,
-            brand: brand,
-            series: series,
-            price: Math.floor(Math.random() * 50000) + 1000,
-            cost_price: Math.floor(Math.random() * 20000) + 500,
-            stock_quantity: Math.floor(Math.random() * 50) + 1,
-            alert_threshold: Math.floor(Math.random() * 5) + 1,
-            description: `This is a beautiful ${name} carefully crafted for elegance.`,
-            images: JSON.stringify(imageIds),
-            specifications: JSON.stringify({
-                color: randomItem(['Black', 'White', 'Red', 'Blue', 'Gold']),
-                hardware: randomItem(['Gold', 'Silver', 'Rose Gold']),
-                material: randomItem(['Leather', 'Canvas', 'Exotic'])
-            }),
-            status: 'active',
-            created_at: now,
-            updated_at: now
-        }
+    const imageFileIds = [];
+    combinations.forEach((options, variantIdx) => {
+      const fileId = id();
+      const imageUrl = IMAGE_URLS[(i + variantIdx) % IMAGE_URLS.length];
+      const variantId = id();
+      const variantCode = `V-SEED-${String(i + 1).padStart(4, '0')}-${String(variantIdx + 1).padStart(3, '0')}`;
+      const price = 79 + (i % 5) * 20 + variantIdx * 3;
+      const cost = Math.round(price * 0.55 * 100) / 100;
+      const stock = 10 + ((i * 7 + variantIdx * 3) % 90);
+      const alert = 5 + (variantIdx % 4);
+      const moq = [1, 2, 3][variantIdx % 3];
+      const packSize = [1, 2, 5][variantIdx % 3];
+      const orderStep = [1, 1, 2][variantIdx % 3];
+      const barcode = `69${String(i + 1).padStart(4, '0')}${String(variantIdx + 1).padStart(4, '0')}88`;
+
+      files.push({
+        id: fileId,
+        name: `${productCode}-${variantIdx + 1}.jpg`,
+        original_name: `${productName}-${variantIdx + 1}.jpg`,
+        storage_key: imageUrl,
+        mime_type: 'image/jpeg',
+        size: 512000,
+        folder_id: null,
+        is_public: 1,
+        created_by: 'seed-script',
+        status: 'normal',
+        created_at: now,
+        updated_at: now,
+      });
+
+      variants.push({
+        id: variantId,
+        product_id: productId,
+        sku: buildSku(productCode, options, variantIdx),
+        variant_code: variantCode,
+        price,
+        cost_price: cost,
+        stock_quantity: stock,
+        alert_threshold: alert,
+        options_values: JSON.stringify(options),
+        image_id: fileId,
+        status: 'active',
+        moq,
+        pack_size: packSize,
+        order_step: orderStep,
+        suggested_purchase_price: Math.round(cost * 0.96 * 100) / 100,
+        barcode,
+        supplier_sku: `${productCode}-SUP-${String(variantIdx + 1).padStart(3, '0')}`,
+        created_at: now,
+        updated_at: now,
+      });
+
+      if (variantIdx < 3) imageFileIds.push(fileId);
     });
 
-    return { products, files };
+    products.push({
+      id: productId,
+      name: productName,
+      spu: `SPU-${String(i + 1).padStart(4, '0')}`,
+      product_code: productCode,
+      slug: `seed-${brand.toLowerCase()}-${category.toLowerCase()}-${i + 1}`,
+      category,
+      brand,
+      series,
+      description: `${productName} seed data with multi-dimension variants.`,
+      images: JSON.stringify(imageFileIds),
+      specifications: JSON.stringify({ season: 'all', audience: 'unisex' }),
+      options: JSON.stringify(dimensions),
+      created_at: now,
+      updated_at: now,
+    });
+  }
+
+  return { files, products, variants };
 }
 
-async function runSQL(sqlStmts) {
-    if (!sqlStmts || sqlStmts.length === 0) return;
+function buildSQL({ files, products, variants }) {
+  const sql = ['BEGIN TRANSACTION;'];
 
-    // We will dump the SQL into a temp file and run it
-    const fs = await import('fs');
-    const path = await import('path');
+  for (const f of files) {
+    sql.push(
+      `INSERT INTO files (id, folder_id, name, original_name, size, mime_type, storage_key, created_at, is_public, created_by, updated_at, status)
+       VALUES ('${f.id}', NULL, '${esc(f.name)}', '${esc(f.original_name)}', ${f.size}, '${f.mime_type}', '${esc(f.storage_key)}', ${f.created_at}, ${f.is_public}, '${f.created_by}', ${f.updated_at}, '${f.status}');`
+    );
+  }
 
-    // Make sure we chunk it to prevent "command line too long" or memory issues
-    const chunked = [];
-    for (let i = 0; i < sqlStmts.length; i += 50) {
-        chunked.push(sqlStmts.slice(i, i + 50).join('\n'));
-    }
+  for (const p of products) {
+    sql.push(
+      `INSERT INTO products (id, name, spu, product_code, slug, category, brand, series, description, images, specifications, options, created_at, updated_at)
+       VALUES ('${p.id}', '${esc(p.name)}', '${esc(p.spu)}', '${esc(p.product_code)}', '${esc(p.slug)}', '${esc(p.category)}', '${esc(p.brand)}', '${esc(p.series)}', '${esc(p.description)}', '${esc(p.images)}', '${esc(p.specifications)}', '${esc(p.options)}', ${p.created_at}, ${p.updated_at});`
+    );
+  }
 
-    for (const chunk of chunked) {
-        const tmpFile = path.join(process.cwd(), `tmp_seed_${Date.now()}.sql`);
-        fs.writeFileSync(tmpFile, chunk);
-        try {
-            console.log(`Running batch of ${chunk.split('\n').filter(l => l.trim().length > 0).length} statements...`);
-            // Run wrangler d1 execute
-            execSync(`npx wrangler d1 execute kk-life-db --local --file="${tmpFile}"`, {
-                stdio: 'inherit' // See output
-            });
-        } catch (e) {
-            console.error("Execution error:", e.message);
-        } finally {
-            if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
-        }
-    }
+  for (const v of variants) {
+    sql.push(
+      `INSERT INTO product_variants (
+          id, product_id, sku, price, cost_price, stock_quantity, options_values, image_id, status,
+          created_at, updated_at, variant_code, alert_threshold, moq, pack_size, order_step,
+          suggested_purchase_price, barcode, supplier_sku
+       ) VALUES (
+          '${v.id}', '${v.product_id}', '${esc(v.sku)}', ${v.price}, ${v.cost_price}, ${v.stock_quantity}, '${esc(v.options_values)}', '${v.image_id}', '${v.status}',
+          ${v.created_at}, ${v.updated_at}, '${v.variant_code}', ${v.alert_threshold}, ${v.moq}, ${v.pack_size}, ${v.order_step},
+          ${v.suggested_purchase_price}, '${v.barcode}', '${esc(v.supplier_sku)}'
+       );`
+    );
+  }
+
+  sql.push('COMMIT;');
+  return sql.join('\n');
 }
 
-async function seed() {
-    console.log(`Generating ${TOTAL_PRODUCTS} products with files...`);
-    const { products, files } = generateFilesAndProducts(TOTAL_PRODUCTS);
-
-    console.log(`Generated ${products.length} products and ${files.length} corresponding files.`);
-
-    const statements = [];
-
-    // Construct file inserts
-    for (const file of files) {
-        // Simple escaping for names
-        const name = file.name.replace(/'/g, "''");
-        const originalName = file.original_name.replace(/'/g, "''");
-        const storageKey = file.storage_key.replace(/'/g, "''");
-
-        statements.push(`
-            INSERT INTO files (id, name, original_name, size, mime_type, storage_key, folder_id, status, created_by, created_at, updated_at)
-            VALUES ('${file.id}', '${name}', '${originalName}', ${file.size}, '${file.mime_type}', '${storageKey}', '${file.folder_id}', '${file.status}', '${file.created_by}', ${file.created_at}, ${file.updated_at});
-        `);
-    }
-
-    // Construct product inserts
-    for (const p of products) {
-        const name = p.name.replace(/'/g, "''");
-        const desc = p.description.replace(/'/g, "''");
-        const specs = p.specifications.replace(/'/g, "''");
-        const images = p.images.replace(/'/g, "''");
-
-        statements.push(`
-            INSERT INTO products (id, name, sku, slug, category, brand, series, price, cost_price, stock_quantity, alert_threshold, description, images, specifications, status, created_at, updated_at)
-            VALUES ('${p.id}', '${name}', '${p.sku}', '${p.slug}', '${p.category}', '${p.brand}', '${p.series}', ${p.price}, ${p.cost_price}, ${p.stock_quantity}, ${p.alert_threshold}, '${desc}', '${images}', '${specs}', '${p.status}', ${p.created_at}, ${p.updated_at});
-        `);
-    }
-
-    console.log("Executing statements...");
-    await runSQL(statements);
-    console.log("Seeding complete!");
+function executeSQL(sql) {
+  const tmp = join(process.cwd(), `tmp_seed_variant_products_${Date.now()}.sql`);
+  writeFileSync(tmp, sql, 'utf8');
+  try {
+    execSync(`npx wrangler d1 execute ${DB_BINDING} --file="${tmp}"`, { stdio: 'inherit' });
+  } finally {
+    unlinkSync(tmp);
+  }
 }
 
-seed().catch(console.error);
+function verify() {
+  const productCount = execSync(`npx wrangler d1 execute ${DB_BINDING} --command "SELECT COUNT(*) AS c FROM products WHERE product_code LIKE 'P-SEED-%';" --json`).toString('utf8');
+  const variantCount = execSync(`npx wrangler d1 execute ${DB_BINDING} --command "SELECT COUNT(*) AS c FROM product_variants WHERE variant_code LIKE 'V-SEED-%';" --json`).toString('utf8');
+  console.log('Products check:', productCount);
+  console.log('Variants check:', variantCount);
+}
+
+function main() {
+  const rows = buildSeedRows();
+  const sql = buildSQL(rows);
+  executeSQL(sql);
+  verify();
+  console.log(`Seed complete: ${TOTAL_PRODUCTS} multi-spec products inserted.`);
+}
+
+main();

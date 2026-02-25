@@ -46,6 +46,23 @@ export async function onRequest(context) {
   // 确定要查找的 key
   const storageKey = fileRecord?.storage_key || fileId;
 
+  // 3.1 外链图片：直接代理（用于 seed/外部图床场景）
+  if (/^https?:\/\//i.test(storageKey)) {
+    try {
+      const upstream = await fetch(storageKey, { method: 'GET' });
+      if (!upstream.ok) {
+        return new Response('File not found', { status: upstream.status });
+      }
+      const headers = new Headers(upstream.headers);
+      headers.set('Cache-Control', headers.get('Cache-Control') || 'public, max-age=86400');
+      headers.set('X-Cache', 'MISS-EXTERNAL');
+      return new Response(upstream.body, { status: upstream.status, headers });
+    } catch (err) {
+      console.error('External file fetch error:', err);
+      return new Response('Storage error', { status: 500 });
+    }
+  }
+
   // 3. 从 R2 获取文件
   if (!env.R2_BUCKET) {
     return new Response('R2 not configured', { status: 500 });

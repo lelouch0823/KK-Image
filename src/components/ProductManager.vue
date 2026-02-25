@@ -126,7 +126,7 @@
          <ProductTable 
            :products="products" 
            @view="handleView"
-           @edit="handleEdit" 
+           @edit="handleEditWithHydration" 
            @delete="handleDelete" 
            @share="handleShare"
         />
@@ -137,7 +137,7 @@
         <ProductGrid 
             :products="products" 
             @view="handleView"
-            @edit="handleEdit"
+            @edit="handleEditWithHydration"
             @share="handleShare"
         />
       </div>
@@ -246,17 +246,52 @@ const handleCreate = () => {
 
 const handleEdit = (product) => {
     isEditMode.value = true;
+    showCreateModal.value = true;
     editingProduct.value = { ...product };
+};
+
+const resolveVariantImageId = (variant) => {
+    if (!variant) return null;
+    if (variant.primaryImage) return variant.primaryImage;
+    if (variant.image_id) return variant.image_id;
+    if (Array.isArray(variant.images) && variant.images.length > 0) {
+        const primary = variant.images.find((img) => Number(img.is_primary) === 1) || variant.images[0];
+        return primary?.image_id || null;
+    }
+    return null;
+};
+
+const hydrateProductWithVariants = async (product) => {
+    const full = await loadProduct(product.id);
+    const hydrated = full ? { ...full } : { ...product };
+    const variants = Array.isArray(hydrated.variants) ? hydrated.variants : [];
+    if (!hydrated.selectedVariant && variants.length > 0) {
+        hydrated.selectedVariant = variants.find((variant) => variant.status === 'active') || variants[0];
+    }
+    if (!hydrated.mainImage) {
+        const variantImage = resolveVariantImageId(hydrated.selectedVariant);
+        if (variantImage) {
+            hydrated.mainImage = `/file/${variantImage}`;
+        } else if (Array.isArray(hydrated.images) && hydrated.images[0]) {
+            hydrated.mainImage = `/file/${hydrated.images[0]}`;
+        }
+    }
+    return hydrated;
+};
+
+const handleEditWithHydration = async (product) => {
+    isEditMode.value = true;
+    editingProduct.value = await hydrateProductWithVariants(product);
     showCreateModal.value = true;
 };
 
-const handleView = (product) => {
-    viewingProduct.value = { ...product };
+const handleView = async (product) => {
+    viewingProduct.value = await hydrateProductWithVariants(product);
     showDetailModal.value = true;
 };
 
-const handleShare = (product) => {
-    sharingProduct.value = { ...product };
+const handleShare = async (product) => {
+    sharingProduct.value = await hydrateProductWithVariants(product);
     showShareModal.value = true;
 };
 
@@ -266,9 +301,9 @@ const handleShareCreated = (space) => {
     router.push(`/manage/space/${space.id}`);
 };
 
-const handleEditFromDetail = (product) => {
+const handleEditFromDetail = async (product) => {
     showDetailModal.value = false;
-    handleEdit(product);
+    await handleEditWithHydration(product);
 };
 
 const handleModalSuccess = () => {

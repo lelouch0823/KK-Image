@@ -99,9 +99,12 @@ watch(
     // 如果传递了完整的数据对象，优先直接使用
     if (props.initialData) {
       currentProduct.value = props.initialData;
+      if (props.productId && !Array.isArray(props.initialData.variants)) {
+        await fetchProduct();
+      }
     } 
     // 否则去后台请求
-    else if (props.productId && !currentProduct.value) {
+    else if (props.productId && (!currentProduct.value || !Array.isArray(currentProduct.value.variants))) {
       await fetchProduct();
     }
   },
