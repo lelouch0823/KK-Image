@@ -1,0 +1,179 @@
+diff --git a/src/components/ProductManager.vue b/src/components/ProductManager.vue
+index dfad7be..4421a17 100644
+--- a/src/components/ProductManager.vue
++++ b/src/components/ProductManager.vue
+@@ -97,28 +97,22 @@
+     />
+ 
+     <!-- Detail Modal -->
+-    <Modal v-model="showDetailModal" size="4xl">
+-        <template #header>
+-            <div class="flex items-center gap-4">
+-                <h3 class="text-lg font-semibold text-[var(--text-main)]">
+-                    {{ t('product.manager.detail_title') || t('router.product_detail') }}
+-                </h3>
+-                <button 
+-                    class="flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)]/10 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-[var(--text-inverse)]"
+-                    @click="handleEditFromDetail(viewingProduct)"
+-                >
+-                    <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+-                    </svg>
+-                    {{ t('product.action.edit') }}
+-                </button>
+-            </div>
++    <ProductDetailModal
++        v-model:show="showDetailModal"
++        :initial-data="viewingProduct"
++    >
++        <template #header-actions="{ product }">
++            <button 
++                class="flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)]/10 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-[var(--text-inverse)]"
++                @click="handleEditFromDetail(product)"
++            >
++                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
++                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
++                </svg>
++                {{ t('product.action.edit') }}
++            </button>
+         </template>
+-        <ProductDetail 
+-            v-if="viewingProduct" 
+-            :product="viewingProduct" 
+-        />
+-    </Modal>
++    </ProductDetailModal>
+     
+     <!-- 2. Content Area (Table/Grid) -->
+     <div class="relative flex-1 lg:min-h-[400px] lg:overflow-hidden">
+@@ -198,7 +192,7 @@ const ProductStats = defineAsyncComponent(() => import('./product/ProductStats.v
+ import ProductFilters from './product/ProductFilters.vue';
+ import ProductTable from './product/ProductTable.vue';
+ import ProductCreateModal from './product/ProductCreateModal.vue'; 
+-import ProductDetail from './product/ProductDetail.vue'; 
++import ProductDetailModal from './product/ProductDetailModal.vue'; 
+ const ProductImportModal = defineAsyncComponent(() => import('./product/ProductImportModal.vue'));
+ import ProductGrid from './product/ProductGrid.vue';
+ import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
+diff --git a/src/components/common/uploader/UploadPreviewItem.vue b/src/components/common/uploader/UploadPreviewItem.vue
+index 121e631..f8f3eb5 100644
+--- a/src/components/common/uploader/UploadPreviewItem.vue
++++ b/src/components/common/uploader/UploadPreviewItem.vue
+@@ -13,7 +13,7 @@
+     @touchmove="$emit('touch-move', $event)"
+     @touchend="$emit('touch-end')"
+   >
+-    <img :src="file.url" class="pointer-events-none size-full object-cover" />
++    <AppImage :src="file.url" :lazy="false" class="pointer-events-none size-full" />
+ 
+     <!-- 操作遮罩层 -->
+     <div
+@@ -79,6 +79,7 @@
+ </template>
+ 
+ <script setup>
++import AppImage from '@/components/ui/AppImage.vue';
+ defineProps({
+   file: { type: Object, required: true },
+   index: { type: Number, required: true },
+diff --git a/src/components/order/OrderPrintView.vue b/src/components/order/OrderPrintView.vue
+index 8cb0eba..39a9429 100644
+--- a/src/components/order/OrderPrintView.vue
++++ b/src/components/order/OrderPrintView.vue
+@@ -77,7 +77,7 @@
+       <div class="grid grid-cols-4 gap-4">
+         <div v-for="file in order.files" :key="file.id" class="break-inside-avoid">
+           <div class="aspect-square overflow-hidden rounded-sm border border-[var(--border-color)] bg-[var(--bg-muted)]">
+-            <img :src="file.url" class="size-full object-cover" alt="" />
++            <AppImage :src="file.url" :lazy="false" no-transition class="size-full" alt="" />
+           </div>
+         </div>
+       </div>
+@@ -104,6 +104,7 @@
+ 
+ <script setup>
+ import { computed } from 'vue';
++import AppImage from '@/components/ui/AppImage.vue';
+ import { useI18n } from '@/composables/useI18n';
+ import { formatTimelineTime } from '@/utils/formatters';
+ import OrderTimeline from './OrderTimeline.vue';
+diff --git a/src/components/product/ProductDetail.vue b/src/components/product/ProductDetail.vue
+index 3b2860d..7e80b2b 100644
+--- a/src/components/product/ProductDetail.vue
++++ b/src/components/product/ProductDetail.vue
+@@ -63,7 +63,7 @@
+                             <div class="mt-0.5 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                                 <span>{{ new Date(space.createdAt || space.created_at).toLocaleDateString() }}</span>
+                                 <span v-if="space.view_count !== undefined">&bull; {{ space.view_count }} views</span>
+-                                <span v-if="space.is_public" class="bg-success/10 text-success rounded px-1.5 font-medium">Public</span>
++                                <span v-if="space.is_public" class="rounded bg-[var(--color-success)]/10 px-1.5 font-medium text-[var(--color-success)]">Public</span>
+                             </div>
+                         </div>
+                     </div>
+diff --git a/src/views/GoodsOverview.vue b/src/views/GoodsOverview.vue
+index ffec8b8..bc1773d 100644
+--- a/src/views/GoodsOverview.vue
++++ b/src/views/GoodsOverview.vue
+@@ -277,7 +277,15 @@
+               </td>
+               <!-- 商品名称 -->
+               <td class="px-4 py-3">
+-                <div class="text-primary max-w-[200px] truncate font-medium">{{ item.name }}</div>
++                <div class="flex items-center gap-2.5">
++                  <div class="size-8 shrink-0 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)]">
++                    <AppImage v-if="item.images?.[0]" :src="'/file/' + item.images[0]" class="size-full" />
++                    <div v-else class="flex size-full items-center justify-center text-[var(--text-muted)]">
++                      <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
++                    </div>
++                  </div>
++                  <div class="text-primary max-w-[150px] truncate font-medium" :title="item.name">{{ item.name }}</div>
++                </div>
+               </td>
+               <!-- SKU -->
+               <td class="px-4 py-3">
+@@ -398,6 +406,7 @@ import { useRouter } from 'vue-router';
+ import { useI18n } from '@/composables/useI18n';
+ import { useToast } from '@/composables/useToast';
+ import { useGoodsOverview } from '@/composables/useGoodsOverview';
++import AppImage from '@/components/ui/AppImage.vue';
+ 
+ const { t } = useI18n();
+ const { addToast } = useToast();
+diff --git a/src/views/PurchaseOrders.vue b/src/views/PurchaseOrders.vue
+index f26da4f..3bf7429 100644
+--- a/src/views/PurchaseOrders.vue
++++ b/src/views/PurchaseOrders.vue
+@@ -330,7 +330,7 @@
+                     <div class="flex items-center gap-3">
+                       <!-- 商品主图 -->
+                       <div class="size-14 shrink-0 overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-muted)] shadow-sm">
+-                        <img v-if="item.product_images?.[0]" :src="getFileUrl(item.product_images[0])" :alt="item.product_name" class="size-full object-cover" />
++                        <AppImage v-if="item.product_images?.[0]" :src="getFileUrl(item.product_images[0])" :alt="item.product_name" class="size-full object-cover" />
+                         <div v-else class="flex size-full items-center justify-center">
+                           <svg class="size-6 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+@@ -528,7 +528,7 @@
+                           <td class="px-4 py-3">
+                             <div class="flex items-center gap-2.5">
+                               <div class="size-8 shrink-0 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)]">
+-                                <img v-if="item.image" :src="'/file/' + item.image" class="size-full object-cover" />
++                                <AppImage v-if="item.image" :src="'/file/' + item.image" class="size-full" />
+                                 <div v-else class="flex size-full items-center justify-center text-[var(--text-muted)]">
+                                   <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                 </div>
+@@ -748,12 +748,15 @@
+ 
+ <script setup>
+ import { ref, reactive, computed, onActivated, watch } from 'vue';
++
++const getFileUrl = (id) => `/file/${id}`;
+ import { useRoute, useRouter } from 'vue-router';
+ import { useI18n } from '@/composables/useI18n';
+ import { usePurchaseOrders } from '@/composables/usePurchaseOrders';
+ import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
+ import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
+ import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
++import AppImage from '@/components/ui/AppImage.vue';
+ 
+ const { t } = useI18n();
+ const {

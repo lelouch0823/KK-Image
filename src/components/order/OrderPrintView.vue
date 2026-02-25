@@ -77,7 +77,7 @@
       <div class="grid grid-cols-4 gap-4">
         <div v-for="file in order.files" :key="file.id" class="break-inside-avoid">
           <div class="aspect-square overflow-hidden rounded-sm border border-[var(--border-color)] bg-[var(--bg-muted)]">
-            <img :src="file.url" class="size-full object-cover" alt="" />
+            <AppImage :src="file.url" :lazy="false" no-transition class="size-full" alt="" />
           </div>
         </div>
       </div>
@@ -104,6 +104,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import AppImage from '@/components/ui/AppImage.vue';
 import { useI18n } from '@/composables/useI18n';
 import { formatTimelineTime } from '@/utils/formatters';
 import OrderTimeline from './OrderTimeline.vue';

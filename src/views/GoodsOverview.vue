@@ -277,7 +277,15 @@
               </td>
               <!-- 商品名称 -->
               <td class="px-4 py-3">
-                <div class="text-primary max-w-[200px] truncate font-medium">{{ item.name }}</div>
+                <div class="flex items-center gap-2.5">
+                  <div class="size-8 shrink-0 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)]">
+                    <AppImage v-if="item.images?.[0]" :src="'/file/' + item.images[0]" class="size-full" />
+                    <div v-else class="flex size-full items-center justify-center text-[var(--text-muted)]">
+                      <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                  </div>
+                  <div class="text-primary max-w-[150px] truncate font-medium" :title="item.name">{{ item.name }}</div>
+                </div>
               </td>
               <!-- SKU -->
               <td class="px-4 py-3">
@@ -398,6 +406,7 @@ import { useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useGoodsOverview } from '@/composables/useGoodsOverview';
+import AppImage from '@/components/ui/AppImage.vue';
 
 const { t } = useI18n();
 const { addToast } = useToast();

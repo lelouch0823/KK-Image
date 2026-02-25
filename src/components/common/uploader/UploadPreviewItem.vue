@@ -13,7 +13,7 @@
     @touchmove="$emit('touch-move', $event)"
     @touchend="$emit('touch-end')"
   >
-    <img :src="file.url" class="pointer-events-none size-full object-cover" />
+    <AppImage :src="file.url" :lazy="false" class="pointer-events-none size-full" />
 
     <!-- 操作遮罩层 -->
     <div
@@ -79,6 +79,7 @@
 </template>
 
 <script setup>
+import AppImage from '@/components/ui/AppImage.vue';
 defineProps({
   file: { type: Object, required: true },
   index: { type: Number, required: true },

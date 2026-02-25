@@ -63,7 +63,7 @@
                             <div class="mt-0.5 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                                 <span>{{ new Date(space.createdAt || space.created_at).toLocaleDateString() }}</span>
                                 <span v-if="space.view_count !== undefined">&bull; {{ space.view_count }} views</span>
-                                <span v-if="space.is_public" class="bg-success/10 text-success rounded px-1.5 font-medium">Public</span>
+                                <span v-if="space.is_public" class="rounded bg-[var(--color-success)]/10 px-1.5 font-medium text-[var(--color-success)]">Public</span>
                             </div>
                         </div>
                     </div>

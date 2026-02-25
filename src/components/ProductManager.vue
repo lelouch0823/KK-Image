@@ -97,28 +97,22 @@
     />
 
     <!-- Detail Modal -->
-    <Modal v-model="showDetailModal" size="4xl">
-        <template #header>
-            <div class="flex items-center gap-4">
-                <h3 class="text-lg font-semibold text-[var(--text-main)]">
-                    {{ t('product.manager.detail_title') || t('router.product_detail') }}
-                </h3>
-                <button 
-                    class="flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)]/10 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-[var(--text-inverse)]"
-                    @click="handleEditFromDetail(viewingProduct)"
-                >
-                    <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                    {{ t('product.action.edit') }}
-                </button>
-            </div>
+    <ProductDetailModal
+        v-model:show="showDetailModal"
+        :initial-data="viewingProduct"
+    >
+        <template #header-actions="{ product }">
+            <button 
+                class="flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)]/10 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-[var(--text-inverse)]"
+                @click="handleEditFromDetail(product)"
+            >
+                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                {{ t('product.action.edit') }}
+            </button>
         </template>
-        <ProductDetail 
-            v-if="viewingProduct" 
-            :product="viewingProduct" 
-        />
-    </Modal>
+    </ProductDetailModal>
     
     <!-- 2. Content Area (Table/Grid) -->
     <div class="relative flex-1 lg:min-h-[400px] lg:overflow-hidden">
@@ -198,7 +192,7 @@ const ProductStats = defineAsyncComponent(() => import('./product/ProductStats.v
 import ProductFilters from './product/ProductFilters.vue';
 import ProductTable from './product/ProductTable.vue';
 import ProductCreateModal from './product/ProductCreateModal.vue'; 
-import ProductDetail from './product/ProductDetail.vue'; 
+import ProductDetailModal from './product/ProductDetailModal.vue'; 
 const ProductImportModal = defineAsyncComponent(() => import('./product/ProductImportModal.vue'));
 import ProductGrid from './product/ProductGrid.vue';
 import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
