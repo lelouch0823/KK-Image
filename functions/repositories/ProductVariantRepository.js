@@ -47,6 +47,14 @@ export class ProductVariantRepository {
         if (!row) return null;
         return { ...row, options_values: JSON.parse(row.options_values || '{}') };
     }
+
+    async assertBelongsToProduct(variantId, productId) {
+        const variant = await this.findByIdAndProductId(variantId, productId);
+        if (!variant) {
+            throw new Error('Variant does not belong to product');
+        }
+        return variant;
+    }
     
     async adjustStock(variantId, delta) {
         const timestamp = now();
