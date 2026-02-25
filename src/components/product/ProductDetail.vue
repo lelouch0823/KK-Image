@@ -106,8 +106,37 @@
              </div>
         </div>
 
-        <!-- Specs -->
-        <div class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5 shadow-sm">
+        <!-- Variants or Specs -->
+        <div v-if="product.variants && product.variants.length > 0" class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5 shadow-sm">
+             <h3 class="mb-4 text-sm font-bold tracking-wider text-[var(--text-main)] uppercase opacity-80">{{ t('product.form.variants_title', 'Variants') }}</h3>
+             <div class="overflow-x-auto">
+                 <table class="w-full text-left text-sm whitespace-nowrap">
+                     <thead class="bg-[var(--bg-muted)]/50 text-xs font-medium text-[var(--text-secondary)] uppercase">
+                         <tr>
+                             <th class="px-3 py-2 rounded-l-lg">Variant</th>
+                             <th class="px-3 py-2">Price</th>
+                             <th class="px-3 py-2 rounded-r-lg">Stock</th>
+                         </tr>
+                     </thead>
+                     <tbody class="divide-y divide-[var(--border-color)]/50">
+                         <tr v-for="variant in product.variants" :key="variant.id" class="transition-colors hover:bg-[var(--bg-muted)]/30">
+                             <td class="px-3 py-2.5">
+                                 <div class="font-medium text-[var(--text-main)]">{{ formatVariantName(variant.options_values) }}</div>
+                                 <div class="text-[10px] sm:text-xs font-mono text-[var(--text-secondary)] mt-0.5">{{ variant.sku }}</div>
+                             </td>
+                             <td class="px-3 py-2.5 font-[Outfit] font-medium text-[var(--text-main)]">¥{{ Number(variant.price).toFixed(2) }}</td>
+                             <td class="px-3 py-2.5 text-[var(--text-main)]">
+                                 <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium" :class="variant.stock_quantity <= (product.alertThreshold || 10) ? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]' : 'bg-[var(--color-success)]/10 text-[var(--color-success)]'">
+                                     <span class="size-1.5 rounded-full" :class="variant.stock_quantity <= (product.alertThreshold || 10) ? 'bg-[var(--color-danger)]' : 'bg-[var(--color-success)]'"></span>
+                                     {{ variant.stock_quantity }}
+                                 </span>
+                             </td>
+                         </tr>
+                     </tbody>
+                 </table>
+             </div>
+        </div>
+        <div v-else class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5 shadow-sm">
              <h3 class="mb-4 text-sm font-bold tracking-wider text-[var(--text-main)] uppercase opacity-80">{{ t('product.form.specifications') }}</h3>
              <div class="space-y-3">
                  <div class="flex justify-between border-b border-[var(--border-color)]/50 pb-2 text-sm last:border-0 last:pb-0">
@@ -135,10 +164,10 @@
              <div class="space-y-4">
                  <div class="flex justify-between text-sm">
                      <span class="text-[var(--text-secondary)]">{{ t('product.stats.stock_level') }}</span>
-                     <span :class="stockColorClass" class="font-medium">{{ product.stockQuantity }}</span>
+                     <span :class="stockColorClass" class="font-medium">{{ totalStock }}</span>
                  </div>
                  <div class="h-2 w-full overflow-hidden rounded-full bg-[var(--bg-muted)]">
-                      <div class="h-full rounded-full transition-all duration-500" :class="stockBgClass" :style="{ width: Math.min(100, (product.stockQuantity / 100) * 100) + '%' }"></div>
+                      <div class="h-full rounded-full transition-all duration-500" :class="stockBgClass" :style="{ width: Math.min(100, (totalStock / 100) * 100) + '%' }"></div>
                  </div>
                  <div class="flex justify-between text-xs text-[var(--text-secondary)]">
                      <span>{{ t('product.form.alert_at') }}: {{ product.alertThreshold }}</span>
@@ -204,18 +233,40 @@ const specs = computed(() => {
 });
 
 const stockColorClass = computed(() => {
-    const q = props.product.stockQuantity || 0;
+    // If variants exist, aggregate stock
+    let q = props.product.stockQuantity || 0;
+    if (props.product.variants && props.product.variants.length > 0) {
+        q = props.product.variants.reduce((sum, v) => sum + (v.stock_quantity || 0), 0);
+    }
     const t = props.product.alertThreshold || 10;
     if (q <= t) return 'text-[var(--color-danger-text)] font-bold';
     return 'text-[var(--text-main)]';
 });
 
+const totalStock = computed(() => {
+    let q = props.product.stockQuantity || 0;
+    if (props.product.variants && props.product.variants.length > 0) {
+        q = props.product.variants.reduce((sum, v) => sum + (v.stock_quantity || 0), 0);
+    }
+    return q;
+});
+
 const stockBgClass = computed(() => {
-    const q = props.product.stockQuantity || 0;
+    const q = totalStock.value;
     const t = props.product.alertThreshold || 10;
-     if (q <= t) return 'bg-[var(--color-danger)]';
+    if (q <= t) return 'bg-[var(--color-danger)]';
     return 'bg-[var(--color-success)]';
 });
+
+const formatVariantName = (optionsValues) => {
+    try {
+        const parsed = typeof optionsValues === 'string' ? JSON.parse(optionsValues) : optionsValues;
+        if (!parsed || Object.keys(parsed).length === 0) return 'Default';
+        return Object.values(parsed).join(' / ');
+    } catch {
+        return 'Default';
+    }
+};
 
 // Associated Spaces Logic
 const { loadProductSpaces } = useSpaces();

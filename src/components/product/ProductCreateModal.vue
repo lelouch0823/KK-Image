@@ -67,28 +67,60 @@
                         :placeholder="t('product.form.category_placeholder')"
                       />
 
-                      <!-- Specifications: Size, Color, Material -->
-                      <div class="space-y-4 rounded-xl border border-(--border-color) bg-(--bg-muted)/50 p-4">
-                          <h4 class="font-bold text-(--text-main)">{{ t('product.form.specifications') }}</h4>
-                          <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                              <AppInput
-                                v-model="form.specifications.size"
-                                :label="t('order.form.size')"
-                                :placeholder="t('order.form.sizePlaceholder')"
-                                size="sm"
-                              />
-                              <AppInput
-                                v-model="form.specifications.color"
-                                :label="t('order.form.color')"
-                                :placeholder="t('order.form.colorPlaceholder')"
-                                size="sm"
-                              />
-                              <AppInput
-                                v-model="form.specifications.material"
-                                :label="t('order.form.material')"
-                                :placeholder="t('order.form.materialPlaceholder')"
-                                size="sm"
-                              />
+                      <!-- Options Builder -->
+                      <div class="space-y-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)]/50 p-4">
+                          <div class="flex items-center justify-between">
+                              <h4 class="font-bold text-[var(--text-main)]">{{ t('product.form.options_title', 'Product Options') }}</h4>
+                              <button type="button" @click="addOption" class="flex items-center gap-1 text-sm font-medium text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]">
+                                  <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                  {{ t('product.form.add_option', 'Add Option') }}
+                              </button>
+                          </div>
+                          <div class="space-y-4">
+                              <div v-for="(opt, idx) in form.options" :key="idx" class="relative rounded-lg border border-[var(--border-color)]/50 bg-[var(--bg-card)] p-3">
+                                  <button type="button" @click="removeOption(idx)" class="absolute right-2 top-2 text-[var(--text-muted)] hover:text-[var(--color-danger)] transition-colors">
+                                      <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                  </button>
+                                  <div class="mb-2 w-2/3 pr-6">
+                                      <AppInput v-model="opt.name" :placeholder="t('product.form.option_name', 'Option Name (e.g., Color)')" size="sm" @input="generateVariants" />
+                                  </div>
+                                  <div>
+                                      <AppInput v-model="opt.inputValue" :placeholder="t('product.form.option_values', 'Enter values separated by comma')" size="sm" @keydown.enter.prevent="addOptionValue(opt)" @blur="addOptionValue(opt)" />
+                                      <div class="mt-2 flex flex-wrap gap-2">
+                                          <span v-for="(val, vIdx) in opt.values" :key="vIdx" class="inline-flex items-center gap-1 rounded-full bg-[var(--bg-muted)] px-2.5 py-0.5 text-xs font-medium text-[var(--text-main)] border border-[var(--border-color)]">
+                                              {{ val }}
+                                              <button type="button" @click="removeOptionValue(opt, vIdx)" class="text-[var(--text-muted)] hover:text-[var(--color-danger)]">&times;</button>
+                                          </span>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+
+                      <!-- Variants Matrix -->
+                      <div v-if="form.variants.length > 0" class="space-y-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)]/50 p-4">
+                          <div class="flex items-center justify-between">
+                              <h4 class="font-bold text-[var(--text-main)]">{{ t('product.form.variants_title', 'Variants') }}</h4>
+                          </div>
+                          <div class="overflow-x-auto">
+                              <table class="w-full text-left text-sm whitespace-nowrap">
+                                  <thead class="text-xs uppercase text-[var(--text-secondary)]">
+                                      <tr>
+                                          <th class="px-3 py-2">Variant</th>
+                                          <th class="px-3 py-2 w-32">SKU</th>
+                                          <th class="px-3 py-2 w-28">Price</th>
+                                          <th class="px-3 py-2 w-24">Stock</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody class="divide-y divide-[var(--border-color)]/30">
+                                      <tr v-for="(variant, idx) in form.variants" :key="idx" class="hover:bg-[var(--bg-card)]/50 transition-colors">
+                                          <td class="px-3 py-2 font-medium text-[var(--text-main)]">{{ formatVariantName(variant.options_values) }}</td>
+                                          <td class="px-3 py-2"><input v-model="variant.sku" type="text" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]"></td>
+                                          <td class="px-3 py-2"><input v-model.number="variant.price" type="number" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]"></td>
+                                          <td class="px-3 py-2"><input v-model.number="variant.stock_quantity" type="number" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]"></td>
+                                      </tr>
+                                  </tbody>
+                              </table>
                           </div>
                       </div>
 
@@ -245,11 +277,8 @@ const form = reactive({
     slug: '',
     status: 'active',
     images: [],
-    specifications: {
-        size: '',
-        color: '',
-        material: '',
-    },
+    options: [],
+    variants: [],
 });
 
 // Reset form when modal opens
@@ -280,7 +309,8 @@ const fillFormFromData = (data) => {
         slug: data.slug || '',
         status: data.status || 'active',
         images: imgs,
-        specifications: parseJson(data.specifications) || { size: '', color: '', material: '' },
+        options: parseJson(data.options) || [],
+        variants: data.variants || [],
     });
 
     // Populate imageObjects for Uploader
@@ -305,13 +335,82 @@ const resetForm = () => {
         slug: '',
         status: 'active',
         images: [],
-        specifications: { size: '', color: '', material: '' },
+        options: [],
+        variants: [],
     });
     imageObjects.value = [];
 };
 
 const parseJson = (str) => {
     try { return typeof str === 'string' ? JSON.parse(str) : (str || null); } catch { return null; }
+};
+
+const addOption = () => {
+    form.options.push({ name: '', values: [], inputValue: '' });
+};
+
+const removeOption = (idx) => {
+    form.options.splice(idx, 1);
+    generateVariants();
+};
+
+const addOptionValue = (opt) => {
+    if (!opt.inputValue) return;
+    const vals = opt.inputValue.split(',').map(v => v.trim()).filter(Boolean);
+    vals.forEach(v => {
+        if (!opt.values.includes(v)) opt.values.push(v);
+    });
+    opt.inputValue = '';
+    generateVariants();
+};
+
+const removeOptionValue = (opt, vIdx) => {
+    opt.values.splice(vIdx, 1);
+    generateVariants();
+};
+
+const formatVariantName = (optionsValues) => {
+    return Object.values(optionsValues).join(' / ');
+};
+
+const generateVariants = () => {
+    const validOptions = form.options.filter(o => o.name && o.values.length > 0);
+    if (validOptions.length === 0) {
+        form.variants = [];
+        return;
+    }
+
+    const cartesian = validOptions.reduce((acc, opt) => {
+        const res = [];
+        acc.forEach(oldObj => {
+            opt.values.forEach(val => {
+                res.push({ ...oldObj, [opt.name]: val });
+            });
+        });
+        return res;
+    }, [{}]);
+
+    const oldVariantsMap = new Map();
+    form.variants.forEach(v => {
+        const key = JSON.stringify(v.options_values);
+        oldVariantsMap.set(key, v);
+    });
+
+    form.variants = cartesian.map(combo => {
+        const key = JSON.stringify(combo);
+        const old = oldVariantsMap.get(key);
+        if (old) return old;
+        
+        const suffix = Object.values(combo).map(val => val.substring(0, 3).toUpperCase()).join('-');
+        
+        return {
+            sku: form.sku ? `${form.sku}-${suffix}` : '',
+            price: form.price || 0,
+            stock_quantity: 0,
+            options_values: combo,
+            status: 'active'
+        };
+    });
 };
 
 const handleSubmit = async () => {
@@ -343,7 +442,8 @@ const handleSubmit = async () => {
             slug: form.slug || undefined,
             status: form.status,
             images: currentImageIds, // Send array of IDs
-            specifications: form.specifications,
+            options: form.options.map(o => ({ name: o.name, values: o.values })),
+            variants: form.variants,
         };
         
         let success = false;
