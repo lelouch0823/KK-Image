@@ -151,11 +151,12 @@ const handleProductSelect = async (product) => {
                 mainImage: buildMainImagePath(fullProduct, fullProduct.variants[0]),
             });
         } else {
-            const selected = fullProduct || product;
-            emit('select', { ...selected, mainImage: buildMainImagePath(selected, null) });
+            variants.value = [];
+            selectedVariantId.value = null;
         }
 } catch {
-        emit('select', { ...product, mainImage: buildMainImagePath(product, product?.selectedVariant) });
+        variants.value = [];
+        selectedVariantId.value = null;
     } finally {
         isLoadingDetails.value = false;
     }

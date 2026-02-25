@@ -133,19 +133,19 @@ export function useGoodsOverview() {
     const isCreatingPO = ref(false);
 
     /**
-     * 从选中商品创建采购单
-     * 收集所有选中商品关联的 confirmed 订单 ID，调用采购单 API
+     * 从选中变体创建采购单
      */
     const createPOFromSelected = async () => {
-        if (selectedItems.value.length === 0) return { success: false, error: '请选择商品' };
+        if (selectedItems.value.length === 0) return { success: false, error: '请选择变体' };
 
         isCreatingPO.value = true;
         try {
             // 构建采购单项
             const poItems = selectedItems.value.map(item => ({
-                product_id: item.id,
+                product_id: item.productId || null,
+                variant_id: item.variantId || item.id,
                 product_name: item.name,
-                product_sku: item.spu,
+                product_sku: item.sku,
                 quantity: Math.max(item.shortage, 0),
                 unit_cost: item.avgUnitCost || 0,
             }));

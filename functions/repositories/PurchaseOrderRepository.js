@@ -216,6 +216,12 @@ export class PurchaseOrderRepository {
     const createdIds = [];
 
     for (const item of items) {
+      if (!item.product_id) {
+        throw new Error('product_id is required');
+      }
+      if (!item.variant_id) {
+        throw new Error('variant_id is required');
+      }
       const id = crypto.randomUUID();
       createdIds.push(id);
 
@@ -227,7 +233,7 @@ export class PurchaseOrderRepository {
           id,
           poId,
           item.product_id,
-          item.variant_id || null,
+          item.variant_id,
           item.pre_order_id || null,
           item.quantity || 1,
           item.unit_cost || 0,
@@ -299,10 +305,17 @@ export class PurchaseOrderRepository {
    */
   async getItemsForAllocation(poId) {
     const { results } = await this.db.prepare(`
-      SELECT poi.*, p.cost_price AS product_cost_price, v.cost_price AS variant_cost_price
+      SELECT poi.*, 
+        COALESCE(vagg.min_cost_price, 0) AS product_cost_price, 
+        v.cost_price AS variant_cost_price
       FROM purchase_order_items poi
       LEFT JOIN products p ON poi.product_id = p.id
       LEFT JOIN product_variants v ON poi.variant_id = v.id
+      LEFT JOIN (
+        SELECT product_id, MIN(COALESCE(cost_price, 0)) AS min_cost_price
+        FROM product_variants
+        GROUP BY product_id
+      ) vagg ON vagg.product_id = p.id
       WHERE poi.po_id = ?
     `).bind(poId).all();
     return results;

@@ -112,7 +112,10 @@
                                           <th class="px-3 py-2">Variant</th>
                                           <th class="px-3 py-2 w-32">SKU</th>
                                           <th class="px-3 py-2 w-28">Price</th>
+                                          <th class="px-3 py-2 w-28">Cost</th>
                                           <th class="px-3 py-2 w-24">Stock</th>
+                                          <th class="px-3 py-2 w-24">Alert</th>
+                                          <th class="px-3 py-2 w-24">Status</th>
                                           <th class="px-3 py-2">Images</th>
                                       </tr>
                                   </thead>
@@ -121,7 +124,15 @@
                                           <td class="px-3 py-2 font-medium text-[var(--text-main)]">{{ formatVariantName(variant.options_values) }}</td>
                                           <td class="px-3 py-2"><input v-model="variant.sku" type="text" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]"></td>
                                           <td class="px-3 py-2"><input v-model.number="variant.price" type="number" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]"></td>
+                                          <td class="px-3 py-2"><input v-model.number="variant.cost_price" type="number" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]"></td>
                                           <td class="px-3 py-2"><input v-model.number="variant.stock_quantity" type="number" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]"></td>
+                                          <td class="px-3 py-2"><input v-model.number="variant.alert_threshold" type="number" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]"></td>
+                                          <td class="px-3 py-2">
+                                            <select v-model="variant.status" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]">
+                                              <option value="active">active</option>
+                                              <option value="archived">archived</option>
+                                            </select>
+                                          </td>
                                           <td class="px-3 py-2">
                                               <div class="mb-2 flex flex-wrap gap-1">
                                                   <span
@@ -187,30 +198,7 @@
 
                   <!-- Sidebar (1 span) -->
                   <div class="space-y-6">
-                       <!-- Pricing Card -->
-                       <div class="space-y-4 rounded-xl border border-(--border-color) bg-(--bg-muted)/50 p-4">
-                          <h4 class="font-bold text-(--text-main)">{{ t('product.form.pricing_inventory') }}</h4>
-                          <div>
-                              <label class="mb-1 block text-xs font-medium text-(--text-secondary) uppercase">{{ t('product.form.price') }} <span class="text-danger">*</span></label>
-                              <div class="relative mt-1 rounded-md shadow-sm">
-                                  <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                      <span class="text-(--text-secondary) sm:text-sm">¥</span>
-                                  </div>
-                                  <input v-model.number="form.price" type="number" required class="input block w-full pl-7" placeholder="0.00">
-                              </div>
-                          </div>
-                          <div>
-                              <label class="mb-1 block text-xs font-medium text-(--text-secondary) uppercase">{{ t('product.form.cost') }}</label>
-                              <div class="relative mt-1 rounded-md shadow-sm">
-                                  <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                      <span class="text-(--text-secondary) sm:text-sm">¥</span>
-                                  </div>
-                                  <input v-model.number="form.costPrice" type="number" class="input block w-full pl-7" placeholder="0.00">
-                              </div>
-                          </div>
-                       </div>
-
-                       <!-- Inventory Card -->
+                       <!-- Product Identity Card -->
                       <div class="space-y-4 rounded-xl border border-(--border-color) bg-(--bg-muted)/50 p-4">
                          <h4 class="font-bold text-(--text-main)">{{ t('product.form.inventory') }}</h4>
                          <AppInput
@@ -218,18 +206,6 @@
                            :label="t('product.form.spu')"
                            class="font-mono uppercase"
                          />
-                          <div class="grid grid-cols-2 gap-4">
-                             <AppInput
-                               v-model.number="form.stockQuantity"
-                               type="number"
-                               :label="t('product.form.stock')"
-                             />
-                             <AppInput
-                               v-model.number="form.alertThreshold"
-                               type="number"
-                               :label="t('product.form.alert_at')"
-                             />
-                          </div>
                       </div>
 
                        <!-- Organization Card -->
@@ -240,15 +216,6 @@
                            :label="t('product.form.slug_seo')"
                            :placeholder="t('product.form.slug_placeholder')"
                          />
-                         <div>
-                             <label class="mb-1 block text-xs font-medium text-(--text-secondary) uppercase">{{ t('product.table.header.status') }}</label>
-                             <Select
-                               v-model="form.status"
-                               :options="statusOptions"
-                               :placeholder="t('product.filters.status.active')"
-                               size="sm"
-                             />
-                         </div>
                       </div>
                   </div>
 
@@ -284,7 +251,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, computed } from 'vue';
+import { ref, reactive, watch } from 'vue';
 import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
@@ -292,7 +259,6 @@ import ImageUploader from '@/components/common/ImageUploader.vue';
 import VariantImageManagerModal from '@/components/product/VariantImageManagerModal.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppButton from '@/components/ui/AppButton.vue';
-import Select from '@/components/ui/Select.vue';
 import { API } from '@/utils/constants';
 import { buildVariantSku } from './variant-sku.js';
 
@@ -315,25 +281,14 @@ const variantRowImageDrafts = reactive({});
 
 const imageObjects = ref([]);
 
-const statusOptions = computed(() => [
-  { label: t('product.filters.status.active'), value: 'active' },
-  { label: t('product.filters.status.draft'), value: 'draft' },
-  { label: t('product.filters.status.archived'), value: 'archived' },
-]);
-
 const form = reactive({
     name: '',
     description: '',
     brand: '',
     series: '',
     category: '',
-    price: null,
-    costPrice: null,
     spu: '',
-    stockQuantity: 0,
-    alertThreshold: 10,
     slug: '',
-    status: 'active',
     images: [],
     options: [],
     variants: [],
@@ -359,17 +314,15 @@ function fillFormFromData(data) {
         brand: data.brand || '',
         series: data.series || '',
         category: data.category || '',
-        price: data.price ?? null,
-        costPrice: data.cost_price ?? null,
         spu: data.spu || '',
-        stockQuantity: data.stock_quantity ?? 0,
-        alertThreshold: data.alert_threshold ?? 10,
         slug: data.slug || '',
-        status: data.status || 'active',
         images: imgs,
         options: parseJson(data.options) || [],
         variants: (data.variants || []).map((variant) => ({
             ...variant,
+            cost_price: variant.cost_price ?? 0,
+            alert_threshold: variant.alert_threshold ?? 10,
+            status: variant.status || 'active',
             images: Array.isArray(variant.images) ? variant.images : [],
         })),
     });
@@ -388,13 +341,8 @@ function resetForm() {
         brand: '',
         series: '',
         category: '',
-        price: null,
-        costPrice: null,
         spu: '',
-        stockQuantity: 0,
-        alertThreshold: 10,
         slug: '',
-        status: 'active',
         images: [],
         options: [],
         variants: [],
@@ -464,8 +412,10 @@ const generateVariants = () => {
         
         return {
             sku: buildVariantSku({ spu: form.spu, optionsValues: combo, seed: `${Date.now()}-${Math.random()}` }),
-            price: form.price || 0,
+            price: 0,
+            cost_price: 0,
             stock_quantity: 0,
+            alert_threshold: 10,
             options_values: combo,
             status: 'active'
         };
@@ -477,6 +427,27 @@ const handleSubmit = async () => {
         addToast({ 
             message: t('common.validation_error', '请填写必填项 (商品名称)'), 
             type: 'error' 
+        });
+        return;
+    }
+    if (!Array.isArray(form.variants) || form.variants.length === 0) {
+        addToast({
+            message: t('common.validation_error', '请至少添加一个变体'),
+            type: 'error'
+        });
+        return;
+    }
+    const invalidVariant = form.variants.find((variant) => (
+        variant.price === undefined ||
+        variant.cost_price === undefined ||
+        variant.stock_quantity === undefined ||
+        variant.alert_threshold === undefined ||
+        !variant.status
+    ));
+    if (invalidVariant) {
+        addToast({
+            message: t('common.validation_error', '请完善每个变体的价格/成本/库存/预警/状态'),
+            type: 'error'
         });
         return;
     }
@@ -493,13 +464,8 @@ const handleSubmit = async () => {
             brand: form.brand,
             series: form.series,
             category: form.category,
-            price: form.price,
-            cost_price: form.costPrice,
             spu: form.spu || undefined,
-            stock_quantity: form.stockQuantity,
-            alert_threshold: form.alertThreshold,
             slug: form.slug || undefined,
-            status: form.status,
             images: currentImageIds, // Send array of IDs
             options: form.options.map(o => ({ name: o.name, values: o.values })),
             variants: form.variants,

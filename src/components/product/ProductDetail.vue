@@ -94,8 +94,8 @@
                      </div>
                  </div>
                  <StatusBadge 
-                   :label="t(`product.filters.status.${product.status || 'draft'}`)" 
-                   :variant="getProductStatusVariant(product.status)" 
+                   :label="t(`product.filters.status.${product.status || 'archived'}`)" 
+                   :variant="getProductStatusVariant(product.status || 'archived')" 
                  />
              </div>
              
@@ -126,8 +126,8 @@
                              </td>
                              <td class="px-3 py-2.5 font-[Outfit] font-medium text-[var(--text-main)]">¥{{ Number(variant.price).toFixed(2) }}</td>
                              <td class="px-3 py-2.5 text-[var(--text-main)]">
-                                 <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium" :class="variant.stock_quantity <= (product.alertThreshold || 10) ? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]' : 'bg-[var(--color-success)]/10 text-[var(--color-success)]'">
-                                     <span class="size-1.5 rounded-full" :class="variant.stock_quantity <= (product.alertThreshold || 10) ? 'bg-[var(--color-danger)]' : 'bg-[var(--color-success)]'"></span>
+                                 <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium" :class="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]' : 'bg-[var(--color-success)]/10 text-[var(--color-success)]'">
+                                     <span class="size-1.5 rounded-full" :class="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'bg-[var(--color-danger)]' : 'bg-[var(--color-success)]'"></span>
                                      {{ variant.stock_quantity }}
                                  </span>
                              </td>
@@ -170,7 +170,7 @@
                       <div class="h-full rounded-full transition-all duration-500" :class="stockBgClass" :style="{ width: Math.min(100, (totalStock / 100) * 100) + '%' }"></div>
                  </div>
                  <div class="flex justify-between text-xs text-[var(--text-secondary)]">
-                     <span>{{ t('product.form.alert_at') }}: {{ product.alertThreshold }}</span>
+                     <span>{{ t('product.form.alert_at') }}: {{ product.alert_threshold || 10 }}</span>
                  </div>
              </div>
         </div>
@@ -244,17 +244,17 @@ const specs = computed(() => {
 
 const stockColorClass = computed(() => {
     // If variants exist, aggregate stock
-    let q = props.product.stockQuantity || 0;
+    let q = props.product.stock_quantity || 0;
     if (props.product.variants && props.product.variants.length > 0) {
         q = props.product.variants.reduce((sum, v) => sum + (v.stock_quantity || 0), 0);
     }
-    const t = props.product.alertThreshold || 10;
+    const t = props.product.alert_threshold || 10;
     if (q <= t) return 'text-[var(--color-danger-text)] font-bold';
     return 'text-[var(--text-main)]';
 });
 
 const totalStock = computed(() => {
-    let q = props.product.stockQuantity || 0;
+    let q = props.product.stock_quantity || 0;
     if (props.product.variants && props.product.variants.length > 0) {
         q = props.product.variants.reduce((sum, v) => sum + (v.stock_quantity || 0), 0);
     }
@@ -263,7 +263,7 @@ const totalStock = computed(() => {
 
 const stockBgClass = computed(() => {
     const q = totalStock.value;
-    const t = props.product.alertThreshold || 10;
+    const t = props.product.alert_threshold || 10;
     if (q <= t) return 'bg-[var(--color-danger)]';
     return 'bg-[var(--color-success)]';
 });

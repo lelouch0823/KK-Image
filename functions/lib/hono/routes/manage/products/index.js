@@ -19,6 +19,27 @@ const app = new Hono();
 app.route('/batch', batch);
 app.route('/export', exportRoute);
 
+const REQUIRED_VARIANT_FIELDS = ['price', 'cost_price', 'stock_quantity', 'alert_threshold', 'status'];
+
+const isEmptyValue = (value) => value === undefined || value === null || value === '';
+
+const validateVariants = (variants) => {
+    if (!Array.isArray(variants) || variants.length === 0) {
+        throw new BadRequestError('At least one variant is required');
+    }
+
+    for (const [index, variant] of variants.entries()) {
+        if (!variant || typeof variant !== 'object') {
+            throw new BadRequestError(`Variant #${index + 1} is invalid`);
+        }
+        for (const field of REQUIRED_VARIANT_FIELDS) {
+            if (isEmptyValue(variant[field])) {
+                throw new BadRequestError(`Variant #${index + 1} missing required field: ${field}`);
+            }
+        }
+    }
+};
+
 /**
  * GET / - 搜索商品列表
  * SOTA: 使用边缘缓存 (TTL 60s) 减少 DB 压力
@@ -62,6 +83,7 @@ app.post('/', async (c) => {
     if (!body.name) {
         throw new BadRequestError('Name is required');
     }
+    validateVariants(body.variants);
 
     const repo = new ProductRepository(env.DB);
 
@@ -80,10 +102,8 @@ app.post('/', async (c) => {
     try {
         product = await repo.create(body);
 
-        if (body.variants && body.variants.length > 0) {
-            const variantRepo = new ProductVariantRepository(env.DB);
-            await variantRepo.createBatch(product.id, body.variants);
-        }
+        const variantRepo = new ProductVariantRepository(env.DB);
+        await variantRepo.createBatch(product.id, body.variants);
     } catch (error) {
         // Compensating rollback: keep product+variant writes all-or-nothing for create flow.
         if (product?.id) {

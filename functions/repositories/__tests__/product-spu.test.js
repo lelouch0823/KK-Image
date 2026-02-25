@@ -71,7 +71,7 @@ describe('ProductRepository — SPU 重构', () => {
                 if (sql.includes('INSERT INTO products')) {
                     stmt.run.mockResolvedValue({ meta: { changes: 1 } });
                 }
-                if (sql.includes('SELECT * FROM products WHERE id = ?')) {
+                if (sql.includes('FROM products p') && sql.includes('WHERE p.id = ?')) {
                     stmt.first.mockResolvedValue({
                         id: 'test-uuid',
                         name: 'Test',
@@ -95,7 +95,7 @@ describe('ProductRepository — SPU 重构', () => {
                 if (sql.includes('INSERT INTO products')) {
                     stmt.run.mockResolvedValue({ meta: { changes: 1 } });
                 }
-                if (sql.includes('SELECT * FROM products WHERE id = ?')) {
+                if (sql.includes('FROM products p') && sql.includes('WHERE p.id = ?')) {
                     stmt.first.mockResolvedValue({
                         id: 'test-uuid',
                         name: 'Code Product',
@@ -121,7 +121,7 @@ describe('ProductRepository — SPU 重构', () => {
         it('应通过 spu 查找产品', async () => {
             db.prepare.mockImplementation((sql) => {
                 const stmt = createPreparedStatement(sql);
-                if (sql.includes('FROM products WHERE spu')) {
+                if (sql.includes('FROM products p') && sql.includes('WHERE p.spu = ?')) {
                     stmt.first.mockResolvedValue({
                         id: 'test-id',
                         name: 'Test',
@@ -147,7 +147,7 @@ describe('ProductRepository — SPU 重构', () => {
         it('搜索结果应包含 spu 字段', async () => {
             db.prepare.mockImplementation((sql) => {
                 const stmt = createPreparedStatement(sql);
-                if (sql.includes('SELECT * FROM products')) {
+                if (sql.includes('FROM products p')) {
                     stmt.all.mockResolvedValue({
                         results: [{
                             id: 'test-id',

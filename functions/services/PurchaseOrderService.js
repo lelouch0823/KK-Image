@@ -178,36 +178,46 @@ export class PurchaseOrderService {
 
   /**
    * 获取建议采购清单
-   * 基于订货总览中 shortage > 0 的商品，以及 status = 'confirmed' 的预订单
+   * 基于订货总览中 shortage > 0 的变体，以及 status = 'confirmed' 的预订单
    *
    * @returns {Promise<Array>} 建议列表
    */
   async getSuggestions() {
-    // 获取有缺口的商品及关联的已确认订单
+    // 获取有缺口的变体及关联的已确认订单
     const { results } = await this.db.prepare(`
       SELECT 
+        o.variant_id AS variant_id,
         p.id AS product_id,
+        p.product_code AS product_code,
+        pv.variant_code AS variant_code,
         p.name AS product_name,
-        p.spu AS sku,
+        pv.sku AS sku,
         p.brand,
-        p.cost_price,
-        p.stock_quantity,
+        COALESCE(pv.cost_price, 0) AS cost_price,
+        COALESCE(pv.stock_quantity, 0) AS stock_quantity,
         p.images,
+        pv.options_values AS variant_options,
         COALESCE(SUM(o.quantity), 0) AS total_demand,
-        COALESCE(SUM(o.quantity), 0) - p.stock_quantity AS shortage,
+        COALESCE(SUM(o.quantity), 0) - COALESCE(pv.stock_quantity, 0) AS shortage,
         COUNT(o.id) AS order_count,
         GROUP_CONCAT(DISTINCT o.id) AS order_ids
       FROM orders o
-      JOIN products p ON o.product_id = p.id AND p.status = 'active'
+      JOIN products p ON o.product_id = p.id
+      JOIN product_variants pv ON o.variant_id = pv.id
       WHERE o.status = 'confirmed'
         AND o.product_id IS NOT NULL
-      GROUP BY p.id
+        AND o.variant_id IS NOT NULL
+        AND pv.status = 'active'
+      GROUP BY o.variant_id
       HAVING shortage > 0
       ORDER BY shortage DESC
     `).all();
 
     return results.map(row => ({
+      variant_id: row.variant_id,
       product_id: row.product_id,
+      product_code: row.product_code,
+      variant_code: row.variant_code,
       product_name: row.product_name,
       sku: row.sku,
       brand: row.brand,
@@ -219,6 +229,7 @@ export class PurchaseOrderService {
       // 关联的预订单 ID 列表
       order_ids: row.order_ids ? row.order_ids.split(',') : [],
       images: this._parseJson(row.images),
+      variant_options: this._parseJson(row.variant_options),
     }));
   }
 
@@ -229,24 +240,28 @@ export class PurchaseOrderService {
    * @returns {Promise<Object>} 创建的采购单
    */
   async createFromOrders(orderIds, poData = {}) {
-    // 1. 查询选中的订单及其关联商品
+    // 1. 查询选中的订单及其关联变体
     if (!orderIds || orderIds.length === 0) {
       throw new BadRequestError('请至少选择一个预订单');
     }
 
     const placeholders = orderIds.map(() => '?').join(',');
     const { results: orders } = await this.db.prepare(`
-      SELECT o.id, o.order_no, o.product_id, o.quantity,
-             p.name, p.spu AS sku, p.cost_price
+      SELECT o.id, o.order_no, o.product_id, o.variant_id, o.quantity,
+             p.name, pv.sku AS sku,
+             COALESCE(pv.cost_price, 0) AS cost_price
       FROM orders o
       LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN product_variants pv ON pv.id = o.variant_id
       WHERE o.id IN (${placeholders})
         AND o.status = 'confirmed'
         AND o.product_id IS NOT NULL
+        AND o.variant_id IS NOT NULL
+        AND pv.status = 'active'
     `).bind(...orderIds).all();
 
     if (orders.length === 0) {
-      throw new NotFoundError('未找到符合条件的已确认订单 (需为已确认状态且已绑定商品)');
+      throw new NotFoundError('未找到符合条件的已确认订单 (需为已确认状态且已绑定变体)');
     }
 
     // 2. 创建采购单
@@ -255,6 +270,7 @@ export class PurchaseOrderService {
     // 3. 添加明细
     const items = orders.map(order => ({
       product_id: order.product_id,
+      variant_id: order.variant_id,
       pre_order_id: order.id,
       quantity: order.quantity || 1,
       unit_cost: order.cost_price || 0,
@@ -279,32 +295,37 @@ export class PurchaseOrderService {
   async _updateInventory(items, direction = 'increment') {
     if (!items || items.length === 0) return { productCount: 0, totalQty: 0 };
 
-    // 按 product_id 聚合数量（同一商品可能出现在多条明细中）
-    const stockChanges = {};
+    // 强制按 variant_id 聚合，禁止 product 级回退
+    const variantStockChanges = {};
     for (const item of items) {
-      if (!item.product_id) continue;
-      stockChanges[item.product_id] = (stockChanges[item.product_id] || 0) + (item.quantity || 0);
+      if (item.variant_id) {
+        variantStockChanges[item.variant_id] = (variantStockChanges[item.variant_id] || 0) + (item.quantity || 0);
+      } else {
+        throw new BadRequestError('variant_id is required for inventory updates');
+      }
     }
 
     const operator = direction === 'increment' ? '+' : '-';
     const now = Date.now();
 
-    const stmts = Object.entries(stockChanges).map(([productId, qty]) =>
-      this.db.prepare(
-        `UPDATE products 
-         SET stock_quantity = MAX(0, stock_quantity ${operator} ?), 
-             updated_at = ? 
-         WHERE id = ?`
-      ).bind(qty, now, productId)
-    );
-
+    const stmts = [];
+    for (const [variantId, qty] of Object.entries(variantStockChanges)) {
+      stmts.push(
+        this.db.prepare(
+          `UPDATE product_variants
+           SET stock_quantity = MAX(0, stock_quantity ${operator} ?),
+               updated_at = ?
+           WHERE id = ?`
+        ).bind(qty, now, variantId)
+      );
+    }
     if (stmts.length > 0) {
       await this.db.batch(stmts);
     }
 
     return {
-      productCount: Object.keys(stockChanges).length,
-      totalQty: Object.values(stockChanges).reduce((a, b) => a + b, 0),
+      productCount: Object.keys(variantStockChanges).length,
+      totalQty: Object.values(variantStockChanges).reduce((a, b) => a + b, 0),
     };
   }
 

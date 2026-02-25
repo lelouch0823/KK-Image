@@ -229,13 +229,14 @@ const updateForm = (newVal) => {
 
 const handleProductSelect = (product) => {
   const variant = product.selectedVariant;
+  if (!variant) return;
   boundProduct.value = {
     id: product.id,
     name: product.name,
-    sku: variant ? variant.sku : product.spu,
+    sku: variant.sku,
     brand: product.brand,
     series: product.series,
-    variantId: variant ? variant.id : null,
+    variantId: variant.id,
     mainImage: getProductMainImage(product),
   };
   selectedProductId.value = product.id;
@@ -244,7 +245,7 @@ const handleProductSelect = (product) => {
   form.name = product.name || '';
   form.brand = product.brand || '';
   form.series = product.series || '';
-  form.sku = variant ? variant.sku : (product.spu || '');
+  form.sku = variant.sku || '';
 
   // Auto-fill image
   const mainImage = getProductMainImage(product);
@@ -503,10 +504,11 @@ const handleSubmit = async () => {
 
   // 添加商品绑定ID
   if (selectedProductId.value !== init.productId) {
+    if (!boundProduct.value?.variantId) return;
     payload.productId = selectedProductId.value;
   }
   if (boundProduct.value?.variantId !== init.variantId) {
-    payload.variantId = boundProduct.value?.variantId || null;
+    payload.variantId = boundProduct.value?.variantId;
   }
 
   if (oldIds !== newIds) {

@@ -19,12 +19,12 @@ import { GoodsOverviewRepository } from '../../../../repositories/GoodsOverviewR
 const app = new Hono();
 
 /**
- * GET / — 商品管道分析列表
+ * GET / — 变体管道分析列表
  *
  * Query params:
  *   - category: 按分类筛选
  *   - brand: 按品牌筛选
- *   - shortageOnly: '1' 仅显示缺货商品
+ *   - shortageOnly: '1' 仅显示缺货变体
  *   - sort: 排序字段 (shortage / demand / name)，默认 shortage
  */
 app.get('/', async (c) => {
@@ -77,9 +77,10 @@ app.get('/export', async (c) => {
 
     const escapeCSV = (v) => (v === null || v === undefined ? '' : `"${String(v).replace(/"/g, '""')}"`);
 
-    const headers = ['商品名称', 'SKU', '品牌', '分类', '当前库存', '待订货', '生产中', '运输中', '已到货', '总需求', '订单数', '缺口', '入货成本', '运费分摊', '关税分摊', '到岸成本'];
+    const headers = ['商品名称', '变体', 'SKU', '品牌', '分类', '当前库存', '待订货', '生产中', '运输中', '已到货', '总需求', '订单数', '缺口', '入货成本', '运费分摊', '关税分摊', '到岸成本'];
     const rows = results.map(r => [
         escapeCSV(r.name),
+        escapeCSV(r.variantLabel || '-'),
         escapeCSV(r.sku),
         escapeCSV(r.brand),
         escapeCSV(r.category),

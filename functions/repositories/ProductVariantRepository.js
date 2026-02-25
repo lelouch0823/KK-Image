@@ -23,11 +23,21 @@ export class ProductVariantRepository {
             const sku = this.buildVariantSku(v.sku, id);
             statements.push(
                 this.db.prepare(
-                    `INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, options_values, image_id, status, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                    `INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, alert_threshold, options_values, image_id, status, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
                 ).bind(
-                    id, productId, sku, Number(v.price) || 0, v.cost_price ? Number(v.cost_price) : null, Number(v.stock_quantity) || 0, 
-                    JSON.stringify(v.options_values || {}), v.image_id || null, v.status || 'active', timestamp, timestamp
+                    id,
+                    productId,
+                    sku,
+                    Number(v.price) || 0,
+                    v.cost_price !== undefined && v.cost_price !== null ? Number(v.cost_price) : null,
+                    Number(v.stock_quantity) || 0,
+                    Number(v.alert_threshold) || 10,
+                    JSON.stringify(v.options_values || {}),
+                    v.image_id || null,
+                    v.status || 'active',
+                    timestamp,
+                    timestamp
                 )
             );
             results.push({ ...v, id, sku, product_id: productId });
@@ -102,20 +112,31 @@ export class ProductVariantRepository {
             const sku = this.buildVariantSku(v.sku, id);
             statements.push(
                 this.db.prepare(
-                    `INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, options_values, image_id, status, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    `INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, alert_threshold, options_values, image_id, status, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                      ON CONFLICT(id) DO UPDATE SET
                         sku = excluded.sku,
                         price = excluded.price,
                         cost_price = excluded.cost_price,
                         stock_quantity = excluded.stock_quantity,
+                        alert_threshold = excluded.alert_threshold,
                         options_values = excluded.options_values,
                         image_id = excluded.image_id,
                         status = excluded.status,
                         updated_at = excluded.updated_at`
                 ).bind(
-                    id, productId, sku, Number(v.price) || 0, v.cost_price ? Number(v.cost_price) : null, Number(v.stock_quantity) || 0, 
-                    JSON.stringify(v.options_values || {}), v.image_id || null, v.status || 'active', timestamp, timestamp
+                    id,
+                    productId,
+                    sku,
+                    Number(v.price) || 0,
+                    v.cost_price !== undefined && v.cost_price !== null ? Number(v.cost_price) : null,
+                    Number(v.stock_quantity) || 0,
+                    Number(v.alert_threshold) || 10,
+                    JSON.stringify(v.options_values || {}),
+                    v.image_id || null,
+                    v.status || 'active',
+                    timestamp,
+                    timestamp
                 )
             );
             results.push({ ...v, id, sku, product_id: productId });

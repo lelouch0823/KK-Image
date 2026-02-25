@@ -4,6 +4,38 @@ export class ProductRepository {
         this.db = db;
     }
 
+    _variantAggregateCTE() {
+        return `
+            WITH variant_agg AS (
+                SELECT
+                    product_id,
+                    MIN(price) AS min_price,
+                    MIN(COALESCE(cost_price, 0)) AS min_cost_price,
+                    SUM(COALESCE(stock_quantity, 0)) AS total_stock_quantity,
+                    MIN(COALESCE(alert_threshold, 10)) AS min_alert_threshold,
+                    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active_variant_count
+                FROM product_variants
+                GROUP BY product_id
+            )
+        `;
+    }
+
+    _productSelectSQL(whereClause = '1=1') {
+        return `
+            ${this._variantAggregateCTE()}
+            SELECT
+                p.*,
+                COALESCE(va.min_price, 0) AS price,
+                COALESCE(va.min_cost_price, 0) AS cost_price,
+                COALESCE(va.total_stock_quantity, 0) AS stock_quantity,
+                COALESCE(va.min_alert_threshold, 10) AS alert_threshold,
+                CASE WHEN COALESCE(va.active_variant_count, 0) > 0 THEN 'active' ELSE 'archived' END AS derived_status
+            FROM products p
+            LEFT JOIN variant_agg va ON va.product_id = p.id
+            WHERE ${whereClause}
+        `;
+    }
+
     /**
      * 创建商品
      * @param {Object} data 
@@ -20,15 +52,11 @@ export class ProductRepository {
             category: data.category || null,
             brand: data.brand || null,
             series: data.series || null,
-            price: data.price || 0,
-            cost_price: data.costPrice || null,
-            stock_quantity: data.stockQuantity || 0,
-            alert_threshold: data.alertThreshold || 10,
             description: data.description || '',
             images: JSON.stringify(data.images || []),
             specifications: JSON.stringify(data.specifications || {}),
             options: JSON.stringify(data.options || []),
-            status: data.status || 'active',
+            status: 'active',
             created_at: now,
             updated_at: now
         };
@@ -79,15 +107,11 @@ export class ProductRepository {
                 category: data.category || null,
                 brand: data.brand || null,
                 series: data.series || null,
-                price: Number(data.price) || 0,
-                cost_price: data.cost_price ? Number(data.cost_price) : null,
-                stock_quantity: data.stock_quantity ? Number(data.stock_quantity) : 0,
-                alert_threshold: data.alert_threshold ? Number(data.alert_threshold) : 10,
                 description: data.description || '',
                 images: JSON.stringify(data.images || []),
                 specifications: JSON.stringify(data.specifications || {}),
                 options: JSON.stringify(data.options || []),
-                status: data.status || 'active',
+                status: 'active',
                 created_at: now,
                 updated_at: now
             };
@@ -154,8 +178,7 @@ export class ProductRepository {
     async updateWithMeta(id, updates) {
         const allowedFields = [
             'name', 'spu', 'slug', 'category', 'brand', 'series',
-            'price', 'cost_price', 'stock_quantity', 'alert_threshold',
-            'description', 'images', 'specifications', 'options', 'status'
+            'description', 'images', 'specifications', 'options'
         ];
 
         const updateData = {};
@@ -201,7 +224,7 @@ export class ProductRepository {
      * @param {string} spu 
      */
     async findBySpu(spu) {
-        const result = await this.db.prepare('SELECT * FROM products WHERE spu = ?').bind(spu).first();
+        const result = await this.db.prepare(this._productSelectSQL('p.spu = ?')).bind(spu).first();
         return this._parseResult(result);
     }
 
@@ -210,7 +233,7 @@ export class ProductRepository {
      * @param {string} id
      */
     async findById(id) {
-        const result = await this.db.prepare('SELECT * FROM products WHERE id = ?').bind(id).first();
+        const result = await this.db.prepare(this._productSelectSQL('p.id = ?')).bind(id).first();
         return this._parseResult(result);
     }
 
@@ -222,11 +245,11 @@ export class ProductRepository {
     async adjustStock(productId, delta) {
         const now = Date.now();
         const result = await this.db.prepare(
-            `UPDATE products 
-             SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ? 
-             WHERE id = ?`
+            `UPDATE product_variants
+             SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ?
+             WHERE product_id = ?`
         ).bind(delta, now, productId).run();
-        return result.meta?.changes > 0;
+        return (result.meta?.changes || 0) > 0;
     }
 
     /**
@@ -238,11 +261,11 @@ export class ProductRepository {
         const safePage = Math.max(1, Math.floor(Number(filters.page) || 1));
         const safeLimit = filters.limit ? Math.min(100, Math.max(1, Math.floor(Number(filters.limit)))) : 0;
 
-        let query = 'SELECT * FROM products WHERE 1=1';
+        let query = this._productSelectSQL('1=1');
         const params = [];
 
         if (filters.status) {
-            query += ' AND status = ?';
+            query += " AND (CASE WHEN COALESCE(va.active_variant_count, 0) > 0 THEN 'active' ELSE 'archived' END) = ?";
             params.push(filters.status);
         }
 
@@ -262,11 +285,10 @@ export class ProductRepository {
             params.push(term, term, term);
         }
 
-        // 保存 WHERE 子句用于 COUNT 查询
-        const whereClause = query.substring(query.indexOf('WHERE'));
+        const countQuery = `SELECT COUNT(*) as total FROM (${query}) q`;
         const countParams = [...params];
 
-        query += ' ORDER BY created_at DESC';
+        query += ' ORDER BY p.created_at DESC';
 
         if (safeLimit > 0) {
             query += ' LIMIT ? OFFSET ?';
@@ -275,7 +297,7 @@ export class ProductRepository {
 
         const results = await this.db.prepare(query).bind(...params).all();
 
-        const countResult = await this.db.prepare(`SELECT COUNT(*) as total FROM products ${whereClause}`)
+        const countResult = await this.db.prepare(countQuery)
             .bind(...countParams)
             .first();
 
@@ -290,6 +312,7 @@ export class ProductRepository {
         try {
             return {
                 ...item,
+                status: item.derived_status || item.status,
                 images: JSON.parse(item.images || '[]'),
                 specifications: JSON.parse(item.specifications || '{}'),
                 options: JSON.parse(item.options || '[]'),

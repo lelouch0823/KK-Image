@@ -22,7 +22,7 @@ export class SpaceRepository {
         SELECT s.*,
           COALESCE(sf_count.file_count, 0) as file_count,
           f.storage_key as cover_storage_key,
-          p.spu as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images,
+          p.spu as p_sku, p.brand as p_brand, p.series as p_series, COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price, p.specifications as p_specs, p.images as p_images,
           pv.sku as pv_sku, pv.price as pv_price,
           (
             SELECT vi.image_id
@@ -132,7 +132,7 @@ export class SpaceRepository {
                 pv.image_id,
                 json_extract(p.images, '$[0]')
               ) as display_image_id,
-              p.spu as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images,
+              p.spu as p_sku, p.brand as p_brand, p.series as p_series, COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price, p.specifications as p_specs, p.images as p_images,
               pv.sku as pv_sku, pv.price as pv_price
             FROM spaces s
             LEFT JOIN products p ON s.product_id = p.id
@@ -346,7 +346,7 @@ export class SpaceRepository {
         SELECT s.*,
             COALESCE(sf_count.file_count, 0) as file_count,
             f.storage_key as cover_storage_key,
-            p.spu as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images,
+            p.spu as p_sku, p.brand as p_brand, p.series as p_series, COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price, p.specifications as p_specs, p.images as p_images,
             pv.sku as pv_sku, pv.price as pv_price,
             (
               SELECT vi.image_id
@@ -466,7 +466,7 @@ export class SpaceRepository {
             SELECT s.*, 
                 (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
                 f.storage_key as cover_storage_key,
-                p.spu as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images,
+                p.spu as p_sku, p.brand as p_brand, p.series as p_series, COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price, p.specifications as p_specs, p.images as p_images,
                 pv.sku as pv_sku, pv.price as pv_price,
                 (
                   SELECT vi.image_id
@@ -510,7 +510,7 @@ export class SpaceRepository {
         const space = await this.db.prepare(`
             SELECT s.*,
                 f.storage_key as cover_storage_key,
-                p.spu as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images,
+                p.spu as p_sku, p.brand as p_brand, p.series as p_series, COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price, p.specifications as p_specs, p.images as p_images,
                 pv.sku as pv_sku, pv.price as pv_price,
                 (
                   SELECT vi.image_id

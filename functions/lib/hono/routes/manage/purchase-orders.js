@@ -88,6 +88,11 @@ app.post('/', async (c) => {
 
   // 如果同时传入了明细项，一并添加
   if (body.items && body.items.length > 0) {
+    for (const item of body.items) {
+      if (!item.product_id || !item.variant_id) {
+        throw new BadRequestError('采购单明细必须包含 product_id 与 variant_id');
+      }
+    }
     await repo.addItems(po.id, body.items);
   }
 
@@ -176,6 +181,11 @@ app.post('/:id/items', async (c) => {
 
   if (!body.items || body.items.length === 0) {
     throw new BadRequestError('请提供至少一条明细项');
+  }
+  for (const item of body.items) {
+    if (!item.product_id || !item.variant_id) {
+      throw new BadRequestError('采购单明细必须包含 product_id 与 variant_id');
+    }
   }
 
   const ids = await repo.addItems(c.req.param('id'), body.items);

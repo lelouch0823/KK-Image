@@ -205,6 +205,7 @@ const submitButtonText = computed(() => {
 
 const handleProductSelect = (product) => {
   const variant = product.selectedVariant;
+  if (!variant) return;
   let mainImage = null;
   if (product?.mainImage) {
     mainImage = product.mainImage.replace('/file/', '');
@@ -227,13 +228,13 @@ const handleProductSelect = (product) => {
   boundProduct.value = {
     id: product.id,
     name: product.name,
-    sku: variant ? variant.sku : product.spu,
+    sku: variant.sku,
     brand: product.brand,
     series: product.series,
     mainImage,
   };
   form.value.productId = product.id;
-  form.value.variantId = variant ? variant.id : null;
+  form.value.variantId = variant.id;
 
   if (!form.value.name) form.value.name = product.name || '';
 };

@@ -31,7 +31,9 @@ async function getSpaceData(space, env) {
       `SELECT s.id, s.name, s.template, s.share_token, s.description, s.template_data, s.product_id,
               (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
               f.storage_key as cover_storage_key,
-              p.spu as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
+              p.spu as p_sku, p.brand as p_brand, p.series as p_series,
+              COALESCE((SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
+              p.specifications as p_specs, p.images as p_images
        FROM spaces s
        LEFT JOIN files f ON s.cover_file_id = f.id
        LEFT JOIN products p ON s.product_id = p.id
@@ -133,7 +135,9 @@ export async function onRequestGet(context) {
     // 查找空间
     const space = await env.DB.prepare(`
         SELECT s.*,
-            p.spu as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
+            p.spu as p_sku, p.brand as p_brand, p.series as p_series,
+            COALESCE((SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
+            p.specifications as p_specs, p.images as p_images
         FROM spaces s
         LEFT JOIN products p ON s.product_id = p.id
         WHERE s.share_token = ?
@@ -213,7 +217,9 @@ export async function onRequestPost(context) {
     // 查找空间
     const space = await env.DB.prepare(`
         SELECT s.*,
-            p.spu as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
+            p.spu as p_sku, p.brand as p_brand, p.series as p_series,
+            COALESCE((SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
+            p.specifications as p_specs, p.images as p_images
         FROM spaces s
         LEFT JOIN products p ON s.product_id = p.id
         WHERE s.share_token = ?

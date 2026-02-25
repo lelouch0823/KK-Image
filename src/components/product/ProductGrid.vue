@@ -105,7 +105,6 @@ const getMainImage = (product) => {
 const getStatusVariant = (status) => {
     switch(status) {
         case 'active': return 'success';
-        case 'draft': return 'warning'; // or default
         case 'archived': return 'default'; // or info
         default: return 'default';
     }

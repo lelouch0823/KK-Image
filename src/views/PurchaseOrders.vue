@@ -658,7 +658,7 @@
             </div>
             <p class="mb-5 text-sm text-[var(--text-secondary)]">{{ t('purchaseOrder.form.confirmShortage') }}</p>
             <div class="mb-5 max-h-40 overflow-y-auto rounded-xl border border-[var(--color-warning)]/20 bg-[var(--color-warning)]/5 p-3">
-              <div v-for="item in shortageItems" :key="item.product_id" class="flex items-center justify-between py-1 text-sm">
+              <div v-for="item in shortageItems" :key="`${item.product_id || 'p'}-${item.variant_id || 'v'}`" class="flex items-center justify-between py-1 text-sm">
                 <span class="text-[var(--text-main)]">{{ item.product_name }}</span>
                 <span class="font-[Outfit] text-[var(--color-danger)]">
                   {{ item.quantity }} / {{ item.required_quantity }}
@@ -712,14 +712,19 @@
             <div v-else class="max-h-96 space-y-2 overflow-y-auto">
               <div
                 v-for="s in suggestions"
-                :key="s.product_id"
+                :key="`${s.product_id}-${s.variant_id || 'no-variant'}`"
                 class="flex items-center justify-between rounded-xl border border-[var(--border-subtle)] p-3 transition-colors hover:bg-[var(--bg-hover)]"
               >
                 <div class="flex items-center gap-3">
                   <input v-model="selectedSuggestions" :value="s" type="checkbox" class="size-4 cursor-pointer rounded border-[var(--border-color)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]" />
                   <div>
                     <div class="text-sm font-medium text-[var(--text-main)]">{{ s.product_name }}</div>
-                    <div class="text-xs text-[var(--text-secondary)]">{{ s.sku }} · {{ s.brand }}</div>
+                    <div class="text-xs text-[var(--text-secondary)]">
+                      {{ s.sku }} · {{ s.brand }}
+                      <template v-if="s.variant_options && Object.keys(s.variant_options).length > 0">
+                        · {{ Object.values(s.variant_options).join(' / ') }}
+                      </template>
+                    </div>
                   </div>
                 </div>
                 <div class="flex items-center gap-4 text-xs">
@@ -753,6 +758,7 @@ const getFileUrl = (id) => `/file/${id}`;
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePurchaseOrders } from '@/composables/usePurchaseOrders';
+import { useProducts } from '@/composables/useProducts';
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
 import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
@@ -770,6 +776,7 @@ const {
 
 const route = useRoute();
 const router = useRouter();
+const { loadProduct } = useProducts();
 
 // ─── 本地状态 ────────────────────────────────────────
 
@@ -785,7 +792,7 @@ const showShortageConfirm = ref(false);
 const pickerTarget = ref('create'); // 'create' or 'detail'
 
 // 采购明细列表 (本地编辑用)
-// 结构: { product_id, product_name, sku, brand, image, quantity, unit_cost, pre_order_id?, order_no?, required_quantity? }
+// 结构: { product_id, variant_id, product_name, sku, brand, image, quantity, unit_cost, pre_order_id?, order_no?, required_quantity? }
 const poItems = reactive([]);
 
 const createForm = reactive({
@@ -918,8 +925,9 @@ const handleOrdersSelected = async (orders) => {
 
     itemsToAdd.push({
       product_id: order.productId || order.product_id || null,
+      variant_id: order.variantId || order.variant_id || null,
       product_name: order.productName || data.name || '—',
-      sku: data.spu || '—',
+      sku: data.variant_sku || data.spu || '—',
       brand: data.brand || order.brand || '',
       image: data.images?.[0] || null,
       quantity: order.quantity || 1,
@@ -931,13 +939,16 @@ const handleOrdersSelected = async (orders) => {
   }
 
   if (itemsToAdd.length === 0) return;
+  const validItems = itemsToAdd.filter(i => i.product_id && i.variant_id);
+  if (validItems.length === 0) return;
 
   if (pickerTarget.value === 'create') {
-    poItems.push(...itemsToAdd);
+    poItems.push(...validItems);
   } else if (pickerTarget.value === 'detail' && detail.value) {
     // 详情草稿面板：直接调用接口添加明细
-    const newItems = itemsToAdd.map(i => ({
+    const newItems = validItems.map(i => ({
       product_id: i.product_id,
+      variant_id: i.variant_id,
       pre_order_id: i.pre_order_id,
       quantity: i.quantity,
       unit_cost: i.unit_cost,
@@ -955,26 +966,29 @@ const handleOrdersSelected = async (orders) => {
 const handleProductsSelected = async (products) => {
   const itemsToAdd = [];
   for (const product of products) {
-    // 如果该商品已经存在于列表中（非订单关联），跳过
+    const fullProduct = await loadProduct(product.id);
+    const selectedVariant = (fullProduct?.variants || []).find(v => v.status === 'active') || (fullProduct?.variants || [])[0];
+    if (!selectedVariant) continue;
     const isDuplicate = pickerTarget.value === 'create'
-      ? poItems.some(i => i.product_id === product.id && !i.pre_order_id)
-      : detail.value?.items?.some(i => i.product_id === product.id && !i.pre_order_id);
+      ? poItems.some(i => i.variant_id === selectedVariant.id && !i.pre_order_id)
+      : detail.value?.items?.some(i => i.variant_id === selectedVariant.id && !i.pre_order_id);
     if (isDuplicate) continue;
 
     let mainImage = null;
     try {
-      const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
+      const imgs = typeof fullProduct?.images === 'string' ? JSON.parse(fullProduct.images) : fullProduct?.images;
       mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
     } catch { /* 忽略 */ }
 
     itemsToAdd.push({
-      product_id: product.id,
-      product_name: product.name,
-      sku: product.spu || '—',
-      brand: product.brand || '',
+      product_id: fullProduct?.id || product.id,
+      variant_id: selectedVariant.id,
+      product_name: fullProduct?.name || product.name,
+      sku: selectedVariant.sku || '—',
+      brand: fullProduct?.brand || product.brand || '',
       image: mainImage,
       quantity: 1,
-      unit_cost: product.cost_price || product.price || 0,
+      unit_cost: selectedVariant.cost_price || 0,
       pre_order_id: null,
       order_no: null,
       required_quantity: null, // 补货无需求限制
@@ -988,6 +1002,7 @@ const handleProductsSelected = async (products) => {
   } else if (pickerTarget.value === 'detail' && detail.value) {
     const newItems = itemsToAdd.map(i => ({
       product_id: i.product_id,
+      variant_id: i.variant_id,
       pre_order_id: null,
       quantity: i.quantity,
       unit_cost: i.unit_cost,
@@ -1066,6 +1081,7 @@ const executeCreate = async () => {
   // Step 2: 批量添加明细
   const items = poItems.map(item => ({
     product_id: item.product_id,
+    variant_id: item.variant_id,
     pre_order_id: item.pre_order_id || null,
     quantity: item.quantity || 1,
     unit_cost: item.unit_cost || 0,

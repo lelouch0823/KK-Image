@@ -171,4 +171,44 @@ describe('useGoodsOverview Composable', () => {
             vi.restoreAllMocks();
         });
     });
+
+    describe('createPOFromSelected()', () => {
+        it('should submit variant-level purchase items', async () => {
+            mockFetch
+                .mockResolvedValueOnce({
+                    json: () => Promise.resolve({
+                        success: true,
+                        data: {
+                            items: [
+                                { id: 'var-1', productId: 'prod-1', name: 'Tee', sku: 'TEE-YELLOW-S', shortage: 5, avgUnitCost: 8.8 }
+                            ],
+                            filters: { categories: [], brands: [] }
+                        }
+                    })
+                })
+                .mockResolvedValueOnce({
+                    json: () => Promise.resolve({ success: true, data: { id: 'po-1' } })
+                });
+
+            const { loadData, toggleSelect, items, createPOFromSelected } = useGoodsOverview();
+            await loadData();
+            toggleSelect(items.value[0]);
+
+            const result = await createPOFromSelected();
+            expect(result.success).toBe(true);
+
+            const [, postRequest] = mockFetch.mock.calls;
+            expect(postRequest[0]).toBe(API.MANAGE_PURCHASE_ORDERS);
+            const payload = JSON.parse(postRequest[1].body);
+
+            expect(payload.items).toEqual([
+                expect.objectContaining({
+                    product_id: 'prod-1',
+                    variant_id: 'var-1',
+                    product_sku: 'TEE-YELLOW-S',
+                    quantity: 5,
+                }),
+            ]);
+        });
+    });
 });

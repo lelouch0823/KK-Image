@@ -66,7 +66,6 @@ onUnmounted(() => {
 const statusOptions = computed(() => [
     { label: isMobile.value ? t('product.filters.status.short_label') : t('product.filters.status.all'), value: '' },
     { label: t('product.filters.status.active'), value: 'active' },
-    { label: t('product.filters.status.draft'), value: 'draft' },
     { label: t('product.filters.status.archived'), value: 'archived' }
 ]);
 </script>

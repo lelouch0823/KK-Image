@@ -77,14 +77,15 @@ const getProductMainImage = (product) => {
 const handleProductSelect = (product) => {
   const mainImage = getProductMainImage(product);
   const variant = product.selectedVariant;
+  if (!variant) return;
   
   boundProduct.value = {
     id: product.id,
     name: product.name,
-    sku: variant ? variant.sku : product.spu,
+    sku: variant.sku,
     brand: product.brand,
     series: product.series,
-    variantId: variant ? variant.id : null,
+    variantId: variant.id,
     mainImage,
   };
   selectedProductId.value = product.id;
@@ -95,7 +96,7 @@ const handleProductSelect = (product) => {
     name: product.name || '',
     brand: product.brand || '',
     series: product.series || '',
-    sku: variant ? variant.sku : (product.spu || ''),
+    sku: variant.sku || '',
   };
   
   // Auto-fill image if available
@@ -127,9 +128,8 @@ const unbindProduct = () => {
 const handleSubmit = async (data) => {
   const payload = { ...data };
   if (selectedProductId.value) {
+    if (!boundProduct.value?.variantId) return;
     payload.productId = selectedProductId.value;
-  }
-  if (boundProduct.value?.variantId) {
     payload.variantId = boundProduct.value.variantId;
   }
   emit('submit', payload);

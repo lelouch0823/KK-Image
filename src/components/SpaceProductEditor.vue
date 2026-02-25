@@ -464,8 +464,12 @@ const initData = async () => {
     if (data.productId) {
       const product = await loadProduct(data.productId);
       if (product) {
+        const selectedVariant = (product.variants || []).find(v => v.id === (data.variantId || data.variant_id)) || null;
         let mainImage = null;
-        if (product.display_image_id) {
+        if (selectedVariant) {
+           mainImage = resolveVariantImageId(selectedVariant);
+        }
+        if (!mainImage && product.display_image_id) {
            mainImage = product.display_image_id;
         } else if (product.images) {
            const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
@@ -474,7 +478,7 @@ const initData = async () => {
         boundProduct.value = {
           id: product.id,
           name: product.name,
-          sku: product.spu,
+          sku: selectedVariant?.sku || '',
           brand: product.brand,
           series: product.series,
           mainImage,
@@ -534,6 +538,7 @@ const openPreview = () => {
 const handleProductSelect = (product) => {
   let mainImage = null;
   const variant = product.selectedVariant;
+  if (!variant) return;
 
   if (product?.mainImage) {
     mainImage = product.mainImage.replace('/file/', '');
@@ -552,22 +557,22 @@ const handleProductSelect = (product) => {
   boundProduct.value = {
     id: product.id,
     name: product.name,
-    sku: variant ? variant.sku : product.spu,
+    sku: variant.sku,
     brand: product.brand,
     series: product.series,
     mainImage,
     _images: product.images, // Store raw images
   };
   form.value.productId = product.id;
-  form.value.variantId = variant ? variant.id : null;
+  form.value.variantId = variant.id;
 
   // Force overwrite template data from product
   if (!form.value.name) form.value.name = product.name || '';
   form.value.templateData.brand = product.brand || '';
   form.value.templateData.series = product.series || '';
-  form.value.templateData.sku = variant ? variant.sku : (product.spu || '');
+  form.value.templateData.sku = variant.sku || '';
   
-  let priceStr = variant ? String(variant.price || '') : (product.price != null ? String(product.price) : '');
+  let priceStr = String(variant.price || '');
   form.value.templateData.price = priceStr;
   
   let materialStr = '';

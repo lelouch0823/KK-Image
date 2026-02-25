@@ -52,6 +52,9 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
     const orderNo = generateOrderNo();
     const variantId = data.variantId ?? null;
 
+    if (data.productId && !variantId) {
+        throw new BadRequestError('variantId is required when productId is provided');
+    }
     if (variantId) {
         if (!data.productId) {
             throw new BadRequestError('productId is required when variantId is provided');
@@ -201,8 +204,8 @@ app.patch('/:id', async (c) => {
     const effectiveProductId = hasProductIdPayload ? productId : order.productId;
     let normalizedVariantId = hasVariantIdPayload ? (variantId || null) : undefined;
 
-    if (hasProductIdPayload && !hasVariantIdPayload) {
-        normalizedVariantId = null;
+    if ((hasProductIdPayload && productId && !hasVariantIdPayload) || (hasVariantIdPayload && !normalizedVariantId && effectiveProductId)) {
+        throw new BadRequestError('variantId is required when productId is provided');
     }
 
     if (normalizedVariantId) {

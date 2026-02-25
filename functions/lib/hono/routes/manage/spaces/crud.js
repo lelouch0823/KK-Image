@@ -18,7 +18,7 @@ import {
   transformSpaceListItem,
   transformSpaceDetail,
 } from './transformers.js';
-import { NotFoundError } from '../../../errors.js';
+import { NotFoundError, BadRequestError } from '../../../errors.js';
 
 const crud = new Hono();
 
@@ -167,6 +167,12 @@ crud.post(
       createdAt: nowMs,
       updatedAt: nowMs,
     };
+    if (newSpace.productId && !newSpace.variantId) {
+      throw new BadRequestError('variantId is required when productId is provided');
+    }
+    if (!newSpace.productId && newSpace.variantId) {
+      throw new BadRequestError('productId is required when variantId is provided');
+    }
 
     await repo.create(newSpace);
 
@@ -249,6 +255,14 @@ crud.on(
     if (data.variantId !== undefined) {
       updates.push('variant_id = ?');
       values.push(data.variantId || null);
+    }
+    const nextProductId = data.productId !== undefined ? (data.productId || null) : (space.product_id || null);
+    const nextVariantId = data.variantId !== undefined ? (data.variantId || null) : (space.variant_id || null);
+    if (nextProductId && !nextVariantId) {
+      throw new BadRequestError('variantId is required when productId is provided');
+    }
+    if (!nextProductId && nextVariantId) {
+      throw new BadRequestError('productId is required when variantId is provided');
     }
     // 处理新的分享模式
     if (data.shareMode !== undefined) {

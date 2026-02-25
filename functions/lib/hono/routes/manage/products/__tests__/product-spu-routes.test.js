@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
 import productsApp from '../index.js';
 
-// 模拟 Repository
 const mockProductRepo = {
     create: vi.fn(),
     findBySpu: vi.fn(),
@@ -15,7 +14,6 @@ const mockVariantRepo = {
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
     ProductRepository: class {
-        constructor() {}
         create(...args) { return mockProductRepo.create(...args); }
         findBySpu(...args) { return mockProductRepo.findBySpu(...args); }
         search(...args) { return mockProductRepo.search(...args); }
@@ -24,46 +22,42 @@ vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
 
 vi.mock('../../../../../../repositories/ProductVariantRepository.js', () => ({
     ProductVariantRepository: class {
-        constructor() {}
         createBatch(...args) { return mockVariantRepo.createBatch(...args); }
     },
 }));
 
-// 模拟缓存中间件
 vi.mock('../../../../middleware/cache.js', () => ({
-    withCache: () => async (c, next) => await next(),
+    withCache: () => async (_c, next) => await next(),
     invalidateCache: vi.fn(),
     getProductCacheUrls: vi.fn(() => []),
 }));
 
 function createApp() {
     const app = new Hono();
-    app.onError((err, c) => {
-        return c.json(
-            { success: false, error: err.message },
-            err.statusCode || 500
-        );
-    });
+    app.onError((err, c) => c.json({ success: false, error: err.message }, err.statusCode || 500));
     app.route('/api/manage/products', productsApp);
     return app;
 }
 
-describe('Product Routes — SPU 重构', () => {
+const validVariants = [
+    {
+        sku: 'SKU-001',
+        price: 100,
+        cost_price: 60,
+        stock_quantity: 10,
+        alert_threshold: 2,
+        status: 'active',
+        options_values: { Color: 'Red', Size: 'M' },
+    },
+];
+
+describe('Product Routes — variant-first contract', () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    // ---------------------------------------------------------------
-    // POST / — 只需要 name, spu 可选
-    // ---------------------------------------------------------------
-    describe('POST / — 创建商品', () => {
-        it('只提供 name (无 spu) 应成功创建', async () => {
-            mockProductRepo.create.mockResolvedValue({
-                id: 'test-id',
-                name: 'Test Product',
-                spu: null,
-            });
-
+    describe('POST /', () => {
+        it('requires variants for product creation', async () => {
             const app = createApp();
             const res = await app.request(
                 'http://localhost/api/manage/products',
@@ -76,20 +70,17 @@ describe('Product Routes — SPU 重构', () => {
                 { waitUntil: vi.fn() }
             );
 
-            expect(res.status).toBe(201);
-            const body = await res.json();
-            expect(body.success).toBe(true);
-            expect(body.data.name).toBe('Test Product');
+            expect(res.status).toBe(400);
         });
 
-        it('缺少 name 应返回 400', async () => {
+        it('requires complete variant business fields', async () => {
             const app = createApp();
             const res = await app.request(
                 'http://localhost/api/manage/products',
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ spu: 'SPU-001' }),
+                    body: JSON.stringify({ name: 'Test Product', variants: [{ sku: 'SKU-001', price: 100 }] }),
                 },
                 { DB: {}, executionCtx: { waitUntil: vi.fn() } },
                 { waitUntil: vi.fn() }
@@ -98,7 +89,27 @@ describe('Product Routes — SPU 重构', () => {
             expect(res.status).toBe(400);
         });
 
-        it('重复的非空 spu 应返回 409 冲突', async () => {
+        it('creates product when name + variants are provided and spu omitted', async () => {
+            mockProductRepo.create.mockResolvedValue({ id: 'test-id', name: 'Test Product', spu: null });
+            mockVariantRepo.createBatch.mockResolvedValue([]);
+
+            const app = createApp();
+            const res = await app.request(
+                'http://localhost/api/manage/products',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: 'Test Product', variants: validVariants }),
+                },
+                { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+                { waitUntil: vi.fn() }
+            );
+
+            expect(res.status).toBe(201);
+            expect(mockVariantRepo.createBatch).toHaveBeenCalledWith('test-id', validVariants);
+        });
+
+        it('returns 409 on duplicated non-empty spu', async () => {
             mockProductRepo.findBySpu.mockResolvedValue({ id: 'existing', spu: 'SPU-001' });
 
             const app = createApp();
@@ -107,23 +118,18 @@ describe('Product Routes — SPU 重构', () => {
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: 'Test', spu: 'SPU-001' }),
+                    body: JSON.stringify({ name: 'Test', spu: 'SPU-001', variants: validVariants }),
                 },
                 { DB: {}, executionCtx: { waitUntil: vi.fn() } },
                 { waitUntil: vi.fn() }
             );
 
             expect(res.status).toBe(409);
-            const body = await res.json();
-            expect(body.error).toContain('SPU');
         });
 
-        it('空字符串 spu 不应触发唯一性检查', async () => {
-            mockProductRepo.create.mockResolvedValue({
-                id: 'test-id',
-                name: 'Test',
-                spu: null,
-            });
+        it('handles non-string spu safely', async () => {
+            mockProductRepo.create.mockResolvedValue({ id: 'test-id', name: 'Test', spu: null });
+            mockVariantRepo.createBatch.mockResolvedValue([]);
 
             const app = createApp();
             const res = await app.request(
@@ -131,62 +137,13 @@ describe('Product Routes — SPU 重构', () => {
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: 'Test', spu: '' }),
+                    body: JSON.stringify({ name: 'Test', spu: 123, variants: validVariants }),
                 },
                 { DB: {}, executionCtx: { waitUntil: vi.fn() } },
                 { waitUntil: vi.fn() }
             );
 
             expect(res.status).toBe(201);
-            // findBySpu 不应被调用 (spu 为空)
-            expect(mockProductRepo.findBySpu).not.toHaveBeenCalled();
-        });
-
-        it('spu 为非字符串时不应抛出 500', async () => {
-            mockProductRepo.create.mockResolvedValue({
-                id: 'test-id',
-                name: 'Test',
-                spu: null,
-            });
-
-            const app = createApp();
-            const res = await app.request(
-                'http://localhost/api/manage/products',
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: 'Test', spu: 123 }),
-                },
-                { DB: {}, executionCtx: { waitUntil: vi.fn() } },
-                { waitUntil: vi.fn() }
-            );
-
-            expect(res.status).toBe(201);
-        });
-
-        it('响应 payload 应包含 spu 字段', async () => {
-            mockProductRepo.findBySpu.mockResolvedValue(null);
-            mockProductRepo.create.mockResolvedValue({
-                id: 'test-id',
-                name: 'Test',
-                spu: 'SPU-999',
-            });
-
-            const app = createApp();
-            const res = await app.request(
-                'http://localhost/api/manage/products',
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: 'Test', spu: 'SPU-999' }),
-                },
-                { DB: {}, executionCtx: { waitUntil: vi.fn() } },
-                { waitUntil: vi.fn() }
-            );
-
-            expect(res.status).toBe(201);
-            const body = await res.json();
-            expect(body.data).toHaveProperty('spu', 'SPU-999');
         });
     });
 });

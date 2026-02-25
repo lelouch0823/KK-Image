@@ -74,8 +74,8 @@ app.patch('/:id', async (c) => {
     const effectiveProductId = hasProductIdPayload ? productId : order.productId;
     let normalizedVariantId = hasVariantIdPayload ? (variantId || null) : undefined;
 
-    if (hasProductIdPayload && !hasVariantIdPayload) {
-        normalizedVariantId = null;
+    if ((hasProductIdPayload && productId && !hasVariantIdPayload) || (hasVariantIdPayload && !normalizedVariantId && effectiveProductId)) {
+        throw new BadRequestError('variantId is required when productId is provided');
     }
 
     if (normalizedVariantId) {
@@ -96,9 +96,6 @@ app.patch('/:id', async (c) => {
             finalUpdates.name = product.name;
             finalUpdates.brand = product.brand;
             finalUpdates.series = product.series;
-            if (!normalizedVariantId) {
-                finalUpdates.sku = product.spu;
-            }
             // 可以在此同步更多字段，如 material
             if (product.specifications?.material) {
                 finalUpdates.material = product.specifications.material;

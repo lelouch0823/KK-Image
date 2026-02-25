@@ -29,6 +29,9 @@ app.post('/', async (c) => {
     const orderNo = generateOrderNo();
     const variantId = body.variantId ?? null;
 
+    if (body.productId && !variantId) {
+        throw new BadRequestError('variantId is required when productId is provided');
+    }
     if (variantId) {
         if (!body.productId) {
             throw new BadRequestError('productId is required when variantId is provided');

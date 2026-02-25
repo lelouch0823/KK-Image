@@ -10,6 +10,25 @@ const app = new Hono();
 const isVariantOwnershipError = (error) =>
     error?.message?.includes('Variant does not belong to product');
 
+const REQUIRED_VARIANT_FIELDS = ['price', 'cost_price', 'stock_quantity', 'alert_threshold', 'status'];
+const isEmptyValue = (value) => value === undefined || value === null || value === '';
+
+const validateVariants = (variants) => {
+    if (!Array.isArray(variants) || variants.length === 0) {
+        throw new BadRequestError('At least one variant is required');
+    }
+    for (const [index, variant] of variants.entries()) {
+        if (!variant || typeof variant !== 'object') {
+            throw new BadRequestError(`Variant #${index + 1} is invalid`);
+        }
+        for (const field of REQUIRED_VARIANT_FIELDS) {
+            if (isEmptyValue(variant[field])) {
+                throw new BadRequestError(`Variant #${index + 1} missing required field: ${field}`);
+            }
+        }
+    }
+};
+
 /**
  * 构建缓存失效 URL
  */
@@ -169,6 +188,9 @@ app.patch('/:id', async (c) => {
     const id = c.req.param('id');
     const body = await c.req.json();
     const repo = new ProductRepository(env.DB);
+    if (body.variants !== undefined) {
+        validateVariants(body.variants);
+    }
 
     const result = await repo.updateWithMeta(id, body);
     
@@ -199,6 +221,9 @@ app.put('/:id', async (c) => {
     const id = c.req.param('id');
     const body = await c.req.json();
     const repo = new ProductRepository(env.DB);
+    if (body.variants !== undefined) {
+        validateVariants(body.variants);
+    }
 
     const success = await repo.update(id, body);
     
@@ -223,13 +248,21 @@ app.delete('/:id', async (c) => {
     const { env } = c;
     const id = c.req.param('id');
     const repo = new ProductRepository(env.DB);
-
-    const success = await repo.update(id, { status: 'archived' });
+    const product = await repo.findById(id);
+    if (!product) {
+        throw new NotFoundError('Product not found');
+    }
+    const now = Date.now();
+    const result = await env.DB
+        .prepare(`UPDATE product_variants SET status = 'archived', updated_at = ? WHERE product_id = ?`)
+        .bind(now, id)
+        .run();
+    const success = (result.meta?.changes || 0) >= 0;
 
     if (success) {
         // 使缓存失效
         c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
-        return c.json({ success: true, message: 'Product archived' });
+        return c.json({ success: true, message: 'Product variants archived' });
     } else {
         throw new BadRequestError('Delete failed');
     }
