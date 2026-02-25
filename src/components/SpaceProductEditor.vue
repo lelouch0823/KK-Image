@@ -524,10 +524,12 @@ const handleProductSelect = (product) => {
     mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
   }
   
+  const variant = product.selectedVariant;
+  
   boundProduct.value = {
     id: product.id,
     name: product.name,
-    sku: product.sku,
+    sku: variant ? variant.sku : product.sku,
     brand: product.brand,
     series: product.series,
     mainImage,
@@ -539,9 +541,9 @@ const handleProductSelect = (product) => {
   if (!form.value.name) form.value.name = product.name || '';
   form.value.templateData.brand = product.brand || '';
   form.value.templateData.series = product.series || '';
-  form.value.templateData.sku = product.sku || '';
+  form.value.templateData.sku = variant ? variant.sku : (product.sku || '');
   
-  let priceStr = product.price != null ? String(product.price) : '';
+  let priceStr = variant ? String(variant.price || '') : (product.price != null ? String(product.price) : '');
   form.value.templateData.price = priceStr;
   
   let materialStr = '';

@@ -209,11 +209,12 @@ const handleProductSelect = (product) => {
     const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
     mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
   }
+  const variant = product.selectedVariant;
   
   boundProduct.value = {
     id: product.id,
     name: product.name,
-    sku: product.sku,
+    sku: variant ? variant.sku : product.sku,
     brand: product.brand,
     series: product.series,
     mainImage,
