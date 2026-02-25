@@ -113,6 +113,7 @@
                                           <th class="px-3 py-2 w-32">SKU</th>
                                           <th class="px-3 py-2 w-28">Price</th>
                                           <th class="px-3 py-2 w-24">Stock</th>
+                                          <th class="px-3 py-2">Images</th>
                                       </tr>
                                   </thead>
                                   <tbody class="divide-y divide-[var(--border-color)]/30">
@@ -121,6 +122,50 @@
                                           <td class="px-3 py-2"><input v-model="variant.sku" type="text" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]"></td>
                                           <td class="px-3 py-2"><input v-model.number="variant.price" type="number" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]"></td>
                                           <td class="px-3 py-2"><input v-model.number="variant.stock_quantity" type="number" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]"></td>
+                                          <td class="px-3 py-2">
+                                              <div class="mb-2 flex flex-wrap gap-1">
+                                                  <span
+                                                    v-for="image in (variant.images || [])"
+                                                    :key="image.image_id"
+                                                    class="inline-flex items-center gap-1 rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-0.5 text-xs"
+                                                  >
+                                                      <button
+                                                        type="button"
+                                                        :data-testid="`variant-row-set-primary-${idx}-${image.image_id}`"
+                                                        class="font-medium"
+                                                        :class="Number(image.is_primary) === 1 ? 'text-[var(--color-primary)]' : 'text-[var(--text-secondary)]'"
+                                                        @click="handleVariantRowSetPrimary(variant, image.image_id)"
+                                                      >
+                                                          {{ image.image_id }}
+                                                      </button>
+                                                      <button
+                                                        type="button"
+                                                        :data-testid="`variant-row-remove-image-${idx}-${image.image_id}`"
+                                                        class="text-[var(--color-danger)]"
+                                                        @click="handleVariantRowRemoveImage(variant, image.image_id)"
+                                                      >
+                                                          ×
+                                                      </button>
+                                                  </span>
+                                              </div>
+                                              <div class="flex items-center gap-1">
+                                                  <input
+                                                    :data-testid="`variant-row-upload-input-${idx}`"
+                                                    v-model="variantRowImageDrafts[idx]"
+                                                    class="input w-full p-1 text-xs"
+                                                    type="text"
+                                                    placeholder="Image ID"
+                                                  >
+                                                  <button
+                                                    type="button"
+                                                    :data-testid="`variant-row-upload-btn-${idx}`"
+                                                    class="rounded border border-[var(--border-color)] px-2 py-1 text-xs"
+                                                    @click="handleVariantRowUpload(variant, idx)"
+                                                  >
+                                                      Add
+                                                  </button>
+                                              </div>
+                                          </td>
                                       </tr>
                                   </tbody>
                               </table>
@@ -263,9 +308,10 @@ const props = defineProps({
 });
 const emit = defineEmits(['update:modelValue', 'success']);
 
-const { createProduct, updateProduct, addVariantImage, sortVariantImages, setVariantPrimaryImage } = useProducts();
+const { createProduct, updateProduct, addVariantImage, sortVariantImages, setVariantPrimaryImage, removeVariantImage } = useProducts();
 const submitting = ref(false);
 const showVariantImageManager = ref(false);
+const variantRowImageDrafts = reactive({});
 
 const imageObjects = ref([]);
 
@@ -304,7 +350,7 @@ watch(() => props.modelValue, (isOpen) => {
     }
 }, { immediate: true });
 
-const fillFormFromData = (data) => {
+function fillFormFromData(data) {
     const imgs = parseJson(data.images) || [];
     
     Object.assign(form, {
@@ -322,7 +368,10 @@ const fillFormFromData = (data) => {
         status: data.status || 'active',
         images: imgs,
         options: parseJson(data.options) || [],
-        variants: data.variants || [],
+        variants: (data.variants || []).map((variant) => ({
+            ...variant,
+            images: Array.isArray(variant.images) ? variant.images : [],
+        })),
     });
 
     // Populate imageObjects for Uploader
@@ -330,9 +379,9 @@ const fillFormFromData = (data) => {
         id: id,
         url: `/file/${id}`
     }));
-};
+}
 
-const resetForm = () => {
+function resetForm() {
     Object.assign(form, {
         name: '',
         description: '',
@@ -351,11 +400,11 @@ const resetForm = () => {
         variants: [],
     });
     imageObjects.value = [];
-};
+}
 
-const parseJson = (str) => {
+function parseJson(str) {
     try { return typeof str === 'string' ? JSON.parse(str) : (str || null); } catch { return null; }
-};
+}
 
 const addOption = () => {
     form.options.push({ name: '', values: [], inputValue: '' });
@@ -533,5 +582,62 @@ const handleVariantImageSort = async ({ variantId, imageIds }) => {
 
     const imageMap = new Map(variant.images.map((img) => [img.image_id, img]));
     variant.images = imageIds.map((id) => imageMap.get(id)).filter(Boolean);
+};
+
+const ensureVariantImages = (variant) => {
+    if (!Array.isArray(variant.images)) variant.images = [];
+    return variant.images;
+};
+
+const handleVariantRowUpload = async (variant, rowIndex) => {
+    const imageId = String(variantRowImageDrafts[rowIndex] || '').trim();
+    if (!imageId) return;
+    const previous = [...ensureVariantImages(variant)];
+
+    variant.images.push({ image_id: imageId, is_primary: variant.images.length === 0 ? 1 : 0 });
+    variantRowImageDrafts[rowIndex] = '';
+
+    const productId = getEditableProductId();
+    if (!productId || !variant.id) return;
+
+    const response = await addVariantImage(productId, variant.id, { imageId });
+    if (!response?.success) {
+        variant.images = previous;
+        addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
+    }
+};
+
+const handleVariantRowSetPrimary = async (variant, imageId) => {
+    const previous = [...ensureVariantImages(variant)];
+    variant.images = variant.images.map((img) => ({
+        ...img,
+        is_primary: img.image_id === imageId ? 1 : 0,
+    }));
+
+    const productId = getEditableProductId();
+    if (!productId || !variant.id) return;
+
+    const response = await setVariantPrimaryImage(productId, variant.id, imageId);
+    if (!response?.success) {
+        variant.images = previous;
+        addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
+    }
+};
+
+const handleVariantRowRemoveImage = async (variant, imageId) => {
+    const previous = [...ensureVariantImages(variant)];
+    variant.images = variant.images.filter((img) => img.image_id !== imageId);
+    if (!variant.images.some((img) => Number(img.is_primary) === 1) && variant.images[0]) {
+        variant.images[0].is_primary = 1;
+    }
+
+    const productId = getEditableProductId();
+    if (!productId || !variant.id) return;
+
+    const response = await removeVariantImage(productId, variant.id, imageId);
+    if (!response?.success) {
+        variant.images = previous;
+        addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
+    }
 };
 </script>
