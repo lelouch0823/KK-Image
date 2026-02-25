@@ -122,3 +122,10 @@ Support per-variant image differentiation for all key flows:
 - Spaces/export use variant image when `variantId` is present.
 - Deleting primary image repairs to first sorted image.
 - Invalid variant-product bindings are rejected.
+
+## Verification Log
+- 2026-02-25: `pnpm test:unit functions/repositories/__tests__/variant-images.test.js` (pass)
+- 2026-02-25: `pnpm test:unit functions/lib/hono/routes/manage/products/__tests__/variant-images-routes.test.js` (pass)
+- 2026-02-25: `pnpm test:unit src/components/product/__tests__/VariantImageManagerModal.test.js` (pass)
+- 2026-02-25: `pnpm test:unit src/components/product/__tests__/ProductCreateModal.variant-images.test.js` (pass)
+- 2026-02-25: `pnpm run dev:all` (started, timed out in non-interactive run; manual checks pending)
