@@ -1,10 +1,14 @@
 import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
+import { VariantImageRepository } from '../../../../../repositories/VariantImageRepository.js';
 import { invalidateCache } from '../../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
 
 const app = new Hono();
+
+const isVariantOwnershipError = (error) =>
+    error?.message?.includes('Variant does not belong to product');
 
 /**
  * 构建缓存失效 URL
@@ -31,9 +35,130 @@ app.get('/:id', async (c) => {
     }
 
     const variantRepo = new ProductVariantRepository(env.DB);
-    product.variants = await variantRepo.findByProductId(id);
+    const variantImageRepo = new VariantImageRepository(env.DB);
+    const variants = await variantRepo.findByProductId(id);
+    product.variants = await Promise.all(
+        variants.map(async (variant) => {
+            const images = await variantImageRepo.listByVariant({
+                productId: id,
+                variantId: variant.id,
+            });
+            const primary = images.find((img) => Number(img.is_primary) === 1) || images[0] || null;
+            return {
+                ...variant,
+                images,
+                primaryImage: primary?.image_id || variant.image_id || null,
+            };
+        })
+    );
 
     return c.json({ success: true, data: product });
+});
+
+app.post('/:id/variants/:variantId/images', async (c) => {
+    const { env } = c;
+    const productId = c.req.param('id');
+    const variantId = c.req.param('variantId');
+    const body = await c.req.json();
+
+    if (!body?.imageId) {
+        throw new BadRequestError('imageId is required');
+    }
+
+    const productRepo = new ProductRepository(env.DB);
+    const product = await productRepo.findById(productId);
+    if (!product) {
+        throw new NotFoundError('Product not found');
+    }
+
+    const variantImageRepo = new VariantImageRepository(env.DB);
+    try {
+        const created = await variantImageRepo.addImage({
+            productId,
+            variantId,
+            imageId: body.imageId,
+            isPrimary: Boolean(body.isPrimary),
+        });
+        return c.json({ success: true, data: created }, 201);
+    } catch (error) {
+        if (isVariantOwnershipError(error)) {
+            throw new BadRequestError(error.message);
+        }
+        throw error;
+    }
+});
+
+app.patch('/:id/variants/:variantId/images/sort', async (c) => {
+    const { env } = c;
+    const productId = c.req.param('id');
+    const variantId = c.req.param('variantId');
+    const body = await c.req.json();
+
+    if (!Array.isArray(body?.imageIds) || body.imageIds.length === 0) {
+        throw new BadRequestError('imageIds must be a non-empty array');
+    }
+
+    const variantImageRepo = new VariantImageRepository(env.DB);
+    try {
+        await variantImageRepo.sortImages({
+            productId,
+            variantId,
+            imageIds: body.imageIds,
+        });
+        return c.json({ success: true });
+    } catch (error) {
+        if (isVariantOwnershipError(error)) {
+            throw new BadRequestError(error.message);
+        }
+        throw error;
+    }
+});
+
+app.patch('/:id/variants/:variantId/images/:imageId/primary', async (c) => {
+    const { env } = c;
+    const productId = c.req.param('id');
+    const variantId = c.req.param('variantId');
+    const imageId = c.req.param('imageId');
+
+    const variantImageRepo = new VariantImageRepository(env.DB);
+    try {
+        await variantImageRepo.setPrimary({
+            productId,
+            variantId,
+            imageId,
+        });
+        return c.json({ success: true });
+    } catch (error) {
+        if (isVariantOwnershipError(error)) {
+            throw new BadRequestError(error.message);
+        }
+        throw error;
+    }
+});
+
+app.delete('/:id/variants/:variantId/images/:imageId', async (c) => {
+    const { env } = c;
+    const productId = c.req.param('id');
+    const variantId = c.req.param('variantId');
+    const imageId = c.req.param('imageId');
+
+    const variantImageRepo = new VariantImageRepository(env.DB);
+    try {
+        const removed = await variantImageRepo.deleteImage({
+            productId,
+            variantId,
+            imageId,
+        });
+        if (!removed) {
+            throw new NotFoundError('Variant image not found');
+        }
+        return c.json({ success: true });
+    } catch (error) {
+        if (isVariantOwnershipError(error)) {
+            throw new BadRequestError(error.message);
+        }
+        throw error;
+    }
 });
 
 /**

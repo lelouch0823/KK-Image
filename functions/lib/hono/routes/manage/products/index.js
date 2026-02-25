@@ -36,10 +36,14 @@ app.get('/', withCache(60), async (c) => {
         page: parseInt(page),
         limit: parseInt(limit)
     });
+    const items = (result.items || []).map((item) => ({
+        ...item,
+        primaryImage: Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : null,
+    }));
 
     return c.json({
         success: true,
-        data: result.items,
+        data: items,
         meta: {
             total: result.total,
             page: parseInt(page),
