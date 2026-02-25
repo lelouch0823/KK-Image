@@ -102,6 +102,7 @@ jspm_packages/
 .pnp.*
 
 # Project specific
+.worktrees/
 data/
 temp/
 tmp/
