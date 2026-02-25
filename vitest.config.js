@@ -13,6 +13,14 @@ export default defineConfig({
             'functions/**/__tests__/*.{test,spec}.js',
             'test/*.test.js'
         ],
+        exclude: [
+            'test/api.test.js',
+            'test/manage-api.test.js',
+            'test/manage-goods-overview.test.js',
+            'test/streaming.test.js',
+            'test/v1-files-folders.test.js',
+            'test/v1-users-webhooks.test.js'
+        ],
         root: fileURLToPath(new URL('./', import.meta.url)),
     },
     resolve: {

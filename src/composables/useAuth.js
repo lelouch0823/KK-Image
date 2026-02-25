@@ -91,7 +91,9 @@ export function useAuth() {
 
       // HTTP 错误抛出，交由拦截器或业务层处理
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = typeof response.json === 'function'
+          ? await response.json().catch(() => ({}))
+          : {};
         const err = new Error(errorData.error || response.statusText);
         err.status = response.status;
         err.data = errorData;

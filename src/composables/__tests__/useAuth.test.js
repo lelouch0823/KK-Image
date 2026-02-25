@@ -31,10 +31,15 @@ describe('useAuth Composable Full Coverage', () => {
   });
 
   it('authFetch should handle 401 and reset state', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 401 }));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 401,
+      ok: false,
+      statusText: 'Unauthorized',
+      json: vi.fn().mockResolvedValue({})
+    }));
     isAuthenticated.value = true;
     const { authFetch } = useAuth();
-    await authFetch('https://api.test');
+    await expect(authFetch('https://api.test')).rejects.toMatchObject({ status: 401 });
     expect(isAuthenticated.value).toBe(false);
   });
 
