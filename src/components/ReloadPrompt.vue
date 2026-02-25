@@ -63,12 +63,18 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
+let offlineReady = ref(false);
+let needRefresh = ref(false);
+let updateServiceWorker = async () => {};
 
-const { offlineReady, needRefresh, updateServiceWorker } = useRegisterSW();
+if (import.meta.env.PROD) {
+  ({ offlineReady, needRefresh, updateServiceWorker } = useRegisterSW());
+}
 
 const close = async () => {
   offlineReady.value = false;

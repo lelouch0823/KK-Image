@@ -15,6 +15,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
+      devOptions: {
+        enabled: false
+      },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
         name: 'kk-life Order System',
@@ -107,11 +110,11 @@ export default defineConfig({
     // 代理配置：将 API 请求转发到 Wrangler Pages 服务
     proxy: {
       '/file': {
-        target: 'http://127.0.0.1:8788',
+        target: 'http://127.0.0.1:8080',
         changeOrigin: true
       },
       '/api': {
-        target: 'http://127.0.0.1:8788',
+        target: 'http://127.0.0.1:8080',
         changeOrigin: true
       }
     }

@@ -81,22 +81,24 @@
                   @click="handleRowClick(virtualRow.index)"
                 >
                   <table class="w-full text-left text-sm">
-                    <tr>
-                      <td
-                        v-for="col in columns"
-                        :key="col.key"
-                        class="px-4 py-3 align-middle"
-                        :class="[
-                          col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
-                          col.tdClass
-                        ]"
-                        :style="{ width: col.width }"
-                      >
-                        <slot :name="`cell-${col.key}`" :row="data[virtualRow.index]" :index="virtualRow.index" :value="data[virtualRow.index]?.[col.key]">
-                          {{ data[virtualRow.index]?.[col.key] }}
-                        </slot>
-                      </td>
-                    </tr>
+                    <tbody>
+                      <tr>
+                        <td
+                          v-for="col in columns"
+                          :key="col.key"
+                          class="px-4 py-3 align-middle"
+                          :class="[
+                            col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
+                            col.tdClass
+                          ]"
+                          :style="{ width: col.width }"
+                        >
+                          <slot :name="`cell-${col.key}`" :row="data[virtualRow.index]" :index="virtualRow.index" :value="data[virtualRow.index]?.[col.key]">
+                            {{ data[virtualRow.index]?.[col.key] }}
+                          </slot>
+                        </td>
+                      </tr>
+                    </tbody>
                   </table>
                 </div>
               </td>

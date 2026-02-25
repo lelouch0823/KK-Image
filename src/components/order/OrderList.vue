@@ -17,7 +17,7 @@
           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
         ></path>
       </svg>
-      {{ t('common.loading') }}
+      {{ t('common.loading') }}0
     </div>
 
     <!-- 空状态 -->
@@ -89,7 +89,7 @@
             <!-- 信息 -->
             <div class="flex min-w-0 flex-1 flex-col justify-between py-0.5">
                 <div class="flex items-center gap-2">
-                    <span class="text-secondary truncate font-mono text-[10px] tracking-wide" :title="order.orderNo">{{ order.orderNo }}</span>
+                    <span class="text-secondary font-mono text-[10px] tracking-wide truncate" :title="order.orderNo">{{ order.orderNo }}</span>
                     <!-- New Update Red Dot -->
                     <div v-if="order.hasNewFeedback" class="relative flex size-2 shrink-0">
                       <span class="bg-danger absolute inline-flex size-full animate-ping rounded-full opacity-75"></span>
@@ -102,10 +102,10 @@
                 </h4>
 
               <div class="flex items-end justify-between">
-                <div class="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-                    <svg class="size-3.5 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                <div class="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] min-w-0 flex-1">
+                    <svg class="size-3.5 opacity-70 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                     <span class="min-w-0 flex-1 truncate" :title="order.customer?.name || t('common.unknown')">{{ order.customer?.name || t('common.unknown') }}</span>
-                    <span class="shrink-0 text-[var(--border-color)]">|</span>
+                    <span class="text-[var(--border-color)] shrink-0">|</span>
                     <span class="shrink-0">{{ formatTime(order.createdAt) }}</span>
                 </div>
                 
