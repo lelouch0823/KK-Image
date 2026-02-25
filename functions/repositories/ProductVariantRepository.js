@@ -12,6 +12,19 @@ export class ProductVariantRepository {
         return `SKU-${seed.slice(0, 8)}`;
     }
 
+    normalizeExternalCode(value) {
+        const normalized = String(value ?? '').trim();
+        return normalized || null;
+    }
+
+    wrapConstraintError(error) {
+        const message = String(error?.message || '');
+        if (message.includes('product_variants.barcode')) {
+            throw new Error('barcode must be unique');
+        }
+        throw error;
+    }
+
     async createBatch(productId, variantsData) {
         if (!variantsData || variantsData.length === 0) return [];
         const timestamp = now();
@@ -23,8 +36,8 @@ export class ProductVariantRepository {
             const sku = this.buildVariantSku(v.sku, id);
             statements.push(
                 this.db.prepare(
-                    `INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, alert_threshold, options_values, image_id, status, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                    `INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, alert_threshold, options_values, image_id, status, barcode, supplier_sku, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
                 ).bind(
                     id,
                     productId,
@@ -36,13 +49,19 @@ export class ProductVariantRepository {
                     JSON.stringify(v.options_values || {}),
                     v.image_id || null,
                     v.status || 'active',
+                    this.normalizeExternalCode(v.barcode),
+                    this.normalizeExternalCode(v.supplier_sku),
                     timestamp,
                     timestamp
                 )
             );
             results.push({ ...v, id, sku, product_id: productId });
         }
-        await this.db.batch(statements);
+        try {
+            await this.db.batch(statements);
+        } catch (error) {
+            this.wrapConstraintError(error);
+        }
         const insertedRows = await this.findByProductId(productId);
         const idSet = new Set(results.map((item) => item.id));
         return insertedRows.filter((row) => idSet.has(row.id));
@@ -84,6 +103,58 @@ export class ProductVariantRepository {
         return result.meta?.changes > 0;
     }
 
+    buildAuditEvents(productId, beforeVariants = [], afterVariants = []) {
+        const beforeMap = new Map((beforeVariants || []).map((variant) => [variant.id, variant]));
+        const afterMap = new Map((afterVariants || []).map((variant) => [variant.id, variant]));
+        const events = [];
+
+        const trackedFields = [
+            'sku', 'price', 'cost_price', 'stock_quantity', 'alert_threshold',
+            'status', 'barcode', 'supplier_sku', 'options_values',
+        ];
+        const pickTracked = (variant) => trackedFields.reduce((acc, field) => {
+            acc[field] = variant?.[field] ?? null;
+            return acc;
+        }, {});
+
+        for (const afterVariant of afterVariants || []) {
+            const beforeVariant = beforeMap.get(afterVariant.id);
+            if (!beforeVariant) {
+                events.push({
+                    variant_id: afterVariant.id,
+                    product_id: productId,
+                    action: 'variant_created',
+                    changes: { after: pickTracked(afterVariant) },
+                });
+                continue;
+            }
+
+            const beforeTracked = pickTracked(beforeVariant);
+            const afterTracked = pickTracked(afterVariant);
+            if (JSON.stringify(beforeTracked) !== JSON.stringify(afterTracked)) {
+                events.push({
+                    variant_id: afterVariant.id,
+                    product_id: productId,
+                    action: 'variant_updated',
+                    changes: { before: beforeTracked, after: afterTracked },
+                });
+            }
+        }
+
+        for (const beforeVariant of beforeVariants || []) {
+            if (!afterMap.has(beforeVariant.id)) {
+                events.push({
+                    variant_id: beforeVariant.id,
+                    product_id: productId,
+                    action: 'variant_archived',
+                    changes: { before: pickTracked(beforeVariant), after: { status: 'archived' } },
+                });
+            }
+        }
+
+        return events;
+    }
+
     async syncVariants(productId, variantsData) {
         const timestamp = now();
         const statements = [];
@@ -112,8 +183,8 @@ export class ProductVariantRepository {
             const sku = this.buildVariantSku(v.sku, id);
             statements.push(
                 this.db.prepare(
-                    `INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, alert_threshold, options_values, image_id, status, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    `INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, alert_threshold, options_values, image_id, status, barcode, supplier_sku, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                      ON CONFLICT(id) DO UPDATE SET
                         sku = excluded.sku,
                         price = excluded.price,
@@ -123,6 +194,8 @@ export class ProductVariantRepository {
                         options_values = excluded.options_values,
                         image_id = excluded.image_id,
                         status = excluded.status,
+                        barcode = excluded.barcode,
+                        supplier_sku = excluded.supplier_sku,
                         updated_at = excluded.updated_at`
                 ).bind(
                     id,
@@ -135,13 +208,19 @@ export class ProductVariantRepository {
                     JSON.stringify(v.options_values || {}),
                     v.image_id || null,
                     v.status || 'active',
+                    this.normalizeExternalCode(v.barcode),
+                    this.normalizeExternalCode(v.supplier_sku),
                     timestamp,
                     timestamp
                 )
             );
             results.push({ ...v, id, sku, product_id: productId });
         }
-        await this.db.batch(statements);
+        try {
+            await this.db.batch(statements);
+        } catch (error) {
+            this.wrapConstraintError(error);
+        }
         return results;
     }
 }

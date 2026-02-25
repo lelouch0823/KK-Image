@@ -1,0 +1,134 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { mount } from '@vue/test-utils';
+import ProductBindingSection from '../ProductBindingSection.vue';
+
+const mocks = vi.hoisted(() => ({
+  loadProduct: vi.fn(),
+}));
+
+vi.mock('@/composables/useI18n', () => ({
+  useI18n: () => ({ t: (k) => k }),
+}));
+
+vi.mock('@/composables/useProducts', () => ({
+  useProducts: () => ({
+    loadProduct: mocks.loadProduct,
+  }),
+}));
+
+const pickStub = {
+  template: '<button data-testid="pick-product" @click="$emit(\'select\', { id: \'p1\' })">pick</button>',
+};
+
+describe('ProductBindingSection variant status and dimensions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders 3D selectors and disables non-orderable options', async () => {
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'Tee',
+      variants: [
+        { id: 'v1', sku: 'Y-C-S', status: 'active', stock_quantity: 10, alert_threshold: 3, options_values: { color: 'Yellow', material: 'Cotton', size: 'S' } },
+        { id: 'v2', sku: 'Y-C-M', status: 'active', stock_quantity: 0, alert_threshold: 3, options_values: { color: 'Yellow', material: 'Cotton', size: 'M' } },
+        { id: 'v3', sku: 'Y-S-S', status: 'archived', stock_quantity: 9, alert_threshold: 3, options_values: { color: 'Yellow', material: 'Silk', size: 'S' } },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null },
+      global: {
+        stubs: {
+          ProductSelect: pickStub,
+          AppImage: true,
+        },
+      },
+    });
+
+    await wrapper.find('[data-testid="pick-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('select')).toBeTruthy());
+    const selected = wrapper.emitted('select')[0][0];
+    await wrapper.setProps({
+      boundProduct: {
+        id: selected.id,
+        name: selected.name,
+        sku: selected.selectedVariant?.sku || '',
+        mainImage: selected.mainImage || null,
+      },
+    });
+
+    expect(wrapper.find('[data-testid="dimension-color"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="dimension-material"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="dimension-size"]').exists()).toBe(true);
+
+    const sizeSelect = wrapper.find('[data-testid="dimension-size"]');
+    const sizeOptions = sizeSelect.findAll('option');
+    const mOption = sizeOptions.find((o) => o.element.value === 'M');
+    expect(mOption).toBeTruthy();
+    expect(mOption.element.disabled).toBe(true);
+  });
+
+  it('adapts to 2D variants (no material)', async () => {
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'Pants',
+      variants: [
+        { id: 'v1', sku: 'B-S', status: 'active', stock_quantity: 4, alert_threshold: 1, options_values: { color: 'Black', size: 'S' } },
+        { id: 'v2', sku: 'B-M', status: 'active', stock_quantity: 6, alert_threshold: 1, options_values: { color: 'Black', size: 'M' } },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null },
+      global: { stubs: { ProductSelect: pickStub, AppImage: true } },
+    });
+
+    await wrapper.find('[data-testid="pick-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('select')).toBeTruthy());
+    const selected = wrapper.emitted('select')[0][0];
+    await wrapper.setProps({
+      boundProduct: {
+        id: selected.id,
+        name: selected.name,
+        sku: selected.selectedVariant?.sku || '',
+        mainImage: selected.mainImage || null,
+      },
+    });
+
+    expect(wrapper.find('[data-testid="dimension-color"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="dimension-size"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="dimension-material"]').exists()).toBe(false);
+  });
+
+  it('adapts to 1D variants', async () => {
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'Fabric',
+      variants: [
+        { id: 'v1', sku: 'COT', status: 'active', stock_quantity: 8, alert_threshold: 2, options_values: { material: 'Cotton' } },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null },
+      global: { stubs: { ProductSelect: pickStub, AppImage: true } },
+    });
+
+    await wrapper.find('[data-testid="pick-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('select')).toBeTruthy());
+    const selected = wrapper.emitted('select')[0][0];
+    await wrapper.setProps({
+      boundProduct: {
+        id: selected.id,
+        name: selected.name,
+        sku: selected.selectedVariant?.sku || '',
+        mainImage: selected.mainImage || null,
+      },
+    });
+
+    expect(wrapper.find('[data-testid="dimension-material"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="dimension-color"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="dimension-size"]').exists()).toBe(false);
+  });
+});

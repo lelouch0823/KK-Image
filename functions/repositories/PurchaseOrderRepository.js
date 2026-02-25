@@ -322,6 +322,41 @@ export class PurchaseOrderRepository {
   }
 
   /**
+   * 获取每个变体最近一次已完成采购单的成交单价
+   * @param {string[]} variantIds
+   * @returns {Promise<Record<string, number>>}
+   */
+  async getLastPurchasePricesByVariant(variantIds = []) {
+    if (!variantIds || variantIds.length === 0) return {};
+
+    const placeholders = variantIds.map(() => '?').join(',');
+    const { results } = await this.db.prepare(`
+      SELECT latest.variant_id, poi.unit_cost AS last_purchase_price
+      FROM (
+        SELECT poi2.variant_id,
+               MAX(COALESCE(po2.completed_at, po2.updated_at, po2.created_at, 0)) AS latest_ts
+        FROM purchase_order_items poi2
+        JOIN purchase_orders po2 ON po2.id = poi2.po_id
+        WHERE po2.status = 'completed'
+          AND poi2.variant_id IN (${placeholders})
+        GROUP BY poi2.variant_id
+      ) latest
+      JOIN purchase_order_items poi ON poi.variant_id = latest.variant_id
+      JOIN purchase_orders po ON po.id = poi.po_id
+      WHERE po.status = 'completed'
+        AND COALESCE(po.completed_at, po.updated_at, po.created_at, 0) = latest.latest_ts
+    `).bind(...variantIds).all();
+
+    const map = {};
+    for (const row of results) {
+      if (map[row.variant_id] == null) {
+        map[row.variant_id] = Number(row.last_purchase_price) || 0;
+      }
+    }
+    return map;
+  }
+
+  /**
    * 批量更新明细的分摊费用
    * @param {Array<{id, allocated_freight, allocated_tariff}>} allocations
    */

@@ -23,13 +23,29 @@
       <div class="min-w-0 flex-1">
         <div class="truncate font-medium text-[var(--text-main)]">{{ boundProduct.name }}</div>
         <div class="mt-0.5 text-xs text-[var(--text-secondary)]">{{ t('product.form.spu') }}: {{ displaySku }}</div>
-        <!-- Variant Selector -->
-        <div v-if="variants.length > 0" class="mt-2">
-           <select v-model="selectedVariantId" @change="onVariantChange" class="w-full text-xs rounded border border-[var(--border-subtle)] bg-[var(--bg-card)] p-1.5 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none">
-              <option v-for="v in variants" :key="v.id" :value="v.id">
-                  {{ formatVariantName(v.options_values) }} - ¥{{ v.price }} ({{ t('product.stats.stock_level') }}: {{ v.stock_quantity }})
+        <!-- Variant Selector: 3D->2D->1D adaptive -->
+        <div v-if="variants.length > 0" class="mt-2 space-y-1.5">
+          <div v-for="dimension in dimensionKeys" :key="dimension" class="flex items-center gap-2">
+            <span class="w-10 text-[10px] text-[var(--text-secondary)]">{{ dimensionLabelMap[dimension] }}</span>
+            <select
+              :data-testid="`dimension-${dimension}`"
+              v-model="selectedOptions[dimension]"
+              @change="onDimensionChange(dimension)"
+              class="w-full text-xs rounded border border-[var(--border-subtle)] bg-[var(--bg-card)] p-1.5 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none"
+            >
+              <option
+                v-for="option in getDimensionOptions(dimension)"
+                :key="option.value"
+                :value="option.value"
+                :disabled="!option.selectable"
+              >
+                {{ option.label }}
               </option>
-           </select>
+            </select>
+          </div>
+          <div v-if="currentAvailabilityState" class="text-[10px] text-[var(--text-secondary)]">
+            {{ availabilityTextMap[currentAvailabilityState] }}
+          </div>
         </div>
         <div v-if="isLoadingDetails" class="mt-1 text-xs text-[var(--color-primary)] opacity-80 flex items-center gap-1">
             <svg class="size-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
@@ -70,11 +86,17 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import ProductSelect from '@/components/product/ProductSelect.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import { useProducts } from '@/composables/useProducts';
+import {
+  normalizeVariantOptions,
+  buildVariantDisplayName,
+  getVariantAvailabilityState,
+  isVariantSelectable,
+} from '@/utils/variant-meta';
 
 const props = defineProps({
   boundProduct: { type: Object, default: null },
@@ -89,22 +111,60 @@ const isLoadingDetails = ref(false);
 const variants = ref([]);
 const selectedVariantId = ref(null);
 const fullProductData = ref(null);
+const selectedOptions = reactive({ color: '', material: '', size: '' });
+const dimensionOrder = ['color', 'material', 'size'];
+const dimensionLabelMap = {
+  color: '颜色',
+  material: '材质',
+  size: '尺码',
+};
+const availabilityTextMap = {
+  available: '可下单',
+  low_stock: '低库存',
+  disabled_out_of_stock: '缺货（不可下单）',
+  disabled_archived: '已停用（不可下单）',
+};
 
 const displaySku = computed(() => {
-    if (variants.value.length > 0 && selectedVariantId.value) {
-        const v = variants.value.find(x => x.id === selectedVariantId.value);
-        if (v && v.sku) return v.sku;
-    }
-    return props.boundProduct?.sku || '';
+  if (variants.value.length > 0 && selectedVariantId.value) {
+    const v = variants.value.find(x => x.id === selectedVariantId.value);
+    if (v && v.sku) return v.sku;
+  }
+  return props.boundProduct?.sku || '';
 });
 
-const formatVariantName = (optionsValues) => {
-    try {
-        const parsed = typeof optionsValues === 'string' ? JSON.parse(optionsValues) : optionsValues;
-        if (!parsed || Object.keys(parsed).length === 0) return 'Default Variant';
-        return Object.values(parsed).join(' / ');
-    } catch { return 'Default Variant'; }
-};
+const normalizedVariants = computed(() => {
+  return variants.value.map((variant) => {
+    let rawOptions = variant.options_values || {};
+    if (typeof rawOptions === 'string') {
+      try {
+        rawOptions = JSON.parse(rawOptions);
+      } catch {
+        rawOptions = {};
+      }
+    }
+    const normalizedOptions = normalizeVariantOptions(rawOptions);
+    const availabilityState = getVariantAvailabilityState(variant);
+    return {
+      ...variant,
+      normalizedOptions,
+      displayName: buildVariantDisplayName(normalizedOptions),
+      availabilityState,
+      selectable: isVariantSelectable(variant),
+    };
+  });
+});
+
+const dimensionKeys = computed(() => {
+  return dimensionOrder.filter((key) => normalizedVariants.value.some((v) => Boolean(v.normalizedOptions[key])));
+});
+
+const currentSelectedVariant = computed(() => {
+  if (!selectedVariantId.value) return null;
+  return normalizedVariants.value.find((v) => v.id === selectedVariantId.value) || null;
+});
+
+const currentAvailabilityState = computed(() => currentSelectedVariant.value?.availabilityState || '');
 
 const resolveVariantImageId = (variant) => {
     if (!variant) return null;
@@ -128,47 +188,91 @@ const resolveProductImageId = (product) => {
 };
 
 const buildMainImagePath = (product, variant) => {
-    const imageId = resolveVariantImageId(variant) || resolveProductImageId(product);
-    return imageId ? `/file/${imageId}` : null;
+  const imageId = resolveVariantImageId(variant) || resolveProductImageId(product);
+  return imageId ? `/file/${imageId}` : null;
+};
+
+const matchBySelectedOptions = (variant) => {
+  return dimensionKeys.value.every((dimension) => {
+    const selected = selectedOptions[dimension];
+    return !selected || variant.normalizedOptions[dimension] === selected;
+  });
+};
+
+const emitVariantSelection = (variant) => {
+  if (!variant || !variant.selectable) return;
+  selectedVariantId.value = variant.id;
+  for (const dimension of dimensionKeys.value) {
+    selectedOptions[dimension] = variant.normalizedOptions[dimension] || '';
+  }
+  const rawVariant = variants.value.find((v) => v.id === variant.id) || variant;
+  emit('select', {
+    ...fullProductData.value,
+    selectedVariant: rawVariant,
+    mainImage: buildMainImagePath(fullProductData.value, rawVariant),
+  });
+};
+
+const syncSelection = () => {
+  const candidates = normalizedVariants.value.filter(matchBySelectedOptions);
+  const picked = candidates.find((v) => v.selectable) || null;
+  if (!picked) {
+    selectedVariantId.value = null;
+    return;
+  }
+  emitVariantSelection(picked);
+};
+
+const getDimensionOptions = (dimension) => {
+  const dimIndex = dimensionOrder.indexOf(dimension);
+  const prefixDimensions = dimensionOrder.filter((d, idx) => idx < dimIndex && dimensionKeys.value.includes(d));
+  const scoped = normalizedVariants.value.filter((variant) =>
+    prefixDimensions.every((d) => !selectedOptions[d] || variant.normalizedOptions[d] === selectedOptions[d])
+  );
+  const values = [...new Set(scoped.map((v) => v.normalizedOptions[dimension]).filter(Boolean))];
+  return values.map((value) => ({
+    value,
+    label: value,
+    selectable: scoped.some((variant) => variant.normalizedOptions[dimension] === value && variant.selectable),
+  }));
+};
+
+const onDimensionChange = () => {
+  syncSelection();
+};
+
+const initSelectionFromVariants = () => {
+  const firstSelectable = normalizedVariants.value.find((variant) => variant.selectable);
+  if (!firstSelectable) {
+    selectedVariantId.value = null;
+    for (const dimension of dimensionOrder) selectedOptions[dimension] = '';
+    return;
+  }
+  emitVariantSelection(firstSelectable);
 };
 
 const handleProductSelect = async (product) => {
-    isLoadingDetails.value = true;
+  isLoadingDetails.value = true;
+  variants.value = [];
+  selectedVariantId.value = null;
+  fullProductData.value = null;
+
+  try {
+    const fullProduct = await loadProduct(product.id || product.productId);
+    fullProductData.value = fullProduct;
+    if (fullProduct && fullProduct.variants && fullProduct.variants.length > 0) {
+      variants.value = fullProduct.variants;
+      initSelectionFromVariants();
+    } else {
+      variants.value = [];
+      selectedVariantId.value = null;
+    }
+  } catch {
     variants.value = [];
     selectedVariantId.value = null;
-    fullProductData.value = null;
-
-    try {
-        const fullProduct = await loadProduct(product.id || product.productId);
-        fullProductData.value = fullProduct;
-        
-        if (fullProduct && fullProduct.variants && fullProduct.variants.length > 0) {
-            variants.value = fullProduct.variants;
-            selectedVariantId.value = fullProduct.variants[0].id;
-            emit('select', {
-                ...fullProduct,
-                selectedVariant: fullProduct.variants[0],
-                mainImage: buildMainImagePath(fullProduct, fullProduct.variants[0]),
-            });
-        } else {
-            variants.value = [];
-            selectedVariantId.value = null;
-        }
-} catch {
-        variants.value = [];
-        selectedVariantId.value = null;
-    } finally {
-        isLoadingDetails.value = false;
-    }
-};
-
-const onVariantChange = () => {
-    const v = variants.value.find(x => x.id === selectedVariantId.value);
-    emit('select', {
-        ...fullProductData.value,
-        selectedVariant: v,
-        mainImage: buildMainImagePath(fullProductData.value, v),
-    });
+  } finally {
+    isLoadingDetails.value = false;
+  }
 };
 
 watch(() => props.boundProduct, (newVal) => {
@@ -176,6 +280,7 @@ watch(() => props.boundProduct, (newVal) => {
         variants.value = [];
         selectedVariantId.value = null;
         fullProductData.value = null;
+        for (const dimension of dimensionOrder) selectedOptions[dimension] = '';
     }
 });
 </script>

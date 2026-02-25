@@ -71,10 +71,15 @@
                       <div class="space-y-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)]/50 p-4">
                           <div class="flex items-center justify-between">
                               <h4 class="font-bold text-[var(--text-main)]">{{ t('product.form.options_title', 'Product Options') }}</h4>
-                              <button type="button" @click="addOption" class="flex items-center gap-1 text-sm font-medium text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]">
-                                  <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                  {{ t('product.form.add_option', 'Add Option') }}
-                              </button>
+                              <div class="flex items-center gap-2">
+                                  <button type="button" class="rounded-lg border border-[var(--border-color)] px-2 py-1 text-xs font-medium text-[var(--text-secondary)]" @click="showVariantBatchBuilder = true">
+                                      {{ t('product.form.batch_build_variants', 'Batch Build') }}
+                                  </button>
+                                  <button type="button" @click="addOption" class="flex items-center gap-1 text-sm font-medium text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]">
+                                      <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                      {{ t('product.form.add_option', 'Add Option') }}
+                                  </button>
+                              </div>
                           </div>
                           <div class="space-y-4">
                               <div v-for="(opt, idx) in form.options" :key="idx" class="relative rounded-lg border border-[var(--border-color)]/50 bg-[var(--bg-card)] p-3">
@@ -111,6 +116,8 @@
                                       <tr>
                                           <th class="px-3 py-2">Variant</th>
                                           <th class="px-3 py-2 w-32">SKU</th>
+                                          <th class="px-3 py-2 w-36">Barcode</th>
+                                          <th class="px-3 py-2 w-36">Supplier SKU</th>
                                           <th class="px-3 py-2 w-28">Price</th>
                                           <th class="px-3 py-2 w-28">Cost</th>
                                           <th class="px-3 py-2 w-24">Stock</th>
@@ -123,6 +130,8 @@
                                       <tr v-for="(variant, idx) in form.variants" :key="idx" class="hover:bg-[var(--bg-card)]/50 transition-colors">
                                           <td class="px-3 py-2 font-medium text-[var(--text-main)]">{{ formatVariantName(variant.options_values) }}</td>
                                           <td class="px-3 py-2"><input v-model="variant.sku" type="text" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]"></td>
+                                          <td class="px-3 py-2"><input v-model="variant.barcode" type="text" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]" placeholder="Barcode"></td>
+                                          <td class="px-3 py-2"><input v-model="variant.supplier_sku" type="text" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]" placeholder="Supplier SKU"></td>
                                           <td class="px-3 py-2"><input v-model.number="variant.price" type="number" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]"></td>
                                           <td class="px-3 py-2"><input v-model.number="variant.cost_price" type="number" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]"></td>
                                           <td class="px-3 py-2"><input v-model.number="variant.stock_quantity" type="number" class="input p-1 text-xs w-full bg-[var(--bg-card)] border-[var(--border-color)]"></td>
@@ -247,6 +256,11 @@
       @set-primary="handleVariantSetPrimary"
       @sort-images="handleVariantImageSort"
     />
+    <VariantBatchBuilderModal
+      v-model="showVariantBatchBuilder"
+      :existing-variants="form.variants"
+      @apply="handleBatchBuilderApply"
+    />
   </Teleport>
 </template>
 
@@ -257,6 +271,7 @@ import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import ImageUploader from '@/components/common/ImageUploader.vue';
 import VariantImageManagerModal from '@/components/product/VariantImageManagerModal.vue';
+import VariantBatchBuilderModal from '@/components/product/VariantBatchBuilderModal.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import { API } from '@/utils/constants';
@@ -277,6 +292,7 @@ const emit = defineEmits(['update:modelValue', 'success']);
 const { createProduct, updateProduct, addVariantImage, sortVariantImages, setVariantPrimaryImage, removeVariantImage } = useProducts();
 const submitting = ref(false);
 const showVariantImageManager = ref(false);
+const showVariantBatchBuilder = ref(false);
 const variantRowImageDrafts = reactive({});
 
 const imageObjects = ref([]);
@@ -323,6 +339,8 @@ function fillFormFromData(data) {
             cost_price: variant.cost_price ?? 0,
             alert_threshold: variant.alert_threshold ?? 10,
             status: variant.status || 'active',
+            barcode: variant.barcode || '',
+            supplier_sku: variant.supplier_sku || '',
             images: Array.isArray(variant.images) ? variant.images : [],
         })),
     });
@@ -412,6 +430,8 @@ const generateVariants = () => {
         
         return {
             sku: buildVariantSku({ spu: form.spu, optionsValues: combo, seed: `${Date.now()}-${Math.random()}` }),
+            barcode: '',
+            supplier_sku: '',
             price: 0,
             cost_price: 0,
             stock_quantity: 0,
@@ -468,7 +488,11 @@ const handleSubmit = async () => {
             slug: form.slug || undefined,
             images: currentImageIds, // Send array of IDs
             options: form.options.map(o => ({ name: o.name, values: o.values })),
-            variants: form.variants,
+            variants: form.variants.map((variant) => ({
+                ...variant,
+                barcode: String(variant.barcode || '').trim() || null,
+                supplier_sku: String(variant.supplier_sku || '').trim() || null,
+            })),
         };
         
         let success = false;
@@ -602,6 +626,37 @@ const handleVariantRowRemoveImage = async (variant, imageId) => {
     if (!response?.success) {
         variant.images = previous;
         addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
+    }
+};
+
+const variantOptionsKey = (optionsValues) => JSON.stringify(
+    Object.keys(optionsValues || {}).sort().reduce((acc, key) => {
+        acc[key] = optionsValues[key];
+        return acc;
+    }, {})
+);
+
+const handleBatchBuilderApply = ({ options = [], variants = [] }) => {
+    const normalizedOptions = options.map((option) => ({
+        name: option.name,
+        values: Array.isArray(option.values) ? option.values : [],
+        inputValue: '',
+    }));
+    form.options = normalizedOptions;
+
+    const existingMap = new Map(
+        form.variants.map((variant) => [variantOptionsKey(variant.options_values), variant])
+    );
+
+    for (const variant of variants) {
+        const key = variantOptionsKey(variant.options_values);
+        if (existingMap.has(key)) continue;
+        const optionsValues = variant.options_values || {};
+        form.variants.push({
+            ...variant,
+            sku: buildVariantSku({ spu: form.spu, optionsValues, seed: key }),
+        });
+        existingMap.set(key, variant);
     }
 };
 </script>

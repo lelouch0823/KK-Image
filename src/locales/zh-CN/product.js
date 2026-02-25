@@ -33,6 +33,7 @@ export default {
     option_name: '规格名称',
     option_values: '规格值',
     variants_title: '商品规格 (SKU)',
+    batch_build_variants: '批量生成组合',
     manage_variant_images: '管理规格图片',
     organization: '组织与属性',
     slug_seo: 'SEO 链接标识 (Slug)',

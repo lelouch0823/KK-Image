@@ -12,6 +12,7 @@
 
 import { PurchaseOrderRepository } from '../repositories/PurchaseOrderRepository.js';
 import { NotFoundError, BadRequestError } from '../lib/hono/errors.js';
+import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 
 /**
  * 采购单状态 → 预订单状态 映射
@@ -22,6 +23,24 @@ const PO_TO_ORDER_STATUS_MAP = {
   shipping: 'shipping',     // 在途 → 预订单变为 "运输中"
   arrived: 'arrived',       // 已到货 → 预订单变为 "已到货"
 };
+
+function buildSuggestionPricing(row, lastPurchasePriceMap) {
+  const variantCostPrice = Number(row.cost_price) || 0;
+  const rawSuggested = Number(row.suggested_purchase_price) || 0;
+  const suggestedPurchasePrice = rawSuggested > 0 ? rawSuggested : variantCostPrice;
+  const hasLastPrice = Object.prototype.hasOwnProperty.call(lastPurchasePriceMap, row.variant_id);
+  const lastPurchasePrice = hasLastPrice ? lastPurchasePriceMap[row.variant_id] : null;
+  const priceDelta = lastPurchasePrice == null
+    ? null
+    : Math.round((suggestedPurchasePrice - lastPurchasePrice) * 100) / 100;
+
+  return {
+    variant_cost_price: variantCostPrice,
+    suggested_purchase_price: suggestedPurchasePrice,
+    last_purchase_price: lastPurchasePrice,
+    price_delta: priceDelta,
+  };
+}
 
 export class PurchaseOrderService {
   /**
@@ -194,6 +213,7 @@ export class PurchaseOrderService {
         pv.sku AS sku,
         p.brand,
         COALESCE(pv.cost_price, 0) AS cost_price,
+        COALESCE(pv.suggested_purchase_price, 0) AS suggested_purchase_price,
         COALESCE(pv.stock_quantity, 0) AS stock_quantity,
         p.images,
         pv.options_values AS variant_options,
@@ -213,7 +233,11 @@ export class PurchaseOrderService {
       ORDER BY shortage DESC
     `).all();
 
+    const variantIds = results.map((row) => row.variant_id).filter(Boolean);
+    const lastPurchasePriceMap = await this.repo.getLastPurchasePricesByVariant(variantIds);
+
     return results.map(row => ({
+      ...buildSuggestionPricing(row, lastPurchasePriceMap),
       variant_id: row.variant_id,
       product_id: row.product_id,
       product_code: row.product_code,
@@ -221,7 +245,7 @@ export class PurchaseOrderService {
       product_name: row.product_name,
       sku: row.sku,
       brand: row.brand,
-      cost_price: row.cost_price || 0,
+      cost_price: Number(row.cost_price) || 0,
       stock_quantity: row.stock_quantity,
       total_demand: row.total_demand,
       shortage: row.shortage,
@@ -230,6 +254,7 @@ export class PurchaseOrderService {
       order_ids: row.order_ids ? row.order_ids.split(',') : [],
       images: this._parseJson(row.images),
       variant_options: this._parseJson(row.variant_options),
+      variant_display_name: buildVariantDisplayName(this._parseJson(row.variant_options)),
     }));
   }
 

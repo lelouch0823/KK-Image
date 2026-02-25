@@ -78,6 +78,27 @@ Support per-variant image differentiation for all key flows:
 - `400 BAD_REQUEST`: variant-product mismatch, malformed payload.
 - `404 NOT_FOUND`: variant or file missing.
 - `409 CONFLICT`: stale sort mutation/version mismatch.
+
+## Variant Governance Extensions (2026-02-25)
+- Variant selector now supports dynamic 3D/2D/1D dimensions (`颜色 / 材质 / 尺码`) and explicit availability states:
+  - `disabled_archived`
+  - `disabled_out_of_stock`
+  - `low_stock`
+  - `available`
+- Purchase suggestion and replenishment flows moved to variant-first logic with unified `variant_display_name`.
+- Variant operational fields added for supply-chain control:
+  - `moq`, `pack_size`, `order_step`
+  - `suggested_purchase_price`
+  - `barcode`, `supplier_sku`
+- Variant pricing strategy output exposed in purchase suggestions:
+  - `variant_cost_price`
+  - `suggested_purchase_price`
+  - `last_purchase_price`
+  - `price_delta`
+- Product editor includes batch matrix builder for 3D/2D/1D combinations, dedupe against existing variants, and bulk defaults.
+- Variant operation auditing added:
+  - `variant_audit_logs` table
+  - route-level write hooks on variant create/update/archive operations.
 - Mutation failures are atomic at variant level.
 
 ## Cache and Consistency

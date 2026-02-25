@@ -11,9 +11,56 @@
 import { Hono } from 'hono';
 import { PurchaseOrderRepository } from '../../../../repositories/PurchaseOrderRepository.js';
 import { PurchaseOrderService } from '../../../../services/PurchaseOrderService.js';
+import { validateOrderQuantity } from '../../../../services/purchase-order-constraints.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 
 const app = new Hono();
+
+async function validateVariantItems(db, items = []) {
+  if (!items || items.length === 0) return;
+  const variantIds = [...new Set(items.map((item) => item.variant_id).filter(Boolean))];
+  if (variantIds.length !== items.length) {
+    // duplicates are allowed, but missing variant_id is not
+    const hasMissing = items.some((item) => !item.variant_id);
+    if (hasMissing) throw new BadRequestError('采购单明细必须包含 variant_id');
+  }
+
+  if (items.some((item) => !item.product_id || !item.variant_id)) {
+    throw new BadRequestError('采购单明细必须包含 product_id 与 variant_id');
+  }
+
+  const placeholders = variantIds.map(() => '?').join(',');
+  const { results } = await db.prepare(`
+    SELECT id, product_id, status,
+           COALESCE(moq, 1) AS moq,
+           COALESCE(pack_size, 1) AS pack_size,
+           COALESCE(order_step, 1) AS order_step
+    FROM product_variants
+    WHERE id IN (${placeholders})
+  `).bind(...variantIds).all();
+  const variantMap = new Map(results.map((row) => [row.id, row]));
+
+  for (const item of items) {
+    const variant = variantMap.get(item.variant_id);
+    if (!variant) {
+      throw new BadRequestError(`变体不存在: ${item.variant_id}`);
+    }
+    if (variant.product_id !== item.product_id) {
+      throw new BadRequestError('variant_id 与 product_id 不匹配');
+    }
+    if (String(variant.status || '').toLowerCase() !== 'active') {
+      throw new BadRequestError('仅可采购 active 变体');
+    }
+    const result = validateOrderQuantity(item.quantity || 1, {
+      moq: variant.moq,
+      orderStep: variant.order_step,
+      packSize: variant.pack_size,
+    });
+    if (!result.valid) {
+      throw new BadRequestError(`${result.reason}（建议数量: ${result.suggestedQuantity}）`);
+    }
+  }
+}
 
 // ─── 列表 & 统计 ───────────────────────────────────────
 
@@ -88,11 +135,7 @@ app.post('/', async (c) => {
 
   // 如果同时传入了明细项，一并添加
   if (body.items && body.items.length > 0) {
-    for (const item of body.items) {
-      if (!item.product_id || !item.variant_id) {
-        throw new BadRequestError('采购单明细必须包含 product_id 与 variant_id');
-      }
-    }
+    await validateVariantItems(c.env.DB, body.items);
     await repo.addItems(po.id, body.items);
   }
 
@@ -182,11 +225,7 @@ app.post('/:id/items', async (c) => {
   if (!body.items || body.items.length === 0) {
     throw new BadRequestError('请提供至少一条明细项');
   }
-  for (const item of body.items) {
-    if (!item.product_id || !item.variant_id) {
-      throw new BadRequestError('采购单明细必须包含 product_id 与 variant_id');
-    }
-  }
+  await validateVariantItems(c.env.DB, body.items);
 
   const ids = await repo.addItems(c.req.param('id'), body.items);
 

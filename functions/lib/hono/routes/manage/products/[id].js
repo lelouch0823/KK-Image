@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
 import { VariantImageRepository } from '../../../../../repositories/VariantImageRepository.js';
+import { VariantAuditRepository } from '../../../../../repositories/VariantAuditRepository.js';
 import { invalidateCache } from '../../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
 
@@ -28,6 +29,12 @@ const validateVariants = (variants) => {
         }
     }
 };
+
+const normalizeVariantExternalCodes = (variants = []) => variants.map((variant) => ({
+    ...variant,
+    barcode: String(variant?.barcode ?? '').trim() || null,
+    supplier_sku: String(variant?.supplier_sku ?? '').trim() || null,
+}));
 
 /**
  * 构建缓存失效 URL
@@ -187,6 +194,9 @@ app.patch('/:id', async (c) => {
     const { env } = c;
     const id = c.req.param('id');
     const body = await c.req.json();
+    if (body.variants !== undefined) {
+        body.variants = normalizeVariantExternalCodes(body.variants);
+    }
     const repo = new ProductRepository(env.DB);
     if (body.variants !== undefined) {
         validateVariants(body.variants);
@@ -197,7 +207,12 @@ app.patch('/:id', async (c) => {
     let variantsUpdated = false;
     if (result.success && body.variants !== undefined) {
         const variantRepo = new ProductVariantRepository(env.DB);
+        const auditRepo = new VariantAuditRepository(env.DB);
+        const beforeVariants = await variantRepo.findByProductId(id);
         await variantRepo.syncVariants(id, body.variants);
+        const afterVariants = await variantRepo.findByProductId(id);
+        const events = variantRepo.buildAuditEvents(id, beforeVariants, afterVariants);
+        await auditRepo.createBatch(events);
         variantsUpdated = true;
     }
 
@@ -220,6 +235,9 @@ app.put('/:id', async (c) => {
     const { env } = c;
     const id = c.req.param('id');
     const body = await c.req.json();
+    if (body.variants !== undefined) {
+        body.variants = normalizeVariantExternalCodes(body.variants);
+    }
     const repo = new ProductRepository(env.DB);
     if (body.variants !== undefined) {
         validateVariants(body.variants);
@@ -229,7 +247,12 @@ app.put('/:id', async (c) => {
     
     if (success && body.variants !== undefined) {
         const variantRepo = new ProductVariantRepository(env.DB);
+        const auditRepo = new VariantAuditRepository(env.DB);
+        const beforeVariants = await variantRepo.findByProductId(id);
         await variantRepo.syncVariants(id, body.variants);
+        const afterVariants = await variantRepo.findByProductId(id);
+        const events = variantRepo.buildAuditEvents(id, beforeVariants, afterVariants);
+        await auditRepo.createBatch(events);
     }
 
     if (success) {
@@ -253,6 +276,9 @@ app.delete('/:id', async (c) => {
         throw new NotFoundError('Product not found');
     }
     const now = Date.now();
+    const variantRepo = new ProductVariantRepository(env.DB);
+    const auditRepo = new VariantAuditRepository(env.DB);
+    const beforeVariants = await variantRepo.findByProductId(id);
     const result = await env.DB
         .prepare(`UPDATE product_variants SET status = 'archived', updated_at = ? WHERE product_id = ?`)
         .bind(now, id)
@@ -260,6 +286,13 @@ app.delete('/:id', async (c) => {
     const success = (result.meta?.changes || 0) >= 0;
 
     if (success) {
+        const events = (beforeVariants || []).map((variant) => ({
+            variant_id: variant.id,
+            product_id: id,
+            action: 'variant_archived',
+            changes: { before: { status: variant.status || 'active' }, after: { status: 'archived' } },
+        }));
+        await auditRepo.createBatch(events);
         // 使缓存失效
         c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
         return c.json({ success: true, message: 'Product variants archived' });

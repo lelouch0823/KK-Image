@@ -730,7 +730,18 @@
                 <div class="flex items-center gap-4 text-xs">
                   <span class="font-semibold text-[var(--color-danger)]">{{ t('purchaseOrder.suggestions.shortage') }}: {{ s.shortage }}</span>
                   <span class="text-[var(--text-secondary)]">{{ t('purchaseOrder.suggestions.stock') }}: {{ s.stock_quantity }}</span>
-                  <span class="font-[Outfit] text-[var(--text-secondary)]">¥{{ (s.cost_price || 0).toFixed(2) }}</span>
+                  <span class="font-[Outfit] text-[var(--text-secondary)]">成本 ¥{{ (s.variant_cost_price || s.cost_price || 0).toFixed(2) }}</span>
+                  <span class="font-[Outfit] text-[var(--text-secondary)]">建议 ¥{{ (s.suggested_purchase_price || s.cost_price || 0).toFixed(2) }}</span>
+                  <span v-if="s.last_purchase_price != null" class="font-[Outfit] text-[var(--text-secondary)]">
+                    最近 ¥{{ Number(s.last_purchase_price).toFixed(2) }}
+                  </span>
+                  <span
+                    v-if="s.price_delta != null"
+                    class="font-[Outfit] font-semibold"
+                    :class="s.price_delta > 0 ? 'text-[var(--color-warning)]' : s.price_delta < 0 ? 'text-[var(--color-success)]' : 'text-[var(--text-secondary)]'"
+                  >
+                    Δ {{ s.price_delta > 0 ? '+' : '' }}{{ Number(s.price_delta).toFixed(2) }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -759,6 +770,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePurchaseOrders } from '@/composables/usePurchaseOrders';
 import { useProducts } from '@/composables/useProducts';
+import { useToast } from '@/composables/useToast';
+import { validateOrderQuantity } from '@/utils/purchase-order-constraints';
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
 import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
@@ -777,6 +790,7 @@ const {
 const route = useRoute();
 const router = useRouter();
 const { loadProduct } = useProducts();
+const { addToast } = useToast();
 
 // ─── 本地状态 ────────────────────────────────────────
 
@@ -932,6 +946,9 @@ const handleOrdersSelected = async (orders) => {
       image: data.images?.[0] || null,
       quantity: order.quantity || 1,
       unit_cost: data.cost_price || data.price || 0,
+      moq: order.moq || null,
+      pack_size: order.pack_size || null,
+      order_step: order.order_step || null,
       pre_order_id: order.id,
       order_no: order.orderNo || order.order_no || '',
       required_quantity: order.quantity || 1, // 预定需求量
@@ -989,6 +1006,9 @@ const handleProductsSelected = async (products) => {
       image: mainImage,
       quantity: 1,
       unit_cost: selectedVariant.cost_price || 0,
+      moq: selectedVariant.moq || null,
+      pack_size: selectedVariant.pack_size || null,
+      order_step: selectedVariant.order_step || null,
       pre_order_id: null,
       order_no: null,
       required_quantity: null, // 补货无需求限制
@@ -1073,6 +1093,21 @@ const handleCreate = async () => {
 
 const executeCreate = async () => {
   showShortageConfirm.value = false;
+
+  for (const item of poItems) {
+    const result = validateOrderQuantity(item.quantity || 1, {
+      moq: item.moq || 1,
+      packSize: item.pack_size || 1,
+      orderStep: item.order_step || 1,
+    });
+    if (!result.valid) {
+      addToast({
+        type: 'warning',
+        message: `${item.product_name} 数量不满足规则，建议数量 ${result.suggestedQuantity}`,
+      });
+      return;
+    }
+  }
 
   // Step 1: 创建空采购单
   const result = await createPO({ ...createForm });

@@ -33,6 +33,7 @@ export default {
     option_name: 'Option Name',
     option_values: 'Option Values',
     variants_title: 'Product Variants (SKU)',
+    batch_build_variants: 'Batch Build Variants',
     manage_variant_images: 'Manage Variant Images',
     organization: 'Organization',
     slug_seo: 'SEO Slug',

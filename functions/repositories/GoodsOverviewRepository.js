@@ -6,6 +6,8 @@
  * 该库用于服务前台 /goods-overview 路由以及 AI 对全局货品的智能分析。
  */
 
+import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
+
 export class GoodsOverviewRepository {
   constructor(db) {
     this.db = db;
@@ -30,7 +32,7 @@ export class GoodsOverviewRepository {
     const avgUnitCost = row.avg_unit_cost || 0;
     const avgFreight = row.avg_freight || 0;
     const avgTariff = row.avg_tariff || 0;
-    const variantLabel = Object.values(variantOptions || {}).filter(Boolean).join(' / ');
+    const variantLabel = buildVariantDisplayName(variantOptions);
 
     return {
       id: row.id,
