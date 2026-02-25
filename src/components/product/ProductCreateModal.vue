@@ -101,6 +101,9 @@
                       <div v-if="form.variants.length > 0" class="space-y-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)]/50 p-4">
                           <div class="flex items-center justify-between">
                               <h4 class="font-bold text-[var(--text-main)]">{{ t('product.form.variants_title', 'Variants') }}</h4>
+                              <button type="button" class="text-sm font-medium text-[var(--color-primary)]" @click="showVariantImageManager = true">
+                                  {{ t('product.form.manage_variant_images', 'Manage Variant Images') }}
+                              </button>
                           </div>
                           <div class="overflow-x-auto">
                               <table class="w-full text-left text-sm whitespace-nowrap">
@@ -226,6 +229,13 @@
         </div>
       </div>
     </div>
+    <VariantImageManagerModal
+      v-model="showVariantImageManager"
+      :variants="form.variants"
+      @upload-image="handleVariantImageUpload"
+      @set-primary="handleVariantSetPrimary"
+      @sort-images="handleVariantImageSort"
+    />
   </Teleport>
 </template>
 
@@ -235,6 +245,7 @@ import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import ImageUploader from '@/components/common/ImageUploader.vue';
+import VariantImageManagerModal from '@/components/product/VariantImageManagerModal.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import Select from '@/components/ui/Select.vue';
@@ -252,8 +263,9 @@ const props = defineProps({
 });
 const emit = defineEmits(['update:modelValue', 'success']);
 
-const { createProduct, updateProduct } = useProducts();
+const { createProduct, updateProduct, addVariantImage, sortVariantImages, setVariantPrimaryImage } = useProducts();
 const submitting = ref(false);
+const showVariantImageManager = ref(false);
 
 const imageObjects = ref([]);
 
@@ -461,5 +473,65 @@ const handleSubmit = async () => {
     } finally {
         submitting.value = false;
     }
+};
+
+const getEditableProductId = () => props.editMode ? props.initialData?.id : null;
+
+const findVariant = (variantId) => form.variants.find(v => v.id === variantId);
+
+const handleVariantImageUpload = async ({ variantId, imageId }) => {
+    const variant = findVariant(variantId);
+    if (!variant) return;
+
+    const productId = getEditableProductId();
+    if (productId) {
+        const response = await addVariantImage(productId, variantId, { imageId });
+        if (!response?.success) {
+            addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
+            return;
+        }
+    }
+
+    if (!Array.isArray(variant.images)) variant.images = [];
+    if (!variant.images.find((img) => img.image_id === imageId)) {
+        variant.images.push({ image_id: imageId, is_primary: variant.images.length === 0 ? 1 : 0 });
+    }
+};
+
+const handleVariantSetPrimary = async ({ variantId, imageId }) => {
+    const variant = findVariant(variantId);
+    if (!variant) return;
+
+    const productId = getEditableProductId();
+    if (productId) {
+        const response = await setVariantPrimaryImage(productId, variantId, imageId);
+        if (!response?.success) {
+            addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
+            return;
+        }
+    }
+
+    if (!Array.isArray(variant.images)) return;
+    variant.images = variant.images.map((img) => ({
+        ...img,
+        is_primary: img.image_id === imageId ? 1 : 0,
+    }));
+};
+
+const handleVariantImageSort = async ({ variantId, imageIds }) => {
+    const variant = findVariant(variantId);
+    if (!variant || !Array.isArray(variant.images)) return;
+
+    const productId = getEditableProductId();
+    if (productId) {
+        const response = await sortVariantImages(productId, variantId, imageIds);
+        if (!response?.success) {
+            addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
+            return;
+        }
+    }
+
+    const imageMap = new Map(variant.images.map((img) => [img.image_id, img]));
+    variant.images = imageIds.map((id) => imageMap.get(id)).filter(Boolean);
 };
 </script>

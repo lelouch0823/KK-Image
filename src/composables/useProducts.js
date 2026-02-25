@@ -19,6 +19,32 @@ export function useProducts() {
         return null;
     };
 
+    const addVariantImage = async (productId, variantId, payload) => {
+        return resource.rawRequest(`/${productId}/variants/${variantId}/images`, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    };
+
+    const sortVariantImages = async (productId, variantId, imageIds) => {
+        return resource.rawRequest(`/${productId}/variants/${variantId}/images/sort`, {
+            method: 'PATCH',
+            body: JSON.stringify({ imageIds }),
+        });
+    };
+
+    const setVariantPrimaryImage = async (productId, variantId, imageId) => {
+        return resource.rawRequest(`/${productId}/variants/${variantId}/images/${imageId}/primary`, {
+            method: 'PATCH',
+        });
+    };
+
+    const removeVariantImage = async (productId, variantId, imageId) => {
+        return resource.rawRequest(`/${productId}/variants/${variantId}/images/${imageId}`, {
+            method: 'DELETE',
+        });
+    };
+
     return {
         products: resource.items,
         loading: resource.loading,
@@ -29,7 +55,11 @@ export function useProducts() {
         updateProduct: resource.updateItem,
         deleteProduct: resource.deleteItem,
         importProducts,
-        loadProduct
+        loadProduct,
+        addVariantImage,
+        sortVariantImages,
+        setVariantPrimaryImage,
+        removeVariantImage,
     };
 }
 
