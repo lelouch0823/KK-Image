@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
+import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
 import { invalidateCache } from '../../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
 
@@ -28,6 +29,9 @@ app.get('/:id', async (c) => {
     if (!product) {
         throw new NotFoundError('Product not found');
     }
+
+    const variantRepo = new ProductVariantRepository(env.DB);
+    product.variants = await variantRepo.findByProductId(id);
 
     return c.json({ success: true, data: product });
 });

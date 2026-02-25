@@ -27,6 +27,7 @@ export class ProductRepository {
             description: data.description || '',
             images: JSON.stringify(data.images || []),
             specifications: JSON.stringify(data.specifications || {}),
+            options: JSON.stringify(data.options || []),
             status: data.status || 'active',
             created_at: now,
             updated_at: now
@@ -84,6 +85,7 @@ export class ProductRepository {
                 description: data.description || '',
                 images: JSON.stringify(data.images || []),
                 specifications: JSON.stringify(data.specifications || {}),
+                options: JSON.stringify(data.options || []),
                 status: data.status || 'active',
                 created_at: now,
                 updated_at: now
@@ -152,7 +154,7 @@ export class ProductRepository {
         const allowedFields = [
             'name', 'sku', 'slug', 'category', 'brand', 'series',
             'price', 'cost_price', 'stock_quantity', 'alert_threshold',
-            'description', 'images', 'specifications', 'status'
+            'description', 'images', 'specifications', 'options', 'status'
         ];
 
         const updateData = {};
@@ -161,7 +163,7 @@ export class ProductRepository {
         for (const [key, value] of Object.entries(updates)) {
             if (allowedFields.includes(key)) {
                 // Handle JSON fields
-                if (['images', 'specifications'].includes(key) && typeof value === 'object') {
+                if (['images', 'specifications', 'options'].includes(key) && typeof value === 'object') {
                     updateData[key] = JSON.stringify(value);
                 } else {
                     updateData[key] = value;
@@ -289,6 +291,7 @@ export class ProductRepository {
                 ...item,
                 images: JSON.parse(item.images || '[]'),
                 specifications: JSON.parse(item.specifications || '{}'),
+                options: JSON.parse(item.options || '[]'),
             };
         } catch (e) {
             console.error('Error parsing product JSON:', e);

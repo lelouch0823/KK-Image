@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
+import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
 import { withCache, invalidateCache } from '../../../middleware/cache.js';
 import { BadRequestError, ConflictError } from '../../../errors.js';
 
@@ -67,6 +68,11 @@ app.post('/', async (c) => {
     }
 
     const product = await repo.create(body);
+
+    if (body.variants && body.variants.length > 0) {
+        const variantRepo = new ProductVariantRepository(env.DB);
+        await variantRepo.createBatch(product.id, body.variants);
+    }
 
     c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
 
