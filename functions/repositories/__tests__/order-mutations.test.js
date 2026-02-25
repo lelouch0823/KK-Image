@@ -91,8 +91,28 @@ describe('Order Mutations SQL Binding', () => {
 
             // Check bind arguments for the order insert
             const bindArgs = db.bind.mock.calls[0];
-            // Product ID is passed as the final parameter for the primary insert
-            expect(bindArgs[bindArgs.length - 1]).toBe('p_999');
+            expect(bindArgs).toContain('p_999');
+        });
+
+        it('should include variant_id in the INSERT statement when provided', async () => {
+            const params = {
+                id: 'o_2',
+                orderNo: 'no_2',
+                salespersonId: 's_1',
+                data: { name: 'Variant Item' },
+                status: 'pending',
+                quantity: 1,
+                productId: 'p_999',
+                variantId: 'v_001'
+            };
+
+            await create(db, timelineRepo, params);
+
+            const insertOrderSql = db.prepare.mock.calls[0][0];
+            expect(insertOrderSql).toContain('variant_id');
+
+            const bindArgs = db.bind.mock.calls[0];
+            expect(bindArgs).toContain('v_001');
         });
     });
 });

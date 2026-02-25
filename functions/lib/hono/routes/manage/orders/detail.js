@@ -2,6 +2,7 @@
 import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
+import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
 import { MSG } from '../../../_shared/utils.js';
 import { NotFoundError, BadRequestError, UnauthorizedError } from '../../../errors.js';
 
@@ -52,22 +53,52 @@ app.patch('/:id', async (c) => {
     const order = await orderRepo.findById(id);
     if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
 
-    const { updates: updatesFromBody, reason, fileIds, productId } = body;
+    const { updates: updatesFromBody, reason, fileIds, productId, variantId } = body;
     const updatesObj = updatesFromBody || body;
-    const { reason: _unusedReason, fileIds: _unusedFileIds, updates: _unusedUpdates, productId: _unusedProductId, ...updates } = updatesObj;
+    const {
+        reason: _unusedReason,
+        fileIds: _unusedFileIds,
+        updates: _unusedUpdates,
+        productId: _unusedProductId,
+        variantId: _unusedVariantId,
+        ...updates
+    } = updatesObj;
 
     const { processOrderUpdate } = await import('../../../../../api/utils/order-utils.js');
+    const variantRepo = new ProductVariantRepository(env.DB);
 
     // 如果绑定了商品，从商品库获取信息覆盖提交的字段
     let finalUpdates = { ...updates };
-    if (productId) {
+    const hasProductIdPayload = productId !== undefined;
+    const hasVariantIdPayload = variantId !== undefined;
+    const effectiveProductId = hasProductIdPayload ? productId : order.productId;
+    let normalizedVariantId = hasVariantIdPayload ? (variantId || null) : undefined;
+
+    if (hasProductIdPayload && !hasVariantIdPayload) {
+        normalizedVariantId = null;
+    }
+
+    if (normalizedVariantId) {
+        if (!effectiveProductId) {
+            throw new BadRequestError('productId is required when variantId is provided');
+        }
+        const variant = await variantRepo.findByIdAndProductId(normalizedVariantId, effectiveProductId);
+        if (!variant) {
+            throw new BadRequestError('variantId does not belong to productId');
+        }
+        finalUpdates.sku = variant.sku;
+    }
+
+    if (effectiveProductId) {
         const productRepo = new ProductRepository(env.DB);
-        const product = await productRepo.findById(productId);
+        const product = await productRepo.findById(effectiveProductId);
         if (product) {
             finalUpdates.name = product.name;
             finalUpdates.brand = product.brand;
             finalUpdates.series = product.series;
-            finalUpdates.sku = product.sku;
+            if (!normalizedVariantId) {
+                finalUpdates.sku = product.sku;
+            }
             // 可以在此同步更多字段，如 material
             if (product.specifications?.material) {
                 finalUpdates.material = product.specifications.material;
@@ -86,6 +117,9 @@ app.patch('/:id', async (c) => {
         updates: finalUpdates,
         fileIds,
         productId, // 传入 product_id 以更新列
+        variantId: normalizedVariantId,
+        currentProductId: order.productId,
+        currentVariantId: order.variantId,
         allowedFields: ADMIN_EDITABLE_FIELDS,
         actor: { type: 'admin', id: user?.id || 'admin', name: user?.name || 'Admin' },
         reason: reason || 'Admin Update',

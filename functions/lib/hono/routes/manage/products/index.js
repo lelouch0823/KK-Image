@@ -67,11 +67,20 @@ app.post('/', async (c) => {
         throw new ConflictError('SKU already exists');
     }
 
-    const product = await repo.create(body);
+    let product = null;
+    try {
+        product = await repo.create(body);
 
-    if (body.variants && body.variants.length > 0) {
-        const variantRepo = new ProductVariantRepository(env.DB);
-        await variantRepo.createBatch(product.id, body.variants);
+        if (body.variants && body.variants.length > 0) {
+            const variantRepo = new ProductVariantRepository(env.DB);
+            await variantRepo.createBatch(product.id, body.variants);
+        }
+    } catch (error) {
+        // Compensating rollback: keep product+variant writes all-or-nothing for create flow.
+        if (product?.id) {
+            await env.DB.prepare('DELETE FROM products WHERE id = ?').bind(product.id).run();
+        }
+        throw error;
     }
 
     c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));

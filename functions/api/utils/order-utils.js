@@ -310,11 +310,16 @@ export async function processOrderUpdate(options) {
   // 2. 检测文件变更
   const filesChanged = await updateOrderFiles(env, orderId, orderNo, fileIds, actor, reason);
 
-  // 3. SOTA: 检测 productId 变更（productId 是 orders 表顶级列，独立于 current_data JSON）
-  const productIdChanged = options.productId !== undefined;
+  // 3. 检测商品绑定变更（orders 顶级列，独立于 current_data JSON）
+  const productIdChanged =
+    options.productId !== undefined &&
+    (options.currentProductId === undefined || options.productId !== options.currentProductId);
+  const variantIdChanged =
+    options.variantId !== undefined &&
+    (options.currentVariantId === undefined || options.variantId !== options.currentVariantId);
 
   // 4. 如果有任何变更（数据/文件/商品绑定），更新订单并发送通知
-  if (dataChanged || filesChanged || productIdChanged) {
+  if (dataChanged || filesChanged || productIdChanged || variantIdChanged) {
     const orderRepo = new OrderRepository(env.DB);
     const actorTypeStr = actor.type === 'admin' ? 'admin' : 'sales';
 
@@ -324,7 +329,7 @@ export async function processOrderUpdate(options) {
       await orderRepo.updateStatus(orderId, updates.status, actorTypeStr);
     }
 
-    await orderRepo.updateData(orderId, newData, actorTypeStr, options.productId);
+    await orderRepo.updateData(orderId, newData, actorTypeStr, options.productId, options.variantId);
 
     // SOTA: 自动发送通知
     // 如果是管理员修改，通知销售员

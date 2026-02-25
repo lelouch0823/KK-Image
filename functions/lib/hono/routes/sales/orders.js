@@ -3,6 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { CreateOrderSchema, AddCommentSchema } from '../../schemas/sales.js';
 import { MSG, generateId, generateOrderNo, triggerWebhook } from '../../_shared/utils.js';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
+import { ProductVariantRepository } from '../../../../repositories/ProductVariantRepository.js';
 import { parsePagination } from '../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors.js';
 
@@ -49,6 +50,18 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
 
     const orderId = generateId();
     const orderNo = generateOrderNo();
+    const variantId = data.variantId ?? null;
+
+    if (variantId) {
+        if (!data.productId) {
+            throw new BadRequestError('productId is required when variantId is provided');
+        }
+        const variantRepo = new ProductVariantRepository(env.DB);
+        const variant = await variantRepo.findByIdAndProductId(variantId, data.productId);
+        if (!variant) {
+            throw new BadRequestError('variantId does not belong to productId');
+        }
+    }
 
     // 1. 创建订单（事务）
     await orderRepo.create({
@@ -70,6 +83,7 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
         mainImageId: data.fileIds[0] || null,
         fileIds: data.fileIds,
         productId: data.productId || null,
+        variantId,
         timeline: {
             actionType: 'created',
             actorType: 'salesperson',
@@ -165,15 +179,42 @@ app.patch('/:id', async (c) => {
         throw new ForbiddenError(MSG.ORDER.ONLY_PENDING_CAN_EDIT);
     }
 
-    const { updates: updatesFromBody, reason, fileIds, productId } = body;
+    const { updates: updatesFromBody, reason, fileIds, productId, variantId } = body;
     const updatesObj = updatesFromBody || body;
-    const { reason: _unusedReason, fileIds: _unusedFileIds, updates: _unusedUpdates, productId: _unusedProductId, ...updates } = updatesObj;
+    const {
+        reason: _unusedReason,
+        fileIds: _unusedFileIds,
+        updates: _unusedUpdates,
+        productId: _unusedProductId,
+        variantId: _unusedVariantId,
+        ...updates
+    } = updatesObj;
 
     if (!reason || !reason.trim()) {
         throw new BadRequestError(MSG.ORDER.REASON_REQUIRED);
     }
 
     const { processOrderUpdate } = await import('../../../../api/utils/order-utils.js');
+
+    const hasProductIdPayload = productId !== undefined;
+    const hasVariantIdPayload = variantId !== undefined;
+    const effectiveProductId = hasProductIdPayload ? productId : order.productId;
+    let normalizedVariantId = hasVariantIdPayload ? (variantId || null) : undefined;
+
+    if (hasProductIdPayload && !hasVariantIdPayload) {
+        normalizedVariantId = null;
+    }
+
+    if (normalizedVariantId) {
+        if (!effectiveProductId) {
+            throw new BadRequestError('productId is required when variantId is provided');
+        }
+        const variantRepo = new ProductVariantRepository(env.DB);
+        const variant = await variantRepo.findByIdAndProductId(normalizedVariantId, effectiveProductId);
+        if (!variant) {
+            throw new BadRequestError('variantId does not belong to productId');
+        }
+    }
 
     // 销售端允许修改的字段
     // SOTA: productId 是顶级表列，通过 options.productId 单独传递处理，不应加入 JSON data 字段列表
@@ -187,6 +228,9 @@ app.patch('/:id', async (c) => {
         updates,
         fileIds,
         productId,
+        variantId: normalizedVariantId,
+        currentProductId: order.productId,
+        currentVariantId: order.variantId,
         allowedFields: SALES_EDITABLE_FIELDS,
         actor: { type: 'salesperson', id: salesperson.id, name: salesperson.name },
         reason: reason.trim(),

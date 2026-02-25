@@ -4,6 +4,7 @@ import {
   createOrderNotification,
   updateOrderFiles
 } from '../order-utils';
+import { OrderRepository } from '../../../repositories/OrderRepository.js';
 
 describe('Order Utils Full Coverage Final', () => {
   let db;
@@ -103,6 +104,33 @@ describe('Order Utils Full Coverage Final', () => {
       const result = await processOrderUpdate(options);
       expect(result.hasChanges).toBe(true);
       expect(result.newData.quantity).toBe(5);
+    });
+
+    it('should treat variant-only update as change and forward variantId', async () => {
+      const updateDataSpy = vi.spyOn(OrderRepository.prototype, 'updateData').mockResolvedValue({ success: true });
+      const updateStatusSpy = vi.spyOn(OrderRepository.prototype, 'updateStatus').mockResolvedValue({ success: true });
+      try {
+        const options = {
+          env,
+          orderId: 'o1',
+          orderNo: 'n1',
+          currentData: { name: 'productA' },
+          updates: {},
+          fileIds: undefined,
+          allowedFields: ['name'],
+          actor: { id: 'a1', type: 'admin', name: 'Admin' },
+          productId: undefined,
+          variantId: 'variant_1',
+          currentProductId: 'product_1'
+        };
+
+        const result = await processOrderUpdate(options);
+        expect(result.hasChanges).toBe(true);
+        expect(updateDataSpy).toHaveBeenCalledWith('o1', expect.any(Object), 'admin', undefined, 'variant_1');
+      } finally {
+        updateDataSpy.mockRestore();
+        updateStatusSpy.mockRestore();
+      }
     });
   });
 

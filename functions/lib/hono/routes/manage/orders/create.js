@@ -1,7 +1,9 @@
 
 import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
+import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
+import { BadRequestError } from '../../../errors.js';
 
 const app = new Hono();
 
@@ -25,6 +27,18 @@ app.post('/', async (c) => {
     const orderRepo = new OrderRepository(env.DB);
     const orderId = generateId();
     const orderNo = generateOrderNo();
+    const variantId = body.variantId ?? null;
+
+    if (variantId) {
+        if (!body.productId) {
+            throw new BadRequestError('productId is required when variantId is provided');
+        }
+        const variantRepo = new ProductVariantRepository(env.DB);
+        const variant = await variantRepo.findByIdAndProductId(variantId, body.productId);
+        if (!variant) {
+            throw new BadRequestError('variantId does not belong to productId');
+        }
+    }
 
     // 1. 创建订单
     await orderRepo.create({
@@ -46,6 +60,7 @@ app.post('/', async (c) => {
         // Admin can set initial status
         status: body.status || 'pending',
         productId: body.productId || null,
+        variantId,
         mainImageId: body.fileIds?.[0] || null,
         fileIds: body.fileIds || [],
         timeline: {

@@ -32,6 +32,21 @@ export class ProductVariantRepository {
         const results = await this.db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY created_at ASC').bind(productId).all();
         return (results.results || []).map(r => ({...r, options_values: JSON.parse(r.options_values || '{}')}));
     }
+
+    async findById(variantId) {
+        const row = await this.db.prepare('SELECT * FROM product_variants WHERE id = ?').bind(variantId).first();
+        if (!row) return null;
+        return { ...row, options_values: JSON.parse(row.options_values || '{}') };
+    }
+
+    async findByIdAndProductId(variantId, productId) {
+        const row = await this.db
+            .prepare('SELECT * FROM product_variants WHERE id = ? AND product_id = ?')
+            .bind(variantId, productId)
+            .first();
+        if (!row) return null;
+        return { ...row, options_values: JSON.parse(row.options_values || '{}') };
+    }
     
     async adjustStock(variantId, delta) {
         const timestamp = now();
