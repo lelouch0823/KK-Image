@@ -227,14 +227,15 @@ const updateForm = (newVal) => {
   Object.assign(form, newVal);
 };
 
-// 商品选择处理
 const handleProductSelect = (product) => {
+  const variant = product.selectedVariant;
   boundProduct.value = {
     id: product.id,
     name: product.name,
-    sku: product.sku,
+    sku: variant ? variant.sku : product.sku,
     brand: product.brand,
     series: product.series,
+    variantId: variant ? variant.id : null,
     mainImage: getProductMainImage(product),
   };
   selectedProductId.value = product.id;
@@ -243,7 +244,7 @@ const handleProductSelect = (product) => {
   form.name = product.name || '';
   form.brand = product.brand || '';
   form.series = product.series || '';
-  form.sku = product.sku || '';
+  form.sku = variant ? variant.sku : (product.sku || '');
 
   // Auto-fill image
   const mainImage = getProductMainImage(product);
@@ -292,6 +293,7 @@ const initialValues = ref({
   deadline: '',
   fileIds: '',
   productId: null,
+  variantId: null,
 });
 
 const initializedId = ref(null);
@@ -327,6 +329,7 @@ watch(
           sku: current.sku || '',
           brand: current.brand || '',
           series: current.series || '',
+          variantId: newOrder.variantId || null,
           mainImage: newOrder.mainImage || null, // Assuming this comes from order join
         };
       } else {
@@ -348,6 +351,7 @@ watch(
         deadline: current.deadline || '',
         fileIds: (newOrder.files || []).map((f) => f.id).sort().join(','),
         productId: newOrder.productId || null,
+        variantId: newOrder.variantId || null,
         salespersonId: newOrder.salespersonId || '',
       };
 
@@ -373,6 +377,7 @@ const hasChanges = computed(() => {
 
   // 检查商品绑定变更
   if (selectedProductId.value !== init.productId) return true;
+  if (boundProduct.value?.variantId !== init.variantId) return true;
 
   const fieldsChanged =
     form.name !== init.name ||
@@ -492,6 +497,9 @@ const handleSubmit = async () => {
   // 添加商品绑定ID
   if (selectedProductId.value !== init.productId) {
     payload.productId = selectedProductId.value;
+  }
+  if (boundProduct.value?.variantId !== init.variantId) {
+    payload.variantId = boundProduct.value?.variantId || null;
   }
 
   if (oldIds !== newIds) {

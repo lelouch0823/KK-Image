@@ -39,6 +39,7 @@ export function mapOrderListItem(order) {
         createdAt: order.created_at,
         updatedAt: order.updated_at,
         productId: order.product_id,
+        variantId: order.variant_id,
         quantity: order.quantity || 1,
     };
 }
@@ -58,6 +59,7 @@ export function mapOrderDetail(order) {
         salespersonId: order.salesperson_id,
         customerId: order.customer_id,
         productId: order.product_id,
+        variantId: order.variant_id,
         customer: order.customer_name
             ? {
                 name: order.customer_name,

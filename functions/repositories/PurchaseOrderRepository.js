@@ -85,9 +85,12 @@ export class PurchaseOrderRepository {
         p.brand AS product_brand,
         p.images AS product_images,
         p.specifications AS product_specifications,
+        v.sku AS variant_sku,
+        v.options_values AS variant_options,
         o.order_no AS customer_order_no
       FROM purchase_order_items poi
       LEFT JOIN products p ON poi.product_id = p.id
+      LEFT JOIN product_variants v ON poi.variant_id = v.id
       LEFT JOIN orders o ON poi.pre_order_id = o.id
       ORDER BY poi.created_at ASC
     `).bind().all();
@@ -101,6 +104,7 @@ export class PurchaseOrderRepository {
         ...item,
         product_images: this._parseJson(item.product_images),
         product_specifications: this._parseJson(item.product_specifications),
+        variant_options: this._parseJson(item.variant_options),
       })),
     };
   }
@@ -217,12 +221,13 @@ export class PurchaseOrderRepository {
 
       stmts.push(
         this.db.prepare(`
-          INSERT INTO purchase_order_items (id, po_id, product_id, pre_order_id, quantity, unit_cost, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO purchase_order_items (id, po_id, product_id, variant_id, pre_order_id, quantity, unit_cost, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
           id,
           poId,
           item.product_id,
+          item.variant_id || null,
           item.pre_order_id || null,
           item.quantity || 1,
           item.unit_cost || 0,
@@ -266,6 +271,7 @@ export class PurchaseOrderRepository {
 
     if (updates.quantity !== undefined) { fields.push('quantity = ?'); values.push(updates.quantity); }
     if (updates.unit_cost !== undefined) { fields.push('unit_cost = ?'); values.push(updates.unit_cost); }
+    if (updates.variant_id !== undefined) { fields.push('variant_id = ?'); values.push(updates.variant_id === '' ? null : updates.variant_id); }
 
     if (fields.length === 0) return false;
 
@@ -293,9 +299,10 @@ export class PurchaseOrderRepository {
    */
   async getItemsForAllocation(poId) {
     const { results } = await this.db.prepare(`
-      SELECT poi.*, p.cost_price AS product_cost_price
+      SELECT poi.*, p.cost_price AS product_cost_price, v.cost_price AS variant_cost_price
       FROM purchase_order_items poi
       LEFT JOIN products p ON poi.product_id = p.id
+      LEFT JOIN product_variants v ON poi.variant_id = v.id
       WHERE poi.po_id = ?
     `).bind(poId).all();
     return results;

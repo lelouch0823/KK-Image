@@ -22,7 +22,19 @@
       </div>
       <div class="min-w-0 flex-1">
         <div class="truncate font-medium text-[var(--text-main)]">{{ boundProduct.name }}</div>
-        <div class="mt-0.5 text-xs text-[var(--text-secondary)]">{{ t('product.form.sku') }}: {{ boundProduct.sku }}</div>
+        <div class="mt-0.5 text-xs text-[var(--text-secondary)]">{{ t('product.form.sku') }}: {{ displaySku }}</div>
+        <!-- Variant Selector -->
+        <div v-if="variants.length > 0" class="mt-2">
+           <select v-model="selectedVariantId" @change="onVariantChange" class="w-full text-xs rounded border border-[var(--border-subtle)] bg-[var(--bg-card)] p-1.5 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none">
+              <option v-for="v in variants" :key="v.id" :value="v.id">
+                  {{ formatVariantName(v.options_values) }} - ¥{{ v.price }} ({{ t('product.stats.stock_level') }}: {{ v.stock_quantity }})
+              </option>
+           </select>
+        </div>
+        <div v-if="isLoadingDetails" class="mt-1 text-xs text-[var(--color-primary)] opacity-80 flex items-center gap-1">
+            <svg class="size-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+            Loading variants...
+        </div>
       </div>
       <div class="flex items-center gap-1">
         <a 
@@ -52,21 +64,82 @@
     <!-- Product Selector -->
     <div v-else>
       <p class="mb-2 text-xs text-[var(--text-secondary)]">{{ t('order.binding.hint') }}</p>
-      <ProductSelect @select="(p) => $emit('select', p)" />
+      <ProductSelect @select="handleProductSelect" />
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import ProductSelect from '@/components/product/ProductSelect.vue';
 import AppImage from '@/components/ui/AppImage.vue';
+import { useProducts } from '@/composables/useProducts';
 
-defineProps({
+const props = defineProps({
   boundProduct: { type: Object, default: null },
 });
 
-defineEmits(['select', 'unbind']);
+const emit = defineEmits(['select', 'unbind']);
 
 const { t } = useI18n();
+const { loadProduct } = useProducts();
+
+const isLoadingDetails = ref(false);
+const variants = ref([]);
+const selectedVariantId = ref(null);
+const fullProductData = ref(null);
+
+const displaySku = computed(() => {
+    if (variants.value.length > 0 && selectedVariantId.value) {
+        const v = variants.value.find(x => x.id === selectedVariantId.value);
+        if (v && v.sku) return v.sku;
+    }
+    return props.boundProduct?.sku || '';
+});
+
+const formatVariantName = (optionsValues) => {
+    try {
+        const parsed = typeof optionsValues === 'string' ? JSON.parse(optionsValues) : optionsValues;
+        if (!parsed || Object.keys(parsed).length === 0) return 'Default Variant';
+        return Object.values(parsed).join(' / ');
+    } catch { return 'Default Variant'; }
+};
+
+const handleProductSelect = async (product) => {
+    isLoadingDetails.value = true;
+    variants.value = [];
+    selectedVariantId.value = null;
+    fullProductData.value = null;
+
+    try {
+        const fullProduct = await loadProduct(product.id || product.productId);
+        fullProductData.value = fullProduct;
+        
+        if (fullProduct && fullProduct.variants && fullProduct.variants.length > 0) {
+            variants.value = fullProduct.variants;
+            selectedVariantId.value = fullProduct.variants[0].id;
+            emit('select', { ...fullProduct, selectedVariant: fullProduct.variants[0] });
+        } else {
+            emit('select', fullProduct || product);
+        }
+} catch {
+        emit('select', product);
+    } finally {
+        isLoadingDetails.value = false;
+    }
+};
+
+const onVariantChange = () => {
+    const v = variants.value.find(x => x.id === selectedVariantId.value);
+    emit('select', { ...fullProductData.value, selectedVariant: v });
+};
+
+watch(() => props.boundProduct, (newVal) => {
+    if (!newVal) {
+        variants.value = [];
+        selectedVariantId.value = null;
+        fullProductData.value = null;
+    }
+});
 </script>

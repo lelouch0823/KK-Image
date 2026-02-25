@@ -69,13 +69,15 @@ const getProductMainImage = (product) => {
 
 const handleProductSelect = (product) => {
   const mainImage = getProductMainImage(product);
+  const variant = product.selectedVariant;
   
   boundProduct.value = {
     id: product.id,
     name: product.name,
-    sku: product.sku,
+    sku: variant ? variant.sku : product.sku,
     brand: product.brand,
     series: product.series,
+    variantId: variant ? variant.id : null,
     mainImage,
   };
   selectedProductId.value = product.id;
@@ -86,7 +88,7 @@ const handleProductSelect = (product) => {
     name: product.name || '',
     brand: product.brand || '',
     series: product.series || '',
-    sku: product.sku || '',
+    sku: variant ? variant.sku : (product.sku || ''),
   };
   
   // Auto-fill image if available
@@ -119,6 +121,9 @@ const handleSubmit = async (data) => {
   const payload = { ...data };
   if (selectedProductId.value) {
     payload.productId = selectedProductId.value;
+  }
+  if (boundProduct.value?.variantId) {
+    payload.variantId = boundProduct.value.variantId;
   }
   emit('submit', payload);
 };

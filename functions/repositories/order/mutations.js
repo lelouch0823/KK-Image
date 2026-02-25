@@ -19,7 +19,7 @@ import { generateId, now } from '../../api/utils/id.js';
 export async function create(
     db,
     timelineRepo,
-    { id, orderNo, salespersonId, data, status = 'pending', mainImageId, quantity = 1, fileIds = [], timeline, productId = null }
+    { id, orderNo, salespersonId, data, status = 'pending', mainImageId, quantity = 1, fileIds = [], timeline, productId = null, variantId = null }
 ) {
     const timestamp = now();
     const orderData = JSON.stringify(data);
@@ -30,11 +30,11 @@ export async function create(
         db
             .prepare(
                 `
-        INSERT INTO orders (id, order_no, salesperson_id, original_data, current_data, status, main_image_id, quantity, unread_by_admin, unread_by_sales, created_at, updated_at, product_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?, ?)
+        INSERT INTO orders (id, order_no, salesperson_id, original_data, current_data, status, main_image_id, quantity, unread_by_admin, unread_by_sales, created_at, updated_at, product_id, variant_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?, ?, ?)
         `
             )
-            .bind(id, orderNo, salespersonId, orderData, orderData, status, mainImageId, quantity, timestamp, timestamp, productId)
+            .bind(id, orderNo, salespersonId, orderData, orderData, status, mainImageId, quantity, timestamp, timestamp, productId, variantId)
     );
 
     // 2. 关联文件
@@ -68,7 +68,7 @@ export async function create(
  * @param {Object} newData
  * @param {'admin'|'sales'} actorType
  */
-export async function updateData(db, id, newData, actorType, productId = undefined) {
+export async function updateData(db, id, newData, actorType, productId = undefined, variantId = undefined) {
     const timestamp = now();
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
 
@@ -85,6 +85,11 @@ export async function updateData(db, id, newData, actorType, productId = undefin
     if (productId !== undefined) {
         colsToUpdate.push('product_id = ?');
         params.push(productId);
+    }
+
+    if (variantId !== undefined) {
+        colsToUpdate.push('variant_id = ?');
+        params.push(variantId === '' ? null : variantId);
     }
 
     let query = `
