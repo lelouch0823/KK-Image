@@ -22,7 +22,8 @@ export class SpaceRepository {
         SELECT s.*,
           COALESCE(sf_count.file_count, 0) as file_count,
           f.storage_key as cover_storage_key,
-          p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
+          p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images,
+          pv.sku as pv_sku, pv.price as pv_price
         FROM spaces s
         LEFT JOIN (
             SELECT space_id, COUNT(*) as file_count
@@ -31,6 +32,7 @@ export class SpaceRepository {
         ) sf_count ON sf_count.space_id = s.id
         LEFT JOIN files f ON s.cover_file_id = f.id
         LEFT JOIN products p ON s.product_id = p.id
+        LEFT JOIN product_variants pv ON s.variant_id = pv.id
         ORDER BY s.updated_at DESC
       `
             )
@@ -74,9 +76,11 @@ export class SpaceRepository {
     async findById(id) {
         return await this.db.prepare(`
             SELECT s.*,
-              p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
+              p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images,
+              pv.sku as pv_sku, pv.price as pv_price
             FROM spaces s
             LEFT JOIN products p ON s.product_id = p.id
+            LEFT JOIN product_variants pv ON s.variant_id = pv.id
             WHERE s.id = ?
         `).bind(id).first();
     }
@@ -162,8 +166,8 @@ export class SpaceRepository {
         await this.db
             .prepare(
                 `
-        INSERT INTO spaces (id, name, description, is_public, password, share_token, expires_at, template, template_data, product_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO spaces (id, name, description, is_public, password, share_token, expires_at, template, template_data, product_id, variant_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
             )
             .bind(
@@ -177,6 +181,7 @@ export class SpaceRepository {
                 data.template,
                 data.templateData,
                 data.productId || null,
+                data.variantId || null,
                 data.createdAt,
                 data.updatedAt
             )
@@ -285,7 +290,8 @@ export class SpaceRepository {
         SELECT s.*,
             COALESCE(sf_count.file_count, 0) as file_count,
             f.storage_key as cover_storage_key,
-            p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
+            p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images,
+            pv.sku as pv_sku, pv.price as pv_price
         FROM spaces s
         LEFT JOIN (
             SELECT space_id, COUNT(*) as file_count
@@ -294,6 +300,7 @@ export class SpaceRepository {
         ) sf_count ON sf_count.space_id = s.id
         LEFT JOIN files f ON s.cover_file_id = f.id
         LEFT JOIN products p ON s.product_id = p.id
+        LEFT JOIN product_variants pv ON s.variant_id = pv.id
         WHERE s.parent_id = ?
         ORDER BY s.sort_order ASC, s.updated_at DESC
       `
@@ -312,8 +319,8 @@ export class SpaceRepository {
         await this.db
             .prepare(
                 `
-        INSERT INTO spaces (id, parent_id, name, description, is_public, password, share_token, expires_at, template, template_data, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO spaces (id, parent_id, name, description, is_public, password, share_token, expires_at, template, template_data, variant_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
             )
             .bind(
@@ -327,6 +334,7 @@ export class SpaceRepository {
                 data.expiresAt,
                 data.template,
                 data.templateData,
+                data.variantId || null,
                 data.createdAt,
                 data.updatedAt
             )
@@ -384,10 +392,12 @@ export class SpaceRepository {
             SELECT s.*, 
                 (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
                 f.storage_key as cover_storage_key,
-                p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
+                p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images,
+                pv.sku as pv_sku, pv.price as pv_price
             FROM spaces s
             LEFT JOIN files f ON s.cover_file_id = f.id
             LEFT JOIN products p ON s.product_id = p.id
+            LEFT JOIN product_variants pv ON s.variant_id = pv.id
             WHERE s.share_mode = 'all'
                OR (s.share_mode = 'selected' AND EXISTS (
                    SELECT 1 FROM space_salesperson_shares sss 
@@ -408,10 +418,12 @@ export class SpaceRepository {
         const space = await this.db.prepare(`
             SELECT s.*,
                 f.storage_key as cover_storage_key,
-                p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images
+                p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images,
+                pv.sku as pv_sku, pv.price as pv_price
             FROM spaces s
             LEFT JOIN files f ON s.cover_file_id = f.id
             LEFT JOIN products p ON s.product_id = p.id
+            LEFT JOIN product_variants pv ON s.variant_id = pv.id
             WHERE s.id = ?
               AND (s.share_mode = 'all'
                    OR (s.share_mode = 'selected' AND EXISTS (

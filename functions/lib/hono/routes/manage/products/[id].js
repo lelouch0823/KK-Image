@@ -46,13 +46,21 @@ app.patch('/:id', async (c) => {
     const repo = new ProductRepository(env.DB);
 
     const result = await repo.updateWithMeta(id, body);
+    
+    let variantsUpdated = false;
+    if (result.success && body.variants !== undefined) {
+        const variantRepo = new ProductVariantRepository(env.DB);
+        await variantRepo.syncVariants(id, body.variants);
+        variantsUpdated = true;
+    }
 
-    if (result.success && result.changes > 0) {
+    // if product fields changed OR variants existed and successfully synced
+    if ((result.success && result.changes > 0) || variantsUpdated) {
         // 使缓存失效
         c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
         return c.json({ success: true, message: 'Product updated', changes: result.changes });
     } else if (result.success && result.changes === 0) {
-        throw new NotFoundError('No rows updated. Product may not exist.');
+        throw new NotFoundError('No rows updated. Product may not exist or no changes.');
     } else {
         throw new BadRequestError(result.error || 'Update failed');
     }
@@ -68,6 +76,11 @@ app.put('/:id', async (c) => {
     const repo = new ProductRepository(env.DB);
 
     const success = await repo.update(id, body);
+    
+    if (success && body.variants !== undefined) {
+        const variantRepo = new ProductVariantRepository(env.DB);
+        await variantRepo.syncVariants(id, body.variants);
+    }
 
     if (success) {
         // 使缓存失效

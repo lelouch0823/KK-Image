@@ -220,6 +220,7 @@ const handleProductSelect = (product) => {
     mainImage,
   };
   form.value.productId = product.id;
+  form.value.variantId = variant ? variant.id : null;
 
   if (!form.value.name) form.value.name = product.name || '';
 };

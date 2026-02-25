@@ -33,6 +33,7 @@ const CreateSpaceSchema = z.object({
   templateData: z.record(z.any()).optional().default({}),
   coverFileId: z.string().optional().nullable(),
   productId: z.string().optional().nullable(),
+  variantId: z.string().optional().nullable(),
 });
 
 const UpdateSpaceSchema = CreateSpaceSchema.partial().extend({
@@ -143,7 +144,7 @@ crud.post(
   zValidator('json', CreateSpaceSchema),
   async (c) => {
     const { env } = c;
-    const { name, description, isPublic, password, expiresAt, template, templateData, productId } =
+    const { name, description, isPublic, password, expiresAt, template, templateData, productId, variantId } =
       c.req.valid('json');
     const repo = new SpaceRepository(env.DB);
 
@@ -162,6 +163,7 @@ crud.post(
       template,
       templateData: JSON.stringify(templateData),
       productId,
+      variantId: variantId || null,
       createdAt: nowMs,
       updatedAt: nowMs,
     };
@@ -243,6 +245,10 @@ crud.on(
     if (data.productId !== undefined) {
       updates.push('product_id = ?');
       values.push(data.productId || null);
+    }
+    if (data.variantId !== undefined) {
+      updates.push('variant_id = ?');
+      values.push(data.variantId || null);
     }
     // 处理新的分享模式
     if (data.shareMode !== undefined) {

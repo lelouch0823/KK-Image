@@ -421,6 +421,7 @@ const form = ref({
   coverFileId: null,
   password: '',
   productId: null,
+  variantId: null,
   templateData: {
     brand: '',
     series: '',
@@ -481,6 +482,7 @@ const initData = async () => {
       coverFileId: data.coverFileId || null,
       password: data.password || '',
       productId: data.productId || null,
+      variantId: data.variantId || data.variant_id || null,
       templateData: {
         brand: data.templateData?.brand || '',
         series: data.templateData?.series || '',
@@ -536,6 +538,7 @@ const handleProductSelect = (product) => {
     _images: product.images, // Store raw images
   };
   form.value.productId = product.id;
+  form.value.variantId = variant ? variant.id : null;
 
   // Force overwrite template data from product
   if (!form.value.name) form.value.name = product.name || '';
@@ -559,6 +562,7 @@ const handleProductSelect = (product) => {
 const unbindProduct = () => {
   boundProduct.value = null;
   form.value.productId = null;
+  form.value.variantId = null;
 };
 
 const addFiles = async (fileIds) => {
