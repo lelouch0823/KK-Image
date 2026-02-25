@@ -271,6 +271,13 @@ const unbindProduct = () => {
 };
 
 const getProductMainImage = (product) => {
+  if (product?.mainImage) return product.mainImage;
+  const variant = product?.selectedVariant;
+  if (variant?.primaryImage) return `/file/${variant.primaryImage}`;
+  if (Array.isArray(variant?.images) && variant.images.length > 0) {
+    const primary = variant.images.find((img) => Number(img.is_primary) === 1) || variant.images[0];
+    if (primary?.image_id) return `/file/${primary.image_id}`;
+  }
   try {
     if (!product.images) return null;
     const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;

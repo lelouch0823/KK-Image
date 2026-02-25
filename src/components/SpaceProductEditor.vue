@@ -448,6 +448,16 @@ const productImages = computed(() => {
   }
 });
 
+const resolveVariantImageId = (variant) => {
+  if (!variant) return null;
+  if (variant.primaryImage) return variant.primaryImage;
+  if (Array.isArray(variant.images) && variant.images.length > 0) {
+    const primary = variant.images.find((img) => Number(img.is_primary) === 1) || variant.images[0];
+    return primary?.image_id || null;
+  }
+  return null;
+};
+
 const initData = async () => {
   const data = await loadSpace(props.space.id);
   if (data) {
@@ -455,7 +465,9 @@ const initData = async () => {
       const product = await loadProduct(data.productId);
       if (product) {
         let mainImage = null;
-        if (product.images) {
+        if (product.display_image_id) {
+           mainImage = product.display_image_id;
+        } else if (product.images) {
            const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
            mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
         }
@@ -521,12 +533,21 @@ const openPreview = () => {
 
 const handleProductSelect = (product) => {
   let mainImage = null;
-  if (product.images) {
+  const variant = product.selectedVariant;
+
+  if (product?.mainImage) {
+    mainImage = product.mainImage.replace('/file/', '');
+  } else {
+    mainImage = resolveVariantImageId(variant);
+  }
+
+  if (!mainImage && product.images) {
     const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
     mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
   }
-  
-  const variant = product.selectedVariant;
+  if (!mainImage && product.display_image_id) {
+    mainImage = product.display_image_id;
+  }
   
   boundProduct.value = {
     id: product.id,

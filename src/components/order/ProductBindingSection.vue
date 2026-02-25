@@ -106,6 +106,32 @@ const formatVariantName = (optionsValues) => {
     } catch { return 'Default Variant'; }
 };
 
+const resolveVariantImageId = (variant) => {
+    if (!variant) return null;
+    if (variant.primaryImage) return variant.primaryImage;
+    if (variant.image_id) return variant.image_id;
+    if (Array.isArray(variant.images) && variant.images.length > 0) {
+        const primary = variant.images.find((img) => Number(img.is_primary) === 1) || variant.images[0];
+        return primary?.image_id || null;
+    }
+    return null;
+};
+
+const resolveProductImageId = (product) => {
+    try {
+        if (!product?.images) return null;
+        const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
+        return Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
+    } catch {
+        return null;
+    }
+};
+
+const buildMainImagePath = (product, variant) => {
+    const imageId = resolveVariantImageId(variant) || resolveProductImageId(product);
+    return imageId ? `/file/${imageId}` : null;
+};
+
 const handleProductSelect = async (product) => {
     isLoadingDetails.value = true;
     variants.value = [];
@@ -119,12 +145,17 @@ const handleProductSelect = async (product) => {
         if (fullProduct && fullProduct.variants && fullProduct.variants.length > 0) {
             variants.value = fullProduct.variants;
             selectedVariantId.value = fullProduct.variants[0].id;
-            emit('select', { ...fullProduct, selectedVariant: fullProduct.variants[0] });
+            emit('select', {
+                ...fullProduct,
+                selectedVariant: fullProduct.variants[0],
+                mainImage: buildMainImagePath(fullProduct, fullProduct.variants[0]),
+            });
         } else {
-            emit('select', fullProduct || product);
+            const selected = fullProduct || product;
+            emit('select', { ...selected, mainImage: buildMainImagePath(selected, null) });
         }
 } catch {
-        emit('select', product);
+        emit('select', { ...product, mainImage: buildMainImagePath(product, product?.selectedVariant) });
     } finally {
         isLoadingDetails.value = false;
     }
@@ -132,7 +163,11 @@ const handleProductSelect = async (product) => {
 
 const onVariantChange = () => {
     const v = variants.value.find(x => x.id === selectedVariantId.value);
-    emit('select', { ...fullProductData.value, selectedVariant: v });
+    emit('select', {
+        ...fullProductData.value,
+        selectedVariant: v,
+        mainImage: buildMainImagePath(fullProductData.value, v),
+    });
 };
 
 watch(() => props.boundProduct, (newVal) => {

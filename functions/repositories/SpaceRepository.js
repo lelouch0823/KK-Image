@@ -23,7 +23,25 @@ export class SpaceRepository {
           COALESCE(sf_count.file_count, 0) as file_count,
           f.storage_key as cover_storage_key,
           p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images,
-          pv.sku as pv_sku, pv.price as pv_price
+          pv.sku as pv_sku, pv.price as pv_price,
+          (
+            SELECT vi.image_id
+            FROM variant_images vi
+            WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
+            ORDER BY vi.sort_order ASC, vi.created_at ASC
+            LIMIT 1
+          ) as variant_primary_image_id,
+          COALESCE(
+            (
+              SELECT vi.image_id
+              FROM variant_images vi
+              WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
+              ORDER BY vi.sort_order ASC, vi.created_at ASC
+              LIMIT 1
+            ),
+            pv.image_id,
+            json_extract(p.images, '$[0]')
+          ) as display_image_id
         FROM spaces s
         LEFT JOIN (
             SELECT space_id, COUNT(*) as file_count
@@ -51,7 +69,25 @@ export class SpaceRepository {
                 `
         SELECT s.*,
           COALESCE(sf_count.file_count, 0) as file_count,
-          f.storage_key as cover_storage_key
+          f.storage_key as cover_storage_key,
+          (
+            SELECT vi.image_id
+            FROM variant_images vi
+            WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
+            ORDER BY vi.sort_order ASC, vi.created_at ASC
+            LIMIT 1
+          ) as variant_primary_image_id,
+          COALESCE(
+            (
+              SELECT vi.image_id
+              FROM variant_images vi
+              WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
+              ORDER BY vi.sort_order ASC, vi.created_at ASC
+              LIMIT 1
+            ),
+            pv.image_id,
+            json_extract(p.images, '$[0]')
+          ) as display_image_id
         FROM spaces s
         LEFT JOIN (
             SELECT space_id, COUNT(*) as file_count
@@ -59,6 +95,8 @@ export class SpaceRepository {
             GROUP BY space_id
         ) sf_count ON sf_count.space_id = s.id
         LEFT JOIN files f ON s.cover_file_id = f.id
+        LEFT JOIN products p ON s.product_id = p.id
+        LEFT JOIN product_variants pv ON s.variant_id = pv.id
         WHERE s.product_id = ?
         ORDER BY s.updated_at DESC
       `
@@ -76,6 +114,24 @@ export class SpaceRepository {
     async findById(id) {
         return await this.db.prepare(`
             SELECT s.*,
+              (
+                SELECT vi.image_id
+                FROM variant_images vi
+                WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
+                ORDER BY vi.sort_order ASC, vi.created_at ASC
+                LIMIT 1
+              ) as variant_primary_image_id,
+              COALESCE(
+                (
+                  SELECT vi.image_id
+                  FROM variant_images vi
+                  WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
+                  ORDER BY vi.sort_order ASC, vi.created_at ASC
+                  LIMIT 1
+                ),
+                pv.image_id,
+                json_extract(p.images, '$[0]')
+              ) as display_image_id,
               p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images,
               pv.sku as pv_sku, pv.price as pv_price
             FROM spaces s
@@ -291,7 +347,25 @@ export class SpaceRepository {
             COALESCE(sf_count.file_count, 0) as file_count,
             f.storage_key as cover_storage_key,
             p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images,
-            pv.sku as pv_sku, pv.price as pv_price
+            pv.sku as pv_sku, pv.price as pv_price,
+            (
+              SELECT vi.image_id
+              FROM variant_images vi
+              WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
+              ORDER BY vi.sort_order ASC, vi.created_at ASC
+              LIMIT 1
+            ) as variant_primary_image_id,
+            COALESCE(
+              (
+                SELECT vi.image_id
+                FROM variant_images vi
+                WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
+                ORDER BY vi.sort_order ASC, vi.created_at ASC
+                LIMIT 1
+              ),
+              pv.image_id,
+              json_extract(p.images, '$[0]')
+            ) as display_image_id
         FROM spaces s
         LEFT JOIN (
             SELECT space_id, COUNT(*) as file_count
@@ -393,7 +467,25 @@ export class SpaceRepository {
                 (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
                 f.storage_key as cover_storage_key,
                 p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images,
-                pv.sku as pv_sku, pv.price as pv_price
+                pv.sku as pv_sku, pv.price as pv_price,
+                (
+                  SELECT vi.image_id
+                  FROM variant_images vi
+                  WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
+                  ORDER BY vi.sort_order ASC, vi.created_at ASC
+                  LIMIT 1
+                ) as variant_primary_image_id,
+                COALESCE(
+                  (
+                    SELECT vi.image_id
+                    FROM variant_images vi
+                    WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
+                    ORDER BY vi.sort_order ASC, vi.created_at ASC
+                    LIMIT 1
+                  ),
+                  pv.image_id,
+                  json_extract(p.images, '$[0]')
+                ) as display_image_id
             FROM spaces s
             LEFT JOIN files f ON s.cover_file_id = f.id
             LEFT JOIN products p ON s.product_id = p.id
@@ -419,7 +511,25 @@ export class SpaceRepository {
             SELECT s.*,
                 f.storage_key as cover_storage_key,
                 p.sku as p_sku, p.brand as p_brand, p.series as p_series, p.price as p_price, p.specifications as p_specs, p.images as p_images,
-                pv.sku as pv_sku, pv.price as pv_price
+                pv.sku as pv_sku, pv.price as pv_price,
+                (
+                  SELECT vi.image_id
+                  FROM variant_images vi
+                  WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
+                  ORDER BY vi.sort_order ASC, vi.created_at ASC
+                  LIMIT 1
+                ) as variant_primary_image_id,
+                COALESCE(
+                  (
+                    SELECT vi.image_id
+                    FROM variant_images vi
+                    WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
+                    ORDER BY vi.sort_order ASC, vi.created_at ASC
+                    LIMIT 1
+                  ),
+                  pv.image_id,
+                  json_extract(p.images, '$[0]')
+                ) as display_image_id
             FROM spaces s
             LEFT JOIN files f ON s.cover_file_id = f.id
             LEFT JOIN products p ON s.product_id = p.id

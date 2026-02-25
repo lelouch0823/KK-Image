@@ -204,12 +204,25 @@ const submitButtonText = computed(() => {
 });
 
 const handleProductSelect = (product) => {
+  const variant = product.selectedVariant;
   let mainImage = null;
-  if (product.images) {
+  if (product?.mainImage) {
+    mainImage = product.mainImage.replace('/file/', '');
+  } else if (variant?.primaryImage) {
+    mainImage = variant.primaryImage;
+  } else if (Array.isArray(variant?.images) && variant.images.length > 0) {
+    const primary = variant.images.find((img) => Number(img.is_primary) === 1) || variant.images[0];
+    mainImage = primary?.image_id || null;
+  }
+
+  if (!mainImage && product.images) {
     const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
     mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
   }
-  const variant = product.selectedVariant;
+
+  if (!mainImage && product.display_image_id) {
+    mainImage = product.display_image_id;
+  }
   
   boundProduct.value = {
     id: product.id,

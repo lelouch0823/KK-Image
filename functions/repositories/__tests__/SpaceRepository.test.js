@@ -68,5 +68,40 @@ describe('SpaceRepository', () => {
             // Execute & Assert
             await expect(repo.findByProductId(productId)).rejects.toThrow('Database connection failed');
         });
+
+        it('prefers variant primary image over product image in query selection', async () => {
+            const mockAll = vi.fn().mockResolvedValue({ results: [] });
+            const mockBind = vi.fn().mockReturnValue({ all: mockAll });
+            const mockPrepare = vi.fn().mockReturnValue({ bind: mockBind });
+            const mockDb = { prepare: mockPrepare };
+
+            const repo = new SpaceRepository(mockDb);
+            await repo.findByProductId('prod_1');
+
+            const sql = mockPrepare.mock.calls[0][0];
+            expect(sql).toContain('variant_images');
+            expect(sql).toContain('COALESCE');
+            expect(sql).toContain('display_image_id');
+        });
+    });
+
+    describe('findById', () => {
+        it('keeps fallback chain when variant images are empty', async () => {
+            const mockFirst = vi.fn().mockResolvedValue({
+                id: 'space_1',
+                display_image_id: 'product_img_1',
+            });
+            const mockBind = vi.fn().mockReturnValue({ first: mockFirst });
+            const mockPrepare = vi.fn().mockReturnValue({ bind: mockBind });
+            const mockDb = { prepare: mockPrepare };
+
+            const repo = new SpaceRepository(mockDb);
+            const result = await repo.findById('space_1');
+
+            const sql = mockPrepare.mock.calls[0][0];
+            expect(sql).toContain('variant_images');
+            expect(sql).toContain('json_extract');
+            expect(result.display_image_id).toBe('product_img_1');
+        });
     });
 });

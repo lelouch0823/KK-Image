@@ -209,13 +209,23 @@ const { t } = useI18n();
 const currentIndex = ref(0);
 
 const images = computed(() => {
-    try {
-        if (!props.product.images) return [];
-        return typeof props.product.images === 'string' 
-            ? JSON.parse(props.product.images) 
-            : props.product.images;
-    } catch {
+    const variantImages = (props.product.variants || []).flatMap((variant) => {
+        if (variant.primaryImage) return [variant.primaryImage];
+        if (Array.isArray(variant.images) && variant.images.length > 0) {
+            const primary = variant.images.find((img) => Number(img.is_primary) === 1) || variant.images[0];
+            return primary?.image_id ? [primary.image_id] : [];
+        }
         return [];
+    });
+    try {
+        const productImages = !props.product.images
+            ? []
+            : (typeof props.product.images === 'string' 
+            ? JSON.parse(props.product.images) 
+            : props.product.images);
+        return [...variantImages, ...productImages].filter((id, index, arr) => id && arr.indexOf(id) === index);
+    } catch {
+        return variantImages;
     }
 });
 
