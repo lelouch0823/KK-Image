@@ -22,7 +22,7 @@
           type="checkbox"
           :checked="isAllSelected"
           :indeterminate="isPartialSelected"
-          class="text-primary size-4 cursor-pointer rounded-lg border-(--border-color) bg-(--bg-muted) transition-all focus:ring-primary/20"
+          class="text-primary border-(--border-color) bg-(--bg-muted) focus:ring-primary/20 size-4 cursor-pointer rounded-lg transition-all"
           @change="toggleSelectAll"
         />
       </div>
@@ -34,7 +34,7 @@
         <input
           type="checkbox"
           :checked="isSelected(row.id)"
-          class="text-primary size-4 cursor-pointer rounded-lg border-(--border-color) bg-(--bg-muted) transition-all focus:ring-primary/20"
+          class="text-primary border-(--border-color) bg-(--bg-muted) focus:ring-primary/20 size-4 cursor-pointer rounded-lg transition-all"
           @change="toggleSelect(row.id)"
         />
       </div>
@@ -45,7 +45,7 @@
       <div class="flex items-center gap-3">
         <!-- Thumbnail -->
         <div
-          class="size-10 flex-shrink-0 overflow-hidden rounded border border-(--border-color) bg-(--bg-muted)"
+          class="border-(--border-color) bg-(--bg-muted) size-10 shrink-0 overflow-hidden rounded border"
         >
           <AppImage 
             v-if="row.mainImage" 
@@ -56,17 +56,17 @@
             rounded="none"
           />
           <div v-else class="flex size-full items-center justify-center">
-            <AppIcon name="photo" class="size-4 text-(--text-secondary)/30 stroke-[1.5]" />
+            <AppIcon name="photo" class="text-(--text-secondary)/30 stroke-[1.5] size-4" />
           </div>
         </div>
         
         <!-- Name & Dot -->
         <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-2 font-bold text-(--text-main)">
+          <div class="text-(--text-main) flex items-center gap-2 font-bold">
             <span class="block truncate" :title="row.productName || '-'">{{ row.productName || '-' }}</span>
             <span
               v-if="row.hasNewFeedback"
-              class="bg-danger size-2.5 shrink-0 animate-pulse rounded-full border-2 border-(--bg-card)"
+              class="bg-danger border-(--bg-card) size-2.5 shrink-0 animate-pulse rounded-full border-2"
               :title="t('order.portal.hasUpdate')"
             ></span>
           </div>
@@ -83,21 +83,21 @@
     <template #cell-salesperson="{ row }">
       <div v-if="row.salespersonName" class="flex min-w-0 flex-col">
         <span class="block truncate font-medium" :title="row.salespersonName">{{ row.salespersonName }}</span>
-        <span class="block truncate text-xs text-(--text-secondary)" :title="row.store">{{ row.store }}</span>
+        <span class="text-(--text-secondary) block truncate text-xs" :title="row.store">{{ row.store }}</span>
       </div>
       <span v-else class="text-(--text-muted)">-</span>
     </template>
 
     <!-- Order No Cell -->
     <template #cell-orderNo="{ value }">
-      <span class="block truncate font-mono text-xs text-(--text-secondary)" :title="value">{{ value }}</span>
+      <span class="text-(--text-secondary) block truncate font-mono text-xs" :title="value">{{ value }}</span>
     </template>
 
     <!-- Status Cell -->
     <template #cell-status="{ row }">
       <slot name="status" :order="row">
          <!-- Fallback if no slot provided -->
-        <span class="inline-flex items-center rounded-full bg-(--bg-muted) px-2 py-0.5 text-xs font-medium text-(--text-secondary)">
+        <span class="bg-(--bg-muted) text-(--text-secondary) inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
           {{ row.status }}
         </span>
       </slot>
@@ -105,21 +105,21 @@
 
     <!-- Created At Cell -->
     <template #cell-createdAt="{ value }">
-      <span class="text-xs text-(--text-secondary)">{{ formatTime(value) }}</span>
+      <span class="text-(--text-secondary) text-xs">{{ formatTime(value) }}</span>
     </template>
 
     <!-- Actions Cell -->
     <template #cell-actions="{ row }">
       <div class="flex items-center justify-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
         <button
-          class="hover:text-info hover:bg-(--color-info-bg) rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90"
+          class="hover:text-info hover:bg-info-bg text-(--text-secondary) rounded-lg p-1.5 transition-colors active:scale-90"
           :title="t('common.view')"
           @click.stop="$emit('detail', row)"
         >
           <AppIcon name="eye" class="size-4" />
         </button>
         <button
-          class="hover:text-primary hover:bg-(--bg-hover) rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90"
+          class="hover:text-primary hover:bg-(--bg-hover) text-(--text-secondary) rounded-lg p-1.5 transition-colors active:scale-90"
           :title="t('common.edit')"
           @click.stop="$emit('edit', row)"
         >
@@ -127,7 +127,7 @@
         </button>
         <button
           v-if="row.status !== 'void'"
-          class="hover:bg-danger/10 hover:text-danger rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90"
+          class="hover:bg-danger/10 hover:text-danger text-(--text-secondary) rounded-lg p-1.5 transition-colors active:scale-90"
           :title="t('order.actions.void')"
           @click.stop="$emit('void', row)"
         >

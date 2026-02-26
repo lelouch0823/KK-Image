@@ -101,7 +101,11 @@ export default {
     delete_confirm_message: 'Are you sure you want to delete this product? This action is irreversible.',
   },
   create: {
-    variants: 'Variants',
+    variants: {
+      image_upload: 'Product Variant Image Upload',
+      image_manage: 'Manage and organize visual assets for each SKU',
+      select: 'Select Variant',
+    },
   },
   confirm: {
     delete_title: 'Delete Confirmation',
@@ -124,6 +128,14 @@ export default {
     lowStock: 'Low Stock',
     units: 'pcs',
     image: 'Product Image',
+  },
+  image: {
+    uploaded_count: '{count} images uploaded',
+  },
+  variants: {
+    image: {
+      auto_save: 'Changes are automatically saved to draft.',
+    },
   },
   import: {
     title: 'Import Products',

@@ -2,59 +2,51 @@
   <div class="flex flex-col rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] backdrop-blur-sm transition-all duration-500 lg:h-full">
     
     <!-- 1. Header (Compact like OrderManager) -->
-    <div class="flex-shrink-0 border-b border-[var(--border-color)] p-3 sm:p-4">
+    <div class="shrink-0 border-b border-(--border-color) p-3 sm:p-4">
       <div class="flex items-center justify-between gap-3">
         <!-- Title -->
         <div class="min-w-0">
-            <h2 class="truncate text-base font-semibold text-[var(--text-main)] sm:text-lg">{{ t('product.manager.title') }}</h2>
-            <p class="hidden text-sm text-[var(--text-secondary)] sm:block">{{ t('product.manager.subtitle') }}</p>
+            <h2 class="truncate text-base font-semibold text-(--text-main) sm:text-lg">{{ t('product.manager.title') }}</h2>
+            <p class="hidden text-sm text-(--text-secondary) sm:block">{{ t('product.manager.subtitle') }}</p>
         </div>
 
         <!-- Actions -->
         <div class="flex shrink-0 items-center gap-1 sm:gap-2">
             <!-- Create Button -->
             <button 
-                class="bg-primary shadow-primary/20 flex items-center justify-center gap-2 rounded-lg text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:bg-primary-hover active:scale-95 max-sm:size-9 sm:h-9 sm:px-4"
+                class="bg-primary shadow-primary/20 flex items-center justify-center gap-2 rounded-lg text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:bg-primary-hover active:scale-95 max-sm:size-9 sm:h-9 sm:px-4"
                 :title="t('product.action.create')"
                 @click="handleCreate"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" class="size-5 sm:size-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                </svg>
+                <AppIcon name="plus" class="size-5 sm:size-4" />
                 <span class="hidden sm:inline">{{ t('product.action.create') }}</span>
             </button>
 
             <!-- Import Button -->
             <button
-                class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-card-hover)] hover:text-indigo-600 active:scale-95"
+                class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) text-(--text-secondary) transition-all hover:bg-(--bg-card-hover) hover:text-indigo-600 active:scale-95"
                 :title="t('product.action.import')"
                 @click="showImportModal = true"
             >
-                <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
+                <AppIcon name="arrow-up-tray" class="size-5" />
             </button>
 
             <!-- Export Button -->
             <button
-                class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-card-hover)] hover:text-indigo-600 active:scale-95"
+                class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) text-(--text-secondary) transition-all hover:bg-(--bg-card-hover) hover:text-indigo-600 active:scale-95"
                 :title="t('product.action.export')"
                 @click="handleExport"
             >
-                <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
+                <AppIcon name="arrow-down-tray" class="size-5" />
             </button>
 
              <!-- Stats Button -->
             <button
-                class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--color-primary)] transition-all hover:bg-[var(--bg-card-hover)] active:scale-95"
+                class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) text-primary transition-all hover:bg-(--bg-card-hover) active:scale-95"
                 :title="t('product.manager.stats_overview')"
                 @click="showStatsModal = true"
             >
-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
+                <AppIcon name="chart-bar" class="size-5" />
             </button>
         </div>
       </div>
@@ -103,12 +95,10 @@
     >
         <template #header-actions="{ product }">
             <button 
-                class="flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)]/10 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-[var(--text-inverse)]"
+                class="hover:bg-primary hover:text-inverse flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors"
                 @click="handleEditFromDetail(product)"
             >
-                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
+                <AppIcon name="pencil-square" class="size-3.5" />
                 {{ t('product.action.edit') }}
             </button>
         </template>
@@ -117,8 +107,8 @@
     <!-- 2. Content Area (Table/Grid) -->
     <div class="relative flex-1 lg:min-h-[400px] lg:overflow-hidden">
       <!-- Loading Overlay -->
-      <div v-if="loading" class="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-page)]/50 backdrop-blur-[1px]">
-        <div class="border-primary size-10 animate-spin rounded-full border-b-2"></div>
+      <div v-if="loading" class="absolute inset-0 z-10 flex items-center justify-center bg-(--bg-page)/50 backdrop-blur-[1px]">
+        <AppIcon name="spinner" class="text-primary size-10 animate-spin" />
       </div>
 
       <!-- Desktop Table (Show only if data exists) -->
@@ -173,7 +163,7 @@
     </div>
     
     <!-- Footer / Pagination -->
-     <div class="flex-shrink-0 border-t border-[var(--border-color)] bg-[var(--bg-muted)] p-4">
+     <div class="shrink-0 border-t border-(--border-color) bg-(--bg-muted) p-4">
         <Pagination
             v-model:current-page="pagination.page"
             :total-pages="pagination.totalPages"

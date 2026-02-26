@@ -1,49 +1,49 @@
 <template>
   <div>
     <h4
-      class="mb-3 border-b border-[var(--border-subtle)] pb-2 text-sm font-medium text-[var(--color-primary)]"
+      class="border-(--border-subtle) text-primary mb-3 border-b pb-2 text-sm font-medium"
     >
       {{ t('order.detail.originalInfo') }}
     </h4>
     <div
-      class="grid grid-cols-2 gap-3 rounded-lg bg-[var(--bg-muted)] p-4 text-sm text-[var(--text-secondary)]"
+      class="bg-(--bg-muted) text-(--text-secondary) grid grid-cols-2 gap-3 rounded-lg p-4 text-sm"
     >
       <div>
-        <span class="block text-xs text-[var(--text-muted)]">{{ t('order.form.productName') }}</span>
-        <span class="font-medium text-[var(--text-main)]">{{ data.name || '-' }}</span>
+        <span class="text-(--text-muted) block text-xs">{{ t('order.form.productName') }}</span>
+        <span class="text-(--text-main) font-medium">{{ data.name || '-' }}</span>
       </div>
       <div>
-        <span class="block text-xs text-[var(--text-muted)]">{{ t('order.form.brand') }}</span>
-        <span class="text-[var(--text-main)]">{{ data.brand || '-' }}</span>
+        <span class="text-(--text-muted) block text-xs">{{ t('order.form.brand') }}</span>
+        <span class="text-(--text-main)">{{ data.brand || '-' }}</span>
       </div>
       <div>
-        <span class="block text-xs text-[var(--text-muted)]">{{ t('order.form.series') }}</span>
-        <span class="text-[var(--text-main)]">{{ data.series || '-' }}</span>
+        <span class="text-(--text-muted) block text-xs">{{ t('order.form.series') }}</span>
+        <span class="text-(--text-main)">{{ data.series || '-' }}</span>
       </div>
       <div>
-        <span class="block text-xs text-[var(--text-muted)]">{{ t('order.form.size') }}</span>
-        <span class="text-[var(--text-main)]">{{ data.size || '-' }}</span>
+        <span class="text-(--text-muted) block text-xs">{{ t('order.form.size') }}</span>
+        <span class="text-(--text-main)">{{ data.size || '-' }}</span>
       </div>
       <div>
-        <span class="block text-xs text-[var(--text-muted)]">{{ t('order.form.color') }}</span>
-        <span class="text-[var(--text-main)]">{{ data.color || '-' }}</span>
+        <span class="text-(--text-muted) block text-xs">{{ t('order.form.color') }}</span>
+        <span class="text-(--text-main)">{{ data.color || '-' }}</span>
       </div>
       <div>
-        <span class="block text-xs text-[var(--text-muted)]">{{ t('order.form.material') }}</span>
-        <span class="text-[var(--text-main)]">{{ data.material || '-' }}</span>
+        <span class="text-(--text-muted) block text-xs">{{ t('order.form.material') }}</span>
+        <span class="text-(--text-main)">{{ data.material || '-' }}</span>
       </div>
       <!-- 期望到货时间 (全宽) -->
       <div class="col-span-2 flex items-start gap-2">
-        <span class="block w-24 shrink-0 pt-0.5 text-xs whitespace-nowrap text-[var(--text-muted)]">{{
+        <span class="text-(--text-muted) block w-24 shrink-0 pt-0.5 text-xs whitespace-nowrap">{{
           t('order.form.expectedArrival')
         }}</span>
-        <span class="text-[var(--text-main)]">{{ formatDateWithWeekday(data.deadline) }}</span>
+        <span class="text-(--text-main)">{{ formatDateWithWeekday(data.deadline) }}</span>
       </div>
       <div class="col-span-2 flex items-start gap-2">
-        <span class="block w-24 shrink-0 pt-0.5 text-xs text-[var(--text-muted)]">{{
+        <span class="text-(--text-muted) block w-24 shrink-0 pt-0.5 text-xs">{{
           t('order.form.remark')
         }}</span>
-        <p class="whitespace-pre-wrap text-[var(--text-main)]">{{ data.remark || '-' }}</p>
+        <p class="text-(--text-main) whitespace-pre-wrap">{{ data.remark || '-' }}</p>
       </div>
     </div>
   </div>

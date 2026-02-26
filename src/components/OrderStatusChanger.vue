@@ -3,7 +3,7 @@
     <!-- 触发按钮 -->
     <button
       :disabled="loading"
-      class="focus:ring-primary/30 focus:ring-2 focus:ring-offset-1 focus:outline-none inline-flex items-center justify-between gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold shadow-sm transition-all duration-200 hover:shadow-md active:scale-95 disabled:opacity-50"
+      class="focus:ring-primary/30 inline-flex items-center justify-between gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold shadow-sm transition-all duration-200 hover:shadow-md focus:ring-2 focus:ring-offset-1 focus:outline-none active:scale-95 disabled:opacity-50"
       :class="currentStatusClass"
       @click="openModal"
     >
@@ -11,14 +11,7 @@
         <span class="size-2 rounded-full" :class="getStatusDotColor(status)"></span>
         {{ t(`order.statuses.${status}`) }}
       </span>
-      <svg class="size-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M8 9l4-4 4 4m0 6l-4 4-4-4"
-        ></path>
-      </svg>
+      <AppIcon name="chevron-up-down" class="size-3.5 opacity-60" />
     </button>
 
     <!-- 状态变更弹窗 -->
@@ -26,47 +19,35 @@
       <transition name="fade-scale">
         <div
           v-if="showModal"
-          class="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--color-overlay-dim)] p-4 backdrop-blur-sm"
+          class="bg-(--color-overlay-dim) fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm"
           @click.self="closeModal"
         >
           <div
-            class="w-full max-w-md transform overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-2xl transition-all"
+            class="border-(--border-color) bg-(--bg-card) w-full max-w-md transform overflow-hidden rounded-2xl border shadow-2xl transition-all"
             @click.stop
           >
             <!-- 顶部渐变装饰 + 图标 -->
             <div
-              class="from-primary/10 relative flex h-20 items-center justify-center overflow-hidden bg-gradient-to-br via-[var(--color-info)]/10 to-[var(--color-success)]/10"
+              class="from-primary/10 relative flex h-20 items-center justify-center overflow-hidden bg-linear-to-br via-info/10 to-success/10"
             >
               <div class="absolute inset-0 scale-150 transform opacity-20 blur-2xl">
                 <div class="bg-primary absolute top-0 left-1/4 size-20 rounded-full"></div>
                 <div
-                  class="absolute right-1/4 bottom-0 size-16 rounded-full bg-[var(--color-success)]"
+                  class="bg-success absolute right-1/4 bottom-0 size-16 rounded-full"
                 ></div>
               </div>
 
               <div
-                class="from-primary/20 to-primary/5 ring-primary/10 relative z-10 flex size-12 items-center justify-center rounded-xl bg-gradient-to-br ring-1"
+                class="from-primary/20 to-primary/5 ring-primary/10 relative z-10 flex size-12 items-center justify-center rounded-xl bg-linear-to-br ring-1"
               >
-                <svg
-                  class="text-primary size-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
+                <AppIcon name="arrow-path" class="text-primary size-6" />
               </div>
             </div>
 
             <!-- 标题 -->
             <div class="px-6 pt-5 pb-3 text-center">
               <h3 class="text-primary text-lg font-bold">{{ t('order.manage.changeStatus') }}</h3>
-              <p class="text-secondary mt-1 text-sm">
+              <p class="text-(--text-secondary) mt-1 text-sm">
                 {{ t('order.manage.currentStatus') }}:
                 <span class="text-primary font-medium">{{ t(`order.statuses.${status}`) }}</span>
               </p>
@@ -82,12 +63,12 @@
                   :class="[
                     selectedStatus === s
                       ? 'border-primary bg-primary/5 ring-primary/20 ring-2'
-                      : 'border-[var(--border-color)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)]',
+                      : 'border-(--border-color) hover:border-(--border-hover) hover:bg-(--bg-hover)',
                   ]"
                   @click="selectedStatus = s"
                 >
                   <span
-                    class="size-3 flex-shrink-0 rounded-full ring-2 ring-offset-1"
+                    class="size-3 shrink-0 rounded-full ring-2 ring-offset-1"
                     :class="[
                       getStatusDotColor(s),
                       selectedStatus === s ? 'ring-current/30' : 'ring-transparent',
@@ -101,28 +82,19 @@
                   </span>
 
                   <!-- 选中勾 -->
-                  <svg
+                  <AppIcon
                     v-if="selectedStatus === s"
+                    name="check"
                     class="text-primary absolute top-2 right-2 size-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2.5"
-                      d="M5 13l4 4L19 7"
-                    ></path>
-                  </svg>
+                  />
                 </button>
               </div>
             </div>
 
             <div class="px-6 pb-4">
-              <label class="text-secondary mb-2 block text-xs font-medium">
+              <label class="text-(--text-secondary) mb-2 block text-xs font-medium">
                 {{ t('order.manage.statusNote') }}
-                <span class="text-muted">({{ t('common.optional') }})</span>
+                <span class="text-(--text-muted)">({{ t('common.optional') }})</span>
               </label>
               <input
                 ref="noteInput"
@@ -137,22 +109,13 @@
             <!-- 危险操作提示 -->
             <div v-if="isDangerousStatus" class="px-6 pb-4">
               <div
-                class="flex items-start gap-2 rounded-xl border border-[var(--color-danger)]/20 bg-[var(--color-danger-light)] p-3"
+                class="border-danger/20 bg-danger-bg flex items-start gap-2 rounded-xl border p-3"
               >
-                <svg
-                  class="mt-0.5 size-5 flex-shrink-0 text-[var(--color-danger)]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
-                <p class="text-xs text-[var(--color-danger)]">
+                <AppIcon
+                  name="exclamation-triangle"
+                  class="mt-0.5 size-5 shrink-0 text-danger"
+                />
+                <p class="text-danger text-xs">
                   {{ t('order.manage.dangerousStatusWarning') }}
                 </p>
               </div>
@@ -162,7 +125,7 @@
             <div class="flex items-center gap-3 px-6 pb-6">
               <button
                 :disabled="submitting"
-                class="text-secondary flex-1 rounded-xl bg-[var(--bg-muted)] px-4 py-2.5 text-sm font-semibold transition-all hover:bg-[var(--bg-hover)] active:scale-95 disabled:opacity-50"
+                class="hover:bg-(--bg-hover) text-(--text-secondary) bg-(--bg-muted) rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
                 @click="closeModal"
               >
                 {{ t('common.cancel') }}
@@ -170,29 +133,15 @@
               <button
                 :disabled="!canConfirm"
                 :class="[
-                  'flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--text-inverse)] shadow-lg transition-all active:scale-95',
+                  'flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-(--text-inverse) shadow-lg transition-all active:scale-95',
                   isDangerousStatus
-                    ? 'bg-[var(--color-danger)] shadow-[var(--color-danger)]/20 hover:bg-[var(--color-danger)]/90'
-                    : 'bg-[var(--color-primary)] shadow-[var(--color-primary)]/20 hover:opacity-90',
+                    ? 'bg-danger shadow-danger/20 hover:bg-danger/90'
+                    : 'bg-primary shadow-primary/20 hover:opacity-90',
                   !canConfirm ? 'cursor-not-allowed opacity-70' : '',
                 ]"
                 @click="handleConfirm"
               >
-                <svg v-if="submitting" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle
-                    class="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="4"
-                  ></circle>
-                  <path
-                    class="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  ></path>
-                </svg>
+                <AppIcon v-if="submitting" name="spinner" class="size-4 animate-spin" />
                 {{ t('common.confirm') }}
               </button>
             </div>

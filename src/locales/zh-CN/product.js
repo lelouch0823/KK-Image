@@ -101,7 +101,11 @@ export default {
     delete_confirm_message: '确定要删除该商品吗？此操作不可逆。',
   },
   create: {
-    variants: '变体组合',
+    variants: {
+      image_upload: '变体图片上传',
+      image_manage: '管理和组织每个 SKU 的视觉素材',
+      select: '选择变体',
+    },
   },
   confirm: {
     delete_title: '删除确认',
@@ -124,6 +128,14 @@ export default {
     lowStock: '库存不足',
     units: '件',
     image: '商品图',
+  },
+  image: {
+    uploaded_count: '已上传 {count} 张图片',
+  },
+  variants: {
+    image: {
+      auto_save: '更改会自动保存为草稿。',
+    },
   },
   import: {
     title: '商品导入',

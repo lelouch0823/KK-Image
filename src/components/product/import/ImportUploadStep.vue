@@ -1,33 +1,31 @@
 <template>
     <div class="space-y-6">
         <!-- 1. Download Template Step -->
-        <div class="rounded-lg bg-[var(--color-primary)]/10 p-4">
-            <h3 class="mb-2 text-sm font-medium text-[var(--color-primary)]">
+        <div class="bg-primary/10 rounded-lg p-4">
+            <h3 class="text-primary mb-2 text-sm font-medium">
                 {{ t('product.import.step1_title', '第一步：下载模板') }}
             </h3>
-            <p class="mb-3 text-xs text-[var(--text-secondary)]">
+            <p class="text-(--text-secondary) mb-3 text-xs">
                 {{ t('product.import.step1_desc', '请下载标准 Excel 模板，按照格式填写商品信息。') }}
             </p>
             <button 
                 type="button"
-                class="inline-flex items-center gap-2 rounded-md bg-[var(--bg-card)] px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] shadow-sm transition-colors hover:bg-[var(--bg-hover)]"
+                class="bg-(--bg-card) hover:bg-(--bg-hover) text-primary inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium shadow-sm transition-colors"
                 @click="downloadTemplate"
             >
-                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
+                <AppIcon name="arrow-down-tray" class="size-4" />
                 {{ t('product.import.download_template', '下载 Excel 模板') }}
             </button>
         </div>
 
         <!-- 2. Upload Area -->
         <div>
-            <h3 class="mb-2 text-sm font-medium text-[var(--text-main)]">
+            <h3 class="text-(--text-main) mb-2 text-sm font-medium">
                 {{ t('product.import.step2_title', '第二步：上传文件') }}
             </h3>
             <div 
-                class="relative flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[var(--border-color)] bg-[var(--bg-muted)] px-6 py-10 transition-colors hover:bg-[var(--bg-hover)]"
-                :class="{ 'border-[var(--color-primary)] bg-[var(--color-primary)]/10': isDragOver }"
+                class="border-(--border-color) bg-(--bg-muted) hover:bg-(--bg-hover) relative flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 transition-colors"
+                :class="{ 'border-primary bg-primary/10': isDragOver }"
                 @dragover.prevent="isDragOver = true"
                 @dragleave.prevent="isDragOver = false"
                 @drop.prevent="handleDrop"
@@ -42,16 +40,14 @@
                 >
                 
                 <div class="text-center">
-                    <svg class="mx-auto size-12 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                    <p class="mt-2 text-sm text-[var(--text-secondary)]">
-                        <span class="font-medium text-[var(--color-primary)] hover:opacity-80">
+                    <AppIcon name="cloud-arrow-up" class="text-(--text-muted) mx-auto size-12" />
+                    <p class="text-(--text-secondary) mt-2 text-sm">
+                        <span class="text-primary font-medium hover:opacity-80">
                             {{ t('common.click_to_upload', '点击上传') }}
                         </span>
                         {{ t('common.or_drag_drop', '或拖拽文件到此处') }}
                     </p>
-                    <p class="mt-1 text-xs text-[var(--text-muted)]">
+                    <p class="text-(--text-muted) mt-1 text-xs">
                         {{ t('product.import.file_limits', '支持 .xlsx, .csv 格式') }}
                     </p>
                 </div>
@@ -64,6 +60,7 @@
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import * as XLSX from 'xlsx';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const emit = defineEmits(['file-selected']);
 const { t } = useI18n();

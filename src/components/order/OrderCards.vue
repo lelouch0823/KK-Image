@@ -17,7 +17,7 @@
         <div class="flex gap-3">
           <!-- 主图 -->
           <div
-            class="size-16 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)]"
+            class="border-(--border-color) bg-(--bg-muted) size-16 shrink-0 overflow-hidden rounded-lg border"
           >
             <AppImage 
               v-if="order.mainImage" 
@@ -28,28 +28,28 @@
               rounded="none"
             />
             <div v-else class="flex size-full items-center justify-center">
-              <AppIcon name="photo" class="size-6 text-[var(--text-secondary)]/30 stroke-[1.5]" />
+              <AppIcon name="photo" class="text-(--text-secondary)/30 stroke-[1.5] size-6" />
             </div>
           </div>
 
           <!-- 信息 -->
           <div class="min-w-0 flex-1">
             <div class="flex items-start justify-between gap-2">
-              <div class="flex min-w-0 flex-1 items-center gap-2 truncate pr-2 font-bold text-[var(--text-main)]">
+              <div class="text-(--text-main) flex min-w-0 flex-1 items-center gap-2 truncate pr-2 font-bold">
                 <span class="block truncate" :title="order.productName || '-'">{{ order.productName || '-' }}</span>
                 <span
                   v-if="order.hasNewFeedback"
-                  class="size-2.5 flex-shrink-0 animate-pulse rounded-full border-2 border-[var(--bg-card)] bg-[var(--color-danger)]"
+                  class="bg-danger border-(--bg-card) size-2.5 shrink-0 animate-pulse rounded-full border-2"
                 ></span>
               </div>
               <div class="shrink-0" @click.stop>
                 <slot name="status" :order="order"></slot>
               </div>
             </div>
-            <div class="mt-1.5 truncate text-xs font-medium text-[var(--text-secondary)]" :title="`${order.salesperson?.name || ''} ${order.salesperson?.store ? '· ' + order.salesperson?.store : ''}`">
+            <div class="text-(--text-secondary) mt-1.5 truncate text-xs font-medium" :title="`${order.salesperson?.name || ''} ${order.salesperson?.store ? '· ' + order.salesperson?.store : ''}`">
               {{ order.salesperson?.name }} <template v-if="order.salesperson?.store">· {{ order.salesperson?.store }}</template>
             </div>
-            <div class="mt-1 truncate font-mono text-xs text-[var(--text-secondary)]/60 select-all" :title="order.orderNo">
+            <div class="text-(--text-secondary)/60 mt-1 select-all truncate font-mono text-xs" :title="order.orderNo">
               {{ order.orderNo }}
             </div>
           </div>
@@ -58,11 +58,11 @@
         <!-- 底部操作栏 -->
         <template #footer>
           <div class="flex items-center justify-between" @click.stop>
-            <span class="text-xs text-[var(--text-secondary)]/50">{{
+            <span class="text-(--text-secondary)/50 text-xs">{{
               formatTime(order.createdAt)
             }}</span>
             <button
-              class="rounded-xl bg-[var(--color-primary)]/5 px-4 py-2 text-xs font-bold text-[var(--color-primary)] transition-all hover:bg-[var(--color-primary)]/10 active:scale-90"
+              class="bg-primary/5 text-primary hover:bg-primary/10 rounded-xl px-4 py-2 text-xs font-bold transition-all active:scale-90"
               @click="$emit('edit', order)"
             >
               {{ t('order.manage.editOrder') }}

@@ -18,7 +18,7 @@
     <!-- Product Info Cell -->
     <template #cell-product="{ row }">
       <div class="flex items-center gap-4">
-        <div class="relative size-12 flex-shrink-0 overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-muted) transition-all group-hover:shadow-md">
+        <div class="relative size-12 shrink-0 overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-muted) transition-all group-hover:shadow-md">
             <AppImage 
                 v-if="getMainImage(row)" 
                 :src="getFileUrl(getMainImage(row))" 
@@ -28,14 +28,12 @@
             >
                  <template #placeholder>
                      <div class="flex size-full items-center justify-center bg-(--bg-muted) text-(--text-muted)">
-                         <svg class="size-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                         </svg>
+                         <AppIcon name="photo" class="size-4 animate-pulse" />
                      </div>
                  </template>
             </AppImage>
             <div v-else class="flex h-full items-center justify-center text-(--text-muted)">
-                <svg class="size-6 text-(--text-muted)" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                <AppIcon name="photo" class="size-6 text-(--text-muted)" />
             </div>
         </div>
         <div class="min-w-0 flex-1 text-left">
@@ -112,25 +110,25 @@
     <template #cell-actions="{ row }">
       <div class="flex items-center justify-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
           <button 
-            class="hover:bg-primary/10 rounded-lg p-1.5 text-[var(--color-primary)] transition-colors"
+            class="hover:bg-primary/10 rounded-lg p-1.5 text-primary transition-colors"
             :title="t('spaceManager.quickShare') || 'Share'"
             @click.stop="$emit('share', row)"
           >
-              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+              <AppIcon name="share" class="size-4" />
           </button>
           <button 
             class="hover:bg-info-bg hover:text-info rounded-lg p-1.5 text-(--text-muted) transition-colors"
             :title="t('common.edit') || 'Edit'"
             @click.stop="$emit('edit', row)"
           >
-              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+              <AppIcon name="pencil-square" class="size-4" />
           </button>
           <button 
             class="hover:bg-danger-bg hover:text-danger rounded-lg p-1.5 text-(--text-muted) transition-colors"
             :title="t('common.delete') || 'Delete'"
             @click.stop="$emit('delete', row)"
           >
-              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              <AppIcon name="trash" class="size-4" />
           </button>
       </div>
     </template>

@@ -1,10 +1,10 @@
 <template>
   <div class="min-h-screen bg-[var(--bg-page)] font-sans text-[var(--text-main)] antialiased">
     <!-- 加载状态 -->
-    <div v-if="loading" class="flex min-h-screen items-center justify-center bg-[var(--bg-page)]">
+    <div v-if="loading" class="flex min-h-screen items-center justify-center bg-(--bg-page)">
       <div class="text-center">
         <div
-          class="border-t-primary mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-[var(--border-color)]"
+          class="mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-(--border-color) border-t-primary"
         ></div>
         <p class="text-secondary">{{ t('common.loading') }}</p>
       </div>
@@ -17,7 +17,7 @@
     <div v-else>
       <!-- 顶部导航 -->
       <header
-        class="sticky top-0 z-40 border-b border-[var(--border-color)] bg-[var(--bg-card)]/90 backdrop-blur-lg transition-all"
+        class="sticky top-0 z-40 border-b border-(--border-color) bg-(--bg-card)/90 backdrop-blur-lg transition-all"
       >
         <div class="mx-auto flex h-14 max-w-screen-xl items-center justify-between px-4 sm:px-6">
           <div class="flex items-center gap-3">
@@ -103,7 +103,7 @@
               @click="router.push(`/sales/${accessToken}/stats`)"
             >
               <template #icon-left>
-                <svg class="size-5 sm:size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                <AppIcon name="chart-bar" class="size-5 sm:size-4" />
               </template>
               <template #default>
                 <span class="hidden sm:inline">{{ t('salesStats.title') }}</span>
@@ -130,12 +130,12 @@
       </main>
 
       <!-- Bottom TabBar -->
-      <nav class="fixed right-0 bottom-0 left-0 z-40 border-t border-[var(--border-color)] bg-[var(--bg-card)]/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg">
+      <nav class="fixed right-0 bottom-0 left-0 z-40 border-t border-(--border-color) bg-(--bg-card)/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg">
         <div class="mx-auto flex h-14 max-w-screen-xl items-center justify-around">
           <router-link
             :to="`/sales/${accessToken}`"
             class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-colors"
-            :class="isOrderTab ? 'text-[var(--color-primary)]' : 'text-[var(--text-secondary)]'"
+            :class="isOrderTab ? 'text-primary' : 'text-secondary'"
           >
             <AppIcon name="clipboard-document-list" class="size-5" :stroke-width="isOrderTab ? '2.5' : '1.5'" />
             <span class="text-[10px] font-medium">{{ t('salesTab.orders') }}</span>
@@ -143,7 +143,7 @@
           <router-link
             :to="`/sales/${accessToken}/spaces`"
             class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-colors"
-            :class="isSpacesPage ? 'text-[var(--color-primary)]' : 'text-[var(--text-secondary)]'"
+            :class="isSpacesPage ? 'text-primary' : 'text-secondary'"
           >
             <AppIcon name="link" class="size-5" :stroke-width="isSpacesPage ? '2.5' : '1.5'" />
             <span class="text-[10px] font-medium">{{ t('salesTab.spaces') }}</span>

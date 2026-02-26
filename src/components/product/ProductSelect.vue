@@ -3,16 +3,14 @@
     <!-- Input Field -->
     <div class="relative">
       <div 
-        class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--text-muted)]"
+        class="text-(--text-muted) pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"
       >
-        <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
+        <AppIcon name="magnifying-glass" class="size-5" />
       </div>
       <input
         v-model="searchQuery"
         type="text"
-        class="w-full rounded-lg border-[var(--border-color)] bg-[var(--bg-muted)] py-2.5 pr-4 pl-10 text-sm text-[var(--text-main)] transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--color-primary)] focus:bg-[var(--bg-card)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none"
+        class="border-(--border-color) bg-(--bg-muted) text-(--text-main) placeholder:text-(--text-muted) focus:border-primary focus:bg-(--bg-card) focus:ring-primary w-full rounded-lg py-2.5 pr-4 pl-10 text-sm transition-colors focus:ring-1 focus:outline-none"
         :placeholder="t('product.filters.search_placeholder') || 'Search products...'"
         @focus="open"
         @input="handleInput"
@@ -20,10 +18,7 @@
       
       <!-- Loading Indicator -->
       <div v-if="loading" class="absolute inset-y-0 right-0 flex items-center pr-3">
-        <svg class="size-4 animate-spin text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-        </svg>
+        <AppIcon name="spinner" class="text-primary size-4 animate-spin" />
       </div>
     </div>
 
@@ -38,10 +33,10 @@
     >
       <div
         v-if="isOpen && (products.length > 0 || loading || (searchQuery && products.length === 0))"
-        class="absolute z-50 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/90 p-1.5 shadow-xl ring-1 ring-black/5 backdrop-blur-xl"
+        class="border-(--border-subtle) bg-(--bg-card)/90 absolute z-50 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border p-1.5 shadow-xl ring-1 ring-black/5 backdrop-blur-xl"
       >
         <!-- Empty State -->
-        <div v-if="!loading && products.length === 0" class="px-4 py-8 text-center text-sm text-[var(--text-muted)]">
+        <div v-if="!loading && products.length === 0" class="text-(--text-muted) px-4 py-8 text-center text-sm">
           {{ t('common.noData') }}
         </div>
 
@@ -50,30 +45,30 @@
           <li
             v-for="product in products"
             :key="product.id"
-            class="group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-[var(--bg-hover)]"
+            class="hover:bg-(--bg-hover) group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors"
             @click="select(product)"
           >
             <!-- Image -->
-            <div class="relative size-10 flex-shrink-0 overflow-hidden rounded-md border border-[var(--border-color)] bg-[var(--bg-muted)]">
+            <div class="border-(--border-color) bg-(--bg-muted) relative size-10 shrink-0 overflow-hidden rounded-md border">
                <AppImage 
                   v-if="getMainImage(product)" 
                   :src="getFileUrl(getMainImage(product))" 
                   fit="cover"
                   class="size-full"
                />
-               <div v-else class="flex h-full items-center justify-center text-[var(--text-muted)]">
-                  <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+               <div v-else class="text-(--text-muted) flex h-full items-center justify-center">
+                  <AppIcon name="photo" class="size-5" />
                </div>
             </div>
 
             <!-- Info -->
             <div class="min-w-0 flex-1">
               <div class="flex items-center justify-between">
-                <span class="truncate font-medium text-[var(--text-main)]">{{ product.name }}</span>
-                <span class="ml-2 flex-shrink-0 text-xs text-[var(--text-muted)]">¥{{ product.price }}</span>
+                <span class="text-(--text-main) truncate font-medium">{{ product.name }}</span>
+                <span class="text-(--text-muted) ml-2 shrink-0 text-xs">¥{{ product.price }}</span>
               </div>
-              <div class="mt-0.5 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-                <span class="rounded bg-[var(--bg-muted)] px-1.5 py-0.5 font-mono">{{ product.spu }}</span>
+              <div class="text-(--text-secondary) mt-0.5 flex items-center gap-2 text-xs">
+                <span class="bg-(--bg-muted) rounded px-1.5 py-0.5 font-mono">{{ product.spu }}</span>
                 <span v-if="product.category" class="truncate">{{ product.category }}</span>
               </div>
             </div>
@@ -92,6 +87,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useProducts } from '@/composables/useProducts';
 import { onClickOutside, useDebounceFn } from '@vueuse/core';
 import AppImage from '@/components/ui/AppImage.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 defineProps({
   modelValue: { type: String, default: '' }, // existing code compatibility

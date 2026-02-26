@@ -61,7 +61,7 @@
         </button>
 
         <button v-if="currentStep === 5" type="button" class="btn btn-primary" :disabled="loading" @click="handleUploadImagesAndNext">
-            <span v-if="loading" class="loading-spinner mr-2 size-4"></span>
+            <AppIcon v-if="loading" name="spinner" class="mr-2 size-4 animate-spin" />
             {{ loading ? t('product.import.uploading') : t('product.import.upload_and_continue') }}
         </button>
 
@@ -72,7 +72,7 @@
             :disabled="!parsedItems.length || loading"
             @click="importResult && importResult.success ? $emit('update:modelValue', false) : handleImport()"
         >
-            <span v-if="loading" class="loading-spinner mr-2 size-4"></span>
+            <AppIcon v-if="loading" name="spinner" class="mr-2 size-4 animate-spin" />
             {{ 
                 loading 
                     ? t('product.import.importing', { current: importStats.processed, total: importStats.total }) 
@@ -86,13 +86,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
 import * as XLSX from 'xlsx';
 import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 // Step Components
 import ImportUploadStep from '@/components/product/import/ImportUploadStep.vue';
@@ -362,8 +363,6 @@ const handleBack = () => {
 
 const CHUNK_SIZE = 200;
 const importStats = computed(() => {
-    // We can use a reactive object, but let's keep it simple with refs if possible, 
-    // or just a reactive state.
     return _importStats.value;
 });
 const _importStats = ref({

@@ -2,9 +2,9 @@
   <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
     <!-- Left: Gallery -->
     <div class="space-y-4 lg:col-span-7">
-        <div class="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-1 shadow-sm">
+        <div class="border-(--border-color) bg-(--bg-card) overflow-hidden rounded-2xl border p-1 shadow-sm">
              <!-- Main Image -->
-            <div class="relative aspect-square w-full overflow-hidden rounded-xl bg-[var(--bg-muted)] sm:aspect-[4/3] lg:aspect-video">
+            <div class="bg-(--bg-muted) relative aspect-square w-full overflow-hidden rounded-xl sm:aspect-[4/3] lg:aspect-video">
                  <AppImage 
                     v-if="currentImage"
                     :src="`/file/${currentImage}`"
@@ -12,7 +12,7 @@
                     fit="contain"
                     class="size-full transition-transform duration-500 motion-safe:hover:scale-105"
                  />
-                 <div v-else class="flex size-full items-center justify-center text-[var(--text-secondary)]">
+                 <div v-else class="text-(--text-secondary) flex size-full items-center justify-center">
                     <span class="text-sm">{{ t('product.text.no_images') }}</span>
                  </div>
             </div>
@@ -23,8 +23,8 @@
                   v-for="(img, idx) in images" 
                   :key="idx"
                   type="button"
-                  class="relative size-16 shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-                  :class="currentIndex === idx ? 'border-[var(--color-primary)] opacity-100 ring-2 ring-[var(--color-primary)]/20' : 'border-transparent opacity-60 hover:opacity-100'"
+                  class="focus-visible:ring-primary/20 relative size-16 shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 transition-all focus-visible:ring-2 focus-visible:outline-none"
+                  :class="currentIndex === idx ? 'border-primary ring-primary/20 opacity-100 ring-2' : 'border-transparent opacity-60 hover:opacity-100'"
                   @click="currentIndex = idx"
                 >
                    <AppImage :src="`/file/${img}`" :alt="`${product.name || 'Product'} thumbnail ${idx + 1}`" fit="cover" class="size-full" />
@@ -33,67 +33,76 @@
         </div>
 
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2">
-            <p class="text-[11px] text-[var(--text-secondary)]">{{ t('product.table.variant.images', 'Images') }}</p>
-            <p class="mt-1 text-lg font-semibold text-[var(--text-main)]">{{ images.length }}</p>
+          <div class="border-(--border-color) bg-(--bg-card) rounded-xl border px-3 py-2">
+            <p class="text-(--text-secondary) text-[11px]">{{ t('product.table.variant.images', 'Images') }}</p>
+            <p class="text-(--text-main) mt-1 text-lg font-semibold">{{ images.length }}</p>
           </div>
-          <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2">
-            <p class="text-[11px] text-[var(--text-secondary)]">{{ t('product.form.variants_title', 'Variants') }}</p>
-            <p class="mt-1 text-lg font-semibold text-[var(--text-main)]">{{ variantCount }}</p>
+          <div class="border-(--border-color) bg-(--bg-card) rounded-xl border px-3 py-2">
+            <p class="text-(--text-secondary) text-[11px]">{{ t('product.form.variants_title', 'Variants') }}</p>
+            <p class="text-(--text-main) mt-1 text-lg font-semibold">{{ variantCount }}</p>
           </div>
-          <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2">
-            <p class="text-[11px] text-[var(--text-secondary)]">{{ t('product.form.inventory', 'Inventory') }}</p>
-            <p class="mt-1 text-lg font-semibold text-[var(--text-main)]">{{ totalStock }}</p>
+          <div class="border-(--border-color) bg-(--bg-card) rounded-xl border px-3 py-2">
+            <p class="text-(--text-secondary) text-[11px]">{{ t('product.form.inventory', 'Inventory') }}</p>
+            <p class="text-(--text-main) mt-1 text-lg font-semibold">{{ totalStock }}</p>
           </div>
-          <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2">
-            <p class="text-[11px] text-[var(--text-secondary)]">{{ t('spaceManager.associatedLinks') || 'Associated Links' }}</p>
-            <p class="mt-1 text-lg font-semibold text-[var(--text-main)]">{{ associatedSpaces.length }}</p>
+          <div class="border-(--border-color) bg-(--bg-card) rounded-xl border px-3 py-2">
+            <p class="text-(--text-secondary) text-[11px]">{{ t('spaceManager.associatedLinks') || 'Associated Links' }}</p>
+            <p class="text-(--text-main) mt-1 text-lg font-semibold">{{ associatedSpaces.length }}</p>
           </div>
         </div>
         
         <!-- Description (Desktop) -->
-        <div class="hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6 shadow-sm lg:block">
-            <h3 class="mb-3 font-bold text-[var(--text-main)]">{{ t('product.form.description') }}</h3>
-            <p class="text-sm leading-relaxed whitespace-pre-wrap text-[var(--text-secondary)]">
+        <div class="border-(--border-color) bg-(--bg-card) hidden rounded-2xl border p-6 shadow-sm lg:block">
+            <h3 class="text-(--text-main) mb-3 font-bold">{{ t('product.form.description') }}</h3>
+            <p class="text-(--text-secondary) whitespace-pre-wrap text-sm leading-relaxed">
                 {{ product.description || t('common.text.no_description') }}
             </p>
         </div>
 
         <!-- Associated Share Links -->
-        <div class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6 shadow-sm">
+        <div class="border-(--border-color) bg-(--bg-card) rounded-2xl border p-6 shadow-sm">
             <div class="mb-4 flex items-center justify-between">
-                <h3 class="font-bold text-[var(--text-main)]">{{ t('spaceManager.associatedLinks') || 'Associated Share Links' }}</h3>
-                <span class="rounded-full bg-[var(--bg-muted)] px-2 py-0.5 text-xs text-[var(--text-secondary)]">{{ associatedSpaces.length }}</span>
+                <h3 class="text-(--text-main) font-bold">{{ t('spaceManager.associatedLinks') || 'Associated Share Links' }}</h3>
+                <span class="bg-(--bg-muted) text-(--text-secondary) rounded-full px-2 py-0.5 text-xs">{{ associatedSpaces.length }}</span>
             </div>
             
             <div v-if="loadingSpaces" class="flex justify-center py-4">
-                <svg class="size-6 animate-spin text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <AppIcon name="spinner" class="text-primary size-6 animate-spin" />
             </div>
-            <div v-else-if="associatedSpaces.length === 0" class="flex flex-col items-center justify-center py-6 text-center text-[var(--text-secondary)]">
-                <svg class="mb-2 size-10 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" /></svg>
+            <div v-else-if="associatedSpaces.length === 0" class="text-(--text-secondary) flex flex-col items-center justify-center py-6 text-center">
+                <AppIcon name="link" class="mb-2 size-10 opacity-20" />
                 <span class="text-sm">{{ t('spaceManager.noAssociatedLinks') || 'No shared spaces linked to this product yet.' }}</span>
             </div>
             <div v-else class="space-y-3">
-                <div v-for="space in associatedSpaces" :key="space.id" class="group flex items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)]/50 p-3 transition-colors hover:bg-[var(--bg-muted)]">
+                <div v-for="space in associatedSpaces" :key="space.id" class="border-(--border-color) hover:bg-(--bg-hover) group flex items-center justify-between rounded-xl border bg-(--bg-muted)/50 p-3 transition-colors">
                     <div class="flex min-w-0 items-center gap-3">
-                        <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
-                            <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                        <div class="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-lg">
+                            <AppIcon name="link" class="size-5" />
                         </div>
                         <div class="min-w-0">
-                            <h4 class="truncate text-sm font-medium text-[var(--text-main)] transition-colors group-hover:text-[var(--color-primary)]">{{ space.name }}</h4>
-                            <div class="mt-0.5 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                            <h4 class="text-(--text-main) group-hover:text-primary truncate text-sm font-medium transition-colors">{{ space.name }}</h4>
+                            <div class="text-(--text-secondary) mt-0.5 flex items-center gap-2 text-xs">
                                 <span>{{ new Date(space.createdAt || space.created_at).toLocaleDateString() }}</span>
                                 <span v-if="space.view_count !== undefined">&bull; {{ space.view_count }} views</span>
-                                <span v-if="space.is_public" class="rounded bg-[var(--color-success)]/10 px-1.5 font-medium text-[var(--color-success)]">Public</span>
+                                <span v-if="space.is_public" class="bg-success/10 text-success rounded px-1.5 font-medium">Public</span>
                             </div>
                         </div>
                     </div>
                     <div class="flex shrink-0 items-center gap-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
-                        <button type="button" class="cursor-pointer rounded-lg p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-card)] hover:text-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]" :title="t('common.copyLink')" :aria-label="`${t('common.copyLink')}: ${space.name}`" @click="copyShareLink(space)">
-                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        <button 
+                          type="button" 
+                          class="text-(--text-secondary) hover:bg-(--bg-card) hover:text-primary focus-visible:ring-primary cursor-pointer rounded-lg p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none" 
+                          :title="t('common.copyLink')" 
+                          :aria-label="`${t('common.copyLink')}: ${space.name}`" 
+                          @click="copyShareLink(space)"
+                        >
+                            <AppIcon name="document-duplicate" class="size-4" />
                         </button>
-                        <router-link :to="`/manage/space/${space.id}`" class="cursor-pointer rounded-lg p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-card)] hover:text-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
-                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                        <router-link 
+                          :to="`/manage/space/${space.id}`" 
+                          class="text-(--text-secondary) hover:bg-(--bg-card) hover:text-primary focus-visible:ring-primary cursor-pointer rounded-lg p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                        >
+                            <AppIcon name="arrow-top-right-on-square" class="size-4" />
                         </router-link>
                     </div>
                 </div>
@@ -102,15 +111,15 @@
     </div>
 
     <!-- Right: Info -->
-    <div class="space-y-4 lg:col-span-5 lg:min-w-[24rem] lg:sticky lg:top-4 lg:self-start">
+    <div class="space-y-4 lg:col-span-5 lg:sticky lg:top-4 lg:self-start lg:min-w-[24rem]">
         <!-- Header Info -->
-        <div class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5 shadow-sm">
+        <div class="border-(--border-color) bg-(--bg-card) rounded-2xl border p-5 shadow-sm">
              <div class="mb-3 flex items-start justify-between gap-2">
                  <div>
-                     <span v-if="product.brand" class="mb-1 inline-block text-xs font-semibold tracking-wider text-[var(--color-primary)] uppercase">{{ product.brand }}</span>
-                     <h2 class="line-clamp-2 text-xl font-bold text-[var(--text-main)]">{{ product.name }}</h2>
-                     <div class="mt-1 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                         <span v-if="product.spu" class="rounded bg-[var(--bg-muted)] px-1.5 py-0.5 font-mono text-xs">{{ product.spu }}</span>
+                     <span v-if="product.brand" class="text-primary mb-1 inline-block text-xs font-semibold uppercase tracking-wider">{{ product.brand }}</span>
+                     <h2 class="text-(--text-main) line-clamp-2 text-xl font-bold">{{ product.name }}</h2>
+                     <div class="text-(--text-secondary) mt-1 flex items-center gap-2 text-sm">
+                         <span v-if="product.spu" class="bg-(--bg-muted) rounded px-1.5 py-0.5 font-mono text-xs">{{ product.spu }}</span>
                          <span v-if="product.series">&bull; {{ product.series }}</span>
                      </div>
                  </div>
@@ -122,39 +131,39 @@
              </div>
              
              <div class="mt-6">
-                 <p class="text-[11px] text-[var(--text-secondary)]">{{ t('product.form.price', 'Price') }}</p>
+                 <p class="text-(--text-secondary) text-[11px]">{{ t('product.form.price', 'Price') }}</p>
                  <div class="mt-1 flex items-center gap-2">
-                    <span class="font-[Outfit] text-3xl font-bold text-[var(--text-main)]">{{ formatMoney(product.price) }}</span>
-                    <span class="rounded bg-[var(--bg-muted)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">{{ currencyCode }}</span>
+                    <span class="text-(--text-main) font-[Outfit] text-3xl font-bold">{{ formatMoney(product.price) }}</span>
+                    <span class="bg-(--bg-muted) text-(--text-secondary) rounded px-2 py-0.5 text-[10px] font-medium">{{ currencyCode }}</span>
                  </div>
-                 <span v-if="product.cost_price !== undefined && product.cost_price !== null" class="mt-1 block text-xs text-[var(--text-secondary)]">
+                 <span v-if="product.cost_price !== undefined && product.cost_price !== null" class="text-(--text-secondary) mt-1 block text-xs">
                    {{ t('product.form.cost', 'Cost') }}: {{ formatMoney(product.cost_price) }}
                  </span>
              </div>
         </div>
 
         <!-- Variants or Specs -->
-        <div v-if="product.variants && product.variants.length > 0" class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5 shadow-sm">
-             <h3 class="mb-4 text-sm font-bold tracking-wider text-[var(--text-main)] uppercase opacity-80">{{ t('product.form.variants_title', 'Variants') }}</h3>
+        <div v-if="product.variants && product.variants.length > 0" class="border-(--border-color) bg-(--bg-card) rounded-2xl border p-5 shadow-sm">
+             <h3 class="text-(--text-main) mb-4 text-sm font-bold uppercase tracking-wider opacity-80">{{ t('product.form.variants_title', 'Variants') }}</h3>
              <div class="hidden overflow-x-auto md:block">
                  <table class="w-full min-w-[32rem] text-left text-sm md:min-w-0 md:whitespace-nowrap">
-                     <thead class="bg-[var(--bg-muted)]/50 text-xs font-medium text-[var(--text-secondary)] uppercase">
+                     <thead class="text-(--text-secondary) bg-(--bg-muted)/50 text-xs font-medium uppercase">
                          <tr>
                              <th class="px-3 py-2 rounded-l-lg">Variant</th>
                              <th class="px-3 py-2">Price</th>
                              <th class="px-3 py-2 rounded-r-lg">Stock</th>
                          </tr>
                      </thead>
-                     <tbody class="divide-y divide-[var(--border-color)]/50">
-                         <tr v-for="variant in product.variants" :key="variant.id" class="transition-colors hover:bg-[var(--bg-muted)]/30">
+                     <tbody class="divide-(--border-color)/50 divide-y">
+                         <tr v-for="variant in product.variants" :key="variant.id" class="hover:bg-(--bg-muted)/30 transition-colors">
                              <td class="px-3 py-2.5">
-                                 <div class="font-medium text-[var(--text-main)]">{{ formatVariantName(variant.options_values) }}</div>
-                                 <div class="text-[10px] sm:text-xs font-mono text-[var(--text-secondary)] mt-0.5">{{ variant.sku }}</div>
+                                 <div class="text-(--text-main) font-medium">{{ formatVariantName(variant.options_values) }}</div>
+                                 <div class="text-(--text-secondary) mt-0.5 font-mono text-[10px] sm:text-xs">{{ variant.sku }}</div>
                              </td>
-                             <td class="px-3 py-2.5 font-[Outfit] font-medium text-[var(--text-main)]">{{ formatMoney(variant.price) }}</td>
-                             <td class="px-3 py-2.5 text-[var(--text-main)]">
-                                 <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium" :class="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]' : 'bg-[var(--color-success)]/10 text-[var(--color-success)]'">
-                                     <span class="size-1.5 rounded-full" :class="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'bg-[var(--color-danger)]' : 'bg-[var(--color-success)]'"></span>
+                             <td class="text-(--text-main) font-[Outfit] px-3 py-2.5 font-medium">{{ formatMoney(variant.price) }}</td>
+                             <td class="text-(--text-main) px-3 py-2.5">
+                                 <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium" :class="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'">
+                                     <span class="size-1.5 rounded-full" :class="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'bg-danger' : 'bg-success'"></span>
                                      {{ variant.stock_quantity }}
                                  </span>
                              </td>
@@ -163,57 +172,57 @@
                  </table>
              </div>
              <div class="space-y-2 md:hidden">
-                <div v-for="variant in product.variants" :key="variant.id" class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)]/30 p-3">
+                <div v-for="variant in product.variants" :key="variant.id" class="border-(--border-color) bg-(--bg-muted)/30 rounded-lg border p-3">
                   <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
-                      <p class="truncate text-sm font-medium text-[var(--text-main)]">{{ formatVariantName(variant.options_values) }}</p>
-                      <p class="mt-0.5 font-mono text-[10px] text-[var(--text-secondary)]">{{ variant.sku }}</p>
+                      <p class="text-(--text-main) truncate text-sm font-medium">{{ formatVariantName(variant.options_values) }}</p>
+                      <p class="text-(--text-secondary) mt-0.5 font-mono text-[10px]">{{ variant.sku }}</p>
                     </div>
-                    <span class="text-sm font-semibold text-[var(--text-main)]">{{ formatMoney(variant.price) }}</span>
+                    <span class="text-(--text-main) text-sm font-semibold">{{ formatMoney(variant.price) }}</span>
                   </div>
                   <div class="mt-2 flex items-center justify-between text-xs">
-                    <span class="text-[var(--text-secondary)]">{{ t('product.table.variant.stock', 'Stock') }}</span>
-                    <span :class="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'text-[var(--color-danger)]' : 'text-[var(--color-success)]'">
+                    <span class="text-(--text-secondary)">{{ t('product.table.variant.stock', 'Stock') }}</span>
+                    <span :class="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'text-danger' : 'text-success'">
                       {{ variant.stock_quantity }}
                     </span>
                   </div>
                 </div>
              </div>
         </div>
-        <div v-else class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5 shadow-sm">
-             <h3 class="mb-4 text-sm font-bold tracking-wider text-[var(--text-main)] uppercase opacity-80">{{ t('product.form.specifications') }}</h3>
+        <div v-else class="border-(--border-color) bg-(--bg-card) rounded-2xl border p-5 shadow-sm">
+             <h3 class="text-(--text-main) mb-4 text-sm font-bold uppercase tracking-wider opacity-80">{{ t('product.form.specifications') }}</h3>
              <div class="space-y-3">
-                 <div class="flex justify-between border-b border-[var(--border-color)]/50 pb-2 text-sm last:border-0 last:pb-0">
-                     <span class="text-[var(--text-secondary)]">{{ t('order.form.size') }}</span>
-                     <span class="font-medium text-[var(--text-main)]">{{ specs.size || '-' }}</span>
+                 <div class="border-(--border-color)/50 flex justify-between border-b pb-2 text-sm last:border-0 last:pb-0">
+                     <span class="text-(--text-secondary)">{{ t('order.form.size') }}</span>
+                     <span class="text-(--text-main) font-medium">{{ specs.size || '-' }}</span>
                  </div>
-                 <div class="flex justify-between border-b border-[var(--border-color)]/50 pb-2 text-sm last:border-0 last:pb-0">
-                     <span class="text-[var(--text-secondary)]">{{ t('order.form.color') }}</span>
-                     <span class="font-medium text-[var(--text-main)]">{{ specs.color || '-' }}</span>
+                 <div class="border-(--border-color)/50 flex justify-between border-b pb-2 text-sm last:border-0 last:pb-0">
+                     <span class="text-(--text-secondary)">{{ t('order.form.color') }}</span>
+                     <span class="text-(--text-main) font-medium">{{ specs.color || '-' }}</span>
                  </div>
-                 <div class="flex justify-between border-b border-[var(--border-color)]/50 pb-2 text-sm last:border-0 last:pb-0">
-                     <span class="text-[var(--text-secondary)]">{{ t('order.form.material') }}</span>
-                     <span class="font-medium text-[var(--text-main)]">{{ specs.material || '-' }}</span>
+                 <div class="border-(--border-color)/50 flex justify-between border-b pb-2 text-sm last:border-0 last:pb-0">
+                     <span class="text-(--text-secondary)">{{ t('order.form.material') }}</span>
+                     <span class="text-(--text-main) font-medium">{{ specs.material || '-' }}</span>
                  </div>
-                 <div class="flex justify-between border-b border-[var(--border-color)]/50 pb-2 text-sm last:border-0 last:pb-0">
-                     <span class="text-[var(--text-secondary)]">{{ t('product.form.category') }}</span>
-                     <span class="font-medium text-[var(--text-main)]">{{ product.category || '-' }}</span>
+                 <div class="border-(--border-color)/50 flex justify-between border-b pb-2 text-sm last:border-0 last:pb-0">
+                     <span class="text-(--text-secondary)">{{ t('product.form.category') }}</span>
+                     <span class="text-(--text-main) font-medium">{{ product.category || '-' }}</span>
                  </div>
              </div>
         </div>
 
         <!-- Inventory -->
-        <div class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5 shadow-sm">
-             <h3 class="mb-4 text-sm font-bold tracking-wider text-[var(--text-main)] uppercase opacity-80">{{ t('product.form.inventory') }}</h3>
+        <div class="border-(--border-color) bg-(--bg-card) rounded-2xl border p-5 shadow-sm">
+             <h3 class="text-(--text-main) mb-4 text-sm font-bold uppercase tracking-wider opacity-80">{{ t('product.form.inventory') }}</h3>
              <div class="space-y-4">
                  <div class="flex justify-between text-sm">
-                     <span class="text-[var(--text-secondary)]">{{ t('product.stats.stock_level') }}</span>
+                     <span class="text-(--text-secondary)">{{ t('product.stats.stock_level') }}</span>
                      <span :class="stockColorClass" class="font-medium">{{ totalStock }}</span>
                  </div>
-                 <div class="h-2 w-full overflow-hidden rounded-full bg-[var(--bg-muted)]">
+                 <div class="bg-(--bg-muted) h-2 w-full overflow-hidden rounded-full">
                       <div class="h-full rounded-full transition-all duration-500" :class="stockBgClass" :style="{ width: stockProgress + '%' }"></div>
                  </div>
-                 <div class="flex justify-between text-xs text-[var(--text-secondary)]">
+                 <div class="text-(--text-secondary) flex justify-between text-xs">
                      <span>{{ t('product.form.alert_at') }}: {{ product.alert_threshold || 10 }}</span>
                      <span>{{ t('product.table.variant.status', 'Status') }}: {{ t(`product.filters.status.${product.status || 'archived'}`) }}</span>
                  </div>
@@ -221,9 +230,9 @@
         </div>
         
         <!-- Mobile Description -->
-        <div class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5 shadow-sm lg:hidden">
-            <h3 class="mb-2 font-bold text-[var(--text-main)]">{{ t('product.form.description') }}</h3>
-            <p class="text-sm leading-relaxed whitespace-pre-wrap text-[var(--text-secondary)]">
+        <div class="border-(--border-color) bg-(--bg-card) rounded-2xl border p-5 shadow-sm lg:hidden">
+            <h3 class="text-(--text-main) mb-2 font-bold">{{ t('product.form.description') }}</h3>
+            <p class="text-(--text-secondary) whitespace-pre-wrap text-sm leading-relaxed">
                 {{ product.description || t('common.text.no_description') }}
             </p>
         </div>
@@ -241,6 +250,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue';
 import { getProductStatusVariant } from '@/utils/status';
 import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
     product: {
@@ -322,9 +332,9 @@ const stockColorClass = computed(() => {
     if (props.product.variants && props.product.variants.length > 0) {
         q = props.product.variants.reduce((sum, v) => sum + (v.stock_quantity || 0), 0);
     }
-    const t = props.product.alert_threshold || 10;
-    if (q <= t) return 'text-[var(--color-danger-text)] font-bold';
-    return 'text-[var(--text-main)]';
+    const t_val = props.product.alert_threshold || 10;
+    if (q <= t_val) return 'text-danger font-bold';
+    return 'text-(--text-main)';
 });
 
 const totalStock = computed(() => {
@@ -345,9 +355,9 @@ const stockProgress = computed(() =>
 
 const stockBgClass = computed(() => {
     const q = totalStock.value;
-    const t = props.product.alert_threshold || 10;
-    if (q <= t) return 'bg-[var(--color-danger)]';
-    return 'bg-[var(--color-success)]';
+    const t_val = props.product.alert_threshold || 10;
+    if (q <= t_val) return 'bg-danger';
+    return 'bg-success';
 });
 
 const formatVariantName = (optionsValues) => {

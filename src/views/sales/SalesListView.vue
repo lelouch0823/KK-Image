@@ -6,35 +6,24 @@
     @touchend="handleTouchEnd"
   >
     <!-- Search Bar -->
-    <div class="sticky top-14 z-20 -mx-4 mb-4 border-b border-[var(--border-color)] bg-[var(--bg-page)]/85 px-4 py-3 backdrop-blur-md transition-all sm:top-20 sm:mx-0 sm:rounded-xl sm:border sm:bg-[var(--bg-card)]/90 sm:shadow-sm">
+    <div class="sticky top-14 z-20 -mx-4 mb-4 border-b border-(--border-color) bg-(--bg-page)/85 px-4 py-3 backdrop-blur-md transition-all sm:top-20 sm:mx-0 sm:rounded-xl sm:border sm:bg-(--bg-card)/90 sm:shadow-sm">
       <div class="group relative">
-        <svg
+        <AppIcon
+          name="magnifying-glass"
           class="text-secondary absolute top-1/2 left-3.5 size-5 -translate-y-1/2 transition-colors group-focus-within:text-primary"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
+        />
         <input
           v-model="searchQuery"
           type="text"
           :placeholder="t('common.searchPlaceholder')"
-          class="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] py-2.5 pr-10 pl-11 text-sm shadow-sm transition-all outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--color-primary)] focus:bg-[var(--bg-card)] focus:ring-4 focus:ring-[var(--color-primary)]/10"
+          class="w-full rounded-xl border border-(--border-color) bg-(--bg-muted) py-2.5 pr-10 pl-11 text-sm shadow-sm transition-all outline-none placeholder:text-(--text-muted) focus:border-(--color-primary) focus:bg-(--bg-card) focus:ring-4 focus:ring-(--color-primary)/10"
         />
         <button
             v-if="searchQuery"
-            class="text-secondary absolute top-1/2 right-3 -translate-y-1/2 rounded-full p-1 hover:text-primary hover:bg-[var(--bg-muted)]"
+            class="text-secondary absolute top-1/2 right-3 -translate-y-1/2 rounded-full p-1 hover:bg-(--bg-muted) hover:text-primary"
             @click="searchQuery = ''"
         >
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <AppIcon name="x-mark" class="size-4" />
         </button>
       </div>
     </div>
@@ -45,15 +34,11 @@
         class="flex items-center justify-center overflow-hidden transition-all duration-200"
         :style="{ height: `${pullDistance}px`, opacity: Math.min(pullDistance / 50, 1) }"
     >
-        <svg
+        <AppIcon
+            name="arrow-down"
             class="text-primary size-6 transition-transform duration-200"
             :style="{ transform: `rotate(${pullDistance * 2}deg)` }"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-        >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-        </svg>
+        />
     </div>
 
     <OrderList

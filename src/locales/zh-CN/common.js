@@ -6,6 +6,7 @@ export default {
   cancel: '取消',
   save: '保存',
   saving: '保存中...',
+  saveChanges: '保存更改',
   delete: '删除',
   edit: '编辑',
   add: '添加',

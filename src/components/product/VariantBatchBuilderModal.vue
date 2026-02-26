@@ -1,21 +1,23 @@
 <template>
   <Teleport to="body">
     <div v-if="modelValue" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-[var(--color-overlay-dim)] backdrop-blur-sm" @click="$emit('update:modelValue', false)"></div>
-      <div class="relative w-full max-w-2xl rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5 shadow-2xl">
+      <div class="bg-(--color-overlay-dim) absolute inset-0 backdrop-blur-sm" @click="$emit('update:modelValue', false)"></div>
+      <div class="border-(--border-color) bg-(--bg-card) relative w-full max-w-2xl rounded-2xl border p-5 shadow-2xl">
         <div class="mb-4 flex items-center justify-between">
-          <h3 class="font-[Outfit] text-lg font-bold text-[var(--text-main)]">Batch Variant Builder</h3>
-          <button type="button" class="text-[var(--text-muted)]" @click="$emit('update:modelValue', false)">×</button>
+          <h3 class="text-(--text-main) font-[Outfit] text-lg font-bold">Batch Variant Builder</h3>
+          <button type="button" class="text-(--text-muted) cursor-pointer" aria-label="Close" @click="$emit('update:modelValue', false)">
+            <AppIcon name="x-mark" class="size-5" />
+          </button>
         </div>
 
         <div class="space-y-3">
-          <label class="block text-xs text-[var(--text-secondary)]">颜色 (comma-separated)</label>
+          <label class="text-(--text-secondary) block text-xs">颜色 (comma-separated)</label>
           <input data-testid="input-colors" v-model="colorsInput" class="input w-full p-2 text-sm" type="text" placeholder="黄,蓝">
 
-          <label class="block text-xs text-[var(--text-secondary)]">材质 (optional)</label>
+          <label class="text-(--text-secondary) block text-xs">材质 (optional)</label>
           <input data-testid="input-materials" v-model="materialsInput" class="input w-full p-2 text-sm" type="text" placeholder="棉,涤纶">
 
-          <label class="block text-xs text-[var(--text-secondary)]">尺码 (optional)</label>
+          <label class="text-(--text-secondary) block text-xs">尺码 (optional)</label>
           <input data-testid="input-sizes" v-model="sizesInput" class="input w-full p-2 text-sm" type="text" placeholder="S,M,L">
         </div>
 
@@ -30,10 +32,10 @@
         </div>
 
         <div class="mt-5 flex justify-end gap-2">
-          <button type="button" class="rounded-lg border border-[var(--border-color)] px-3 py-2 text-sm" @click="$emit('update:modelValue', false)">
+          <button type="button" class="border-(--border-color) cursor-pointer rounded-lg border px-3 py-2 text-sm" @click="$emit('update:modelValue', false)">
             Cancel
           </button>
-          <button data-testid="apply-btn" type="button" class="rounded-lg bg-[var(--color-primary)] px-3 py-2 text-sm text-[var(--text-inverse)]" @click="handleApply">
+          <button data-testid="apply-btn" type="button" class="bg-primary text-(--text-inverse) cursor-pointer rounded-lg px-4 py-2 text-sm font-bold" @click="handleApply">
             Apply
           </button>
         </div>
@@ -44,6 +46,7 @@
 
 <script setup>
 import { reactive, ref } from 'vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

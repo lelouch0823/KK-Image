@@ -5,7 +5,7 @@
   >
     <template #header>
       <div class="flex flex-1 items-center justify-between gap-4">
-        <h3 class="text-lg font-bold text-[var(--text-main)]">
+        <h3 class="text-(--text-main) text-lg font-bold">
           {{ t('product.manager.detail_title') || t('router.product_detail') }}
         </h3>
         <div class="flex items-center gap-2">
@@ -16,8 +16,8 @@
     </template>
     
     <div class="relative min-h-[300px]">
-      <div v-if="loading" class="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-page)]/50 backdrop-blur-sm">
-        <div class="size-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent"></div>
+      <div v-if="loading" class="bg-(--bg-page)/50 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm">
+         <AppIcon name="spinner" class="text-primary size-8 animate-spin" />
       </div>
       
       <ProductDetail 
@@ -25,10 +25,8 @@
         :product="currentProduct" 
       />
       
-      <div v-else-if="error" class="flex h-full flex-col items-center justify-center space-y-3 py-10 text-center text-[var(--color-danger)]">
-        <svg class="size-10 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-        </svg>
+      <div v-else-if="error" class="text-danger flex h-full flex-col items-center justify-center space-y-3 py-10 text-center">
+        <AppIcon name="exclamation-triangle" class="size-10 opacity-80" />
         <p class="text-sm font-medium">{{ error }}</p>
       </div>
     </div>
@@ -41,6 +39,7 @@ import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
 import ProductDetail from '@/components/product/ProductDetail.vue';
 import { useProducts } from '@/composables/useProducts';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 // SOTA: Use defineModel for v-model binding
 const isVisible = defineModel('show', { type: Boolean, default: false });

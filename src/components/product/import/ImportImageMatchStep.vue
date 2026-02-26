@@ -1,14 +1,14 @@
 <template>
     <div>
-        <h3 class="mb-2 text-lg font-medium text-[var(--text-main)]">{{ t('product.import.step_image', '图片智能匹配') }}</h3>
-        <p class="mb-4 text-sm text-[var(--text-secondary)]">
+        <h3 class="text-(--text-main) mb-2 text-lg font-medium">{{ t('product.import.step_image', '图片智能匹配') }}</h3>
+        <p class="text-(--text-secondary) mb-4 text-sm">
             检测到Excel中包含 {{ totalImagesCount }} 个本地图片引用。请上传对应的图片文件。
         </p>
 
         <!-- Dropzone -->
         <div 
-            class="relative mb-4 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[var(--border-color)] bg-[var(--bg-muted)] px-6 py-8 transition-colors hover:bg-[var(--bg-hover)]"
-            :class="{ 'border-[var(--color-primary)] bg-[var(--color-primary)]/10': isDragOver }"
+            class="border-(--border-color) bg-(--bg-muted) hover:bg-(--bg-hover) relative mb-4 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-8 transition-colors"
+            :class="{ 'border-primary bg-primary/10': isDragOver }"
             @dragover.prevent="isDragOver = true"
             @dragleave.prevent="isDragOver = false"
             @drop.prevent="handleDrop"
@@ -23,22 +23,20 @@
                 @change="handleSelect"
             >
             <div class="text-center">
-                <svg class="mx-auto size-10 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p class="mt-2 text-sm text-[var(--text-secondary)]">
-                    <span class="font-medium text-[var(--color-primary)] hover:opacity-80">点击选择图片</span>
+                 <AppIcon name="photo" class="text-(--text-muted) mx-auto size-10" />
+                <p class="text-(--text-secondary) mt-2 text-sm">
+                    <span class="text-primary font-medium hover:opacity-80">点击选择图片</span>
                     (支持批量/拖拽)
                 </p>
-                <p class="mt-1 text-xs text-[var(--text-muted)]">已选择 {{ fileCount }} 个文件</p>
+                <p class="text-(--text-muted) mt-1 text-xs">已选择 {{ fileCount }} 个文件</p>
             </div>
         </div>
 
         <!-- Match Stats -->
-        <div class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-sm">
+        <div class="border-(--border-color) bg-(--bg-card) rounded-lg border p-4 shadow-sm">
             <div class="mb-3 flex items-center justify-between">
-                <span class="text-sm font-medium text-[var(--text-main)]">匹配结果</span>
-                <span class="rounded-full bg-[var(--color-primary-bg)] px-2 py-0.5 text-xs font-medium text-[var(--color-primary)]">
+                <span class="text-(--text-main) text-sm font-medium">匹配结果</span>
+                <span class="bg-primary-bg text-primary rounded-full px-2 py-0.5 text-xs font-medium">
                     {{ processedImagesCount }} / {{ totalImagesCount }}
                 </span>
             </div>
@@ -49,18 +47,16 @@
                     :key="getItemMatchKey(item)"
                     class="flex items-center gap-2 rounded border p-2 text-xs"
                     :class="imageMatches.has(getItemMatchKey(item))
-                        ? 'border-[var(--color-success)]/20 bg-[var(--color-success)]/5 text-[var(--color-success-text)]' 
-                        : 'border-[var(--color-warning)]/20 bg-[var(--color-warning)]/5 text-[var(--color-warning-text)]'"
+                        ? 'border-success/20 bg-success/5 text-success' 
+                        : 'border-warning/20 bg-warning/5 text-warning'"
                     >
-                    <div class="size-2 shrink-0 rounded-full" :class="imageMatches.has(getItemMatchKey(item)) ? 'bg-[var(--color-success)]' : 'bg-[var(--color-warning)]'"></div>
+                    <div class="size-2 shrink-0 rounded-full" :class="imageMatches.has(getItemMatchKey(item)) ? 'bg-success' : 'bg-warning'"></div>
                     <div class="min-w-0 flex-1 truncate">
                         <div class="font-medium">{{ getItemMatchKey(item) }}</div>
                         <div class="opacity-75">{{ item.image_url }}</div>
                     </div>
                     <div v-if="imageMatches.has(getItemMatchKey(item))">
-                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
+                         <AppIcon name="check" class="size-4" />
                     </div>
                     </div>
             </div>
@@ -71,6 +67,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import { getItemMatchKey } from './match-keys.js';
 
 const props = defineProps({

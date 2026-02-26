@@ -49,7 +49,7 @@
           <!-- Footer Slot: Pagination -->
           <template #footer>
              <div class="flex w-full items-center justify-end gap-4">
-                <span v-if="pagination.total > 0" class="text-sm text-[var(--text-secondary)]">
+                <span v-if="pagination.total > 0" class="text-sm text-(--text-secondary)">
                   {{ t('common.total') }} {{ pagination.total }}
                 </span>
                 <Pagination
@@ -128,26 +128,22 @@
     <Modal v-model="showDetailModal" size="6xl">
        <template #header>
         <div class="flex items-center gap-4">
-          <h3 class="text-lg font-semibold text-[var(--text-main)]">{{ t('order.detail.title') }}</h3>
+          <h3 class="text-lg font-semibold text-(--text-main)">{{ t('order.detail.title') }}</h3>
           <div class="flex items-center gap-2">
             <!-- Edit Button -->
             <button
-               class="flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)]/10 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-[var(--text-inverse)]"
+               class="hover:bg-primary hover:text-inverse flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors"
                @click="handleEditFromDetail(viewingOrder)"
             >
-               <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-               </svg>
+               <AppIcon name="pencil-square" class="size-3.5" />
                {{ t('order.manage.editOrder') }}
             </button>
             <!-- Save PDF Button -->
             <button
-               class="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)]"
+               class="hover:text-primary flex items-center gap-1.5 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-xs font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
                @click="detailRef?.handleSavePdf()"
             >
-               <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-               </svg>
+               <AppIcon name="arrow-down-tray" class="size-3.5" />
                {{ t('common.savePdf') }}
             </button>
           </div>
