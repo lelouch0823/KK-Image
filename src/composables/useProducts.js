@@ -45,6 +45,53 @@ export function useProducts() {
         });
     };
 
+    const createDimension = async (productId, payload) => {
+        return resource.rawRequest(`/${productId}/dimensions`, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    };
+
+    const updateDimension = async (productId, dimensionId, payload) => {
+        return resource.rawRequest(`/${productId}/dimensions/${dimensionId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload),
+        });
+    };
+
+    const archiveDimension = async (productId, dimensionId, payload = { mode: 'archive_variants' }) => {
+        return resource.rawRequest(`/${productId}/dimensions/${dimensionId}/archive`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload),
+        });
+    };
+
+    const previewDimensionImpact = async (productId, payload) => {
+        return resource.rawRequest(`/${productId}/dimensions/impact`, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    };
+
+    const addDimensionValue = async (productId, dimensionId, payload) => {
+        return resource.rawRequest(`/${productId}/dimensions/${dimensionId}/values`, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    };
+
+    const archiveDimensionValue = async (productId, valueId) => {
+        return resource.rawRequest(`/${productId}/values/${valueId}/archive`, {
+            method: 'PATCH',
+        });
+    };
+
+    const restoreDimensionValue = async (productId, valueId) => {
+        return resource.rawRequest(`/${productId}/values/${valueId}/restore`, {
+            method: 'PATCH',
+        });
+    };
+
     return {
         products: resource.items,
         loading: resource.loading,
@@ -60,6 +107,13 @@ export function useProducts() {
         sortVariantImages,
         setVariantPrimaryImage,
         removeVariantImage,
+        createDimension,
+        updateDimension,
+        archiveDimension,
+        previewDimensionImpact,
+        addDimensionValue,
+        archiveDimensionValue,
+        restoreDimensionValue,
     };
 }
 

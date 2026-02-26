@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
+import { ProductDimensionRepository } from '../../../../../repositories/ProductDimensionRepository.js';
 import { withCache, invalidateCache } from '../../../middleware/cache.js';
 import { BadRequestError, ConflictError } from '../../../errors.js';
 
@@ -22,6 +23,34 @@ app.route('/export', exportRoute);
 const REQUIRED_VARIANT_FIELDS = ['price', 'cost_price', 'stock_quantity', 'alert_threshold', 'status'];
 
 const isEmptyValue = (value) => value === undefined || value === null || value === '';
+
+const buildDimensionNameMap = (dimensions = []) =>
+    (dimensions || []).reduce((acc, item) => {
+        const id = String(item?.id || '').trim();
+        const name = String(item?.name || '').trim();
+        if (name && id) acc[name] = id;
+        return acc;
+    }, {});
+
+const normalizeVariantsWithDimensions = (variants = [], dimensions = []) => {
+    const nameMap = buildDimensionNameMap(dimensions);
+    return (variants || []).map((variant) => {
+        const normalized = {};
+        for (const [key, value] of Object.entries(variant?.options_values || {})) {
+            const rawKey = String(key || '').trim();
+            const nextKey = nameMap[rawKey] || rawKey;
+            if (!nextKey) continue;
+            if (value === undefined || value === null || String(value).trim() === '') continue;
+            normalized[nextKey] = String(value);
+        }
+        return {
+            ...variant,
+            options_values: normalized,
+            barcode: String(variant?.barcode ?? '').trim() || null,
+            supplier_sku: String(variant?.supplier_sku ?? '').trim() || null,
+        };
+    });
+};
 
 const validateVariants = (variants) => {
     if (!Array.isArray(variants) || variants.length === 0) {
@@ -102,8 +131,31 @@ app.post('/', async (c) => {
     try {
         product = await repo.create(body);
 
+        const dimensionRepo = new ProductDimensionRepository(env.DB);
+        const inputDimensions = Array.isArray(body.dimensions) ? body.dimensions : [];
+        const createdDimensions = [];
+        for (let i = 0; i < inputDimensions.length; i++) {
+            const input = inputDimensions[i] || {};
+            const created = await dimensionRepo.createDimension(product.id, {
+                name: input.name,
+                sort_order: Number.isInteger(input.sort_order) ? input.sort_order : i,
+            });
+            createdDimensions.push(created);
+            const values = Array.isArray(input.values) ? input.values : [];
+            for (let j = 0; j < values.length; j++) {
+                const rawValue = values[j];
+                const value = typeof rawValue === 'string' ? rawValue : rawValue?.value;
+                if (!String(value || '').trim()) continue;
+                await dimensionRepo.addValue(product.id, created.id, {
+                    value,
+                    sort_order: j,
+                });
+            }
+        }
+
+        const normalizedVariants = normalizeVariantsWithDimensions(body.variants, createdDimensions);
         const variantRepo = new ProductVariantRepository(env.DB);
-        await variantRepo.createBatch(product.id, body.variants);
+        await variantRepo.createBatch(product.id, normalizedVariants);
     } catch (error) {
         // Compensating rollback: keep product+variant writes all-or-nothing for create flow.
         if (product?.id) {

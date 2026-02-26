@@ -66,6 +66,10 @@ describe('ProductCreateModal variant-first payload', () => {
         const wrapper = createWrapper();
         wrapper.vm.form.name = 'Variant Product';
         wrapper.vm.form.spu = 'SPU-001';
+        wrapper.vm.form.options = [
+            { id: 'dim-color', name: 'Color', values: ['Blue'], inputValue: '' },
+            { id: 'dim-size', name: 'Size', values: ['L'], inputValue: '' },
+        ];
         wrapper.vm.form.variants = [{
             sku: 'SKU-001',
             price: 100,
@@ -81,6 +85,10 @@ describe('ProductCreateModal variant-first payload', () => {
         expect(mocks.createProduct).toHaveBeenCalledTimes(1);
         const payload = mocks.createProduct.mock.calls[0][0];
         expect(payload.variants).toHaveLength(1);
+        expect(payload.dimensions).toEqual([
+            { id: 'dim-color', name: 'Color', values: ['Blue'] },
+            { id: 'dim-size', name: 'Size', values: ['L'] },
+        ]);
         expect(payload).not.toHaveProperty('price');
         expect(payload).not.toHaveProperty('cost_price');
         expect(payload).not.toHaveProperty('stock_quantity');

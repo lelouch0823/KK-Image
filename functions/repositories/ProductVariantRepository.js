@@ -17,6 +17,17 @@ export class ProductVariantRepository {
         return normalized || null;
     }
 
+    normalizeOptionsValues(value) {
+        const entries = Object.entries(value || {})
+            .filter(([key, optionValue]) => String(key || '').trim() && optionValue !== undefined && optionValue !== null && String(optionValue).trim() !== '')
+            .sort(([a], [b]) => a.localeCompare(b));
+        return Object.fromEntries(entries);
+    }
+
+    buildVariantSignature(value) {
+        return JSON.stringify(this.normalizeOptionsValues(value));
+    }
+
     wrapConstraintError(error) {
         const message = String(error?.message || '');
         if (message.includes('product_variants.barcode')) {
@@ -34,10 +45,12 @@ export class ProductVariantRepository {
         for (const v of variantsData) {
             const id = v.id || generateId();
             const sku = this.buildVariantSku(v.sku, id);
+            const optionsValues = this.normalizeOptionsValues(v.options_values || {});
+            const variantSignature = this.buildVariantSignature(optionsValues);
             statements.push(
                 this.db.prepare(
-                    `INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, alert_threshold, options_values, image_id, status, barcode, supplier_sku, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                    `INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, alert_threshold, options_values, variant_signature, image_id, status, barcode, supplier_sku, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
                 ).bind(
                     id,
                     productId,
@@ -46,7 +59,8 @@ export class ProductVariantRepository {
                     v.cost_price !== undefined && v.cost_price !== null ? Number(v.cost_price) : null,
                     Number(v.stock_quantity) || 0,
                     Number(v.alert_threshold) || 10,
-                    JSON.stringify(v.options_values || {}),
+                    JSON.stringify(optionsValues),
+                    variantSignature,
                     v.image_id || null,
                     v.status || 'active',
                     this.normalizeExternalCode(v.barcode),
@@ -181,10 +195,12 @@ export class ProductVariantRepository {
         for (const v of variantsData) {
             const id = v.id || generateId();
             const sku = this.buildVariantSku(v.sku, id);
+            const optionsValues = this.normalizeOptionsValues(v.options_values || {});
+            const variantSignature = this.buildVariantSignature(optionsValues);
             statements.push(
                 this.db.prepare(
-                    `INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, alert_threshold, options_values, image_id, status, barcode, supplier_sku, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    `INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, alert_threshold, options_values, variant_signature, image_id, status, barcode, supplier_sku, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                      ON CONFLICT(id) DO UPDATE SET
                         sku = excluded.sku,
                         price = excluded.price,
@@ -192,6 +208,7 @@ export class ProductVariantRepository {
                         stock_quantity = excluded.stock_quantity,
                         alert_threshold = excluded.alert_threshold,
                         options_values = excluded.options_values,
+                        variant_signature = excluded.variant_signature,
                         image_id = excluded.image_id,
                         status = excluded.status,
                         barcode = excluded.barcode,
@@ -205,7 +222,8 @@ export class ProductVariantRepository {
                     v.cost_price !== undefined && v.cost_price !== null ? Number(v.cost_price) : null,
                     Number(v.stock_quantity) || 0,
                     Number(v.alert_threshold) || 10,
-                    JSON.stringify(v.options_values || {}),
+                    JSON.stringify(optionsValues),
+                    variantSignature,
                     v.image_id || null,
                     v.status || 'active',
                     this.normalizeExternalCode(v.barcode),

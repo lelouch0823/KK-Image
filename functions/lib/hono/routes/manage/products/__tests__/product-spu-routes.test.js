@@ -106,7 +106,20 @@ describe('Product Routes — variant-first contract', () => {
             );
 
             expect(res.status).toBe(201);
-            expect(mockVariantRepo.createBatch).toHaveBeenCalledWith('test-id', validVariants);
+            expect(mockVariantRepo.createBatch).toHaveBeenCalledWith(
+                'test-id',
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        sku: 'SKU-001',
+                        price: 100,
+                        cost_price: 60,
+                        stock_quantity: 10,
+                        alert_threshold: 2,
+                        status: 'active',
+                        options_values: { Color: 'Red', Size: 'M' },
+                    }),
+                ])
+            );
         });
 
         it('returns 409 on duplicated non-empty spu', async () => {

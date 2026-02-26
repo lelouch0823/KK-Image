@@ -77,4 +77,9 @@ describe('ProductVariantRepository — variant_code', () => {
         expect(insertStmt.params[2]).toMatch(/^SKU-/);
         expect(insertStmt.params[2]).not.toBe('');
     });
+
+    it('buildVariantSignature 应对 options key 稳定排序', () => {
+        const signature = repo.buildVariantSignature({ b: '2', a: '1' });
+        expect(signature).toBe(JSON.stringify({ a: '1', b: '2' }));
+    });
 });

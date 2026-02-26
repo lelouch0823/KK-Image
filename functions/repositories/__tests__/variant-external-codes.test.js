@@ -51,6 +51,7 @@ describe('ProductVariantRepository external codes', () => {
     const upsertStmt = statements[1];
     expect(upsertStmt.sql).toContain('barcode');
     expect(upsertStmt.sql).toContain('supplier_sku');
+    expect(upsertStmt.sql).toContain('variant_signature');
     expect(upsertStmt.params).toContain('6923450657713');
     expect(upsertStmt.params).toContain('SUP-TEE-Y-S');
   });
