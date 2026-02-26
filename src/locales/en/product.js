@@ -100,6 +100,9 @@ export default {
     export: 'Export',
     delete_confirm_message: 'Are you sure you want to delete this product? This action is irreversible.',
   },
+  create: {
+    variants: 'Variants',
+  },
   confirm: {
     delete_title: 'Delete Confirmation',
   },

@@ -100,6 +100,9 @@ export default {
     export: '导出',
     delete_confirm_message: '确定要删除该商品吗？此操作不可逆。',
   },
+  create: {
+    variants: '变体组合',
+  },
   confirm: {
     delete_title: '删除确认',
   },

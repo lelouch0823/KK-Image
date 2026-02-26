@@ -159,7 +159,7 @@ function getByPath(obj, keyPath) {
 function extractParams(str) {
     if (typeof str !== 'string') return new Set();
     const params = new Set();
-    const re = /\{(\w+)\}/g;
+    const re = /\{\s*(\w+)\s*\}/g;
     let m;
     while ((m = re.exec(str)) !== null) params.add(m[1]);
     return params;
@@ -192,7 +192,6 @@ function scanSourceKeys() {
         walkDir(dir, (filePath) => {
             const content = fs.readFileSync(filePath, 'utf8');
             const relPath = path.relative(ROOT, filePath);
-            const lines = content.split('\n');
 
             // 静态键
             let match;
@@ -401,18 +400,19 @@ async function run() {
         printReport(report, localeNames, staticKeys, localeKeys, dynamicPatterns, elapsed);
     }
 
-    // 生成修复建议文件
-    if (FIX_REPORT) {
-        generateFixReport(report, localeNames, locales);
-    }
-
-    // 退出码
+    // 退出码前置判断
     const hasMissing = localeNames.some(n => report.missingKeys[n].length > 0);
     const hasAsymmetric = Object.values(report.asymmetricKeys).some(v => v.missing?.length > 0);
     const hasEmpty = localeNames.some(n => report.emptyValues[n].length > 0);
     const hasOrphans = STRICT && localeNames.some(n => report.orphanKeys[n].length > 0);
+    const hasIssues = hasMissing || hasAsymmetric || hasEmpty || hasOrphans;
 
-    if (hasMissing || hasAsymmetric || hasEmpty || hasOrphans) {
+    // 仅在发现问题且启用了修复报告时，才生成修复建议文件
+    if (FIX_REPORT && hasIssues) {
+        generateFixReport(report, localeNames, locales);
+    }
+
+    if (hasIssues) {
         process.exit(1);
     }
 }
@@ -600,6 +600,35 @@ function generateFixReport(report, localeNames, locales) {
             }
             lines.push('```', '');
         }
+    }
+
+    // 孤儿键
+    for (const name of localeNames) {
+        const orphans = report.orphanKeys[name];
+        if (orphans?.length > 0) {
+            lines.push(`## ${name} — 建议清理的孤儿键 (${orphans.length})`, '');
+            lines.push('```javascript');
+            lines.push('// 以下键在源码中未发现明确的引用，可考虑移除（注意是否有隐式动态调用）：');
+            for (const key of orphans.slice(0, 50)) {
+                lines.push(`// ${key}`);
+            }
+            if (orphans.length > 50) {
+                lines.push(`// ... 还有 ${orphans.length - 50} 个未显示`);
+            }
+            lines.push('```', '');
+        }
+    }
+
+    // 动态模式未覆盖
+    const uncovered = report.dynamicAnalysis?.uncovered;
+    if (uncovered?.length > 0) {
+        lines.push(`## ⚠️ 动态模版未覆盖 (${uncovered.length})`, '');
+        lines.push('```javascript');
+        lines.push('// 以下 t(`...`) 动态调用在语言包中没有匹配到可能对应的前/后半段组合：');
+        for (const p of uncovered.slice(0, 50)) {
+            lines.push(`// t(\`${p.template}\`)  -> file: ${p.file}:${p.line}`);
+        }
+        lines.push('```', '');
     }
 
     const reportPath = path.join(ROOT, 'i18n-fix-report.md');

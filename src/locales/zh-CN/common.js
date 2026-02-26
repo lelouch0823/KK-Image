@@ -71,6 +71,7 @@ export default {
   selected: '已选',
   verifying: '正在验证身份...',
   addImage: '添加图片',
+  images_count: '张图片',
   createdAt: '创建时间',
   print: '打印',
   savePdf: '保存 PDF',

@@ -71,6 +71,7 @@ export default {
   selected: 'Selected',
   verifying: 'Verifying Identity...',
   addImage: 'Add Image',
+  images_count: 'image(s)',
   createdAt: 'Created At',
   print: 'Print',
   savePdf: 'Save PDF',
