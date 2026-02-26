@@ -4,6 +4,7 @@ import { ProductVariantRepository } from '../../../../../repositories/ProductVar
 import { ProductDimensionRepository } from '../../../../../repositories/ProductDimensionRepository.js';
 import { VariantImageRepository } from '../../../../../repositories/VariantImageRepository.js';
 import { VariantAuditRepository } from '../../../../../repositories/VariantAuditRepository.js';
+import { resolveVariantImageSyncPlan } from './variant-image-sync.js';
 import { invalidateCache } from '../../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
 
@@ -429,7 +430,22 @@ app.patch('/:id', async (c) => {
         const auditRepo = new VariantAuditRepository(env.DB);
         const beforeVariants = await variantRepo.findByProductId(id);
         await variantRepo.syncVariants(id, body.variants);
+
         const afterVariants = await variantRepo.findByProductId(id);
+        const variantImageRepo = new VariantImageRepository(env.DB, variantRepo);
+        const imageSyncPlan = resolveVariantImageSyncPlan({
+            inputVariants: body.variants,
+            persistedVariants: afterVariants,
+        });
+        if (imageSyncPlan.unresolved.length > 0) {
+            throw new BadRequestError(
+                `Unable to reconcile variant image targets: ${JSON.stringify(imageSyncPlan.unresolved)}`
+            );
+        }
+        for (const task of imageSyncPlan.tasks) {
+            await variantImageRepo.syncImages(id, task.variantId, task.images);
+        }
+
         const events = variantRepo.buildAuditEvents(id, beforeVariants, afterVariants);
         await auditRepo.createBatch(events);
         variantsUpdated = true;
@@ -478,7 +494,22 @@ app.put('/:id', async (c) => {
         const auditRepo = new VariantAuditRepository(env.DB);
         const beforeVariants = await variantRepo.findByProductId(id);
         await variantRepo.syncVariants(id, body.variants);
+
         const afterVariants = await variantRepo.findByProductId(id);
+        const variantImageRepo = new VariantImageRepository(env.DB, variantRepo);
+        const imageSyncPlan = resolveVariantImageSyncPlan({
+            inputVariants: body.variants,
+            persistedVariants: afterVariants,
+        });
+        if (imageSyncPlan.unresolved.length > 0) {
+            throw new BadRequestError(
+                `Unable to reconcile variant image targets: ${JSON.stringify(imageSyncPlan.unresolved)}`
+            );
+        }
+        for (const task of imageSyncPlan.tasks) {
+            await variantImageRepo.syncImages(id, task.variantId, task.images);
+        }
+
         const events = variantRepo.buildAuditEvents(id, beforeVariants, afterVariants);
         await auditRepo.createBatch(events);
     }

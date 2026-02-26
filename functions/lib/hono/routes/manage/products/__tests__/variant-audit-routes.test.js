@@ -13,6 +13,9 @@ const mockVariantRepo = {
 const mockAuditRepo = {
   createBatch: vi.fn(),
 };
+const mockVariantImageRepo = {
+  syncImages: vi.fn(),
+};
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
   ProductRepository: class {
@@ -40,7 +43,16 @@ vi.mock('../../../../../../repositories/VariantAuditRepository.js', () => ({
 }));
 
 vi.mock('../../../../../../repositories/VariantImageRepository.js', () => ({
-  VariantImageRepository: class {},
+  VariantImageRepository: class {
+    syncImages(...args) { return mockVariantImageRepo.syncImages(...args); }
+  },
+}));
+
+vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
+  ProductDimensionRepository: class {
+    listByProduct = vi.fn().mockResolvedValue([]);
+    syncDimensions = vi.fn().mockResolvedValue();
+  },
 }));
 
 vi.mock('../../../../middleware/cache.js', () => ({
@@ -49,7 +61,10 @@ vi.mock('../../../../middleware/cache.js', () => ({
 
 function createApp() {
   const app = new Hono();
-  app.onError((err, c) => c.json({ success: false, error: err.message }, err.statusCode || 500));
+  app.onError((err, c) => {
+    console.error('onError caught:', err);
+    return c.json({ success: false, error: err.message }, err.statusCode || 500);
+  });
   app.route('/api/manage/products', productByIdApp);
   return app;
 }
@@ -107,5 +122,42 @@ describe('product variant audit routes', () => {
 
     expect(res.status).toBe(200);
     expect(mockAuditRepo.createBatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('PATCH /:id syncs images for newly created variant without id', async () => {
+    mockProductRepo.updateWithMeta.mockResolvedValue({ success: true, changes: 1 });
+    mockVariantRepo.syncVariants.mockResolvedValue();
+    mockVariantRepo.findByProductId
+      .mockResolvedValueOnce([{ id: 'v-legacy', product_id: 'p1', sku: 'SKU-OLD', options_values: { Color: 'Blue' } }])
+      .mockResolvedValueOnce([
+        { id: 'v-legacy', product_id: 'p1', sku: 'SKU-OLD', options_values: { Color: 'Blue' } },
+        { id: 'v-new', product_id: 'p1', sku: 'SKU-AUTO', options_values: { Color: 'Red' } },
+      ]);
+    mockVariantImageRepo.syncImages.mockResolvedValue();
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/p1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Tee',
+          variants: [
+            { id: 'v-legacy', price: 10, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active', options_values: { Color: 'Blue' } },
+            { price: 12, cost_price: 7, stock_quantity: 4, alert_threshold: 1, status: 'active', options_values: { Color: 'Red' }, images: [{ image_id: 'img-new', is_primary: 1 }] },
+          ],
+        }),
+      },
+      { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockVariantImageRepo.syncImages).toHaveBeenCalledWith(
+      'p1',
+      'v-new',
+      [{ image_id: 'img-new', is_primary: 1 }]
+    );
   });
 });

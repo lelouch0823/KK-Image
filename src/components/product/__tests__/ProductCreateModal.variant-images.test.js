@@ -5,33 +5,24 @@ import ProductCreateModal from '../ProductCreateModal.vue';
 const mocks = vi.hoisted(() => ({
     createProduct: vi.fn(),
     updateProduct: vi.fn(),
-    addVariantImage: vi.fn(),
-    sortVariantImages: vi.fn(),
-    setVariantPrimaryImage: vi.fn(),
-    removeVariantImage: vi.fn(),
-    addToast: vi.fn(),
 }));
 
 vi.mock('@/composables/useProducts', () => ({
     useProducts: () => ({
         createProduct: mocks.createProduct,
         updateProduct: mocks.updateProduct,
-        addVariantImage: mocks.addVariantImage,
-        sortVariantImages: mocks.sortVariantImages,
-        setVariantPrimaryImage: mocks.setVariantPrimaryImage,
-        removeVariantImage: mocks.removeVariantImage,
     }),
 }));
 
 vi.mock('@/composables/useToast', () => ({
-    useToast: () => ({ addToast: mocks.addToast }),
+    useToast: () => ({ addToast: vi.fn() }),
 }));
 
 vi.mock('@/composables/useI18n', () => ({
     useI18n: () => ({ t: (key, fallback) => fallback || key }),
 }));
 
-describe('ProductCreateModal inline variant image controls', () => {
+describe('ProductCreateModal variant images integration', () => {
     const initialData = {
         id: 'prod_1',
         name: 'Test Product',
@@ -45,7 +36,6 @@ describe('ProductCreateModal inline variant image controls', () => {
                 options_values: { Color: 'Red' },
                 images: [
                     { image_id: 'img-1', is_primary: 1 },
-                    { image_id: 'img-2', is_primary: 0 },
                 ],
             },
         ],
@@ -53,9 +43,6 @@ describe('ProductCreateModal inline variant image controls', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        mocks.addVariantImage.mockResolvedValue({ success: true });
-        mocks.setVariantPrimaryImage.mockResolvedValue({ success: true });
-        mocks.removeVariantImage.mockResolvedValue({ success: true });
     });
 
     const createWrapper = () =>
@@ -77,28 +64,90 @@ describe('ProductCreateModal inline variant image controls', () => {
             },
         });
 
-    it('supports row-level upload', async () => {
+    it('updates variant images when VariantImageManagerModal emits update-images', async () => {
         const wrapper = createWrapper();
 
-        await wrapper.find('[data-testid="variant-row-upload-input-0"]').setValue('img-3');
-        await wrapper.find('[data-testid="variant-row-upload-btn-0"]').trigger('click');
+        const modal = wrapper.findComponent({ name: 'VariantImageManagerModal' });
+        expect(modal.exists()).toBe(true);
 
-        expect(mocks.addVariantImage).toHaveBeenCalledWith('prod_1', 'v1', { imageId: 'img-3' });
+        // Emit update-images event
+        modal.vm.$emit('update-images', {
+            variantId: 'v1',
+            images: [
+                { image_id: 'img-2', is_primary: 1, sort_order: 0 },
+                { image_id: 'img-1', is_primary: 0, sort_order: 1 },
+            ],
+        });
+
+        // We can't easily assert the internal form data without triggering a submit
+        // or checking passed props. Let's trigger a submit to see the updated payload.
+        mocks.updateProduct.mockResolvedValue({ success: true });
+        
+        await wrapper.find('form').trigger('submit.prevent');
+
+        expect(mocks.updateProduct).toHaveBeenCalledWith('prod_1', expect.objectContaining({
+            variants: expect.arrayContaining([
+                expect.objectContaining({
+                    id: 'v1',
+                    images: [
+                        { image_id: 'img-2', is_primary: 1, sort_order: 0 },
+                        { image_id: 'img-1', is_primary: 0, sort_order: 1 },
+                    ],
+                }),
+            ]),
+        }));
     });
 
-    it('supports row-level set-primary', async () => {
-        const wrapper = createWrapper();
+    it('updates unsaved variant images by variantKey in create mode', async () => {
+        const wrapper = mount(ProductCreateModal, {
+            props: {
+                modelValue: true,
+                editMode: true,
+                initialData: {
+                    ...initialData,
+                    variants: [
+                        {
+                            _clientKey: 'local-1',
+                            sku: '',
+                            price: 10,
+                            cost_price: 5,
+                            stock_quantity: 3,
+                            alert_threshold: 1,
+                            status: 'active',
+                            options_values: { Color: 'Red' },
+                            images: [],
+                        },
+                    ],
+                },
+            },
+            global: {
+                stubs: {
+                    Teleport: true,
+                    ImageUploader: true,
+                    AppInput: true,
+                    AppButton: true,
+                    Select: true,
+                    VariantImageManagerModal: true,
+                },
+            },
+        });
 
-        await wrapper.find('[data-testid="variant-row-set-primary-0-img-2"]').trigger('click');
+        const modal = wrapper.findComponent({ name: 'VariantImageManagerModal' });
+        modal.vm.$emit('update-images', {
+            variantId: null,
+            variantKey: 'local-1',
+            images: [{ image_id: 'img-local', is_primary: 1, sort_order: 0 }],
+        });
 
-        expect(mocks.setVariantPrimaryImage).toHaveBeenCalledWith('prod_1', 'v1', 'img-2');
-    });
+        mocks.updateProduct.mockResolvedValue({ success: true });
+        await wrapper.find('form').trigger('submit.prevent');
 
-    it('supports row-level remove image', async () => {
-        const wrapper = createWrapper();
-
-        await wrapper.find('[data-testid="variant-row-remove-image-0-img-2"]').trigger('click');
-
-        expect(mocks.removeVariantImage).toHaveBeenCalledWith('prod_1', 'v1', 'img-2');
+        expect(mocks.updateProduct).toHaveBeenCalledWith('prod_1', expect.objectContaining({
+            variants: expect.arrayContaining([
+                expect.objectContaining({
+                    images: [{ image_id: 'img-local', is_primary: 1, sort_order: 0 }],
+                }),
+            ]),
+        }));
     });
 });

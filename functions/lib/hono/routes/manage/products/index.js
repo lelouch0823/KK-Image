@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
 import { ProductDimensionRepository } from '../../../../../repositories/ProductDimensionRepository.js';
+import { VariantImageRepository } from '../../../../../repositories/VariantImageRepository.js';
+import { resolveVariantImageSyncPlan } from './variant-image-sync.js';
 import { withCache, invalidateCache } from '../../../middleware/cache.js';
 import { BadRequestError, ConflictError } from '../../../errors.js';
 
@@ -155,7 +157,21 @@ app.post('/', async (c) => {
 
         const normalizedVariants = normalizeVariantsWithDimensions(body.variants, createdDimensions);
         const variantRepo = new ProductVariantRepository(env.DB);
-        await variantRepo.createBatch(product.id, normalizedVariants);
+        const createdVariants = await variantRepo.createBatch(product.id, normalizedVariants);
+
+        const variantImageRepo = new VariantImageRepository(env.DB, variantRepo);
+        const imageSyncPlan = resolveVariantImageSyncPlan({
+            inputVariants: normalizedVariants,
+            persistedVariants: createdVariants,
+        });
+        if (imageSyncPlan.unresolved.length > 0) {
+            throw new BadRequestError(
+                `Unable to reconcile variant image targets: ${JSON.stringify(imageSyncPlan.unresolved)}`
+            );
+        }
+        for (const task of imageSyncPlan.tasks) {
+            await variantImageRepo.syncImages(product.id, task.variantId, task.images);
+        }
     } catch (error) {
         // Compensating rollback: keep product+variant writes all-or-nothing for create flow.
         if (product?.id) {

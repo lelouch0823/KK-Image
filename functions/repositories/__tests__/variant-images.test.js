@@ -157,4 +157,31 @@ describe('VariantImageRepository', () => {
             })
         ).rejects.toThrow('Variant does not belong to product');
     });
+
+    it('normalizes sync image payload: dedupe and enforce single primary', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes('FROM product_variants')) {
+                stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('DELETE FROM variant_images') || sql.includes('INSERT INTO variant_images')) {
+                stmt.run.mockResolvedValue({ meta: { changes: 1 } });
+            }
+            return stmt;
+        });
+
+        await repo.syncImages('product_1', 'variant_1', [
+            { image_id: 'img-1', is_primary: 0 },
+            { image_id: 'img-2', is_primary: 1 },
+            { image_id: 'img-2', is_primary: 1 },
+            { id: 'img-3', is_primary: 1 },
+            '',
+        ]);
+
+        expect(db.batch).toHaveBeenCalledTimes(1);
+        const batched = db.batch.mock.calls[0][0];
+        expect(batched.length).toBe(4);
+        expect(batched[1].params.slice(1, 5)).toEqual(['variant_1', 'img-1', 0, 0]);
+        expect(batched[2].params.slice(1, 5)).toEqual(['variant_1', 'img-2', 1, 1]);
+        expect(batched[3].params.slice(1, 5)).toEqual(['variant_1', 'img-3', 2, 0]);
+    });
 });
