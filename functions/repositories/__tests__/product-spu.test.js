@@ -112,6 +112,12 @@ describe('ProductRepository — SPU 重构', () => {
             const product = await repo.create({ name: 'Code Product' });
             expect(product.product_code).toBe('PTESTUUID0000');
         });
+
+        it('创建商品时应拒绝非法 currency', async () => {
+            await expect(
+                repo.create({ name: 'Bad Currency Product', currency: 'INVALID' })
+            ).rejects.toThrow('Invalid currency code');
+        });
     });
 
     // ---------------------------------------------------------------
@@ -193,6 +199,13 @@ describe('ProductRepository — SPU 重构', () => {
             const updateCall = db.prepare.mock.calls.find(c => c[0].includes('UPDATE'));
             expect(updateCall[0]).toContain('spu =');
         });
+
+        it('应拒绝更新非法 currency', async () => {
+            const result = await repo.updateWithMeta('test-id', { currency: 'INVALID' });
+            expect(result.success).toBe(false);
+            expect(result.error).toBe('Invalid currency code');
+            expect(db.prepare).not.toHaveBeenCalled();
+        });
     });
 
     // ---------------------------------------------------------------
@@ -213,6 +226,30 @@ describe('ProductRepository — SPU 重构', () => {
             // 应成功而不是因缺少 sku 而报错
             expect(result.success).toBe(true);
             expect(result.count).toBe(1);
+        });
+
+        it('批量创建应过滤非法 currency 数据', async () => {
+            db.prepare.mockImplementation((sql) => {
+                const stmt = createPreparedStatement(sql);
+                stmt.run.mockResolvedValue({ meta: { changes: 1 } });
+                return stmt;
+            });
+            db.batch.mockResolvedValue([
+                { success: true, meta: { changes: 1 } }
+            ]);
+
+            const result = await repo.createBatch([
+                { name: 'Valid Product', currency: 'USD' },
+                { name: 'Invalid Product', currency: 'XYZ' },
+            ]);
+
+            expect(result.success).toBe(true);
+            expect(result.count).toBe(1);
+            expect(result.errors).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({ error: 'Invalid currency code' }),
+                ])
+            );
         });
     });
 });

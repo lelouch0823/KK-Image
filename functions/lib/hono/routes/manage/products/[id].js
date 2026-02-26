@@ -5,6 +5,7 @@ import { ProductDimensionRepository } from '../../../../../repositories/ProductD
 import { VariantImageRepository } from '../../../../../repositories/VariantImageRepository.js';
 import { VariantAuditRepository } from '../../../../../repositories/VariantAuditRepository.js';
 import { resolveVariantImageSyncPlan } from './variant-image-sync.js';
+import { normalizeProductCurrency } from './currency.js';
 import { invalidateCache } from '../../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
 
@@ -407,6 +408,11 @@ app.patch('/:id', async (c) => {
     const body = await c.req.json();
     const incomingDimensions = Array.isArray(body.dimensions) ? body.dimensions : null;
     if (body.dimensions !== undefined) delete body.dimensions;
+    if (body.currency !== undefined) {
+        const normalizedCurrency = normalizeProductCurrency(body.currency);
+        if (!normalizedCurrency) throw new BadRequestError('Invalid currency code');
+        body.currency = normalizedCurrency;
+    }
     if (body.variants !== undefined) {
         const dimensionRepo = new ProductDimensionRepository(env.DB);
         const dimensions = incomingDimensions
@@ -472,6 +478,11 @@ app.put('/:id', async (c) => {
     const body = await c.req.json();
     const incomingDimensions = Array.isArray(body.dimensions) ? body.dimensions : null;
     if (body.dimensions !== undefined) delete body.dimensions;
+    if (body.currency !== undefined) {
+        const normalizedCurrency = normalizeProductCurrency(body.currency);
+        if (!normalizedCurrency) throw new BadRequestError('Invalid currency code');
+        body.currency = normalizedCurrency;
+    }
     if (body.variants !== undefined) {
         const dimensionRepo = new ProductDimensionRepository(env.DB);
         const dimensions = incomingDimensions

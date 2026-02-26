@@ -4,6 +4,7 @@ import { ProductVariantRepository } from '../../../../../repositories/ProductVar
 import { ProductDimensionRepository } from '../../../../../repositories/ProductDimensionRepository.js';
 import { VariantImageRepository } from '../../../../../repositories/VariantImageRepository.js';
 import { resolveVariantImageSyncPlan } from './variant-image-sync.js';
+import { normalizeProductCurrency } from './currency.js';
 import { withCache, invalidateCache } from '../../../middleware/cache.js';
 import { BadRequestError, ConflictError } from '../../../errors.js';
 
@@ -114,6 +115,11 @@ app.post('/', async (c) => {
     if (!body.name) {
         throw new BadRequestError('Name is required');
     }
+    const normalizedCurrency = normalizeProductCurrency(body.currency);
+    if (!normalizedCurrency) {
+        throw new BadRequestError('Invalid currency code');
+    }
+    body.currency = normalizedCurrency;
     validateVariants(body.variants);
 
     const repo = new ProductRepository(env.DB);

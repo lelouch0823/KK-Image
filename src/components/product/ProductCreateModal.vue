@@ -66,7 +66,7 @@
                 </div>
 
                 <!-- Group 2: Brand & Series (2 cols) & Category, SPU, Slug (3 cols) -->
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <AppInput
                     v-model="form.brand"
                     :label="t('order.form.brand')"
@@ -77,6 +77,18 @@
                     :label="t('order.form.series')"
                     :placeholder="t('order.form.seriesPlaceholder')"
                   />
+                  <!-- 货币选择器 -->
+                  <div>
+                    <label class="mb-1.5 block text-sm font-medium text-(--text-main)">{{ t('product.form.currency', 'Currency') }}</label>
+                    <select
+                      v-model="form.currency"
+                      class="w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main) transition-colors focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                    >
+                      <option v-for="c in CURRENCY_OPTIONS" :key="c.code" :value="c.code">
+                        {{ c.symbol }} {{ c.code }} — {{ c.label }}
+                      </option>
+                    </select>
+                  </div>
                 </div>
 
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -247,6 +259,7 @@
                   </div>
                   <ProductVariantTable
                     v-model="form.variants"
+                    :currency-symbol="CURRENCY_SYMBOLS[form.currency] || '¥'"
                   />
                 </div>
 
@@ -581,12 +594,28 @@ const valueArchiveWizard = reactive({
 const imageObjects = ref([]);
 const variantLocalKeySeed = ref(0);
 
+// 货币配置
+const CURRENCY_OPTIONS = [
+  { code: 'CNY', symbol: '¥', label: '人民币' },
+  { code: 'USD', symbol: '$', label: 'US Dollar' },
+  { code: 'EUR', symbol: '€', label: 'Euro' },
+  { code: 'GBP', symbol: '£', label: 'British Pound' },
+  { code: 'JPY', symbol: '¥', label: '日本円' },
+];
+const CURRENCY_SYMBOLS = Object.fromEntries(CURRENCY_OPTIONS.map(c => [c.code, c.symbol]));
+const CURRENCY_CODE_SET = new Set(CURRENCY_OPTIONS.map(c => c.code));
+const normalizeCurrencyCode = (value) => {
+  const code = String(value || '').trim().toUpperCase();
+  return CURRENCY_CODE_SET.has(code) ? code : 'CNY';
+};
+
 const form = reactive({
   name: '',
   description: '',
   brand: '',
   series: '',
   category: '',
+  currency: 'CNY',
   spu: '',
   slug: '',
   images: [],
@@ -628,6 +657,7 @@ function fillFormFromData(data) {
     brand: data.brand || '',
     series: data.series || '',
     category: data.category || '',
+    currency: normalizeCurrencyCode(data.currency),
     spu: data.spu || '',
     slug: data.slug || '',
     images: imgs,
@@ -659,6 +689,7 @@ function resetForm() {
     brand: '',
     series: '',
     category: '',
+    currency: 'CNY',
     spu: '',
     slug: '',
     images: [],
@@ -994,6 +1025,7 @@ const handleSubmit = async () => {
       brand: form.brand,
       series: form.series,
       category: form.category,
+      currency: normalizeCurrencyCode(form.currency),
       spu: form.spu || undefined,
       slug: form.slug || undefined,
       images: currentImageIds, // Send array of IDs

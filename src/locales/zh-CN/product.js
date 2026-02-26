@@ -19,6 +19,7 @@ export default {
     media_help: '第一张图片将作为封面图',
     category: '商品分类',
     category_placeholder: '如：男装',
+    currency: '结算货币',
     specifications: '规格参数',
     pricing_inventory: '价格与库存',
     price: '销售价格',

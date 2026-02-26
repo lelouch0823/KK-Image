@@ -4,6 +4,17 @@ export class ProductRepository {
         this.db = db;
     }
 
+    static PRODUCT_CURRENCY_SET = new Set(['CNY', 'USD', 'EUR', 'GBP', 'JPY']);
+
+    normalizeCurrency(value, { allowEmpty = true } = {}) {
+        const normalized = String(value ?? '').trim().toUpperCase();
+        if (!normalized) return allowEmpty ? 'CNY' : null;
+        if (!ProductRepository.PRODUCT_CURRENCY_SET.has(normalized)) {
+            return null;
+        }
+        return normalized;
+    }
+
     _variantAggregateCTE() {
         return `
             WITH variant_agg AS (
@@ -43,6 +54,10 @@ export class ProductRepository {
     async create(data) {
         const now = Date.now();
         const id = crypto.randomUUID();
+        const currency = this.normalizeCurrency(data.currency);
+        if (!currency) {
+            throw new Error('Invalid currency code');
+        }
 
         const product = {
             id,
@@ -52,6 +67,7 @@ export class ProductRepository {
             category: data.category || null,
             brand: data.brand || null,
             series: data.series || null,
+            currency,
             description: data.description || '',
             images: JSON.stringify(data.images || []),
             specifications: JSON.stringify(data.specifications || {}),
@@ -94,6 +110,11 @@ export class ProductRepository {
             }
 
             const id = crypto.randomUUID();
+            const currency = this.normalizeCurrency(data.currency);
+            if (!currency) {
+                errors.push({ spu: data.spu || 'UNKNOWN', error: 'Invalid currency code' });
+                continue;
+            }
             validItems.push({
                 data,
                 id
@@ -107,6 +128,7 @@ export class ProductRepository {
                 category: data.category || null,
                 brand: data.brand || null,
                 series: data.series || null,
+                currency,
                 description: data.description || '',
                 images: JSON.stringify(data.images || []),
                 specifications: JSON.stringify(data.specifications || {}),
@@ -178,7 +200,7 @@ export class ProductRepository {
     async updateWithMeta(id, updates) {
         const allowedFields = [
             'name', 'spu', 'slug', 'category', 'brand', 'series',
-            'description', 'images', 'specifications', 'options'
+            'currency', 'description', 'images', 'specifications', 'options'
         ];
 
         const updateData = {};
@@ -189,6 +211,12 @@ export class ProductRepository {
                 // Handle JSON fields
                 if (['images', 'specifications', 'options'].includes(key) && typeof value === 'object') {
                     updateData[key] = JSON.stringify(value);
+                } else if (key === 'currency') {
+                    const normalizedCurrency = this.normalizeCurrency(value, { allowEmpty: false });
+                    if (!normalizedCurrency) {
+                        return { success: false, changes: 0, error: 'Invalid currency code' };
+                    }
+                    updateData[key] = normalizedCurrency;
                 } else {
                     updateData[key] = value;
                 }

@@ -212,5 +212,52 @@ describe('Product Routes — variant-first contract', () => {
                 [{ image_id: 'img-1', is_primary: 1 }]
             );
         });
+
+        it('rejects invalid currency code before repository create', async () => {
+            const app = createApp();
+            const res = await app.request(
+                'http://localhost/api/manage/products',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'Test Product',
+                        currency: 'INVALID',
+                        variants: validVariants,
+                    }),
+                },
+                { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+                { waitUntil: vi.fn() }
+            );
+
+            expect(res.status).toBe(400);
+            expect(mockProductRepo.create).not.toHaveBeenCalled();
+        });
+
+        it('normalizes lowercase currency code to uppercase', async () => {
+            mockProductRepo.create.mockResolvedValue({ id: 'test-id', name: 'Test Product', spu: null });
+            mockVariantRepo.createBatch.mockResolvedValue([]);
+
+            const app = createApp();
+            const res = await app.request(
+                'http://localhost/api/manage/products',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'Test Product',
+                        currency: 'usd',
+                        variants: validVariants,
+                    }),
+                },
+                { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+                { waitUntil: vi.fn() }
+            );
+
+            expect(res.status).toBe(201);
+            expect(mockProductRepo.create).toHaveBeenCalledWith(
+                expect.objectContaining({ currency: 'USD' })
+            );
+        });
     });
 });

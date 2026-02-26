@@ -19,6 +19,7 @@ export default {
     media_help: 'The first image will be the cover',
     category: 'Category',
     category_placeholder: 'e.g., Apparel',
+    currency: 'Currency',
     specifications: 'Specifications',
     pricing_inventory: 'Pricing & Inventory',
     price: 'Selling Price',

@@ -160,4 +160,24 @@ describe('product variant audit routes', () => {
       [{ image_id: 'img-new', is_primary: 1 }]
     );
   });
+
+  it('PATCH /:id rejects invalid currency before repository update', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/p1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currency: 'INVALID',
+          variants: [{ id: 'v1', price: 12, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active' }],
+        }),
+      },
+      { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mockProductRepo.updateWithMeta).not.toHaveBeenCalled();
+  });
 });
