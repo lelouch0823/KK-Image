@@ -2,42 +2,38 @@
   <!-- 背景遮罩 -->
   <Teleport to="body">
     <transition name="fade">
-      <div v-if="visible" class="fixed inset-0 z-[60] bg-[var(--color-overlay-dim)] backdrop-blur-sm" @click="$emit('close')"></div>
+      <div v-if="visible" class="fixed inset-0 z-60 bg-(--color-overlay-dim) backdrop-blur-sm" @click="$emit('close')"></div>
     </transition>
 
     <!-- 弹窗主体 -->
     <transition name="modal-slide">
       <div v-if="visible" class="fixed inset-0 z-[61] flex items-center justify-center p-4 sm:p-6">
-        <div class="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-[var(--color-modal-bg)] shadow-2xl" style="max-height: calc(100vh - 3rem)">
+        <div class="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-(--color-modal-bg) shadow-2xl" style="max-height: calc(100vh - 3rem)">
           <!-- 头部 -->
-          <div class="flex items-center justify-between border-b border-[var(--border-color)] px-6 py-4">
+          <div class="flex items-center justify-between border-b border-(--border-color) px-6 py-4">
             <div>
-              <h2 class="text-lg font-bold text-[var(--text-main)]">{{ t('purchaseOrder.selection.orderTitle') }}</h2>
-              <p class="mt-0.5 text-sm text-[var(--text-secondary)]">{{ t('purchaseOrder.selection.orderSubtitle') }}</p>
+              <h2 class="text-lg font-bold text-main">{{ t('purchaseOrder.selection.orderTitle') }}</h2>
+              <p class="mt-0.5 text-sm text-secondary">{{ t('purchaseOrder.selection.orderSubtitle') }}</p>
             </div>
             <button
               type="button"
-              class="cursor-pointer rounded-lg p-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+              class="cursor-pointer rounded-lg p-2 text-secondary transition-colors hover:bg-(--bg-hover)"
               @click="$emit('close')"
             >
-              <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
+              <AppIcon name="x-mark" class="size-5" />
             </button>
           </div>
 
           <!-- 搜索栏 -->
-          <div class="border-b border-[var(--border-subtle)] px-6 py-3">
+          <div class="border-b border-(--border-subtle) px-6 py-3">
             <div class="relative">
-              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--text-muted)]">
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
+              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted">
+                <AppIcon name="magnifying-glass" class="size-4" />
               </div>
               <input
                 v-model="searchQuery"
                 type="text"
-                class="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] py-2.5 pr-4 pl-10 text-sm text-[var(--text-main)] transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none"
+                class="w-full rounded-xl border border-(--border-color) bg-(--bg-page) py-2.5 pr-4 pl-10 text-sm text-main transition-colors placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                 :placeholder="t('purchaseOrder.selection.searchOrder')"
               />
             </div>
@@ -47,36 +43,34 @@
           <div class="min-h-0 flex-1 overflow-y-auto px-6 py-3">
             <!-- 加载骨架 -->
             <div v-if="loading" class="space-y-3">
-              <div v-for="i in 4" :key="'sk-' + i" class="flex items-center gap-3 rounded-xl border border-[var(--border-subtle)] p-4">
-                <div class="skeleton-shimmer size-5 rounded bg-[var(--bg-muted)]"></div>
+              <div v-for="i in 4" :key="'sk-' + i" class="flex items-center gap-3 rounded-xl border border-(--border-subtle) p-4">
+                <div class="skeleton-shimmer size-5 rounded bg-(--bg-muted)"></div>
                 <div class="flex-1 space-y-2">
-                  <div class="skeleton-shimmer h-4 w-32 rounded bg-[var(--bg-muted)]"></div>
-                  <div class="skeleton-shimmer h-3 w-48 rounded bg-[var(--bg-muted)]"></div>
+                  <div class="skeleton-shimmer h-4 w-32 rounded bg-(--bg-muted)"></div>
+                  <div class="skeleton-shimmer h-3 w-48 rounded bg-(--bg-muted)"></div>
                 </div>
               </div>
             </div>
 
             <!-- 空状态 -->
             <div v-else-if="filteredOrders.length === 0" class="flex flex-col items-center justify-center py-12">
-              <div class="flex size-16 items-center justify-center rounded-2xl bg-[var(--bg-muted)]">
-                <svg class="size-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                </svg>
+              <div class="flex size-16 items-center justify-center rounded-2xl bg-(--bg-muted)">
+                <AppIcon name="shopping-bag" class="size-8 text-muted" />
               </div>
-              <p class="mt-4 text-sm text-[var(--text-secondary)]">{{ t('purchaseOrder.selection.emptyOrders') }}</p>
+              <p class="mt-4 text-sm text-secondary">{{ t('purchaseOrder.selection.emptyOrders') }}</p>
             </div>
 
             <!-- 订单列表 -->
             <div v-else class="space-y-2">
               <!-- 全选 -->
               <label
-                class="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-[var(--border-color)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+                class="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-(--border-color) px-4 py-2.5 text-sm font-medium text-secondary transition-colors hover:bg-(--bg-hover)"
               >
                 <input
                   type="checkbox"
                   :checked="isAllSelected"
                   :indeterminate="isPartiallySelected"
-                  class="size-4 cursor-pointer rounded border-[var(--border-color)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                  class="size-4 cursor-pointer rounded border-(--border-color) text-primary focus:ring-primary"
                   @change="toggleSelectAll"
                 />
                 {{ isAllSelected ? t('purchaseOrder.selection.deselectAll') : t('purchaseOrder.selection.selectAll') }}
@@ -89,30 +83,30 @@
                 :key="order.id"
                 class="group flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-all duration-200"
                 :class="isSelected(order.id)
-                  ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 shadow-sm'
-                  : 'border-[var(--border-subtle)] hover:border-[var(--border-color)] hover:bg-[var(--bg-hover)]'"
+                  ? 'border-primary bg-primary/5 shadow-sm'
+                  : 'border-(--border-subtle) hover:border-(--border-color) hover:bg-(--bg-hover)'"
                 @click="viewOrder(order)"
               >
                 <div class="pt-0.5" @click.stop>
                   <input
                     type="checkbox"
                     :checked="isSelected(order.id)"
-                    class="size-4 cursor-pointer rounded border-[var(--border-color)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                    class="size-4 cursor-pointer rounded border-(--border-color) text-primary focus:ring-primary"
                     @change="toggleSelect(order)"
                   />
                 </div>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-2">
-                    <code class="truncate rounded bg-[var(--bg-muted)] px-1.5 py-0.5 font-mono text-xs text-[var(--text-secondary)]">{{ order.orderNo }}</code>
-                    <span class="shrink-0 font-[Outfit] text-sm font-medium text-[var(--text-main)]">×{{ order.quantity || 1 }}</span>
+                    <code class="truncate rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-secondary">{{ order.orderNo }}</code>
+                    <span class="shrink-0 font-[Outfit] text-sm font-medium text-main">×{{ order.quantity || 1 }}</span>
                   </div>
-                  <div class="mt-1.5 truncate text-sm font-medium text-[var(--text-main)]">{{ order.productName || '—' }}</div>
-                  <div class="mt-1 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                  <div class="mt-1.5 truncate text-sm font-medium text-main">{{ order.productName || '—' }}</div>
+                  <div class="mt-1 flex items-center gap-2 text-xs text-secondary">
                     <span v-if="order.customer?.name" class="flex items-center gap-1">
-                      <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                      <AppIcon name="user" class="size-3" />
                       {{ order.customer.name }}
                     </span>
-                    <span v-if="order.brand" class="rounded bg-[var(--bg-muted)] px-1.5 py-0.5">{{ order.brand }}</span>
+                    <span v-if="order.brand" class="rounded bg-muted px-1.5 py-0.5">{{ order.brand }}</span>
                   </div>
                 </div>
               </div>
@@ -120,15 +114,15 @@
           </div>
 
           <!-- 底部操作栏 -->
-          <div class="flex items-center justify-between border-t border-[var(--border-color)] bg-[var(--bg-card)] px-6 py-4">
-            <span v-if="selected.length > 0" class="text-sm text-[var(--text-secondary)]">
+          <div class="flex items-center justify-between border-t border-(--border-color) bg-(--bg-card) px-6 py-4">
+            <span v-if="selected.length > 0" class="text-sm text-secondary">
               {{ t('purchaseOrder.selection.selectedCount', { count: selected.length }) }}
             </span>
             <span v-else></span>
             <div class="flex items-center gap-3">
               <button
                 type="button"
-                class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+                class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-secondary transition-colors hover:bg-(--bg-hover)"
                 @click="$emit('close')"
               >
                 {{ t('common.cancel') }}
@@ -136,7 +130,7 @@
               <button
                 type="button"
                 :disabled="selected.length === 0"
-                class="cursor-pointer rounded-xl bg-[var(--color-primary)] px-5 py-2.5 text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                class="cursor-pointer rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-inverse shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 @click="confirm"
               >
                 {{ t('common.confirm') }} ({{ selected.length }})
@@ -152,14 +146,11 @@
       v-model="showDetailModal"
       :title="t('order.detail.title') || '预定单详情'"
       size="5xl"
-      body-class="p-0 bg-[var(--bg-page)] relative min-h-[50vh]"
+      body-class="p-0 bg-(--bg-page) relative min-h-[50vh]"
     >
-      <div v-if="loadingDetail" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--bg-page)]/80 backdrop-blur-sm">
-        <svg class="size-8 animate-spin text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-        </svg>
-        <div class="mt-4 text-sm text-[var(--text-secondary)]">{{ t('common.loading') }}</div>
+      <div v-if="loadingDetail" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-(--bg-page)/80 backdrop-blur-sm">
+        <AppIcon name="spinner" class="size-8 animate-spin text-primary" />
+        <div class="mt-4 text-sm text-secondary">{{ t('common.loading') }}</div>
       </div>
       
       <div class="h-[75vh] overflow-y-auto p-4 sm:p-6" v-if="viewingOrder">
@@ -189,6 +180,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useOrders } from '@/composables/useOrders';
 import Modal from '@/components/ui/Modal.vue';
 import OrderDetail from '@/components/order/OrderDetail.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   /** 控制弹窗可见性 */

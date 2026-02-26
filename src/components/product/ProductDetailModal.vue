@@ -1,7 +1,7 @@
 <template>
   <Modal 
     v-model="isVisible"
-    size="4xl"
+    size="6xl"
   >
     <template #header>
       <div class="flex flex-1 items-center justify-between gap-4">

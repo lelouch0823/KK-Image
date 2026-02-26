@@ -44,14 +44,7 @@
                 class="-mr-1 p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text-main)]"
                 @click="close"
               >
-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  ></path>
-                </svg>
+                <AppIcon name="x-mark" class="size-5" />
               </button>
             </div>
 
@@ -77,6 +70,7 @@
 <script setup>
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { useModalStack } from '@/composables/useModalStack';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   modelValue: {

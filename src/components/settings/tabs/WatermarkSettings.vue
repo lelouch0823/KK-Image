@@ -3,7 +3,7 @@
     <SettingsSection
       :title="t('settings.watermark.title', 'Watermark Settings')"
       :description="t('settings.watermark.description', 'Configure global text watermark applied to uploaded images.')"
-      :icon="PhotoIcon"
+      icon="photo"
     >
       <form class="space-y-6" @submit.prevent="saveSettings">
         
@@ -111,10 +111,7 @@
             :disabled="saving"
             class="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-5 py-2.5 text-sm font-medium text-[var(--text-inverse)] shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50"
           >
-            <svg v-if="saving" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-            </svg>
+            <AppIcon v-if="saving" name="spinner" class="size-4 animate-spin" />
             <span v-if="saving">{{ t('settings.saving', 'Saving...') }}</span>
             <span v-else>{{ t('settings.save', 'Save Changes') }}</span>
           </button>
@@ -127,6 +124,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
 import SettingsSection from '../SettingsSection.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useWatermarkSettings } from '@/composables/useWatermarkSettings';
@@ -134,10 +132,6 @@ import { useWatermarkSettings } from '@/composables/useWatermarkSettings';
 const { t } = useI18n();
 const { addToast } = useToast();
 const { loadSettings, watermarkSettings } = useWatermarkSettings();
-
-const PhotoIcon = {
-  template: `<svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>`
-};
 
 const saving = ref(false);
 

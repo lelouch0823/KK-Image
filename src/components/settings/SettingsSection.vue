@@ -3,7 +3,7 @@
     <div class="border-b border-[var(--border-color)] bg-[var(--bg-muted)] px-6 py-4">
       <div class="flex items-center gap-3">
         <div v-if="icon" class="flex size-10 items-center justify-center rounded-lg bg-[var(--color-primary-bg)] text-[var(--color-primary)]">
-          <component :is="icon" class="size-5" />
+          <AppIcon :name="icon" class="size-5" />
         </div>
         <div>
           <h3 class="text-primary text-base font-semibold">{{ title }}</h3>
@@ -24,6 +24,8 @@
 </template>
 
 <script setup>
+import AppIcon from '@/components/ui/AppIcon.vue';
+
 defineProps({
   title: {
     type: String,

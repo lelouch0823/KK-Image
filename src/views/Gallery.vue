@@ -93,19 +93,10 @@
               v-else-if="file.type === 'pdf'"
               class="flex size-full flex-col items-center justify-center bg-[var(--bg-muted)] text-[var(--text-secondary)]"
             >
-              <svg
-                class="mb-2 size-12 text-[var(--color-danger)]"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.5"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                ></path>
-              </svg>
+              <AppIcon
+                name="document-text"
+                class="mb-2 size-12 text-danger"
+              />
               <span
                 class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-1 text-xs font-medium shadow-sm"
                 >PDF</span
@@ -117,19 +108,10 @@
               v-else
               class="flex size-full flex-col items-center justify-center bg-[var(--bg-muted)] text-[var(--text-secondary)]"
             >
-              <svg
-                class="mb-2 size-12 text-[var(--text-muted)]"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.5"
-                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                ></path>
-              </svg>
+              <AppIcon
+                name="document"
+                class="mb-2 size-12 text-(--text-muted)"
+              />
               <span
                 class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-1 text-xs font-medium uppercase shadow-sm"
                 >{{ file.name.split('.').pop() }}</span
@@ -181,6 +163,7 @@ import { useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useClipboard } from '@/composables/useClipboard';
 import Lightbox from '@/components/ui/Lightbox.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import PasswordGate from '@/components/common/PasswordGate.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import AppImage from '@/components/ui/AppImage.vue';

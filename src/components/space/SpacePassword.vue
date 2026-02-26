@@ -6,20 +6,9 @@
           <div
             class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-[var(--bg-muted)]"
           >
-            <svg
-              class="text-secondary size-7"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              ></path>
-            </svg>
+            <AppIcon name="lock-closed" class="text-secondary size-7" />
           </div>
+
           <h2 class="text-primary text-xl font-semibold">{{ t('gallery.passwordRequired') }}</h2>
           <p class="text-secondary mt-1 text-sm">{{ t('spacePublic.passwordProtected') }}</p>
         </div>
@@ -46,6 +35,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   error: { type: String, default: '' },

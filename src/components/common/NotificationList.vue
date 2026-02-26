@@ -31,19 +31,7 @@
         v-else-if="notifications.length === 0"
         class="text-secondary flex flex-col items-center p-8 text-center"
       >
-        <svg
-          class="mb-2 size-10 text-gray-200"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.5"
-            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-          />
-        </svg>
+        <AppIcon name="bell" class="mb-2 size-10 text-gray-200" />
         <span class="text-sm">{{ t('notification.empty') }}</span>
       </div>
 
@@ -92,7 +80,7 @@
                 title="标记为已读"
                 @click.stop="markAsRead(item.id)"
               >
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <AppIcon name="check" class="size-4" />
               </button>
               <div class="bg-primary size-2 rounded-full"></div>
             </div>
@@ -109,6 +97,7 @@ import { useNotifications } from '@/composables/useNotifications';
 import { useI18n } from '@/composables/useI18n';
 import { formatDate } from '@/utils/formatters';
 import { useRouter } from 'vue-router';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   close: { type: Function, default: () => {} },

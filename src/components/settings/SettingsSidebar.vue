@@ -11,8 +11,8 @@
       ]"
       @click="$emit('update:currentTab', item.id)"
     >
-      <component
-        :is="item.icon"
+      <AppIcon
+        :name="item.icon"
         class="size-5 shrink-0 transition-colors"
         :class="[currentTab === item.id ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--color-primary)]']"
       />
@@ -28,6 +28,8 @@
 </template>
 
 <script setup>
+import AppIcon from '@/components/ui/AppIcon.vue';
+
 defineProps({
   items: {
     type: Array,

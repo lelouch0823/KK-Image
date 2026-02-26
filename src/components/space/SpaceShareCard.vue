@@ -10,19 +10,7 @@
               : 'bg-[var(--bg-muted)] text-[var(--text-secondary)]'
           "
         >
-          <svg
-            class="size-full p-1.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-            />
-          </svg>
+          <AppIcon name="link" class="size-full p-1.5" />
         </div>
         <div>
           <h4 class="text-sm font-semibold text-[var(--text-main)]">
@@ -68,14 +56,7 @@
         class="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--color-primary)]/5 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/10"
         @click.prevent="copyLink"
       >
-        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
-          />
-        </svg>
+        <AppIcon name="clipboard" class="size-3.5" />
         {{ t('common.copy') }}
       </button>
 
@@ -83,19 +64,7 @@
       <div class="border-t border-[var(--border-color)] pt-3">
         <div class="mb-2 flex items-center justify-between">
           <div class="flex items-center gap-1.5">
-            <svg
-              class="size-3.5 text-[var(--text-secondary)]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
+            <AppIcon name="lock-closed" class="size-3.5 text-[var(--text-secondary)]" />
             <span class="text-xs font-medium text-[var(--text-main)]">{{
               t('spaceManager.passwordLock')
             }}</span>
@@ -132,6 +101,7 @@
 <script setup>
 import { useI18n } from '@/composables/useI18n';
 import { useClipboard } from '@/composables/useClipboard';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   isPublic: {

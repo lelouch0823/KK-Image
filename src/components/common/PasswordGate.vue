@@ -6,19 +6,7 @@
           <div
             class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-[var(--bg-muted)]"
           >
-            <svg
-              class="text-secondary size-7"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              ></path>
-            </svg>
+            <AppIcon name="lock-closed" class="text-secondary size-7" />
           </div>
           <h2 class="text-primary text-xl font-semibold">
             {{ title || t('auth.passwordRequired') }}
@@ -38,27 +26,7 @@
             :disabled="loading"
             class="bg-primary flex h-12 w-full items-center justify-center rounded-xl font-medium text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
           >
-            <svg
-              v-if="loading"
-              class="mr-2 size-5 animate-spin"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              ></path>
-            </svg>
+            <AppIcon v-if="loading" name="spinner" class="mr-2 size-5 animate-spin" />
             {{ buttonText || t('common.confirm') }}
           </button>
         </form>
@@ -71,6 +39,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const { t } = useI18n();
 

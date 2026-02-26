@@ -1,15 +1,16 @@
 <template>
   <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
-    <!-- Left: Gallery (8 cols) -->
-    <div class="space-y-4 lg:col-span-8">
+    <!-- Left: Gallery -->
+    <div class="space-y-4 lg:col-span-7">
         <div class="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-1 shadow-sm">
              <!-- Main Image -->
-            <div class="relative aspect-video w-full overflow-hidden rounded-xl bg-[var(--bg-muted)]">
+            <div class="relative aspect-square w-full overflow-hidden rounded-xl bg-[var(--bg-muted)] sm:aspect-[4/3] lg:aspect-video">
                  <AppImage 
                     v-if="currentImage"
                     :src="`/file/${currentImage}`"
+                    :alt="product.name || 'Product image'"
                     fit="contain"
-                    class="size-full transition-transform duration-500 hover:scale-105"
+                    class="size-full transition-transform duration-500 motion-safe:hover:scale-105"
                  />
                  <div v-else class="flex size-full items-center justify-center text-[var(--text-secondary)]">
                     <span class="text-sm">{{ t('product.text.no_images') }}</span>
@@ -21,13 +22,33 @@
                 <button 
                   v-for="(img, idx) in images" 
                   :key="idx"
-                  class="relative size-16 shrink-0 overflow-hidden rounded-lg border-2 transition-all"
+                  type="button"
+                  class="relative size-16 shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                   :class="currentIndex === idx ? 'border-[var(--color-primary)] opacity-100 ring-2 ring-[var(--color-primary)]/20' : 'border-transparent opacity-60 hover:opacity-100'"
                   @click="currentIndex = idx"
                 >
-                   <AppImage :src="`/file/${img}`" fit="cover" class="size-full" />
+                   <AppImage :src="`/file/${img}`" :alt="`${product.name || 'Product'} thumbnail ${idx + 1}`" fit="cover" class="size-full" />
                 </button>
             </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2">
+            <p class="text-[11px] text-[var(--text-secondary)]">{{ t('product.table.variant.images', 'Images') }}</p>
+            <p class="mt-1 text-lg font-semibold text-[var(--text-main)]">{{ images.length }}</p>
+          </div>
+          <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2">
+            <p class="text-[11px] text-[var(--text-secondary)]">{{ t('product.form.variants_title', 'Variants') }}</p>
+            <p class="mt-1 text-lg font-semibold text-[var(--text-main)]">{{ variantCount }}</p>
+          </div>
+          <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2">
+            <p class="text-[11px] text-[var(--text-secondary)]">{{ t('product.form.inventory', 'Inventory') }}</p>
+            <p class="mt-1 text-lg font-semibold text-[var(--text-main)]">{{ totalStock }}</p>
+          </div>
+          <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2">
+            <p class="text-[11px] text-[var(--text-secondary)]">{{ t('spaceManager.associatedLinks') || 'Associated Links' }}</p>
+            <p class="mt-1 text-lg font-semibold text-[var(--text-main)]">{{ associatedSpaces.length }}</p>
+          </div>
         </div>
         
         <!-- Description (Desktop) -->
@@ -67,11 +88,11 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex shrink-0 items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                        <button class="rounded-lg p-1.5 text-[var(--text-secondary)] hover:bg-[var(--bg-card)] hover:text-[var(--color-primary)]" :title="t('common.copyLink')" @click="copyShareLink(space)">
+                    <div class="flex shrink-0 items-center gap-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                        <button type="button" class="cursor-pointer rounded-lg p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-card)] hover:text-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]" :title="t('common.copyLink')" :aria-label="`${t('common.copyLink')}: ${space.name}`" @click="copyShareLink(space)">
                             <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                         </button>
-                        <router-link :to="`/manage/space/${space.id}`" class="rounded-lg p-1.5 text-[var(--text-secondary)] hover:bg-[var(--bg-card)] hover:text-[var(--color-primary)]">
+                        <router-link :to="`/manage/space/${space.id}`" class="cursor-pointer rounded-lg p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-card)] hover:text-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
                             <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                         </router-link>
                     </div>
@@ -80,8 +101,8 @@
         </div>
     </div>
 
-    <!-- Right: Info (4 cols) -->
-    <div class="space-y-4 lg:col-span-4">
+    <!-- Right: Info -->
+    <div class="space-y-4 lg:col-span-5 lg:min-w-[24rem] lg:sticky lg:top-4 lg:self-start">
         <!-- Header Info -->
         <div class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5 shadow-sm">
              <div class="mb-3 flex items-start justify-between gap-2">
@@ -94,23 +115,29 @@
                      </div>
                  </div>
                  <StatusBadge 
+                   class="shrink-0 whitespace-nowrap"
                    :label="t(`product.filters.status.${product.status || 'archived'}`)" 
                    :variant="getProductStatusVariant(product.status || 'archived')" 
                  />
              </div>
              
-             <div class="mt-6 flex items-baseline gap-1">
-                 <span class="text-xs text-[var(--text-secondary)]">¥</span>
-                 <span class="font-[Outfit] text-3xl font-bold text-[var(--text-main)]">{{ product.price?.toFixed(2) }}</span>
-                 <span v-if="product.cost_price" class="ml-2 text-xs text-[var(--text-secondary)]">({{ t('product.form.cost') }}: ¥{{ product.cost_price }})</span>
+             <div class="mt-6">
+                 <p class="text-[11px] text-[var(--text-secondary)]">{{ t('product.form.price', 'Price') }}</p>
+                 <div class="mt-1 flex items-center gap-2">
+                    <span class="font-[Outfit] text-3xl font-bold text-[var(--text-main)]">{{ formatMoney(product.price) }}</span>
+                    <span class="rounded bg-[var(--bg-muted)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">{{ currencyCode }}</span>
+                 </div>
+                 <span v-if="product.cost_price !== undefined && product.cost_price !== null" class="mt-1 block text-xs text-[var(--text-secondary)]">
+                   {{ t('product.form.cost', 'Cost') }}: {{ formatMoney(product.cost_price) }}
+                 </span>
              </div>
         </div>
 
         <!-- Variants or Specs -->
         <div v-if="product.variants && product.variants.length > 0" class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5 shadow-sm">
              <h3 class="mb-4 text-sm font-bold tracking-wider text-[var(--text-main)] uppercase opacity-80">{{ t('product.form.variants_title', 'Variants') }}</h3>
-             <div class="overflow-x-auto">
-                 <table class="w-full text-left text-sm whitespace-nowrap">
+             <div class="hidden overflow-x-auto md:block">
+                 <table class="w-full min-w-[32rem] text-left text-sm md:min-w-0 md:whitespace-nowrap">
                      <thead class="bg-[var(--bg-muted)]/50 text-xs font-medium text-[var(--text-secondary)] uppercase">
                          <tr>
                              <th class="px-3 py-2 rounded-l-lg">Variant</th>
@@ -124,7 +151,7 @@
                                  <div class="font-medium text-[var(--text-main)]">{{ formatVariantName(variant.options_values) }}</div>
                                  <div class="text-[10px] sm:text-xs font-mono text-[var(--text-secondary)] mt-0.5">{{ variant.sku }}</div>
                              </td>
-                             <td class="px-3 py-2.5 font-[Outfit] font-medium text-[var(--text-main)]">¥{{ Number(variant.price).toFixed(2) }}</td>
+                             <td class="px-3 py-2.5 font-[Outfit] font-medium text-[var(--text-main)]">{{ formatMoney(variant.price) }}</td>
                              <td class="px-3 py-2.5 text-[var(--text-main)]">
                                  <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium" :class="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]' : 'bg-[var(--color-success)]/10 text-[var(--color-success)]'">
                                      <span class="size-1.5 rounded-full" :class="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'bg-[var(--color-danger)]' : 'bg-[var(--color-success)]'"></span>
@@ -134,6 +161,23 @@
                          </tr>
                      </tbody>
                  </table>
+             </div>
+             <div class="space-y-2 md:hidden">
+                <div v-for="variant in product.variants" :key="variant.id" class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)]/30 p-3">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-medium text-[var(--text-main)]">{{ formatVariantName(variant.options_values) }}</p>
+                      <p class="mt-0.5 font-mono text-[10px] text-[var(--text-secondary)]">{{ variant.sku }}</p>
+                    </div>
+                    <span class="text-sm font-semibold text-[var(--text-main)]">{{ formatMoney(variant.price) }}</span>
+                  </div>
+                  <div class="mt-2 flex items-center justify-between text-xs">
+                    <span class="text-[var(--text-secondary)]">{{ t('product.table.variant.stock', 'Stock') }}</span>
+                    <span :class="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'text-[var(--color-danger)]' : 'text-[var(--color-success)]'">
+                      {{ variant.stock_quantity }}
+                    </span>
+                  </div>
+                </div>
              </div>
         </div>
         <div v-else class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5 shadow-sm">
@@ -167,10 +211,11 @@
                      <span :class="stockColorClass" class="font-medium">{{ totalStock }}</span>
                  </div>
                  <div class="h-2 w-full overflow-hidden rounded-full bg-[var(--bg-muted)]">
-                      <div class="h-full rounded-full transition-all duration-500" :class="stockBgClass" :style="{ width: Math.min(100, (totalStock / 100) * 100) + '%' }"></div>
+                      <div class="h-full rounded-full transition-all duration-500" :class="stockBgClass" :style="{ width: stockProgress + '%' }"></div>
                  </div>
                  <div class="flex justify-between text-xs text-[var(--text-secondary)]">
                      <span>{{ t('product.form.alert_at') }}: {{ product.alert_threshold || 10 }}</span>
+                     <span>{{ t('product.table.variant.status', 'Status') }}: {{ t(`product.filters.status.${product.status || 'archived'}`) }}</span>
                  </div>
              </div>
         </div>
@@ -189,7 +234,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppImage from '@/components/ui/AppImage.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -230,6 +275,35 @@ const images = computed(() => {
 });
 
 const currentImage = computed(() => images.value[currentIndex.value]);
+watch(images, (nextImages) => {
+    if (!Array.isArray(nextImages) || nextImages.length === 0) {
+        currentIndex.value = 0;
+        return;
+    }
+    if (currentIndex.value > nextImages.length - 1) {
+        currentIndex.value = 0;
+    }
+});
+
+const currencyCode = computed(() => String(props.product.currency || 'CNY').toUpperCase());
+const currencyFormatter = computed(() => {
+    try {
+        return new Intl.NumberFormat('zh-CN', {
+            style: 'currency',
+            currency: currencyCode.value,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+    } catch {
+        return new Intl.NumberFormat('zh-CN', {
+            style: 'currency',
+            currency: 'CNY',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+    }
+});
+const formatMoney = (value) => currencyFormatter.value.format(Number(value) || 0);
 
 const specs = computed(() => {
     try {
@@ -260,6 +334,14 @@ const totalStock = computed(() => {
     }
     return q;
 });
+const variantCount = computed(() => Array.isArray(props.product.variants) ? props.product.variants.length : 0);
+const inventoryScale = computed(() => {
+    const alert = Math.max(1, Number(props.product.alert_threshold || 10));
+    return Math.max(50, alert * 5, Number(totalStock.value || 0));
+});
+const stockProgress = computed(() =>
+    Math.min(100, Math.round((Number(totalStock.value || 0) / inventoryScale.value) * 100))
+);
 
 const stockBgClass = computed(() => {
     const q = totalStock.value;

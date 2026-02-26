@@ -12,17 +12,7 @@
             class="rounded-md bg-[var(--bg-card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-main)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:outline-none"
             @click="$emit('close')"
           >
-            <span class="sr-only">{{ t('common.close') }}</span>
-            <svg
-              class="size-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <AppIcon name="x-mark" class="size-6" />
           </button>
         </div>
       </div>
@@ -69,38 +59,14 @@
               class="inline-flex items-center rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-sm leading-4 font-medium text-[var(--text-main)] shadow-sm transition-colors hover:bg-[var(--bg-hover)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:outline-none"
               @click="$emit('edit', customer)"
             >
-              <svg
-                class="mr-2 -ml-0.5 size-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                />
-              </svg>
+              <AppIcon name="pencil-square" class="mr-2 -ml-0.5 size-4" />
               {{ t('common.edit') }}
             </button>
             <button
               class="inline-flex items-center rounded-md border border-transparent bg-[var(--color-danger)] px-3 py-2 text-sm leading-4 font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:opacity-90 active:scale-95"
               @click="handleDelete"
             >
-              <svg
-                class="mr-2 -ml-0.5 size-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
+              <AppIcon name="trash" class="mr-2 -ml-0.5 size-4" />
               {{ t('common.delete') }}
             </button>
           </div>
@@ -174,19 +140,7 @@
           </div>
 
           <div v-else-if="orders.length === 0" class="py-8 text-center text-[var(--text-secondary)]">
-            <svg
-              class="mx-auto size-12 text-[var(--text-secondary)] opacity-50"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1"
-                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-              />
-            </svg>
+            <AppIcon name="rectangle-group" class="mx-auto size-12 text-[var(--text-secondary)] opacity-50" />
             <p class="mt-2 text-sm">{{ t('customer.detail.noOrders') }}</p>
           </div>
 
@@ -248,6 +202,7 @@ import { API } from '@/utils/constants';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import AppImage from '@/components/ui/AppImage.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   customer: { type: Object, default: () => ({}) },

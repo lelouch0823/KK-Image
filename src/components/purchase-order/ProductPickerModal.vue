@@ -2,42 +2,38 @@
   <!-- 背景遮罩 -->
   <Teleport to="body">
     <transition name="fade">
-      <div v-if="visible" class="fixed inset-0 z-[60] bg-[var(--color-overlay-dim)] backdrop-blur-sm" @click="$emit('close')"></div>
+      <div v-if="visible" class="fixed inset-0 z-60 bg-(--color-overlay-dim) backdrop-blur-sm" @click="$emit('close')"></div>
     </transition>
 
     <!-- 弹窗主体 -->
     <transition name="modal-slide">
       <div v-if="visible" class="fixed inset-0 z-[61] flex items-center justify-center p-4 sm:p-6">
-        <div class="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-[var(--color-modal-bg)] shadow-2xl" style="max-height: calc(100vh - 3rem)">
+        <div class="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-(--color-modal-bg) shadow-2xl" style="max-height: calc(100vh - 3rem)">
           <!-- 头部 -->
-          <div class="flex items-center justify-between border-b border-[var(--border-color)] px-6 py-4">
+          <div class="flex items-center justify-between border-b border-(--border-color) px-6 py-4">
             <div>
-              <h2 class="text-lg font-bold text-[var(--text-main)]">{{ t('purchaseOrder.selection.productTitle') }}</h2>
-              <p class="mt-0.5 text-sm text-[var(--text-secondary)]">{{ t('purchaseOrder.selection.productSubtitle') }}</p>
+              <h2 class="text-lg font-bold text-main">{{ t('purchaseOrder.selection.productTitle') }}</h2>
+              <p class="mt-0.5 text-sm text-secondary">{{ t('purchaseOrder.selection.productSubtitle') }}</p>
             </div>
             <button
               type="button"
-              class="cursor-pointer rounded-lg p-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+              class="cursor-pointer rounded-lg p-2 text-secondary transition-colors hover:bg-(--bg-hover)"
               @click="$emit('close')"
             >
-              <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
+              <AppIcon name="x-mark" class="size-5" />
             </button>
           </div>
 
           <!-- 搜索栏 -->
-          <div class="border-b border-[var(--border-subtle)] px-6 py-3">
+          <div class="border-b border-(--border-subtle) px-6 py-3">
             <div class="relative">
-              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--text-muted)]">
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
+              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted">
+                <AppIcon name="magnifying-glass" class="size-4" />
               </div>
               <input
                 v-model="searchQuery"
                 type="text"
-                class="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] py-2.5 pr-4 pl-10 text-sm text-[var(--text-main)] transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none"
+                class="w-full rounded-xl border border-(--border-color) bg-(--bg-page) py-2.5 pr-4 pl-10 text-sm text-main transition-colors placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                 :placeholder="t('purchaseOrder.selection.searchProduct')"
                 @input="debouncedSearch"
               />
@@ -48,34 +44,30 @@
           <div class="min-h-0 flex-1 overflow-y-auto px-6 py-3">
             <!-- 加载骨架 -->
             <div v-if="loading" class="space-y-3">
-              <div v-for="i in 4" :key="'sk-' + i" class="flex items-center gap-3 rounded-xl border border-[var(--border-subtle)] p-4">
-                <div class="skeleton-shimmer size-5 rounded bg-[var(--bg-muted)]"></div>
-                <div class="skeleton-shimmer size-10 rounded-lg bg-[var(--bg-muted)]"></div>
+              <div v-for="i in 4" :key="'sk-' + i" class="flex items-center gap-3 rounded-xl border border-(--border-subtle) p-4">
+                <div class="skeleton-shimmer size-5 rounded bg-(--bg-muted)"></div>
+                <div class="skeleton-shimmer size-10 rounded-lg bg-(--bg-muted)"></div>
                 <div class="flex-1 space-y-2">
-                  <div class="skeleton-shimmer h-4 w-32 rounded bg-[var(--bg-muted)]"></div>
-                  <div class="skeleton-shimmer h-3 w-48 rounded bg-[var(--bg-muted)]"></div>
+                  <div class="skeleton-shimmer h-4 w-32 rounded bg-(--bg-muted)"></div>
+                  <div class="skeleton-shimmer h-3 w-48 rounded bg-(--bg-muted)"></div>
                 </div>
               </div>
             </div>
 
             <!-- 空状态 -->
             <div v-else-if="sortedProducts.length === 0" class="flex flex-col items-center justify-center py-12">
-              <div class="flex size-16 items-center justify-center rounded-2xl bg-[var(--bg-muted)]">
-                <svg class="size-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                </svg>
+              <div class="flex size-16 items-center justify-center rounded-2xl bg-(--bg-muted)">
+                <AppIcon name="cube" class="size-8 text-muted" />
               </div>
-              <p class="mt-4 text-sm text-[var(--text-secondary)]">{{ t('common.noData') }}</p>
+              <p class="mt-4 text-sm text-secondary">{{ t('common.noData') }}</p>
             </div>
 
             <!-- 商品列表 -->
             <div v-else class="space-y-2">
               <!-- 推荐标签 (如果有同品牌推荐) -->
               <div v-if="recommendedProducts.length > 0 && !searchQuery" class="mb-3">
-                <div class="mb-2 flex items-center gap-2 text-xs font-semibold text-[var(--color-primary)]">
-                  <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                  </svg>
+                <div class="mb-2 flex items-center gap-2 text-xs font-semibold text-primary">
+                  <AppIcon name="light-bulb" class="size-3.5" />
                   {{ t('purchaseOrder.selection.recommendedBrand') }}
                 </div>
               </div>
@@ -86,37 +78,37 @@
                 :key="product.id"
                 class="group flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all duration-200"
                 :class="isSelected(product.id)
-                  ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 shadow-sm'
-                  : 'border-[var(--border-subtle)] hover:border-[var(--border-color)] hover:bg-[var(--bg-hover)]'"
+                  ? 'border-primary bg-primary/5 shadow-sm'
+                  : 'border-(--border-subtle) hover:border-(--border-color) hover:bg-(--bg-hover)'"
               >
                 <input
                   type="checkbox"
                   :checked="isSelected(product.id)"
-                  class="size-4 cursor-pointer rounded border-[var(--border-color)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                  class="size-4 cursor-pointer rounded border-(--border-color) text-primary focus:ring-primary"
                   @change="toggleSelect(product)"
                 />
 
                 <!-- 商品图片 -->
-                <div class="size-10 shrink-0 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)]">
+                <div class="size-10 shrink-0 overflow-hidden rounded-lg border border-(--border-subtle) bg-(--bg-muted)">
                   <AppImage
                     v-if="getMainImage(product)"
                     :src="getFileUrl(getMainImage(product))"
                     fit="cover"
                     class="size-full"
                   />
-                  <div v-else class="flex size-full items-center justify-center text-[var(--text-muted)]">
-                    <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  <div v-else class="flex size-full items-center justify-center text-muted">
+                    <AppIcon name="photo" class="size-5" />
                   </div>
                 </div>
 
                 <!-- 商品信息 -->
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-2">
-                    <span class="truncate text-sm font-medium text-[var(--text-main)]">{{ product.name }}</span>
-                    <span class="shrink-0 font-[Outfit] text-xs text-[var(--text-secondary)]">¥{{ (product.cost_price || product.price || 0).toFixed(2) }}</span>
+                    <span class="truncate text-sm font-medium text-main">{{ product.name }}</span>
+                    <span class="shrink-0 font-[Outfit] text-xs text-secondary">¥{{ (product.cost_price || product.price || 0).toFixed(2) }}</span>
                   </div>
-                  <div class="mt-0.5 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-                    <span class="rounded bg-[var(--bg-muted)] px-1.5 py-0.5 font-mono">{{ product.spu }}</span>
+                  <div class="mt-0.5 flex items-center gap-2 text-xs text-secondary">
+                    <span class="rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono">{{ product.spu }}</span>
                     <span v-if="product.brand">{{ product.brand }}</span>
                     <span v-if="product.category" class="truncate">· {{ product.category }}</span>
                   </div>
@@ -125,7 +117,7 @@
                 <!-- 推荐标记 -->
                 <div
                   v-if="isRecommended(product)"
-                  class="shrink-0 rounded-full bg-[var(--color-primary)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--color-primary)]"
+                  class="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary"
                 >
                   推荐
                 </div>
@@ -134,15 +126,15 @@
           </div>
 
           <!-- 底部操作栏 -->
-          <div class="flex items-center justify-between border-t border-[var(--border-color)] bg-[var(--bg-card)] px-6 py-4">
-            <span v-if="selected.length > 0" class="text-sm text-[var(--text-secondary)]">
+          <div class="flex items-center justify-between border-t border-(--border-color) bg-(--bg-card) px-6 py-4">
+            <span v-if="selected.length > 0" class="text-sm text-secondary">
               {{ t('purchaseOrder.selection.selectedCount', { count: selected.length }) }}
             </span>
             <span v-else></span>
             <div class="flex items-center gap-3">
               <button
                 type="button"
-                class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+                class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-secondary transition-colors hover:bg-(--bg-hover)"
                 @click="$emit('close')"
               >
                 {{ t('common.cancel') }}
@@ -150,7 +142,7 @@
               <button
                 type="button"
                 :disabled="selected.length === 0"
-                class="cursor-pointer rounded-xl bg-[var(--color-primary)] px-5 py-2.5 text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                class="cursor-pointer rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-inverse shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 @click="confirm"
               >
                 {{ t('common.confirm') }} ({{ selected.length }})
@@ -179,6 +171,7 @@ import { useDebounceFn } from '@vueuse/core';
 import { useI18n } from '@/composables/useI18n';
 import { useProducts } from '@/composables/useProducts';
 import AppImage from '@/components/ui/AppImage.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   /** 控制弹窗可见性 */

@@ -205,27 +205,11 @@
           :disabled="!isValid || isSubmitting"
           class="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <svg
+          <AppIcon
             v-if="isSubmitting"
+            name="spinner"
             class="size-5 animate-spin"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            ></circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            ></path>
-          </svg>
+          />
           {{ progressText }}
         </button>
       </div>
@@ -241,6 +225,7 @@ import ImageUploader from '../common/ImageUploader.vue';
 import AutocompleteInput from '../ui/AutocompleteInput.vue';
 import StatusSelector from '@/components/ui/StatusSelector.vue';
 import Select from '@/components/ui/Select.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   prefill: { type: Object, default: null },

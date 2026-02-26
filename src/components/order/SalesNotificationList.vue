@@ -76,9 +76,7 @@
                   {{ renderText(item.content) }}
                 </p>
                 <p class="text-muted mt-2 flex items-center gap-1.5 text-[10px] font-medium tracking-wider uppercase">
-                  <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <AppIcon name="clock" class="size-3" />
                   {{ formatDate(item.created_at) }}
                 </p>
               </div>
@@ -90,7 +88,7 @@
                   title="标记为已读"
                   @click.stop="markAsRead(item.id)"
                 >
-                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                  <AppIcon name="check" class="size-4" />
                 </button>
                 <div class="bg-primary size-2 animate-pulse rounded-full"></div>
               </div>
@@ -108,6 +106,7 @@ import { useNotifications } from '@/composables/useNotifications';
 import { useI18n } from '@/composables/useI18n';
 import { formatDate } from '@/utils/formatters';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   close: { type: Function, default: () => {} },

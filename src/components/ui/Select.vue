@@ -12,18 +12,14 @@
       @click="toggle"
     >
       <span class="truncate">{{ selectedLabel || placeholder }}</span>
-      <svg
+      <AppIcon
+        name="chevron-down"
         class="shrink-0 text-[var(--text-secondary)] transition-transform duration-200"
         :class="[
           size === 'sm' ? 'size-3.5' : 'size-4',
           { 'rotate-180': isOpen }
         ]"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-      </svg>
+      />
     </button>
 
     <!-- Dropdown -->
@@ -65,20 +61,11 @@
               @click="select(option)"
             >
               <span class="block flex-1 truncate text-left">{{ option.label }}</span>
-              <svg
+              <AppIcon
                 v-if="modelValue === option.value"
+                name="check"
                 class="text-primary ml-2 size-4 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 13l4 4L19 7"
-                ></path>
-              </svg>
+              />
             </button>
           </div>
         </div>
@@ -90,6 +77,7 @@
 <script setup>
 import { ref, computed, useId, useTemplateRef, watch } from 'vue';
 import { useElementBounding } from '@vueuse/core';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   modelValue: {

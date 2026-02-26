@@ -44,12 +44,7 @@
       <slot name="error">
         <div class="app-image__error-content">
           <!-- Broken Image Icon -->
-          <svg class="app-image__error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path
-stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
-              d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" 
-            />
-          </svg>
+          <AppIcon name="exclamation-circle" class="app-image__error-icon" />
           <button
             v-if="retryable"
             type="button"
@@ -76,6 +71,7 @@ stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import { useI18n } from '@/composables/useI18n';
 import { blurhashToDataURL, isBlurhashValid } from '@/utils/blurhash';
 

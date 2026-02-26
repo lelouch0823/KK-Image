@@ -1,10 +1,10 @@
 <template>
-  <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
+  <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4">
     <label v-if="label" class="text-secondary mb-3 block text-sm font-medium">
       {{ label }}
     </label>
 
-    <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
+    <div :class="['grid', gridClass]">
       <!-- 已上传图片 (可拖拽) -->
       <UploadPreviewItem
         v-for="(file, index) in modelValue"
@@ -67,6 +67,7 @@ const props = defineProps({
   uploadEndpoint: { type: String, default: '' },
   deferred: { type: Boolean, default: false },
   context: { type: String, default: '' }, // e.g. 'product', 'order'
+  gridClass: { type: String, default: 'grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5' },
 });
 
 const emit = defineEmits(['update:modelValue']);

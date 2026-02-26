@@ -12,40 +12,16 @@
         <div class="flex items-center gap-3">
           <!-- Progress Ring or Icon -->
           <div class="relative flex size-8 items-center justify-center">
-            <svg
+            <AppIcon
               v-if="isUploading"
+              name="spinner"
               class="size-5 animate-spin text-[var(--color-info)]"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            <svg
+            />
+            <AppIcon
               v-else
+              name="check"
               class="size-5 text-[var(--color-success)]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5 13l4 4L19 7"
-              ></path>
-            </svg>
+            />
           </div>
 
           <div v-if="!isMinimized" class="flex flex-col">
@@ -74,14 +50,7 @@
             class="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]"
             @click.stop="toggleMinimize"
           >
-            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 9l-7 7-7-7"
-              ></path>
-            </svg>
+            <AppIcon name="chevron-down" class="size-5" />
           </button>
           <button
             v-else
@@ -98,14 +67,7 @@
             :title="t('common.retryAllFailed')"
             @click.stop="retryAllFailed"
           >
-            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              ></path>
-            </svg>
+            <AppIcon name="arrow-path" class="size-5" />
           </button>
 
           <button
@@ -114,14 +76,7 @@
             :title="t('upload.clearCompleted')"
             @click.stop="clearCompleted"
           >
-            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5 13l4 4L19 7"
-              ></path>
-            </svg>
+            <AppIcon name="check" class="size-5" />
           </button>
           <button
             v-if="!isMinimized"
@@ -129,14 +84,7 @@
             :title="t('common.clearAll')"
             @click.stop="clearAll"
           >
-            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              ></path>
-            </svg>
+            <AppIcon name="x-mark" class="size-5" />
           </button>
         </div>
       </div>
@@ -186,28 +134,14 @@
                 :title="t('upload.retry')"
                 @click="retryFile(item.id)"
               >
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  ></path>
-                </svg>
+                <AppIcon name="arrow-path" class="size-4" />
               </button>
               <button
                 v-else-if="item.status !== 'success'"
                 class="absolute top-1/2 right-2 -translate-y-1/2 rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] p-1.5 text-[var(--text-muted)] opacity-0 shadow-sm transition-all group-hover:opacity-100 hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)]"
                 @click="removeFile(item.id)"
               >
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  ></path>
-                </svg>
+                <AppIcon name="x-mark" class="size-4" />
               </button>
             </li>
           </transition-group>
@@ -222,6 +156,7 @@ import { computed } from 'vue';
 import { useUploadQueue } from '@/composables/useUploadQueue';
 import { useI18n } from '@/composables/useI18n';
 import { formatDuration } from '@/utils/formatters';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const { t } = useI18n();
 

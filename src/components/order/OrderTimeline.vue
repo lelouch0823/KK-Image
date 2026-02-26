@@ -18,56 +18,22 @@
             class="absolute left-0 flex size-6 items-center justify-center rounded-full"
             :class="iconClasses[item.actionType]"
           >
-            <svg
+            <AppIcon
               v-if="item.actionType === 'created'"
+              name="plus"
               class="size-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 4v16m8-8H4"
-              ></path>
-            </svg>
-            <svg
+            />
+            <AppIcon
               v-else-if="item.actionType === 'field_updated'"
+              name="pencil-alt"
               class="size-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              ></path>
-            </svg>
-            <svg
+            />
+            <AppIcon
               v-else-if="item.actionType === 'status_changed'"
+              name="check-circle"
               class="size-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              ></path>
-            </svg>
-            <svg v-else class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              ></path>
-            </svg>
+            />
+            <AppIcon v-else name="chat-bubble-dots" class="size-3" />
           </div>
 
           <!-- 内容 -->
@@ -115,19 +81,10 @@
                     <span class="min-w-0 flex-1 break-words text-[var(--color-danger-text)]/60 line-through">
                       {{ getDisplayValue(update, 'oldValue') }}</span
                     >
-                    <svg
+                    <AppIcon
+                      name="arrow-right"
                       class="mt-0.5 size-3 shrink-0 text-[var(--text-secondary)]"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M14 5l7 7m0 0l-7 7m7-7H3"
-                      ></path>
-                    </svg>
+                    />
                     <span class="min-w-0 flex-1 font-medium break-words text-[var(--color-success-text)]">{{
                       getDisplayValue(update, 'newValue')
                     }}</span>
@@ -162,19 +119,10 @@
                 <span class="text-[var(--color-danger-text)]/60 line-through">{{
                   formatImageCount(item.oldValue)
                 }}</span>
-                <svg
+                <AppIcon
+                  name="arrow-right"
                   class="size-3 text-[var(--text-secondary)]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M14 5l7 7m0 0l-7 7m7-7H3"
-                  ></path>
-                </svg>
+                />
                 <span class="font-medium text-[var(--color-success-text)]">{{
                   formatImageCount(item.newValue)
                 }}</span>
@@ -208,25 +156,11 @@
           @click="isExpanded = !isExpanded"
         >
           <template v-if="isExpanded">
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5 15l7-7 7 7"
-              ></path>
-            </svg>
+            <AppIcon name="chevron-up" class="size-4" />
             {{ t('order.timeline.collapse') }}
           </template>
           <template v-else>
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 9l-7 7-7-7"
-              ></path>
-            </svg>
+            <AppIcon name="chevron-down" class="size-4" />
             {{ t('order.timeline.viewAll', { count: totalCount }) }}
           </template>
         </button>
@@ -335,6 +269,7 @@ import { useI18n } from '@/composables/useI18n';
 import { STATUS_STYLES, getStatusVariant } from '@/utils/status';
 import { formatTimelineTime } from '@/utils/formatters';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   timeline: { type: Array, default: () => [] },

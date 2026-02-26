@@ -18,9 +18,7 @@
           class="ml-0.5 rounded-full p-0.5 text-[var(--color-primary)]/60 transition-colors hover:bg-[var(--color-primary)]/20 hover:text-[var(--color-primary)]"
           @click.stop="remove(sp.id)"
         >
-          <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <AppIcon name="x-mark" class="size-3.5" />
         </button>
       </span>
     </div>
@@ -33,9 +31,7 @@
     >
       <span class="text-secondary">{{ placeholder }}</span>
       <span class="flex items-center gap-2 text-xs font-medium text-[var(--color-primary)]">
-        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
+        <AppIcon name="plus" class="size-4" />
         {{ t('spaceManager.select') || '选择' }}
       </span>
     </button>
@@ -55,6 +51,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import SalespersonSelectModal from '@/components/salesperson/SalespersonSelectModal.vue';
 
 const props = defineProps({

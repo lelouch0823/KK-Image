@@ -26,14 +26,7 @@
               <div
                 class="from-primary flex size-8 items-center justify-center rounded-lg bg-gradient-to-br to-[var(--color-gray-700)]"
               >
-                <svg class="size-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                  ></path>
-                </svg>
+                <AppIcon name="clipboard-document-list" class="size-4 text-white" />
               </div>
               <div>
                 <h1 class="text-primary text-sm font-semibold">{{ isSpacesPage ? t('salesSpaces.title') : t('order.portal.myOrders') }}</h1>
@@ -49,7 +42,7 @@
                 @click="router.push(`/sales/${accessToken}`)"
               >
                 <template #icon-left>
-                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                  <AppIcon name="chevron-left" class="size-4" />
                 </template>
               </AppButton>
               <h1 class="text-primary text-sm font-semibold">{{ pageTitle }}</h1>
@@ -67,9 +60,7 @@
                 @click="toggleNotifications"
               >
                 <template #icon-left>
-                  <svg class="text-secondary size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
+                  <AppIcon name="bell" class="text-secondary size-5" />
                 </template>
                 <template #default>
                   <!-- 红点 -->
@@ -126,7 +117,7 @@
               @click="openCreateModal"
             >
               <template #icon-left>
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <AppIcon name="plus" class="size-4" />
               </template>
             </AppButton>
           </div>
@@ -146,9 +137,7 @@
             class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-colors"
             :class="isOrderTab ? 'text-[var(--color-primary)]' : 'text-[var(--text-secondary)]'"
           >
-            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" :stroke-width="isOrderTab ? '2.5' : '1.5'" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
+            <AppIcon name="clipboard-document-list" class="size-5" :stroke-width="isOrderTab ? '2.5' : '1.5'" />
             <span class="text-[10px] font-medium">{{ t('salesTab.orders') }}</span>
           </router-link>
           <router-link
@@ -156,9 +145,7 @@
             class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-colors"
             :class="isSpacesPage ? 'text-[var(--color-primary)]' : 'text-[var(--text-secondary)]'"
           >
-            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" :stroke-width="isSpacesPage ? '2.5' : '1.5'" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-            </svg>
+            <AppIcon name="link" class="size-5" :stroke-width="isSpacesPage ? '2.5' : '1.5'" />
             <span class="text-[10px] font-medium">{{ t('salesTab.spaces') }}</span>
           </router-link>
         </div>
@@ -177,6 +164,7 @@ import { useNotifications } from '@/composables/useNotifications';
 import OrderLogin from '@/components/order/OrderLogin.vue';
 import SalesNotificationList from '@/components/order/SalesNotificationList.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import { onClickOutside } from '@vueuse/core';
 
 const route = useRoute();

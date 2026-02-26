@@ -29,14 +29,7 @@
                 :disabled="loading"
                 @click="handleRestoreSelected"
               >
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  ></path>
-                </svg>
+                <AppIcon name="arrow-path" class="size-4" />
                 {{ t('trash.restore') }}
               </button>
               <button
@@ -44,14 +37,7 @@
                 :disabled="loading"
                 @click="handleDeleteSelected"
               >
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  ></path>
-                </svg>
+                <AppIcon name="trash" class="size-4" />
                 {{ t('trash.deleteForever') }}
               </button>
             </div>
@@ -64,19 +50,10 @@
             :disabled="loading || selectedIds.length > 0"
             @click="showEmptyConfirm = true"
           >
-            <svg
+            <AppIcon
               class="size-4 transition-transform duration-300 group-hover:rotate-12"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              ></path>
-            </svg>
+              name="trash"
+            />
             {{ t('trash.emptyTrash') }}
           </button>
         </div>
@@ -100,19 +77,10 @@
             <div
               class="absolute -inset-4 rounded-full bg-gradient-to-tr from-green-100 to-blue-50 opacity-50 blur-xl"
             ></div>
-            <svg
+            <AppIcon
               class="relative size-32 text-[var(--text-muted)]/20"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1"
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              ></path>
-            </svg>
+              name="check-circle"
+            />
           </div>
           <h3 class="mb-2 text-xl font-medium text-[var(--text-primary)]">
             {{ t('trash.empty') }}
@@ -177,30 +145,16 @@
                         fit="cover"
                         rounded="sm"
                       />
-                      <svg
+                      <AppIcon
                         v-else-if="file.type === 'folder'"
                         class="size-5"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"
-                        />
-                      </svg>
-                      <svg
+                        name="folder"
+                      />
+                      <AppIcon
                         v-else
                         class="size-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                        ></path>
-                      </svg>
+                        name="document"
+                      />
                     </div>
                     <div class="min-w-0">
                       <div class="truncate font-medium text-[var(--text-primary)] opacity-75">
@@ -228,28 +182,14 @@
                       :title="t('trash.restore')"
                       @click="handleRestore(file)"
                     >
-                      <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        ></path>
-                      </svg>
+                      <AppIcon name="arrow-path" class="size-4" />
                     </button>
                     <button
                       class="rounded p-1 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
                       :title="t('trash.deleteForever')"
                       @click="handleDelete(file)"
                     >
-                      <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        ></path>
-                      </svg>
+                      <AppIcon name="trash" class="size-4" />
                     </button>
                   </div>
                 </td>
@@ -279,6 +219,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useFileManager } from '@/composables/useFileManager';
 import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import AppCheckbox from '@/components/ui/AppCheckbox.vue';
 import AppImage from '@/components/ui/AppImage.vue';

@@ -11,9 +11,7 @@
         class="inline-flex items-center gap-2 rounded-xl bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-main)] shadow-sm ring-1 ring-[var(--border-color)] transition-all hover:shadow-md"
         @click="exportCSV"
       >
-        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-        </svg>
+        <AppIcon name="document-arrow-down" class="size-4" />
         {{ t('goodsOverview.export') }}
       </button>
     </div>
@@ -51,9 +49,7 @@
               </div>
             </div>
             <div class="flex size-9 items-center justify-center rounded-xl bg-[var(--color-warning-bg)] text-[var(--color-warning)] transition-colors group-hover:bg-[var(--color-warning)] group-hover:text-white sm:size-10">
-              <svg class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-              </svg>
+              <AppIcon name="clipboard-document-check" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
             </div>
           </div>
           <div class="relative z-10 mt-2 flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
@@ -74,9 +70,7 @@
               </div>
             </div>
             <div class="flex size-9 items-center justify-center rounded-xl bg-[var(--color-info-bg)] text-[var(--color-info)] transition-colors group-hover:bg-[var(--color-info)] group-hover:text-white sm:size-10">
-              <svg class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-              </svg>
+              <AppIcon name="beaker" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
             </div>
           </div>
           <div class="relative z-10 mt-2 flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
@@ -97,9 +91,7 @@
               </div>
             </div>
             <div class="flex size-9 items-center justify-center rounded-xl bg-[var(--color-purple-bg)] text-[var(--color-purple)] transition-colors group-hover:bg-[var(--color-purple)] group-hover:text-white sm:size-10">
-              <svg class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path>
-              </svg>
+              <AppIcon name="building-storefront" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
             </div>
           </div>
           <div class="relative z-10 mt-2 flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
@@ -120,9 +112,7 @@
               </div>
             </div>
             <div class="flex size-9 items-center justify-center rounded-xl bg-[var(--color-success-bg)] text-[var(--color-success)] transition-colors group-hover:bg-[var(--color-success)] group-hover:text-white sm:size-10">
-              <svg class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
+              <AppIcon name="check" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
             </div>
           </div>
           <div class="relative z-10 mt-2 flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
@@ -234,9 +224,7 @@
 
       <!-- 空状态 -->
       <div v-else-if="!loading && items.length === 0" class="py-20 text-center">
-        <svg class="mx-auto size-12 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-        </svg>
+        <AppIcon name="cube" class="mx-auto size-12 text-[var(--text-muted)]" />
         <p class="text-secondary mt-4 text-sm">{{ t('goodsOverview.empty') }}</p>
       </div>
 
@@ -281,7 +269,7 @@
                   <div class="size-8 shrink-0 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)]">
                     <AppImage v-if="item.images?.[0]" :src="'/file/' + item.images[0]" class="size-full" />
                     <div v-else class="flex size-full items-center justify-center text-[var(--text-muted)]">
-                      <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                      <AppIcon name="photo" class="size-4" />
                     </div>
                   </div>
                   <div>
@@ -387,10 +375,7 @@
           :disabled="isCreatingPO"
           @click="handleCreatePO"
         >
-          <svg v-if="isCreatingPO" class="h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
+          <AppIcon v-if="isCreatingPO" name="spinner" class="size-4 animate-spin text-white" />
           {{ t('goodsOverview.batch.createPO') }}
         </button>
         <button
@@ -412,6 +397,8 @@ import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useGoodsOverview } from '@/composables/useGoodsOverview';
 import AppImage from '@/components/ui/AppImage.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
+
 
 const { t } = useI18n();
 const { addToast } = useToast();

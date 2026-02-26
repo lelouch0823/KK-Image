@@ -34,14 +34,7 @@
                     :title="t('share.copyLink') || '复制链接'"
                     @click="copyLink(item)"
                   >
-                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
-                      ></path>
-                    </svg>
+                    <AppIcon name="clipboard" class="size-4" />
                   </button>
                 </div>
               </td>
@@ -57,7 +50,7 @@
                     @click="editShare(item)"
                   >
                     <template #icon-left>
-                      <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                      <AppIcon name="pencil-alt" class="size-4" />
                     </template>
                   </AppButton>
                   <AppButton
@@ -67,7 +60,7 @@
                     @click="revokeShare(item)"
                   >
                     <template #icon-left>
-                      <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                      <AppIcon name="trash" class="size-4" />
                     </template>
                   </AppButton>
                 </div>
@@ -113,7 +106,7 @@
                         @click="copyLink(row)"
                     >
                         <template #icon-left>
-                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            <AppIcon name="clipboard" class="size-4" />
                         </template>
                     </AppButton>
                     <AppButton
@@ -124,7 +117,7 @@
                         @click="confirmRevoke(row)"
                     >
                         <template #icon-left>
-                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            <AppIcon name="trash" class="size-4" />
                         </template>
                     </AppButton>
                 </div>
@@ -132,9 +125,7 @@
         </AppTable>
     </div>
     <div v-else-if="!loading" class="flex flex-1 flex-col items-center justify-center text-[var(--text-secondary)]">
-      <svg class="mb-3 size-12 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
-      </svg>
+      <AppIcon name="share" class="mb-3 size-12 opacity-20" />
       <p>{{ t('share.noActiveShares') }}</p>
     </div>
     </div>
@@ -189,6 +180,7 @@ import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   modelValue: Boolean,

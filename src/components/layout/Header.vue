@@ -8,14 +8,7 @@
         class="text-secondary -ml-2 rounded-lg p-2 hover:bg-[var(--bg-hover)] lg:hidden"
         @click="$emit('openSidebar')"
       >
-        <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4 6h16M4 12h16M4 18h16"
-          ></path>
-        </svg>
+        <AppIcon name="bars-3" class="size-5" />
       </button>
       <h1 class="text-primary text-lg font-semibold lg:text-xl">{{ viewTitle }}</h1>
     </div>
@@ -25,9 +18,7 @@
         class="text-secondary flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-[var(--bg-hover)] lg:hidden"
         @click="openMobileSearch"
       >
-        <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-        </svg>
+        <AppIcon name="magnifying-glass" class="size-5" />
       </button>
 
       <!-- 搜索框 (桌面端) -->
@@ -38,19 +29,7 @@
           :placeholder="t('header.searchPlaceholder')"
           class="h-9 w-64 rounded-lg border border-[var(--border-color)] bg-[var(--bg-page)] pr-4 pl-9 text-sm transition-all focus:border-gray-300 focus:ring-2 focus:ring-gray-200 focus:outline-none"
         />
-        <svg
-          class="text-secondary absolute top-1/2 left-3 size-4 -translate-y-1/2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          ></path>
-        </svg>
+        <AppIcon name="magnifying-glass" class="text-secondary absolute top-1/2 left-3 size-4 -translate-y-1/2" />
       </div>
       <!-- 通知铃铛 (桌面端) -->
       <div v-if="notificationsSupported" ref="notificationRef" class="relative">
@@ -59,14 +38,7 @@
           :class="{ 'bg-[var(--bg-hover)]': showNotifications }"
           @click="toggleNotifications"
         >
-          <svg class="text-secondary size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-            />
-          </svg>
+          <AppIcon name="bell" class="text-secondary size-5" />
           <!-- 红点 -->
           <span
             v-if="unreadCount > 0"
@@ -99,23 +71,9 @@
         @click="toggleTheme"
       >
         <!-- Sun Icon (Show in Dark Mode) -->
-        <svg v-if="isDark" class="text-secondary size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-          />
-        </svg>
+        <AppIcon v-if="isDark" name="sun" class="text-secondary size-5" />
         <!-- Moon Icon (Show in Light Mode) -->
-        <svg v-else class="text-secondary size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-          />
-        </svg>
+        <AppIcon v-else name="moon" class="text-secondary size-5" />
       </button>
 
       <!-- AI 助手按钮 -->
@@ -125,20 +83,11 @@
         :class="{ 'bg-primary/10 border-primary/50 text-primary': isOpen }"
         @click="toggleAI"
       >
-        <svg
+        <AppIcon
+          name="bolt"
           class="size-5 transition-transform group-hover:scale-110"
           :class="{ 'text-primary': isOpen, 'text-secondary': !isOpen }"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M13 10V3L4 14h7v7l9-11h-7z"
-          />
-        </svg>
+        />
       </button>
 
       <!-- 刷新按钮 -->
@@ -147,14 +96,7 @@
         class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
         @click="handleRefresh"
       >
-        <svg class="text-secondary size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-          ></path>
-        </svg>
+        <AppIcon name="arrow-path" class="text-secondary size-4" />
       </button>
     </div>
     
@@ -171,9 +113,7 @@
             @keydown.esc="closeMobileSearch"
             @blur="!searchQuery && closeMobileSearch()"
             />
-            <svg class="text-secondary absolute top-1/2 left-3 size-5 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
+            <AppIcon name="magnifying-glass" class="text-secondary absolute top-1/2 left-3 size-5 -translate-y-1/2" />
         </div>
         <button class="text-secondary ml-3 p-2 font-medium" @click="closeMobileSearch">
             {{ t('common.cancel') }}
@@ -193,6 +133,7 @@ import NotificationList from '@/components/common/NotificationList.vue';
 import { onClickOutside } from '@vueuse/core';
 import { useAI } from '@/composables/useAI';
 import { useTheme } from '@/composables/useTheme';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 defineEmits(['openSidebar']);
 

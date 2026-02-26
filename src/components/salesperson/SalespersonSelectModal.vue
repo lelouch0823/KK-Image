@@ -11,14 +11,10 @@
       <!-- 搜索栏 -->
       <div class="border-b border-[var(--border-color)] px-4 py-3">
         <div class="relative">
-          <svg
+          <AppIcon
+            name="magnifying-glass"
             class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--text-muted)]"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+          />
           <input
             v-model="searchQuery"
             class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] py-2.5 pr-4 pl-9 text-sm text-[var(--text-main)] transition-colors outline-none focus:border-[var(--color-primary)] focus:bg-[var(--bg-card)] dark:focus:bg-[var(--bg-muted)]"
@@ -30,17 +26,12 @@
       <div class="flex-1 overflow-y-auto p-2">
         <!-- 加载中 -->
         <div v-if="loading" class="flex h-32 items-center justify-center">
-          <svg class="size-6 animate-spin text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
+          <AppIcon name="spinner" class="size-6 text-[var(--color-primary)] animate-spin" />
         </div>
         
         <!-- 空状态 -->
         <div v-else-if="filteredSalespersons.length === 0" class="flex h-32 flex-col items-center justify-center py-8 text-[var(--text-muted)]">
-          <svg class="mb-2 size-8 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
+          <AppIcon name="users" class="mb-2 size-8 opacity-50" />
           <span class="text-sm">{{ t('salesperson.noAvailable') || '暂无销售员信息' }}</span>
         </div>
         
@@ -68,9 +59,7 @@
             >
               <template v-if="localSelectedIds.includes(sp.id)">
                 <!-- Checkbox SVG -->
-                <svg v-if="multiple" class="size-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
+                <AppIcon v-if="multiple" name="check" class="size-3.5" />
                 <!-- Radio Dot -->
                 <div v-else class="size-2 rounded-full bg-white"></div>
               </template>
@@ -131,6 +120,7 @@ import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import Modal from '@/components/ui/Modal.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   show: {

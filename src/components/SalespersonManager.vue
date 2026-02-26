@@ -17,9 +17,7 @@
           class="flex size-9 items-center justify-center rounded-xl bg-[var(--color-primary)] text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all active:scale-95 sm:hidden "
           @click="openModal()"
         >
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-          </svg>
+          <AppIcon name="plus" class="size-5" />
         </button>
       </div>
 
@@ -37,14 +35,7 @@
           class="hidden items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/10 shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 sm:flex "
           @click="openModal()"
         >
-          <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 4v16m8-8H4"
-            ></path>
-          </svg>
+          <AppIcon name="plus" class="size-4" />
           {{ t('salesperson.create') }}
         </button>
       </div>
@@ -123,6 +114,7 @@ import { useRouter } from 'vue-router';
 import { useSalespersons } from '@/composables/useSalespersons';
 import { useI18n } from '@/composables/useI18n';
 import SearchInput from '@/components/ui/SearchInput.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import SalespersonTable from './salesperson/SalespersonTable.vue';

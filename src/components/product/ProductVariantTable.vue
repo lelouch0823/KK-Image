@@ -120,19 +120,20 @@
             >
           </td>
           <!-- 状态 -->
-          <td class="px-2 py-2">
-            <select
-              :value="variant.status || 'active'"
-              @change="(e) => updateVariantField(idx, 'status', e.target.value)"
-              class="variant-input cursor-pointer"
+          <td class="px-3 py-2">
+            <button
+              type="button"
+              class="flex items-center justify-center rounded-md p-1 transition-colors outline-none hover:bg-(--bg-muted)"
+              :title="variant.status === 'archived' ? t('common.archived', 'Archived') : t('common.active', 'Active')"
+              @click="updateVariantField(idx, 'status', variant.status === 'archived' ? 'active' : 'archived')"
             >
-              <option value="active">{{ t('common.active', 'Active') }}</option>
-              <option value="archived">{{ t('common.archived', 'Archived') }}</option>
-            </select>
+              <AppIcon v-if="variant.status !== 'archived'" name="check-circle-solid" class="size-5 text-emerald-500" />
+              <AppIcon v-else name="minus-circle-solid" class="size-5 text-(--text-muted)" />
+            </button>
           </td>
           <!-- 图片数量 -->
           <td class="px-4 py-2 text-xs text-(--text-secondary)">
-            {{ variant.images?.length || 0 }} {{ t('common.images_count', 'image(s)') }}
+            {{ variant.images?.length || 0 }}
           </td>
         </tr>
       </tbody>
@@ -143,6 +144,7 @@
 <script setup>
 import { nextTick, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const { t } = useI18n();
 

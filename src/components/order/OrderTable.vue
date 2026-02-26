@@ -56,19 +56,7 @@
             rounded="none"
           />
           <div v-else class="flex size-full items-center justify-center">
-            <svg
-              class="size-4 text-(--text-secondary)/30"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-              ></path>
-            </svg>
+            <AppIcon name="photo" class="size-4 text-(--text-secondary)/30 stroke-[1.5]" />
           </div>
         </div>
         
@@ -128,19 +116,14 @@
           :title="t('common.view')"
           @click.stop="$emit('detail', row)"
         >
-          <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-          </svg>
+          <AppIcon name="eye" class="size-4" />
         </button>
         <button
           class="hover:text-primary hover:bg-(--bg-hover) rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90"
           :title="t('common.edit')"
           @click.stop="$emit('edit', row)"
         >
-          <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
+          <AppIcon name="pencil-alt" class="size-4" />
         </button>
         <button
           v-if="row.status !== 'void'"
@@ -148,9 +131,7 @@
           :title="t('order.actions.void')"
           @click.stop="$emit('void', row)"
         >
-          <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-          </svg>
+          <AppIcon name="no-symbol" class="size-4" />
         </button>
       </div>
     </template>
@@ -162,6 +143,7 @@ import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppImage from '@/components/ui/AppImage.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import { formatTime } from '@/utils/formatters';
 
 const props = defineProps({

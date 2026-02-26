@@ -40,9 +40,7 @@
             @click="loadStats"
           >
             <template #icon-left>
-              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
+              <AppIcon name="arrow-path" class="size-4" />
             </template>
           </AppButton>
         </div>
@@ -58,9 +56,7 @@
       <!-- Error State -->
       <div v-else-if="error" class="flex h-96 flex-col items-center justify-center gap-4 text-center">
         <div class="bg-danger/10 text-danger ring-danger/20 flex size-20 items-center justify-center rounded-full ring-1">
-          <svg class="size-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
+          <AppIcon name="exclamation-triangle" class="size-10" />
         </div>
         <h3 class="text-xl font-semibold text-(--text-main)">{{ t('stats.loadFailed') }}</h3>
         <p class="max-w-md text-(--text-secondary)">{{ error }}</p>
@@ -85,9 +81,7 @@
             glow
           >
             <template #icon>
-              <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
+              <AppIcon name="document-text" class="size-6" />
             </template>
             <template #footer>
               <div class="flex items-center gap-2 text-sm font-medium text-(--text-secondary)">
@@ -104,10 +98,8 @@
             variant="success"
             glow
           >
-           <template #icon>
-              <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-              </svg>
+            <template #icon>
+              <AppIcon name="database" class="size-6" />
             </template>
             <template #footer>
               <div class="text-sm font-medium text-(--text-secondary)">
@@ -123,11 +115,8 @@
             variant="purple"
             glow
           >
-           <template #icon>
-              <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
+            <template #icon>
+              <AppIcon name="eye" class="size-6" />
             </template>
             <template #footer>
               <div class="text-sm font-medium text-(--text-secondary)">
@@ -311,6 +300,7 @@ import AppStatCard from '@/components/ui/AppStatCard.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 // Configure Chart.js defaults
 const configureChartDefaults = () => {

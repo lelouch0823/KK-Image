@@ -36,14 +36,7 @@
                 :title="t('gallery.rotate')"
                 @click.stop="rotate"
               >
-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  ></path>
-                </svg>
+                <AppIcon name="arrow-path" class="size-5" />
               </button>
 
               <!-- Zoom In -->
@@ -54,14 +47,7 @@
                 :title="t('gallery.zoomIn')"
                 @click.stop="zoomIn"
               >
-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
-                  ></path>
-                </svg>
+                <AppIcon name="magnifying-glass-plus" class="size-5" />
               </button>
 
               <!-- Zoom Out -->
@@ -72,14 +58,7 @@
                 :title="t('gallery.zoomOut')"
                 @click.stop="zoomOut"
               >
-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"
-                  ></path>
-                </svg>
+                <AppIcon name="magnifying-glass-minus" class="size-5" />
               </button>
 
               <!-- Zoom indicator -->
@@ -96,14 +75,7 @@
               class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-md transition-colors hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white"
               aria-label="Download file"
             >
-              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                ></path>
-              </svg>
+              <AppIcon name="arrow-down-tray" class="size-4" />
               <span class="hidden sm:inline">{{ t('gallery.download') }}</span>
             </a>
 
@@ -113,14 +85,7 @@
               :aria-label="t('gallery.close')"
               @click="$emit('close')"
             >
-              <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                ></path>
-              </svg>
+              <AppIcon name="x-mark" class="size-6" />
             </button>
           </div>
         </div>
@@ -132,14 +97,7 @@
           :aria-label="t('gallery.prev')"
           @click="$emit('prev')"
         >
-          <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 19l-7-7 7-7"
-            ></path>
-          </svg>
+          <AppIcon name="chevron-left" class="size-6" />
         </button>
         <button
           v-if="currentIndex < total - 1"
@@ -147,14 +105,7 @@
           :aria-label="t('gallery.next')"
           @click="$emit('next')"
         >
-          <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 5l7 7-7 7"
-            ></path>
-          </svg>
+          <AppIcon name="chevron-right" class="size-6" />
         </button>
 
         <!-- Content -->
@@ -185,14 +136,7 @@
             <div
               class="mx-auto mb-6 flex size-24 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md"
             >
-              <svg class="size-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.5"
-                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                ></path>
-              </svg>
+              <AppIcon name="document" class="size-12" />
             </div>
             <h3 class="mb-4 text-lg font-medium">{{ currentFile?.name }}</h3>
             <p class="mb-6 text-sm text-white/60">{{ t('gallery.previewNotSupported') }}</p>
@@ -214,6 +158,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useModalStack } from '@/composables/useModalStack';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   visible: {

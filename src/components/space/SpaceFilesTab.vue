@@ -11,14 +11,7 @@
             class="group flex h-9 items-center justify-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 text-sm font-medium text-[var(--text-secondary)] shadow-sm transition-all hover:border-[var(--color-primary-light)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] hover:shadow-md active:scale-95"
             @click="$emit('addFiles')"
           >
-            <svg class="size-4 text-[var(--text-muted)] transition-colors group-hover:text-[var(--text-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-              />
-            </svg>
+            <AppIcon name="arrow-up-tray" class="size-4 text-[var(--text-muted)] transition-colors group-hover:text-[var(--text-primary)]" />
             <span>{{ t('spaceManager.addFile') || 'Select Files' }}</span>
           </button>
         </Tooltip>
@@ -29,14 +22,7 @@
             class="group bg-primary shadow-primary/20 flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium text-[var(--text-inverse)] shadow-lg transition-all hover:-translate-y-0.5 hover:bg-[var(--color-primary-hover)] active:scale-95"
             @click="$emit('upload')"
           >
-            <svg class="size-4.5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
+            <AppIcon name="plus" class="size-4.5 transition-transform group-hover:scale-110" />
             <span>{{ t('common.upload') || 'Upload' }}</span>
           </button>
         </Tooltip>
@@ -50,13 +36,7 @@
         v-if="currentCoverFile"
         class="border-primary/20 bg-primary/5 flex items-center gap-2 rounded-lg border px-3 py-1.5"
       >
-        <svg class="text-primary size-4" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            fill-rule="evenodd"
-            d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-            clip-rule="evenodd"
-          />
-        </svg>
+        <AppIcon name="photo-solid" class="text-primary size-4" />
         <span class="text-primary max-w-[100px] truncate text-xs font-medium">{{
           currentCoverFile.originalName || currentCoverFile.name
         }}</span>
@@ -83,13 +63,7 @@
             v-if="coverFileId === file.id"
             class="bg-primary absolute top-1.5 left-1.5 z-10 flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-inverse)] shadow-sm"
           >
-            <svg class="size-3" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fill-rule="evenodd"
-                d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-                clip-rule="evenodd"
-              />
-            </svg>
+            <AppIcon name="photo-solid" class="size-3" />
             {{ t('spaceManager.cover') }}
           </div>
           <AppImage
@@ -116,27 +90,14 @@
               :title="t('spaceManager.setCover')"
               @click.stop="$emit('setCover', file.id)"
             >
-              <svg class="size-4" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fill-rule="evenodd"
-                  d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-                  clip-rule="evenodd"
-                />
-              </svg>
+              <AppIcon name="photo-solid" class="size-4" />
             </button>
             <!-- Remove Button -->
             <button
               class="rounded-full bg-[var(--color-danger)] p-1.5 text-[var(--text-inverse)] transition-colors hover:bg-red-600"
               @click.stop="$emit('remove', file.id)"
             >
-              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
+              <AppIcon name="trash" class="size-4" />
             </button>
           </div>
         </div>
@@ -150,6 +111,7 @@ import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import AppImage from '@/components/ui/AppImage.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   files: {

@@ -1,9 +1,7 @@
 <template>
   <div class="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)]/30 p-4">
     <h4 class="mb-3 flex items-center gap-2 text-sm font-medium text-[var(--text-main)]">
-      <svg class="size-4 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-      </svg>
+      <AppIcon name="link" class="size-4 text-[var(--color-primary)]" />
       {{ t('order.binding.title') }}
     </h4>
 
@@ -17,12 +15,14 @@
           class="size-full" 
         />
         <div v-else class="flex h-full items-center justify-center text-[var(--text-muted)]">
-          <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+          <AppIcon name="photo" class="size-6 stroke-[1.5]" />
         </div>
       </div>
+      
       <div class="min-w-0 flex-1">
         <div class="truncate font-medium text-[var(--text-main)]">{{ boundProduct.name }}</div>
         <div class="mt-0.5 text-xs text-[var(--text-secondary)]">{{ t('product.form.spu') }}: {{ displaySku }}</div>
+        
         <!-- Variant Selector: 3D->2D->1D adaptive -->
         <div v-if="variants.length > 0" class="mt-2 space-y-1.5">
           <div v-for="dimension in dimensionKeys" :key="dimension" class="flex items-center gap-2">
@@ -31,7 +31,7 @@
               :data-testid="`dimension-${dimension}`"
               v-model="selectedOptions[dimension]"
               @change="onDimensionChange(dimension)"
-              class="w-full text-xs rounded border border-[var(--border-subtle)] bg-[var(--bg-card)] p-1.5 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none"
+              class="w-full rounded border border-[var(--border-subtle)] bg-[var(--bg-card)] p-1.5 text-xs focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
             >
               <option
                 v-for="option in getDimensionOptions(dimension)"
@@ -47,11 +47,13 @@
             {{ availabilityTextMap[currentAvailabilityState] }}
           </div>
         </div>
-        <div v-if="isLoadingDetails" class="mt-1 text-xs text-[var(--color-primary)] opacity-80 flex items-center gap-1">
-            <svg class="size-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-            Loading variants...
+
+        <div v-if="isLoadingDetails" class="mt-1 flex items-center gap-1 text-xs text-[var(--color-primary)] opacity-80">
+          <AppIcon name="spinner" class="size-3 animate-spin" />
+          Loading variants...
         </div>
       </div>
+
       <div class="flex items-center gap-1">
         <a 
           :href="`/admin/products?edit=${boundProduct.id}`"
@@ -59,9 +61,7 @@
           class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/10"
           :title="t('product.action.edit')"
         >
-          <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
+          <AppIcon name="pencil-square" class="size-4" />
           {{ t('product.action.edit') }}
         </a>
         <button 
@@ -70,9 +70,7 @@
           :title="t('order.binding.unbind')"
           @click="$emit('unbind')"
         >
-          <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <AppIcon name="x-mark" class="size-5" />
         </button>
       </div>
     </div>
@@ -90,6 +88,7 @@ import { ref, reactive, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import ProductSelect from '@/components/product/ProductSelect.vue';
 import AppImage from '@/components/ui/AppImage.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import { useProducts } from '@/composables/useProducts';
 import {
   normalizeVariantOptions,

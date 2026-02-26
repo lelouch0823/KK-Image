@@ -9,14 +9,7 @@
         :class="{ 'text-[var(--text-muted)]': currentPage === 1 }"
         @click="goToPage(currentPage - 1)"
       >
-        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 19l-7-7 7-7"
-          ></path>
-        </svg>
+        <AppIcon name="chevron-left" class="size-4" />
       </button>
 
       <!-- 页码 -->
@@ -42,14 +35,7 @@
         :class="{ 'text-[var(--text-muted)]': currentPage === totalPages }"
         @click="goToPage(currentPage + 1)"
       >
-        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 5l7 7-7 7"
-          ></path>
-        </svg>
+        <AppIcon name="chevron-right" class="size-4" />
       </button>
     </div>
   </nav>
@@ -57,6 +43,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   currentPage: {

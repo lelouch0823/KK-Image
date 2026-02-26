@@ -8,9 +8,7 @@
           class="flex h-9 items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-sm transition-all hover:opacity-90 active:scale-95"
           @click="$emit('create')"
         >
-          <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
+          <AppIcon name="plus" class="size-4" />
           {{ t('order.manage.create') }}
         </button>
 
@@ -20,9 +18,7 @@
           :title="t('dashboard.stats')"
           @click="$emit('show-stats')"
         >
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
+          <AppIcon name="chart-bar" class="size-5" />
         </button>
 
         <button
@@ -31,13 +27,8 @@
           :title="t('order.manage.export')"
           @click="$emit('export')"
         >
-          <svg v-if="exporting" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          <svg v-else class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
+          <AppIcon v-if="exporting" name="spinner" class="size-4 animate-spin" />
+          <AppIcon v-else name="arrow-down-tray" class="size-4" />
         </button>
       </div>
 
@@ -49,9 +40,7 @@
           :title="t('order.manage.create')"
           @click="$emit('create')"
         >
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
+          <AppIcon name="plus" class="size-5" />
         </button>
         
         <!-- Mobile Stats Button -->
@@ -60,9 +49,7 @@
           :title="t('dashboard.stats')"
           @click="$emit('show-stats')"
         >
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
+          <AppIcon name="chart-bar" class="size-5" />
         </button>
 
         <button
@@ -71,13 +58,8 @@
           :title="t('order.manage.export')"
           @click="$emit('export')"
         >
-          <svg v-if="exporting" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          <svg v-else class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
+          <AppIcon v-if="exporting" name="spinner" class="size-4 animate-spin" />
+          <AppIcon v-else name="document-arrow-down" class="size-4" />
         </button>
       </div>
     </template>
@@ -125,6 +107,7 @@ import { useI18n } from '@/composables/useI18n';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import Select from '@/components/ui/Select.vue';
 import AppFilterBar from '@/components/ui/AppFilterBar.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const {
   filters,

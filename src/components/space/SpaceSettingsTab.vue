@@ -15,10 +15,7 @@
             : 'bg-[var(--bg-muted)] text-[var(--text-secondary)]'"
           @click="saveShareSettings"
         >
-          <svg v-if="publishing" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
+          <AppIcon v-if="publishing" name="spinner" class="size-4 animate-spin" />
           {{ publishing ? t('common.saving') : (hasChanges ? t('spaceManager.saveShareSettings') : t('spaceManager.shareSettingsSaved')) }}
         </button>
       </template>
@@ -28,9 +25,7 @@
     <div v-if="isPublic" class="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]">
       <div class="flex items-center gap-3 border-b border-[var(--border-color)] px-5 py-4">
         <div class="flex size-9 items-center justify-center rounded-lg bg-[var(--color-success)]/10">
-          <svg class="size-4.5 text-[var(--color-success)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-          </svg>
+          <AppIcon name="link" class="size-4.5 text-[var(--color-success)]" />
         </div>
         <div class="flex-1">
           <h3 class="text-sm font-semibold text-[var(--text-main)]">{{ t('spaceManager.publicLink') || '公开链接' }}</h3>
@@ -50,9 +45,7 @@
             class="flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 text-sm text-[var(--text-main)] transition-colors hover:bg-[var(--bg-hover)]"
             @click="copyLink"
           >
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-            </svg>
+            <AppIcon name="clipboard" class="size-4" />
             {{ t('common.copy') }}
           </button>
         </div>
@@ -73,6 +66,7 @@ import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useClipboard } from '@/composables/useClipboard';
 import SpaceVisibilitySelector from '@/components/space/SpaceVisibilitySelector.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   isPublic: { type: Boolean, default: false },

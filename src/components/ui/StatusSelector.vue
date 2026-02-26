@@ -11,20 +11,11 @@
         :class="getStatusColorClass(modelValue)"
       ></span>
       <span>{{ t(`order.statuses.${modelValue}`) }}</span>
-      <svg
+      <AppIcon
+        name="chevron-down"
         class="text-secondary size-4 transition-transform duration-200"
         :class="{ 'rotate-180': isOpen }"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M19 9l-7 7-7-7"
-        ></path>
-      </svg>
+      />
     </button>
 
     <!-- Dropdown -->
@@ -50,20 +41,11 @@
             :class="getStatusColorClass(status)"
           ></span>
           <span class="flex-1 text-left">{{ t(`order.statuses.${status}`) }}</span>
-          <svg
+          <AppIcon
             v-if="modelValue === status"
+            name="check"
             class="text-primary size-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M5 13l4 4L19 7"
-            ></path>
-          </svg>
+          />
         </button>
       </div>
     </div>
@@ -73,6 +55,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, useTemplateRef } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 defineProps({
   modelValue: {

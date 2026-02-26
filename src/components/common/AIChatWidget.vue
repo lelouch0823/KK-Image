@@ -16,9 +16,7 @@
         <div class="bg-primary flex items-center justify-between p-4 text-(--text-inverse)">
           <div class="flex items-center gap-3">
             <div class="flex size-8 items-center justify-center rounded-lg bg-white/20">
-              <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
+              <AppIcon name="bolt" class="size-5" />
             </div>
             <div>
               <h3 class="text-sm font-bold">{{ t('ai.assistant') }}</h3>
@@ -32,18 +30,14 @@
               class="rounded-lg p-1.5 transition-colors hover:bg-white/10"
               @click="clearHistory"
             >
-              <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
+              <AppIcon name="trash" class="size-5" />
             </button>
             <button
               :title="t('common.close')"
               class="rounded-lg p-1.5 transition-colors hover:bg-white/10"
               @click="close"
             >
-              <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <AppIcon name="x-mark" class="size-5" />
             </button>
           </div>
         </div>
@@ -86,9 +80,7 @@
               type="submit"
               class="text-primary absolute right-2 rounded-lg p-1.5 transition-all hover:bg-primary/10 disabled:opacity-30"
             >
-              <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
+              <AppIcon name="paper-airplane" class="size-5" />
             </button>
           </form>
         </div>
@@ -104,6 +96,7 @@ import { API as API_URLS } from '@/utils/constants';
 import { renderMarkdown } from '@/utils/ai-markdown';
 import ChatMessage from '@/components/common/ai/ChatMessage.vue';
 import AISuggestions from '@/components/common/ai/AISuggestions.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import { useI18n } from '@/composables/useI18n';
 import { useAI } from '@/composables/useAI';
 import { useAIStream } from '@/composables/useAIStream';

@@ -10,19 +10,7 @@
       @input="handleInput"
     />
     <!-- 搜索图标 -->
-    <svg
-      class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--text-muted)]"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-      ></path>
-    </svg>
+    <AppIcon name="magnifying-glass" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--text-muted)]" />
     <!-- 清除按钮 -->
     <button
       v-if="clearable && modelValue"
@@ -30,20 +18,15 @@
       class="absolute top-1/2 right-2 -translate-y-1/2 p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text-main)]"
       @click="clear"
     >
-      <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M6 18L18 6M6 6l12 12"
-        ></path>
-      </svg>
+      <AppIcon name="x-mark" class="size-4" />
     </button>
   </div>
 </template>
 
 <script setup>
 import { useId } from 'vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
+
 const props = defineProps({
   modelValue: {
     type: String,

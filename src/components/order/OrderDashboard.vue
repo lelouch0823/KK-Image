@@ -8,9 +8,7 @@
       >
         <!-- 右上角图标 -->
         <div class="absolute top-3 right-3 flex size-9 items-center justify-center rounded-xl bg-[var(--color-info)]/10 text-[var(--color-info)] transition-colors group-hover:bg-[var(--color-info)] group-hover:text-[var(--text-inverse)] sm:top-4 sm:right-4 sm:size-10">
-          <svg class="size-4.5 transition-transform duration-300 group-hover:scale-110 sm:size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+          <AppIcon name="clock" class="size-4.5 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
         </div>
         <!-- 内容 -->
         <div class="relative z-10">
@@ -30,9 +28,7 @@
         @click="$emit('filter', 'pending')"
       >
         <div class="absolute top-3 right-3 flex size-9 items-center justify-center rounded-xl bg-[var(--color-warning)]/10 text-[var(--color-warning)] transition-colors group-hover:bg-[var(--color-warning)] group-hover:text-[var(--text-inverse)] sm:top-4 sm:right-4 sm:size-10">
-          <svg class="size-4.5 transition-transform duration-300 group-hover:scale-110 sm:size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+          <AppIcon name="exclamation-circle" class="size-4.5 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
         </div>
         <div class="relative z-10">
           <div class="text-xs font-medium whitespace-nowrap text-[var(--text-secondary)] sm:text-sm">{{ t('dashboard.pendingOrders') }}</div>
@@ -49,9 +45,7 @@
         class="group relative overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/60 p-4 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--color-success)]/10 hover:shadow-xl sm:p-5"
       >
         <div class="absolute top-3 right-3 flex size-9 items-center justify-center rounded-xl bg-[var(--color-success)]/10 text-[var(--color-success)] transition-colors group-hover:bg-[var(--color-success)] group-hover:text-[var(--text-inverse)] sm:top-4 sm:right-4 sm:size-10">
-          <svg class="size-4.5 transition-transform duration-300 group-hover:scale-110 sm:size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
+          <AppIcon name="chart-bar" class="size-4.5 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
         </div>
         <div class="relative z-10">
           <div class="text-xs font-medium whitespace-nowrap text-[var(--text-secondary)] sm:text-sm">{{ t('order.dashboard.weekOrders') }}</div>
@@ -69,10 +63,7 @@
         @click="showChartModal = true"
       >
         <div class="absolute top-3 right-3 flex size-9 items-center justify-center rounded-xl bg-[var(--color-primary)]/10 text-[var(--color-primary)] transition-colors group-hover:bg-[var(--color-primary)] group-hover:text-[var(--text-inverse)] sm:top-4 sm:right-4 sm:size-10">
-          <svg class="size-4.5 transition-transform duration-300 group-hover:scale-110 sm:size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9 0 0120.488 9z" />
-          </svg>
+          <AppIcon name="chart-pie" class="size-4.5 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
         </div>
         <div class="relative z-10">
           <div class="text-xs font-medium whitespace-nowrap text-[var(--text-secondary)] sm:text-sm">{{ t('order.dashboard.statusDistribution') }}</div>
@@ -108,6 +99,7 @@ import { ref, onMounted, onActivated } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import StatusChartModal from './StatusChartModal.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 defineProps({});
 

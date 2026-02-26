@@ -8,20 +8,17 @@
       :disabled="disabled"
       @change="handleChange"
     />
-    <svg
-      class="pointer-events-none absolute top-1/2 left-1/2 size-3.5 -translate-1/2 text-[var(--bg-card)] opacity-0 transition-opacity duration-200 peer-checked:opacity-100"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
+    <AppIcon
+      name="check"
+      class="pointer-events-none absolute top-1/2 left-1/2 size-3.5 -translate-1/2 text-(--bg-card) opacity-0 transition-opacity duration-200 peer-checked:opacity-100"
       stroke-width="3"
-    >
-      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-    </svg>
+    />
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   modelValue: {

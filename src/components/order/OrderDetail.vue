@@ -29,7 +29,7 @@
             :name="order.customer.name"
             :subtitle="order.customer.company"
             :phone="order.customer.phone"
-            avatar-class="bg-[var(--color-info-bg)] text-[var(--color-info-text)]"
+            avatar-class="bg-(--color-info-bg) text-(--color-info-text)"
           />
 
           <!-- 销售人员信息 (仅管理员可见) -->
@@ -39,7 +39,7 @@
             :name="order.salesperson.name"
             :subtitle="order.salesperson.store"
             :phone="order.salesperson.phone"
-            avatar-class="bg-[var(--color-primary-bg)] text-[var(--color-primary)]"
+            avatar-class="bg-(--color-primary-bg) text-(--color-primary)"
           />
 
           <!-- 订单头部 -->
@@ -51,8 +51,8 @@
           />
 
           <!-- 时间轴 (PC端窄栏显示，移动端通用) -->
-          <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
-            <h3 class="mb-4 text-sm font-medium text-[var(--color-primary)]">{{ t('order.detail.timeline') }}</h3>
+          <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4">
+            <h3 class="mb-4 text-sm font-medium text-primary">{{ t('order.detail.timeline') }}</h3>
             <OrderTimeline :timeline="order.timeline" />
           </div>
 
@@ -68,33 +68,21 @@
         v-model="showCorrectionModal"
         :title="t('order.detail.correctionCompare')"
         size="md"
-        body-class="p-4 max-h-[60vh] overflow-y-auto space-y-4"
+        body-class="max-h-[60vh] overflow-y-auto space-y-4 p-4"
       >
         <div
           v-for="correction in corrections"
           :key="correction.id"
-          class="rounded-lg border border-[var(--border-color)] p-3"
+          class="rounded-lg border border-(--border-color) p-3"
         >
           <p class="text-secondary mb-2 text-xs">{{ formatTime(correction.createdAt) }}</p>
           <div class="flex items-start gap-2 text-sm">
             <span class="text-secondary shrink-0 pt-0.5">{{ correction.fieldName }}:</span>
-            <span class="text-danger/60 min-w-0 flex-1 break-words line-through"> {{ correction.oldValue }}</span>
-            <svg
-              class="text-secondary mt-0.5 size-4 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M14 5l7 7m0 0l-7 7m7-7H3"
-              />
-            </svg>
-            <span class="text-success min-w-0 flex-1 font-medium break-words">{{ correction.newValue }}</span>
+            <span class="text-danger/60 min-w-0 flex-1 wrap-break-word line-through"> {{ correction.oldValue }}</span>
+            <AppIcon name="arrow-right" class="text-secondary mt-0.5 size-4 shrink-0" />
+            <span class="text-success min-w-0 flex-1 font-medium wrap-break-word">{{ correction.newValue }}</span>
           </div>
-          <p class="text-secondary mt-2 text-xs break-words whitespace-pre-wrap">
+          <p class="text-secondary mt-2 text-xs wrap-break-word whitespace-pre-wrap">
             <span class="text-primary font-medium">{{ t('order.detail.correctionReason') }}:</span>
             {{ correction.reason }}
           </p>
@@ -150,6 +138,7 @@ import { API } from '@/utils/constants';
 import { useSalesToken } from '@/composables/useSalesToken';
 import { useLightbox } from '@/composables/useLightbox';
 import { formatTimelineTime } from '@/utils/formatters';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 
 // Sub-components

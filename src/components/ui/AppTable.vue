@@ -54,9 +54,7 @@
               <td :colspan="columns.length" class="px-4 py-12 text-center text-(--text-secondary)">
                 <slot name="empty">
                   <div class="flex flex-col items-center justify-center gap-2">
-                    <svg class="size-8 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                    </svg>
+                    <AppIcon name="archive-box" class="size-8 opacity-20" />
                     <span>{{ emptyText || t('common.noData') }}</span>
                   </div>
                 </slot>
@@ -142,6 +140,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import { useI18n } from '@/composables/useI18n';
 

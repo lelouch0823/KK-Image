@@ -13,9 +13,7 @@
           class="inline-flex items-center gap-2 rounded-xl bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-main)] shadow-sm ring-1 ring-[var(--border-color)] transition-all hover:shadow-md"
           @click="showSuggestions = true"
         >
-          <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-          </svg>
+          <AppIcon name="light-bulb" class="size-4" />
           {{ t('purchaseOrder.action.viewSuggestions') }}
         </button>
         <!-- 新建按钮 -->
@@ -24,9 +22,7 @@
           class="inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:opacity-90"
           @click="showCreateModal = true"
         >
-          <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-          </svg>
+          <AppIcon name="plus" class="size-4" />
           {{ t('purchaseOrder.action.create') }}
         </button>
       </div>
@@ -70,29 +66,17 @@
               :style="{ backgroundColor: card.iconBg, color: card.iconColor }"
             >
               <!-- 全部 -->
-              <svg v-if="card.key === ''" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
-              </svg>
+              <AppIcon name="bars-4" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
               <!-- 草稿 -->
-              <svg v-else-if="card.key === 'draft'" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-              </svg>
+              <AppIcon name="pencil-square" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
               <!-- 已下单 -->
-              <svg v-else-if="card.key === 'ordered'" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-              </svg>
+              <AppIcon name="clipboard-document-check" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
               <!-- 运输中 -->
-              <svg v-else-if="card.key === 'shipping'" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path>
-              </svg>
+              <AppIcon name="building-storefront" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
               <!-- 已到货 -->
-              <svg v-else-if="card.key === 'arrived'" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-              </svg>
+              <AppIcon name="cube" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
               <!-- 已结算 -->
-              <svg v-else class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
+              <AppIcon name="check" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
             </div>
           </div>
           <!-- 光晕背景 -->
@@ -145,9 +129,7 @@
 
       <!-- 空状态 -->
       <div v-else-if="!loading && list.length === 0" class="py-20 text-center">
-        <svg class="mx-auto size-12 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"></path>
-        </svg>
+        <AppIcon name="shopping-cart" class="mx-auto size-12 text-[var(--text-muted)]" />
         <p class="text-secondary mt-4 text-sm">{{ t('purchaseOrder.empty') }}</p>
       </div>
 
@@ -240,9 +222,7 @@
                 </span>
               </div>
               <button class="cursor-pointer rounded-lg p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]" @click="showDetail = false">
-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
+                <AppIcon name="x-mark" class="size-5" />
               </button>
             </div>
 
@@ -262,7 +242,7 @@
                         class="flex size-6 items-center justify-center rounded-full border-2 transition-colors duration-300"
                         :class="getStepIconClasses(detail.status, step.value)"
                       >
-                        <svg v-if="isStepCompleted(detail.status, step.value)" class="size-3.5 text-[var(--text-inverse)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <AppIcon v-if="isStepCompleted(detail.status, step.value)" name="check" class="size-3.5 text-[var(--text-inverse)]" stroke-width="3" />
                         <div v-else-if="detail.status === step.value" class="size-2 rounded-full bg-[var(--color-primary)]"></div>
                       </div>
                       <span class="text-xs font-medium" :class="detail.status === step.value ? 'text-[var(--text-main)]' : isStepCompleted(detail.status, step.value) ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'">
@@ -312,11 +292,11 @@
                   <h3 class="text-sm font-semibold text-[var(--text-main)]">{{ t('purchaseOrder.detail.items') }} ({{ detail.items?.length || 0 }})</h3>
                   <div v-if="detail.status === 'draft'" class="flex items-center gap-2">
                     <button type="button" class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 px-2.5 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/10" @click="openOrderPicker('detail')">
-                      <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                      <AppIcon name="plus" class="size-3.5" />
                       {{ t('purchaseOrder.action.linkOrders') }}
                     </button>
                     <button type="button" class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--border-color)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--bg-hover)]" @click="openProductPicker('detail')">
-                      <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                      <AppIcon name="plus" class="size-3.5" />
                       {{ t('purchaseOrder.action.addProduct') }}
                     </button>
                   </div>
@@ -332,9 +312,7 @@
                       <div class="size-14 shrink-0 overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-muted)] shadow-sm">
                         <AppImage v-if="item.product_images?.[0]" :src="getFileUrl(item.product_images[0])" :alt="item.product_name" class="size-full object-cover" />
                         <div v-else class="flex size-full items-center justify-center">
-                          <svg class="size-6 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                          </svg>
+                          <AppIcon name="photo" class="size-6 text-[var(--text-muted)]" />
                         </div>
                       </div>
                       
@@ -344,7 +322,7 @@
                           <span class="line-clamp-1 text-sm font-medium text-[var(--text-main)]" :title="item.product_name">{{ item.product_name || '—' }}</span>
                           <span v-if="item.product_brand" class="shrink-0 rounded bg-[var(--bg-muted)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">{{ item.product_brand }}</span>
                           <span v-if="detail.status === 'draft'" class="flex shrink-0 cursor-pointer items-center gap-0.5 text-xs text-[var(--color-danger)] opacity-0 transition-opacity group-hover:opacity-100" @click="handleDetailRemoveItem(item.id)">
-                            <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            <AppIcon name="trash" class="size-3" />
                             {{ t('common.delete') }}
                           </span>
                         </div>
@@ -352,11 +330,11 @@
                           <code class="rounded bg-[var(--bg-muted)] px-1 py-0.5 font-mono text-[10px]">{{ item.product_sku || '-' }}</code>
                           <span class="text-[var(--text-muted)]">·</span>
                           <span v-if="item.customer_order_no" class="inline-flex items-center gap-1 rounded bg-[var(--color-info)]/10 px-1 py-0.5 text-[10px] font-medium text-[var(--color-info)]">
-                            <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                            <AppIcon name="shopping-bag" class="size-3" />
                             {{ item.customer_order_no }}
                           </span>
                           <span v-else class="inline-flex items-center gap-1 rounded bg-[var(--color-warning)]/10 px-1 py-0.5 text-[10px] font-medium text-[var(--color-warning)]">
-                            <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            <AppIcon name="building-storefront" class="size-3" />
                             {{ t('purchaseOrder.detail.publicStock') }}
                           </span>
                         </div>
@@ -442,7 +420,7 @@
             <div class="flex items-center justify-between border-b border-[var(--border-color)] px-6 py-4">
               <h2 class="text-lg font-bold text-[var(--text-main)]">{{ t('purchaseOrder.action.create') }}</h2>
               <button type="button" class="cursor-pointer rounded-lg p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]" @click="showCreateModal = false">
-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <AppIcon name="x-mark" class="size-5" />
               </button>
             </div>
 
@@ -486,7 +464,7 @@
                         class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/10"
                         @click="openOrderPicker('create')"
                       >
-                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        <AppIcon name="clipboard-document-list" class="size-3.5" />
                         {{ t('purchaseOrder.action.linkOrders') }}
                       </button>
                       <button
@@ -494,7 +472,7 @@
                         class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--border-color)] px-3 py-1.5 text-xs font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--bg-hover)]"
                         @click="openProductPicker('create')"
                       >
-                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        <AppIcon name="plus" class="size-3.5" />
                         {{ t('purchaseOrder.action.addProduct') }}
                       </button>
                     </div>
@@ -503,9 +481,7 @@
                   <!-- 空状态 -->
                   <div v-if="poItems.length === 0" class="flex flex-col items-center py-10">
                     <div class="flex size-14 items-center justify-center rounded-2xl bg-[var(--bg-muted)]">
-                      <svg class="size-7 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                      </svg>
+                      <AppIcon name="cube" class="size-7 text-[var(--text-muted)]" />
                     </div>
                     <p class="mt-3 text-sm text-[var(--text-secondary)]">{{ t('purchaseOrder.form.noItems') }}</p>
                   </div>
@@ -530,7 +506,7 @@
                               <div class="size-8 shrink-0 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)]">
                                 <AppImage v-if="item.image" :src="'/file/' + item.image" class="size-full" />
                                 <div v-else class="flex size-full items-center justify-center text-[var(--text-muted)]">
-                                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                  <AppIcon name="photo" class="size-4" />
                                 </div>
                               </div>
                               <div class="min-w-0">
@@ -581,11 +557,11 @@
                               v-if="item.pre_order_id"
                               class="inline-flex items-center gap-1 rounded-full bg-[var(--color-info)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--color-info)]"
                             >
-                              <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                            <AppIcon name="shopping-bag" class="size-3" />
                               {{ t('purchaseOrder.form.sourceOrder') }}
                             </span>
                             <span v-else class="inline-flex items-center gap-1 rounded-full bg-[var(--bg-muted)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">
-                              <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                              <AppIcon name="building-storefront" class="size-3" />
                               {{ t('purchaseOrder.form.sourceStock') }}
                             </span>
                           </td>
@@ -597,7 +573,7 @@
                               class="cursor-pointer rounded-lg p-1.5 text-[var(--text-muted)] opacity-0 transition-all group-hover:opacity-100 hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)]"
                               @click="removePoItem(idx)"
                             >
-                              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                <AppIcon name="trash" class="size-4" />
                             </button>
                           </td>
                         </tr>
@@ -650,9 +626,7 @@
           <div class="relative w-full max-w-md rounded-2xl bg-[var(--color-modal-bg)] p-6 shadow-xl">
             <div class="mb-4 flex items-center gap-3">
               <div class="flex size-10 items-center justify-center rounded-full bg-[var(--color-warning)]/10">
-                <svg class="size-5 text-[var(--color-warning)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                </svg>
+                <AppIcon name="exclamation-triangle" class="size-5 text-[var(--color-warning)]" />
               </div>
               <h3 class="text-base font-bold text-[var(--text-main)]">{{ t('purchaseOrder.form.confirmShortageTitle') }}</h3>
             </div>
@@ -694,9 +668,7 @@
                 <p class="mt-0.5 text-sm text-[var(--text-secondary)]">{{ t('purchaseOrder.suggestions.subtitle') }}</p>
               </div>
               <button class="cursor-pointer rounded-lg p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]" @click="showSuggestions = false">
-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
+                <AppIcon name="x-mark" class="size-5" />
               </button>
             </div>
 
@@ -704,9 +676,7 @@
               <div class="size-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent"></div>
             </div>
             <div v-else-if="suggestions.length === 0" class="py-12 text-center">
-              <svg class="mx-auto size-10 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-              </svg>
+              <AppIcon name="light-bulb" class="mx-auto size-10 text-[var(--text-muted)]" />
               <p class="mt-3 text-sm text-[var(--text-secondary)]">{{ t('purchaseOrder.suggestions.empty') }}</p>
             </div>
             <div v-else class="max-h-96 space-y-2 overflow-y-auto">
@@ -776,6 +746,8 @@ import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
 import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
 import AppImage from '@/components/ui/AppImage.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
+
 
 const { t } = useI18n();
 const {

@@ -22,9 +22,7 @@
             ]"
             @click.stop="$emit('toggle', row)"
           >
-            <svg v-if="selectedIds.has(row.id)" class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-            </svg>
+            <AppIcon v-if="selectedIds.has(row.id)" name="check" class="size-3.5" />
           </div>
 
           <!-- Thumbnail -->
@@ -35,14 +33,7 @@
               class="size-full"
               fit="cover"
             />
-            <svg v-else class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-              />
-            </svg>
+            <AppIcon v-else name="document" class="size-5" />
           </div>
 
           <!-- Name -->
@@ -76,9 +67,7 @@
             @click.stop="$emit('share', row)"
           >
             <template #icon-left>
-              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
+              <AppIcon name="share" class="size-4" />
             </template>
           </AppButton>
           <AppButton
@@ -88,9 +77,7 @@
             @click.stop="$emit('context-menu', $event, row)"
           >
             <template #icon-left>
-              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-              </svg>
+              <AppIcon name="ellipsis-vertical" class="size-4" />
             </template>
           </AppButton>
         </div>
@@ -103,6 +90,7 @@
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useFileManager } from '@/composables/useFileManager';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppImage from '@/components/ui/AppImage.vue';

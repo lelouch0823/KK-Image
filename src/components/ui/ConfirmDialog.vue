@@ -31,59 +31,30 @@
               ]"
             >
               <!-- Success -->
-              <svg
+              <!-- Success -->
+              <AppIcon
                 v-if="type === 'success'"
+                name="check"
                 class="size-8"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2.5"
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
+              />
               <!-- Danger -->
-              <svg
+              <AppIcon
                 v-else-if="type === 'danger'"
+                name="exclamation-triangle"
                 class="size-8"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
+              />
               <!-- Warning -->
-              <svg
+              <AppIcon
                 v-else-if="type === 'warning'"
+                name="exclamation-circle"
                 class="size-8"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              />
               <!-- Info / Primary (default) -->
-              <svg v-else class="size-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              <AppIcon
+                v-else
+                name="information-circle"
+                class="size-8"
+              />
             </div>
           </div>
 
@@ -141,9 +112,9 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted, useTemplateRef } from 'vue';
 import { useModalStack } from '@/composables/useModalStack';
 import { useI18n } from '@/composables/useI18n';
-import Modal from '@/components/ui/Modal.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const { t } = useI18n();
 const inputValue = ref('');

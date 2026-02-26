@@ -28,14 +28,7 @@
           class="flex h-9 items-center gap-1.5 rounded-xl bg-[var(--color-primary)] px-4 text-sm font-bold text-[var(--text-inverse)] shadow-[var(--color-primary)]/10 shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
           @click="$emit('action', 'confirm')"
         >
-          <svg class="size-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
+          <AppIcon name="check" class="size-4.5" />
           {{ t('order.manage.batchConfirm') }}
         </button>
         <button
@@ -43,14 +36,7 @@
           class="flex h-9 items-center gap-1.5 rounded-xl bg-[var(--color-warning)] px-4 text-sm font-bold text-[var(--text-inverse)] shadow-[var(--color-warning)]/10 shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
           @click="$emit('action', 'reject')"
         >
-          <svg class="size-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
+          <AppIcon name="x-mark" class="size-4.5" />
           {{ t('order.manage.batchReject') }}
         </button>
         <button
@@ -58,14 +44,7 @@
           class="flex h-9 items-center gap-1.5 rounded-xl bg-[var(--color-danger)] px-4 text-sm font-bold text-[var(--text-inverse)] shadow-[var(--color-danger)]/10 shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
           @click="$emit('action', 'void')"
         >
-          <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
+          <AppIcon name="trash" class="size-4" />
           {{ t('order.manage.batchVoid') }}
         </button>
       </div>
@@ -75,6 +54,7 @@
 
 <script setup>
 import { useI18n } from '@/composables/useI18n';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 defineProps({
   selectedCount: {

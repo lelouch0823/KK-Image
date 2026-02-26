@@ -57,14 +57,7 @@
               class="text-primary ml-1 transition-colors hover:text-primary-hover"
               @click="removeTag(index)"
             >
-              <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <AppIcon name="x-mark" class="size-3" />
             </button>
           </span>
           <input
@@ -119,6 +112,7 @@ import { ref, reactive, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   initialData: {

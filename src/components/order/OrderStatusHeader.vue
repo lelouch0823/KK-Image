@@ -36,20 +36,7 @@
                 : 'text-secondary border-[var(--border-hover)] bg-[var(--bg-card)]'
             "
           >
-            <svg
-              v-if="index < currentStepIndex"
-              class="size-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="3"
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
+            <AppIcon v-if="index < currentStepIndex" name="check" class="size-3 stroke-3" />
             <span v-else>{{ index + 1 }}</span>
           </div>
           <span
@@ -71,6 +58,7 @@ import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { STATUS_OPTIONS, getStatusVariant } from '@/utils/status';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   orderNo: {

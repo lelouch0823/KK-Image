@@ -13,14 +13,7 @@
           :class="!currentFolder ? 'text-primary' : 'text-secondary hover:text-primary'"
           @click="$emit('navigate', null)"
         >
-          <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-            ></path>
-          </svg>
+          <AppIcon name="home" class="size-4" />
           <span class="hidden sm:inline">{{ t('fileManager.root') }}</span>
         </button>
         <template v-for="(crumb, index) in breadcrumbs" :key="crumb.id">
@@ -42,9 +35,7 @@
           class="bg-primary shadow-primary/20 flex size-9 items-center justify-center rounded-xl text-(--text-inverse) shadow-lg transition-all active:scale-95 dark:text-gray-900"
           @click="$refs.fileInputMobile.click()"
         >
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-          </svg>
+          <AppIcon name="cloud-arrow-up" class="size-5" />
         </button>
       </div>
     </div>
@@ -78,7 +69,7 @@
             @click="$emit('batch-tag')"
           >
              <template #icon-left>
-               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+               <AppIcon name="tag" class="size-4" />
              </template>
           </AppButton>
 
@@ -90,7 +81,7 @@
             @click="$emit('batch-move')"
           >
              <template #icon-left>
-               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
+               <AppIcon name="arrows-right-left" class="size-4" />
              </template>
           </AppButton>
 
@@ -102,7 +93,7 @@
             @click="$emit('batch-delete')"
           >
              <template #icon-left>
-               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+               <AppIcon name="trash" class="size-4" />
              </template>
           </AppButton>
 
@@ -114,7 +105,7 @@
             @click="$emit('clear-selection')"
           >
              <template #icon-left>
-               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+               <AppIcon name="x-mark" class="size-4" />
              </template>
           </AppButton>
         </div>
@@ -128,14 +119,7 @@
           class="text-secondary flex size-10 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:text-primary hover:bg-[var(--bg-hover)] active:scale-95"
           @click="$emit('share-folder')"
         >
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-            ></path>
-          </svg>
+          <AppIcon name="share" class="size-5" />
         </button>
       </Tooltip>
 
@@ -147,9 +131,7 @@
             class="bg-primary shadow-primary/20 flex size-10 items-center justify-center rounded-xl text-(--text-inverse) shadow-lg transition-all hover:bg-primary-hover hover:shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 dark:text-gray-900"
             @click="$refs.fileInput.click()"
           >
-            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-            </svg>
+            <AppIcon name="cloud-arrow-up" class="size-5" />
           </button>
         </Tooltip>
       </div>
@@ -160,9 +142,7 @@
           class="text-secondary flex size-9 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:text-primary hover:bg-[var(--bg-hover)] active:scale-95 lg:size-10"
           @click="$emit('create-folder')"
         >
-          <svg class="size-4 lg:size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
-          </svg>
+          <AppIcon name="folder-plus" class="size-4 lg:size-5" />
         </button>
       </Tooltip>
 
@@ -172,9 +152,7 @@
           class="text-secondary flex size-9 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:border-red-200 hover:bg-red-50 hover:text-[var(--color-danger)] active:scale-95 lg:size-10"
           @click="$emit('open-trash')"
         >
-          <svg class="size-4 lg:size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-          </svg>
+          <AppIcon name="trash" class="size-4 lg:size-5" />
         </button>
       </Tooltip>
 
@@ -186,9 +164,7 @@
         class="w-28 sm:w-40 lg:w-64"
       >
         <template #prepend>
-           <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-           </svg>
+           <AppIcon name="magnifying-glass" class="size-4" />
         </template>
       </AppInput>
 
@@ -204,8 +180,7 @@
               @click="$emit('update:viewMode', mode)"
           >
               <template #icon-left>
-                  <svg v-if="mode === 'grid'" class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V16zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-                  <svg v-else class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                  <AppIcon :name="mode === 'grid' ? 'squares-2x2' : 'bars-3'" class="size-4" />
               </template>
           </AppButton>
       </div>
@@ -218,6 +193,7 @@ import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useSearch } from '@/composables/useSearch';
 import Tooltip from '@/components/ui/Tooltip.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 

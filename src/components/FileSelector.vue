@@ -27,14 +27,7 @@
         :class="!currentFolderId ? 'text-primary font-semibold' : 'text-secondary'"
         @click="navigateTo(null)"
       >
-        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-          ></path>
-        </svg>
+        <AppIcon name="home" class="size-4" />
         {{ t('fileSelector.allFiles') }}
       </button>
       <template v-for="folder in breadcrumbs" :key="folder.id">
@@ -81,29 +74,17 @@
                   : 'hover:border-primary border-border bg-surface'
               "
             >
-              <svg
+              <AppIcon
                 v-if="selectedFolderIds.includes(folder.id)"
-                class="size-3.5 text-[var(--text-inverse)]"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="3"
-                  d="M5 13l4 4L19 7"
-                ></path>
-              </svg>
+                name="check"
+                class="size-3.5 text-[var(--text-inverse)] stroke-3"
+              />
             </div>
           </div>
-          <svg
+          <AppIcon
+            name="folder-solid"
             class="mb-2 size-12 text-[var(--color-info)] transition-transform duration-200 group-hover:scale-110"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
-          </svg>
+          />
           <span class="w-full truncate px-2 text-center text-xs font-medium text-[var(--text-main)]">{{
             folder.name
           }}</span>
@@ -145,14 +126,7 @@
             v-if="selectedIds.includes(file.id)"
             class="bg-primary animate-in zoom-in absolute top-2 right-2 flex size-6 items-center justify-center rounded-full shadow-md duration-200"
           >
-            <svg class="size-3.5 text-[var(--text-inverse)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="3"
-                d="M5 13l4 4L19 7"
-              ></path>
-            </svg>
+            <AppIcon name="check" class="size-3.5 text-[var(--text-inverse)] stroke-3" />
           </div>
         </div>
       </div>
@@ -162,14 +136,7 @@
         class="flex h-full flex-col items-center justify-center pb-10 text-[var(--text-secondary)]"
       >
         <div class="mb-4 flex size-16 items-center justify-center rounded-full bg-[var(--bg-muted)]">
-          <svg class="size-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-            ></path>
-          </svg>
+          <AppIcon name="archive-box" class="size-8 text-[var(--text-muted)]" />
         </div>
         <p>{{ t('fileSelector.empty') }}</p>
       </div>
@@ -206,6 +173,7 @@ import { isImage } from '@/utils/formatters';
 import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
 import AppImage from '@/components/ui/AppImage.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const emit = defineEmits(['close', 'select']);
 const { t } = useI18n();
