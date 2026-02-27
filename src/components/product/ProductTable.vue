@@ -3,6 +3,7 @@
     :columns="columns"
     :data="products"
     :loading="loading"
+    :no-border="true"
     row-key="id"
     :empty-text="t('product.table.empty')"
     :virtual="products.length > 50"

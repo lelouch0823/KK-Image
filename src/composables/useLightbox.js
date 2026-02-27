@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onScopeDispose } from 'vue';
 
 /**
  * 灯箱预览 Composable
@@ -104,7 +104,7 @@ export function useLightbox(files, options = {}) {
     document.addEventListener('keydown', handleKeydown);
   });
 
-  onUnmounted(() => {
+  onScopeDispose(() => {
     document.removeEventListener('keydown', handleKeydown);
     document.body.style.overflow = '';
   });

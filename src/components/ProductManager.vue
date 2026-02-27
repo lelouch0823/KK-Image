@@ -186,6 +186,7 @@ import ProductDetailModal from './product/ProductDetailModal.vue';
 const ProductImportModal = defineAsyncComponent(() => import('./product/ProductImportModal.vue'));
 import ProductGrid from './product/ProductGrid.vue';
 import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Modal from '@/components/ui/Modal.vue';

@@ -1,4 +1,4 @@
-import { ref, onUnmounted } from 'vue';
+import { ref, onScopeDispose } from 'vue';
 import { useToast } from './useToast';
 import { useAuth } from './useAuth';
 import { useI18n } from './useI18n';
@@ -22,7 +22,7 @@ export function useFileManager() {
   let abortController = null;
 
   // 组件卸载时取消请求
-  onUnmounted(() => {
+  onScopeDispose(() => {
     if (abortController) {
       abortController.abort();
       abortController = null;

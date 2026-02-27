@@ -14,7 +14,7 @@
  *
  * @module composables/useInfiniteScroll
  */
-import { ref, watch, onMounted, onUnmounted, computed } from 'vue';
+import { ref, watch, onMounted, onScopeDispose, computed } from 'vue';
 
 /**
  * @typedef {Object} UseInfiniteScrollOptions
@@ -208,7 +208,7 @@ export function useInfiniteScroll(loadMoreFn, options = {}) {
   });
 
   // 清理
-  onUnmounted(() => {
+  onScopeDispose(() => {
     isUnmounted = true;
     if (observer) {
       observer.disconnect();

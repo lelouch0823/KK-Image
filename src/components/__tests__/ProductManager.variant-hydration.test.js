@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { ref, reactive } from 'vue';
 import ProductManager from '../ProductManager.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const mocks = vi.hoisted(() => ({
   loadProduct: vi.fn(),
@@ -87,5 +88,17 @@ describe('ProductManager variant hydration', () => {
     expect(wrapper.vm.isEditMode).toBe(true);
     expect(wrapper.vm.showCreateModal).toBe(true);
     expect(wrapper.vm.editingProduct.id).toBe('p-2');
+  });
+
+  it('renders header action icons for create/import/export/stats', () => {
+    const wrapper = createWrapper();
+    const iconNames = wrapper.findAllComponents(AppIcon).map((icon) => icon.props('name'));
+
+    expect(iconNames).toEqual(expect.arrayContaining([
+      'plus',
+      'arrow-up-tray',
+      'arrow-down-tray',
+      'chart-bar',
+    ]));
   });
 });

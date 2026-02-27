@@ -66,17 +66,17 @@
               :style="{ backgroundColor: card.iconBg, color: card.iconColor }"
             >
               <!-- 全部 -->
-              <AppIcon name="bars-4" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
+              <AppIcon v-if="card.key === ''" name="bars-4" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
               <!-- 草稿 -->
-              <AppIcon name="pencil-square" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
+              <AppIcon v-else-if="card.key === 'draft'" name="pencil-square" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
               <!-- 已下单 -->
-              <AppIcon name="clipboard-document-check" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
+              <AppIcon v-else-if="card.key === 'ordered'" name="clipboard-document-check" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
               <!-- 运输中 -->
-              <AppIcon name="building-storefront" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
+              <AppIcon v-else-if="card.key === 'shipping'" name="truck" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
               <!-- 已到货 -->
-              <AppIcon name="cube" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
+              <AppIcon v-else-if="card.key === 'arrived'" name="cube" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
               <!-- 已结算 -->
-              <AppIcon name="check" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
+              <AppIcon v-else-if="card.key === 'settled'" name="check-badge" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
             </div>
           </div>
           <!-- 光晕背景 -->
@@ -747,6 +747,11 @@ import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.v
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+
+const viewProductId = ref(null);
+const handleViewProductDetail = (id) => {
+  viewProductId.value = id;
+};
 
 
 const { t } = useI18n();

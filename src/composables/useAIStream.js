@@ -1,4 +1,4 @@
-import { ref, computed, onUnmounted } from 'vue';
+import { ref, computed, onScopeDispose } from 'vue';
 import { API as API_URLS } from '@/utils/constants';
 import { SSEParser } from '@/utils/streaming';
 import { useSmoothTypewriter } from '@/composables/useSmoothTypewriter';
@@ -25,7 +25,7 @@ export function useAIStream() {
     let abortController = null;
 
     // 组件卸载时自动取消请求
-    onUnmounted(() => {
+    onScopeDispose(() => {
         if (abortController) {
             abortController.abort();
             abortController = null;

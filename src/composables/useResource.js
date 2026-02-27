@@ -1,4 +1,4 @@
-import { ref, reactive, onUnmounted } from 'vue';
+import { ref, reactive, onScopeDispose } from 'vue';
 import { useAuth } from './useAuth';
 import { useToast } from './useToast';
 import { useI18n } from './useI18n';
@@ -66,7 +66,7 @@ export function useResource(apiEndpoint, options = {}) {
     let abortController = new AbortController();
 
     // 组件卸载时自动取消请求
-    onUnmounted(() => {
+    onScopeDispose(() => {
         abort();
     });
 

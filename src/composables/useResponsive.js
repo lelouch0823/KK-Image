@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onScopeDispose } from 'vue';
 
 /**
  * 响应式断点检测 Composable
@@ -63,7 +63,7 @@ export function useResponsive() {
     window.addEventListener('resize', handleResize);
   });
 
-  onUnmounted(() => {
+  onScopeDispose(() => {
     window.removeEventListener('resize', handleResize);
     clearTimeout(resizeTimer);
   });

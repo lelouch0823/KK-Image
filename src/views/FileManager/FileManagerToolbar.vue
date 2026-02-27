@@ -1,5 +1,4 @@
 <template>
-  <!-- 移动端: 两行布局 | 桌面端: 单行布局 -->
   <div class="flex flex-col gap-3 border-b border-[var(--border-color)] px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-6 lg:py-4">
     <!-- 第一行: 面包屑 + 上传按钮 -->
     <div class="flex items-center justify-between gap-3">

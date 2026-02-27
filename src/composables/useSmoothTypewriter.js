@@ -1,4 +1,4 @@
-import { ref, onUnmounted } from 'vue';
+import { ref, onScopeDispose } from 'vue';
 
 /**
  * SOTA 丝滑打字机效果 Composable
@@ -25,7 +25,7 @@ export function useSmoothTypewriter() {
     let rafId = null;          // requestAnimationFrame 的 ID
 
     // 组件卸载时自动清理定时器
-    onUnmounted(() => {
+    onScopeDispose(() => {
         if (rafId) {
             cancelAnimationFrame(rafId);
             rafId = null;

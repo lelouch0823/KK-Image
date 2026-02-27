@@ -9,10 +9,10 @@
 
       <!-- 路由视图 -->
       <div class="scrollbar-thin relative flex-1 overflow-y-auto p-6">
-        <router-view v-slot="{ Component }">
+        <router-view v-slot="{ Component, route }">
           <transition name="slide-up" mode="out-in">
             <keep-alive :max="10">
-              <component :is="Component" />
+              <component :is="Component" :key="route.fullPath" />
             </keep-alive>
           </transition>
         </router-view>

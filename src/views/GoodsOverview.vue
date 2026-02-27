@@ -362,7 +362,7 @@
     </div>
 
     <!-- ===== 浮动操作栏 ===== -->
-    <transition name="slide-up">
+    <transition name="action-bar-slide-up">
       <div
         v-if="selectedItems.length > 0"
         class="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] px-6 py-3 shadow-2xl backdrop-blur-xl"
@@ -456,12 +456,12 @@ onActivated(() => {
 }
 
 /* 浮动操作栏入场动画 */
-.slide-up-enter-active,
-.slide-up-leave-active {
+.action-bar-slide-up-enter-active,
+.action-bar-slide-up-leave-active {
   transition: all 0.3s ease;
 }
-.slide-up-enter-from,
-.slide-up-leave-to {
+.action-bar-slide-up-enter-from,
+.action-bar-slide-up-leave-to {
   transform: translateX(-50%) translateY(100%);
   opacity: 0;
 }

@@ -81,6 +81,7 @@ import { formatDate } from '@/utils/formatters';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 import AppCard from '@/components/ui/AppCard.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 defineProps({
   data: {

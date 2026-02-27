@@ -1,5 +1,4 @@
 <template>
-  <!-- Root Container: Flex Row for Push Layout -->
   <div class="flex h-full overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-page) shadow-sm">
     <!-- Left Side: Main Content -->
     <div class="flex min-w-0 flex-1 flex-col bg-(--bg-card)">

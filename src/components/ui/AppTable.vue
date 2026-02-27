@@ -6,7 +6,7 @@
     ]"
   >
     <!-- Toolbar / Header Slot -->
-    <div v-if="$slots.toolbar" class="border-b border-(--border-color) px-4 py-3">
+    <div v-if="$slots.toolbar">
       <slot name="toolbar" />
     </div>
 

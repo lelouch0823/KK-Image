@@ -20,4 +20,5 @@ app.config.errorHandler = (err, instance, info) => {
 };
 
 app.use(router);
+window.__VUE_APP__ = app;
 app.mount('#app');
