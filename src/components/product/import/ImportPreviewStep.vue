@@ -62,9 +62,15 @@
         <p class="font-medium">
         {{ importResult.success && importResult.count > 0 ? '导入完成！' : '导入失败' }}
         </p>
-        <ul class="mt-1 list-disc pl-4 text-xs">
-            <li>成功: {{ importResult.count }}</li>
-            <li v-if="importResult.failed > 0">失败: {{ importResult.failed }} (查看控制台获取详细日志)</li>
+        <ul class="mt-2 list-disc pl-4 text-xs space-y-1">
+            <template v-if="importResult.summary">
+                <li v-if="importResult.summary.createdProducts">{{ t('product.import.stats.created_products', '新建商品') }}: {{ importResult.summary.createdProducts }}</li>
+                <li v-if="importResult.summary.updatedProducts">{{ t('product.import.stats.updated_products', '更新商品') }}: {{ importResult.summary.updatedProducts }}</li>
+                <li v-if="importResult.summary.createdVariants">{{ t('product.import.stats.created_variants', '新建变体') }}: {{ importResult.summary.createdVariants }}</li>
+                <li v-if="importResult.summary.updatedVariants">{{ t('product.import.stats.updated_variants', '更新变体') }}: {{ importResult.summary.updatedVariants }}</li>
+            </template>
+            <li v-else>成功: {{ importResult.count }}</li>
+            <li v-if="importResult.failed > 0" class="text-danger mt-1">失败: {{ importResult.failed }} (查看控制台获取详细日志)</li>
         </ul>
     </div>
 

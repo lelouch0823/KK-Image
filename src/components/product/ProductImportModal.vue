@@ -370,7 +370,11 @@ const _importStats = ref({
     total: 0,
     success: 0,
     failed: 0,
-    errors: []
+    errors: [],
+    createdProducts: 0,
+    updatedProducts: 0,
+    createdVariants: 0,
+    updatedVariants: 0
 });
 
 const handleImport = async () => {
@@ -386,7 +390,11 @@ const handleImport = async () => {
         total: parsedItems.value.length,
         success: 0,
         failed: 0,
-        errors: []
+        errors: [],
+        createdProducts: 0,
+        updatedProducts: 0,
+        createdVariants: 0,
+        updatedVariants: 0
     };
     
     try {
@@ -453,6 +461,12 @@ const handleImport = async () => {
                 const result = await importProducts(chunk);
                 if (result.success) {
                     _importStats.value.success += (result.count || chunk.length);
+                    if (result.summary) {
+                        _importStats.value.createdProducts += (result.summary.createdProducts || 0);
+                        _importStats.value.updatedProducts += (result.summary.updatedProducts || 0);
+                        _importStats.value.createdVariants += (result.summary.createdVariants || 0);
+                        _importStats.value.updatedVariants += (result.summary.updatedVariants || 0);
+                    }
                 } else {
                     _importStats.value.failed += chunk.length;
                     const errorMsg = `Batch ${i+1} failed: ${result.error || 'Unknown error'}`;

@@ -157,6 +157,13 @@ export default {
     spu_update_warning: '检测到相同 SPU 将更新原有商品及变体数据',
     action: '开始导入',
     error_parse: '文件解析失败',
+    stats: {
+      created_products: '新建商品',
+      updated_products: '更新商品',
+      created_variants: '新建变体',
+      updated_variants: '更新变体',
+      all_failed: '全部 {failed} 条数据导入失败',
+    },
     analyzing: '正在解析文件...',
     upload_btn: '点击上传',
     reupload: '重新上传',
@@ -183,9 +190,6 @@ export default {
     match_hint: '未匹配到任何图片，确定要继续吗？这些商品将没有图片。',
     upload_success: '成功上传 {count} 张图片',
     upload_failed: '图片上传失败: {message}',
-    stats: {
-      all_failed: '全部导入失败',
-    },
     stats_summary: '导入完成: {success} 成功, {failed} 失败',
     error_missing_fields: '请至少映射"商品名称"字段',
     confirm_mapping: '确认映射',
