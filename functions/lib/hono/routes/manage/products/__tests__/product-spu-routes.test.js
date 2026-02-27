@@ -6,10 +6,13 @@ const mockProductRepo = {
     create: vi.fn(),
     findBySpu: vi.fn(),
     search: vi.fn(),
+    updateWithMeta: vi.fn(),
 };
 
 const mockVariantRepo = {
     createBatch: vi.fn(),
+    syncVariants: vi.fn(),
+    findByProductId: vi.fn(),
 };
 const mockVariantImageRepo = {
     syncImages: vi.fn(),
@@ -20,12 +23,15 @@ vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
         create(...args) { return mockProductRepo.create(...args); }
         findBySpu(...args) { return mockProductRepo.findBySpu(...args); }
         search(...args) { return mockProductRepo.search(...args); }
+        updateWithMeta(...args) { return mockProductRepo.updateWithMeta(...args); }
     },
 }));
 
 vi.mock('../../../../../../repositories/ProductVariantRepository.js', () => ({
     ProductVariantRepository: class {
         createBatch(...args) { return mockVariantRepo.createBatch(...args); }
+        syncVariants(...args) { return mockVariantRepo.syncVariants(...args); }
+        findByProductId(...args) { return mockVariantRepo.findByProductId(...args); }
     },
 }));
 
@@ -258,6 +264,89 @@ describe('Product Routes — variant-first contract', () => {
             expect(mockProductRepo.create).toHaveBeenCalledWith(
                 expect.objectContaining({ currency: 'USD' })
             );
+        });
+    });
+
+    describe('POST /batch', () => {
+        it('should upsert products and variants when found by spu', async () => {
+            // Case A: findBySpu hits existing product -> updateWithMeta + syncVariants
+            mockProductRepo.findBySpu.mockResolvedValue({ id: 'existing-id', spu: 'SPU-BATCH-1' });
+            mockProductRepo.updateWithMeta.mockResolvedValue();
+            mockVariantRepo.findByProductId.mockResolvedValue([
+                { id: 'old-var', sku: 'OLD-SKU', options_values: { Color: 'Red' } }
+            ]);
+            mockVariantRepo.syncVariants.mockResolvedValue({ createdCount: 1, updatedCount: 1, deletedCount: 0 });
+
+            const app = createApp();
+            const res = await app.request(
+                'http://localhost/api/manage/products/batch',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: [
+                            {
+                                name: 'Batch Prod 1',
+                                spu: 'SPU-BATCH-1',
+                                variants: validVariants
+                            }
+                        ]
+                    }),
+                },
+                { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+                { waitUntil: vi.fn() }
+            );
+
+            expect(res.status).toBe(200);
+            const data = await res.json();
+            
+            // Should call update instead of create
+            expect(mockProductRepo.updateWithMeta).toHaveBeenCalledWith('existing-id', expect.objectContaining({ name: 'Batch Prod 1' }));
+            expect(mockProductRepo.create).not.toHaveBeenCalled();
+            expect(mockVariantRepo.syncVariants).toHaveBeenCalled();
+            
+            expect(data.summary).toBeDefined();
+            expect(data.summary.updatedProducts).toBe(1);
+            expect(data.summary.createdProducts).toBe(0);
+        });
+
+        it('should create new products and variants when spu not found or empty', async () => {
+            // Case B: findBySpu returns null -> create + syncVariants
+            mockProductRepo.findBySpu.mockResolvedValue(null);
+            mockProductRepo.create.mockResolvedValue({ id: 'new-id' });
+            mockVariantRepo.findByProductId.mockResolvedValue([]);
+            mockVariantRepo.syncVariants.mockResolvedValue({ createdCount: 1, updatedCount: 0, deletedCount: 0 });
+
+            const app = createApp();
+            const res = await app.request(
+                'http://localhost/api/manage/products/batch',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: [
+                            {
+                                name: 'Batch Prod 2',
+                                spu: 'SPU-BATCH-2',
+                                variants: validVariants
+                            }
+                        ]
+                    }),
+                },
+                { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+                { waitUntil: vi.fn() }
+            );
+
+            expect(res.status).toBe(200);
+            const data = await res.json();
+            
+            expect(mockProductRepo.findBySpu).toHaveBeenCalledWith('SPU-BATCH-2');
+            expect(mockProductRepo.create).toHaveBeenCalled();
+            expect(mockVariantRepo.syncVariants).toHaveBeenCalled();
+            
+            expect(data.summary).toBeDefined();
+            expect(data.summary.createdProducts).toBe(1);
+            expect(data.summary.createdVariants).toBe(1);
         });
     });
 });
