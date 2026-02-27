@@ -36,8 +36,8 @@ describe('VariantImageManagerModal', () => {
             },
         });
 
-        expect(wrapper.find('[data-testid="variant-list"]').exists()).toBe(true);
-        expect(wrapper.text()).toContain('SKU-RED-S');
+        expect(wrapper.find('aside').exists()).toBe(true);
+        expect(wrapper.text()).toContain('Red / S');
         expect(wrapper.findComponent({ name: 'ImageUploader' }).exists()).toBe(true);
     });
 

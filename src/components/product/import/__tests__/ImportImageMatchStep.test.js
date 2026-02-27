@@ -24,6 +24,6 @@ describe('ImportImageMatchStep', () => {
         });
 
         expect(wrapper.text()).toContain('PABC12345678');
-        expect(wrapper.html()).toContain('bg-[var(--color-success)]');
+        expect(wrapper.html()).toContain('bg-success');
     });
 });
