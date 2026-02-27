@@ -162,5 +162,11 @@ export default {
     deselectAll: '取消全选',
     emptyOrders: '暂无已确认的客户预定单',
     recommendedBrand: '同品牌推荐',
+    variantTitle: '选择变体',
+    variantSubtitle: '选择商品具体的规格和型号',
+    searchVariant: '搜索变体名称或 SKU...',
+    unavailableHint: '当前变体不可用',
+    noActiveVariants: '该商品暂无可用的活跃变体',
+    alreadyAdded: '已在列表中',
   },
 };

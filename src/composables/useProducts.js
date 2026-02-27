@@ -19,6 +19,22 @@ export function useProducts() {
         return null;
     };
 
+    const loadActiveVariants = async ({ search = '', page = 1, limit = 50 } = {}) => {
+        const params = new URLSearchParams({
+            search: String(search || ''),
+            page: String(page || 1),
+            limit: String(limit || 50),
+        });
+        const res = await resource.rawRequest(`/variants?${params.toString()}`);
+        if (!res.success) {
+            return { items: [], meta: { total: 0, page: 1, limit: Number(limit || 50) } };
+        }
+        return {
+            items: Array.isArray(res.data) ? res.data : [],
+            meta: res.meta || { total: 0, page: Number(page || 1), limit: Number(limit || 50) },
+        };
+    };
+
     const addVariantImage = async (productId, variantId, payload) => {
         return resource.rawRequest(`/${productId}/variants/${variantId}/images`, {
             method: 'POST',
@@ -103,6 +119,7 @@ export function useProducts() {
         deleteProduct: resource.deleteItem,
         importProducts,
         loadProduct,
+        loadActiveVariants,
         addVariantImage,
         sortVariantImages,
         setVariantPrimaryImage,

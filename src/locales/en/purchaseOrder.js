@@ -150,5 +150,11 @@ export default {
     deselectAll: 'Deselect All',
     emptyOrders: 'No confirmed orders available',
     recommendedBrand: 'Same Brand',
+    variantTitle: 'Select Variants',
+    variantSubtitle: 'Select specific specifications and models',
+    searchVariant: 'Search variant name or SKU...',
+    unavailableHint: 'Variant unavailable',
+    noActiveVariants: 'No active variants available for this product',
+    alreadyAdded: 'Already in list',
   },
 };

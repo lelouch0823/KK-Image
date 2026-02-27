@@ -654,7 +654,13 @@
 
     <!-- 预定单 / 商品 选择弹窗 -->
     <OrderPickerModal :visible="showOrderPicker" :exclude-ids="excludeOrderIds" @close="showOrderPicker = false" @confirm="handleOrdersSelected" />
-    <ProductPickerModal :visible="showProductPicker" :existing-brands="existingBrands" :exclude-ids="excludeProductIds" @close="showProductPicker = false" @confirm="handleProductsSelected" />
+    <ProductPickerModal
+      :visible="showProductPicker"
+      :existing-brands="existingBrands"
+      :initial-selected-variant-ids="selectedVariantIdsForPicker"
+      @close="showProductPicker = false"
+      @confirm="handleProductsSelected"
+    />
 
     <!-- ==================== 智能建议 Modal ==================== -->
     <Teleport to="body">
@@ -739,9 +745,9 @@ const getFileUrl = (id) => `/file/${id}`;
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePurchaseOrders } from '@/composables/usePurchaseOrders';
-import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
 import { validateOrderQuantity } from '@/utils/purchase-order-constraints';
+import { reconcileVariantSelection } from '@/utils/purchase-order-variant-selection';
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
 import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
@@ -766,7 +772,6 @@ const {
 
 const route = useRoute();
 const router = useRouter();
-const { loadProduct } = useProducts();
 const { addToast } = useToast();
 
 // ─── 本地状态 ────────────────────────────────────────
@@ -956,56 +961,51 @@ const handleOrdersSelected = async (orders) => {
   }
 };
 
-// 从商品选择器接收选中的商品 → 转化为 poItems 行或直接添加到草稿 (补货)
-const handleProductsSelected = async (products) => {
-  const itemsToAdd = [];
-  for (const product of products) {
-    const fullProduct = await loadProduct(product.id);
-    const selectedVariant = (fullProduct?.variants || []).find(v => v.status === 'active') || (fullProduct?.variants || [])[0];
-    if (!selectedVariant) continue;
-    const isDuplicate = pickerTarget.value === 'create'
-      ? poItems.some(i => i.variant_id === selectedVariant.id && !i.pre_order_id)
-      : detail.value?.items?.some(i => i.variant_id === selectedVariant.id && !i.pre_order_id);
-    if (isDuplicate) continue;
-
-    let mainImage = null;
-    try {
-      const imgs = typeof fullProduct?.images === 'string' ? JSON.parse(fullProduct.images) : fullProduct?.images;
-      mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
-    } catch { /* 忽略 */ }
-
-    itemsToAdd.push({
-      product_id: fullProduct?.id || product.id,
-      variant_id: selectedVariant.id,
-      product_name: fullProduct?.name || product.name,
-      sku: selectedVariant.sku || '—',
-      brand: fullProduct?.brand || product.brand || '',
-      image: mainImage,
-      quantity: 1,
-      unit_cost: selectedVariant.cost_price || 0,
-      moq: selectedVariant.moq || null,
-      pack_size: selectedVariant.pack_size || null,
-      order_step: selectedVariant.order_step || null,
-      pre_order_id: null,
-      order_no: null,
-      required_quantity: null, // 补货无需求限制
+// 从变体选择器接收“最终选中集”并增删同步采购明细
+const handleProductsSelected = async ({ selectedVariantIds = [], selectedVariants = [] } = {}) => {
+  if (pickerTarget.value === 'create') {
+    const { toAdd, toRemoveVariantIds } = reconcileVariantSelection({
+      currentItems: poItems,
+      selectedVariants,
+      selectedVariantIds,
     });
+
+    if (toRemoveVariantIds.length > 0) {
+      for (let i = poItems.length - 1; i >= 0; i--) {
+        if (!poItems[i].pre_order_id && toRemoveVariantIds.includes(poItems[i].variant_id)) {
+          poItems.splice(i, 1);
+        }
+      }
+    }
+    if (toAdd.length > 0) {
+      poItems.push(...toAdd);
+    }
+    return;
   }
 
-  if (itemsToAdd.length === 0) return;
+  if (pickerTarget.value === 'detail' && detail.value) {
+    const currentItems = (detail.value.items || []).filter((item) => !item.pre_order_id && item.variant_id);
+    const { toAdd, toRemoveItemIds } = reconcileVariantSelection({
+      currentItems,
+      selectedVariants,
+      selectedVariantIds,
+    });
 
-  if (pickerTarget.value === 'create') {
-    poItems.push(...itemsToAdd);
-  } else if (pickerTarget.value === 'detail' && detail.value) {
-    const newItems = itemsToAdd.map(i => ({
-      product_id: i.product_id,
-      variant_id: i.variant_id,
-      pre_order_id: null,
-      quantity: i.quantity,
-      unit_cost: i.unit_cost,
-    }));
-    const success = await addItems(detail.value.id, newItems);
-    if (success) {
+    if (toRemoveItemIds.length > 0) {
+      await Promise.all(toRemoveItemIds.map((itemId) => removeItem(detail.value.id, itemId)));
+    }
+    if (toAdd.length > 0) {
+      const newItems = toAdd.map((item) => ({
+        product_id: item.product_id,
+        variant_id: item.variant_id,
+        pre_order_id: null,
+        quantity: item.quantity,
+        unit_cost: item.unit_cost,
+      }));
+      await addItems(detail.value.id, newItems);
+    }
+
+    if (toRemoveItemIds.length > 0 || toAdd.length > 0) {
       await loadDetail(detail.value.id);
       loadList();
       loadStats();
@@ -1025,9 +1025,9 @@ const excludeOrderIds = computed(() => {
   const items = pickerTarget.value === 'detail' && detail.value ? (detail.value.items || []) : poItems;
   return items.filter(i => i.pre_order_id).map(i => i.pre_order_id);
 });
-const excludeProductIds = computed(() => {
+const selectedVariantIdsForPicker = computed(() => {
   const items = pickerTarget.value === 'detail' && detail.value ? (detail.value.items || []) : poItems;
-  return items.filter(i => !i.pre_order_id && i.product_id).map(i => i.product_id);
+  return [...new Set(items.filter((i) => !i.pre_order_id && i.variant_id).map((i) => i.variant_id))];
 });
 const existingBrands = computed(() => {
   const items = pickerTarget.value === 'detail' && detail.value ? (detail.value.items || []) : poItems;
