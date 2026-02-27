@@ -24,6 +24,12 @@
                 <span class="text-(--text-secondary)">{{ t('product.import.total_rows', '识别行数') }}:</span>
                 <span class="text-(--text-main) font-medium">{{ parsedItems.length }}</span>
             </div>
+            
+            <div v-if="hasSpu" class="bg-warning/10 text-warning mt-2 flex items-start gap-2 rounded px-2 py-1.5 text-xs">
+                <AppIcon name="exclamation-triangle" class="mt-0.5 size-3 shrink-0" />
+                <span>{{ t('product.import.spu_update_warning', '检测到相同 SPU 将更新原有商品及变体数据') }}</span>
+            </div>
+            
             <div v-if="parsedItems.length > 500" class="bg-warning/10 text-warning mt-2 rounded px-2 py-1 text-xs">
                 ⚠️ {{ t('product.import.limit_warning', '数据量较大，将自动分批导入') }}
             </div>
@@ -69,10 +75,11 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
-defineProps({
+const props = defineProps({
     fileName: { type: String, default: '' },
     fileSize: { type: String, default: '' },
     parsedItems: { type: Array, default: () => [] },
@@ -88,4 +95,8 @@ defineProps({
 
 defineEmits(['reset']);
 const { t } = useI18n();
+
+const hasSpu = computed(() => {
+    return props.parsedItems && props.parsedItems.some(item => !!item.spu);
+});
 </script>

@@ -154,6 +154,7 @@ export default {
     file_limits: '支持 .xlsx, .csv 格式',
     total_rows: '识别行数',
     limit_warning: '数据量较大，将自动分批导入',
+    spu_update_warning: '检测到相同 SPU 将更新原有商品及变体数据',
     action: '开始导入',
     error_parse: '文件解析失败',
     analyzing: '正在解析文件...',

@@ -154,6 +154,7 @@ export default {
     file_limits: 'Supports .xlsx, .csv',
     total_rows: 'Rows Detected',
     limit_warning: 'Large data detected, importing in batches',
+    spu_update_warning: 'Detected existing SPUs; existing product & variant data will be updated.',
     action: 'Start Import',
     error_parse: 'File parse failed',
     analyzing: 'Parsing file...',
