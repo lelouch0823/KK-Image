@@ -390,7 +390,58 @@ const handleImport = async () => {
     };
     
     try {
-        const totalItems = parsedItems.value;
+        const buildGroupKey = (row, idx) => {
+            const spu = String(row.spu || '').trim();
+            return spu ? `spu:${spu}` : `row:${idx}`;
+        };
+
+        const normalizeVariantFromRow = (row) => {
+            const variant = { ...row };
+            delete variant.name;
+            delete variant.spu;
+            delete variant.category;
+            delete variant.brand;
+            delete variant.series;
+            delete variant.description;
+            
+            const options_values = {};
+            const specs = ['color', 'size', 'material'];
+            specs.forEach(spec => {
+                if (variant[spec]) {
+                    options_values[spec] = variant[spec];
+                    delete variant[spec];
+                }
+            });
+            
+            if (Object.keys(options_values).length > 0) {
+                variant.options_values = options_values;
+            }
+            
+            return variant;
+        };
+
+        const groupRowsToProductPayload = (rows) => {
+            const groups = new Map();
+            rows.forEach((row, idx) => {
+                const key = buildGroupKey(row, idx);
+                if (!groups.has(key)) {
+                    groups.set(key, {
+                        name: row.name,
+                        spu: String(row.spu || '').trim() || undefined,
+                        category: row.category,
+                        brand: row.brand,
+                        series: row.series,
+                        description: row.description,
+                        variants: []
+                    });
+                }
+                const product = groups.get(key);
+                product.variants.push(normalizeVariantFromRow(row));
+            });
+            return Array.from(groups.values());
+        };
+
+        const totalItems = groupRowsToProductPayload(parsedItems.value);
         const totalChunks = Math.ceil(totalItems.length / CHUNK_SIZE);
         
         for (let i = 0; i < totalChunks; i++) {
