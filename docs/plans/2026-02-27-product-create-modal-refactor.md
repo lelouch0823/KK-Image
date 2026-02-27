@@ -79,7 +79,7 @@ export function useProductForm({ editMode, initialData, emit }) {
 ```
 
 > [!IMPORTANT]
-> composable 接收 `editMode`（computed/ref）、`initialData`（computed/ref）和 `emit` 函数作为参数，从而与父组件解耦。内部 watch 监听 `isOpen`（由父组件通过调用 `fillFormFromData`/`resetForm` 触发）。
+> composable 接收 `editMode`（computed/ref）、`initialData`（computed/ref）和 `emit` 函数作为参数，从而与父组件解耦。**状态初始化时机由父组件唯一管理**：父组件 watch `modelValue` 后调用 `fillFormFromData`/`resetForm`；composable 内部不再 watch `isOpen`，避免双重初始化和状态覆盖。
 
 ---
 
@@ -101,6 +101,9 @@ defineProps({
 - 名称 + 描述 (AppInput)
 - 品牌 + 系列 + 货币选择器 (3列网格)
 - 分类 + SPU + Slug (3列网格)
+
+**约束：**
+- 组件内部使用 `useI18n()` 获取 `t`，不从父组件透传翻译函数，保持与现有实现一致。
 
 > [!NOTE]
 > 该组件直接修改 `form` 属性（通过 reactive 引用传递），无需 emit 事件。这是 Vue 3 模式中常见的"共享 reactive 对象"方式，与 useProductForm composable 完美配合。
@@ -138,6 +141,9 @@ defineEmits([
   - 名称 AppInput
   - 值输入 (enter/blur to add) + tag chips + 归档值恢复
 
+**测试契约（必须保留）：**
+- `restore` 按钮的 `data-testid="restore-value-${idx}-${aIdx}"` 必须保持不变（现有测试依赖该选择器）。
+
 ---
 
 #### [NEW] [DimensionArchiveModal.vue](file:///o:/Code/KK-Image/src/components/product/DimensionArchiveModal.vue)
@@ -161,6 +167,11 @@ defineEmits(['close', 'confirm'])
 - Step 2: 策略选择（archive_variants / merge_keep）
 - Footer: Cancel / Back / Next / Confirm 按钮
 
+**测试契约（必须保留）：**
+- 根节点保留 `data-testid="dimension-archive-modal"`。
+- Next 按钮保留 `data-testid="dimension-archive-next"`。
+- Confirm 按钮保留 `data-testid="dimension-archive-confirm"`。
+
 ---
 
 #### [NEW] [ValueArchiveModal.vue](file:///o:/Code/KK-Image/src/components/product/ValueArchiveModal.vue)
@@ -183,6 +194,10 @@ defineEmits(['close', 'confirm'])
 - 影响描述 + 受影响变体数
 - 样本变体展示
 - Footer: Cancel / Confirm 按钮
+
+**测试契约（必须保留）：**
+- 根节点保留 `data-testid="value-archive-modal"`。
+- Confirm 按钮保留 `data-testid="value-archive-confirm"`。
 
 ---
 
@@ -279,8 +294,11 @@ watch(() => props.modelValue, (isOpen) => {
 现有 `__tests__/ProductCreateModal.*.test.js` 通过 `wrapper.vm.form`、`wrapper.vm.removeOption()` 等访问组件内部状态。由于 composable 的返回值在组件 `<script setup>` 中自动暴露到 `wrapper.vm`，**多数测试无需修改**。
 
 需要确认/调整的点：
-- mock 路径从 `@/composables/useProducts` 可能需要额外 mock `@/composables/useProductForm`（如果 composable 内部直接调用 useProducts）
-- 子组件 stub 列表可能需要新增 `ProductBasicInfoSection`, `ProductOptionsBuilder`, `DimensionArchiveModal`, `ValueArchiveModal`
+- **默认不 mock `@/composables/useProductForm`**，保持 `wrapper.vm.form`、`wrapper.vm.removeOption()`、`wrapper.vm.handleSubmit()` 等行为测试仍然覆盖真实逻辑；继续 mock `@/composables/useProducts`、`@/composables/useToast`、`@/composables/useI18n`。
+- 子组件 stub 策略按测试目的区分：
+  - 纯提交流程测试可 stub：`ProductBasicInfoSection`, `ProductOptionsBuilder`。
+  - 依赖归档弹窗 DOM 与 `data-testid` 的测试（dimension/value archive）**不要 stub** `DimensionArchiveModal` / `ValueArchiveModal`（或提供带同名 `data-testid` 的自定义 stub）。
+  - 现有 `VariantImageManagerModal` / `VariantBatchBuilderModal` stub 保持不变。
 
 ---
 
@@ -291,10 +309,18 @@ watch(() => props.modelValue, (isOpen) => {
 **运行所有现有测试：**
 
 ```bash
-pnpm test -- --run src/components/product/__tests__/
+pnpm test:unit --run src/components/product/__tests__/ProductCreateModal*.test.js
 ```
 
-预期：全部通过（5 个 ProductCreateModal 相关测试 + 其他组件测试）
+预期：5 个 `ProductCreateModal.*.test.js` 全部通过
+
+**可选全量单测回归：**
+
+```bash
+pnpm test:unit --run
+```
+
+预期：无新增失败
 
 **Build 验证：**
 
