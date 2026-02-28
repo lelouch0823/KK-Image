@@ -20,7 +20,7 @@ describe('Product Import Variant Merge Logic', () => {
         });
 
         it('handles empty variant safely', () => {
-            expect(buildVariantMatchKey({})).toBe('sig:');
+            expect(buildVariantMatchKey({})).toBeNull();
         });
     });
 
@@ -88,6 +88,20 @@ describe('Product Import Variant Merge Logic', () => {
             expect(merged).toHaveLength(1);
             expect(merged[0].id).toBe('id-sig');
             expect(merged[0].price).toBe(120);
+        });
+
+        it('does not falsely match when both variants have no code/sku/signature', () => {
+            const existing = [
+                { id: 'id-empty', price: 100 }
+            ];
+            const incoming = [
+                { price: 120 }
+            ];
+
+            const merged = mergeIncomingWithExisting(existing, incoming);
+            expect(merged).toHaveLength(2);
+            const updated = merged.find(v => v.id === 'id-empty' && v.price === 120);
+            expect(updated).toBeUndefined();
         });
     });
 

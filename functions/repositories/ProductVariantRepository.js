@@ -1,4 +1,5 @@
 import { generateId, now } from '../api/utils/id.js';
+import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 
 export class ProductVariantRepository {
     constructor(db) {
@@ -99,6 +100,78 @@ export class ProductVariantRepository {
             .first();
         if (!row) return null;
         return { ...row, options_values: JSON.parse(row.options_values || '{}') };
+    }
+
+    async searchForAI(filters = {}) {
+        const safeLimit = filters.limit ? Math.min(20, Math.max(1, Math.floor(Number(filters.limit)))) : 10;
+        const params = [];
+        let where = 'WHERE 1=1';
+
+        if (filters.status) {
+            where += ' AND pv.status = ?';
+            params.push(filters.status);
+        } else {
+            where += ' AND pv.status = ?';
+            params.push('active');
+        }
+        if (filters.productId) {
+            where += ' AND pv.product_id = ?';
+            params.push(filters.productId);
+        }
+        if (filters.brand) {
+            where += ' AND p.brand = ?';
+            params.push(filters.brand);
+        }
+        if (filters.category) {
+            where += ' AND p.category = ?';
+            params.push(filters.category);
+        }
+        if (filters.search) {
+            where += `
+              AND (
+                p.name LIKE ? OR p.spu LIKE ? OR p.brand LIKE ? OR p.category LIKE ?
+                OR pv.sku LIKE ? OR pv.variant_code LIKE ? OR pv.barcode LIKE ? OR pv.supplier_sku LIKE ?
+              )
+            `;
+            const like = `%${String(filters.search).trim()}%`;
+            params.push(like, like, like, like, like, like, like, like);
+        }
+
+        const sql = `
+            SELECT
+                pv.*,
+                p.name AS product_name,
+                p.spu AS product_spu,
+                p.brand AS product_brand,
+                p.category AS product_category
+            FROM product_variants pv
+            JOIN products p ON p.id = pv.product_id
+            ${where}
+            ORDER BY p.updated_at DESC, p.created_at DESC, pv.created_at ASC
+            LIMIT ?
+        `;
+
+        const result = await this.db.prepare(sql).bind(...params, safeLimit).all();
+        return (result.results || []).map((row) => {
+            let optionsValues = {};
+            try {
+                optionsValues = JSON.parse(row.options_values || '{}');
+            } catch {
+                optionsValues = {};
+            }
+            return {
+                ...row,
+                options_values: optionsValues,
+                variantLabel: buildVariantDisplayName(optionsValues),
+                product: {
+                    id: row.product_id,
+                    name: row.product_name,
+                    spu: row.product_spu || '',
+                    brand: row.product_brand || '',
+                    category: row.product_category || '',
+                },
+            };
+        });
     }
 
     async assertBelongsToProduct(variantId, productId) {

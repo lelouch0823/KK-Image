@@ -5,6 +5,33 @@
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <div class="space-y-6">
+      <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4">
+        <div class="mb-3 flex items-center justify-between">
+          <h3 class="text-(--text-main) text-sm font-semibold">{{ t('product.import.workflow_title', '导入流程') }}</h3>
+          <span class="text-(--text-secondary) text-xs">{{ t('product.import.workflow_step', { current: currentStepIndex, total: WORKFLOW_STEPS.length }, '步骤 {current}/{total}') }}</span>
+        </div>
+        <div class="relative mb-3 grid grid-cols-4 gap-2">
+          <div class="absolute left-0 right-0 top-4 h-px bg-(--border-color)"></div>
+          <div
+            v-for="step in WORKFLOW_STEPS"
+            :key="step.id"
+            class="relative z-10 flex flex-col items-center gap-1"
+          >
+            <div
+              class="flex size-8 items-center justify-center rounded-full border text-xs font-semibold transition-colors"
+              :class="getWorkflowStepClass(step.order)"
+            >
+              <AppIcon v-if="isWorkflowCompleted(step.order)" name="check" class="size-4" />
+              <span v-else>{{ step.order }}</span>
+            </div>
+            <span class="text-center text-[11px] leading-4" :class="isWorkflowActive(step.order) ? 'text-primary font-semibold' : 'text-(--text-secondary)'">
+              {{ step.label }}
+            </span>
+          </div>
+        </div>
+        <p class="text-(--text-secondary) text-xs">{{ currentWorkflowHint }}</p>
+      </div>
+
       <!-- Step 1 & 2: Upload -->
       <ImportUploadStep 
         v-if="currentStep === 1" 
@@ -15,8 +42,11 @@
       <ImportMappingStep 
         v-if="currentStep === 3" 
         v-model="fieldMapping" 
+        v-model:spec-configs="specConfigs"
+        v-model:import-mode="importMode"
         :file-headers="fileHeaders" 
         :system-fields="SYSTEM_FIELDS" 
+        :validation-report="mappingValidationReport"
       />
 
       <!-- Step 5: Image Match -->
@@ -36,6 +66,7 @@
           :file-name="fileName"
           :file-size="fileSize"
           :parsed-items="parsedItems"
+          :preprocess-stats="preprocessStats"
           :loading="loading"
           :import-result="importResult"
           :import-error="importError"
@@ -117,6 +148,13 @@ const { importProducts } = useProducts();
 const fileName = ref('');
 const fileSize = ref('');
 const parsedItems = ref([]);
+const preprocessStats = ref({
+    sourceRows: 0,
+    acceptedRows: 0,
+    droppedEmptyRows: 0,
+    normalizedRows: 0
+});
+const mappingValidationReport = ref(null);
 const loading = ref(false);
 const importError = ref(null);
 const importResult = ref(null);
@@ -126,10 +164,45 @@ const currentStep = ref(1); // 1: Upload, 3: Mapping, 4: Preview
 const fileHeaders = ref([]);
 const rawFileRows = ref([]);
 const fieldMapping = ref({});
+const specConfigs = ref([]);
+const importMode = ref('safe_merge');
+
+const WORKFLOW_STEPS = [
+    { id: 'upload', order: 1, label: t('product.import.step_upload', '上传文件'), hint: t('product.import.workflow_hint_upload', '上传 Excel/CSV 并自动识别列头') },
+    { id: 'mapping', order: 2, label: t('product.import.step_mapping', '列映射'), hint: t('product.import.workflow_hint_mapping', '确认字段映射、规格配置与导入策略') },
+    { id: 'images', order: 3, label: t('product.import.step_image', '图片匹配'), hint: t('product.import.workflow_hint_images', '可选：为本地图片引用匹配文件') },
+    { id: 'preview', order: 4, label: t('product.import.step_verify', '确认导入'), hint: t('product.import.workflow_hint_preview', '查看统计、冲突与导入结果') },
+];
+
+const currentStepIndex = computed(() => {
+    if (currentStep.value === 1) return 1;
+    if (currentStep.value === 3) return 2;
+    if (currentStep.value === 5) return 3;
+    if (currentStep.value === 4) return 4;
+    return 1;
+});
+
+const isWorkflowCompleted = (order) => currentStepIndex.value > order;
+const isWorkflowActive = (order) => currentStepIndex.value === order;
+const getWorkflowStepClass = (order) => {
+    if (isWorkflowCompleted(order)) return 'border-success bg-success/10 text-success';
+    if (isWorkflowActive(order)) return 'border-primary bg-primary/10 text-primary';
+    return 'border-(--border-color) bg-(--bg-muted) text-(--text-secondary)';
+};
+const currentWorkflowHint = computed(() => (
+    WORKFLOW_STEPS.find((step) => step.order === currentStepIndex.value)?.hint || ''
+));
 
 const SYSTEM_FIELDS = [
     { key: 'name', label: t('product.form.name'), required: true, aliases: ['品名', '标题', 'Name'] },
     { key: 'spu', label: t('product.form.spu'), required: false, aliases: ['款号', '货号', '编码', 'Code', 'SPU'] },
+    { key: 'currency', label: t('product.form.currency'), required: false, aliases: ['币种', '货币', 'Currency'] },
+    { key: 'sku', label: t('product.table.variant.sku'), required: false, aliases: ['SKU', 'Sku', '变体SKU', '子款号'] },
+    { key: 'variant_code', label: t('product.import.fields.variant_code', '变体编码'), required: false, aliases: ['变体编码', 'variant code', 'Variant Code'] },
+    { key: 'product_code', label: t('product.import.fields.product_code', '商品编码'), required: false, aliases: ['商品编码', 'product code', 'Product Code'] },
+    { key: 'barcode', label: t('product.table.variant.barcode'), required: false, aliases: ['条码', 'Barcode'] },
+    { key: 'supplier_sku', label: t('product.table.variant.supplier_sku'), required: false, aliases: ['供应商SKU', 'Supplier SKU', 'supplier_sku'] },
+    { key: 'status', label: t('product.table.header.status'), required: false, aliases: ['状态', 'status', 'Status'] },
     { key: 'price', label: t('product.form.price'), required: false, aliases: ['售价', '销售价', '单价', '金额'] }, 
     { key: 'stock_quantity', label: t('product.form.stock'), required: false, aliases: ['数量', '存货', '库存数'] }, 
     { key: 'description', label: t('product.form.description'), required: false, aliases: ['详情', '备注', '介绍'] },
@@ -139,11 +212,91 @@ const SYSTEM_FIELDS = [
     { key: 'series', label: t('order.form.series'), required: false, aliases: ['系列', '系列名'] },
     { key: 'cost_price', label: t('product.form.cost'), required: false, aliases: ['成本', '进价', '进货价'] },
     { key: 'alert_threshold', label: t('product.form.alert_at'), required: false, aliases: ['预警线', '安全库存', '预警'] },
-    // Specifications
-    { key: 'color', label: t('order.form.color'), required: false, aliases: ['颜色', '色号', '花色'], isSpec: true },
-    { key: 'size', label: t('order.form.size'), required: false, aliases: ['尺寸', '规格', '尺寸'], isSpec: true },
-    { key: 'material', label: t('order.form.material'), required: false, aliases: ['材质', '面料', '成分'], isSpec: true }
 ];
+
+const SPEC_PRESETS = [
+    t('order.form.color', '颜色'),
+    t('order.form.size', '尺寸'),
+    t('order.form.material', '材质'),
+];
+
+const createSpecConfig = (name = '', column = '') => ({
+    id: `spec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name,
+    column,
+});
+
+const normalizeSpecName = (value) => String(value || '').trim().toLowerCase();
+const NUMERIC_FIELDS = new Set(['price', 'cost_price', 'stock_quantity', 'alert_threshold']);
+const PRODUCT_FIELDS = new Set(['name', 'spu', 'currency', 'category', 'brand', 'series', 'description']);
+
+const normalizeNumeric = (value) => {
+    if (value === null || value === undefined || value === '') return undefined;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
+    const normalized = String(value).trim().replace(/,/g, '');
+    if (!normalized) return undefined;
+    const n = Number(normalized);
+    return Number.isFinite(n) ? n : undefined;
+};
+
+const normalizeStatus = (value) => {
+    const raw = String(value || '').trim().toLowerCase();
+    if (!raw) return 'active';
+    if (['active', 'enabled', 'on', '1', '上架', '启用'].includes(raw)) return 'active';
+    if (['inactive', 'disabled', 'off', '0', '下架', '停用'].includes(raw)) return 'inactive';
+    if (['archived', 'archive', '归档'].includes(raw)) return 'archived';
+    return raw;
+};
+
+const normalizeCurrency = (value) => {
+    const raw = String(value || '').trim().toUpperCase();
+    if (!raw) return undefined;
+    return /^[A-Z]{3}$/.test(raw) ? raw : undefined;
+};
+
+const sanitizeOptionsValues = (value) => {
+    if (!value || typeof value !== 'object') return undefined;
+    const next = Object.entries(value).reduce((acc, [k, v]) => {
+        const key = String(k || '').trim();
+        const val = String(v || '').trim();
+        if (key && val) acc[key] = val;
+        return acc;
+    }, {});
+    return Object.keys(next).length > 0 ? next : undefined;
+};
+
+const sanitizeMappedRow = (row) => {
+    const clean = {};
+    Object.entries(row || {}).forEach(([key, raw]) => {
+        if (key === 'options_values') return;
+        if (NUMERIC_FIELDS.has(key)) {
+            const n = normalizeNumeric(raw);
+            if (n !== undefined) clean[key] = n;
+            return;
+        }
+        if (key === 'status') {
+            clean.status = normalizeStatus(raw);
+            return;
+        }
+        if (key === 'currency') {
+            const normalized = normalizeCurrency(raw);
+            if (normalized) clean.currency = normalized;
+            return;
+        }
+        const str = String(raw ?? '').trim();
+        if (!str) return;
+        clean[key] = str;
+    });
+    if (!clean.status) clean.status = 'active';
+
+    const optionsValues = sanitizeOptionsValues(row?.options_values);
+    if (optionsValues) {
+        clean.options_values = optionsValues;
+    }
+    return clean;
+};
+
+specConfigs.value = [createSpecConfig(SPEC_PRESETS[0], '')];
 
 const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
@@ -153,12 +306,44 @@ const formatFileSize = (bytes) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+const createPreprocessStats = () => ({
+    sourceRows: 0,
+    acceptedRows: 0,
+    droppedEmptyRows: 0,
+    normalizedRows: 0
+});
+
+const createValidationReport = (issues) => {
+    const list = Array.isArray(issues) ? issues : [];
+    const byCode = list.reduce((acc, issue) => {
+        const code = String(issue?.code || 'unknown');
+        acc[code] = (acc[code] || 0) + 1;
+        return acc;
+    }, {});
+    return {
+        total: list.length,
+        byCode,
+        samples: list.slice(0, 20),
+    };
+};
+
+const isMeaningfulRow = (item) => {
+    const keys = Object.keys(item || {});
+    if (keys.length === 0) return false;
+    if (keys.length === 1 && keys[0] === 'status') return false;
+    return true;
+};
+
 const resetFile = () => {
     fileName.value = '';
     parsedItems.value = [];
+    preprocessStats.value = createPreprocessStats();
+    mappingValidationReport.value = null;
     fileHeaders.value = [];
     rawFileRows.value = [];
     fieldMapping.value = {};
+    specConfigs.value = [createSpecConfig(SPEC_PRESETS[0], '')];
+    importMode.value = 'safe_merge';
     importError.value = null;
     importResult.value = null;
     currentStep.value = 1;
@@ -206,6 +391,22 @@ const processFile = async (file) => {
         });
         fieldMapping.value = newMapping;
 
+        const detectedSpecs = [];
+        const usedHeaders = new Set();
+        SPEC_PRESETS.forEach((preset) => {
+            const found = headers.find((h) => {
+                const header = String(h || '').trim().toLowerCase();
+                return header.includes(String(preset).toLowerCase()) && !usedHeaders.has(h);
+            });
+            if (found) {
+                usedHeaders.add(found);
+                detectedSpecs.push(createSpecConfig(preset, found));
+            }
+        });
+        specConfigs.value = detectedSpecs.length > 0
+            ? detectedSpecs.slice(0, 3)
+            : [createSpecConfig(SPEC_PRESETS[0], '')];
+
         // Store raw data (excluding header)
         rawFileRows.value = jsonData.slice(1);
         
@@ -219,13 +420,56 @@ const processFile = async (file) => {
 };
 
 const handleConfirmMapping = () => {
-    // Validate required
-    if (!fieldMapping.value['name']) {
+    const requiredFields = ['name', 'sku'];
+    const missingRequired = requiredFields.filter((key) => !fieldMapping.value[key]);
+    if (missingRequired.length > 0) {
         addToast({ type: 'error', message: t('product.import.error_missing_fields', '请至少映射“商品名称”和“SKU”字段') });
         return;
     }
 
-    const mappedData = rawFileRows.value.map(row => {
+    const activeSpecs = (specConfigs.value || [])
+        .map((spec) => ({
+            name: String(spec?.name || '').trim(),
+            column: String(spec?.column || '').trim(),
+        }))
+        .filter((spec) => spec.name || spec.column);
+
+    if (activeSpecs.length > 3) {
+        addToast({ type: 'error', message: t('product.import.specs.max_three', '最多支持 3 个规格') });
+        return;
+    }
+
+    const hasPartialSpec = activeSpecs.some((spec) => !spec.name || !spec.column);
+    if (hasPartialSpec) {
+        addToast({ type: 'error', message: t('product.import.specs.incomplete', '规格名和规格列必须同时填写') });
+        return;
+    }
+
+    const nameSet = new Set();
+    for (const spec of activeSpecs) {
+        const key = normalizeSpecName(spec.name);
+        if (nameSet.has(key)) {
+            addToast({ type: 'error', message: t('product.import.specs.duplicate_name', '规格名不能重复') });
+            return;
+        }
+        nameSet.add(key);
+    }
+
+    const colSet = new Set();
+    for (const spec of activeSpecs) {
+        if (colSet.has(spec.column)) {
+            addToast({ type: 'error', message: t('product.import.specs.duplicate_column', '同一列不能绑定多个规格') });
+            return;
+        }
+        colSet.add(spec.column);
+    }
+
+    const nextPreprocessStats = createPreprocessStats();
+    nextPreprocessStats.sourceRows = rawFileRows.value.length;
+    const validationIssues = [];
+
+    const mappedData = rawFileRows.value.map((row, idx) => {
+        const rowNumber = idx + 2;
         const item = {};
         SYSTEM_FIELDS.forEach(field => {
             const headerName = fieldMapping.value[field.key];
@@ -233,16 +477,112 @@ const handleConfirmMapping = () => {
                 const colIndex = fileHeaders.value.indexOf(headerName);
                 if (colIndex !== -1) {
                     item[field.key] = row[colIndex];
+                    return;
                 }
             }
+            item[field.key] = undefined;
         });
-        Object.assign(item, extractInternalCodes(fileHeaders.value, row));
+        const extractedCodes = extractInternalCodes(fileHeaders.value, row);
+        Object.entries(extractedCodes).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+                item[key] = value;
+            }
+        });
         // Default Status
-        item.status = 'active';
-        return item;
-    }).filter(i => i.name);
+        item.status = item.status ? String(item.status).trim() : 'active';
 
-    parsedItems.value = mappedData;
+        if (activeSpecs.length > 0) {
+            const optionsValues = {};
+            activeSpecs.forEach((spec) => {
+                const colIndex = fileHeaders.value.indexOf(spec.column);
+                if (colIndex < 0) return;
+                const raw = row[colIndex];
+                const value = String(raw ?? '').trim();
+                if (!value) return;
+                optionsValues[spec.name] = value;
+            });
+            if (Object.keys(optionsValues).length > 0) {
+                item.options_values = optionsValues;
+            }
+        }
+        const cleaned = sanitizeMappedRow(item);
+        if (JSON.stringify(cleaned) !== JSON.stringify(item)) {
+            nextPreprocessStats.normalizedRows++;
+        }
+        if (!isMeaningfulRow(cleaned)) {
+            nextPreprocessStats.droppedEmptyRows++;
+            validationIssues.push({
+                row: rowNumber,
+                code: 'empty_row',
+                message: t('product.import.preprocess.issue.empty_row', '整行为空或仅包含默认值'),
+            });
+            return null;
+        }
+        if (!String(cleaned.name || '').trim()) {
+            validationIssues.push({
+                row: rowNumber,
+                code: 'missing_name',
+                message: t('product.import.preprocess.issue.missing_name', '商品名称为空'),
+            });
+        }
+        if (!String(cleaned.sku || '').trim()) {
+            validationIssues.push({
+                row: rowNumber,
+                code: 'missing_sku',
+                message: t('product.import.preprocess.issue.missing_sku', 'SKU 为空'),
+            });
+        }
+        cleaned.__rowNumber = rowNumber;
+        return cleaned;
+    }).filter(Boolean);
+
+    const nameMissingCount = mappedData.filter((item) => !String(item.name || '').trim()).length;
+    if (nameMissingCount > 0) {
+        mappingValidationReport.value = createValidationReport(validationIssues);
+        addToast({ type: 'error', message: t('product.import.error_missing_name', '商品名称为必填字段，存在空值，请检查映射或源数据') });
+        return;
+    }
+
+    const skuMissingCount = mappedData.filter((item) => !String(item.sku || '').trim()).length;
+    if (skuMissingCount > 0) {
+        mappingValidationReport.value = createValidationReport(validationIssues);
+        addToast({ type: 'error', message: t('product.import.error_missing_sku', 'SKU 为必填字段，存在空值，请检查映射或源数据') });
+        return;
+    }
+
+    const seenSku = new Set();
+    const duplicateSkuSet = new Set();
+    const duplicateSku = mappedData.find((item) => {
+        const sku = String(item.sku || '').trim();
+        if (!sku) return false;
+        if (seenSku.has(sku)) {
+            duplicateSkuSet.add(sku);
+            return true;
+        }
+        seenSku.add(sku);
+        return false;
+    });
+    if (duplicateSkuSet.size > 0) {
+        mappedData.forEach((item) => {
+            const sku = String(item.sku || '').trim();
+            if (!duplicateSkuSet.has(sku)) return;
+            validationIssues.push({
+                row: Number(item.__rowNumber || 0),
+                code: 'duplicate_sku',
+                message: t('product.import.preprocess.issue.duplicate_sku', 'SKU 重复'),
+            });
+        });
+    }
+    if (duplicateSku) {
+        mappingValidationReport.value = createValidationReport(validationIssues);
+        addToast({ type: 'error', message: t('product.import.error_duplicate_sku', '检测到重复 SKU，请去重后再导入') });
+        return;
+    }
+
+    nextPreprocessStats.acceptedRows = mappedData.length;
+    preprocessStats.value = nextPreprocessStats;
+    mappingValidationReport.value = createValidationReport(validationIssues);
+    parsedItems.value = mappedData.map(({ __rowNumber, ...item }) => item);
 
     // Check if we need image upload (if image_url is present but not HTTP URL)
     const hasLocalImages = mappedData.some(item => 
@@ -355,9 +695,11 @@ const handleBack = () => {
         // Let's go back to 3.
         currentStep.value = 3;
         parsedItems.value = [];
+        preprocessStats.value = createPreprocessStats();
     } else if (currentStep.value === 5) {
         currentStep.value = 3;
         parsedItems.value = [];
+        preprocessStats.value = createPreprocessStats();
     }
 };
 
@@ -371,10 +713,12 @@ const _importStats = ref({
     success: 0,
     failed: 0,
     errors: [],
+    conflicts: [],
     createdProducts: 0,
     updatedProducts: 0,
     createdVariants: 0,
-    updatedVariants: 0
+    updatedVariants: 0,
+    conflictCount: 0,
 });
 
 const handleImport = async () => {
@@ -387,14 +731,16 @@ const handleImport = async () => {
     // Reset stats
     _importStats.value = {
         processed: 0,
-        total: parsedItems.value.length,
+        total: 0,
         success: 0,
         failed: 0,
         errors: [],
+        conflicts: [],
         createdProducts: 0,
         updatedProducts: 0,
         createdVariants: 0,
-        updatedVariants: 0
+        updatedVariants: 0,
+        conflictCount: 0,
     };
     
     try {
@@ -405,26 +751,9 @@ const handleImport = async () => {
 
         const normalizeVariantFromRow = (row) => {
             const variant = { ...row };
-            delete variant.name;
-            delete variant.spu;
-            delete variant.category;
-            delete variant.brand;
-            delete variant.series;
-            delete variant.description;
-            
-            const options_values = {};
-            const specs = ['color', 'size', 'material'];
-            specs.forEach(spec => {
-                if (variant[spec]) {
-                    options_values[spec] = variant[spec];
-                    delete variant[spec];
-                }
+            PRODUCT_FIELDS.forEach((key) => {
+                delete variant[key];
             });
-            
-            if (Object.keys(options_values).length > 0) {
-                variant.options_values = options_values;
-            }
-            
             return variant;
         };
 
@@ -450,6 +779,7 @@ const handleImport = async () => {
         };
 
         const totalItems = groupRowsToProductPayload(parsedItems.value);
+        _importStats.value.total = totalItems.length;
         const totalChunks = Math.ceil(totalItems.length / CHUNK_SIZE);
         
         for (let i = 0; i < totalChunks; i++) {
@@ -458,7 +788,7 @@ const handleImport = async () => {
             const chunk = totalItems.slice(start, end);
             
             try {
-                const result = await importProducts(chunk);
+                const result = await importProducts(chunk, { importMode: importMode.value });
                 if (result.success) {
                     _importStats.value.success += (result.count || chunk.length);
                     if (result.summary) {
@@ -466,6 +796,11 @@ const handleImport = async () => {
                         _importStats.value.updatedProducts += (result.summary.updatedProducts || 0);
                         _importStats.value.createdVariants += (result.summary.createdVariants || 0);
                         _importStats.value.updatedVariants += (result.summary.updatedVariants || 0);
+                        _importStats.value.conflictCount += (result.summary.conflicts || 0);
+                    }
+                    if (Array.isArray(result.conflicts) && result.conflicts.length > 0) {
+                        const tagged = result.conflicts.map((conflict) => ({ batch: i + 1, ...conflict }));
+                        _importStats.value.conflicts.push(...tagged);
                     }
                 } else {
                     _importStats.value.failed += chunk.length;
@@ -489,7 +824,15 @@ const handleImport = async () => {
             success: hasSuccess,
             count: _importStats.value.success,
             failed: _importStats.value.failed,
-            errors: _importStats.value.errors
+            errors: _importStats.value.errors,
+            conflicts: _importStats.value.conflicts.slice(0, 500),
+            summary: {
+                createdProducts: _importStats.value.createdProducts,
+                updatedProducts: _importStats.value.updatedProducts,
+                createdVariants: _importStats.value.createdVariants,
+                updatedVariants: _importStats.value.updatedVariants,
+                conflicts: _importStats.value.conflictCount,
+            }
         };
         
         if (_importStats.value.failed > 0) {
@@ -498,6 +841,8 @@ const handleImport = async () => {
              } else {
                  addToast({ message: t('product.import.stats.all_failed', { failed: _importStats.value.failed }, `导入失败: 全部 ${_importStats.value.failed} 条数据导入失败`), type: 'error' });
              }
+        } else if (_importStats.value.conflictCount > 0) {
+             addToast({ message: t('product.import.conflicts.summary', { count: _importStats.value.conflictCount }, `导入完成，检测到 ${_importStats.value.conflictCount} 条冲突并已跳过`), type: 'warning' });
         } else {
              addToast({ message: t('common.success'), type: 'success' });
              emit('success');

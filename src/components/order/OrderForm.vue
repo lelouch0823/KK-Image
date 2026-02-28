@@ -74,26 +74,58 @@
             <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
               {{ t('common.salesperson') }} <span class="text-[var(--color-danger-text)]">*</span>
             </label>
-            <Select
-              v-model="adminForm.salespersonId"
-              :options="salespersonOptions"
-              :placeholder="t('salesperson.selectPlaceholder')"
-            />
-          </div>
-          <div :class="{ 'md:col-span-2': mode !== 'admin' }">
-            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
-              {{ t('order.form.sku') }}
-            </label>
-            <input
-              v-model="form.sku"
-              type="text"
-              :placeholder="t('order.form.skuPlaceholder')"
-              class="input h-11"
-              :disabled="isDisabled('sku')"
-            />
+          <Select
+            v-model="adminForm.salespersonId"
+            :options="salespersonOptions"
+            :placeholder="t('salesperson.selectPlaceholder')"
+          />
+        </div>
+        <div :class="{ 'md:col-span-2': mode !== 'admin' }">
+          <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+            {{ t('order.form.sku') }}
+          </label>
+          <input
+            v-model="form.sku"
+            type="text"
+            :placeholder="t('order.form.skuPlaceholder')"
+            class="input h-11"
+            :disabled="isDisabled('sku')"
+          />
+        </div>
+      </div>
+
+      <!-- 如果已绑定商品，显示只读的规格属性列表，否则显示原有的输入框 -->
+      <template v-if="boundProductVariant">
+        <div class="mt-4 space-y-3 rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 p-4">
+          <h5 class="text-sm font-medium text-[var(--color-primary)]">{{ t('product.variant.title') || '商品规格' }}</h5>
+          <div class="grid grid-cols-2 gap-4">
+            <div v-for="(value, key) in boundProductVariant" :key="key" class="flex flex-col">
+              <span class="text-xs text-[var(--text-secondary)]">{{ key }}</span>
+              <span class="text-sm font-medium text-[var(--text-main)]">{{ value }}</span>
+            </div>
+            <!-- 如果没有规格内容，显示占位符 -->
+            <div v-if="Object.keys(boundProductVariant).length === 0" class="col-span-2 text-sm text-[var(--text-muted)]">
+              {{ t('product.variant.noSpecs') || '无规格信息' }}
+            </div>
           </div>
         </div>
+        <!-- 数量 (绑定的情况下仍需数量字段) -->
+        <div>
+          <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+            {{ t('order.form.quantity') }} <span class="text-[var(--color-danger-text)]">*</span>
+          </label>
+          <input
+            v-model.number="form.quantity"
+            type="number"
+            min="1"
+            required
+            class="input h-11"
+          />
+        </div>
+      </template>
 
+      <!-- 未绑定商品时，允许手动输入颜色、材质、规格尺寸 -->
+      <template v-else>
         <!-- 规格尺寸 & 数量 -->
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
@@ -150,71 +182,72 @@
             />
           </div>
         </div>
+      </template>
 
-        <!-- 备注 -->
-        <div>
+      <!-- 备注 -->
+      <div>
+        <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+          {{ t('order.form.remark') }}
+        </label>
+        <textarea
+          v-model="form.remark"
+          rows="3"
+          :placeholder="t('order.form.remarkPlaceholder')"
+          class="input h-auto resize-none py-3"
+        ></textarea>
+      </div>
+
+      <!-- Admin: 状态 | 到货时间 -->
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div v-if="mode === 'admin'">
           <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
-            {{ t('order.form.remark') }}
+            {{ t('order.status') }}
           </label>
-          <textarea
-            v-model="form.remark"
-            rows="3"
-            :placeholder="t('order.form.remarkPlaceholder')"
-            class="input h-auto resize-none py-3"
-          ></textarea>
-        </div>
-
-        <!-- Admin: 状态 | 到货时间 -->
-        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <div v-if="mode === 'admin'">
-            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
-              {{ t('order.status') }}
-            </label>
-            <StatusSelector
-              v-model="adminForm.status"
-              :options="statuses"
-              class="w-full"
-            />
-          </div>
-          <div :class="{ 'md:col-span-2': mode !== 'admin' }">
-            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
-              {{ t('order.form.expectedArrival') }}
-            </label>
-            <input
-              v-model="form.deadline"
-              type="date"
-              :min="minDate"
-              class="input h-11 appearance-none bg-[var(--bg-card)]"
-              :class="{ 'text-muted': !form.deadline }"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- 操作按钮 -->
-      <div class="flex gap-3">
-        <button
-          type="button"
-          class="h-12 flex-1 rounded-xl border border-[var(--border-color)] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
-          @click="$emit('cancel')"
-        >
-          {{ t('common.cancel') }}
-        </button>
-        <button
-          type="submit"
-          :disabled="!isValid || isSubmitting"
-          class="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <AppIcon
-            v-if="isSubmitting"
-            name="spinner"
-            class="size-5 animate-spin"
+          <StatusSelector
+            v-model="adminForm.status"
+            :options="statuses"
+            class="w-full"
           />
-          {{ progressText }}
-        </button>
+        </div>
+        <div :class="{ 'md:col-span-2': mode !== 'admin' }">
+          <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+            {{ t('order.form.expectedArrival') }}
+          </label>
+          <input
+            v-model="form.deadline"
+            type="date"
+            :min="minDate"
+            class="input h-11 appearance-none bg-[var(--bg-card)]"
+            :class="{ 'text-muted': !form.deadline }"
+          />
+        </div>
       </div>
-    </form>
-  </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="flex gap-3">
+      <button
+        type="button"
+        class="h-12 flex-1 rounded-xl border border-[var(--border-color)] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+        @click="$emit('cancel')"
+      >
+        {{ t('common.cancel') }}
+      </button>
+      <button
+        type="submit"
+        :disabled="!isValid || isSubmitting"
+        class="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <AppIcon
+          v-if="isSubmitting"
+          name="spinner"
+          class="size-5 animate-spin"
+        />
+        {{ progressText }}
+      </button>
+    </div>
+  </form>
+</div>
 </template>
 
 <script setup>
@@ -228,14 +261,15 @@ import Select from '@/components/ui/Select.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
-  prefill: { type: Object, default: null },
-  submitProgress: { type: Object, default: () => ({ step: '', current: 0, total: 0 }) },
-  mode: { type: String, default: 'sales' }, // 'sales', 'admin'
-  title: { type: String, default: '' },
-  subtitle: { type: String, default: '' },
-  salespersons: { type: Array, default: () => [] },
-  statuses: { type: Array, default: () => [] },
-  disabledFields: { type: Array, default: () => [] },
+prefill: { type: Object, default: null },
+submitProgress: { type: Object, default: () => ({ step: '', current: 0, total: 0 }) },
+mode: { type: String, default: 'sales' }, // 'sales', 'admin'
+title: { type: String, default: '' },
+subtitle: { type: String, default: '' },
+salespersons: { type: Array, default: () => [] },
+statuses: { type: Array, default: () => [] },
+disabledFields: { type: Array, default: () => [] },
+boundProductVariant: { type: Object, default: null }, // NEW
 });
 
 const emit = defineEmits(['submit', 'cancel']);

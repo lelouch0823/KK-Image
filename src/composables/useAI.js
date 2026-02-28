@@ -5,7 +5,8 @@ const isOpen = ref(false);
 const context = ref({
     path: '',
     pageTitle: '',
-    selectedId: null
+    selectedId: null,
+    selectedType: null,
 });
 
 export function useAI() {

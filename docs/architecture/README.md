@@ -30,6 +30,28 @@
 
 ---
 
+## 📦 模块设计文档
+
+详细模块设计文档位于 `modules/` 目录：
+
+### 前端模块
+
+| 文档 | 说明 |
+|------|------|
+| [前端组件库](modules/frontend-components.md) | 128个Vue组件，三层架构设计 |
+| [页面视图](modules/frontend-views.md) | 路由结构、RBAC权限控制 |
+| [组合式函数](modules/frontend-composables.md) | 36个composables，状态管理 |
+
+### 后端模块
+
+| 文档 | 说明 |
+|------|------|
+| [API路由](modules/api-routes.md) | Hono路由、中间件系统、RESTful设计 |
+| [数据访问层](modules/repository-layer.md) | Repository模式、D1操作封装 |
+| [存储层](modules/storage-layer.md) | R2/S3/Telegram存储、CAS去重 |
+
+---
+
 ## 🏗️ 架构特点
 
 ### 无服务器边缘架构

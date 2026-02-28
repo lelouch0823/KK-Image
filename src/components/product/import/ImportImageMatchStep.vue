@@ -1,14 +1,16 @@
 <template>
-    <div>
-        <h3 class="text-(--text-main) mb-2 text-lg font-medium">{{ t('product.import.step_image', '图片智能匹配') }}</h3>
-        <p class="text-(--text-secondary) mb-4 text-sm">
-            检测到Excel中包含 {{ totalImagesCount }} 个本地图片引用。请上传对应的图片文件。
-        </p>
+    <div class="space-y-4">
+        <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4">
+            <h3 class="text-(--text-main) mb-1 text-lg font-semibold">{{ t('product.import.step_image', '图片智能匹配') }}</h3>
+            <p class="text-(--text-secondary) text-sm">
+                {{ t('product.import.image_match_desc', { count: totalImagesCount }, '检测到 Excel 中包含 {count} 个本地图片引用。请上传对应图片。') }}
+            </p>
+        </div>
 
         <!-- Dropzone -->
         <div 
-            class="border-(--border-color) bg-(--bg-muted) hover:bg-(--bg-hover) relative mb-4 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-8 transition-colors"
-            :class="{ 'border-primary bg-primary/10': isDragOver }"
+            class="relative flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-8 transition-colors"
+            :class="isDragOver ? 'border-primary bg-primary/10' : 'border-(--border-color) bg-(--bg-muted) hover:bg-(--bg-hover)'"
             @dragover.prevent="isDragOver = true"
             @dragleave.prevent="isDragOver = false"
             @drop.prevent="handleDrop"
@@ -23,29 +25,31 @@
                 @change="handleSelect"
             >
             <div class="text-center">
-                 <AppIcon name="photo" class="text-(--text-muted) mx-auto size-10" />
-                <p class="text-(--text-secondary) mt-2 text-sm">
-                    <span class="text-primary font-medium hover:opacity-80">点击选择图片</span>
-                    (支持批量/拖拽)
+                 <div class="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-primary/10">
+                    <AppIcon name="photo" class="text-primary size-6" />
+                 </div>
+                <p class="text-(--text-main) mt-2 text-sm font-medium">
+                    <span class="text-primary">{{ t('product.import.click_to_upload_images', '点击上传图片') }}</span>
+                    {{ t('product.import.image_upload_batch', '（支持批量/拖拽）') }}
                 </p>
-                <p class="text-(--text-muted) mt-1 text-xs">已选择 {{ fileCount }} 个文件</p>
+                <p class="text-(--text-secondary) mt-1 text-xs">{{ t('product.import.image_selected_count', { count: fileCount }, '已选择 {count} 个文件') }}</p>
             </div>
         </div>
 
         <!-- Match Stats -->
-        <div class="border-(--border-color) bg-(--bg-card) rounded-lg border p-4 shadow-sm">
+        <div class="border-(--border-color) bg-(--bg-card) rounded-xl border p-4 shadow-sm">
             <div class="mb-3 flex items-center justify-between">
-                <span class="text-(--text-main) text-sm font-medium">匹配结果</span>
+                <span class="text-(--text-main) text-sm font-semibold">{{ t('product.import.auto_matched', '匹配结果') }}</span>
                 <span class="bg-primary-bg text-primary rounded-full px-2 py-0.5 text-xs font-medium">
                     {{ processedImagesCount }} / {{ totalImagesCount }}
                 </span>
             </div>
             <!-- Grid of items -->
-            <div class="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
+            <div class="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
                     <div 
                     v-for="item in localImages" 
                     :key="getItemMatchKey(item)"
-                    class="flex items-center gap-2 rounded border p-2 text-xs"
+                    class="flex items-center gap-2 rounded-lg border p-2 text-xs"
                     :class="imageMatches.has(getItemMatchKey(item))
                         ? 'border-success/20 bg-success/5 text-success' 
                         : 'border-warning/20 bg-warning/5 text-warning'"
@@ -56,7 +60,7 @@
                         <div class="opacity-75">{{ item.image_url }}</div>
                     </div>
                     <div v-if="imageMatches.has(getItemMatchKey(item))">
-                         <AppIcon name="check" class="size-4" />
+                         <AppIcon name="check-circle" class="size-4" />
                     </div>
                     </div>
             </div>

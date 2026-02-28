@@ -391,10 +391,11 @@
 </template>
 
 <script setup>
-import { onActivated } from 'vue';
+import { onActivated, onDeactivated, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
+import { useAI } from '@/composables/useAI';
 import { useGoodsOverview } from '@/composables/useGoodsOverview';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -402,6 +403,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 
 const { t } = useI18n();
 const { addToast } = useToast();
+const { setContext } = useAI();
 const router = useRouter();
 const {
   items, summary, loading, filters, availableFilters,
@@ -411,10 +413,13 @@ const {
 
 const handleCreatePO = async () => {
   if (isCreatingPO.value) return;
+  const firstSelectedVariantId = selectedItems.value[0]?.variantId || selectedItems.value[0]?.id || null;
   const result = await createPOFromSelected();
   if (result.success) {
     addToast({ type: 'success', message: t('goodsOverview.toast.poCreated') });
-    router.push({ path: '/purchase-orders', query: { id: result.data.id } });
+    const query = { id: result.data.id };
+    if (firstSelectedVariantId) query.variantId = firstSelectedVariantId;
+    router.push({ path: '/purchase-orders', query });
   } else {
     addToast({ type: 'error', message: result.error || '生成采购单失败' });
   }
@@ -424,6 +429,28 @@ const handleCreatePO = async () => {
 // 每次导航进入该页面时都会重新拉取最新数据
 onActivated(() => {
   init();
+});
+
+watch(selectedItems, (items) => {
+  const first = (items || [])[0] || null;
+  if (first) {
+    setContext({
+      selectedId: first.variantId || first.id || null,
+      selectedType: 'variant',
+    });
+    return;
+  }
+  setContext({
+    selectedId: null,
+    selectedType: null,
+  });
+});
+
+onDeactivated(() => {
+  setContext({
+    selectedId: null,
+    selectedType: null,
+  });
 });
 </script>
 

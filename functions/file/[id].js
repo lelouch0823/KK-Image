@@ -49,17 +49,35 @@ export async function onRequest(context) {
   // 3.1 外链图片：直接代理（用于 seed/外部图床场景）
   if (/^https?:\/\//i.test(storageKey)) {
     try {
-      const upstream = await fetch(storageKey, { method: 'GET' });
+      // 构建请求头，防止被外部服务器（如 Cloudflare/Pexels）拦截导致断网 (internal error)
+      const fetchHeaders = new Headers();
+      const userAgent = request.headers.get('User-Agent');
+      fetchHeaders.set('User-Agent', userAgent || 'KK-Image/1.0 (Cloudflare Worker)');
+      fetchHeaders.set('Accept', request.headers.get('Accept') || 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8');
+
+      const upstream = await fetch(storageKey, { 
+        method: 'GET',
+        headers: fetchHeaders,
+        redirect: 'follow'
+      });
+      
       if (!upstream.ok) {
-        return new Response('File not found', { status: upstream.status });
+        console.warn(`获取外部图片失败: 状态码 ${upstream.status}, URL: ${storageKey}`);
+        return new Response('获取外部文件失败', { status: upstream.status });
       }
+      
       const headers = new Headers(upstream.headers);
       headers.set('Cache-Control', headers.get('Cache-Control') || 'public, max-age=86400');
       headers.set('X-Cache', 'MISS-EXTERNAL');
+      
+      // 移除可能导致浏览器阻止显示的跨域安全头
+      headers.delete('x-frame-options');
+      headers.delete('content-security-policy');
+      
       return new Response(upstream.body, { status: upstream.status, headers });
     } catch (err) {
-      console.error('External file fetch error:', err);
-      return new Response('Storage error', { status: 500 });
+      console.error('获取外部文件抛出异常:', err.message || err, '| URL:', storageKey, '| Cause:', err.cause);
+      return new Response('存储服务器获取失败 (内部错误)', { status: 500 });
     }
   }
 

@@ -41,13 +41,6 @@
         @update:model-value="updateField('sku', $event)"
       />
 
-      <!-- 规格尺寸 -->
-      <AppInput
-        :model-value="modelValue.size"
-        :label="t('order.form.size')"
-        @update:model-value="updateField('size', $event)"
-      />
-
       <!-- 数量 -->
       <AppInput
         :model-value="modelValue.quantity"
@@ -57,19 +50,46 @@
         @update:model-value="updateField('quantity', parseInt($event) || 1)"
       />
 
-      <!-- 颜色 -->
-      <AppInput
-        :model-value="modelValue.color"
-        :label="t('order.form.color')"
-        @update:model-value="updateField('color', $event)"
-      />
+      <!-- 如果已绑定商品，显示只读的规格属性列表，否则显示原有的输入框 -->
+      <template v-if="boundProductVariant">
+        <div class="md:col-span-2 mt-4 space-y-3 rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 p-4">
+          <h5 class="text-sm font-medium text-[var(--color-primary)]">{{ t('product.variant.title') || '商品规格' }}</h5>
+          <div class="grid grid-cols-2 gap-4">
+            <div v-for="(value, key) in boundProductVariant" :key="key" class="flex flex-col">
+              <span class="text-xs text-[var(--text-secondary)]">{{ key }}</span>
+              <span class="text-sm font-medium text-[var(--text-main)]">{{ value }}</span>
+            </div>
+            <!-- 如果没有规格内容，显示占位符 -->
+            <div v-if="Object.keys(boundProductVariant).length === 0" class="col-span-2 text-sm text-[var(--text-muted)]">
+              {{ t('product.variant.noSpecs') || '无规格信息' }}
+            </div>
+          </div>
+        </div>
+      </template>
 
-      <!-- 材质 -->
-      <AppInput
-        :model-value="modelValue.material"
-        :label="t('order.form.material')"
-        @update:model-value="updateField('material', $event)"
-      />
+      <!-- 未绑定商品时，允许手动输入颜色、材质、规格尺寸 -->
+      <template v-else>
+        <!-- 规格尺寸 -->
+        <AppInput
+          :model-value="modelValue.size"
+          :label="t('order.form.size')"
+          @update:model-value="updateField('size', $event)"
+        />
+
+        <!-- 颜色 -->
+        <AppInput
+          :model-value="modelValue.color"
+          :label="t('order.form.color')"
+          @update:model-value="updateField('color', $event)"
+        />
+
+        <!-- 材质 -->
+        <AppInput
+          :model-value="modelValue.material"
+          :label="t('order.form.material')"
+          @update:model-value="updateField('material', $event)"
+        />
+      </template>
 
       <!-- 期望到货时间 -->
       <AppInput
@@ -146,6 +166,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  boundProductVariant: {
+    type: Object,
+    default: null,
+  }
 });
 
 const emit = defineEmits(['update:modelValue']);

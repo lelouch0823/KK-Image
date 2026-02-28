@@ -40,6 +40,7 @@
           :statuses="statuses"
           :salespersons="salespersons"
           :disabled-fields="disabledFields"
+          :bound-product-variant="boundProductVariant"
           @update:model-value="updateForm"
         />
       </div>
@@ -206,6 +207,8 @@ const form = reactive({
 const LOCKED_FIELDS = ['name', 'brand', 'series', 'sku'];
 const disabledFields = computed(() => boundProduct.value ? LOCKED_FIELDS : []);
 
+const boundProductVariant = ref(null);
+
 const updateForm = (newVal) => {
   Object.assign(form, newVal);
 };
@@ -224,11 +227,36 @@ const handleProductSelect = (product) => {
   };
   selectedProductId.value = product.id;
 
+  // Extract variant specs
+  let options = variant.options_values || {};
+  if (typeof options === 'string') {
+    try { options = JSON.parse(options); } catch { options = {}; }
+  }
+
+  let extractedColor = '';
+  let extractedMaterial = '';
+  const otherSpecs = [];
+
+  for (const [key, val] of Object.entries(options)) {
+    if (!val) continue;
+    const lowerKey = key.toLowerCase();
+    if (['color', '颜色', '顏色'].includes(lowerKey)) {
+      extractedColor = String(val);
+    } else if (['material', '材质', '材質'].includes(lowerKey)) {
+      extractedMaterial = String(val);
+    } else {
+      otherSpecs.push(`${key}: ${val}`);
+    }
+  }
+
   // 自动填充表单字段
   form.name = product.name || '';
   form.brand = product.brand || '';
   form.series = product.series || '';
   form.sku = variant.sku || '';
+  form.color = extractedColor;
+  form.material = extractedMaterial;
+  form.size = otherSpecs.join('，') || '';
 
   // Auto-fill image
   const mainImage = getProductMainImage(product);

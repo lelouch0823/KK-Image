@@ -4,11 +4,21 @@ import { API } from '@/utils/constants';
 export function useProducts() {
     const resource = useResource(API.MANAGE_PRODUCTS);
 
-    const importProducts = async (items) => {
+    const importProducts = async (items, { importMode = 'replace' } = {}) => {
         return resource.rawRequest('/batch', {
             method: 'POST',
-            body: JSON.stringify({ items })
+            body: JSON.stringify({ items, import_mode: importMode })
         });
+    };
+
+    const listProductsForExport = async ({ search = '', status = '', page = 1, limit = 100 } = {}) => {
+        const params = new URLSearchParams({
+            page: String(page || 1),
+            limit: String(limit || 100),
+        });
+        if (search) params.set('search', String(search));
+        if (status) params.set('status', String(status));
+        return resource.rawRequest(`?${params.toString()}`);
     };
 
     const loadProduct = async (id) => {
@@ -118,6 +128,7 @@ export function useProducts() {
         updateProduct: resource.updateItem,
         deleteProduct: resource.deleteItem,
         importProducts,
+        listProductsForExport,
         loadProduct,
         loadActiveVariants,
         addVariantImage,

@@ -3,6 +3,7 @@
  * 统一管理 stream.js 和 chat.js 中的工具调用逻辑
  */
 import { DateUtils } from '../api/utils/date.js';
+import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 
 /**
  * 执行 AI 工具调用
@@ -12,7 +13,16 @@ import { DateUtils } from '../api/utils/date.js';
  * @returns {Promise<any>} 工具执行结果
  */
 export async function executeAITool(name, args, repos) {
-    const { orderStatsRepo, systemStatsRepo, orderRepo, orderTimelineRepo, productRepo, customerRepo, goodsOverviewRepo } = repos;
+    const {
+        orderStatsRepo,
+        systemStatsRepo,
+        orderRepo,
+        orderTimelineRepo,
+        productRepo,
+        variantRepo,
+        customerRepo,
+        goodsOverviewRepo
+    } = repos;
 
     try {
         switch (name) {
@@ -66,6 +76,20 @@ export async function executeAITool(name, args, repos) {
                 });
                 return res.items;
             }
+            case 'searchVariants': {
+                if (!variantRepo?.searchForAI) {
+                    return { error: true, message: 'Variant search is unavailable' };
+                }
+                const limit = args.limit ? Math.min(args.limit, 20) : 10;
+                return await variantRepo.searchForAI({
+                    search: args.search,
+                    brand: args.brand,
+                    category: args.category,
+                    status: args.status,
+                    productId: args.productId,
+                    limit,
+                });
+            }
             case 'searchCustomers': {
                 const limit = args.limit ? Math.min(args.limit, 20) : 10;
                 const res = await customerRepo.list({
@@ -87,7 +111,38 @@ export async function executeAITool(name, args, repos) {
             case 'getProductDetail': {
                 if (!args.id) return { error: true, message: 'Missing product ID' };
                 const dt = await productRepo.findById(args.id);
-                return dt || { error: true, message: 'Product not found' };
+                if (!dt) return { error: true, message: 'Product not found' };
+                const variants = variantRepo?.findByProductId ? await variantRepo.findByProductId(args.id) : [];
+                return {
+                    ...dt,
+                    variants: (variants || []).map((variant) => ({
+                        ...variant,
+                        variantLabel: buildVariantDisplayName(variant.options_values || {}),
+                    })),
+                };
+            }
+            case 'getVariantDetail': {
+                if (!args.id) return { error: true, message: 'Missing variant ID' };
+                if (!variantRepo?.findById) {
+                    return { error: true, message: 'Variant detail is unavailable' };
+                }
+                const variant = await variantRepo.findById(args.id);
+                if (!variant) return { error: true, message: 'Variant not found' };
+
+                const product = productRepo?.findById && variant.product_id
+                    ? await productRepo.findById(variant.product_id)
+                    : null;
+
+                return {
+                    ...variant,
+                    variantLabel: buildVariantDisplayName(variant.options_values || {}),
+                    product: product ? {
+                        id: product.id,
+                        name: product.name,
+                        brand: product.brand || '',
+                        spu: product.spu || '',
+                    } : null,
+                };
             }
             case 'getCustomerDetail': {
                 if (!args.id) return { error: true, message: 'Missing customer ID' };

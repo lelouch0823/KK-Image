@@ -182,9 +182,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onActivated } from 'vue';
+import { ref, reactive, onMounted, onActivated, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
+import { useAI } from '@/composables/useAI';
 import { formatDate } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import SearchInput from '@/components/ui/SearchInput.vue';
@@ -200,6 +201,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 
 const { t } = useI18n();
 const { addToast } = useToast();
+const { setContext } = useAI();
 
 const loading = ref(false);
 const customers = ref([]);
@@ -308,5 +310,19 @@ onMounted(() => {
 
 onActivated(() => {
   loadCustomers();
+});
+
+watch([showDetailPanel, viewingCustomer], ([isOpen, customer]) => {
+  if (isOpen && customer?.id) {
+    setContext({
+      selectedId: customer.id,
+      selectedType: 'customer',
+    });
+    return;
+  }
+  setContext({
+    selectedId: null,
+    selectedType: null,
+  });
 });
 </script>

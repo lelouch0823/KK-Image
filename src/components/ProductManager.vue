@@ -71,6 +71,12 @@
         v-model="showImportModal"
         @success="handleModalSuccess"
     />
+
+    <!-- Export Modal -->
+    <ProductExportModal
+        v-model="showExportModal"
+        :filters="filters"
+    />
     
     <!-- Create/Edit Modal -->
     <ProductCreateModal
@@ -175,15 +181,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, defineAsyncComponent } from 'vue';
+import { ref, reactive, onMounted, defineAsyncComponent, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useProducts } from '@/composables/useProducts';
+import { useAI } from '@/composables/useAI';
 const ProductStats = defineAsyncComponent(() => import('./product/ProductStats.vue'));
 import ProductFilters from './product/ProductFilters.vue';
 import ProductTable from './product/ProductTable.vue';
 import ProductCreateModal from './product/ProductCreateModal.vue'; 
 import ProductDetailModal from './product/ProductDetailModal.vue'; 
 const ProductImportModal = defineAsyncComponent(() => import('./product/ProductImportModal.vue'));
+const ProductExportModal = defineAsyncComponent(() => import('./product/ProductExportModal.vue'));
 import ProductGrid from './product/ProductGrid.vue';
 import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -195,6 +203,7 @@ import { useI18n } from '@/composables/useI18n';
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
+const { setContext } = useAI();
 
 const { products, loading, error, pagination, loadProducts, deleteProduct, loadProduct } = useProducts();
 
@@ -202,6 +211,7 @@ const showStatsModal = ref(false);
 const showCreateModal = ref(false); 
 const showDetailModal = ref(false);
 const showImportModal = ref(false);
+const showExportModal = ref(false);
 const showShareModal = ref(false);
 const isEditMode = ref(false);
 const editingProduct = ref(null);
@@ -309,7 +319,20 @@ const handleDelete = async (product) => {
 };
 
 const handleExport = () => {
-    // Open the backend export endpoint
-    window.open('/api/manage/products/export?format=csv', '_blank');
+    showExportModal.value = true;
 };
+
+watch([showDetailModal, viewingProduct], ([isOpen, product]) => {
+    if (isOpen && product?.id) {
+        setContext({
+            selectedId: product.id,
+            selectedType: 'product',
+        });
+        return;
+    }
+    setContext({
+        selectedId: null,
+        selectedType: null,
+    });
+});
 </script>

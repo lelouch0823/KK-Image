@@ -13,9 +13,11 @@ export const TOOL_DESCRIPTIONS = {
   GET_FILE_STATS: '获取文件存储统计数据，包括文件总数、总存储大小和各类型文件分布。',
   SEARCH_ORDERS: '搜索订单列表（支持按状态、关键字搜索）。可以获取特定状态的订单，或者根据关键字查找。',
   SEARCH_PRODUCTS: '搜索商品列表（支持按商品名称、SKU、分类、品牌搜索）。',
+  SEARCH_VARIANTS: '搜索商品变体列表（支持按商品名称、SPU、SKU、变体编码、条码、供应商SKU、品牌、分类等条件搜索）。',
   SEARCH_CUSTOMERS: '搜索客户列表（支持按姓名、手机号、公司名称搜索）。',
   GET_ORDER_DETAIL: '根据订单ID获取指定订单详情，包括当前状态、明细数据以及近期的操作时间轴日志(Timeline)。',
   GET_PRODUCT_DETAIL: '根据商品ID获取指定商品详情数据。',
+  GET_VARIANT_DETAIL: '根据变体ID获取指定变体详情（包含所属商品快照、规格组合、库存与编码信息）。',
   GET_CUSTOMER_DETAIL: '根据客户ID获取指定客户详情数据。',
   GET_GOODS_OVERVIEW_SUMMARY: '获取订货总览的统计摘要，包括总商品数、总需求件数、缺货商品数，以及按状态分组的详情。',
   GET_GOODS_OVERVIEW_LIST: '获取订货总览（商品管道分析）的商品列表，支持按类别、品牌筛选，以及仅筛选缺货商品。',
@@ -113,6 +115,24 @@ export const AI_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'searchVariants',
+      description: TOOL_DESCRIPTIONS.SEARCH_VARIANTS,
+      parameters: {
+        type: 'object',
+        properties: {
+          search: { type: 'string', description: '搜索关键字（如商品名、SPU、SKU、变体编码、条码）' },
+          productId: { type: 'string', description: '限定某个商品ID下的变体' },
+          brand: { type: 'string', description: '品牌筛选' },
+          category: { type: 'string', description: '分类筛选' },
+          status: { type: 'string', description: '变体状态（如 active, archived）' },
+          limit: { type: 'number', description: '最多返回的记录数，默认为 10' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'searchCustomers',
       description: TOOL_DESCRIPTIONS.SEARCH_CUSTOMERS,
       parameters: {
@@ -163,6 +183,18 @@ export const AI_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'getVariantDetail',
+      description: TOOL_DESCRIPTIONS.GET_VARIANT_DETAIL,
+      parameters: {
+        type: 'object',
+        properties: { id: { type: 'string', description: '变体ID (UUID)' } },
+        required: ['id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'getGoodsOverviewSummary',
       description: TOOL_DESCRIPTIONS.GET_GOODS_OVERVIEW_SUMMARY,
       parameters: { type: 'object', properties: {} }
@@ -192,6 +224,7 @@ export const SYSTEM_PROMPT = (date, context = {}) => {
   if (context.path) contextInfo += `\n  - 所在页面路径: ${context.path}`;
   if (context.pageTitle) contextInfo += `\n  - 所在页面标题: ${context.pageTitle}`;
   if (context.selectedId) contextInfo += `\n  - 当前关联实体(ID): ${context.selectedId}`;
+  if (context.selectedType) contextInfo += `\n  - 当前关联实体类型: ${context.selectedType}`;
 
   return `
 <role>
@@ -206,7 +239,7 @@ export const SYSTEM_PROMPT = (date, context = {}) => {
 你可以查询以下核心业务领域的数据（如有必要，请跨领域综合查询）：
 1. **订单管理**: 获取大盘统计（今日/本周/本月订单数）、待处理订单列表、按特定条件（状态/关键字）搜索历史订单、提取*特定订单的明细与时间线操作日志*。
 2. **订货总览 (管道分析)**: 获取大盘备货统计摘要、输出缺货/需备货商品的长清单、按分类或品牌对供应链情况进行洞察。
-3. **商品主档**: 关键字/品牌/分类搜索商品数据库、精准穿透查询*特定商品的详情*。
+3. **商品主档（含变体）**: 可搜索商品主档，也可搜索商品变体（SKU/变体编码/条码/供应商SKU），并查询特定商品或特定变体的详情（含规格组合与库存信息）。
 4. **客户关系**: 获取客户总盘概况及新增趋势、模糊或者精准定位客户、提取*特定客户的深层业务资料*。
 5. **团队效能**: 组织人员架构中的销售列表查询、Top5 业绩跑榜查询。
 6. **资源系统**: 共享空间总盘/活跃数据（数量、访问量、下载量）；全站大文件/多媒体资产的用量看板和分类比例。
@@ -215,6 +248,12 @@ export const SYSTEM_PROMPT = (date, context = {}) => {
 <core_rules>
 1. **绝对禁止捏造事实 (Zero-Hallucination Policy)**: 绝不能在未调用工具的情况下臆测任何具体的流水、数字、名字或状态。必须依赖工具返回值。
 2. **精准上下文感应**: 当用户询问“当前”、“这个”、“此”等指向性词汇时，优先结合 <context> 中的 \`所在页面路径\` 或 \`当前关联实体(ID)\` 领会意图。例如在详情页时，应自动将其 ID 传入相应的实体获取工具进行查询。
+   - 若 \`当前关联实体类型\` 已提供，则按类型优先选择对应工具：
+     - order -> \`getOrderDetail\`
+     - product -> \`getProductDetail\`
+     - variant -> \`getVariantDetail\`
+     - customer -> \`getCustomerDetail\`
+   - 当问题明确包含“变体/SKU/规格组合/条码”等关键词时，优先使用变体工具（\`searchVariants\` / \`getVariantDetail\`）。
 3. **工具联动**: 如果用户的询问涉及多个领域（例如“对比一下缺货商品和待处理订单”），允许并行或按顺序调用多个工具获取综合视野。
 4. **拒绝执行非查询命令**: 如果用户要求修改、删除、创建记录，坚决拒绝并委婉告知当前 AI 仅支持数据查询与辅助决策，不包含写权限。
 </core_rules>

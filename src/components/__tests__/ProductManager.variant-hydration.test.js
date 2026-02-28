@@ -48,6 +48,7 @@ describe('ProductManager variant hydration', () => {
           ProductCreateModal: { template: '<div />' },
           ProductDetailModal: { template: '<div><slot name="header-actions" :product="{}" /></div>' },
           ProductImportModal: { template: '<div />' },
+          ProductExportModal: { template: '<div />' },
           ProductGrid: { template: '<div />' },
           SpaceCreateModal: { template: '<div />' },
           Pagination: { template: '<div />' },

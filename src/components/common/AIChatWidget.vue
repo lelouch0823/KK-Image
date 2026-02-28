@@ -102,6 +102,7 @@ import { useAI } from '@/composables/useAI';
 import { useAIStream } from '@/composables/useAIStream';
 import { useToast } from '@/composables/useToast';
 import { throttle } from '@/utils/performance';
+import { inferCurrentView, inferAIEntityContext } from '@/components/common/ai/context-inference';
 
 const { isOpen, close, context, setContext } = useAI();
 const { t } = useI18n();
@@ -109,25 +110,26 @@ const { addToast } = useToast();
 const route = useRoute();
 
 // 从路由计算当前视图和标题
-const currentView = computed(() => {
-  const path = route.path;
-  if (path.startsWith('/admin/')) {
-    return path.replace('/admin/', '');
-  }
-  return 'dashboard';
-});
+const currentView = computed(() => inferCurrentView(route.path));
 const viewTitle = computed(() => route.meta?.title || document.title);
+const currentEntityContext = computed(() => inferAIEntityContext({
+  view: currentView.value,
+  params: route.params,
+  query: route.query,
+}));
 
 const userInput = ref('');
 const messageContainer = ref(null);
 
 // 自动感知上下文
 watch(
-  currentView,
-  (view) => {
+  [currentView, currentEntityContext],
+  ([view, entity]) => {
     setContext({
       path: '/' + view,
-      pageTitle: viewTitle.value
+      pageTitle: viewTitle.value,
+      selectedId: entity.selectedId,
+      selectedType: entity.selectedType,
     });
   },
   { immediate: true }

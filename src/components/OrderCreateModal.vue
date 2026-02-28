@@ -22,6 +22,7 @@
           :submit-progress="submitProgress"
           :prefill="formData"
           :disabled-fields="disabledFields"
+          :bound-product-variant="boundProductVariant"
           @submit="handleSubmit"
           @cancel="$emit('update:modelValue', false)"
         />
@@ -54,6 +55,7 @@ const selectedProductId = ref(null);
 
 // Form Data for pre-filling
 const formData = ref({});
+const boundProductVariant = ref(null);
 
 // Locked fields when product is bound
 const LOCKED_FIELDS = ['name', 'brand', 'series', 'sku'];
@@ -90,6 +92,35 @@ const handleProductSelect = (product) => {
   };
   selectedProductId.value = product.id;
 
+  // Extract variant specs
+  let options = variant.options_values || {};
+  if (typeof options === 'string') {
+    try { options = JSON.parse(options); } catch { options = {}; }
+  }
+
+  // Map option IDs to names using dimension_map
+  const dimensionMap = product.dimension_map || {};
+
+  const mappedOptions = {};
+  let extractedColor = '';
+  let extractedMaterial = '';
+  const otherSpecs = [];
+
+  for (const [key, val] of Object.entries(options)) {
+    if (!val) continue;
+    const readableKey = dimensionMap[key] || key;
+    mappedOptions[readableKey] = val;
+
+    const lowerKey = readableKey.toLowerCase();
+    if (['color', '颜色', '顏色'].includes(lowerKey)) {
+      extractedColor = String(val);
+    } else if (['material', '材质', '材質'].includes(lowerKey)) {
+      extractedMaterial = String(val);
+    } else {
+      otherSpecs.push(`${readableKey}: ${val}`);
+    }
+  }
+
   // Auto-fill form fields
   // SOTA: Use formData ref to trigger OrderForm's watch prefill
   const newData = {
@@ -97,12 +128,10 @@ const handleProductSelect = (product) => {
     brand: product.brand || '',
     series: product.series || '',
     sku: variant.sku || '',
+    color: extractedColor,
+    material: extractedMaterial,
+    size: otherSpecs.join('，') || '',
   };
-  
-  // Auto-fill image if available
-  // OrderForm uses ImageUploader which accepts v-model="uploadedFiles"
-  // OrderForm initializes uploadedFiles from prefill.files if present (checking useOrderForm)
-  // Logic: We pass file objects with { url, isLocal: false } or similar to mimic uploaded files
   if (mainImage) {
     newData.files = [{
       url: mainImage,
@@ -117,11 +146,13 @@ const handleProductSelect = (product) => {
   }
 
   formData.value = newData;
+  boundProductVariant.value = mappedOptions; // Set extracted options object for display
 };
 
 const unbindProduct = () => {
   boundProduct.value = null;
   selectedProductId.value = null;
+  boundProductVariant.value = null;
   // We don't clear formData to avoid data loss if user unbinds intentionally to edit
 };
 

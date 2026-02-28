@@ -5,24 +5,162 @@ import { invalidateCache, getProductCacheUrls } from '../../../middleware/cache.
 import { BadRequestError } from '../../../errors.js';
 
 const app = new Hono();
+const IMPORT_MODE = {
+    REPLACE: 'replace',
+    SAFE_MERGE: 'safe_merge',
+};
+
+const normalizeImportMode = (value) => {
+    const mode = String(value || '').trim().toLowerCase();
+    if (mode === IMPORT_MODE.SAFE_MERGE) return IMPORT_MODE.SAFE_MERGE;
+    return IMPORT_MODE.REPLACE;
+};
+
+const assertBatchItem = (item) => {
+    const name = String(item?.name || '').trim();
+    if (!name) {
+        throw new Error('name is required');
+    }
+    item.name = name;
+
+    if (!Array.isArray(item?.variants) || item.variants.length === 0) {
+        throw new Error('at least one variant is required');
+    }
+
+    const seenSkus = new Set();
+    item.variants.forEach((variant, index) => {
+        const sku = String(variant?.sku || '').trim();
+        if (!sku) {
+            throw new Error(`variant #${index + 1} sku is required`);
+        }
+        if (seenSkus.has(sku)) {
+            throw new Error(`variant sku duplicated: ${sku}`);
+        }
+        seenSkus.add(sku);
+        variant.sku = sku;
+    });
+};
+
+const isEmptyValue = (value) => {
+    if (value === undefined || value === null) return true;
+    if (typeof value === 'string') return value.trim() === '';
+    if (Array.isArray(value)) return value.length === 0;
+    if (typeof value === 'object') return Object.keys(value).length === 0;
+    return false;
+};
+
+const normalizeObjectValue = (value) => {
+    if (!value || typeof value !== 'object') return value;
+    return Object.keys(value).sort().reduce((acc, key) => {
+        acc[key] = value[key];
+        return acc;
+    }, {});
+};
+
+const areValuesEqual = (a, b) => {
+    if (typeof a === 'object' || typeof b === 'object') {
+        return JSON.stringify(normalizeObjectValue(a)) === JSON.stringify(normalizeObjectValue(b));
+    }
+    return String(a ?? '') === String(b ?? '');
+};
+
+const safeMergeField = ({ target, incoming, field, context, conflicts, currentValue }) => {
+    if (!(field in incoming)) return;
+    const incomingValue = incoming[field];
+    if (isEmptyValue(incomingValue)) return;
+
+    const baseValue = currentValue !== undefined ? currentValue : target[field];
+    if (isEmptyValue(baseValue) || areValuesEqual(baseValue, incomingValue)) {
+        target[field] = incomingValue;
+        return;
+    }
+
+    conflicts.push({
+        ...context,
+        field,
+        current: currentValue,
+        incoming: incomingValue,
+    });
+};
+
+const buildSafeProductUpdateData = (existing, incoming, conflicts) => {
+    const next = {};
+    const fields = ['name', 'spu', 'category', 'brand', 'series', 'description', 'currency', 'slug', 'images', 'specifications', 'options'];
+    fields.forEach((field) => {
+        safeMergeField({
+            target: next,
+            incoming,
+            field,
+            currentValue: existing?.[field],
+            conflicts,
+            context: {
+                level: 'product',
+                spu: String(existing?.spu || incoming?.spu || '').trim() || null,
+            },
+        });
+    });
+    return next;
+};
+
+const buildSafeVariantSyncPayload = (existingVariants, variantsToSync, conflicts, item) => {
+    const existingById = new Map(existingVariants.map((variant) => [variant.id, variant]));
+    const mutableFields = ['sku', 'price', 'cost_price', 'stock_quantity', 'alert_threshold', 'options_values', 'image_id', 'status', 'barcode', 'supplier_sku'];
+
+    return variantsToSync.map((variant) => {
+        if (!variant?.id || !existingById.has(variant.id)) {
+            return variant;
+        }
+        const existing = existingById.get(variant.id);
+        const merged = { ...existing };
+
+        mutableFields.forEach((field) => {
+            safeMergeField({
+                target: merged,
+                incoming: variant,
+                field,
+                conflicts,
+                context: {
+                    level: 'variant',
+                    spu: String(item?.spu || '').trim() || null,
+                    sku: String(existing?.sku || variant?.sku || '').trim() || null,
+                },
+            });
+        });
+
+        return {
+            ...merged,
+            id: existing.id,
+        };
+    });
+};
 
 export const buildVariantMatchKey = (variant) => {
-    if (variant.variant_code) return `code:${variant.variant_code}`;
-    if (variant.sku) return `sku:${variant.sku}`;
-    
-    const opts = variant.options_values || {};
-    const sig = Object.keys(opts)
-        .sort()
-        .map(k => `${k}:${opts[k]}`)
-        .join('|');
-        
+    const variantCode = String(variant?.variant_code || '').trim();
+    if (variantCode) return `code:${variantCode}`;
+
+    const sku = String(variant?.sku || '').trim();
+    if (sku) return `sku:${sku}`;
+
+    const opts = variant?.options_values && typeof variant.options_values === 'object'
+        ? variant.options_values
+        : {};
+    const entries = Object.entries(opts)
+        .map(([k, v]) => [String(k || '').trim(), String(v || '').trim()])
+        .filter(([k, v]) => k && v)
+        .sort(([a], [b]) => a.localeCompare(b));
+    if (entries.length === 0) return null;
+
+    const sig = entries.map(([k, v]) => `${k}:${v}`).join('|');
     return `sig:${sig}`;
 };
 
 export const mergeIncomingWithExisting = (existingVariants, incomingVariants) => {
     const existingMap = new Map();
+    const matchedExistingIds = new Set();
     existingVariants.forEach(v => {
-        existingMap.set(buildVariantMatchKey(v), v);
+        const key = buildVariantMatchKey(v);
+        if (!key) return;
+        existingMap.set(key, v);
     });
     
     const incomingMap = new Map();
@@ -30,10 +168,13 @@ export const mergeIncomingWithExisting = (existingVariants, incomingVariants) =>
     
     incomingVariants.forEach(incoming => {
         const key = buildVariantMatchKey(incoming);
-        incomingMap.set(key, true);
+        if (key) {
+            incomingMap.set(key, true);
+        }
         
-        const existing = existingMap.get(key);
+        const existing = key ? existingMap.get(key) : null;
         if (existing) {
+            matchedExistingIds.add(existing.id);
             merged.push({
                 ...incoming,
                 id: existing.id
@@ -45,7 +186,7 @@ export const mergeIncomingWithExisting = (existingVariants, incomingVariants) =>
     
     existingVariants.forEach(v => {
         const key = buildVariantMatchKey(v);
-        if (!incomingMap.has(key)) {
+        if (!key || (!incomingMap.has(key) && !matchedExistingIds.has(v.id))) {
             merged.push(v);
         }
     });
@@ -61,6 +202,7 @@ app.post('/', async (c) => {
     const { env } = c;
     const body = await c.req.json();
     const items = body.items;
+    const importMode = normalizeImportMode(body.import_mode);
 
     if (!Array.isArray(items) || items.length === 0) {
         throw new BadRequestError('Invalid items array');
@@ -78,13 +220,16 @@ app.post('/', async (c) => {
         updatedProducts: 0,
         createdVariants: 0,
         updatedVariants: 0,
-        failedProducts: 0
+        failedProducts: 0,
+        conflicts: 0,
     };
     
     const errors = [];
+    const conflicts = [];
     
     for (const item of items) {
         try {
+            assertBatchItem(item);
             const spu = item.spu ? String(item.spu).trim() : null;
             let productId;
             let isNew = false;
@@ -95,7 +240,13 @@ app.post('/', async (c) => {
                     productId = existing.id;
                     const updateData = { ...item };
                     delete updateData.variants;
-                    await repo.updateWithMeta(productId, updateData);
+                    let nextUpdateData = updateData;
+                    if (importMode === IMPORT_MODE.SAFE_MERGE) {
+                        nextUpdateData = buildSafeProductUpdateData(existing, updateData, conflicts);
+                    }
+                    if (Object.keys(nextUpdateData).length > 0) {
+                        await repo.updateWithMeta(productId, nextUpdateData);
+                    }
                     summary.updatedProducts++;
                 }
             }
@@ -112,10 +263,20 @@ app.post('/', async (c) => {
             if (item.variants && item.variants.length > 0) {
                 const existingVariants = isNew ? [] : await variantRepo.findByProductId(productId);
                 const variantsToSync = mergeIncomingWithExisting(existingVariants, item.variants);
+                const nextVariantsToSync = importMode === IMPORT_MODE.SAFE_MERGE
+                    ? buildSafeVariantSyncPayload(existingVariants, variantsToSync, conflicts, item)
+                    : variantsToSync;
+                const existingIdSet = new Set(existingVariants.map((v) => v.id));
+                const incomingVariantCount = Array.isArray(item.variants) ? item.variants.length : 0;
+                const matchedUpdateCount = nextVariantsToSync.reduce((count, variant) => (
+                    variant?.id && existingIdSet.has(variant.id) ? count + 1 : count
+                ), 0);
+                const computedUpdated = Math.min(incomingVariantCount, matchedUpdateCount);
+                const computedCreated = Math.max(incomingVariantCount - computedUpdated, 0);
 
-                const syncResult = await variantRepo.syncVariants(productId, variantsToSync);
-                summary.createdVariants += syncResult.createdCount || 0;
-                summary.updatedVariants += syncResult.updatedCount || 0;
+                const syncResult = await variantRepo.syncVariants(productId, nextVariantsToSync);
+                summary.createdVariants += syncResult?.createdCount ?? computedCreated;
+                summary.updatedVariants += syncResult?.updatedCount ?? computedUpdated;
             }
         } catch (error) {
             summary.failedProducts++;
@@ -123,13 +284,16 @@ app.post('/', async (c) => {
         }
     }
 
+    summary.conflicts = conflicts.length;
     const success = summary.createdProducts > 0 || summary.updatedProducts > 0;
     
     const result = {
         success,
+        importMode,
         count: summary.createdProducts + summary.updatedProducts,
         summary,
-        errors
+        errors,
+        conflicts: conflicts.slice(0, 200),
     };
 
     if (success) {

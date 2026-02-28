@@ -739,13 +739,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onActivated, watch } from 'vue';
+import { ref, reactive, computed, onActivated, onDeactivated, watch } from 'vue';
 
 const getFileUrl = (id) => `/file/${id}`;
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePurchaseOrders } from '@/composables/usePurchaseOrders';
 import { useToast } from '@/composables/useToast';
+import { useAI } from '@/composables/useAI';
 import { validateOrderQuantity } from '@/utils/purchase-order-constraints';
 import { reconcileVariantSelection } from '@/utils/purchase-order-variant-selection';
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
@@ -773,6 +774,7 @@ const {
 const route = useRoute();
 const router = useRouter();
 const { addToast } = useToast();
+const { setContext } = useAI();
 
 // ─── 本地状态 ────────────────────────────────────────
 
@@ -1160,6 +1162,53 @@ watch(() => filters.status, () => {
 // 打开建议弹窗时自动加载
 watch(showSuggestions, (v) => {
   if (v) loadSuggestions();
+});
+
+const detailFocusedVariantId = computed(() => {
+  const item = (detail.value?.items || []).find((entry) => entry?.variant_id);
+  return item?.variant_id || null;
+});
+
+watch([showProductPicker, selectedVariantIdsForPicker, viewProductId, showDetail, detailFocusedVariantId, () => route.query.variantId], ([pickerOpen, selectedVariantIds, productId, detailOpen, detailVariantId, routeVariantId]) => {
+  if (pickerOpen) {
+    setContext({
+      selectedId: selectedVariantIds[0] || null,
+      selectedType: 'variant',
+    });
+    return;
+  }
+  if (productId) {
+    setContext({
+      selectedId: productId,
+      selectedType: 'product',
+    });
+    return;
+  }
+  if (detailOpen && detailVariantId) {
+    setContext({
+      selectedId: detailVariantId,
+      selectedType: 'variant',
+    });
+    return;
+  }
+  if (typeof routeVariantId === 'string' && routeVariantId.trim()) {
+    setContext({
+      selectedId: routeVariantId.trim(),
+      selectedType: 'variant',
+    });
+    return;
+  }
+  setContext({
+    selectedId: null,
+    selectedType: null,
+  });
+});
+
+onDeactivated(() => {
+  setContext({
+    selectedId: null,
+    selectedType: null,
+  });
 });
 </script>
 

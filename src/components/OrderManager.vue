@@ -202,6 +202,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
 import { useNotifications } from '@/composables/useNotifications';
 import { useI18n } from '@/composables/useI18n';
+import { useAI } from '@/composables/useAI';
 import { useOrderFilters } from '@/composables/order/useOrderFilters';
 import { useOrderModals } from '@/composables/order/useOrderModals';
 import { useOrderBatch } from '@/composables/order/useOrderBatch';
@@ -243,6 +244,7 @@ const { addToast } = useToast();
 const { authFetch } = useAuth();
 const route = useRoute();
 const router = useRouter();
+const { setContext } = useAI();
 
 // SOTA: Auto-refresh on notification
 const { lastNotificationTime } = useNotifications();
@@ -374,6 +376,20 @@ watch(showDetailModal, (isOpen) => {
     delete query.id;
     router.replace({ query });
   }
+});
+
+watch([showDetailModal, viewingOrder], ([isOpen, order]) => {
+  if (isOpen && order?.id) {
+    setContext({
+      selectedId: order.id,
+      selectedType: 'order',
+    });
+    return;
+  }
+  setContext({
+    selectedId: null,
+    selectedType: null,
+  });
 });
 
 // Lifecycle

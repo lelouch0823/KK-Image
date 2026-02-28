@@ -349,6 +349,7 @@ import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
 import { useOrders } from '@/composables/useOrders';
 import { useClipboard } from '@/composables/useClipboard';
+import { useAI } from '@/composables/useAI';
 import ShareManagementModal from '@/components/ShareManagementModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
 import Modal from '@/components/ui/Modal.vue';
@@ -370,6 +371,7 @@ const { authFetchJson } = useAuth();
 const { t } = useI18n();
 const { getOrder } = useOrders();
 const { copyShareLink } = useClipboard();
+const { setContext } = useAI();
 const isRefreshing = ref(false);
 const lastUpdatedTime = ref(new Date().toLocaleTimeString());
 
@@ -591,6 +593,20 @@ onActivated(() => {
   fetchDashboardData();
   nextTick(() => {
     initCharts();
+  });
+});
+
+watch([showDetailModal, viewingOrder], ([isOpen, order]) => {
+  if (isOpen && order?.id) {
+    setContext({
+      selectedId: order.id,
+      selectedType: 'order',
+    });
+    return;
+  }
+  setContext({
+    selectedId: null,
+    selectedType: null,
   });
 });
 </script>
