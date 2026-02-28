@@ -73,6 +73,34 @@
     body {
         @apply bg-[var(--bg-page)] text-[var(--text-main)] font-sans antialiased;
     }
+
+    /* 全局滚动条样式 (适配黑白主题) */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-border-hover) transparent;
+    }
+
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background-color: var(--color-border-hover);
+        border-radius: var(--radius-full);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background-color: var(--color-border-strong);
+    }
+
+    ::-webkit-scrollbar-corner {
+        background: transparent;
+    }
 }
 
 /* Material Symbols Icon Class */
@@ -91,25 +119,6 @@
 }
 
 @layer components {
-
-    /* 通用滚动条样式 */
-    .scrollbar-thin::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
-
-    .scrollbar-thin::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .scrollbar-thin::-webkit-scrollbar-thumb {
-        background-color: var(--color-border-hover);
-        border-radius: var(--radius-full);
-    }
-
-    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-        background-color: var(--color-border-strong);
-    }
 
     /* 基础按钮样式 - Enhanced Interaction */
     .btn {

@@ -86,8 +86,8 @@ describe('ProductCreateModal variant-first payload', () => {
         const payload = mocks.createProduct.mock.calls[0][0];
         expect(payload.variants).toHaveLength(1);
         expect(payload.dimensions).toEqual([
-            { id: 'dim-color', name: 'Color', values: ['Blue'] },
-            { id: 'dim-size', name: 'Size', values: ['L'] },
+            { id: 'dim-color', name: 'Color', values: [{ value: 'Blue', meta: undefined }] },
+            { id: 'dim-size', name: 'Size', values: [{ value: 'L', meta: undefined }] },
         ]);
         expect(payload).not.toHaveProperty('price');
         expect(payload).not.toHaveProperty('cost_price');

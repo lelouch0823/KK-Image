@@ -31,4 +31,3 @@ describeIfRealApi('Manage Products Real API Authz', function () {
     assert.ok(Array.isArray(json?.data));
   });
 });
-

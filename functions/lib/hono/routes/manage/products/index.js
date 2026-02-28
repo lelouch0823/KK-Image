@@ -255,10 +255,14 @@ app.post('/', async (c) => {
                 const rawValue = values[j];
                 const value = typeof rawValue === 'string' ? rawValue : rawValue?.value;
                 if (!String(value || '').trim()) continue;
-                await dimensionRepo.addValue(product.id, created.id, {
+                const payload = {
                     value,
                     sort_order: j,
-                });
+                };
+                if (rawValue && typeof rawValue === 'object' && Object.prototype.hasOwnProperty.call(rawValue, 'meta')) {
+                    payload.meta = rawValue.meta;
+                }
+                await dimensionRepo.addValue(product.id, created.id, payload);
             }
         }
 

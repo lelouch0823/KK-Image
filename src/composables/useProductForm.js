@@ -39,16 +39,28 @@ function parseJson(str) {
  * 将原始 option 数据转换为表单模型
  */
 function toOptionModel(raw = {}) {
-  const values = Array.isArray(raw.values)
-    ? raw.values
-        .map((entry) => (typeof entry === 'string' ? entry : entry?.value))
-        .map((value) => String(value || '').trim())
-        .filter(Boolean)
-    : [];
+  const values = [];
+  const metaMap = {};
+
+  if (Array.isArray(raw.values)) {
+    raw.values.forEach(entry => {
+       const val = typeof entry === 'string' ? entry : entry?.value;
+       const cleanVal = String(val || '').trim();
+       if (cleanVal && entry?.status !== 'archived') {
+          values.push(cleanVal);
+          if (entry?.meta) {
+              const metaObj = typeof entry.meta === 'string' ? parseJson(entry.meta) : entry.meta;
+              if (metaObj) metaMap[cleanVal] = metaObj;
+          }
+       }
+    });
+  }
+
   return {
     id: raw.id || null,
     name: String(raw.name || '').trim(),
     values: [...new Set(values)],
+    metaMap,
     inputValue: '',
     archivedValues: Array.isArray(raw.values)
       ? raw.values.filter(
@@ -297,16 +309,24 @@ export function useProductForm({ editMode, initialData, emit }) {
   };
 
   // ——— 选项值 CRUD ———
-  const addOptionValue = async (opt) => {
+  const addOptionValue = async (opt, extraMeta = null) => {
     if (!opt.inputValue) return;
     const vals = opt.inputValue
       .split(',')
       .map((v) => v.trim())
       .filter(Boolean);
+      
+    if (!opt.metaMap) opt.metaMap = {};
+
     for (const v of vals) {
       if (!opt.values.includes(v)) opt.values.push(v);
+      if (extraMeta) opt.metaMap[v] = { ...opt.metaMap[v], ...extraMeta };
+
       if (editMode.value && opt.id && initialData.value?.id) {
-        const response = await addDimensionValue(initialData.value.id, opt.id, { value: v });
+        const payload = { value: v };
+        if (opt.metaMap[v]) payload.meta = opt.metaMap[v];
+        
+        const response = await addDimensionValue(initialData.value.id, opt.id, payload);
         if (!response?.success) {
           addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
         }
@@ -569,7 +589,10 @@ export function useProductForm({ editMode, initialData, emit }) {
           .map((option) => ({
             id: option.id || undefined,
             name: option.name,
-            values: option.values,
+            values: option.values.map(val => ({
+                 value: val,
+                 meta: option.metaMap?.[val] || undefined
+            })),
           })),
         variants: form.variants.map((variant) => {
           const { _clientKey, ...variantPayload } = variant;

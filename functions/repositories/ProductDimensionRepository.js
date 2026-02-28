@@ -12,6 +12,11 @@ const stableOptions = (optionsValues = {}) => {
 
 const buildSignature = (optionsValues = {}) => JSON.stringify(stableOptions(optionsValues));
 
+const formatMeta = (meta) => {
+    if (meta === undefined || meta === null || meta === '') return null;
+    return typeof meta === 'string' ? meta : JSON.stringify(meta);
+};
+
 const parseJSON = (value, fallback) => {
     if (value === undefined || value === null || value === '') return fallback;
     if (typeof value !== 'string') return value;
@@ -148,6 +153,8 @@ export class ProductDimensionRepository {
             throw new Error('value is required');
         }
 
+        let metaStr = formatMeta(payload.meta);
+
         const countRow = await this.db
             .prepare("SELECT COUNT(*) AS total FROM product_dimension_values WHERE dimension_id = ? AND status = 'active'")
             .bind(dimensionId)
@@ -156,11 +163,30 @@ export class ProductDimensionRepository {
         const timestamp = now();
         const id = generateId();
         await this.db
-            .prepare(`INSERT INTO product_dimension_values (id, dimension_id, value, status, sort_order, created_at, updated_at)
-                VALUES (?, ?, ?, 'active', ?, ?, ?)`)
-            .bind(id, dimensionId, value, sortOrder, timestamp, timestamp)
+            .prepare(`INSERT INTO product_dimension_values (id, dimension_id, value, status, sort_order, meta, created_at, updated_at)
+                VALUES (?, ?, ?, 'active', ?, ?, ?, ?)`)
+            .bind(id, dimensionId, value, sortOrder, metaStr, timestamp, timestamp)
             .run();
         return this.db.prepare('SELECT * FROM product_dimension_values WHERE id = ?').bind(id).first();
+    }
+
+    async updateValueMeta(productId, dimensionId, valueId, meta) {
+        // verify ownership
+        const valueRow = await this.db.prepare(`
+            SELECT v.id FROM product_dimension_values v
+            JOIN product_dimensions d ON d.id = v.dimension_id
+            WHERE v.id = ? AND d.product_id = ? AND d.id = ?
+        `).bind(valueId, productId, dimensionId).first();
+        
+        if (!valueRow) throw new Error('dimension value not found for product');
+
+        const timestamp = now();
+        const metaStr = formatMeta(meta);
+        
+        await this.db
+            .prepare('UPDATE product_dimension_values SET meta = ?, updated_at = ? WHERE id = ?')
+            .bind(metaStr, timestamp, valueId)
+            .run();
     }
 
     async archiveDimension(productId, dimensionId) {

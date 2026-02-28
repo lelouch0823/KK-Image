@@ -1,24 +1,24 @@
 /* Design Tokens & Theme Configuration */
 :root {
-    /* 基础调色板 - Gray */
-    --color-gray-50: #F9FAFB;
-    --color-gray-100: #F3F4F6;
-    --color-gray-200: #E5E7EB;
-    --color-gray-300: #D1D5DB;
-    --color-gray-400: #9CA3AF;
-    --color-gray-500: #6B7280;
-    --color-gray-600: #4B5563;
-    --color-gray-700: #374151;
-    --color-gray-800: #1F2937;
-    --color-gray-900: #111827;
-    --color-gray-950: #030712;
+    /* 基础调色板 - Stone (Warm Gray) */
+    --color-gray-50: #fafaf9;
+    --color-gray-100: #f5f5f4;
+    --color-gray-200: #e7e5e4;
+    --color-gray-300: #d6d3d1;
+    --color-gray-400: #a8a29e;
+    --color-gray-500: #78716c;
+    --color-gray-600: #57534e;
+    --color-gray-700: #44403c;
+    --color-gray-800: #292524;
+    --color-gray-900: #1c1917;
+    --color-gray-950: #0c0a09;
 
     /* 语义色彩体系 - Semantic Colors */
-    /* Primary (Brand) */
-    --color-primary: var(--color-gray-900);
-    --color-primary-hover: var(--color-gray-800);
-    --color-primary-light: var(--color-gray-100);
-    --color-primary-bg: var(--color-gray-50);
+    /* Primary (Brand) - Tangerine */
+    --color-primary: #ec5b13;
+    --color-primary-hover: #c2410c;
+    --color-primary-light: #ffedd5;
+    --color-primary-bg: #fff7ed;
 
     /* Secondary (Neutral) */
     --color-secondary: var(--color-gray-500);
@@ -118,22 +118,23 @@
 
 /* 深色模式变量覆盖 - Dark Mode Overrides */
 .dark {
-    --color-primary: var(--color-gray-50);
-    --color-primary-hover: var(--color-gray-200);
-    --color-primary-light: var(--color-gray-800);
-    --color-primary-bg: var(--color-gray-900);
+    color-scheme: dark;
+    --color-primary: #f97316;
+    --color-primary-hover: #fdba74;
+    --color-primary-light: #7c2d12;
+    --color-primary-bg: rgba(234, 88, 12, 0.15);
 
     --color-secondary: var(--color-gray-400);
     --color-secondary-hover: var(--color-gray-200);
 
-    --bg-page: #0B0E14;
+    --bg-page: #0c0a09; /* Stone 950 */
     /* Deep charcoal/near-black */
-    --bg-card: #11141d;
+    --bg-card: #1c1917; /* Stone 900 */
     /* Slightly lighter for cards */
-    --bg-hover: #161b26;
-    --bg-active: #1f2937;
-    --bg-muted: #0e1118;
-    --bg-secondary: #0B0E14;
+    --bg-hover: #292524; /* Stone 800 */
+    --bg-active: #292524;
+    --bg-muted: #1c1917;
+    --bg-secondary: #0c0a09;
 
     --border-color: rgba(255, 255, 255, 0.06);
     --border-hover: rgba(255, 255, 255, 0.15);

@@ -48,9 +48,16 @@ export function renderMarkdown(content) {
     // 3. 强制在标题前换行
     processed = processed.replace(/([^\n])(#{1,6}\s)/g, '$1\n\n$2');
 
-    // 4. 表格处理 - 确保表格行前有空行
-    processed = processed.replace(/([^\n])\n(\|[^\n]+\|)/g, '$1\n\n$2');
-    processed = processed.replace(/([^|\n])(\|[^|\n]+\|)/g, '$1\n\n$2');
+    // 4. 表格处理 - 确保普通文本与表格之间有空行
+    const lines = processed.split('\n');
+    for (let i = 1; i < lines.length; i++) {
+        const cur = lines[i].trim();
+        const prev = lines[i - 1].trim();
+        if (cur.startsWith('|') && prev !== '' && !prev.startsWith('|')) {
+            lines[i] = '\n' + lines[i];
+        }
+    }
+    processed = lines.join('\n');
 
     // 5. 代码块和引用
     processed = processed.replace(/([^\n])(```)/g, '$1\n\n$2');

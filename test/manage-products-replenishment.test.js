@@ -124,4 +124,3 @@ describeIfRealApi('Manage Products Real API Replenishment Signal', function () {
     assert.strictEqual(Number(variantArrived.replenishment_po_count || 0), 0);
   });
 });
-

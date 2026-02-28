@@ -90,6 +90,14 @@ const normalizeDimensionValues = (values = []) =>
         .map((value) => String(value || '').trim())
         .filter(Boolean);
 
+const hasOwnMeta = (value) =>
+    value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, 'meta');
+
+const normalizeMeta = (meta) => {
+    if (meta === undefined || meta === null || meta === '') return null;
+    return typeof meta === 'string' ? meta : JSON.stringify(meta);
+};
+
 const syncDimensionsFromPayload = async (dimensionRepo, productId, incomingDimensions = []) => {
     if (!Array.isArray(incomingDimensions)) {
         return dimensionRepo.listByProduct(productId);
@@ -118,12 +126,34 @@ const syncDimensionsFromPayload = async (dimensionRepo, productId, incomingDimen
         }
 
         const current = existingById.get(dimension.id) || { values: [] };
-        const existingValues = new Set((current.values || []).map((item) => item.value));
-        const normalizedValues = normalizeDimensionValues(incoming.values);
-        for (const value of normalizedValues) {
-            if (existingValues.has(value)) continue;
-            await dimensionRepo.addValue(productId, dimension.id, { value });
-            existingValues.add(value);
+        const existingValuesMap = new Map((current.values || []).map((item) => [item.value, item]));
+        const incomingVals = (incoming.values || []).map(v => typeof v === 'string' ? { value: v } : v).filter(v => v.value);
+
+        for (const item of incomingVals) {
+            const valStr = String(item.value).trim();
+            if (!valStr) continue;
+            const shouldSyncMeta = hasOwnMeta(item);
+
+            if (!existingValuesMap.has(valStr)) {
+                const payload = { value: valStr };
+                if (shouldSyncMeta) payload.meta = item.meta;
+                const createdValue = await dimensionRepo.addValue(productId, dimension.id, payload);
+                existingValuesMap.set(valStr, {
+                    id: createdValue?.id,
+                    value: valStr,
+                    meta: shouldSyncMeta ? normalizeMeta(item.meta) : null,
+                });
+            } else {
+                if (!shouldSyncMeta) continue;
+                const existingRec = existingValuesMap.get(valStr);
+                const newMetaStr = normalizeMeta(item.meta);
+                const oldMetaStr = existingRec.meta || null;
+
+                if (newMetaStr !== oldMetaStr && existingRec.id) {
+                    await dimensionRepo.updateValueMeta(productId, dimension.id, existingRec.id, item.meta);
+                    existingRec.meta = newMetaStr;
+                }
+            }
         }
     }
 

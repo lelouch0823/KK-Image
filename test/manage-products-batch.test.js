@@ -64,4 +64,3 @@ describeIfRealApi('Manage Products Real API Batch', function () {
     assert.ok(typeof json.summary.reactivatedVariants === 'number');
   });
 });
-

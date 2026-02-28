@@ -60,4 +60,3 @@ describeIfRealApi('Manage Products Real API Rollback', function () {
     assert.ok(!items.some((item) => item.spu === spu), 'rollback failed: residual product exists');
   });
 });
-

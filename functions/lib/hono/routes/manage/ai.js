@@ -10,6 +10,7 @@ import { ProductRepository } from '../../../../repositories/ProductRepository.js
 import { ProductVariantRepository } from '../../../../repositories/ProductVariantRepository.js';
 import { CustomerRepository } from '../../../../repositories/CustomerRepository.js';
 import { GoodsOverviewRepository } from '../../../../repositories/GoodsOverviewRepository.js';
+import { SettingsRepository } from '../../../../repositories/SettingsRepository.js';
 import { callAIStream, callAI, callAIAuto, parseSSEChunk, SYSTEM_PROMPT } from '../../../../utils/ai-utils.js';
 import { executeAITool } from '../../../../utils/ai-tool-executor.js';
 import { extractToolCallsFromText } from '../../../../utils/ai-stream-helpers.js';
@@ -17,6 +18,32 @@ import { DateUtils } from '../../../../api/utils/date.js';
 import { success } from '../../../../api/utils/response.js';
 
 const app = new Hono();
+
+async function resolveAIRuntimeEnv(env) {
+    try {
+        const settingsRepo = new SettingsRepository(env.DB);
+        const grouped = await settingsRepo.getAllGrouped();
+        const ai = grouped?.ai || {};
+        const pick = (key, fallback = '') => {
+            const value = String(ai[key] ?? '').trim();
+            return value || fallback;
+        };
+
+        return {
+            ...env,
+            AI_API_URL: pick('AI_API_URL', env.AI_API_URL || ''),
+            AI_API_KEY: pick('AI_API_KEY', env.AI_API_KEY || ''),
+            AI_MODELS: pick('AI_MODELS', env.AI_MODELS || env.AI_MODEL || ''),
+            AI_MODEL: pick('AI_MODEL', env.AI_MODEL || ''),
+            AI_DYNAMIC_FALLBACK_ENABLED: pick('AI_DYNAMIC_FALLBACK_ENABLED', env.AI_DYNAMIC_FALLBACK_ENABLED || 'false'),
+            AI_MODEL_HEALTH_WINDOW: pick('AI_MODEL_HEALTH_WINDOW', env.AI_MODEL_HEALTH_WINDOW || '20'),
+            AI_MODEL_SWITCH_THRESHOLD: pick('AI_MODEL_SWITCH_THRESHOLD', env.AI_MODEL_SWITCH_THRESHOLD || '5'),
+        };
+    } catch (error) {
+        console.warn('[AI] Failed to load runtime AI settings from DB, fallback to env:', error?.message);
+        return env;
+    }
+}
 
 /**
  * 报告生成的 System Prompt
@@ -54,6 +81,7 @@ ${JSON.stringify(toolResults, null, 2)}
 app.post('/chat', async (c) => {
     const { env } = c;
     const { messages: history, context: clientContext = {} } = await c.req.json();
+    const runtimeEnv = await resolveAIRuntimeEnv(env);
 
 
         const orderStatsRepo = new OrderStatsRepository(env.DB);
@@ -70,7 +98,7 @@ app.post('/chat', async (c) => {
 
         let messages = [{ role: "system", content: systemContent }, ...history];
 
-        let response = await callAI(messages, AI_TOOLS, env);
+        let response = await callAI(messages, AI_TOOLS, runtimeEnv);
         let choice = response.choices[0];
 
         if (choice.message.tool_calls) {
@@ -89,7 +117,7 @@ app.post('/chat', async (c) => {
                     content: JSON.stringify(result)
                 });
             }
-            response = await callAI(messages, [], env);
+            response = await callAI(messages, [], runtimeEnv);
         }
 
         return success({ message: response.choices[0].message });
@@ -100,6 +128,7 @@ app.post('/chat', async (c) => {
  */
 app.post('/report', async (c) => {
     const { env } = c;
+    const runtimeEnv = await resolveAIRuntimeEnv(env);
     const orderStatsRepo = new OrderStatsRepository(env.DB);
         const systemStatsRepo = new SystemStatsRepository(env.DB);
 
@@ -123,7 +152,7 @@ app.post('/report', async (c) => {
             { role: 'user', content: '请根据以上数据生成完整的 HTML 报告。' }
         ];
 
-        const result = await callAIAuto({ messages, tools: [], env, preferStream: true });
+        const result = await callAIAuto({ messages, tools: [], env: runtimeEnv, preferStream: true });
         let cleanHtml = result.content || '';
         
         // 清理 Markdown 代码块
@@ -138,6 +167,7 @@ app.post('/report', async (c) => {
 app.post('/stream', async (c) => {
     const { env } = c;
     const { messages: history, context: clientContext = {} } = await c.req.json();
+    const runtimeEnv = await resolveAIRuntimeEnv(env);
 
     return streamSSE(c, async (stream) => {
         try {
@@ -160,7 +190,7 @@ app.post('/stream', async (c) => {
             const systemContent = SYSTEM_PROMPT(todayDate, clientContext);
             let messages = [{ role: "system", content: systemContent }, ...history];
 
-            const streamResult = await callAIStream(messages, AI_TOOLS, env);
+            const streamResult = await callAIStream(messages, AI_TOOLS, runtimeEnv);
             const aiStream = streamResult.body;
 
             if (streamResult.switched) {
@@ -170,7 +200,7 @@ app.post('/stream', async (c) => {
             const { fullContent, toolCalls } = await processStreamToSSE(aiStream, stream);
 
             if (toolCalls.length > 0) {
-                await handleToolCallsToSSE(toolCalls, fullContent, messages, executeTool, stream, env);
+                await handleToolCallsToSSE(toolCalls, fullContent, messages, executeTool, stream, runtimeEnv);
             }
 
             await stream.writeSSE({ event: 'done', data: '{}' });

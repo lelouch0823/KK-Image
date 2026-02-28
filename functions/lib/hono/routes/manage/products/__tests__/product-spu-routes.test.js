@@ -17,6 +17,10 @@ const mockVariantRepo = {
 const mockVariantImageRepo = {
     syncImages: vi.fn(),
 };
+const mockDimensionRepo = {
+    createDimension: vi.fn(),
+    addValue: vi.fn(),
+};
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
     ProductRepository: class {
@@ -38,6 +42,13 @@ vi.mock('../../../../../../repositories/ProductVariantRepository.js', () => ({
 vi.mock('../../../../../../repositories/VariantImageRepository.js', () => ({
     VariantImageRepository: class {
         syncImages(...args) { return mockVariantImageRepo.syncImages(...args); }
+    },
+}));
+
+vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
+    ProductDimensionRepository: class {
+        createDimension(...args) { return mockDimensionRepo.createDimension(...args); }
+        addValue(...args) { return mockDimensionRepo.addValue(...args); }
     },
 }));
 
@@ -69,6 +80,8 @@ const validVariants = [
 describe('Product Routes — variant-first contract', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockDimensionRepo.createDimension.mockResolvedValue({ id: 'dim-color', name: 'Color' });
+        mockDimensionRepo.addValue.mockResolvedValue({ id: 'val-red', value: 'Red' });
     });
 
     describe('POST /', () => {
@@ -216,6 +229,43 @@ describe('Product Routes — variant-first contract', () => {
                 'test-id',
                 'v-generated',
                 [{ image_id: 'img-1', is_primary: 1 }]
+            );
+        });
+
+        it('persists dimension value meta when creating product', async () => {
+            mockProductRepo.create.mockResolvedValue({ id: 'test-id', name: 'Test Product', spu: null });
+            mockVariantRepo.createBatch.mockResolvedValue([]);
+
+            const app = createApp();
+            const res = await app.request(
+                'http://localhost/api/manage/products',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'Test Product',
+                        variants: validVariants,
+                        dimensions: [
+                            {
+                                name: 'Color',
+                                values: [{ value: 'Red', meta: { hex: '#ff0000' } }],
+                            },
+                        ],
+                    }),
+                },
+                { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+                { waitUntil: vi.fn() }
+            );
+
+            expect(res.status).toBe(201);
+            expect(mockDimensionRepo.addValue).toHaveBeenCalledWith(
+                'test-id',
+                'dim-color',
+                expect.objectContaining({
+                    value: 'Red',
+                    sort_order: 0,
+                    meta: { hex: '#ff0000' },
+                })
             );
         });
 

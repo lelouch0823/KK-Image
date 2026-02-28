@@ -83,6 +83,7 @@
               :key="option.value"
               class="group relative"
               :class="[option.selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50']"
+              :data-testid="getDimensionTestId(dimension)"
             >
               <input
                 type="radio"
@@ -115,6 +116,7 @@
               :key="option.value"
               class="relative"
               :class="[option.selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50']"
+              :data-testid="getDimensionTestId(dimension)"
             >
               <input
                 type="radio"

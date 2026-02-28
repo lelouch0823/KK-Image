@@ -65,7 +65,7 @@ describe('ProductBindingSection variant status and dimensions', () => {
     const sizeButtons = wrapper.findAll('[data-testid="dimension-size"]');
     const mButton = sizeButtons.find((btn) => btn.text() === 'M');
     expect(mButton).toBeTruthy();
-    expect(mButton.attributes('disabled')).toBeDefined();
+    expect(mButton.find('input').element.disabled).toBe(true);
   });
 
   it('adapts to 2D variants (no material)', async () => {

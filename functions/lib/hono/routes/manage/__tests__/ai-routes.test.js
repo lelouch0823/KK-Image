@@ -26,6 +26,17 @@ function createApp() {
   return app;
 }
 
+function createDbWithSettingsRows(rows = []) {
+  return {
+    prepare: vi.fn(() => ({
+      all: vi.fn(async () => ({ results: rows })),
+      bind: vi.fn(function () { return this; }),
+      run: vi.fn(async () => ({ success: true })),
+      first: vi.fn(async () => null),
+    })),
+  };
+}
+
 describe('manage ai routes - variant tool integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -80,7 +91,7 @@ describe('manage ai routes - variant tool integration', () => {
           context: { path: '/products', selectedId: 'var-1' },
         }),
       },
-      { DB: {} }
+      { DB: createDbWithSettingsRows([]) }
     );
 
     expect(res.status).toBe(200);
@@ -97,5 +108,42 @@ describe('manage ai routes - variant tool integration', () => {
       })
     );
     expect(callAI).toHaveBeenCalledTimes(2);
+  });
+
+  it('prefers AI model settings from database when invoking AI', async () => {
+    callAI.mockResolvedValue({
+      choices: [{ message: { role: 'assistant', content: 'ok' } }],
+    });
+
+    const dbRows = [
+      { category: 'ai', key: 'AI_API_URL', value: 'https://mock.provider/v1' },
+      { category: 'ai', key: 'AI_API_KEY', value: 'sk-db' },
+      { category: 'ai', key: 'AI_MODELS', value: 'model-from-db' },
+    ];
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/ai/chat',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: 'ping' }],
+          context: {},
+        }),
+      },
+      { DB: createDbWithSettingsRows(dbRows) }
+    );
+
+    expect(res.status).toBe(200);
+    expect(callAI).toHaveBeenCalledTimes(1);
+    const runtimeEnv = callAI.mock.calls[0][2];
+    expect(runtimeEnv).toEqual(
+      expect.objectContaining({
+        AI_API_URL: 'https://mock.provider/v1',
+        AI_API_KEY: 'sk-db',
+        AI_MODELS: 'model-from-db',
+      })
+    );
   });
 });

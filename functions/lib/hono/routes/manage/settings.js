@@ -1,8 +1,80 @@
 import { Hono } from 'hono';
 import { BadRequestError } from '../../errors.js';
 import { SettingsRepository } from '../../../../repositories/SettingsRepository.js';
+import { parseModels, getModelHealthSnapshot } from '../../../../utils/ai-utils.js';
 
 const app = new Hono();
+
+const normalizeApiBaseUrl = (rawUrl = '') => {
+  const trimmed = String(rawUrl || '').trim().replace(/\/+$/, '');
+  if (!trimmed) return null;
+  return trimmed;
+};
+
+const ensureRequiredAiConfig = ({ apiUrl, apiKey }) => {
+  if (!apiUrl) throw new BadRequestError('AI_API_URL is required');
+  if (!apiKey) throw new BadRequestError('AI_API_KEY is required');
+};
+
+const fetchJsonWithAuth = async (url, apiKey, init = {}) => {
+  const response = await fetch(url, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      ...(init.headers || {}),
+    },
+  });
+
+  let data = null;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  return { response, data };
+};
+
+const parseBooleanFlag = (value, fallback = false) => {
+  if (typeof value === 'boolean') return value;
+  if (value === undefined || value === null) return fallback;
+  const normalized = String(value).trim().toLowerCase();
+  if (!normalized) return fallback;
+  return ['1', 'true', 'yes', 'on', 'enabled'].includes(normalized);
+};
+
+const parseWindowSize = (value, fallback = 20) => {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(200, Math.max(5, parsed));
+};
+
+const extractModelIds = (payload) => {
+  const candidateLists = [
+    payload?.data,
+    payload?.models,
+    payload?.results,
+  ];
+
+  for (const list of candidateLists) {
+    if (!Array.isArray(list)) continue;
+    const ids = list
+      .map((item) => {
+        if (typeof item === 'string') return item.trim();
+        if (item && typeof item === 'object') {
+          return String(item.id || item.model || item.name || '').trim();
+        }
+        return '';
+      })
+      .filter(Boolean);
+    if (ids.length > 0) {
+      return [...new Set(ids)];
+    }
+  }
+
+  return [];
+};
 
 // 获取所有设置
 app.get('/', async (c) => {
@@ -16,6 +88,8 @@ app.get('/', async (c) => {
         AI_API_KEY: c.env.AI_API_KEY || '',
         AI_API_URL: c.env.AI_API_URL || 'https://api.openai.com/v1',
         AI_MODELS: c.env.AI_MODELS || 'gpt-4o',
+        AI_DYNAMIC_FALLBACK_ENABLED: c.env.AI_DYNAMIC_FALLBACK_ENABLED || 'false',
+        AI_MODEL_HEALTH_WINDOW: c.env.AI_MODEL_HEALTH_WINDOW || '20',
       },
     };
     return c.json({ success: true, data: aiDefaults });
@@ -48,6 +122,103 @@ app.put('/:key', async (c) => {
   await repo.upsert(key, { value, category, description });
 
   return c.json({ success: true, data: { key, value } });
+});
+
+app.post('/ai/models', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const apiUrl = normalizeApiBaseUrl(body.apiUrl);
+  const apiKey = String(body.apiKey || '').trim();
+  ensureRequiredAiConfig({ apiUrl, apiKey });
+
+  const { response, data } = await fetchJsonWithAuth(`${apiUrl}/models`, apiKey, { method: 'GET' });
+
+  if (!response.ok) {
+    throw new BadRequestError(data?.error?.message || `Fetch models failed: HTTP ${response.status}`);
+  }
+
+  const models = extractModelIds(data);
+  return c.json({
+    success: true,
+    data: {
+      models,
+      count: models.length,
+    },
+  });
+});
+
+app.post('/ai/test', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const apiUrl = normalizeApiBaseUrl(body.apiUrl);
+  const apiKey = String(body.apiKey || '').trim();
+  const model = String(body.model || '').trim();
+  ensureRequiredAiConfig({ apiUrl, apiKey });
+
+  const startedAt = Date.now();
+  const modelListResult = await fetchJsonWithAuth(`${apiUrl}/models`, apiKey, { method: 'GET' });
+  const modelListLatencyMs = Date.now() - startedAt;
+
+  if (!modelListResult.response.ok) {
+    throw new BadRequestError(
+      modelListResult.data?.error?.message || `Connectivity test failed on /models: HTTP ${modelListResult.response.status}`
+    );
+  }
+
+  const models = extractModelIds(modelListResult.data);
+  const testedModel = model || models[0] || '';
+  let completionOk = false;
+  let completionLatencyMs = null;
+
+  if (testedModel) {
+    const completionStartedAt = Date.now();
+    const completionResult = await fetchJsonWithAuth(`${apiUrl}/chat/completions`, apiKey, {
+      method: 'POST',
+      body: JSON.stringify({
+        model: testedModel,
+        messages: [{ role: 'user', content: 'ping' }],
+        max_tokens: 1,
+      }),
+    });
+    completionLatencyMs = Date.now() - completionStartedAt;
+    completionOk = completionResult.response.ok;
+  }
+
+  return c.json({
+    success: true,
+    data: {
+      ok: true,
+      modelsEndpointOk: true,
+      completionEndpointOk: completionOk,
+      modelsCount: models.length,
+      testedModel: testedModel || null,
+      latencyMs: {
+        models: modelListLatencyMs,
+        completion: completionLatencyMs,
+      },
+    },
+  });
+});
+
+app.get('/ai/health', async (c) => {
+  const repo = new SettingsRepository(c.env.DB);
+  const grouped = await repo.getAllGrouped().catch(() => null);
+  const ai = grouped?.ai || {};
+
+  const modelsFromQuery = parseModels(c.req.query('models') || '');
+  const models = modelsFromQuery.length > 0
+    ? modelsFromQuery
+    : parseModels(ai.AI_MODELS || c.env.AI_MODELS || c.env.AI_MODEL || '');
+  const enabled = parseBooleanFlag(ai.AI_DYNAMIC_FALLBACK_ENABLED ?? c.env.AI_DYNAMIC_FALLBACK_ENABLED, false);
+  const windowSize = parseWindowSize(ai.AI_MODEL_HEALTH_WINDOW ?? c.env.AI_MODEL_HEALTH_WINDOW, 20);
+
+  const snapshot = getModelHealthSnapshot({ models, windowSize });
+  return c.json({
+    success: true,
+    data: {
+      enabled,
+      windowSize: snapshot.windowSize,
+      models: snapshot.models,
+    },
+  });
 });
 
 export default app;

@@ -16,6 +16,13 @@ const mockAuditRepo = {
 const mockVariantImageRepo = {
   syncImages: vi.fn(),
 };
+const mockDimensionRepo = {
+  listByProduct: vi.fn(),
+  createDimension: vi.fn(),
+  updateDimension: vi.fn(),
+  addValue: vi.fn(),
+  updateValueMeta: vi.fn(),
+};
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
   ProductRepository: class {
@@ -50,8 +57,11 @@ vi.mock('../../../../../../repositories/VariantImageRepository.js', () => ({
 
 vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
   ProductDimensionRepository: class {
-    listByProduct = vi.fn().mockResolvedValue([]);
-    syncDimensions = vi.fn().mockResolvedValue();
+    listByProduct(...args) { return mockDimensionRepo.listByProduct(...args); }
+    createDimension(...args) { return mockDimensionRepo.createDimension(...args); }
+    updateDimension(...args) { return mockDimensionRepo.updateDimension(...args); }
+    addValue(...args) { return mockDimensionRepo.addValue(...args); }
+    updateValueMeta(...args) { return mockDimensionRepo.updateValueMeta(...args); }
   },
 }));
 
@@ -73,6 +83,11 @@ describe('product variant audit routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuditRepo.createBatch.mockResolvedValue();
+    mockDimensionRepo.listByProduct.mockResolvedValue([]);
+    mockDimensionRepo.createDimension.mockResolvedValue({ id: 'dim-color', name: 'Color' });
+    mockDimensionRepo.updateDimension.mockResolvedValue({ id: 'dim-color', name: 'Color' });
+    mockDimensionRepo.addValue.mockResolvedValue({ id: 'val-red', value: 'Red' });
+    mockDimensionRepo.updateValueMeta.mockResolvedValue();
   });
 
   it('PATCH /:id writes audit logs for variant changes', async () => {
@@ -247,5 +262,43 @@ describe('product variant audit routes', () => {
     expect(res.status).toBe(200);
     expect(mockProductRepo.updateWithMeta).not.toHaveBeenCalled();
     expect(mockProductRepo.findById).toHaveBeenCalledWith('p1');
+  });
+
+  it('PATCH /:id does not clear existing dimension value meta when payload omits meta', async () => {
+    mockProductRepo.findById.mockResolvedValue({ id: 'p1', name: 'Tee' });
+    mockVariantRepo.findByProductId
+      .mockResolvedValueOnce([{ id: 'v1', product_id: 'p1', price: 10 }])
+      .mockResolvedValueOnce([{ id: 'v1', product_id: 'p1', price: 10 }]);
+    mockVariantRepo.syncVariants.mockResolvedValue({
+      createdCount: 0,
+      updatedCount: 0,
+      archivedCount: 0,
+      reactivatedCount: 0,
+    });
+    mockDimensionRepo.listByProduct.mockResolvedValue([
+      {
+        id: 'dim-color',
+        name: 'Color',
+        values: [{ id: 'val-red', value: 'Red', meta: '{"hex":"#ff0000"}' }],
+      },
+    ]);
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/p1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dimensions: [{ id: 'dim-color', name: 'Color', values: [{ value: 'Red' }] }],
+          variants: [{ id: 'v1', price: 10, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active' }],
+        }),
+      },
+      { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockDimensionRepo.updateValueMeta).not.toHaveBeenCalled();
   });
 });

@@ -9,6 +9,83 @@ import { MSG } from '../api/utils/messages.js';
  */
 const MODEL_COOLDOWNS = new Map();
 const COOLDOWN_DURATION = 60 * 1000; // 60秒冷却时间
+const MODEL_HEALTH = new Map();
+const DEFAULT_HEALTH_WINDOW = 20;
+const MIN_HEALTH_WINDOW = 5;
+const MAX_HEALTH_WINDOW = 200;
+
+function parseBooleanFlag(value, fallback = false) {
+    if (typeof value === 'boolean') return value;
+    if (value === undefined || value === null) return fallback;
+    const normalized = String(value).trim().toLowerCase();
+    if (!normalized) return fallback;
+    return ['1', 'true', 'yes', 'on', 'enabled'].includes(normalized);
+}
+
+function parseHealthWindow(value) {
+    const n = Number.parseInt(String(value ?? ''), 10);
+    if (!Number.isFinite(n)) return DEFAULT_HEALTH_WINDOW;
+    return Math.min(MAX_HEALTH_WINDOW, Math.max(MIN_HEALTH_WINDOW, n));
+}
+
+function ensureModelHealth(modelName) {
+    if (!MODEL_HEALTH.has(modelName)) {
+        MODEL_HEALTH.set(modelName, { events: [] });
+    }
+    return MODEL_HEALTH.get(modelName);
+}
+
+function recordModelHealth(modelName, { ok, latencyMs = null }, windowSize = DEFAULT_HEALTH_WINDOW) {
+    const store = ensureModelHealth(modelName);
+    store.events.push({
+        ok: Boolean(ok),
+        latencyMs: Number.isFinite(latencyMs) ? latencyMs : null,
+        at: Date.now(),
+    });
+
+    if (store.events.length > windowSize) {
+        store.events.splice(0, store.events.length - windowSize);
+    }
+}
+
+function getModelMetrics(modelName) {
+    const store = MODEL_HEALTH.get(modelName);
+    const events = Array.isArray(store?.events) ? store.events : [];
+    const requests = events.length;
+    const failures = events.filter((item) => !item.ok).length;
+    const successfulEvents = events.filter((item) => item.ok && Number.isFinite(item.latencyMs));
+    const avgLatencyMs = successfulEvents.length > 0
+        ? Math.round(successfulEvents.reduce((acc, item) => acc + item.latencyMs, 0) / successfulEvents.length)
+        : null;
+    const failureRate = requests > 0 ? failures / requests : 0;
+    const lastSuccessAt = [...events].reverse().find((item) => item.ok)?.at || null;
+    const lastFailureAt = [...events].reverse().find((item) => !item.ok)?.at || null;
+    // 失败率优先，延迟次优；无样本则保持中性分值。
+    const latencyScore = Number.isFinite(avgLatencyMs) ? avgLatencyMs : 1000;
+    const score = failureRate * 100000 + latencyScore;
+
+    return { requests, failures, failureRate, avgLatencyMs, lastSuccessAt, lastFailureAt, score };
+}
+
+function rankFallbackModels(models) {
+    if (!Array.isArray(models) || models.length <= 2) return models;
+    const primary = models[0];
+    const fallbackSorted = [...models.slice(1)].sort((left, right) => {
+        const leftMetrics = getModelMetrics(left);
+        const rightMetrics = getModelMetrics(right);
+        if (leftMetrics.score !== rightMetrics.score) {
+            return leftMetrics.score - rightMetrics.score;
+        }
+        return left.localeCompare(right);
+    });
+    return [primary, ...fallbackSorted];
+}
+
+function resolveModelOrder(models, env) {
+    const enabled = parseBooleanFlag(env?.AI_DYNAMIC_FALLBACK_ENABLED, false);
+    if (!enabled) return models;
+    return rankFallbackModels(models);
+}
 
 /**
  * 检查模型是否可用 (未在冷却中)
@@ -77,31 +154,43 @@ export function getRateLimitStatus(response) {
 async function executeAIRequest(env, modelIndex, requestFn) {
     const { AI_API_KEY, AI_API_URL, AI_MODELS, AI_MODEL, AI_MODEL_SWITCH_THRESHOLD } = env;
     const threshold = parseInt(AI_MODEL_SWITCH_THRESHOLD || '5');
+    const healthWindow = parseHealthWindow(env?.AI_MODEL_HEALTH_WINDOW);
 
     // 解析模型列表
     const models = parseModels(AI_MODELS);
     if (models.length === 0 && AI_MODEL) {
         models.push(AI_MODEL);
     }
+    const orderedModels = resolveModelOrder(models, env);
 
-    if (!AI_API_KEY || !AI_API_URL || models.length === 0) {
+    if (!AI_API_KEY || !AI_API_URL || orderedModels.length === 0) {
         throw new Error(MSG.AI.CONFIG_MISSING);
     }
 
     // 智能模型选择
     let activeIndex = modelIndex;
-    if (!isModelAvailable(models[activeIndex])) {
-        const nextIndex = getNextAvailableModelIndex(models, activeIndex);
+    if (!isModelAvailable(orderedModels[activeIndex])) {
+        const nextIndex = getNextAvailableModelIndex(orderedModels, activeIndex);
         if (nextIndex !== -1) {
             activeIndex = nextIndex;
         }
         // 如果所有都不可用，只能尝试当前的
     }
-    const currentModel = models[activeIndex];
+    const currentModel = orderedModels[activeIndex];
     const cleanApiUrl = AI_API_URL.replace(/\/+$/, '');
 
     // 执行请求
-    const response = await requestFn(currentModel, AI_API_KEY, cleanApiUrl);
+    const requestStartedAt = Date.now();
+    let response;
+    try {
+        response = await requestFn(currentModel, AI_API_KEY, cleanApiUrl);
+    } catch (err) {
+        const latency = Date.now() - requestStartedAt;
+        recordModelHealth(currentModel, { ok: false, latencyMs: latency }, healthWindow);
+        throw err;
+    }
+    const latency = Date.now() - requestStartedAt;
+    recordModelHealth(currentModel, { ok: response.ok, latencyMs: latency }, healthWindow);
 
     // 检查限流状态
     const rateLimit = getRateLimitStatus(response);
@@ -109,7 +198,7 @@ async function executeAIRequest(env, modelIndex, requestFn) {
     // 额度不足预警切换
     if (rateLimit.modelRemaining < threshold) {
         markModelRateLimited(currentModel);
-        const nextIndex = getNextAvailableModelIndex(models, activeIndex);
+        const nextIndex = getNextAvailableModelIndex(orderedModels, activeIndex);
         if (nextIndex !== -1) {
             console.log(`[AI] Model ${currentModel} low quota (${rateLimit.modelRemaining}), switching...`);
             return executeAIRequest(env, nextIndex, requestFn);
@@ -121,7 +210,7 @@ async function executeAIRequest(env, modelIndex, requestFn) {
         // 429 限流
         if (response.status === 429) {
             markModelRateLimited(currentModel);
-            const nextIndex = getNextAvailableModelIndex(models, activeIndex);
+            const nextIndex = getNextAvailableModelIndex(orderedModels, activeIndex);
             if (nextIndex !== -1) {
                 console.log(`[AI] Model ${currentModel} 429 rate limited, switching...`);
                 return executeAIRequest(env, nextIndex, requestFn);
@@ -139,6 +228,27 @@ async function executeAIRequest(env, modelIndex, requestFn) {
         switched: activeIndex > 0, // 只要不是 0 号位，就算 switched
         rateLimit
     };
+}
+
+export function getModelHealthSnapshot({ models = [], windowSize = DEFAULT_HEALTH_WINDOW } = {}) {
+    const normalizedWindow = parseHealthWindow(windowSize);
+    const knownModels = [...new Set([
+        ...models.filter(Boolean).map((item) => String(item).trim()),
+        ...Array.from(MODEL_HEALTH.keys()),
+    ])];
+
+    return {
+        windowSize: normalizedWindow,
+        models: knownModels.map((model) => ({
+            model,
+            ...getModelMetrics(model),
+        })),
+    };
+}
+
+export function resetModelHealthStatsForTests() {
+    MODEL_COOLDOWNS.clear();
+    MODEL_HEALTH.clear();
 }
 
 /**
