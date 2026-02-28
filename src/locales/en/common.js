@@ -89,6 +89,8 @@ export default {
   close: 'Close',
   restore: 'Restore',
   back: 'Back',
+  expand: 'Expand',
+  collapse: 'Collapse',
   processing: 'Processing...',
   click_to_upload: 'Click to select files',
   or_drag_drop: 'or drag and drop',

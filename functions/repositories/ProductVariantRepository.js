@@ -34,6 +34,12 @@ export class ProductVariantRepository {
         if (message.includes('product_variants.barcode')) {
             throw new Error('barcode must be unique');
         }
+        if (
+            message.includes('idx_product_variants_product_signature_unique') ||
+            message.includes('product_variants.product_id, product_variants.variant_signature')
+        ) {
+            throw new Error('variant signature must be unique per product');
+        }
         throw error;
     }
 
@@ -245,31 +251,64 @@ export class ProductVariantRepository {
     async syncVariants(productId, variantsData) {
         const timestamp = now();
         const statements = [];
-        const incomingIds = variantsData.filter(v => v.id).map(v => v.id);
+        const incomingList = Array.isArray(variantsData) ? variantsData : [];
+        const existingResult = await this.db
+            .prepare('SELECT id, variant_signature, status FROM product_variants WHERE product_id = ?')
+            .bind(productId)
+            .all();
+        const existingRows = existingResult.results || [];
+        const existingById = new Map(existingRows.map((row) => [row.id, row]));
+        const existingBySignature = new Map(
+            existingRows
+                .filter((row) => String(row.variant_signature || '').trim() !== '')
+                .map((row) => [row.variant_signature, row])
+        );
+        const retainedIds = new Set();
+        const incomingSignatures = new Set();
+        let createdCount = 0;
+        let updatedCount = 0;
+        let archivedCount = 0;
+        let reactivatedCount = 0;
 
-        // 1. Delete variants that are no longer present
-        if (incomingIds.length > 0) {
-            const placeholders = incomingIds.map(() => '?').join(',');
-            statements.push(
-                this.db.prepare(`DELETE FROM product_variants WHERE product_id = ? AND id NOT IN (${placeholders})`)
-                .bind(productId, ...incomingIds)
-            );
-        } else {
-            // Delete all if no incoming variants are saved
-            statements.push(
-                this.db.prepare(`DELETE FROM product_variants WHERE product_id = ?`)
-                .bind(productId)
-            );
-        }
+        // 1. Archive variants that are no longer retained (soft delete)
+        // NOTE: We append this statement after retainedIds is finalized.
 
         // 2. Upsert each incoming variant
         // SQLite UPSERT syntax: INSERT INTO ... ON CONFLICT(id) DO UPDATE SET ...
         const results = [];
-        for (const v of variantsData) {
-            const id = v.id || generateId();
-            const sku = this.buildVariantSku(v.sku, id);
+        for (const v of incomingList) {
             const optionsValues = this.normalizeOptionsValues(v.options_values || {});
             const variantSignature = this.buildVariantSignature(optionsValues);
+            if (incomingSignatures.has(variantSignature)) {
+                throw new Error('duplicate variant signature in payload');
+            }
+            incomingSignatures.add(variantSignature);
+
+            let targetExisting = null;
+            const existingByIncomingId = v.id ? existingById.get(v.id) : null;
+            if (
+                existingByIncomingId &&
+                (existingByIncomingId.variant_signature || '') === variantSignature &&
+                !retainedIds.has(existingByIncomingId.id)
+            ) {
+                targetExisting = existingByIncomingId;
+            } else {
+                const existingBySameSignature = existingBySignature.get(variantSignature);
+                if (existingBySameSignature && !retainedIds.has(existingBySameSignature.id)) {
+                    targetExisting = existingBySameSignature;
+                }
+            }
+
+            const id = targetExisting ? targetExisting.id : generateId();
+            if (!targetExisting) {
+                createdCount += 1;
+            } else if (targetExisting.status === 'archived') {
+                reactivatedCount += 1;
+            } else {
+                updatedCount += 1;
+            }
+            const sku = this.buildVariantSku(v.sku, id);
+            retainedIds.add(id);
             statements.push(
                 this.db.prepare(
                     `INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, alert_threshold, options_values, variant_signature, image_id, status, barcode, supplier_sku, created_at, updated_at)
@@ -307,11 +346,40 @@ export class ProductVariantRepository {
             );
             results.push({ ...v, id, sku, product_id: productId });
         }
+
+        archivedCount = existingRows.filter(
+            (row) => row.status !== 'archived' && !retainedIds.has(row.id)
+        ).length;
+
+        if (retainedIds.size > 0) {
+            const placeholders = Array.from(retainedIds).map(() => '?').join(',');
+            statements.unshift(
+                this.db.prepare(
+                    `UPDATE product_variants
+                     SET status = 'archived', updated_at = ?
+                     WHERE product_id = ? AND status <> 'archived' AND id NOT IN (${placeholders})`
+                ).bind(timestamp, productId, ...Array.from(retainedIds))
+            );
+        } else {
+            statements.unshift(
+                this.db.prepare(
+                    `UPDATE product_variants
+                     SET status = 'archived', updated_at = ?
+                     WHERE product_id = ? AND status <> 'archived'`
+                ).bind(timestamp, productId)
+            );
+        }
+
         try {
             await this.db.batch(statements);
         } catch (error) {
             this.wrapConstraintError(error);
         }
+        results.createdCount = createdCount;
+        results.updatedCount = updatedCount;
+        results.archivedCount = archivedCount;
+        results.reactivatedCount = reactivatedCount;
+        results.deletedCount = archivedCount;
         return results;
     }
 }

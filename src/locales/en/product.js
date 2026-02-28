@@ -56,6 +56,7 @@ export default {
     organization: 'Organization',
     slug_seo: 'SEO Slug',
     slug_placeholder: 'Leave blank to auto-generate',
+    variant_sync_summary: 'Variants synced: +{created} created, {updated} updated, {archived} archived, {reactivated} reactivated',
   },
   table: {
     header: {
@@ -131,6 +132,10 @@ export default {
   },
   image: {
     uploaded_count: '{count} images uploaded',
+  },
+  variant: {
+    title: 'Product Specifications',
+    noSpecs: 'No specifications',
   },
   variants: {
     image: {

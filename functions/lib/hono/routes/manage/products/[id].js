@@ -13,8 +13,19 @@ const app = new Hono();
 
 const isVariantOwnershipError = (error) =>
     error?.message?.includes('Variant does not belong to product');
+const isVariantSyncValidationError = (error) => {
+    const message = String(error?.message || '');
+    return (
+        message.includes('duplicate variant signature in payload') ||
+        message.includes('variant signature must be unique per product')
+    );
+};
 
 const REQUIRED_VARIANT_FIELDS = ['price', 'cost_price', 'stock_quantity', 'alert_threshold', 'status'];
+const PRODUCT_MUTABLE_FIELDS = new Set([
+    'name', 'spu', 'slug', 'category', 'brand', 'series',
+    'currency', 'description', 'images', 'specifications', 'options',
+]);
 const isEmptyValue = (value) => value === undefined || value === null || value === '';
 
 const validateVariants = (variants) => {
@@ -427,15 +438,34 @@ app.patch('/:id', async (c) => {
     if (body.variants !== undefined) {
         validateVariants(body.variants);
     }
-
-    const result = await repo.updateWithMeta(id, body);
+    const hasProductFieldUpdates = Object.keys(body).some((key) => PRODUCT_MUTABLE_FIELDS.has(key));
+    if (!hasProductFieldUpdates) {
+        await ensureProductExists(repo, id);
+    }
+    const result = hasProductFieldUpdates
+        ? await repo.updateWithMeta(id, body)
+        : { success: true, changes: 0 };
     
     let variantsUpdated = false;
+    let variantSync = null;
     if (result.success && body.variants !== undefined) {
         const variantRepo = new ProductVariantRepository(env.DB);
         const auditRepo = new VariantAuditRepository(env.DB);
         const beforeVariants = await variantRepo.findByProductId(id);
-        await variantRepo.syncVariants(id, body.variants);
+        try {
+            const syncResult = await variantRepo.syncVariants(id, body.variants);
+            variantSync = {
+                created: syncResult?.createdCount ?? 0,
+                updated: syncResult?.updatedCount ?? 0,
+                archived: syncResult?.archivedCount ?? syncResult?.deletedCount ?? 0,
+                reactivated: syncResult?.reactivatedCount ?? 0,
+            };
+        } catch (error) {
+            if (isVariantSyncValidationError(error)) {
+                throw new BadRequestError(error.message);
+            }
+            throw error;
+        }
 
         const afterVariants = await variantRepo.findByProductId(id);
         const variantImageRepo = new VariantImageRepository(env.DB, variantRepo);
@@ -461,7 +491,12 @@ app.patch('/:id', async (c) => {
     if ((result.success && result.changes > 0) || variantsUpdated) {
         // 使缓存失效
         c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
-        return c.json({ success: true, message: 'Product updated', changes: result.changes });
+        return c.json({
+            success: true,
+            message: 'Product updated',
+            changes: result.changes,
+            variantSync: variantSync || undefined,
+        });
     } else if (result.success && result.changes === 0) {
         throw new NotFoundError('No rows updated. Product may not exist or no changes.');
     } else {
@@ -499,12 +534,26 @@ app.put('/:id', async (c) => {
     }
 
     const success = await repo.update(id, body);
+    let variantSync = null;
     
     if (success && body.variants !== undefined) {
         const variantRepo = new ProductVariantRepository(env.DB);
         const auditRepo = new VariantAuditRepository(env.DB);
         const beforeVariants = await variantRepo.findByProductId(id);
-        await variantRepo.syncVariants(id, body.variants);
+        try {
+            const syncResult = await variantRepo.syncVariants(id, body.variants);
+            variantSync = {
+                created: syncResult?.createdCount ?? 0,
+                updated: syncResult?.updatedCount ?? 0,
+                archived: syncResult?.archivedCount ?? syncResult?.deletedCount ?? 0,
+                reactivated: syncResult?.reactivatedCount ?? 0,
+            };
+        } catch (error) {
+            if (isVariantSyncValidationError(error)) {
+                throw new BadRequestError(error.message);
+            }
+            throw error;
+        }
 
         const afterVariants = await variantRepo.findByProductId(id);
         const variantImageRepo = new VariantImageRepository(env.DB, variantRepo);
@@ -528,7 +577,11 @@ app.put('/:id', async (c) => {
     if (success) {
         // 使缓存失效
         c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
-        return c.json({ success: true, message: 'Product updated' });
+        return c.json({
+            success: true,
+            message: 'Product updated',
+            variantSync: variantSync || undefined,
+        });
     } else {
         throw new BadRequestError('Update failed or no changes');
     }

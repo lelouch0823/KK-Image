@@ -131,4 +131,77 @@ describe('ProductBindingSection variant status and dimensions', () => {
     expect(wrapper.find('[data-testid="dimension-color"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="dimension-size"]').exists()).toBe(false);
   });
+
+  it('supports dynamic dimension ids and renders more than three dimensions', async () => {
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'Jacket',
+      dimension_map: {
+        'dim-color': '颜色',
+        'dim-size': '尺码',
+        'dim-fit': '版型',
+        'dim-season': '季节',
+      },
+      dimensions: [
+        { id: 'dim-color', name: '颜色' },
+        { id: 'dim-size', name: '尺码' },
+        { id: 'dim-fit', name: '版型' },
+        { id: 'dim-season', name: '季节' },
+      ],
+      variants: [
+        {
+          id: 'v1',
+          sku: 'JK-RED-M-SL-SS',
+          status: 'active',
+          stock_quantity: 8,
+          alert_threshold: 2,
+          options_values: {
+            'dim-color': 'Red',
+            'dim-size': 'M',
+            'dim-fit': 'Slim',
+            'dim-season': 'SS',
+          },
+        },
+        {
+          id: 'v2',
+          sku: 'JK-RED-L-RG-AW',
+          status: 'active',
+          stock_quantity: 5,
+          alert_threshold: 2,
+          options_values: {
+            'dim-color': 'Red',
+            'dim-size': 'L',
+            'dim-fit': 'Regular',
+            'dim-season': 'AW',
+          },
+        },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null },
+      global: { stubs: { ProductSelect: pickStub, AppImage: true } },
+    });
+
+    await wrapper.find('[data-testid="pick-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('select')).toBeTruthy());
+    const selected = wrapper.emitted('select')[0][0];
+    await wrapper.setProps({
+      boundProduct: {
+        id: selected.id,
+        name: selected.name,
+        sku: selected.selectedVariant?.sku || '',
+        mainImage: selected.mainImage || null,
+      },
+    });
+
+    expect(wrapper.find('[data-testid="dimension-dim-color"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="dimension-dim-size"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="dimension-dim-fit"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="dimension-dim-season"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('颜色');
+    expect(wrapper.text()).toContain('尺码');
+    expect(wrapper.text()).toContain('版型');
+    expect(wrapper.text()).toContain('季节');
+  });
 });

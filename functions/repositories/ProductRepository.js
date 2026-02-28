@@ -72,7 +72,6 @@ export class ProductRepository {
             images: JSON.stringify(data.images || []),
             specifications: JSON.stringify(data.specifications || {}),
             options: JSON.stringify(data.options || []),
-            status: 'active',
             created_at: now,
             updated_at: now
         };
@@ -133,7 +132,6 @@ export class ProductRepository {
                 images: JSON.stringify(data.images || []),
                 specifications: JSON.stringify(data.specifications || {}),
                 options: JSON.stringify(data.options || []),
-                status: 'active',
                 created_at: now,
                 updated_at: now
             };

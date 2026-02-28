@@ -10,7 +10,7 @@ function createPreparedStatement(sql) {
       return statement;
     }),
     first: vi.fn(),
-    all: vi.fn(),
+    all: vi.fn(async () => ({ results: [] })),
     run: vi.fn(),
   };
   return statement;
@@ -71,5 +71,220 @@ describe('ProductVariantRepository external codes', () => {
       barcode: 'DUP-BARCODE',
       supplier_sku: 'SUP-1',
     }])).rejects.toThrow(/barcode/i);
+  });
+
+  it('syncVariants should throw friendly error when variant signature unique constraint fails', async () => {
+    db.batch.mockRejectedValueOnce(
+      new Error('UNIQUE constraint failed: product_variants.product_id, product_variants.variant_signature')
+    );
+
+    await expect(repo.syncVariants('product-1', [{
+      id: 'variant-1',
+      sku: 'SKU-1',
+      price: 12,
+      cost_price: 8,
+      stock_quantity: 3,
+      alert_threshold: 1,
+      options_values: { color: 'Yellow' },
+      status: 'active',
+      barcode: null,
+      supplier_sku: null,
+    }])).rejects.toThrow(/variant signature/i);
+  });
+
+  it('syncVariants should archive removed variants instead of hard deleting', async () => {
+    db.prepare.mockImplementation((sql) => {
+      const stmt = createPreparedStatement(sql);
+      if (sql.includes('SELECT id, variant_signature')) {
+        stmt.all.mockResolvedValue({
+          results: [
+            { id: 'variant-1', variant_signature: '{"color":"Yellow"}' },
+            { id: 'variant-2', variant_signature: '{"color":"Green"}' },
+          ],
+        });
+      }
+      return stmt;
+    });
+
+    await repo.syncVariants('product-1', [{
+      id: 'variant-1',
+      sku: 'SKU-1',
+      price: 12,
+      cost_price: 8,
+      stock_quantity: 3,
+      alert_threshold: 1,
+      options_values: { color: 'Yellow' },
+      status: 'active',
+      barcode: '6923450657713',
+      supplier_sku: 'SUP-TEE-Y-S',
+    }]);
+
+    const statements = db.batch.mock.calls[0][0];
+    expect(statements.some((stmt) => stmt.sql.includes('DELETE FROM product_variants'))).toBe(false);
+    expect(statements[0].sql).toContain("UPDATE product_variants");
+    expect(statements[0].sql).toContain("SET status = 'archived'");
+  });
+
+  it('syncVariants should generate new id when incoming signature changed for existing id', async () => {
+    db.prepare.mockImplementation((sql) => {
+      const stmt = createPreparedStatement(sql);
+      if (sql.includes('SELECT id, variant_signature')) {
+        stmt.all.mockResolvedValue({
+          results: [
+            { id: 'variant-1', variant_signature: '{"color":"Yellow"}' },
+          ],
+        });
+      }
+      return stmt;
+    });
+
+    const rows = await repo.syncVariants('product-1', [{
+      id: 'variant-1',
+      sku: 'SKU-1',
+      price: 12,
+      cost_price: 8,
+      stock_quantity: 3,
+      alert_threshold: 1,
+      options_values: { color: 'Blue' },
+      status: 'active',
+      barcode: '6923450657713',
+      supplier_sku: 'SUP-TEE-B-S',
+    }]);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).not.toBe('variant-1');
+
+    const statements = db.batch.mock.calls[0][0];
+    const upsertStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO product_variants'));
+    expect(upsertStmt.params[0]).not.toBe('variant-1');
+  });
+
+  it('syncVariants should reactivate archived variant with same signature and keep id', async () => {
+    db.prepare.mockImplementation((sql) => {
+      const stmt = createPreparedStatement(sql);
+      if (sql.includes('SELECT id, variant_signature')) {
+        stmt.all.mockResolvedValue({
+          results: [
+            { id: 'variant-archived-1', variant_signature: '{"color":"Blue"}', status: 'archived' },
+          ],
+        });
+      }
+      return stmt;
+    });
+
+    const rows = await repo.syncVariants('product-1', [{
+      sku: 'SKU-NEW',
+      price: 20,
+      cost_price: 10,
+      stock_quantity: 5,
+      alert_threshold: 2,
+      options_values: { color: 'Blue' },
+      barcode: 'REUSE-BCODE',
+      supplier_sku: 'REUSE-SKU',
+    }]);
+
+    expect(rows[0].id).toBe('variant-archived-1');
+  });
+
+  it('syncVariants should expose created/updated/archived/reactivated counters', async () => {
+    db.prepare.mockImplementation((sql) => {
+      const stmt = createPreparedStatement(sql);
+      if (sql.includes('SELECT id, variant_signature')) {
+        stmt.all.mockResolvedValue({
+          results: [
+            { id: 'variant-keep', variant_signature: '{"color":"Yellow"}', status: 'active' },
+            { id: 'variant-archive', variant_signature: '{"color":"Green"}', status: 'active' },
+            { id: 'variant-archived-1', variant_signature: '{"color":"Blue"}', status: 'archived' },
+          ],
+        });
+      }
+      return stmt;
+    });
+
+    const rows = await repo.syncVariants('product-1', [
+      {
+        id: 'variant-keep',
+        sku: 'SKU-KEEP',
+        price: 12,
+        cost_price: 8,
+        stock_quantity: 3,
+        alert_threshold: 1,
+        options_values: { color: 'Yellow' },
+      },
+      {
+        sku: 'SKU-REACT',
+        price: 22,
+        cost_price: 12,
+        stock_quantity: 6,
+        alert_threshold: 2,
+        options_values: { color: 'Blue' },
+      },
+      {
+        sku: 'SKU-CREATE',
+        price: 30,
+        cost_price: 15,
+        stock_quantity: 9,
+        alert_threshold: 3,
+        options_values: { color: 'Black' },
+      },
+    ]);
+
+    expect(rows.createdCount).toBe(1);
+    expect(rows.updatedCount).toBe(1);
+    expect(rows.reactivatedCount).toBe(1);
+    expect(rows.archivedCount).toBe(1);
+  });
+
+  it('syncVariants should reject duplicate variant signature in same payload', async () => {
+    await expect(repo.syncVariants('product-1', [
+      {
+        sku: 'SKU-A',
+        price: 12,
+        cost_price: 8,
+        stock_quantity: 3,
+        alert_threshold: 1,
+        options_values: { color: 'Yellow' },
+      },
+      {
+        sku: 'SKU-B',
+        price: 13,
+        cost_price: 9,
+        stock_quantity: 2,
+        alert_threshold: 1,
+        options_values: { color: 'Yellow' },
+      },
+    ])).rejects.toThrow(/duplicate variant signature/i);
+    expect(db.batch).not.toHaveBeenCalled();
+  });
+
+  it('syncVariants should allow barcode reuse when matched archived variant is not retained', async () => {
+    db.prepare.mockImplementation((sql) => {
+      const stmt = createPreparedStatement(sql);
+      if (sql.includes('SELECT id, variant_signature')) {
+        stmt.all.mockResolvedValue({
+          results: [
+            { id: 'variant-archived-old', variant_signature: '{"color":"Old"}', status: 'archived' },
+          ],
+        });
+      }
+      return stmt;
+    });
+
+    const rows = await repo.syncVariants('product-1', [
+      {
+        sku: 'SKU-NEW-ACTIVE',
+        price: 35,
+        cost_price: 18,
+        stock_quantity: 7,
+        alert_threshold: 2,
+        options_values: { color: 'Black' },
+        barcode: 'REUSE-BCODE',
+        status: 'active',
+      },
+    ]);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).not.toBe('variant-archived-old');
+    expect(rows.createdCount).toBe(1);
   });
 });

@@ -89,6 +89,8 @@ export default {
   close: '关闭',
   restore: '恢复',
   back: '返回',
+  expand: '展开',
+  collapse: '收起',
   processing: '处理中...',
   click_to_upload: '点击选择文件',
   or_drag_drop: '或将文件拖拽到此处',

@@ -220,6 +220,8 @@ app.post('/', async (c) => {
         updatedProducts: 0,
         createdVariants: 0,
         updatedVariants: 0,
+        archivedVariants: 0,
+        reactivatedVariants: 0,
         failedProducts: 0,
         conflicts: 0,
     };
@@ -277,6 +279,8 @@ app.post('/', async (c) => {
                 const syncResult = await variantRepo.syncVariants(productId, nextVariantsToSync);
                 summary.createdVariants += syncResult?.createdCount ?? computedCreated;
                 summary.updatedVariants += syncResult?.updatedCount ?? computedUpdated;
+                summary.archivedVariants += syncResult?.archivedCount ?? syncResult?.deletedCount ?? 0;
+                summary.reactivatedVariants += syncResult?.reactivatedCount ?? 0;
             }
         } catch (error) {
             summary.failedProducts++;

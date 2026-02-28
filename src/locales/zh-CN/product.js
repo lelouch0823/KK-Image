@@ -56,6 +56,7 @@ export default {
     organization: '组织与属性',
     slug_seo: 'SEO 链接标识 (Slug)',
     slug_placeholder: '留空自动生成',
+    variant_sync_summary: '同步更新结果: +{created} 新增, {updated} 覆盖, {archived} 归档, {reactivated} 恢复',
   },
   table: {
     header: {
@@ -131,6 +132,10 @@ export default {
   },
   image: {
     uploaded_count: '已上传 {count} 张图片',
+  },
+  variant: {
+    title: '商品规格',
+    noSpecs: '无规格信息',
   },
   variants: {
     image: {

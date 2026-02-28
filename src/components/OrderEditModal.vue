@@ -236,16 +236,20 @@ const handleProductSelect = (product) => {
   let extractedColor = '';
   let extractedMaterial = '';
   const otherSpecs = [];
+  const mappedOptions = {};
+  const dimensionMap = product.dimension_map || {};
 
   for (const [key, val] of Object.entries(options)) {
     if (!val) continue;
-    const lowerKey = key.toLowerCase();
+    const readableKey = dimensionMap[key] || key;
+    mappedOptions[readableKey] = val;
+    const lowerKey = String(readableKey).toLowerCase();
     if (['color', '颜色', '顏色'].includes(lowerKey)) {
       extractedColor = String(val);
     } else if (['material', '材质', '材質'].includes(lowerKey)) {
       extractedMaterial = String(val);
     } else {
-      otherSpecs.push(`${key}: ${val}`);
+      otherSpecs.push(`${readableKey}: ${val}`);
     }
   }
 
@@ -257,6 +261,7 @@ const handleProductSelect = (product) => {
   form.color = extractedColor;
   form.material = extractedMaterial;
   form.size = otherSpecs.join('，') || '';
+  boundProductVariant.value = mappedOptions;
 
   // Auto-fill image
   const mainImage = getProductMainImage(product);
@@ -281,6 +286,7 @@ const handleProductSelect = (product) => {
 const unbindProduct = () => {
   boundProduct.value = null;
   selectedProductId.value = null;
+  boundProductVariant.value = null;
 };
 
 const getProductMainImage = (product) => {

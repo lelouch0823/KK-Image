@@ -80,7 +80,12 @@ describe('product variant audit routes', () => {
     mockVariantRepo.findByProductId
       .mockResolvedValueOnce([{ id: 'v1', product_id: 'p1', price: 10 }])
       .mockResolvedValueOnce([{ id: 'v1', product_id: 'p1', price: 12 }]);
-    mockVariantRepo.syncVariants.mockResolvedValue();
+    mockVariantRepo.syncVariants.mockResolvedValue({
+      createdCount: 0,
+      updatedCount: 1,
+      archivedCount: 0,
+      reactivatedCount: 0,
+    });
 
     const app = createApp();
     const res = await app.request(
@@ -98,6 +103,13 @@ describe('product variant audit routes', () => {
     );
 
     expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.variantSync).toEqual({
+      created: 0,
+      updated: 1,
+      archived: 0,
+      reactivated: 0,
+    });
     expect(mockAuditRepo.createBatch).toHaveBeenCalledTimes(1);
   });
 
@@ -179,5 +191,61 @@ describe('product variant audit routes', () => {
 
     expect(res.status).toBe(400);
     expect(mockProductRepo.updateWithMeta).not.toHaveBeenCalled();
+  });
+
+  it('PATCH /:id maps duplicate variant signature error to 400', async () => {
+    mockProductRepo.updateWithMeta.mockResolvedValue({ success: true, changes: 1 });
+    mockVariantRepo.findByProductId.mockResolvedValue([]);
+    mockVariantRepo.syncVariants.mockRejectedValueOnce(new Error('duplicate variant signature in payload'));
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/p1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Tee',
+          variants: [{ price: 12, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active', options_values: { color: 'red' } }],
+        }),
+      },
+      { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/duplicate variant signature/i);
+  });
+
+  it('PATCH /:id supports variants-only payload without product field updates', async () => {
+    mockProductRepo.findById.mockResolvedValue({ id: 'p1', name: 'Tee' });
+    mockVariantRepo.findByProductId
+      .mockResolvedValueOnce([{ id: 'v1', product_id: 'p1', price: 10 }])
+      .mockResolvedValueOnce([{ id: 'v1', product_id: 'p1', price: 12 }]);
+    mockVariantRepo.syncVariants.mockResolvedValue({
+      createdCount: 0,
+      updatedCount: 1,
+      archivedCount: 0,
+      reactivatedCount: 0,
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/p1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          variants: [{ id: 'v1', price: 12, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active' }],
+        }),
+      },
+      { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockProductRepo.updateWithMeta).not.toHaveBeenCalled();
+    expect(mockProductRepo.findById).toHaveBeenCalledWith('p1');
   });
 });

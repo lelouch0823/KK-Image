@@ -113,6 +113,20 @@ describe('ProductRepository — SPU 重构', () => {
             expect(product.product_code).toBe('PTESTUUID0000');
         });
 
+        it('创建商品 SQL 不应再写入 products.status 列', async () => {
+            db.prepare.mockImplementation((sql) => {
+                const stmt = createPreparedStatement(sql);
+                if (sql.includes('INSERT INTO products')) {
+                    stmt.run.mockResolvedValue({ meta: { changes: 1 } });
+                }
+                return stmt;
+            });
+
+            await repo.create({ name: 'No Status Column Product' });
+            const insertSql = db.prepare.mock.calls.find((call) => call[0].includes('INSERT INTO products'))?.[0] || '';
+            expect(insertSql).not.toContain('status');
+        });
+
         it('创建商品时应拒绝非法 currency', async () => {
             await expect(
                 repo.create({ name: 'Bad Currency Product', currency: 'INVALID' })

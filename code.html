@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Public Sans', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen p-4 md:p-8">
+<!-- SKU Selection Widget Container -->
+<div class="max-w-2xl mx-auto">
+<div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+<!-- Header Section -->
+<div class="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start">
+<div class="flex gap-4">
+<div class="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+<img class="w-full h-full object-cover" data-alt="Minimalist white cotton t-shirt flat lay" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGwprizDaSaMlZbZgk2Mgqf6KjlHZdcO1QDePPMypfd-3bH-fkmAqnI_DklzEgFj9AftznehmLnsM9gLl86bGNbi29MUaQOzzpBBLSVRTtTRZ8tel_J-oe6E8aDU7lWZC9N5JmPfbeVHFbHk1GL8kovLTR1I5qwuPaGtfoY8hf-pjzaXhiWSyeizWJ_g7P2G99aevU6eZ4vntkne4nncMSUjvHoIUb772Fre7FkXC4Qm8oZbLgJnWo03fZrw1wBTd0yoXObrGnOJ0-"/>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<h2 class="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Aster T-Shirt 11</h2>
+<span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700 uppercase">
+                                SKU: SPU20230811
+                            </span>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-2xl font-bold text-primary">¥ 129.00</span>
+<span class="text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-full">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+                                可下单 (In Stock)
+                            </span>
+</div>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="p-2 text-slate-400 hover:text-primary transition-colors hover:bg-primary/10 rounded-lg" title="编辑商品">
+<span class="material-symbols-outlined">edit_square</span>
+</button>
+<button class="p-2 text-slate-400 hover:text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg" title="移除">
+<span class="material-symbols-outlined">delete</span>
+</button>
+</div>
+</div>
+<!-- Configuration Body -->
+<div class="p-6 space-y-8">
+<!-- Color Selection (Visual Swatches) -->
+<section>
+<div class="flex justify-between items-center mb-4">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">颜色 (Color)</label>
+<span class="text-xs text-slate-400 font-medium">已选择: 极光蓝 (Aurora Blue)</span>
+</div>
+<div class="flex flex-wrap gap-4">
+<!-- Swatch White -->
+<label class="relative cursor-pointer group">
+<input class="peer sr-only" name="color" type="radio" value="white"/>
+<div class="w-10 h-10 rounded-full border-2 border-slate-200 dark:border-slate-700 peer-checked:ring-2 peer-checked:ring-primary peer-checked:ring-offset-2 dark:ring-offset-slate-900 transition-all shadow-sm bg-white"></div>
+<span class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-medium text-slate-500">白色</span>
+</label>
+<!-- Swatch Black -->
+<label class="relative cursor-pointer group">
+<input class="peer sr-only" name="color" type="radio" value="black"/>
+<div class="w-10 h-10 rounded-full border-2 border-slate-200 dark:border-slate-700 peer-checked:ring-2 peer-checked:ring-primary peer-checked:ring-offset-2 dark:ring-offset-slate-900 transition-all shadow-sm bg-black"></div>
+<span class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-medium text-slate-500">黑色</span>
+</label>
+<!-- Swatch Aurora Blue (Selected) -->
+<label class="relative cursor-pointer group">
+<input checked="" class="peer sr-only" name="color" type="radio" value="blue"/>
+<div class="w-10 h-10 rounded-full border-2 border-slate-200 dark:border-slate-700 peer-checked:ring-2 peer-checked:ring-primary peer-checked:ring-offset-2 dark:ring-offset-slate-900 transition-all shadow-sm bg-[#3b82f6]">
+<div class="w-full h-full flex items-center justify-center opacity-0 peer-checked:opacity-100">
+<span class="material-symbols-outlined text-white text-lg">check</span>
+</div>
+</div>
+<span class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-medium text-slate-500">蓝色</span>
+</label>
+<!-- Swatch Red -->
+<label class="relative cursor-pointer group">
+<input class="peer sr-only" name="color" type="radio" value="red"/>
+<div class="w-10 h-10 rounded-full border-2 border-slate-200 dark:border-slate-700 peer-checked:ring-2 peer-checked:ring-primary peer-checked:ring-offset-2 dark:ring-offset-slate-900 transition-all shadow-sm bg-[#ef4444]"></div>
+<span class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-medium text-slate-500">红色</span>
+</label>
+<!-- Swatch Green -->
+<label class="relative cursor-pointer group">
+<input class="peer sr-only" name="color" type="radio" value="green"/>
+<div class="w-10 h-10 rounded-full border-2 border-slate-200 dark:border-slate-700 peer-checked:ring-2 peer-checked:ring-primary peer-checked:ring-offset-2 dark:ring-offset-slate-900 transition-all shadow-sm bg-[#10b981]"></div>
+<span class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-medium text-slate-500">绿色</span>
+</label>
+</div>
+</section>
+<!-- Size Selection (Chips) -->
+<section>
+<div class="flex justify-between items-center mb-4">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">尺码 (Size)</label>
+<button class="text-xs text-primary font-medium hover:underline underline-offset-4">查看尺码对照表</button>
+</div>
+<div class="grid grid-cols-4 sm:grid-cols-6 gap-3">
+<!-- Chip S -->
+<label class="cursor-pointer">
+<input class="peer sr-only" name="size" type="radio" value="s"/>
+<div class="py-2.5 text-center border-2 border-slate-100 dark:border-slate-800 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-400 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition-all">S</div>
+</label>
+<!-- Chip M -->
+<label class="cursor-pointer">
+<input class="peer sr-only" name="size" type="radio" value="m"/>
+<div class="py-2.5 text-center border-2 border-slate-100 dark:border-slate-800 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-400 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition-all">M</div>
+</label>
+<!-- Chip L (Selected) -->
+<label class="cursor-pointer">
+<input checked="" class="peer sr-only" name="size" type="radio" value="l"/>
+<div class="py-2.5 text-center border-2 border-slate-100 dark:border-slate-800 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-400 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition-all shadow-sm">L</div>
+</label>
+<!-- Chip XL -->
+<label class="cursor-pointer">
+<input class="peer sr-only" name="size" type="radio" value="xl"/>
+<div class="py-2.5 text-center border-2 border-slate-100 dark:border-slate-800 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-400 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition-all">XL</div>
+</label>
+<!-- Chip XXL -->
+<label class="cursor-pointer">
+<input class="peer sr-only" name="size" type="radio" value="xxl"/>
+<div class="py-2.5 text-center border-2 border-slate-100 dark:border-slate-800 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-400 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition-all">XXL</div>
+</label>
+<!-- Chip 3XL (Out of stock example) -->
+<label class="cursor-not-allowed opacity-50">
+<input class="peer sr-only" disabled="" name="size" type="radio" value="3xl"/>
+<div class="py-2.5 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg text-sm font-semibold text-slate-300 dark:text-slate-600">3XL</div>
+</label>
+</div>
+</section>
+<!-- Inventory Info Footer -->
+<div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex gap-6">
+<div>
+<p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">库存状态</p>
+<p class="text-sm font-semibold text-slate-700 dark:text-slate-200">2,480 件在库</p>
+</div>
+<div>
+<p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">预估交期</p>
+<p class="text-sm font-semibold text-slate-700 dark:text-slate-200">24小时内发货</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<label class="text-xs font-medium text-slate-500">数量:</label>
+<div class="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900">
+<button class="px-3 py-1 hover:text-primary transition-colors border-r border-slate-100 dark:border-slate-800">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<input class="w-12 text-center text-sm border-none bg-transparent focus:ring-0" type="number" value="1"/>
+<button class="px-3 py-1 hover:text-primary transition-colors border-l border-slate-100 dark:border-slate-800">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="p-6 bg-slate-100/50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
+<button class="px-6 py-2.5 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-700">
+                    取消
+                </button>
+<button class="px-8 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2">
+                    确认选择
+                    <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Subtle Status Hint -->
+<p class="mt-4 text-center text-xs text-slate-400">
+<span class="material-symbols-outlined text-[14px]">info</span>
+            选择不同的规格组合，价格可能会发生变化。
+        </p>
+</div>
+</body></html>

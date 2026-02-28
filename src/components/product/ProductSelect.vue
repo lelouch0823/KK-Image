@@ -89,8 +89,9 @@ import { onClickOutside, useDebounceFn } from '@vueuse/core';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
-defineProps({
+const props = defineProps({
   modelValue: { type: String, default: '' }, // existing code compatibility
+  statusFilter: { type: String, default: '' },
 });
 const emit = defineEmits(['update:modelValue', 'select']);
 
@@ -115,7 +116,9 @@ const close = () => {
 onClickOutside(containerRef, close);
 
 const handleSearch = async (query) => {
-    await loadProducts({ search: query, limit: 10, page: 1 });
+    const params = { search: query, limit: 10, page: 1 };
+    if (props.statusFilter) params.status = props.statusFilter;
+    await loadProducts(params);
 };
 
 const debouncedSearch = useDebounceFn(handleSearch, 300);

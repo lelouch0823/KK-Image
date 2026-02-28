@@ -118,6 +118,20 @@ export function useProducts() {
         });
     };
 
+    const createProductWithMeta = async (payload) => {
+        return resource.rawRequest('', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    };
+
+    const updateProductWithMeta = async (productId, payload) => {
+        return resource.rawRequest(`/${productId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload),
+        });
+    };
+
     return {
         products: resource.items,
         loading: resource.loading,
@@ -142,6 +156,8 @@ export function useProducts() {
         addDimensionValue,
         archiveDimensionValue,
         restoreDimensionValue,
+        createProductWithMeta,
+        updateProductWithMeta,
     };
 }
 

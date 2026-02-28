@@ -90,6 +90,8 @@ export function useProductForm({ editMode, initialData, emit }) {
   const {
     createProduct,
     updateProduct,
+    createProductWithMeta,
+    updateProductWithMeta,
     archiveDimension,
     previewDimensionImpact,
     addDimensionValue,
@@ -491,6 +493,30 @@ export function useProductForm({ editMode, initialData, emit }) {
   };
 
   // ——— 表单提交 ———
+  const normalizeMutationResult = (result) => {
+    if (result && typeof result === 'object' && Object.prototype.hasOwnProperty.call(result, 'success')) {
+      return result;
+    }
+    if (result === null || result === undefined || result === false) {
+      return { success: false };
+    }
+    if (result === true) {
+      return { success: true };
+    }
+    return { success: true, data: result };
+  };
+
+  const formatVariantSyncSummary = (sync = {}) => {
+    const created = Number(sync.created ?? 0);
+    const updated = Number(sync.updated ?? 0);
+    const archived = Number(sync.archived ?? 0);
+    const reactivated = Number(sync.reactivated ?? 0);
+    return (
+      t('product.form.variant_sync_summary', { created, updated, archived, reactivated }) ||
+      `Variants synced: +${created} created, ${updated} updated, ${archived} archived, ${reactivated} reactivated`
+    );
+  };
+
   const handleSubmit = async () => {
     if (!form.name) {
       addToast({
@@ -555,15 +581,41 @@ export function useProductForm({ editMode, initialData, emit }) {
         }),
       };
 
-      let success = false;
-
+      let response;
       if (editMode.value) {
-        success = await updateProduct(initialData.value.id, payload);
+        if (typeof updateProductWithMeta === 'function') {
+          response = await updateProductWithMeta(initialData.value.id, payload);
+        } else {
+          response = await updateProduct(initialData.value.id, payload);
+        }
+      } else if (typeof createProductWithMeta === 'function') {
+        response = await createProductWithMeta(payload);
       } else {
-        success = await createProduct(payload);
+        response = await createProduct(payload);
       }
 
-      if (success) {
+      const normalized = normalizeMutationResult(response);
+      if (!normalized.success) {
+        addToast({
+          message: normalized.error || normalized.message || t('common.operationFailed'),
+          type: 'error',
+        });
+        return;
+      }
+
+      if (normalized.variantSync) {
+        addToast({
+          message: formatVariantSyncSummary(normalized.variantSync),
+          type: 'success',
+        });
+      } else {
+        addToast({
+          message: editMode.value ? t('common.updated') : t('common.created'),
+          type: 'success',
+        });
+      }
+
+      if (normalized.success) {
         emit('success');
         emit('update:modelValue', false);
       }
