@@ -3,7 +3,7 @@
     <!-- 列表模式 (Timeline) -->
     <div v-if="mode === 'timeline'">
       <!-- 时间轴线 -->
-      <div class="bg-(--border-color) absolute top-2 bottom-2 left-3 w-0.5"></div>
+      <div class="absolute top-2 bottom-2 left-3 w-0.5 bg-(--border-color)"></div>
 
       <!-- 时间轴项目 -->
       <div class="space-y-4">
@@ -36,11 +36,11 @@
           </div>
 
           <!-- 内容 -->
-          <div class="bg-(--bg-muted) rounded-lg p-3">
+          <div class="rounded-lg bg-(--bg-muted) p-3">
             <div class="mb-1 flex items-center justify-between">
               <span class="text-xs font-medium" :class="actorTypeColor(item.actorType)">
                 {{ item.actorName }}
-                <span class="text-(--text-secondary) font-normal"
+                <span class="font-normal text-(--text-secondary)"
                   >({{
                     item.actorType === 'admin'
                       ? t('sidebar.admin')
@@ -48,7 +48,7 @@
                   }})</span
                 >
               </span>
-              <span class="text-(--text-secondary) text-[10px]">{{ formatTime(item.createdAt) }}</span>
+              <span class="text-[10px] text-(--text-secondary)">{{ formatTime(item.createdAt) }}</span>
             </div>
 
             <!-- 创建 -->
@@ -77,11 +77,11 @@
                     "
                     class="mt-1 flex items-start gap-2 text-xs"
                   >
-                    <span class="text-danger/60 min-w-0 flex-1 line-through break-words">
+                    <span class="text-danger/60 min-w-0 flex-1 break-words line-through">
                       {{ getDisplayValue(update, 'oldValue') }}</span>
                     <AppIcon
                       name="arrow-right"
-                      class="text-(--text-secondary) mt-0.5 size-3 shrink-0"
+                      class="mt-0.5 size-3 shrink-0 text-(--text-secondary)"
                     />
                     <span class="text-success min-w-0 flex-1 font-medium break-words">{{
                       getDisplayValue(update, 'newValue')
@@ -91,7 +91,7 @@
                   <!-- 个别理由 (如果有不同) -->
                   <p
                     v-if="update.reason && !getCommonReason(item.updates)"
-                    class="text-(--text-secondary) mt-1 text-xs whitespace-pre-wrap break-words"
+                    class="mt-1 text-xs break-words whitespace-pre-wrap text-(--text-secondary)"
                   >
                     {{ t('order.timeline.reason') }}: {{ getReasonText(update.reason) }}
                   </p>
@@ -101,9 +101,9 @@
               <!-- 公共理由 (合并显示) -->
               <div
                 v-if="getCommonReason(item.updates)"
-                class="border-(--border-color) mt-3 border-t border-dashed pt-2"
+                class="mt-3 border-t border-dashed border-(--border-color) pt-2"
               >
-                <p class="text-(--text-secondary) text-xs whitespace-pre-wrap break-words">
+                <p class="text-xs break-words whitespace-pre-wrap text-(--text-secondary)">
                   <span class="font-medium">{{ t('order.timeline.reason') }}:</span>
                   {{ getReasonText(getCommonReason(item.updates)) }}
                 </p>
@@ -119,13 +119,13 @@
                 }}</span>
                 <AppIcon
                   name="arrow-right"
-                  class="text-(--text-secondary) size-3"
+                  class="size-3 text-(--text-secondary)"
                 />
                 <span class="text-success font-medium">{{
                   formatImageCount(item.newValue)
                 }}</span>
               </div>
-              <p v-if="item.reason" class="text-(--text-secondary) mt-1 text-xs whitespace-pre-wrap break-words">
+              <p v-if="item.reason" class="mt-1 text-xs break-words whitespace-pre-wrap text-(--text-secondary)">
                 {{ t('order.timeline.reason') }}: {{ getReasonText(item.reason) }}
               </p>
             </div>
@@ -136,13 +136,13 @@
               <StatusBadge :variant="getStatusVariant(item.newValue)" size="sm" class="ml-1">
                 {{ t(`order.statuses.${item.newValue}`) }}
               </StatusBadge>
-              <span v-if="item.reason" class="text-(--text-secondary) mt-1 block text-xs whitespace-pre-wrap break-words">{{
+              <span v-if="item.reason" class="mt-1 block text-xs break-words whitespace-pre-wrap text-(--text-secondary)">{{
                 getReasonText(item.reason)
               }}</span>
             </p>
 
             <!-- 留言 -->
-            <p v-else class="text-primary text-sm whitespace-pre-wrap break-words">{{ item.comment }}</p>
+            <p v-else class="text-primary text-sm break-words whitespace-pre-wrap">{{ item.comment }}</p>
           </div>
         </div>
       </div>
@@ -150,7 +150,7 @@
       <!-- 展开/收起按钮 -->
       <div v-if="hasMore" class="mt-4 text-center">
         <button
-          class="bg-(--bg-muted) text-(--text-secondary) hover:bg-(--bg-hover) hover:text-primary inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm transition-all shadow-sm"
+          class="hover:text-primary hover:bg-(--bg-hover) inline-flex items-center gap-1.5 rounded-full bg-(--bg-muted) px-4 py-2 text-sm text-(--text-secondary) shadow-sm transition-all"
           @click="isExpanded = !isExpanded"
         >
           <template v-if="isExpanded">
@@ -167,7 +167,7 @@
       <!-- 空状态 -->
       <div
         v-if="!groupedTimeline || groupedTimeline.length === 0"
-        class="text-(--text-secondary) py-8 text-center text-sm"
+        class="py-8 text-center text-sm text-(--text-secondary)"
       >
         {{ t('common.noData') }}
       </div>
@@ -176,21 +176,21 @@
     <!-- 表格模式 (Print / Table) -->
     <div v-else class="w-full">
       <table class="w-full border-collapse text-left text-sm">
-        <thead class="border-(--border-color) bg-(--bg-muted) text-(--text-secondary) border-b font-medium">
+        <thead class="border-b border-(--border-color) bg-(--bg-muted) font-medium text-(--text-secondary)">
           <tr>
             <th class="w-32 px-3 py-2">{{ t('order.createdAt') }}</th>
             <th class="w-32 px-3 py-2">{{ t('sidebar.role') }}</th>
             <th class="px-3 py-2 pl-8">{{ t('common.actions') }}</th>
           </tr>
         </thead>
-        <tbody class="divide-(--border-color) divide-y">
+        <tbody class="divide-y divide-(--border-color)">
           <tr v-for="item in displayedItems" :key="item.id" class="break-inside-avoid">
-            <td class="text-(--text-muted) p-3 align-top text-xs">
+            <td class="p-3 align-top text-xs text-(--text-muted)">
               {{ formatTime(item.createdAt) }}
             </td>
-            <td class="text-(--text-main) p-3 align-top font-medium">
+            <td class="p-3 align-top font-medium text-(--text-main)">
               {{ item.actorName }}
-              <div class="text-(--text-muted) text-[10px] font-normal">
+              <div class="text-[10px] font-normal text-(--text-muted)">
                 {{
                   item.actorType === 'admin'
                     ? t('sidebar.admin')
@@ -207,7 +207,7 @@
               <!-- Field Updated -->
               <div v-else-if="item.actionType === 'field_updated'" class="space-y-2">
                 <div v-for="(update, idx) in item.updates" :key="idx">
-                  <div class="text-(--text-main) font-medium">
+                  <div class="font-medium text-(--text-main)">
                     <span v-if="['files', 'images'].includes(update.fieldName)">{{
                       t('order.timeline.imagesUpdated')
                     }}</span>
@@ -222,15 +222,15 @@
                     "
                     class="mt-0.5 flex items-start gap-2 text-xs"
                   >
-                    <span class="text-(--text-muted) min-w-0 flex-1 line-through break-words">{{
+                    <span class="min-w-0 flex-1 break-words text-(--text-muted) line-through">{{
                       getDisplayValue(update, 'oldValue')
                     }}</span>
-                    <span class="text-(--text-muted)/50 shrink-0">→</span>
-                    <span class="text-(--text-main) min-w-0 flex-1 break-words">{{
+                    <span class="shrink-0 text-(--text-muted)/50">→</span>
+                    <span class="min-w-0 flex-1 break-words text-(--text-main)">{{
                       getDisplayValue(update, 'newValue')
                     }}</span>
                   </div>
-                  <div v-if="update.reason" class="text-(--text-muted) mt-0.5 text-xs whitespace-pre-wrap break-words">
+                  <div v-if="update.reason" class="mt-0.5 text-xs break-words whitespace-pre-wrap text-(--text-muted)">
                     {{ t('order.timeline.reason') }}: {{ getReasonText(update.reason) }}
                   </div>
                 </div>
@@ -242,18 +242,18 @@
                   {{ t('order.timeline.statusChanged') }}
                   <span class="font-medium">{{ t(`order.statuses.${item.newValue}`) }}</span>
                 </div>
-                <div v-if="item.reason" class="text-(--text-muted) mt-1 text-xs whitespace-pre-wrap break-words">{{ getReasonText(item.reason) }}</div>
+                <div v-if="item.reason" class="mt-1 text-xs break-words whitespace-pre-wrap text-(--text-muted)">{{ getReasonText(item.reason) }}</div>
               </div>
 
               <!-- Comment -->
-              <div v-else class="text-(--text-main) break-words whitespace-pre-wrap italic">"{{ item.comment }}"</div>
+              <div v-else class="break-words whitespace-pre-wrap text-(--text-main) italic">"{{ item.comment }}"</div>
             </td>
           </tr>
         </tbody>
       </table>
       <div
         v-if="!groupedTimeline || groupedTimeline.length === 0"
-        class="border-(--border-color) text-(--text-secondary) border-t py-4 text-center text-sm"
+        class="border-t border-(--border-color) py-4 text-center text-sm text-(--text-secondary)"
       >
         {{ t('common.noData') }}
       </div>

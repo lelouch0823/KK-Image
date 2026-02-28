@@ -1,7 +1,7 @@
 <template>
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
     <!-- Total Products -->
-    <div class="group relative overflow-hidden rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-5 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-info/10 hover:shadow-xl sm:p-6">
+    <div class="group relative overflow-hidden rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-5 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-info/10 hover:-translate-y-1 hover:shadow-xl sm:p-6">
       <div class="relative z-10 flex items-start justify-between">
         <div>
           <h3 class="text-sm font-medium text-(--text-secondary)">{{ t('product.stats.total_products') }}</h3>
@@ -9,7 +9,7 @@
             {{ totalFormatted }}
           </div>
         </div>
-        <div class="bg-info/10 text-info group-hover:bg-info group-hover:text-(--text-inverse) flex size-10 items-center justify-center rounded-xl transition-colors sm:size-12">
+        <div class="bg-info/10 text-info flex size-10 items-center justify-center rounded-xl transition-colors group-hover:bg-info group-hover:text-(--text-inverse) sm:size-12">
             <AppIcon name="cube" class="size-5 transition-transform duration-300 group-hover:scale-110 sm:size-6" />
         </div>
       </div>
@@ -25,7 +25,7 @@
     </div>
 
     <!-- Low Stock Alert -->
-    <div class="group relative overflow-hidden rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-5 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-warning/10 hover:shadow-xl sm:p-6">
+    <div class="group relative overflow-hidden rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-5 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-warning/10 hover:-translate-y-1 hover:shadow-xl sm:p-6">
       <div class="relative z-10 flex items-start justify-between">
         <div>
           <h3 class="text-sm font-medium text-(--text-secondary)">{{ t('product.stats.low_stock') }}</h3>
@@ -33,7 +33,7 @@
             {{ lowStockCount }}
           </div>
         </div>
-        <div class="bg-warning/10 text-warning group-hover:bg-warning group-hover:text-(--text-inverse) flex size-10 items-center justify-center rounded-xl transition-colors sm:size-12">
+        <div class="bg-warning/10 text-warning flex size-10 items-center justify-center rounded-xl transition-colors group-hover:bg-warning group-hover:text-(--text-inverse) sm:size-12">
             <AppIcon name="exclamation-triangle" class="size-5 transition-transform duration-300 group-hover:scale-110 sm:size-6" />
         </div>
       </div>
@@ -47,7 +47,7 @@
     </div>
 
     <!-- Total Value (Est) -->
-    <div class="group relative overflow-hidden rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-5 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-success/10 hover:shadow-xl sm:p-6">
+    <div class="group relative overflow-hidden rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-5 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-success/10 hover:-translate-y-1 hover:shadow-xl sm:p-6">
       <div class="relative z-10 flex items-start justify-between">
         <div>
           <h3 class="text-sm font-medium text-(--text-secondary)">{{ t('product.stats.total_value') }}</h3>
@@ -56,12 +56,12 @@
              <span class="font-[Outfit] text-3xl font-bold tracking-tight text-(--text-main) sm:text-4xl">{{ valueFormatted }}</span>
            </div>
         </div>
-        <div class="bg-success/10 text-success group-hover:bg-success group-hover:text-(--text-inverse) flex size-10 items-center justify-center rounded-xl transition-colors sm:size-12">
+        <div class="bg-success/10 text-success flex size-10 items-center justify-center rounded-xl transition-colors group-hover:bg-success group-hover:text-(--text-inverse) sm:size-12">
             <AppIcon name="currency-dollar" class="size-5 transition-transform duration-300 group-hover:scale-110 sm:size-6" />
         </div>
       </div>
       <div class="relative z-10 mt-4 flex items-center text-xs font-medium text-(--text-secondary)">
-         <span class="bg-(--bg-muted) flex items-center gap-1 rounded-full px-2 py-0.5">
+         <span class="flex items-center gap-1 rounded-full bg-(--bg-muted) px-2 py-0.5">
              {{ t('product.stats.cost_basis') }}
          </span>
       </div>

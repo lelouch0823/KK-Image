@@ -1,8 +1,8 @@
 <template>
     <div class="space-y-4">
         <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4">
-            <h3 class="text-(--text-main) mb-1 text-lg font-semibold">{{ t('product.import.step_image', '图片智能匹配') }}</h3>
-            <p class="text-(--text-secondary) text-sm">
+            <h3 class="mb-1 text-lg font-semibold text-(--text-main)">{{ t('product.import.step_image', '图片智能匹配') }}</h3>
+            <p class="text-sm text-(--text-secondary)">
                 {{ t('product.import.image_match_desc', { count: totalImagesCount }, '检测到 Excel 中包含 {count} 个本地图片引用。请上传对应图片。') }}
             </p>
         </div>
@@ -25,21 +25,21 @@
                 @change="handleSelect"
             >
             <div class="text-center">
-                 <div class="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-primary/10">
+                 <div class="bg-primary/10 mx-auto mb-3 flex size-12 items-center justify-center rounded-full">
                     <AppIcon name="photo" class="text-primary size-6" />
                  </div>
-                <p class="text-(--text-main) mt-2 text-sm font-medium">
+                <p class="mt-2 text-sm font-medium text-(--text-main)">
                     <span class="text-primary">{{ t('product.import.click_to_upload_images', '点击上传图片') }}</span>
                     {{ t('product.import.image_upload_batch', '（支持批量/拖拽）') }}
                 </p>
-                <p class="text-(--text-secondary) mt-1 text-xs">{{ t('product.import.image_selected_count', { count: fileCount }, '已选择 {count} 个文件') }}</p>
+                <p class="mt-1 text-xs text-(--text-secondary)">{{ t('product.import.image_selected_count', { count: fileCount }, '已选择 {count} 个文件') }}</p>
             </div>
         </div>
 
         <!-- Match Stats -->
-        <div class="border-(--border-color) bg-(--bg-card) rounded-xl border p-4 shadow-sm">
+        <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4 shadow-sm">
             <div class="mb-3 flex items-center justify-between">
-                <span class="text-(--text-main) text-sm font-semibold">{{ t('product.import.auto_matched', '匹配结果') }}</span>
+                <span class="text-sm font-semibold text-(--text-main)">{{ t('product.import.auto_matched', '匹配结果') }}</span>
                 <span class="bg-primary-bg text-primary rounded-full px-2 py-0.5 text-xs font-medium">
                     {{ processedImagesCount }} / {{ totalImagesCount }}
                 </span>

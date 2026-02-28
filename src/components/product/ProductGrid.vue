@@ -4,14 +4,14 @@
         v-for="product in products" 
         :key="product.id"
         :class="[
-            'border-(--border-color) bg-(--bg-card) active:bg-(--bg-hover) group relative cursor-pointer overflow-hidden rounded-2xl border shadow-sm transition-all duration-300 active:scale-[0.98] active:shadow-none',
+            'group relative cursor-pointer overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) shadow-sm transition-all duration-300 active:scale-[0.98] active:bg-(--bg-hover) active:shadow-none',
             getStatusBorderClass(product.status)
         ]"
         @click="$emit('view', product)"
     >
         <div class="flex items-start gap-3 p-3">
             <!-- Image (Larger for better visual appeal) -->
-            <div class="border-(--border-color) bg-(--bg-muted) size-20 shrink-0 overflow-hidden rounded-xl border">
+            <div class="size-20 shrink-0 overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-muted)">
                  <AppImage 
                     v-if="getMainImage(product)" 
                     :src="getFileUrl(getMainImage(product))" 
@@ -20,12 +20,12 @@
                     rounded="none"
                 >
                     <template #placeholder>
-                         <div class="bg-(--bg-muted) text-(--text-secondary)/30 flex size-full items-center justify-center">
+                         <div class="flex size-full items-center justify-center bg-(--bg-muted) text-(--text-secondary)/30">
                              <AppIcon name="photo" class="size-6 animate-pulse" />
                          </div>
                     </template>
                 </AppImage>
-                <div v-else class="text-(--text-secondary)/30 flex size-full items-center justify-center">
+                <div v-else class="flex size-full items-center justify-center text-(--text-secondary)/30">
                     <AppIcon name="photo" class="size-8" />
                 </div>
             </div>
@@ -33,16 +33,16 @@
             <!-- Info -->
             <div class="min-w-0 flex-1">
                 <!-- Title -->
-                <h3 class="text-(--text-main) truncate text-[15px] leading-tight font-medium">
+                <h3 class="truncate text-[15px] leading-tight font-medium text-(--text-main)">
                     {{ product.name }}
                 </h3>
                 
                 <!-- SPU + Stock Row -->
                 <div class="mt-1.5 flex items-center gap-2">
-                    <span class="bg-(--bg-muted) text-(--text-secondary) rounded px-1.5 py-0.5 font-mono text-[11px]">
+                    <span class="rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono text-[11px] text-(--text-secondary)">
                         {{ product.spu }}
                     </span>
-                    <span class="text-(--text-secondary) text-[11px]">
+                    <span class="text-[11px] text-(--text-secondary)">
                         {{ t('product.table.header.stock') }}: {{ product.stock_quantity }}
                     </span>
                     <span v-if="product.stock_quantity <= (product.alert_threshold || 10)" class="bg-danger-bg text-danger-text rounded px-1.5 py-0.5 text-[10px] font-bold">

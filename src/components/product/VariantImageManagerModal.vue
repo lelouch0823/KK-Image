@@ -10,16 +10,16 @@
     >
       <div v-if="modelValue" class="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8">
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" @click="$emit('update:modelValue', false)"></div>
-        <div class="border-(--border-color) relative z-10 flex h-[85vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border bg-(--bg-card) shadow-2xl">
+        <div class="relative z-10 flex h-[85vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) shadow-2xl">
           <!-- Header -->
-          <div class="border-(--border-color) flex items-center justify-between border-b bg-(--bg-card) px-6 py-4">
+          <div class="flex items-center justify-between border-b border-(--border-color) bg-(--bg-card) px-6 py-4">
             <div>
-              <h1 class="text-(--text-main) text-xl font-bold tracking-tight">{{ t('product.create.variants.image_upload', 'Product Variant Image Upload') }}</h1>
-              <p class="text-(--text-secondary) mt-1 text-sm">{{ t('product.create.variants.image_manage', 'Manage and organize visual assets for each SKU') }}</p>
+              <h1 class="text-xl font-bold tracking-tight text-(--text-main)">{{ t('product.create.variants.image_upload', 'Product Variant Image Upload') }}</h1>
+              <p class="mt-1 text-sm text-(--text-secondary)">{{ t('product.create.variants.image_manage', 'Manage and organize visual assets for each SKU') }}</p>
             </div>
             <button 
               type="button" 
-              class="text-(--text-secondary) hover:bg-(--bg-muted) hover:text-(--text-main) cursor-pointer rounded-lg p-2 transition-colors" 
+              class="cursor-pointer rounded-lg p-2 text-(--text-secondary) transition-colors hover:bg-(--bg-muted) hover:text-(--text-main)" 
               @click="$emit('update:modelValue', false)"
             >
               <AppIcon name="x-mark" class="size-6" />
@@ -29,9 +29,9 @@
           <!-- Main Content Area -->
           <div class="flex flex-1 overflow-hidden">
             <!-- Sidebar -->
-            <aside class="border-(--border-color) w-72 overflow-y-auto border-r bg-(--bg-muted)/30">
+            <aside class="w-72 overflow-y-auto border-r border-(--border-color) bg-(--bg-muted)/30">
               <div class="p-4">
-                <h2 class="text-(--text-secondary) mb-4 px-2 text-xs font-semibold uppercase tracking-wider">
+                <h2 class="mb-4 px-2 text-xs font-semibold tracking-wider text-(--text-secondary) uppercase">
                   {{ t('product.create.variants.select', 'Select Variant') }}
                 </h2>
                 <nav class="space-y-1">
@@ -74,10 +74,10 @@
             <!-- Main Content: Image Grid -->
             <main class="flex flex-1 flex-col overflow-y-auto bg-(--bg-card)">
               <!-- Action Bar -->
-              <div class="border-(--border-color) sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 border-b bg-(--bg-card)/80 p-6 backdrop-blur-md">
+              <div class="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 border-b border-(--border-color) bg-(--bg-card)/80 p-6 backdrop-blur-md">
                 <div v-if="selectedVariantKey">
-                  <h3 class="text-(--text-main) text-lg font-bold">{{ getSelectedVariantName() }}</h3>
-                  <p class="text-(--text-secondary) text-xs">
+                  <h3 class="text-lg font-bold text-(--text-main)">{{ getSelectedVariantName() }}</h3>
+                  <p class="text-xs text-(--text-secondary)">
                     {{ getImageCountByKey(selectedVariantKey) }} {{ t('common.images_count') }}
                   </p>
                 </div>
@@ -99,15 +99,15 @@
           </div>
 
           <!-- Footer -->
-          <div class="border-(--border-color) flex items-center justify-between border-t bg-(--bg-card) px-6 py-4">
-            <div class="text-(--text-secondary) flex items-center gap-2">
+          <div class="flex items-center justify-between border-t border-(--border-color) bg-(--bg-card) px-6 py-4">
+            <div class="flex items-center gap-2 text-(--text-secondary)">
               <AppIcon name="information-circle" class="size-5" />
               <span class="text-xs">{{ t('product.variants.image.auto_save', 'Changes are automatically saved to draft.') }}</span>
             </div>
             <div class="flex gap-3">
               <button 
                 type="button"
-                class="text-(--text-secondary) hover:text-(--text-main) cursor-pointer px-6 py-2 text-sm font-bold transition-colors"
+                class="cursor-pointer px-6 py-2 text-sm font-bold text-(--text-secondary) transition-colors hover:text-(--text-main)"
                 @click="$emit('update:modelValue', false)"
               >
                 {{ t('common.cancel', 'Cancel') }}

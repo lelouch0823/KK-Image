@@ -77,7 +77,7 @@
               <AppIcon
                 v-if="selectedFolderIds.includes(folder.id)"
                 name="check"
-                class="size-3.5 text-[var(--text-inverse)] stroke-3"
+                class="size-3.5 stroke-3 text-[var(--text-inverse)]"
               />
             </div>
           </div>
@@ -126,7 +126,7 @@
             v-if="selectedIds.includes(file.id)"
             class="bg-primary animate-in zoom-in absolute top-2 right-2 flex size-6 items-center justify-center rounded-full shadow-md duration-200"
           >
-            <AppIcon name="check" class="size-3.5 text-[var(--text-inverse)] stroke-3" />
+            <AppIcon name="check" class="size-3.5 stroke-3 text-[var(--text-inverse)]" />
           </div>
         </div>
       </div>

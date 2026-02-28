@@ -111,7 +111,7 @@
     <template #cell-actions="{ row }">
       <div class="flex items-center justify-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
           <button 
-            class="hover:bg-primary/10 rounded-lg p-1.5 text-primary transition-colors"
+            class="hover:bg-primary/10 text-primary rounded-lg p-1.5 transition-colors"
             :title="t('spaceManager.quickShare') || 'Share'"
             @click.stop="$emit('share', row)"
           >

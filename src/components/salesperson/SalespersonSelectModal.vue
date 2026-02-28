@@ -26,7 +26,7 @@
       <div class="flex-1 overflow-y-auto p-2">
         <!-- 加载中 -->
         <div v-if="loading" class="flex h-32 items-center justify-center">
-          <AppIcon name="spinner" class="size-6 text-[var(--color-primary)] animate-spin" />
+          <AppIcon name="spinner" class="size-6 animate-spin text-[var(--color-primary)]" />
         </div>
         
         <!-- 空状态 -->

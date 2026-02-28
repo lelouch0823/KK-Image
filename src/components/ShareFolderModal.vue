@@ -12,7 +12,7 @@
         class="mb-6 flex items-center gap-3 rounded-lg border border-(--border-color) bg-(--bg-muted) p-3"
       >
         <div class="rounded-md bg-(--bg-card) p-2 shadow-sm">
-          <AppIcon name="folder-solid" class="size-6 text-warning" />
+          <AppIcon name="folder-solid" class="text-warning size-6" />
         </div>
         <div>
           <div class="font-medium text-(--text-main)">{{ folder?.name }}</div>

@@ -1,13 +1,13 @@
 <template>
-  <div class="p-8 bg-neutral-50 dark:bg-neutral-950 min-h-screen">
-    <div class="max-w-4xl mx-auto">
-      <h2 class="text-3xl font-bold mb-8 text-neutral-900 dark:text-white">Product Spec Card Demo</h2>
+  <div class="min-h-screen bg-neutral-50 p-8 dark:bg-neutral-950">
+    <div class="mx-auto max-w-4xl">
+      <h2 class="mb-8 text-3xl font-bold text-neutral-900 dark:text-white">Product Spec Card Demo</h2>
       
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
         
         <!-- Default Usage -->
         <div>
-          <h3 class="text-xl font-semibold mb-4 text-neutral-800 dark:text-neutral-200">1. Default Usage</h3>
+          <h3 class="mb-4 text-xl font-semibold text-neutral-800 dark:text-neutral-200">1. Default Usage</h3>
           <ProductSpecCard
             v-model="selectedVariant1"
             v-model:is-favorite="isFavorite1"
@@ -19,11 +19,11 @@
           >
             <!-- Custom badges -->
             <template #badges>
-              <span class="bg-black text-white dark:bg-white dark:text-black text-xs font-bold px-2 py-1 rounded">NEW</span>
+              <span class="rounded bg-black px-2 py-1 text-xs font-bold text-white dark:bg-white dark:text-black">NEW</span>
             </template>
           </ProductSpecCard>
           
-          <div class="mt-4 p-4 bg-white dark:bg-neutral-900 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-800 text-sm overflow-auto">
+          <div class="mt-4 overflow-auto rounded-lg border border-neutral-200 bg-white p-4 text-sm shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
             <p><strong>Selected:</strong> {{ selectedVariant1?.label }}</p>
             <p><strong>Favorite:</strong> {{ isFavorite1 }}</p>
           </div>
@@ -31,7 +31,7 @@
 
         <!-- Custom Styling & Slots -->
         <div>
-          <h3 class="text-xl font-semibold mb-4 text-neutral-800 dark:text-neutral-200">2. Custom Styling & Slots</h3>
+          <h3 class="mb-4 text-xl font-semibold text-neutral-800 dark:text-neutral-200">2. Custom Styling & Slots</h3>
           <ProductSpecCard
             v-model="selectedVariant2"
             v-model:is-favorite="isFavorite2"
@@ -45,7 +45,7 @@
             <!-- Override description slot -->
             <template #description>
               <div class="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-                <ul class="list-disc pl-4 space-y-1">
+                <ul class="list-disc space-y-1 pl-4">
                   <li>Always-On Retina display</li>
                   <li>S9 SiP</li>
                   <li>Blood oxygen app</li>
@@ -55,12 +55,12 @@
             
             <!-- Override image slot -->
             <template #image>
-              <div class="relative overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-800 h-64 flex items-center justify-center">
+              <div class="relative flex h-64 items-center justify-center overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-800">
                 <svg class="size-24 text-neutral-300 dark:text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div class="absolute top-2 right-2">
-                  <span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">Sale</span>
+                  <span class="rounded-full bg-red-500 px-2 py-1 text-xs font-bold text-white">Sale</span>
                 </div>
               </div>
             </template>
@@ -69,7 +69,7 @@
 
         <!-- Read Only / Disabled -->
         <div>
-          <h3 class="text-xl font-semibold mb-4 text-neutral-800 dark:text-neutral-200">3. Disabled State</h3>
+          <h3 class="mb-4 text-xl font-semibold text-neutral-800 dark:text-neutral-200">3. Disabled State</h3>
           <ProductSpecCard
             v-model="selectedVariant3"
             title="Sony WH-1000XM5"

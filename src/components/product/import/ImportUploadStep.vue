@@ -1,16 +1,16 @@
 <template>
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div class="space-y-4 lg:col-span-1">
-            <div class="rounded-xl border border-primary/30 bg-primary/8 p-4">
+            <div class="border-primary/30 bg-primary/8 rounded-xl border p-4">
                 <h3 class="text-primary mb-1 text-sm font-semibold">
                     {{ t('product.import.step1_title', '第一步：下载模板') }}
                 </h3>
-                <p class="text-(--text-secondary) mb-3 text-xs leading-5">
+                <p class="mb-3 text-xs leading-5 text-(--text-secondary)">
                     {{ t('product.import.step1_desc', '请下载标准 Excel 模板，按照格式填写商品信息。') }}
                 </p>
                 <button 
                     type="button"
-                    class="bg-(--bg-card) hover:bg-(--bg-hover) text-primary inline-flex cursor-pointer items-center gap-2 rounded-md border border-primary/20 px-3 py-1.5 text-xs font-medium shadow-sm transition-colors"
+                    class="text-primary border-primary/20 inline-flex cursor-pointer items-center gap-2 rounded-md border bg-(--bg-card) px-3 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-(--bg-hover)"
                     @click="downloadTemplate"
                 >
                     <AppIcon name="arrow-down-tray" class="size-4" />
@@ -19,7 +19,7 @@
             </div>
 
             <div class="rounded-xl border border-(--border-color) bg-(--bg-muted) p-4">
-                <p class="text-(--text-main) mb-2 text-xs font-semibold">{{ t('product.import.upload_rules', '导入建议') }}</p>
+                <p class="mb-2 text-xs font-semibold text-(--text-main)">{{ t('product.import.upload_rules', '导入建议') }}</p>
                 <ul class="space-y-2 text-xs">
                     <li class="flex items-center gap-2 text-(--text-secondary)">
                         <AppIcon name="check-circle" class="text-success size-4" />
@@ -38,7 +38,7 @@
         </div>
 
         <div class="lg:col-span-2">
-            <h3 class="text-(--text-main) mb-2 text-sm font-medium">
+            <h3 class="mb-2 text-sm font-medium text-(--text-main)">
                 {{ t('product.import.step2_title', '第二步：上传文件') }}
             </h3>
             <div 
@@ -58,20 +58,20 @@
                 >
                 
                 <div class="text-center">
-                    <div class="mx-auto mb-3 flex size-14 items-center justify-center rounded-full bg-primary/10">
+                    <div class="bg-primary/10 mx-auto mb-3 flex size-14 items-center justify-center rounded-full">
                         <AppIcon name="cloud-arrow-up" class="text-primary size-7" />
                     </div>
-                    <p class="text-(--text-main) text-sm font-medium">
+                    <p class="text-sm font-medium text-(--text-main)">
                         <span class="text-primary">
                             {{ t('common.click_to_upload', '点击上传') }}
                         </span>
                         {{ t('common.or_drag_drop', '或拖拽文件到此处') }}
                     </p>
-                    <p class="text-(--text-secondary) mt-1 text-xs">
+                    <p class="mt-1 text-xs text-(--text-secondary)">
                         {{ t('product.import.file_limits', '支持 .xlsx, .csv 格式') }}
                     </p>
                     <div class="mt-4 inline-flex items-center gap-2 rounded-full border border-(--border-color) bg-(--bg-card) px-3 py-1 text-[11px] text-(--text-secondary)">
-                        <AppIcon name="shield-check" class="size-3.5 text-success" />
+                        <AppIcon name="shield-check" class="text-success size-3.5" />
                         {{ t('product.import.upload_security', '文件仅用于本次导入，不会公开') }}
                     </div>
                 </div>

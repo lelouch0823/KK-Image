@@ -1,8 +1,8 @@
 <template>
-  <div class="border-(--border-color) bg-(--bg-card) rounded-xl border p-4 shadow-sm">
+  <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4 shadow-sm">
     <div class="flex items-start justify-between gap-4">
       <div class="min-w-0 flex-1">
-        <p class="text-(--text-secondary) mb-1 truncate font-mono text-xs">{{ orderNo }}</p>
+        <p class="mb-1 truncate font-mono text-xs text-(--text-secondary)">{{ orderNo }}</p>
         <h2
           class="text-primary truncate text-lg font-bold"
           :title="productName || t('order.form.productName')"
@@ -17,7 +17,7 @@
 
     <!-- 状态流程条 -->
     <div class="relative mt-6">
-      <div class="bg-(--border-color) absolute top-3 right-0 left-0 h-0.5"></div>
+      <div class="absolute top-3 right-0 left-0 h-0.5 bg-(--border-color)"></div>
       <div
         class="bg-primary absolute top-3 left-0 h-0.5 transition-all duration-300"
         :style="{ width: progressWidth }"
@@ -33,7 +33,7 @@
             :class="
               index <= currentStepIndex
                 ? 'bg-primary border-primary text-(--text-inverse)'
-                : 'text-(--text-secondary) border-(--border-hover) bg-(--bg-card)'
+                : 'border-(--border-hover) bg-(--bg-card) text-(--text-secondary)'
             "
           >
             <AppIcon v-if="index < currentStepIndex" name="check" class="size-3 stroke-3" />

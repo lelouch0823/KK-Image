@@ -95,7 +95,7 @@
             >
               <AppIcon
                 name="document-text"
-                class="mb-2 size-12 text-danger"
+                class="text-danger mb-2 size-12"
               />
               <span
                 class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-1 text-xs font-medium shadow-sm"

@@ -20,7 +20,7 @@
         />
         <button
             v-if="searchQuery"
-            class="text-secondary absolute top-1/2 right-3 -translate-y-1/2 rounded-full p-1 hover:bg-(--bg-muted) hover:text-primary"
+            class="text-secondary absolute top-1/2 right-3 -translate-y-1/2 rounded-full p-1 hover:text-primary hover:bg-(--bg-muted)"
             @click="searchQuery = ''"
         >
             <AppIcon name="x-mark" class="size-4" />

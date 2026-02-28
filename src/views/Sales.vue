@@ -4,7 +4,7 @@
     <div v-if="loading" class="flex min-h-screen items-center justify-center bg-(--bg-page)">
       <div class="text-center">
         <div
-          class="mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-(--border-color) border-t-primary"
+          class="border-t-primary mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-(--border-color)"
         ></div>
         <p class="text-secondary">{{ t('common.loading') }}</p>
       </div>

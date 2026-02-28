@@ -5,7 +5,7 @@
   >
     <template #header>
       <div class="flex flex-1 items-center justify-between gap-4">
-        <h3 class="text-(--text-main) text-lg font-bold">
+        <h3 class="text-lg font-bold text-(--text-main)">
           {{ t('product.manager.detail_title') || t('router.product_detail') }}
         </h3>
         <div class="flex items-center gap-2">
@@ -16,7 +16,7 @@
     </template>
     
     <div class="relative min-h-[300px]">
-      <div v-if="loading" class="bg-(--bg-page)/50 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm">
+      <div v-if="loading" class="absolute inset-0 z-10 flex items-center justify-center bg-(--bg-page)/50 backdrop-blur-sm">
          <AppIcon name="spinner" class="text-primary size-8 animate-spin" />
       </div>
       

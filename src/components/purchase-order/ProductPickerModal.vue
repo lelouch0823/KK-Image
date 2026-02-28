@@ -9,23 +9,23 @@
         <div class="relative flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-(--color-modal-bg) shadow-2xl" style="max-height: calc(100vh - 3rem)">
           <div class="flex items-center justify-between border-b border-(--border-color) px-6 py-4">
             <div>
-              <h2 class="text-lg font-bold text-main">{{ t('purchaseOrder.selection.variantTitle', '选择变体') }}</h2>
-              <p class="mt-0.5 text-sm text-secondary">{{ t('purchaseOrder.selection.variantSubtitle', '仅显示 active 变体，可多选') }}</p>
+              <h2 class="text-main text-lg font-bold">{{ t('purchaseOrder.selection.variantTitle', '选择变体') }}</h2>
+              <p class="text-secondary mt-0.5 text-sm">{{ t('purchaseOrder.selection.variantSubtitle', '仅显示 active 变体，可多选') }}</p>
             </div>
-            <button type="button" class="cursor-pointer rounded-lg p-2 text-secondary transition-colors hover:bg-(--bg-hover)" @click="$emit('close')">
+            <button type="button" class="text-secondary cursor-pointer rounded-lg p-2 transition-colors hover:bg-(--bg-hover)" @click="$emit('close')">
               <AppIcon name="x-mark" class="size-5" />
             </button>
           </div>
 
           <div class="border-b border-(--border-subtle) px-6 py-3">
             <div class="relative">
-              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted">
+              <div class="text-muted pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <AppIcon name="magnifying-glass" class="size-4" />
               </div>
               <input
                 v-model="searchQuery"
                 type="text"
-                class="w-full rounded-xl border border-(--border-color) bg-(--bg-page) py-2.5 pr-4 pl-10 text-sm text-main transition-colors placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                class="text-main w-full rounded-xl border border-(--border-color) bg-(--bg-page) py-2.5 pr-4 pl-10 text-sm transition-colors placeholder:text-muted focus:border-primary focus:ring-primary/20 focus:ring-2 focus:outline-none"
                 :placeholder="t('purchaseOrder.selection.searchVariant', '搜索商品名 / SKU / 变体')"
                 @input="debouncedSearch"
               />
@@ -62,9 +62,9 @@
 
             <div v-else-if="sortedVariants.length === 0" class="flex flex-col items-center justify-center py-12">
               <div class="flex size-16 items-center justify-center rounded-2xl bg-(--bg-muted)">
-                <AppIcon name="cube" class="size-8 text-muted" />
+                <AppIcon name="cube" class="text-muted size-8" />
               </div>
-              <p class="mt-4 text-sm text-secondary">{{ t('purchaseOrder.selection.noActiveVariants', '暂无可选 active 变体') }}</p>
+              <p class="text-secondary mt-4 text-sm">{{ t('purchaseOrder.selection.noActiveVariants', '暂无可选 active 变体') }}</p>
             </div>
 
             <div v-else class="space-y-2">
@@ -79,21 +79,21 @@
                 <input
                   type="checkbox"
                   :checked="isSelected(variant.variant_id)"
-                  class="size-4 cursor-pointer rounded border-(--border-color) text-primary focus:ring-primary"
+                  class="text-primary size-4 cursor-pointer rounded border-(--border-color) focus:ring-primary"
                   @change="toggleSelect(variant)"
                 />
                 <div class="size-10 shrink-0 overflow-hidden rounded-lg border border-(--border-subtle) bg-(--bg-muted)">
                   <AppImage v-if="variant.image" :src="getFileUrl(variant.image)" fit="cover" class="size-full" />
-                  <div v-else class="flex size-full items-center justify-center text-muted">
+                  <div v-else class="text-muted flex size-full items-center justify-center">
                     <AppIcon name="photo" class="size-5" />
                   </div>
                 </div>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-2">
-                    <span class="truncate text-sm font-medium text-main">{{ variant.product_name }}</span>
-                    <span class="shrink-0 font-[Outfit] text-xs text-secondary">¥{{ Number(variant.unit_cost || 0).toFixed(2) }}</span>
+                    <span class="text-main truncate text-sm font-medium">{{ variant.product_name }}</span>
+                    <span class="text-secondary shrink-0 font-[Outfit] text-xs">¥{{ Number(variant.unit_cost || 0).toFixed(2) }}</span>
                   </div>
-                  <div class="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-secondary">
+                  <div class="text-secondary mt-0.5 flex flex-wrap items-center gap-2 text-xs">
                     <span class="rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono">{{ variant.sku || '—' }}</span>
                     <span v-if="variant.brand">{{ variant.brand }}</span>
                     <span v-if="variant.variant_options && Object.keys(variant.variant_options).length > 0">
@@ -103,7 +103,7 @@
                 </div>
                 <div
                   v-if="isInitiallySelected(variant.variant_id)"
-                  class="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary"
+                  class="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
                 >
                   {{ t('purchaseOrder.selection.alreadyAdded', '已添加') }}
                 </div>
@@ -112,14 +112,14 @@
           </div>
 
           <div class="flex items-center justify-between border-t border-(--border-color) bg-(--bg-card) px-6 py-4">
-            <span class="text-sm text-secondary">{{ t('purchaseOrder.selection.selectedCount', { count: selectedCount }) }}</span>
+            <span class="text-secondary text-sm">{{ t('purchaseOrder.selection.selectedCount', { count: selectedCount }) }}</span>
             <div class="flex items-center gap-3">
-              <button type="button" class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-secondary transition-colors hover:bg-(--bg-hover)" @click="$emit('close')">
+              <button type="button" class="text-secondary cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium transition-colors hover:bg-(--bg-hover)" @click="$emit('close')">
                 {{ t('common.cancel') }}
               </button>
               <button
                 type="button"
-                class="cursor-pointer rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-inverse shadow-sm transition-all hover:opacity-90"
+                class="bg-primary text-inverse cursor-pointer rounded-xl px-5 py-2.5 text-sm font-medium shadow-sm transition-all hover:opacity-90"
                 @click="confirm"
               >
                 {{ t('common.confirm') }} ({{ selectedCount }})

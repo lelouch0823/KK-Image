@@ -1,7 +1,7 @@
 <template>
   <div ref="containerRef" class="order-list">
     <!-- 下拉刷新提示 -->
-    <div v-if="isPulling" class="text-(--text-secondary) flex items-center justify-center py-4 text-sm">
+    <div v-if="isPulling" class="flex items-center justify-center py-4 text-sm text-(--text-secondary)">
       <AppIcon name="spinner" class="mr-2 size-4 animate-spin" />
       {{ t('common.loading') }}
     </div>
@@ -9,12 +9,12 @@
     <!-- 空状态 -->
     <div v-if="!loading && orders.length === 0" class="py-16 text-center">
       <div
-        class="bg-(--bg-muted) mx-auto mb-6 flex size-20 items-center justify-center rounded-full"
+        class="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-(--bg-muted)"
       >
-        <AppIcon name="clipboard-document-list" class="text-(--text-muted) size-10" />
+        <AppIcon name="clipboard-document-list" class="size-10 text-(--text-muted)" />
       </div>
       <h3 class="text-primary mb-2 text-lg font-medium">{{ t('order.portal.emptyOrders') }}</h3>
-      <p class="text-(--text-secondary) text-sm">{{ t('order.portal.emptyHint') }}</p>
+      <p class="text-sm text-(--text-secondary)">{{ t('order.portal.emptyHint') }}</p>
     </div>
 
     <!-- 虚拟滚动容器 -->
@@ -31,7 +31,7 @@
         <div
           v-for="order in visibleItems"
           :key="order.id"
-          class="order-item border-(--border-color) bg-(--bg-card) group relative cursor-pointer overflow-hidden rounded-xl border p-3 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md active:scale-[0.98]"
+          class="order-item group relative cursor-pointer overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) p-3 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md active:scale-[0.98]"
           :style="{ height: `${ITEM_HEIGHT - 12}px` }"
           @click="$emit('view', order)"
         >
@@ -44,7 +44,7 @@
 
           <div class="flex h-full gap-3">
             <!-- 主图 -->
-            <div class="bg-(--bg-muted) size-20 shrink-0 overflow-hidden rounded-lg shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)]">
+            <div class="size-20 shrink-0 overflow-hidden rounded-lg bg-(--bg-muted) shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)]">
               <AppImage
                 v-if="order.mainImage"
                 :src="order.mainImage"
@@ -54,14 +54,14 @@
                 rounded="none"
               />
               <div v-else class="flex size-full items-center justify-center">
-                <AppIcon name="photo" class="text-(--text-muted) size-8" />
+                <AppIcon name="photo" class="size-8 text-(--text-muted)" />
               </div>
             </div>
 
             <!-- 信息 -->
             <div class="flex min-w-0 flex-1 flex-col justify-between py-0.5">
                 <div class="flex items-center gap-2">
-                    <span class="text-(--text-secondary) font-mono text-[10px] tracking-wide truncate" :title="order.orderNo">{{ order.orderNo }}</span>
+                    <span class="truncate font-mono text-[10px] tracking-wide text-(--text-secondary)" :title="order.orderNo">{{ order.orderNo }}</span>
                     <!-- New Update Red Dot -->
                     <div v-if="order.hasNewFeedback" class="relative flex size-2 shrink-0">
                       <span class="bg-danger absolute inline-flex size-full animate-ping rounded-full opacity-75"></span>
@@ -69,22 +69,22 @@
                     </div>
                 </div>
                 <!-- 预留右侧 Badge 空间，防止文字重叠 -->
-                <h4 class="text-primary mt-0.5 truncate pr-16 text-sm font-bold leading-tight" :title="order.productName || t('order.form.productName')">
+                <h4 class="text-primary mt-0.5 truncate pr-16 text-sm leading-tight font-bold" :title="order.productName || t('order.form.productName')">
                   {{ order.productName || t('order.form.productName') }}
                 </h4>
 
               <div class="flex items-end justify-between">
-                <div class="text-(--text-secondary) flex min-w-0 flex-1 items-center gap-1.5 text-xs">
+                <div class="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-(--text-secondary)">
                     <AppIcon name="user" class="size-3.5 shrink-0 opacity-70" />
                     <span class="min-w-0 flex-1 truncate" :title="order.customer?.name || t('common.unknown')">{{ order.customer?.name || t('common.unknown') }}</span>
-                    <span class="text-(--border-color) shrink-0">|</span>
+                    <span class="shrink-0 text-(--border-color)">|</span>
                     <span class="shrink-0">{{ formatTime(order.createdAt) }}</span>
                 </div>
                 
                 <!-- 箭头 -->
                 <AppIcon
                   name="chevron-down"
-                  class="text-(--text-quaternary) size-4 shrink-0 -rotate-90 opacity-50 transition-transform group-hover:translate-x-1 group-hover:opacity-100"
+                  class="size-4 shrink-0 -rotate-90 text-(--text-quaternary) opacity-50 transition-transform group-hover:translate-x-1 group-hover:opacity-100"
                 />
               </div>
             </div>
@@ -99,7 +99,7 @@
     </div>
 
     <!-- 加载更多 -->
-    <div v-if="loadingMore" class="text-(--text-secondary) flex items-center justify-center py-4 text-xs">
+    <div v-if="loadingMore" class="flex items-center justify-center py-4 text-xs text-(--text-secondary)">
       <AppIcon name="spinner" class="mr-2 size-4 animate-spin" />
       {{ t('common.loading') }}...
     </div>

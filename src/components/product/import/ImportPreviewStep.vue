@@ -1,17 +1,17 @@
 <template>
-    <div v-if="fileName" class="border-(--border-color) bg-(--bg-card) dark:border-white/10 dark:bg-white/5 rounded-lg border p-4">
+    <div v-if="fileName" class="rounded-lg border border-(--border-color) bg-(--bg-card) p-4 dark:border-white/10 dark:bg-white/5">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="bg-success/10 text-success dark:bg-success/20 flex size-10 items-center justify-center rounded-lg">
+                <div class="bg-success/10 text-success flex size-10 items-center justify-center rounded-lg dark:bg-success/20">
                     <AppIcon name="document-text" class="size-6" />
                 </div>
                 <div>
-                    <h4 class="text-(--text-main) text-sm font-medium">{{ fileName }}</h4>
-                    <p class="text-(--text-secondary) text-xs">{{ fileSize }}</p>
+                    <h4 class="text-sm font-medium text-(--text-main)">{{ fileName }}</h4>
+                    <p class="text-xs text-(--text-secondary)">{{ fileSize }}</p>
                 </div>
             </div>
             <button 
-                class="text-(--text-muted) hover:text-danger cursor-pointer"
+                class="hover:text-danger cursor-pointer text-(--text-muted)"
                 @click="$emit('reset')"
             >
                 <AppIcon name="x-mark" class="size-5" />
@@ -19,16 +19,16 @@
         </div>
 
         <!-- Parsed Stats -->
-        <div v-if="parsedItems.length > 0" class="border-(--border-color) dark:border-white/10 mt-4 border-t pt-3">
+        <div v-if="parsedItems.length > 0" class="mt-4 border-t border-(--border-color) pt-3 dark:border-white/10">
             <div class="flex items-center justify-between text-sm">
                 <span class="text-(--text-secondary)">{{ t('product.import.total_rows', '识别行数') }}:</span>
-                <span class="text-(--text-main) font-medium">{{ parsedItems.length }}</span>
+                <span class="font-medium text-(--text-main)">{{ parsedItems.length }}</span>
             </div>
 
             <div v-if="showPreprocessStats" class="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
                 <div class="rounded-md border border-(--border-color) bg-(--bg-muted) px-2 py-1.5">
                     <p class="text-(--text-secondary)">{{ t('product.import.preprocess.source_rows', '源数据行') }}</p>
-                    <p class="text-(--text-main) mt-1 font-semibold">{{ preprocessStats.sourceRows }}</p>
+                    <p class="mt-1 font-semibold text-(--text-main)">{{ preprocessStats.sourceRows }}</p>
                 </div>
                 <div class="rounded-md border border-(--border-color) bg-(--bg-muted) px-2 py-1.5">
                     <p class="text-(--text-secondary)">{{ t('product.import.preprocess.accepted_rows', '可导入行') }}</p>
@@ -55,17 +55,17 @@
         </div>
 
         <!-- Progress Bar -->
-        <div v-if="loading" class="border-(--border-color) dark:border-white/10 mt-4 border-t pt-3">
+        <div v-if="loading" class="mt-4 border-t border-(--border-color) pt-3 dark:border-white/10">
             <div class="mb-1 flex justify-between text-xs">
             <span class="text-primary">
                 {{ t('product.import.importing', { current: importStats.processed, total: importStats.total }) }}
                 ({{ processedChunk }}/{{ totalChunk }} 批次)
             </span>
-            <span class="text-(--text-main) font-medium dark:text-white">
+            <span class="font-medium text-(--text-main) dark:text-white">
                 {{ progressPercent }}%
             </span>
         </div>
-        <div class="bg-(--bg-muted) dark:bg-white/10 h-2 w-full overflow-hidden rounded-full transition-colors">
+        <div class="h-2 w-full overflow-hidden rounded-full bg-(--bg-muted) transition-colors dark:bg-white/10">
             <div 
                 class="bg-primary h-full transition-all duration-300" 
                 :style="{ width: progressPercent + '%' }"
@@ -81,7 +81,7 @@
         <p class="font-medium">
         {{ importResult.success && importResult.count > 0 ? '导入完成！' : '导入失败' }}
         </p>
-        <ul class="mt-2 list-disc pl-4 text-xs space-y-1">
+        <ul class="mt-2 list-disc space-y-1 pl-4 text-xs">
             <template v-if="importResult.summary">
                 <li v-if="importResult.summary.createdProducts">{{ t('product.import.stats.created_products', '新建商品') }}: {{ importResult.summary.createdProducts }}</li>
                 <li v-if="importResult.summary.updatedProducts">{{ t('product.import.stats.updated_products', '更新商品') }}: {{ importResult.summary.updatedProducts }}</li>
@@ -96,7 +96,7 @@
 
     <div
         v-if="importResult && Array.isArray(importResult.conflicts) && importResult.conflicts.length > 0"
-        class="mt-3 rounded-md border border-warning/30 bg-warning/10 p-3"
+        class="border-warning/30 bg-warning/10 mt-3 rounded-md border p-3"
     >
         <div class="mb-2 flex items-center justify-between">
             <p class="text-warning text-sm font-semibold">{{ t('product.import.conflicts.title', '冲突详情（已跳过）') }}</p>
@@ -115,12 +115,12 @@
                 <input
                     v-model.trim="conflictSearch"
                     type="text"
-                    class="w-full rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs text-(--text-main) outline-none focus:border-primary"
+                    class="focus:border-primary w-full rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs text-(--text-main) outline-none"
                     :placeholder="t('product.import.conflicts.search_placeholder', '搜索 SPU/SKU/字段')"
                 />
                 <select
                     v-model="conflictLevelFilter"
-                    class="w-full rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs text-(--text-main) outline-none focus:border-primary"
+                    class="focus:border-primary w-full rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs text-(--text-main) outline-none"
                 >
                     <option value="all">{{ t('product.import.conflicts.level_all', '全部层级') }}</option>
                     <option value="product">{{ t('product.import.conflicts.level_product', '商品层') }}</option>
@@ -131,7 +131,7 @@
                 </button>
             </div>
 
-            <div class="max-h-52 overflow-y-auto rounded border border-warning/20 bg-(--bg-card)">
+            <div class="border-warning/20 max-h-52 overflow-y-auto rounded border bg-(--bg-card)">
                 <table class="w-full table-fixed text-xs">
                     <thead class="bg-(--bg-muted)">
                         <tr>
@@ -152,9 +152,9 @@
                             <td class="px-2 py-1">{{ conflict.level || '-' }}</td>
                             <td class="px-2 py-1">{{ conflict.spu || '-' }}</td>
                             <td class="px-2 py-1">{{ conflict.sku || '-' }}</td>
-                            <td class="px-2 py-1 text-warning">{{ conflict.field || '-' }}</td>
-                            <td class="px-2 py-1 truncate" :title="String(conflict.current ?? '-')">{{ String(conflict.current ?? '-') }}</td>
-                            <td class="px-2 py-1 truncate" :title="String(conflict.incoming ?? '-')">{{ String(conflict.incoming ?? '-') }}</td>
+                            <td class="text-warning px-2 py-1">{{ conflict.field || '-' }}</td>
+                            <td class="truncate px-2 py-1" :title="String(conflict.current ?? '-')">{{ String(conflict.current ?? '-') }}</td>
+                            <td class="truncate px-2 py-1" :title="String(conflict.incoming ?? '-')">{{ String(conflict.incoming ?? '-') }}</td>
                         </tr>
                         <tr v-if="visibleConflicts.length === 0">
                             <td colspan="6" class="px-2 py-3 text-center text-(--text-secondary)">
@@ -168,7 +168,7 @@
     </div>
 
     <!-- Error Feedback (General) -->
-    <div v-if="importError" class="bg-danger/10 text-danger dark:bg-danger/10 mt-4 rounded-md p-3 text-sm dark:text-red-300">
+    <div v-if="importError" class="bg-danger/10 text-danger mt-4 rounded-md p-3 text-sm dark:bg-danger/10 dark:text-red-300">
         {{ importError }}
     </div>
 </template>

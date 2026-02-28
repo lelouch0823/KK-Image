@@ -1,33 +1,33 @@
 <template>
     <div>
-        <h3 class="text-(--text-main) mb-2 text-lg font-semibold">{{ t('product.import.mapping_title', '列名映射') }}</h3>
-        <p class="text-(--text-secondary) mb-4 text-sm">{{ t('product.import.mapping_desc', '请确认文件列与系统字段的对应关系') }}</p>
+        <h3 class="mb-2 text-lg font-semibold text-(--text-main)">{{ t('product.import.mapping_title', '列名映射') }}</h3>
+        <p class="mb-4 text-sm text-(--text-secondary)">{{ t('product.import.mapping_desc', '请确认文件列与系统字段的对应关系') }}</p>
         <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div class="rounded-lg border border-(--border-color) bg-(--bg-muted) px-3 py-2">
-                <p class="text-(--text-secondary) text-[11px]">{{ t('product.import.meta.headers', '检测到列') }}</p>
-                <p class="text-(--text-main) mt-1 text-sm font-semibold">{{ fileHeaders.length }}</p>
+                <p class="text-[11px] text-(--text-secondary)">{{ t('product.import.meta.headers', '检测到列') }}</p>
+                <p class="mt-1 text-sm font-semibold text-(--text-main)">{{ fileHeaders.length }}</p>
             </div>
             <div class="rounded-lg border border-(--border-color) bg-(--bg-muted) px-3 py-2">
-                <p class="text-(--text-secondary) text-[11px]">{{ t('product.import.meta.fields', '系统字段') }}</p>
-                <p class="text-(--text-main) mt-1 text-sm font-semibold">{{ systemFields.length }}</p>
+                <p class="text-[11px] text-(--text-secondary)">{{ t('product.import.meta.fields', '系统字段') }}</p>
+                <p class="mt-1 text-sm font-semibold text-(--text-main)">{{ systemFields.length }}</p>
             </div>
             <div class="rounded-lg border border-(--border-color) bg-(--bg-muted) px-3 py-2">
-                <p class="text-(--text-secondary) text-[11px]">{{ t('product.import.meta.required', '必填字段') }}</p>
-                <p class="text-(--text-main) mt-1 text-sm font-semibold">{{ requiredCount }}</p>
+                <p class="text-[11px] text-(--text-secondary)">{{ t('product.import.meta.required', '必填字段') }}</p>
+                <p class="mt-1 text-sm font-semibold text-(--text-main)">{{ requiredCount }}</p>
             </div>
             <div class="rounded-lg border border-(--border-color) bg-(--bg-muted) px-3 py-2">
-                <p class="text-(--text-secondary) text-[11px]">{{ t('product.import.meta.mapped', '已映射') }}</p>
+                <p class="text-[11px] text-(--text-secondary)">{{ t('product.import.meta.mapped', '已映射') }}</p>
                 <p class="text-primary mt-1 text-sm font-semibold">{{ mappedCount }}</p>
             </div>
         </div>
         <div class="grid max-h-[40vh] grid-cols-1 gap-4 overflow-y-auto pr-1">
-            <div v-for="field in systemFields" :key="field.key" class="border-(--border-color) dark:border-white/10 flex items-center justify-between border-b pb-2">
+            <div v-for="field in systemFields" :key="field.key" class="flex items-center justify-between border-b border-(--border-color) pb-2 dark:border-white/10">
                 <div class="flex flex-col">
-                    <span class="text-(--text-main) text-sm font-medium dark:text-white">
+                    <span class="text-sm font-medium text-(--text-main) dark:text-white">
                         {{ field.label }} 
                         <span v-if="field.required" class="text-danger">*</span>
                     </span>
-                    <span class="text-(--text-secondary) text-xs">Field: {{ field.key }}</span>
+                    <span class="text-xs text-(--text-secondary)">Field: {{ field.key }}</span>
                 </div>
                 <div class="w-1/2">
                     <Select
@@ -43,8 +43,8 @@
         <div class="mt-5 rounded-xl border border-(--border-color) bg-(--bg-muted) p-4">
             <div class="mb-3 flex items-center justify-between">
                 <div>
-                    <h4 class="text-(--text-main) text-sm font-semibold">{{ t('product.import.specs.title', '规格配置') }}</h4>
-                    <p class="text-(--text-secondary) mt-1 text-xs">
+                    <h4 class="text-sm font-semibold text-(--text-main)">{{ t('product.import.specs.title', '规格配置') }}</h4>
+                    <p class="mt-1 text-xs text-(--text-secondary)">
                         {{ t('product.import.specs.desc', '支持 0-3 个规格，支持预设名称或自定义名称。') }}
                     </p>
                 </div>
@@ -58,13 +58,13 @@
                 </button>
             </div>
 
-            <div v-if="specConfigs.length === 0" class="text-(--text-secondary) text-xs">
+            <div v-if="specConfigs.length === 0" class="text-xs text-(--text-secondary)">
                 {{ t('product.import.specs.empty', '未配置规格，将按无规格导入。') }}
             </div>
 
             <div v-for="(spec, index) in specConfigs" :key="spec.id || index" class="mb-3 rounded-lg border border-(--border-color) bg-(--bg-card) p-3 last:mb-0">
                 <div class="mb-2 flex items-center justify-between">
-                    <span class="text-(--text-main) text-xs font-semibold">
+                    <span class="text-xs font-semibold text-(--text-main)">
                         {{ t('product.import.specs.item', '规格') }} {{ index + 1 }}
                     </span>
                     <button
@@ -94,7 +94,7 @@
                     <input
                         :value="spec.name"
                         type="text"
-                        class="w-full rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) outline-none focus:border-primary"
+                        class="focus:border-primary w-full rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) outline-none"
                         :placeholder="t('product.import.specs.name_placeholder', '输入规格名（如：颜色）')"
                         @input="setSpecName(index, $event.target.value)"
                     />
@@ -109,8 +109,8 @@
         </div>
 
         <div class="mt-4 rounded-xl border border-(--border-color) bg-(--bg-muted) p-4">
-            <h4 class="text-(--text-main) text-sm font-semibold">{{ t('product.import.mode.title', '导入策略') }}</h4>
-            <p class="text-(--text-secondary) mt-1 text-xs">
+            <h4 class="text-sm font-semibold text-(--text-main)">{{ t('product.import.mode.title', '导入策略') }}</h4>
+            <p class="mt-1 text-xs text-(--text-secondary)">
                 {{ t('product.import.mode.desc', '请选择导入时遇到同 SPU/变体时的处理方式。') }}
             </p>
             <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -137,7 +137,7 @@
 
         <div
             v-if="validationReport && validationReport.total > 0"
-            class="mt-4 rounded-xl border border-warning/30 bg-warning/10 p-4"
+            class="border-warning/30 bg-warning/10 mt-4 rounded-xl border p-4"
         >
             <div class="mb-2 flex items-center justify-between">
                 <h4 class="text-warning text-sm font-semibold">
@@ -148,24 +148,24 @@
                 </span>
             </div>
             <div class="mb-3 flex flex-wrap gap-2 text-xs">
-                <span class="rounded-full border border-warning/30 px-2 py-1">
+                <span class="border-warning/30 rounded-full border px-2 py-1">
                     {{ t('product.import.preprocess.issue.missing_name', '商品名称为空') }}: {{ validationReport.byCode?.missing_name || 0 }}
                 </span>
-                <span class="rounded-full border border-warning/30 px-2 py-1">
+                <span class="border-warning/30 rounded-full border px-2 py-1">
                     {{ t('product.import.preprocess.issue.missing_sku', 'SKU 为空') }}: {{ validationReport.byCode?.missing_sku || 0 }}
                 </span>
-                <span class="rounded-full border border-warning/30 px-2 py-1">
+                <span class="border-warning/30 rounded-full border px-2 py-1">
                     {{ t('product.import.preprocess.issue.duplicate_sku', 'SKU 重复') }}: {{ validationReport.byCode?.duplicate_sku || 0 }}
                 </span>
-                <span class="rounded-full border border-warning/30 px-2 py-1">
+                <span class="border-warning/30 rounded-full border px-2 py-1">
                     {{ t('product.import.preprocess.issue.empty_row', '整行为空或仅包含默认值') }}: {{ validationReport.byCode?.empty_row || 0 }}
                 </span>
             </div>
-            <div class="max-h-40 overflow-y-auto rounded-lg border border-warning/20 bg-(--bg-card) p-2">
+            <div class="border-warning/20 max-h-40 overflow-y-auto rounded-lg border bg-(--bg-card) p-2">
                 <div
                     v-for="(issue, idx) in validationReport.samples || []"
                     :key="`${issue.code}-${issue.row}-${idx}`"
-                    class="text-(--text-main) flex items-center justify-between border-b border-(--border-color) py-1 text-xs last:border-b-0"
+                    class="flex items-center justify-between border-b border-(--border-color) py-1 text-xs text-(--text-main) last:border-b-0"
                 >
                     <span>{{ t('product.import.preprocess.row', { row: issue.row }, '第 {row} 行') }}</span>
                     <span class="text-warning">{{ issue.message }}</span>

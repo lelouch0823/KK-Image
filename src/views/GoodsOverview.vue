@@ -233,7 +233,7 @@
         <table class="w-full text-left text-sm">
           <thead>
             <tr class="border-b border-[var(--border-color)] bg-[var(--bg-muted)]">
-              <th class="w-10 px-3 py-3">
+              <th class="w-10 p-3 ">
                 <input type="checkbox" :checked="isAllSelected" class="size-4 cursor-pointer rounded border-[var(--border-color)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]" @change="toggleSelectAll" />
               </th>
               <th class="px-4 py-3 font-semibold text-[var(--text-secondary)]">{{ t('goodsOverview.table.name') }}</th>
@@ -260,7 +260,7 @@
               :class="{ 'bg-[var(--color-primary)]/5': isSelected(item) }"
             >
               <!-- 复选框 -->
-              <td class="px-3 py-3">
+              <td class="p-3 ">
                 <input type="checkbox" :checked="isSelected(item)" class="size-4 cursor-pointer rounded border-[var(--border-color)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]" @change="toggleSelect(item)" />
               </td>
               <!-- 商品名称 / 变体 -->

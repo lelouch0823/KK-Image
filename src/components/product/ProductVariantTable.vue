@@ -2,7 +2,7 @@
   <!-- 外层容器：相对定位用于滚动阴影 -->
   <div
     ref="scrollContainerRef"
-    class="border-(--border-color)/60 bg-(--bg-card) relative overflow-x-auto rounded-lg border"
+    class="relative overflow-x-auto rounded-lg border border-(--border-color)/60 bg-(--bg-card)"
     @scroll="onScroll"
   >
     <!-- 右侧渐变阴影提示：可横向滚动 -->
@@ -12,8 +12,8 @@
       style="background: linear-gradient(to right, transparent, var(--bg-card))"
     />
 
-    <table class="w-full min-w-[1120px] whitespace-nowrap text-left text-sm">
-      <thead class="bg-(--bg-muted)/80 text-(--text-secondary) text-[11px] font-semibold uppercase tracking-wider">
+    <table class="w-full min-w-[1120px] text-left text-sm whitespace-nowrap">
+      <thead class="bg-(--bg-muted)/80 text-[11px] font-semibold tracking-wider text-(--text-secondary) uppercase">
         <tr>
           <th class="sticky left-0 z-10 min-w-[120px] bg-(--bg-muted) px-4 py-3">{{ t('product.table.variant.variant_name', 'Variant') }}</th>
           <th class="min-w-[160px] px-4 py-3">{{ t('product.table.variant.sku', 'SKU') }}</th>
@@ -27,112 +27,112 @@
           <th class="min-w-[80px] px-4 py-3">{{ t('product.table.variant.images', 'Images') }}</th>
         </tr>
       </thead>
-      <tbody class="divide-(--border-color)/40 divide-y">
+      <tbody class="divide-y divide-(--border-color)/40">
         <tr
           v-for="(variant, idx) in getVariants()"
           :key="variant.id || variant._clientKey || idx"
-          class="hover:bg-(--bg-muted)/30 group transition-colors"
+          class="group transition-colors hover:bg-(--bg-muted)/30"
         >
           <!-- 规格名 — sticky 首列 -->
-          <td class="bg-(--bg-card) text-(--text-main) sticky left-0 z-10 px-4 py-2 font-medium transition-colors group-hover:bg-(--bg-muted)/30">
+          <td class="sticky left-0 z-10 bg-(--bg-card) px-4 py-2 font-medium text-(--text-main) transition-colors group-hover:bg-(--bg-muted)/30">
             <div class="flex items-center gap-2">
-              <span class="bg-(--bg-muted) text-(--text-secondary) inline-flex h-6 items-center rounded-md px-2 text-xs font-semibold">
+              <span class="inline-flex h-6 items-center rounded-md bg-(--bg-muted) px-2 text-xs font-semibold text-(--text-secondary)">
                 {{ formatVariantName(variant.options_values) }}
               </span>
             </div>
           </td>
           <!-- SKU -->
-          <td class="px-2 py-2">
+          <td class="p-2 ">
             <input
               :value="variant.sku || ''"
-              @input="(e) => updateVariantField(idx, 'sku', e.target.value)"
               type="text"
               class="variant-input"
               placeholder="SKU"
+              @input="(e) => updateVariantField(idx, 'sku', e.target.value)"
             >
           </td>
           <!-- 条码 -->
-          <td class="px-2 py-2">
+          <td class="p-2 ">
             <input
               :value="variant.barcode || ''"
-              @input="(e) => updateVariantField(idx, 'barcode', e.target.value)"
               type="text"
               class="variant-input"
               placeholder="Barcode"
+              @input="(e) => updateVariantField(idx, 'barcode', e.target.value)"
             >
           </td>
           <!-- 供应商 SKU -->
-          <td class="px-2 py-2">
+          <td class="p-2 ">
             <input
               :value="variant.supplier_sku || ''"
-              @input="(e) => updateVariantField(idx, 'supplier_sku', e.target.value)"
               type="text"
               class="variant-input"
               placeholder="Supplier SKU"
+              @input="(e) => updateVariantField(idx, 'supplier_sku', e.target.value)"
             >
           </td>
           <!-- 价格 -->
-          <td class="px-2 py-2">
+          <td class="p-2 ">
             <div class="relative">
-              <span class="text-(--text-muted) absolute top-1/2 left-2 -translate-y-1/2 text-xs">{{ currencySymbol }}</span>
+              <span class="absolute top-1/2 left-2 -translate-y-1/2 text-xs text-(--text-muted)">{{ currencySymbol }}</span>
               <input
                 :value="variant.price ?? ''"
-                @input="(e) => updateVariantField(idx, 'price', parseNumberInput(e.target.value))"
                 type="number"
                 step="0.01"
                 class="variant-input pl-6!"
                 placeholder="0.00"
+                @input="(e) => updateVariantField(idx, 'price', parseNumberInput(e.target.value))"
               >
             </div>
           </td>
           <!-- 成本 -->
-          <td class="px-2 py-2">
+          <td class="p-2 ">
             <div class="relative">
-              <span class="text-(--text-muted) absolute top-1/2 left-2 -translate-y-1/2 text-xs">{{ currencySymbol }}</span>
+              <span class="absolute top-1/2 left-2 -translate-y-1/2 text-xs text-(--text-muted)">{{ currencySymbol }}</span>
               <input
                 :value="variant.cost_price ?? ''"
-                @input="(e) => updateVariantField(idx, 'cost_price', parseNumberInput(e.target.value))"
                 type="number"
                 step="0.01"
                 class="variant-input pl-6!"
                 placeholder="0.00"
+                @input="(e) => updateVariantField(idx, 'cost_price', parseNumberInput(e.target.value))"
               >
             </div>
           </td>
           <!-- 库存 -->
-          <td class="px-2 py-2">
+          <td class="p-2 ">
             <input
               :value="variant.stock_quantity ?? ''"
-              @input="(e) => updateVariantField(idx, 'stock_quantity', parseNumberInput(e.target.value))"
               type="number"
               class="variant-input"
               placeholder="0"
+              @input="(e) => updateVariantField(idx, 'stock_quantity', parseNumberInput(e.target.value))"
             >
           </td>
           <!-- 预警 -->
-          <td class="px-2 py-2">
+          <td class="p-2 ">
             <input
               :value="variant.alert_threshold ?? ''"
-              @input="(e) => updateVariantField(idx, 'alert_threshold', parseNumberInput(e.target.value))"
               type="number"
               class="variant-input"
               placeholder="10"
+              @input="(e) => updateVariantField(idx, 'alert_threshold', parseNumberInput(e.target.value))"
             >
           </td>
           <!-- 状态 -->
           <td class="px-3 py-2">
             <button
               type="button"
-              class="hover:bg-(--bg-muted) flex items-center justify-center rounded-md p-1 transition-colors outline-none"
+              class="flex items-center justify-center rounded-md p-1 transition-colors outline-none hover:bg-(--bg-muted)"
               :title="variant.status === 'archived' ? t('common.archived', 'Archived') : t('common.active', 'Active')"
               @click="updateVariantField(idx, 'status', variant.status === 'archived' ? 'active' : 'archived')"
             >
               <AppIcon v-if="variant.status !== 'archived'" name="check-circle-solid" class="size-5 text-emerald-500" />
-              <AppIcon v-else name="minus-circle-solid" class="text-(--text-muted) size-5" />
+              <AppIcon v-else name="minus-circle-solid" class="size-5 text-(--text-muted)" />
             </button>
           </td>
           <!-- 图片数量 -->
-          <td class="text-(--text-secondary) px-4 py-2 text-xs">
+          <td class="px-4 py-2 text-xs text-(--text-secondary)">
             {{ variant.images?.length || 0 }}
           </td>
         </tr>

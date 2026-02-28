@@ -3,7 +3,7 @@
   <!-- 选项维度构建器 -->
   <div class="space-y-6 rounded-2xl border border-(--border-color) bg-linear-to-br from-(--bg-muted) to-(--bg-card) p-4 sm:p-6">
     <!-- 标题 + 操作按钮 -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="flex flex-col justify-between gap-4 md:flex-row md:items-center">
       <div>
         <h4 class="text-lg font-black tracking-tight text-(--text-main)">
           {{ t('product.form.options_title', 'Product Options') }}
@@ -15,7 +15,7 @@
       <div class="flex items-center gap-3">
         <button
           type="button"
-          class="flex items-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-page) hover:text-(--text-main) shadow-sm"
+          class="flex items-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-medium text-(--text-secondary) shadow-sm transition-colors hover:bg-(--bg-page) hover:text-(--text-main)"
           @click="$emit('batch-build')"
         >
           <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
@@ -23,7 +23,7 @@
         </button>
         <button
           type="button"
-          class="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-(--text-inverse) shadow-md shadow-primary/20 transition-all hover:bg-primary-hover active:scale-95"
+          class="bg-primary shadow-primary/20 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-(--text-inverse) shadow-md transition-all hover:bg-primary-hover active:scale-95"
           @click="$emit('add-option')"
         >
           <span class="material-symbols-outlined text-[18px]">add</span>
@@ -37,21 +37,21 @@
       <div
         v-for="(opt, idx) in options"
         :key="idx"
-        class="bg-(--bg-card) border border-(--border-color) rounded-xl shadow-sm overflow-hidden group transition-all relative"
+        class="group relative overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) shadow-sm transition-all"
       >
         <div class="flex items-start p-5 sm:p-6">
           <!-- 拖拽把手图标 Placeholder -->
-          <div class="mr-3 sm:mr-4 mt-2 cursor-grab active:cursor-grabbing text-(--text-muted) hover:text-(--text-secondary) transition-colors flex shrink-0">
+          <div class="mt-2 mr-3 flex shrink-0 cursor-grab text-(--text-muted) transition-colors hover:text-(--text-secondary) active:cursor-grabbing sm:mr-4">
             <span class="material-symbols-outlined text-xl">drag_indicator</span>
           </div>
 
           <div class="flex-1 space-y-6">
             <!-- 上半部：规格名称行 -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div class="flex-1 max-w-sm">
+            <div class="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+              <div class="max-w-sm flex-1">
                 <label class="mb-1.5 flex items-center gap-2 text-xs font-bold tracking-wider text-(--text-secondary) uppercase">
                   {{ t('product.form.dimension_label', 'Specification Name') }}
-                  <span class="rounded-full bg-(--bg-muted) px-2 py-0.5 text-[10px] font-semibold text-(--text-secondary) tracking-normal normal-case">
+                  <span class="rounded-full bg-(--bg-muted) px-2 py-0.5 text-[10px] font-semibold tracking-normal text-(--text-secondary) normal-case">
                     {{ t('product.form.dimension_label_short', '维度') }} {{ idx + 1 }}
                   </span>
                 </label>
@@ -65,7 +65,7 @@
               </div>
               <button
                 type="button"
-                class="p-2 text-(--text-muted) transition-colors hover:text-danger self-end md:self-auto"
+                class="hover:text-danger self-end p-2 text-(--text-muted) transition-colors md:self-auto"
                 :title="t('common.delete', 'Delete')"
                 @click="$emit('remove-option', idx)"
               >
@@ -77,7 +77,7 @@
             <div>
               <label class="mb-2 flex items-center gap-2 text-xs font-bold tracking-wider text-(--text-secondary) uppercase">
                 {{ t('product.form.option_values_label', 'Options / Values') }}
-                <span class="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary tracking-normal normal-case">
+                <span class="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-normal normal-case">
                   {{ opt.values.length }} {{ t('product.form.values_count', '值') }}
                 </span>
               </label>
@@ -87,25 +87,25 @@
                 <div
                   v-for="(val, vIdx) in opt.values"
                   :key="vIdx"
-                  class="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary transition-all hover:bg-primary/20"
+                  class="border-primary/20 bg-primary/10 text-primary flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-all hover:bg-primary/20"
                 >
                   <!-- 动态交互设色圆点 -->
                   <label 
                     v-if="opt.metaMap && opt.metaMap[val] && opt.metaMap[val].color" 
-                    class="relative size-3 cursor-pointer rounded-full shadow-inner ring-1 ring-inset ring-black/10 transition-transform hover:scale-110 shrink-0"
+                    class="relative size-3 shrink-0 cursor-pointer rounded-full shadow-inner ring-1 ring-black/10 transition-transform ring-inset hover:scale-110"
                     :style="{ backgroundColor: opt.metaMap[val].color }"
                     :title="t('product.form.edit_color', '点击修改颜色')"
                   >
                       <input 
-                          type="color" 
                           v-model="opt.metaMap[val].color" 
+                          type="color" 
                           class="absolute size-0 opacity-0" 
                       />
                   </label>
                   <span>{{ val }}</span>
                   <button
                     type="button"
-                    class="flex items-center justify-center text-primary/70 transition-colors hover:text-primary"
+                    class="text-primary/70 flex items-center justify-center transition-colors hover:text-primary"
                     @click="$emit('remove-value', opt, vIdx)"
                   >
                     <span class="material-symbols-outlined text-[16px]">close</span>
@@ -117,14 +117,14 @@
                   <div
                     v-for="(archived, aIdx) in opt.archivedValues"
                     :key="`${archived.id || archived.value}-${aIdx}`"
-                    class="flex items-center gap-2 rounded-full border border-dashed border-(--border-strong) bg-(--bg-muted)/60 px-3 py-1.5 text-sm font-medium text-(--text-muted) transition-colors hover:text-(--text-secondary) hover:border-(--border-color)"
+                    class="flex items-center gap-2 rounded-full border border-dashed border-(--border-strong) bg-(--bg-muted)/60 px-3 py-1.5 text-sm font-medium text-(--text-muted) transition-colors hover:border-(--border-color) hover:text-(--text-secondary)"
                   >
                     <span class="text-[10px]">[{{ t('product.form.archived_values', '已归档') }}]</span>
                     <span>{{ archived.value }}</span>
                     <button
                       type="button"
                       :data-testid="`restore-value-${idx}-${aIdx}`"
-                      class="flex items-center ml-1 text-primary hover:text-primary-hover font-bold"
+                      class="text-primary ml-1 flex items-center font-bold hover:text-primary-hover"
                       :title="t('common.restore', 'Restore')"
                       @click="$emit('restore-value', opt, archived, aIdx)"
                     >
@@ -135,7 +135,7 @@
               </div>
 
               <!-- 添加值操作区 -->
-              <div class="flex items-center gap-3 max-w-sm">
+              <div class="flex max-w-sm items-center gap-3">
                 <div class="relative flex-1">
                   <!-- AppInput自带圆角，我们加上 !bg-transparent 等覆盖 -->
                   <AppInput
@@ -149,7 +149,7 @@
                       <button
                         type="button"
                         :disabled="!opt.inputValue"
-                        class="flex items-center justify-center text-primary transition-colors hover:text-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                        class="text-primary flex items-center justify-center transition-colors hover:text-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
                         @click="isColorDimension(opt.name) ? $emit('add-value', opt, { color: pendingColorSelection }) : $emit('add-value', opt)"
                       >
                         <span class="material-symbols-outlined">add_circle</span>
@@ -159,16 +159,16 @@
                 </div>
 
                 <!-- 颜色提示按钮器 -->
-                <div v-if="isColorDimension(opt.name)" class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-card) transition-colors hover:border-primary shadow-sm" :title="t('product.form.select_color', '选择颜色')">
+                <div v-if="isColorDimension(opt.name)" class="hover:border-primary relative flex size-10  shrink-0 items-center justify-center overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-card) shadow-sm transition-colors" :title="t('product.form.select_color', '选择颜色')">
                   <!-- Background hint div -->
-                  <div class="absolute inset-1 rounded-md shadow-inner pointer-events-none" :style="{ backgroundColor: pendingColorSelection }"></div>
+                  <div class="pointer-events-none absolute inset-1 rounded-md shadow-inner" :style="{ backgroundColor: pendingColorSelection }"></div>
                   <!-- The invisible input covering it all -->
                   <input 
-                      type="color" 
-                      v-model="pendingColorSelection"
+                      v-model="pendingColorSelection" 
+                      type="color"
+                      class="absolute -inset-2 size-16 cursor-pointer opacity-0"
                       @input="handleColorSelect($event, opt)"
                       @change="handleColorSelect($event, opt)"
-                      class="absolute -inset-2 size-16 cursor-pointer opacity-0"
                   />
                 </div>
               </div>

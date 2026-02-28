@@ -11,7 +11,7 @@
       <div class="flex items-center gap-3">
         <div>
           <h3 class="text-primary text-lg font-semibold">{{ t('order.manage.editOrder') }}</h3>
-          <p class="text-(--text-secondary) mt-0.5 text-sm">{{ order?.orderNo }}</p>
+          <p class="mt-0.5 text-sm text-(--text-secondary)">{{ order?.orderNo }}</p>
         </div>
         <!-- 状态徽章 (只读显示) -->
         <span
@@ -50,7 +50,7 @@
         <!-- 图片管理 -->
         <div>
           <h4
-            class="border-(--border-subtle) text-primary mb-3 border-b pb-2 text-sm font-medium"
+            class="text-primary mb-3 border-b border-(--border-subtle) pb-2 text-sm font-medium"
           >
             {{ t('order.detail.images') }}
           </h4>
@@ -72,16 +72,16 @@
 
     <!-- Danger Zone (Admin Only) -->
     <div v-if="mode === 'admin'" class="border-danger/30 bg-danger/5 mt-8 rounded-2xl border p-4 sm:p-5">
-      <h3 class="text-(--text-main) mb-2 flex items-center gap-2 text-base font-bold">
-        <AppIcon name="exclamation-triangle" class="size-4 text-danger" />
+      <h3 class="mb-2 flex items-center gap-2 text-base font-bold text-(--text-main)">
+        <AppIcon name="exclamation-triangle" class="text-danger size-4" />
         {{ t('order.detail.dangerZone') || '危险区域 / Danger Zone' }}
       </h3>
       <div class="sm:flex sm:items-center sm:justify-between">
-        <p class="text-(--text-secondary) mb-4 text-sm sm:mb-0 sm:max-w-xl">
+        <p class="mb-4 text-sm text-(--text-secondary) sm:mb-0 sm:max-w-xl">
           {{ t('order.detail.dangerWarning') || '此操作不可逆。订单及其关联的客户信息、图片文件、留言和所有历史记录将被永久擦除。建议优先使用“作废”功能。' }}
         </p>
         <button 
-          class="focus:ring-danger inline-flex w-full shrink-0 items-center justify-center rounded-lg bg-danger px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-danger/90 focus:ring-2 focus:ring-offset-2 sm:w-auto"
+          class="focus:ring-danger focus:ring-2 focus:ring-offset-2 bg-danger inline-flex w-full shrink-0 items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-danger/90 sm:w-auto"
           @click="$emit('delete-order')"
         >
           {{ t('order.detail.deletePermanently') || '彻底删除订单' }}
@@ -91,7 +91,7 @@
 
     <template #footer>
       <button
-        class="border-(--border-subtle) hover:bg-(--bg-hover) text-(--text-secondary) rounded-lg border px-5 py-2 font-medium transition-colors"
+        class="rounded-lg border border-(--border-subtle) px-5 py-2 font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
         @click="$emit('close')"
       >
         {{ t('common.cancel') }}
@@ -99,7 +99,7 @@
       <button
         :class="[
           !isValid || submitting ? 'cursor-not-allowed opacity-50' : 'hover:opacity-90',
-          'bg-primary shadow-primary/20 text-(--text-inverse) flex items-center rounded-lg px-5 py-2 font-medium shadow-lg transition-all'
+          'bg-primary shadow-primary/20 flex items-center rounded-lg px-5 py-2 font-medium text-(--text-inverse) shadow-lg transition-all'
         ]"
         :disabled="!isValid || submitting"
         @click="handleSaveClick"

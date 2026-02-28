@@ -22,7 +22,7 @@
       <a
         v-if="phone"
         :href="`tel:${phone}`"
-        class="hover:text-primary rounded-full p-2 text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
+        class="hover:text-primary hover:bg-(--bg-hover) rounded-full p-2 text-(--text-secondary) transition-colors"
       >
         <AppIcon name="phone" class="size-4" />
       </a>

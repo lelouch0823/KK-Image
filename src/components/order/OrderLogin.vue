@@ -51,7 +51,7 @@
                 <AppIcon
                   v-if="rememberMe"
                   name="check"
-                  class="size-3 text-[var(--text-inverse)] stroke-3"
+                  class="size-3 stroke-3 text-[var(--text-inverse)]"
                 />
               </div>
             </div>

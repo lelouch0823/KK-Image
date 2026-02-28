@@ -19,7 +19,7 @@
           </div>
         </div>
         <!-- Blob -->
-        <div class="absolute -bottom-8 -right-8 -z-0 size-28 rounded-full bg-[var(--color-info)]/8 opacity-50 blur-3xl transition-opacity duration-300 group-hover:opacity-100"></div>
+        <div class="absolute -right-8 -bottom-8 -z-0 size-28 rounded-full bg-[var(--color-info)]/8 opacity-50 blur-3xl transition-opacity duration-300 group-hover:opacity-100"></div>
       </div>
 
       <!-- 待处理 (Warning) -->
@@ -37,7 +37,7 @@
             <span v-else>{{ stats.pendingCount }}</span>
           </div>
         </div>
-        <div class="absolute -bottom-8 -right-8 -z-0 size-28 rounded-full bg-[var(--color-warning)]/8 opacity-50 blur-3xl transition-opacity duration-300 group-hover:opacity-100"></div>
+        <div class="absolute -right-8 -bottom-8 -z-0 size-28 rounded-full bg-[var(--color-warning)]/8 opacity-50 blur-3xl transition-opacity duration-300 group-hover:opacity-100"></div>
       </div>
 
       <!-- 本周订单 (Success) -->
@@ -54,7 +54,7 @@
             <span v-else>{{ stats.weekCount }}</span>
           </div>
         </div>
-        <div class="absolute -bottom-8 -right-8 -z-0 size-28 rounded-full bg-[var(--color-success)]/8 opacity-50 blur-3xl transition-opacity duration-300 group-hover:opacity-100"></div>
+        <div class="absolute -right-8 -bottom-8 -z-0 size-28 rounded-full bg-[var(--color-success)]/8 opacity-50 blur-3xl transition-opacity duration-300 group-hover:opacity-100"></div>
       </div>
 
       <!-- 状态分布 (Primary/Purple) -->
@@ -85,7 +85,7 @@
             <span class="inline-block h-5 w-24 animate-pulse rounded-lg bg-[var(--color-primary)]/10"></span>
           </div>
         </div>
-        <div class="absolute -bottom-8 -right-8 -z-0 size-28 rounded-full bg-[var(--color-primary)]/8 opacity-50 blur-3xl transition-opacity duration-300 group-hover:opacity-100"></div>
+        <div class="absolute -right-8 -bottom-8 -z-0 size-28 rounded-full bg-[var(--color-primary)]/8 opacity-50 blur-3xl transition-opacity duration-300 group-hover:opacity-100"></div>
       </div>
     </div>
   </div>

@@ -52,7 +52,7 @@
 
           <!-- 时间轴 (PC端窄栏显示，移动端通用) -->
           <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4">
-            <h3 class="mb-4 text-sm font-medium text-primary">{{ t('order.detail.timeline') }}</h3>
+            <h3 class="text-primary mb-4 text-sm font-medium">{{ t('order.detail.timeline') }}</h3>
             <OrderTimeline :timeline="order.timeline" />
           </div>
 
@@ -73,16 +73,16 @@
         <div
           v-for="correction in corrections"
           :key="correction.id"
-          class="border-(--border-color) rounded-lg border p-3"
+          class="rounded-lg border border-(--border-color) p-3"
         >
-          <p class="text-(--text-secondary) mb-2 text-xs">{{ formatTime(correction.createdAt) }}</p>
+          <p class="mb-2 text-xs text-(--text-secondary)">{{ formatTime(correction.createdAt) }}</p>
           <div class="flex items-start gap-2 text-sm">
-            <span class="text-(--text-secondary) shrink-0 pt-0.5">{{ correction.fieldName }}:</span>
-            <span class="text-danger/60 min-w-0 flex-1 line-through wrap-break-word"> {{ correction.oldValue }}</span>
-            <AppIcon name="arrow-right" class="text-(--text-secondary) mt-0.5 size-4 shrink-0" />
+            <span class="shrink-0 pt-0.5 text-(--text-secondary)">{{ correction.fieldName }}:</span>
+            <span class="text-danger/60 min-w-0 flex-1 wrap-break-word line-through"> {{ correction.oldValue }}</span>
+            <AppIcon name="arrow-right" class="mt-0.5 size-4 shrink-0 text-(--text-secondary)" />
             <span class="text-success min-w-0 flex-1 font-medium wrap-break-word">{{ correction.newValue }}</span>
           </div>
-          <p class="text-(--text-secondary) mt-2 text-xs whitespace-pre-wrap wrap-break-word">
+          <p class="mt-2 text-xs wrap-break-word whitespace-pre-wrap text-(--text-secondary)">
             <span class="text-primary font-medium">{{ t('order.detail.correctionReason') }}:</span>
             {{ correction.reason }}
           </p>

@@ -42,7 +42,7 @@
 
              <!-- Stats Button -->
             <button
-                class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) text-primary transition-all hover:bg-(--bg-card-hover) active:scale-95"
+                class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) transition-all hover:bg-(--bg-card-hover) active:scale-95"
                 :title="t('product.manager.stats_overview')"
                 @click="showStatsModal = true"
             >
@@ -101,7 +101,7 @@
     >
         <template #header-actions="{ product }">
             <button 
-                class="hover:bg-primary hover:text-inverse flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors"
+                class="hover:bg-primary hover:text-inverse bg-primary/10 text-primary flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
                 @click="handleEditFromDetail(product)"
             >
                 <AppIcon name="pencil-square" class="size-3.5" />

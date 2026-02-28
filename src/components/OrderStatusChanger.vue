@@ -3,7 +3,7 @@
     <!-- 触发按钮 -->
     <button
       :disabled="loading"
-      class="focus:ring-primary/30 inline-flex items-center justify-between gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold shadow-sm transition-all duration-200 hover:shadow-md focus:ring-2 focus:ring-offset-1 focus:outline-none active:scale-95 disabled:opacity-50"
+      class="focus:ring-primary/30 focus:ring-2 focus:ring-offset-1 focus:outline-none inline-flex items-center justify-between gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold shadow-sm transition-all duration-200 hover:shadow-md active:scale-95 disabled:opacity-50"
       :class="currentStatusClass"
       @click="openModal"
     >
@@ -19,16 +19,16 @@
       <transition name="fade-scale">
         <div
           v-if="showModal"
-          class="bg-(--color-overlay-dim) fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm"
+          class="fixed inset-0 z-[100] flex items-center justify-center bg-(--color-overlay-dim) p-4 backdrop-blur-sm"
           @click.self="closeModal"
         >
           <div
-            class="border-(--border-color) bg-(--bg-card) w-full max-w-md transform overflow-hidden rounded-2xl border shadow-2xl transition-all"
+            class="w-full max-w-md transform overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) shadow-2xl transition-all"
             @click.stop
           >
             <!-- 顶部渐变装饰 + 图标 -->
             <div
-              class="from-primary/10 relative flex h-20 items-center justify-center overflow-hidden bg-linear-to-br via-info/10 to-success/10"
+              class="from-primary/10 via-info/10 to-success/10 relative flex h-20 items-center justify-center overflow-hidden bg-linear-to-br"
             >
               <div class="absolute inset-0 scale-150 transform opacity-20 blur-2xl">
                 <div class="bg-primary absolute top-0 left-1/4 size-20 rounded-full"></div>
@@ -47,7 +47,7 @@
             <!-- 标题 -->
             <div class="px-6 pt-5 pb-3 text-center">
               <h3 class="text-primary text-lg font-bold">{{ t('order.manage.changeStatus') }}</h3>
-              <p class="text-(--text-secondary) mt-1 text-sm">
+              <p class="mt-1 text-sm text-(--text-secondary)">
                 {{ t('order.manage.currentStatus') }}:
                 <span class="text-primary font-medium">{{ t(`order.statuses.${status}`) }}</span>
               </p>
@@ -92,7 +92,7 @@
             </div>
 
             <div class="px-6 pb-4">
-              <label class="text-(--text-secondary) mb-2 block text-xs font-medium">
+              <label class="mb-2 block text-xs font-medium text-(--text-secondary)">
                 {{ t('order.manage.statusNote') }}
                 <span class="text-(--text-muted)">({{ t('common.optional') }})</span>
               </label>
@@ -113,7 +113,7 @@
               >
                 <AppIcon
                   name="exclamation-triangle"
-                  class="mt-0.5 size-5 shrink-0 text-danger"
+                  class="text-danger mt-0.5 size-5 shrink-0"
                 />
                 <p class="text-danger text-xs">
                   {{ t('order.manage.dangerousStatusWarning') }}
@@ -125,7 +125,7 @@
             <div class="flex items-center gap-3 px-6 pb-6">
               <button
                 :disabled="submitting"
-                class="hover:bg-(--bg-hover) text-(--text-secondary) bg-(--bg-muted) rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+                class="rounded-xl bg-(--bg-muted) px-4 py-2.5 text-sm font-semibold text-(--text-secondary) transition-all hover:bg-(--bg-hover) active:scale-95 disabled:opacity-50"
                 @click="closeModal"
               >
                 {{ t('common.cancel') }}

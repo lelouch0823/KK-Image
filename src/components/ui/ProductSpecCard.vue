@@ -1,6 +1,6 @@
 <template>
-  <div class="w-[300px] mx-auto group">
-    <div class="rounded-xl p-3 dark:bg-neutral-900 bg-white shadow-sm hover:shadow-md transition-all duration-300 border border-neutral-200 dark:border-neutral-800">
+  <div class="group mx-auto w-[300px]">
+    <div class="rounded-xl border border-neutral-200 bg-white p-3 shadow-sm transition-all duration-300 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900">
       
       <!-- Image Region -->
       <slot name="image" :current-variant="currentVariant">
@@ -19,26 +19,26 @@
         </div>
       </slot>
 
-      <div class="text-neutral-900 dark:text-neutral-100 pt-4">
+      <div class="pt-4 text-neutral-900 dark:text-neutral-100">
         <!-- Title and Favorite Actions -->
-        <div class="flex justify-between items-start gap-2">
+        <div class="flex items-start justify-between gap-2">
           <slot name="title" :title="title">
-            <h1 class="font-semibold text-xl leading-tight line-clamp-2 flex-grow">{{ title }}</h1>
+            <h1 class="line-clamp-2 flex-grow text-xl leading-tight font-semibold">{{ title }}</h1>
           </slot>
           
           <slot name="favorite-action" :is-favorite="isFavorite" :toggle="toggleFavorite">
             <button
-              class="text-2xl transition-transform duration-300 active:scale-125 focus:outline-none flex-shrink-0"
-              :class="[isFavorite ? 'scale-110 text-red-500' : 'text-neutral-400 dark:text-neutral-500 hover:scale-110 hover:text-red-400']"
-              @click.stop="toggleFavorite"
+              class="flex-shrink-0 text-2xl transition-transform duration-300 focus:outline-none active:scale-125"
+              :class="[isFavorite ? 'scale-110 text-red-500' : 'text-neutral-400 hover:scale-110 hover:text-red-400 dark:text-neutral-500']"
               aria-label="Toggle Favorite"
+              @click.stop="toggleFavorite"
             >
               <svg 
                 xmlns="http://www.w3.org/2000/svg" 
                 viewBox="0 0 24 24" 
                 stroke-width="1.5" 
                 stroke="currentColor" 
-                class="w-6 h-6 transition-colors duration-300"
+                class="size-6  transition-colors duration-300"
                 :class="isFavorite ? 'fill-current' : 'fill-none'"
               >
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
@@ -50,33 +50,33 @@
         <!-- Description -->
         <div class="mt-2 min-h-[40px]">
           <slot name="description" :description="description">
-            <p class="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-2">
+            <p class="line-clamp-2 text-sm text-neutral-500 dark:text-neutral-400">
               {{ description }}
             </p>
           </slot>
         </div>
 
         <!-- Price and Variants -->
-        <div class="flex justify-between items-center py-3 mt-1 border-t border-neutral-100 dark:border-neutral-800">
+        <div class="mt-1 flex items-center justify-between border-t border-neutral-100 py-3 dark:border-neutral-800">
           <slot name="price" :price="currentPrice" :current-variant="currentVariant">
-            <span class="font-bold text-2xl tracking-tight">
+            <span class="text-2xl font-bold tracking-tight">
               {{ formatPrice(currentPrice) }}
             </span>
           </slot>
 
           <slot name="variants" :variants="variants" :current-variant="currentVariant" :select="selectVariant">
-            <div class="flex gap-2 items-center flex-wrap justify-end" v-if="variants && variants.length > 0">
+            <div v-if="variants && variants.length > 0" class="flex flex-wrap items-center justify-end gap-2">
               <button
                 v-for="(variant, index) in variants"
                 :key="variant.id || index"
-                @click.stop="selectVariant(variant)"
-                class="relative w-7 h-7 rounded-full grid place-content-center transition-all focus:outline-none"
-                :class="isVariantSelected(variant) ? 'border-2 border-neutral-900 dark:border-white scale-110' : 'border border-neutral-200 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-500'"
+                class="relative grid size-7  place-content-center rounded-full transition-all focus:outline-none"
+                :class="isVariantSelected(variant) ? 'scale-110 border-2 border-neutral-900 dark:border-white' : 'border border-neutral-200 hover:border-neutral-400 dark:border-neutral-700 dark:hover:border-neutral-500'"
                 :title="variant.label || variant.name"
                 :aria-label="`Select color ${variant.label || variant.name}`"
+                @click.stop="selectVariant(variant)"
               >
                 <span
-                  class="w-5 h-5 rounded-full inline-block shadow-inner"
+                  class="inline-block size-5  rounded-full shadow-inner"
                   :style="{ backgroundColor: variant.color }"
                 ></span>
               </button>
@@ -87,10 +87,10 @@
         <!-- Action Button -->
         <slot name="action" :current-variant="currentVariant">
           <button 
-            class="w-full mt-2 py-3 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-neutral-900 focus:ring-neutral-900 dark:focus:ring-white active:scale-[0.98]"
+            class="mt-2 w-full rounded-lg py-3 font-medium transition-all duration-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 focus:outline-none active:scale-[0.98] dark:focus:ring-white dark:focus:ring-offset-neutral-900"
             :class="actionButtonClass"
-            @click.stop="handleAction"
             :disabled="disabled"
+            @click.stop="handleAction"
           >
             {{ actionText }}
           </button>

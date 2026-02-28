@@ -38,7 +38,7 @@
         }}</label>
         <select
           v-model="form.currency"
-          class="w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main) transition-colors focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+          class="focus:border-primary focus:ring-primary focus:ring-1 focus:outline-none w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main) transition-colors"
         >
           <option v-for="c in currencyOptions" :key="c.code" :value="c.code">
             {{ c.symbol }} {{ c.code }} — {{ c.label }}

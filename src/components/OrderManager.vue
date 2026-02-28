@@ -132,7 +132,7 @@
           <div class="flex items-center gap-2">
             <!-- Edit Button -->
             <button
-               class="hover:bg-primary hover:text-inverse flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors"
+               class="hover:bg-primary hover:text-inverse bg-primary/10 text-primary flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
                @click="handleEditFromDetail(viewingOrder)"
             >
                <AppIcon name="pencil-square" class="size-3.5" />
@@ -140,7 +140,7 @@
             </button>
             <!-- Save PDF Button -->
             <button
-               class="hover:text-primary flex items-center gap-1.5 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-xs font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
+               class="hover:text-primary hover:bg-(--bg-hover) flex items-center gap-1.5 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-xs font-medium text-(--text-secondary) transition-colors"
                @click="detailRef?.handleSavePdf()"
             >
                <AppIcon name="arrow-down-tray" class="size-3.5" />

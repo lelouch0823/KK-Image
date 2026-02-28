@@ -26,7 +26,7 @@
           <div>
             <div class="mb-1.5 flex items-center gap-3">
               <h2 class="text-lg font-bold tracking-tight text-[var(--text-main)]">{{ boundProduct.name }}</h2>
-              <span class="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-muted)] px-2 py-0.5 font-mono text-xs font-medium uppercase text-[var(--text-secondary)]">
+              <span class="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-muted)] px-2 py-0.5 font-mono text-xs font-medium text-[var(--text-secondary)] uppercase">
                 {{ displaySku || '—' }}
               </span>
             </div>
@@ -101,10 +101,10 @@
                 <AppIcon
                   v-if="selectedOptions[dimension] === option.value"
                   name="check"
-                  class="size-5 text-white drop-shadow-md mix-blend-difference"
+                  class="size-5 text-white mix-blend-difference drop-shadow-md"
                 />
               </div>
-              <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium text-[var(--text-secondary)] opacity-0 transition-opacity group-hover:opacity-100">
+              <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-medium whitespace-nowrap text-[var(--text-secondary)] opacity-0 transition-opacity group-hover:opacity-100">
                 {{ option.label }}
               </span>
             </label>
@@ -141,11 +141,11 @@
         <div class="flex flex-col justify-between gap-4 rounded-xl bg-[var(--bg-muted)]/50 p-4 sm:flex-row sm:items-center">
           <div class="flex gap-6">
             <div>
-              <p class="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">库存状态</p>
+              <p class="mb-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">库存状态</p>
               <p class="text-sm font-semibold text-[var(--text-main)]">{{ selectedStockQuantity }} 件在库</p>
             </div>
             <div>
-              <p class="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">补货中</p>
+              <p class="mb-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">补货中</p>
               <p class="text-sm font-semibold text-[var(--text-main)]">
                 {{ selectedReplenishmentQuantity }} 件
                 <span v-if="selectedReplenishmentPoCount > 0" class="ml-1 text-xs font-normal text-[var(--text-secondary)]">({{ selectedReplenishmentPoCount }} 单)</span>

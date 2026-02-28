@@ -26,7 +26,7 @@
             </div>
             <!-- 编辑按钮 (Top Right) -->
             <button
-               class="active:bg-(--bg-muted) rounded-full p-2 text-(--text-secondary)"
+               class="rounded-full p-2 text-(--text-secondary) active:bg-(--bg-muted)"
                @click.stop="$emit('edit', customer)"
             >
                <AppIcon name="pencil-square" class="size-4" />

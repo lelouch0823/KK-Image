@@ -51,7 +51,7 @@
         <button
           data-testid="value-archive-confirm"
           type="button"
-          class="rounded-lg bg-danger px-3 py-2 text-sm text-white disabled:opacity-60"
+          class="bg-danger rounded-lg px-3 py-2 text-sm text-white disabled:opacity-60"
           :disabled="wizard.loading"
           @click="$emit('confirm')"
         >

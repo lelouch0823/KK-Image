@@ -7,7 +7,7 @@
         :class="[
           'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm transition-all',
           message.role === 'user'
-            ? 'bg-primary rounded-br-none font-medium text-(--text-inverse) shadow-primary/20'
+            ? 'bg-primary shadow-primary/20 rounded-br-none font-medium text-(--text-inverse)'
             : 'rounded-bl-none border border-(--border-color) bg-(--bg-card) text-(--text-main) shadow-sm'
         ]"
       >
@@ -31,7 +31,7 @@
     >
       <div v-if="showReportButton && !isGeneratingReport" class="mt-2 flex justify-start">
         <button
-          class="flex items-center gap-2 rounded-xl bg-gradient-to-r from-info to-purple px-4 py-2.5 text-sm font-medium text-(--text-inverse) shadow-md transition-all hover:shadow-lg hover:brightness-110"
+          class="from-info to-purple flex items-center gap-2 rounded-xl bg-gradient-to-r px-4 py-2.5 text-sm font-medium text-(--text-inverse) shadow-md transition-all hover:shadow-lg hover:brightness-110"
           @click="$emit('generate-report')"
         >
           <AppIcon name="chart-bar" class="size-4" />

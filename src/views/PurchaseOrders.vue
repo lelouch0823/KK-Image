@@ -29,7 +29,7 @@
     </div>
 
     <!-- ===== 统计卡片：骨架屏 or 真实数据 ===== -->
-    <div class="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-6">
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
       <template v-if="loading && !stats">
         <!-- 骨架卡片 ×6 -->
         <div
@@ -96,7 +96,7 @@
         class="cursor-pointer rounded-full px-4 py-1.5 text-sm font-medium transition-colors"
         :class="filters.status === tab.value
           ? 'bg-[var(--color-primary)] text-[var(--text-inverse)] shadow-sm'
-          : 'text-[var(--text-secondary)] bg-[var(--bg-muted)] hover:bg-[var(--bg-hover)]'"
+          : 'bg-[var(--bg-muted)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'"
         @click="filters.status = tab.value"
       >
         {{ tab.label }}
@@ -169,7 +169,7 @@
               </td>
               <td class="px-4 py-3 text-center font-medium text-[var(--text-main)]">{{ po.item_count || 0 }}</td>
               <td class="px-4 py-3 font-[Outfit] font-medium text-[var(--text-main)]">¥{{ (po.total_goods_cost || 0).toFixed(2) }}</td>
-              <td class="px-4 py-3 text-[var(--text-secondary)] max-w-[150px] truncate" :title="po.remark">{{ po.remark || '-' }}</td>
+              <td class="max-w-[150px] truncate px-4 py-3 text-[var(--text-secondary)]" :title="po.remark">{{ po.remark || '-' }}</td>
               <td class="px-4 py-3 text-[var(--text-secondary)]">{{ formatDate(po.created_at) }}</td>
             </tr>
           </tbody>
@@ -350,13 +350,13 @@
                     <div v-if="detail.status === 'draft'" class="flex items-center justify-end gap-3 pl-12 sm:pl-0">
                       <div class="flex flex-col items-center">
                         <span class="mb-1 text-[10px] text-[var(--text-secondary)]">{{ t('purchaseOrder.table.quantity') }}</span>
-                        <input type="number" min="1" v-model.number="item.quantity" @change="handleDetailUpdateItem(item.id, 'quantity', item.quantity)" class="w-16 rounded-md border border-[var(--border-color)] bg-[var(--bg-page)] px-2 py-1 text-center font-[Outfit] text-sm text-[var(--text-main)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]" />
+                        <input v-model.number="item.quantity" type="number" min="1" class="w-16 rounded-md border border-[var(--border-color)] bg-[var(--bg-page)] px-2 py-1 text-center font-[Outfit] text-sm text-[var(--text-main)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none" @change="handleDetailUpdateItem(item.id, 'quantity', item.quantity)" />
                       </div>
                       <div class="flex flex-col items-center">
                         <span class="mb-1 text-[10px] text-[var(--text-secondary)]">{{ t('purchaseOrder.table.unitCost') }}</span>
                         <div class="relative">
-                          <span class="absolute left-2 top-1.5 text-xs text-[var(--text-secondary)]">¥</span>
-                          <input type="number" step="0.01" min="0" v-model.number="item.unit_cost" @change="handleDetailUpdateItem(item.id, 'unit_cost', item.unit_cost)" class="w-20 rounded-md border border-[var(--border-color)] bg-[var(--bg-page)] py-1 pl-5 pr-2 text-right font-[Outfit] text-sm text-[var(--text-main)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]" />
+                          <span class="absolute top-1.5 left-2 text-xs text-[var(--text-secondary)]">¥</span>
+                          <input v-model.number="item.unit_cost" type="number" step="0.01" min="0" class="w-20 rounded-md border border-[var(--border-color)] bg-[var(--bg-page)] py-1 pr-2 pl-5 text-right font-[Outfit] text-sm text-[var(--text-main)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none" @change="handleDetailUpdateItem(item.id, 'unit_cost', item.unit_cost)" />
                         </div>
                       </div>
                     </div>
@@ -528,8 +528,8 @@
                                 min="1"
                                 class="w-20 rounded-lg border px-2 py-1.5 text-center font-[Outfit] text-sm transition-colors focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none"
                                 :class="item.required_quantity && item.quantity < item.required_quantity
-                                  ? 'border-[var(--color-danger)] text-[var(--color-danger)] bg-[var(--color-danger)]/5'
-                                  : 'border-[var(--border-color)] text-[var(--text-main)] bg-[var(--bg-page)]'"
+                                  ? 'border-[var(--color-danger)] bg-[var(--color-danger)]/5 text-[var(--color-danger)]'
+                                  : 'border-[var(--border-color)] bg-[var(--bg-page)] text-[var(--text-main)]'"
                               />
                               <span
                                 v-if="item.required_quantity && item.quantity < item.required_quantity"

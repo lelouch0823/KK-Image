@@ -62,7 +62,7 @@
           <span class="text-xs text-(--text-secondary)">{{ progress }}%</span>
         </div>
         <div class="h-2 overflow-hidden rounded-full bg-(--bg-input)">
-          <div class="h-full bg-primary transition-all duration-300" :style="{ width: `${progress}%` }"></div>
+          <div class="bg-primary h-full transition-all duration-300" :style="{ width: `${progress}%` }"></div>
         </div>
         <div class="mt-3 space-y-1 text-xs text-(--text-secondary)">
           <p :class="stepClass(0)">{{ t('product.exportModal.step_prepare', '1. 准备数据') }}</p>

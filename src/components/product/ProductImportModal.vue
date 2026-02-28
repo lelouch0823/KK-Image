@@ -7,11 +7,11 @@
     <div class="space-y-6">
       <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4">
         <div class="mb-3 flex items-center justify-between">
-          <h3 class="text-(--text-main) text-sm font-semibold">{{ t('product.import.workflow_title', '导入流程') }}</h3>
-          <span class="text-(--text-secondary) text-xs">{{ t('product.import.workflow_step', { current: currentStepIndex, total: WORKFLOW_STEPS.length }, '步骤 {current}/{total}') }}</span>
+          <h3 class="text-sm font-semibold text-(--text-main)">{{ t('product.import.workflow_title', '导入流程') }}</h3>
+          <span class="text-xs text-(--text-secondary)">{{ t('product.import.workflow_step', { current: currentStepIndex, total: WORKFLOW_STEPS.length }, '步骤 {current}/{total}') }}</span>
         </div>
         <div class="relative mb-3 grid grid-cols-4 gap-2">
-          <div class="absolute left-0 right-0 top-4 h-px bg-(--border-color)"></div>
+          <div class="absolute top-4 right-0 left-0 h-px bg-(--border-color)"></div>
           <div
             v-for="step in WORKFLOW_STEPS"
             :key="step.id"
@@ -29,7 +29,7 @@
             </span>
           </div>
         </div>
-        <p class="text-(--text-secondary) text-xs">{{ currentWorkflowHint }}</p>
+        <p class="text-xs text-(--text-secondary)">{{ currentWorkflowHint }}</p>
       </div>
 
       <!-- Step 1 & 2: Upload -->

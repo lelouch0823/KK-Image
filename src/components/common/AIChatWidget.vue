@@ -1,5 +1,6 @@
 <template>
-  <div class="pointer-events-none fixed right-6 bottom-6 z-9999">
+  <!-- 添加到组件根部的外层包装，不限制拖拽溢出，让窗口可以全屏移动 -->
+  <div class="pointer-events-none fixed inset-0 z-9999 overflow-hidden">
     <transition
       enter-active-class="transition duration-300 ease-out"
       enter-from-class="translate-y-4 transform scale-95 opacity-0"
@@ -10,10 +11,17 @@
     >
       <div
         v-if="isOpen"
-        class="border-border pointer-events-auto absolute right-0 bottom-0 flex h-[600px] w-[420px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border bg-(--bg-card) shadow-2xl backdrop-blur-xl"
+        ref="widgetEl"
+        :style="{
+          left: `${x}px`,
+          top: `${y}px`,
+          width: `${width}px`,
+          height: `${height}px`,
+        }"
+        class="border-border pointer-events-auto absolute flex min-h-[300px] max-w-[calc(100vw-2rem)] min-w-[320px] flex-col overflow-hidden rounded-2xl border bg-(--bg-card) shadow-2xl backdrop-blur-xl"
       >
         <!-- Header -->
-        <div class="bg-primary flex items-center justify-between p-4 text-(--text-inverse)">
+        <div ref="dragHandleEl" class="bg-primary flex cursor-move items-center justify-between p-4 text-(--text-inverse) transition-colors hover:bg-primary/90">
           <div class="flex items-center gap-3">
             <div class="flex size-8 items-center justify-center rounded-lg bg-white/20">
               <AppIcon name="bolt" class="size-5" />
@@ -84,14 +92,21 @@
             </button>
           </form>
         </div>
+
+        <!-- Resize Handle -->
+        <div 
+          class="absolute right-0 bottom-0 z-10 size-4  cursor-se-resize"
+          @mousedown.prevent="startResize"
+        ></div>
       </div>
     </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick, watch, computed } from 'vue';
+import { ref, nextTick, watch, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { useDraggable, useStorage, useWindowSize } from '@vueuse/core';
 import { API as API_URLS } from '@/utils/constants';
 import { renderMarkdown } from '@/utils/ai-markdown';
 import ChatMessage from '@/components/common/ai/ChatMessage.vue';
@@ -108,6 +123,70 @@ const { isOpen, close, context, setContext } = useAI();
 const { t } = useI18n();
 const { addToast } = useToast();
 const route = useRoute();
+const { width: windowWidth, height: windowHeight } = useWindowSize();
+
+// 窗口尺寸与位置状态 (持久化)
+// 默认右下角对齐:
+const initialWidth = 420;
+const initialHeight = 600;
+const defaultX = Math.max(0, windowWidth.value - initialWidth - 24); // 右边距24px
+const defaultY = Math.max(0, windowHeight.value - initialHeight - 24); // 下边距24px
+
+const width = useStorage('ai-chat-width', initialWidth);
+const height = useStorage('ai-chat-height', initialHeight);
+
+const widgetEl = ref(null);
+const dragHandleEl = ref(null);
+
+const { x, y } = useDraggable(widgetEl, {
+  initialValue: { x: defaultX, y: defaultY },
+  handle: dragHandleEl,
+  preventDefault: true,
+});
+
+// 手动实现缩放大小逻辑
+let isResizing = false;
+let startX = 0;
+let startY = 0;
+let startWidth = 0;
+let startHeight = 0;
+
+const startResize = (e) => {
+  isResizing = true;
+  startX = e.clientX;
+  startY = e.clientY;
+  startWidth = width.value;
+  startHeight = height.value;
+  
+  document.addEventListener('mousemove', onResize);
+  document.addEventListener('mouseup', stopResize);
+  // 防止拖动时选中文本
+  document.body.style.userSelect = 'none';
+};
+
+const onResize = (e) => {
+  if (!isResizing) return;
+  requestAnimationFrame(() => {
+    // 最小限制并防溢出
+    const newW = Math.max(320, startWidth + (e.clientX - startX));
+    const newH = Math.max(300, startHeight + (e.clientY - startY));
+    width.value = Math.min(newW, windowWidth.value - x.value - 24);
+    height.value = Math.min(newH, windowHeight.value - y.value - 24);
+  });
+};
+
+const stopResize = () => {
+  isResizing = false;
+  document.removeEventListener('mousemove', onResize);
+  document.removeEventListener('mouseup', stopResize);
+  document.body.style.userSelect = '';
+};
+
+// 监听窗口大小变化限制溢出
+watch([windowWidth, windowHeight], ([vw, vh]) => {
+  if (x.value + width.value > vw) x.value = Math.max(0, vw - width.value - 24);
+  if (y.value + height.value > vh) y.value = Math.max(0, vh - height.value - 24);
+});
 
 // 从路由计算当前视图和标题
 const currentView = computed(() => inferCurrentView(route.path));

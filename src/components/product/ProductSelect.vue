@@ -3,14 +3,14 @@
     <!-- Input Field -->
     <div class="relative">
       <div 
-        class="text-(--text-muted) pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"
+        class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-(--text-muted)"
       >
         <AppIcon name="magnifying-glass" class="size-5" />
       </div>
       <input
         v-model="searchQuery"
         type="text"
-        class="border-(--border-color) bg-(--bg-muted) text-(--text-main) placeholder:text-(--text-muted) focus:border-primary focus:bg-(--bg-card) focus:ring-primary w-full rounded-lg py-2.5 pr-4 pl-10 text-sm transition-colors focus:ring-1 focus:outline-none"
+        class="focus:border-primary focus:ring-primary focus:bg-(--bg-card) focus:ring-1 focus:outline-none w-full rounded-lg border-(--border-color) bg-(--bg-muted) py-2.5 pr-4 pl-10 text-sm text-(--text-main) transition-colors placeholder:text-(--text-muted)"
         :placeholder="t('product.filters.search_placeholder') || 'Search products...'"
         @focus="open"
         @input="handleInput"
@@ -33,10 +33,10 @@
     >
       <div
         v-if="isOpen && (products.length > 0 || loading || (searchQuery && products.length === 0))"
-        class="border-(--border-subtle) bg-(--bg-card)/90 absolute z-50 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border p-1.5 shadow-xl ring-1 ring-black/5 backdrop-blur-xl"
+        class="absolute z-50 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-(--border-subtle) bg-(--bg-card)/90 p-1.5 shadow-xl ring-1 ring-black/5 backdrop-blur-xl"
       >
         <!-- Empty State -->
-        <div v-if="!loading && products.length === 0" class="text-(--text-muted) px-4 py-8 text-center text-sm">
+        <div v-if="!loading && products.length === 0" class="px-4 py-8 text-center text-sm text-(--text-muted)">
           {{ t('common.noData') }}
         </div>
 
@@ -45,18 +45,18 @@
           <li
             v-for="product in products"
             :key="product.id"
-            class="hover:bg-(--bg-hover) group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors"
+            class="group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-(--bg-hover)"
             @click="select(product)"
           >
             <!-- Image -->
-            <div class="border-(--border-color) bg-(--bg-muted) relative size-10 shrink-0 overflow-hidden rounded-md border">
+            <div class="relative size-10 shrink-0 overflow-hidden rounded-md border border-(--border-color) bg-(--bg-muted)">
                <AppImage 
                   v-if="getMainImage(product)" 
                   :src="getFileUrl(getMainImage(product))" 
                   fit="cover"
                   class="size-full"
                />
-               <div v-else class="text-(--text-muted) flex h-full items-center justify-center">
+               <div v-else class="flex h-full items-center justify-center text-(--text-muted)">
                   <AppIcon name="photo" class="size-5" />
                </div>
             </div>
@@ -64,11 +64,11 @@
             <!-- Info -->
             <div class="min-w-0 flex-1">
               <div class="flex items-center justify-between">
-                <span class="text-(--text-main) truncate font-medium">{{ product.name }}</span>
-                <span class="text-(--text-muted) ml-2 shrink-0 text-xs">¥{{ product.price }}</span>
+                <span class="truncate font-medium text-(--text-main)">{{ product.name }}</span>
+                <span class="ml-2 shrink-0 text-xs text-(--text-muted)">¥{{ product.price }}</span>
               </div>
-              <div class="text-(--text-secondary) mt-0.5 flex items-center gap-2 text-xs">
-                <span class="bg-(--bg-muted) rounded px-1.5 py-0.5 font-mono">{{ product.spu }}</span>
+              <div class="mt-0.5 flex items-center gap-2 text-xs text-(--text-secondary)">
+                <span class="rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono">{{ product.spu }}</span>
                 <span v-if="product.category" class="truncate">{{ product.category }}</span>
               </div>
             </div>
