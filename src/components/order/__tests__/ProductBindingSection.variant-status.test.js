@@ -62,11 +62,10 @@ describe('ProductBindingSection variant status and dimensions', () => {
     expect(wrapper.find('[data-testid="dimension-material"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="dimension-size"]').exists()).toBe(true);
 
-    const sizeSelect = wrapper.find('[data-testid="dimension-size"]');
-    const sizeOptions = sizeSelect.findAll('option');
-    const mOption = sizeOptions.find((o) => o.element.value === 'M');
-    expect(mOption).toBeTruthy();
-    expect(mOption.element.disabled).toBe(true);
+    const sizeButtons = wrapper.findAll('[data-testid="dimension-size"]');
+    const mButton = sizeButtons.find((btn) => btn.text() === 'M');
+    expect(mButton).toBeTruthy();
+    expect(mButton.attributes('disabled')).toBeDefined();
   });
 
   it('adapts to 2D variants (no material)', async () => {

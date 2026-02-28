@@ -142,6 +142,10 @@ describeIfEnabled('Manage Products Real API Workflow', function () {
 
       const dimensions = json.data.dimensions;
       const variants = json.data.variants;
+      for (const variant of variants) {
+        assert.ok(Object.prototype.hasOwnProperty.call(variant, 'replenishment_quantity'));
+        assert.ok(Object.prototype.hasOwnProperty.call(variant, 'replenishment_po_count'));
+      }
       const colorDimension = dimensions.find((d) => d.name === 'Color');
       const redValue = colorDimension?.values?.find((v) => v.value === 'Red');
       assert.ok(colorDimension?.id, 'Color dimension id missing');

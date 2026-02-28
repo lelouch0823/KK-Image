@@ -141,6 +141,33 @@ const getProductCacheUrls = (c) => {
     ];
 };
 
+const loadVariantReplenishmentMap = async (db, variantIds = []) => {
+    const normalizedIds = [...new Set((variantIds || []).filter(Boolean))];
+    if (normalizedIds.length === 0) return new Map();
+
+    const placeholders = normalizedIds.map(() => '?').join(',');
+    const sql = `
+      SELECT
+        poi.variant_id,
+        SUM(COALESCE(poi.quantity, 0)) AS replenishment_quantity,
+        COUNT(DISTINCT poi.po_id) AS replenishment_po_count
+      FROM purchase_order_items poi
+      JOIN purchase_orders po ON po.id = poi.po_id
+      WHERE poi.variant_id IN (${placeholders})
+        AND po.status IN ('ordered', 'shipping')
+      GROUP BY poi.variant_id
+    `;
+    const result = await db.prepare(sql).bind(...normalizedIds).all();
+    const map = new Map();
+    for (const row of result?.results || []) {
+        map.set(row.variant_id, {
+            replenishment_quantity: Number(row.replenishment_quantity || 0),
+            replenishment_po_count: Number(row.replenishment_po_count || 0),
+        });
+    }
+    return map;
+};
+
 /**
  * GET /:id - 获取商品详情
  */
@@ -158,6 +185,7 @@ app.get('/:id', async (c) => {
     const dimensionRepo = new ProductDimensionRepository(env.DB);
     const variantImageRepo = new VariantImageRepository(env.DB);
     const variants = await variantRepo.findByProductId(id);
+    const replenishmentMap = await loadVariantReplenishmentMap(env.DB, variants.map((variant) => variant.id));
     const dimensions = await dimensionRepo.listByProduct(id);
     const dimensionMap = await dimensionRepo.getDimensionMap(id);
     product.variants = await Promise.all(
@@ -167,10 +195,16 @@ app.get('/:id', async (c) => {
                 variantId: variant.id,
             });
             const primary = images.find((img) => Number(img.is_primary) === 1) || images[0] || null;
+            const replenishment = replenishmentMap.get(variant.id) || {
+                replenishment_quantity: 0,
+                replenishment_po_count: 0,
+            };
             return {
                 ...variant,
                 images,
                 primaryImage: primary?.image_id || variant.image_id || null,
+                replenishment_quantity: replenishment.replenishment_quantity,
+                replenishment_po_count: replenishment.replenishment_po_count,
             };
         })
     );

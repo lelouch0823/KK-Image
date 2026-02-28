@@ -1,83 +1,162 @@
 <template>
-  <div class="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)]/30 p-4">
-    <h4 class="mb-3 flex items-center gap-2 text-sm font-medium text-[var(--text-main)]">
-      <AppIcon name="link" class="size-4 text-[var(--color-primary)]" />
-      {{ t('order.binding.title') }}
-    </h4>
+  <div class="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] shadow-sm">
+    <div class="rounded-t-xl border-b border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 px-6 py-4">
+      <h4 class="flex items-center gap-2 text-sm font-semibold text-[var(--text-main)]">
+        <AppIcon name="link" class="size-4 text-[var(--color-primary)]" />
+        {{ t('order.binding.title') }}
+      </h4>
+    </div>
 
     <!-- Bound Product Card -->
-    <div v-if="boundProduct" class="flex items-center gap-3 rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 p-3">
-      <div class="size-12 flex-shrink-0 overflow-hidden rounded-md border border-[var(--border-subtle)] bg-[var(--bg-card)]">
-        <AppImage 
-          v-if="boundProduct.mainImage" 
-          :src="boundProduct.mainImage" 
-          fit="cover" 
-          class="size-full" 
-        />
-        <div v-else class="flex h-full items-center justify-center text-[var(--text-muted)]">
-          <AppIcon name="photo" class="size-6 stroke-[1.5]" />
+    <div v-if="boundProduct" class="">
+      <div class="flex items-start justify-between border-b border-[var(--border-subtle)] p-6">
+        <div class="flex gap-4">
+          <div class="size-20 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)]">
+            <AppImage 
+              v-if="boundProduct.mainImage" 
+              :src="boundProduct.mainImage" 
+              fit="cover" 
+              class="size-full object-cover" 
+            />
+            <div v-else class="flex h-full items-center justify-center text-[var(--text-muted)]">
+              <AppIcon name="photo" class="size-8 stroke-[1.5]" />
+            </div>
+          </div>
+          
+          <div>
+            <div class="mb-1.5 flex items-center gap-3">
+              <h2 class="text-lg font-bold tracking-tight text-[var(--text-main)]">{{ boundProduct.name }}</h2>
+              <span class="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-muted)] px-2 py-0.5 font-mono text-xs font-medium uppercase text-[var(--text-secondary)]">
+                {{ displaySku || '—' }}
+              </span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span
+                v-if="currentAvailabilityState"
+                class="flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+                :class="availabilityBadgeClass"
+              >
+                <AppIcon v-if="currentAvailabilityState === 'available'" name="check-circle" class="size-3.5" />
+                {{ availabilityTextMap[currentAvailabilityState] }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <a 
+            :href="`/admin/products?edit=${boundProduct.id}`"
+            target="_blank"
+            class="cursor-pointer rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
+            :title="t('product.action.edit')"
+          >
+            <AppIcon name="pencil-square" class="size-5" />
+          </a>
+          <button 
+            type="button" 
+            class="cursor-pointer rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)]"
+            :title="t('order.binding.unbind')"
+            @click="$emit('unbind')"
+          >
+            <AppIcon name="trash" class="size-5" />
+          </button>
         </div>
       </div>
-      
-      <div class="min-w-0 flex-1">
-        <div class="truncate font-medium text-[var(--text-main)]">{{ boundProduct.name }}</div>
-        <div class="mt-0.5 text-xs text-[var(--text-secondary)]">{{ t('product.form.spu') }}: {{ displaySku }}</div>
-        
-        <!-- Variant Selector: 3D->2D->1D adaptive -->
-        <div v-if="variants.length > 0" class="mt-2 space-y-1.5">
-          <div v-for="dimension in dimensionKeys" :key="dimension" class="flex items-center gap-2">
-            <span class="w-12 text-[10px] text-[var(--text-secondary)]">{{ getDimensionLabel(dimension) }}</span>
-            <select
-              :data-testid="getDimensionTestId(dimension)"
-              v-model="selectedOptions[dimension]"
-              @change="onDimensionChange(dimension)"
-              class="w-full rounded border border-[var(--border-subtle)] bg-[var(--bg-card)] p-1.5 text-xs focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+
+      <!-- Configuration Body -->
+      <div v-if="variants.length > 0" class="relative space-y-8 p-6">
+        <div v-if="isLoadingDetails" class="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-card)]/50 backdrop-blur-sm">
+           <AppIcon name="spinner" class="size-6 animate-spin text-[var(--color-primary)]" />
+        </div>
+
+        <section v-for="dimension in dimensionKeys" :key="dimension">
+          <div class="mb-4 flex items-center justify-between">
+            <label class="text-sm font-bold text-[var(--text-main)]">{{ getDimensionLabel(dimension) }}</label>
+            <span class="text-[13px] text-[var(--text-secondary)]">
+              已选择: {{ selectedOptions[dimension] || '未选择' }}
+            </span>
+          </div>
+
+          <div v-if="isColorDimension(dimension)" class="flex flex-wrap gap-4">
+            <label
+              v-for="option in getDimensionOptions(dimension)"
+              :key="option.value"
+              class="group relative"
+              :class="[option.selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50']"
             >
-              <option
-                v-for="option in getDimensionOptions(dimension)"
-                :key="option.value"
+              <input
+                type="radio"
+                class="peer sr-only"
+                :name="`dimension-${dimension}`"
                 :value="option.value"
                 :disabled="!option.selectable"
+                :checked="selectedOptions[dimension] === option.value"
+                @change="selectDimensionOption(dimension, option.value)"
+              />
+              <div
+                class="flex size-10 items-center justify-center rounded-full border-2 border-transparent shadow-sm transition-all peer-checked:border-[var(--bg-card)] peer-checked:ring-2 peer-checked:ring-[var(--text-main)]"
+                :style="buildColorSwatchStyle(option.value)"
+              >
+                <AppIcon
+                  v-if="selectedOptions[dimension] === option.value"
+                  name="check"
+                  class="size-5 text-white drop-shadow-md mix-blend-difference"
+                />
+              </div>
+              <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium text-[var(--text-secondary)] opacity-0 transition-opacity group-hover:opacity-100">
+                {{ option.label }}
+              </span>
+            </label>
+          </div>
+
+          <div v-else class="grid grid-cols-4 gap-3 sm:grid-cols-6">
+            <label
+              v-for="option in getDimensionOptions(dimension)"
+              :key="option.value"
+              class="relative"
+              :class="[option.selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50']"
+            >
+              <input
+                type="radio"
+                class="peer sr-only"
+                :name="`dimension-${dimension}`"
+                :value="option.value"
+                :disabled="!option.selectable"
+                :checked="selectedOptions[dimension] === option.value"
+                @change="selectDimensionOption(dimension, option.value)"
+              />
+              <div
+                class="rounded-lg border-2 border-[var(--border-subtle)] px-2 py-2.5 text-center text-sm font-semibold text-[var(--text-secondary)] transition-all peer-checked:border-[var(--text-main)] peer-checked:text-[var(--text-main)]"
+                :class="{ 'border-dashed border-[var(--border-subtle)]/50': !option.selectable }"
               >
                 {{ option.label }}
-              </option>
-            </select>
+              </div>
+            </label>
           </div>
-          <div v-if="currentAvailabilityState" class="text-[10px] text-[var(--text-secondary)]">
-            {{ availabilityTextMap[currentAvailabilityState] }}
+        </section>
+
+        <!-- Inventory Info Footer -->
+        <div class="flex flex-col justify-between gap-4 rounded-xl bg-[var(--bg-muted)]/50 p-4 sm:flex-row sm:items-center">
+          <div class="flex gap-6">
+            <div>
+              <p class="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">库存状态</p>
+              <p class="text-sm font-semibold text-[var(--text-main)]">{{ selectedStockQuantity }} 件在库</p>
+            </div>
+            <div>
+              <p class="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">补货中</p>
+              <p class="text-sm font-semibold text-[var(--text-main)]">
+                {{ selectedReplenishmentQuantity }} 件
+                <span v-if="selectedReplenishmentPoCount > 0" class="ml-1 text-xs font-normal text-[var(--text-secondary)]">({{ selectedReplenishmentPoCount }} 单)</span>
+              </p>
+            </div>
           </div>
         </div>
-
-        <div v-if="isLoadingDetails" class="mt-1 flex items-center gap-1 text-xs text-[var(--color-primary)] opacity-80">
-          <AppIcon name="spinner" class="size-3 animate-spin" />
-          Loading variants...
-        </div>
-      </div>
-
-      <div class="flex items-center gap-1">
-        <a 
-          :href="`/admin/products?edit=${boundProduct.id}`"
-          target="_blank"
-          class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/10"
-          :title="t('product.action.edit')"
-        >
-          <AppIcon name="pencil-square" class="size-4" />
-          {{ t('product.action.edit') }}
-        </a>
-        <button 
-          type="button" 
-          class="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)]"
-          :title="t('order.binding.unbind')"
-          @click="$emit('unbind')"
-        >
-          <AppIcon name="x-mark" class="size-5" />
-        </button>
       </div>
     </div>
 
     <!-- Product Selector -->
-    <div v-else>
-      <p class="mb-2 text-xs text-[var(--text-secondary)]">{{ t('order.binding.hint') }}</p>
+    <div v-else class="p-6">
+      <p class="mb-3 text-sm font-medium text-[var(--text-secondary)]">{{ t('order.binding.hint') }}</p>
       <ProductSelect status-filter="active" @select="handleProductSelect" />
     </div>
   </div>
@@ -114,6 +193,33 @@ const availabilityTextMap = {
   low_stock: '低库存',
   disabled_out_of_stock: '缺货（不可下单）',
   disabled_archived: '已停用（不可下单）',
+};
+const COLOR_LABELS = ['color', '颜色', '顏色'];
+const COLOR_VALUE_MAP = {
+  white: '#ffffff',
+  black: '#111827',
+  red: '#ef4444',
+  blue: '#3b82f6',
+  green: '#10b981',
+  yellow: '#f59e0b',
+  gray: '#9ca3af',
+  grey: '#9ca3af',
+  purple: '#8b5cf6',
+  pink: '#ec4899',
+  orange: '#f97316',
+  // Chinese mapping
+  '白': '#ffffff', '白色': '#ffffff',
+  '黑': '#111827', '黑色': '#111827',
+  '红': '#ef4444', '红色': '#ef4444',
+  '蓝': '#3b82f6', '蓝色': '#3b82f6',
+  '绿': '#10b981', '绿色': '#10b981',
+  '黄': '#f59e0b', '黄色': '#f59e0b',
+  '灰': '#9ca3af', '灰色': '#9ca3af',
+  '深灰': '#4b5563', '浅灰': '#d1d5db',
+  '银色': '#e5e7eb', '银': '#e5e7eb',
+  '紫': '#8b5cf6', '紫色': '#8b5cf6',
+  '粉': '#ec4899', '粉色': '#ec4899',
+  '橙': '#f97316', '橙色': '#f97316',
 };
 
 const parseOptionsValues = (value) => {
@@ -188,6 +294,28 @@ const currentSelectedVariant = computed(() => {
 });
 
 const currentAvailabilityState = computed(() => currentSelectedVariant.value?.availabilityState || '');
+const selectedStockQuantity = computed(() => Number(currentSelectedVariant.value?.stock_quantity || 0));
+const selectedReplenishmentQuantity = computed(() => Number(currentSelectedVariant.value?.replenishment_quantity || 0));
+const selectedReplenishmentPoCount = computed(() => Number(currentSelectedVariant.value?.replenishment_po_count || 0));
+const availabilityBadgeClass = computed(() => {
+  if (currentAvailabilityState.value === 'available') return 'bg-[var(--color-success-bg)] text-[var(--color-success)]';
+  if (currentAvailabilityState.value === 'low_stock') return 'bg-[var(--color-warning-bg)] text-[var(--color-warning)]';
+  if (currentAvailabilityState.value === 'disabled_out_of_stock') return 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]';
+  return 'bg-[var(--bg-muted)] text-[var(--text-secondary)]';
+});
+
+const isColorDimension = (dimensionKey) => {
+  const label = getDimensionLabel(dimensionKey).toLowerCase();
+  const key = String(dimensionKey || '').toLowerCase();
+  return COLOR_LABELS.includes(label) || COLOR_LABELS.includes(key);
+};
+
+const buildColorSwatchStyle = (rawValue) => {
+  const value = String(rawValue || '').trim().toLowerCase();
+  const isHex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value);
+  const color = isHex ? value : (COLOR_VALUE_MAP[value] || '#94a3b8');
+  return { backgroundColor: color };
+};
 
 const resolveVariantImageId = (variant) => {
     if (!variant) return null;
@@ -268,6 +396,11 @@ const onDimensionChange = (changedDimension) => {
     }
   }
   syncSelection();
+};
+
+const selectDimensionOption = (dimension, value) => {
+  selectedOptions[dimension] = value;
+  onDimensionChange(dimension);
 };
 
 const initSelectionFromVariants = () => {
