@@ -7,7 +7,8 @@ import { useResource } from './useResource';
 import { useAuth } from './useAuth';
 import { useToast } from './useToast';
 import { useI18n } from './useI18n';
-import { API } from '@/utils/constants';
+import { useSalesOrderApi } from '@/composables/sales/useSalesOrderApi';
+import { API, SALES_ORDER_PAGE_SIZE } from '@/utils/constants';
 
 // ============================================================
 // 全局共享状态 (Single Source of Truth)
@@ -20,6 +21,7 @@ const statuses = ref([]);
 
 export function useOrders() {
   const { authFetch } = useAuth();
+  const salesOrderApi = useSalesOrderApi();
   const { addToast } = useToast();
   const { t } = useI18n();
 
@@ -236,32 +238,22 @@ export function useOrders() {
    */
   const checkSalesAuth = async (token) => {
     if (!token) return null;
-    try {
-      const res = await authFetch(API.SALES_AUTH(token)).then(r => r.json());
-      return res.success ? res.data : null;
-    } catch (_e) {
-      return null;
-    }
+    const result = await salesOrderApi.auth(token);
+    return result.ok ? result.data : null;
   };
 
   /**
    * 销售端: 登录
    */
   const loginSales = async (token, password) => {
-    try {
-      const res = await authFetch(API.SALES_AUTH(token), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      }).then(r => r.json());
-
-      if (res.success) {
-        return { success: true, data: res.data };
-      }
-      return { success: false, message: res.message || t('order.portal.passwordError') };
-    } catch (_e) {
-      return { success: false, message: t('common.networkError') };
+    const result = await salesOrderApi.login(token, password);
+    if (result.ok) {
+      return { success: true, data: result.data };
     }
+    return {
+      success: false,
+      message: result.error || t('order.portal.passwordError'),
+    };
   };
 
   /**
@@ -273,56 +265,39 @@ export function useOrders() {
 
     const MAX_ITEMS = 100; // 限制列表最大长度，防止 OOM
 
-    try {
-      const query = new URLSearchParams({
-        page: page.toString(),
-        limit: '20'
-      });
-      const res = await authFetch(`${API.SALES_ORDER_LIST(token)}?${query.toString()}`).then(r => r.json());
+    const result = await salesOrderApi.list(token, { page, limit: SALES_ORDER_PAGE_SIZE });
 
-      if (res.success) {
-        if (append) {
-          const combined = [...resource.items.value, ...res.data.orders];
-          // 超过最大长度时，移除最早的项目
-          resource.items.value = combined.length > MAX_ITEMS
-            ? combined.slice(-MAX_ITEMS)
-            : combined;
-        } else {
-          resource.items.value = res.data.orders;
-        }
-
-        // Update pagination info
-        if (res.data.pagination) {
-          Object.assign(resource.pagination, res.data.pagination);
-        }
+    if (result.ok) {
+      const nextOrders = result.data?.orders || [];
+      if (append) {
+        const combined = [...resource.items.value, ...nextOrders];
+        resource.items.value = combined.length > MAX_ITEMS
+          ? combined.slice(-MAX_ITEMS)
+          : combined;
       } else {
-        addToast({ message: res.message || t('common.loadFailed'), type: 'error' });
+        resource.items.value = nextOrders;
       }
-    } catch (_e) {
-      addToast({ message: t('common.networkError'), type: 'error' });
-    } finally {
-      resource.loading.value = false;
+
+      if (result.data?.pagination) {
+        Object.assign(resource.pagination, result.data.pagination);
+      }
+    } else {
+      addToast({ message: result.error || t('common.loadFailed'), type: 'error' });
     }
+
+    resource.loading.value = false;
   };
 
   /**
    * 销售端: 获取详情并标记为已读
    */
   const getSalesOrder = async (token, id) => {
-    try {
-      const res = await authFetch(API.SALES_ORDER_DETAIL(token, id)).then(r => r.json());
-
-      if (res.success) {
-        // SOTA: Auto-read handled by backend GET request
-        return res.data;
-      } else {
-        addToast({ message: res.message, type: 'error' });
-        return null;
-      }
-    } catch (_e) {
-      addToast({ message: t('common.networkError'), type: 'error' });
-      return null;
+    const result = await salesOrderApi.detail(token, id);
+    if (result.ok) {
+      return result.data;
     }
+    addToast({ message: result.error || t('common.networkError'), type: 'error' });
+    return null;
   };
 
   /**
@@ -332,53 +307,34 @@ export function useOrders() {
    * @param {Function} onProgress - 进度回调 (step, current, total)
    */
   const createSalesOrder = async (token, data, onProgress = () => { }) => {
-    try {
-      // OrderForm 已在提交前通过 ImageUploader 完成上传，直接使用 fileIds
-      const { fileIds = [], ...orderData } = data;
+    // OrderForm 已在提交前通过 ImageUploader 完成上传，直接使用 fileIds
+    const { fileIds = [], ...orderData } = data;
+    const payload = { ...orderData, fileIds };
 
-      onProgress('creating', 0, 0);
+    onProgress('creating', 0, 0);
+    const result = await salesOrderApi.create(token, payload);
 
-      const res = await authFetch(API.SALES_ORDER_CREATE(token), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...orderData, fileIds }),
-      }).then(r => r.json());
-
-      if (!res.success) {
-        addToast({ message: res.message, type: 'error' });
-        return false;
-      }
-
-      onProgress('done', 0, 0);
-      addToast({ message: t('order.portal.submitSuccess'), type: 'success' });
-      return true;
-    } catch (_e) {
-      addToast({ message: t('common.networkError'), type: 'error' });
+    if (!result.ok) {
+      addToast({ message: result.error || t('common.networkError'), type: 'error' });
       return false;
     }
+
+    onProgress('done', 0, 0);
+    addToast({ message: t('order.portal.submitSuccess'), type: 'success' });
+    return true;
   };
 
   /**
    * 销售端: 提交留言
    */
   const addSalesComment = async (token, id, comment) => {
-    try {
-      const res = await authFetch(API.SALES_ORDER_COMMENT(token, id), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ comment }),
-      }).then(r => r.json());
-
-      if (res.success) {
-        addToast({ message: res.message, type: 'success' });
-        return true;
-      }
-      addToast({ message: res.message, type: 'error' });
-      return false;
-    } catch (_e) {
-      addToast({ message: t('common.networkError'), type: 'error' });
-      return false;
+    const result = await salesOrderApi.comment(token, id, comment);
+    if (result.ok) {
+      addToast({ message: t('common.saved') || 'Saved', type: 'success' });
+      return true;
     }
+    addToast({ message: result.error || t('common.networkError'), type: 'error' });
+    return false;
   };
 
   /**
