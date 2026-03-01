@@ -16,7 +16,8 @@
               v-if="boundProduct.mainImage" 
               :src="boundProduct.mainImage" 
               fit="cover" 
-              class="size-full object-cover" 
+              class="size-full cursor-pointer object-cover transition-transform hover:scale-105" 
+              @click="openLightbox"
             />
             <div v-else class="flex h-full items-center justify-center text-[var(--text-muted)]">
               <AppIcon name="photo" class="size-8 stroke-[1.5]" />
@@ -71,24 +72,24 @@
       </div>
 
       <!-- Configuration Body -->
-      <div v-if="variants.length > 0" class="relative space-y-6 p-4 sm:space-y-8 sm:p-6">
+      <div v-if="variants.length > 0" class="relative space-y-5 p-4 sm:space-y-7 sm:p-6">
         <div v-if="isLoadingDetails" class="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-card)]/50 backdrop-blur-sm">
            <AppIcon name="spinner" class="size-6 animate-spin text-[var(--color-primary)]" />
         </div>
 
         <section v-for="dimension in dimensionKeys" :key="dimension">
-          <div class="mb-4 flex items-center justify-between">
+          <div class="mb-3 flex items-center justify-between">
             <label class="text-sm font-bold text-[var(--text-main)]">{{ getDimensionLabel(dimension) }}</label>
-            <span class="text-[13px] text-[var(--text-secondary)]">
+            <span class="text-xs text-[var(--text-secondary)] sm:text-[13px]">
               {{ t('order.binding.selectedLabel') }}: {{ selectedOptions[dimension] || t('order.binding.unselected') }}
             </span>
           </div>
 
-          <div v-if="isColorDimension(dimension)" class="flex flex-wrap gap-3 sm:gap-4">
+          <div v-if="isColorDimension(dimension)" class="flex flex-wrap gap-x-4 gap-y-3 sm:gap-5">
             <label
               v-for="option in getDimensionOptions(dimension)"
               :key="option.value"
-              class="group relative rounded-full focus-within:ring-2 focus-within:ring-[var(--color-primary)]/30 focus-within:outline-none"
+              class="group flex flex-col items-center gap-1.5 focus-within:outline-none"
               :class="[option.selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50']"
               :data-testid="getDimensionTestId(dimension)"
             >
@@ -102,26 +103,26 @@
                 @change="selectDimensionOption(dimension, option.value)"
               />
               <div
-                class="flex size-11 items-center justify-center rounded-full border-2 border-transparent shadow-sm transition-all peer-checked:border-[var(--bg-card)] peer-checked:ring-2 peer-checked:ring-[var(--text-main)]"
+                class="peer-focus-visible:ring-primary/50 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 flex size-9 items-center justify-center rounded-full border-2 border-transparent shadow-sm transition-all peer-checked:border-[var(--bg-card)] peer-checked:ring-2 peer-checked:ring-[var(--text-main)] sm:size-10"
                 :style="buildColorSwatchStyle(option.value)"
               >
                 <AppIcon
                   v-if="selectedOptions[dimension] === option.value"
                   name="check"
-                  class="size-5 text-white mix-blend-difference drop-shadow-md"
+                  class="size-4 text-white mix-blend-difference drop-shadow-md sm:size-5"
                 />
               </div>
-              <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-medium whitespace-nowrap text-[var(--text-secondary)] opacity-0 transition-opacity group-hover:opacity-100">
+              <span class="max-w-16 truncate text-center text-[11px] font-medium text-[var(--text-secondary)] transition-colors peer-checked:font-bold peer-checked:text-(--text-main)" :title="option.label">
                 {{ option.label }}
               </span>
             </label>
           </div>
 
-          <div :class="isSalesMode ? 'grid grid-cols-3 gap-2.5 sm:grid-cols-4' : 'grid grid-cols-4 gap-3 sm:grid-cols-6'">
+          <div v-else :class="isSalesMode ? 'grid grid-cols-3 gap-2.5 sm:grid-cols-4' : 'grid grid-cols-4 gap-2.5 sm:grid-cols-6'">
             <label
               v-for="option in getDimensionOptions(dimension)"
               :key="option.value"
-              class="relative rounded-lg focus-within:ring-2 focus-within:ring-[var(--color-primary)]/30 focus-within:outline-none"
+              class="focus-within:ring-primary/50 focus-within:ring-2 focus-within:ring-offset-1 focus-within:outline-none relative rounded-lg"
               :class="[option.selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50']"
               :data-testid="getDimensionTestId(dimension)"
             >
@@ -135,7 +136,7 @@
                 @change="selectDimensionOption(dimension, option.value)"
               />
               <div
-                class="min-h-11 rounded-lg border-2 border-[var(--border-subtle)] px-2 py-2.5 text-center text-sm font-semibold text-[var(--text-secondary)] transition-all peer-checked:border-[var(--text-main)] peer-checked:text-[var(--text-main)]"
+                class="flex min-h-9 items-center justify-center rounded-lg border-2 border-[var(--border-subtle)] px-2 py-1.5 text-center text-[13px] font-semibold text-[var(--text-secondary)] transition-all peer-checked:border-[var(--text-main)] peer-checked:text-(--text-main) sm:min-h-10 sm:text-sm"
                 :class="{ 'border-dashed border-[var(--border-subtle)]/50': !option.selectable }"
               >
                 {{ option.label }}
@@ -180,6 +181,15 @@
         @select="handleProductSelect"
       />
     </div>
+
+    <!-- Image Lightbox -->
+    <Lightbox
+      :visible="isLightboxVisible"
+      :current-file="lightboxFile"
+      :current-index="0"
+      :total="1"
+      @close="isLightboxVisible = false"
+    />
   </div>
 </template>
 
@@ -190,6 +200,7 @@ import ProductSelect from '@/components/product/ProductSelect.vue';
 import SalesProductSelect from '@/components/order/SalesProductSelect.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import Lightbox from '@/components/ui/Lightbox.vue';
 import { useProducts } from '@/composables/useProducts';
 import { useSalesProducts } from '@/composables/useSalesProducts';
 import {
@@ -211,6 +222,18 @@ const { loadSalesProduct } = useSalesProducts();
 
 const isSalesMode = computed(() => props.mode === 'sales');
 const isAdminMode = computed(() => !isSalesMode.value);
+
+const isLightboxVisible = ref(false);
+const lightboxFile = ref(null);
+
+const openLightbox = () => {
+  if (!props.boundProduct?.mainImage) return;
+  lightboxFile.value = {
+    url: props.boundProduct.mainImage,
+    name: props.boundProduct.name || 'Image Preview'
+  };
+  isLightboxVisible.value = true;
+};
 
 const isLoadingDetails = ref(false);
 const variants = ref([]);
