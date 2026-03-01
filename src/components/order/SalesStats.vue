@@ -1,7 +1,31 @@
 <template>
   <div class="space-y-6">
+    <div
+      v-if="error"
+      class="rounded-xl border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)]/40 p-4"
+      data-testid="stats-error"
+    >
+      <p class="text-sm text-[var(--text-main)]">{{ error }}</p>
+      <button
+        type="button"
+        class="mt-3 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-inverse)]"
+        data-testid="stats-retry"
+        @click="loadStats"
+      >
+        {{ t('common.retry') }}
+      </button>
+    </div>
+
+    <div
+      v-else-if="!loading && isEmptyStats"
+      class="rounded-xl border border-dashed border-[var(--border-color)] bg-[var(--bg-card)] p-4 text-center"
+      data-testid="stats-empty"
+    >
+      <p class="text-sm text-[var(--text-secondary)]">{{ t('common.noData') }}</p>
+    </div>
+
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-2 gap-4">
+    <div v-else class="grid grid-cols-2 gap-4">
       <div
         class="rounded-xl border border-[var(--color-card-blue-border)] bg-[var(--color-card-blue-bg)] p-4"
       >
@@ -83,6 +107,7 @@ const props = defineProps({
 
 const { t } = useI18n();
 const loading = ref(true);
+const error = ref('');
 const stats = ref({
   totalOrders: 0,
   completedOrders: 0,
@@ -95,18 +120,28 @@ const maxCount = computed(() => {
   return Math.max(...stats.value.monthlyTrend.map((d) => d.count)) || 1;
 });
 
+const isEmptyStats = computed(() =>
+  stats.value.totalOrders === 0 &&
+  stats.value.completedOrders === 0 &&
+  stats.value.monthOrders === 0 &&
+  stats.value.monthlyTrend.length === 0
+);
+
 const loadStats = async () => {
   if (!props.token) return;
 
   loading.value = true;
+  error.value = '';
   try {
     const res = await fetch(API.SALES_STATS(props.token));
     const result = await res.json();
     if (result.success) {
       stats.value = result.data;
+    } else {
+      error.value = result.error || result.message || t('common.loadFailed');
     }
   } catch (e) {
-    console.error('Failed to load sales stats:', e);
+    error.value = e?.message || t('common.networkError');
   } finally {
     loading.value = false;
   }

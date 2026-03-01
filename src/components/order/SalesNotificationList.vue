@@ -21,7 +21,23 @@
     <!-- List -->
     <div class="scrollbar-thin min-h-[100px] flex-1 overflow-y-auto">
       <div
-        v-if="loading && notifications.length === 0"
+        v-if="showErrorState"
+        class="flex flex-col items-center justify-center gap-3 p-6 text-center"
+        data-testid="notification-error"
+      >
+        <p class="text-sm text-[var(--text-main)]">{{ t('common.loadFailed') }}</p>
+        <button
+          type="button"
+          class="rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-inverse)]"
+          data-testid="notification-retry"
+          @click="runFetch"
+        >
+          {{ t('common.retry') }}
+        </button>
+      </div>
+
+      <div
+        v-else-if="loading && notifications.length === 0"
         class="flex flex-col items-center justify-center p-12 text-center text-[var(--text-muted)]"
       >
         <div
@@ -101,7 +117,7 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { useNotifications } from '@/composables/useNotifications';
 import { useI18n } from '@/composables/useI18n';
 import { formatDate } from '@/utils/formatters';
@@ -113,12 +129,25 @@ const props = defineProps({
   onNavigate: { type: Function, default: null },
 });
 
-const { notifications, unreadCount, loading, markAsRead, markAllAsRead, fetchNotifications } =
+const { notifications, unreadCount, loading, initialized, markAsRead, markAllAsRead, fetchNotifications } =
   useNotifications();
 const { t } = useI18n();
+const attemptedFetch = ref(false);
+
+const showErrorState = computed(() =>
+  attemptedFetch.value &&
+  !loading.value &&
+  !initialized.value &&
+  notifications.value.length === 0
+);
+
+const runFetch = async () => {
+  attemptedFetch.value = true;
+  await fetchNotifications();
+};
 
 onMounted(() => {
-  fetchNotifications();
+  runFetch();
 });
 
 // 处理可能的 JSON 格式翻译包
