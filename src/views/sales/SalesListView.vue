@@ -45,6 +45,7 @@
     <OrderList
       :orders="filteredOrders"
       :loading="loading"
+      :error="listError"
       :is-pulling="isPulling"
       :loading-more="infiniteScroll.isLoading.value"
       @refresh="loadOrders"
@@ -89,8 +90,10 @@ const {
   pagination = { page: 1, totalPages: 1, total: 0 },
   searchQuery = ref(''),
   salesOrderMode = ref('legacy'),
+  salesOrderStateMachine = null,
 } = salesContext;
 const salesOrderEntry = computed(() => salesOrderMode.value || 'legacy');
+const listError = computed(() => salesOrderStateMachine?.error?.value || '');
 
 // Local Filtering
 const filteredOrders = computed(() => {

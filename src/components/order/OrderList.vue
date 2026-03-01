@@ -6,16 +6,19 @@
       {{ t('common.loading') }}
     </div>
 
-    <!-- 空状态 -->
-    <div v-if="!loading && orders.length === 0" class="py-16 text-center">
-      <div
-        class="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-(--bg-muted)"
-      >
-        <AppIcon name="clipboard-document-list" class="size-10 text-(--text-muted)" />
-      </div>
-      <h3 class="text-primary mb-2 text-lg font-medium">{{ t('order.portal.emptyOrders') }}</h3>
-      <p class="text-sm text-(--text-secondary)">{{ t('order.portal.emptyHint') }}</p>
-    </div>
+    <AsyncStatePanel
+      v-if="!loading && error"
+      state="error"
+      :description="error"
+      @retry="$emit('refresh')"
+    />
+
+    <AsyncStatePanel
+      v-else-if="!loading && !error && orders.length === 0"
+      state="empty"
+      :title="t('order.portal.emptyOrders')"
+      :description="t('order.portal.emptyHint')"
+    />
 
     <!-- 虚拟滚动容器 -->
     <div 
@@ -114,6 +117,7 @@ import { getStatusVariant } from '@/utils/status';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
+import AsyncStatePanel from '@/components/common/AsyncStatePanel.vue';
 
 // 常量：每个订单项的高度 (包含 margin)
 // Card Height (20*4 + 1.5*2) + Padding (12*2) = 80 + 24 = 104px content height
@@ -128,6 +132,7 @@ const props = defineProps({
   loading: Boolean,
   isPulling: Boolean,
   loadingMore: Boolean,
+  error: { type: String, default: '' },
 });
 
 defineEmits(['refresh', 'view']);
