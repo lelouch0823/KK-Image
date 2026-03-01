@@ -168,7 +168,7 @@ import AppErrorBoundary from '@/components/common/AppErrorBoundary.vue';
 import AsyncStatePanel from '@/components/common/AsyncStatePanel.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
-import { resolveSalesOrderEntry } from '@/config/feature-flags';
+import { resolveSalesOrderEntry, isSalesOrderV2Enabled } from '@/config/feature-flags';
 import { onClickOutside } from '@vueuse/core';
 
 const route = useRoute();
@@ -213,7 +213,8 @@ const pageTitle = computed(() => {
   return '';
 });
 
-const salesOrderEntry = computed(() => resolveSalesOrderEntry());
+const salesOrderV2Enabled = computed(() => isSalesOrderV2Enabled());
+const salesOrderEntry = computed(() => (salesOrderV2Enabled.value ? resolveSalesOrderEntry() : 'legacy'));
 
 const salesOrderStateMachine = useSalesOrderStateMachine({
   loadOrders: async (payload = {}) => {
@@ -259,6 +260,7 @@ provide('salesContext', {
     setPrefillData: (data) => { prefillData.value = data },
     searchQuery,
     salesOrderMode: salesOrderEntry,
+    salesOrderV2Enabled,
     salesOrderStateMachine,
 });
 

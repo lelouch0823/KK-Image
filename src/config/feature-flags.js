@@ -5,7 +5,7 @@ const parseBooleanFlag = (value, fallback = false) => {
 };
 
 export const featureFlags = Object.freeze({
-  SALES_ORDER_V2: parseBooleanFlag(import.meta.env.VITE_SALES_ORDER_V2, false),
+  SALES_ORDER_V2: parseBooleanFlag(import.meta.env.VITE_SALES_ORDER_V2, true),
 });
 
 export const resolveSalesOrderEntry = (flags = featureFlags) =>
@@ -13,4 +13,3 @@ export const resolveSalesOrderEntry = (flags = featureFlags) =>
 
 export const isSalesOrderV2Enabled = (flags = featureFlags) =>
   resolveSalesOrderEntry(flags) === 'refactor';
-

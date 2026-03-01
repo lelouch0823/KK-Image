@@ -338,36 +338,6 @@ export function useOrders() {
   };
 
   /**
-   * 复制订单 (获取订单详情并返回可用于预填充的表单数据)
-   * @param {string} token - 销售访问令牌
-   * @param {string} orderId - 要复制的订单 ID
-   * @returns {Object|null} 可用于预填充的表单数据
-   */
-  const duplicateOrder = async (token, orderId) => {
-    try {
-      const order = await getSalesOrder(token, orderId);
-      if (!order) return null;
-
-      const currentData = order.currentData || {};
-
-      // 返回可用于预填充表单的数据
-      return {
-        name: currentData.name || '',
-        brand: currentData.brand || '',
-        series: currentData.series || '',
-        size: currentData.size || '',
-        color: currentData.color || '',
-        material: currentData.material || '',
-        remark: currentData.remark || '',
-        deadline: '', // 不复制截止日期，让用户重新选择
-      };
-    } catch (_e) {
-      addToast({ message: t('common.networkError'), type: 'error' });
-      return null;
-    }
-  };
-
-  /**
    * 批量操作订单
    * @param {string[]} ids - 订单 ID 列表
    * @param {'confirm'|'reject'|'void'} action - 操作类型
@@ -415,6 +385,5 @@ export function useOrders() {
     getSalesOrder,
     createSalesOrder,
     addSalesComment,
-    duplicateOrder,
   };
 }
