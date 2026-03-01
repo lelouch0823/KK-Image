@@ -88,7 +88,7 @@
             <label
               v-for="option in getDimensionOptions(dimension)"
               :key="option.value"
-              class="group relative"
+              class="group relative rounded-full focus-within:ring-2 focus-within:ring-[var(--color-primary)]/30 focus-within:outline-none"
               :class="[option.selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50']"
               :data-testid="getDimensionTestId(dimension)"
             >
@@ -121,7 +121,7 @@
             <label
               v-for="option in getDimensionOptions(dimension)"
               :key="option.value"
-              class="relative"
+              class="relative rounded-lg focus-within:ring-2 focus-within:ring-[var(--color-primary)]/30 focus-within:outline-none"
               :class="[option.selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50']"
               :data-testid="getDimensionTestId(dimension)"
             >

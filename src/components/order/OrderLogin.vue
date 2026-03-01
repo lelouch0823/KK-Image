@@ -32,7 +32,7 @@
               />
               <button
                 type="button"
-                class="text-muted absolute top-1/2 right-3 -translate-y-1/2 rounded-lg p-2 transition-colors hover:text-primary hover:bg-black/5 active:scale-90"
+                class="text-muted absolute top-1/2 right-3 -translate-y-1/2 rounded-lg p-2 transition-colors hover:text-primary hover:bg-black/5 active:scale-90 focus-visible:ring-primary/30 min-h-11 min-w-11 focus-visible:ring-2 focus-visible:outline-none"
                 @click="showPassword = !showPassword"
               >
                 <AppIcon v-if="showPassword" name="eye-slash" class="size-5" />
@@ -69,7 +69,13 @@
           </button>
 
           <!-- 错误提示 -->
-          <p v-if="error" class="animate-shake mt-4 text-center text-sm text-[var(--color-danger)]">
+          <p
+            v-if="error"
+            class="animate-shake mt-4 text-center text-sm text-[var(--color-danger)]"
+            role="alert"
+            aria-live="assertive"
+            data-testid="login-error"
+          >
             {{ error }}
           </p>
         </form>

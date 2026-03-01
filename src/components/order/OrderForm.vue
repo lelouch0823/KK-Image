@@ -239,7 +239,7 @@
     <div :class="actionBarClass">
       <button
         type="button"
-        class="h-12 flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+        class="h-12 flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30 focus-visible:outline-none"
         @click="$emit('cancel')"
       >
         {{ t('common.cancel') }}
@@ -247,7 +247,7 @@
       <button
         type="submit"
         :disabled="!isValid || isSubmitting"
-        class="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        class="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30 focus-visible:outline-none"
       >
         <AppIcon
           v-if="isSubmitting"
