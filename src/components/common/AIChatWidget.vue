@@ -145,7 +145,7 @@ const dragHandleEl = ref(null);
 const { x, y } = useDraggable(widgetEl, {
   initialValue: { x: storedX.value, y: storedY.value },
   handle: dragHandleEl,
-  preventDefault: true,
+  preventDefault: false,
 });
 
 watch([x, y], ([newX, newY]) => {
@@ -191,11 +191,13 @@ const stopResize = () => {
   document.body.style.userSelect = '';
 };
 
-// 监听窗口大小变化限制溢出
-watch([windowWidth, windowHeight], ([vw, vh]) => {
-  if (x.value + width.value > vw) x.value = Math.max(0, vw - width.value - 24);
-  if (y.value + height.value > vh) y.value = Math.max(0, vh - height.value - 24);
-});
+// 监听窗口打开以及大小变化限制溢出
+watch([windowWidth, windowHeight, isOpen], ([vw, vh, open]) => {
+  if (open) {
+    if (x.value + width.value > vw) x.value = Math.max(0, vw - width.value - 24);
+    if (y.value + height.value > vh) y.value = Math.max(0, vh - height.value - 24);
+  }
+}, { immediate: true });
 
 // 从路由计算当前视图和标题
 const currentView = computed(() => inferCurrentView(route.path));
@@ -314,6 +316,12 @@ const scrollToBottom = async () => {
     messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
   }
 };
+
+watch(isOpen, async (val) => {
+  if (val) {
+    await scrollToBottom();
+  }
+});
 
 const clearHistory = () => {
   if (confirm(t('ai.clearConfirm'))) {
