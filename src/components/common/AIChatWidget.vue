@@ -12,16 +12,25 @@
       <div
         v-if="isOpen"
         ref="widgetEl"
-        :style="{
+        :style="isMobile ? undefined : {
           left: `${x}px`,
           top: `${y}px`,
           width: `${width}px`,
           height: `${height}px`,
         }"
-        class="border-border pointer-events-auto absolute flex min-h-[300px] max-w-[calc(100vw-2rem)] min-w-[320px] flex-col overflow-hidden rounded-2xl border bg-(--bg-card) shadow-2xl backdrop-blur-xl"
+        :class="[
+          'pointer-events-auto flex flex-col overflow-hidden bg-(--bg-card) shadow-2xl backdrop-blur-xl transition-transform',
+          isMobile 
+            ? 'fixed inset-0 z-10000 rounded-none border-0' 
+            : 'border-border absolute min-h-[300px] max-w-[calc(100vw-2rem)] min-w-[320px] rounded-2xl border'
+        ]"
       >
         <!-- Header -->
-        <div ref="dragHandleEl" class="bg-primary flex cursor-move items-center justify-between p-4 text-(--text-inverse) transition-colors hover:bg-primary/90">
+        <div 
+          ref="dragHandleEl" 
+          class="bg-primary flex items-center justify-between p-4 text-(--text-inverse) transition-colors"
+          :class="isMobile ? '' : 'hover:bg-primary/90 cursor-move'"
+        >
           <div class="flex items-center gap-3">
             <div class="flex size-8 items-center justify-center rounded-lg bg-white/20">
               <AppIcon name="bolt" class="size-5" />
@@ -93,18 +102,23 @@
           </form>
         </div>
 
-        <!-- Resize Handle -->
+        <!-- Resize Handle (Desktop Only) -->
         <div 
-          class="absolute right-0 bottom-0 z-10 size-4  cursor-se-resize"
+          v-if="!isMobile"
+          class="absolute right-0 bottom-0 z-10 flex size-6 cursor-se-resize items-end justify-end p-1.5 text-(--text-secondary) opacity-50 transition-opacity hover:opacity-100"
           @mousedown.prevent="startResize"
-        ></div>
+        >
+          <svg viewBox="0 0 12 12" class="size-2.5">
+            <path d="M10 10H12V12H10V10ZM6 10H8V12H6V10ZM10 6H12V8H10V6ZM2 10H4V12H2V10ZM6 6H8V8H6V6ZM10 2H12V4H10V2Z" fill="currentColor"/>
+          </svg>
+        </div>
       </div>
     </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick, watch, computed, onMounted, onUnmounted } from 'vue';
+import { ref, nextTick, watch, computed, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useDraggable, useStorage, useWindowSize } from '@vueuse/core';
 import { API as API_URLS } from '@/utils/constants';
@@ -124,6 +138,7 @@ const { t } = useI18n();
 const { addToast } = useToast();
 const route = useRoute();
 const { width: windowWidth, height: windowHeight } = useWindowSize();
+const isMobile = computed(() => windowWidth.value <= 768);
 
 // 窗口尺寸与位置状态 (持久化)
 // 默认右上角对齐 (避开顶栏):
@@ -190,6 +205,9 @@ const stopResize = () => {
   document.removeEventListener('mouseup', stopResize);
   document.body.style.userSelect = '';
 };
+
+// 安全清理：当组件被销毁但还在拖拽时
+onUnmounted(stopResize);
 
 // 监听窗口打开以及大小变化限制溢出
 watch([windowWidth, windowHeight, isOpen], ([vw, vh, open]) => {
