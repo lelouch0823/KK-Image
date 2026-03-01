@@ -207,3 +207,36 @@ sequenceDiagram
 - Repository Facade: `functions/repositories/OrderRepository.js`
 - 创建落库实现: `functions/repositories/order/mutations.js`
 - 采购联动服务: `functions/services/PurchaseOrderService.js`
+
+## 11. V2 重构补充 (2026-03-01)
+
+销售端订单模块已切换到 V2 默认路径，架构由原来的“页面直连 API”升级为：
+
+- API 层: `src/composables/sales/useSalesOrderApi.js`
+  - 统一返回 `{ ok, data, error, status }`
+  - 覆盖 list/detail/create/comment/stats/products
+- 状态机层: `src/composables/sales/useSalesOrderStateMachine.js`
+  - 状态: `idle/loading/ready/empty/error/recovering`
+  - 动作: `loadOrders/createOrder/loadDetail/comment/retry`
+- 视图层:
+  - `src/views/Sales.vue`
+  - `src/views/sales/SalesListView.vue`
+  - `src/views/sales/SalesFormView.vue`
+  - `src/views/sales/SalesDetailView.vue`
+
+同时新增页面级错误边界与异步状态面板：
+
+- `src/components/common/AppErrorBoundary.vue`
+- `src/components/common/AsyncStatePanel.vue`
+
+后端销售路由也已统一错误契约：
+
+- 错误返回: `{ success: false, error, code }`
+- 关键文件:
+  - `functions/lib/hono/routes/sales/orders.js`
+  - `functions/lib/hono/routes/sales/products.js`
+
+完整切换策略、监控阈值和 5 分钟回滚步骤见：
+
+- `docs/architecture/modules/sales-order-module-v2.md`
+- `docs/plans/2026-03-01-sales-order-module-rollout-checklist.md`
