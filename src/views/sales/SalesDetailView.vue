@@ -1,31 +1,33 @@
 <template>
-  <div v-if="loading" class="flex h-64 items-center justify-center">
-    <div class="size-8 animate-spin rounded-full border-4 border-[var(--border-color)] border-t-[var(--color-primary)]"></div>
-  </div>
-  <OrderDetail
-    v-else-if="order"
-    :order="order"
-    mode="sales"
-    @back="handleBack"
-    @comment="handleComment"
-    @refresh="handleRefresh"
-    @duplicate="handleDuplicate"
-  />
-  <div v-else class="flex h-screen items-center justify-center">
-    <EmptyState
-      icon="search"
-      :title="t('common.orderNotFound')"
-      :description="t('common.orderNotFoundDesc')"
-    >
-      <template #action>
-        <router-link
-          :to="`/sales/${token}`"
-          class="inline-flex items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--text-inverse)] transition-all hover:bg-[var(--color-primary-hover)] active:scale-95"
-        >
-          {{ t('order.detail.backToList') || '返回列表' }}
-        </router-link>
-      </template>
-    </EmptyState>
+  <div :data-sales-order-mode="salesOrderEntry">
+    <div v-if="loading" class="flex h-64 items-center justify-center">
+      <div class="size-8 animate-spin rounded-full border-4 border-[var(--border-color)] border-t-[var(--color-primary)]"></div>
+    </div>
+    <OrderDetail
+      v-else-if="order"
+      :order="order"
+      mode="sales"
+      @back="handleBack"
+      @comment="handleComment"
+      @refresh="handleRefresh"
+      @duplicate="handleDuplicate"
+    />
+    <div v-else class="flex h-screen items-center justify-center">
+      <EmptyState
+        icon="search"
+        :title="t('common.orderNotFound')"
+        :description="t('common.orderNotFoundDesc')"
+      >
+        <template #action>
+          <router-link
+            :to="`/sales/${token}`"
+            class="inline-flex items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--text-inverse)] transition-all hover:bg-[var(--color-primary-hover)] active:scale-95"
+          >
+            {{ t('order.detail.backToList') || '返回列表' }}
+          </router-link>
+        </template>
+      </EmptyState>
+    </div>
   </div>
 </template>
 
@@ -53,7 +55,13 @@ const order = ref(null);
 const loading = ref(true);
 
 // Inject for shared actions if needed, e.g. causing a list refresh
-const { loadOrders, setPrefillData } = inject('salesContext', {});
+const salesContext = inject('salesContext', {});
+const {
+  loadOrders = async () => {},
+  setPrefillData = () => {},
+  salesOrderMode = ref('legacy'),
+} = salesContext;
+const salesOrderEntry = computed(() => salesOrderMode.value || 'legacy');
 
 const fetchOrder = async () => {
   loading.value = true;

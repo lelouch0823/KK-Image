@@ -1,5 +1,8 @@
 <template>
-  <div class="min-h-screen bg-[var(--bg-page)] font-sans text-[var(--text-main)] antialiased">
+  <div
+    class="min-h-screen bg-[var(--bg-page)] font-sans text-[var(--text-main)] antialiased"
+    :data-sales-order-mode="salesOrderEntry"
+  >
     <!-- 加载状态 -->
     <div v-if="loading" class="flex min-h-screen items-center justify-center bg-(--bg-page)">
       <div class="text-center">
@@ -165,6 +168,7 @@ import OrderLogin from '@/components/order/OrderLogin.vue';
 import SalesNotificationList from '@/components/order/SalesNotificationList.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import { resolveSalesOrderEntry } from '@/config/feature-flags';
 import { onClickOutside } from '@vueuse/core';
 
 const route = useRoute();
@@ -206,6 +210,8 @@ const pageTitle = computed(() => {
   return '';
 });
 
+const salesOrderEntry = computed(() => resolveSalesOrderEntry());
+
 // Auth State
 const loading = ref(true);
 const isAuthenticated = ref(false);
@@ -227,6 +233,7 @@ provide('salesContext', {
     prefillData,
     setPrefillData: (data) => { prefillData.value = data },
     searchQuery,
+    salesOrderMode: salesOrderEntry,
 });
 
 // Notifications Logic

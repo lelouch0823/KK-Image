@@ -1,6 +1,7 @@
 <template>
   <div
     class="min-h-[calc(100vh-6rem)]"
+    :data-sales-order-mode="salesOrderEntry"
     @touchstart="handleTouchStart"
     @touchmove="handleTouchMove"
     @touchend="handleTouchEnd"
@@ -68,7 +69,7 @@
 </template>
 
 <script setup>
-import { inject, computed, watch } from 'vue';
+import { inject, computed, watch, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePullToRefresh } from '@/composables/usePullToRefresh';
@@ -80,7 +81,16 @@ const route = useRoute();
 const { t } = useI18n();
 
 // Inject shared state from Sales.vue (Layout)
-const { orders, loading, loadOrders, pagination, searchQuery } = inject('salesContext');
+const salesContext = inject('salesContext', {});
+const {
+  orders = ref([]),
+  loading = ref(false),
+  loadOrders = async () => {},
+  pagination = { page: 1, totalPages: 1, total: 0 },
+  searchQuery = ref(''),
+  salesOrderMode = ref('legacy'),
+} = salesContext;
+const salesOrderEntry = computed(() => salesOrderMode.value || 'legacy');
 
 // Local Filtering
 const filteredOrders = computed(() => {

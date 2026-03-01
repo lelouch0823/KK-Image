@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto w-full max-w-2xl space-y-4 pb-8">
+  <div class="mx-auto w-full max-w-2xl space-y-4 pb-8" :data-sales-order-mode="salesOrderEntry">
     <div class="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-3">
       <p class="text-xs font-medium text-[var(--text-secondary)]">
         {{ t('order.binding.salesGuide') }}
@@ -40,7 +40,14 @@ const { t } = useI18n();
 const { addToast } = useToast();
 const { createSalesOrder } = useOrders();
 
-const { prefillData, setPrefillData, loadOrders } = inject('salesContext');
+const salesContext = inject('salesContext', {});
+const {
+  prefillData = ref(null),
+  setPrefillData = () => {},
+  loadOrders = async () => {},
+  salesOrderMode = ref('legacy'),
+} = salesContext;
+const salesOrderEntry = computed(() => salesOrderMode.value || 'legacy');
 
 const submitProgress = ref({ step: '', current: 0, total: 0 });
 
