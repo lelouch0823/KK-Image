@@ -5,12 +5,7 @@
   >
     <!-- 加载状态 -->
     <div v-if="loading" class="flex min-h-screen items-center justify-center bg-(--bg-page)">
-      <div class="text-center">
-        <div
-          class="border-t-primary mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-(--border-color)"
-        ></div>
-        <p class="text-secondary">{{ t('common.loading') }}</p>
-      </div>
+      <AsyncStatePanel state="loading" class="w-full max-w-md" />
     </div>
 
     <!-- 登录页面 -->
@@ -128,9 +123,11 @@
       </header>
 
       <!-- Content Area using Router View -->
-      <main class="mx-auto max-w-screen-xl px-4 py-6 pb-24 sm:px-6">
-          <router-view />
-      </main>
+      <AppErrorBoundary :reset-key="route.fullPath" @recover="handleBoundaryRecover">
+        <main class="mx-auto max-w-screen-xl px-4 py-6 pb-24 sm:px-6">
+            <router-view />
+        </main>
+      </AppErrorBoundary>
 
       <!-- Bottom TabBar -->
       <nav class="fixed right-0 bottom-0 left-0 z-40 border-t border-(--border-color) bg-(--bg-card)/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg">
@@ -167,6 +164,8 @@ import { useSalesOrderStateMachine } from '@/composables/sales/useSalesOrderStat
 import { useNotifications } from '@/composables/useNotifications';
 import OrderLogin from '@/components/order/OrderLogin.vue';
 import SalesNotificationList from '@/components/order/SalesNotificationList.vue';
+import AppErrorBoundary from '@/components/common/AppErrorBoundary.vue';
+import AsyncStatePanel from '@/components/common/AsyncStatePanel.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { resolveSalesOrderEntry } from '@/config/feature-flags';
@@ -276,6 +275,14 @@ const handleNotificationNavigate = async (orderId) => {
 
 const openCreateModal = () => {
     router.push(`/sales/${accessToken.value}/create`);
+};
+
+const handleBoundaryRecover = async () => {
+  if (!isAuthenticated.value) {
+    await checkAuth();
+    return;
+  }
+  await salesOrderStateMachine.retry('loadOrders');
 };
 
 // Auto-refresh logic (Centralized)
