@@ -126,22 +126,31 @@ const route = useRoute();
 const { width: windowWidth, height: windowHeight } = useWindowSize();
 
 // 窗口尺寸与位置状态 (持久化)
-// 默认右下角对齐:
+// 默认右上角对齐 (避开顶栏):
 const initialWidth = 420;
 const initialHeight = 600;
-const defaultX = Math.max(0, windowWidth.value - initialWidth - 24); // 右边距24px
-const defaultY = Math.max(0, windowHeight.value - initialHeight - 24); // 下边距24px
+// 右边距24px
+const defaultX = Math.max(0, windowWidth.value - initialWidth - 24); 
+// 距离顶部 80px
+const defaultY = 80; 
 
 const width = useStorage('ai-chat-width', initialWidth);
 const height = useStorage('ai-chat-height', initialHeight);
+const storedX = useStorage('ai-chat-x', defaultX);
+const storedY = useStorage('ai-chat-y', defaultY);
 
 const widgetEl = ref(null);
 const dragHandleEl = ref(null);
 
 const { x, y } = useDraggable(widgetEl, {
-  initialValue: { x: defaultX, y: defaultY },
+  initialValue: { x: storedX.value, y: storedY.value },
   handle: dragHandleEl,
   preventDefault: true,
+});
+
+watch([x, y], ([newX, newY]) => {
+  storedX.value = newX;
+  storedY.value = newY;
 });
 
 // 手动实现缩放大小逻辑
