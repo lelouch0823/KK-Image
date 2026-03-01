@@ -71,6 +71,18 @@ export function renderMarkdown(content) {
     // 匹配: 非换行符 + 汉字/字母/数字 + 中文冒号
     processed = processed.replace(/([^\n：])([一-龥a-zA-Z0-9]+：)/g, '$1\n$2');
 
+    // === 结尾容错补全（针对流式输出中尚未接收完毕的闭合符） ===
+    // 1. 智能补全未闭合的代码块 (```)
+    // 统计代码块标记的数量，如果为奇数，说明当前正处于代码块内部，尚未闭合
+    const codeBlockMatch = processed.match(/```/g);
+    if (codeBlockMatch && codeBlockMatch.length % 2 !== 0) {
+        // 如果最后一行没有换行，先加个换行再闭合，防止吞掉最后一行代码
+        if (!processed.endsWith('\n')) {
+            processed += '\n';
+        }
+        processed += '```';
+    }
+
     const html = marked.parse(processed);
     return DOMPurify.sanitize(html);
 }
