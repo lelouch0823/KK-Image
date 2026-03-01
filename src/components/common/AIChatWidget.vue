@@ -122,7 +122,7 @@ import { ref, nextTick, watch, computed, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useDraggable, useStorage, useWindowSize } from '@vueuse/core';
 import { API as API_URLS } from '@/utils/constants';
-import { renderMarkdown } from '@/utils/ai-markdown';
+import { renderMarkdown, fixIncompleteMarkdown } from '@/utils/ai-markdown';
 import ChatMessage from '@/components/common/ai/ChatMessage.vue';
 import AISuggestions from '@/components/common/ai/AISuggestions.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -327,6 +327,21 @@ const messages = useStorage('ai-chat-messages', [
     html: renderMarkdown(t('ai.welcome'))
   }
 ]);
+
+// SOTA: 流式输出彻底结束后进行一次性的词法补全纠错与数据落地定型
+watch(isAIStreaming, (streaming, oldStreaming) => {
+  if (oldStreaming === true && streaming === false && messages.value.length > 0) {
+    const lastMsg = messages.value[messages.value.length - 1];
+    if (lastMsg.role === 'assistant' && fullContent.value) {
+      const fixedContent = fixIncompleteMarkdown(fullContent.value);
+      // 永久保存纠正后的源码防止历史记录损坏
+      lastMsg.content = fixedContent; 
+      // 强制执行最后一次满血渲染
+      lastMsg.html = renderMarkdown(fixedContent);
+      scrollToBottom();
+    }
+  }
+});
 
 const scrollToBottom = async () => {
   await nextTick();
