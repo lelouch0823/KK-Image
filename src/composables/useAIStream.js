@@ -138,8 +138,19 @@ export function useAIStream() {
     };
 
     const isThinking = computed(() => {
+        // 1. 网络请求载入中
         if (isLoading.value) return true;
-        if (isStreaming.value && !displayedContent.value && !toolStatus.value) return true;
+        
+        // 2. 流式传输已经开启
+        if (isStreaming.value) {
+            // 如果正在调用工具，显示 Loading (通过 toolStatus 表现)
+            if (toolStatus.value) return true;
+            // 如果还没有任何显示内容，显示 Loading
+            if (!displayedContent.value) return true;
+            // 如果打字机队列已空（当前没有在蹦字），但流还没断，说明 AI 正在思考下一段话
+            if (!isTyping.value) return true;
+        }
+        
         return false;
     });
 
