@@ -9,6 +9,13 @@ import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors.js'
 
 const app = new Hono();
 
+app.onError((err, c) => {
+    const statusCode = Number(err?.statusCode || 500);
+    const code = err?.code || 'INTERNAL_ERROR';
+    const error = err?.message || 'Internal Server Error';
+    return c.json({ success: false, error, code }, statusCode);
+});
+
 /**
  * GET / - 获取订单列表
  */
