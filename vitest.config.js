@@ -8,6 +8,8 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'jsdom',
+        clearMocks: true,
+        restoreMocks: true,
         include: [
             'src/**/__tests__/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
             'functions/**/__tests__/*.{test,spec}.js',
