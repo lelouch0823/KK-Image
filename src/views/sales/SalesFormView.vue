@@ -7,18 +7,38 @@
     </div>
 
     <ProductBindingSection
+      :key="productBindingKey"
       mode="sales"
       :sales-token="String(route.params.token || '')"
       :bound-product="boundProduct"
       @select="handleProductSelect"
       @unbind="unbindProduct"
+      @product-fetch-error="handleProductFetchError"
+      @product-fetch-success="clearProductFetchError"
     />
+
+    <div
+      v-if="productFetchError"
+      class="rounded-xl border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)]/40 p-3"
+      data-testid="product-fetch-error"
+    >
+      <p class="text-sm text-[var(--text-main)]">{{ productFetchError }}</p>
+      <button
+        type="button"
+        class="mt-2 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-inverse)]"
+        data-testid="product-fetch-retry"
+        @click="retryProductFetch"
+      >
+        {{ t('common.retry') }}
+      </button>
+    </div>
 
     <OrderForm
       :prefill="formData"
       :submit-progress="submitProgress"
       :disabled-fields="disabledFields"
       :bound-product-variant="boundProductVariant"
+      :submit-error="submitError"
       @submit="handleSubmit"
       @cancel="handleCancel"
     />
@@ -59,6 +79,10 @@ const boundProduct = ref(null);
 const selectedProductId = ref(null);
 const boundProductVariant = ref(null);
 const formData = ref({});
+const productFetchError = ref('');
+const submitError = ref('');
+const pendingSubmitPayload = ref(null);
+const productBindingKey = ref(0);
 
 const disabledFields = computed(() => (boundProduct.value ? LOCKED_FIELDS : []));
 
@@ -137,15 +161,31 @@ const handleProductSelect = (product) => {
 
   formData.value = nextData;
   boundProductVariant.value = mappedOptions;
+  clearProductFetchError();
 };
 
 const unbindProduct = () => {
   boundProduct.value = null;
   selectedProductId.value = null;
   boundProductVariant.value = null;
+  clearProductFetchError();
+};
+
+const handleProductFetchError = (message) => {
+  productFetchError.value = message || t('common.loadFailed');
+};
+
+const clearProductFetchError = () => {
+  productFetchError.value = '';
+};
+
+const retryProductFetch = () => {
+  productFetchError.value = '';
+  productBindingKey.value += 1;
 };
 
 const handleSubmit = async (payload) => {
+  submitError.value = '';
   const handleProgress = (step, current, total) => {
     submitProgress.value = { step, current, total };
   };
@@ -165,9 +205,15 @@ const handleSubmit = async (payload) => {
   submitProgress.value = { step: '', current: 0, total: 0 };
 
   if (result) {
+    pendingSubmitPayload.value = null;
     if (loadOrders) await loadOrders();
     router.push(`/sales/${route.params.token}`);
+    return true;
   }
+
+  pendingSubmitPayload.value = nextPayload;
+  submitError.value = t('common.loadFailed');
+  return false;
 };
 
 const handleCancel = () => {

@@ -226,6 +226,15 @@
       </div>
     </div>
 
+    <div
+      v-if="submitError"
+      class="rounded-xl border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)]/40 px-3 py-2 text-sm text-[var(--text-main)]"
+      role="alert"
+      data-testid="submit-error"
+    >
+      {{ submitError }}
+    </div>
+
     <!-- 操作按钮 -->
     <div :class="actionBarClass">
       <button
@@ -272,6 +281,7 @@ salespersons: { type: Array, default: () => [] },
 statuses: { type: Array, default: () => [] },
 disabledFields: { type: Array, default: () => [] },
 boundProductVariant: { type: Object, default: null }, // NEW
+submitError: { type: String, default: '' },
 });
 
 const emit = defineEmits(['submit', 'cancel']);

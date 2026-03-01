@@ -172,6 +172,7 @@
         v-if="isSalesMode"
         :token="salesToken"
         @select="handleProductSelect"
+        @load-error="handleProductFetchError"
       />
       <ProductSelect
         v-else
@@ -202,7 +203,7 @@ const props = defineProps({
   salesToken: { type: String, default: '' },
 });
 
-const emit = defineEmits(['select', 'unbind']);
+const emit = defineEmits(['select', 'unbind', 'product-fetch-error', 'product-fetch-success']);
 
 const { t } = useI18n();
 const { loadProduct } = useProducts();
@@ -456,16 +457,23 @@ const handleProductSelect = async (product) => {
     if (fullProduct && fullProduct.variants && fullProduct.variants.length > 0) {
       variants.value = fullProduct.variants;
       initSelectionFromVariants();
+      emit('product-fetch-success');
     } else {
       variants.value = [];
       selectedVariantId.value = null;
+      emit('product-fetch-error', t('order.binding.variantRequired'));
     }
   } catch {
     variants.value = [];
     selectedVariantId.value = null;
+    emit('product-fetch-error', t('common.loadFailed'));
   } finally {
     isLoadingDetails.value = false;
   }
+};
+
+const handleProductFetchError = (message) => {
+  emit('product-fetch-error', message || t('common.loadFailed'));
 };
 
 watch(() => props.boundProduct, (newVal) => {

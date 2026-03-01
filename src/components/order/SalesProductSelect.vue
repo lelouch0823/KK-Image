@@ -26,9 +26,20 @@
       leave-to-class="translate-y-1 opacity-0"
     >
       <div
-        v-if="isOpen && (items.length > 0 || loading || (searchQuery && items.length === 0))"
+        v-if="isOpen && (items.length > 0 || loading || error || (searchQuery && items.length === 0))"
         class="absolute z-50 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-(--border-subtle) bg-(--bg-card) p-1.5 shadow-xl"
       >
+        <div v-if="error" class="rounded-lg border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)]/40 px-4 py-3">
+          <p class="text-sm text-[var(--text-main)]">{{ error }}</p>
+          <button
+            type="button"
+            class="mt-2 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-inverse)]"
+            data-testid="sales-product-retry"
+            @click="retryLoad"
+          >
+            {{ t('common.retry') }}
+          </button>
+        </div>
         <div v-if="!loading && items.length === 0" class="px-4 py-8 text-center text-sm text-(--text-muted)">
           {{ t('common.noData') }}
         </div>
@@ -67,7 +78,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { onClickOutside, useDebounceFn } from '@vueuse/core';
 import { useI18n } from '@/composables/useI18n';
 import { useSalesProducts } from '@/composables/useSalesProducts';
@@ -79,10 +90,10 @@ const props = defineProps({
   placeholder: { type: String, default: '' },
 });
 
-const emit = defineEmits(['select']);
+const emit = defineEmits(['select', 'load-error']);
 
 const { t } = useI18n();
-const { products, loading, loadSalesProducts } = useSalesProducts();
+const { products, loading, error, loadSalesProducts, retryLoadSalesProducts } = useSalesProducts();
 
 const containerRef = ref(null);
 const searchQuery = ref('');
@@ -114,6 +125,13 @@ const handleInput = () => {
   debouncedSearch(searchQuery.value);
 };
 
+const retryLoad = async () => {
+  const result = await retryLoadSalesProducts(props.token);
+  if (!result.ok) {
+    emit('load-error', result.error || t('common.loadFailed'));
+  }
+};
+
 const select = (product) => {
   emit('select', product);
   close();
@@ -121,5 +139,11 @@ const select = (product) => {
 };
 
 onClickOutside(containerRef, close);
+
+watch(error, (message) => {
+  if (message) {
+    emit('load-error', message);
+  }
+});
 </script>
 
