@@ -300,7 +300,7 @@ watch([fullContent, streamContent], ([full, displayed]) => {
   }
 });
 
-const messages = ref([
+const messages = useStorage('ai-chat-messages', [
   { 
     role: 'assistant', 
     content: t('ai.welcome'),
