@@ -7,10 +7,19 @@
       v-else-if="order"
       :order="order"
       mode="sales"
+      :comment-error="commentError"
+      :pending-comment="pendingComment"
+      :comment-clear-key="commentClearKey"
       @back="handleBack"
       @comment="handleComment"
       @refresh="handleRefresh"
       @duplicate="handleDuplicate"
+    />
+    <AsyncStatePanel
+      v-else-if="detailError"
+      state="error"
+      :description="detailError"
+      @retry="fetchOrder"
     />
     <div v-else class="flex h-screen items-center justify-center">
       <EmptyState
@@ -38,6 +47,7 @@ import { useOrders } from '@/composables/useOrders';
 import { useI18n } from '@/composables/useI18n'; // Assuming simple t function or similar
 import OrderDetail from '@/components/order/OrderDetail.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import AsyncStatePanel from '@/components/common/AsyncStatePanel.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -53,6 +63,10 @@ const { getSalesOrder, addSalesComment } = useOrders();
 
 const order = ref(null);
 const loading = ref(true);
+const detailError = ref('');
+const commentError = ref('');
+const pendingComment = ref('');
+const commentClearKey = ref(0);
 
 // Inject for shared actions if needed, e.g. causing a list refresh
 const salesContext = inject('salesContext', {});
@@ -65,10 +79,14 @@ const salesOrderEntry = computed(() => salesOrderMode.value || 'legacy');
 
 const fetchOrder = async () => {
   loading.value = true;
+  detailError.value = '';
   try {
     const data = await getSalesOrder(token.value, orderId.value);
     if (data) {
       order.value = data;
+    } else {
+      order.value = null;
+      detailError.value = t('common.loadFailed');
     }
   } finally {
     loading.value = false;
@@ -81,9 +99,14 @@ const handleBack = () => {
 
 const handleComment = async (comment) => {
   if (!order.value) return;
+  pendingComment.value = comment;
   const success = await addSalesComment(token.value, order.value.id, comment);
   if (success) {
+    commentError.value = '';
+    commentClearKey.value += 1;
     await fetchOrder();
+  } else {
+    commentError.value = t('common.loadFailed');
   }
 };
 

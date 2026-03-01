@@ -56,10 +56,32 @@
             <OrderTimeline :timeline="order.timeline" />
           </div>
 
+          <div
+            v-if="markReadError"
+            class="rounded-xl border border-[var(--color-warning)]/30 bg-[var(--color-warning-bg)]/60 p-3"
+            data-testid="mark-read-warning"
+          >
+            <p class="text-sm text-[var(--text-main)]">{{ markReadError }}</p>
+            <button
+              type="button"
+              class="mt-2 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-inverse)]"
+              data-testid="mark-read-retry"
+              @click="retryMarkAsRead"
+            >
+              {{ t('common.retry') }}
+            </button>
+          </div>
+
 
 
           <!-- 留言输入 -->
-          <OrderCommentInput @submit="sendComment" />
+          <OrderCommentInput
+            ref="commentInputRef"
+            :error="commentError"
+            :pending-comment="pendingComment"
+            @submit="sendComment"
+            @retry="retryComment"
+          />
         </div>
       </div>
 
@@ -131,7 +153,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
@@ -157,6 +179,9 @@ import Lightbox from '@/components/ui/Lightbox.vue';
 const props = defineProps({
   order: { type: Object, required: true },
   mode: { type: String, default: 'sales' },
+  commentError: { type: String, default: '' },
+  pendingComment: { type: String, default: '' },
+  commentClearKey: { type: Number, default: 0 },
 });
 
 const emit = defineEmits(['back', 'comment', 'refresh', 'duplicate', 'edit', 'delete-order']);
@@ -168,6 +193,8 @@ const showCorrectionModal = ref(false);
 const showEditModal = ref(false);
 const submitting = ref(false);
 const printViewRef = ref(null);
+const commentInputRef = ref(null);
+const markReadError = ref('');
 
 const { token: salesToken } = useSalesToken();
 
@@ -186,18 +213,24 @@ const markAsRead = async () => {
   if (props.mode !== 'sales' || !props.order.hasNewFeedback || !salesToken.value) return;
 
   try {
-    await fetch(API.SALES_ORDER_READ(salesToken.value, props.order.id), {
+    const response = await fetch(API.SALES_ORDER_READ(salesToken.value, props.order.id), {
       method: 'PATCH',
       credentials: 'include',
     });
+    if (!response.ok) {
+      markReadError.value = t('common.loadFailed');
+      return;
+    }
+    markReadError.value = '';
     emit('refresh');
   } catch (_e) {
-    console.error('Failed to mark read', _e);
+    markReadError.value = t('common.networkError');
   }
 };
 
-// 初始化
-markAsRead();
+const retryMarkAsRead = async () => {
+  await markAsRead();
+};
 
 // 是否有有效的客户信息 (SOTA: 精确检查客户数据有效性)
 const hasCustomerInfo = computed(() => {
@@ -224,6 +257,12 @@ const formatTime = (timestamp) => formatTimelineTime(timestamp);
 // 发送留言
 const sendComment = (text) => {
   emit('comment', text);
+};
+
+const retryComment = (text) => {
+  const retryText = text || props.pendingComment || commentInputRef.value?.getText?.() || '';
+  if (!retryText) return;
+  emit('comment', retryText);
 };
 
 // 预览图片
@@ -359,7 +398,18 @@ const handleSavePdf = () => {
   });
 };
 
-defineExpose({ handleSavePdf, handleVoid });
+watch(
+  () => props.commentClearKey,
+  () => {
+    commentInputRef.value?.clear?.();
+  }
+);
+
+onMounted(() => {
+  markAsRead();
+});
+
+defineExpose({ handleSavePdf, handleVoid, retryMarkAsRead });
 </script>
 
 <style scoped>

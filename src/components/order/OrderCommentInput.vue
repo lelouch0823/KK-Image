@@ -1,5 +1,12 @@
 <template>
   <div class="overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card)">
+    <div
+      v-if="error"
+      class="border-b border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)]/40 px-3 py-2"
+      data-testid="comment-error"
+    >
+      <p class="text-xs text-[var(--text-main)]">{{ error }}</p>
+    </div>
     <div class="flex items-center gap-3 p-3">
       <input
         v-model="text"
@@ -17,22 +24,40 @@
         <AppIcon v-else name="spinner" class="size-5 animate-spin" />
       </button>
     </div>
+    <div v-if="error && text.trim()" class="px-3 pb-3">
+      <button
+        type="button"
+        class="rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-inverse)]"
+        data-testid="comment-retry"
+        @click="retry"
+      >
+        {{ t('common.retry') }}
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
-defineProps({
+const props = defineProps({
   loading: {
     type: Boolean,
     default: false,
   },
+  error: {
+    type: String,
+    default: '',
+  },
+  pendingComment: {
+    type: String,
+    default: '',
+  },
 });
 
-const emit = defineEmits(['submit']);
+const emit = defineEmits(['submit', 'retry']);
 
 const { t } = useI18n();
 const text = ref('');
@@ -40,6 +65,32 @@ const text = ref('');
 const send = () => {
   if (!text.value.trim()) return;
   emit('submit', text.value.trim());
+};
+
+const retry = () => {
+  if (!text.value.trim()) return;
+  emit('retry', text.value.trim());
+};
+
+const clear = () => {
   text.value = '';
 };
+
+const setText = (value) => {
+  text.value = String(value || '');
+};
+
+const getText = () => text.value.trim();
+
+watch(
+  () => props.pendingComment,
+  (value) => {
+    if (value && !text.value.trim()) {
+      text.value = value;
+    }
+  },
+  { immediate: true }
+);
+
+defineExpose({ clear, setText, getText });
 </script>
