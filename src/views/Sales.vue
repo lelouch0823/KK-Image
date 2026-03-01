@@ -163,6 +163,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePushNotification } from '@/composables/usePushNotification';
 import { useOrders } from '@/composables/useOrders';
+import { useSalesOrderStateMachine } from '@/composables/sales/useSalesOrderStateMachine';
 import { useNotifications } from '@/composables/useNotifications';
 import OrderLogin from '@/components/order/OrderLogin.vue';
 import SalesNotificationList from '@/components/order/SalesNotificationList.vue';
@@ -180,6 +181,9 @@ const {
   checkSalesAuth,
   loginSales,
   loadSalesOrders,
+  createSalesOrder,
+  getSalesOrder,
+  addSalesComment,
   pagination: ordersPagination,
 } = useOrders();
 
@@ -212,6 +216,28 @@ const pageTitle = computed(() => {
 
 const salesOrderEntry = computed(() => resolveSalesOrderEntry());
 
+const salesOrderStateMachine = useSalesOrderStateMachine({
+  loadOrders: async (payload = {}) => {
+    const { page = 1, append = false } = payload;
+    await loadSalesOrders(accessToken.value, page, append);
+    return { ok: true, data: { orders: orders.value } };
+  },
+  createOrder: async (payload) => {
+    const ok = await createSalesOrder(accessToken.value, payload);
+    return ok ? { ok: true, data: null } : { ok: false, error: t('common.networkError') };
+  },
+  loadDetail: async ({ id } = {}) => {
+    if (!id) return { ok: false, error: t('common.loadFailed') };
+    const data = await getSalesOrder(accessToken.value, id);
+    return data ? { ok: true, data } : { ok: false, error: t('common.loadFailed') };
+  },
+  comment: async ({ id, comment } = {}) => {
+    if (!id || !comment) return { ok: false, error: t('common.loadFailed') };
+    const ok = await addSalesComment(accessToken.value, id, comment);
+    return ok ? { ok: true, data: null } : { ok: false, error: t('common.networkError') };
+  },
+});
+
 // Auth State
 const loading = ref(true);
 const isAuthenticated = ref(false);
@@ -228,12 +254,13 @@ provide('salesContext', {
     loading: ordersLoading,
     salesperson,
     accessToken,
-    loadOrders: (page, append) => loadSalesOrders(accessToken.value, page, append),
+    loadOrders: (page, append) => salesOrderStateMachine.loadOrders({ page, append }),
     pagination: ordersPagination,
     prefillData,
     setPrefillData: (data) => { prefillData.value = data },
     searchQuery,
     salesOrderMode: salesOrderEntry,
+    salesOrderStateMachine,
 });
 
 // Notifications Logic
@@ -255,7 +282,7 @@ const openCreateModal = () => {
 watch(lastNotificationTime, async () => {
   if (isAuthenticated.value && isListPage.value) {
     const prevFeedbackIds = new Set(orders.value.filter((o) => o.hasNewFeedback).map((o) => o.id));
-    await loadSalesOrders(accessToken.value);
+    await salesOrderStateMachine.loadOrders();
     
     // Check for NEW feedback
     orders.value.forEach((order) => {
@@ -278,7 +305,7 @@ const checkAuth = async () => {
   if (data) {
     isAuthenticated.value = true;
     salesperson.value = data;
-    await loadSalesOrders(accessToken.value);
+    await salesOrderStateMachine.loadOrders();
   }
   loading.value = false;
 };
@@ -289,7 +316,7 @@ const handleLogin = async (password) => {
   if (result.success) {
     isAuthenticated.value = true;
     salesperson.value = result.data;
-    await loadSalesOrders(accessToken.value);
+    await salesOrderStateMachine.loadOrders();
   } else {
     loginError.value = result.message;
   }
