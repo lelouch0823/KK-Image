@@ -117,6 +117,7 @@
           <input
             v-model.number="form.quantity"
             type="number"
+            inputmode="numeric"
             min="1"
             required
             class="input h-11"
@@ -143,13 +144,14 @@
             <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
               {{ t('order.form.quantity') }} <span class="text-[var(--color-danger-text)]">*</span>
             </label>
-            <input
-              v-model.number="form.quantity"
-              type="number"
-              min="1"
-              required
-              class="input h-11"
-            />
+          <input
+            v-model.number="form.quantity"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            required
+            class="input h-11"
+          />
           </div>
         </div>
 
@@ -225,10 +227,10 @@
     </div>
 
     <!-- 操作按钮 -->
-    <div class="flex gap-3">
+    <div :class="actionBarClass">
       <button
         type="button"
-        class="h-12 flex-1 rounded-xl border border-[var(--border-color)] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+        class="h-12 flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
         @click="$emit('cancel')"
       >
         {{ t('common.cancel') }}
@@ -322,6 +324,12 @@ const isValid = computed(() => {
   }
   return true;
 });
+
+const actionBarClass = computed(() => (
+  props.mode === 'sales'
+    ? 'sticky bottom-0 z-20 -mx-3 flex gap-3 border-t border-[var(--border-color)] bg-[var(--bg-card)]/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur'
+    : 'flex gap-3'
+));
 
 // 监听预填充数据变化
 watch(

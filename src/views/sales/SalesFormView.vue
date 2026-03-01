@@ -1,38 +1,164 @@
 <template>
-  <OrderForm
-    :prefill="prefillData"
-    :submit-progress="submitProgress"
-    @submit="handleSubmit"
-    @cancel="handleCancel"
-  />
+  <div class="mx-auto w-full max-w-2xl space-y-4 pb-8">
+    <div class="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-3">
+      <p class="text-xs font-medium text-[var(--text-secondary)]">
+        {{ t('order.binding.salesGuide') }}
+      </p>
+    </div>
+
+    <ProductBindingSection
+      mode="sales"
+      :sales-token="String(route.params.token || '')"
+      :bound-product="boundProduct"
+      @select="handleProductSelect"
+      @unbind="unbindProduct"
+    />
+
+    <OrderForm
+      :prefill="formData"
+      :submit-progress="submitProgress"
+      :disabled-fields="disabledFields"
+      :bound-product-variant="boundProductVariant"
+      @submit="handleSubmit"
+      @cancel="handleCancel"
+    />
+  </div>
 </template>
 
 <script setup>
-import { ref, inject, onUnmounted } from 'vue';
+import { ref, inject, onUnmounted, computed, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
+import { useI18n } from '@/composables/useI18n';
+import { useToast } from '@/composables/useToast';
 import OrderForm from '@/components/order/OrderForm.vue';
+import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
 
 const router = useRouter();
 const route = useRoute();
+const { t } = useI18n();
+const { addToast } = useToast();
 const { createSalesOrder } = useOrders();
 
 const { prefillData, setPrefillData, loadOrders } = inject('salesContext');
 
 const submitProgress = ref({ step: '', current: 0, total: 0 });
 
-const handleSubmit = async (formData) => {
+const LOCKED_FIELDS = ['name', 'brand', 'series', 'sku'];
+const COLOR_LABELS = ['color', '颜色', '顏色'];
+const MATERIAL_LABELS = ['material', '材质', '材質'];
+
+const boundProduct = ref(null);
+const selectedProductId = ref(null);
+const boundProductVariant = ref(null);
+const formData = ref({});
+
+const disabledFields = computed(() => (boundProduct.value ? LOCKED_FIELDS : []));
+
+const applyInitialPrefill = (data) => {
+  if (!boundProduct.value) {
+    formData.value = data ? { ...data } : {};
+  }
+};
+
+watch(prefillData, (data) => {
+  applyInitialPrefill(data);
+}, { immediate: true });
+
+const handleProductSelect = (product) => {
+  const variant = product.selectedVariant;
+  if (!variant) return;
+
+  boundProduct.value = {
+    id: product.id,
+    name: product.name,
+    sku: variant.sku,
+    brand: product.brand,
+    series: product.series,
+    variantId: variant.id,
+    mainImage: product.mainImage || null,
+  };
+  selectedProductId.value = product.id;
+
+  let options = variant.options_values || {};
+  if (typeof options === 'string') {
+    try {
+      options = JSON.parse(options);
+    } catch {
+      options = {};
+    }
+  }
+
+  const dimensionMap = product.dimension_map || {};
+  const mappedOptions = {};
+  let extractedColor = '';
+  let extractedMaterial = '';
+  const otherSpecs = [];
+
+  for (const [key, val] of Object.entries(options || {})) {
+    if (!val) continue;
+    const readableKey = dimensionMap[key] || key;
+    mappedOptions[readableKey] = val;
+
+    const lowerKey = String(readableKey).toLowerCase();
+    if (COLOR_LABELS.includes(lowerKey)) {
+      extractedColor = String(val);
+    } else if (MATERIAL_LABELS.includes(lowerKey)) {
+      extractedMaterial = String(val);
+    } else {
+      otherSpecs.push(`${readableKey}: ${val}`);
+    }
+  }
+
+  const nextData = {
+    ...(formData.value || {}),
+    name: product.name || '',
+    brand: product.brand || '',
+    series: product.series || '',
+    sku: variant.sku || '',
+    color: extractedColor || '',
+    material: extractedMaterial || '',
+    size: otherSpecs.join('，') || '',
+  };
+
+  if (boundProduct.value.mainImage) {
+    nextData.files = [{
+      url: boundProduct.value.mainImage,
+      isLocal: false,
+    }];
+  }
+
+  formData.value = nextData;
+  boundProductVariant.value = mappedOptions;
+};
+
+const unbindProduct = () => {
+  boundProduct.value = null;
+  selectedProductId.value = null;
+  boundProductVariant.value = null;
+};
+
+const handleSubmit = async (payload) => {
   const handleProgress = (step, current, total) => {
     submitProgress.value = { step, current, total };
   };
 
-  const result = await createSalesOrder(route.params.token, formData, handleProgress);
+  const nextPayload = { ...payload };
+  if (selectedProductId.value) {
+    if (!boundProduct.value?.variantId) {
+      addToast({ message: t('order.binding.variantRequired'), type: 'error' });
+      return;
+    }
+    nextPayload.productId = selectedProductId.value;
+    nextPayload.variantId = boundProduct.value.variantId;
+  }
+
+  const result = await createSalesOrder(route.params.token, nextPayload, handleProgress);
 
   submitProgress.value = { step: '', current: 0, total: 0 };
 
   if (result) {
     if (loadOrders) await loadOrders();
-    // Navigate back to list
     router.push(`/sales/${route.params.token}`);
   }
 };
@@ -41,8 +167,8 @@ const handleCancel = () => {
   router.push(`/sales/${route.params.token}`);
 };
 
-// Cleanup prefill data when leaving form
 onUnmounted(() => {
-    if (setPrefillData) setPrefillData(null);
+  if (setPrefillData) setPrefillData(null);
 });
 </script>
+

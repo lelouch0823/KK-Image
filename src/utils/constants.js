@@ -90,6 +90,8 @@ export const API = {
   SALES_STATS: (token) => `/api/sales/${token}/stats`,
   SALES_SPACES: (token) => `/api/sales/${token}/spaces`,
   SALES_SPACE_DETAIL: (token, id) => `/api/sales/${token}/spaces/${id}`,
+  SALES_PRODUCTS: (token) => `/api/sales/${token}/products`,
+  SALES_PRODUCT_DETAIL: (token, id) => `/api/sales/${token}/products/${id}`,
 
   // 管理端订单 API
   MANAGE_ORDERS: `/api/manage/orders`,

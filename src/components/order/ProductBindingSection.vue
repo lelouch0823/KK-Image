@@ -1,17 +1,17 @@
 <template>
   <div class="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] shadow-sm">
-    <div class="rounded-t-xl border-b border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 px-6 py-4">
+    <div class="rounded-t-xl border-b border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 px-4 py-3 sm:px-6 sm:py-4">
       <h4 class="flex items-center gap-2 text-sm font-semibold text-[var(--text-main)]">
         <AppIcon name="link" class="size-4 text-[var(--color-primary)]" />
-        {{ t('order.binding.title') }}
+        {{ isSalesMode ? t('order.binding.salesTitle') : t('order.binding.title') }}
       </h4>
     </div>
 
     <!-- Bound Product Card -->
     <div v-if="boundProduct" class="">
-      <div class="flex items-start justify-between border-b border-[var(--border-subtle)] p-6">
-        <div class="flex gap-4">
-          <div class="size-20 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)]">
+      <div class="flex flex-col gap-4 border-b border-[var(--border-subtle)] p-4 sm:flex-row sm:items-start sm:justify-between sm:p-6">
+        <div class="flex gap-3 sm:gap-4">
+          <div class="size-16 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)] sm:size-20">
             <AppImage 
               v-if="boundProduct.mainImage" 
               :src="boundProduct.mainImage" 
@@ -24,10 +24,16 @@
           </div>
           
           <div>
-            <div class="mb-1.5 flex items-center gap-3">
-              <h2 class="text-lg font-bold tracking-tight text-[var(--text-main)]">{{ boundProduct.name }}</h2>
+            <div class="mb-1.5 flex flex-wrap items-center gap-2 sm:gap-3">
+              <h2 class="text-base font-bold tracking-tight text-[var(--text-main)] sm:text-lg">{{ boundProduct.name }}</h2>
               <span class="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-muted)] px-2 py-0.5 font-mono text-xs font-medium text-[var(--text-secondary)] uppercase">
                 {{ displaySku || '—' }}
+              </span>
+              <span
+                v-if="isSalesMode"
+                class="rounded-full bg-[var(--color-primary)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--color-primary)]"
+              >
+                {{ t('order.binding.bound') }}
               </span>
             </div>
             <div class="flex items-center gap-3">
@@ -43,8 +49,9 @@
           </div>
         </div>
 
-        <div class="flex gap-2">
+        <div class="flex gap-2 self-end sm:self-auto">
           <a 
+            v-if="isAdminMode"
             :href="`/admin/products?edit=${boundProduct.id}`"
             target="_blank"
             class="cursor-pointer rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
@@ -64,7 +71,7 @@
       </div>
 
       <!-- Configuration Body -->
-      <div v-if="variants.length > 0" class="relative space-y-8 p-6">
+      <div v-if="variants.length > 0" class="relative space-y-6 p-4 sm:space-y-8 sm:p-6">
         <div v-if="isLoadingDetails" class="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-card)]/50 backdrop-blur-sm">
            <AppIcon name="spinner" class="size-6 animate-spin text-[var(--color-primary)]" />
         </div>
@@ -73,11 +80,11 @@
           <div class="mb-4 flex items-center justify-between">
             <label class="text-sm font-bold text-[var(--text-main)]">{{ getDimensionLabel(dimension) }}</label>
             <span class="text-[13px] text-[var(--text-secondary)]">
-              已选择: {{ selectedOptions[dimension] || '未选择' }}
+              {{ t('order.binding.selectedLabel') }}: {{ selectedOptions[dimension] || t('order.binding.unselected') }}
             </span>
           </div>
 
-          <div v-if="isColorDimension(dimension)" class="flex flex-wrap gap-4">
+          <div v-if="isColorDimension(dimension)" class="flex flex-wrap gap-3 sm:gap-4">
             <label
               v-for="option in getDimensionOptions(dimension)"
               :key="option.value"
@@ -95,7 +102,7 @@
                 @change="selectDimensionOption(dimension, option.value)"
               />
               <div
-                class="flex size-10 items-center justify-center rounded-full border-2 border-transparent shadow-sm transition-all peer-checked:border-[var(--bg-card)] peer-checked:ring-2 peer-checked:ring-[var(--text-main)]"
+                class="flex size-11 items-center justify-center rounded-full border-2 border-transparent shadow-sm transition-all peer-checked:border-[var(--bg-card)] peer-checked:ring-2 peer-checked:ring-[var(--text-main)]"
                 :style="buildColorSwatchStyle(option.value)"
               >
                 <AppIcon
@@ -110,7 +117,7 @@
             </label>
           </div>
 
-          <div v-else class="grid grid-cols-4 gap-3 sm:grid-cols-6">
+          <div :class="isSalesMode ? 'grid grid-cols-3 gap-2.5 sm:grid-cols-4' : 'grid grid-cols-4 gap-3 sm:grid-cols-6'">
             <label
               v-for="option in getDimensionOptions(dimension)"
               :key="option.value"
@@ -128,7 +135,7 @@
                 @change="selectDimensionOption(dimension, option.value)"
               />
               <div
-                class="rounded-lg border-2 border-[var(--border-subtle)] px-2 py-2.5 text-center text-sm font-semibold text-[var(--text-secondary)] transition-all peer-checked:border-[var(--text-main)] peer-checked:text-[var(--text-main)]"
+                class="min-h-11 rounded-lg border-2 border-[var(--border-subtle)] px-2 py-2.5 text-center text-sm font-semibold text-[var(--text-secondary)] transition-all peer-checked:border-[var(--text-main)] peer-checked:text-[var(--text-main)]"
                 :class="{ 'border-dashed border-[var(--border-subtle)]/50': !option.selectable }"
               >
                 {{ option.label }}
@@ -141,14 +148,14 @@
         <div class="flex flex-col justify-between gap-4 rounded-xl bg-[var(--bg-muted)]/50 p-4 sm:flex-row sm:items-center">
           <div class="flex gap-6">
             <div>
-              <p class="mb-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">库存状态</p>
-              <p class="text-sm font-semibold text-[var(--text-main)]">{{ selectedStockQuantity }} 件在库</p>
+              <p class="mb-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">{{ t('order.binding.stockLabel') }}</p>
+              <p class="text-sm font-semibold text-[var(--text-main)]">{{ selectedStockQuantity }} {{ t('order.binding.stockUnit') }}</p>
             </div>
             <div>
-              <p class="mb-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">补货中</p>
+              <p class="mb-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">{{ t('order.binding.replenishmentLabel') }}</p>
               <p class="text-sm font-semibold text-[var(--text-main)]">
-                {{ selectedReplenishmentQuantity }} 件
-                <span v-if="selectedReplenishmentPoCount > 0" class="ml-1 text-xs font-normal text-[var(--text-secondary)]">({{ selectedReplenishmentPoCount }} 单)</span>
+                {{ selectedReplenishmentQuantity }} {{ t('order.binding.stockUnit') }}
+                <span v-if="selectedReplenishmentPoCount > 0" class="ml-1 text-xs font-normal text-[var(--text-secondary)]">({{ selectedReplenishmentPoCount }} {{ t('order.binding.poUnit') }})</span>
               </p>
             </div>
           </div>
@@ -157,9 +164,20 @@
     </div>
 
     <!-- Product Selector -->
-    <div v-else class="p-6">
-      <p class="mb-3 text-sm font-medium text-[var(--text-secondary)]">{{ t('order.binding.hint') }}</p>
-      <ProductSelect status-filter="active" @select="handleProductSelect" />
+    <div v-else class="p-4 sm:p-6">
+      <p class="mb-3 text-sm font-medium text-[var(--text-secondary)]">
+        {{ isSalesMode ? t('order.binding.salesHint') : t('order.binding.hint') }}
+      </p>
+      <SalesProductSelect
+        v-if="isSalesMode"
+        :token="salesToken"
+        @select="handleProductSelect"
+      />
+      <ProductSelect
+        v-else
+        status-filter="active"
+        @select="handleProductSelect"
+      />
     </div>
   </div>
 </template>
@@ -168,9 +186,11 @@
 import { ref, reactive, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import ProductSelect from '@/components/product/ProductSelect.vue';
+import SalesProductSelect from '@/components/order/SalesProductSelect.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { useProducts } from '@/composables/useProducts';
+import { useSalesProducts } from '@/composables/useSalesProducts';
 import {
   getVariantAvailabilityState,
   isVariantSelectable,
@@ -178,12 +198,18 @@ import {
 
 const props = defineProps({
   boundProduct: { type: Object, default: null },
+  mode: { type: String, default: 'admin' }, // 'admin' | 'sales'
+  salesToken: { type: String, default: '' },
 });
 
 const emit = defineEmits(['select', 'unbind']);
 
 const { t } = useI18n();
 const { loadProduct } = useProducts();
+const { loadSalesProduct } = useSalesProducts();
+
+const isSalesMode = computed(() => props.mode === 'sales');
+const isAdminMode = computed(() => !isSalesMode.value);
 
 const isLoadingDetails = ref(false);
 const variants = ref([]);
@@ -422,7 +448,10 @@ const handleProductSelect = async (product) => {
   fullProductData.value = null;
 
   try {
-    const fullProduct = await loadProduct(product.id || product.productId);
+    const productId = product.id || product.productId;
+    const fullProduct = isSalesMode.value
+      ? await loadSalesProduct(props.salesToken, productId)
+      : await loadProduct(productId);
     fullProductData.value = fullProduct;
     if (fullProduct && fullProduct.variants && fullProduct.variants.length > 0) {
       variants.value = fullProduct.variants;
