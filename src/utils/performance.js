@@ -15,11 +15,23 @@
  */
 export function throttle(fn, wait) {
     let lastTime = 0;
+    let timer = null;
     return function (...args) {
         const now = Date.now();
-        if (now - lastTime >= wait) {
+        const remaining = wait - (now - lastTime);
+        if (remaining <= 0) {
+            if (timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
             fn.apply(this, args);
             lastTime = now;
+        } else if (!timer) {
+            timer = setTimeout(() => {
+                fn.apply(this, args);
+                lastTime = Date.now();
+                timer = null;
+            }, remaining);
         }
     };
 }
