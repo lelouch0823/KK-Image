@@ -24,34 +24,58 @@ export function extractToolCallsFromText(content) {
     const toolCalls = [];
     let cleanText = content;
 
-    // 检测 <tools 标记
+    // --- 模式 1：检测原有 <tools JSON 标记 ---
     const toolsStartIndex = content.indexOf('<tools');
-    if (toolsStartIndex === -1) {
-        return { cleanText, toolCalls };
+    if (toolsStartIndex !== -1) {
+        const toolsSection = content.slice(toolsStartIndex);
+        const jsonMatches = toolsSection.matchAll(/\{"name":\s*"([^"]+)",\s*"arguments":\s*(\{[^}]*\})\}/g);
+        let index = 0;
+        for (const match of jsonMatches) {
+            toolCalls.push({
+                id: `textcall_json_${index++}_${Date.now()}`,
+                name: match[1],
+                arguments: match[2]
+            });
+        }
+        if (toolCalls.length > 0) {
+            cleanText = content.slice(0, toolsStartIndex).trim();
+            return { cleanText, toolCalls };
+        }
     }
 
-    // 提取 <tools 之后的内容
-    const toolsSection = content.slice(toolsStartIndex);
+    // --- 模式 2：检测 XML 风格标记 (针对某些模型的泄露，如 <arg_key>limit</arg_key><arg_value>50</arg_value>) ---
+    // 这种模式下，函数名通常紧随在前面的正文或特定标记之后
+    // 查找包含 arg_key/arg_value 结构的文本
+    if (content.includes('</arg_key>') || content.includes('</arg_value>')) {
+        // 尝试匹配工具名。模型通常先输出函数名，然后跟着一堆参数标签
+        // 我们寻找最可能的函数名位置：在一个换行符之后，且后面紧跟着参数标签
+        const tools = ['searchVariants', 'getOrderStats', 'getRecentPending', 'getCustomerStats', 'getSpaceStats', 'getSalespersonStats', 'getFileStats', 'searchOrders', 'searchProducts', 'searchCustomers', 'getOrderDetail', 'getProductDetail', 'getVariantDetail', 'getCustomerDetail', 'getGoodsOverviewSummary', 'getGoodsOverviewList'];
+        
+        for (const toolName of tools) {
+            if (content.includes(toolName)) {
+                const args = {};
+                // 提取所有 key-value 对
+                const kvMatches = content.matchAll(/<arg_key>([^<]+)<\/arg_key>\s*<arg_value>([^<]+)<\/arg_value>/g);
+                let hasArgs = false;
+                for (const match of kvMatches) {
+                    args[match[1].trim()] = match[2].trim();
+                    hasArgs = true;
+                }
 
-    // 尝试匹配所有 JSON 对象 (每行一个)
-    const jsonMatches = toolsSection.matchAll(/\{"name":\s*"([^"]+)",\s*"arguments":\s*(\{[^}]*\})\}/g);
-
-    let index = 0;
-    for (const match of jsonMatches) {
-        const name = match[1];
-        const args = match[2];
-        toolCalls.push({
-            id: `textcall_${index++}_${Date.now()}`,
-            name,
-            arguments: args
-        });
-        console.log(`[AI Helper] Extracted text-based tool call: ${name}`);
-    }
-
-    // 从内容中移除工具调用部分
-    if (toolCalls.length > 0) {
-        // 移除 <tools 开始到文本结尾或直到遇到正常内容
-        cleanText = content.slice(0, toolsStartIndex).trim();
+                if (hasArgs || content.indexOf(toolName) !== -1) {
+                    toolCalls.push({
+                        id: `textcall_xml_0_${Date.now()}`,
+                        name: toolName,
+                        arguments: JSON.stringify(args)
+                    });
+                    
+                    // 清理文本：找到第一个工具名出现的位置，将其及之后的内容全部切掉
+                    const firstToolIndex = content.indexOf(toolName);
+                    cleanText = content.slice(0, firstToolIndex).trim();
+                    return { cleanText, toolCalls };
+                }
+            }
+        }
     }
 
     return { cleanText, toolCalls };

@@ -19,8 +19,32 @@ export function renderMarkdown(content) {
 
     let processed = content;
 
-    // === 预处理 0：移除报告标记 ===
+    // === 预处理 0：移除报告标记与内部标签 ===
     processed = processed.replace(/\[REPORT_AVAILABLE\]/g, '');
+    
+    // 移除 <thought> 标签及其内容 (思考链)
+    processed = processed.replace(/<thought>[\s\S]*?<\/thought>/gi, '');
+    processed = processed.replace(/<thought>[\s\S]*$/gi, ''); // 处理尚未闭合的情况
+
+    // 移除 XML 风格的工具调用标签 (如 <arg_key>, <arg_value>, <call>, <function_name> 等)
+    // 注意：有些模型会交替输出文本和标签，所以我们移除标签本身，但保留可能的普通文本 (如果没写错的话)
+    // 但在 KK-Image 中，这些通常都是纯内部指令，应该全量移除
+    const internalTags = ['tools', 'call', 'arg_key', 'arg_value', 'function_name', 'parameters', 'tool_code'];
+    internalTags.forEach(tag => {
+        const fullRegex = new RegExp(`<${tag}>[\\s\\S]*?<\\/${tag}>`, 'gi');
+        processed = processed.replace(fullRegex, '');
+        const openRegex = new RegExp(`<${tag}>[\\s\\S]*$`, 'gi');
+        processed = processed.replace(openRegex, '');
+        const strayCloseRegex = new RegExp(`<\\/${tag}>`, 'gi');
+        processed = processed.replace(strayCloseRegex, '');
+        const strayOpenRegex = new RegExp(`<${tag}[^>]*>`, 'gi');
+        processed = processed.replace(strayOpenRegex, '');
+    });
+
+    // 处理某些模型直接输出函数名的情况 (如 searchVariants 直接出现在行首且后面跟着标签)
+    // 这是一个激进的策略，仅针对当前发现的泄露模式
+    processed = processed.replace(/^(searchVariants|getOrderStats|getRecentPending|getCustomerStats|getSpaceStats|getSalespersonStats|getFileStats|searchOrders|searchProducts|searchCustomers|getOrderDetail|getProductDetail|getVariantDetail|getCustomerDetail|getGoodsOverviewSummary|getGoodsOverviewList)\s*(?=\n|<)/gm, '');
+
 
     // === 预处理 1：修复加粗/斜体标记 ===
     // AI 可能产生带空格或换行的加粗标记 (e.g. ** text ** -> **text**)

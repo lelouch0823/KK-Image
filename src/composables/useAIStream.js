@@ -145,9 +145,19 @@ export function useAIStream() {
         if (isStreaming.value) {
             // 如果正在调用工具，显示 Loading (通过 toolStatus 表现)
             if (toolStatus.value) return true;
-            // 如果还没有任何显示内容，显示 Loading
-            if (!displayedContent.value) return true;
-            // 如果打字机队列已空（当前没有在蹦字），但流还没断，说明 AI 正在思考下一段话
+            
+            // 过滤掉内部标签后的可见内容
+            const visibleText = (displayedContent.value || '')
+                .replace(/<thought>[\s\S]*?<\/thought>/gi, '')
+                .replace(/<thought>[\s\S]*$/gi, '')
+                .replace(/<(?:tools|call|arg_key|arg_value|function_name|parameters|tool_code)[^>]*>[\s\S]*?<\/(?:tools|call|arg_key|arg_value|function_name|parameters|tool_code)>/gi, '')
+                .replace(/<(?:tools|call|arg_key|arg_value|function_name|parameters|tool_code)[^>]*>/gi, '')
+                .replace(/<\/(?:tools|call|arg_key|arg_value|function_name|parameters|tool_code)>/gi, '')
+                .replace(/^(searchVariants|getOrderStats|getRecentPending|getCustomerStats|getSpaceStats|getSalespersonStats|getFileStats|searchOrders|searchProducts|searchCustomers|getOrderDetail|getProductDetail|getVariantDetail|getCustomerDetail|getGoodsOverviewSummary|getGoodsOverviewList)\s*$/gm, '')
+                .trim();
+
+            // 如果还没有任何“可见”内容，或者正在等待下一段话，显示 Loading
+            if (!visibleText) return true;
             if (!isTyping.value) return true;
         }
         
