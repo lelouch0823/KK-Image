@@ -5,6 +5,32 @@
 import { DateUtils } from '../api/utils/date.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 
+function parseLimit(input, defaultLimit = 10, maxLimit = 20) {
+    const n = Number.parseInt(String(input ?? ''), 10);
+    if (!Number.isFinite(n)) return defaultLimit;
+    return Math.min(maxLimit, Math.max(1, n));
+}
+
+function normalizeTotal(candidate, fallback = 0) {
+    const n = Number(candidate);
+    if (Number.isFinite(n) && n >= 0) return n;
+    return Number(fallback) || 0;
+}
+
+function withPagingMeta({ items, total, limit, page = 1, scope = {} }) {
+    const safeItems = Array.isArray(items) ? items : [];
+    const safeTotal = normalizeTotal(total, safeItems.length);
+    return {
+        items: safeItems,
+        total: safeTotal,
+        returned: safeItems.length,
+        page,
+        limit,
+        hasMore: page * limit < safeTotal,
+        scope,
+    };
+}
+
 /**
  * 执行 AI 工具调用
  * @param {string} name - 工具名称
@@ -21,7 +47,8 @@ export async function executeAITool(name, args, repos) {
         productRepo,
         variantRepo,
         customerRepo,
-        goodsOverviewRepo
+        goodsOverviewRepo,
+        purchaseOrderRepo
     } = repos;
 
     try {
@@ -34,7 +61,20 @@ export async function executeAITool(name, args, repos) {
                 return await orderStatsRepo.getAdminStats(todayStart, weekStart, monthStart);
             }
             case 'getRecentPendingOrders':
-                return await orderStatsRepo.getRecentPending(args.limit || 5);
+                {
+                    const limit = parseLimit(args.limit, 5, 20);
+                    const [items, totalPending] = await Promise.all([
+                        orderStatsRepo.getRecentPending(limit),
+                        orderStatsRepo.countByStatus('pending'),
+                    ]);
+                    return withPagingMeta({
+                        items,
+                        total: totalPending,
+                        limit,
+                        page: 1,
+                        scope: { status: 'pending' },
+                    });
+                }
 
             // --- 客户统计 ---
             case 'getCustomerStats':
@@ -54,7 +94,7 @@ export async function executeAITool(name, args, repos) {
 
             // --- 具体业务数据搜索 ---
             case 'searchOrders': {
-                const limit = args.limit ? Math.min(args.limit, 20) : 10;
+                const limit = parseLimit(args.limit, 10, 20);
                 // 注意：由于 AI 没有登录上下文，我们在管理端搜索，无需 salespersonId
                 const res = await orderRepo.listForAdmin({
                     search: args.search,
@@ -62,10 +102,19 @@ export async function executeAITool(name, args, repos) {
                     limit: limit,
                     page: 1
                 });
-                return res.items;
+                return withPagingMeta({
+                    items: res.items,
+                    total: res.total,
+                    limit,
+                    page: 1,
+                    scope: {
+                        status: args.status || null,
+                        search: args.search || '',
+                    },
+                });
             }
             case 'searchProducts': {
-                const limit = args.limit ? Math.min(args.limit, 20) : 10;
+                const limit = parseLimit(args.limit, 10, 20);
                 const res = await productRepo.search({
                     search: args.search,
                     category: args.category,
@@ -74,14 +123,25 @@ export async function executeAITool(name, args, repos) {
                     limit: limit,
                     page: 1
                 });
-                return res.items;
+                return withPagingMeta({
+                    items: res.items,
+                    total: res.total,
+                    limit,
+                    page: 1,
+                    scope: {
+                        status: args.status || null,
+                        search: args.search || '',
+                        category: args.category || '',
+                        brand: args.brand || '',
+                    },
+                });
             }
             case 'searchVariants': {
                 if (!variantRepo?.searchForAI) {
                     return { error: true, message: 'Variant search is unavailable' };
                 }
-                const limit = args.limit ? Math.min(args.limit, 20) : 10;
-                return await variantRepo.searchForAI({
+                const limit = parseLimit(args.limit, 10, 20);
+                const res = await variantRepo.searchForAI({
                     search: args.search,
                     brand: args.brand,
                     category: args.category,
@@ -89,15 +149,36 @@ export async function executeAITool(name, args, repos) {
                     productId: args.productId,
                     limit,
                 });
+                return withPagingMeta({
+                    items: res.items,
+                    total: res.total,
+                    limit,
+                    page: 1,
+                    scope: {
+                        status: args.status || 'active',
+                        search: args.search || '',
+                        productId: args.productId || null,
+                        category: args.category || '',
+                        brand: args.brand || '',
+                    },
+                });
             }
             case 'searchCustomers': {
-                const limit = args.limit ? Math.min(args.limit, 20) : 10;
+                const limit = parseLimit(args.limit, 10, 20);
                 const res = await customerRepo.list({
                     search: args.search,
                     limit: limit,
                     page: 1
                 });
-                return res.results;
+                return withPagingMeta({
+                    items: res.results || [],
+                    total: res.total,
+                    limit,
+                    page: 1,
+                    scope: {
+                        search: args.search || '',
+                    },
+                });
             }
 
             // --- 具体实体详情查询 ---
@@ -161,9 +242,51 @@ export async function executeAITool(name, args, repos) {
                     shortageOnly: args.shortageOnly === true,
                     sort: args.sort || 'shortage'
                 };
-                const items = await goodsOverviewRepo.getList(filters);
-                const limit = args.limit ? Math.min(args.limit, 20) : 10;
-                return items.slice(0, limit);
+                const allItems = await goodsOverviewRepo.getList(filters);
+                const limit = parseLimit(args.limit, 10, 20);
+                return withPagingMeta({
+                    items: allItems.slice(0, limit),
+                    total: allItems.length,
+                    limit,
+                    page: 1,
+                    scope: filters,
+                });
+            }
+            case 'searchPurchaseOrders': {
+                if (!purchaseOrderRepo?.list) {
+                    return { error: true, message: 'Purchase order search is unavailable' };
+                }
+                const limit = parseLimit(args.limit, 10, 20);
+                const res = await purchaseOrderRepo.list({
+                    search: args.search || '',
+                    status: args.status || '',
+                    page: 1,
+                    limit,
+                });
+                return withPagingMeta({
+                    items: res.items || [],
+                    total: res.total,
+                    limit,
+                    page: 1,
+                    scope: {
+                        search: args.search || '',
+                        status: args.status || null,
+                    },
+                });
+            }
+            case 'getPurchaseOrderDetail': {
+                if (!args.id) return { error: true, message: 'Missing purchase order ID' };
+                if (!purchaseOrderRepo?.findById) {
+                    return { error: true, message: 'Purchase order detail is unavailable' };
+                }
+                const po = await purchaseOrderRepo.findById(args.id);
+                return po || { error: true, message: 'Purchase order not found' };
+            }
+            case 'getPurchaseStats': {
+                if (!purchaseOrderRepo?.getStats) {
+                    return { error: true, message: 'Purchase stats is unavailable' };
+                }
+                return await purchaseOrderRepo.getStats();
             }
 
             default:

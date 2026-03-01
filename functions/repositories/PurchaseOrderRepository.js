@@ -113,7 +113,7 @@ export class PurchaseOrderRepository {
    * 列表查询 (带分页和状态筛选)
    */
   async list(filters = {}) {
-    const { status, page = 1, limit = 20 } = filters;
+    const { status, search = '', page = 1, limit = 20 } = filters;
     const safePage = Math.max(1, Math.floor(Number(page)));
     const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit))));
 
@@ -123,6 +123,11 @@ export class PurchaseOrderRepository {
     if (status) {
       where += ' AND status = ?';
       params.push(status);
+    }
+    if (search) {
+      where += ' AND (po_no LIKE ? OR remark LIKE ?)';
+      const like = `%${String(search).trim()}%`;
+      params.push(like, like);
     }
 
     // 统计总数

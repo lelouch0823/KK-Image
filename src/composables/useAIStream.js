@@ -13,6 +13,41 @@ import { useI18n } from '@/composables/useI18n';
  * 封装 SSE 连接、解析、打字机队列以及工具调用状态。
  * 支持请求取消 (AbortController)。
  */
+export function createStreamSanitizer(options = {}) {
+    const dangerTags = Array.isArray(options.dangerTags) && options.dangerTags.length > 0
+        ? options.dangerTags
+        : ['tools', 'call', 'arg_key', 'arg_value', 'function_name', 'parameters', 'tool_code', 'thought', 'think', 'reasoning'];
+    const carryLimit = Number.isFinite(options.carryLimit) ? options.carryLimit : 256;
+    const tagPattern = new RegExp(`</?(?:${dangerTags.join('|')})[^>]*>`, 'gi');
+    let carry = '';
+
+    return {
+        push(text) {
+            const incoming = String(text || '');
+            if (!incoming) return '';
+
+            const merged = carry + incoming;
+            let cleaned = merged.replace(tagPattern, '');
+            if (cleaned.length <= carryLimit) {
+                carry = cleaned;
+                return '';
+            }
+
+            const emit = cleaned.slice(0, -carryLimit);
+            carry = cleaned.slice(-carryLimit);
+            return emit;
+        },
+        flush() {
+            const finalText = carry.replace(tagPattern, '');
+            carry = '';
+            return finalText;
+        },
+        reset() {
+            carry = '';
+        },
+    };
+}
+
 export function useAIStream() {
     const { t } = useI18n();
     const { addToast } = useToast();
@@ -74,6 +109,7 @@ export function useAIStream() {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             const parser = new SSEParser();
+            const sanitizer = createStreamSanitizer();
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -84,7 +120,10 @@ export function useAIStream() {
 
                 for (const event of parsedEvents) {
                     if (event.type === 'text_delta' && event.data?.content) {
-                        pushToTypewriter(event.data.content);
+                        const cleaned = sanitizer.push(event.data.content);
+                        if (cleaned) {
+                            pushToTypewriter(cleaned);
+                        }
                     } else if (event.type === 'content_block') {
                         if (event.data?.type === 'table' && event.data?.content) {
                             // 表格内容（工具调用结果）直接推送
@@ -106,6 +145,11 @@ export function useAIStream() {
                         addToast({ message: event.data?.message || t('ai.error'), type: 'error' });
                     }
                 }
+            }
+
+            const finalSanitized = sanitizer.flush();
+            if (finalSanitized) {
+                pushToTypewriter(finalSanitized);
             }
         } catch (err) {
             // 忽略用户主动取消的请求
@@ -138,29 +182,12 @@ export function useAIStream() {
     };
 
     const isThinking = computed(() => {
-        // 1. 网络请求载入中
         if (isLoading.value) return true;
-        
-        // 2. 流式传输已经开启
         if (isStreaming.value) {
-            // 如果正在调用工具，显示 Loading (通过 toolStatus 表现)
             if (toolStatus.value) return true;
-            
-            // 过滤掉内部标签后的可见内容
-            const visibleText = (displayedContent.value || '')
-                .replace(/<thought>[\s\S]*?<\/thought>/gi, '')
-                .replace(/<thought>[\s\S]*$/gi, '')
-                .replace(/<(?:tools|call|arg_key|arg_value|function_name|parameters|tool_code)[^>]*>[\s\S]*?<\/(?:tools|call|arg_key|arg_value|function_name|parameters|tool_code)>/gi, '')
-                .replace(/<(?:tools|call|arg_key|arg_value|function_name|parameters|tool_code)[^>]*>/gi, '')
-                .replace(/<\/(?:tools|call|arg_key|arg_value|function_name|parameters|tool_code)>/gi, '')
-                .replace(/^(searchVariants|getOrderStats|getRecentPending|getCustomerStats|getSpaceStats|getSalespersonStats|getFileStats|searchOrders|searchProducts|searchCustomers|getOrderDetail|getProductDetail|getVariantDetail|getCustomerDetail|getGoodsOverviewSummary|getGoodsOverviewList)\s*$/gm, '')
-                .trim();
-
-            // 如果还没有任何“可见”内容，或者正在等待下一段话，显示 Loading
-            if (!visibleText) return true;
+            if (!displayedContent.value?.trim()) return true;
             if (!isTyping.value) return true;
         }
-        
         return false;
     });
 

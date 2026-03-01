@@ -157,8 +157,17 @@ export class ProductVariantRepository {
             LIMIT ?
         `;
 
+        const countSql = `
+            SELECT COUNT(*) as total
+            FROM product_variants pv
+            JOIN products p ON p.id = pv.product_id
+            ${where}
+        `;
+
+        const countResult = await this.db.prepare(countSql).bind(...params).first();
         const result = await this.db.prepare(sql).bind(...params, safeLimit).all();
-        return (result.results || []).map((row) => {
+        
+        const items = (result.results || []).map((row) => {
             let optionsValues = {};
             try {
                 optionsValues = JSON.parse(row.options_values || '{}');
@@ -178,6 +187,11 @@ export class ProductVariantRepository {
                 },
             };
         });
+
+        return {
+            items,
+            total: countResult?.total || 0
+        };
     }
 
     async assertBelongsToProduct(variantId, productId) {

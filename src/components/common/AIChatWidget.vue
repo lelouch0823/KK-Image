@@ -65,7 +65,7 @@
             v-for="(msg, index) in messages"
             :key="index"
             :message="msg"
-            :is-thinking="msg.role === 'assistant' && index === messages.length - 1 && isThinking"
+            :is-thinking="msg.role === 'assistant' && index === messages.length - 1 && (isThinking || isAwaitingAssistant)"
             :tool-status="msg.role === 'assistant' && index === messages.length - 1 ? toolStatus : ''"
             :show-report-button="shouldShowReportButtonForMessage(msg, index)"
             :is-generating-report="isGeneratingReport"
@@ -285,6 +285,9 @@ const {
 } = useAIStream();
 
 const isGeneratingReport = ref(false);
+const isAwaitingAssistant = ref(false);
+const awaitingSince = ref(0);
+const shouldAutoFollow = ref(true);
 
 // 判断特定消息是否应显示报告按钮
 const shouldShowReportButtonForMessage = (msg, index) => {
@@ -350,10 +353,24 @@ const scrollToBottom = async () => {
   }
 };
 
+const forceFollowBottom = () => {
+  if (!messageContainer.value) return;
+  requestAnimationFrame(() => {
+    if (!messageContainer.value) return;
+    messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
+  });
+};
+
 watch(isOpen, async (val) => {
   if (val) {
     await scrollToBottom();
   }
+});
+
+watch([streamContent, fullContent, toolStatus, isAIStreaming, isAwaitingAssistant], () => {
+  if (!shouldAutoFollow.value) return;
+  if (!isAIStreaming.value && !isAwaitingAssistant.value) return;
+  forceFollowBottom();
 });
 
 const clearHistory = () => {
@@ -376,6 +393,9 @@ const sendMessage = async () => {
   userInput.value = '';
   // loading state managed by useAIStream
   toolStatus.value = '';
+  isAwaitingAssistant.value = true;
+  awaitingSince.value = Date.now();
+  shouldAutoFollow.value = true;
   await scrollToBottom();
 
   // Add placeholder for assistant response
@@ -400,7 +420,17 @@ const sendMessage = async () => {
     }
   } catch (_err) {
     // Error is handled in useAIStream (toast)
+    const lastMsg = messages.value[messages.value.length - 1];
+    if (lastMsg?.role === 'assistant' && !lastMsg.content && !lastMsg.html) {
+      messages.value.pop();
+    }
   } finally {
+    const elapsed = Date.now() - awaitingSince.value;
+    const minVisibleMs = 280;
+    if (elapsed < minVisibleMs) {
+      await new Promise((resolve) => setTimeout(resolve, minVisibleMs - elapsed));
+    }
+    isAwaitingAssistant.value = false;
     await scrollToBottom();
   }
 };

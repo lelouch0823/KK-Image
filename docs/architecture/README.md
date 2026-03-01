@@ -49,6 +49,7 @@
 | [API路由](modules/api-routes.md) | Hono路由、中间件系统、RESTful设计 |
 | [数据访问层](modules/repository-layer.md) | Repository模式、D1操作封装 |
 | [存储层](modules/storage-layer.md) | R2/S3/Telegram存储、CAS去重 |
+| [预订单创建链路](modules/preorder-creation-flow.md) | 销售端/管理端创建、校验、落库、通知与采购联动 |
 
 ---
 
