@@ -256,6 +256,7 @@ app.post('/:id/dimensions', async (c) => {
     const dimensionRepo = new ProductDimensionRepository(env.DB);
     try {
         const created = await dimensionRepo.createDimension(productId, body);
+        invalidateProductCaches(c, env.DB, productId);
         return c.json({ success: true, data: created }, 201);
     } catch (error) {
         throw new BadRequestError(error.message || 'Create dimension failed');
@@ -273,6 +274,7 @@ app.patch('/:id/dimensions/:dimensionId', async (c) => {
     const dimensionRepo = new ProductDimensionRepository(env.DB);
     try {
         const updated = await dimensionRepo.updateDimension(productId, dimensionId, body);
+        invalidateProductCaches(c, env.DB, productId);
         return c.json({ success: true, data: updated });
     } catch (error) {
         throw new BadRequestError(error.message || 'Update dimension failed');
@@ -298,6 +300,7 @@ app.patch('/:id/dimensions/:dimensionId/archive', async (c) => {
             effect = { archivedVariants: await dimensionRepo.archiveVariantsByDimension(productId, dimensionId) };
         }
         const archivedDimension = await dimensionRepo.archiveDimension(productId, dimensionId);
+        invalidateProductCaches(c, env.DB, productId);
         return c.json({ success: true, data: { dimension: archivedDimension, effect } });
     } catch (error) {
         throw new BadRequestError(error.message || 'Archive dimension failed');
@@ -315,6 +318,7 @@ app.post('/:id/dimensions/:dimensionId/values', async (c) => {
     const dimensionRepo = new ProductDimensionRepository(env.DB);
     try {
         const created = await dimensionRepo.addValue(productId, dimensionId, body);
+        invalidateProductCaches(c, env.DB, productId);
         return c.json({ success: true, data: created }, 201);
     } catch (error) {
         throw new BadRequestError(error.message || 'Add value failed');
@@ -332,6 +336,7 @@ app.patch('/:id/values/:valueId/archive', async (c) => {
     try {
         const effect = await dimensionRepo.archiveVariantsByValue(productId, valueId);
         const value = await dimensionRepo.archiveValue(productId, valueId);
+        invalidateProductCaches(c, env.DB, productId);
         return c.json({ success: true, data: { value, effect } });
     } catch (error) {
         throw new BadRequestError(error.message || 'Archive value failed');
@@ -348,6 +353,7 @@ app.patch('/:id/values/:valueId/restore', async (c) => {
     const dimensionRepo = new ProductDimensionRepository(env.DB);
     try {
         const value = await dimensionRepo.restoreValue(productId, valueId);
+        invalidateProductCaches(c, env.DB, productId);
         return c.json({ success: true, data: value });
     } catch (error) {
         throw new BadRequestError(error.message || 'Restore value failed');
@@ -394,6 +400,7 @@ app.post('/:id/variants/:variantId/images', async (c) => {
             imageId: body.imageId,
             isPrimary: Boolean(body.isPrimary),
         });
+        invalidateProductCaches(c, env.DB, productId);
         return c.json({ success: true, data: created }, 201);
     } catch (error) {
         if (isVariantOwnershipError(error)) {
@@ -420,6 +427,7 @@ app.patch('/:id/variants/:variantId/images/sort', async (c) => {
             variantId,
             imageIds: body.imageIds,
         });
+        invalidateProductCaches(c, env.DB, productId);
         return c.json({ success: true });
     } catch (error) {
         if (isVariantOwnershipError(error)) {
@@ -442,6 +450,7 @@ app.patch('/:id/variants/:variantId/images/:imageId/primary', async (c) => {
             variantId,
             imageId,
         });
+        invalidateProductCaches(c, env.DB, productId);
         return c.json({ success: true });
     } catch (error) {
         if (isVariantOwnershipError(error)) {
@@ -467,6 +476,7 @@ app.delete('/:id/variants/:variantId/images/:imageId', async (c) => {
         if (!removed) {
             throw new NotFoundError('Variant image not found');
         }
+        invalidateProductCaches(c, env.DB, productId);
         return c.json({ success: true });
     } catch (error) {
         if (isVariantOwnershipError(error)) {

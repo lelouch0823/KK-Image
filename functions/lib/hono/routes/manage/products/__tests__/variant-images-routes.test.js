@@ -41,6 +41,12 @@ vi.mock('../../../../../../repositories/VariantImageRepository.js', () => ({
     },
 }));
 
+vi.mock('../../../../middleware/cache.js', () => ({
+    withCache: () => async (_c, next) => await next(),
+    invalidateCache: vi.fn(async () => {}),
+    getProductCacheUrls: vi.fn(() => []),
+}));
+
 function createApp() {
     const app = new Hono();
     app.onError((err, c) => {

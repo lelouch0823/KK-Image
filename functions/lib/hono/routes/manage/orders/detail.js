@@ -244,6 +244,8 @@ app.delete('/:id', async (c) => {
 
     const id = c.req.param('id');
     const orderRepo = new OrderRepository(env.DB);
+    const order = await orderRepo.findById(id);
+    const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, [order?.salespersonId]);
 
     await orderRepo.deleteOrderCascading(id);
 
