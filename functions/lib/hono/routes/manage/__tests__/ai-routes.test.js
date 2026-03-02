@@ -389,4 +389,57 @@ describe('manage ai routes - variant tool integration', () => {
     expect(String(firstCallMessages[0]?.content || '')).toContain('当前模型无法识别图片');
     expect(firstCallTools).toEqual([]);
   });
+
+  it('POST /stream keeps tools enabled when only historical turns contain images', async () => {
+    parseSSEChunk.mockImplementation((raw) => {
+      const text = String(raw || '');
+      if (text.includes('text-round-1')) {
+        return [{ choices: [{ delta: { content: '已根据商品库查询到结果。' } }] }];
+      }
+      if (text.includes('[DONE]')) return [{ done: true }];
+      return [];
+    });
+
+    callAIStream.mockResolvedValue({
+      body: createSSEReadable(['text-round-1']),
+      model: 'model-a',
+      switched: false,
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/ai/stream',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: '先看这张图' },
+                { type: 'image_url', image_url: { url: 'data:image/png;base64,abc' } },
+              ],
+            },
+            { role: 'assistant', content: '我看到了。' },
+            { role: 'user', content: '现在请帮我查库存不足的变体' },
+          ],
+          context: {},
+        }),
+      },
+      { DB: createDbWithSettingsRows([]) }
+    );
+
+    expect(res.status).toBe(200);
+    await res.text();
+    expect(callAIStream).toHaveBeenCalledTimes(1);
+
+    const firstCallMessages = callAIStream.mock.calls[0][0];
+    const firstCallTools = callAIStream.mock.calls[0][1];
+    expect(Array.isArray(firstCallMessages)).toBe(true);
+    expect(firstCallMessages[0]?.role).toBe('system');
+    expect(String(firstCallMessages[0]?.content || '')).not.toContain('图像优先');
+    expect(Array.isArray(firstCallTools)).toBe(true);
+    expect(firstCallTools.length).toBeGreaterThan(0);
+  });
 });

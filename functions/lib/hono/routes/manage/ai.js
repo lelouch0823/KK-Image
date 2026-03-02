@@ -159,8 +159,14 @@ function hasImagePart(content) {
     return false;
 }
 
-function hasImageInUserHistory(history = []) {
-    return Array.isArray(history) && history.some((msg) => msg?.role === 'user' && hasImagePart(msg.content));
+function hasImageInLatestUserTurn(history = []) {
+    if (!Array.isArray(history) || history.length === 0) return false;
+    for (let i = history.length - 1; i >= 0; i -= 1) {
+        const msg = history[i];
+        if (msg?.role !== 'user') continue;
+        return hasImagePart(msg.content);
+    }
+    return false;
 }
 
 function buildSystemContent(basePrompt, { visionFirst = false } = {}) {
@@ -269,7 +275,7 @@ app.post('/chat', async (c) => {
     const { env } = c;
     const { messages: history, context: clientContext = {} } = await c.req.json();
     const runtimeEnv = await resolveAIRuntimeEnv(env);
-    const visionFirst = hasImageInUserHistory(history);
+    const visionFirst = hasImageInLatestUserTurn(history);
     const inputSummary = summarizeUserInputModalities(history);
     const userSignals = history
         .filter((msg) => msg?.role === 'user')
@@ -401,7 +407,7 @@ app.post('/stream', async (c) => {
     const { env } = c;
     const { messages: history, context: clientContext = {} } = await c.req.json();
     const runtimeEnv = await resolveAIRuntimeEnv(env);
-    const visionFirst = hasImageInUserHistory(history);
+    const visionFirst = hasImageInLatestUserTurn(history);
     const inputSummary = summarizeUserInputModalities(history);
     const userSignals = history
         .filter((msg) => msg?.role === 'user')
