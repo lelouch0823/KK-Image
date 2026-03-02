@@ -9,6 +9,10 @@ const mocks = vi.hoisted(() => ({
   orderMarkAsRead: vi.fn(),
   orderUpdateStatus: vi.fn(),
   orderSetUnread: vi.fn(),
+  orderTimelineGetTimeline: vi.fn(),
+  orderTimelineAddTimelineEntry: vi.fn(),
+  createOrderNotification: vi.fn(),
+  invalidateCache: vi.fn(async () => {}),
   productVariantFindByIdAndProductId: vi.fn(),
   productSearch: vi.fn(),
   productFindById: vi.fn(),
@@ -20,7 +24,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../../../middleware/cache.js', () => ({
   withCache: () => async (_c, next) => await next(),
-  invalidateCache: vi.fn(async () => {}),
+  invalidateCache: mocks.invalidateCache,
 }));
 
 vi.mock('../../../../../repositories/OrderRepository.js', () => ({
@@ -62,6 +66,17 @@ vi.mock('../../../../../repositories/VariantImageRepository.js', () => ({
   })),
 }));
 
+vi.mock('../../../../../repositories/OrderTimelineRepository.js', () => ({
+  OrderTimelineRepository: vi.fn(() => ({
+    getTimeline: mocks.orderTimelineGetTimeline,
+    addTimelineEntry: mocks.orderTimelineAddTimelineEntry,
+  })),
+}));
+
+vi.mock('../../../../../api/utils/order-utils.js', () => ({
+  createOrderNotification: mocks.createOrderNotification,
+}));
+
 import ordersApp from '../orders.js';
 import productsApp from '../products.js';
 
@@ -90,6 +105,11 @@ describe('sales routes resilience', () => {
     mocks.dimensionListByProduct.mockResolvedValue([]);
     mocks.dimensionGetMap.mockResolvedValue({});
     mocks.variantImageListByVariant.mockResolvedValue([]);
+    mocks.orderGetFiles.mockResolvedValue([]);
+    mocks.orderTimelineGetTimeline.mockResolvedValue([]);
+    mocks.orderMarkAsRead.mockResolvedValue(true);
+    mocks.orderSetUnread.mockResolvedValue(true);
+    mocks.createOrderNotification.mockResolvedValue(undefined);
   });
 
   it('returns consistent error payload for variant validation failure', async () => {
@@ -158,5 +178,77 @@ describe('sales routes resilience', () => {
         code: 'INTERNAL_ERROR',
       })
     );
+  });
+
+  it('invalidates sales order list cache after GET /:id marks order as read', async () => {
+    mocks.orderFindByIdAndSalesperson.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      currentData: {},
+    });
+
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders/o-1',
+      { method: 'GET' },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.orderMarkAsRead).toHaveBeenCalledWith('o-1', 'sales');
+
+    const invalidatedUrls = mocks.invalidateCache.mock.calls
+      .map(([urls]) => (Array.isArray(urls) ? urls : [urls]))
+      .flat();
+    expect(invalidatedUrls).toContain('http://localhost/api/sales/token-1/orders?page=1&limit=20');
+  });
+
+  it('invalidates sales order list cache after PATCH /:id/read', async () => {
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders/o-1/read',
+      { method: 'PATCH' },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.orderMarkAsRead).toHaveBeenCalledWith('o-1', 'sales');
+
+    const invalidatedUrls = mocks.invalidateCache.mock.calls
+      .map(([urls]) => (Array.isArray(urls) ? urls : [urls]))
+      .flat();
+    expect(invalidatedUrls).toContain('http://localhost/api/sales/token-1/orders?page=1&limit=20');
+  });
+
+  it('invalidates manage order list cache after salesperson comment sets unread for admin', async () => {
+    mocks.orderFindByIdAndSalesperson.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      currentData: {},
+    });
+
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders/o-1/comment',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment: 'need review' }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.orderSetUnread).toHaveBeenCalledWith('o-1', 'sales');
+
+    const invalidatedUrls = mocks.invalidateCache.mock.calls
+      .map(([urls]) => (Array.isArray(urls) ? urls : [urls]))
+      .flat();
+    expect(invalidatedUrls).toContain('http://localhost/api/manage/orders');
   });
 });

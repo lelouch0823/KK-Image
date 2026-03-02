@@ -7,7 +7,12 @@ import { ProductVariantRepository } from '../../../../repositories/ProductVarian
 import { parsePagination } from '../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors.js';
 import { withCache, invalidateCache } from '../../middleware/cache.js';
-import { getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../_shared/cache-urls.js';
+import {
+    getManageOrderCacheUrls,
+    getOrderAndSalespersonCacheUrls,
+    getOrderNotificationCacheUrls,
+    getSalesOrderCacheUrls,
+} from '../_shared/cache-urls.js';
 
 const app = new Hono();
 
@@ -136,6 +141,7 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
  */
 app.get('/:id', async (c) => {
     const salesperson = c.get('salesperson');
+    const token = c.req.param('token');
     const orderId = c.req.param('id');
     const { env } = c;
 
@@ -154,6 +160,7 @@ app.get('/:id', async (c) => {
 
     // Mark as read
     await orderRepo.markAsRead(orderId, 'sales');
+    c.executionCtx.waitUntil(invalidateCache(getSalesOrderCacheUrls(c, { salesTokens: [token] })));
 
     return c.json({
         success: true,
@@ -169,11 +176,13 @@ app.get('/:id', async (c) => {
  * PATCH /:id/read - 标记订单已读
  */
 app.patch('/:id/read', async (c) => {
+    const token = c.req.param('token');
     const orderId = c.req.param('id');
     const { env } = c;
 
     const orderRepo = new OrderRepository(env.DB);
     await orderRepo.markAsRead(orderId, 'sales');
+    c.executionCtx.waitUntil(invalidateCache(getSalesOrderCacheUrls(c, { salesTokens: [token] })));
 
     return c.json({ success: true, message: MSG.ORDER.ALREADY_READ });
 });
@@ -349,6 +358,7 @@ app.post('/:id/comment', zValidator('json', AddCommentSchema), async (c) => {
     });
 
     c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c)));
+    c.executionCtx.waitUntil(invalidateCache(getManageOrderCacheUrls(c)));
     return c.json({ success: true, message: MSG.ORDER.COMMENT_ADDED });
 });
 

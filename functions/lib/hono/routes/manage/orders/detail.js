@@ -7,7 +7,7 @@ import { MSG } from '../../../_shared/utils.js';
 import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError, UnauthorizedError } from '../../../errors.js';
 import { invalidateCache } from '../../../middleware/cache.js';
-import { getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../../_shared/cache-urls.js';
+import { getManageOrderCacheUrls, getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../../_shared/cache-urls.js';
 
 const app = new Hono();
 
@@ -32,6 +32,7 @@ app.get('/:id', async (c) => {
 
     // 标记管理员已读
     await repo.markAsRead(id, 'admin');
+    c.executionCtx.waitUntil(invalidateCache(getManageOrderCacheUrls(c)));
 
     return c.json({
         success: true,
