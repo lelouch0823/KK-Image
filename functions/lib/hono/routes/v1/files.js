@@ -26,12 +26,27 @@ const ALLOWED_SORT_COLUMNS = {
 /**
  * 构建缓存失效 URL
  */
-const getFileCacheUrls = (c) => {
+const getFileCacheUrls = (c, folderId = null) => {
   const origin = new URL(c.req.url).origin;
-  return [
+  const urls = [
     `${origin}/api/v1/files`,
     `${origin}/api/v1/files?page=1&limit=20`,
   ];
+  if (folderId && folderId !== 'root') {
+    urls.push(`${origin}/api/v1/folders/${folderId}`);
+  }
+  return urls;
+};
+
+const getFileCacheUrlsByFolders = (c, folderIds = []) => {
+  const origin = new URL(c.req.url).origin;
+  const urlSet = new Set(getFileCacheUrls(c));
+  for (const folderId of folderIds) {
+    if (folderId && folderId !== 'root') {
+      urlSet.add(`${origin}/api/v1/folders/${folderId}`);
+    }
+  }
+  return [...urlSet];
 };
 
 /**
@@ -174,7 +189,7 @@ app.post('/', requirePermission('files:write'), zValidator('json', CreateFileSch
   });
 
   // 使缓存失效
-  c.executionCtx.waitUntil(invalidateCache(getFileCacheUrls(c)));
+  c.executionCtx.waitUntil(invalidateCache(getFileCacheUrlsByFolders(c, [data.folderId])));
 
   return c.json({
     success: true,
@@ -219,7 +234,9 @@ app.put('/:id', requirePermission('files:write'), async (c) => {
 
   await repo.update(id, updates);
   // 使详情缓存和列表缓存失效
-  c.executionCtx.waitUntil(invalidateCache([...getFileCacheUrls(c), c.req.url]));
+  c.executionCtx.waitUntil(
+    invalidateCache([...getFileCacheUrlsByFolders(c, [file.folder_id, checkFolderId]), c.req.url])
+  );
 
   return c.json({ success: true, message: MSG.FILE.UPDATE_SUCCESS });
 });
@@ -239,7 +256,7 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   await repo.softDelete(id);
 
   // 使缓存失效
-  c.executionCtx.waitUntil(invalidateCache(getFileCacheUrls(c)));
+  c.executionCtx.waitUntil(invalidateCache(getFileCacheUrlsByFolders(c, [file.folder_id])));
 
   return c.json({ success: true, message: MSG.FILE.DELETE_SUCCESS });
 });
@@ -257,11 +274,16 @@ app.post(
 
     const repo = new FileRepository(env.DB);
 
+    // 先读取所在目录，再软删除，保证目录详情缓存能被精准失效
+    const targetFiles = await repo.findByIds(ids);
+
     // 软删除
     await repo.softDeleteBatch(ids);
 
     // 使缓存失效
-    c.executionCtx.waitUntil(invalidateCache(getFileCacheUrls(c)));
+    c.executionCtx.waitUntil(
+      invalidateCache(getFileCacheUrlsByFolders(c, targetFiles.map((item) => item.folder_id)))
+    );
 
     return c.json({
       success: true,
@@ -301,9 +323,13 @@ app.post(
       }
     }
 
+    const sourceFolderIds = targetFiles.map((item) => item.folder_id);
+
     await fileRepo.moveBatch(ids, targetFolderId || 'root');
-    // 使缓存失效
-    c.executionCtx.waitUntil(invalidateCache(getFileCacheUrls(c)));
+    // 使缓存失效（源目录 + 目标目录 + 根列表）
+    c.executionCtx.waitUntil(
+      invalidateCache(getFileCacheUrlsByFolders(c, [...sourceFolderIds, targetFolderId]))
+    );
 
     return c.json({
       success: true,

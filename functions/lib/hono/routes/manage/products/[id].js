@@ -6,8 +6,10 @@ import { VariantImageRepository } from '../../../../../repositories/VariantImage
 import { VariantAuditRepository } from '../../../../../repositories/VariantAuditRepository.js';
 import { resolveVariantImageSyncPlan } from './variant-image-sync.js';
 import { normalizeProductCurrency } from './currency.js';
-import { invalidateCache } from '../../../middleware/cache.js';
+import { invalidateCache, getProductCacheUrls } from '../../../middleware/cache.js';
+import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
+import { getSalesProductCacheUrls } from '../../_shared/cache-urls.js';
 
 const app = new Hono();
 
@@ -160,17 +162,6 @@ const syncDimensionsFromPayload = async (dimensionRepo, productId, incomingDimen
     return dimensionRepo.listByProduct(productId);
 };
 
-/**
- * 构建缓存失效 URL
- */
-const getProductCacheUrls = (c) => {
-    const origin = new URL(c.req.url).origin;
-    return [
-        `${origin}/api/manage/products`,
-        `${origin}/api/manage/products?page=1&limit=20`,
-    ];
-};
-
 const loadVariantReplenishmentMap = async (db, variantIds = []) => {
     const normalizedIds = [...new Set((variantIds || []).filter(Boolean))];
     if (normalizedIds.length === 0) return new Map();
@@ -196,6 +187,17 @@ const loadVariantReplenishmentMap = async (db, variantIds = []) => {
         });
     }
     return map;
+};
+
+const invalidateProductCaches = (c, db, productId = null) => {
+    c.executionCtx.waitUntil((async () => {
+        const salesTokens = await getAllSalespersonAccessTokens(db);
+        const urls = [
+            ...getProductCacheUrls(c),
+            ...getSalesProductCacheUrls(c, { salesTokens, productId }),
+        ];
+        await invalidateCache([...new Set(urls)]);
+    })());
 };
 
 /**
@@ -554,7 +556,7 @@ app.patch('/:id', async (c) => {
     // if product fields changed OR variants existed and successfully synced
     if ((result.success && result.changes > 0) || variantsUpdated) {
         // 使缓存失效
-        c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
+        invalidateProductCaches(c, env.DB, id);
         return c.json({
             success: true,
             message: 'Product updated',
@@ -640,7 +642,7 @@ app.put('/:id', async (c) => {
 
     if (success) {
         // 使缓存失效
-        c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
+        invalidateProductCaches(c, env.DB, id);
         return c.json({
             success: true,
             message: 'Product updated',
@@ -681,7 +683,7 @@ app.delete('/:id', async (c) => {
         }));
         await auditRepo.createBatch(events);
         // 使缓存失效
-        c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
+        invalidateProductCaches(c, env.DB, id);
         return c.json({ success: true, message: 'Product variants archived' });
     } else {
         throw new BadRequestError('Delete failed');

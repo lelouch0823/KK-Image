@@ -36,6 +36,8 @@ export default {
     fallbackModel: '备用 {index}',
     setPrimary: '设为首选',
     primarySetSuccess: '已设置首选模型',
+    visionSupported: '支持图片',
+    visionLikelyUnsupported: '可能仅文本',
     dynamicFallback: '动态降级',
     dynamicFallbackDesc: '开启后会基于最近窗口的失败率和延迟自动重排备用模型顺序，首选模型保持不变。',
     healthWindow: '健康度窗口',

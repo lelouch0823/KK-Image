@@ -3,7 +3,10 @@ import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
+import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { BadRequestError } from '../../../errors.js';
+import { invalidateCache } from '../../../middleware/cache.js';
+import { getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../../_shared/cache-urls.js';
 
 const app = new Hono();
 
@@ -28,6 +31,7 @@ app.post('/', async (c) => {
     const orderId = generateId();
     const orderNo = generateOrderNo();
     const variantId = body.variantId ?? null;
+    const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, [body.salespersonId]);
 
     if (body.productId && !variantId) {
         throw new BadRequestError('variantId is required when productId is provided');
@@ -90,12 +94,16 @@ app.post('/', async (c) => {
                 metadata: { actorName: 'Admin' },
             });
 
+            await invalidateCache(getOrderNotificationCacheUrls(c, { salesTokens: notificationSalesTokens }));
+
             // Webhook (if needed for admin creation)
             await triggerWebhook(env, 'order.created_by_admin', { orderId, orderNo, admin: user?.name });
         } catch (e) {
             console.error('Async notify failed:', e);
         }
     })());
+
+    c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: notificationSalesTokens })));
 
     return c.json({ success: true, data: { id: orderId, orderNo } }, 201);
 });
@@ -117,6 +125,7 @@ app.post('/batch', async (c) => {
         const { results: orders } = await env.DB.prepare(
             `SELECT id, order_no, salesperson_id FROM orders WHERE id IN (${ids.map(() => '?').join(',')})`
         ).bind(...ids).all();
+        const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, (orders || []).map((o) => o.salesperson_id));
 
         // 2. 更新状态
         await repo.batchUpdateStatus(ids, value, {
@@ -142,6 +151,9 @@ app.post('/batch', async (c) => {
                 await createBatchOrderNotifications(env.DB, notifications);
             }
         }
+
+        c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c, { salesTokens: notificationSalesTokens })));
+        c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: notificationSalesTokens })));
     }
 
     return c.json({ success: true, message: MSG.ORDER.BATCH_RESULT.replace('{valid}', ids.length) });

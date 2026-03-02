@@ -187,4 +187,64 @@ describe('AISettings model selection and priority', () => {
     expect(keys).toContain('AI_DYNAMIC_FALLBACK_ENABLED');
     expect(keys).toContain('AI_MODEL_HEALTH_WINDOW');
   });
+
+  it('infers vision capability from model name keywords', async () => {
+    const { wrapper } = await mountComponent([
+      {
+        success: true,
+        data: {
+          ai: {
+            AI_API_URL: '',
+            AI_API_KEY: '',
+            AI_MODELS: 'gpt-4o, gpt-3.5-turbo',
+            AI_DYNAMIC_FALLBACK_ENABLED: 'false',
+            AI_MODEL_HEALTH_WINDOW: '20',
+          },
+        },
+      },
+    ]);
+
+    expect(wrapper.vm.isVisionModel('gpt-4o')).toBe(true);
+    expect(wrapper.vm.isVisionModel('gpt-3.5-turbo')).toBe(false);
+  });
+
+  it('renders selected and health model lists as grids and keeps set-primary on non-primary cards', async () => {
+    const { wrapper } = await mountComponent([
+      {
+        success: true,
+        data: {
+          ai: {
+            AI_API_URL: '',
+            AI_API_KEY: '',
+            AI_MODELS: 'gpt-4o, gpt-4o-mini',
+            AI_DYNAMIC_FALLBACK_ENABLED: 'false',
+            AI_MODEL_HEALTH_WINDOW: '20',
+          },
+        },
+      },
+      {
+        success: true,
+        data: {
+          models: [
+            { model: 'gpt-4o', failureRate: 0.01, avgLatencyMs: 680 },
+            { model: 'gpt-4o-mini', failureRate: 0.02, avgLatencyMs: 420 },
+          ],
+        },
+      },
+    ]);
+
+    const selectedGrid = wrapper.find('[data-testid="selected-model-grid"]');
+    expect(selectedGrid.exists()).toBe(true);
+    expect(selectedGrid.classes()).toContain('grid');
+    expect(wrapper.findAll('[data-testid="selected-model-card"]')).toHaveLength(2);
+
+    const setPrimaryButtons = wrapper.findAll('[data-testid="set-primary-btn"]');
+    expect(setPrimaryButtons).toHaveLength(1);
+    await setPrimaryButtons[0].trigger('click');
+    expect(wrapper.vm.form.AI_MODELS).toBe('gpt-4o-mini, gpt-4o');
+
+    const healthGrid = wrapper.find('[data-testid="health-model-grid"]');
+    expect(healthGrid.exists()).toBe(true);
+    expect(healthGrid.classes()).toContain('grid');
+  });
 });

@@ -13,8 +13,18 @@ import { PurchaseOrderRepository } from '../../../../repositories/PurchaseOrderR
 import { PurchaseOrderService } from '../../../../services/PurchaseOrderService.js';
 import { validateOrderQuantity } from '../../../../services/purchase-order-constraints.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
+import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { getPurchaseOrderCacheUrls, getOrderAnalyticsCacheUrls } from '../_shared/cache-urls.js';
 
 const app = new Hono();
+
+const invalidatePoRelatedCaches = (c, poId = null) => {
+  const urls = [
+    ...getPurchaseOrderCacheUrls(c, poId),
+    ...getOrderAnalyticsCacheUrls(c),
+  ];
+  c.executionCtx.waitUntil(invalidateCache([...new Set(urls)]));
+};
 
 async function validateVariantItems(db, items = []) {
   if (!items || items.length === 0) return;
@@ -68,7 +78,7 @@ async function validateVariantItems(db, items = []) {
  * GET / — 采购单列表
  * Query: status, page, limit
  */
-app.get('/', async (c) => {
+app.get('/', withCache(20), async (c) => {
   const url = new URL(c.req.url);
   const filters = {
     status: url.searchParams.get('status') || '',
@@ -85,7 +95,7 @@ app.get('/', async (c) => {
 /**
  * GET /stats — 采购统计概览
  */
-app.get('/stats', async (c) => {
+app.get('/stats', withCache(30), async (c) => {
   const repo = new PurchaseOrderRepository(c.env.DB);
   const stats = await repo.getStats();
   return c.json({ success: true, data: stats });
@@ -95,7 +105,7 @@ app.get('/stats', async (c) => {
  * GET /suggestions — 智能采购建议
  * 基于订货总览缺口，推荐优先采购的商品及关联订单
  */
-app.get('/suggestions', async (c) => {
+app.get('/suggestions', withCache(20), async (c) => {
   const service = new PurchaseOrderService(c.env.DB);
   const suggestions = await service.getSuggestions();
   return c.json({ success: true, data: suggestions });
@@ -106,7 +116,7 @@ app.get('/suggestions', async (c) => {
 /**
  * GET /:id — 采购单详情 (含明细)
  */
-app.get('/:id', async (c) => {
+app.get('/:id', withCache(20), async (c) => {
   const repo = new PurchaseOrderRepository(c.env.DB);
   const po = await repo.findById(c.req.param('id'));
 
@@ -139,6 +149,8 @@ app.post('/', async (c) => {
     await repo.addItems(po.id, body.items);
   }
 
+  invalidatePoRelatedCaches(c, po.id);
+
   // 返回完整的采购单
   const fullPo = await repo.findById(po.id);
   return c.json({ success: true, data: fullPo }, 201);
@@ -163,6 +175,8 @@ app.post('/from-orders', async (c) => {
     estimated_tariff_cost: body.estimated_tariff_cost,
   });
 
+  invalidatePoRelatedCaches(c, po?.id);
+
   return c.json({ success: true, data: po }, 201);
 });
 
@@ -178,6 +192,8 @@ app.put('/:id', async (c) => {
 
   const updated = await repo.update(c.req.param('id'), body);
   if (!updated) throw new NotFoundError('未找到采购单或无有效字段更新');
+
+  invalidatePoRelatedCaches(c, c.req.param('id'));
 
   const po = await repo.findById(c.req.param('id'));
   return c.json({ success: true, data: po });
@@ -195,6 +211,8 @@ app.patch('/:id/status', async (c) => {
   const service = new PurchaseOrderService(c.env.DB);
   // Service 内部会校验合法性并抛出 BadRequestError / NotFoundError
   const result = await service.updateStatus(c.req.param('id'), body.status);
+
+  invalidatePoRelatedCaches(c, c.req.param('id'));
 
   return c.json({
     success: true,
@@ -229,6 +247,8 @@ app.post('/:id/items', async (c) => {
 
   const ids = await repo.addItems(c.req.param('id'), body.items);
 
+  invalidatePoRelatedCaches(c, c.req.param('id'));
+
   return c.json({ success: true, data: { created: ids.length } }, 201);
 });
 
@@ -248,6 +268,8 @@ app.patch('/:id/items/:itemId', async (c) => {
   const updated = await repo.updateItem(c.req.param('itemId'), body);
   if (!updated) throw new NotFoundError('明细不存在');
 
+  invalidatePoRelatedCaches(c, c.req.param('id'));
+
   return c.json({ success: true });
 });
 
@@ -265,6 +287,8 @@ app.delete('/:id/items/:itemId', async (c) => {
   const removed = await repo.removeItem(c.req.param('itemId'));
   if (!removed) throw new NotFoundError('明细不存在');
 
+  invalidatePoRelatedCaches(c, c.req.param('id'));
+
   return c.json({ success: true });
 });
 
@@ -276,6 +300,8 @@ app.delete('/:id/items/:itemId', async (c) => {
 app.post('/:id/allocate', async (c) => {
   const service = new PurchaseOrderService(c.env.DB);
   await service.allocateCosts(c.req.param('id'));
+
+  invalidatePoRelatedCaches(c, c.req.param('id'));
 
   const repo = new PurchaseOrderRepository(c.env.DB);
   const po = await repo.findById(c.req.param('id'));

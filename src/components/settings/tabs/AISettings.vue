@@ -84,45 +84,69 @@
 
           <div class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3">
             <p class="mb-2 text-xs font-medium text-[var(--text-secondary)]">{{ t('settings.ai.selectedModels', 'Selected Models') }}</p>
-            <div v-if="selectedModels.length > 0" class="space-y-2">
+            <div
+              v-if="selectedModels.length > 0"
+              data-testid="selected-model-grid"
+              class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3"
+            >
               <div
                 v-for="(model, index) in selectedModels"
                 :key="`selected-${model}`"
                 draggable="true"
-                class="flex items-center justify-between gap-2 rounded border border-[var(--border-color)] bg-[var(--bg-muted)] px-2.5 py-2 text-[11px] text-[var(--text-main)] transition-colors hover:bg-[var(--bg-hover)]"
+                data-testid="selected-model-card"
+                class="group rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] p-2.5 text-[11px] text-[var(--text-main)] transition-colors hover:border-[var(--color-primary)]/30 hover:bg-[var(--bg-hover)]"
                 @dragstart="onDragStart(index)"
                 @dragover.prevent
                 @drop.prevent="onDrop(index)"
               >
-                <div class="flex min-w-0 items-center gap-2">
-                  <span class="cursor-grab text-[var(--text-muted)] active:cursor-grabbing" :title="t('settings.ai.dragToSort', 'Drag to sort')">
-                    <AppIcon name="bars-3" class="size-4" />
-                  </span>
-                  <span
-                    class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
-                    :class="index === 0
-                      ? 'bg-[var(--color-primary)]/15 text-[var(--color-primary)]'
-                      : 'bg-[var(--bg-card)] text-[var(--text-secondary)]'"
-                  >
-                    {{ index === 0 ? t('settings.ai.primaryModel', 'Primary') : t('settings.ai.fallbackModel', { index }) }}
-                  </span>
-                  <span class="truncate font-mono text-xs">{{ model }}</span>
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex min-w-0 items-center gap-2">
+                      <span class="cursor-grab text-[var(--text-muted)] active:cursor-grabbing" :title="t('settings.ai.dragToSort', 'Drag to sort')">
+                        <AppIcon name="bars-3" class="size-4" />
+                      </span>
+                      <span class="truncate font-mono text-xs">{{ model }}</span>
+                    </div>
+                    <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                      <span
+                        class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                        :class="index === 0
+                          ? 'bg-[var(--color-primary)]/15 text-[var(--color-primary)]'
+                          : 'bg-[var(--bg-card)] text-[var(--text-secondary)]'"
+                      >
+                        {{ index === 0 ? t('settings.ai.primaryModel', 'Primary') : t('settings.ai.fallbackModel', { index }) }}
+                      </span>
+                      <span
+                        class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                        :class="isVisionModel(model)
+                          ? 'bg-[var(--color-success)]/15 text-[var(--color-success)]'
+                          : 'bg-[var(--color-warning)]/15 text-[var(--color-warning)]'"
+                      >
+                        {{ isVisionModel(model)
+                          ? t('settings.ai.visionSupported', '支持图片')
+                          : t('settings.ai.visionLikelyUnsupported', '可能仅文本') }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="flex shrink-0 items-center gap-1">
+                    <button
+                      v-if="index > 0"
+                      data-testid="set-primary-btn"
+                      type="button"
+                      class="cursor-pointer rounded px-2 py-1 text-[10px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-card)] hover:text-[var(--text-main)]"
+                      @click="setPrimaryModel(model)"
+                    >
+                      {{ t('settings.ai.setPrimary', 'Set Primary') }}
+                    </button>
+                    <button
+                      type="button"
+                      class="cursor-pointer rounded p-0.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-card)] hover:text-[var(--text-main)]"
+                      @click="removeSelectedModel(model)"
+                    >
+                      <AppIcon name="x-mark" class="size-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <button
-                  v-if="index > 0"
-                  type="button"
-                  class="cursor-pointer rounded px-2 py-1 text-[10px] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]"
-                  @click="setPrimaryModel(model)"
-                >
-                  {{ t('settings.ai.setPrimary', 'Set Primary') }}
-                </button>
-                <button
-                  type="button"
-                  class="cursor-pointer rounded p-0.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]"
-                  @click="removeSelectedModel(model)"
-                >
-                  <AppIcon name="x-mark" class="size-3.5" />
-                </button>
               </div>
             </div>
             <p v-else class="text-xs text-[var(--text-muted)]">{{ t('settings.ai.noSelectedModels', 'No model selected yet') }}</p>
@@ -185,6 +209,16 @@
                 class="inline-flex items-center gap-1 rounded bg-[var(--bg-card)] px-2 py-1 font-mono text-[11px] text-[var(--text-main)]"
               >
                 <span>{{ model }}</span>
+                <span
+                  class="rounded px-1 py-0.5 text-[10px] font-semibold"
+                  :class="isVisionModel(model)
+                    ? 'bg-[var(--color-success)]/15 text-[var(--color-success)]'
+                    : 'bg-[var(--color-warning)]/15 text-[var(--color-warning)]'"
+                >
+                  {{ isVisionModel(model)
+                    ? t('settings.ai.visionSupported', '支持图片')
+                    : t('settings.ai.visionLikelyUnsupported', '可能仅文本') }}
+                </span>
                 <button
                   type="button"
                   class="rounded px-1 text-[10px] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]"
@@ -229,17 +263,21 @@
                 {{ t('settings.ai.refreshHealth', 'Refresh') }}
               </button>
             </div>
-            <div v-if="healthStats.length > 0" class="space-y-1">
+            <div
+              v-if="healthStats.length > 0"
+              data-testid="health-model-grid"
+              class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3"
+            >
               <div
                 v-for="item in healthStats"
                 :key="`health-${item.model}`"
-                class="flex items-center justify-between gap-3 rounded border border-[var(--border-color)] bg-[var(--bg-muted)] px-2 py-1.5 text-[11px]"
+                class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] px-2.5 py-2 text-[11px]"
               >
-                <span class="truncate font-mono">{{ item.model }}</span>
-                <span class="shrink-0 text-[var(--text-secondary)]">
-                  {{ t('settings.ai.failureRate', 'Fail') }} {{ item.failureRateLabel }} ·
-                  {{ t('settings.ai.avgLatency', 'Latency') }} {{ item.avgLatencyLabel }}
-                </span>
+                <p class="truncate font-mono text-xs text-[var(--text-main)]">{{ item.model }}</p>
+                <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-[var(--text-secondary)]">
+                  <span>{{ t('settings.ai.failureRate', 'Fail') }} {{ item.failureRateLabel }}</span>
+                  <span>{{ t('settings.ai.avgLatency', 'Latency') }} {{ item.avgLatencyLabel }}</span>
+                </div>
               </div>
             </div>
             <p v-else class="text-xs text-[var(--text-muted)]">{{ t('settings.ai.healthEmpty', 'No health data yet') }}</p>
@@ -268,6 +306,7 @@ import SettingsSection from '../SettingsSection.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
+import { inferModelSupportsVision } from '@/utils/ai-model-capabilities';
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -349,6 +388,8 @@ const splitModels = (value) =>
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
+
+const isVisionModel = (modelName) => inferModelSupportsVision(modelName);
 
 const selectedModels = computed(() => splitModels(form.AI_MODELS));
 const dynamicFallbackEnabled = computed({

@@ -4,7 +4,10 @@ import { OrderRepository } from '../../../../../repositories/OrderRepository.js'
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
 import { MSG } from '../../../_shared/utils.js';
+import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError, UnauthorizedError } from '../../../errors.js';
+import { invalidateCache } from '../../../middleware/cache.js';
+import { getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../../_shared/cache-urls.js';
 
 const app = new Hono();
 
@@ -123,6 +126,10 @@ app.patch('/:id', async (c) => {
         salespersonId: order.salespersonId, // 传入销售员ID以发送通知
     });
 
+    const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, [order.salespersonId]);
+    c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c, { salesTokens: notificationSalesTokens })));
+    c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: notificationSalesTokens })));
+
     return c.json({ success: true, message: MSG.ORDER.UPDATE_SUCCESS });
 });
 
@@ -171,6 +178,10 @@ app.patch('/:id/status', async (c) => {
         throw new BadRequestError(MSG.COMMON.OP_FAILED);
     }
 
+    const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, [order.salespersonId]);
+    c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c, { salesTokens: notificationSalesTokens })));
+    c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: notificationSalesTokens })));
+
     return c.json({ success: true, message: MSG.ORDER.STATUS_CHANGED });
 });
 
@@ -213,6 +224,8 @@ app.post('/:id/comment', async (c) => {
         });
     }
 
+    const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, [order?.salespersonId]);
+    c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c, { salesTokens: notificationSalesTokens })));
     return c.json({ success: true, message: MSG.ORDER.COMMENT_ADDED });
 });
 
@@ -233,6 +246,8 @@ app.delete('/:id', async (c) => {
     const orderRepo = new OrderRepository(env.DB);
 
     await orderRepo.deleteOrderCascading(id);
+
+    c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: notificationSalesTokens })));
 
     return c.json({ success: true, message: MSG.ORDER.DELETE_SUCCESS });
 });

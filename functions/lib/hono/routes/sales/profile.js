@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { BindWechatSchema } from '../../schemas/sales.js';
 import { SalespersonRepository } from '../../../../repositories/SalespersonRepository.js';
+import { withCache } from '../../middleware/cache.js';
 
 const app = new Hono();
 
@@ -49,7 +50,7 @@ app.post('/bind-wechat', zValidator('json', BindWechatSchema), async (c) => {
 /**
  * GET /stats - 获取统计
  */
-app.get('/stats', async (c) => {
+app.get('/stats', withCache(20), async (c) => {
     const salesperson = c.get('salesperson');
     const { env } = c;
 

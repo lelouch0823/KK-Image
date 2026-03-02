@@ -10,7 +10,13 @@ const messages = {
 };
 
 export function useI18n() {
-  const t = (path, params = {}) => {
+  const t = (path, paramsOrFallback = {}) => {
+    const hasFallback = typeof paramsOrFallback === 'string';
+    const fallback = hasFallback ? paramsOrFallback : undefined;
+    const params = !hasFallback && paramsOrFallback && typeof paramsOrFallback === 'object'
+      ? paramsOrFallback
+      : {};
+
     const keys = path.split('.');
     let value = messages[currentLocale.value];
 
@@ -18,7 +24,7 @@ export function useI18n() {
       if (value && typeof value === 'object' && key in value) {
         value = value[key];
       } else {
-        return path; // Fallback to key if not found
+        return fallback ?? path;
       }
     }
 
@@ -29,7 +35,10 @@ export function useI18n() {
       });
     }
 
-    return value;
+    if (value !== undefined) {
+      return value;
+    }
+    return fallback ?? path;
   };
 
   return {

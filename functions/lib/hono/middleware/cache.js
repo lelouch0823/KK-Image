@@ -77,11 +77,12 @@ export async function invalidateCache(urls) {
  */
 export function getProductCacheUrls(c) {
   const baseUrl = new URL(c.req.url).origin;
-  // Invalidate main list and possibly search results
-  // Since we don't know exact search params, we just invalidate the main list
-  // A better strategy for list caching is needed if we use many filters.
   return [
-    `${baseUrl}/api/manage/products`
+    `${baseUrl}/api/manage/products`,
+    `${baseUrl}/api/manage/products?page=1&limit=20`,
+    `${baseUrl}/api/manage/products/variants`,
+    `${baseUrl}/api/manage/products/variants?page=1&limit=50`,
+    `${baseUrl}/api/manage/products/variants?search=&page=1&limit=50`,
   ];
 }
 

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth.js';
+import { invalidateCache } from '../../middleware/cache.js';
 
 import {
   generateId,
@@ -15,6 +16,7 @@ import {
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { NotFoundError, BadRequestError, ForbiddenError, ConflictError } from '../../errors.js';
+import { getManageShareCacheUrls } from '../_shared/cache-urls.js';
 
 const app = new Hono();
 
@@ -153,6 +155,8 @@ app.post(
       updatedAt: nowMs
     });
 
+    c.executionCtx.waitUntil(invalidateCache(getManageShareCacheUrls(c)));
+
     return c.json(
       {
         success: true,
@@ -247,6 +251,8 @@ app.put(
 
     const updated = await folderRepo.update(folderId, updates, values);
 
+    c.executionCtx.waitUntil(invalidateCache(getManageShareCacheUrls(c)));
+
     return c.json({
       success: true,
       data: {
@@ -275,6 +281,8 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
 
   // 软删除
   await folderRepo.softDelete(folderId);
+
+  c.executionCtx.waitUntil(invalidateCache(getManageShareCacheUrls(c)));
 
   return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
 });

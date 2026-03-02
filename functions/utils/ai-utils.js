@@ -219,7 +219,7 @@ async function executeAIRequest(env, modelIndex, requestFn) {
 
         // 其他错误抛出
         const errorBody = await response.text();
-        throw new Error(`AI API error (${response.status}): ${errorBody}`);
+        throw new Error(`AI API error (${response.status}) [model:${currentModel}]: ${errorBody}`);
     }
 
     return {

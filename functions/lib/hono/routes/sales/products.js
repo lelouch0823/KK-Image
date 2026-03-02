@@ -4,6 +4,7 @@ import { ProductVariantRepository } from '../../../../repositories/ProductVarian
 import { ProductDimensionRepository } from '../../../../repositories/ProductDimensionRepository.js';
 import { VariantImageRepository } from '../../../../repositories/VariantImageRepository.js';
 import { NotFoundError } from '../../errors.js';
+import { withCache } from '../../middleware/cache.js';
 
 const app = new Hono();
 
@@ -54,7 +55,7 @@ const loadVariantReplenishmentMap = async (db, variantIds = []) => {
 /**
  * GET / - 销售端商品列表（只返回可售商品）
  */
-app.get('/', async (c) => {
+app.get('/', withCache(20), async (c) => {
   const { env } = c;
   const { search = '', page = 1, limit = 12 } = c.req.query();
 
@@ -96,7 +97,7 @@ app.get('/', async (c) => {
 /**
  * GET /:id - 销售端商品详情（含可选变体）
  */
-app.get('/:id', async (c) => {
+app.get('/:id', withCache(30), async (c) => {
   const { env } = c;
   const id = c.req.param('id');
 

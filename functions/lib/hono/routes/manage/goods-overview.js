@@ -15,6 +15,7 @@
 import { Hono } from 'hono';
 import { getChinaDateStr } from '../../_shared/utils.js';
 import { GoodsOverviewRepository } from '../../../../repositories/GoodsOverviewRepository.js';
+import { withCache } from '../../middleware/cache.js';
 
 const app = new Hono();
 
@@ -27,7 +28,7 @@ const app = new Hono();
  *   - shortageOnly: '1' 仅显示缺货变体
  *   - sort: 排序字段 (shortage / demand / name)，默认 shortage
  */
-app.get('/', async (c) => {
+app.get('/', withCache(20), async (c) => {
     const { env } = c;
     const url = new URL(c.req.url);
 
@@ -53,7 +54,7 @@ app.get('/', async (c) => {
 /**
  * GET /summary — 管道概览统计
  */
-app.get('/summary', async (c) => {
+app.get('/summary', withCache(20), async (c) => {
     const { env } = c;
 
     const overviewRepo = new GoodsOverviewRepository(env.DB);

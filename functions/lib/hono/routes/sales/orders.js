@@ -6,6 +6,8 @@ import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 import { ProductVariantRepository } from '../../../../repositories/ProductVariantRepository.js';
 import { parsePagination } from '../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors.js';
+import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../_shared/cache-urls.js';
 
 const app = new Hono();
 
@@ -19,7 +21,7 @@ app.onError((err, c) => {
 /**
  * GET / - 获取订单列表
  */
-app.get('/', async (c) => {
+app.get('/', withCache(20), async (c) => {
     const salesperson = c.get('salesperson');
     const { env } = c;
     const { page, limit } = parsePagination(c);
@@ -51,6 +53,7 @@ app.get('/', async (c) => {
  */
 app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
     const salesperson = c.get('salesperson');
+    const token = c.req.param('token');
     const data = c.req.valid('json');
     const { env } = c;
     const orderRepo = new OrderRepository(env.DB);
@@ -115,11 +118,15 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
                 salespersonId: salesperson.id,
             });
 
+            await invalidateCache(getOrderNotificationCacheUrls(c));
+
             await triggerWebhook(env, 'order.created', { orderId, orderNo, salesperson: salesperson.name });
         } catch (e) {
             console.error('Async notify/webhook failed:', e);
         }
     })());
+
+    c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: [token] })));
 
     return c.json({ success: true, data: { id: orderId, orderNo } }, 201);
 });
@@ -176,6 +183,7 @@ app.patch('/:id/read', async (c) => {
  */
 app.patch('/:id', async (c) => {
     const salesperson = c.get('salesperson');
+    const token = c.req.param('token');
     const orderId = c.req.param('id');
     const body = await c.req.json();
     const { env } = c;
@@ -250,6 +258,9 @@ app.patch('/:id', async (c) => {
         await orderRepo.updateStatus(orderId, 'pending', 'sales');
     }
 
+    c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: [token] })));
+    c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c)));
+
     return c.json({ success: true, message: MSG.ORDER.UPDATE_SUCCESS });
 });
 
@@ -258,6 +269,7 @@ app.patch('/:id', async (c) => {
  */
 app.delete('/:id', async (c) => {
     const salesperson = c.get('salesperson');
+    const token = c.req.param('token');
     const orderId = c.req.param('id');
     const { env } = c;
 
@@ -292,6 +304,9 @@ app.delete('/:id', async (c) => {
         actorName: salesperson.name,
         extra: { status: 'void' }
     });
+
+    c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: [token] })));
+    c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c)));
 
     return c.json({ success: true, message: MSG.ORDER.VOID_SUCCESS });
 });
@@ -333,6 +348,7 @@ app.post('/:id/comment', zValidator('json', AddCommentSchema), async (c) => {
         extra: { comment: comment.trim() }
     });
 
+    c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c)));
     return c.json({ success: true, message: MSG.ORDER.COMMENT_ADDED });
 });
 

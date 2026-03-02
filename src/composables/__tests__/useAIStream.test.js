@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createStreamSanitizer } from '../useAIStream.js';
+import { createStreamSanitizer, classifyAIStreamError } from '../useAIStream.js';
 
 describe('createStreamSanitizer', () => {
   it('removes internal tags across chunk boundaries', () => {
@@ -22,3 +22,27 @@ describe('createStreamSanitizer', () => {
   });
 });
 
+describe('classifyAIStreamError', () => {
+  it('marks model image capability errors as handled image errors', () => {
+    const result = classifyAIStreamError('AI API error (400): model vision not supported');
+    expect(result.isHandled).toBe(true);
+    expect(result.isImageError).toBe(true);
+    expect(result.kind).toBe('model_capability');
+  });
+
+  it('keeps non-image errors as generic stream errors', () => {
+    const result = classifyAIStreamError('AI API error (500): internal error');
+    expect(result.isHandled).toBe(false);
+    expect(result.isImageError).toBe(false);
+    expect(result.kind).toBe('generic');
+  });
+
+  it('classifies image format/input compatibility errors separately from model capability', () => {
+    const result = classifyAIStreamError(
+      'AI API error (400): invalid image_url.url - data:image/webp;base64,... is not supported'
+    );
+    expect(result.isHandled).toBe(true);
+    expect(result.isImageError).toBe(true);
+    expect(result.kind).toBe('image_input_format');
+  });
+});

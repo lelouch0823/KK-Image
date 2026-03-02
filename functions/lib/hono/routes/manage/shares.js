@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
+import { withCache } from '../../middleware/cache.js';
 
 const app = new Hono();
 
@@ -10,6 +11,7 @@ const app = new Hono();
 app.get(
   '/',
   requirePermission('files:read'),
+  withCache(30),
   async (c) => {
     const { env } = c;
     const page = parseInt(c.req.query('page') || '1');

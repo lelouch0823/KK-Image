@@ -40,12 +40,159 @@ function parseBooleanFlag(value, fallback = false) {
     return ['1', 'true', 'yes', 'on', 'enabled'].includes(normalized);
 }
 
+function parseModelListForLog(modelsValue = '') {
+    return String(modelsValue || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+}
+
+function summarizeImageUrl(url = '') {
+    const value = String(url || '');
+    const isDataUrl = value.startsWith('data:');
+    const isHttpUrl = /^https?:\/\//i.test(value);
+    let mime = '';
+    if (isDataUrl) {
+        const match = value.match(/^data:([^;,]+)/i);
+        mime = match?.[1] || '';
+    }
+    return {
+        isDataUrl,
+        isHttpUrl,
+        mime: mime || null,
+        length: value.length || 0,
+    };
+}
+
+function summarizeUserInputModalities(history = []) {
+    const summary = {
+        userMessageCount: 0,
+        textParts: 0,
+        imageParts: 0,
+        dataUrlImages: 0,
+        httpUrlImages: 0,
+        imageMimes: [],
+        maxImageUrlLength: 0,
+    };
+    const mimeSet = new Set();
+
+    const visitContent = (content) => {
+        if (typeof content === 'string') {
+            if (content.trim()) summary.textParts += 1;
+            return;
+        }
+        if (Array.isArray(content)) {
+            content.forEach(visitContent);
+            return;
+        }
+        if (!content || typeof content !== 'object') return;
+
+        if (content.type === 'text' && typeof content.text === 'string' && content.text.trim()) {
+            summary.textParts += 1;
+            return;
+        }
+
+        if (content.type === 'image_url' && typeof content.image_url?.url === 'string') {
+            summary.imageParts += 1;
+            const imageInfo = summarizeImageUrl(content.image_url.url);
+            if (imageInfo.isDataUrl) summary.dataUrlImages += 1;
+            if (imageInfo.isHttpUrl) summary.httpUrlImages += 1;
+            if (imageInfo.mime) mimeSet.add(imageInfo.mime);
+            summary.maxImageUrlLength = Math.max(summary.maxImageUrlLength, imageInfo.length);
+            return;
+        }
+
+        if (typeof content.text === 'string' && content.text.trim()) {
+            summary.textParts += 1;
+        }
+    };
+
+    if (Array.isArray(history)) {
+        history
+            .filter((msg) => msg?.role === 'user')
+            .forEach((msg) => {
+                summary.userMessageCount += 1;
+                visitContent(msg.content);
+            });
+    }
+
+    summary.imageMimes = Array.from(mimeSet);
+    return summary;
+}
+
+function logModelUsageTelemetry(channel, {
+    runtimeEnv = {},
+    selectedModel = '',
+    switched = false,
+    visionFirst = false,
+    toolsEnabled = true,
+    phase = 'initial',
+} = {}) {
+    const configuredModels = parseModelListForLog(runtimeEnv.AI_MODELS || runtimeEnv.AI_MODEL || '');
+    console.info(`[AI ${channel}][ModelUsed]`, JSON.stringify({
+        phase,
+        selectedModel: selectedModel || null,
+        switched: Boolean(switched),
+        configuredPrimary: configuredModels[0] || null,
+        configuredCount: configuredModels.length,
+        dynamicFallbackEnabled: parseBooleanFlag(runtimeEnv.AI_DYNAMIC_FALLBACK_ENABLED, false),
+        visionFirst: Boolean(visionFirst),
+        toolsEnabled: Boolean(toolsEnabled),
+    }));
+}
+
 function detectInjectionSignals(rawText = '') {
     const text = String(rawText || '');
     if (!text.trim()) return [];
     return INJECTION_PATTERNS
         .filter((pattern) => pattern.test(text))
         .map((pattern) => pattern.toString());
+}
+
+function hasImagePart(content) {
+    if (Array.isArray(content)) {
+        return content.some((part) => part?.type === 'image_url' && typeof part.image_url?.url === 'string');
+    }
+    if (content && typeof content === 'object') {
+        return content.type === 'image_url' && typeof content.image_url?.url === 'string';
+    }
+    return false;
+}
+
+function hasImageInUserHistory(history = []) {
+    return Array.isArray(history) && history.some((msg) => msg?.role === 'user' && hasImagePart(msg.content));
+}
+
+function buildSystemContent(basePrompt, { visionFirst = false } = {}) {
+    if (!visionFirst) return basePrompt;
+    return `${basePrompt}
+
+<vision_first_mode>
+图像优先：本轮用户输入包含图片，你必须优先基于图片内容回答，不要优先转成 SKU/ID 检索问答。
+若当前模型无法识别图片，请以以下前缀开头回复：
+[IMAGE_UNSUPPORTED] 当前模型无法识别图片，请移除图片或切换模型。
+</vision_first_mode>`.trim();
+}
+
+function extractUserTextForDetection(content) {
+    if (typeof content === 'string') {
+        return content;
+    }
+    if (Array.isArray(content)) {
+        return content
+            .filter((part) => part?.type === 'text' && typeof part.text === 'string')
+            .map((part) => part.text)
+            .join('\n');
+    }
+    if (content && typeof content === 'object') {
+        if (content.type === 'text' && typeof content.text === 'string') {
+            return content.text;
+        }
+        if (typeof content.text === 'string') {
+            return content.text;
+        }
+    }
+    return '';
 }
 
 function logInjectionTelemetry(channel, entries = []) {
@@ -122,10 +269,13 @@ app.post('/chat', async (c) => {
     const { env } = c;
     const { messages: history, context: clientContext = {} } = await c.req.json();
     const runtimeEnv = await resolveAIRuntimeEnv(env);
+    const visionFirst = hasImageInUserHistory(history);
+    const inputSummary = summarizeUserInputModalities(history);
     const userSignals = history
         .filter((msg) => msg?.role === 'user')
-        .flatMap((msg) => detectInjectionSignals(msg.content));
+        .flatMap((msg) => detectInjectionSignals(extractUserTextForDetection(msg.content)));
     logInjectionTelemetry('chat.user_input', userSignals);
+    console.info('[AI Chat][InputModalities]', JSON.stringify(inputSummary));
 
 
         const orderStatsRepo = new OrderStatsRepository(env.DB);
@@ -139,12 +289,31 @@ app.post('/chat', async (c) => {
         const purchaseOrderRepo = new PurchaseOrderRepository(env.DB);
 
         const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
-        const systemContent = SYSTEM_PROMPT(todayDate, clientContext);
+        const systemContent = buildSystemContent(
+            SYSTEM_PROMPT(todayDate, clientContext),
+            { visionFirst }
+        );
 
         let messages = [{ role: "system", content: systemContent }, ...history];
 
-        let response = await callAI(messages, AI_TOOLS, runtimeEnv);
+        let response = await callAI(messages, visionFirst ? [] : AI_TOOLS, runtimeEnv);
+        logModelUsageTelemetry('Chat', {
+            runtimeEnv,
+            selectedModel: response?._meta?.model,
+            switched: response?._meta?.switched,
+            visionFirst,
+            toolsEnabled: !visionFirst && Array.isArray(AI_TOOLS) && AI_TOOLS.length > 0,
+            phase: 'initial',
+        });
         let choice = response.choices[0];
+        if (typeof choice?.message?.content === 'string' && choice.message.content.includes('[IMAGE_UNSUPPORTED]')) {
+            console.warn('[AI Chat][ImageUnsupportedResponse]', JSON.stringify({
+                selectedModel: response?._meta?.model || null,
+                switched: Boolean(response?._meta?.switched),
+                visionFirst,
+                inputSummary,
+            }));
+        }
 
         if (choice.message.tool_calls) {
             messages.push(choice.message);
@@ -164,6 +333,24 @@ app.post('/chat', async (c) => {
                 });
             }
             response = await callAI(messages, [], runtimeEnv);
+            logModelUsageTelemetry('Chat', {
+                runtimeEnv,
+                selectedModel: response?._meta?.model,
+                switched: response?._meta?.switched,
+                visionFirst,
+                toolsEnabled: false,
+                phase: 'post_tool',
+            });
+            const postToolContent = String(response?.choices?.[0]?.message?.content || '');
+            if (postToolContent.includes('[IMAGE_UNSUPPORTED]')) {
+                console.warn('[AI Chat][ImageUnsupportedResponse]', JSON.stringify({
+                    selectedModel: response?._meta?.model || null,
+                    switched: Boolean(response?._meta?.switched),
+                    visionFirst,
+                    inputSummary,
+                    phase: 'post_tool',
+                }));
+            }
         }
 
         return success({ message: response.choices[0].message });
@@ -214,10 +401,13 @@ app.post('/stream', async (c) => {
     const { env } = c;
     const { messages: history, context: clientContext = {} } = await c.req.json();
     const runtimeEnv = await resolveAIRuntimeEnv(env);
+    const visionFirst = hasImageInUserHistory(history);
+    const inputSummary = summarizeUserInputModalities(history);
     const userSignals = history
         .filter((msg) => msg?.role === 'user')
-        .flatMap((msg) => detectInjectionSignals(msg.content));
+        .flatMap((msg) => detectInjectionSignals(extractUserTextForDetection(msg.content)));
     logInjectionTelemetry('stream.user_input', userSignals);
+    console.info('[AI Stream][InputModalities]', JSON.stringify(inputSummary));
 
     return streamSSE(c, async (stream) => {
         try {
@@ -240,11 +430,22 @@ app.post('/stream', async (c) => {
             };
 
             const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
-            const systemContent = SYSTEM_PROMPT(todayDate, clientContext);
+            const systemContent = buildSystemContent(
+                SYSTEM_PROMPT(todayDate, clientContext),
+                { visionFirst }
+            );
             let messages = [{ role: "system", content: systemContent }, ...history];
 
-            const streamResult = await callAIStream(messages, AI_TOOLS, runtimeEnv);
+            const streamResult = await callAIStream(messages, visionFirst ? [] : AI_TOOLS, runtimeEnv);
             const aiStream = streamResult.body;
+            logModelUsageTelemetry('Stream', {
+                runtimeEnv,
+                selectedModel: streamResult.model,
+                switched: streamResult.switched,
+                visionFirst,
+                toolsEnabled: !visionFirst && Array.isArray(AI_TOOLS) && AI_TOOLS.length > 0,
+                phase: 'initial',
+            });
 
             if (streamResult.switched) {
                 await stream.writeSSE({ event: 'model_switch', data: JSON.stringify({ model: streamResult.model, reason: 'rate_limit' }) });
@@ -255,6 +456,15 @@ app.post('/stream', async (c) => {
             const initialParsed = await processStreamToSSE(aiStream, stream, { gateEnabled, strictMode });
             const { fullContent, toolCalls } = initialParsed;
             let roundTelemetry = { rounds: 0, executedTools: 0, lastToolCalls: toolCalls.length };
+            if (String(fullContent || '').includes('[IMAGE_UNSUPPORTED]')) {
+                console.warn('[AI Stream][ImageUnsupportedResponse]', JSON.stringify({
+                    selectedModel: streamResult.model || null,
+                    switched: Boolean(streamResult.switched),
+                    visionFirst,
+                    inputSummary,
+                    phase: 'initial',
+                }));
+            }
 
             if (toolCalls.length > 0) {
                 roundTelemetry = await handleToolCallsToSSE(toolCalls, fullContent, messages, executeTool, stream, runtimeEnv, { gateEnabled, strictMode });

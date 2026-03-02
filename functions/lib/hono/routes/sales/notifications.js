@@ -1,12 +1,14 @@
 import { Hono } from 'hono';
 import { NotificationRepository } from '../../../../repositories/NotificationRepository.js';
+import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { getSalesNotificationCacheUrls } from '../_shared/cache-urls.js';
 
 const app = new Hono();
 
 /**
  * GET / - 获取通知
  */
-app.get('/', async (c) => {
+app.get('/', withCache(15), async (c) => {
     const salesperson = c.get('salesperson');
     const { env } = c;
     const limit = parseInt(c.req.query('limit') || '20');
@@ -24,6 +26,7 @@ app.get('/', async (c) => {
 app.post('/:id/read', async (c) => {
     const salesperson = c.get('salesperson');
     const notificationId = c.req.param('id');
+    const token = c.req.param('token');
     const { env } = c;
 
     const notifyRepo = new NotificationRepository(env.DB);
@@ -32,6 +35,8 @@ app.post('/:id/read', async (c) => {
     } else {
         await notifyRepo.markAsReadForSalesperson(notificationId, salesperson.id);
     }
+
+    c.executionCtx.waitUntil(invalidateCache(getSalesNotificationCacheUrls(c, token)));
 
     return c.json({ success: true, message: '已读成功' });
 });

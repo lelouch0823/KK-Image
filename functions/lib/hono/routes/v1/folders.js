@@ -10,12 +10,29 @@ import { requirePermission } from '../../middleware/auth.js';
 import { withCache, invalidateCache } from '../../middleware/cache.js';
 import { generateId, generateShareToken, now, MSG } from '../../_shared/utils.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
-import { createCacheInvalidator } from '../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
+import { getManageShareCacheUrls } from '../_shared/cache-urls.js';
 
 const app = new Hono();
 
-const getFolderCacheUrls = createCacheInvalidator('/api/v1/folders', ['parentId=null']);
+const getFolderCacheUrls = (c, parentIds = []) => {
+  const origin = new URL(c.req.url).origin;
+  const urls = [
+    `${origin}/api/v1/folders`,
+    `${origin}/api/v1/folders?parentId=null`,
+  ];
+  const ids = Array.isArray(parentIds) ? parentIds : [parentIds];
+  for (const parentId of ids) {
+    if (parentId && parentId !== 'root') {
+      urls.push(`${origin}/api/v1/folders/${parentId}`);
+    }
+  }
+  return [...new Set(urls)];
+};
+
+const getFolderAndShareCacheUrls = (c, parentIds = []) => {
+  return [...new Set([...getFolderCacheUrls(c, parentIds), ...getManageShareCacheUrls(c)])];
+};
 
 /**
  * GET /api/v1/folders - 获取文件夹列表
@@ -95,7 +112,7 @@ app.post(
       updatedAt: timestamp,
     });
 
-    c.executionCtx.waitUntil(invalidateCache(getFolderCacheUrls(c)));
+    c.executionCtx.waitUntil(invalidateCache(getFolderAndShareCacheUrls(c, [data.parentId])));
 
     return c.json(
       { success: true, data: { id, shareToken, ...data, createdAt: timestamp } },
@@ -154,7 +171,7 @@ app.put(
 
     await repo.update(id, updates, values);
 
-    c.executionCtx.waitUntil(invalidateCache(getFolderCacheUrls(c)));
+    c.executionCtx.waitUntil(invalidateCache(getFolderAndShareCacheUrls(c, [folder.parent_id, checkParentId, id])));
 
     return c.json({ success: true, message: MSG.FOLDER.UPDATE_SUCCESS });
   }
@@ -177,7 +194,7 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
   }
 
   await repo.softDelete(id);
-  c.executionCtx.waitUntil(invalidateCache(getFolderCacheUrls(c)));
+  c.executionCtx.waitUntil(invalidateCache(getFolderAndShareCacheUrls(c, [folder.parent_id, id])));
 
   return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
 });
@@ -197,7 +214,7 @@ app.put(
     // SOTA: 使用 Repository 封装的分享设置更新
     const shareInfo = await repo.updateShareSettings(id, { isPublic, password, expiresAt });
 
-    c.executionCtx.waitUntil(invalidateCache(getFolderCacheUrls(c)));
+    c.executionCtx.waitUntil(invalidateCache(getFolderAndShareCacheUrls(c, [id])));
 
     return c.json({
       success: true,

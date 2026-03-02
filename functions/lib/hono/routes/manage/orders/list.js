@@ -2,13 +2,14 @@ import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { OrderStatsRepository } from '../../../../../repositories/OrderStatsRepository.js';
 import { MSG, ORDER_STATUSES, getChinaDayStart, getChinaDateStr } from '../../../_shared/utils.js';
+import { withCache } from '../../../middleware/cache.js';
 
 const app = new Hono();
 
 /**
  * GET / - 获取订单列表
  */
-app.get('/', async (c) => {
+app.get('/', withCache(20), async (c) => {
     const { env } = c;
     const url = new URL(c.req.url);
     const page = parseInt(url.searchParams.get('page') || '1', 10);
@@ -58,7 +59,7 @@ app.get('/', async (c) => {
 /**
  * GET /stats - 获取订单统计数据
  */
-app.get('/stats', async (c) => {
+app.get('/stats', withCache(20), async (c) => {
     const { env } = c;
     const statsRepo = new OrderStatsRepository(env.DB);
     const todayStart = getChinaDayStart();

@@ -116,6 +116,7 @@ vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
 
 vi.mock('../../../../middleware/cache.js', () => ({
     invalidateCache: vi.fn(),
+    getProductCacheUrls: vi.fn(() => []),
 }));
 
 function createApp() {

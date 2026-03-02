@@ -23,7 +23,33 @@ const DEFAULT_OPTIONS = {
   fileType: 'image/webp', // 输出 WebP 格式
   preserveExif: true, // 保留 EXIF 方向
   initialQuality: 0.8, // 初始质量 80%
+  applyWatermark: true, // 是否应用全局水印
 };
+
+const MIME_EXTENSION_MAP = {
+  'image/webp': 'webp',
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/avif': 'avif',
+};
+
+function resolveOutputFileName(originalName, mimeType) {
+  const baseName = String(originalName || 'image').replace(/\.[^.]+$/, '');
+  const normalizedMime = String(mimeType || '').toLowerCase();
+  const extension = MIME_EXTENSION_MAP[normalizedMime] || 'img';
+  return `${baseName}.${extension}`;
+}
+
+function blobToDataURL(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error('Failed to convert blob to data URL'));
+    reader.readAsDataURL(blob);
+  });
+}
 
 /**
  * 计算文件的 SHA-256 哈希
@@ -207,11 +233,13 @@ export function useImageCompression(customOptions = {}) {
     }
 
     // 1. Load and apply watermark if configured
-    await loadSettings();
-    const wmConfig = getSettingsParsed();
     let fileToCompress = file;
-    if (wmConfig && wmConfig.enabled) {
-      fileToCompress = await drawWatermark(file, wmConfig);
+    if (options.applyWatermark) {
+      await loadSettings();
+      const wmConfig = getSettingsParsed();
+      if (wmConfig && wmConfig.enabled) {
+        fileToCompress = await drawWatermark(file, wmConfig);
+      }
     }
 
     // 2. 执行压缩
@@ -239,12 +267,11 @@ export function useImageCompression(customOptions = {}) {
       }
     }
 
-    // 保持原始文件名，改为 .webp 扩展名
-    const baseName = file.name.replace(/\.[^.]+$/, '');
-    const newFileName = `${baseName}.webp`;
+    const outputType = options.fileType || compressedBlob.type || file.type;
+    const newFileName = resolveOutputFileName(file.name, outputType);
 
     const compressedFile = new File([compressedBlob], newFileName, {
-      type: options.fileType || compressedBlob.type,
+      type: outputType,
     });
 
     // 计算压缩后文件的哈希 (用于 CAS 存储)
@@ -312,8 +339,24 @@ export function useImageCompression(customOptions = {}) {
     });
   };
 
+  /**
+   * 压缩并返回 data URL（适用于 AI 多模态输入）
+   * @param {File} file
+   * @param {Function} onProgress
+   * @returns {Promise<{file: File, dataUrl: string, hash: string, originalHash: string, originalSize: number, compressedSize: number, ratio: number}>}
+   */
+  const compressImageToDataUrl = async (file, onProgress = () => { }) => {
+    const result = await compressImage(file, onProgress);
+    const dataUrl = await blobToDataURL(result.file);
+    return {
+      ...result,
+      dataUrl,
+    };
+  };
+
   return {
     compressImage,
+    compressImageToDataUrl,
     compressImages,
     getFileHash,
     getImageDimensions,

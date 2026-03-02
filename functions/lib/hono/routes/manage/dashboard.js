@@ -3,13 +3,14 @@ import { OrderStatsRepository } from '../../../../repositories/OrderStatsReposit
 import { StatsRepository } from '../../../../repositories/StatsRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { getChinaDayStart, getFileUrl } from '../../_shared/utils.js';
+import { withCache } from '../../middleware/cache.js';
 
 const app = new Hono();
 
 /**
  * GET /overview - 获取仪表盘概览数据 (SOTA: 聚合接口)
  */
-app.get('/overview', async (c) => {
+app.get('/overview', withCache(20), async (c) => {
     const { env } = c;
 
 

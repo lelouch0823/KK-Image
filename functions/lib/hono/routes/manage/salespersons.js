@@ -6,10 +6,17 @@ import { MSG } from '../../_shared/utils.js';
 import { withCache, invalidateCache } from '../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { parsePagination, createCacheInvalidator } from '../../_shared/route-helpers.js';
+import { getManageOrderCacheUrls } from '../_shared/cache-urls.js';
 
 const app = new Hono();
 
-const getCacheUrls = createCacheInvalidator('/api/manage/salespersons', ['page=1&limit=50']);
+const getCacheUrls = createCacheInvalidator('/api/manage/salespersons', [
+    'page=1&limit=20',
+    'page=1&limit=50',
+]);
+const getSalespersonAndOrderCacheUrls = (c) => [
+    ...new Set([...getCacheUrls(c), ...getManageOrderCacheUrls(c)]),
+];
 
 // 验证 Schema
 const CreateSalespersonSchema = z.object({
@@ -77,7 +84,7 @@ app.post('/', zValidator('json', CreateSalespersonSchema), async (c) => {
         password: body.password,
     });
 
-    c.executionCtx.waitUntil(invalidateCache(getCacheUrls(c)));
+    c.executionCtx.waitUntil(invalidateCache(getSalespersonAndOrderCacheUrls(c)));
 
     return c.json({
         success: true,
@@ -138,7 +145,7 @@ const updateHandler = async (c) => {
         throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
     }
 
-    c.executionCtx.waitUntil(invalidateCache(getCacheUrls(c)));
+    c.executionCtx.waitUntil(invalidateCache(getSalespersonAndOrderCacheUrls(c)));
 
     return c.json({
         success: true,
@@ -171,7 +178,7 @@ app.delete('/:id', async (c) => {
         throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
     }
 
-    c.executionCtx.waitUntil(invalidateCache(getCacheUrls(c)));
+    c.executionCtx.waitUntil(invalidateCache(getSalespersonAndOrderCacheUrls(c)));
 
     return c.json({ success: true, message: MSG.SALESPERSON.DELETE_SUCCESS });
 });
@@ -190,7 +197,7 @@ app.post('/:id/reset-token', async (c) => {
         throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
     }
 
-    c.executionCtx.waitUntil(invalidateCache(getCacheUrls(c)));
+    c.executionCtx.waitUntil(invalidateCache(getSalespersonAndOrderCacheUrls(c)));
 
     return c.json({
         success: true,

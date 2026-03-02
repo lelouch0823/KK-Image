@@ -5,6 +5,7 @@ import productsApp from '../index.js';
 vi.mock('../../../../middleware/cache.js', () => ({
   withCache: () => async (_c, next) => await next(),
   invalidateCache: vi.fn(),
+  getProductCacheUrls: vi.fn(() => []),
 }));
 
 function createApp() {
@@ -66,4 +67,3 @@ describe('Product routes - variant picker', () => {
     expect(prepare).toHaveBeenCalledTimes(2);
   });
 });
-

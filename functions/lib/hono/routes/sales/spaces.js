@@ -2,13 +2,14 @@ import { Hono } from 'hono';
 import { MSG } from '../../_shared/utils.js';
 import { SpaceRepository } from '../../../../repositories/SpaceRepository.js';
 import { projectSpaceTemplateData } from '../manage/spaces/transformers.js';
+import { withCache } from '../../middleware/cache.js';
 
 const app = new Hono();
 
 /**
  * GET / - 共享空间列表
  */
-app.get('/', async (c) => {
+app.get('/', withCache(20), async (c) => {
     const salesperson = c.get('salesperson');
     const { env } = c;
 
@@ -26,7 +27,7 @@ app.get('/', async (c) => {
 /**
  * GET /:id - 共享空间详情
  */
-app.get('/:id', async (c) => {
+app.get('/:id', withCache(20), async (c) => {
     const salesperson = c.get('salesperson');
     const spaceId = c.req.param('id');
     const { env } = c;

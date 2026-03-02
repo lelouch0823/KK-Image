@@ -48,6 +48,49 @@ export function createStreamSanitizer(options = {}) {
     };
 }
 
+export function classifyAIStreamError(rawMessage = '') {
+    const message = String(rawMessage || '');
+    const lower = message.toLowerCase();
+    const hasBadRequestMarker = lower.includes('400') || lower.includes('invalid_parameter');
+    const hasImageMarker = ['image', 'vision', 'multimodal', 'image_url', 'input_image', 'not support', 'not_supported']
+        .some((keyword) => lower.includes(keyword));
+    const hasFormatMarker = [
+        'data:image',
+        'base64',
+        'invalid image',
+        'invalid_image',
+        'invalid image_url',
+        'invalid_image_url',
+        'image_url.url',
+        'unsupported image format',
+        'unsupported_format',
+        'format not supported',
+    ].some((keyword) => lower.includes(keyword));
+    const hasCapabilityMarker = [
+        'vision not supported',
+        'multimodal not supported',
+        'does not support image',
+        'model not support image',
+        'model does not support image',
+    ].some((keyword) => lower.includes(keyword));
+    const isImageError = hasBadRequestMarker && hasImageMarker;
+    let kind = 'generic';
+    if (isImageError && hasFormatMarker) {
+        kind = 'image_input_format';
+    } else if (isImageError && hasCapabilityMarker) {
+        kind = 'model_capability';
+    } else if (isImageError) {
+        kind = 'image_generic';
+    }
+
+    return {
+        message,
+        isImageError,
+        isHandled: isImageError,
+        kind,
+    };
+}
+
 export function useAIStream() {
     const { t } = useI18n();
     const { addToast } = useToast();
@@ -142,7 +185,26 @@ export function useAIStream() {
                             type: 'info'
                         });
                     } else if (event.type === 'error') {
-                        addToast({ message: event.data?.message || t('ai.error'), type: 'error' });
+                        const classified = classifyAIStreamError(event.data?.message || '');
+                        if (classified.kind === 'image_input_format') {
+                            addToast({
+                                message: t(
+                                    'ai.imageInputNotSupported',
+                                    '当前 API 网关不接受该图片输入格式，请优先使用 JPG/PNG，或切换支持 data URL 的多模态模型。'
+                                ),
+                                type: 'error',
+                            });
+                        } else if (classified.isImageError) {
+                            addToast({ message: t('ai.modelImageNotSupported', '当前模型不支持识别图片，请移除图片或切换模型。'), type: 'error' });
+                        } else {
+                            addToast({ message: classified.message || t('ai.error'), type: 'error' });
+                        }
+
+                        const error = new Error(classified.message || 'Stream Error');
+                        error.isHandled = true;
+                        error.isImageError = classified.isImageError;
+                        error.imageErrorKind = classified.kind;
+                        throw error;
                     }
                 }
             }
@@ -158,7 +220,9 @@ export function useAIStream() {
                 return;
             }
             console.error('AI Stream Error:', err);
-            addToast({ message: t('ai.networkError'), type: 'error' });
+            if (!err.isHandled) {
+                addToast({ message: t('ai.networkError'), type: 'error' });
+            }
             throw err;
         } finally {
             isLoading.value = false;

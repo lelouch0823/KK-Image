@@ -36,6 +36,8 @@ export default {
     fallbackModel: 'Fallback {index}',
     setPrimary: 'Set Primary',
     primarySetSuccess: 'Primary model updated',
+    visionSupported: 'Vision Ready',
+    visionLikelyUnsupported: 'Likely Text-only',
     dynamicFallback: 'Dynamic Fallback',
     dynamicFallbackDesc: 'Auto-rank fallback models by recent failure rate and latency window while keeping the primary model fixed.',
     healthWindow: 'Health Window',

@@ -30,3 +30,51 @@ export function createCacheInvalidator(basePath, extraParams = []) {
     ];
   };
 }
+
+/**
+ * 根据销售员 ID 列表查询 access_token（用于 token 级缓存失效）
+ * @param {D1Database} db
+ * @param {string[]} salespersonIds
+ * @returns {Promise<string[]>}
+ */
+export async function getSalespersonAccessTokens(db, salespersonIds = []) {
+  if (!db || typeof db.prepare !== 'function') return [];
+
+  const ids = [...new Set((salespersonIds || []).filter(Boolean))];
+  if (ids.length === 0) return [];
+
+  try {
+    const placeholders = ids.map(() => '?').join(',');
+    const query = `SELECT access_token FROM salespersons WHERE id IN (${placeholders}) AND access_token IS NOT NULL`;
+    const prepared = db.prepare(query);
+    if (!prepared || typeof prepared.bind !== 'function') return [];
+
+    const bound = prepared.bind(...ids);
+    if (!bound || typeof bound.all !== 'function') return [];
+
+    const { results = [] } = await bound.all();
+    return [...new Set(results.map((row) => row.access_token).filter(Boolean))];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 查询全部销售 access_token（用于无法确定单一 token 的跨端缓存失效）
+ * @param {D1Database} db
+ * @returns {Promise<string[]>}
+ */
+export async function getAllSalespersonAccessTokens(db) {
+  if (!db || typeof db.prepare !== 'function') return [];
+
+  try {
+    const query = 'SELECT access_token FROM salespersons WHERE access_token IS NOT NULL';
+    const prepared = db.prepare(query);
+    if (!prepared || typeof prepared.all !== 'function') return [];
+
+    const { results = [] } = await prepared.all();
+    return [...new Set(results.map((row) => row.access_token).filter(Boolean))];
+  } catch {
+    return [];
+  }
+}

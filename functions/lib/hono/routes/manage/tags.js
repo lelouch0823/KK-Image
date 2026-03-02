@@ -3,11 +3,13 @@ import { requirePermission } from '../../middleware/auth.js';
 import { generateId, now } from '../../_shared/utils.js';
 import { BadRequestError, ConflictError } from '../../errors.js';
 import { TagRepository } from '../../../../repositories/TagRepository.js';
+import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { getManageTagCacheUrls } from '../_shared/cache-urls.js';
 
 const tagsRoute = new Hono();
 
 // GET 获取所有标签
-tagsRoute.get('/', requirePermission('read'), async (c) => {
+tagsRoute.get('/', requirePermission('read'), withCache(30), async (c) => {
     const repo = new TagRepository(c.env.DB);
     const results = await repo.findAll();
     return c.json({ success: true, tags: results });
@@ -33,6 +35,8 @@ tagsRoute.post('/', requirePermission('write'), async (c) => {
         throw error;
     }
 
+    c.executionCtx.waitUntil(invalidateCache(getManageTagCacheUrls(c)));
+
     return c.json({ success: true, tag: { id, name: name.trim(), color } });
 });
 
@@ -43,6 +47,7 @@ tagsRoute.post('/assign', requirePermission('write'), async (c) => {
 
     const repo = new TagRepository(c.env.DB);
     await repo.assignToFile({ fileId: file_id, tagId: tag_id, createdAt: now() });
+    c.executionCtx.waitUntil(invalidateCache(getManageTagCacheUrls(c)));
     return c.json({ success: true });
 });
 
@@ -52,6 +57,7 @@ tagsRoute.delete('/assign', requirePermission('write'), async (c) => {
 
     const repo = new TagRepository(c.env.DB);
     await repo.removeFromFile(file_id, tag_id);
+    c.executionCtx.waitUntil(invalidateCache(getManageTagCacheUrls(c)));
     return c.json({ success: true });
 });
 

@@ -2,7 +2,9 @@ import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
 import { invalidateCache, getProductCacheUrls } from '../../../middleware/cache.js';
+import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { BadRequestError } from '../../../errors.js';
+import { getSalesProductCacheUrls } from '../../_shared/cache-urls.js';
 
 const app = new Hono();
 const IMPORT_MODE = {
@@ -228,6 +230,7 @@ app.post('/', async (c) => {
     
     const errors = [];
     const conflicts = [];
+    const updatedProductIds = new Set();
     
     for (const item of items) {
         try {
@@ -260,6 +263,10 @@ app.post('/', async (c) => {
                 productId = newProduct.id;
                 isNew = true;
                 summary.createdProducts++;
+            }
+
+            if (productId) {
+                updatedProductIds.add(productId);
             }
             
             if (item.variants && item.variants.length > 0) {
@@ -301,7 +308,21 @@ app.post('/', async (c) => {
     };
 
     if (success) {
-        c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
+        c.executionCtx.waitUntil((async () => {
+            const salesTokens = await getAllSalespersonAccessTokens(env.DB);
+            const urls = new Set([
+                ...getProductCacheUrls(c),
+                ...getSalesProductCacheUrls(c, { salesTokens }),
+            ]);
+
+            for (const productId of updatedProductIds) {
+                for (const url of getSalesProductCacheUrls(c, { salesTokens, productId })) {
+                    urls.add(url);
+                }
+            }
+
+            await invalidateCache([...urls]);
+        })());
     }
 
     return c.json(result);

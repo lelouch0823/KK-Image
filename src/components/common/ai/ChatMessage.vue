@@ -18,8 +18,18 @@
           v-html="message.html"
         ></div>
         
-        <!-- User Message (Plain Text) -->
-        <p v-else-if="message.role === 'user'" class="leading-relaxed whitespace-pre-wrap">{{ message.content }}</p>
+        <!-- User Message (Multimodal) -->
+        <div v-else-if="message.role === 'user'" class="space-y-2 leading-relaxed">
+          <template v-for="(part, index) in userMessageParts" :key="index">
+            <p v-if="part.type === 'text'" class="whitespace-pre-wrap">{{ part.text }}</p>
+            <img
+              v-else-if="part.type === 'image_url' && part.image_url?.url"
+              :src="part.image_url.url"
+              alt="User attached image"
+              class="max-h-48 max-w-full rounded-lg border border-white/30 object-contain shadow-sm"
+            />
+          </template>
+        </div>
 
         <!-- Thinking / Tool Status (Integrated) -->
         <div 
@@ -73,11 +83,13 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
 
-defineProps({
+const props = defineProps({
   message: {
     type: Object,
     required: true,
@@ -101,6 +113,21 @@ defineProps({
 });
 
 defineEmits(['generate-report']);
+
+const userMessageParts = computed(() => {
+  const content = props.message?.content;
+  if (Array.isArray(content)) {
+    return content.filter((part) => {
+      if (part?.type === 'text' && typeof part.text === 'string') return true;
+      if (part?.type === 'image_url' && typeof part.image_url?.url === 'string') return true;
+      return false;
+    });
+  }
+  if (typeof content === 'string' && content.trim()) {
+    return [{ type: 'text', text: content }];
+  }
+  return [];
+});
 
 const getToolName = (status) => {
   if (!status) return '';

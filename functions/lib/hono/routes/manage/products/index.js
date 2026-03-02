@@ -5,16 +5,10 @@ import { ProductDimensionRepository } from '../../../../../repositories/ProductD
 import { VariantImageRepository } from '../../../../../repositories/VariantImageRepository.js';
 import { resolveVariantImageSyncPlan } from './variant-image-sync.js';
 import { normalizeProductCurrency } from './currency.js';
-import { withCache, invalidateCache } from '../../../middleware/cache.js';
+import { withCache, invalidateCache, getProductCacheUrls } from '../../../middleware/cache.js';
+import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { BadRequestError, ConflictError } from '../../../errors.js';
-
-const getProductCacheUrls = (c) => {
-    const origin = new URL(c.req.url).origin;
-    return [
-        `${origin}/api/manage/products`,
-        `${origin}/api/manage/products?page=1&limit=20`,
-    ];
-};
+import { getSalesProductCacheUrls } from '../../_shared/cache-urls.js';
 import batch from './batch.js';
 import exportRoute from './export.js';
 
@@ -79,6 +73,17 @@ const parseJsonSafe = (value, fallback) => {
     } catch {
         return fallback;
     }
+};
+
+const invalidateProductCaches = (c, db, productId = null) => {
+    c.executionCtx.waitUntil((async () => {
+        const salesTokens = await getAllSalespersonAccessTokens(db);
+        const urls = [
+            ...getProductCacheUrls(c),
+            ...getSalesProductCacheUrls(c, { salesTokens, productId }),
+        ];
+        await invalidateCache([...new Set(urls)]);
+    })());
 };
 
 /**
@@ -291,7 +296,7 @@ app.post('/', async (c) => {
         throw error;
     }
 
-    c.executionCtx.waitUntil(invalidateCache(getProductCacheUrls(c)));
+    invalidateProductCaches(c, env.DB, product?.id || null);
 
     return c.json({ success: true, data: product }, 201);
 });

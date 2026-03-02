@@ -74,31 +74,70 @@
         </div>
 
         <!-- Input Area -->
-        <div class="border-t border-(--border-color) bg-(--bg-card) px-4 pt-1 pb-4">
+        <div 
+          class="border-t border-(--border-color) bg-(--bg-card) px-4 pt-1 pb-4 transition-colors duration-200"
+          :class="isImageHovering ? 'bg-primary/5 border-primary/30' : ''"
+          @dragover.prevent="isImageHovering = true"
+          @dragleave.prevent="isImageHovering = false"
+          @drop.prevent="onDrop"
+        >
           <AISuggestions 
             class="mb-2" 
             :suggestions="suggestions" 
             @select="handleSuggestion" 
           />
           
+          <!-- Image Attachment Preview -->
+          <div v-if="attachedImage" class="mb-3 relative inline-block">
+            <div class="rounded-xl overflow-hidden border border-(--border-color) bg-(--bg-muted) w-16 h-16 shadow-sm flex items-center justify-center">
+              <img :src="attachedImage" alt="Attached" class="max-w-full max-h-full object-cover" />
+            </div>
+            <button 
+              type="button"
+              @click="attachedImage = null"
+              class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 shadow-md hover:bg-red-600 transition-colors cursor-pointer"
+            >
+              <AppIcon name="x-mark" class="size-3" />
+            </button>
+          </div>
+
           <form
-            class="relative flex items-center"
+            class="relative flex items-end gap-2"
             @submit.prevent="sendMessage"
           >
-            <input
-              v-model="userInput"
-              :disabled="isStreamingLoading"
-              type="text"
-              :placeholder="t('ai.placeholder')"
-              class="focus:ring-primary/20 focus:ring-2 w-full rounded-xl border-none bg-(--bg-muted) py-3 pr-12 pl-4 text-sm transition-all dark:bg-white/5"
+            <input 
+              type="file" 
+              ref="fileInput" 
+              class="hidden" 
+              accept="image/*" 
+              @change="onFileSelect" 
             />
             <button
-              :disabled="!userInput.trim() || isStreamingLoading"
-              type="submit"
-              class="text-primary absolute right-2 rounded-lg p-1.5 transition-all hover:bg-primary/10 disabled:opacity-30"
+              :disabled="isStreamingLoading"
+              type="button"
+              :title="t('ai.uploadImage', '上传图片')"
+              class="text-(--text-secondary) rounded-xl p-2.5 transition-colors hover:bg-(--bg-muted) hover:text-primary shrink-0 cursor-pointer disabled:opacity-30 mb-0.5"
+              @click="triggerFileInput"
             >
-              <AppIcon name="paper-airplane" class="size-5" />
+              <AppIcon name="photo" class="size-5" />
             </button>
+            <div class="relative flex-1">
+              <input
+                v-model="userInput"
+                :disabled="isStreamingLoading"
+                type="text"
+                :placeholder="t('ai.placeholder')"
+                class="focus:ring-primary/20 focus:ring-2 w-full rounded-xl border-none bg-(--bg-muted) py-3 pr-12 pl-4 text-sm transition-all dark:bg-white/5"
+                @paste="onPaste"
+              />
+              <button
+                :disabled="(!userInput.trim() && !attachedImage) || isStreamingLoading"
+                type="submit"
+                class="text-primary absolute right-2 top-1.5 rounded-lg p-1.5 transition-all hover:bg-primary/10 disabled:opacity-30 cursor-pointer"
+              >
+                <AppIcon name="paper-airplane" class="size-5" />
+              </button>
+            </div>
           </form>
         </div>
 
@@ -129,6 +168,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import { useI18n } from '@/composables/useI18n';
 import { useAI } from '@/composables/useAI';
 import { useAIStream } from '@/composables/useAIStream';
+import { useImageCompression } from '@/composables/useImageCompression';
 import { useToast } from '@/composables/useToast';
 import { throttle } from '@/utils/performance';
 import { inferCurrentView, inferAIEntityContext } from '@/components/common/ai/context-inference';
@@ -229,6 +269,99 @@ const currentEntityContext = computed(() => inferAIEntityContext({
 const userInput = ref('');
 const messageContainer = ref(null);
 
+const attachedImage = ref(null);
+const isImageHovering = ref(false);
+const fileInput = ref(null);
+const { compressImageToDataUrl } = useImageCompression({
+  maxSizeMB: 1.2,
+  maxWidthOrHeight: 1600,
+  initialQuality: 0.9,
+  fileType: 'image/jpeg',
+  applyWatermark: false,
+});
+
+const createWelcomeMessage = () => ({
+  role: 'assistant',
+  content: t('ai.welcome'),
+  html: renderMarkdown(t('ai.welcome'))
+});
+
+const normalizeUserContentParts = (content) => {
+  if (!Array.isArray(content)) return null;
+  const parts = content.filter((part) => {
+    if (part?.type === 'text' && typeof part.text === 'string') return true;
+    if (part?.type === 'image_url' && typeof part.image_url?.url === 'string') return true;
+    return false;
+  });
+  return parts.length > 0 ? parts : null;
+};
+
+const normalizeStoredMessages = (raw) => {
+  if (!Array.isArray(raw)) return [createWelcomeMessage()];
+  const normalized = raw
+    .map((msg) => {
+      if (msg?.role === 'assistant' && typeof msg.content === 'string') {
+        return {
+          role: 'assistant',
+          content: msg.content,
+          html: typeof msg.html === 'string' && msg.html ? msg.html : renderMarkdown(msg.content),
+        };
+      }
+      if (msg?.role === 'user') {
+        const userParts = normalizeUserContentParts(msg.content);
+        if (!userParts) return null;
+        return {
+          role: 'user',
+          content: userParts,
+          html: '',
+        };
+      }
+      return null;
+    })
+    .filter(Boolean);
+  return normalized.length > 0 ? normalized : [createWelcomeMessage()];
+};
+
+const handleFile = async (file) => {
+  if (!file || (!file.type.startsWith('image/') && !file.name?.match(/\.(jpg|jpeg|png|webp|gif)$/i))) {
+    addToast({ message: t('ai.onlyImages', '仅支持图片格式文件'), type: 'error' });
+    return;
+  }
+  try {
+    const result = await compressImageToDataUrl(file);
+    attachedImage.value = result.dataUrl;
+  } catch (err) {
+    console.error('Image compression failed:', err);
+    addToast({ message: t('ai.imageError', '处理图片失败'), type: 'error' });
+  }
+};
+
+const triggerFileInput = () => fileInput.value?.click();
+const onFileSelect = (e) => {
+  const file = e.target.files?.[0];
+  if (file) handleFile(file);
+  if (e.target) e.target.value = '';
+};
+const onPaste = (e) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.startsWith('image/')) {
+      const file = items[i].getAsFile();
+      if (file) {
+        handleFile(file);
+        e.preventDefault();
+        break;
+      }
+    }
+  }
+};
+const onDrop = (e) => {
+  isImageHovering.value = false;
+  const file = e.dataTransfer?.files?.[0];
+  if (file) handleFile(file);
+};
+
 // 自动感知上下文
 watch(
   [currentView, currentEntityContext],
@@ -323,13 +456,8 @@ watch([fullContent, streamContent], ([full, displayed]) => {
   }
 });
 
-const messages = useStorage('ai-chat-messages', [
-  { 
-    role: 'assistant', 
-    content: t('ai.welcome'),
-    html: renderMarkdown(t('ai.welcome'))
-  }
-]);
+const messages = useStorage('ai-chat-messages-v2', [createWelcomeMessage()]);
+messages.value = normalizeStoredMessages(messages.value);
 
 // SOTA: 流式输出彻底结束后进行一次性的词法补全纠错与数据落地定型
 watch(isAIStreaming, (streaming, oldStreaming) => {
@@ -375,22 +503,28 @@ watch([streamContent, fullContent, toolStatus, isAIStreaming, isAwaitingAssistan
 
 const clearHistory = () => {
   if (confirm(t('ai.clearConfirm'))) {
-    messages.value = [
-      { 
-        role: 'assistant', 
-        content: t('ai.welcome'),
-        html: renderMarkdown(t('ai.welcome'))
-      }
-    ];
+    messages.value = [createWelcomeMessage()];
   }
 };
 
 const sendMessage = async () => {
-  if (!userInput.value.trim() || isStreamingLoading.value || isAIStreaming.value) return;
+  if ((!userInput.value.trim() && !attachedImage.value) || isStreamingLoading.value || isAIStreaming.value) return;
 
-  const userQuery = userInput.value;
-  messages.value.push({ role: 'user', content: userQuery, html: '' });
+  const userQuery = userInput.value.trim();
+  const currentImage = attachedImage.value;
+  const userParts = [];
+  if (userQuery) {
+    userParts.push({ type: 'text', text: userQuery });
+  } else if (currentImage) {
+    userParts.push({ type: 'text', text: t('ai.analyzeImage', '请分析这张图片') });
+  }
+  if (currentImage) {
+    userParts.push({ type: 'image_url', image_url: { url: currentImage } });
+  }
+
+  messages.value.push({ role: 'user', content: userParts, html: '' });
   userInput.value = '';
+  attachedImage.value = null;
   // loading state managed by useAIStream
   toolStatus.value = '';
   isAwaitingAssistant.value = true;
@@ -412,8 +546,14 @@ const sendMessage = async () => {
     const lastMsg = messages.value[messages.value.length - 1];
     if (lastMsg && lastMsg.role === 'assistant') {
       // Final render with complete fullContent for proper markdown parsing
-      lastMsg.content = fullContent.value;
-      lastMsg.html = renderMarkdown(fullContent.value);
+      let finalAssistantContent = fullContent.value;
+      if (typeof finalAssistantContent === 'string' && finalAssistantContent.includes('[IMAGE_UNSUPPORTED]')) {
+        addToast({ message: t('ai.modelImageNotSupported', '当前模型不支持识别图片，请移除图片或切换模型。'), type: 'error' });
+        finalAssistantContent = finalAssistantContent.replace('[IMAGE_UNSUPPORTED]', '').trim();
+      }
+
+      lastMsg.content = finalAssistantContent;
+      lastMsg.html = renderMarkdown(finalAssistantContent);
       if (!lastMsg.content) {
         messages.value.pop();
       }
@@ -423,6 +563,13 @@ const sendMessage = async () => {
     const lastMsg = messages.value[messages.value.length - 1];
     if (lastMsg?.role === 'assistant' && !lastMsg.content && !lastMsg.html) {
       messages.value.pop();
+    }
+    if (_err?.isImageError) {
+      const lastUserMessage = [...messages.value].reverse().find((item) => item?.role === 'user');
+      const userPartsInHistory = normalizeUserContentParts(lastUserMessage?.content);
+      if (lastUserMessage && userPartsInHistory) {
+        lastUserMessage.content = userPartsInHistory.filter((part) => part.type !== 'image_url');
+      }
     }
   } finally {
     const elapsed = Date.now() - awaitingSince.value;

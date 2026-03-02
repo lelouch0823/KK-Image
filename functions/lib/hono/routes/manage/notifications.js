@@ -2,13 +2,15 @@ import { Hono } from 'hono';
 import { NotificationRepository } from '../../../../repositories/NotificationRepository.js';
 import { MSG } from '../../_shared/utils.js';
 import { BadRequestError } from '../../errors.js';
+import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { getManageNotificationCacheUrls } from '../_shared/cache-urls.js';
 
 const app = new Hono();
 
 /**
  * GET / - 获取管理员通知列表
  */
-app.get('/', async (c) => {
+app.get('/', withCache(15), async (c) => {
     const { env } = c;
     const limit = parseInt(c.req.query('limit') || '20');
     const unreadOnly = c.req.query('unread_only') === 'true';
@@ -39,6 +41,8 @@ app.post('/', async (c) => {
         metadata,
     });
 
+    c.executionCtx.waitUntil(invalidateCache(getManageNotificationCacheUrls(c)));
+
     return c.json({ success: true, message: MSG.COMMON.CREATE_SUCCESS, data: result });
 });
 
@@ -57,6 +61,8 @@ app.post('/:id/read', async (c) => {
     } else {
         await notifyRepo.markAsReadForAdmin(notificationId);
     }
+
+    c.executionCtx.waitUntil(invalidateCache(getManageNotificationCacheUrls(c)));
 
     return c.json({ success: true, message: MSG.COMMON.UPDATE_SUCCESS });
 });

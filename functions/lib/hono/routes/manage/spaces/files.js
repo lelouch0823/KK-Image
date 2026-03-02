@@ -8,9 +8,23 @@ import { Hono } from 'hono';
 import { requirePermission } from '../../../middleware/auth.js';
 import { MSG } from '../../../_shared/utils.js';
 import { SpaceRepository } from '../../../../../repositories/SpaceRepository.js';
+import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
+import { invalidateCache } from '../../../middleware/cache.js';
+import { getManageSpaceCacheUrls, getSalesSpaceCacheUrls } from '../../_shared/cache-urls.js';
 
 const files = new Hono();
+
+const invalidateSpaceCaches = (c, options = {}) => {
+  c.executionCtx.waitUntil((async () => {
+    const salesTokens = await getAllSalespersonAccessTokens(c.env.DB);
+    const urls = [
+      ...getManageSpaceCacheUrls(c, options),
+      ...getSalesSpaceCacheUrls(c, { salesTokens, spaceId: options.spaceId }),
+    ];
+    await invalidateCache([...new Set(urls)]);
+  })());
+};
 
 /**
  * POST /files - 添加文件到空间
@@ -27,6 +41,7 @@ files.post('/', requirePermission('files:write'), async (c) => {
   if (!space) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
 
   await repo.addFiles(spaceId, fileIds);
+  invalidateSpaceCaches(c, { spaceId, parentId: space.parent_id || null, productIds: [space.product_id] });
 
   return c.json({
     success: true,
@@ -46,6 +61,12 @@ files.delete('/', requirePermission('files:write'), async (c) => {
   if (!fileIds?.length) throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);
 
   await repo.removeFiles(spaceId, fileIds);
+  const space = await repo.findById(spaceId);
+  invalidateSpaceCaches(c, {
+    spaceId,
+    parentId: space?.parent_id || null,
+    productIds: [space?.product_id || null],
+  });
 
   return c.json({
     success: true,
@@ -65,6 +86,12 @@ files.put('/order', requirePermission('files:write'), async (c) => {
   if (!fileIds?.length) throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);
 
   await repo.reorderFiles(spaceId, fileIds);
+  const space = await repo.findById(spaceId);
+  invalidateSpaceCaches(c, {
+    spaceId,
+    parentId: space?.parent_id || null,
+    productIds: [space?.product_id || null],
+  });
 
   return c.json({
     success: true,

@@ -12,13 +12,16 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requirePermission } from '../../../middleware/auth.js';
+import { withCache, invalidateCache } from '../../../middleware/cache.js';
 import { SpaceRepository } from '../../../../../repositories/SpaceRepository.js';
+import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { generateId, generateShareToken, MSG, getShareUrl } from '../../../_shared/utils.js';
 import {
   transformSpaceListItem,
   transformSpaceDetail,
 } from './transformers.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
+import { getManageSpaceCacheUrls, getSalesSpaceCacheUrls } from '../../_shared/cache-urls.js';
 
 const crud = new Hono();
 
@@ -41,10 +44,21 @@ const UpdateSpaceSchema = CreateSpaceSchema.partial().extend({
   sharedSalespersonIds: z.array(z.string()).optional(),
 });
 
+const invalidateSpaceCaches = (c, options = {}) => {
+  c.executionCtx.waitUntil((async () => {
+    const salesTokens = await getAllSalespersonAccessTokens(c.env.DB);
+    const urls = [
+      ...getManageSpaceCacheUrls(c, options),
+      ...getSalesSpaceCacheUrls(c, { salesTokens, spaceId: options.spaceId }),
+    ];
+    await invalidateCache([...new Set(urls)]);
+  })());
+};
+
 /**
  * GET / - 获取共享空间列表
  */
-crud.get('/', async (c) => {
+crud.get('/', withCache(30), async (c) => {
   const { env } = c;
   const repo = new SpaceRepository(env.DB);
 
@@ -58,7 +72,7 @@ crud.get('/', async (c) => {
 /**
  * GET /product/:productId - 获取与特定商品关联的共享空间
  */
-crud.get('/product/:productId', async (c) => {
+crud.get('/product/:productId', withCache(30), async (c) => {
   const { env } = c;
   const productId = c.req.param('productId');
   const repo = new SpaceRepository(env.DB);
@@ -73,7 +87,7 @@ crud.get('/product/:productId', async (c) => {
 /**
  * GET /:id - 获取共享空间详情
  */
-crud.get('/:id', async (c) => {
+crud.get('/:id', withCache(30), async (c) => {
   const { env } = c;
   const spaceId = c.req.param('id');
   const repo = new SpaceRepository(env.DB);
@@ -98,7 +112,7 @@ crud.get('/:id', async (c) => {
  * GET /:id/stats - 获取空间统计
  * @query days - 趋势天数，支持 7 或 30，默认 7
  */
-crud.get('/:id/stats', async (c) => {
+crud.get('/:id/stats', withCache(30), async (c) => {
   const { env } = c;
   const spaceId = c.req.param('id');
   const repo = new SpaceRepository(env.DB);
@@ -175,6 +189,7 @@ crud.post(
     }
 
     await repo.create(newSpace);
+    invalidateSpaceCaches(c, { spaceId, productIds: [newSpace.productId] });
 
     return c.json(
       {
@@ -281,6 +296,12 @@ crud.on(
       await repo.updateSharedSalespersons(spaceId, data.sharedSalespersonIds);
     }
 
+    invalidateSpaceCaches(c, {
+      spaceId,
+      parentId: space.parent_id || null,
+      productIds: [space.product_id, nextProductId],
+    });
+
     return c.json({
       success: true,
       data: {
@@ -306,6 +327,11 @@ crud.delete('/:id', requirePermission('files:delete'), async (c) => {
   if (!space) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
 
   await repo.delete(spaceId);
+  invalidateSpaceCaches(c, {
+    spaceId,
+    parentId: space.parent_id || null,
+    productIds: [space.product_id],
+  });
 
   return c.json({ success: true, message: MSG.SPACE.DELETE_SUCCESS });
 });

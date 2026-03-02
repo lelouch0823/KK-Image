@@ -18,6 +18,11 @@ const mocks = vi.hoisted(() => ({
   variantImageListByVariant: vi.fn(),
 }));
 
+vi.mock('../../../middleware/cache.js', () => ({
+  withCache: () => async (_c, next) => await next(),
+  invalidateCache: vi.fn(async () => {}),
+}));
+
 vi.mock('../../../../../repositories/OrderRepository.js', () => ({
   OrderRepository: vi.fn(() => ({
     listBySalesperson: mocks.orderListBySalesperson,
