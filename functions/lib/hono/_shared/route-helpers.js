@@ -3,6 +3,7 @@
  * @module lib/hono/_shared/route-helpers
  */
 import { inClause } from '../../../api/utils/sql.js';
+import { parseRepoPagination } from '../../../api/utils/pagination.js';
 
 /**
  * 从请求中解析分页参数
@@ -11,9 +12,10 @@ import { inClause } from '../../../api/utils/sql.js';
  * @returns {{ page: number, limit: number, offset: number }}
  */
 export function parsePagination(c, { page: defaultPage = 1, limit: defaultLimit = 20 } = {}) {
-  const page = Math.max(1, parseInt(c.req.query('page') || String(defaultPage), 10));
-  const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || String(defaultLimit), 10)));
-  return { page, limit, offset: (page - 1) * limit };
+  return parseRepoPagination(
+    { page: c.req.query('page'), limit: c.req.query('limit') },
+    { defaultPage, defaultLimit, maxLimit: 100 }
+  );
 }
 
 /**

@@ -59,3 +59,6 @@ export { placeholders, inClause } from '../api/utils/sql.js';
 
 // JSON 解析工具
 export { safeJsonParse, parseJsonArray, parseJsonObject } from '../api/utils/json.js';
+
+// 分页工具
+export { toPositiveInt, parseRepoPagination } from '../api/utils/pagination.js';
