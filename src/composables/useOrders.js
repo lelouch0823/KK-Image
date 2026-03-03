@@ -135,7 +135,7 @@ export function useOrders() {
   /**
    * 更新订单信息
    */
-  const updateOrder = async (id, updates, reason, fileIds, productId) => {
+  const updateOrder = async (id, updates, reason, fileIds, productId, variantId) => {
     const idx = resource.items.value.findIndex(item => item.id === id);
     const oldItem = idx !== -1 ? { ...resource.items.value[idx] } : null;
 
@@ -148,6 +148,7 @@ export function useOrders() {
       const body = { updates, reason };
       if (fileIds) body.fileIds = fileIds;
       if (productId !== undefined) body.productId = productId;
+      if (variantId !== undefined) body.variantId = variantId;
 
       const res = await authFetch(API.MANAGE_ORDER_UPDATE(id), {
         method: 'PATCH',

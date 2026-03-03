@@ -4,7 +4,7 @@
     <div class="space-y-4 lg:col-span-7">
         <div class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) p-1 shadow-sm">
              <!-- Main Image -->
-            <div class="relative aspect-square w-full overflow-hidden rounded-xl bg-(--bg-muted) sm:aspect-[4/3] lg:aspect-video">
+            <div class="relative aspect-square w-full overflow-hidden rounded-xl bg-(--bg-muted) sm:aspect-4/3 lg:aspect-video">
                  <AppImage 
                     v-if="currentImage"
                     :src="`/file/${currentImage}`"
@@ -84,7 +84,7 @@
                             <div class="mt-0.5 flex items-center gap-2 text-xs text-(--text-secondary)">
                                 <span>{{ new Date(space.createdAt || space.created_at).toLocaleDateString() }}</span>
                                 <span v-if="space.view_count !== undefined">&bull; {{ space.view_count }} views</span>
-                                <span v-if="space.is_public" class="bg-success/10 text-success rounded px-1.5 font-medium">Public</span>
+                                <StatusBadge v-if="space.is_public" variant="success" class="px-1.5! py-0!">Public</StatusBadge>
                             </div>
                         </div>
                     </div>
@@ -145,31 +145,25 @@
         <!-- Variants or Specs -->
         <div v-if="product.variants && product.variants.length > 0" class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-sm">
              <h3 class="mb-4 text-sm font-bold tracking-wider text-(--text-main) uppercase opacity-80">{{ t('product.form.variants_title', 'Variants') }}</h3>
-             <div class="hidden overflow-x-auto md:block">
-                 <table class="w-full min-w-[32rem] text-left text-sm md:min-w-0 md:whitespace-nowrap">
-                     <thead class="bg-(--bg-muted)/50 text-xs font-medium text-(--text-secondary) uppercase">
-                         <tr>
-                             <th class="rounded-l-lg px-3 py-2">Variant</th>
-                             <th class="px-3 py-2">Price</th>
-                             <th class="rounded-r-lg px-3 py-2">Stock</th>
-                         </tr>
-                     </thead>
-                     <tbody class="divide-y divide-(--border-color)/50">
-                         <tr v-for="variant in product.variants" :key="variant.id" class="transition-colors hover:bg-(--bg-muted)/30">
-                             <td class="px-3 py-2.5">
-                                 <div class="font-medium text-(--text-main)">{{ formatVariantName(variant.options_values) }}</div>
-                                 <div class="mt-0.5 font-mono text-[10px] text-(--text-secondary) sm:text-xs">{{ variant.sku }}</div>
-                             </td>
-                             <td class="px-3 py-2.5 font-[Outfit] font-medium text-(--text-main)">{{ formatMoney(variant.price) }}</td>
-                             <td class="px-3 py-2.5 text-(--text-main)">
-                                 <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium" :class="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'">
-                                     <span class="size-1.5 rounded-full" :class="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'bg-danger' : 'bg-success'"></span>
-                                     {{ variant.stock_quantity }}
-                                 </span>
-                             </td>
-                         </tr>
-                     </tbody>
-                 </table>
+             <div class="hidden overflow-hidden md:block">
+                 <AppTable
+                     :columns="variantColumns"
+                     :data="product.variants"
+                     no-border
+                 >
+                     <template #cell-variant="{ row: variant }">
+                         <div class="font-medium text-(--text-main)">{{ formatVariantName(variant.options_values) }}</div>
+                         <div class="mt-0.5 font-mono text-[10px] text-(--text-secondary) sm:text-xs">{{ variant.sku }}</div>
+                     </template>
+                     <template #cell-price="{ row: variant }">
+                         <span class="font-[Outfit] font-medium text-(--text-main)">{{ formatMoney(variant.price) }}</span>
+                     </template>
+                     <template #cell-stock="{ row: variant }">
+                         <StatusBadge :variant="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'danger' : 'success'" :dot="true" class="rounded-full! px-2! py-0.5!">
+                             {{ variant.stock_quantity }}
+                         </StatusBadge>
+                     </template>
+                 </AppTable>
              </div>
              <div class="space-y-2 md:hidden">
                 <div v-for="variant in product.variants" :key="variant.id" class="rounded-lg border border-(--border-color) bg-(--bg-muted)/30 p-3">
@@ -247,6 +241,7 @@ import { computed, ref, onMounted, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppImage from '@/components/ui/AppImage.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import AppTable from '@/components/ui/AppTable.vue';
 import { getProductStatusVariant } from '@/utils/status';
 import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
@@ -262,6 +257,12 @@ const props = defineProps({
 defineEmits(['edit', 'close']);
 const { t } = useI18n();
 const currentIndex = ref(0);
+
+const variantColumns = computed(() => [
+    { key: 'variant', label: 'Variant' },
+    { key: 'price', label: 'Price' },
+    { key: 'stock', label: 'Stock' },
+]);
 
 const images = computed(() => {
     const variantImages = (props.product.variants || []).flatMap((variant) => {

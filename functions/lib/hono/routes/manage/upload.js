@@ -26,9 +26,10 @@ app.post('/', requirePermission('files:write'), async (c) => {
 
     let folderId = 'root';
     const context = url.searchParams.get('context');
+    const normalizedContext = String(context || '').toLowerCase();
     const spaceId = url.searchParams.get('spaceId');
 
-    if (context === 'product') {
+    if (normalizedContext === 'product' || normalizedContext === 'variant') {
         const { ensureProductFolder } = await import('../../../../api/utils/folder-utils.js');
         folderId = await ensureProductFolder(env);
     } else if (orderId) {

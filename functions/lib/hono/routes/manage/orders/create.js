@@ -71,6 +71,18 @@ app.post('/', async (c) => {
         },
     });
 
+    // 创建订单后将临时上传文件归档到订单目录，避免文件长期留在根目录
+    const fileIds = Array.isArray(body.fileIds) ? body.fileIds.filter(Boolean) : [];
+    if (fileIds.length > 0) {
+        try {
+            const { ensureOrderFolder, moveFilesToFolder } = await import('../../../../../api/utils/folder-utils.js');
+            const orderFolderId = await ensureOrderFolder(env, orderNo);
+            await moveFilesToFolder(env, fileIds, orderFolderId);
+        } catch (error) {
+            console.error('Order file archiving error (manage create):', error);
+        }
+    }
+
     // 2. 通知销售人员 (Async)
     c.executionCtx.waitUntil((async () => {
         try {

@@ -213,6 +213,14 @@ const updateForm = (newVal) => {
   Object.assign(form, newVal);
 };
 
+const buildBoundVariantSnapshot = (currentData = {}) => {
+  const snapshot = {};
+  if (currentData.color) snapshot[t('order.form.color')] = currentData.color;
+  if (currentData.material) snapshot[t('order.form.material')] = currentData.material;
+  if (currentData.size) snapshot[t('order.form.size')] = currentData.size;
+  return snapshot;
+};
+
 const handleProductSelect = (product) => {
   const variant = product.selectedVariant;
   if (!variant) return;
@@ -358,9 +366,12 @@ watch(
           variantId: newOrder.variantId || null,
           mainImage: newOrder.mainImage || null, // Assuming this comes from order join
         };
+        // 编辑已有绑定订单时，规格字段也必须进入只读锁定状态
+        boundProductVariant.value = buildBoundVariantSnapshot(current);
       } else {
         selectedProductId.value = null;
         boundProduct.value = null;
+        boundProductVariant.value = null;
       }
 
       initialValues.value = {
@@ -396,14 +407,21 @@ watch(
 
 const originalData = computed(() => props.order.originalData || {});
 
+const getCurrentBindingState = () => {
+  const productId = selectedProductId.value ?? null;
+  const variantId = productId ? (boundProduct.value?.variantId ?? null) : null;
+  return { productId, variantId };
+};
+
 // 检查是否有变更
 const hasChanges = computed(() => {
   if (!props.order) return false;
   const init = initialValues.value;
+  const currentBinding = getCurrentBindingState();
 
   // 检查商品绑定变更
-  if (selectedProductId.value !== init.productId) return true;
-  if (boundProduct.value?.variantId !== init.variantId) return true;
+  if (currentBinding.productId !== init.productId) return true;
+  if (currentBinding.variantId !== init.variantId) return true;
 
   const fieldsChanged =
     form.name !== init.name ||
@@ -520,13 +538,14 @@ const handleSubmit = async () => {
     reason: editReason.value,
   };
 
-  // 添加商品绑定ID
-  if (selectedProductId.value !== init.productId) {
-    if (!boundProduct.value?.variantId) return;
-    payload.productId = selectedProductId.value;
+  // 商品绑定变更：绑定时要求 variantId，解绑时显式传 null
+  const currentBinding = getCurrentBindingState();
+  if (currentBinding.productId && !currentBinding.variantId) return;
+  if (currentBinding.productId !== init.productId) {
+    payload.productId = currentBinding.productId;
   }
-  if (boundProduct.value?.variantId !== init.variantId) {
-    payload.variantId = boundProduct.value?.variantId;
+  if (currentBinding.variantId !== init.variantId) {
+    payload.variantId = currentBinding.variantId;
   }
 
   if (oldIds !== newIds) {

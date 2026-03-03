@@ -1,90 +1,92 @@
 <template>
   <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-    <h1 class="mb-6 text-2xl font-bold text-[var(--text-primary)]">{{ t('auditLogs.title') }}</h1>
+    <AppFilterBar
+      :title="t('auditLogs.title')"
+    >
+      <template #filters>
+        <select
+          v-model="filterAction"
+          class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--color-primary)] focus:outline-none"
+        >
+          <option value="">{{ t('auditLogs.allActions') }}</option>
+          <option v-for="a in availableActions" :key="a" :value="a">{{ a }}</option>
+        </select>
+      </template>
+      <template #actions>
+        <AppButton variant="secondary" :text="t('common.refresh')" @click="fetchLogs" />
+      </template>
+    </AppFilterBar>
 
-    <!-- 过滤器 -->
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-      <select
-        v-model="filterAction"
-        class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--color-primary)] focus:outline-none"
+    <div class="mt-4">
+      <AppTable
+        :columns="columns"
+        :data="logs"
+        :loading="loading"
+        :empty-text="t('auditLogs.empty')"
       >
-        <option value="">{{ t('auditLogs.allActions') }}</option>
-        <option v-for="a in availableActions" :key="a" :value="a">{{ a }}</option>
-      </select>
-      <AppButton variant="secondary" :text="t('common.refresh')" @click="fetchLogs" />
-    </div>
+        <template #cell-created_at="{ value }">
+          <span class="text-xs text-[var(--text-secondary)]">{{ formatTime(value) }}</span>
+        </template>
+        
+        <template #cell-user_id="{ value }">
+          <span class="font-medium text-[var(--text-primary)]">{{ value }}</span>
+        </template>
+        
+        <template #cell-action="{ value }">
+          <StatusBadge :variant="actionBadgeVariant(value)">
+            {{ value }}
+          </StatusBadge>
+        </template>
 
-    <!-- 加载状态 -->
-    <div v-if="loading" class="flex items-center justify-center py-12">
-      <div class="size-8 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent"></div>
-    </div>
-
-    <!-- 日志表格 -->
-    <div v-else class="overflow-x-auto rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)]">
-      <table class="w-full text-left text-sm">
-        <thead class="border-b border-[var(--border-color)] bg-[var(--bg-muted)]">
-          <tr>
-            <th class="px-4 py-3 font-medium text-[var(--text-secondary)]">{{ t('auditLogs.time') }}</th>
-            <th class="px-4 py-3 font-medium text-[var(--text-secondary)]">{{ t('auditLogs.user') }}</th>
-            <th class="px-4 py-3 font-medium text-[var(--text-secondary)]">{{ t('auditLogs.action') }}</th>
-            <th class="px-4 py-3 font-medium text-[var(--text-secondary)]">{{ t('auditLogs.target') }}</th>
-            <th class="px-4 py-3 font-medium text-[var(--text-secondary)]">IP</th>
-            <th class="px-4 py-3 font-medium text-[var(--text-secondary)]">{{ t('auditLogs.details') }}</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-[var(--border-color)]">
-          <tr v-for="log in logs" :key="log.id" class="transition-colors hover:bg-[var(--bg-muted)]">
-            <td class="px-4 py-3 text-xs whitespace-nowrap text-[var(--text-secondary)]">
-              {{ formatTime(log.created_at) }}
-            </td>
-            <td class="px-4 py-3 font-medium text-[var(--text-primary)]">{{ log.user_id }}</td>
-            <td class="px-4 py-3">
-              <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" :class="actionBadgeClass(log.action)">
-                {{ log.action }}
-              </span>
-            </td>
-            <td class="px-4 py-3 text-[var(--text-secondary)]">
-              {{ log.target_type }}<span v-if="log.target_id" class="text-[var(--text-tertiary)]"> / {{ log.target_id.substring(0, 8) }}…</span>
-            </td>
-            <td class="px-4 py-3 font-mono text-xs text-[var(--text-secondary)]">{{ log.ip_address || '-' }}</td>
-            <td class="max-w-xs truncate px-4 py-3 text-xs text-[var(--text-tertiary)]">
-              {{ log.payload ? JSON.parse(log.payload) : '-' }}
-            </td>
-          </tr>
-          <tr v-if="logs.length === 0">
-            <td colspan="6" class="py-8 text-center text-[var(--text-secondary)]">{{ t('auditLogs.empty') }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- 分页 -->
-    <div v-if="pagination.totalPages > 1" class="mt-4 flex items-center justify-between">
-      <span class="text-sm text-[var(--text-secondary)]">
-        {{ t('auditLogs.pagination', { page: pagination.page, total: pagination.totalPages }) }}
-      </span>
-      <div class="flex gap-2">
-        <AppButton
-          variant="secondary"
-          :text="t('common.prev')"
-          :disabled="pagination.page <= 1"
-          @click="goPage(pagination.page - 1)"
-        />
-        <AppButton
-          variant="secondary"
-          :text="t('common.next')"
-          :disabled="pagination.page >= pagination.totalPages"
-          @click="goPage(pagination.page + 1)"
-        />
-      </div>
+        <template #cell-target="{ row }">
+          <span class="text-[var(--text-secondary)]">
+            {{ row.target_type }}<span v-if="row.target_id" class="text-[var(--text-tertiary)]"> / {{ row.target_id.substring(0, 8) }}…</span>
+          </span>
+        </template>
+        
+        <template #cell-ip_address="{ value }">
+          <span class="font-mono text-xs text-[var(--text-secondary)]">{{ value || '-' }}</span>
+        </template>
+        
+        <template #cell-details="{ row }">
+          <div class="max-w-xs truncate text-xs text-[var(--text-tertiary)]">
+            {{ row.payload ? JSON.parse(row.payload) : '-' }}
+          </div>
+        </template>
+        
+        <template #footer>
+          <div v-if="pagination.totalPages > 1" class="flex items-center justify-between">
+            <span class="text-sm text-[var(--text-secondary)]">
+              {{ t('auditLogs.pagination', { page: pagination.page, total: pagination.totalPages }) }}
+            </span>
+            <div class="flex gap-2">
+              <AppButton
+                variant="secondary"
+                :text="t('common.prev')"
+                :disabled="pagination.page <= 1"
+                @click="goPage(pagination.page - 1)"
+              />
+              <AppButton
+                variant="secondary"
+                :text="t('common.next')"
+                :disabled="pagination.page >= pagination.totalPages"
+                @click="goPage(pagination.page + 1)"
+              />
+            </div>
+          </div>
+        </template>
+      </AppTable>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppFilterBar from '@/components/ui/AppFilterBar.vue';
+import AppTable from '@/components/ui/AppTable.vue';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
 
 const { t } = useI18n();
 
@@ -94,15 +96,24 @@ const filterAction = ref('');
 const availableActions = ref([]);
 const pagination = ref({ page: 1, pageSize: 50, total: 0, totalPages: 1 });
 
+const columns = computed(() => [
+  { key: 'created_at', label: t('auditLogs.time'), width: '120px' },
+  { key: 'user_id', label: t('auditLogs.user') },
+  { key: 'action', label: t('auditLogs.action') },
+  { key: 'target', label: t('auditLogs.target') },
+  { key: 'ip_address', label: 'IP' },
+  { key: 'details', label: t('auditLogs.details') },
+]);
+
 const formatTime = (ts) => {
   if (!ts) return '-';
   return new Date(ts).toLocaleString();
 };
 
-const actionBadgeClass = (action) => {
-  if (action?.includes('delete')) return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-  if (action?.includes('create')) return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
-  return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+const actionBadgeVariant = (action) => {
+  if (action?.includes('delete')) return 'danger';
+  if (action?.includes('create')) return 'success';
+  return 'primary';
 };
 
 const fetchLogs = async () => {

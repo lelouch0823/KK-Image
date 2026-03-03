@@ -17,8 +17,8 @@
             class="flex size-5 shrink-0 items-center justify-center rounded border transition-colors"
             :class="[
               selectedIds.has(row.id)
-                ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--text-inverse)]'
-                : 'border-[var(--border-color)] bg-[var(--bg-card)] group-hover:border-[var(--text-secondary)]'
+                ? 'border-primary bg-primary text-(--text-inverse)'
+                : 'border-(--border-color) bg-(--bg-card) group-hover:border-(--text-secondary)'
             ]"
             @click.stop="$emit('toggle', row)"
           >
@@ -26,7 +26,7 @@
           </div>
 
           <!-- Thumbnail -->
-          <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-muted)] text-[var(--text-secondary)]">
+          <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-(--bg-muted) text-(--text-secondary)">
             <AppImage
               v-if="isImage(row)"
               :src="row.url"
@@ -37,24 +37,24 @@
           </div>
 
           <!-- Name -->
-          <span class="max-w-[200px] truncate font-medium text-[var(--text-main)] sm:max-w-xs">
+          <span class="max-w-[200px] truncate font-medium text-(--text-main) sm:max-w-xs">
             {{ row.originalName || row.name }}
           </span>
         </div>
       </template>
 
       <template #cell-size="{ value }">
-        <span class="font-mono text-[var(--text-secondary)]">{{ formatSize(value) }}</span>
+        <span class="font-mono text-(--text-secondary)">{{ formatSize(value) }}</span>
       </template>
 
       <template #cell-type="{ value }">
-        <span class="inline-flex rounded bg-[var(--bg-muted)] px-2 py-0.5 text-xs text-[var(--text-secondary)] uppercase">
+        <span class="inline-flex rounded bg-(--bg-muted) px-2 py-0.5 text-xs text-(--text-secondary) uppercase">
           {{ value?.split('/')[1] || 'FILE' }}
         </span>
       </template>
 
       <template #cell-createdAt="{ value }">
-        <span class="text-[var(--text-muted)]">{{ formatDate(value) }}</span>
+        <span class="text-(--text-muted)">{{ formatDate(value) }}</span>
       </template>
 
       <template #cell-actions="{ row }">

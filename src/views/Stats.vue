@@ -85,7 +85,7 @@
             </template>
             <template #footer>
               <div class="flex items-center gap-2 text-sm font-medium text-(--text-secondary)">
-                <span class="bg-success/10 text-success rounded px-2 py-0.5 text-xs">+{{ formatNumber(stats.storage?.todayUploads) }}</span>
+                <StatusBadge variant="success" class="!px-2 !py-0.5">+{{ formatNumber(stats.storage?.todayUploads) }}</StatusBadge>
                 {{ t('dashboard.todayOrders') }}
               </div>
             </template>
@@ -261,7 +261,7 @@
                  <template #cell-name="{ row, index }">
                     <div class="flex items-center gap-2">
                         <span class="line-clamp-1 max-w-[200px] md:max-w-md">{{ row.name }}</span>
-                        <span v-if="index < 3" class="bg-danger/10 text-danger ring-danger/20 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset">Hot</span>
+                        <StatusBadge v-if="index < 3" variant="danger">Hot</StatusBadge>
                     </div>
                  </template>
                  <template #cell-type="{ row }">
@@ -301,6 +301,7 @@ import AppTable from '@/components/ui/AppTable.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
 
 // Configure Chart.js defaults
 const configureChartDefaults = () => {

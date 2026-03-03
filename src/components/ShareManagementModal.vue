@@ -8,113 +8,56 @@
   >
     <!-- Content -->
     <div class="flex-1">
-      <!-- Desktop Table -->
-      <div class="hidden lg:block">
-        <table class="w-full text-left text-sm">
-          <thead
-            class="text-secondary sticky top-0 border-b border-[var(--border-color)] bg-[var(--bg-muted)]"
-          >
-            <tr>
-              <th class="px-6 py-3 font-medium">{{ t('share.folderName') }}</th>
-              <th class="px-6 py-3 font-medium">{{ t('share.linkToken') }}</th>
-              <th class="px-6 py-3 font-medium">{{ t('share.expiry') }}</th>
-              <th class="px-6 py-3 text-right font-medium">{{ t('share.actions') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-[var(--border-color)]">
-            <tr v-for="item in shares" :key="item.id" class="transition-colors hover:bg-[var(--bg-hover)]">
-              <td class="text-primary px-6 py-3 font-medium">{{ item.name }}</td>
-              <td class="text-secondary px-6 py-3">
+      <!-- Unified AppTable -->
+      <div v-if="shares.length > 0" class="h-full flex-1 overflow-hidden">
+        <AppTable
+            :columns="columns"
+            :data="shares"
+            :loading="loading"
+            class="h-full"
+        >
+            <template #cell-name="{ row }">
+                <div class="flex flex-col">
+                    <span class="font-medium text-[var(--text-main)]">{{ row.name }}</span>
+                    <span class="text-xs text-[var(--text-secondary)]">{{ row.spaceName || '...' }}</span>
+                </div>
+            </template>
+            <template #cell-code="{ row }">
                 <div class="flex items-center gap-2">
-                  <span class="rounded bg-[var(--bg-muted)] px-2 py-1 font-mono text-xs select-all">{{
-                    item.shareToken
-                  }}</span>
+                  <span class="rounded bg-[var(--bg-muted)] px-2 py-1 font-mono text-xs select-all">{{ row.shareToken }}</span>
                   <button
-                    class="text-primary hover:text-blue-600"
-                    :title="t('share.copyLink') || '复制链接'"
-                    @click="copyLink(item)"
+                      class="text-[var(--text-secondary)] hover:text-[var(--color-primary)]"
+                      :title="t('share.copyLink')"
+                      @click="copyLink(row)"
                   >
-                    <AppIcon name="clipboard" class="size-4" />
+                      <AppIcon name="clipboard" class="size-4" />
                   </button>
                 </div>
-              </td>
-              <td class="px-6 py-3">
-                <span :class="getExpiryClass(item.expiresAt)">{{ formatExpiry(item.expiresAt, t) }}</span>
-              </td>
-              <td class="px-6 py-3 text-right">
-                <div class="flex justify-end gap-2">
+            </template>
+            <template #cell-expiresAt="{ row }">
+                 <span :class="getExpiryClass(row.expiresAt)">
+                    {{ formatExpiry(row.expiresAt, t) }}
+                 </span>
+            </template>
+            <template #cell-actions="{ row }">
+                <div class="flex justify-end gap-2 pr-2">
                   <AppButton
-                    variant="secondary"
+                    variant="ghost"
                     size="sm"
-                    class="!size-8  bg-[var(--bg-card)] !p-1.5"
-                    @click="editShare(item)"
+                    class="!size-8 bg-transparent !p-1.5 text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)]"
+                    :title="t('common.edit')"
+                    @click="editShare(row)"
                   >
                     <template #icon-left>
                       <AppIcon name="pencil-alt" class="size-4" />
                     </template>
                   </AppButton>
-                  <AppButton
-                    variant="secondary"
-                    size="sm"
-                    class="!size-8  bg-[var(--bg-card)] !p-1.5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)]"
-                    @click="revokeShare(item)"
-                  >
-                    <template #icon-left>
-                      <AppIcon name="trash" class="size-4" />
-                    </template>
-                  </AppButton>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Mobile Table -->
-      <div v-if="shares.length > 0" class="flex-1 overflow-hidden lg:hidden">
-        <AppTable
-            :columns="columns"
-            :data="shares"
-            :loading="loading"
-        >
-            <template #cell-name="{ row }">
-                <div class="flex flex-col">
-                    <span class="font-medium text-[var(--text-main)]">{{ row.name }}</span>
-                    <span class="text-xs text-[var(--text-secondary)]">{{ row.spaceName }}</span>
-                </div>
-            </template>
-            <template #cell-code="{ row }">
-                <button
-                    class="font-mono text-xs text-[var(--color-primary)] hover:underline"
-                    @click="copyLink(row)"
-                >
-                    {{ row.shareToken }}
-                </button>
-            </template>
-            <template #cell-expiresAt="{ row }">
-                 <span :class="isExpired(row.expiresAt) ? 'text-[var(--color-danger)]' : 'text-[var(--text-secondary)]'">
-                    {{ formatExpiry(row.expiresAt, t) }}
-                 </span>
-            </template>
-            <template #cell-actions="{ row }">
-                <div class="flex justify-end gap-2">
                     <AppButton
                         variant="ghost"
                         size="sm"
-                        class="text-[var(--text-secondary)] hover:text-[var(--color-primary)]"
-                        :title="t('share.copyLink')"
-                        @click="copyLink(row)"
-                    >
-                        <template #icon-left>
-                            <AppIcon name="clipboard" class="size-4" />
-                        </template>
-                    </AppButton>
-                    <AppButton
-                        variant="ghost"
-                        size="sm"
-                        class="text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
+                        class="!size-8 bg-transparent !p-1.5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
                         :title="t('common.cancelShare')"
-                        @click="confirmRevoke(row)"
+                        @click="revokeShare(row)"
                     >
                         <template #icon-left>
                             <AppIcon name="trash" class="size-4" />
@@ -123,11 +66,11 @@
                 </div>
             </template>
         </AppTable>
-    </div>
-    <div v-else-if="!loading" class="flex flex-1 flex-col items-center justify-center text-[var(--text-secondary)]">
-      <AppIcon name="share" class="mb-3 size-12 opacity-20" />
-      <p>{{ t('share.noActiveShares') }}</p>
-    </div>
+      </div>
+      <div v-else-if="!loading" class="flex h-full flex-1 flex-col items-center justify-center text-[var(--text-secondary)]">
+        <AppIcon name="share" class="mb-3 size-12 opacity-20" />
+        <p>{{ t('share.noActiveShares') }}</p>
+      </div>
     </div>
 
     <!-- Footer / Pagination -->
@@ -169,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';

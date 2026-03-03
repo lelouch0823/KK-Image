@@ -328,7 +328,7 @@ const executeVoid = async () => {
 const handleUpdate = async (payload) => {
   if (!salesToken.value) return;
 
-  const { updates, fileIds, reason, productId } = payload;
+  const { updates, fileIds, reason, productId, variantId } = payload;
 
   submitting.value = true;
   try {
@@ -339,6 +339,9 @@ const handleUpdate = async (payload) => {
     }
     if (productId !== undefined) {
       requestBody.productId = productId;
+    }
+    if (variantId !== undefined) {
+      requestBody.variantId = variantId;
     }
     
     const res = await fetch(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {

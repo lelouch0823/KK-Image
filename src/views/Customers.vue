@@ -4,7 +4,7 @@
     <div class="flex min-w-0 flex-1 flex-col bg-(--bg-card)">
       <!-- 头部操作栏 -->
       <div
-        class="flex flex-shrink-0 flex-col justify-between gap-4 border-b border-(--border-color) p-4 sm:flex-row sm:items-center"
+        class="flex shrink-0 flex-col justify-between gap-4 border-b border-(--border-color) p-4 sm:flex-row sm:items-center"
       >
         <div>
           <h2 class="text-primary text-lg font-semibold">{{ t('customer.manage.title') }}</h2>
@@ -34,113 +34,165 @@
       </div>
 
       <!-- 客户列表 -->
-      <div class="flex-1 overflow-auto">
+      <div class="flex-1 overflow-auto p-4 lg:p-0">
         <!-- 桌面端表格 (lg+) -->
-          <div class="relative hidden w-full lg:block">
-           <table class="w-full text-left text-sm">
-              <thead class="sticky top-0 z-10 bg-(--bg-card)/90 font-medium text-(--text-secondary) shadow-sm backdrop-blur-sm">
-              <tr>
-                  <th class="px-4 py-3">{{ t('customer.form.name') }}</th>
-                  <th class="px-4 py-3">{{ t('customer.form.contact') }}</th>
-                  <th class="px-4 py-3">{{ t('customer.form.company') }}</th>
-                  <th class="px-4 py-3">{{ t('customer.form.tags') }}</th>
-                  <th class="px-4 py-3">{{ t('common.createdAt') }}</th>
-                  <th class="px-4 py-3 text-right">{{ t('common.actions') }}</th>
-              </tr>
-              </thead>
-              <tbody class="divide-y divide-(--border-color)">
-              <template v-if="loading">
-                  <tr v-for="i in 5" :key="i" class="animate-pulse">
-                  <td v-for="j in 6" :key="j" class="p-4">
-                      <div class="h-4 w-2/3 rounded bg-(--bg-subtle)"></div>
-                  </td>
-                  </tr>
-              </template>
-
-              <template v-else-if="customers.length > 0">
-                  <tr
-                  v-for="customer in customers"
-                  :key="customer.id"
-                  class="group cursor-pointer transition-colors hover:bg-(--bg-hover)"
-                  :class="{ 'bg-primary-50 dark:bg-primary/10': viewingCustomer?.id === customer.id }"
-                  @click="openDetail(customer)"
-                  >
-                  <td class="px-4 py-3 font-medium text-(--text-main)">{{ customer.name }}</td>
-                  <td class="px-4 py-3 text-(--text-secondary)">
-                      <div class="flex flex-col gap-1">
-                      <!-- 电话 -->
-                      <div v-if="customer.phone" class="flex items-center gap-1">
-                          <AppIcon name="phone" class="size-3 flex-shrink-0" />
-                          <span>{{ customer.phone }}</span>
-                      </div>
-                      <!-- 邮箱 -->
-                      <div v-if="customer.email" class="flex items-center gap-1">
-                          <AppIcon name="envelope" class="size-3 flex-shrink-0" />
-                          <span class="max-w-[180px] truncate" :title="customer.email">{{ customer.email }}</span>
-                      </div>
-                      <!-- 无联系方式 -->
-                      <span v-if="!customer.phone && !customer.email" class="text-(--text-muted)">-</span>
-                      </div>
-                  </td>
-                  <td class="px-4 py-3 text-(--text-secondary)">{{ customer.company || '-' }}</td>
-                  <td class="px-4 py-3">
-                      <div class="flex flex-wrap gap-1">
-                        <span
-                          v-for="tag in customer.tags"
-                          :key="tag"
-                          class="bg-primary/10 text-primary rounded px-2.5 py-0.5 text-xs"
-                        >
-                          {{ tag }}
-                      </span>
-                      </div>
-                  </td>
-                  <td class="px-4 py-3 text-xs text-(--text-secondary)">{{ formatDate(customer.createdAt) }}</td>
-                  <td class="px-4 py-3 text-right" @click.stop>
-                      <AppButton
-                        variant="ghost"
-                        size="sm"
-                        class="!p-1.5 opacity-0 group-hover:opacity-100"
-                        :title="t('common.edit')"
-                        @click="openEditModal(customer)"
+        <div class="hidden size-full lg:block">
+          <AppTable
+            :columns="columns"
+            :data="customers"
+            :loading="loading"
+            :empty-text="t('customer.manage.empty')"
+            no-border
+            clickable
+            @row-click="openDetail"
+          >
+            <!-- 覆盖行的 class 以实现选中高亮效果 -->
+            <template #row="{ row }">
+              <tr 
+                class="group cursor-pointer transition-colors hover:bg-(--bg-hover)"
+                :class="{ 'bg-primary-50 dark:bg-primary/10': viewingCustomer?.id === row.id }"
+                @click="openDetail(row)"
+              >
+                <td class="px-4 py-3 font-medium text-(--text-main)">{{ row.name }}</td>
+                <td class="px-4 py-3 text-(--text-secondary)">
+                    <div class="flex flex-col gap-1">
+                    <!-- 电话 -->
+                    <div v-if="row.phone" class="flex items-center gap-1">
+                        <AppIcon name="phone" class="size-3 shrink-0" />
+                        <span>{{ row.phone }}</span>
+                    </div>
+                    <!-- 邮箱 -->
+                    <div v-if="row.email" class="flex items-center gap-1">
+                        <AppIcon name="envelope" class="size-3 shrink-0" />
+                        <span class="max-w-[180px] truncate" :title="row.email">{{ row.email }}</span>
+                    </div>
+                    <!-- 无联系方式 -->
+                    <span v-if="!row.phone && !row.email" class="text-(--text-muted)">-</span>
+                    </div>
+                </td>
+                <td class="px-4 py-3 text-(--text-secondary)">{{ row.company || '-' }}</td>
+                <td class="px-4 py-3">
+                    <div class="flex flex-wrap gap-1">
+                      <StatusBadge
+                        v-for="tag in row.tags"
+                        :key="tag"
+                        variant="primary"
                       >
-                        <template #icon-left>
-                          <AppIcon name="pencil-square" class="size-4" />
-                        </template>
-                      </AppButton>
-                  </td>
-                  </tr>
-              </template>
-
-              <tr v-else>
-                  <td colspan="6" class="px-4 py-16 text-center">
-                  <EmptyState icon="users" :title="t('customer.manage.empty')" />
-                  </td>
+                        {{ tag }}
+                      </StatusBadge>
+                    </div>
+                </td>
+                <td class="px-4 py-3 text-xs text-(--text-secondary)">{{ formatDate(row.createdAt) }}</td>
+                <td class="px-4 py-3 text-right" @click.stop>
+                    <AppButton
+                      variant="ghost"
+                      size="sm"
+                      class="p-1.5! opacity-0 group-hover:opacity-100"
+                      :title="t('common.edit')"
+                      @click="openEditModal(row)"
+                    >
+                      <template #icon-left>
+                        <AppIcon name="pencil-square" class="size-4" />
+                      </template>
+                    </AppButton>
+                </td>
               </tr>
-              </tbody>
-           </table>
+            </template>
+
+            <!-- 当 AppTable 当前通过 slot #row 重写时上面就可以了，但考虑到 AppTable 标准是 #cell-<key>，我们也提供标准的实现以防冲突 -->
+            <template #cell-name="{ row }">
+               <span class="font-medium text-(--text-main)">{{ row.name }}</span>
+            </template>
+            
+            <template #cell-contact="{ row }">
+              <div class="flex flex-col gap-1 text-(--text-secondary)">
+                <!-- 电话 -->
+                <div v-if="row.phone" class="flex items-center gap-1">
+                    <AppIcon name="phone" class="size-3 shrink-0" />
+                    <span>{{ row.phone }}</span>
+                </div>
+                <!-- 邮箱 -->
+                <div v-if="row.email" class="flex items-center gap-1">
+                    <AppIcon name="envelope" class="size-3 shrink-0" />
+                    <span class="max-w-[180px] truncate" :title="row.email">{{ row.email }}</span>
+                </div>
+                <!-- 无联系方式 -->
+                <span v-if="!row.phone && !row.email" class="text-(--text-muted)">-</span>
+              </div>
+            </template>
+            
+            <template #cell-company="{ value }">
+               <span class="text-(--text-secondary)">{{ value || '-' }}</span>
+            </template>
+
+            <template #cell-tags="{ value }">
+              <div class="flex flex-wrap gap-1">
+                <StatusBadge
+                  v-for="tag in value"
+                  :key="tag"
+                  variant="primary"
+                >
+                  {{ tag }}
+                </StatusBadge>
+              </div>
+            </template>
+
+            <template #cell-createdAt="{ value }">
+               <span class="text-xs text-(--text-secondary)">{{ formatDate(value) }}</span>
+            </template>
+
+            <template #cell-actions="{ row }">
+              <div class="flex justify-end pr-4" @click.stop>
+                <AppButton
+                  variant="ghost"
+                  size="sm"
+                  class="p-1.5! opacity-0 group-hover:opacity-100"
+                  :title="t('common.edit')"
+                  @click="openEditModal(row)"
+                >
+                  <template #icon-left>
+                    <AppIcon name="pencil-square" class="size-4" />
+                  </template>
+                </AppButton>
+              </div>
+            </template>
+
+            <!-- 分页 -->
+            <template #footer>
+              <div
+                v-if="pagination.totalPages > 1"
+                class="flex w-full items-center justify-between"
+              >
+                  <span class="text-sm text-(--text-secondary)">
+                      {{ t('common.total') }}: {{ pagination.total }}
+                  </span>
+                  <Pagination
+                    :current-page="pagination.page"
+                    :total-pages="pagination.totalPages"
+                    @change="changePage"
+                  />
+              </div>
+            </template>
+          </AppTable>
         </div>
 
          <!-- 移动端列表 (<lg) -->
-        <div class="p-4 lg:hidden">
+        <div class="lg:hidden">
            <CustomerCards
               :data="customers"
               :loading="loading"
               @detail="openDetail"
               @edit="openEditModal"
            />
+           <!-- 移动端分页 -->
+           <div v-if="pagination.totalPages > 1" class="mt-4 flex justify-center pb-4">
+             <Pagination
+                :current-page="pagination.page"
+                :total-pages="pagination.totalPages"
+                @change="changePage"
+              />
+           </div>
         </div>
-      </div>
-
-      <!-- 分页 -->
-      <div
-        v-if="pagination.totalPages > 1"
-        class="flex-shrink-0 border-t border-(--border-color) p-4"
-      >
-        <Pagination
-          :current-page="pagination.page"
-          :total-pages="pagination.totalPages"
-          @change="changePage"
-        />
       </div>
     </div>
 
@@ -182,7 +234,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onActivated, watch } from 'vue';
+import { ref, reactive, computed, onMounted, onActivated, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useAI } from '@/composables/useAI';
@@ -190,7 +242,6 @@ import { formatDate } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import Pagination from '@/components/ui/Pagination.vue';
-import EmptyState from '@/components/ui/EmptyState.vue';
 import Modal from '@/components/ui/Modal.vue';
 import CustomerForm from '@/components/customer/CustomerForm.vue';
 import CustomerDetailPanel from '@/components/customer/CustomerDetailPanel.vue';

@@ -19,67 +19,47 @@
 
       <!-- Backup List -->
       <div class="overflow-hidden rounded-lg border border-[var(--border-color)]">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-[var(--bg-muted)] text-xs text-[var(--text-secondary)] uppercase">
-            <tr>
-              <th scope="col" class="px-6 py-3 font-medium">{{ t('settings.backup.filename', 'Filename') }}</th>
-              <th scope="col" class="px-6 py-3 font-medium">{{ t('settings.backup.size', 'Size') }}</th>
-              <th scope="col" class="px-6 py-3 font-medium">{{ t('settings.backup.date', 'Date') }}</th>
-              <th scope="col" class="px-6 py-3 text-right font-medium">{{ t('common.actions', 'Actions') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-[var(--border-color)] bg-[var(--bg-card)]">
-            <tr v-if="loading" class="animate-pulse">
-              <td colspan="4" class="text-secondary px-6 py-8 text-center">
-                {{ t('common.loading', 'Loading backups...') }}
-              </td>
-            </tr>
-            <tr v-else-if="backups.length === 0">
-              <td colspan="4" class="text-secondary px-6 py-12 text-center">
-                <div class="flex flex-col items-center gap-3">
-                  <AppIcon name="archive-box-x-mark" class="size-10 text-[var(--text-muted)] opacity-50" />
-                  <span>{{ t('settings.backup.empty', 'No backups found') }}</span>
-                </div>
-              </td>
-            </tr>
-            <tr
-              v-for="backup in backups"
-              :key="backup.key"
-              class="group transition-colors hover:bg-[var(--bg-hover)]"
-            >
-              <td class="text-primary px-6 py-4 font-medium">
-                <div class="flex items-center gap-3">
-                  <AppIcon name="document" class="size-5 text-[var(--text-muted)] transition-colors group-hover:text-[var(--color-primary)]" />
-                  {{ backup.name }}
-                </div>
-              </td>
-              <td class="text-secondary px-6 py-4 font-mono text-xs">
-                {{ formatSize(backup.size) }}
-              </td>
-              <td class="text-secondary px-6 py-4">
-                {{ formatDate(backup.uploadedAt) }}
-              </td>
-              <td class="px-6 py-4 text-right">
-                <button
-                  class="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-xs font-medium text-[var(--text-main)] shadow-sm transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)]"
-                  @click="downloadBackup(backup)"
-                >
-                  <AppIcon name="arrow-down-tray" class="size-3.5" />
-                  {{ t('common.download', 'Download') }}
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <AppTable
+          :columns="columns"
+          :data="backups"
+          :loading="loading"
+          :empty-text="t('settings.backup.empty', 'No backups found')"
+          no-border
+        >
+          <template #cell-name="{ row: backup }">
+            <div class="flex items-center gap-3 font-medium text-[var(--text-main)]">
+              <AppIcon name="document" class="size-5 text-[var(--text-muted)] transition-colors group-hover:text-[var(--color-primary)]" />
+              {{ backup.name }}
+            </div>
+          </template>
+          <template #cell-size="{ row: backup }">
+            <span class="font-mono text-xs text-[var(--text-secondary)]">{{ formatSize(backup.size) }}</span>
+          </template>
+          <template #cell-date="{ row: backup }">
+            <span class="text-[var(--text-secondary)]">{{ formatDate(backup.uploadedAt) }}</span>
+          </template>
+          <template #cell-actions="{ row: backup }">
+            <div class="flex justify-end pr-2">
+              <button
+                class="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-xs font-medium text-[var(--text-main)] shadow-sm transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)]"
+                @click="downloadBackup(backup)"
+              >
+                <AppIcon name="arrow-down-tray" class="size-3.5" />
+                {{ t('common.download', 'Download') }}
+              </button>
+            </div>
+          </template>
+        </AppTable>
       </div>
     </SettingsSection>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import SettingsSection from '../SettingsSection.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppTable from '@/components/ui/AppTable.vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { formatSize, formatDate } from '@/utils/formatters';
@@ -90,6 +70,13 @@ const { addToast } = useToast();
 const backups = ref([]);
 const loading = ref(true);
 const creating = ref(false);
+
+const columns = computed(() => [
+  { key: 'name', label: t('settings.backup.filename', 'Filename') },
+  { key: 'size', label: t('settings.backup.size', 'Size') },
+  { key: 'date', label: t('settings.backup.date', 'Date') },
+  { key: 'actions', label: t('common.actions', 'Actions'), align: 'right' },
+]);
 
 const fetchBackups = async () => {
   try {

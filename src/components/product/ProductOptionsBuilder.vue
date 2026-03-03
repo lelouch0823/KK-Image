@@ -77,9 +77,9 @@
             <div>
               <label class="mb-2 flex items-center gap-2 text-xs font-bold tracking-wider text-(--text-secondary) uppercase">
                 {{ t('product.form.option_values_label', 'Options / Values') }}
-                <span class="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-normal normal-case">
+                <StatusBadge variant="primary" class="rounded-full! px-2! py-0.5! text-[10px] tracking-normal normal-case">
                   {{ opt.values.length }} {{ t('product.form.values_count', '值') }}
-                </span>
+                </StatusBadge>
               </label>
 
               <!-- 已添加的活跃值 -->
@@ -184,6 +184,7 @@
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppInput from '@/components/ui/AppInput.vue';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
 
 const { t } = useI18n();
 
@@ -194,7 +195,7 @@ const isColorDimension = (name) => {
 };
 const pendingColorSelection = ref('#000000');
 
-const handleColorSelect = (event, opt) => {
+const handleColorSelect = (_event, _opt) => {
   // We no longer auto-fill the input with the hex color.
   // The selected color is kept in pendingColorSelection and will be attached
   // to the metaMap when the "Add" button is clicked.

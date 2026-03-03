@@ -98,6 +98,18 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
         },
     });
 
+    // 创建订单后将临时上传文件归档到订单目录，避免文件滞留在根目录
+    const fileIds = Array.isArray(data.fileIds) ? data.fileIds.filter(Boolean) : [];
+    if (fileIds.length > 0) {
+        try {
+            const { ensureOrderFolder, moveFilesToFolder } = await import('../../../../api/utils/folder-utils.js');
+            const orderFolderId = await ensureOrderFolder(env, orderNo);
+            await moveFilesToFolder(env, fileIds, orderFolderId);
+        } catch (error) {
+            console.error('Order file archiving error (sales create):', error);
+        }
+    }
+
     // 2. 发送 WEBHOOK & 通知 (后台任务)
     c.executionCtx.waitUntil((async () => {
         try {

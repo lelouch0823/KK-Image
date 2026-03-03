@@ -46,10 +46,11 @@
         <div
           class="focus-within:border-primary focus-within:ring-primary/20 focus-within:ring-1 mb-2 flex flex-wrap gap-2 rounded-lg border border-(--border-color) bg-(--bg-muted) p-2 transition-colors"
         >
-          <span
+          <StatusBadge
             v-for="(tag, index) in form.tags"
             :key="index"
-            class="bg-primary/10 text-primary inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+            variant="primary"
+            class="rounded-full! px-2.5! py-0.5!"
           >
             {{ tag }}
             <button
@@ -59,7 +60,7 @@
             >
               <AppIcon name="x-mark" class="size-3" />
             </button>
-          </span>
+          </StatusBadge>
           <input
             v-model="tagInput"
             type="text"
@@ -113,6 +114,7 @@ import { useI18n } from '@/composables/useI18n';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
 
 const props = defineProps({
   initialData: {
