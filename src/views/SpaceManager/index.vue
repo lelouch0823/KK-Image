@@ -3,7 +3,7 @@
     <!-- 页面标题 -->
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-xl font-semibold text-primary">{{ t('spaceManager.title') }}</h1>
+        <h1 class="text-primary text-xl font-semibold">{{ t('spaceManager.title') }}</h1>
         <p class="mt-1 text-sm text-(--text-secondary)">{{ t('spaceManager.subtitle') }}</p>
       </div>
       <button v-if="spaces.length === 0" disabled class="invisible px-4 py-2">

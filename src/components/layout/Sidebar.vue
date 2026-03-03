@@ -106,7 +106,7 @@
           type="button"
           :title="isCollapsed ? t('sidebar.logout') : ''"
           :class="[
-            'text-secondary flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-(--color-danger-bg) hover:text-danger',
+            'text-secondary flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:text-danger hover:bg-(--color-danger-bg)',
             isCollapsed ? 'justify-center' : '',
           ]"
           @click="handleLogout"

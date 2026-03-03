@@ -48,11 +48,11 @@
             <div class="mt-0.5 shrink-0">
               <span
                 v-if="item.type === 'order'"
-                class="mt-1.5 block size-2 rounded-full bg-info"
+                class="bg-info mt-1.5 block size-2 rounded-full"
               ></span>
               <span
                 v-else-if="item.type === 'deadline'"
-                class="mt-1.5 block size-2 rounded-full bg-warning"
+                class="bg-warning mt-1.5 block size-2 rounded-full"
               ></span>
               <span
                 v-else

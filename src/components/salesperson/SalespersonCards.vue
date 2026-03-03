@@ -31,7 +31,7 @@
           <div class="p-4 text-center">
             <!-- 头像 -->
             <div
-              class="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-(--color-primary-hover) text-lg font-semibold text-(--text-inverse) shadow-inner shadow-black/5 transition-transform group-hover:scale-110"
+              class="from-primary mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-gradient-to-br to-(--color-primary-hover) text-lg font-semibold text-(--text-inverse) shadow-inner shadow-black/5 transition-transform group-hover:scale-110"
             >
               {{ person.name?.charAt(0) || '?' }}
             </div>
@@ -64,7 +64,7 @@
           >
             <!-- 复制链接 -->
             <button
-              class="rounded-xl p-2 text-(--text-secondary) transition-all hover:bg-primary/5 hover:text-primary active:scale-90"
+              class="hover:bg-primary/5 hover:text-primary rounded-xl p-2 text-(--text-secondary) transition-all active:scale-90"
               :title="t('salesperson.copyLink')"
               @click.stop="$emit('copy', person.accessToken)"
             >

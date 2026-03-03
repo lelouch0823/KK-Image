@@ -12,11 +12,11 @@
       class="sticky right-0 bottom-0 left-0 z-20 flex items-center justify-between gap-4 border-t border-(--border-color) bg-(--bg-card) bg-(--bg-card)/90 px-4 py-3.5 shadow-xl shadow-black/10 backdrop-blur-md"
     >
       <div class="flex items-center gap-3">
-        <span class="text-sm font-medium text-primary">
+        <span class="text-primary text-sm font-medium">
           {{ t('order.manage.selectedCount', { count: selectedCount }) }}
         </span>
         <button
-          class="text-sm text-(--text-secondary) transition-colors hover:text-primary"
+          class="hover:text-primary text-sm text-(--text-secondary) transition-colors"
           @click="$emit('cancel')"
         >
           {{ t('order.manage.cancelSelect') }}
@@ -25,7 +25,7 @@
       <div class="flex items-center gap-2">
         <button
           :disabled="processing"
-          class="flex h-9 items-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-bold text-(--text-inverse) shadow-primary/10 shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+          class="bg-primary shadow-primary/10 flex h-9 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-(--text-inverse) shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
           @click="$emit('action', 'confirm')"
         >
           <AppIcon name="check" class="size-4.5" />
@@ -33,7 +33,7 @@
         </button>
         <button
           :disabled="processing"
-          class="flex h-9 items-center gap-1.5 rounded-xl bg-warning px-4 text-sm font-bold text-(--text-inverse) shadow-warning/10 shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+          class="bg-warning shadow-warning/10 flex h-9 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-(--text-inverse) shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
           @click="$emit('action', 'reject')"
         >
           <AppIcon name="x-mark" class="size-4.5" />
@@ -41,7 +41,7 @@
         </button>
         <button
           :disabled="processing"
-          class="flex h-9 items-center gap-1.5 rounded-xl bg-danger px-4 text-sm font-bold text-(--text-inverse) shadow-danger/10 shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+          class="bg-danger shadow-danger/10 flex h-9 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-(--text-inverse) shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
           @click="$emit('action', 'void')"
         >
           <AppIcon name="trash" class="size-4" />

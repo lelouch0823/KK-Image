@@ -94,7 +94,7 @@
             </button>
             <!-- Remove Button -->
             <button
-              class="rounded-full bg-danger p-1.5 text-(--text-inverse) transition-colors hover:bg-red-600"
+              class="bg-danger rounded-full p-1.5 text-(--text-inverse) transition-colors hover:bg-red-600"
               @click.stop="$emit('remove', file.id)"
             >
               <AppIcon name="trash" class="size-4" />

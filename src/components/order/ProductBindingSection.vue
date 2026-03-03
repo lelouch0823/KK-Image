@@ -2,7 +2,7 @@
   <div class="rounded-xl border border-(--border-subtle) bg-(--bg-card) shadow-sm">
     <div class="rounded-t-xl border-b border-(--border-subtle) bg-(--bg-muted)/40 px-4 py-3 sm:px-6 sm:py-4">
       <h4 class="flex items-center gap-2 text-sm font-semibold text-(--text-main)">
-        <AppIcon name="link" class="size-4 text-primary" />
+        <AppIcon name="link" class="text-primary size-4" />
         {{ isSalesMode ? t('order.binding.salesTitle') : t('order.binding.title') }}
       </h4>
     </div>
@@ -32,7 +32,7 @@
               </span>
               <span
                 v-if="isSalesMode"
-                class="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary"
+                class="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[11px] font-medium"
               >
                 {{ t('order.binding.bound') }}
               </span>
@@ -55,7 +55,7 @@
             v-if="isAdminMode"
             :href="`/admin/products?edit=${boundProduct.id}`"
             target="_blank"
-            class="cursor-pointer rounded-lg p-2 text-(--text-muted) transition-colors hover:bg-primary/10 hover:text-primary"
+            class="hover:bg-primary/10 hover:text-primary cursor-pointer rounded-lg p-2 text-(--text-muted) transition-colors"
             :title="t('product.action.edit')"
           >
             <AppIcon name="pencil-square" class="size-5" />
@@ -74,7 +74,7 @@
       <!-- Configuration Body -->
       <div v-if="variants.length > 0" class="relative space-y-5 p-4 sm:space-y-7 sm:p-6">
         <div v-if="isLoadingDetails" class="absolute inset-0 z-10 flex items-center justify-center bg-(--bg-card)/50 backdrop-blur-sm">
-           <AppIcon name="spinner" class="size-6 animate-spin text-primary" />
+           <AppIcon name="spinner" class="text-primary size-6 animate-spin" />
         </div>
 
         <section v-for="dimension in dimensionKeys" :key="dimension">

@@ -17,7 +17,7 @@
             type="button"
             role="switch"
             :aria-checked="form.WATERMARK_ENABLED === 'true'"
-            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none"
+            class="focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:outline-none relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out"
             :class="form.WATERMARK_ENABLED === 'true' ? 'bg-primary' : 'bg-(--bg-muted)'"
             @click="form.WATERMARK_ENABLED = form.WATERMARK_ENABLED === 'true' ? 'false' : 'true'"
           >
@@ -36,7 +36,7 @@
             <input
               v-model="form.WATERMARK_TEXT"
               type="text"
-              class="w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 text-sm transition-colors focus:border-primary focus:ring-1 focus:ring-primary/10 focus:outline-none dark:bg-(--bg-muted)"
+              class="focus:border-primary focus:ring-primary/10 focus:ring-1 focus:outline-none w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 text-sm transition-colors dark:bg-(--bg-muted)"
               placeholder="e.g. KK-Image"
             />
           </div>
@@ -46,7 +46,7 @@
             <label class="text-primary text-sm font-medium">{{ t('settings.watermark.position', 'Position') }}</label>
             <select
               v-model="form.WATERMARK_POSITION"
-              class="w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 text-sm transition-colors focus:border-primary focus:ring-1 focus:ring-primary/10 focus:outline-none dark:bg-(--bg-muted)"
+              class="focus:border-primary focus:ring-primary/10 focus:ring-1 focus:outline-none w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 text-sm transition-colors dark:bg-(--bg-muted)"
             >
               <option value="bottom-right">{{ t('settings.watermark.posBottomRight', 'Bottom Right') }}</option>
               <option value="bottom-left">{{ t('settings.watermark.posBottomLeft', 'Bottom Left') }}</option>
@@ -69,7 +69,7 @@
                 min="0.1"
                 max="1.0"
                 step="0.1"
-                class="w-full accent-primary"
+                class="accent-primary w-full"
               />
             </div>
 
@@ -85,7 +85,7 @@
                 min="0.02"
                 max="0.2"
                 step="0.01"
-                class="w-full accent-primary"
+                class="accent-primary w-full"
               />
               <p class="text-secondary text-xs">{{ t('settings.watermark.sizeDesc', 'Text size relative to image width.') }}</p>
             </div>
@@ -109,7 +109,7 @@
            <button
             type="submit"
             :disabled="saving"
-            class="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-(--text-inverse) shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50"
+            class="bg-primary inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-(--text-inverse) shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50"
           >
             <AppIcon v-if="saving" name="spinner" class="size-4 animate-spin" />
             <span v-if="saving">{{ t('settings.saving', 'Saving...') }}</span>

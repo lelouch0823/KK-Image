@@ -42,7 +42,7 @@
           <!-- 红点 -->
           <span
             v-if="unreadCount > 0"
-            class="absolute top-1.5 right-1.5 size-2 rounded-full border border-white bg-danger"
+            class="bg-danger absolute top-1.5 right-1.5 size-2 rounded-full border border-white"
           ></span>
         </button>
 

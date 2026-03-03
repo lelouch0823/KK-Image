@@ -25,7 +25,7 @@
                 {{ t('fileManager.selected', { count: selectedIds.length }) }}
               </span>
               <button
-                class="flex items-center gap-1.5 rounded-lg bg-(--color-primary-bg) px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-(--color-primary-hover)"
+                class="text-primary flex items-center gap-1.5 rounded-lg bg-(--color-primary-bg) px-3 py-1.5 text-sm font-medium transition-colors hover:bg-(--color-primary-hover)"
                 :disabled="loading"
                 @click="handleRestoreSelected"
               >
@@ -33,7 +33,7 @@
                 {{ t('trash.restore') }}
               </button>
               <button
-                class="flex items-center gap-1.5 rounded-lg bg-(--color-danger-bg) px-3 py-1.5 text-sm font-medium text-danger transition-colors hover:bg-red-100"
+                class="text-danger flex items-center gap-1.5 rounded-lg bg-(--color-danger-bg) px-3 py-1.5 text-sm font-medium transition-colors hover:bg-red-100"
                 :disabled="loading"
                 @click="handleDeleteSelected"
               >
@@ -46,7 +46,7 @@
           <!-- 清空回收站 -->
           <button
             v-if="files.length > 0"
-            class="group relative flex items-center gap-2 rounded-lg border border-danger/30 bg-(--bg-card) px-4 py-2 text-sm font-medium text-danger transition-all hover:bg-danger/10 hover:shadow-sm disabled:opacity-50"
+            class="group border-danger/30 text-danger relative flex items-center gap-2 rounded-lg border bg-(--bg-card) px-4 py-2 text-sm font-medium transition-all hover:bg-danger/10 hover:shadow-sm disabled:opacity-50"
             :disabled="loading || selectedIds.length > 0"
             @click="showEmptyConfirm = true"
           >
@@ -64,7 +64,7 @@
         <!-- Loading 状态 -->
         <div v-if="loading" class="flex h-full items-center justify-center">
           <div
-            class="size-10 animate-spin rounded-full border-2 border-primary border-t-transparent"
+            class="border-primary size-10 animate-spin rounded-full border-2 border-t-transparent"
           ></div>
         </div>
 
@@ -154,14 +154,14 @@
             <template #cell-actions="{ row: file }">
               <div class="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                 <button
-                  class="rounded p-1 text-success hover:bg-success/10"
+                  class="text-success rounded p-1 hover:bg-success/10"
                   :title="t('trash.restore')"
                   @click.stop="handleRestore(file)"
                 >
                   <AppIcon name="arrow-path" class="size-4" />
                 </button>
                 <button
-                  class="rounded p-1 text-danger hover:bg-danger/10"
+                  class="text-danger rounded p-1 hover:bg-danger/10"
                   :title="t('trash.deleteForever')"
                   @click.stop="handleDelete(file)"
                 >

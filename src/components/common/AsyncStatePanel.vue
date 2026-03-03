@@ -18,7 +18,7 @@
     <div class="flex items-center gap-2">
       <button
         type="button"
-        class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-(--text-inverse)"
+        class="bg-primary rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse)"
         data-testid="retry-action"
         @click="$emit('retry')"
       >

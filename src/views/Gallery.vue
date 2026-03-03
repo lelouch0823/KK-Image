@@ -4,7 +4,7 @@
     <div v-if="loading" class="flex min-h-screen items-center justify-center">
       <div class="text-center">
         <div
-          class="mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-(--border-color) border-t-primary"
+          class="border-t-primary mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-(--border-color)"
         ></div>
         <p class="text-(--text-secondary)">{{ t('gallery.loading') }}</p>
       </div>
@@ -140,7 +140,7 @@
       <footer
         class="border-t border-(--border-color) bg-(--bg-card) py-8 text-center text-sm text-(--text-secondary)"
       >
-        <a href="/" class="transition-colors hover:text-primary">{{ t('gallery.poweredBy') }}</a>
+        <a href="/" class="hover:text-primary transition-colors">{{ t('gallery.poweredBy') }}</a>
       </footer>
     </template>
 

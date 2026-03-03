@@ -52,8 +52,8 @@
 
       <!-- 如果已绑定商品，显示只读的规格属性列表，否则显示原有的输入框 -->
       <template v-if="boundProductVariant">
-        <div class="mt-4 space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4 md:col-span-2">
-          <h5 class="text-sm font-medium text-primary">{{ t('product.variant.title') || '商品规格' }}</h5>
+        <div class="border-primary/20 bg-primary/5 mt-4 space-y-3 rounded-lg border p-4 md:col-span-2">
+          <h5 class="text-primary text-sm font-medium">{{ t('product.variant.title') || '商品规格' }}</h5>
           <div class="grid grid-cols-2 gap-4">
             <div v-for="(value, key) in boundProductVariant" :key="key" class="flex flex-col">
               <span class="text-xs text-(--text-secondary)">{{ key }}</span>

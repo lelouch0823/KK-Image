@@ -60,6 +60,26 @@ export async function ensureProductFolder(env) {
 }
 
 /**
+ * 确保商品变体文件夹结构存在
+ * _System -> Products -> product-{productId} -> Variants -> variant-{variantId}
+ * @param {Object} env
+ * @param {string} productId
+ * @param {string} variantId
+ * @returns {Promise<string>} 变体专属文件夹ID
+ */
+export async function ensureVariantFolder(env, productId, variantId) {
+  try {
+    const productsRootId = await ensureProductFolder(env);
+    const productFolderId = await ensureFolder(env, `product-${productId}`, productsRootId, true);
+    const variantsRootId = await ensureFolder(env, 'Variants', productFolderId, true);
+    return await ensureFolder(env, `variant-${variantId}`, variantsRootId, false);
+  } catch (e) {
+    console.error('Ensure variant folder error:', e);
+    return 'root';
+  }
+}
+
+/**
  * 移动文件到指定文件夹
  * @param {Object} env
  * @param {string[]} fileIds 文件 ID 列表

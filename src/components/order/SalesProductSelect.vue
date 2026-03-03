@@ -7,13 +7,13 @@
       <input
         v-model="searchQuery"
         type="text"
-        class="h-12 w-full rounded-xl border border-(--border-color) bg-(--bg-muted) py-2.5 pr-4 pl-10 text-sm text-(--text-main) transition-colors placeholder:text-(--text-muted) focus:border-primary focus:bg-(--bg-card) focus:ring-2 focus:ring-primary/20 focus:outline-none"
+        class="focus:border-primary focus:ring-primary/20 focus:bg-(--bg-card) focus:ring-2 focus:outline-none h-12 w-full rounded-xl border border-(--border-color) bg-(--bg-muted) py-2.5 pr-4 pl-10 text-sm text-(--text-main) transition-colors placeholder:text-(--text-muted)"
         :placeholder="placeholderText"
         @focus="open"
         @input="handleInput"
       />
       <div v-if="loading" class="absolute inset-y-0 right-0 flex items-center pr-3">
-        <AppIcon name="spinner" class="size-4 animate-spin text-primary" />
+        <AppIcon name="spinner" class="text-primary size-4 animate-spin" />
       </div>
     </div>
 
@@ -33,7 +33,7 @@
           <p class="text-sm text-(--text-main)">{{ error }}</p>
           <button
             type="button"
-            class="mt-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
+            class="bg-primary mt-2 rounded-lg px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
             data-testid="sales-product-retry"
             @click="retryLoad"
           >

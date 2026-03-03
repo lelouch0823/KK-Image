@@ -7,15 +7,15 @@
       <span
         v-for="sp in selectedSalespersons"
         :key="sp.id"
-        class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary shadow-sm ring-1 ring-primary/20 ring-inset"
+        class="bg-primary/10 text-primary ring-primary/20 inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium shadow-sm ring-1 ring-inset"
       >
-        <span class="flex size-4 items-center justify-center rounded-full bg-primary/20 text-[10px]">
+        <span class="bg-primary/20 flex size-4 items-center justify-center rounded-full text-[10px]">
           {{ sp.name.charAt(0).toUpperCase() }}
         </span>
         {{ sp.name }}
         <button
           type="button"
-          class="ml-0.5 rounded-full p-0.5 text-primary/60 transition-colors hover:bg-primary/20 hover:text-primary"
+          class="text-primary/60 ml-0.5 rounded-full p-0.5 transition-colors hover:bg-primary/20 hover:text-primary"
           @click.stop="remove(sp.id)"
         >
           <AppIcon name="x-mark" class="size-3.5" />
@@ -26,11 +26,11 @@
     <!-- 触发选择弹窗的按钮 (代替下拉) -->
     <button
       type="button"
-      class="flex w-full items-center justify-between rounded-xl border border-(--border-color) bg-(--bg-card) px-4 py-3 text-left shadow-sm transition-all hover:border-primary hover:bg-primary/5 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+      class="hover:border-primary hover:bg-primary/5 focus:border-primary focus:ring-primary focus:ring-1 focus:outline-none flex w-full items-center justify-between rounded-xl border border-(--border-color) bg-(--bg-card) px-4 py-3 text-left shadow-sm transition-all"
       @click="showModal = true"
     >
       <span class="text-secondary">{{ placeholder }}</span>
-      <span class="flex items-center gap-2 text-xs font-medium text-primary">
+      <span class="text-primary flex items-center gap-2 text-xs font-medium">
         <AppIcon name="plus" class="size-4" />
         {{ t('spaceManager.select') || '选择' }}
       </span>

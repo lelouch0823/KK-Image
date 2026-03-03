@@ -53,7 +53,7 @@
         {{ shareUrl }}
       </div>
       <button
-        class="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary/5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+        class="bg-primary/5 text-primary flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-medium transition-colors hover:bg-primary/10"
         @click.prevent="copyLink"
       >
         <AppIcon name="clipboard" class="size-3.5" />
@@ -85,7 +85,7 @@
           <input
             :value="password"
             type="text"
-            class="flex-1 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-sm text-(--text-main) transition-all outline-none focus:border-primary"
+            class="focus:border-primary flex-1 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-sm text-(--text-main) transition-all outline-none"
             :placeholder="t('spaceManager.setPassword')"
             @input="$emit('update:password', $event.target.value)"
           />

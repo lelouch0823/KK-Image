@@ -6,7 +6,7 @@
       <template #filters>
         <select
           v-model="filterAction"
-          class="rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-primary) focus:border-primary focus:outline-none"
+          class="focus:border-primary focus:outline-none rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-primary)"
         >
           <option value="">{{ t('auditLogs.allActions') }}</option>
           <option v-for="a in availableActions" :key="a" :value="a">{{ a }}</option>

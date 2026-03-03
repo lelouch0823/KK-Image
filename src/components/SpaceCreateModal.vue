@@ -8,7 +8,7 @@
     <form class="space-y-4" @submit.prevent="handleSubmit">
       <!-- 模版选择 (如果有初始商品传入，则隐藏或置灰其他模板以强调当前语境) -->
       <div v-if="!initialProduct">
-        <label class="mb-2 block text-sm font-medium text-primary">{{
+        <label class="text-primary mb-2 block text-sm font-medium">{{
           t('spaceManager.selectTemplate')
         }}</label>
         <div class="grid grid-cols-2 gap-2">
@@ -41,7 +41,7 @@
         <textarea
           v-model="form.description"
           rows="2"
-          class="w-full resize-none rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          class="focus:border-primary focus:ring-primary focus:ring-1 w-full resize-none rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 transition-all outline-none"
           :placeholder="t('spaceManager.descPlaceholder')"
         ></textarea>
       </div>
@@ -86,7 +86,7 @@
             v-model="form.name"
             type="text"
             required
-            class="w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            class="focus:border-primary focus:ring-primary focus:ring-1 w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 transition-all outline-none"
             :placeholder="t('spaceManager.spaceNamePlaceholder')"
           />
         </div>
@@ -113,7 +113,7 @@
       </button>
       <button
         :disabled="submitting"
-        class="rounded-lg bg-primary px-6 py-2 font-medium text-(--text-inverse) shadow-primary/20 shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        class="bg-primary shadow-primary/20 rounded-lg px-6 py-2 font-medium text-(--text-inverse) shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         @click="handleSubmit"
       >
         {{ submitButtonText }}

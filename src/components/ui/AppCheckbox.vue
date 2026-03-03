@@ -2,7 +2,7 @@
   <div class="relative flex items-center justify-center">
     <input
       type="checkbox"
-      class="peer size-5 cursor-pointer appearance-none rounded-md border-2 border-(--border-color) bg-(--bg-card) transition-all duration-200 ease-in-out checked:border-primary! checked:bg-primary! hover:border-primary/50 focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/20 dark:bg-white/5 dark:focus:ring-offset-gray-900"
+      class="peer size-5 cursor-pointer appearance-none rounded-md border-2 border-(--border-color) bg-(--bg-card) transition-all duration-200 ease-in-out checked:border-primary! checked:bg-primary! hover:border-primary/50 focus:ring-primary/20 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/20 dark:bg-white/5 dark:focus:ring-offset-gray-900"
       :checked="isChecked"
       :value="value"
       :disabled="disabled"

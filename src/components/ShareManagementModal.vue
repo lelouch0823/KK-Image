@@ -26,7 +26,7 @@
                 <div class="flex items-center gap-2">
                   <span class="rounded bg-(--bg-muted) px-2 py-1 font-mono text-xs select-all">{{ row.shareToken }}</span>
                   <button
-                      class="text-(--text-secondary) hover:text-primary"
+                      class="hover:text-primary text-(--text-secondary)"
                       :title="t('share.copyLink')"
                       @click="copyLink(row)"
                   >
@@ -44,7 +44,7 @@
                   <AppButton
                     variant="ghost"
                     size="sm"
-                    class="size-8! bg-transparent p-1.5! text-(--text-secondary) hover:bg-(--bg-hover) hover:text-primary"
+                    class="hover:text-primary hover:bg-(--bg-hover) size-8! bg-transparent p-1.5! text-(--text-secondary)"
                     :title="t('common.edit')"
                     @click="editShare(row)"
                   >
@@ -55,7 +55,7 @@
                     <AppButton
                         variant="ghost"
                         size="sm"
-                        class="size-8! bg-transparent p-1.5! text-danger hover:bg-danger/10"
+                        class="text-danger size-8! bg-transparent p-1.5! hover:bg-danger/10"
                         :title="t('common.cancelShare')"
                         @click="revokeShare(row)"
                     >

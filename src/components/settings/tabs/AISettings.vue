@@ -14,7 +14,7 @@
               v-model="form.AI_API_URL"
               type="url"
               placeholder="https://api.openai.com/v1"
-              class="w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 text-sm transition-colors focus:border-primary focus:ring-1 focus:ring-primary/10 focus:outline-none dark:bg-(--bg-muted)"
+              class="focus:border-primary focus:ring-primary/10 focus:ring-1 focus:outline-none w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 text-sm transition-colors dark:bg-(--bg-muted)"
             />
           </div>
           <p class="text-secondary text-xs">{{ t('settings.ai.apiUrlDesc', 'The base URL for the OpenAI-compatible API provider.') }}</p>
@@ -27,7 +27,7 @@
             <input
               v-model="form.AI_API_KEY"
               :type="showKey ? 'text' : 'password'"
-              class="w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 pr-10 text-sm transition-colors focus:border-primary focus:ring-1 focus:ring-primary/10 focus:outline-none dark:bg-(--bg-muted)"
+              class="focus:border-primary focus:ring-primary/10 focus:ring-1 focus:outline-none w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 pr-10 text-sm transition-colors dark:bg-(--bg-muted)"
               placeholder="sk-..."
             />
             <button
@@ -56,7 +56,7 @@
                 type="checkbox"
                 class="peer sr-only"
               />
-              <span class="h-6 w-11 rounded-full bg-(--bg-muted) transition-colors peer-checked:bg-primary"></span>
+              <span class="peer-checked:bg-primary h-6 w-11 rounded-full bg-(--bg-muted) transition-colors"></span>
             </label>
           </div>
 
@@ -68,7 +68,7 @@
               type="number"
               min="5"
               max="200"
-              class="mt-1 w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-xs text-(--text-main) focus:border-primary focus:ring-1 focus:ring-primary/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              class="focus:border-primary focus:ring-primary/20 focus:ring-1 focus:outline-none mt-1 w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-xs text-(--text-main) disabled:cursor-not-allowed disabled:opacity-50"
             />
             <p class="mt-1 text-xs text-(--text-muted)">{{ t('settings.ai.healthWindowHint', 'Use 5-200 recent requests per model for failure/latency scoring.') }}</p>
           </div>
@@ -184,7 +184,7 @@
             <div class="mb-3 flex flex-wrap items-center gap-2">
               <select
                 v-model="selectedFetchedModel"
-                class="min-w-[220px] rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-xs text-(--text-main) focus:border-primary focus:ring-1 focus:ring-primary/20 focus:outline-none"
+                class="focus:border-primary focus:ring-primary/20 focus:ring-1 focus:outline-none min-w-[220px] rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-xs text-(--text-main)"
               >
                 <option value="">{{ t('settings.ai.selectModel', 'Select a model') }}</option>
                 <option v-for="model in availableModels" :key="`opt-${model}`" :value="model">
@@ -288,7 +288,7 @@
            <button
             type="submit"
             :disabled="saving"
-            class="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-(--text-inverse) shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50"
+            class="bg-primary inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-(--text-inverse) shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50"
           >
             <AppIcon v-if="saving" name="spinner" class="size-4 animate-spin" />
             <span v-if="saving">{{ t('settings.saving', 'Saving...') }}</span>

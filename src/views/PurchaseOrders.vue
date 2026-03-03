@@ -63,7 +63,7 @@
           v-for="card in statCards"
           :key="card.key"
           class="group relative cursor-pointer overflow-hidden rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl sm:p-5"
-          :class="{ 'ring-2 ring-primary/20': filters.status === card.key }"
+          :class="{ 'ring-primary/20 ring-2': filters.status === card.key }"
           @click="filters.status = filters.status === card.key ? '' : card.key"
         >
           <div class="relative z-10 flex items-start justify-between">
@@ -146,7 +146,7 @@
 
       <!-- 分页 -->
       <div v-if="total > filters.limit" class="flex items-center justify-between border-t border-(--border-color) px-4 py-3">
-        <p class="text-(--text-secondary) text-sm">
+        <p class="text-sm text-(--text-secondary)">
           {{ t('purchaseOrder.pagination.total', { count: total }) }}
         </p>
         <div class="flex items-center gap-2">
@@ -201,7 +201,7 @@
                   <div class="relative flex items-center justify-between">
                     <div class="absolute top-1/2 left-0 h-0.5 w-full -translate-y-1/2 bg-(--border-color)"></div>
                     <div 
-                      class="absolute top-1/2 left-0 h-0.5 -translate-y-1/2 bg-primary transition-all duration-500"
+                      class="bg-primary absolute top-1/2 left-0 h-0.5 -translate-y-1/2 transition-all duration-500"
                       :style="{ width: getStepperProgress(detail.status) }"
                     ></div>
                     
@@ -211,7 +211,7 @@
                         :class="getStepIconClasses(detail.status, step.value)"
                       >
                         <AppIcon v-if="isStepCompleted(detail.status, step.value)" name="check" class="size-3.5 text-(--text-inverse)" stroke-width="3" />
-                        <div v-else-if="detail.status === step.value" class="size-2 rounded-full bg-primary"></div>
+                        <div v-else-if="detail.status === step.value" class="bg-primary size-2 rounded-full"></div>
                       </div>
                       <span class="text-xs font-medium" :class="detail.status === step.value ? 'text-(--text-main)' : isStepCompleted(detail.status, step.value) ? 'text-(--text-main)' : 'text-(--text-muted)'">
                         {{ step.label }}
@@ -259,7 +259,7 @@
                 <div class="mb-3 flex items-center justify-between">
                   <h3 class="text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.detail.items') }} ({{ detail.items?.length || 0 }})</h3>
                   <div v-if="detail.status === 'draft'" class="flex items-center gap-2">
-                    <button type="button" class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10" @click="openOrderPicker('detail')">
+                    <button type="button" class="border-primary/30 bg-primary/5 text-primary flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-primary/10" @click="openOrderPicker('detail')">
                       <AppIcon name="plus" class="size-3.5" />
                       {{ t('purchaseOrder.action.linkOrders') }}
                     </button>
@@ -286,10 +286,10 @@
                       
                       <!-- 商品信息 -->
                       <div class="flex flex-col gap-1">
-                        <div class="flex cursor-pointer items-center gap-2 transition-colors hover:text-primary" @click="handleViewProductDetail(item.product_id)">
+                        <div class="hover:text-primary flex cursor-pointer items-center gap-2 transition-colors" @click="handleViewProductDetail(item.product_id)">
                           <span class="line-clamp-1 text-sm font-medium text-(--text-main)" :title="item.product_name">{{ item.product_name || '—' }}</span>
                           <span v-if="item.product_brand" class="shrink-0 rounded bg-(--bg-muted) px-1.5 py-0.5 text-[10px] font-medium text-(--text-secondary)">{{ item.product_brand }}</span>
-                          <span v-if="detail.status === 'draft'" class="flex shrink-0 cursor-pointer items-center gap-0.5 text-xs text-danger opacity-0 transition-opacity group-hover:opacity-100" @click="handleDetailRemoveItem(item.id)">
+                          <span v-if="detail.status === 'draft'" class="text-danger flex shrink-0 cursor-pointer items-center gap-0.5 text-xs opacity-0 transition-opacity group-hover:opacity-100" @click="handleDetailRemoveItem(item.id)">
                             <AppIcon name="trash" class="size-3" />
                             {{ t('common.delete') }}
                           </span>
@@ -297,11 +297,11 @@
                         <div class="flex flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)">
                           <code class="rounded bg-(--bg-muted) px-1 py-0.5 font-mono text-[10px]">{{ item.product_sku || '-' }}</code>
                           <span class="text-(--text-muted)">·</span>
-                          <span v-if="item.customer_order_no" class="inline-flex items-center gap-1 rounded bg-info/10 px-1 py-0.5 text-[10px] font-medium text-info">
+                          <span v-if="item.customer_order_no" class="bg-info/10 text-info inline-flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium">
                             <AppIcon name="shopping-bag" class="size-3" />
                             {{ item.customer_order_no }}
                           </span>
-                          <span v-else class="inline-flex items-center gap-1 rounded bg-warning/10 px-1 py-0.5 text-[10px] font-medium text-warning">
+                          <span v-else class="bg-warning/10 text-warning inline-flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium">
                             <AppIcon name="building-storefront" class="size-3" />
                             {{ t('purchaseOrder.detail.publicStock') }}
                           </span>
@@ -318,13 +318,13 @@
                     <div v-if="detail.status === 'draft'" class="flex items-center justify-end gap-3 pl-12 sm:pl-0">
                       <div class="flex flex-col items-center">
                         <span class="mb-1 text-[10px] text-(--text-secondary)">{{ t('purchaseOrder.table.quantity') }}</span>
-                        <input v-model.number="item.quantity" type="number" min="1" class="w-16 rounded-md border border-(--border-color) bg-(--bg-page) px-2 py-1 text-center font-[Outfit] text-sm text-(--text-main) focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" @change="handleDetailUpdateItem(item.id, 'quantity', item.quantity)" />
+                        <input v-model.number="item.quantity" type="number" min="1" class="focus:border-primary focus:ring-primary focus:ring-1 focus:outline-none w-16 rounded-md border border-(--border-color) bg-(--bg-page) px-2 py-1 text-center font-[Outfit] text-sm text-(--text-main)" @change="handleDetailUpdateItem(item.id, 'quantity', item.quantity)" />
                       </div>
                       <div class="flex flex-col items-center">
                         <span class="mb-1 text-[10px] text-(--text-secondary)">{{ t('purchaseOrder.table.unitCost') }}</span>
                         <div class="relative">
                           <span class="absolute top-1.5 left-2 text-xs text-(--text-secondary)">¥</span>
-                          <input v-model.number="item.unit_cost" type="number" step="0.01" min="0" class="w-20 rounded-md border border-(--border-color) bg-(--bg-page) py-1 pr-2 pl-5 text-right font-[Outfit] text-sm text-(--text-main) focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" @change="handleDetailUpdateItem(item.id, 'unit_cost', item.unit_cost)" />
+                          <input v-model.number="item.unit_cost" type="number" step="0.01" min="0" class="focus:border-primary focus:ring-primary focus:ring-1 focus:outline-none w-20 rounded-md border border-(--border-color) bg-(--bg-page) py-1 pr-2 pl-5 text-right font-[Outfit] text-sm text-(--text-main)" @change="handleDetailUpdateItem(item.id, 'unit_cost', item.unit_cost)" />
                         </div>
                       </div>
                     </div>
@@ -353,7 +353,7 @@
                 <!-- 左侧：次要/辅助操作 -->
                 <button
                   v-if="nextStatuses.includes('cancelled')"
-                  class="cursor-pointer rounded-xl px-4 py-2 text-sm font-medium text-danger transition-colors hover:bg-danger/10"
+                  class="text-danger cursor-pointer rounded-xl px-4 py-2 text-sm font-medium transition-colors hover:bg-danger/10"
                   @click="handleStatusUpdate('cancelled')"
                 >
                   {{ t('purchaseOrder.action.cancelOrder') }}
@@ -365,7 +365,7 @@
                 <button
                   v-for="ns in nextStatuses.filter(s => s !== 'cancelled')"
                   :key="ns"
-                  class="cursor-pointer rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:bg-primary/90 hover:shadow"
+                  class="bg-primary cursor-pointer rounded-xl px-6 py-2.5 text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:bg-primary/90 hover:shadow"
                   @click="handleStatusUpdate(ns)"
                 >
                   {{ t('purchaseOrder.action.updateTo') }}: {{ statusConfig[ns]?.label || ns }}
@@ -398,20 +398,20 @@
                 <!-- 基础信息 -->
                 <div>
                   <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.remark') }}</label>
-                  <input v-model="createForm.remark" type="text" class="mt-1 w-full rounded-xl border border-(--border-color) bg-(--bg-page) px-3 py-2.5 text-sm text-(--text-main) focus:ring-2 focus:ring-primary focus:outline-none" :placeholder="t('purchaseOrder.form.remarkPlaceholder')" />
+                  <input v-model="createForm.remark" type="text" class="focus:ring-primary focus:ring-2 focus:outline-none mt-1 w-full rounded-xl border border-(--border-color) bg-(--bg-page) px-3 py-2.5 text-sm text-(--text-main)" :placeholder="t('purchaseOrder.form.remarkPlaceholder')" />
                 </div>
                 <div class="grid grid-cols-3 gap-4">
                   <div>
                     <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedShipping') }}</label>
-                    <input v-model.number="createForm.estimated_shipping_cost" type="number" step="0.01" class="mt-1 w-full rounded-xl border border-(--border-color) bg-(--bg-page) px-3 py-2.5 text-sm text-(--text-main) focus:ring-2 focus:ring-primary focus:outline-none" />
+                    <input v-model.number="createForm.estimated_shipping_cost" type="number" step="0.01" class="focus:ring-primary focus:ring-2 focus:outline-none mt-1 w-full rounded-xl border border-(--border-color) bg-(--bg-page) px-3 py-2.5 text-sm text-(--text-main)" />
                   </div>
                   <div>
                     <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedTariff') }}</label>
-                    <input v-model.number="createForm.estimated_tariff_cost" type="number" step="0.01" class="mt-1 w-full rounded-xl border border-(--border-color) bg-(--bg-page) px-3 py-2.5 text-sm text-(--text-main) focus:ring-2 focus:ring-primary focus:outline-none" />
+                    <input v-model.number="createForm.estimated_tariff_cost" type="number" step="0.01" class="focus:ring-primary focus:ring-2 focus:outline-none mt-1 w-full rounded-xl border border-(--border-color) bg-(--bg-page) px-3 py-2.5 text-sm text-(--text-main)" />
                   </div>
                   <div>
                     <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.allocationMethod') }}</label>
-                    <select v-model="createForm.allocation_method" class="mt-1 w-full rounded-xl border border-(--border-color) bg-(--bg-page) px-3 py-2.5 text-sm text-(--text-main) focus:ring-2 focus:ring-primary focus:outline-none">
+                    <select v-model="createForm.allocation_method" class="focus:ring-primary focus:ring-2 focus:outline-none mt-1 w-full rounded-xl border border-(--border-color) bg-(--bg-page) px-3 py-2.5 text-sm text-(--text-main)">
                       <option value="by_quantity">{{ t('purchaseOrder.form.byQuantity') }}</option>
                       <option value="by_value">{{ t('purchaseOrder.form.byValue') }}</option>
                     </select>
@@ -429,7 +429,7 @@
                     <div class="flex items-center gap-2">
                       <button
                         type="button"
-                        class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+                        class="border-primary/30 bg-primary/5 text-primary flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-primary/10"
                         @click="openOrderPicker('create')"
                       >
                         <AppIcon name="clipboard-document-list" class="size-3.5" />
@@ -494,14 +494,14 @@
                                 v-model.number="item.quantity"
                                 type="number"
                                 min="1"
-                                class="w-20 rounded-lg border px-2 py-1.5 text-center font-[Outfit] text-sm transition-colors focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                                class="focus:ring-primary/20 focus:ring-2 focus:outline-none w-20 rounded-lg border px-2 py-1.5 text-center font-[Outfit] text-sm transition-colors"
                                 :class="item.required_quantity && item.quantity < item.required_quantity
                                   ? 'border-danger bg-danger/5 text-danger'
                                   : 'border-(--border-color) bg-(--bg-page) text-(--text-main)'"
                               />
                               <span
                                 v-if="item.required_quantity && item.quantity < item.required_quantity"
-                                class="mt-1 text-[10px] font-medium text-danger"
+                                class="text-danger mt-1 text-[10px] font-medium"
                               >
                                 {{ t('purchaseOrder.form.quantityWarning') }} ({{ item.required_quantity }})
                               </span>
@@ -515,7 +515,7 @@
                               type="number"
                               step="0.01"
                               min="0"
-                              class="w-24 rounded-lg border border-(--border-color) bg-(--bg-page) px-2 py-1.5 text-right font-[Outfit] text-sm text-(--text-main) transition-colors focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                              class="focus:ring-primary/20 focus:ring-2 focus:outline-none w-24 rounded-lg border border-(--border-color) bg-(--bg-page) px-2 py-1.5 text-right font-[Outfit] text-sm text-(--text-main) transition-colors"
                             />
                           </td>
 
@@ -523,7 +523,7 @@
                           <td class="px-4 py-3 text-center">
                             <span
                               v-if="item.pre_order_id"
-                              class="inline-flex items-center gap-1 rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-semibold text-info"
+                              class="bg-info/10 text-info inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
                             >
                             <AppIcon name="shopping-bag" class="size-3" />
                               {{ t('purchaseOrder.form.sourceOrder') }}
@@ -538,7 +538,7 @@
                           <td class="px-2 py-3">
                             <button
                               type="button"
-                              class="cursor-pointer rounded-lg p-1.5 text-(--text-muted) opacity-0 transition-all group-hover:opacity-100 hover:bg-danger/10 hover:text-danger"
+                              class="hover:bg-danger/10 hover:text-danger cursor-pointer rounded-lg p-1.5 text-(--text-muted) opacity-0 transition-all group-hover:opacity-100"
                               @click="removePoItem(idx)"
                             >
                                 <AppIcon name="trash" class="size-4" />
@@ -566,7 +566,7 @@
                 <button
                   type="button"
                   :disabled="poItems.length === 0"
-                  class="cursor-pointer rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  class="bg-primary cursor-pointer rounded-xl px-5 py-2.5 text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                   @click="handleCreate"
                 >
                   {{ t('common.create') }}
@@ -593,16 +593,16 @@
           <div class="absolute inset-0 bg-(--color-overlay-dim) backdrop-blur-sm" @click="showShortageConfirm = false"></div>
           <div class="relative w-full max-w-md rounded-2xl bg-(--color-modal-bg) p-6 shadow-xl">
             <div class="mb-4 flex items-center gap-3">
-              <div class="flex size-10 items-center justify-center rounded-full bg-warning/10">
-                <AppIcon name="exclamation-triangle" class="size-5 text-warning" />
+              <div class="bg-warning/10 flex size-10 items-center justify-center rounded-full">
+                <AppIcon name="exclamation-triangle" class="text-warning size-5" />
               </div>
               <h3 class="text-base font-bold text-(--text-main)">{{ t('purchaseOrder.form.confirmShortageTitle') }}</h3>
             </div>
             <p class="mb-5 text-sm text-(--text-secondary)">{{ t('purchaseOrder.form.confirmShortage') }}</p>
-            <div class="mb-5 max-h-40 overflow-y-auto rounded-xl border border-warning/20 bg-warning/5 p-3">
+            <div class="border-warning/20 bg-warning/5 mb-5 max-h-40 overflow-y-auto rounded-xl border p-3">
               <div v-for="item in shortageItems" :key="`${item.product_id || 'p'}-${item.variant_id || 'v'}`" class="flex items-center justify-between py-1 text-sm">
                 <span class="text-(--text-main)">{{ item.product_name }}</span>
-                <span class="font-[Outfit] text-danger">
+                <span class="text-danger font-[Outfit]">
                   {{ item.quantity }} / {{ item.required_quantity }}
                 </span>
               </div>
@@ -611,7 +611,7 @@
               <button type="button" class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-(--text-secondary) hover:bg-(--bg-hover)" @click="showShortageConfirm = false">
                 {{ t('common.cancel') }}
               </button>
-              <button type="button" class="cursor-pointer rounded-xl bg-warning px-4 py-2.5 text-sm font-medium text-white hover:opacity-90" @click="executeCreate">
+              <button type="button" class="bg-warning cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-white hover:opacity-90" @click="executeCreate">
                 {{ t('purchaseOrder.form.confirmCreate') }}
               </button>
             </div>
@@ -647,7 +647,7 @@
             </div>
 
             <div v-if="suggestionsLoading" class="flex items-center justify-center py-12">
-              <div class="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+              <div class="border-primary size-8 animate-spin rounded-full border-4 border-t-transparent"></div>
             </div>
             <div v-else-if="suggestions.length === 0" class="py-12 text-center">
               <AppIcon name="light-bulb" class="mx-auto size-10 text-(--text-muted)" />
@@ -660,7 +660,7 @@
                 class="flex items-center justify-between rounded-xl border border-(--border-subtle) p-3 transition-colors hover:bg-(--bg-hover)"
               >
                 <div class="flex items-center gap-3">
-                  <input v-model="selectedSuggestions" :value="s" type="checkbox" class="size-4 cursor-pointer rounded border-(--border-color) text-primary focus:ring-primary" />
+                  <input v-model="selectedSuggestions" :value="s" type="checkbox" class="text-primary size-4 cursor-pointer rounded border-(--border-color) focus:ring-primary" />
                   <div>
                     <div class="text-sm font-medium text-(--text-main)">{{ s.product_name }}</div>
                     <div class="text-xs text-(--text-secondary)">
@@ -672,7 +672,7 @@
                   </div>
                 </div>
                 <div class="flex items-center gap-4 text-xs">
-                  <span class="font-semibold text-danger">{{ t('purchaseOrder.suggestions.shortage') }}: {{ s.shortage }}</span>
+                  <span class="text-danger font-semibold">{{ t('purchaseOrder.suggestions.shortage') }}: {{ s.shortage }}</span>
                   <span class="text-(--text-secondary)">{{ t('purchaseOrder.suggestions.stock') }}: {{ s.stock_quantity }}</span>
                   <span class="font-[Outfit] text-(--text-secondary)">成本 ¥{{ (s.variant_cost_price || s.cost_price || 0).toFixed(2) }}</span>
                   <span class="font-[Outfit] text-(--text-secondary)">建议 ¥{{ (s.suggested_purchase_price || s.cost_price || 0).toFixed(2) }}</span>
@@ -692,7 +692,7 @@
 
             <div v-if="suggestions.length > 0" class="mt-4 flex justify-end gap-3">
               <button
-                class="cursor-pointer rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-(--text-inverse) transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                class="bg-primary cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-(--text-inverse) transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 :disabled="selectedSuggestions.length === 0"
                 @click="handleCreateFromSuggestions"
               >

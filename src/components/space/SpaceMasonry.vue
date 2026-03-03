@@ -15,7 +15,7 @@
       <button
         v-if="hasFiles"
         :disabled="downloading"
-        class="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-(--text-inverse) transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        class="bg-primary flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         @click="handleDownloadAll"
       >
         <AppIcon v-if="downloading" name="spinner" class="size-4 animate-spin" />

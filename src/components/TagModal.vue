@@ -25,7 +25,7 @@
 
       <!-- Tag List Loading -->
       <div v-if="loadingTags" class="flex justify-center p-4">
-        <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+        <div class="border-primary size-6 animate-spin rounded-full border-2 border-t-transparent"></div>
       </div>
 
       <!-- Tag List -->
@@ -33,7 +33,7 @@
         <button
           v-for="tag in tags"
           :key="tag.id"
-          class="flex items-center gap-1.5 rounded-full border border-(--border-color) bg-(--bg-muted) px-3 py-1.5 text-sm transition-all hover:border-primary hover:bg-primary/10 hover:text-primary"
+          class="hover:border-primary hover:bg-primary/10 hover:text-primary flex items-center gap-1.5 rounded-full border border-(--border-color) bg-(--bg-muted) px-3 py-1.5 text-sm transition-all"
           @click="handleAssignTag(tag)"
         >
           <span

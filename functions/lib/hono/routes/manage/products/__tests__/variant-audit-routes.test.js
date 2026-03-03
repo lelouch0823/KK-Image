@@ -23,6 +23,10 @@ const mockDimensionRepo = {
   addValue: vi.fn(),
   updateValueMeta: vi.fn(),
 };
+const mockFolderUtils = {
+  ensureVariantFolder: vi.fn(),
+  moveFilesToFolder: vi.fn(),
+};
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
   ProductRepository: class {
@@ -65,6 +69,11 @@ vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
   },
 }));
 
+vi.mock('../../../../../../api/utils/folder-utils.js', () => ({
+  ensureVariantFolder: (...args) => mockFolderUtils.ensureVariantFolder(...args),
+  moveFilesToFolder: (...args) => mockFolderUtils.moveFilesToFolder(...args),
+}));
+
 vi.mock('../../../../middleware/cache.js', () => ({
   invalidateCache: vi.fn(async () => {}),
   getProductCacheUrls: vi.fn(() => []),
@@ -89,6 +98,8 @@ describe('product variant audit routes', () => {
     mockDimensionRepo.updateDimension.mockResolvedValue({ id: 'dim-color', name: 'Color' });
     mockDimensionRepo.addValue.mockResolvedValue({ id: 'val-red', value: 'Red' });
     mockDimensionRepo.updateValueMeta.mockResolvedValue();
+    mockFolderUtils.ensureVariantFolder.mockResolvedValue('folder-variant');
+    mockFolderUtils.moveFilesToFolder.mockResolvedValue(undefined);
   });
 
   it('PATCH /:id writes audit logs for variant changes', async () => {
@@ -186,6 +197,16 @@ describe('product variant audit routes', () => {
       'p1',
       'v-new',
       [{ image_id: 'img-new', is_primary: 1 }]
+    );
+    expect(mockFolderUtils.ensureVariantFolder).toHaveBeenCalledWith(
+      expect.anything(),
+      'p1',
+      'v-new'
+    );
+    expect(mockFolderUtils.moveFilesToFolder).toHaveBeenCalledWith(
+      expect.anything(),
+      ['img-new'],
+      'folder-variant'
     );
   });
 

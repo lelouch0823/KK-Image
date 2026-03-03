@@ -73,7 +73,7 @@
                     </h4>
                     <button
                       type="button"
-                      class="text-sm font-medium text-primary"
+                      class="text-primary text-sm font-medium"
                       @click="showVariantImageManager = true"
                     >
                       {{ t('product.form.manage_variant_images', 'Manage Variant Images') }}

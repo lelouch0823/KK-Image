@@ -6,15 +6,15 @@
       class="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all duration-200"
       :class="[
         currentTab === item.id
-          ? 'bg-(--color-primary-bg) text-primary shadow-sm ring-1 ring-(--color-primary-light) ring-inset'
-          : 'text-(--text-secondary) hover:bg-(--bg-hover) hover:text-primary',
+          ? 'text-primary bg-(--color-primary-bg) shadow-sm ring-1 ring-(--color-primary-light) ring-inset'
+          : 'hover:text-primary hover:bg-(--bg-hover) text-(--text-secondary)',
       ]"
       @click="$emit('update:currentTab', item.id)"
     >
       <AppIcon
         :name="item.icon"
         class="size-5 shrink-0 transition-colors"
-        :class="[currentTab === item.id ? 'text-primary' : 'text-(--text-muted) group-hover:text-primary']"
+        :class="[currentTab === item.id ? 'text-primary' : 'group-hover:text-primary text-(--text-muted)']"
       />
       <span>{{ item.label }}</span>
       <span

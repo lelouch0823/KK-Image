@@ -60,7 +60,7 @@
               </h2>
               <span
                 v-if="form.isPublic"
-                class="rounded-full bg-(--color-success-bg) px-1.5 py-0.5 text-[10px] font-medium text-success"
+                class="text-success rounded-full bg-(--color-success-bg) px-1.5 py-0.5 text-[10px] font-medium"
                 >🌐 {{ t('spaceManager.publicOn') }}</span
               >
               <span

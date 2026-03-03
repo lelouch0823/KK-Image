@@ -88,14 +88,14 @@
           />
           
           <!-- Image Attachment Preview -->
-          <div v-if="attachedImage" class="mb-3 relative inline-block">
-            <div class="rounded-xl overflow-hidden border border-(--border-color) bg-(--bg-muted) w-16 h-16 shadow-sm flex items-center justify-center">
-              <img :src="attachedImage" alt="Attached" class="max-w-full max-h-full object-cover" />
+          <div v-if="attachedImage" class="relative mb-3 inline-block">
+            <div class="flex size-16  items-center justify-center overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-muted) shadow-sm">
+              <img :src="attachedImage" alt="Attached" class="max-h-full max-w-full object-cover" />
             </div>
             <button 
               type="button"
+              class="absolute -top-2 -right-2 cursor-pointer rounded-full bg-red-500 p-0.5 text-white shadow-md transition-colors hover:bg-red-600"
               @click="attachedImage = null"
-              class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 shadow-md hover:bg-red-600 transition-colors cursor-pointer"
             >
               <AppIcon name="x-mark" class="size-3" />
             </button>
@@ -106,8 +106,8 @@
             @submit.prevent="sendMessage"
           >
             <input 
-              type="file" 
               ref="fileInput" 
+              type="file" 
               class="hidden" 
               accept="image/*" 
               @change="onFileSelect" 
@@ -116,7 +116,7 @@
               :disabled="isStreamingLoading"
               type="button"
               :title="t('ai.uploadImage', '上传图片')"
-              class="text-(--text-secondary) rounded-xl p-2.5 transition-colors hover:bg-(--bg-muted) hover:text-primary shrink-0 cursor-pointer disabled:opacity-30 mb-0.5"
+              class="hover:text-primary hover:bg-(--bg-muted) mb-0.5 shrink-0 cursor-pointer rounded-xl p-2.5 text-(--text-secondary) transition-colors disabled:opacity-30"
               @click="triggerFileInput"
             >
               <AppIcon name="photo" class="size-5" />
@@ -133,7 +133,7 @@
               <button
                 :disabled="(!userInput.trim() && !attachedImage) || isStreamingLoading"
                 type="submit"
-                class="text-primary absolute right-2 top-1.5 rounded-lg p-1.5 transition-all hover:bg-primary/10 disabled:opacity-30 cursor-pointer"
+                class="text-primary absolute top-1.5 right-2 cursor-pointer rounded-lg p-1.5 transition-all hover:bg-primary/10 disabled:opacity-30"
               >
                 <AppIcon name="paper-airplane" class="size-5" />
               </button>

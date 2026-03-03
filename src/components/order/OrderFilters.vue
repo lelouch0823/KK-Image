@@ -5,7 +5,7 @@
       <div class="hidden shrink-0 items-center gap-2 sm:flex">
         <button
           v-if="showCreate"
-          class="flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-(--text-inverse) shadow-primary/20 shadow-sm transition-all hover:opacity-90 active:scale-95"
+          class="bg-primary shadow-primary/20 flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:opacity-90 active:scale-95"
           @click="$emit('create')"
         >
           <AppIcon name="plus" class="size-4" />
@@ -14,7 +14,7 @@
 
         <!-- Stats Button -->
         <button
-          class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) text-primary transition-all hover:bg-(--bg-card-hover) active:scale-95"
+          class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) transition-all hover:bg-(--bg-card-hover) active:scale-95"
           :title="t('dashboard.stats')"
           @click="$emit('show-stats')"
         >
@@ -36,7 +36,7 @@
       <div class="flex shrink-0 items-center gap-1 sm:hidden">
         <button
           v-if="showCreate"
-          class="flex size-9 items-center justify-center rounded-lg bg-primary text-(--text-inverse) shadow-sm transition-all active:scale-95"
+          class="bg-primary flex size-9 items-center justify-center rounded-lg text-(--text-inverse) shadow-sm transition-all active:scale-95"
           :title="t('order.manage.create')"
           @click="$emit('create')"
         >
@@ -45,7 +45,7 @@
         
         <!-- Mobile Stats Button -->
         <button
-          class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) text-primary transition-all active:scale-95"
+          class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) transition-all active:scale-95"
           :title="t('dashboard.stats')"
           @click="$emit('show-stats')"
         >

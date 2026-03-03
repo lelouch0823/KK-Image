@@ -13,7 +13,7 @@
         <div class="relative w-full max-w-md transform overflow-hidden rounded-2xl border border-(--border-danger) bg-(--bg-card) shadow-xl transition-all">
           <div class="p-6 sm:p-8">
             <div class="mx-auto mb-5 flex size-12 items-center justify-center rounded-full bg-(--color-danger-bg)">
-              <svg class="size-6 text-danger" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <svg class="text-danger size-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
@@ -36,7 +36,7 @@
                 v-model="inputValue" 
                 type="text"
                 :placeholder="requiredText"
-                class="w-full rounded-xl border border-(--border-color) bg-(--bg-muted) px-4 py-2.5 font-mono text-sm text-(--text-main) transition-all outline-none focus:border-danger focus:ring-4 focus:ring-(--border-danger)"
+                class="focus:border-danger focus:ring-4 focus:ring-(--border-danger) w-full rounded-xl border border-(--border-color) bg-(--bg-muted) px-4 py-2.5 font-mono text-sm text-(--text-main) transition-all outline-none"
                 @keyup.enter="handleConfirm"
               />
             </div>
@@ -45,7 +45,7 @@
           <div class="flex flex-col-reverse gap-3 bg-(--bg-page)/50 px-6 py-4 sm:flex-row sm:justify-end sm:px-8">
             <button
               type="button"
-              class="inline-flex w-full items-center justify-center rounded-xl border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-semibold text-(--text-main) shadow-sm transition-colors hover:bg-(--bg-muted) focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none disabled:opacity-50 sm:w-auto"
+              class="focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:outline-none inline-flex w-full items-center justify-center rounded-xl border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-semibold text-(--text-main) shadow-sm transition-colors hover:bg-(--bg-muted) disabled:opacity-50 sm:w-auto"
               :disabled="loading"
               @click="close"
             >
@@ -53,7 +53,7 @@
             </button>
              <button
               type="button"
-              class="inline-flex w-full items-center justify-center rounded-xl border border-transparent bg-danger px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-(--color-danger-text) focus:ring-2 focus:ring-danger focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+              class="bg-danger inline-flex w-full items-center justify-center rounded-xl border border-transparent px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors focus:ring-danger focus:ring-2 focus:ring-offset-2 focus:outline-none hover:bg-(--color-danger-text) disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               :disabled="!isValid || loading"
               @click="handleConfirm"
             >

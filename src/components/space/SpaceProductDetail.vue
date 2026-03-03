@@ -56,7 +56,7 @@
                 <a
                   :href="currentFile.url"
                   download
-                  class="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-(--text-inverse) transition-colors hover:bg-(--color-primary-hover)"
+                  class="bg-primary flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) transition-colors hover:bg-(--color-primary-hover)"
                   @click.stop
                 >
                   <AppIcon name="arrow-down-tray" class="size-4" />
@@ -89,7 +89,7 @@
               class="text-secondary flex size-full flex-col items-center justify-center gap-4 bg-(--bg-muted) p-8 text-center"
             >
               <div class="flex size-20 items-center justify-center rounded-2xl bg-(--bg-card) shadow-sm">
-                <AppIcon name="document-text" class="size-10 text-primary" />
+                <AppIcon name="document-text" class="text-primary size-10" />
               </div>
               <div>
                 <h3 class="font-medium text-(--text-main)">{{ currentFile.name }}</h3>
@@ -206,7 +206,7 @@
           <span class="text-sm font-medium text-(--text-secondary)">¥</span>
           <span class="text-3xl font-bold tracking-tight text-(--text-main)">{{ formatPrice(templateData.price) }}</span>
         </div>
-        <div v-else-if="templateData.price" class="flex items-center gap-3 rounded-xl border border-[var(--color-primary-light,rgba(59,130,246,0.1))] bg-[var(--color-primary-light,rgba(59,130,246,0.05))] p-4 text-primary">
+        <div v-else-if="templateData.price" class="text-primary flex items-center gap-3 rounded-xl border border-[var(--color-primary-light,rgba(59,130,246,0.1))] bg-[var(--color-primary-light,rgba(59,130,246,0.05))] p-4">
            <div class="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-light,rgba(59,130,246,0.15))]">
              <AppIcon name="chat-bubble-left-right" class="size-5" />
            </div>
@@ -257,7 +257,7 @@
             v-if="currentFile"
             :href="currentFile.url"
             download
-            class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-medium text-(--text-inverse) shadow-[var(--color-primary-light,rgba(59,130,246,0.2))] shadow-lg transition-all hover:-translate-y-[1px] hover:bg-(--color-primary-hover) active:translate-y-0"
+            class="bg-primary flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-(--text-inverse) shadow-[var(--color-primary-light,rgba(59,130,246,0.2))] shadow-lg transition-all hover:-translate-y-[1px] hover:bg-(--color-primary-hover) active:translate-y-0"
           >
             <AppIcon name="arrow-down-tray" class="size-5" />
             {{ t('spacePublic.downloadCurrent') }}
@@ -266,7 +266,7 @@
           <button
             v-if="hasMultipleFiles"
             :disabled="downloading"
-            class="flex w-full items-center justify-center gap-2 rounded-xl border border-(--border-color) bg-(--bg-card) py-3 font-medium text-primary transition-all hover:-translate-y-[1px] hover:bg-(--bg-surface-hover) hover:shadow-sm active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+            class="text-primary flex w-full items-center justify-center gap-2 rounded-xl border border-(--border-color) bg-(--bg-card) py-3 font-medium transition-all hover:-translate-y-[1px] hover:bg-(--bg-surface-hover) hover:shadow-sm active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             @click="handleDownloadAll"
           >
             <AppIcon v-if="downloading" name="spinner" class="size-5 animate-spin" />
@@ -296,9 +296,9 @@
         <div v-if="templateData.price && Number(templateData.price) > 0" class="mr-auto flex flex-col justify-center px-1">
            <span class="text-[10px] leading-none text-(--text-secondary)">{{ t('spaceManager.price') }}</span>
            <div class="mt-0.5 flex items-baseline gap-0.5">
-             <span class="text-[10px] text-primary">¥</span>
-             <span class="text-lg leading-none font-bold tracking-tight text-primary">{{ formatPrice(templateData.price).split('.')[0] }}</span>
-             <span class="text-[10px] font-medium text-primary opacity-80">.{{ formatPrice(templateData.price).split('.')[1] }}</span>
+             <span class="text-primary text-[10px]">¥</span>
+             <span class="text-primary text-lg leading-none font-bold tracking-tight">{{ formatPrice(templateData.price).split('.')[0] }}</span>
+             <span class="text-primary text-[10px] font-medium opacity-80">.{{ formatPrice(templateData.price).split('.')[1] }}</span>
            </div>
         </div>
         
@@ -306,7 +306,7 @@
           v-if="currentFile"
           :href="currentFile.url"
           download
-          class="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--color-primary-light,rgba(59,130,246,0.2))] bg-[var(--color-primary-light,rgba(59,130,246,0.05))] py-3 font-medium text-primary transition-transform active:scale-95"
+          class="text-primary flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--color-primary-light,rgba(59,130,246,0.2))] bg-[var(--color-primary-light,rgba(59,130,246,0.05))] py-3 font-medium transition-transform active:scale-95"
         >
           <AppIcon name="arrow-down-tray" class="size-5" />
           <span class="text-sm font-semibold">{{ t('spacePublic.download') }}</span>
@@ -315,7 +315,7 @@
         <button
           v-if="hasMultipleFiles || (displayFiles.length > 0 && isDesktop)"
           :disabled="downloading"
-          class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 font-medium text-(--text-inverse) shadow-[var(--color-primary-light,rgba(59,130,246,0.2))] shadow-lg transition-transform active:scale-95 disabled:scale-100 disabled:opacity-50"
+          class="bg-primary flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-medium text-(--text-inverse) shadow-[var(--color-primary-light,rgba(59,130,246,0.2))] shadow-lg transition-transform active:scale-95 disabled:scale-100 disabled:opacity-50"
           @click="handleDownloadAll"
         >
           <AppIcon v-if="downloading" name="spinner" class="size-5 animate-spin" />

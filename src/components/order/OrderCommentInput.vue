@@ -27,7 +27,7 @@
     <div v-if="error && text.trim()" class="px-3 pb-3">
       <button
         type="button"
-        class="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
+        class="bg-primary rounded-lg px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
         data-testid="comment-retry"
         @click="retry"
       >

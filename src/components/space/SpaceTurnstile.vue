@@ -4,9 +4,9 @@
       <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-8 text-center shadow-lg">
         <!-- Logo/Icon -->
         <div
-          class="mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl bg-primary/10"
+          class="bg-primary/10 mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl"
         >
-          <AppIcon name="shield-check" class="size-8 text-primary" />
+          <AppIcon name="shield-check" class="text-primary size-8" />
         </div>
 
         <h2 class="mb-2 text-xl font-semibold text-(--text-main)">{{ t('spacePublic.verifyHuman') }}</h2>
@@ -23,7 +23,7 @@
         <!-- Loading State -->
         <div v-if="verifying" class="flex items-center justify-center gap-2 text-(--text-secondary)">
           <div
-            class="size-4 animate-spin rounded-full border-2 border-(--border-subtle) border-t-primary"
+            class="border-t-primary size-4 animate-spin rounded-full border-2 border-(--border-subtle)"
           ></div>
           <span class="text-sm">{{ t('spacePublic.verifying') }}</span>
         </div>

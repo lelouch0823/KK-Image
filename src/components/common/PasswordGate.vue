@@ -30,7 +30,7 @@
             {{ buttonText || t('common.confirm') }}
           </button>
         </form>
-        <p v-if="error" class="mt-4 text-center text-sm text-danger">{{ error }}</p>
+        <p v-if="error" class="text-danger mt-4 text-center text-sm">{{ error }}</p>
       </div>
     </div>
   </div>

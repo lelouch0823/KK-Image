@@ -6,7 +6,7 @@
       class="group relative cursor-pointer rounded-xl border p-3 transition-all hover:shadow-md active:scale-[0.98] sm:p-4"
       :class="[
         selectedIds.has(folder.id)
-          ? 'border-primary bg-primary/10 ring-1 ring-primary dark:bg-primary/20'
+          ? 'border-primary bg-primary/10 ring-primary ring-1 dark:bg-primary/20'
           : 'border-(--border-color) bg-(--bg-card) hover:border-(--border-hover)'
       ]"
       @click="$emit('navigate', folder.id)"
@@ -16,11 +16,11 @@
         <!-- 文件夹图标: 移动端 size-12, 桌面端 size-16 -->
         <AppIcon
           name="folder-solid"
-          class="mb-2 size-12 text-warning transition-transform group-hover:scale-110 sm:size-14 lg:size-16"
+          class="text-warning mb-2 size-12 transition-transform group-hover:scale-110 sm:size-14 lg:size-16"
         />
         <!-- 文件夹名称 -->
         <div
-          class="w-full truncate px-1 text-center text-xs font-medium text-primary sm:px-2 sm:text-sm"
+          class="text-primary w-full truncate px-1 text-center text-xs font-medium sm:px-2 sm:text-sm"
           :title="folder.name"
         >
           {{ folder.name }}

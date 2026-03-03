@@ -24,8 +24,8 @@
     <!-- 公开链接区域 -->
     <div v-if="isPublic" class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card)">
       <div class="flex items-center gap-3 border-b border-(--border-color) px-5 py-4">
-        <div class="flex size-9 items-center justify-center rounded-lg bg-success/10">
-          <AppIcon name="link" class="size-4.5 text-success" />
+        <div class="bg-success/10 flex size-9 items-center justify-center rounded-lg">
+          <AppIcon name="link" class="text-success size-4.5" />
         </div>
         <div class="flex-1">
           <h3 class="text-sm font-semibold text-(--text-main)">{{ t('spaceManager.publicLink') || '公开链接' }}</h3>

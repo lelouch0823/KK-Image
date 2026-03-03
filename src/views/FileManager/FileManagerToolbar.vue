@@ -52,18 +52,18 @@
       >
         <div 
           v-if="selectedCount > 0" 
-          class="flex items-center gap-1 overflow-hidden rounded-lg border border-primary/20 bg-primary/5 px-2 py-1.5 transition-all"
+          class="border-primary/20 bg-primary/5 flex items-center gap-1 overflow-hidden rounded-lg border px-2 py-1.5 transition-all"
         >
-          <span class="mr-1 text-xs font-medium text-primary lg:mr-2">{{
+          <span class="text-primary mr-1 text-xs font-medium lg:mr-2">{{
             t('fileManager.selected', { count: selectedCount })
           }}</span>
           
-          <div class="h-4 w-px bg-primary/20"></div>
+          <div class="bg-primary/20 h-4 w-px"></div>
 
           <AppButton
             variant="ghost"
             size="sm"
-            class="!px-1.5 text-success hover:bg-success/10 hover:text-success"
+            class="text-success !px-1.5 hover:bg-success/10 hover:text-success"
             :title="t('fileManager.actions.tag')"
             @click="$emit('batch-tag')"
           >
@@ -75,7 +75,7 @@
           <AppButton
             variant="ghost"
             size="sm"
-            class="!px-1.5 text-info hover:bg-info/10 hover:text-info"
+            class="text-info !px-1.5 hover:bg-info/10 hover:text-info"
             :title="t('fileManager.actions.move')"
             @click="$emit('batch-move')"
           >
@@ -87,7 +87,7 @@
           <AppButton
             variant="ghost"
             size="sm"
-            class="!px-1.5 text-danger hover:bg-danger/10 hover:text-danger"
+            class="text-danger !px-1.5 hover:bg-danger/10 hover:text-danger"
             :title="t('fileManager.actions.delete')"
             @click="$emit('batch-delete')"
           >
@@ -148,7 +148,7 @@
       <!-- 回收站 -->
       <Tooltip :content="t('trash.title')">
         <button
-          class="text-secondary flex size-9 items-center justify-center rounded-xl border border-(--border-color) bg-(--bg-card) transition-all hover:border-red-200 hover:bg-red-50 hover:text-danger active:scale-95 lg:size-10"
+          class="text-secondary flex size-9 items-center justify-center rounded-xl border border-(--border-color) bg-(--bg-card) transition-all hover:text-danger hover:border-red-200 hover:bg-red-50 active:scale-95 lg:size-10"
           @click="$emit('open-trash')"
         >
           <AppIcon name="trash" class="size-4 lg:size-5" />
@@ -175,7 +175,7 @@
               size="sm"
               variant="ghost"
               class="!h-7 !p-1.5"
-              :class="{ 'bg-(--bg-card) text-primary shadow-sm': viewMode === mode }"
+              :class="{ 'text-primary bg-(--bg-card) shadow-sm': viewMode === mode }"
               @click="$emit('update:viewMode', mode)"
           >
               <template #icon-left>

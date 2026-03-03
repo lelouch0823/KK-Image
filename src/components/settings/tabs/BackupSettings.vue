@@ -8,7 +8,7 @@
       <template #action>
         <button
           :disabled="creating"
-          class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+          class="bg-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
           @click="createBackup"
         >
           <AppIcon v-if="creating" name="spinner" class="size-4 animate-spin" />
@@ -28,7 +28,7 @@
         >
           <template #cell-name="{ row: backup }">
             <div class="flex items-center gap-3 font-medium text-(--text-main)">
-              <AppIcon name="document" class="size-5 text-(--text-muted) transition-colors group-hover:text-primary" />
+              <AppIcon name="document" class="group-hover:text-primary size-5 text-(--text-muted) transition-colors" />
               {{ backup.name }}
             </div>
           </template>
@@ -41,7 +41,7 @@
           <template #cell-actions="{ row: backup }">
             <div class="flex justify-end pr-2">
               <button
-                class="inline-flex items-center gap-1.5 rounded-md border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-xs font-medium text-(--text-main) shadow-sm transition-colors hover:bg-(--bg-hover) hover:text-primary"
+                class="hover:text-primary hover:bg-(--bg-hover) inline-flex items-center gap-1.5 rounded-md border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-xs font-medium text-(--text-main) shadow-sm transition-colors"
                 @click="downloadBackup(backup)"
               >
                 <AppIcon name="arrow-down-tray" class="size-3.5" />

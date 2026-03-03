@@ -15,12 +15,12 @@
             <AppIcon
               v-if="isUploading"
               name="spinner"
-              class="size-5 animate-spin text-info"
+              class="text-info size-5 animate-spin"
             />
             <AppIcon
               v-else
               name="check"
-              class="size-5 text-success"
+              class="text-success size-5"
             />
           </div>
 
@@ -130,7 +130,7 @@
               <!-- Action Button -->
               <button
                 v-if="item.status === 'error'"
-                class="rounded-full border border-(--border-color) bg-(--bg-card) p-1.5 text-warning shadow-sm transition-all hover:bg-(--color-warning-bg) hover:text-(--color-warning-text)"
+                class="text-warning rounded-full border border-(--border-color) bg-(--bg-card) p-1.5 shadow-sm transition-all hover:bg-(--color-warning-bg) hover:text-(--color-warning-text)"
                 :title="t('upload.retry')"
                 @click="retryFile(item.id)"
               >

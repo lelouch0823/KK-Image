@@ -4,6 +4,7 @@ import { ProductVariantRepository } from '../../../../../repositories/ProductVar
 import { ProductDimensionRepository } from '../../../../../repositories/ProductDimensionRepository.js';
 import { VariantImageRepository } from '../../../../../repositories/VariantImageRepository.js';
 import { resolveVariantImageSyncPlan } from './variant-image-sync.js';
+import { archiveVariantImagesByFolder } from './variant-image-folders.js';
 import { normalizeProductCurrency } from './currency.js';
 import { withCache, invalidateCache, getProductCacheUrls } from '../../../middleware/cache.js';
 import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
@@ -287,6 +288,11 @@ app.post('/', async (c) => {
         }
         for (const task of imageSyncPlan.tasks) {
             await variantImageRepo.syncImages(product.id, task.variantId, task.images);
+        }
+        try {
+            await archiveVariantImagesByFolder(env, product.id, imageSyncPlan.tasks);
+        } catch (error) {
+            console.error('Archive variant images by folder failed (product create):', error);
         }
     } catch (error) {
         // Compensating rollback: keep product+variant writes all-or-nothing for create flow.

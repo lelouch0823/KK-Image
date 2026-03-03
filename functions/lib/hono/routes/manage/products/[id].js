@@ -5,6 +5,7 @@ import { ProductDimensionRepository } from '../../../../../repositories/ProductD
 import { VariantImageRepository } from '../../../../../repositories/VariantImageRepository.js';
 import { VariantAuditRepository } from '../../../../../repositories/VariantAuditRepository.js';
 import { resolveVariantImageSyncPlan } from './variant-image-sync.js';
+import { archiveVariantImagesByFolder } from './variant-image-folders.js';
 import { normalizeProductCurrency } from './currency.js';
 import { invalidateCache, getProductCacheUrls } from '../../../middleware/cache.js';
 import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
@@ -557,6 +558,11 @@ app.patch('/:id', async (c) => {
         for (const task of imageSyncPlan.tasks) {
             await variantImageRepo.syncImages(id, task.variantId, task.images);
         }
+        try {
+            await archiveVariantImagesByFolder(env, id, imageSyncPlan.tasks);
+        } catch (error) {
+            console.error('Archive variant images by folder failed (product patch):', error);
+        }
 
         const events = variantRepo.buildAuditEvents(id, beforeVariants, afterVariants);
         await auditRepo.createBatch(events);
@@ -644,6 +650,11 @@ app.put('/:id', async (c) => {
         }
         for (const task of imageSyncPlan.tasks) {
             await variantImageRepo.syncImages(id, task.variantId, task.images);
+        }
+        try {
+            await archiveVariantImagesByFolder(env, id, imageSyncPlan.tasks);
+        } catch (error) {
+            console.error('Archive variant images by folder failed (product put):', error);
         }
 
         const events = variantRepo.buildAuditEvents(id, beforeVariants, afterVariants);

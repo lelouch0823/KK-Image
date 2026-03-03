@@ -65,7 +65,7 @@
           </button>
           <button
             :title="t('spaceManager.remove')"
-            class="rounded-full bg-white/90 p-2 text-danger transition-colors hover:bg-white"
+            class="text-danger rounded-full bg-white/90 p-2 transition-colors hover:bg-white"
             @click="$emit('remove', file.id)"
           >
             <AppIcon name="trash" class="size-4" />

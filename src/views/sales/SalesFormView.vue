@@ -25,7 +25,7 @@
       <p class="text-sm text-(--text-main)">{{ productFetchError }}</p>
       <button
         type="button"
-        class="mt-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
+        class="bg-primary mt-2 rounded-lg px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
         data-testid="product-fetch-retry"
         @click="retryProductFetch"
       >

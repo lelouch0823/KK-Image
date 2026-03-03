@@ -35,12 +35,12 @@
           <div class="min-h-0 flex-1 overflow-y-auto px-6 py-3">
             <div
               v-if="unavailableCount > 0"
-              class="mb-3 rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-(--text-main)"
+              class="border-warning/30 bg-warning/10 mb-3 rounded-xl border px-3 py-2 text-xs text-(--text-main)"
             >
               {{ t('purchaseOrder.selection.unavailableHint', '找不到的变体可能已被下架或归档') }} ({{ unavailableCount }})
             </div>
 
-            <div v-if="errorMessage" role="alert" class="mb-3 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-(--text-main)">
+            <div v-if="errorMessage" role="alert" class="border-danger/30 bg-danger/10 mb-3 rounded-xl border px-3 py-2 text-sm text-(--text-main)">
               <div class="flex items-center justify-between gap-3">
                 <span>{{ errorMessage }}</span>
                 <button type="button" class="cursor-pointer rounded-lg border border-(--border-color) px-2 py-1 text-xs font-medium hover:bg-(--bg-hover)" @click="loadVariants">

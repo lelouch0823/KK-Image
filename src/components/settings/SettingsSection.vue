@@ -2,7 +2,7 @@
   <div class="overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) shadow-sm transition-all hover:shadow-md">
     <div class="border-b border-(--border-color) bg-(--bg-muted) px-6 py-4">
       <div class="flex items-center gap-3">
-        <div v-if="icon" class="flex size-10 items-center justify-center rounded-lg bg-(--color-primary-bg) text-primary">
+        <div v-if="icon" class="text-primary flex size-10 items-center justify-center rounded-lg bg-(--color-primary-bg)">
           <AppIcon :name="icon" class="size-5" />
         </div>
         <div>

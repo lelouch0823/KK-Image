@@ -21,6 +21,10 @@ const mockDimensionRepo = {
     createDimension: vi.fn(),
     addValue: vi.fn(),
 };
+const mockFolderUtils = {
+    ensureVariantFolder: vi.fn(),
+    moveFilesToFolder: vi.fn(),
+};
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
     ProductRepository: class {
@@ -50,6 +54,11 @@ vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
         createDimension(...args) { return mockDimensionRepo.createDimension(...args); }
         addValue(...args) { return mockDimensionRepo.addValue(...args); }
     },
+}));
+
+vi.mock('../../../../../../api/utils/folder-utils.js', () => ({
+    ensureVariantFolder: (...args) => mockFolderUtils.ensureVariantFolder(...args),
+    moveFilesToFolder: (...args) => mockFolderUtils.moveFilesToFolder(...args),
 }));
 
 vi.mock('../../../../middleware/cache.js', () => ({
@@ -82,6 +91,8 @@ describe('Product Routes — variant-first contract', () => {
         vi.clearAllMocks();
         mockDimensionRepo.createDimension.mockResolvedValue({ id: 'dim-color', name: 'Color' });
         mockDimensionRepo.addValue.mockResolvedValue({ id: 'val-red', value: 'Red' });
+        mockFolderUtils.ensureVariantFolder.mockResolvedValue('folder-variant');
+        mockFolderUtils.moveFilesToFolder.mockResolvedValue(undefined);
     });
 
     describe('POST /', () => {
@@ -229,6 +240,16 @@ describe('Product Routes — variant-first contract', () => {
                 'test-id',
                 'v-generated',
                 [{ image_id: 'img-1', is_primary: 1 }]
+            );
+            expect(mockFolderUtils.ensureVariantFolder).toHaveBeenCalledWith(
+                expect.anything(),
+                'test-id',
+                'v-generated'
+            );
+            expect(mockFolderUtils.moveFilesToFolder).toHaveBeenCalledWith(
+                expect.anything(),
+                ['img-1'],
+                'folder-variant'
             );
         });
 

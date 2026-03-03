@@ -2,8 +2,8 @@
   <div class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card)">
     <!-- 卡片头部 -->
     <div class="flex items-center gap-3 border-b border-(--border-color) px-5 py-4">
-      <div class="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-        <AppIcon name="users" class="size-4.5 text-primary" />
+      <div class="bg-primary/10 flex size-9 items-center justify-center rounded-lg">
+        <AppIcon name="users" class="text-primary size-4.5" />
       </div>
       <div class="flex-1">
         <h3 class="text-sm font-semibold text-(--text-main)">{{ t('spaceManager.shareSettings') }}</h3>
@@ -27,7 +27,7 @@
           <!-- 选中指示器 -->
           <span
             v-if="modelValue === mode.value"
-            class="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary text-white"
+            class="bg-primary absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full text-white"
           >
             <AppIcon name="check" class="size-2.5" stroke-width="4" />
           </span>

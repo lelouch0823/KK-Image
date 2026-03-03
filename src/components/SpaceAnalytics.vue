@@ -62,7 +62,7 @@
               :class="[
                 'rounded-md px-3 py-1 text-xs font-medium transition-all duration-200',
                 selectedDays === 7
-                  ? 'bg-(--bg-card) text-primary shadow-sm'
+                  ? 'text-primary bg-(--bg-card) shadow-sm'
                   : 'text-(--text-secondary) hover:text-(--text-main)',
               ]"
               @click="changeDays(7)"
@@ -73,7 +73,7 @@
               :class="[
                 'rounded-md px-3 py-1 text-xs font-medium transition-all duration-200',
                 selectedDays === 30
-                  ? 'bg-(--bg-card) text-primary shadow-sm'
+                  ? 'text-primary bg-(--bg-card) shadow-sm'
                   : 'text-(--text-secondary) hover:text-(--text-main)',
               ]"
               @click="changeDays(30)"
@@ -89,7 +89,7 @@
             v-if="chartLoading"
             class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-(--bg-card)/80"
           >
-            <div class="size-6 animate-spin rounded-full border-b-2 border-primary"></div>
+            <div class="border-primary size-6 animate-spin rounded-full border-b-2"></div>
           </div>
 
           <!-- Chart or Empty State -->

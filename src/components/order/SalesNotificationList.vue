@@ -28,7 +28,7 @@
         <p class="text-sm text-(--text-main)">{{ t('common.loadFailed') }}</p>
         <button
           type="button"
-          class="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
+          class="bg-primary rounded-lg px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
           data-testid="notification-retry"
           @click="runFetch"
         >
@@ -68,11 +68,11 @@
               <div class="mt-1 shrink-0">
                 <span
                   v-if="item.type === 'order'"
-                  class="block size-2 rounded-full bg-info shadow-sm"
+                  class="bg-info block size-2 rounded-full shadow-sm"
                 ></span>
                 <span
                   v-else-if="item.type === 'deadline'"
-                  class="block size-2 rounded-full bg-warning shadow-sm"
+                  class="bg-warning block size-2 rounded-full shadow-sm"
                 ></span>
                 <span
                   v-else

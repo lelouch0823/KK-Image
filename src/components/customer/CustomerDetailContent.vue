@@ -9,7 +9,7 @@
         <div class="ml-3 flex h-7 items-center">
           <button
             type="button"
-            class="rounded-md bg-(--bg-card) text-(--text-secondary) transition-colors hover:text-(--text-main) focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none"
+            class="focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:outline-none rounded-md bg-(--bg-card) text-(--text-secondary) transition-colors hover:text-(--text-main)"
             @click="$emit('close')"
           >
             <AppIcon name="x-mark" class="size-6" />
@@ -56,14 +56,14 @@
           <!-- 操作栏 -->
           <div class="mb-6 flex justify-start gap-4">
             <button
-              class="inline-flex items-center rounded-md border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm leading-4 font-medium text-(--text-main) shadow-sm transition-colors hover:bg-(--bg-hover) focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none"
+              class="focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:outline-none inline-flex items-center rounded-md border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm leading-4 font-medium text-(--text-main) shadow-sm transition-colors hover:bg-(--bg-hover)"
               @click="$emit('edit', customer)"
             >
               <AppIcon name="pencil-square" class="mr-2 -ml-0.5 size-4" />
               {{ t('common.edit') }}
             </button>
             <button
-              class="inline-flex items-center rounded-md border border-transparent bg-danger px-3 py-2 text-sm leading-4 font-medium text-(--text-inverse) shadow-sm transition-all hover:opacity-90 active:scale-95"
+              class="bg-danger inline-flex items-center rounded-md border border-transparent px-3 py-2 text-sm leading-4 font-medium text-(--text-inverse) shadow-sm transition-all hover:opacity-90 active:scale-95"
               @click="handleDelete"
             >
               <AppIcon name="trash" class="mr-2 -ml-0.5 size-4" />
@@ -97,7 +97,7 @@
                   <span
                     v-for="tag in customer?.tags"
                     :key="tag"
-                    class="rounded bg-(--color-primary-bg) px-2 py-0.5 text-xs font-medium text-primary"
+                    class="text-primary rounded bg-(--color-primary-bg) px-2 py-0.5 text-xs font-medium"
                   >
                     {{ tag }}
                   </span>

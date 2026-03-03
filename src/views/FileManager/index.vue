@@ -10,18 +10,18 @@
     <transition name="fade">
       <div
         v-if="isDragging"
-        class="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-info bg-info/10 backdrop-blur-sm dark:bg-info/20"
+        class="border-info bg-info/10 pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center rounded-xl border-2 border-dashed backdrop-blur-sm dark:bg-info/20"
       >
         <div class="mb-4 animate-bounce rounded-full bg-(--bg-card) p-6 shadow-lg">
           <AppIcon
             name="cloud-arrow-up"
-            class="size-12 text-info"
+            class="text-info size-12"
           />
         </div>
         <h3 class="text-2xl font-bold text-(--color-info-text)">
           {{ t('fileManager.dragDropTitle') }}
         </h3>
-        <p class="mt-2 text-info">{{ t('fileManager.dragDropDesc') }}</p>
+        <p class="text-info mt-2">{{ t('fileManager.dragDropDesc') }}</p>
       </div>
     </transition>
 
@@ -138,7 +138,7 @@
                       class="group relative cursor-pointer rounded-xl border p-4 transition-all hover:-translate-y-1 hover:shadow-md"
                       :class="[
                         selectedIds.has(file.id)
-                          ? 'border-primary bg-primary/10 ring-1 ring-primary dark:bg-primary/20'
+                          ? 'border-primary bg-primary/10 ring-primary ring-1 dark:bg-primary/20'
                           : 'border-(--border-color) bg-(--bg-card) hover:border-(--border-hover)'
                       ]"
                        @click.stop="toggleSelect(file)"

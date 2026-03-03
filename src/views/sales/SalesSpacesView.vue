@@ -61,7 +61,7 @@
 
         <!-- Info -->
         <div class="p-4">
-          <h3 class="text-sm font-semibold text-(--text-main) group-hover:text-primary">
+          <h3 class="group-hover:text-primary text-sm font-semibold text-(--text-main)">
             {{ space.name }}
           </h3>
           <p v-if="space.description" class="mt-1 line-clamp-2 text-xs text-(--text-secondary)">
@@ -71,7 +71,7 @@
             <span class="text-xs text-(--text-muted)">
               {{ t('salesSpaces.fileCount', { count: space.file_count || 0 }) }}
             </span>
-            <span class="flex items-center gap-1 text-xs font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+            <span class="text-primary flex items-center gap-1 text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100">
               {{ t('salesSpaces.viewSpace') }}
               <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

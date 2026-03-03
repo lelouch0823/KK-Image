@@ -4,7 +4,7 @@
     <button
       :id="triggerId"
       type="button"
-      class="flex w-full items-center justify-between border border-(--border-color) bg-(--bg-card) text-left text-sm transition-all focus:border-primary focus:ring-primary/10 focus:outline-none dark:bg-(--bg-muted)"
+      class="focus:border-primary focus:ring-primary/10 focus:outline-none flex w-full items-center justify-between border border-(--border-color) bg-(--bg-card) text-left text-sm transition-all dark:bg-(--bg-muted)"
       :class="[
         size === 'sm' ? 'h-9 rounded-lg px-2 focus:ring-2' : 'h-11 rounded-xl px-4 focus:ring-4',
         !modelValue ? 'text-(--text-secondary)' : 'text-(--text-main)'

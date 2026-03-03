@@ -14,7 +14,7 @@
 
         <!-- Mobile Create Button -->
         <button
-          class="flex size-9 items-center justify-center rounded-xl bg-primary text-(--text-inverse) shadow-primary/20 shadow-lg transition-all active:scale-95 sm:hidden "
+          class="bg-primary shadow-primary/20 flex size-9 items-center justify-center rounded-xl text-(--text-inverse) shadow-lg transition-all active:scale-95 sm:hidden "
           @click="openModal()"
         >
           <AppIcon name="plus" class="size-5" />
@@ -32,7 +32,7 @@
 
         <!-- 新建按钮 (Desktop) -->
         <button
-          class="hidden items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-(--text-inverse) shadow-primary/10 shadow-lg transition-all hover:bg-(--color-primary-hover) active:scale-95 sm:flex "
+          class="bg-primary shadow-primary/10 hidden items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) shadow-lg transition-all hover:bg-(--color-primary-hover) active:scale-95 sm:flex "
           @click="openModal()"
         >
           <AppIcon name="plus" class="size-4" />

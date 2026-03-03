@@ -17,7 +17,7 @@
     <div v-if="person" class="flex flex-col items-center text-center">
       <!-- Avatar -->
       <div
-        class="mb-4 flex size-20 items-center justify-center rounded-full bg-gradient-to-br from-primary to-(--color-primary-hover) text-3xl font-semibold text-(--text-inverse) shadow-primary/20 shadow-lg"
+        class="from-primary shadow-primary/20 mb-4 flex size-20 items-center justify-center rounded-full bg-gradient-to-br to-(--color-primary-hover) text-3xl font-semibold text-(--text-inverse) shadow-lg"
       >
         {{ person.name?.charAt(0) || '?' }}
       </div>
@@ -74,7 +74,7 @@
                      {{ accessUrl }}
                  </div>
                  <button
-                    class="p-1.5 text-(--text-secondary) transition-colors hover:text-primary"
+                    class="hover:text-primary p-1.5 text-(--text-secondary) transition-colors"
                      :title="t('salesperson.copyLink')"
                      @click="$emit('copy', person.accessToken)"
                  >
@@ -97,7 +97,7 @@
       <button
         v-if="person && person.orderCount > 0"
         type="button"
-        class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-(--text-inverse) shadow-primary/20 shadow-lg transition-all hover:bg-(--color-primary-hover) active:scale-95"
+        class="bg-primary shadow-primary/20 inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) shadow-lg transition-all hover:bg-(--color-primary-hover) active:scale-95"
         @click="viewOrders"
       >
         {{ t('salesperson.viewOrders') }}

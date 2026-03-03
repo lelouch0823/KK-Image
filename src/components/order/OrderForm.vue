@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <!-- 标题 (仅销售端显示) -->
     <div v-if="mode !== 'admin'" class="text-center">
-      <h2 class="text-xl font-bold text-primary">{{ title || t('order.portal.newOrder') }}</h2>
+      <h2 class="text-primary text-xl font-bold">{{ title || t('order.portal.newOrder') }}</h2>
       <p v-if="subtitle" class="mt-1 text-sm text-(--text-secondary)">{{ subtitle }}</p>
       <p v-else-if="mode === 'sales'" class="mt-1 text-sm text-(--text-secondary)">{{ t('order.portal.subtitle') }}</p>
     </div>
@@ -22,7 +22,7 @@
       <div class="space-y-4 rounded-xl border border-(--border-color) bg-(--bg-card) p-3 sm:p-5">
         <!-- 商品名称 -->
         <div>
-          <label class="mb-2 block text-sm font-medium text-primary">
+          <label class="text-primary mb-2 block text-sm font-medium">
             {{ t('order.form.productName') }} <span class="text-(--color-danger-text)">*</span>
           </label>
           <AutocompleteInput
@@ -39,7 +39,7 @@
         <!-- 品牌和系列 -->
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-sm font-medium text-primary">
+            <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('order.form.brand') }}
             </label>
             <AutocompleteInput
@@ -53,7 +53,7 @@
             />
           </div>
           <div>
-            <label class="mb-2 block text-sm font-medium text-primary">
+            <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('order.form.series') }}
             </label>
             <AutocompleteInput
@@ -71,7 +71,7 @@
         <!-- Admin: 销售员 | SKU -->
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div v-if="mode === 'admin'">
-            <label class="mb-2 block text-sm font-medium text-primary">
+            <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('common.salesperson') }} <span class="text-(--color-danger-text)">*</span>
             </label>
           <Select
@@ -81,7 +81,7 @@
           />
         </div>
         <div :class="{ 'md:col-span-2': mode !== 'admin' }">
-          <label class="mb-2 block text-sm font-medium text-primary">
+          <label class="text-primary mb-2 block text-sm font-medium">
             {{ t('order.form.sku') }}
           </label>
           <input
@@ -96,8 +96,8 @@
 
       <!-- 如果已绑定商品，显示只读的规格属性列表，否则显示原有的输入框 -->
       <template v-if="boundProductVariant">
-        <div class="mt-4 space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
-          <h5 class="text-sm font-medium text-primary">{{ t('product.variant.title') || '商品规格' }}</h5>
+        <div class="border-primary/20 bg-primary/5 mt-4 space-y-3 rounded-lg border p-4">
+          <h5 class="text-primary text-sm font-medium">{{ t('product.variant.title') || '商品规格' }}</h5>
           <div class="grid grid-cols-2 gap-4">
             <div v-for="(value, key) in boundProductVariant" :key="key" class="flex flex-col">
               <span class="text-xs text-(--text-secondary)">{{ key }}</span>
@@ -111,7 +111,7 @@
         </div>
         <!-- 数量 (绑定的情况下仍需数量字段) -->
         <div>
-          <label class="mb-2 block text-sm font-medium text-primary">
+          <label class="text-primary mb-2 block text-sm font-medium">
             {{ t('order.form.quantity') }} <span class="text-(--color-danger-text)">*</span>
           </label>
           <input
@@ -130,7 +130,7 @@
         <!-- 规格尺寸 & 数量 -->
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-sm font-medium text-primary">
+            <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('order.form.size') }}
             </label>
             <input
@@ -141,7 +141,7 @@
             />
           </div>
           <div>
-            <label class="mb-2 block text-sm font-medium text-primary">
+            <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('order.form.quantity') }} <span class="text-(--color-danger-text)">*</span>
             </label>
           <input
@@ -158,7 +158,7 @@
         <!-- 颜色材质 -->
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-sm font-medium text-primary">
+            <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('order.form.color') }}
             </label>
             <AutocompleteInput
@@ -171,7 +171,7 @@
             />
           </div>
           <div>
-            <label class="mb-2 block text-sm font-medium text-primary">
+            <label class="text-primary mb-2 block text-sm font-medium">
               {{ t('order.form.material') }}
             </label>
             <AutocompleteInput
@@ -188,7 +188,7 @@
 
       <!-- 备注 -->
       <div>
-        <label class="mb-2 block text-sm font-medium text-primary">
+        <label class="text-primary mb-2 block text-sm font-medium">
           {{ t('order.form.remark') }}
         </label>
         <textarea
@@ -202,7 +202,7 @@
       <!-- Admin: 状态 | 到货时间 -->
       <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div v-if="mode === 'admin'">
-          <label class="mb-2 block text-sm font-medium text-primary">
+          <label class="text-primary mb-2 block text-sm font-medium">
             {{ t('order.status') }}
           </label>
           <StatusSelector
@@ -212,7 +212,7 @@
           />
         </div>
         <div :class="{ 'md:col-span-2': mode !== 'admin' }">
-          <label class="mb-2 block text-sm font-medium text-primary">
+          <label class="text-primary mb-2 block text-sm font-medium">
             {{ t('order.form.expectedArrival') }}
           </label>
           <input
@@ -239,7 +239,7 @@
     <div :class="actionBarClass">
       <button
         type="button"
-        class="h-12 flex-1 rounded-xl border border-(--border-color) bg-(--bg-card) font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover) focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none"
+        class="focus-visible:ring-primary/30 focus-visible:ring-2 focus-visible:outline-none h-12 flex-1 rounded-xl border border-(--border-color) bg-(--bg-card) font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
         @click="$emit('cancel')"
       >
         {{ t('common.cancel') }}
@@ -247,7 +247,7 @@
       <button
         type="submit"
         :disabled="!isValid || isSubmitting"
-        class="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary font-medium text-(--text-inverse) shadow-primary/20 shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none"
+        class="bg-primary shadow-primary/20 flex h-12 flex-1 items-center justify-center gap-2 rounded-xl font-medium text-(--text-inverse) shadow-lg transition-all focus-visible:ring-primary/30 focus-visible:ring-2 focus-visible:outline-none hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <AppIcon
           v-if="isSubmitting"

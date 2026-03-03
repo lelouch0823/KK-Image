@@ -2,7 +2,7 @@
   <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
     <div class="mb-12 text-center">
       <div
-        class="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary"
+        class="bg-primary/10 text-primary mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl"
       >
         <AppIcon name="rectangle-group" class="size-8" />
       </div>
@@ -38,13 +38,13 @@
           />
         </div>
         <div>
-          <h3 class="font-semibold text-(--text-main) group-hover:text-primary">{{ sub.name }}</h3>
+          <h3 class="group-hover:text-primary font-semibold text-(--text-main)">{{ sub.name }}</h3>
           <p class="mt-1 text-xs text-(--text-secondary)">{{ sub.fileCount }} items</p>
         </div>
         <div class="ml-auto">
           <AppIcon
             name="chevron-right"
-            class="size-5 text-(--text-muted) transition-colors group-hover:text-primary"
+            class="group-hover:text-primary size-5 text-(--text-muted) transition-colors"
           />
         </div>
       </a>

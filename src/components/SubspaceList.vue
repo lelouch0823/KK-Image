@@ -107,7 +107,7 @@
               <div class="mt-2 flex items-center gap-2">
                 <span
                   v-if="sub.isPublic"
-                  class="inline-flex items-center gap-1 rounded-full bg-(--color-success-bg) px-2 py-0.5 text-[10px] font-medium text-success"
+                  class="text-success inline-flex items-center gap-1 rounded-full bg-(--color-success-bg) px-2 py-0.5 text-[10px] font-medium"
                 >
                   <svg class="size-2.5" fill="currentColor" viewBox="0 0 20 20">
                     <path
@@ -155,7 +155,7 @@
               </Tooltip>
               <Tooltip :content="t('spaceManager.deleteSpace')">
                 <button
-                  class="flex size-8 items-center justify-center rounded-lg bg-(--color-danger-bg) text-danger transition-colors hover:bg-red-100"
+                  class="text-danger flex size-8 items-center justify-center rounded-lg bg-(--color-danger-bg) transition-colors hover:bg-red-100"
                   @click.stop="deleteSubspace(sub)"
                 >
                   <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -33,7 +33,7 @@
       <template v-for="folder in breadcrumbs" :key="folder.id">
         <span class="text-(--border-color)">/</span>
         <button
-          class="transition-colors hover:text-primary"
+          class="hover:text-primary transition-colors"
           :class="currentFolderId === folder.id ? 'text-primary font-semibold' : 'text-secondary'"
           @click="navigateTo(folder.id)"
         >
@@ -83,7 +83,7 @@
           </div>
           <AppIcon
             name="folder-solid"
-            class="mb-2 size-12 text-info transition-transform duration-200 group-hover:scale-110"
+            class="text-info mb-2 size-12 transition-transform duration-200 group-hover:scale-110"
           />
           <span class="w-full truncate px-2 text-center text-xs font-medium text-(--text-main)">{{
             folder.name
