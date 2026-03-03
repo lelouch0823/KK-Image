@@ -4,6 +4,7 @@
  *
  * 负责文件记录 (Files) 的数据库基础操作。
  */
+import { inClause } from '../api/utils/sql.js';
 
 /** 允许更新的列名白名单 */
 const ALLOWED_UPDATE_COLUMNS = new Set([
@@ -180,8 +181,7 @@ export class FileRepository {
      * @param {string} targetFolderId
      */
     async moveBatch(ids, targetFolderId) {
-        const placeholders = ids.map(() => '?').join(',');
-        await this.db.prepare(`UPDATE files SET folder_id = ?, updated_at = ? WHERE id IN (${placeholders})`)
+        await this.db.prepare(`UPDATE files SET folder_id = ?, updated_at = ? WHERE id IN ${inClause(ids)}`)
             .bind(targetFolderId, Date.now(), ...ids)
             .run();
     }
@@ -200,8 +200,7 @@ export class FileRepository {
      */
     async deleteBatch(ids) {
         if (!ids.length) return;
-        const placeholders = ids.map(() => '?').join(',');
-        await this.db.prepare(`DELETE FROM files WHERE id IN (${placeholders})`)
+        await this.db.prepare(`DELETE FROM files WHERE id IN ${inClause(ids)}`)
             .bind(...ids)
             .run();
     }
@@ -224,8 +223,7 @@ export class FileRepository {
      */
     async softDeleteBatch(ids) {
         if (!ids.length) return;
-        const placeholders = ids.map(() => '?').join(',');
-        await this.db.prepare(`UPDATE files SET is_deleted = 1, deleted_at = ? WHERE id IN (${placeholders})`)
+        await this.db.prepare(`UPDATE files SET is_deleted = 1, deleted_at = ? WHERE id IN ${inClause(ids)}`)
             .bind(Date.now(), ...ids)
             .run();
     }
@@ -236,8 +234,7 @@ export class FileRepository {
      */
     async restoreBatch(ids) {
         if (!ids.length) return;
-        const placeholders = ids.map(() => '?').join(',');
-        await this.db.prepare(`UPDATE files SET is_deleted = 0, deleted_at = NULL WHERE id IN (${placeholders})`)
+        await this.db.prepare(`UPDATE files SET is_deleted = 0, deleted_at = NULL WHERE id IN ${inClause(ids)}`)
             .bind(...ids)
             .run();
     }
@@ -334,11 +331,10 @@ export class FileRepository {
      */
     async findConflictingNames(folderId, names) {
         if (!names || names.length === 0) return [];
-        
-        const placeholders = names.map(() => '?').join(',');
+
         const bindings = [...names];
-        
-        let sql = `SELECT name FROM files WHERE name IN (${placeholders}) AND (is_deleted IS NULL OR is_deleted = 0)`;
+
+        let sql = `SELECT name FROM files WHERE name IN ${inClause(names)} AND (is_deleted IS NULL OR is_deleted = 0)`;
         
         if (folderId && folderId !== 'root') {
             sql += " AND folder_id = ?";
@@ -358,8 +354,7 @@ export class FileRepository {
      */
     async findByIds(ids) {
         if (!ids || ids.length === 0) return [];
-        const placeholders = ids.map(() => '?').join(',');
-        const { results } = await this.db.prepare(`SELECT * FROM files WHERE id IN (${placeholders})`).bind(...ids).all();
+        const { results } = await this.db.prepare(`SELECT * FROM files WHERE id IN ${inClause(ids)}`).bind(...ids).all();
         return results;
     }
 }

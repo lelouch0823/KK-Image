@@ -53,3 +53,6 @@ export { generateETag, matchesETag } from '../api/utils/etag.js';
 
 // 文件工具
 export { storeFile, getFileType } from '../api/utils/file-utils.js';
+
+// SQL 占位符工具
+export { placeholders, inClause } from '../api/utils/sql.js';

@@ -4,6 +4,7 @@
  * 
  * 涉及文件夹的 CRUD、层级统计及物理存储清理关联逻辑。
  */
+import { inClause } from '../api/utils/sql.js';
 
 export class FolderRepository {
     constructor(db) {
@@ -235,12 +236,9 @@ export class FolderRepository {
         if (ids.length === 0) return;
 
         // 构建批量删除语句
-        const filePlaceholders = ids.map(() => '?').join(',');
-        const folderPlaceholders = ids.map(() => '?').join(',');
-
         await this.db.batch([
-            this.db.prepare(`DELETE FROM files WHERE folder_id IN (${filePlaceholders})`).bind(...ids),
-            this.db.prepare(`DELETE FROM folders WHERE id IN (${folderPlaceholders})`).bind(...ids)
+            this.db.prepare(`DELETE FROM files WHERE folder_id IN ${inClause(ids)}`).bind(...ids),
+            this.db.prepare(`DELETE FROM folders WHERE id IN ${inClause(ids)}`).bind(...ids)
         ]);
     }
 

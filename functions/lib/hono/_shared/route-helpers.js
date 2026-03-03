@@ -2,6 +2,7 @@
  * 路由层公共辅助函数
  * @module lib/hono/_shared/route-helpers
  */
+import { inClause } from '../../../api/utils/sql.js';
 
 /**
  * 从请求中解析分页参数
@@ -44,8 +45,7 @@ export async function getSalespersonAccessTokens(db, salespersonIds = []) {
   if (ids.length === 0) return [];
 
   try {
-    const placeholders = ids.map(() => '?').join(',');
-    const query = `SELECT access_token FROM salespersons WHERE id IN (${placeholders}) AND access_token IS NOT NULL`;
+    const query = `SELECT access_token FROM salespersons WHERE id IN ${inClause(ids)} AND access_token IS NOT NULL`;
     const prepared = db.prepare(query);
     if (!prepared || typeof prepared.bind !== 'function') return [];
 
