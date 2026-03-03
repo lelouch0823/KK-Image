@@ -3,9 +3,9 @@
     <!-- Fixed Background Gradient Mesh -->
     <div class="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       <!-- Top Left Blob -->
-      <div class="absolute -top-[10%] -left-[10%] size-[50%] rounded-full bg-indigo-500/5 blur-[120px] dark:bg-indigo-950/10"></div>
+      <div class="absolute -top-[10%] -left-[10%] size-[50%] rounded-full bg-primary/5 blur-[120px] dark:bg-primary/10"></div>
       <!-- Top Right Blob -->
-      <div class="absolute top-[20%] right-[10%] size-[40%] rounded-full bg-purple-500/5 blur-[120px] dark:bg-purple-950/10"></div>
+      <div class="absolute top-[20%] right-[10%] size-[40%] rounded-full bg-purple-500/5 blur-[120px] dark:bg-purple-500/10"></div>
     </div>
 
     <!-- Main Content -->
@@ -30,14 +30,13 @@
         </div>
 
         <div class="flex items-center gap-3">
-          <button
-            class="flex items-center gap-2 rounded-xl border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-medium text-(--text-secondary) shadow-sm transition-all hover:bg-(--bg-hover) active:scale-95 dark:bg-(--bg-hover) dark:hover:bg-[#1c2230]"
+          <AppButton
+            variant="secondary"
+            :text="t('common.refresh')"
+            icon="refresh"
+            :loading="isRefreshing"
             @click="handleRefresh"
-          >
-            <span class="material-symbols-outlined text-lg" :class="{ 'animate-spin': isRefreshing }">refresh</span>
-            {{ t('common.refresh') }}
-          </button>
-
+          />
         </div>
       </div>
       
@@ -165,7 +164,7 @@
                             @click="viewOrder(order)"
                         >
                             <div class="mb-1 flex items-start justify-between">
-                                <span class="font-mono text-xs font-medium text-indigo-600 group-hover:text-indigo-500 dark:text-indigo-300 dark:group-hover:text-indigo-200">
+                                <span class="font-mono text-xs font-medium text-primary group-hover:text-primary/80">
                                     {{ order.orderNo }}
                                 </span>
                                 <span class="rounded border border-(--border-subtle) bg-white px-1.5 py-0.5 text-[10px] text-(--text-secondary) dark:border-white/5 dark:bg-[#1a202c] dark:text-slate-500">
@@ -193,7 +192,7 @@
                 
                 <!-- Footer -->
                 <div class="border-t border-(--border-subtle) bg-(--bg-card) p-4 text-center dark:border-white/5 dark:bg-(--bg-card)/50">
-                    <router-link to="/orders?status=pending" class="flex w-full items-center justify-center gap-1 text-xs font-medium text-indigo-400 transition-colors hover:text-indigo-300">
+                    <router-link to="/orders?status=pending" class="flex w-full items-center justify-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80">
                         {{ t('dashboard.viewAllPending') }}
                         <span class="material-symbols-outlined text-sm">arrow_forward</span>
                     </router-link>
@@ -218,9 +217,12 @@
                     </div>
                     <h4 class="mb-1 text-base font-medium text-(--text-main)">{{ t('dashboard.noActiveShares') }}</h4>
                     <p class="mx-auto max-w-xs text-xs text-(--text-secondary)">{{ t('dashboard.noActiveSharesDesc') }}</p>
-                    <button class="mt-6 rounded-lg border border-indigo-500/20 bg-indigo-600/90 px-5 py-2 text-xs font-medium text-white shadow-lg shadow-indigo-900/20 transition-colors hover:bg-indigo-500" @click="showShareManager = true">
-                        {{ t('dashboard.shareFile') }}
-                    </button>
+                    <AppButton
+                        variant="primary"
+                        class="mt-6"
+                        :text="t('dashboard.shareFile')"
+                        @click="showShareManager = true"
+                    />
                 </div>
                 
                 <div v-else class="flex-1 overflow-auto bg-(--bg-muted)/30 dark:bg-[#0f1219]/30">
@@ -233,7 +235,7 @@
                                 </div>
                                 <div>
                                     <div class="text-sm font-medium text-(--text-main)">{{ item.name }}</div>
-                                    <div class="cursor-pointer font-mono text-[10px] text-(--text-secondary) hover:text-indigo-500 dark:hover:text-indigo-400" @click="handleCopyShareLink(item)">
+                                    <div class="cursor-pointer font-mono text-[10px] text-(--text-secondary) hover:text-primary dark:hover:text-primary/80" @click="handleCopyShareLink(item)">
                                         {{ item.shareToken }}
                                     </div>
                                 </div>
@@ -246,9 +248,17 @@
                 </div>
 
                 <div class="border-t border-(--border-subtle) bg-(--bg-card) p-3 text-center dark:border-white/5 dark:bg-[#11141d]">
-                    <button class="flex w-full items-center justify-center gap-1 text-xs font-medium text-indigo-500 transition-colors hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300" @click="showShareManager = true">
-                         {{ t('dashboard.viewHistory') }} <span class="material-symbols-outlined text-sm">arrow_forward</span>
-                    </button>
+                    <AppButton
+                        variant="secondary"
+                        class="w-full border-none! bg-transparent! text-primary hover:text-primary/80"
+                        size="sm"
+                        :text="t('dashboard.viewHistory')"
+                        @click="showShareManager = true"
+                    >
+                        <template #append>
+                            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                        </template>
+                    </AppButton>
                 </div>
             </div>
 
@@ -302,9 +312,17 @@
                 </div>
 
                 <div class="border-t border-(--border-subtle) bg-(--bg-card) p-3 text-center dark:border-white/5 dark:bg-[#11141d]">
-                    <button class="flex w-full items-center justify-center gap-1 text-xs font-medium text-indigo-500 transition-colors hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300" @click="router.push('/admin/files')">
-                         {{ t('dashboard.browseAllFiles') }} <span class="material-symbols-outlined text-sm">arrow_forward</span>
-                    </button>
+                    <AppButton
+                        variant="secondary"
+                        class="w-full border-none! bg-transparent! text-primary hover:text-primary/80"
+                        size="sm"
+                        :text="t('dashboard.browseAllFiles')"
+                        @click="router.push('/admin/files')"
+                    >
+                        <template #append>
+                            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                        </template>
+                    </AppButton>
                 </div>
             </div>
         </div>
@@ -364,6 +382,7 @@ import {
 } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import AppImage from '@/components/ui/AppImage.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import Chart from 'chart.js/auto';
 
 const router = useRouter();
@@ -612,19 +631,8 @@ watch([showDetailModal, viewingOrder], ([isOpen, order]) => {
 </script>
 
 <style scoped>
-
-
-.custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(45, 55, 72, 0.5);
-    border-radius: 2px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(74, 85, 104, 0.8);
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
 }
 </style>

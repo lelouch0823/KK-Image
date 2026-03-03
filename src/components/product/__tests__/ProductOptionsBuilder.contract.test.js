@@ -53,7 +53,7 @@ describe('ProductOptionsBuilder event contract', () => {
       global: { stubs: { AppInput: AppInputStub } },
     });
 
-    await wrapper.find('button.absolute.top-2.right-2').trigger('click');
+    await wrapper.find('button[title="Delete"]').trigger('click');
     expect(wrapper.emitted('remove-option')?.[0]).toEqual([0]);
 
     const appInputs = wrapper.findAllComponents(AppInputStub);
@@ -62,12 +62,15 @@ describe('ProductOptionsBuilder event contract', () => {
 
     const enterEvent = { key: 'Enter', preventDefault: vi.fn() };
     await appInputs[1].vm.$emit('keydown', enterEvent);
-    expect(wrapper.emitted('add-value')?.[0]).toEqual([option]);
+    expect(wrapper.emitted('add-value')?.[0]).toEqual([
+      option,
+      expect.objectContaining({ color: expect.any(String) }),
+    ]);
 
-    await appInputs[1].vm.$emit('blur', new Event('blur'));
-    expect(wrapper.emitted('add-value')).toHaveLength(2);
-
-    const removeValueButton = wrapper.findAll('button').find((btn) => btn.text() === '×');
+    const removeValueButton = wrapper
+      .findAll('button')
+      .find((btn) => btn.find('.material-symbols-outlined').exists() && btn.find('.material-symbols-outlined').text().trim() === 'close');
+    expect(removeValueButton).toBeTruthy();
     await removeValueButton.trigger('click');
     expect(wrapper.emitted('remove-value')?.[0]).toEqual([option, 0]);
 

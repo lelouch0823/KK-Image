@@ -15,4 +15,9 @@ describe('pagination utils', () => {
     expect(parseRepoPagination({}, { defaultPage: 2, defaultLimit: 30, maxLimit: 100 }))
       .toEqual({ page: 2, limit: 30, offset: 30 });
   });
+
+  it('clamps non-positive numeric values to minimum bounds', () => {
+    expect(parseRepoPagination({ page: -3, limit: 0 }, { defaultLimit: 20, maxLimit: 100 }))
+      .toEqual({ page: 1, limit: 1, offset: 0 });
+  });
 });

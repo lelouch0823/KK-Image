@@ -8,22 +8,26 @@ import {
 } from '../folder-utils';
 
 describe('Folder Utils', () => {
-  const env = {
-    DB: {
-      prepare: vi.fn().mockReturnThis(),
-      bind: vi.fn().mockReturnThis(),
-      first: vi.fn(),
-      run: vi.fn().mockResolvedValue({ success: true })
-    }
-  };
+  let statement;
+  let env;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    statement = {
+      bind: vi.fn().mockReturnThis(),
+      first: vi.fn().mockResolvedValue({ id: 'mock-id' }),
+      run: vi.fn().mockResolvedValue({ success: true }),
+    };
+    env = {
+      DB: {
+        prepare: vi.fn().mockReturnValue(statement),
+      },
+    };
   });
 
   describe('ensureFolder', () => {
     it('should return existing folder ID if found', async () => {
-      env.DB.first.mockResolvedValueOnce({ id: 'existing-id' });
+      statement.first.mockResolvedValueOnce({ id: 'existing-id' });
       
       const id = await ensureFolder(env, 'MyFolder', 'root');
       
@@ -33,7 +37,7 @@ describe('Folder Utils', () => {
     });
 
     it('should return new ID if folder was just created', async () => {
-      env.DB.first.mockResolvedValueOnce(null);
+      statement.first.mockResolvedValueOnce(null);
       
       const id = await ensureFolder(env, 'NewFolder');
       expect(id).toBeDefined();
@@ -42,16 +46,30 @@ describe('Folder Utils', () => {
 
   describe('System Folders', () => {
     it('ensureSystemRoot should call ensureFolder with correct params', async () => {
-      env.DB.first.mockResolvedValue({ id: 'root-id' });
+      statement.first.mockResolvedValue({ id: 'root-id' });
       const id = await ensureSystemRoot(env);
       expect(id).toBe('root-id');
-      expect(env.DB.bind).toHaveBeenCalledWith(expect.anything(), null, '_System', expect.anything(), expect.anything(), 1);
+      expect(statement.bind).toHaveBeenCalledWith(
+        expect.any(String),
+        null,
+        '_System',
+        expect.any(Number),
+        expect.any(Number),
+        1
+      );
     });
 
     it('ensureProductFolder should create Products under SystemRoot', async () => {
-       env.DB.first.mockResolvedValue({ id: 'sys-product-id' });
+       statement.first.mockResolvedValue({ id: 'sys-product-id' });
        await ensureProductFolder(env);
-       expect(env.DB.bind).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Products', expect.anything(), expect.anything(), 1);
+       expect(statement.bind).toHaveBeenCalledWith(
+         expect.any(String),
+         'sys-product-id',
+         'Products',
+         expect.any(Number),
+         expect.any(Number),
+         1
+       );
     });
   });
 
@@ -59,7 +77,7 @@ describe('Folder Utils', () => {
     it('should update folder_id for multiple file IDs', async () => {
       await moveFilesToFolder(env, ['file1', 'file2'], 'folder-a');
       expect(env.DB.prepare).toHaveBeenCalledWith(expect.stringContaining('UPDATE files SET folder_id = ? WHERE id IN (?,?)'));
-      expect(env.DB.bind).toHaveBeenCalledWith('folder-a', 'file1', 'file2');
+      expect(statement.bind).toHaveBeenCalledWith('folder-a', 'file1', 'file2');
     });
 
     it('should return early if no file IDs provided', async () => {
@@ -70,7 +88,7 @@ describe('Folder Utils', () => {
 
   describe('ensureOrderFolder', () => {
     it('should create nested folder structure', async () => {
-      env.DB.first.mockResolvedValue({ id: 'nested-id' });
+      statement.first.mockResolvedValue({ id: 'nested-id' });
       const id = await ensureOrderFolder(env, 'ORD-123');
       expect(id).toBe('nested-id');
     });

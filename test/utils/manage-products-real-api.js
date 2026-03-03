@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { describe, vi } from 'vitest';
 
 export const RUN_REAL_API_TESTS = process.env.RUN_REAL_API_TESTS === '1';
 export const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:8080';
@@ -6,7 +7,17 @@ const BASIC_USER = process.env.BASIC_USER || 'admin';
 const BASIC_PASS = process.env.BASIC_PASS || '123';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 
-export const describeIfRealApi = RUN_REAL_API_TESTS ? describe : describe.skip;
+export function describeIfRealApi(name, suiteFn) {
+  const runner = RUN_REAL_API_TESTS ? describe : describe.skip;
+  return runner(name, function wrappedSuite() {
+    const timeoutContext = {
+      timeout(ms) {
+        vi.setConfig({ testTimeout: ms });
+      },
+    };
+    return suiteFn.call(timeoutContext);
+  });
+}
 
 export const uniqueSeed = (prefix = 'wf') =>
   `${prefix}-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -61,4 +72,3 @@ export async function apiRequest(path, {
   }
   return { response, json };
 }
-

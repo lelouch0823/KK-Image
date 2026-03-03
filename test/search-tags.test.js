@@ -5,6 +5,8 @@ import { mockEnv } from './utils/mocks.js';
 import { generateJWT } from '../functions/api/utils/auth.js';
 
 describe('Search & Tagging API', () => {
+    const executionCtx = { waitUntil: vi.fn() };
+
     describe('Advanced Search', () => {
         it('GET /api/manage/search should handle queries', async () => {
             // Mock DB to return FTS5 results
@@ -21,7 +23,7 @@ describe('Search & Tagging API', () => {
             const token = await generateJWT({ id: 'admin1', name: 'Admin', type: 'admin', permissions: ['admin:full'] }, mockEnv);
             const res = await app.request('/api/manage/search?q=test', {
                 headers: { 'Authorization': `Bearer ${token}` }
-            }, mockEnv);
+            }, mockEnv, executionCtx);
 
             expect(res.status).toBe(200);
             const data = await res.json();
@@ -52,7 +54,7 @@ describe('Search & Tagging API', () => {
                     file_id: 'file_1',
                     tag_id: 'tag_1'
                 })
-            }, mockEnv);
+            }, mockEnv, executionCtx);
 
             expect(res.status).toBe(200);
             const data = await res.json();
@@ -69,7 +71,7 @@ describe('Search & Tagging API', () => {
             const token = await generateJWT({ id: 'admin1', name: 'Admin', type: 'admin', permissions: ['admin:full'] }, mockEnv);
             const res = await app.request('/api/manage/tags', {
                 headers: { 'Authorization': `Bearer ${token}` }
-            }, mockEnv);
+            }, mockEnv, executionCtx);
 
             expect(res.status).toBe(200);
             const data = await res.json();

@@ -13,8 +13,13 @@ export function parseRepoPagination(input = {}, options = {}) {
   const defaultLimit = toPositiveInt(options.defaultLimit, 20);
   const maxLimit = toPositiveInt(options.maxLimit, 100);
 
-  const page = toPositiveInt(input.page, defaultPage);
-  const limit = Math.min(maxLimit, Math.max(1, toPositiveInt(input.limit, defaultLimit)));
+  const parseOrDefault = (value, fallback) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? Math.floor(num) : fallback;
+  };
+
+  const page = Math.max(1, parseOrDefault(input.page, defaultPage));
+  const limit = Math.min(maxLimit, Math.max(1, parseOrDefault(input.limit, defaultLimit)));
 
   return {
     page,

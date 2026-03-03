@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useGoodsOverview } from '../useGoodsOverview';
 import { API } from '@/utils/constants';
+import { defineComponent } from 'vue'; // Added for ModalStub
 
 // Mock dependencies
 const mockFetch = vi.fn();
 
 // Add global fetch mock
+/* global global */
 global.fetch = mockFetch;
 
 vi.mock('@/utils/constants', () => ({
@@ -13,8 +15,13 @@ vi.mock('@/utils/constants', () => ({
         MANAGE_GOODS_OVERVIEW: '/api/manage/goods-overview',
         MANAGE_GOODS_OVERVIEW_SUMMARY: '/api/manage/goods-overview/summary',
         MANAGE_GOODS_OVERVIEW_EXPORT: '/api/manage/goods-overview/export',
+        MANAGE_PURCHASE_ORDERS: '/api/manage/purchase-orders', // Added for createPOFromSelected test
     },
 }));
+
+// Define ModalStub outside of tests for reusability if needed, or within a specific test if only used there.
+// As per the instruction, it's placed inside loadSummary, but it's more common to define stubs globally or per describe block.
+// For now, following the instruction's placement.
 
 describe('useGoodsOverview Composable', () => {
     beforeEach(() => {
@@ -109,6 +116,12 @@ describe('useGoodsOverview Composable', () => {
     describe('loadSummary()', () => {
         it('should fetch and populate summary on success', async () => {
             const mockSummaryData = { totalProducts: 10, totalDemand: 50, shortageCount: 2 };
+            const ModalStub = defineComponent({
+                name: 'AppModal',
+                emits: ['update:modelValue'],
+                template: `<div><slot /></div>`,
+            });
+
             mockFetch.mockResolvedValueOnce({
                 json: () => Promise.resolve({ success: true, data: mockSummaryData })
             });
@@ -179,6 +192,9 @@ describe('useGoodsOverview Composable', () => {
                     json: () => Promise.resolve({
                         success: true,
                         data: {
+                            stubs: { // This 'stubs' property in an API response is unusual and likely incorrect for an API mock.
+                                Modal: defineComponent({ name: 'AppModal', emits: ['update:modelValue'], template: `<div><slot /></div>` }),
+                            },
                             items: [
                                 { id: 'var-1', productId: 'prod-1', name: 'Tee', sku: 'TEE-YELLOW-S', shortage: 5, avgUnitCost: 8.8 }
                             ],

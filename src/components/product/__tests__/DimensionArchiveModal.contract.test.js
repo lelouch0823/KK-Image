@@ -8,7 +8,7 @@ vi.mock('@/composables/useI18n', () => ({
 }));
 
 const ModalStub = defineComponent({
-  name: 'Modal',
+  name: 'AppModal',
   emits: ['update:modelValue'],
   template: `<div><slot /></div>`,
 });

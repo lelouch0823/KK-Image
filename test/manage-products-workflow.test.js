@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { describe, it, vi } from 'vitest';
 
 const RUN_REAL_API_TESTS = process.env.RUN_REAL_API_TESTS === '1';
 const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:8080';
@@ -58,7 +59,7 @@ async function apiRequest(path, authHeader, { method = 'GET', body, expectedStat
 }
 
 describeIfEnabled('Manage Products Real API Workflow', function () {
-  this.timeout(120000);
+  vi.setConfig({ testTimeout: 120000 });
 
   let productId = '';
   let colorDimensionId = '';

@@ -25,17 +25,15 @@
       <!-- 状态筛选 -->
       <template #filters>
         <div class="flex flex-wrap items-center gap-2">
-          <button
+          <AppButton
             v-for="tab in statusTabs"
             :key="tab.value"
-            class="cursor-pointer rounded-full px-4 py-1.5 text-sm font-medium transition-colors"
-            :class="filters.status === tab.value
-              ? 'bg-primary text-(--text-inverse) shadow-sm'
-              : 'bg-(--bg-muted) text-(--text-secondary) hover:bg-(--bg-hover)'"
+            size="sm"
+            :variant="filters.status === tab.value ? 'primary' : 'secondary'"
+            :text="tab.label"
+            class="!rounded-full"
             @click="filters.status = tab.value"
-          >
-            {{ tab.label }}
-          </button>
+          />
         </div>
       </template>
     </AppFilterBar>
@@ -75,7 +73,14 @@
             </div>
             <div
               class="flex size-9 items-center justify-center rounded-xl transition-colors sm:size-10"
-              :style="{ backgroundColor: card.iconBg, color: card.iconColor }"
+              :class="[
+                card.key === '' ? 'bg-primary/10 text-primary' :
+                card.key === 'draft' ? 'bg-slate-500/10 text-slate-500' :
+                card.key === 'ordered' ? 'bg-amber-500/10 text-amber-500' :
+                card.key === 'shipping' ? 'bg-purple-500/10 text-purple-500' :
+                card.key === 'arrived' ? 'bg-emerald-500/10 text-emerald-500' :
+                'bg-blue-500/10 text-blue-500'
+              ]"
             >
               <!-- 全部 -->
               <AppIcon v-if="card.key === ''" name="bars-4" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
@@ -94,7 +99,14 @@
           <!-- 光晕背景 -->
           <div
             class="absolute -top-4 -right-4 -z-0 size-24 rounded-full opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-100"
-            :style="{ backgroundColor: card.iconBg }"
+            :class="[
+              card.key === '' ? 'bg-primary/10' :
+              card.key === 'draft' ? 'bg-slate-500/10' :
+              card.key === 'ordered' ? 'bg-amber-500/10' :
+              card.key === 'shipping' ? 'bg-purple-500/10' :
+              card.key === 'arrived' ? 'bg-emerald-500/10' :
+              'bg-blue-500/10'
+            ]"
           ></div>
         </div>
       </template>
@@ -713,6 +725,7 @@ const getFileUrl = (id) => `/file/${id}`;
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePurchaseOrders } from '@/composables/usePurchaseOrders';
+import { usePurchaseOrderModals } from '@/composables/usePurchaseOrderModals';
 import { useToast } from '@/composables/useToast';
 import { useAI } from '@/composables/useAI';
 import { validateOrderQuantity } from '@/utils/purchase-order-constraints';
@@ -726,12 +739,6 @@ import AppFilterBar from '@/components/ui/AppFilterBar.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
-
-const viewProductId = ref(null);
-const handleViewProductDetail = (id) => {
-  viewProductId.value = id;
-};
-
 
 const { t } = useI18n();
 const {
@@ -750,21 +757,26 @@ const { setContext } = useAI();
 
 // ─── 本地状态 ────────────────────────────────────────
 
-const showDetail = ref(false);
-const showCreateModal = ref(false);
-const showSuggestions = ref(false);
-const selectedSuggestions = ref([]);
+const {
+  showDetail,
+  showCreateModal,
+  showSuggestions,
+  showOrderPicker,
+  showProductPicker,
+  pickerTarget,
+  showShortageConfirm,
+  confirmData,
+  viewProductId,
+  detailFocusedVariantId: getDetailFocusedVariantId,
+  openOrderPicker,
+  openProductPicker,
+} = usePurchaseOrderModals();
 
-// ─── 新建采购单增强状态 ──────────────────────────────
-const showOrderPicker = ref(false);
-const showProductPicker = ref(false);
-const showShortageConfirm = ref(false);
-const pickerTarget = ref('create'); // 'create' or 'detail'
+const handleViewProductDetail = (id) => {
+  viewProductId.value = id;
+};
 
-// 采购明细列表 (本地编辑用)
-// 结构: { product_id, variant_id, product_name, sku, brand, image, quantity, unit_cost, pre_order_id?, order_no?, required_quantity? }
-const poItems = reactive([]);
-
+// 复用常量与逻辑
 const createForm = reactive({
   remark: '',
   estimated_shipping_cost: 0,
@@ -772,17 +784,20 @@ const createForm = reactive({
   allocation_method: 'by_quantity',
 });
 
+const poItems = reactive([]);
+const selectedSuggestions = ref([]);
+
 // ─── 计算属性 ────────────────────────────────────────
 
 const statCards = computed(() => {
   if (!stats.value) return [];
   return [
-    { key: '', label: t('purchaseOrder.filter.all'), count: stats.value.total || 0, iconColor: 'var(--text-secondary)', iconBg: 'var(--bg-muted)' },
-    { key: 'draft', label: t('purchaseOrder.status.draft'), count: stats.value.draft_count || 0, iconColor: 'var(--text-secondary)', iconBg: 'var(--bg-muted)' },
-    { key: 'ordered', label: t('purchaseOrder.status.ordered'), count: stats.value.ordered_count || 0, iconColor: 'varwarning', iconBg: 'var(--color-warning-bg)' },
-    { key: 'shipping', label: t('purchaseOrder.status.shipping'), count: stats.value.shipping_count || 0, iconColor: 'var(--color-purple)', iconBg: 'var(--color-purple-bg)' },
-    { key: 'arrived', label: t('purchaseOrder.status.arrived'), count: stats.value.arrived_count || 0, iconColor: 'varinfo', iconBg: 'var(--color-info-bg)' },
-    { key: 'completed', label: t('purchaseOrder.status.completed'), count: stats.value.completed_count || 0, iconColor: 'varsuccess', iconBg: 'var(--color-success-bg)' },
+    { key: '', label: t('purchaseOrder.filter.all'), count: stats.value.total || 0 },
+    { key: 'draft', label: t('purchaseOrder.status.draft'), count: stats.value.draft_count || 0 },
+    { key: 'ordered', label: t('purchaseOrder.status.ordered'), count: stats.value.ordered_count || 0 },
+    { key: 'shipping', label: t('purchaseOrder.status.shipping'), count: stats.value.shipping_count || 0 },
+    { key: 'arrived', label: t('purchaseOrder.status.arrived'), count: stats.value.arrived_count || 0 },
+    { key: 'completed', label: t('purchaseOrder.status.completed'), count: stats.value.completed_count || 0 },
   ];
 });
 const stepsList = [
@@ -880,8 +895,7 @@ const openDetail = async (id) => {
 };
 
 // ─── 新建/编辑采购单 - 选择器打开 ──────────────────────
-const openOrderPicker = (target = 'create') => { pickerTarget.value = target; showOrderPicker.value = true; };
-const openProductPicker = (target = 'create') => { pickerTarget.value = target; showProductPicker.value = true; };
+// (已通过 usePurchaseOrderModals 处理方法定义)
 
 // 从预定单选择器接收选中的订单 → 转化为 poItems 行或直接添加到草稿
 const handleOrdersSelected = async (orders) => {
@@ -1146,10 +1160,7 @@ watch(showSuggestions, (v) => {
   if (v) loadSuggestions();
 });
 
-const detailFocusedVariantId = computed(() => {
-  const item = (detail.value?.items || []).find((entry) => entry?.variant_id);
-  return item?.variant_id || null;
-});
+const detailFocusedVariantId = computed(() => getDetailFocusedVariantId(detail.value));
 
 watch([showProductPicker, selectedVariantIdsForPicker, viewProductId, showDetail, detailFocusedVariantId, () => route.query.variantId], ([pickerOpen, selectedVariantIds, productId, detailOpen, detailVariantId, routeVariantId]) => {
   if (pickerOpen) {
