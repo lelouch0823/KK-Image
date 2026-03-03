@@ -2,10 +2,10 @@
   <div class="overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card)">
     <div
       v-if="error"
-      class="border-b border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)]/40 px-3 py-2"
+      class="border-b border-(--color-danger-text)/20 bg-(--color-danger-bg)/40 px-3 py-2"
       data-testid="comment-error"
     >
-      <p class="text-xs text-[var(--text-main)]">{{ error }}</p>
+      <p class="text-xs text-(--text-main)">{{ error }}</p>
     </div>
     <div class="flex items-center gap-3 p-3">
       <input
@@ -27,7 +27,7 @@
     <div v-if="error && text.trim()" class="px-3 pb-3">
       <button
         type="button"
-        class="rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-inverse)]"
+        class="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
         data-testid="comment-retry"
         @click="retry"
       >

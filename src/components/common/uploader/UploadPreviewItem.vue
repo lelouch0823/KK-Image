@@ -1,6 +1,6 @@
 <template>
   <div
-    class="group relative aspect-square cursor-move overflow-hidden rounded-lg border-2 bg-[var(--bg-muted)] transition-all"
+    class="group relative aspect-square cursor-move overflow-hidden rounded-lg border-2 bg-(--bg-muted) transition-all"
     :class="dragClass"
     :data-sortable-index="index"
     draggable="true"
@@ -64,7 +64,7 @@
     <!-- 主图/封面标记 -->
     <div
       v-if="isCover"
-      class="bg-primary absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] text-[var(--text-inverse)] shadow-sm "
+      class="bg-primary absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] text-(--text-inverse) shadow-sm "
     >
       {{ coverText }}
     </div>

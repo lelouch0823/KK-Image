@@ -240,9 +240,9 @@ const formatVariantName = (optionsValues) => {
     border-color: var(--border-color);
 }
 .variant-input:focus {
-    border-color: var(--color-primary);
+    border-color: varprimary;
     background-color: var(--bg-card);
-    box-shadow: 0 0 0 1px var(--color-primary);
+    box-shadow: 0 0 0 1px varprimary;
     outline: none;
 }
 

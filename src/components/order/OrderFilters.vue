@@ -5,7 +5,7 @@
       <div class="hidden shrink-0 items-center gap-2 sm:flex">
         <button
           v-if="showCreate"
-          class="flex h-9 items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-sm transition-all hover:opacity-90 active:scale-95"
+          class="flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-(--text-inverse) shadow-primary/20 shadow-sm transition-all hover:opacity-90 active:scale-95"
           @click="$emit('create')"
         >
           <AppIcon name="plus" class="size-4" />
@@ -14,7 +14,7 @@
 
         <!-- Stats Button -->
         <button
-          class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--color-primary)] transition-all hover:bg-[var(--bg-card-hover)] active:scale-95"
+          class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) text-primary transition-all hover:bg-(--bg-card-hover) active:scale-95"
           :title="t('dashboard.stats')"
           @click="$emit('show-stats')"
         >
@@ -23,7 +23,7 @@
 
         <button
           :disabled="exporting"
-          class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-main)] transition-all hover:bg-[var(--bg-card-hover)] active:scale-95 disabled:opacity-50"
+          class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) text-(--text-main) transition-all hover:bg-(--bg-card-hover) active:scale-95 disabled:opacity-50"
           :title="t('order.manage.export')"
           @click="$emit('export')"
         >
@@ -36,7 +36,7 @@
       <div class="flex shrink-0 items-center gap-1 sm:hidden">
         <button
           v-if="showCreate"
-          class="flex size-9 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--text-inverse)] shadow-sm transition-all active:scale-95"
+          class="flex size-9 items-center justify-center rounded-lg bg-primary text-(--text-inverse) shadow-sm transition-all active:scale-95"
           :title="t('order.manage.create')"
           @click="$emit('create')"
         >
@@ -45,7 +45,7 @@
         
         <!-- Mobile Stats Button -->
         <button
-          class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--color-primary)] transition-all active:scale-95"
+          class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) text-primary transition-all active:scale-95"
           :title="t('dashboard.stats')"
           @click="$emit('show-stats')"
         >
@@ -54,7 +54,7 @@
 
         <button
           :disabled="exporting"
-          class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-main)] transition-all active:scale-95 disabled:opacity-50"
+          class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) text-(--text-main) transition-all active:scale-95 disabled:opacity-50"
           :title="t('order.manage.export')"
           @click="$emit('export')"
         >

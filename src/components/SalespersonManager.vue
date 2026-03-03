@@ -1,20 +1,20 @@
 <template>
-  <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm">
+  <div class="rounded-xl border border-(--border-color) bg-(--bg-card) shadow-sm">
     <!-- 头部操作栏 -->
     <!-- 头部操作栏 -->
     <div
-      class="flex flex-col gap-4 border-b border-[var(--border-color)] p-4 sm:flex-row sm:items-center sm:justify-between"
+      class="flex flex-col gap-4 border-b border-(--border-color) p-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <!-- Title Section -->
       <div class="flex items-center justify-between sm:block">
         <div>
-          <h2 class="text-lg font-semibold text-[var(--text-main)]">{{ t('salesperson.title') }}</h2>
-          <p class="mt-1 text-sm text-[var(--text-secondary)]">{{ t('salesperson.subtitle') }}</p>
+          <h2 class="text-lg font-semibold text-(--text-main)">{{ t('salesperson.title') }}</h2>
+          <p class="mt-1 text-sm text-(--text-secondary)">{{ t('salesperson.subtitle') }}</p>
         </div>
 
         <!-- Mobile Create Button -->
         <button
-          class="flex size-9 items-center justify-center rounded-xl bg-[var(--color-primary)] text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all active:scale-95 sm:hidden "
+          class="flex size-9 items-center justify-center rounded-xl bg-primary text-(--text-inverse) shadow-primary/20 shadow-lg transition-all active:scale-95 sm:hidden "
           @click="openModal()"
         >
           <AppIcon name="plus" class="size-5" />
@@ -32,7 +32,7 @@
 
         <!-- 新建按钮 (Desktop) -->
         <button
-          class="hidden items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/10 shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 sm:flex "
+          class="hidden items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-(--text-inverse) shadow-primary/10 shadow-lg transition-all hover:bg-(--color-primary-hover) active:scale-95 sm:flex "
           @click="openModal()"
         >
           <AppIcon name="plus" class="size-4" />
@@ -71,7 +71,7 @@
     </div>
 
     <!-- 分页 -->
-    <div class="border-t border-[var(--border-color)] p-4">
+    <div class="border-t border-(--border-color) p-4">
       <Pagination
         v-model:current-page="currentPage"
         :total-pages="pagination.totalPages"

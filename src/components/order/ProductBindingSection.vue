@@ -1,17 +1,17 @@
 <template>
-  <div class="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] shadow-sm">
-    <div class="rounded-t-xl border-b border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 px-4 py-3 sm:px-6 sm:py-4">
-      <h4 class="flex items-center gap-2 text-sm font-semibold text-[var(--text-main)]">
-        <AppIcon name="link" class="size-4 text-[var(--color-primary)]" />
+  <div class="rounded-xl border border-(--border-subtle) bg-(--bg-card) shadow-sm">
+    <div class="rounded-t-xl border-b border-(--border-subtle) bg-(--bg-muted)/40 px-4 py-3 sm:px-6 sm:py-4">
+      <h4 class="flex items-center gap-2 text-sm font-semibold text-(--text-main)">
+        <AppIcon name="link" class="size-4 text-primary" />
         {{ isSalesMode ? t('order.binding.salesTitle') : t('order.binding.title') }}
       </h4>
     </div>
 
     <!-- Bound Product Card -->
     <div v-if="boundProduct" class="">
-      <div class="flex flex-col gap-4 border-b border-[var(--border-subtle)] p-4 sm:flex-row sm:items-start sm:justify-between sm:p-6">
+      <div class="flex flex-col gap-4 border-b border-(--border-subtle) p-4 sm:flex-row sm:items-start sm:justify-between sm:p-6">
         <div class="flex gap-3 sm:gap-4">
-          <div class="size-16 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)] sm:size-20">
+          <div class="size-16 flex-shrink-0 overflow-hidden rounded-lg border border-(--border-subtle) bg-(--bg-muted) sm:size-20">
             <AppImage 
               v-if="boundProduct.mainImage" 
               :src="boundProduct.mainImage" 
@@ -19,20 +19,20 @@
               class="size-full cursor-pointer object-cover transition-transform hover:scale-105" 
               @click="openLightbox"
             />
-            <div v-else class="flex h-full items-center justify-center text-[var(--text-muted)]">
+            <div v-else class="flex h-full items-center justify-center text-(--text-muted)">
               <AppIcon name="photo" class="size-8 stroke-[1.5]" />
             </div>
           </div>
           
           <div>
             <div class="mb-1.5 flex flex-wrap items-center gap-2 sm:gap-3">
-              <h2 class="text-base font-bold tracking-tight text-[var(--text-main)] sm:text-lg">{{ boundProduct.name }}</h2>
-              <span class="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-muted)] px-2 py-0.5 font-mono text-xs font-medium text-[var(--text-secondary)] uppercase">
+              <h2 class="text-base font-bold tracking-tight text-(--text-main) sm:text-lg">{{ boundProduct.name }}</h2>
+              <span class="rounded-md border border-(--border-subtle) bg-(--bg-muted) px-2 py-0.5 font-mono text-xs font-medium text-(--text-secondary) uppercase">
                 {{ displaySku || '—' }}
               </span>
               <span
                 v-if="isSalesMode"
-                class="rounded-full bg-[var(--color-primary)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--color-primary)]"
+                class="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary"
               >
                 {{ t('order.binding.bound') }}
               </span>
@@ -55,14 +55,14 @@
             v-if="isAdminMode"
             :href="`/admin/products?edit=${boundProduct.id}`"
             target="_blank"
-            class="cursor-pointer rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
+            class="cursor-pointer rounded-lg p-2 text-(--text-muted) transition-colors hover:bg-primary/10 hover:text-primary"
             :title="t('product.action.edit')"
           >
             <AppIcon name="pencil-square" class="size-5" />
           </a>
           <button 
             type="button" 
-            class="cursor-pointer rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)]"
+            class="cursor-pointer rounded-lg p-2 text-(--text-muted) transition-colors hover:bg-(--color-danger-bg) hover:text-(--color-danger-text)"
             :title="t('order.binding.unbind')"
             @click="$emit('unbind')"
           >
@@ -73,14 +73,14 @@
 
       <!-- Configuration Body -->
       <div v-if="variants.length > 0" class="relative space-y-5 p-4 sm:space-y-7 sm:p-6">
-        <div v-if="isLoadingDetails" class="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-card)]/50 backdrop-blur-sm">
-           <AppIcon name="spinner" class="size-6 animate-spin text-[var(--color-primary)]" />
+        <div v-if="isLoadingDetails" class="absolute inset-0 z-10 flex items-center justify-center bg-(--bg-card)/50 backdrop-blur-sm">
+           <AppIcon name="spinner" class="size-6 animate-spin text-primary" />
         </div>
 
         <section v-for="dimension in dimensionKeys" :key="dimension">
           <div class="mb-3 flex items-center justify-between">
-            <label class="text-sm font-bold text-[var(--text-main)]">{{ getDimensionLabel(dimension) }}</label>
-            <span class="text-xs text-[var(--text-secondary)] sm:text-[13px]">
+            <label class="text-sm font-bold text-(--text-main)">{{ getDimensionLabel(dimension) }}</label>
+            <span class="text-xs text-(--text-secondary) sm:text-[13px]">
               {{ t('order.binding.selectedLabel') }}: {{ selectedOptions[dimension] || t('order.binding.unselected') }}
             </span>
           </div>
@@ -103,7 +103,7 @@
                 @change="selectDimensionOption(dimension, option.value)"
               />
               <div
-                class="peer-focus-visible:ring-primary/50 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 flex size-9 items-center justify-center rounded-full border-2 border-transparent shadow-sm transition-all peer-checked:border-[var(--bg-card)] peer-checked:ring-2 peer-checked:ring-[var(--text-main)] sm:size-10"
+                class="peer-focus-visible:ring-primary/50 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 flex size-9 items-center justify-center rounded-full border-2 border-transparent shadow-sm transition-all peer-checked:border-(--bg-card) peer-checked:ring-2 peer-checked:ring-(--text-main) sm:size-10"
                 :style="buildColorSwatchStyle(option.value)"
               >
                 <AppIcon
@@ -112,7 +112,7 @@
                   class="size-4 text-white mix-blend-difference drop-shadow-md sm:size-5"
                 />
               </div>
-              <span class="max-w-16 truncate text-center text-[11px] font-medium text-[var(--text-secondary)] transition-colors peer-checked:font-bold peer-checked:text-(--text-main)" :title="option.label">
+              <span class="max-w-16 truncate text-center text-[11px] font-medium text-(--text-secondary) transition-colors peer-checked:font-bold peer-checked:text-(--text-main)" :title="option.label">
                 {{ option.label }}
               </span>
             </label>
@@ -136,8 +136,8 @@
                 @change="selectDimensionOption(dimension, option.value)"
               />
               <div
-                class="flex min-h-9 items-center justify-center rounded-lg border-2 border-[var(--border-subtle)] px-2 py-1.5 text-center text-[13px] font-semibold text-[var(--text-secondary)] transition-all peer-checked:border-[var(--text-main)] peer-checked:text-(--text-main) sm:min-h-10 sm:text-sm"
-                :class="{ 'border-dashed border-[var(--border-subtle)]/50': !option.selectable }"
+                class="flex min-h-9 items-center justify-center rounded-lg border-2 border-(--border-subtle) px-2 py-1.5 text-center text-[13px] font-semibold text-(--text-secondary) transition-all peer-checked:border-(--text-main) peer-checked:text-(--text-main) sm:min-h-10 sm:text-sm"
+                :class="{ 'border-dashed border-(--border-subtle)/50': !option.selectable }"
               >
                 {{ option.label }}
               </div>
@@ -146,17 +146,17 @@
         </section>
 
         <!-- Inventory Info Footer -->
-        <div class="flex flex-col justify-between gap-4 rounded-xl bg-[var(--bg-muted)]/50 p-4 sm:flex-row sm:items-center">
+        <div class="flex flex-col justify-between gap-4 rounded-xl bg-(--bg-muted)/50 p-4 sm:flex-row sm:items-center">
           <div class="flex gap-6">
             <div>
-              <p class="mb-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">{{ t('order.binding.stockLabel') }}</p>
-              <p class="text-sm font-semibold text-[var(--text-main)]">{{ selectedStockQuantity }} {{ t('order.binding.stockUnit') }}</p>
+              <p class="mb-1 text-[10px] font-bold tracking-widest text-(--text-secondary) uppercase">{{ t('order.binding.stockLabel') }}</p>
+              <p class="text-sm font-semibold text-(--text-main)">{{ selectedStockQuantity }} {{ t('order.binding.stockUnit') }}</p>
             </div>
             <div>
-              <p class="mb-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">{{ t('order.binding.replenishmentLabel') }}</p>
-              <p class="text-sm font-semibold text-[var(--text-main)]">
+              <p class="mb-1 text-[10px] font-bold tracking-widest text-(--text-secondary) uppercase">{{ t('order.binding.replenishmentLabel') }}</p>
+              <p class="text-sm font-semibold text-(--text-main)">
                 {{ selectedReplenishmentQuantity }} {{ t('order.binding.stockUnit') }}
-                <span v-if="selectedReplenishmentPoCount > 0" class="ml-1 text-xs font-normal text-[var(--text-secondary)]">({{ selectedReplenishmentPoCount }} {{ t('order.binding.poUnit') }})</span>
+                <span v-if="selectedReplenishmentPoCount > 0" class="ml-1 text-xs font-normal text-(--text-secondary)">({{ selectedReplenishmentPoCount }} {{ t('order.binding.poUnit') }})</span>
               </p>
             </div>
           </div>
@@ -166,7 +166,7 @@
 
     <!-- Product Selector -->
     <div v-else class="p-4 sm:p-6">
-      <p class="mb-3 text-sm font-medium text-[var(--text-secondary)]">
+      <p class="mb-3 text-sm font-medium text-(--text-secondary)">
         {{ isSalesMode ? t('order.binding.salesHint') : t('order.binding.hint') }}
       </p>
       <SalesProductSelect
@@ -350,10 +350,10 @@ const selectedStockQuantity = computed(() => Number(currentSelectedVariant.value
 const selectedReplenishmentQuantity = computed(() => Number(currentSelectedVariant.value?.replenishment_quantity || 0));
 const selectedReplenishmentPoCount = computed(() => Number(currentSelectedVariant.value?.replenishment_po_count || 0));
 const availabilityBadgeClass = computed(() => {
-  if (currentAvailabilityState.value === 'available') return 'bg-[var(--color-success-bg)] text-[var(--color-success)]';
-  if (currentAvailabilityState.value === 'low_stock') return 'bg-[var(--color-warning-bg)] text-[var(--color-warning)]';
-  if (currentAvailabilityState.value === 'disabled_out_of_stock') return 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]';
-  return 'bg-[var(--bg-muted)] text-[var(--text-secondary)]';
+  if (currentAvailabilityState.value === 'available') return 'bg-(--color-success-bg) text-success';
+  if (currentAvailabilityState.value === 'low_stock') return 'bg-(--color-warning-bg) text-warning';
+  if (currentAvailabilityState.value === 'disabled_out_of_stock') return 'bg-(--color-danger-bg) text-(--color-danger-text)';
+  return 'bg-(--bg-muted) text-(--text-secondary)';
 });
 
 const isColorDimension = (dimensionKey) => {

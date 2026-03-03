@@ -17,11 +17,11 @@
           v-model="searchQuery"
           type="text"
           :placeholder="t('common.searchPlaceholder')"
-          class="w-full rounded-xl border border-(--border-color) bg-(--bg-muted) py-2.5 pr-10 pl-11 text-sm shadow-sm transition-all outline-none placeholder:text-(--text-muted) focus:border-(--color-primary) focus:bg-(--bg-card) focus:ring-4 focus:ring-(--color-primary)/10"
+          class="w-full rounded-xl border border-(--border-color) bg-(--bg-muted) py-2.5 pr-10 pl-11 text-sm shadow-sm transition-all outline-none placeholder:text-(--text-muted) focus:border-primary focus:bg-(--bg-card) focus:ring-4 focus:ring-primary/10"
         />
         <button
             v-if="searchQuery"
-            class="text-secondary absolute top-1/2 right-2.5 -translate-y-1/2 rounded-full p-1 hover:text-primary hover:bg-(--bg-muted) min-h-11 min-w-11 inline-flex items-center justify-center focus-visible:ring-2 focus-visible:ring-(--color-primary)/30 focus-visible:outline-none"
+            class="text-secondary absolute top-1/2 right-2.5 -translate-y-1/2 rounded-full p-1 hover:text-primary hover:bg-(--bg-muted) min-h-11 min-w-11 inline-flex items-center justify-center focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none"
             @click="searchQuery = ''"
         >
             <AppIcon name="x-mark" class="size-4" />

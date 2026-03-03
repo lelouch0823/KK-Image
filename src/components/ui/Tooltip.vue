@@ -25,7 +25,7 @@
           ref="content"
           role="tooltip"
           :style="positionStyle"
-          class="pointer-events-none fixed z-[9999] rounded-lg bg-[var(--text-main)] px-2.5 py-1.5 text-xs font-medium whitespace-nowrap text-[var(--bg-card)] shadow-lg"
+          class="pointer-events-none fixed z-[9999] rounded-lg bg-(--text-main) px-2.5 py-1.5 text-xs font-medium whitespace-nowrap text-(--bg-card) shadow-lg"
         >
           {{ content }}
         </div>

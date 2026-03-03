@@ -1,5 +1,5 @@
 <template>
-  <div class="flex min-h-screen flex-col bg-[var(--bg-page)] font-sans text-[var(--text-main)] antialiased">
+  <div class="flex min-h-screen flex-col bg-(--bg-page) font-sans text-(--text-main) antialiased">
     <!-- 加载状态 -->
     <!-- 加载状态 -->
     <div v-if="loading" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -45,7 +45,7 @@
 
       <!-- Footer -->
       <footer
-        class="text-secondary mt-auto border-t border-[var(--border-color)] bg-[var(--bg-card)] py-8 text-center text-sm"
+        class="text-secondary mt-auto border-t border-(--border-color) bg-(--bg-card) py-8 text-center text-sm"
       >
         <a href="/" class="hover:text-primary transition-colors">{{ t('gallery.poweredBy') }}</a>
       </footer>

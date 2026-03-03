@@ -2,7 +2,7 @@
   <div class="bg-card/50 border-border w-full rounded-xl border p-4 shadow-sm backdrop-blur-sm">
     <div v-if="title" class="mb-4 flex items-center gap-2">
       <div class="bg-primary/20 size-1.5 rounded-full"></div>
-      <h4 class="text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase">{{ title }}</h4>
+      <h4 class="text-xs font-semibold tracking-wider text-(--text-secondary) uppercase">{{ title }}</h4>
     </div>
     <div class="relative h-64 w-full">
       <component 

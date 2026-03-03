@@ -1,12 +1,12 @@
 <template>
   <div
-    class="flex max-h-[80vh] w-full flex-col overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] shadow-xl"
+    class="flex max-h-[80vh] w-full flex-col overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-card) shadow-xl"
   >
     <!-- Header -->
     <div
-      class="flex items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-muted)] px-4 py-3"
+      class="flex items-center justify-between border-b border-(--border-color) bg-(--bg-muted) px-4 py-3"
     >
-      <h3 class="font-medium text-[var(--text-main)]">{{ t('notification.title') }}</h3>
+      <h3 class="font-medium text-(--text-main)">{{ t('notification.title') }}</h3>
       <div class="flex items-center gap-2">
         <button
           v-if="unreadCount > 0"
@@ -25,10 +25,10 @@
         class="flex flex-col items-center justify-center gap-3 p-6 text-center"
         data-testid="notification-error"
       >
-        <p class="text-sm text-[var(--text-main)]">{{ t('common.loadFailed') }}</p>
+        <p class="text-sm text-(--text-main)">{{ t('common.loadFailed') }}</p>
         <button
           type="button"
-          class="rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-inverse)]"
+          class="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
           data-testid="notification-retry"
           @click="runFetch"
         >
@@ -38,7 +38,7 @@
 
       <div
         v-else-if="loading && notifications.length === 0"
-        class="flex flex-col items-center justify-center p-12 text-center text-[var(--text-muted)]"
+        class="flex flex-col items-center justify-center p-12 text-center text-(--text-muted)"
       >
         <div
           class="border-primary mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-t-transparent"
@@ -50,17 +50,17 @@
         <EmptyState icon="inbox" :title="t('notification.empty')" size="sm" />
       </div>
 
-      <div v-else class="divide-y divide-[var(--border-color)]">
+      <div v-else class="divide-y divide-(--border-color)">
         <TransitionGroup
           name="list"
           tag="div"
-          class="divide-y divide-[var(--border-color)]"
+          class="divide-y divide-(--border-color)"
         >
           <div
             v-for="item in notifications"
             :key="item.id"
-            class="group relative cursor-pointer p-4 transition-all duration-200 hover:bg-[var(--bg-hover)] active:scale-[0.99]"
-            :class="{ 'bg-[var(--color-primary-bg)]': item.is_read === 0 }"
+            class="group relative cursor-pointer p-4 transition-all duration-200 hover:bg-(--bg-hover) active:scale-[0.99]"
+            :class="{ 'bg-(--color-primary-bg)': item.is_read === 0 }"
             @click="handleClick(item)"
           >
             <div class="flex items-start gap-3">
@@ -68,21 +68,21 @@
               <div class="mt-1 shrink-0">
                 <span
                   v-if="item.type === 'order'"
-                  class="block size-2 rounded-full bg-[var(--color-info)] shadow-sm"
+                  class="block size-2 rounded-full bg-info shadow-sm"
                 ></span>
                 <span
                   v-else-if="item.type === 'deadline'"
-                  class="block size-2 rounded-full bg-[var(--color-warning)] shadow-sm"
+                  class="block size-2 rounded-full bg-warning shadow-sm"
                 ></span>
                 <span
                   v-else
-                  class="block size-2 rounded-full bg-[var(--color-text-muted)] shadow-sm"
+                  class="block size-2 rounded-full bg-(--color-text-muted) shadow-sm"
                 ></span>
               </div>
 
               <div class="min-w-0 flex-1">
                 <p
-                  class="group-hover:text-primary truncate pr-4 text-sm font-medium text-[var(--text-main)] transition-colors"
+                  class="group-hover:text-primary truncate pr-4 text-sm font-medium text-(--text-main) transition-colors"
                   :class="{ 'font-semibold': item.is_read === 0 }"
                   :title="renderText(item.title)"
                 >

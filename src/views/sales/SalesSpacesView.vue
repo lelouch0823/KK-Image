@@ -2,8 +2,8 @@
   <div class="space-y-6">
     <!-- Header -->
     <div>
-      <h2 class="text-xl font-semibold text-[var(--text-main)]">{{ t('salesSpaces.title') }}</h2>
-      <p class="mt-1 text-sm text-[var(--text-secondary)]">{{ t('salesSpaces.subtitle') }}</p>
+      <h2 class="text-xl font-semibold text-(--text-main)">{{ t('salesSpaces.title') }}</h2>
+      <p class="mt-1 text-sm text-(--text-secondary)">{{ t('salesSpaces.subtitle') }}</p>
     </div>
 
     <!-- Loading -->
@@ -11,22 +11,22 @@
       <div
         v-for="i in 4"
         :key="i"
-        class="h-48 animate-pulse rounded-2xl bg-[var(--bg-muted)]"
+        class="h-48 animate-pulse rounded-2xl bg-(--bg-muted)"
       ></div>
     </div>
 
     <!-- Empty State -->
     <div
       v-else-if="spaces.length === 0"
-      class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--bg-muted)] px-6 py-16 text-center"
+      class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-(--border-color) bg-(--bg-muted) px-6 py-16 text-center"
     >
-      <div class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-[var(--bg-card)] shadow-sm">
-        <svg class="size-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-(--bg-card) shadow-sm">
+        <svg class="size-8 text-(--text-muted)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       </div>
-      <h3 class="text-base font-semibold text-[var(--text-main)]">{{ t('salesSpaces.empty') }}</h3>
-      <p class="mt-1 text-sm text-[var(--text-secondary)]">{{ t('salesSpaces.emptyDesc') }}</p>
+      <h3 class="text-base font-semibold text-(--text-main)">{{ t('salesSpaces.empty') }}</h3>
+      <p class="mt-1 text-sm text-(--text-secondary)">{{ t('salesSpaces.emptyDesc') }}</p>
     </div>
 
     <!-- Space Cards Grid -->
@@ -37,10 +37,10 @@
         :href="`/space/${space.share_token}`"
         target="_blank"
         rel="noopener noreferrer"
-        class="group overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm transition-all hover:-translate-y-[1px] hover:shadow-md active:translate-y-0"
+        class="group overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) shadow-sm transition-all hover:-translate-y-[1px] hover:shadow-md active:translate-y-0"
       >
         <!-- Cover Image -->
-        <div class="relative aspect-video overflow-hidden bg-[var(--bg-muted)]">
+        <div class="relative aspect-video overflow-hidden bg-(--bg-muted)">
           <AppImage
             v-if="getCoverUrl(space)"
             :src="getCoverUrl(space)"
@@ -49,7 +49,7 @@
             rounded="none"
           />
           <div v-else class="flex size-full items-center justify-center">
-            <svg class="size-12 text-[var(--text-muted)] opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="size-12 text-(--text-muted) opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
@@ -61,17 +61,17 @@
 
         <!-- Info -->
         <div class="p-4">
-          <h3 class="text-sm font-semibold text-[var(--text-main)] group-hover:text-[var(--color-primary)]">
+          <h3 class="text-sm font-semibold text-(--text-main) group-hover:text-primary">
             {{ space.name }}
           </h3>
-          <p v-if="space.description" class="mt-1 line-clamp-2 text-xs text-[var(--text-secondary)]">
+          <p v-if="space.description" class="mt-1 line-clamp-2 text-xs text-(--text-secondary)">
             {{ space.description }}
           </p>
           <div class="mt-3 flex items-center justify-between">
-            <span class="text-xs text-[var(--text-muted)]">
+            <span class="text-xs text-(--text-muted)">
               {{ t('salesSpaces.fileCount', { count: space.file_count || 0 }) }}
             </span>
-            <span class="flex items-center gap-1 text-xs font-medium text-[var(--color-primary)] opacity-0 transition-opacity group-hover:opacity-100">
+            <span class="flex items-center gap-1 text-xs font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
               {{ t('salesSpaces.viewSpace') }}
               <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

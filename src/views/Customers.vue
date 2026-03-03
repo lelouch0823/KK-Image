@@ -42,64 +42,12 @@
             :data="customers"
             :loading="loading"
             :empty-text="t('customer.manage.empty')"
+            :row-class="getRowClass"
             no-border
             clickable
             @row-click="openDetail"
           >
-            <!-- 覆盖行的 class 以实现选中高亮效果 -->
-            <template #row="{ row }">
-              <tr 
-                class="group cursor-pointer transition-colors hover:bg-(--bg-hover)"
-                :class="{ 'bg-primary-50 dark:bg-primary/10': viewingCustomer?.id === row.id }"
-                @click="openDetail(row)"
-              >
-                <td class="px-4 py-3 font-medium text-(--text-main)">{{ row.name }}</td>
-                <td class="px-4 py-3 text-(--text-secondary)">
-                    <div class="flex flex-col gap-1">
-                    <!-- 电话 -->
-                    <div v-if="row.phone" class="flex items-center gap-1">
-                        <AppIcon name="phone" class="size-3 shrink-0" />
-                        <span>{{ row.phone }}</span>
-                    </div>
-                    <!-- 邮箱 -->
-                    <div v-if="row.email" class="flex items-center gap-1">
-                        <AppIcon name="envelope" class="size-3 shrink-0" />
-                        <span class="max-w-[180px] truncate" :title="row.email">{{ row.email }}</span>
-                    </div>
-                    <!-- 无联系方式 -->
-                    <span v-if="!row.phone && !row.email" class="text-(--text-muted)">-</span>
-                    </div>
-                </td>
-                <td class="px-4 py-3 text-(--text-secondary)">{{ row.company || '-' }}</td>
-                <td class="px-4 py-3">
-                    <div class="flex flex-wrap gap-1">
-                      <StatusBadge
-                        v-for="tag in row.tags"
-                        :key="tag"
-                        variant="primary"
-                      >
-                        {{ tag }}
-                      </StatusBadge>
-                    </div>
-                </td>
-                <td class="px-4 py-3 text-xs text-(--text-secondary)">{{ formatDate(row.createdAt) }}</td>
-                <td class="px-4 py-3 text-right" @click.stop>
-                    <AppButton
-                      variant="ghost"
-                      size="sm"
-                      class="p-1.5! opacity-0 group-hover:opacity-100"
-                      :title="t('common.edit')"
-                      @click="openEditModal(row)"
-                    >
-                      <template #icon-left>
-                        <AppIcon name="pencil-square" class="size-4" />
-                      </template>
-                    </AppButton>
-                </td>
-              </tr>
-            </template>
 
-            <!-- 当 AppTable 当前通过 slot #row 重写时上面就可以了，但考虑到 AppTable 标准是 #cell-<key>，我们也提供标准的实现以防冲突 -->
             <template #cell-name="{ row }">
                <span class="font-medium text-(--text-main)">{{ row.name }}</span>
             </template>
@@ -269,6 +217,10 @@ const editingId = ref(null);
 const editingCustomer = ref(null);
 const showDetailPanel = ref(false);
 const viewingCustomer = ref(null);
+
+const getRowClass = (row) => {
+  return viewingCustomer.value?.id === row.id ? 'bg-(--color-primary-bg)/50' : '';
+};
 
 const loadCustomers = async (params = {}) => {
   loading.value = true;

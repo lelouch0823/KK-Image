@@ -9,14 +9,14 @@
   >
     <div
       v-if="selectedCount > 0"
-      class="sticky right-0 bottom-0 left-0 z-20 flex items-center justify-between gap-4 border-t border-[var(--border-color)] bg-[var(--bg-card)] bg-[var(--bg-card)]/90 px-4 py-3.5 shadow-xl shadow-black/10 backdrop-blur-md"
+      class="sticky right-0 bottom-0 left-0 z-20 flex items-center justify-between gap-4 border-t border-(--border-color) bg-(--bg-card) bg-(--bg-card)/90 px-4 py-3.5 shadow-xl shadow-black/10 backdrop-blur-md"
     >
       <div class="flex items-center gap-3">
-        <span class="text-sm font-medium text-[var(--color-primary)]">
+        <span class="text-sm font-medium text-primary">
           {{ t('order.manage.selectedCount', { count: selectedCount }) }}
         </span>
         <button
-          class="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--color-primary)]"
+          class="text-sm text-(--text-secondary) transition-colors hover:text-primary"
           @click="$emit('cancel')"
         >
           {{ t('order.manage.cancelSelect') }}
@@ -25,7 +25,7 @@
       <div class="flex items-center gap-2">
         <button
           :disabled="processing"
-          class="flex h-9 items-center gap-1.5 rounded-xl bg-[var(--color-primary)] px-4 text-sm font-bold text-[var(--text-inverse)] shadow-[var(--color-primary)]/10 shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+          class="flex h-9 items-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-bold text-(--text-inverse) shadow-primary/10 shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
           @click="$emit('action', 'confirm')"
         >
           <AppIcon name="check" class="size-4.5" />
@@ -33,7 +33,7 @@
         </button>
         <button
           :disabled="processing"
-          class="flex h-9 items-center gap-1.5 rounded-xl bg-[var(--color-warning)] px-4 text-sm font-bold text-[var(--text-inverse)] shadow-[var(--color-warning)]/10 shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+          class="flex h-9 items-center gap-1.5 rounded-xl bg-warning px-4 text-sm font-bold text-(--text-inverse) shadow-warning/10 shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
           @click="$emit('action', 'reject')"
         >
           <AppIcon name="x-mark" class="size-4.5" />
@@ -41,7 +41,7 @@
         </button>
         <button
           :disabled="processing"
-          class="flex h-9 items-center gap-1.5 rounded-xl bg-[var(--color-danger)] px-4 text-sm font-bold text-[var(--text-inverse)] shadow-[var(--color-danger)]/10 shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+          class="flex h-9 items-center gap-1.5 rounded-xl bg-danger px-4 text-sm font-bold text-(--text-inverse) shadow-danger/10 shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
           @click="$emit('action', 'void')"
         >
           <AppIcon name="trash" class="size-4" />

@@ -1,8 +1,8 @@
 <template>
-  <div class="overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm transition-all hover:shadow-md">
-    <div class="border-b border-[var(--border-color)] bg-[var(--bg-muted)] px-6 py-4">
+  <div class="overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) shadow-sm transition-all hover:shadow-md">
+    <div class="border-b border-(--border-color) bg-(--bg-muted) px-6 py-4">
       <div class="flex items-center gap-3">
-        <div v-if="icon" class="flex size-10 items-center justify-center rounded-lg bg-[var(--color-primary-bg)] text-[var(--color-primary)]">
+        <div v-if="icon" class="flex size-10 items-center justify-center rounded-lg bg-(--color-primary-bg) text-primary">
           <AppIcon :name="icon" class="size-5" />
         </div>
         <div>
@@ -17,7 +17,7 @@
     <div class="p-6">
       <slot />
     </div>
-    <div v-if="$slots.footer" class="border-t border-[var(--border-color)] bg-[var(--bg-muted)] px-6 py-4">
+    <div v-if="$slots.footer" class="border-t border-(--border-color) bg-(--bg-muted) px-6 py-4">
       <slot name="footer" />
     </div>
   </div>

@@ -1,13 +1,13 @@
 <template>
-  <div class="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]">
+  <div class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card)">
     <!-- 卡片头部 -->
-    <div class="flex items-center gap-3 border-b border-[var(--border-color)] px-5 py-4">
-      <div class="flex size-9 items-center justify-center rounded-lg bg-[var(--color-primary)]/10">
-        <AppIcon name="users" class="size-4.5 text-[var(--color-primary)]" />
+    <div class="flex items-center gap-3 border-b border-(--border-color) px-5 py-4">
+      <div class="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+        <AppIcon name="users" class="size-4.5 text-primary" />
       </div>
       <div class="flex-1">
-        <h3 class="text-sm font-semibold text-[var(--text-main)]">{{ t('spaceManager.shareSettings') }}</h3>
-        <p class="text-xs text-[var(--text-secondary)]">{{ shareModeDescription }}</p>
+        <h3 class="text-sm font-semibold text-(--text-main)">{{ t('spaceManager.shareSettings') }}</h3>
+        <p class="text-xs text-(--text-secondary)">{{ shareModeDescription }}</p>
       </div>
     </div>
 
@@ -20,28 +20,28 @@
           type="button"
           class="group relative flex flex-col items-center gap-2 rounded-xl border p-3 transition-all duration-200"
           :class="modelValue === mode.value
-            ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 shadow-sm'
-            : 'border-[var(--border-color)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)]'"
+            ? 'border-primary bg-primary/5 shadow-sm'
+            : 'border-(--border-color) hover:border-(--border-hover) hover:bg-(--bg-hover)'"
           @click="updateShareMode(mode.value)"
         >
           <!-- 选中指示器 -->
           <span
             v-if="modelValue === mode.value"
-            class="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-[var(--color-primary)] text-white"
+            class="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary text-white"
           >
             <AppIcon name="check" class="size-2.5" stroke-width="4" />
           </span>
           <div
             class="flex size-9 items-center justify-center rounded-lg transition-colors"
             :class="modelValue === mode.value
-              ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
-              : 'bg-[var(--bg-muted)] text-[var(--text-secondary)] group-hover:text-[var(--text-main)]'"
+              ? 'bg-primary/10 text-primary'
+              : 'bg-(--bg-muted) text-(--text-secondary) group-hover:text-(--text-main)'"
           >
             <component :is="mode.iconComponent" class="size-4.5" />
           </div>
           <span
             class="text-xs font-medium transition-colors"
-            :class="modelValue === mode.value ? 'text-[var(--color-primary)]' : 'text-[var(--text-main)]'"
+            :class="modelValue === mode.value ? 'text-primary' : 'text-(--text-main)'"
           >
             {{ mode.label }}
           </span>

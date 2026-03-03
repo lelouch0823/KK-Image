@@ -1,10 +1,10 @@
 <template>
   <div
-    class="flex max-h-[80vh] w-80 flex-col overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] shadow-xl sm:w-96"
+    class="flex max-h-[80vh] w-80 flex-col overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-card) shadow-xl sm:w-96"
   >
     <!-- Header -->
     <div
-      class="flex items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-muted)] px-4 py-3"
+      class="flex items-center justify-between border-b border-(--border-color) bg-(--bg-muted) px-4 py-3"
     >
       <h3 class="text-primary font-medium">{{ t('notification.title') }}</h3>
       <div class="flex items-center gap-2">
@@ -35,11 +35,11 @@
         <span class="text-sm">{{ t('notification.empty') }}</span>
       </div>
 
-      <div v-else class="divide-y divide-[var(--border-color)]">
+      <div v-else class="divide-y divide-(--border-color)">
         <div
           v-for="item in notifications"
           :key="item.id"
-          class="group relative cursor-pointer p-4 transition-colors hover:bg-[var(--bg-hover)]"
+          class="group relative cursor-pointer p-4 transition-colors hover:bg-(--bg-hover)"
           :class="{ 'bg-primary/5': item.is_read === 0 }"
           @click="handleClick(item)"
         >
@@ -48,15 +48,15 @@
             <div class="mt-0.5 shrink-0">
               <span
                 v-if="item.type === 'order'"
-                class="mt-1.5 block size-2 rounded-full bg-[var(--color-info)]"
+                class="mt-1.5 block size-2 rounded-full bg-info"
               ></span>
               <span
                 v-else-if="item.type === 'deadline'"
-                class="mt-1.5 block size-2 rounded-full bg-[var(--color-warning)]"
+                class="mt-1.5 block size-2 rounded-full bg-warning"
               ></span>
               <span
                 v-else
-                class="mt-1.5 block size-2 rounded-full bg-[var(--color-text-muted)]"
+                class="mt-1.5 block size-2 rounded-full bg-(--color-text-muted)"
               ></span>
             </div>
 

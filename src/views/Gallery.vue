@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-[var(--bg-page)] font-sans text-[var(--text-main)] antialiased">
+  <div class="min-h-screen bg-(--bg-page) font-sans text-(--text-main) antialiased">
     <!-- 加载状态 -->
     <div v-if="loading" class="flex min-h-screen items-center justify-center">
       <div class="text-center">
         <div
-          class="mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-[var(--border-color)] border-t-[var(--color-primary)]"
+          class="mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-(--border-color) border-t-primary"
         ></div>
-        <p class="text-[var(--text-secondary)]">{{ t('gallery.loading') }}</p>
+        <p class="text-(--text-secondary)">{{ t('gallery.loading') }}</p>
       </div>
     </div>
 
@@ -35,12 +35,12 @@
     <template v-else-if="album">
       <!-- Header -->
       <header
-        class="sticky top-0 z-40 border-b border-[var(--border-color)] bg-[var(--bg-card)]/95 backdrop-blur-sm"
+        class="sticky top-0 z-40 border-b border-(--border-color) bg-(--bg-card)/95 backdrop-blur-sm"
       >
         <div class="mx-auto flex max-w-7xl items-center justify-between p-4 sm:px-6 lg:px-8">
           <div>
-            <h1 class="px-1 text-xl font-semibold text-[var(--text-main)]">{{ album.name }}</h1>
-            <p class="mt-0.5 px-1 text-sm text-[var(--text-secondary)]">
+            <h1 class="px-1 text-xl font-semibold text-(--text-main)">{{ album.name }}</h1>
+            <p class="mt-0.5 px-1 text-sm text-(--text-secondary)">
               {{ t('gallery.files', { count: album.fileCount }) }}
             </p>
           </div>
@@ -62,7 +62,7 @@
       <!-- Description -->
       <div v-if="album.description" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <p
-          class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] p-4 text-sm text-[var(--text-secondary)]"
+          class="rounded-xl border border-(--border-color) bg-(--bg-muted) p-4 text-sm text-(--text-secondary)"
         >
           {{ album.description }}
         </p>
@@ -76,7 +76,7 @@
           <div
             v-for="(file, index) in album.files"
             :key="file.id"
-            class="group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] shadow-sm transition-colors hover:border-[var(--border-hover)] hover:shadow-md"
+            class="group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-muted) shadow-sm transition-colors hover:border-(--border-hover) hover:shadow-md"
             @click="openFile(file, index)"
           >
             <!-- 图片 -->
@@ -91,14 +91,14 @@
             <!-- PDF -->
             <div
               v-else-if="file.type === 'pdf'"
-              class="flex size-full flex-col items-center justify-center bg-[var(--bg-muted)] text-[var(--text-secondary)]"
+              class="flex size-full flex-col items-center justify-center bg-(--bg-muted) text-(--text-secondary)"
             >
               <AppIcon
                 name="document-text"
                 class="text-danger mb-2 size-12"
               />
               <span
-                class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-1 text-xs font-medium shadow-sm"
+                class="rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs font-medium shadow-sm"
                 >PDF</span
               >
             </div>
@@ -106,14 +106,14 @@
             <!-- 其他文件 -->
             <div
               v-else
-              class="flex size-full flex-col items-center justify-center bg-[var(--bg-muted)] text-[var(--text-secondary)]"
+              class="flex size-full flex-col items-center justify-center bg-(--bg-muted) text-(--text-secondary)"
             >
               <AppIcon
                 name="document"
                 class="mb-2 size-12 text-(--text-muted)"
               />
               <span
-                class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-1 text-xs font-medium uppercase shadow-sm"
+                class="rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs font-medium uppercase shadow-sm"
                 >{{ file.name.split('.').pop() }}</span
               >
             </div>
@@ -138,9 +138,9 @@
 
       <!-- Footer -->
       <footer
-        class="border-t border-[var(--border-color)] bg-[var(--bg-card)] py-8 text-center text-sm text-[var(--text-secondary)]"
+        class="border-t border-(--border-color) bg-(--bg-card) py-8 text-center text-sm text-(--text-secondary)"
       >
-        <a href="/" class="transition-colors hover:text-[var(--color-primary)]">{{ t('gallery.poweredBy') }}</a>
+        <a href="/" class="transition-colors hover:text-primary">{{ t('gallery.poweredBy') }}</a>
       </footer>
     </template>
 

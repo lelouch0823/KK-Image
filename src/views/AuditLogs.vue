@@ -6,7 +6,7 @@
       <template #filters>
         <select
           v-model="filterAction"
-          class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--color-primary)] focus:outline-none"
+          class="rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-primary) focus:border-primary focus:outline-none"
         >
           <option value="">{{ t('auditLogs.allActions') }}</option>
           <option v-for="a in availableActions" :key="a" :value="a">{{ a }}</option>
@@ -25,11 +25,11 @@
         :empty-text="t('auditLogs.empty')"
       >
         <template #cell-created_at="{ value }">
-          <span class="text-xs text-[var(--text-secondary)]">{{ formatTime(value) }}</span>
+          <span class="text-xs text-(--text-secondary)">{{ formatTime(value) }}</span>
         </template>
         
         <template #cell-user_id="{ value }">
-          <span class="font-medium text-[var(--text-primary)]">{{ value }}</span>
+          <span class="font-medium text-(--text-primary)">{{ value }}</span>
         </template>
         
         <template #cell-action="{ value }">
@@ -39,24 +39,24 @@
         </template>
 
         <template #cell-target="{ row }">
-          <span class="text-[var(--text-secondary)]">
-            {{ row.target_type }}<span v-if="row.target_id" class="text-[var(--text-tertiary)]"> / {{ row.target_id.substring(0, 8) }}…</span>
+          <span class="text-(--text-secondary)">
+            {{ row.target_type }}<span v-if="row.target_id" class="text-(--text-tertiary)"> / {{ row.target_id.substring(0, 8) }}…</span>
           </span>
         </template>
         
         <template #cell-ip_address="{ value }">
-          <span class="font-mono text-xs text-[var(--text-secondary)]">{{ value || '-' }}</span>
+          <span class="font-mono text-xs text-(--text-secondary)">{{ value || '-' }}</span>
         </template>
         
         <template #cell-details="{ row }">
-          <div class="max-w-xs truncate text-xs text-[var(--text-tertiary)]">
+          <div class="max-w-xs truncate text-xs text-(--text-tertiary)">
             {{ row.payload ? JSON.parse(row.payload) : '-' }}
           </div>
         </template>
         
         <template #footer>
           <div v-if="pagination.totalPages > 1" class="flex items-center justify-between">
-            <span class="text-sm text-[var(--text-secondary)]">
+            <span class="text-sm text-(--text-secondary)">
               {{ t('auditLogs.pagination', { page: pagination.page, total: pagination.totalPages }) }}
             </span>
             <div class="flex gap-2">

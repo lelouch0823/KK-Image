@@ -17,14 +17,14 @@
           class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition-colors"
           :class="
             selectedId === rootFolder.id
-              ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
-              : 'text-[var(--text-main)] hover:bg-[var(--bg-hover)]'
+              ? 'bg-primary/10 text-primary'
+              : 'text-(--text-main) hover:bg-(--bg-hover)'
           "
           @click="selectFolder(rootFolder)"
         >
           <svg
             class="size-5"
-            :class="selectedId === rootFolder.id ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted)]'"
+            :class="selectedId === rootFolder.id ? 'text-primary' : 'text-(--text-muted)'"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -46,8 +46,8 @@
           class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition-colors"
           :class="[
              selectedId === folder.id
-              ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
-              : 'text-[var(--text-main)] hover:bg-[var(--bg-hover)]',
+              ? 'bg-primary/10 text-primary'
+              : 'text-(--text-main) hover:bg-(--bg-hover)',
              isTargetDisabled(folder) ? 'cursor-not-allowed opacity-50' : ''
           ]"
           :style="{ paddingLeft: folder.level * 1.5 + 0.75 + 'rem' }"

@@ -126,7 +126,7 @@
           <!-- PDF Viewer -->
           <div
             v-else-if="isPdf"
-            class="flex size-full max-w-5xl flex-col overflow-hidden rounded-lg bg-[var(--bg-card)] shadow-2xl"
+            class="flex size-full max-w-5xl flex-col overflow-hidden rounded-lg bg-(--bg-card) shadow-2xl"
           >
             <iframe :src="currentFile.url" class="w-full flex-1 border-none"></iframe>
           </div>

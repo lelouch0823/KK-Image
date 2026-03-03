@@ -2,12 +2,12 @@
   <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
     <div class="mb-12 text-center">
       <div
-        class="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+        class="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary"
       >
         <AppIcon name="rectangle-group" class="size-8" />
       </div>
-      <h1 class="text-2xl font-bold text-[var(--text-main)]">{{ space.name }}</h1>
-      <p class="mt-2 text-[var(--text-secondary)]">{{ space.description || t('spacePublic.noDesc') }}</p>
+      <h1 class="text-2xl font-bold text-(--text-main)">{{ space.name }}</h1>
+      <p class="mt-2 text-(--text-secondary)">{{ space.description || t('spacePublic.noDesc') }}</p>
     </div>
 
     <!-- Subspaces Grid -->
@@ -16,12 +16,12 @@
         v-for="sub in space.subspaces"
         :key="sub.id"
         :href="`/space/${sub.shareToken}`"
-        class="group flex items-start gap-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-6 transition-all hover:shadow-lg"
+        class="group flex items-start gap-4 rounded-xl border border-(--border-subtle) bg-(--bg-card) p-6 transition-all hover:shadow-lg"
       >
         <div
-          class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[var(--bg-muted)] transition-colors"
+          class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-(--bg-muted) transition-colors"
           :class="
-            sub.coverImage ? 'border border-[var(--border-subtle)]' : 'group-hover:bg-[var(--color-primary)] group-hover:text-[var(--text-inverse)]'
+            sub.coverImage ? 'border border-(--border-subtle)' : 'group-hover:bg-primary group-hover:text-(--text-inverse)'
           "
         >
           <AppImage
@@ -34,17 +34,17 @@
           <AppIcon
             v-else
             name="folder"
-            class="size-6 text-[var(--text-muted)] group-hover:text-[var(--text-inverse)]"
+            class="size-6 text-(--text-muted) group-hover:text-(--text-inverse)"
           />
         </div>
         <div>
-          <h3 class="font-semibold text-[var(--text-main)] group-hover:text-[var(--color-primary)]">{{ sub.name }}</h3>
-          <p class="mt-1 text-xs text-[var(--text-secondary)]">{{ sub.fileCount }} items</p>
+          <h3 class="font-semibold text-(--text-main) group-hover:text-primary">{{ sub.name }}</h3>
+          <p class="mt-1 text-xs text-(--text-secondary)">{{ sub.fileCount }} items</p>
         </div>
         <div class="ml-auto">
           <AppIcon
             name="chevron-right"
-            class="size-5 text-[var(--text-muted)] transition-colors group-hover:text-[var(--color-primary)]"
+            class="size-5 text-(--text-muted) transition-colors group-hover:text-primary"
           />
         </div>
       </a>
@@ -53,7 +53,7 @@
     <!-- Empty State -->
     <div
       v-if="!space.subspaces || space.subspaces.length === 0"
-      class="rounded-xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-muted)]/30 py-12 text-center text-[var(--text-secondary)]"
+      class="rounded-xl border border-dashed border-(--border-subtle) bg-(--bg-muted)/30 py-12 text-center text-(--text-secondary)"
     >
       <p>{{ t('spacePublic.noSubspaces') }}</p>
     </div>

@@ -6,8 +6,8 @@
       class="group relative cursor-pointer rounded-xl border p-3 transition-all hover:shadow-md active:scale-[0.98] sm:p-4"
       :class="[
         selectedIds.has(folder.id)
-          ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 ring-1 ring-[var(--color-primary)] dark:bg-[var(--color-primary)]/20'
-          : 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-[var(--border-hover)]'
+          ? 'border-primary bg-primary/10 ring-1 ring-primary dark:bg-primary/20'
+          : 'border-(--border-color) bg-(--bg-card) hover:border-(--border-hover)'
       ]"
       @click="$emit('navigate', folder.id)"
       @contextmenu.prevent.stop="handleContextMenu($event, folder)"
@@ -16,24 +16,24 @@
         <!-- 文件夹图标: 移动端 size-12, 桌面端 size-16 -->
         <AppIcon
           name="folder-solid"
-          class="mb-2 size-12 text-[var(--color-warning)] transition-transform group-hover:scale-110 sm:size-14 lg:size-16"
+          class="mb-2 size-12 text-warning transition-transform group-hover:scale-110 sm:size-14 lg:size-16"
         />
         <!-- 文件夹名称 -->
         <div
-          class="w-full truncate px-1 text-center text-xs font-medium text-[var(--color-primary)] sm:px-2 sm:text-sm"
+          class="w-full truncate px-1 text-center text-xs font-medium text-primary sm:px-2 sm:text-sm"
           :title="folder.name"
         >
           {{ folder.name }}
         </div>
         <!-- 项目数量 -->
-        <div class="mt-0.5 text-[10px] text-[var(--text-secondary)] sm:mt-1 sm:text-xs">
+        <div class="mt-0.5 text-[10px] text-(--text-secondary) sm:mt-1 sm:text-xs">
           {{ (folder.fileCount || 0) + (folder.subfolderCount || 0) }} {{ t('common.items') }}
         </div>
       </div>
 
       <!-- More Actions Button -->
       <button
-        class="text-secondary absolute top-1.5 right-1.5 z-10 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-1 shadow-sm transition-all hover:text-primary sm:top-2 sm:right-2 sm:p-1.5 lg:opacity-0 lg:group-hover:opacity-100"
+        class="text-secondary absolute top-1.5 right-1.5 z-10 rounded-lg border border-(--border-color) bg-(--bg-card) p-1 shadow-sm transition-all hover:text-primary sm:top-2 sm:right-2 sm:p-1.5 lg:opacity-0 lg:group-hover:opacity-100"
         @click.stop="$emit('context-menu', $event, folder)"
       >
         <AppIcon name="ellipsis-vertical" class="size-3.5 sm:size-4" />

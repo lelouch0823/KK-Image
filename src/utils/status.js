@@ -10,29 +10,29 @@ export const STATUS_OPTIONS = [
 
 export const STATUS_STYLES = {
   pending:
-    'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--color-warning)]/20 hover:bg-[var(--color-warning-bg)]/80',
+    'bg-(--color-warning-bg) text-(--color-warning-text) border-warning/20 hover:bg-(--color-warning-bg)/80',
   confirmed:
-    'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-info)]/20 hover:bg-[var(--color-info-bg)]/80',
+    'bg-(--color-info-bg) text-(--color-info-text) border-info/20 hover:bg-(--color-info-bg)/80',
   rejected:
-    'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger)]/20 hover:bg-[var(--color-danger-bg)]/80',
+    'bg-(--color-danger-bg) text-(--color-danger-text) border-danger/20 hover:bg-(--color-danger-bg)/80',
   production:
-    'bg-[var(--color-purple-bg)] text-[var(--color-purple-text)] border-[var(--color-purple)]/20 hover:bg-[var(--color-purple-bg)]/80',
+    'bg-(--color-purple-bg) text-(--color-purple-text) border-(--color-purple)/20 hover:bg-(--color-purple-bg)/80',
   shipping:
-    'bg-[var(--color-cyan-bg)] text-[var(--color-cyan-text)] border-[var(--color-cyan)]/20 hover:bg-[var(--color-cyan-bg)]/80',
+    'bg-(--color-cyan-bg) text-(--color-cyan-text) border-(--color-cyan)/20 hover:bg-(--color-cyan-bg)/80',
   arrived:
-    'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success)]/20 hover:bg-[var(--color-success-bg)]/80',
+    'bg-(--color-success-bg) text-(--color-success-text) border-success/20 hover:bg-(--color-success-bg)/80',
   delivered:
-    'bg-[var(--bg-muted)] text-[var(--text-secondary)] border-[var(--border-color)] hover:bg-[var(--bg-hover)]',
+    'bg-(--bg-muted) text-(--text-secondary) border-(--border-color) hover:bg-(--bg-hover)',
 };
 
 export const STATUS_DOTS = {
-  pending: 'bg-[var(--color-warning)]',
-  confirmed: 'bg-[var(--color-info)]',
-  rejected: 'bg-[var(--color-danger)]',
-  production: 'bg-[var(--color-purple)]',
-  shipping: 'bg-[var(--color-cyan)]',
-  arrived: 'bg-[var(--color-success)]',
-  delivered: 'bg-[var(--text-muted)]',
+  pending: 'bg-warning',
+  confirmed: 'bg-info',
+  rejected: 'bg-danger',
+  production: 'bg-(--color-purple)',
+  shipping: 'bg-(--color-cyan)',
+  arrived: 'bg-success',
+  delivered: 'bg-(--text-muted)',
 };
 
 export const getStatusVariant = (status) => {
@@ -95,20 +95,20 @@ export const getStatusHexColor = (status) => {
 export const getStatusBadgeClass = (status) => {
   const map = {
     pending:
-      'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--color-warning)]/20',
+      'bg-(--color-warning-bg) text-(--color-warning-text) border-warning/20',
     confirmed:
-      'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-info)]/20',
+      'bg-(--color-info-bg) text-(--color-info-text) border-info/20',
     production:
-      'bg-[var(--color-purple-bg)] text-[var(--color-purple-text)] border-[var(--color-purple)]/20',
+      'bg-(--color-purple-bg) text-(--color-purple-text) border-(--color-purple)/20',
     shipping:
-      'bg-[var(--color-cyan-bg)] text-[var(--color-cyan-text)] border-[var(--color-cyan)]/20',
+      'bg-(--color-cyan-bg) text-(--color-cyan-text) border-(--color-cyan)/20',
     arrived:
-      'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success)]/20',
+      'bg-(--color-success-bg) text-(--color-success-text) border-success/20',
     delivered:
-      'bg-[var(--bg-muted)] text-[var(--text-secondary)] border-[var(--border-color)]',
+      'bg-(--bg-muted) text-(--text-secondary) border-(--border-color)',
     rejected:
-      'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border-[var(--color-danger)]/20',
-    void: 'bg-[var(--bg-muted)] text-[var(--text-muted)] border-[var(--border-color)]',
+      'bg-(--color-danger-bg) text-(--color-danger-text) border-danger/20',
+    void: 'bg-(--bg-muted) text-(--text-muted) border-(--border-color)',
   };
-  return map[status] || 'bg-[var(--bg-muted)] text-[var(--text-secondary)] border-[var(--border-color)]';
+  return map[status] || 'bg-(--bg-muted) text-(--text-secondary) border-(--border-color)';
 };

@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col gap-3 border-b border-[var(--border-color)] px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-6 lg:py-4">
+  <div class="flex flex-col gap-3 border-b border-(--border-color) px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-6 lg:py-4">
     <!-- 第一行: 面包屑 + 上传按钮 -->
     <div class="flex items-center justify-between gap-3">
       <!-- Breadcrumbs -->
@@ -52,18 +52,18 @@
       >
         <div 
           v-if="selectedCount > 0" 
-          class="flex items-center gap-1 overflow-hidden rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 px-2 py-1.5 transition-all"
+          class="flex items-center gap-1 overflow-hidden rounded-lg border border-primary/20 bg-primary/5 px-2 py-1.5 transition-all"
         >
-          <span class="mr-1 text-xs font-medium text-[var(--color-primary)] lg:mr-2">{{
+          <span class="mr-1 text-xs font-medium text-primary lg:mr-2">{{
             t('fileManager.selected', { count: selectedCount })
           }}</span>
           
-          <div class="h-4 w-px bg-[var(--color-primary)]/20"></div>
+          <div class="h-4 w-px bg-primary/20"></div>
 
           <AppButton
             variant="ghost"
             size="sm"
-            class="!px-1.5 text-[var(--color-success)] hover:bg-[var(--color-success)]/10 hover:text-[var(--color-success)]"
+            class="!px-1.5 text-success hover:bg-success/10 hover:text-success"
             :title="t('fileManager.actions.tag')"
             @click="$emit('batch-tag')"
           >
@@ -75,7 +75,7 @@
           <AppButton
             variant="ghost"
             size="sm"
-            class="!px-1.5 text-[var(--color-info)] hover:bg-[var(--color-info)]/10 hover:text-[var(--color-info)]"
+            class="!px-1.5 text-info hover:bg-info/10 hover:text-info"
             :title="t('fileManager.actions.move')"
             @click="$emit('batch-move')"
           >
@@ -87,7 +87,7 @@
           <AppButton
             variant="ghost"
             size="sm"
-            class="!px-1.5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)]"
+            class="!px-1.5 text-danger hover:bg-danger/10 hover:text-danger"
             :title="t('fileManager.actions.delete')"
             @click="$emit('batch-delete')"
           >
@@ -99,7 +99,7 @@
           <AppButton
             variant="ghost"
             size="sm"
-            class="!px-1.5 text-[var(--text-secondary)] hover:text-[var(--text-main)]"
+            class="!px-1.5 text-(--text-secondary) hover:text-(--text-main)"
             :title="t('common.cancel')"
             @click="$emit('clear-selection')"
           >
@@ -110,12 +110,12 @@
         </div>
       </Transition>
 
-      <div v-if="selectedCount > 0" class="hidden h-6 w-px bg-[var(--border-color)] lg:block"></div>
+      <div v-if="selectedCount > 0" class="hidden h-6 w-px bg-(--border-color) lg:block"></div>
 
       <!-- Regular Actions (桌面端显示完整, 移动端简化) -->
       <Tooltip v-if="currentFolder" :content="t('fileManager.shareFolder')" class="hidden lg:block">
         <button
-          class="text-secondary flex size-10 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:text-primary hover:bg-[var(--bg-hover)] active:scale-95"
+          class="text-secondary flex size-10 items-center justify-center rounded-xl border border-(--border-color) bg-(--bg-card) transition-all hover:text-primary hover:bg-(--bg-hover) active:scale-95"
           @click="$emit('share-folder')"
         >
           <AppIcon name="share" class="size-5" />
@@ -138,7 +138,7 @@
       <!-- 新建文件夹 -->
       <Tooltip :content="t('fileManager.newFolder')">
         <button
-          class="text-secondary flex size-9 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:text-primary hover:bg-[var(--bg-hover)] active:scale-95 lg:size-10"
+          class="text-secondary flex size-9 items-center justify-center rounded-xl border border-(--border-color) bg-(--bg-card) transition-all hover:text-primary hover:bg-(--bg-hover) active:scale-95 lg:size-10"
           @click="$emit('create-folder')"
         >
           <AppIcon name="folder-plus" class="size-4 lg:size-5" />
@@ -148,7 +148,7 @@
       <!-- 回收站 -->
       <Tooltip :content="t('trash.title')">
         <button
-          class="text-secondary flex size-9 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:border-red-200 hover:bg-red-50 hover:text-[var(--color-danger)] active:scale-95 lg:size-10"
+          class="text-secondary flex size-9 items-center justify-center rounded-xl border border-(--border-color) bg-(--bg-card) transition-all hover:border-red-200 hover:bg-red-50 hover:text-danger active:scale-95 lg:size-10"
           @click="$emit('open-trash')"
         >
           <AppIcon name="trash" class="size-4 lg:size-5" />
@@ -168,14 +168,14 @@
       </AppInput>
 
       <!-- 视图切换 -->
-      <div class="hidden items-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] p-1 sm:flex">
+      <div class="hidden items-center rounded-lg border border-(--border-color) bg-(--bg-input) p-1 sm:flex">
           <AppButton
               v-for="mode in ['grid', 'list']"
               :key="mode"
               size="sm"
               variant="ghost"
               class="!h-7 !p-1.5"
-              :class="{ 'bg-[var(--bg-card)] text-[var(--color-primary)] shadow-sm': viewMode === mode }"
+              :class="{ 'bg-(--bg-card) text-primary shadow-sm': viewMode === mode }"
               @click="$emit('update:viewMode', mode)"
           >
               <template #icon-left>

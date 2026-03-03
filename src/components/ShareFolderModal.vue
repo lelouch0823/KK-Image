@@ -115,7 +115,7 @@
             </AppButton>
           </Tooltip>
         </div>
-        <p v-if="copied" class="mt-2 flex items-center text-xs text-[var(--color-success)]">
+        <p v-if="copied" class="mt-2 flex items-center text-xs text-success">
           <AppIcon name="check" class="mr-1 size-3" />
           {{ t('share.copiedClipboard') }}
         </p>

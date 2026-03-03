@@ -652,13 +652,13 @@ const generateReport = async () => {
   margin-bottom: 0.75em;
 }
 .markdown-body a {
-  color: var(--color-info);
+  color: varinfo;
   text-decoration: none;
   border-bottom: 1px solid transparent;
   transition: border-color 0.2s;
 }
 .markdown-body a:hover {
-  border-bottom-color: var(--color-info);
+  border-bottom-color: varinfo;
 }
 .markdown-body ul, .markdown-body ol {
   padding-left: 1.5em;
@@ -673,8 +673,8 @@ const generateReport = async () => {
   margin: 0 0 0.75em 0;
   padding: 0.5em 1em;
   color: var(--text-secondary);
-  border-left: 3px solid var(--color-primary);
-  background-color: color-mix(in srgb, var(--color-primary) 5%, transparent);
+  border-left: 3px solid varprimary;
+  background-color: color-mix(in srgb, varprimary 5%, transparent);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 .markdown-body blockquote p:last-child { margin-bottom: 0; }

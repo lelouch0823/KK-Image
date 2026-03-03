@@ -18,15 +18,15 @@
         >
             <template #cell-name="{ row }">
                 <div class="flex flex-col">
-                    <span class="font-medium text-[var(--text-main)]">{{ row.name }}</span>
-                    <span class="text-xs text-[var(--text-secondary)]">{{ row.spaceName || '...' }}</span>
+                    <span class="font-medium text-(--text-main)">{{ row.name }}</span>
+                    <span class="text-xs text-(--text-secondary)">{{ row.spaceName || '...' }}</span>
                 </div>
             </template>
             <template #cell-code="{ row }">
                 <div class="flex items-center gap-2">
-                  <span class="rounded bg-[var(--bg-muted)] px-2 py-1 font-mono text-xs select-all">{{ row.shareToken }}</span>
+                  <span class="rounded bg-(--bg-muted) px-2 py-1 font-mono text-xs select-all">{{ row.shareToken }}</span>
                   <button
-                      class="text-[var(--text-secondary)] hover:text-[var(--color-primary)]"
+                      class="text-(--text-secondary) hover:text-primary"
                       :title="t('share.copyLink')"
                       @click="copyLink(row)"
                   >
@@ -44,7 +44,7 @@
                   <AppButton
                     variant="ghost"
                     size="sm"
-                    class="!size-8 bg-transparent !p-1.5 text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)]"
+                    class="size-8! bg-transparent p-1.5! text-(--text-secondary) hover:bg-(--bg-hover) hover:text-primary"
                     :title="t('common.edit')"
                     @click="editShare(row)"
                   >
@@ -55,7 +55,7 @@
                     <AppButton
                         variant="ghost"
                         size="sm"
-                        class="!size-8 bg-transparent !p-1.5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
+                        class="size-8! bg-transparent p-1.5! text-danger hover:bg-danger/10"
                         :title="t('common.cancelShare')"
                         @click="revokeShare(row)"
                     >
@@ -67,7 +67,7 @@
             </template>
         </AppTable>
       </div>
-      <div v-else-if="!loading" class="flex h-full flex-1 flex-col items-center justify-center text-[var(--text-secondary)]">
+      <div v-else-if="!loading" class="flex h-full flex-1 flex-col items-center justify-center text-(--text-secondary)">
         <AppIcon name="share" class="mb-3 size-12 opacity-20" />
         <p>{{ t('share.noActiveShares') }}</p>
       </div>

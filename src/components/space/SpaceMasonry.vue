@@ -3,10 +3,10 @@
     <!-- Header -->
     <div class="mb-8 flex items-end justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-[var(--text-main)]">{{ space.name }}</h1>
-        <p v-if="space.description" class="mt-2 text-[var(--text-secondary)]">{{ space.description }}</p>
+        <h1 class="text-2xl font-bold text-(--text-main)">{{ space.name }}</h1>
+        <p v-if="space.description" class="mt-2 text-(--text-secondary)">{{ space.description }}</p>
 
-        <div class="mt-4 flex items-center gap-4 text-sm text-[var(--text-secondary)]">
+        <div class="mt-4 flex items-center gap-4 text-sm text-(--text-secondary)">
           <span>{{ space.fileCount }} {{ t('spacePublic.files') }}</span>
           <span>{{ space.viewCount }} {{ t('spacePublic.views') }}</span>
         </div>
@@ -15,7 +15,7 @@
       <button
         v-if="hasFiles"
         :disabled="downloading"
-        class="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--text-inverse)] transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        class="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-(--text-inverse) transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         @click="handleDownloadAll"
       >
         <AppIcon v-if="downloading" name="spinner" class="size-4 animate-spin" />
@@ -33,7 +33,7 @@
       <div
         v-for="(file, index) in space.files"
         :key="file.id"
-        class="group relative mb-4 cursor-pointer break-inside-avoid overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] transition-all hover:border-[var(--border-hover)] hover:shadow-lg"
+        class="group relative mb-4 cursor-pointer break-inside-avoid overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-muted) transition-all hover:border-(--border-hover) hover:shadow-lg"
         @click="openLightbox(index)"
       >
         <!-- Image -->
@@ -50,12 +50,12 @@
         <!-- Other Files -->
         <div
           v-else
-          class="flex aspect-square w-full flex-col items-center justify-center bg-[var(--bg-muted)]"
+          class="flex aspect-square w-full flex-col items-center justify-center bg-(--bg-muted)"
         >
-          <span class="mb-2 text-xs font-bold text-[var(--text-muted)] uppercase">{{
+          <span class="mb-2 text-xs font-bold text-(--text-muted) uppercase">{{
             file.name.split('.').pop()
           }}</span>
-          <span class="w-full truncate px-2 text-center text-xs text-[var(--text-secondary)]">{{
+          <span class="w-full truncate px-2 text-center text-xs text-(--text-secondary)">{{
             file.originalName || file.name
           }}</span>
         </div>
@@ -70,7 +70,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-if="space.files.length === 0" class="py-20 text-center text-[var(--text-secondary)]">
+    <div v-if="space.files.length === 0" class="py-20 text-center text-(--text-secondary)">
       <p>{{ t('spacePublic.noContent') }}</p>
     </div>
 

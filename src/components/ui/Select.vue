@@ -4,17 +4,17 @@
     <button
       :id="triggerId"
       type="button"
-      class="flex w-full items-center justify-between border border-[var(--border-color)] bg-[var(--bg-card)] text-left text-sm transition-all focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/10 focus:outline-none dark:bg-[var(--bg-muted)]"
+      class="flex w-full items-center justify-between border border-(--border-color) bg-(--bg-card) text-left text-sm transition-all focus:border-primary focus:ring-primary/10 focus:outline-none dark:bg-(--bg-muted)"
       :class="[
         size === 'sm' ? 'h-9 rounded-lg px-2 focus:ring-2' : 'h-11 rounded-xl px-4 focus:ring-4',
-        !modelValue ? 'text-[var(--text-secondary)]' : 'text-[var(--text-main)]'
+        !modelValue ? 'text-(--text-secondary)' : 'text-(--text-main)'
       ]"
       @click="toggle"
     >
       <span class="truncate">{{ selectedLabel || placeholder }}</span>
       <AppIcon
         name="chevron-down"
-        class="shrink-0 text-[var(--text-secondary)] transition-transform duration-200"
+        class="shrink-0 text-(--text-secondary) transition-transform duration-200"
         :class="[
           size === 'sm' ? 'size-3.5' : 'size-4',
           { 'rotate-180': isOpen }
@@ -35,7 +35,7 @@
         <div
           v-if="isOpen"
           :data-select-id="triggerId"
-          class="fixed z-[9999] overflow-auto rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] shadow-lg focus:outline-none"
+          class="fixed z-[9999] overflow-auto rounded-lg border border-(--border-color) bg-(--bg-card) shadow-lg focus:outline-none"
           :style="dropdownStyle"
           :class="[
             'max-h-60'
@@ -44,7 +44,7 @@
           <div class="p-1">
             <div
               v-if="options.length === 0"
-              class="px-4 py-3 text-center text-sm text-[var(--text-secondary)]"
+              class="px-4 py-3 text-center text-sm text-(--text-secondary)"
             >
               {{ emptyText }}
             </div>
@@ -53,10 +53,10 @@
               v-else
               :key="option.value"
               type="button"
-              class="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-hover)]"
+              class="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors hover:bg-(--bg-hover)"
               :class="{
-                'bg-[var(--bg-muted)] text-[var(--text-main)]': modelValue === option.value,
-                'text-[var(--text-main)]': modelValue !== option.value,
+                'bg-(--bg-muted) text-(--text-main)': modelValue === option.value,
+                'text-(--text-main)': modelValue !== option.value,
               }"
               @click="select(option)"
             >

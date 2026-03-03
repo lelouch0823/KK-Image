@@ -1,7 +1,7 @@
 <template>
   <div :data-sales-order-mode="salesOrderEntry">
     <div v-if="loading" class="flex h-64 items-center justify-center">
-      <div class="size-8 animate-spin rounded-full border-4 border-[var(--border-color)] border-t-[var(--color-primary)]"></div>
+      <div class="size-8 animate-spin rounded-full border-4 border-(--border-color) border-t-primary"></div>
     </div>
     <OrderDetail
       v-else-if="order"
@@ -30,7 +30,7 @@
         <template #action>
           <router-link
             :to="`/sales/${token}`"
-            class="inline-flex items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--text-inverse)] transition-all hover:bg-[var(--color-primary-hover)] active:scale-95"
+            class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-(--text-inverse) transition-all hover:bg-(--color-primary-hover) active:scale-95"
           >
             {{ t('order.detail.backToList') || '返回列表' }}
           </router-link>

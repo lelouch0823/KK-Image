@@ -2,7 +2,7 @@
   <Modal :title="t('fileManager.actions.tag')" size="md" :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
     <div class="flex flex-col gap-4">
       <!-- Tag Info -->
-      <p class="text-sm text-[var(--text-secondary)]">
+      <p class="text-sm text-(--text-secondary)">
         {{ t('fileManager.taggingItems', { count: items.length }) }}
       </p>
 
@@ -25,7 +25,7 @@
 
       <!-- Tag List Loading -->
       <div v-if="loadingTags" class="flex justify-center p-4">
-        <div class="size-6 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent"></div>
+        <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
       </div>
 
       <!-- Tag List -->
@@ -33,7 +33,7 @@
         <button
           v-for="tag in tags"
           :key="tag.id"
-          class="flex items-center gap-1.5 rounded-full border border-[var(--border-color)] bg-[var(--bg-muted)] px-3 py-1.5 text-sm transition-all hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
+          class="flex items-center gap-1.5 rounded-full border border-(--border-color) bg-(--bg-muted) px-3 py-1.5 text-sm transition-all hover:border-primary hover:bg-primary/10 hover:text-primary"
           @click="handleAssignTag(tag)"
         >
           <span
@@ -44,7 +44,7 @@
         </button>
       </div>
 
-      <div v-else class="py-4 text-center text-sm text-[var(--text-secondary)]">
+      <div v-else class="py-4 text-center text-sm text-(--text-secondary)">
         {{ t('fileManager.noTags') }}
       </div>
     </div>

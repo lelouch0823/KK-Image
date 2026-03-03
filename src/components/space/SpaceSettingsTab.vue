@@ -11,8 +11,8 @@
           :disabled="publishing || !hasChanges"
           class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
           :class="hasChanges
-            ? 'bg-[var(--color-primary)] text-[var(--text-inverse)] shadow-sm hover:opacity-90 active:scale-[0.98]'
-            : 'bg-[var(--bg-muted)] text-[var(--text-secondary)]'"
+            ? 'bg-primary text-(--text-inverse) shadow-sm hover:opacity-90 active:scale-[0.98]'
+            : 'bg-(--bg-muted) text-(--text-secondary)'"
           @click="saveShareSettings"
         >
           <AppIcon v-if="publishing" name="spinner" class="size-4 animate-spin" />
@@ -22,14 +22,14 @@
     </SpaceVisibilitySelector>
 
     <!-- 公开链接区域 -->
-    <div v-if="isPublic" class="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]">
-      <div class="flex items-center gap-3 border-b border-[var(--border-color)] px-5 py-4">
-        <div class="flex size-9 items-center justify-center rounded-lg bg-[var(--color-success)]/10">
-          <AppIcon name="link" class="size-4.5 text-[var(--color-success)]" />
+    <div v-if="isPublic" class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card)">
+      <div class="flex items-center gap-3 border-b border-(--border-color) px-5 py-4">
+        <div class="flex size-9 items-center justify-center rounded-lg bg-success/10">
+          <AppIcon name="link" class="size-4.5 text-success" />
         </div>
         <div class="flex-1">
-          <h3 class="text-sm font-semibold text-[var(--text-main)]">{{ t('spaceManager.publicLink') || '公开链接' }}</h3>
-          <p class="text-xs text-[var(--text-secondary)]">{{ viewCount || 0 }} {{ t('spacePublic.views') }}</p>
+          <h3 class="text-sm font-semibold text-(--text-main)">{{ t('spaceManager.publicLink') || '公开链接' }}</h3>
+          <p class="text-xs text-(--text-secondary)">{{ viewCount || 0 }} {{ t('spacePublic.views') }}</p>
         </div>
       </div>
 
@@ -39,10 +39,10 @@
             type="text"
             readonly
             :value="shareUrl"
-            class="flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-4 py-2.5 font-mono text-sm text-[var(--text-main)]"
+            class="flex-1 rounded-xl border border-(--border-color) bg-(--bg-muted) px-4 py-2.5 font-mono text-sm text-(--text-main)"
           />
           <button
-            class="flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 text-sm text-[var(--text-main)] transition-colors hover:bg-[var(--bg-hover)]"
+            class="flex items-center gap-2 rounded-xl border border-(--border-color) bg-(--bg-card) px-4 py-2.5 text-sm text-(--text-main) transition-colors hover:bg-(--bg-hover)"
             @click="copyLink"
           >
             <AppIcon name="clipboard" class="size-4" />
@@ -51,7 +51,7 @@
         </div>
         <button
           :disabled="publishing"
-          class="w-full rounded-xl border border-[var(--border-color)] py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--color-danger-text)] hover:text-[var(--color-danger-text)]"
+          class="w-full rounded-xl border border-(--border-color) py-2.5 text-sm text-(--text-secondary) transition-colors hover:border-(--color-danger-text) hover:text-(--color-danger-text)"
           @click="$emit('unpublish')"
         >
           {{ t('spaceManager.shareCard.unpublish') }}

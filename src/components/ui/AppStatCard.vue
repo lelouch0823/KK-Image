@@ -82,11 +82,11 @@ defineEmits(['click']);
 const shadowColor = computed(() => {
   const colors = {
     default: 'var(--color-text-secondary)',
-    info: 'var(--color-info)',
+    info: 'varinfo',
     purple: '139, 92, 246', // Keep partial raw for complex shadow if needed, or map to var
-    success: 'var(--color-success)',
-    warning: 'var(--color-warning)',
-    danger: 'var(--color-danger)',
+    success: 'varsuccess',
+    warning: 'varwarning',
+    danger: 'vardanger',
     cyan: '6, 182, 212',
   };
   return colors[props.variant] || colors.default;

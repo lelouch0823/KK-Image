@@ -1,15 +1,15 @@
 <template>
-  <div class="flex h-full flex-col bg-[var(--bg-card)]">
+  <div class="flex h-full flex-col bg-(--bg-card)">
     <!-- 头部 -->
-    <div class="border-b border-[var(--border-color)] px-4 py-6 sm:px-6">
+    <div class="border-b border-(--border-color) px-4 py-6 sm:px-6">
       <div class="flex items-start justify-between">
-        <h2 id="slide-over-title" class="text-lg font-medium text-[var(--text-primary)]">
+        <h2 id="slide-over-title" class="text-lg font-medium text-(--text-primary)">
           {{ customer?.name }}
         </h2>
         <div class="ml-3 flex h-7 items-center">
           <button
             type="button"
-            class="rounded-md bg-[var(--bg-card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-main)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:outline-none"
+            class="rounded-md bg-(--bg-card) text-(--text-secondary) transition-colors hover:text-(--text-main) focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none"
             @click="$emit('close')"
           >
             <AppIcon name="x-mark" class="size-6" />
@@ -17,11 +17,11 @@
         </div>
       </div>
       <div class="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:space-x-6">
-        <div class="mt-2 text-sm text-[var(--text-secondary)]">
+        <div class="mt-2 text-sm text-(--text-secondary)">
           <span class="mr-1 font-medium">{{ t('customer.form.company') }}:</span>
           {{ customer?.company || '-' }}
         </div>
-        <div class="mt-2 text-sm text-[var(--text-secondary)]">
+        <div class="mt-2 text-sm text-(--text-secondary)">
           <span class="mr-1 font-medium">{{ t('customer.form.phone') }}:</span>
           {{ customer?.phone || '-' }}
         </div>
@@ -31,15 +31,15 @@
     <!-- 内容区域 -->
     <div class="relative flex-1 overflow-y-auto">
       <!-- Tabs -->
-      <div class="border-b border-[var(--border-color)]">
+      <div class="border-b border-(--border-color)">
         <nav class="-mb-px flex px-6" aria-label="Tabs">
           <button
             v-for="tab in tabs"
             :key="tab.key"
             :class="[
               currentTab === tab.key
-                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
-                : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:text-[var(--text-main)]',
+                ? 'border-primary text-primary'
+                : 'border-transparent text-(--text-secondary) hover:border-(--border-hover) hover:text-(--text-main)',
               'mr-8 border-b-2 px-1 py-4 text-sm font-medium whitespace-nowrap transition-colors',
             ]"
             @click="currentTab = tab.key"
@@ -56,14 +56,14 @@
           <!-- 操作栏 -->
           <div class="mb-6 flex justify-start gap-4">
             <button
-              class="inline-flex items-center rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-sm leading-4 font-medium text-[var(--text-main)] shadow-sm transition-colors hover:bg-[var(--bg-hover)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:outline-none"
+              class="inline-flex items-center rounded-md border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm leading-4 font-medium text-(--text-main) shadow-sm transition-colors hover:bg-(--bg-hover) focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none"
               @click="$emit('edit', customer)"
             >
               <AppIcon name="pencil-square" class="mr-2 -ml-0.5 size-4" />
               {{ t('common.edit') }}
             </button>
             <button
-              class="inline-flex items-center rounded-md border border-transparent bg-[var(--color-danger)] px-3 py-2 text-sm leading-4 font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:opacity-90 active:scale-95"
+              class="inline-flex items-center rounded-md border border-transparent bg-danger px-3 py-2 text-sm leading-4 font-medium text-(--text-inverse) shadow-sm transition-all hover:opacity-90 active:scale-95"
               @click="handleDelete"
             >
               <AppIcon name="trash" class="mr-2 -ml-0.5 size-4" />
@@ -71,59 +71,59 @@
             </button>
           </div>
 
-          <div class="border-t border-[var(--border-color)] pt-4">
-            <h4 class="mb-3 text-sm font-medium text-[var(--text-secondary)]">
+          <div class="border-t border-(--border-color) pt-4">
+            <h4 class="mb-3 text-sm font-medium text-(--text-secondary)">
               {{ t('customer.form.basicInfo') }}
             </h4>
             <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div class="sm:col-span-1">
-                <dt class="text-xs font-medium text-[var(--text-secondary)]">
+                <dt class="text-xs font-medium text-(--text-secondary)">
                   {{ t('customer.form.phone') }}
                 </dt>
-                <dd class="mt-1 text-sm text-[var(--text-primary)]">{{ customer?.phone || '-' }}</dd>
+                <dd class="mt-1 text-sm text-(--text-primary)">{{ customer?.phone || '-' }}</dd>
               </div>
               <div class="sm:col-span-1">
-                <dt class="text-xs font-medium text-[var(--text-secondary)]">{{ t('common.createdAt') }}</dt>
-                <dd class="mt-1 text-sm text-[var(--text-primary)]">
+                <dt class="text-xs font-medium text-(--text-secondary)">{{ t('common.createdAt') }}</dt>
+                <dd class="mt-1 text-sm text-(--text-primary)">
                   {{ formatDate(customer?.createdAt) }}
                 </dd>
               </div>
 
               <div class="sm:col-span-2">
-                <dt class="text-xs font-medium text-[var(--text-secondary)]">
+                <dt class="text-xs font-medium text-(--text-secondary)">
                   {{ t('customer.form.tags') }}
                 </dt>
-                <dd class="mt-1 flex flex-wrap gap-2 text-sm text-[var(--text-primary)]">
+                <dd class="mt-1 flex flex-wrap gap-2 text-sm text-(--text-primary)">
                   <span
                     v-for="tag in customer?.tags"
                     :key="tag"
-                    class="rounded bg-[var(--color-primary-bg)] px-2 py-0.5 text-xs font-medium text-[var(--color-primary)]"
+                    class="rounded bg-(--color-primary-bg) px-2 py-0.5 text-xs font-medium text-primary"
                   >
                     {{ tag }}
                   </span>
-                  <span v-if="!customer?.tags?.length" class="text-[var(--text-secondary)]">-</span>
+                  <span v-if="!customer?.tags?.length" class="text-(--text-secondary)">-</span>
                 </dd>
               </div>
 
               <div class="sm:col-span-2">
-                <dt class="text-xs font-medium text-[var(--text-secondary)]">
+                <dt class="text-xs font-medium text-(--text-secondary)">
                   {{ t('customer.form.email') }}
                 </dt>
-                <dd class="mt-1 text-sm text-[var(--text-primary)]">{{ customer?.email || '-' }}</dd>
+                <dd class="mt-1 text-sm text-(--text-primary)">{{ customer?.email || '-' }}</dd>
               </div>
 
               <div class="sm:col-span-2">
-                <dt class="text-xs font-medium text-[var(--text-secondary)]">
+                <dt class="text-xs font-medium text-(--text-secondary)">
                   {{ t('customer.form.address') }}
                 </dt>
-                <dd class="mt-1 text-sm text-[var(--text-primary)]">{{ customer?.address || '-' }}</dd>
+                <dd class="mt-1 text-sm text-(--text-primary)">{{ customer?.address || '-' }}</dd>
               </div>
 
               <div class="sm:col-span-2">
-                <dt class="text-xs font-medium text-[var(--text-secondary)]">
+                <dt class="text-xs font-medium text-(--text-secondary)">
                   {{ t('customer.form.remark') }}
                 </dt>
-                <dd class="mt-1 text-sm whitespace-pre-wrap text-[var(--text-primary)]">
+                <dd class="mt-1 text-sm whitespace-pre-wrap text-(--text-primary)">
                   {{ customer?.remark || '-' }}
                 </dd>
               </div>
@@ -139,8 +139,8 @@
             ></div>
           </div>
 
-          <div v-else-if="orders.length === 0" class="py-8 text-center text-[var(--text-secondary)]">
-            <AppIcon name="rectangle-group" class="mx-auto size-12 text-[var(--text-secondary)] opacity-50" />
+          <div v-else-if="orders.length === 0" class="py-8 text-center text-(--text-secondary)">
+            <AppIcon name="rectangle-group" class="mx-auto size-12 text-(--text-secondary) opacity-50" />
             <p class="mt-2 text-sm">{{ t('customer.detail.noOrders') }}</p>
           </div>
 
@@ -148,18 +148,18 @@
             <div
               v-for="order in orders"
               :key="order.id"
-              class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3 transition-shadow hover:shadow-sm"
+              class="rounded-lg border border-(--border-color) bg-(--bg-card) p-3 transition-shadow hover:shadow-sm"
             >
               <div class="mb-2 flex items-start justify-between">
                 <div>
-                  <p class="text-sm font-medium text-[var(--text-primary)]">{{ order.productName }}</p>
-                  <p class="text-xs text-[var(--text-secondary)]">
+                  <p class="text-sm font-medium text-(--text-primary)">{{ order.productName }}</p>
+                  <p class="text-xs text-(--text-secondary)">
                     {{ order.orderNo }} • {{ formatDate(order.createdAt) }}
                   </p>
                 </div>
                 <StatusBadge :status="order.status" class="origin-right scale-90" />
               </div>
-              <div class="mt-2 flex gap-2 border-t border-[var(--border-color)] pt-2 text-xs text-[var(--text-secondary)]">
+              <div class="mt-2 flex gap-2 border-t border-(--border-color) pt-2 text-xs text-(--text-secondary)">
                 <AppImage
                   v-if="order.mainImage"
                   :src="order.mainImage"
@@ -170,7 +170,7 @@
                 />
                 <div class="flex flex-1 flex-col justify-center">
                   <p>{{ t('common.salesperson') }}: {{ order.salespersonName || '-' }}</p>
-                  <p class="mt-1 font-medium text-[var(--text-primary)]">
+                  <p class="mt-1 font-medium text-(--text-primary)">
                     {{ formatCurrency(order.totalAmount, order.currency) }}
                   </p>
                 </div>

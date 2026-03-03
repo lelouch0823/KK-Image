@@ -14,7 +14,7 @@
               v-model="form.AI_API_URL"
               type="url"
               placeholder="https://api.openai.com/v1"
-              class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 text-sm transition-colors focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/10 focus:outline-none dark:bg-[var(--bg-muted)]"
+              class="w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 text-sm transition-colors focus:border-primary focus:ring-1 focus:ring-primary/10 focus:outline-none dark:bg-(--bg-muted)"
             />
           </div>
           <p class="text-secondary text-xs">{{ t('settings.ai.apiUrlDesc', 'The base URL for the OpenAI-compatible API provider.') }}</p>
@@ -27,12 +27,12 @@
             <input
               v-model="form.AI_API_KEY"
               :type="showKey ? 'text' : 'password'"
-              class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 pr-10 text-sm transition-colors focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/10 focus:outline-none dark:bg-[var(--bg-muted)]"
+              class="w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 pr-10 text-sm transition-colors focus:border-primary focus:ring-1 focus:ring-primary/10 focus:outline-none dark:bg-(--bg-muted)"
               placeholder="sk-..."
             />
             <button
               type="button"
-              class="absolute top-2.5 right-3 text-[var(--text-muted)] transition-colors hover:text-[var(--text-main)]"
+              class="absolute top-2.5 right-3 text-(--text-muted) transition-colors hover:text-(--text-main)"
               @click="showKey = !showKey"
             >
               <AppIcon v-if="!showKey" name="eye" class="size-5" />
@@ -42,11 +42,11 @@
           <p class="text-secondary text-xs">{{ t('settings.ai.apiKeyDesc', 'Your API key is stored securely in the database.') }}</p>
         </div>
 
-        <div class="space-y-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3">
+        <div class="space-y-2 rounded-lg border border-(--border-color) bg-(--bg-card) p-3">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <p class="text-sm font-medium text-[var(--text-main)]">{{ t('settings.ai.dynamicFallback', 'Dynamic Fallback') }}</p>
-              <p class="mt-1 text-xs text-[var(--text-secondary)]">
+              <p class="text-sm font-medium text-(--text-main)">{{ t('settings.ai.dynamicFallback', 'Dynamic Fallback') }}</p>
+              <p class="mt-1 text-xs text-(--text-secondary)">
                 {{ t('settings.ai.dynamicFallbackDesc', 'When enabled, fallback models are auto-ranked by recent failure rate and latency window. Primary model remains fixed.') }}
               </p>
             </div>
@@ -56,7 +56,7 @@
                 type="checkbox"
                 class="peer sr-only"
               />
-              <span class="h-6 w-11 rounded-full bg-[var(--bg-muted)] transition-colors peer-checked:bg-[var(--color-primary)]"></span>
+              <span class="h-6 w-11 rounded-full bg-(--bg-muted) transition-colors peer-checked:bg-primary"></span>
             </label>
           </div>
 
@@ -68,9 +68,9 @@
               type="number"
               min="5"
               max="200"
-              class="mt-1 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-xs text-[var(--text-main)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              class="mt-1 w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-xs text-(--text-main) focus:border-primary focus:ring-1 focus:ring-primary/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             />
-            <p class="mt-1 text-xs text-[var(--text-muted)]">{{ t('settings.ai.healthWindowHint', 'Use 5-200 recent requests per model for failure/latency scoring.') }}</p>
+            <p class="mt-1 text-xs text-(--text-muted)">{{ t('settings.ai.healthWindowHint', 'Use 5-200 recent requests per model for failure/latency scoring.') }}</p>
           </div>
         </div>
 
@@ -82,8 +82,8 @@
             {{ t('settings.ai.orderHint', 'Sort from top to bottom by priority. If the primary model fails or is rate-limited, AI will automatically fall back to the next model.') }}
           </p>
 
-          <div class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3">
-            <p class="mb-2 text-xs font-medium text-[var(--text-secondary)]">{{ t('settings.ai.selectedModels', 'Selected Models') }}</p>
+          <div class="rounded-lg border border-(--border-color) bg-(--bg-card) p-3">
+            <p class="mb-2 text-xs font-medium text-(--text-secondary)">{{ t('settings.ai.selectedModels', 'Selected Models') }}</p>
             <div
               v-if="selectedModels.length > 0"
               data-testid="selected-model-grid"
@@ -94,7 +94,7 @@
                 :key="`selected-${model}`"
                 draggable="true"
                 data-testid="selected-model-card"
-                class="group rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] p-2.5 text-[11px] text-[var(--text-main)] transition-colors hover:border-[var(--color-primary)]/30 hover:bg-[var(--bg-hover)]"
+                class="group rounded-lg border border-(--border-color) bg-(--bg-muted) p-2.5 text-[11px] text-(--text-main) transition-colors hover:border-primary/30 hover:bg-(--bg-hover)"
                 @dragstart="onDragStart(index)"
                 @dragover.prevent
                 @drop.prevent="onDrop(index)"
@@ -102,7 +102,7 @@
                 <div class="flex items-start justify-between gap-2">
                   <div class="min-w-0 flex-1">
                     <div class="flex min-w-0 items-center gap-2">
-                      <span class="cursor-grab text-[var(--text-muted)] active:cursor-grabbing" :title="t('settings.ai.dragToSort', 'Drag to sort')">
+                      <span class="cursor-grab text-(--text-muted) active:cursor-grabbing" :title="t('settings.ai.dragToSort', 'Drag to sort')">
                         <AppIcon name="bars-3" class="size-4" />
                       </span>
                       <span class="truncate font-mono text-xs">{{ model }}</span>
@@ -111,16 +111,16 @@
                       <span
                         class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
                         :class="index === 0
-                          ? 'bg-[var(--color-primary)]/15 text-[var(--color-primary)]'
-                          : 'bg-[var(--bg-card)] text-[var(--text-secondary)]'"
+                          ? 'bg-primary/15 text-primary'
+                          : 'bg-(--bg-card) text-(--text-secondary)'"
                       >
                         {{ index === 0 ? t('settings.ai.primaryModel', 'Primary') : t('settings.ai.fallbackModel', { index }) }}
                       </span>
                       <span
                         class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
                         :class="isVisionModel(model)
-                          ? 'bg-[var(--color-success)]/15 text-[var(--color-success)]'
-                          : 'bg-[var(--color-warning)]/15 text-[var(--color-warning)]'"
+                          ? 'bg-success/15 text-success'
+                          : 'bg-warning/15 text-warning'"
                       >
                         {{ isVisionModel(model)
                           ? t('settings.ai.visionSupported', '支持图片')
@@ -133,14 +133,14 @@
                       v-if="index > 0"
                       data-testid="set-primary-btn"
                       type="button"
-                      class="cursor-pointer rounded px-2 py-1 text-[10px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-card)] hover:text-[var(--text-main)]"
+                      class="cursor-pointer rounded px-2 py-1 text-[10px] text-(--text-secondary) transition-colors hover:bg-(--bg-card) hover:text-(--text-main)"
                       @click="setPrimaryModel(model)"
                     >
                       {{ t('settings.ai.setPrimary', 'Set Primary') }}
                     </button>
                     <button
                       type="button"
-                      class="cursor-pointer rounded p-0.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-card)] hover:text-[var(--text-main)]"
+                      class="cursor-pointer rounded p-0.5 text-(--text-muted) transition-colors hover:bg-(--bg-card) hover:text-(--text-main)"
                       @click="removeSelectedModel(model)"
                     >
                       <AppIcon name="x-mark" class="size-3.5" />
@@ -149,14 +149,14 @@
                 </div>
               </div>
             </div>
-            <p v-else class="text-xs text-[var(--text-muted)]">{{ t('settings.ai.noSelectedModels', 'No model selected yet') }}</p>
+            <p v-else class="text-xs text-(--text-muted)">{{ t('settings.ai.noSelectedModels', 'No model selected yet') }}</p>
           </div>
 
           <div class="flex flex-wrap items-center gap-2 pt-1">
             <button
               type="button"
               :disabled="modelFetching || !form.AI_API_URL || !form.AI_API_KEY"
-              class="inline-flex items-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-xs font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              class="inline-flex items-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-xs font-medium text-(--text-main) transition-colors hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-50"
               @click="fetchModels"
             >
               <AppIcon v-if="modelFetching" name="spinner" class="size-4 animate-spin" />
@@ -167,7 +167,7 @@
             <button
               type="button"
               :disabled="testing || !form.AI_API_URL || !form.AI_API_KEY"
-              class="inline-flex items-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-xs font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              class="inline-flex items-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-xs font-medium text-(--text-main) transition-colors hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-50"
               @click="testConnection"
             >
               <AppIcon v-if="testing" name="spinner" class="size-4 animate-spin" />
@@ -176,15 +176,15 @@
             </button>
           </div>
 
-          <div v-if="availableModels.length > 0" class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] p-3">
-            <p class="mb-2 text-xs font-medium text-[var(--text-secondary)]">
+          <div v-if="availableModels.length > 0" class="rounded-lg border border-(--border-color) bg-(--bg-muted) p-3">
+            <p class="mb-2 text-xs font-medium text-(--text-secondary)">
               {{ t('settings.ai.fetchedModels', 'Fetched Models') }} ({{ availableModels.length }})
             </p>
 
             <div class="mb-3 flex flex-wrap items-center gap-2">
               <select
                 v-model="selectedFetchedModel"
-                class="min-w-[220px] rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-xs text-[var(--text-main)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20 focus:outline-none"
+                class="min-w-[220px] rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-xs text-(--text-main) focus:border-primary focus:ring-1 focus:ring-primary/20 focus:outline-none"
               >
                 <option value="">{{ t('settings.ai.selectModel', 'Select a model') }}</option>
                 <option v-for="model in availableModels" :key="`opt-${model}`" :value="model">
@@ -194,7 +194,7 @@
               <button
                 type="button"
                 :disabled="!selectedFetchedModel"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-xs font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-xs font-medium text-(--text-main) transition-colors hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-50"
                 @click="appendSelectedModel"
               >
                 <AppIcon name="plus" class="size-3.5" />
@@ -206,14 +206,14 @@
               <span
                 v-for="model in availableModels"
                 :key="model"
-                class="inline-flex items-center gap-1 rounded bg-[var(--bg-card)] px-2 py-1 font-mono text-[11px] text-[var(--text-main)]"
+                class="inline-flex items-center gap-1 rounded bg-(--bg-card) px-2 py-1 font-mono text-[11px] text-(--text-main)"
               >
                 <span>{{ model }}</span>
                 <span
                   class="rounded px-1 py-0.5 text-[10px] font-semibold"
                   :class="isVisionModel(model)
-                    ? 'bg-[var(--color-success)]/15 text-[var(--color-success)]'
-                    : 'bg-[var(--color-warning)]/15 text-[var(--color-warning)]'"
+                    ? 'bg-success/15 text-success'
+                    : 'bg-warning/15 text-warning'"
                 >
                   {{ isVisionModel(model)
                     ? t('settings.ai.visionSupported', '支持图片')
@@ -221,7 +221,7 @@
                 </span>
                 <button
                   type="button"
-                  class="rounded px-1 text-[10px] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]"
+                  class="rounded px-1 text-[10px] text-(--text-secondary) hover:bg-(--bg-hover) hover:text-(--text-main)"
                   @click="pinModelAsPrimary(model)"
                 >
                   {{ t('settings.ai.setPrimary', 'Set Primary') }}
@@ -234,8 +234,8 @@
             v-if="connectionResult"
             class="rounded-lg border p-3 text-xs"
             :class="connectionResult.ok
-              ? 'border-[var(--color-success)]/30 bg-[var(--color-success)]/10 text-[var(--text-main)]'
-              : 'border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 text-[var(--text-main)]'"
+              ? 'border-success/30 bg-success/10 text-(--text-main)'
+              : 'border-danger/30 bg-danger/10 text-(--text-main)'"
           >
             <p class="font-medium">
               {{ connectionResult.ok ? t('settings.ai.testSuccess', 'Connection successful') : t('settings.ai.testFailed', 'Connection failed') }}
@@ -249,12 +249,12 @@
             </p>
           </div>
 
-          <div class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3">
+          <div class="rounded-lg border border-(--border-color) bg-(--bg-card) p-3">
             <div class="mb-2 flex items-center justify-between gap-2">
-              <p class="text-xs font-medium text-[var(--text-secondary)]">{{ t('settings.ai.healthStats', 'Model Health Stats') }}</p>
+              <p class="text-xs font-medium text-(--text-secondary)">{{ t('settings.ai.healthStats', 'Model Health Stats') }}</p>
               <button
                 type="button"
-                class="inline-flex items-center gap-1 rounded border border-[var(--border-color)] px-2 py-1 text-[11px] text-[var(--text-main)] hover:bg-[var(--bg-hover)]"
+                class="inline-flex items-center gap-1 rounded border border-(--border-color) px-2 py-1 text-[11px] text-(--text-main) hover:bg-(--bg-hover)"
                 :disabled="healthLoading"
                 @click="fetchHealthStats"
               >
@@ -271,16 +271,16 @@
               <div
                 v-for="item in healthStats"
                 :key="`health-${item.model}`"
-                class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] px-2.5 py-2 text-[11px]"
+                class="rounded-lg border border-(--border-color) bg-(--bg-muted) px-2.5 py-2 text-[11px]"
               >
-                <p class="truncate font-mono text-xs text-[var(--text-main)]">{{ item.model }}</p>
-                <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-[var(--text-secondary)]">
+                <p class="truncate font-mono text-xs text-(--text-main)">{{ item.model }}</p>
+                <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-(--text-secondary)">
                   <span>{{ t('settings.ai.failureRate', 'Fail') }} {{ item.failureRateLabel }}</span>
                   <span>{{ t('settings.ai.avgLatency', 'Latency') }} {{ item.avgLatencyLabel }}</span>
                 </div>
               </div>
             </div>
-            <p v-else class="text-xs text-[var(--text-muted)]">{{ t('settings.ai.healthEmpty', 'No health data yet') }}</p>
+            <p v-else class="text-xs text-(--text-muted)">{{ t('settings.ai.healthEmpty', 'No health data yet') }}</p>
           </div>
         </div>
         
@@ -288,7 +288,7 @@
            <button
             type="submit"
             :disabled="saving"
-            class="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-5 py-2.5 text-sm font-medium text-[var(--text-inverse)] shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50"
+            class="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-(--text-inverse) shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50"
           >
             <AppIcon v-if="saving" name="spinner" class="size-4 animate-spin" />
             <span v-if="saving">{{ t('settings.saving', 'Saving...') }}</span>

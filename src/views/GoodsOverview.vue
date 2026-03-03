@@ -22,7 +22,7 @@
         <div class="flex flex-wrap items-center gap-3">
           <select
             v-model="filters.brand"
-            class="rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+            class="rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main) focus:border-primary focus:outline-none"
           >
             <option value="">{{ t('goodsOverview.filter.allBrands') }}</option>
             <option v-for="b in availableFilters.brands" :key="b" :value="b">{{ b }}</option>
@@ -30,7 +30,7 @@
 
           <select
             v-model="filters.category"
-            class="rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+            class="rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main) focus:border-primary focus:outline-none"
           >
             <option value="">{{ t('goodsOverview.filter.allCategories') }}</option>
             <option v-for="c in availableFilters.categories" :key="c" :value="c">{{ c }}</option>
@@ -40,14 +40,14 @@
             <input
               v-model="filters.shortageOnly"
               type="checkbox"
-              class="size-4 rounded border-(--border-color) text-(--color-primary) focus:ring-(--color-primary)"
+              class="size-4 rounded border-(--border-color) text-primary focus:ring-primary"
             />
             {{ t('goodsOverview.filter.shortageOnly') }}
           </label>
 
           <select
             v-model="filters.sort"
-            class="ml-auto rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+            class="ml-auto rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main) focus:border-primary focus:outline-none"
           >
             <option value="shortage">{{ t('goodsOverview.sort.shortage') }}</option>
             <option value="demand">{{ t('goodsOverview.sort.demand') }}</option>
@@ -90,7 +90,7 @@
                 {{ summary.byStatus.confirmed.products }}
               </div>
             </div>
-            <div class="flex size-9 items-center justify-center rounded-xl bg-(--color-warning-bg) text-(--color-warning) transition-colors group-hover:bg-(--color-warning) group-hover:text-white sm:size-10">
+            <div class="flex size-9 items-center justify-center rounded-xl bg-(--color-warning-bg) text-warning transition-colors group-hover:bg-warning group-hover:text-white sm:size-10">
               <AppIcon name="clipboard-document-check" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
             </div>
           </div>
@@ -111,7 +111,7 @@
                 {{ summary.byStatus.production.products }}
               </div>
             </div>
-            <div class="flex size-9 items-center justify-center rounded-xl bg-(--color-info-bg) text-(--color-info) transition-colors group-hover:bg-(--color-info) group-hover:text-white sm:size-10">
+            <div class="flex size-9 items-center justify-center rounded-xl bg-(--color-info-bg) text-info transition-colors group-hover:bg-info group-hover:text-white sm:size-10">
               <AppIcon name="beaker" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
             </div>
           </div>
@@ -153,7 +153,7 @@
                 {{ summary.byStatus.arrived.products }}
               </div>
             </div>
-            <div class="flex size-9 items-center justify-center rounded-xl bg-(--color-success-bg) text-(--color-success) transition-colors group-hover:bg-(--color-success) group-hover:text-white sm:size-10">
+            <div class="flex size-9 items-center justify-center rounded-xl bg-(--color-success-bg) text-success transition-colors group-hover:bg-success group-hover:text-white sm:size-10">
               <AppIcon name="check" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
             </div>
           </div>
@@ -188,7 +188,7 @@
       <div class="h-5 w-px bg-(--border-color)"></div>
       <div class="flex items-center gap-2">
         <span class="text-secondary text-sm">{{ t('goodsOverview.summary.shortageCount') }}:</span>
-        <span class="font-semibold text-(--color-danger)">{{ summary.shortageCount }}</span>
+        <span class="font-semibold text-danger">{{ summary.shortageCount }}</span>
       </div>
     </div>
 
@@ -207,7 +207,7 @@
           <input 
             type="checkbox" 
             :checked="isAllSelected" 
-            class="size-4 cursor-pointer rounded border-(--border-color) text-(--color-primary) focus:ring-(--color-primary)" 
+            class="size-4 cursor-pointer rounded border-(--border-color) text-primary focus:ring-primary" 
             @change="toggleSelectAll" 
           />
         </template>
@@ -217,7 +217,7 @@
           <input 
             type="checkbox" 
             :checked="isSelected(item)" 
-            class="size-4 cursor-pointer rounded border-(--border-color) text-(--color-primary) focus:ring-(--color-primary)" 
+            class="size-4 cursor-pointer rounded border-(--border-color) text-primary focus:ring-primary" 
             @change="toggleSelect(item)" 
           />
         </template>
@@ -257,13 +257,13 @@
 
         <!-- 待订货 -->
         <template #cell-confirmedQty="{ row: item }">
-          <span v-if="item.confirmedQty > 0" class="font-medium text-(--color-warning)">{{ item.confirmedQty }}</span>
+          <span v-if="item.confirmedQty > 0" class="font-medium text-warning">{{ item.confirmedQty }}</span>
           <span v-else class="text-(--text-muted)">-</span>
         </template>
 
         <!-- 生产中 -->
         <template #cell-productionQty="{ row: item }">
-          <span v-if="item.productionQty > 0" class="font-medium text-(--color-info)">{{ item.productionQty }}</span>
+          <span v-if="item.productionQty > 0" class="font-medium text-info">{{ item.productionQty }}</span>
           <span v-else class="text-(--text-muted)">-</span>
         </template>
 
@@ -275,7 +275,7 @@
 
         <!-- 已到货 -->
         <template #cell-arrivedQty="{ row: item }">
-          <span v-if="item.arrivedQty > 0" class="font-medium text-(--color-success)">{{ item.arrivedQty }}</span>
+          <span v-if="item.arrivedQty > 0" class="font-medium text-success">{{ item.arrivedQty }}</span>
           <span v-else class="text-(--text-muted)">-</span>
         </template>
 
@@ -289,7 +289,7 @@
           <span
             :class="[
               'font-bold',
-              item.shortage > 0 ? 'text-(--color-danger)' : 'text-(--text-muted)',
+              item.shortage > 0 ? 'text-danger' : 'text-(--text-muted)',
             ]"
           >
             {{ item.shortage > 0 ? '+' + item.shortage : item.shortage }}
@@ -347,7 +347,7 @@
           {{ t('goodsOverview.batch.selected', { count: selectedItems.length }) }}
         </span>
         <button
-          class="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-(--color-primary) px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          class="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="isCreatingPO"
           @click="handleCreatePO"
         >
@@ -397,10 +397,10 @@ const columns = computed(() => [
   { key: 'sku', label: t('goodsOverview.table.sku') },
   { key: 'brand', label: t('goodsOverview.table.brand'), class: 'hidden md:table-cell' },
   { key: 'stockQuantity', label: t('goodsOverview.table.stock'), align: 'center' },
-  { key: 'confirmedQty', label: t('goodsOverview.pipeline.confirmed'), align: 'center', class: 'text-(--color-warning)' },
-  { key: 'productionQty', label: t('goodsOverview.pipeline.production'), align: 'center', class: 'text-(--color-info)' },
+  { key: 'confirmedQty', label: t('goodsOverview.pipeline.confirmed'), align: 'center', class: 'text-warning' },
+  { key: 'productionQty', label: t('goodsOverview.pipeline.production'), align: 'center', class: 'text-info' },
   { key: 'shippingQty', label: t('goodsOverview.pipeline.shipping'), align: 'center', class: 'text-(--color-purple)' },
-  { key: 'arrivedQty', label: t('goodsOverview.pipeline.arrived'), align: 'center', class: 'text-(--color-success)' },
+  { key: 'arrivedQty', label: t('goodsOverview.pipeline.arrived'), align: 'center', class: 'text-success' },
   { key: 'totalDemand', label: t('goodsOverview.table.totalDemand'), align: 'center' },
   { key: 'shortage', label: t('goodsOverview.table.shortage'), align: 'center' },
   { key: 'avgUnitCost', label: t('goodsOverview.table.unitCost'), align: 'center', class: 'hidden lg:table-cell' },

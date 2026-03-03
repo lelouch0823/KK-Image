@@ -5,8 +5,8 @@
       <button
         v-if="showPrevNext"
         :disabled="currentPage === 1"
-        class="text-secondary rounded-md px-3 py-1 text-sm transition-colors hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-30"
-        :class="{ 'text-[var(--text-muted)]': currentPage === 1 }"
+        class="text-secondary rounded-md px-3 py-1 text-sm transition-colors hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-30"
+        :class="{ 'text-(--text-muted)': currentPage === 1 }"
         @click="goToPage(currentPage - 1)"
       >
         <AppIcon name="chevron-left" class="size-4" />
@@ -17,9 +17,9 @@
         <span v-if="page === '...'" class="text-muted px-3 py-1 text-sm">...</span>
         <button
           v-else
-          class="text-secondary min-w-[32px] rounded-md px-3 py-1 text-sm transition-colors hover:bg-[var(--bg-hover)]"
+          class="text-secondary min-w-[32px] rounded-md px-3 py-1 text-sm transition-colors hover:bg-(--bg-hover)"
           :class="
-            page === currentPage ? 'bg-primary font-bold text-[var(--text-inverse)]' : ''
+            page === currentPage ? 'bg-primary font-bold text-(--text-inverse)' : ''
           "
           @click="goToPage(page)"
         >
@@ -31,8 +31,8 @@
       <button
         v-if="showPrevNext"
         :disabled="currentPage === totalPages"
-        class="text-secondary rounded-md px-3 py-1 text-sm transition-colors hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-30"
-        :class="{ 'text-[var(--text-muted)]': currentPage === totalPages }"
+        class="text-secondary rounded-md px-3 py-1 text-sm transition-colors hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-30"
+        :class="{ 'text-(--text-muted)': currentPage === totalPages }"
         @click="goToPage(currentPage + 1)"
       >
         <AppIcon name="chevron-right" class="size-4" />

@@ -8,7 +8,7 @@
       class="flex size-full flex-col overflow-hidden rounded-t-2xl bg-white lg:mx-4 lg:h-[90vh] lg:max-w-5xl lg:flex-row lg:rounded-2xl lg:rounded-t-2xl dark:bg-gray-900"
     >
       <!-- 移动端: 顶部标签栏 -->
-      <div class="flex items-center border-b border-[var(--border-color)] px-4 py-3 lg:hidden">
+      <div class="flex items-center border-b border-(--border-color) px-4 py-3 lg:hidden">
         <button
           class="flex-1 border-b-2 py-2 text-center text-sm font-medium transition-colors"
           :class="
@@ -46,12 +46,12 @@
       <!-- 左侧：商品属性编辑器 -->
       <div
         v-show="mobileTab === 'info' || isDesktop"
-        class="flex flex-1 flex-col border-r border-[var(--border-color)] bg-[var(--bg-muted)] lg:w-1/3"
+        class="flex flex-1 flex-col border-r border-(--border-color) bg-(--bg-muted) lg:w-1/3"
         :class="{ hidden: mobileTab !== 'info' }"
       >
         <!-- 桌面端标题 -->
         <div
-          class="hidden items-center justify-between border-b border-[var(--border-color)] px-6 py-4 lg:flex"
+          class="hidden items-center justify-between border-b border-(--border-color) px-6 py-4 lg:flex"
         >
           <div>
             <div class="flex items-center gap-2">
@@ -60,12 +60,12 @@
               </h2>
               <span
                 v-if="form.isPublic"
-                class="rounded-full bg-[var(--color-success-bg)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-success)]"
+                class="rounded-full bg-(--color-success-bg) px-1.5 py-0.5 text-[10px] font-medium text-success"
                 >🌐 {{ t('spaceManager.publicOn') }}</span
               >
               <span
                 v-else
-                class="text-secondary rounded-full bg-[var(--bg-muted)] px-1.5 py-0.5 text-[10px] font-medium"
+                class="text-secondary rounded-full bg-(--bg-muted) px-1.5 py-0.5 text-[10px] font-medium"
                 >🔒 {{ t('spaceManager.publicOff') }}</span
               >
             </div>
@@ -98,7 +98,7 @@
             <input
               v-model="form.name"
               type="text"
-              class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none"
+              class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none"
             />
           </div>
 
@@ -110,7 +110,7 @@
               v-model="form.templateData.brand"
               type="text"
               :disabled="!!boundProduct"
-              class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-[var(--bg-hover)] disabled:text-[var(--text-muted)]"
+              class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-(--bg-hover) disabled:text-(--text-muted)"
             />
           </div>
 
@@ -122,7 +122,7 @@
               v-model="form.templateData.series"
               type="text"
               :disabled="!!boundProduct"
-              class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-[var(--bg-hover)] disabled:text-[var(--text-muted)]"
+              class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-(--bg-hover) disabled:text-(--text-muted)"
             />
           </div>
 
@@ -135,7 +135,7 @@
                 v-model="form.templateData.price"
                 type="number"
                 :disabled="!!boundProduct"
-                class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-[var(--bg-hover)] disabled:text-[var(--text-muted)]"
+                class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-(--bg-hover) disabled:text-(--text-muted)"
               />
             </div>
             <div>
@@ -146,7 +146,7 @@
                 v-model="form.templateData.material"
                 type="text"
                 :disabled="!!boundProduct"
-                class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-[var(--bg-hover)] disabled:text-[var(--text-muted)]"
+                class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-(--bg-hover) disabled:text-(--text-muted)"
               />
             </div>
           </div>
@@ -158,7 +158,7 @@
               type="text"
               :placeholder="t('spaceManager.skuPlaceholder')"
               :disabled="!!boundProduct"
-              class="focus:border-primary w-full rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-[var(--bg-hover)] disabled:text-[var(--text-muted)]"
+              class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-(--bg-hover) disabled:text-(--text-muted)"
             />
           </div>
 
@@ -169,14 +169,14 @@
             <textarea
               v-model="form.description"
               rows="4"
-              class="focus:border-primary w-full resize-none rounded-lg border border-[var(--border-color)] px-4 py-2 transition-colors outline-none"
+              class="focus:border-primary w-full resize-none rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none"
             ></textarea>
           </div>
 
           <!-- Share Card -->
-          <div class="border-t border-[var(--border-color)]">
+          <div class="border-t border-(--border-color)">
             <div class="p-6 pt-4 pb-2">
-              <label class="mb-2 block text-sm font-medium text-[var(--text-main)]">{{
+              <label class="mb-2 block text-sm font-medium text-(--text-main)">{{
                 t('spaceManager.shareSettings') || '销售可见性设置'
               }}</label>
               <SpaceVisibilitySelector
@@ -198,7 +198,7 @@
         </div>
 
         <!-- 底部操作栏 -->
-        <div class="flex gap-3 border-t border-[var(--border-color)] px-6 py-4">
+        <div class="flex gap-3 border-t border-(--border-color) px-6 py-4">
           <button
             class="hover:text-primary flex items-center gap-1.5 rounded-lg border border-(--border-color) px-4 py-2 text-(--text-secondary) transition-colors"
             @click="openPreview"
@@ -237,7 +237,7 @@
       >
         <!-- 右侧标签头 (桌面端) -->
         <div
-          class="hidden items-center justify-between border-b border-[var(--border-color)] px-6 py-3 lg:flex"
+          class="hidden items-center justify-between border-b border-(--border-color) px-6 py-3 lg:flex"
         >
           <div class="flex space-x-4">
             <button
@@ -245,7 +245,7 @@
               :class="
                 activeRightTab === 'media'
                   ? 'border-primary text-primary'
-                  : 'text-secondary border-transparent hover:text-[var(--text-main)] dark:text-gray-400 dark:hover:text-gray-200'
+                  : 'text-secondary border-transparent hover:text-(--text-main) dark:text-gray-400 dark:hover:text-gray-200'
               "
               @click="activeRightTab = 'media'"
             >
@@ -256,7 +256,7 @@
               :class="
                 activeRightTab === 'analytics'
                   ? 'border-primary text-primary'
-                  : 'text-secondary border-transparent hover:text-[var(--text-main)] dark:text-gray-400 dark:hover:text-gray-200'
+                  : 'text-secondary border-transparent hover:text-(--text-main) dark:text-gray-400 dark:hover:text-gray-200'
               "
               @click="activeRightTab = 'analytics'"
             >
@@ -266,7 +266,7 @@
           <div class="flex gap-2">
             <Tooltip v-if="activeRightTab === 'media'" :content="t('spaceManager.addFile')">
               <button
-                class="text-primary flex size-8 items-center justify-center rounded-lg bg-[var(--bg-muted)] text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
+                class="text-primary flex size-8 items-center justify-center rounded-lg bg-(--bg-muted) text-sm font-medium transition-colors hover:bg-(--bg-hover)"
                 @click="showFileSelector = true"
               >
                 <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -280,7 +280,7 @@
               </button>
             </Tooltip>
             <button
-              class="text-secondary rounded-lg p-2 hover:text-primary hover:bg-[var(--bg-hover)]"
+              class="text-secondary rounded-lg p-2 hover:text-primary hover:bg-(--bg-hover)"
               @click="$emit('close')"
             >
               <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,11 +297,11 @@
 
         <!-- 移动端顶部操作栏 -->
         <div
-          class="flex items-center justify-between border-b border-[var(--border-color)] px-4 py-3 lg:hidden"
+          class="flex items-center justify-between border-b border-(--border-color) px-4 py-3 lg:hidden"
         >
           <span class="text-primary text-sm font-medium">{{ t('spaceManager.media') }}</span>
           <button
-            class="bg-primary flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-[var(--text-inverse)]"
+            class="bg-primary flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-(--text-inverse)"
             @click="showFileSelector = true"
           >
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

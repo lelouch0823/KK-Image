@@ -398,7 +398,7 @@ function handleRetry() {
   font-size: 0.625rem;
   font-weight: 700;
   color: var(--text-inverse);
-  background: var(--color-success);
+  background: varsuccess;
   border-radius: 0.25rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -409,7 +409,7 @@ function handleRetry() {
   font-size: 0.625rem;
   font-weight: 600;
   color: var(--text-inverse);
-  background-color: var(--color-primary);
+  background-color: varprimary;
   border-radius: 0.25rem;
 }
 </style>

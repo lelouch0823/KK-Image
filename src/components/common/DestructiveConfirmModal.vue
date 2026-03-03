@@ -9,43 +9,43 @@
       leave-to-class="opacity-0 scale-95"
     >
       <div v-if="modelValue" class="fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-0">
-        <div class="fixed inset-0 bg-[var(--color-overlay-blur)] backdrop-blur-sm transition-opacity" @click="close"></div>
-        <div class="relative w-full max-w-md transform overflow-hidden rounded-2xl border border-[var(--border-danger)] bg-[var(--bg-card)] shadow-xl transition-all">
+        <div class="fixed inset-0 bg-(--color-overlay-blur) backdrop-blur-sm transition-opacity" @click="close"></div>
+        <div class="relative w-full max-w-md transform overflow-hidden rounded-2xl border border-(--border-danger) bg-(--bg-card) shadow-xl transition-all">
           <div class="p-6 sm:p-8">
-            <div class="mx-auto mb-5 flex size-12 items-center justify-center rounded-full bg-[var(--color-danger-bg)]">
-              <svg class="size-6 text-[var(--color-danger)]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <div class="mx-auto mb-5 flex size-12 items-center justify-center rounded-full bg-(--color-danger-bg)">
+              <svg class="size-6 text-danger" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
             
-            <h3 class="mb-2 text-center text-lg leading-6 font-bold text-[var(--text-main)]">
+            <h3 class="mb-2 text-center text-lg leading-6 font-bold text-(--text-main)">
               {{ title }}
             </h3>
             <div class="mt-2 text-center">
-              <p class="text-sm leading-relaxed whitespace-pre-line text-[var(--text-secondary)]">
+              <p class="text-sm leading-relaxed whitespace-pre-line text-(--text-secondary)">
                 <slot name="description">{{ description }}</slot>
               </p>
             </div>
 
             <div class="mt-6">
-              <label class="mb-1 block text-sm font-medium text-[var(--text-main)]">
-                {{ displayRequireTextLabel }} <span class="rounded bg-[var(--bg-page)] px-1 font-mono text-[var(--text-secondary)] select-all">{{ requiredText }}</span>
+              <label class="mb-1 block text-sm font-medium text-(--text-main)">
+                {{ displayRequireTextLabel }} <span class="rounded bg-(--bg-page) px-1 font-mono text-(--text-secondary) select-all">{{ requiredText }}</span>
               </label>
               <input 
                 ref="inputRef"
                 v-model="inputValue" 
                 type="text"
                 :placeholder="requiredText"
-                class="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-4 py-2.5 font-mono text-sm text-[var(--text-main)] transition-all outline-none focus:border-[var(--color-danger)] focus:ring-4 focus:ring-[var(--border-danger)]"
+                class="w-full rounded-xl border border-(--border-color) bg-(--bg-muted) px-4 py-2.5 font-mono text-sm text-(--text-main) transition-all outline-none focus:border-danger focus:ring-4 focus:ring-(--border-danger)"
                 @keyup.enter="handleConfirm"
               />
             </div>
           </div>
           
-          <div class="flex flex-col-reverse gap-3 bg-[var(--bg-page)]/50 px-6 py-4 sm:flex-row sm:justify-end sm:px-8">
+          <div class="flex flex-col-reverse gap-3 bg-(--bg-page)/50 px-6 py-4 sm:flex-row sm:justify-end sm:px-8">
             <button
               type="button"
-              class="inline-flex w-full items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-main)] shadow-sm transition-colors hover:bg-[var(--bg-muted)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:outline-none disabled:opacity-50 sm:w-auto"
+              class="inline-flex w-full items-center justify-center rounded-xl border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-semibold text-(--text-main) shadow-sm transition-colors hover:bg-(--bg-muted) focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none disabled:opacity-50 sm:w-auto"
               :disabled="loading"
               @click="close"
             >
@@ -53,7 +53,7 @@
             </button>
              <button
               type="button"
-              class="inline-flex w-full items-center justify-center rounded-xl border border-transparent bg-[var(--color-danger)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--color-danger-text)] focus:ring-2 focus:ring-[var(--color-danger)] focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+              class="inline-flex w-full items-center justify-center rounded-xl border border-transparent bg-danger px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-(--color-danger-text) focus:ring-2 focus:ring-danger focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               :disabled="!isValid || loading"
               @click="handleConfirm"
             >

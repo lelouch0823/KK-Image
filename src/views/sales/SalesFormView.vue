@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto w-full max-w-2xl space-y-4 pb-8" :data-sales-order-mode="salesOrderEntry">
-    <div class="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-3">
-      <p class="text-xs font-medium text-[var(--text-secondary)]">
+    <div class="rounded-xl border border-(--border-subtle) bg-(--bg-card) p-3">
+      <p class="text-xs font-medium text-(--text-secondary)">
         {{ t('order.binding.salesGuide') }}
       </p>
     </div>
@@ -19,13 +19,13 @@
 
     <div
       v-if="productFetchError"
-      class="rounded-xl border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)]/40 p-3"
+      class="rounded-xl border border-(--color-danger-text)/20 bg-(--color-danger-bg)/40 p-3"
       data-testid="product-fetch-error"
     >
-      <p class="text-sm text-[var(--text-main)]">{{ productFetchError }}</p>
+      <p class="text-sm text-(--text-main)">{{ productFetchError }}</p>
       <button
         type="button"
-        class="mt-2 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-inverse)]"
+        class="mt-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
         data-testid="product-fetch-retry"
         @click="retryProductFetch"
       >

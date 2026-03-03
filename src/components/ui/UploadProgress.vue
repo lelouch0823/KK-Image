@@ -2,12 +2,12 @@
   <transition name="slide-up">
     <div
       v-if="hasItems"
-      class="ease-spring shadow-glass fixed right-6 bottom-6 z-[60] flex max-h-[500px] w-96 flex-col overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/90 backdrop-blur-md transition-all duration-300"
+      class="ease-spring shadow-glass fixed right-6 bottom-6 z-[60] flex max-h-[500px] w-96 flex-col overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card)/90 backdrop-blur-md transition-all duration-300"
       :class="{ 'w-auto rounded-full': isMinimized }"
     >
       <!-- Header -->
       <div
-        class="flex items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-muted)]/50 px-4 py-3 select-none"
+        class="flex items-center justify-between border-b border-(--border-color) bg-(--bg-muted)/50 px-4 py-3 select-none"
       >
         <div class="flex items-center gap-3">
           <!-- Progress Ring or Icon -->
@@ -15,22 +15,22 @@
             <AppIcon
               v-if="isUploading"
               name="spinner"
-              class="size-5 animate-spin text-[var(--color-info)]"
+              class="size-5 animate-spin text-info"
             />
             <AppIcon
               v-else
               name="check"
-              class="size-5 text-[var(--color-success)]"
+              class="size-5 text-success"
             />
           </div>
 
           <div v-if="!isMinimized" class="flex flex-col">
-            <span class="text-sm font-semibold text-[var(--text-main)]">
+            <span class="text-sm font-semibold text-(--text-main)">
               {{
                 isUploading ? t('upload.uploading', { count: activeCount }) : t('upload.complete')
               }}
             </span>
-            <span class="text-xs text-[var(--text-secondary)]">
+            <span class="text-xs text-(--text-secondary)">
               {{ completedCount }} / {{ queue.length }} {{ t('upload.finished') }}
               <!-- 🔧 NEW: 速度和剩余时间 -->
               <template v-if="isUploading && totalSpeed > 0">
@@ -47,14 +47,14 @@
         <div class="flex items-center gap-1">
           <button
             v-if="!isMinimized"
-            class="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]"
+            class="rounded-lg p-1.5 text-(--text-muted) transition-colors hover:bg-(--bg-hover) hover:text-(--text-main)"
             @click.stop="toggleMinimize"
           >
             <AppIcon name="chevron-down" class="size-5" />
           </button>
           <button
             v-else
-            class="rounded-full p-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]"
+            class="rounded-full p-2 text-(--text-secondary) transition-colors hover:bg-(--bg-hover) hover:text-(--text-main)"
             @click.stop="toggleMinimize"
           >
             <span class="text-xs font-bold">{{ overallProgress }}%</span>
@@ -63,7 +63,7 @@
           <!-- 🔧 NEW: 重试所有失败 -->
           <button
             v-if="!isMinimized && failedCount > 0"
-            class="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--color-warning-bg)] hover:text-[var(--color-warning-text)]"
+            class="rounded-lg p-1.5 text-(--text-muted) transition-colors hover:bg-(--color-warning-bg) hover:text-(--color-warning-text)"
             :title="t('common.retryAllFailed')"
             @click.stop="retryAllFailed"
           >
@@ -72,7 +72,7 @@
 
           <button
             v-if="!isMinimized && !isUploading"
-            class="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--color-info-bg)] hover:text-[var(--color-info-text)]"
+            class="rounded-lg p-1.5 text-(--text-muted) transition-colors hover:bg-(--color-info-bg) hover:text-(--color-info-text)"
             :title="t('upload.clearCompleted')"
             @click.stop="clearCompleted"
           >
@@ -80,7 +80,7 @@
           </button>
           <button
             v-if="!isMinimized"
-            class="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)]"
+            class="rounded-lg p-1.5 text-(--text-muted) transition-colors hover:bg-(--color-danger-bg) hover:text-(--color-danger-text)"
             :title="t('common.clearAll')"
             @click.stop="clearAll"
           >
@@ -93,17 +93,17 @@
       <transition name="expand">
         <div
           v-if="!isMinimized"
-          class="scrollbar-thin max-h-[300px] flex-1 overflow-y-auto bg-[var(--bg-page)]/50"
+          class="scrollbar-thin max-h-[300px] flex-1 overflow-y-auto bg-(--bg-page)/50"
         >
           <transition-group name="list" tag="ul" class="space-y-2 p-2">
             <li
               v-for="item in queue"
               :key="item.id"
-              class="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-sm transition-all hover:bg-[var(--bg-hover)] hover:shadow-md"
+              class="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) p-3 shadow-sm transition-all hover:bg-(--bg-hover) hover:shadow-md"
             >
               <!-- Icon -->
               <div
-                class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-muted)] text-xs font-bold text-[var(--text-muted)] uppercase"
+                class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-(--bg-muted) text-xs font-bold text-(--text-muted) uppercase"
               >
                 {{ item.name.split('.').pop().slice(0, 4) }}
               </div>
@@ -111,14 +111,14 @@
               <!-- Info -->
               <div class="min-w-0 flex-1">
                 <div class="mb-1 flex items-center justify-between">
-                  <h4 class="truncate pr-2 text-sm font-medium text-[var(--text-main)]" :title="item.name">
+                  <h4 class="truncate pr-2 text-sm font-medium text-(--text-main)" :title="item.name">
                     {{ item.name }}
                   </h4>
                   <span class="shrink-0 font-mono text-xs" :class="getStatusColor(item.status)">
                     {{ getStatusText(item) }}
                   </span>
                 </div>
-                <div class="h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-muted)]">
+                <div class="h-1.5 w-full overflow-hidden rounded-full bg-(--bg-muted)">
                   <div
                     class="h-full rounded-full transition-all duration-300 ease-out"
                     :class="getProgressBarClass(item.status)"
@@ -130,7 +130,7 @@
               <!-- Action Button -->
               <button
                 v-if="item.status === 'error'"
-                class="rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] p-1.5 text-[var(--color-warning)] shadow-sm transition-all hover:bg-[var(--color-warning-bg)] hover:text-[var(--color-warning-text)]"
+                class="rounded-full border border-(--border-color) bg-(--bg-card) p-1.5 text-warning shadow-sm transition-all hover:bg-(--color-warning-bg) hover:text-(--color-warning-text)"
                 :title="t('upload.retry')"
                 @click="retryFile(item.id)"
               >
@@ -138,7 +138,7 @@
               </button>
               <button
                 v-else-if="item.status !== 'success'"
-                class="absolute top-1/2 right-2 -translate-y-1/2 rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] p-1.5 text-[var(--text-muted)] opacity-0 shadow-sm transition-all group-hover:opacity-100 hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger-text)]"
+                class="absolute top-1/2 right-2 -translate-y-1/2 rounded-full border border-(--border-color) bg-(--bg-card) p-1.5 text-(--text-muted) opacity-0 shadow-sm transition-all group-hover:opacity-100 hover:bg-(--color-danger-bg) hover:text-(--color-danger-text)"
                 @click="removeFile(item.id)"
               >
                 <AppIcon name="x-mark" class="size-4" />
@@ -187,26 +187,26 @@ const toggleMinimize = () => {
 const getStatusColor = (status) => {
   switch (status) {
     case 'uploading':
-      return 'text-[var(--color-info)]';
+      return 'text-info';
     case 'success':
-      return 'text-[var(--color-success)]';
+      return 'text-success';
     case 'error':
-      return 'text-[var(--color-danger)]';
+      return 'text-danger';
     default:
-      return 'text-[var(--text-muted)]';
+      return 'text-(--text-muted)';
   }
 };
 
 const getProgressBarClass = (status) => {
   switch (status) {
     case 'uploading':
-      return 'bg-[var(--color-info)]';
+      return 'bg-info';
     case 'success':
-      return 'bg-[var(--color-success)]';
+      return 'bg-success';
     case 'error':
-      return 'bg-[var(--color-danger)]';
+      return 'bg-danger';
     default:
-      return 'bg-[var(--border-color)]';
+      return 'bg-(--border-color)';
   }
 };
 

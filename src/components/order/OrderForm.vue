@@ -2,9 +2,9 @@
   <div class="space-y-6">
     <!-- 标题 (仅销售端显示) -->
     <div v-if="mode !== 'admin'" class="text-center">
-      <h2 class="text-xl font-bold text-[var(--color-primary)]">{{ title || t('order.portal.newOrder') }}</h2>
-      <p v-if="subtitle" class="mt-1 text-sm text-[var(--text-secondary)]">{{ subtitle }}</p>
-      <p v-else-if="mode === 'sales'" class="mt-1 text-sm text-[var(--text-secondary)]">{{ t('order.portal.subtitle') }}</p>
+      <h2 class="text-xl font-bold text-primary">{{ title || t('order.portal.newOrder') }}</h2>
+      <p v-if="subtitle" class="mt-1 text-sm text-(--text-secondary)">{{ subtitle }}</p>
+      <p v-else-if="mode === 'sales'" class="mt-1 text-sm text-(--text-secondary)">{{ t('order.portal.subtitle') }}</p>
     </div>
 
     <form class="space-y-4" @submit.prevent="handleSubmit">
@@ -19,11 +19,11 @@
       />
 
       <!-- 商品信息 -->
-      <div class="space-y-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 sm:p-5">
+      <div class="space-y-4 rounded-xl border border-(--border-color) bg-(--bg-card) p-3 sm:p-5">
         <!-- 商品名称 -->
         <div>
-          <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
-            {{ t('order.form.productName') }} <span class="text-[var(--color-danger-text)]">*</span>
+          <label class="mb-2 block text-sm font-medium text-primary">
+            {{ t('order.form.productName') }} <span class="text-(--color-danger-text)">*</span>
           </label>
           <AutocompleteInput
             v-model="form.name"
@@ -39,7 +39,7 @@
         <!-- 品牌和系列 -->
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+            <label class="mb-2 block text-sm font-medium text-primary">
               {{ t('order.form.brand') }}
             </label>
             <AutocompleteInput
@@ -53,7 +53,7 @@
             />
           </div>
           <div>
-            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+            <label class="mb-2 block text-sm font-medium text-primary">
               {{ t('order.form.series') }}
             </label>
             <AutocompleteInput
@@ -71,8 +71,8 @@
         <!-- Admin: 销售员 | SKU -->
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div v-if="mode === 'admin'">
-            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
-              {{ t('common.salesperson') }} <span class="text-[var(--color-danger-text)]">*</span>
+            <label class="mb-2 block text-sm font-medium text-primary">
+              {{ t('common.salesperson') }} <span class="text-(--color-danger-text)">*</span>
             </label>
           <Select
             v-model="adminForm.salespersonId"
@@ -81,7 +81,7 @@
           />
         </div>
         <div :class="{ 'md:col-span-2': mode !== 'admin' }">
-          <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+          <label class="mb-2 block text-sm font-medium text-primary">
             {{ t('order.form.sku') }}
           </label>
           <input
@@ -96,23 +96,23 @@
 
       <!-- 如果已绑定商品，显示只读的规格属性列表，否则显示原有的输入框 -->
       <template v-if="boundProductVariant">
-        <div class="mt-4 space-y-3 rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 p-4">
-          <h5 class="text-sm font-medium text-[var(--color-primary)]">{{ t('product.variant.title') || '商品规格' }}</h5>
+        <div class="mt-4 space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <h5 class="text-sm font-medium text-primary">{{ t('product.variant.title') || '商品规格' }}</h5>
           <div class="grid grid-cols-2 gap-4">
             <div v-for="(value, key) in boundProductVariant" :key="key" class="flex flex-col">
-              <span class="text-xs text-[var(--text-secondary)]">{{ key }}</span>
-              <span class="text-sm font-medium text-[var(--text-main)]">{{ value }}</span>
+              <span class="text-xs text-(--text-secondary)">{{ key }}</span>
+              <span class="text-sm font-medium text-(--text-main)">{{ value }}</span>
             </div>
             <!-- 如果没有规格内容，显示占位符 -->
-            <div v-if="Object.keys(boundProductVariant).length === 0" class="col-span-2 text-sm text-[var(--text-muted)]">
+            <div v-if="Object.keys(boundProductVariant).length === 0" class="col-span-2 text-sm text-(--text-muted)">
               {{ t('product.variant.noSpecs') || '无规格信息' }}
             </div>
           </div>
         </div>
         <!-- 数量 (绑定的情况下仍需数量字段) -->
         <div>
-          <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
-            {{ t('order.form.quantity') }} <span class="text-[var(--color-danger-text)]">*</span>
+          <label class="mb-2 block text-sm font-medium text-primary">
+            {{ t('order.form.quantity') }} <span class="text-(--color-danger-text)">*</span>
           </label>
           <input
             v-model.number="form.quantity"
@@ -130,7 +130,7 @@
         <!-- 规格尺寸 & 数量 -->
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+            <label class="mb-2 block text-sm font-medium text-primary">
               {{ t('order.form.size') }}
             </label>
             <input
@@ -141,8 +141,8 @@
             />
           </div>
           <div>
-            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
-              {{ t('order.form.quantity') }} <span class="text-[var(--color-danger-text)]">*</span>
+            <label class="mb-2 block text-sm font-medium text-primary">
+              {{ t('order.form.quantity') }} <span class="text-(--color-danger-text)">*</span>
             </label>
           <input
             v-model.number="form.quantity"
@@ -158,7 +158,7 @@
         <!-- 颜色材质 -->
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+            <label class="mb-2 block text-sm font-medium text-primary">
               {{ t('order.form.color') }}
             </label>
             <AutocompleteInput
@@ -171,7 +171,7 @@
             />
           </div>
           <div>
-            <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+            <label class="mb-2 block text-sm font-medium text-primary">
               {{ t('order.form.material') }}
             </label>
             <AutocompleteInput
@@ -188,7 +188,7 @@
 
       <!-- 备注 -->
       <div>
-        <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+        <label class="mb-2 block text-sm font-medium text-primary">
           {{ t('order.form.remark') }}
         </label>
         <textarea
@@ -202,7 +202,7 @@
       <!-- Admin: 状态 | 到货时间 -->
       <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div v-if="mode === 'admin'">
-          <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+          <label class="mb-2 block text-sm font-medium text-primary">
             {{ t('order.status') }}
           </label>
           <StatusSelector
@@ -212,14 +212,14 @@
           />
         </div>
         <div :class="{ 'md:col-span-2': mode !== 'admin' }">
-          <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">
+          <label class="mb-2 block text-sm font-medium text-primary">
             {{ t('order.form.expectedArrival') }}
           </label>
           <input
             v-model="form.deadline"
             type="date"
             :min="minDate"
-            class="input h-11 appearance-none bg-[var(--bg-card)]"
+            class="input h-11 appearance-none bg-(--bg-card)"
             :class="{ 'text-muted': !form.deadline }"
           />
         </div>
@@ -228,7 +228,7 @@
 
     <div
       v-if="submitError"
-      class="rounded-xl border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)]/40 px-3 py-2 text-sm text-[var(--text-main)]"
+      class="rounded-xl border border-(--color-danger-text)/20 bg-(--color-danger-bg)/40 px-3 py-2 text-sm text-(--text-main)"
       role="alert"
       data-testid="submit-error"
     >
@@ -239,7 +239,7 @@
     <div :class="actionBarClass">
       <button
         type="button"
-        class="h-12 flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30 focus-visible:outline-none"
+        class="h-12 flex-1 rounded-xl border border-(--border-color) bg-(--bg-card) font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover) focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none"
         @click="$emit('cancel')"
       >
         {{ t('common.cancel') }}
@@ -247,7 +247,7 @@
       <button
         type="submit"
         :disabled="!isValid || isSubmitting"
-        class="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30 focus-visible:outline-none"
+        class="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary font-medium text-(--text-inverse) shadow-primary/20 shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none"
       >
         <AppIcon
           v-if="isSubmitting"
@@ -337,7 +337,7 @@ const isValid = computed(() => {
 
 const actionBarClass = computed(() => (
   props.mode === 'sales'
-    ? 'sticky bottom-0 z-20 -mx-3 flex gap-3 border-t border-[var(--border-color)] bg-[var(--bg-card)]/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur'
+    ? 'sticky bottom-0 z-20 -mx-3 flex gap-3 border-t border-(--border-color) bg-(--bg-card)/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur'
     : 'flex gap-3'
 ));
 

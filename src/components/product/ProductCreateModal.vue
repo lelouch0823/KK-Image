@@ -65,15 +65,15 @@
                 <!-- 变体矩阵 -->
                 <div
                   v-if="form.variants.length > 0"
-                  class="space-y-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)]/50 p-4"
+                  class="space-y-4 rounded-xl border border-(--border-color) bg-(--bg-muted)/50 p-4"
                 >
                   <div class="flex items-center justify-between">
-                    <h4 class="font-bold text-[var(--text-main)]">
+                    <h4 class="font-bold text-(--text-main)">
                       {{ t('product.form.variants_title', 'Variants') }}
                     </h4>
                     <button
                       type="button"
-                      class="text-sm font-medium text-[var(--color-primary)]"
+                      class="text-sm font-medium text-primary"
                       @click="showVariantImageManager = true"
                     >
                       {{ t('product.form.manage_variant_images', 'Manage Variant Images') }}

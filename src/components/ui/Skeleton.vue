@@ -4,7 +4,7 @@
       <!-- Simple Text/Block Skeleton -->
       <div
         v-if="!template"
-        class="skeleton-shimmer rounded bg-[var(--bg-muted)]"
+        class="skeleton-shimmer rounded bg-(--bg-muted)"
         :class="[widthClass, heightClass, containerClass]"
         :style="customStyle"
       />
@@ -12,38 +12,38 @@
       <!-- Avatar Template -->
       <div
         v-else-if="template === 'avatar'"
-        class="skeleton-shimmer rounded-full bg-[var(--bg-muted)]"
+        class="skeleton-shimmer rounded-full bg-(--bg-muted)"
         :class="avatarSizeClass"
       />
 
       <!-- Stat Card Template -->
       <div
         v-else-if="template === 'stat-card'"
-        class="skeleton-shimmer rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] p-4"
+        class="skeleton-shimmer rounded-xl border border-(--border-color) bg-(--bg-muted) p-4"
       >
-        <div class="mb-2 h-4 w-16 rounded bg-[var(--border-color)]" />
-        <div class="h-8 w-24 rounded bg-[var(--border-color)]" />
+        <div class="mb-2 h-4 w-16 rounded bg-(--border-color)" />
+        <div class="h-8 w-24 rounded bg-(--border-color)" />
       </div>
 
       <!-- List Card Template (for Order/Customer lists) -->
       <div
         v-else-if="template === 'list-card'"
-        class="skeleton-shimmer rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4"
+        class="skeleton-shimmer rounded-xl border border-(--border-color) bg-(--bg-card) p-4"
         :class="{ 'mb-3': i < count }"
       >
         <div class="flex gap-3">
-          <div class="size-16 flex-shrink-0 rounded-lg bg-[var(--bg-muted)]" />
+          <div class="size-16 flex-shrink-0 rounded-lg bg-(--bg-muted)" />
           <div class="flex-1 space-y-2">
-            <div class="h-4 w-3/4 rounded bg-[var(--bg-muted)]" />
-            <div class="h-3 w-1/2 rounded bg-[var(--bg-muted)]" />
-            <div class="h-3 w-1/3 rounded bg-[var(--bg-muted)]" />
+            <div class="h-4 w-3/4 rounded bg-(--bg-muted)" />
+            <div class="h-3 w-1/2 rounded bg-(--bg-muted)" />
+            <div class="h-3 w-1/3 rounded bg-(--bg-muted)" />
           </div>
         </div>
       </div>
 
       <!-- Table Row Template -->
-      <div v-else-if="template === 'table-row'" class="flex gap-4 border-b border-[var(--border-color)] py-4">
-        <div v-for="c in columns" :key="c" class="skeleton-shimmer h-4 flex-1 rounded bg-[var(--bg-muted)]"></div>
+      <div v-else-if="template === 'table-row'" class="flex gap-4 border-b border-(--border-color) py-4">
+        <div v-for="c in columns" :key="c" class="skeleton-shimmer h-4 flex-1 rounded bg-(--bg-muted)"></div>
       </div>
     </template>
   </div>

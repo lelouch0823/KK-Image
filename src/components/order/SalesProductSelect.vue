@@ -29,11 +29,11 @@
         v-if="isOpen && (items.length > 0 || loading || error || (searchQuery && items.length === 0))"
         class="absolute z-50 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-(--border-subtle) bg-(--bg-card) p-1.5 shadow-xl"
       >
-        <div v-if="error" class="rounded-lg border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)]/40 px-4 py-3">
-          <p class="text-sm text-[var(--text-main)]">{{ error }}</p>
+        <div v-if="error" class="rounded-lg border border-(--color-danger-text)/20 bg-(--color-danger-bg)/40 px-4 py-3">
+          <p class="text-sm text-(--text-main)">{{ error }}</p>
           <button
             type="button"
-            class="mt-2 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-inverse)]"
+            class="mt-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
             data-testid="sales-product-retry"
             @click="retryLoad"
           >

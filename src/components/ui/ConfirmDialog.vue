@@ -8,7 +8,7 @@
         @click.self="handleCancel"
       >
         <div
-          class="mx-4 w-full max-w-sm transform overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-2xl transition-all"
+          class="mx-4 w-full max-w-sm transform overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) shadow-2xl transition-all"
           @click.stop
         >
           <!-- 图标/背景装饰 -->
@@ -60,10 +60,10 @@
 
           <!-- 内容 -->
           <div class="p-6 text-center">
-            <h3 class="mb-2 text-xl font-bold text-[var(--text-main)]">
+            <h3 class="mb-2 text-xl font-bold text-(--text-main)">
               {{ title || t('common.confirmTitle') }}
             </h3>
-            <p class="text-sm leading-relaxed text-[var(--text-secondary)]">
+            <p class="text-sm leading-relaxed text-(--text-secondary)">
               <slot>{{ message || t('common.confirmMessageDefault') }}</slot>
             </p>
 
@@ -71,7 +71,7 @@
             <div v-if="showInput" class="mt-4">
               <p
                 v-if="inputLabel"
-                class="mb-2 text-left text-xs font-medium text-[var(--text-muted)]"
+                class="mb-2 text-left text-xs font-medium text-(--text-muted)"
               >
                 {{ inputLabel }}
               </p>
@@ -208,39 +208,39 @@ const isConfirmDisabled = computed(() => {
 const typeClasses = computed(() => {
   const types = {
     primary: {
-      bg: 'bg-[var(--color-primary-bg)]',
-      accent: 'bg-[var(--color-primary)]',
-      iconBg: 'bg-[var(--color-primary-bg)]',
-      iconText: 'text-[var(--color-primary)]',
-      btn: 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] shadow-[var(--color-primary)]/20',
+      bg: 'bg-(--color-primary-bg)',
+      accent: 'bg-primary',
+      iconBg: 'bg-(--color-primary-bg)',
+      iconText: 'text-primary',
+      btn: 'bg-primary hover:bg-(--color-primary-hover) shadow-primary/20',
     },
     danger: {
-      bg: 'bg-[var(--color-danger-bg)]',
-      accent: 'bg-[var(--color-danger)]',
-      iconBg: 'bg-[var(--color-danger-bg)]',
-      iconText: 'text-[var(--color-danger)]',
-      btn: 'bg-[var(--color-danger)] hover:bg-[var(--color-danger-text)] shadow-[var(--color-danger)]/20',
+      bg: 'bg-(--color-danger-bg)',
+      accent: 'bg-danger',
+      iconBg: 'bg-(--color-danger-bg)',
+      iconText: 'text-danger',
+      btn: 'bg-danger hover:bg-(--color-danger-text) shadow-danger/20',
     },
     warning: {
-      bg: 'bg-[var(--color-warning-bg)]',
-      accent: 'bg-[var(--color-warning)]',
-      iconBg: 'bg-[var(--color-warning-bg)]',
-      iconText: 'text-[var(--color-warning-text)]',
-      btn: 'bg-[var(--color-warning)] hover:bg-[var(--color-warning-text)] shadow-[var(--color-warning)]/20',
+      bg: 'bg-(--color-warning-bg)',
+      accent: 'bg-warning',
+      iconBg: 'bg-(--color-warning-bg)',
+      iconText: 'text-(--color-warning-text)',
+      btn: 'bg-warning hover:bg-(--color-warning-text) shadow-warning/20',
     },
     success: {
-      bg: 'bg-[var(--color-success-bg)]',
-      accent: 'bg-[var(--color-success)]',
-      iconBg: 'bg-[var(--color-success-bg)]',
-      iconText: 'text-[var(--color-success-text)]',
-      btn: 'bg-[var(--color-success)] hover:bg-[var(--color-success-text)] shadow-[var(--color-success)]/20',
+      bg: 'bg-(--color-success-bg)',
+      accent: 'bg-success',
+      iconBg: 'bg-(--color-success-bg)',
+      iconText: 'text-(--color-success-text)',
+      btn: 'bg-success hover:bg-(--color-success-text) shadow-success/20',
     },
     info: {
-      bg: 'bg-[var(--color-info-bg)]',
-      accent: 'bg-[var(--color-info)]',
-      iconBg: 'bg-[var(--color-info-bg)]',
-      iconText: 'text-[var(--color-info-text)]',
-      btn: 'bg-[var(--color-info)] hover:bg-[var(--color-info-text)] shadow-[var(--color-info)]/20',
+      bg: 'bg-(--color-info-bg)',
+      accent: 'bg-info',
+      iconBg: 'bg-(--color-info-bg)',
+      iconText: 'text-(--color-info-text)',
+      btn: 'bg-info hover:bg-(--color-info-text) shadow-info/20',
     },
   };
   return types[props.type] || types.primary;

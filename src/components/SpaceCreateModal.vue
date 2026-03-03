@@ -8,7 +8,7 @@
     <form class="space-y-4" @submit.prevent="handleSubmit">
       <!-- 模版选择 (如果有初始商品传入，则隐藏或置灰其他模板以强调当前语境) -->
       <div v-if="!initialProduct">
-        <label class="mb-2 block text-sm font-medium text-[var(--color-primary)]">{{
+        <label class="mb-2 block text-sm font-medium text-primary">{{
           t('spaceManager.selectTemplate')
         }}</label>
         <div class="grid grid-cols-2 gap-2">
@@ -19,15 +19,15 @@
             class="flex items-center gap-2 rounded-lg border p-3 text-left transition-all"
             :class="
               form.template === tpl.key
-                ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
-                : 'border-[var(--border-subtle)] bg-[var(--bg-muted)]/30 hover:border-[var(--border-hover)]'
+                ? 'border-primary bg-primary/5'
+                : 'border-(--border-subtle) bg-(--bg-muted)/30 hover:border-(--border-hover)'
             "
             @click="form.template = tpl.key"
           >
-            <AppIcon :name="tpl.icon" class="size-5 shrink-0 text-[var(--text-secondary)]" />
+            <AppIcon :name="tpl.icon" class="size-5 shrink-0 text-(--text-secondary)" />
             <div>
-              <div class="text-sm font-medium text-[var(--text-main)]">{{ tpl.label }}</div>
-              <div class="text-xs text-[var(--text-secondary)]">{{ tpl.desc }}</div>
+              <div class="text-sm font-medium text-(--text-main)">{{ tpl.label }}</div>
+              <div class="text-xs text-(--text-secondary)">{{ tpl.desc }}</div>
             </div>
           </button>
         </div>
@@ -35,13 +35,13 @@
 
       <!-- 通用字段: 描述 (仅非商品模版显示，商品模版在详情里填) -->
       <div v-if="form.template !== 'product'">
-        <label class="mb-1 block text-sm font-medium text-[var(--text-main)]">{{
+        <label class="mb-1 block text-sm font-medium text-(--text-main)">{{
           t('spaceManager.descLabel')
         }}</label>
         <textarea
           v-model="form.description"
           rows="2"
-          class="w-full resize-none rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 transition-all outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+          class="w-full resize-none rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           :placeholder="t('spaceManager.descPlaceholder')"
         ></textarea>
       </div>
@@ -49,7 +49,7 @@
       <!-- 动态表单: 商品模版 -->
       <div
         v-if="form.template === 'product'"
-        class="space-y-4 border-t border-[var(--border-subtle)] pt-4"
+        class="space-y-4 border-t border-(--border-subtle) pt-4"
       >
         <div class="space-y-4">
           <ProductBindingSection
@@ -79,14 +79,14 @@
       <div v-else>
         <!-- 空间名称 -->
         <div>
-          <label class="mb-1 block text-sm font-medium text-[var(--text-main)]"
+          <label class="mb-1 block text-sm font-medium text-(--text-main)"
             >{{ t('spaceManager.spaceName') }} *</label
           >
           <input
             v-model="form.name"
             type="text"
             required
-            class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 transition-all outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+            class="w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             :placeholder="t('spaceManager.spaceNamePlaceholder')"
           />
         </div>
@@ -94,7 +94,7 @@
     </form>
 
     <div class="px-6 pt-4 pb-2">
-      <label class="mb-2 block text-sm font-medium text-[var(--text-main)]">{{
+      <label class="mb-2 block text-sm font-medium text-(--text-main)">{{
         t('spaceManager.shareSettings') || '销售可见性设置'
       }}</label>
       <SpaceVisibilitySelector
@@ -106,14 +106,14 @@
 
     <template #footer>
       <button
-        class="rounded-lg px-4 py-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+        class="rounded-lg px-4 py-2 text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
         @click="$emit('close')"
       >
         {{ t('common.cancel') }}
       </button>
       <button
         :disabled="submitting"
-        class="rounded-lg bg-[var(--color-primary)] px-6 py-2 font-medium text-[var(--text-inverse)] shadow-[var(--color-primary)]/20 shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        class="rounded-lg bg-primary px-6 py-2 font-medium text-(--text-inverse) shadow-primary/20 shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         @click="handleSubmit"
       >
         {{ submitButtonText }}

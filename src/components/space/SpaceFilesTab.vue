@@ -1,17 +1,17 @@
 <template>
-  <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--bg-muted)]/50">
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-(--bg-muted)/50">
     <!-- Toolbar -->
     <div
-      class="flex shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-card)] p-4"
+      class="flex shrink-0 items-center justify-between border-b border-(--border-color) bg-(--bg-card) p-4"
     >
       <div class="flex items-center gap-3">
         <!-- Add existing file -->
         <Tooltip :content="t('spaceManager.addFile')">
           <button
-            class="group flex h-9 items-center justify-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 text-sm font-medium text-[var(--text-secondary)] shadow-sm transition-all hover:border-[var(--color-primary-light)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] hover:shadow-md active:scale-95"
+            class="group flex h-9 items-center justify-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 text-sm font-medium text-(--text-secondary) shadow-sm transition-all hover:border-(--color-primary-light) hover:bg-(--bg-hover) hover:text-(--text-primary) hover:shadow-md active:scale-95"
             @click="$emit('addFiles')"
           >
-            <AppIcon name="arrow-up-tray" class="size-4 text-[var(--text-muted)] transition-colors group-hover:text-[var(--text-primary)]" />
+            <AppIcon name="arrow-up-tray" class="size-4 text-(--text-muted) transition-colors group-hover:text-(--text-primary)" />
             <span>{{ t('spaceManager.addFile') || 'Select Files' }}</span>
           </button>
         </Tooltip>
@@ -19,7 +19,7 @@
         <!-- Upload new file -->
         <Tooltip :content="t('common.upload')">
           <button
-            class="group bg-primary shadow-primary/20 flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium text-[var(--text-inverse)] shadow-lg transition-all hover:-translate-y-0.5 hover:bg-[var(--color-primary-hover)] active:scale-95"
+            class="group bg-primary shadow-primary/20 flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium text-(--text-inverse) shadow-lg transition-all hover:-translate-y-0.5 hover:bg-(--color-primary-hover) active:scale-95"
             @click="$emit('upload')"
           >
             <AppIcon name="plus" class="size-4.5 transition-transform group-hover:scale-110" />
@@ -55,13 +55,13 @@
         <div
           v-for="file in files"
           :key="file.id"
-          class="group relative aspect-square overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] transition-shadow hover:shadow-md"
+          class="group relative aspect-square overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-muted) transition-shadow hover:shadow-md"
           :class="{ 'ring-primary ring-2': coverFileId === file.id }"
         >
           <!-- Cover Badge -->
           <div
             v-if="coverFileId === file.id"
-            class="bg-primary absolute top-1.5 left-1.5 z-10 flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-inverse)] shadow-sm"
+            class="bg-primary absolute top-1.5 left-1.5 z-10 flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium text-(--text-inverse) shadow-sm"
           >
             <AppIcon name="photo-solid" class="size-3" />
             {{ t('spaceManager.cover') }}
@@ -76,7 +76,7 @@
           />
           <div
             v-else
-            class="flex size-full items-center justify-center bg-[var(--bg-card)] text-xs font-bold text-[var(--text-muted)] uppercase"
+            class="flex size-full items-center justify-center bg-(--bg-card) text-xs font-bold text-(--text-muted) uppercase"
           >
             {{ file.name?.split('.').pop() }}
           </div>
@@ -86,7 +86,7 @@
             <!-- Set as Cover Button -->
             <button
               v-if="file.mimeType?.startsWith('image/') && coverFileId !== file.id"
-              class="bg-primary rounded-full p-1.5 text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)]"
+              class="bg-primary rounded-full p-1.5 text-(--text-inverse) transition-colors hover:bg-(--color-primary-hover)"
               :title="t('spaceManager.setCover')"
               @click.stop="$emit('setCover', file.id)"
             >
@@ -94,7 +94,7 @@
             </button>
             <!-- Remove Button -->
             <button
-              class="rounded-full bg-[var(--color-danger)] p-1.5 text-[var(--text-inverse)] transition-colors hover:bg-red-600"
+              class="rounded-full bg-danger p-1.5 text-(--text-inverse) transition-colors hover:bg-red-600"
               @click.stop="$emit('remove', file.id)"
             >
               <AppIcon name="trash" class="size-4" />

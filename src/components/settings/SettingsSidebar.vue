@@ -6,20 +6,20 @@
       class="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all duration-200"
       :class="[
         currentTab === item.id
-          ? 'bg-[var(--color-primary-bg)] text-[var(--color-primary)] shadow-sm ring-1 ring-[var(--color-primary-light)] ring-inset'
-          : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)]',
+          ? 'bg-(--color-primary-bg) text-primary shadow-sm ring-1 ring-(--color-primary-light) ring-inset'
+          : 'text-(--text-secondary) hover:bg-(--bg-hover) hover:text-primary',
       ]"
       @click="$emit('update:currentTab', item.id)"
     >
       <AppIcon
         :name="item.icon"
         class="size-5 shrink-0 transition-colors"
-        :class="[currentTab === item.id ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--color-primary)]']"
+        :class="[currentTab === item.id ? 'text-primary' : 'text-(--text-muted) group-hover:text-primary']"
       />
       <span>{{ item.label }}</span>
       <span
         v-if="item.badge"
-        class="ml-auto rounded-full bg-[var(--color-info-bg)] px-2 py-0.5 text-xs font-medium text-[var(--color-info-text)]"
+        class="ml-auto rounded-full bg-(--color-info-bg) px-2 py-0.5 text-xs font-medium text-(--color-info-text)"
       >
         {{ item.badge }}
       </span>

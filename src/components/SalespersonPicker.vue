@@ -7,15 +7,15 @@
       <span
         v-for="sp in selectedSalespersons"
         :key="sp.id"
-        class="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-sm font-medium text-[var(--color-primary)] shadow-sm ring-1 ring-[var(--color-primary)]/20 ring-inset"
+        class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary shadow-sm ring-1 ring-primary/20 ring-inset"
       >
-        <span class="flex size-4 items-center justify-center rounded-full bg-[var(--color-primary)]/20 text-[10px]">
+        <span class="flex size-4 items-center justify-center rounded-full bg-primary/20 text-[10px]">
           {{ sp.name.charAt(0).toUpperCase() }}
         </span>
         {{ sp.name }}
         <button
           type="button"
-          class="ml-0.5 rounded-full p-0.5 text-[var(--color-primary)]/60 transition-colors hover:bg-[var(--color-primary)]/20 hover:text-[var(--color-primary)]"
+          class="ml-0.5 rounded-full p-0.5 text-primary/60 transition-colors hover:bg-primary/20 hover:text-primary"
           @click.stop="remove(sp.id)"
         >
           <AppIcon name="x-mark" class="size-3.5" />
@@ -26,11 +26,11 @@
     <!-- 触发选择弹窗的按钮 (代替下拉) -->
     <button
       type="button"
-      class="flex w-full items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-3 text-left shadow-sm transition-all hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)]/5 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none"
+      class="flex w-full items-center justify-between rounded-xl border border-(--border-color) bg-(--bg-card) px-4 py-3 text-left shadow-sm transition-all hover:border-primary hover:bg-primary/5 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
       @click="showModal = true"
     >
       <span class="text-secondary">{{ placeholder }}</span>
-      <span class="flex items-center gap-2 text-xs font-medium text-[var(--color-primary)]">
+      <span class="flex items-center gap-2 text-xs font-medium text-primary">
         <AppIcon name="plus" class="size-4" />
         {{ t('spaceManager.select') || '选择' }}
       </span>

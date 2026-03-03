@@ -1,24 +1,24 @@
 <template>
   <div
     v-if="isLoading"
-    class="flex min-h-[12rem] flex-col items-center justify-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6 text-center"
+    class="flex min-h-[12rem] flex-col items-center justify-center gap-3 rounded-xl border border-(--border-color) bg-(--bg-card) p-6 text-center"
     data-testid="async-loading"
   >
-    <div class="border-t-primary size-8 animate-spin rounded-full border-2 border-[var(--border-color)]"></div>
-    <p class="text-sm text-[var(--text-secondary)]">{{ loadingText }}</p>
+    <div class="border-t-primary size-8 animate-spin rounded-full border-2 border-(--border-color)"></div>
+    <p class="text-sm text-(--text-secondary)">{{ loadingText }}</p>
   </div>
 
   <div
     v-else-if="isError"
-    class="flex min-h-[12rem] flex-col items-center justify-center gap-3 rounded-xl border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)]/40 p-6 text-center"
+    class="flex min-h-[12rem] flex-col items-center justify-center gap-3 rounded-xl border border-(--color-danger-text)/20 bg-(--color-danger-bg)/40 p-6 text-center"
     data-testid="async-error"
   >
-    <p class="text-base font-semibold text-[var(--text-main)]">{{ titleText }}</p>
-    <p class="max-w-md text-sm text-[var(--text-secondary)]">{{ errorText }}</p>
+    <p class="text-base font-semibold text-(--text-main)">{{ titleText }}</p>
+    <p class="max-w-md text-sm text-(--text-secondary)">{{ errorText }}</p>
     <div class="flex items-center gap-2">
       <button
         type="button"
-        class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--text-inverse)]"
+        class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-(--text-inverse)"
         data-testid="retry-action"
         @click="$emit('retry')"
       >
@@ -30,11 +30,11 @@
 
   <div
     v-else-if="isEmpty"
-    class="flex min-h-[12rem] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border-color)] bg-[var(--bg-card)] p-6 text-center"
+    class="flex min-h-[12rem] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-(--border-color) bg-(--bg-card) p-6 text-center"
     data-testid="async-empty"
   >
-    <p class="text-base font-semibold text-[var(--text-main)]">{{ titleText }}</p>
-    <p class="text-sm text-[var(--text-secondary)]">{{ descriptionText }}</p>
+    <p class="text-base font-semibold text-(--text-main)">{{ titleText }}</p>
+    <p class="text-sm text-(--text-secondary)">{{ descriptionText }}</p>
     <slot name="actions"></slot>
   </div>
 

@@ -52,15 +52,15 @@
 
       <!-- 如果已绑定商品，显示只读的规格属性列表，否则显示原有的输入框 -->
       <template v-if="boundProductVariant">
-        <div class="mt-4 space-y-3 rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 p-4 md:col-span-2">
-          <h5 class="text-sm font-medium text-[var(--color-primary)]">{{ t('product.variant.title') || '商品规格' }}</h5>
+        <div class="mt-4 space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4 md:col-span-2">
+          <h5 class="text-sm font-medium text-primary">{{ t('product.variant.title') || '商品规格' }}</h5>
           <div class="grid grid-cols-2 gap-4">
             <div v-for="(value, key) in boundProductVariant" :key="key" class="flex flex-col">
-              <span class="text-xs text-[var(--text-secondary)]">{{ key }}</span>
-              <span class="text-sm font-medium text-[var(--text-main)]">{{ value }}</span>
+              <span class="text-xs text-(--text-secondary)">{{ key }}</span>
+              <span class="text-sm font-medium text-(--text-main)">{{ value }}</span>
             </div>
             <!-- 如果没有规格内容，显示占位符 -->
-            <div v-if="Object.keys(boundProductVariant).length === 0" class="col-span-2 text-sm text-[var(--text-muted)]">
+            <div v-if="Object.keys(boundProductVariant).length === 0" class="col-span-2 text-sm text-(--text-muted)">
               {{ t('product.variant.noSpecs') || '无规格信息' }}
             </div>
           </div>

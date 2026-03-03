@@ -4,7 +4,7 @@
     <div class="mb-6 flex items-start justify-between border-b-2 border-black pb-4">
       <div>
         <h1 class="text-2xl font-bold tracking-wider text-black uppercase">KK-Image System</h1>
-        <div class="mt-2 space-y-0.5 text-sm text-[var(--text-secondary)]">
+        <div class="mt-2 space-y-0.5 text-sm text-(--text-secondary)">
           <p>
             {{ t('order.orderNo') }}:
             <span class="ml-2 font-mono text-base font-bold text-black">{{ order.orderNo }}</span>
@@ -27,39 +27,39 @@
     <!-- 订单信息网格 -->
     <div class="mb-8 break-inside-avoid">
       <h2
-        class="mb-3 border-b border-[var(--border-color)] pb-1 text-sm font-bold tracking-wide text-[var(--text-muted)] uppercase"
+        class="mb-3 border-b border-(--border-color) pb-1 text-sm font-bold tracking-wide text-(--text-muted) uppercase"
       >
         {{ t('order.detail.currentInfo') }}
       </h2>
       <dl class="grid grid-cols-2 gap-x-12 gap-y-4 text-sm">
         <div class="grid grid-cols-[80px_1fr]">
-          <dt class="text-[var(--text-secondary)]">{{ t('order.form.productName') }}</dt>
+          <dt class="text-(--text-secondary)">{{ t('order.form.productName') }}</dt>
           <dd class="font-medium text-black">{{ currentData.name || '-' }}</dd>
         </div>
         <div class="grid grid-cols-[80px_1fr]">
-          <dt class="text-[var(--text-secondary)]">{{ t('order.form.brand') }}</dt>
+          <dt class="text-(--text-secondary)">{{ t('order.form.brand') }}</dt>
           <dd class="font-medium text-black">{{ currentData.brand || '-' }}</dd>
         </div>
         <div class="grid grid-cols-[80px_1fr]">
-          <dt class="text-[var(--text-secondary)]">{{ t('order.form.series') }}</dt>
+          <dt class="text-(--text-secondary)">{{ t('order.form.series') }}</dt>
           <dd class="font-medium text-black">{{ currentData.series || '-' }}</dd>
         </div>
         <div class="grid grid-cols-[80px_1fr]">
-          <dt class="text-[var(--text-secondary)]">{{ t('order.form.size') }}</dt>
+          <dt class="text-(--text-secondary)">{{ t('order.form.size') }}</dt>
           <dd class="font-medium text-black">{{ currentData.size || '-' }}</dd>
         </div>
         <div class="grid grid-cols-[80px_1fr]">
-          <dt class="text-[var(--text-secondary)]">{{ t('order.form.color') }}</dt>
+          <dt class="text-(--text-secondary)">{{ t('order.form.color') }}</dt>
           <dd class="font-medium text-black">{{ currentData.color || '-' }}</dd>
         </div>
         <div class="grid grid-cols-[80px_1fr]">
-          <dt class="text-[var(--text-secondary)]">{{ t('order.form.material') }}</dt>
+          <dt class="text-(--text-secondary)">{{ t('order.form.material') }}</dt>
           <dd class="font-medium text-black">{{ currentData.material || '-' }}</dd>
         </div>
-        <div class="col-span-2 mt-2 border-t border-dashed border-[var(--border-color)] pt-2">
-          <dt class="mb-1 text-xs text-[var(--text-secondary)]">{{ t('order.form.remark') }}</dt>
+        <div class="col-span-2 mt-2 border-t border-dashed border-(--border-color) pt-2">
+          <dt class="mb-1 text-xs text-(--text-secondary)">{{ t('order.form.remark') }}</dt>
           <dd
-            class="rounded border border-[var(--border-color)] bg-[var(--bg-muted)] p-3 text-sm leading-relaxed text-black"
+            class="rounded border border-(--border-color) bg-(--bg-muted) p-3 text-sm leading-relaxed text-black"
           >
             {{ currentData.remark || '-' }}
           </dd>
@@ -70,13 +70,13 @@
     <!-- 图片区域 -->
     <div v-if="order.files && order.files.length > 0" class="mb-8 break-inside-avoid">
       <h2
-        class="mb-3 border-b border-[var(--border-color)] pb-1 text-sm font-bold tracking-wide text-[var(--text-muted)] uppercase"
+        class="mb-3 border-b border-(--border-color) pb-1 text-sm font-bold tracking-wide text-(--text-muted) uppercase"
       >
         {{ t('order.detail.images') }}
       </h2>
       <div class="grid grid-cols-4 gap-4">
         <div v-for="file in order.files" :key="file.id" class="break-inside-avoid">
-          <div class="aspect-square overflow-hidden rounded-sm border border-[var(--border-color)] bg-[var(--bg-muted)]">
+          <div class="aspect-square overflow-hidden rounded-sm border border-(--border-color) bg-(--bg-muted)">
             <AppImage :src="file.url" :lazy="false" no-transition class="size-full" alt="" />
           </div>
         </div>
@@ -86,7 +86,7 @@
     <!-- 操作审计日志 (Table Mode) -->
     <div v-if="order.timeline && order.timeline.length > 0">
       <h2
-        class="mb-3 border-b border-[var(--border-color)] pb-1 text-sm font-bold tracking-wide text-[var(--text-muted)] uppercase"
+        class="mb-3 border-b border-(--border-color) pb-1 text-sm font-bold tracking-wide text-(--text-muted) uppercase"
       >
         {{ t('order.detail.timeline') }}
       </h2>
@@ -95,7 +95,7 @@
 
     <!-- 页脚 -->
     <div
-      class="fixed bottom-0 left-0 w-full border-t border-[var(--border-color)] bg-white pt-2 text-center text-[10px] text-[var(--text-muted)]"
+      class="fixed bottom-0 left-0 w-full border-t border-(--border-color) bg-white pt-2 text-center text-[10px] text-(--text-muted)"
     >
       Generated by KK-Image System • {{ new Date().toLocaleString() }}
     </div>

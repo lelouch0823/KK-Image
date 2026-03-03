@@ -2,20 +2,20 @@
   <transition name="fade">
     <div
       v-if="modelValue"
-      class="shadow-glass fixed z-50 max-w-[240px] min-w-[160px] overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)]/90 p-1 ring-1 ring-black/5 backdrop-blur-md dark:bg-[var(--bg-card)]/95"
+      class="shadow-glass fixed z-50 max-w-[240px] min-w-[160px] overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-card)/90 p-1 ring-1 ring-black/5 backdrop-blur-md dark:bg-(--bg-card)/95"
       :style="menuStyle"
       @contextmenu.prevent
     >
       <div v-for="(item, index) in items" :key="index">
         <!-- Separator -->
-        <div v-if="item.type === 'separator'" class="my-1 border-t border-[var(--border-color)]"></div>
+        <div v-if="item.type === 'separator'" class="my-1 border-t border-(--border-color)"></div>
 
         <!-- Menu Item -->
         <button
           v-else
-          class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--bg-hover)]"
+          class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-(--bg-hover)"
           :class="{
-            'text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)]': item.danger,
+            'text-danger hover:bg-(--color-danger-bg)': item.danger,
             'text-secondary hover:text-primary': !item.danger,
             'cursor-not-allowed opacity-50': item.disabled
           }"

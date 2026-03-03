@@ -12,7 +12,7 @@
       <template #actions>
         <button
           type="button"
-          class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm font-medium text-[var(--text-main)]"
+          class="rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-medium text-(--text-main)"
           data-testid="back-action"
           @click="$emit('back')"
         >

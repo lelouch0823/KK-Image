@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="offlineReady || needRefresh"
-    class="fixed right-4 bottom-4 z-[100] max-w-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-lg"
+    class="fixed right-4 bottom-4 z-[100] max-w-sm rounded-lg border border-(--border-color) bg-(--bg-card) p-4 shadow-lg"
     role="alert"
   >
     <div class="flex items-start gap-4">
@@ -45,13 +45,13 @@
         <div class="mt-3 flex gap-3">
           <button
             v-if="needRefresh"
-            class="bg-primary rounded-md px-3 py-1.5 text-xs font-medium text-[var(--text-inverse)] transition-colors hover:bg-primary-hover"
+            class="bg-primary rounded-md px-3 py-1.5 text-xs font-medium text-(--text-inverse) transition-colors hover:bg-primary-hover"
             @click="updateServiceWorker()"
           >
             {{ t('pwa.reload') }}
           </button>
           <button
-            class="rounded-md bg-[var(--bg-muted)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+            class="rounded-md bg-(--bg-muted) px-3 py-1.5 text-xs font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
             @click="close"
           >
             {{ t('pwa.close') }}

@@ -3,8 +3,8 @@
     <!-- 页面标题 -->
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-xl font-semibold text-[var(--color-primary)]">{{ t('spaceManager.title') }}</h1>
-        <p class="mt-1 text-sm text-[var(--text-secondary)]">{{ t('spaceManager.subtitle') }}</p>
+        <h1 class="text-xl font-semibold text-primary">{{ t('spaceManager.title') }}</h1>
+        <p class="mt-1 text-sm text-(--text-secondary)">{{ t('spaceManager.subtitle') }}</p>
       </div>
       <button v-if="spaces.length === 0" disabled class="invisible px-4 py-2">
         <!-- 占位符保持布局 -->
@@ -40,12 +40,12 @@
       <div
         v-for="space in spaces"
         :key="space.id"
-        class="group cursor-pointer overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] transition-all hover:shadow-lg"
+        class="group cursor-pointer overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) transition-all hover:shadow-lg"
         @click="openSpaceDetail(space)"
       >
         <!-- 封面图 -->
         <div
-          class="relative aspect-video overflow-hidden bg-gradient-to-br from-[var(--bg-muted)] to-[var(--bg-page)]"
+          class="relative aspect-video overflow-hidden bg-gradient-to-br from-(--bg-muted) to-(--bg-page)"
         >
           <!-- 实际封面图 -->
           <AppImage
@@ -59,7 +59,7 @@
           <!-- 占位图 -->
           <div v-else class="absolute inset-0 flex items-center justify-center">
             <svg
-              class="size-12 text-[var(--text-disabled)]"
+              class="size-12 text-(--text-disabled)"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -75,7 +75,7 @@
 
           <!-- 模版标签 -->
           <span
-            class="absolute top-2 left-2 rounded-full bg-[var(--bg-card)]/90 px-2 py-1 text-xs font-medium"
+            class="absolute top-2 left-2 rounded-full bg-(--bg-card)/90 px-2 py-1 text-xs font-medium"
           >
             {{ getTemplateLabel(space.template) }}
           </span>
@@ -85,8 +85,8 @@
             v-if="space.shareMode && space.shareMode !== 'none'"
             class="absolute top-2 right-2 flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium"
             :class="{
-              'bg-[var(--color-success)] text-[var(--text-inverse)]': space.shareMode === 'all',
-              'bg-[var(--color-info)] text-[var(--text-inverse)]': space.shareMode === 'selected',
+              'bg-success text-(--text-inverse)': space.shareMode === 'all',
+              'bg-info text-(--text-inverse)': space.shareMode === 'selected',
             }"
           >
             <svg v-if="space.shareMode === 'all'" class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,7 +99,7 @@
           </span>
           <span
             v-else-if="!space.isPublic"
-            class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-[var(--text-secondary)]/80 px-2 py-1 text-xs font-medium text-[var(--text-inverse)]"
+            class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-(--text-secondary)/80 px-2 py-1 text-xs font-medium text-(--text-inverse)"
           >
             <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
@@ -110,12 +110,12 @@
 
         <!-- 信息 -->
         <div class="p-4">
-          <h3 class="truncate font-semibold text-[var(--text-main)]">{{ space.name }}</h3>
-          <p v-if="space.description" class="mt-1 line-clamp-2 text-sm text-[var(--text-secondary)]">
+          <h3 class="truncate font-semibold text-(--text-main)">{{ space.name }}</h3>
+          <p v-if="space.description" class="mt-1 line-clamp-2 text-sm text-(--text-secondary)">
             {{ space.description }}
           </p>
 
-          <div class="mt-3 flex items-center gap-4 text-xs text-[var(--text-secondary)]">
+          <div class="mt-3 flex items-center gap-4 text-xs text-(--text-secondary)">
             <span class="flex items-center gap-1">
               <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -167,7 +167,7 @@
             variant="ghost"
             block
             size="sm"
-            class="text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger-hover)]"
+            class="text-danger hover:bg-danger/10 hover:text-(--color-danger-hover)"
             :text="t('space.delete')"
             @click.stop="confirmDelete(space)"
           >
@@ -184,9 +184,9 @@
     <!-- 空状态 -->
     <div v-else class="py-20 text-center">
       <div
-        class="mx-auto mb-6 flex size-20 items-center justify-center rounded-full border-2 border-dashed border-[var(--border-color)] bg-[var(--bg-muted)]"
+        class="mx-auto mb-6 flex size-20 items-center justify-center rounded-full border-2 border-dashed border-(--border-color) bg-(--bg-muted)"
       >
-        <svg class="size-10 text-[var(--text-disabled)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="size-10 text-(--text-disabled)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -195,8 +195,8 @@
           ></path>
         </svg>
       </div>
-      <h3 class="mb-2 text-lg font-medium text-[var(--text-main)]">{{ t('spaceManager.emptyTitle') }}</h3>
-      <p class="mb-6 text-sm text-[var(--text-secondary)]">{{ t('spaceManager.createDesc') }}</p>
+      <h3 class="mb-2 text-lg font-medium text-(--text-main)">{{ t('spaceManager.emptyTitle') }}</h3>
+      <p class="mb-6 text-sm text-(--text-secondary)">{{ t('spaceManager.createDesc') }}</p>
       <!-- Create Button -->
       <AppButton
         :text="t('space.create')"

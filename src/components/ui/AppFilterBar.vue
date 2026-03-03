@@ -1,14 +1,14 @@
 <template>
-  <div class="flex-shrink-0 border-b border-[var(--border-color)] p-3 sm:p-4">
+  <div class="flex-shrink-0 border-b border-(--border-color) p-3 sm:p-4">
     <!-- Header Row -->
     <div class="flex items-center justify-between gap-3">
       <!-- Title Area -->
       <div class="min-w-0">
         <slot name="title">
-          <h2 v-if="title" class="truncate text-base font-semibold text-[var(--text-main)] sm:text-lg">
+          <h2 v-if="title" class="truncate text-base font-semibold text-(--text-main) sm:text-lg">
             {{ title }}
           </h2>
-          <p v-if="subtitle" class="hidden text-sm text-[var(--text-secondary)] sm:block">
+          <p v-if="subtitle" class="hidden text-sm text-(--text-secondary) sm:block">
             {{ subtitle }}
           </p>
         </slot>

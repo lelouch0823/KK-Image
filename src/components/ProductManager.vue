@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col rounded-xl border border-[var(--border-color)] bg-[var(--bg-page)] backdrop-blur-sm transition-all duration-500 lg:h-full">
+  <div class="flex flex-col rounded-xl border border-(--border-color) bg-(--bg-page) backdrop-blur-sm transition-all duration-500 lg:h-full">
     
     <!-- 1. Header (Compact like OrderManager) -->
     <div class="shrink-0 border-b border-(--border-color) p-3 sm:p-4">

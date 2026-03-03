@@ -4,7 +4,7 @@
       <div class="border-border bg-surface rounded-2xl border p-8 shadow-lg">
         <div class="mb-6 text-center">
           <div
-            class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-[var(--bg-muted)]"
+            class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-(--bg-muted)"
           >
             <AppIcon name="lock-closed" class="text-secondary size-7" />
           </div>
@@ -21,7 +21,7 @@
           />
           <button
             type="submit"
-            class="bg-primary h-12 w-full rounded-xl font-medium text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)]"
+            class="bg-primary h-12 w-full rounded-xl font-medium text-(--text-inverse) transition-colors hover:bg-(--color-primary-hover)"
           >
             {{ t('gallery.confirm') }}
           </button>

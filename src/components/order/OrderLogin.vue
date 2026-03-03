@@ -1,21 +1,21 @@
 <template>
   <div
-    class="flex min-h-screen items-center justify-center bg-gradient-to-br from-[var(--bg-page)] to-[var(--bg-muted)] px-4"
+    class="flex min-h-screen items-center justify-center bg-gradient-to-br from-(--bg-page) to-(--bg-muted) px-4"
   >
     <div class="w-full max-w-sm">
       <!-- Logo 和标题 -->
       <div class="mb-8 text-center">
         <div
-          class="from-primary mx-auto mb-4 flex size-16 transform items-center justify-center rounded-2xl bg-gradient-to-br to-[var(--color-gray-700)] shadow-lg transition-transform hover:scale-105"
+          class="from-primary mx-auto mb-4 flex size-16 transform items-center justify-center rounded-2xl bg-gradient-to-br to-(--color-gray-700) shadow-lg transition-transform hover:scale-105"
         >
-          <AppIcon name="clipboard-document-list" class="size-8 text-[var(--text-inverse)]" />
+          <AppIcon name="clipboard-document-list" class="size-8 text-(--text-inverse)" />
         </div>
         <h1 class="text-primary text-2xl font-bold">{{ t('order.portal.loginTitle') }}</h1>
         <p class="text-secondary mt-1 text-sm">{{ t('order.portal.loginSubtitle') }}</p>
       </div>
 
       <!-- 登录表单 -->
-      <div class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6 shadow-xl">
+      <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-6 shadow-xl">
         <form @submit.prevent="handleSubmit">
           <!-- 密码输入 -->
           <div class="mb-5">
@@ -28,7 +28,7 @@
                 :type="showPassword ? 'text' : 'password'"
                 :placeholder="t('auth.passwordPlaceholder')"
                 autocomplete="current-password"
-                class="focus:border-primary focus:ring-primary/10 focus:bg-[var(--bg-card)] focus:ring-4 focus:outline-none placeholder:text-muted/60 h-12 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] px-4 pr-12 text-sm transition-all"
+                class="focus:border-primary focus:ring-primary/10 focus:bg-(--bg-card) focus:ring-4 focus:outline-none placeholder:text-muted/60 h-12 w-full rounded-xl border border-(--border-color) bg-(--bg-muted) px-4 pr-12 text-sm transition-all"
               />
               <button
                 type="button"
@@ -46,12 +46,12 @@
             <div class="relative">
               <input v-model="rememberMe" type="checkbox" class="peer sr-only" />
               <div
-                class="peer-checked:bg-primary peer-checked:border-primary flex size-5 items-center justify-center rounded-md border-2 border-[var(--border-hover)] transition-all"
+                class="peer-checked:bg-primary peer-checked:border-primary flex size-5 items-center justify-center rounded-md border-2 border-(--border-hover) transition-all"
               >
                 <AppIcon
                   v-if="rememberMe"
                   name="check"
-                  class="size-3 stroke-3 text-[var(--text-inverse)]"
+                  class="size-3 stroke-3 text-(--text-inverse)"
                 />
               </div>
             </div>
@@ -62,7 +62,7 @@
           <button
             type="submit"
             :disabled="!password || isSubmitting"
-            class="bg-primary flex h-12 w-full items-center justify-center gap-2 rounded-xl font-medium text-[var(--text-inverse)] transition-all hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+            class="bg-primary flex h-12 w-full items-center justify-center gap-2 rounded-xl font-medium text-(--text-inverse) transition-all hover:bg-(--color-primary-hover) disabled:cursor-not-allowed disabled:opacity-50"
           >
             <AppIcon v-if="isSubmitting" name="spinner" class="size-5 animate-spin" />
             <span>{{ isSubmitting ? t('auth.loggingIn') : t('auth.loginButton') }}</span>
@@ -71,7 +71,7 @@
           <!-- 错误提示 -->
           <p
             v-if="error"
-            class="animate-shake mt-4 text-center text-sm text-[var(--color-danger)]"
+            class="animate-shake mt-4 text-center text-sm text-danger"
             role="alert"
             aria-live="assertive"
             data-testid="login-error"

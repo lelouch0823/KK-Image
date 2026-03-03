@@ -9,7 +9,7 @@
       <div
         v-for="(imgSrc, index) in productImages"
         :key="`product-img-${index}`"
-        class="group relative aspect-square overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)]"
+        class="group relative aspect-square overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-muted)"
       >
         <AppImage
           :src="imgSrc"
@@ -27,7 +27,7 @@
       <div
         v-for="(file, index) in localFiles"
         :key="file.id"
-        class="group relative aspect-square cursor-grab overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] transition-shadow hover:shadow-md active:cursor-grabbing"
+        class="group relative aspect-square cursor-grab overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-muted) transition-shadow hover:shadow-md active:cursor-grabbing"
         draggable="true"
         @dragstart="onDragStart($event, index)"
         @dragenter="onDragEnter($event, index)"
@@ -65,7 +65,7 @@
           </button>
           <button
             :title="t('spaceManager.remove')"
-            class="rounded-full bg-white/90 p-2 text-[var(--color-danger)] transition-colors hover:bg-white"
+            class="rounded-full bg-white/90 p-2 text-danger transition-colors hover:bg-white"
             @click="$emit('remove', file.id)"
           >
             <AppIcon name="trash" class="size-4" />
@@ -75,7 +75,7 @@
         <!-- 封面标记 -->
         <div
           v-if="coverFileId === file.id"
-          class="bg-primary absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] text-[var(--text-inverse)] shadow-sm"
+          class="bg-primary absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] text-(--text-inverse) shadow-sm"
         >
           {{ t('spaceManager.cover') }}
         </div>
@@ -84,7 +84,7 @@
 
     <!-- 空状态 -->
     <div v-else class="text-secondary flex h-full flex-col items-center justify-center py-12">
-      <AppIcon name="photo" class="mb-4 size-16 text-[var(--border-color)]" />
+      <AppIcon name="photo" class="mb-4 size-16 text-(--border-color)" />
       <p>{{ t('spaceManager.emptyMedia') }}</p>
       <button
         class="text-primary mt-4 text-sm transition-colors hover:underline"

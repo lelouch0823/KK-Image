@@ -10,12 +10,12 @@
       @input="handleInput"
     />
     <!-- 搜索图标 -->
-    <AppIcon name="magnifying-glass" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--text-muted)]" />
+    <AppIcon name="magnifying-glass" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-(--text-muted)" />
     <!-- 清除按钮 -->
     <button
       v-if="clearable && modelValue"
       type="button"
-      class="absolute top-1/2 right-2 -translate-y-1/2 p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text-main)]"
+      class="absolute top-1/2 right-2 -translate-y-1/2 p-1 text-(--text-muted) transition-colors hover:text-(--text-main)"
       @click="clear"
     >
       <AppIcon name="x-mark" class="size-4" />

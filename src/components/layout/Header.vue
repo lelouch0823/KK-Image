@@ -1,11 +1,11 @@
 <template>
   <header
-    class="flex h-[var(--header-height)] shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-card)] px-4 lg:px-6"
+    class="flex h-(--header-height) shrink-0 items-center justify-between border-b border-(--border-color) bg-(--bg-card) px-4 lg:px-6"
   >
     <div class="flex items-center gap-3">
       <!-- 移动端汉堡菜单按钮 -->
       <button
-        class="text-secondary -ml-2 rounded-lg p-2 hover:bg-[var(--bg-hover)] lg:hidden"
+        class="text-secondary -ml-2 rounded-lg p-2 hover:bg-(--bg-hover) lg:hidden"
         @click="$emit('openSidebar')"
       >
         <AppIcon name="bars-3" class="size-5" />
@@ -15,7 +15,7 @@
     <div class="flex items-center gap-2 lg:gap-4">
       <!-- 移动端搜索按钮 -->
       <button
-        class="text-secondary flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-[var(--bg-hover)] lg:hidden"
+        class="text-secondary flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-(--bg-hover) lg:hidden"
         @click="openMobileSearch"
       >
         <AppIcon name="magnifying-glass" class="size-5" />
@@ -27,22 +27,22 @@
           v-model="searchQuery"
           type="text"
           :placeholder="t('header.searchPlaceholder')"
-          class="h-9 w-64 rounded-lg border border-[var(--border-color)] bg-[var(--bg-page)] pr-4 pl-9 text-sm transition-all focus:border-gray-300 focus:ring-2 focus:ring-gray-200 focus:outline-none"
+          class="h-9 w-64 rounded-lg border border-(--border-color) bg-(--bg-page) pr-4 pl-9 text-sm transition-all focus:border-gray-300 focus:ring-2 focus:ring-gray-200 focus:outline-none"
         />
         <AppIcon name="magnifying-glass" class="text-secondary absolute top-1/2 left-3 size-4 -translate-y-1/2" />
       </div>
       <!-- 通知铃铛 (桌面端) -->
       <div v-if="notificationsSupported" ref="notificationRef" class="relative">
         <button
-          class="relative flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] transition-colors hover:bg-[var(--bg-hover)]"
-          :class="{ 'bg-[var(--bg-hover)]': showNotifications }"
+          class="relative flex size-9 items-center justify-center rounded-lg border border-(--border-color) transition-colors hover:bg-(--bg-hover)"
+          :class="{ 'bg-(--bg-hover)': showNotifications }"
           @click="toggleNotifications"
         >
           <AppIcon name="bell" class="text-secondary size-5" />
           <!-- 红点 -->
           <span
             v-if="unreadCount > 0"
-            class="absolute top-1.5 right-1.5 size-2 rounded-full border border-white bg-[var(--color-danger)]"
+            class="absolute top-1.5 right-1.5 size-2 rounded-full border border-white bg-danger"
           ></span>
         </button>
 
@@ -66,7 +66,7 @@
 
       <!-- 主题切换按钮 -->
       <button
-        class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] transition-colors hover:bg-[var(--bg-hover)]"
+        class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) transition-colors hover:bg-(--bg-hover)"
         :title="isDark ? '切换亮色模式' : '切换暗色模式'"
         @click="toggleTheme"
       >
@@ -79,7 +79,7 @@
       <!-- AI 助手按钮 -->
       <button
         :title="t('ai.assistant')"
-        class="group relative flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] transition-all hover:bg-primary/5 hover:border-primary/30"
+        class="group relative flex size-9 items-center justify-center rounded-lg border border-(--border-color) transition-all hover:bg-primary/5 hover:border-primary/30"
         :class="{ 'bg-primary/10 border-primary/50 text-primary': isOpen }"
         @click="toggleAI"
       >
@@ -93,7 +93,7 @@
       <!-- 刷新按钮 -->
       <button
         :title="t('header.refresh')"
-        class="flex size-9 items-center justify-center rounded-lg border border-[var(--border-color)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
+        class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) transition-colors hover:bg-(--bg-hover) disabled:opacity-50"
         @click="handleRefresh"
       >
         <AppIcon name="arrow-path" class="text-secondary size-4" />
@@ -102,14 +102,14 @@
     
     <!-- 移动端搜索遮罩 (Search Overlay) -->
     <transition name="fade">
-      <div v-if="showMobileSearch" class="absolute inset-0 z-50 flex items-center bg-[var(--bg-card)] px-4 lg:hidden">
+      <div v-if="showMobileSearch" class="absolute inset-0 z-50 flex items-center bg-(--bg-card) px-4 lg:hidden">
         <div class="relative flex-1">
             <input
             ref="mobileSearchInputRef"
             v-model="searchQuery"
             type="text"
             :placeholder="t('header.searchPlaceholder')"
-            class="h-10 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-page)] pr-4 pl-10 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+            class="h-10 w-full rounded-lg border border-(--border-color) bg-(--bg-page) pr-4 pl-10 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
             @keydown.esc="closeMobileSearch"
             @blur="!searchQuery && closeMobileSearch()"
             />

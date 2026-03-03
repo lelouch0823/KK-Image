@@ -27,13 +27,13 @@
             role="dialog"
             aria-modal="true"
             :aria-labelledby="title ? modalTitleId : undefined"
-            class="animate-in flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--color-modal-bg)] shadow-2xl ring-1 ring-black/5"
+            class="animate-in flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl border border-(--border-color) bg-(--color-modal-bg) shadow-2xl ring-1 ring-black/5"
             :class="sizeClass"
           >
             <!-- Header -->
             <div
               v-if="title || $slots.header"
-              class="flex items-center justify-between border-b border-[var(--border-color)] px-6 py-4"
+              class="flex items-center justify-between border-b border-(--border-color) px-6 py-4"
             >
               <slot name="header">
                 <h3 :id="modalTitleId" class="text-primary text-lg font-semibold">{{ title }}</h3>
@@ -41,7 +41,7 @@
               <button
                 v-if="closable"
                 type="button"
-                class="-mr-1 p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text-main)]"
+                class="-mr-1 p-1 text-(--text-muted) transition-colors hover:text-(--text-main)"
                 @click="close"
               >
                 <AppIcon name="x-mark" class="size-5" />
@@ -56,7 +56,7 @@
             <!-- Footer -->
             <div
               v-if="$slots.footer"
-              class="flex justify-end gap-3 border-t border-[var(--border-color)] bg-[var(--bg-muted)] px-6 py-4"
+              class="flex justify-end gap-3 border-t border-(--border-color) bg-(--bg-muted) px-6 py-4"
             >
               <slot name="footer"></slot>
             </div>

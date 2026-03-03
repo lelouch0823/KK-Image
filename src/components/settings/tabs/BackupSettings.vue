@@ -8,7 +8,7 @@
       <template #action>
         <button
           :disabled="creating"
-          class="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--text-inverse)] shadow-sm transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+          class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
           @click="createBackup"
         >
           <AppIcon v-if="creating" name="spinner" class="size-4 animate-spin" />
@@ -18,7 +18,7 @@
       </template>
 
       <!-- Backup List -->
-      <div class="overflow-hidden rounded-lg border border-[var(--border-color)]">
+      <div class="overflow-hidden rounded-lg border border-(--border-color)">
         <AppTable
           :columns="columns"
           :data="backups"
@@ -27,21 +27,21 @@
           no-border
         >
           <template #cell-name="{ row: backup }">
-            <div class="flex items-center gap-3 font-medium text-[var(--text-main)]">
-              <AppIcon name="document" class="size-5 text-[var(--text-muted)] transition-colors group-hover:text-[var(--color-primary)]" />
+            <div class="flex items-center gap-3 font-medium text-(--text-main)">
+              <AppIcon name="document" class="size-5 text-(--text-muted) transition-colors group-hover:text-primary" />
               {{ backup.name }}
             </div>
           </template>
           <template #cell-size="{ row: backup }">
-            <span class="font-mono text-xs text-[var(--text-secondary)]">{{ formatSize(backup.size) }}</span>
+            <span class="font-mono text-xs text-(--text-secondary)">{{ formatSize(backup.size) }}</span>
           </template>
           <template #cell-date="{ row: backup }">
-            <span class="text-[var(--text-secondary)]">{{ formatDate(backup.uploadedAt) }}</span>
+            <span class="text-(--text-secondary)">{{ formatDate(backup.uploadedAt) }}</span>
           </template>
           <template #cell-actions="{ row: backup }">
             <div class="flex justify-end pr-2">
               <button
-                class="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-xs font-medium text-[var(--text-main)] shadow-sm transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--color-primary)]"
+                class="inline-flex items-center gap-1.5 rounded-md border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-xs font-medium text-(--text-main) shadow-sm transition-colors hover:bg-(--bg-hover) hover:text-primary"
                 @click="downloadBackup(backup)"
               >
                 <AppIcon name="arrow-down-tray" class="size-3.5" />

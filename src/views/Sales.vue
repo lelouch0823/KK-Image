@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen bg-[var(--bg-page)] font-sans text-[var(--text-main)] antialiased"
+    class="min-h-screen bg-(--bg-page) font-sans text-(--text-main) antialiased"
     :data-sales-order-mode="salesOrderEntry"
   >
     <!-- 加载状态 -->
@@ -22,7 +22,7 @@
             <!-- List Page: Logo & User Info -->
             <template v-if="isListPage || isSpacesPage">
               <div
-                class="from-primary flex size-8 items-center justify-center rounded-lg bg-gradient-to-br to-[var(--color-gray-700)]"
+                class="from-primary flex size-8 items-center justify-center rounded-lg bg-gradient-to-br to-(--color-gray-700)"
               >
                 <AppIcon name="clipboard-document-list" class="size-4 text-white" />
               </div>

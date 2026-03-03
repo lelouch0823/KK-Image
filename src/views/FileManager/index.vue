@@ -1,6 +1,6 @@
 <template>
   <div
-    class="relative flex min-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)]"
+    class="relative flex min-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card)"
     @dragenter="onDragEnter"
     @dragleave="onDragLeave"
     @dragover="onDragOver"
@@ -10,18 +10,18 @@
     <transition name="fade">
       <div
         v-if="isDragging"
-        class="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--color-info)] bg-[var(--color-info)]/10 backdrop-blur-sm dark:bg-[var(--color-info)]/20"
+        class="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-info bg-info/10 backdrop-blur-sm dark:bg-info/20"
       >
-        <div class="mb-4 animate-bounce rounded-full bg-[var(--bg-card)] p-6 shadow-lg">
+        <div class="mb-4 animate-bounce rounded-full bg-(--bg-card) p-6 shadow-lg">
           <AppIcon
             name="cloud-arrow-up"
-            class="size-12 text-[var(--color-info)]"
+            class="size-12 text-info"
           />
         </div>
-        <h3 class="text-2xl font-bold text-[var(--color-info-text)]">
+        <h3 class="text-2xl font-bold text-(--color-info-text)">
           {{ t('fileManager.dragDropTitle') }}
         </h3>
-        <p class="mt-2 text-[var(--color-info)]">{{ t('fileManager.dragDropDesc') }}</p>
+        <p class="mt-2 text-info">{{ t('fileManager.dragDropDesc') }}</p>
       </div>
     </transition>
 
@@ -63,7 +63,7 @@
     <!-- Folder Info & Select All -->
     <div
       v-if="currentFolder"
-      class="flex items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-muted)] px-6 py-3 text-sm"
+      class="flex items-center justify-between border-b border-(--border-color) bg-(--bg-muted) px-6 py-3 text-sm"
     >
       <div class="text-secondary flex items-center gap-4">
         <span>{{ t('fileManager.totalFiles', { count: displayedFiles.length }) }}</span>
@@ -103,7 +103,7 @@
       <!-- Divider -->
       <div
         v-if="displayedSubfolders.length > 0 && displayedFiles.length > 0"
-        class="m-4  h-px bg-[var(--border-color)] lg:m-6 "
+        class="m-4  h-px bg-(--border-color) lg:m-6 "
       ></div>
 
       <!-- Files -->
@@ -138,8 +138,8 @@
                       class="group relative cursor-pointer rounded-xl border p-4 transition-all hover:-translate-y-1 hover:shadow-md"
                       :class="[
                         selectedIds.has(file.id)
-                          ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 ring-1 ring-[var(--color-primary)] dark:bg-[var(--color-primary)]/20'
-                          : 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-[var(--border-hover)]'
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary dark:bg-primary/20'
+                          : 'border-(--border-color) bg-(--bg-card) hover:border-(--border-hover)'
                       ]"
                        @click.stop="toggleSelect(file)"
                        @dblclick="window.open(file.url, '_blank')"
@@ -154,7 +154,7 @@
                              />
                               <div
                                v-else
-                               class="mb-2 flex size-20 items-center justify-center rounded bg-[var(--bg-muted)] text-sm font-bold text-[var(--text-secondary)] uppercase dark:bg-white/10"
+                               class="mb-2 flex size-20 items-center justify-center rounded bg-(--bg-muted) text-sm font-bold text-(--text-secondary) uppercase dark:bg-white/10"
                               >
                                 {{ getFileExtension(file.name) }}
                               </div>

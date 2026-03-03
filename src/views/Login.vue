@@ -1,11 +1,11 @@
 <template>
   <div
-    class="bg-pattern flex min-h-screen items-center justify-center bg-[var(--bg-page)] p-4 font-sans text-[var(--text-main)] antialiased"
+    class="bg-pattern flex min-h-screen items-center justify-center bg-(--bg-page) p-4 font-sans text-(--text-main) antialiased"
   >
     <div class="w-full max-w-md">
       <!-- 登录卡片 -->
       <div
-        class="animate-scale-in shadow-glass overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/90 ring-1 ring-black/5 backdrop-blur-xl"
+        class="animate-scale-in shadow-glass overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card)/90 ring-1 ring-black/5 backdrop-blur-xl"
       >
         <!-- 头部 -->
         <div class="px-8 pt-10 pb-6 text-center">
@@ -110,13 +110,13 @@
               <div class="relative mb-6">
                 <div class="bg-primary/20 absolute inset-0 size-16 animate-ping rounded-full"></div>
                 <div
-                  class="bg-primary relative flex size-16 items-center justify-center rounded-full text-[var(--text-inverse)] shadow-lg"
+                  class="bg-primary relative flex size-16 items-center justify-center rounded-full text-(--text-inverse) shadow-lg"
                 >
                   <AppIcon name="check" class="size-8" stroke-width="3" />
                 </div>
               </div>
               <h2 class="text-primary mb-2 text-xl font-bold italic">{{ t('auth.loginSuccess') }}</h2>
-              <div class="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+              <div class="flex items-center gap-2 text-sm text-(--text-secondary)">
                 <AppIcon name="spinner" class="size-4 animate-spin" />
                 <span>{{ t('auth.preparingWorkspace') }}</span>
               </div>

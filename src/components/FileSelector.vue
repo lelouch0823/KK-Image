@@ -20,7 +20,7 @@
 
     <!-- 路径导航 (Fixed at top of body) -->
     <div
-      class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-[var(--border-color)] bg-[var(--bg-muted)]/30 px-6 py-3 text-sm whitespace-nowrap backdrop-blur-sm"
+      class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-(--border-color) bg-(--bg-muted)/30 px-6 py-3 text-sm whitespace-nowrap backdrop-blur-sm"
     >
       <button
         class="hover:text-primary flex items-center gap-1 transition-colors"
@@ -31,9 +31,9 @@
         {{ t('fileSelector.allFiles') }}
       </button>
       <template v-for="folder in breadcrumbs" :key="folder.id">
-        <span class="text-[var(--border-color)]">/</span>
+        <span class="text-(--border-color)">/</span>
         <button
-          class="transition-colors hover:text-[var(--color-primary)]"
+          class="transition-colors hover:text-primary"
           :class="currentFolderId === folder.id ? 'text-primary font-semibold' : 'text-secondary'"
           @click="navigateTo(folder.id)"
         >
@@ -53,10 +53,10 @@
         <div
           v-for="folder in currentFolders"
           :key="'f-' + folder.id"
-          class="group relative flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 bg-[var(--color-info-bg)] transition-all hover:opacity-80"
+          class="group relative flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 bg-(--color-info-bg) transition-all hover:opacity-80"
           :class="
             selectedFolderIds.includes(folder.id)
-              ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary-light)]'
+              ? 'border-primary ring-2 ring-(--color-primary-light)'
               : 'border-transparent'
           "
           @click="navigateTo(folder.id, folder)"
@@ -77,15 +77,15 @@
               <AppIcon
                 v-if="selectedFolderIds.includes(folder.id)"
                 name="check"
-                class="size-3.5 stroke-3 text-[var(--text-inverse)]"
+                class="size-3.5 stroke-3 text-(--text-inverse)"
               />
             </div>
           </div>
           <AppIcon
             name="folder-solid"
-            class="mb-2 size-12 text-[var(--color-info)] transition-transform duration-200 group-hover:scale-110"
+            class="mb-2 size-12 text-info transition-transform duration-200 group-hover:scale-110"
           />
-          <span class="w-full truncate px-2 text-center text-xs font-medium text-[var(--text-main)]">{{
+          <span class="w-full truncate px-2 text-center text-xs font-medium text-(--text-main)">{{
             folder.name
           }}</span>
         </div>
@@ -113,11 +113,11 @@
             rounded="none"
           />
           <!-- 非图片 -->
-          <div v-else class="flex size-full flex-col items-center justify-center bg-[var(--bg-muted)]">
-            <span class="text-xs font-bold text-[var(--text-muted)] uppercase">{{
+          <div v-else class="flex size-full flex-col items-center justify-center bg-(--bg-muted)">
+            <span class="text-xs font-bold text-(--text-muted) uppercase">{{
               file.name?.split('.').pop()
             }}</span>
-            <span class="mt-1 w-full truncate px-2 text-center text-[10px] text-[var(--text-muted)]">{{
+            <span class="mt-1 w-full truncate px-2 text-center text-[10px] text-(--text-muted)">{{
               file.originalName || file.name
             }}</span>
           </div>
@@ -126,17 +126,17 @@
             v-if="selectedIds.includes(file.id)"
             class="bg-primary animate-in zoom-in absolute top-2 right-2 flex size-6 items-center justify-center rounded-full shadow-md duration-200"
           >
-            <AppIcon name="check" class="size-3.5 stroke-3 text-[var(--text-inverse)]" />
+            <AppIcon name="check" class="size-3.5 stroke-3 text-(--text-inverse)" />
           </div>
         </div>
       </div>
 
       <div
         v-if="!loading && currentFolders.length === 0 && files.length === 0"
-        class="flex h-full flex-col items-center justify-center pb-10 text-[var(--text-secondary)]"
+        class="flex h-full flex-col items-center justify-center pb-10 text-(--text-secondary)"
       >
-        <div class="mb-4 flex size-16 items-center justify-center rounded-full bg-[var(--bg-muted)]">
-          <AppIcon name="archive-box" class="size-8 text-[var(--text-muted)]" />
+        <div class="mb-4 flex size-16 items-center justify-center rounded-full bg-(--bg-muted)">
+          <AppIcon name="archive-box" class="size-8 text-(--text-muted)" />
         </div>
         <p>{{ t('fileSelector.empty') }}</p>
       </div>
@@ -152,7 +152,7 @@
       </button>
       <button
         :disabled="selectedIds.length === 0 && selectedFolderIds.length === 0"
-        class="bg-primary shadow-primary/20 rounded-lg px-6 py-2 text-sm font-medium text-[var(--text-inverse)] shadow-lg transition-all hover:bg-[var(--color-primary-hover)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+        class="bg-primary shadow-primary/20 rounded-lg px-6 py-2 text-sm font-medium text-(--text-inverse) shadow-lg transition-all hover:bg-(--color-primary-hover) active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         @click="confirmSelect"
       >
         {{ t('fileSelector.add') }}

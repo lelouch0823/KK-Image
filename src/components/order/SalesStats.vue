@@ -2,13 +2,13 @@
   <div class="space-y-6">
     <div
       v-if="error"
-      class="rounded-xl border border-[var(--color-danger-text)]/20 bg-[var(--color-danger-bg)]/40 p-4"
+      class="rounded-xl border border-(--color-danger-text)/20 bg-(--color-danger-bg)/40 p-4"
       data-testid="stats-error"
     >
-      <p class="text-sm text-[var(--text-main)]">{{ error }}</p>
+      <p class="text-sm text-(--text-main)">{{ error }}</p>
       <button
         type="button"
-        class="mt-3 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-inverse)]"
+        class="mt-3 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
         data-testid="stats-retry"
         @click="loadStats"
       >
@@ -18,56 +18,56 @@
 
     <div
       v-else-if="!loading && isEmptyStats"
-      class="rounded-xl border border-dashed border-[var(--border-color)] bg-[var(--bg-card)] p-4 text-center"
+      class="rounded-xl border border-dashed border-(--border-color) bg-(--bg-card) p-4 text-center"
       data-testid="stats-empty"
     >
-      <p class="text-sm text-[var(--text-secondary)]">{{ t('common.noData') }}</p>
+      <p class="text-sm text-(--text-secondary)">{{ t('common.noData') }}</p>
     </div>
 
     <!-- 统计卡片 -->
     <div v-else class="grid grid-cols-2 gap-4">
       <div
-        class="rounded-xl border border-[var(--color-card-blue-border)] bg-[var(--color-card-blue-bg)] p-4"
+        class="rounded-xl border border-(--color-card-blue-border) bg-(--color-card-blue-bg) p-4"
       >
-        <div class="text-sm font-medium text-[var(--color-card-blue-text)]">
+        <div class="text-sm font-medium text-(--color-card-blue-text)">
           {{ t('salesStats.totalOrders') }}
         </div>
-        <div class="mt-1 text-2xl font-bold text-[var(--color-card-blue-accent)]">
+        <div class="mt-1 text-2xl font-bold text-(--color-card-blue-accent)">
           <span
             v-if="loading"
-            class="inline-block h-6 w-8 animate-pulse rounded bg-[var(--color-card-blue-border)]"
+            class="inline-block h-6 w-8 animate-pulse rounded bg-(--color-card-blue-border)"
           ></span>
           <span v-else>{{ stats.totalOrders }}</span>
         </div>
       </div>
 
       <div
-        class="rounded-xl border border-[var(--color-card-green-border)] bg-[var(--color-card-green-bg)] p-4"
+        class="rounded-xl border border-(--color-card-green-border) bg-(--color-card-green-bg) p-4"
       >
-        <div class="text-sm font-medium text-[var(--color-card-green-text)]">
+        <div class="text-sm font-medium text-(--color-card-green-text)">
           {{ t('salesStats.completedOrders') }}
         </div>
-        <div class="mt-1 text-2xl font-bold text-[var(--color-card-green-accent)]">
+        <div class="mt-1 text-2xl font-bold text-(--color-card-green-accent)">
           <span
             v-if="loading"
-            class="inline-block h-6 w-8 animate-pulse rounded bg-[var(--color-card-green-border)]"
+            class="inline-block h-6 w-8 animate-pulse rounded bg-(--color-card-green-border)"
           ></span>
           <span v-else>{{ stats.completedOrders }}</span>
         </div>
       </div>
 
       <div
-        class="col-span-2 rounded-xl border border-[var(--color-card-purple-border)] bg-[var(--color-card-purple-bg)] p-4"
+        class="col-span-2 rounded-xl border border-(--color-card-purple-border) bg-(--color-card-purple-bg) p-4"
       >
         <div class="flex items-center justify-between">
           <div>
-            <div class="text-sm font-medium text-[var(--color-card-purple-text)]">
+            <div class="text-sm font-medium text-(--color-card-purple-text)">
               {{ t('salesStats.monthOrders') }}
             </div>
-            <div class="mt-1 text-2xl font-bold text-[var(--color-card-purple-accent)]">
+            <div class="mt-1 text-2xl font-bold text-(--color-card-purple-accent)">
               <span
                 v-if="loading"
-                class="inline-block h-6 w-8 animate-pulse rounded bg-[var(--color-card-purple-border)]"
+                class="inline-block h-6 w-8 animate-pulse rounded bg-(--color-card-purple-border)"
               ></span>
               <span v-else>{{ stats.monthOrders }}</span>
             </div>
@@ -81,7 +81,7 @@
               <div
                 v-for="(day, index) in stats.monthlyTrend.slice(-15)"
                 :key="index"
-                class="flex-1 rounded-t-sm bg-[var(--color-card-purple-accent)]/40 transition-all hover:bg-[var(--color-card-purple-accent)]"
+                class="flex-1 rounded-t-sm bg-(--color-card-purple-accent)/40 transition-all hover:bg-(--color-card-purple-accent)"
                 :style="{ height: `${Math.max(10, (day.count / maxCount) * 100)}%` }"
                 :title="`${day.date}: ${day.count}`"
               ></div>

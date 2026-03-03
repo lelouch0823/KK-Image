@@ -1,6 +1,6 @@
 <template>
   <label
-    class="hover:border-primary hover:bg-[var(--bg-hover)] group flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[var(--border-color)] transition-colors"
+    class="hover:border-primary hover:bg-(--bg-hover) group flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-(--border-color) transition-colors"
   >
     <input type="file" multiple class="hidden" @change="$emit('select', $event)" />
     <svg

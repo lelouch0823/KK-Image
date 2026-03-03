@@ -1,24 +1,24 @@
 <template>
-  <div class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-sm">
+  <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4 shadow-sm">
     <div class="mb-3 flex items-center justify-between">
       <div class="flex items-center gap-2">
         <div
           class="size-8 rounded-lg"
           :class="
             isPublic
-              ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
-              : 'bg-[var(--bg-muted)] text-[var(--text-secondary)]'
+              ? 'bg-primary/10 text-primary'
+              : 'bg-(--bg-muted) text-(--text-secondary)'
           "
         >
           <AppIcon name="link" class="size-full p-1.5" />
         </div>
         <div>
-          <h4 class="text-sm font-semibold text-[var(--text-main)]">
+          <h4 class="text-sm font-semibold text-(--text-main)">
             {{ t('spaceManager.shareSettings') }}
           </h4>
           <p
             class="text-[10px]"
-            :class="isPublic ? 'text-[var(--color-success)]' : 'text-secondary'"
+            :class="isPublic ? 'text-success' : 'text-secondary'"
           >
             {{
               isPublic
@@ -37,7 +37,7 @@
           @change="$emit('update:isPublic', $event.target.checked)"
         />
         <div
-          class="peer h-5 w-9 rounded-full bg-[var(--border-strong)] transition-all peer-checked:bg-[var(--color-primary)] peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-[var(--bg-card)] after:transition-all after:content-[''] peer-checked:after:translate-x-full"
+          class="peer h-5 w-9 rounded-full bg-(--border-strong) transition-all peer-checked:bg-primary peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-(--bg-card) after:transition-all after:content-[''] peer-checked:after:translate-x-full"
         ></div>
       </label>
     </div>
@@ -48,12 +48,12 @@
       class="animate-in fade-in slide-in-from-top-1 space-y-3 duration-200"
     >
       <div
-        class="rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] px-3 py-2 font-mono text-xs break-all text-[var(--text-main)]"
+        class="rounded-lg border border-(--border-color) bg-(--bg-muted) px-3 py-2 font-mono text-xs break-all text-(--text-main)"
       >
         {{ shareUrl }}
       </div>
       <button
-        class="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--color-primary)]/5 py-1.5 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/10"
+        class="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary/5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
         @click.prevent="copyLink"
       >
         <AppIcon name="clipboard" class="size-3.5" />
@@ -61,11 +61,11 @@
       </button>
 
       <!-- Password Lock -->
-      <div class="border-t border-[var(--border-color)] pt-3">
+      <div class="border-t border-(--border-color) pt-3">
         <div class="mb-2 flex items-center justify-between">
           <div class="flex items-center gap-1.5">
-            <AppIcon name="lock-closed" class="size-3.5 text-[var(--text-secondary)]" />
-            <span class="text-xs font-medium text-[var(--text-main)]">{{
+            <AppIcon name="lock-closed" class="size-3.5 text-(--text-secondary)" />
+            <span class="text-xs font-medium text-(--text-main)">{{
               t('spaceManager.passwordLock')
             }}</span>
           </div>
@@ -77,7 +77,7 @@
               @change="$emit('update:passwordEnabled', $event.target.checked)"
             />
             <div
-              class="peer h-4 w-7 rounded-full bg-[var(--color-gray-200)] peer-checked:bg-primary after:absolute after:top-[2px] after:left-[2px] after:h-3 after:w-3 after:rounded-full after:bg-[var(--bg-card)] after:transition-all after:content-[''] peer-checked:after:translate-x-full"
+              class="peer h-4 w-7 rounded-full bg-(--color-gray-200) peer-checked:bg-primary after:absolute after:top-[2px] after:left-[2px] after:h-3 after:w-3 after:rounded-full after:bg-(--bg-card) after:transition-all after:content-[''] peer-checked:after:translate-x-full"
             ></div>
           </label>
         </div>
@@ -85,14 +85,14 @@
           <input
             :value="password"
             type="text"
-            class="flex-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-sm text-[var(--text-main)] transition-all outline-none focus:border-[var(--color-primary)]"
+            class="flex-1 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-sm text-(--text-main) transition-all outline-none focus:border-primary"
             :placeholder="t('spaceManager.setPassword')"
             @input="$emit('update:password', $event.target.value)"
           />
         </div>
       </div>
     </div>
-    <div v-else class="text-center text-[10px] text-[var(--text-secondary)] italic">>
+    <div v-else class="text-center text-[10px] text-(--text-secondary) italic">>
       {{ t('spaceManager.shareCard.publishHint') }}
     </div>
   </div>

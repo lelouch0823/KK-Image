@@ -4,30 +4,30 @@
     <template v-if="loading">
       <div class="grid grid-cols-2 gap-4">
         <div
-          class="animate-pulse rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] p-4"
+          class="animate-pulse rounded-xl border border-(--border-color) bg-(--bg-muted) p-4"
         >
-          <div class="mb-2 h-4 w-16 rounded bg-[var(--border-color)]"></div>
-          <div class="h-8 w-24 rounded bg-[var(--border-color)]"></div>
+          <div class="mb-2 h-4 w-16 rounded bg-(--border-color)"></div>
+          <div class="h-8 w-24 rounded bg-(--border-color)"></div>
         </div>
         <div
-          class="animate-pulse rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] p-4"
+          class="animate-pulse rounded-xl border border-(--border-color) bg-(--bg-muted) p-4"
         >
-          <div class="mb-2 h-4 w-16 rounded bg-[var(--border-color)]"></div>
-          <div class="h-8 w-24 rounded bg-[var(--border-color)]"></div>
+          <div class="mb-2 h-4 w-16 rounded bg-(--border-color)"></div>
+          <div class="h-8 w-24 rounded bg-(--border-color)"></div>
         </div>
       </div>
       <div
-        class="animate-pulse rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] p-4"
+        class="animate-pulse rounded-xl border border-(--border-color) bg-(--bg-muted) p-4"
       >
-        <div class="mb-4 h-4 w-32 rounded bg-[var(--border-color)]"></div>
-        <div class="h-64 rounded bg-[var(--border-color)]"></div>
+        <div class="mb-4 h-4 w-32 rounded bg-(--border-color)"></div>
+        <div class="h-64 rounded bg-(--border-color)"></div>
       </div>
     </template>
 
     <!-- Error State -->
     <div
       v-else-if="error"
-      class="rounded-lg border border-[var(--color-danger-bg)]/50 bg-[var(--color-danger-bg)] p-4 text-center text-[var(--color-danger-text)]"
+      class="rounded-lg border border-(--color-danger-bg)/50 bg-(--color-danger-bg) p-4 text-center text-(--color-danger-text)"
     >
       {{ error }}
     </div>
@@ -49,21 +49,21 @@
       </div>
 
       <!-- Chart with Time Range Selector -->
-      <div class="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-4 shadow-sm">
+      <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-sm">
         <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-sm font-medium text-[var(--text-main)]">
+          <h3 class="text-sm font-medium text-(--text-main)">
             {{ t('spaceAnalytics.visitorTrend') }}
           </h3>
           <!-- Time Range Toggle -->
           <div
-            class="flex rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)] p-0.5"
+            class="flex rounded-lg border border-(--border-color) bg-(--bg-muted) p-0.5"
           >
             <button
               :class="[
                 'rounded-md px-3 py-1 text-xs font-medium transition-all duration-200',
                 selectedDays === 7
-                  ? 'bg-[var(--bg-card)] text-[var(--color-primary)] shadow-sm'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]',
+                  ? 'bg-(--bg-card) text-primary shadow-sm'
+                  : 'text-(--text-secondary) hover:text-(--text-main)',
               ]"
               @click="changeDays(7)"
             >
@@ -73,8 +73,8 @@
               :class="[
                 'rounded-md px-3 py-1 text-xs font-medium transition-all duration-200',
                 selectedDays === 30
-                  ? 'bg-[var(--bg-card)] text-[var(--color-primary)] shadow-sm'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]',
+                  ? 'bg-(--bg-card) text-primary shadow-sm'
+                  : 'text-(--text-secondary) hover:text-(--text-main)',
               ]"
               @click="changeDays(30)"
             >
@@ -87,9 +87,9 @@
           <!-- Chart Loading Overlay -->
           <div
             v-if="chartLoading"
-            class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[var(--bg-card)]/80"
+            class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-(--bg-card)/80"
           >
-            <div class="size-6 animate-spin rounded-full border-b-2 border-[var(--color-primary)]"></div>
+            <div class="size-6 animate-spin rounded-full border-b-2 border-primary"></div>
           </div>
 
           <!-- Chart or Empty State -->
@@ -106,7 +106,7 @@
             >
               <!-- Empty State Icon -->
               <svg
-                class="mb-3 size-12 text-[var(--text-secondary)] opacity-40"
+                class="mb-3 size-12 text-(--text-secondary) opacity-40"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -118,8 +118,8 @@
                   d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                 />
               </svg>
-              <p class="text-sm text-[var(--text-secondary)]">{{ t('spaceAnalytics.noVisits') }}</p>
-              <p class="mt-1 text-xs text-[var(--text-muted)]">{{ t('spaceAnalytics.noVisitsHint') }}</p>
+              <p class="text-sm text-(--text-secondary)">{{ t('spaceAnalytics.noVisits') }}</p>
+              <p class="mt-1 text-xs text-(--text-muted)">{{ t('spaceAnalytics.noVisitsHint') }}</p>
             </div>
           </Transition>
         </div>

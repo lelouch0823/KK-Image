@@ -1,13 +1,13 @@
 <template>
-  <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--bg-muted)]/50">
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-(--bg-muted)/50">
     <!-- Header -->
     <div
-      class="flex shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-card)] p-4"
+      class="flex shrink-0 items-center justify-between border-b border-(--border-color) bg-(--bg-card) p-4"
     >
       <div class="flex items-center gap-3">
         <Tooltip :content="t('spaceManager.createSubspace')">
           <button
-            class="bg-primary flex size-8 items-center justify-center rounded-lg text-sm font-medium text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)]"
+            class="bg-primary flex size-8 items-center justify-center rounded-lg text-sm font-medium text-(--text-inverse) transition-colors hover:bg-(--color-primary-hover)"
             @click="showCreateModal = true"
           >
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,7 +36,7 @@
         v-else-if="subspaces.length === 0"
         class="text-secondary flex h-full flex-col items-center justify-center py-12"
       >
-        <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-[var(--bg-muted)]">
+        <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-(--bg-muted)">
           <svg class="text-muted size-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -48,7 +48,7 @@
         </div>
         <p class="text-sm">{{ t('spaceManager.emptySubspaces') }}</p>
         <button
-          class="bg-primary mt-4 rounded-lg px-4 py-2 text-sm text-[var(--text-inverse)] transition-colors hover:bg-[var(--color-primary-hover)]"
+          class="bg-primary mt-4 rounded-lg px-4 py-2 text-sm text-(--text-inverse) transition-colors hover:bg-(--color-primary-hover)"
           @click="showCreateModal = true"
         >
           {{ t('spaceManager.createFirst') }}
@@ -60,13 +60,13 @@
         <div
           v-for="sub in subspaces"
           :key="sub.id"
-          class="group cursor-pointer rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 transition-all hover:shadow-md"
+          class="group cursor-pointer rounded-xl border border-(--border-color) bg-(--bg-card) p-4 transition-all hover:shadow-md"
           @click="openSubspace(sub)"
         >
           <div class="flex items-start gap-4">
             <!-- Cover Thumbnail -->
             <div
-              class="size-16 shrink-0 overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-muted)]"
+              class="size-16 shrink-0 overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-muted)"
             >
               <AppImage
                 v-if="sub.coverUrl"
@@ -96,7 +96,7 @@
             <!-- Info -->
             <div class="min-w-0 flex-1">
               <h4
-                class="text-primary truncate font-semibold group-hover:text-[var(--color-primary-hover)]"
+                class="text-primary truncate font-semibold group-hover:text-(--color-primary-hover)"
               >
                 {{ sub.name }}
               </h4>
@@ -107,7 +107,7 @@
               <div class="mt-2 flex items-center gap-2">
                 <span
                   v-if="sub.isPublic"
-                  class="inline-flex items-center gap-1 rounded-full bg-[var(--color-success-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-success)]"
+                  class="inline-flex items-center gap-1 rounded-full bg-(--color-success-bg) px-2 py-0.5 text-[10px] font-medium text-success"
                 >
                   <svg class="size-2.5" fill="currentColor" viewBox="0 0 20 20">
                     <path
@@ -120,7 +120,7 @@
                 </span>
                 <span
                   v-else
-                  class="inline-flex items-center gap-1 rounded-full bg-[var(--bg-muted)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]"
+                  class="inline-flex items-center gap-1 rounded-full bg-(--bg-muted) px-2 py-0.5 text-[10px] font-medium text-(--text-muted)"
                 >
                   <svg class="size-2.5" fill="currentColor" viewBox="0 0 20 20">
                     <path
@@ -140,7 +140,7 @@
             >
               <Tooltip :content="t('spaceManager.copyLink')">
                 <button
-                  class="text-secondary flex size-8 items-center justify-center rounded-lg bg-[var(--bg-muted)] transition-colors hover:text-primary hover:bg-[var(--bg-hover)]"
+                  class="text-secondary flex size-8 items-center justify-center rounded-lg bg-(--bg-muted) transition-colors hover:text-primary hover:bg-(--bg-hover)"
                   @click.stop="copyLink(sub)"
                 >
                   <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -155,7 +155,7 @@
               </Tooltip>
               <Tooltip :content="t('spaceManager.deleteSpace')">
                 <button
-                  class="flex size-8 items-center justify-center rounded-lg bg-[var(--color-danger-bg)] text-[var(--color-danger)] transition-colors hover:bg-red-100"
+                  class="flex size-8 items-center justify-center rounded-lg bg-(--color-danger-bg) text-danger transition-colors hover:bg-red-100"
                   @click.stop="deleteSubspace(sub)"
                 >
                   <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

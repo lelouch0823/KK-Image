@@ -5,16 +5,16 @@
         <div
           v-for="toast in toasts"
           :key="toast.id"
-          class="shadow-soft pointer-events-auto flex w-full max-w-xs items-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)]/95 p-4 backdrop-blur-sm"
+          class="shadow-soft pointer-events-auto flex w-full max-w-xs items-center rounded-lg border border-(--border-color) bg-(--bg-card)/95 p-4 backdrop-blur-sm"
           role="alert"
         >
           <div
             class="inline-flex size-8 flex-shrink-0 items-center justify-center rounded-lg"
             :class="{
-              'bg-[var(--color-success-bg)] text-[var(--color-success-text)]':
+              'bg-(--color-success-bg) text-(--color-success-text)':
                 toast.type === 'success',
-              'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]': toast.type === 'error',
-              'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]':
+              'bg-(--color-danger-bg) text-(--color-danger-text)': toast.type === 'error',
+              'bg-(--color-warning-bg) text-(--color-warning-text)':
                 toast.type === 'warning',
             }"
           >
@@ -37,10 +37,10 @@
               class="size-5"
             />
           </div>
-          <div class="ml-3 text-sm font-normal text-[var(--text-main)]">{{ toast.message }}</div>
+          <div class="ml-3 text-sm font-normal text-(--text-main)">{{ toast.message }}</div>
           <button
             type="button"
-            class="-m-1.5 ml-auto inline-flex size-8 rounded-lg bg-transparent p-1.5 text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)] focus:ring-2 focus:ring-[var(--border-color)]"
+            class="-m-1.5 ml-auto inline-flex size-8 rounded-lg bg-transparent p-1.5 text-(--text-secondary) hover:bg-(--bg-hover) hover:text-(--text-main) focus:ring-2 focus:ring-(--border-color)"
             @click="removeToast(toast.id)"
           >
             <span class="sr-only">{{ t('common.close') }}</span>

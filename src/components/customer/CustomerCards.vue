@@ -50,7 +50,7 @@
               <span
                 v-for="tag in customer.tags"
                 :key="tag"
-                class="rounded bg-[var(--bg-muted)] px-2 py-0.5 text-[10px] text-[var(--text-secondary)]"
+                class="rounded bg-(--bg-muted) px-2 py-0.5 text-[10px] text-(--text-secondary)"
               >
                 {{ tag }}
               </span>

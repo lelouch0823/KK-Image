@@ -8,9 +8,9 @@
 
   <aside
     :class="[
-      'z-50 flex shrink-0 flex-col border-r border-[var(--border-color)] bg-[var(--bg-card)] transition-all duration-300',
+      'z-50 flex shrink-0 flex-col border-r border-(--border-color) bg-(--bg-card) transition-all duration-300',
       // 桌面端：根据折叠状态切换宽度
-      isCollapsed ? 'lg:w-[72px]' : 'lg:w-[var(--sidebar-width)]',
+      isCollapsed ? 'lg:w-[72px]' : 'lg:w-(--sidebar-width)',
       'lg:relative lg:translate-x-0',
       // 移动端：抽屉式，默认隐藏
       'fixed inset-y-0 left-0 w-72',
@@ -19,7 +19,7 @@
   >
     <!-- Logo -->
     <div
-      class="flex h-[var(--header-height)] items-center justify-between border-b border-[var(--border-color)] px-4"
+      class="flex h-(--header-height) items-center justify-between border-b border-(--border-color) px-4"
     >
       <div class="flex items-center overflow-hidden">
         <div
@@ -39,7 +39,7 @@
         <!-- 桌面端折叠按钮 -->
         <button
           type="button"
-          class="text-secondary hidden rounded-lg p-1.5 transition-colors hover:text-primary hover:bg-[var(--bg-hover)] lg:flex"
+          class="text-secondary hidden rounded-lg p-1.5 transition-colors hover:text-primary hover:bg-(--bg-hover) lg:flex"
           :title="isCollapsed ? t('sidebar.expand') : t('sidebar.collapse')"
           @click="toggleCollapse"
         >
@@ -53,7 +53,7 @@
         <!-- 移动端关闭按钮 -->
         <button
           type="button"
-          class="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] lg:hidden"
+          class="rounded-lg p-1.5 text-(--text-muted) hover:bg-(--bg-hover) lg:hidden"
           @click="closeSidebar"
         >
           <AppIcon name="x-mark" class="size-5" />
@@ -81,7 +81,7 @@
           :class="[
             currentView === item.key
               ? 'text-primary bg-primary/5 ring-primary/10 font-semibold shadow-sm ring-1'
-              : 'text-secondary hover:text-primary hover:bg-[var(--bg-hover)]',
+              : 'text-secondary hover:text-primary hover:bg-(--bg-hover)',
             isCollapsed ? 'justify-center' : '',
           ]"
           @click="handleMenuClick(item.key)"
@@ -106,7 +106,7 @@
           type="button"
           :title="isCollapsed ? t('sidebar.logout') : ''"
           :class="[
-            'text-secondary flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger)]',
+            'text-secondary flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-(--color-danger-bg) hover:text-danger',
             isCollapsed ? 'justify-center' : '',
           ]"
           @click="handleLogout"
@@ -120,10 +120,10 @@
     </nav>
 
     <!-- 用户信息 -->
-    <div class="border-t border-[var(--border-color)] p-4">
+    <div class="border-t border-(--border-color) p-4">
       <div class="flex items-center gap-3" :class="isCollapsed ? 'justify-center' : ''">
         <div
-          class="text-secondary flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--bg-muted)] text-sm font-semibold uppercase"
+          class="text-secondary flex size-9 shrink-0 items-center justify-center rounded-full bg-(--bg-muted) text-sm font-semibold uppercase"
         >
           {{ currentUser?.name ? currentUser.name.charAt(0) : 'U' }}
         </div>

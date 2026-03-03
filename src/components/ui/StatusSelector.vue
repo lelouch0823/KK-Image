@@ -3,7 +3,7 @@
     <!-- Trigger -->
     <button
       type="button"
-      class="focus:ring-primary/20 focus:ring-2 focus:outline-none flex items-center gap-2 rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
+      class="focus:ring-primary/20 focus:ring-2 focus:outline-none flex items-center gap-2 rounded-full border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-sm font-medium transition-colors hover:bg-(--bg-hover)"
       @click="toggle"
     >
       <span
@@ -21,7 +21,7 @@
     <!-- Dropdown -->
     <div
       v-if="isOpen"
-      class="absolute right-0 z-50 overflow-auto rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] shadow-lg ring-1 ring-black/5 focus:outline-none"
+      class="absolute right-0 z-50 overflow-auto rounded-lg border border-(--border-color) bg-(--bg-card) shadow-lg ring-1 ring-black/5 focus:outline-none"
       :class="[
         dropdownPosition === 'top' ? 'bottom-full mb-1 origin-bottom' : 'mt-1 origin-top',
         'max-h-60 w-48'
@@ -32,8 +32,8 @@
           v-for="status in options"
           :key="status"
           type="button"
-          class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-hover)]"
-          :class="{ 'bg-[var(--bg-muted)]': modelValue === status }"
+          class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-(--bg-hover)"
+          :class="{ 'bg-(--bg-muted)': modelValue === status }"
           @click="select(status)"
         >
           <span
@@ -104,15 +104,15 @@ const select = (status) => {
 const getStatusColorClass = (status) => {
     // 映射状态到 Tailwind 颜色类 (参考 utils/status.js，提取 bg 部分并转换)
     const map = {
-        pending: 'bg-[var(--color-warning)]',
-        confirmed: 'bg-[var(--color-info)]',
-        production: 'bg-[var(--color-orange)]', 
-        shipping: 'bg-[var(--color-primary)]',
-        completed: 'bg-[var(--color-success)]', // delivered/completed
-        delivered: 'bg-[var(--color-success)]',
-        arrived: 'bg-[var(--color-cyan)]',
-        rejected: 'bg-[var(--color-danger)]',
-        void: 'bg-[var(--text-muted)]',
+        pending: 'bg-warning',
+        confirmed: 'bg-info',
+        production: 'bg-(--color-orange)', 
+        shipping: 'bg-primary',
+        completed: 'bg-success', // delivered/completed
+        delivered: 'bg-success',
+        arrived: 'bg-(--color-cyan)',
+        rejected: 'bg-danger',
+        void: 'bg-(--text-muted)',
     };
     return map[status] || 'bg-gray-400';
 };

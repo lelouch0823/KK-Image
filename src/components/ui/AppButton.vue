@@ -76,12 +76,12 @@ defineEmits(['click']);
 
 const variantClasses = computed(() => {
   const variants = {
-    primary: 'bg-[var(--color-primary)] text-[var(--text-inverse)] hover:bg-[var(--color-primary-hover)] focus:ring-[var(--color-primary)]/50',
-    secondary: 'bg-[var(--bg-muted)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)] focus:ring-gray-500/50',
-    danger: 'bg-[var(--color-danger)] text-white hover:bg-[var(--color-danger-hover)] focus:ring-[var(--color-danger)]/50',
-    ghost: 'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] hover:text-[var(--text-main)] focus:ring-gray-500/30',
-    link: 'bg-transparent text-[var(--color-primary)] hover:underline p-0 h-auto',
-    outline: 'border border-[var(--border-color)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-main)]',
+    primary: 'bg-primary text-(--text-inverse) hover:bg-(--color-primary-hover) focus:ring-primary/50',
+    secondary: 'bg-(--bg-muted) text-(--text-secondary) hover:bg-(--bg-hover) hover:text-(--text-main) focus:ring-gray-500/50',
+    danger: 'bg-danger text-white hover:bg-(--color-danger-hover) focus:ring-danger/50',
+    ghost: 'bg-transparent text-(--text-secondary) hover:bg-(--bg-muted) hover:text-(--text-main) focus:ring-gray-500/30',
+    link: 'bg-transparent text-primary hover:underline p-0 h-auto',
+    outline: 'border border-(--border-color) bg-transparent text-(--text-secondary) hover:border-(--text-secondary) hover:text-(--text-main)',
     white: 'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 dark:bg-white/10 dark:text-white dark:border-white/10 dark:hover:bg-white/20',
   };
   return variants[props.variant];

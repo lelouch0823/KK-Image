@@ -1,16 +1,16 @@
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-[var(--bg-muted)] px-4">
+  <div class="flex min-h-screen items-center justify-center bg-(--bg-muted) px-4">
     <div class="w-full max-w-md">
-      <div class="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-8 text-center shadow-lg">
+      <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-8 text-center shadow-lg">
         <!-- Logo/Icon -->
         <div
-          class="mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10"
+          class="mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl bg-primary/10"
         >
-          <AppIcon name="shield-check" class="size-8 text-[var(--color-primary)]" />
+          <AppIcon name="shield-check" class="size-8 text-primary" />
         </div>
 
-        <h2 class="mb-2 text-xl font-semibold text-[var(--text-main)]">{{ t('spacePublic.verifyHuman') }}</h2>
-        <p class="mb-6 text-sm text-[var(--text-secondary)]">{{ t('spacePublic.verifyHint') }}</p>
+        <h2 class="mb-2 text-xl font-semibold text-(--text-main)">{{ t('spacePublic.verifyHuman') }}</h2>
+        <p class="mb-6 text-sm text-(--text-secondary)">{{ t('spacePublic.verifyHint') }}</p>
 
         <!-- Turnstile Widget Container -->
         <div class="mb-6 flex justify-center">
@@ -18,24 +18,24 @@
         </div>
 
         <!-- Error Message -->
-        <p v-if="error" class="mb-4 text-sm text-[var(--color-danger-text)]">{{ error }}</p>
+        <p v-if="error" class="mb-4 text-sm text-(--color-danger-text)">{{ error }}</p>
 
         <!-- Loading State -->
-        <div v-if="verifying" class="flex items-center justify-center gap-2 text-[var(--text-secondary)]">
+        <div v-if="verifying" class="flex items-center justify-center gap-2 text-(--text-secondary)">
           <div
-            class="size-4 animate-spin rounded-full border-2 border-[var(--border-subtle)] border-t-[var(--color-primary)]"
+            class="size-4 animate-spin rounded-full border-2 border-(--border-subtle) border-t-primary"
           ></div>
           <span class="text-sm">{{ t('spacePublic.verifying') }}</span>
         </div>
       </div>
 
       <!-- Footer -->
-      <p class="mt-6 text-center text-xs text-[var(--text-secondary)]">
+      <p class="mt-6 text-center text-xs text-(--text-secondary)">
         {{ t('spacePublic.protectedBy') }}
         <a
           href="https://www.cloudflare.com/products/turnstile/"
           target="_blank"
-          class="text-[var(--color-primary)] hover:underline"
+          class="text-primary hover:underline"
           >Cloudflare Turnstile</a
         >
       </p>
