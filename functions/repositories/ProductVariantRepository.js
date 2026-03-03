@@ -210,6 +210,31 @@ export class ProductVariantRepository {
         return result.meta?.changes > 0;
     }
 
+    async updateMovingAverageCost(variantId, newlyArrivedQuantity, totalArrivedCost) {
+        const safeArrivedQty = Math.max(0, Number(newlyArrivedQuantity) || 0);
+        if (!variantId || safeArrivedQty <= 0) return false;
+
+        const row = await this.db
+            .prepare('SELECT stock_quantity, cost_price FROM product_variants WHERE id = ?')
+            .bind(variantId)
+            .first();
+        if (!row) return false;
+
+        const currentStockQty = Math.max(0, Number(row.stock_quantity) || 0);
+        const currentCost = Number(row.cost_price) || 0;
+        const safeArrivedCost = Number(totalArrivedCost) || 0;
+        const preArrivalQty = Math.max(currentStockQty - safeArrivedQty, 0);
+        const denominator = preArrivalQty + safeArrivedQty;
+        if (denominator <= 0) return false;
+
+        const nextCost = ((preArrivalQty * currentCost) + safeArrivedCost) / denominator;
+        const result = await this.db
+            .prepare('UPDATE product_variants SET cost_price = ?, updated_at = ? WHERE id = ?')
+            .bind(nextCost, now(), variantId)
+            .run();
+        return (result.meta?.changes || 0) > 0;
+    }
+
     buildAuditEvents(productId, beforeVariants = [], afterVariants = []) {
         const beforeMap = new Map((beforeVariants || []).map((variant) => [variant.id, variant]));
         const afterMap = new Map((afterVariants || []).map((variant) => [variant.id, variant]));
@@ -331,7 +356,6 @@ export class ProductVariantRepository {
                         sku = excluded.sku,
                         price = excluded.price,
                         cost_price = excluded.cost_price,
-                        stock_quantity = excluded.stock_quantity,
                         alert_threshold = excluded.alert_threshold,
                         options_values = excluded.options_values,
                         variant_signature = excluded.variant_signature,

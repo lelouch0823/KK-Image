@@ -11,6 +11,7 @@
  */
 
 import { PurchaseOrderRepository } from '../repositories/PurchaseOrderRepository.js';
+import { ProductVariantRepository } from '../repositories/ProductVariantRepository.js';
 import { NotFoundError, BadRequestError } from '../lib/hono/errors.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 
@@ -49,6 +50,7 @@ export class PurchaseOrderService {
   constructor(db) {
     this.db = db;
     this.repo = new PurchaseOrderRepository(db);
+    this.variantRepo = new ProductVariantRepository(db);
   }
 
   // ─── 状态机级联 (Cascading State Machine) ────────────
@@ -174,6 +176,28 @@ export class PurchaseOrderService {
 
     // 批量更新分摊结果
     await this.repo.updateAllocations(allocations);
+
+    const allocationById = new Map(allocations.map((allocation) => [allocation.id, allocation]));
+    const macUpdates = [];
+    for (const item of items) {
+      if (!item.variant_id) continue;
+      const itemQty = Math.max(0, Number(item.quantity) || 0);
+      if (itemQty <= 0) continue;
+
+      const allocation = allocationById.get(item.id) || {};
+      const unitCost = Number(item.unit_cost) || 0;
+      const perUnitFreight = Number(allocation.allocated_freight) || 0;
+      const perUnitTariff = Number(allocation.allocated_tariff) || 0;
+      const itemTotalLandedCost = (unitCost + perUnitFreight + perUnitTariff) * itemQty;
+
+      macUpdates.push(
+        this.variantRepo.updateMovingAverageCost(item.variant_id, itemQty, itemTotalLandedCost)
+      );
+    }
+
+    if (macUpdates.length > 0) {
+      await Promise.all(macUpdates);
+    }
   }
 
   /**

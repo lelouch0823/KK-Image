@@ -9,6 +9,14 @@
 
 import { generateId, now } from '../../api/utils/id.js';
 
+function getDeliveryStockDelta(oldStatus, newStatus, quantity) {
+    const safeQty = Math.max(0, Number(quantity) || 0);
+    if (!safeQty) return 0;
+    if (oldStatus !== 'delivered' && newStatus === 'delivered') return -safeQty;
+    if (oldStatus === 'delivered' && newStatus !== 'delivered') return safeQty;
+    return 0;
+}
+
 /**
  * 创建新订单
  * @param {D1Database} db
@@ -116,6 +124,35 @@ export async function updateData(db, id, newData, actorType, productId = undefin
 export async function updateStatus(db, id, newStatus, actorType) {
     const timestamp = now();
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
+    const currentOrder = await db
+        .prepare('SELECT status, variant_id, quantity FROM orders WHERE id = ?')
+        .bind(id)
+        .first();
+    const stockDelta = getDeliveryStockDelta(currentOrder?.status, newStatus, currentOrder?.quantity);
+    const canAdjustVariantStock = Boolean(currentOrder?.variant_id) && stockDelta !== 0;
+
+    if (canAdjustVariantStock) {
+        const statements = [
+            db
+                .prepare(
+                    `UPDATE product_variants
+                     SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ?
+                     WHERE id = ?`
+                )
+                .bind(stockDelta, timestamp, currentOrder.variant_id),
+            db
+                .prepare(
+                    `
+      UPDATE orders 
+      SET status = ?, ${updateField} = 1, updated_at = ? 
+      WHERE id = ?
+      `
+                )
+                .bind(newStatus, timestamp, id),
+        ];
+        await db.batch(statements);
+        return { success: true, meta: { changes: 1 } };
+    }
 
     return db
         .prepare(
@@ -166,8 +203,28 @@ export async function updateFiles(db, orderId, fileIds) {
 export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeline) {
     const timestamp = now();
     const batchStatements = [];
+    const placeholders = ids.map(() => '?').join(',');
+    const { results: existingOrders = [] } = await db
+        .prepare(`SELECT id, status, variant_id, quantity FROM orders WHERE id IN (${placeholders})`)
+        .bind(...ids)
+        .all();
+    const orderMap = new Map((existingOrders || []).map((row) => [row.id, row]));
 
     for (const id of ids) {
+        const order = orderMap.get(id);
+        const stockDelta = getDeliveryStockDelta(order?.status, newStatus, order?.quantity);
+        if (order?.variant_id && stockDelta !== 0) {
+            batchStatements.push(
+                db
+                    .prepare(
+                        `UPDATE product_variants
+                         SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ?
+                         WHERE id = ?`
+                    )
+                    .bind(stockDelta, timestamp, order.variant_id)
+            );
+        }
+
         batchStatements.push(
             db
                 .prepare(
