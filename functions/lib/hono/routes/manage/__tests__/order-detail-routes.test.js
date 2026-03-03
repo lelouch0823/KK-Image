@@ -188,6 +188,88 @@ describe('manage order detail routes', () => {
     expect(mocks.updateStatus).not.toHaveBeenCalled();
   });
 
+  it('returns 400 when PATCH /:id/status hits insufficient stock error', async () => {
+    mocks.findById.mockResolvedValue({
+      id: 'order-1',
+      orderNo: 'SO-1',
+      status: 'arrived',
+      salespersonId: 'sp-1',
+      currentData: {},
+    });
+    mocks.updateStatus.mockRejectedValue(new Error('insufficient variant stock for delivery'));
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/status',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'delivered' }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(String(body.error || '')).toMatch(/insufficient stock/i);
+  });
+
+  it('returns 400 when PATCH /:id/status is out-of-flow without force', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/status',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'delivered' }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when force status transition has no note', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/status',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'delivered', force: true }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it('allows force override transition with note for privileged admin', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/status',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'delivered', force: true, note: 'manual emergency override' }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.updateStatus).toHaveBeenCalledWith(
+      'order-1',
+      'delivered',
+      'admin',
+      expect.objectContaining({ forceStatusTransition: true })
+    );
+  });
+
   it('rejects order patch when bound product is archived', async () => {
     mocks.productFindById.mockResolvedValue({
       id: 'p-1',
@@ -244,5 +326,90 @@ describe('manage order detail routes', () => {
 
     expect(res.status).toBe(400);
     expect(mocks.processOrderUpdate).not.toHaveBeenCalled();
+  });
+
+  it('returns updated order payload after PATCH /:id', async () => {
+    mocks.findById
+      .mockResolvedValueOnce({
+        id: 'order-1',
+        orderNo: 'SO-1',
+        status: 'pending',
+        salespersonId: 'sp-1',
+        currentData: { name: 'old-name' },
+      })
+      .mockResolvedValueOnce({
+        id: 'order-1',
+        orderNo: 'SO-1',
+        status: 'confirmed',
+        salespersonId: 'sp-1',
+        currentData: { name: 'server-name' },
+      });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          updates: { status: 'confirmed', name: 'optimistic-name' },
+          reason: 'admin patch',
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.data).toMatchObject({
+      id: 'order-1',
+      status: 'confirmed',
+    });
+    expect(mocks.findById).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects PATCH /:id status jump without force override', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          updates: { status: 'delivered' },
+          reason: 'normal edit',
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.processOrderUpdate).not.toHaveBeenCalled();
+  });
+
+  it('allows PATCH /:id status jump with force and reason', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          updates: { status: 'delivered' },
+          force: true,
+          reason: 'backfill legacy order state',
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.processOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      forceStatusTransition: true,
+    }));
   });
 });

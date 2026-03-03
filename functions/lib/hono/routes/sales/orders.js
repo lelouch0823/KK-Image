@@ -245,6 +245,7 @@ app.patch('/:id', async (c) => {
         orderId,
         orderNo: order.orderNo,
         currentData: order.currentData,
+        currentStatus: order.status,
         updates,
         fileIds,
         productId,

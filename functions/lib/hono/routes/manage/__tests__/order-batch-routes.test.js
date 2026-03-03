@@ -58,7 +58,7 @@ const createApp = () => {
     )
   );
   app.use('/api/manage/orders/*', async (c, next) => {
-    c.set('user', { id: 'u-1', name: 'Admin' });
+    c.set('user', { id: 'u-1', name: 'Admin', type: 'admin', permissions: ['admin:full'] });
     await next();
   });
   app.route('/api/manage/orders', createAppRoutes);
@@ -102,7 +102,142 @@ describe('manage order batch route', () => {
     expect(mocks.batchUpdateStatus).toHaveBeenCalledWith(
       ['o-1', 'o-2'],
       'confirmed',
-      expect.objectContaining({ actorType: 'admin' })
+      expect.objectContaining({ actorType: 'admin' }),
+      expect.objectContaining({ forceStatusTransition: false })
+    );
+  });
+
+  it('returns 400 when batch delivered transition fails due to insufficient stock', async () => {
+    mocks.batchUpdateStatus.mockRejectedValue(new Error('insufficient variant stock for delivery'));
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/batch',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: ['o-1'],
+          action: 'status',
+          value: 'delivered',
+        }),
+      },
+      {
+        DB: {
+          prepare: vi.fn(() => ({
+            bind: vi.fn(() => ({
+              all: vi.fn(async () => ({
+                results: [{ id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'arrived' }],
+              })),
+            })),
+          })),
+        },
+      },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(String(body.error || '')).toMatch(/insufficient stock/i);
+  });
+
+  it('returns 400 when batch transition is out-of-flow and no force flag is provided', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/batch',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: ['o-1'],
+          action: 'status',
+          value: 'delivered',
+        }),
+      },
+      {
+        DB: {
+          prepare: vi.fn(() => ({
+            bind: vi.fn(() => ({
+              all: vi.fn(async () => ({
+                results: [{ id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' }],
+              })),
+            })),
+          })),
+        },
+      },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.batchUpdateStatus).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when force batch transition has no reason', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/batch',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: ['o-1'],
+          action: 'status',
+          value: 'delivered',
+          force: true,
+        }),
+      },
+      {
+        DB: {
+          prepare: vi.fn(() => ({
+            bind: vi.fn(() => ({
+              all: vi.fn(async () => ({
+                results: [{ id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' }],
+              })),
+            })),
+          })),
+        },
+      },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.batchUpdateStatus).not.toHaveBeenCalled();
+  });
+
+  it('allows force batch transition when reason is provided', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/batch',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: ['o-1'],
+          action: 'status',
+          value: 'delivered',
+          force: true,
+          reason: 'manual override for legacy sync',
+        }),
+      },
+      {
+        DB: {
+          prepare: vi.fn(() => ({
+            bind: vi.fn(() => ({
+              all: vi.fn(async () => ({
+                results: [{ id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' }],
+              })),
+            })),
+          })),
+        },
+      },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.batchUpdateStatus).toHaveBeenCalledWith(
+      ['o-1'],
+      'delivered',
+      expect.objectContaining({ actorType: 'admin' }),
+      expect.objectContaining({ forceStatusTransition: true })
     );
   });
 

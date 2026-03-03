@@ -157,6 +157,9 @@ export function useOrders() {
       }).then(r => r.json());
 
       if (res.success) {
+        if (idx !== -1 && res.data) {
+          resource.items.value[idx] = res.data;
+        }
         addToast({ message: res.message || t('order.manage.editOrder'), type: 'success' });
         return true;
       } else {
@@ -176,7 +179,7 @@ export function useOrders() {
   /**
    * 变更订单状态
    */
-  const changeStatus = async (id, status, note = '') => {
+  const changeStatus = async (id, status, note = '', force = false) => {
     const idx = resource.items.value.findIndex(item => item.id === id);
     const oldItem = idx !== -1 ? { ...resource.items.value[idx] } : null;
 
@@ -189,7 +192,7 @@ export function useOrders() {
       const res = await authFetch(API.MANAGE_ORDER_STATUS(id), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, note }),
+        body: JSON.stringify({ status, note, force: Boolean(force) }),
       }).then(r => r.json());
 
       if (res.success) {

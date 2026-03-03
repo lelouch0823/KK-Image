@@ -156,7 +156,7 @@ const props = defineProps({
   },
   statuses: {
     type: Array,
-    default: () => ['pending', 'confirmed', 'production', 'shipping', 'completed', 'rejected', 'void'],
+    default: () => ['pending', 'confirmed', 'production', 'shipping', 'arrived', 'delivered', 'rejected', 'void'],
   },
   salespersons: {
     type: Array,

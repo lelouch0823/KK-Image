@@ -70,4 +70,24 @@ describe('useOrders.updateOrder variant payload', () => {
     expect(body).toHaveProperty('productId', null);
     expect(body).toHaveProperty('variantId', null);
   });
+
+  it('replaces optimistic item with server payload when update succeeds', async () => {
+    mocks.authFetch.mockResolvedValue({
+      json: async () => ({
+        success: true,
+        message: 'ok',
+        data: { id: 'o-1', name: 'server-name', status: 'confirmed' },
+      }),
+    });
+
+    const { updateOrder } = useOrders();
+    const ok = await updateOrder('o-1', { name: 'optimistic-name' }, 'reason');
+
+    expect(ok).toBe(true);
+    expect(mocks.resource.items.value[0]).toMatchObject({
+      id: 'o-1',
+      name: 'server-name',
+      status: 'confirmed',
+    });
+  });
 });

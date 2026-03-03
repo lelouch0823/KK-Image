@@ -5,6 +5,7 @@ import {
   updateOrderFiles
 } from '../order-utils';
 import { OrderRepository } from '../../../repositories/OrderRepository.js';
+import { NotificationRepository } from '../../../repositories/NotificationRepository.js';
 
 describe('Order Utils Full Coverage Final', () => {
   let db;
@@ -37,7 +38,7 @@ describe('Order Utils Full Coverage Final', () => {
     it('should handle admin with NO salespersonId', async () => {
       const options = {
         env, orderId: 'o1', orderNo: 'n1',
-        currentData: { status: 'pending' }, updates: { status: 'completed' },
+        currentData: { status: 'pending' }, updates: { status: 'confirmed' },
         allowedFields: ['status'],
         actor: { id: 'a1', type: 'admin' },
         salespersonId: null
@@ -49,7 +50,7 @@ describe('Order Utils Full Coverage Final', () => {
     it('should handle non-admin actor', async () => {
       const options = {
         env, orderId: 'o1', orderNo: 'n1',
-        currentData: { status: 'pending' }, updates: { status: 'shipped' },
+        currentData: { status: 'pending' }, updates: { status: 'confirmed' },
         allowedFields: ['status'],
         actor: { id: 's1', type: 'salesperson', name: 'S1' }
       };
@@ -107,6 +108,7 @@ describe('Order Utils Full Coverage Final', () => {
     });
 
     it('should treat variant-only update as change and forward variantId', async () => {
+      const updateCompositeSpy = vi.spyOn(OrderRepository.prototype, 'updateComposite').mockResolvedValue({ success: true });
       const updateDataSpy = vi.spyOn(OrderRepository.prototype, 'updateData').mockResolvedValue({ success: true });
       const updateStatusSpy = vi.spyOn(OrderRepository.prototype, 'updateStatus').mockResolvedValue({ success: true });
       try {
@@ -126,10 +128,68 @@ describe('Order Utils Full Coverage Final', () => {
 
         const result = await processOrderUpdate(options);
         expect(result.hasChanges).toBe(true);
-        expect(updateDataSpy).toHaveBeenCalledWith('o1', expect.any(Object), 'admin', undefined, 'variant_1');
+        expect(updateCompositeSpy).toHaveBeenCalledWith(expect.objectContaining({
+          id: 'o1',
+          actorType: 'admin',
+          variantId: 'variant_1',
+        }));
+        expect(updateDataSpy).not.toHaveBeenCalled();
+        expect(updateStatusSpy).not.toHaveBeenCalled();
       } finally {
+        updateCompositeSpy.mockRestore();
         updateDataSpy.mockRestore();
         updateStatusSpy.mockRestore();
+      }
+    });
+
+    it('should use composite write path for core order updates', async () => {
+      expect(typeof OrderRepository.prototype.updateComposite).toBe('function');
+      const updateCompositeSpy = vi.spyOn(OrderRepository.prototype, 'updateComposite').mockResolvedValue({ success: true });
+      const updateDataSpy = vi.spyOn(OrderRepository.prototype, 'updateData').mockResolvedValue({ success: true });
+      const updateStatusSpy = vi.spyOn(OrderRepository.prototype, 'updateStatus').mockResolvedValue({ success: true });
+      try {
+        const options = {
+          env,
+          orderId: 'o1',
+          orderNo: 'n1',
+          currentData: { status: 'pending', name: 'A' },
+          updates: { status: 'confirmed', name: 'B' },
+          allowedFields: ['status', 'name'],
+          actor: { id: 'a1', type: 'admin', name: 'Admin' },
+          salespersonId: 'sp-1',
+        };
+        const result = await processOrderUpdate(options);
+        expect(result.hasChanges).toBe(true);
+        expect(updateCompositeSpy).toHaveBeenCalledTimes(1);
+        expect(updateDataSpy).not.toHaveBeenCalled();
+        expect(updateStatusSpy).not.toHaveBeenCalled();
+      } finally {
+        updateCompositeSpy.mockRestore();
+        updateDataSpy.mockRestore();
+        updateStatusSpy.mockRestore();
+      }
+    });
+
+    it('should not create notification when composite write fails', async () => {
+      expect(typeof OrderRepository.prototype.updateComposite).toBe('function');
+      const updateCompositeSpy = vi.spyOn(OrderRepository.prototype, 'updateComposite').mockRejectedValue(new Error('db failed'));
+      const notificationSpy = vi.spyOn(NotificationRepository.prototype, 'create').mockResolvedValue({ success: true });
+      try {
+        const options = {
+          env,
+          orderId: 'o1',
+          orderNo: 'n1',
+          currentData: { status: 'pending', name: 'A' },
+          updates: { status: 'confirmed', name: 'B' },
+          allowedFields: ['status', 'name'],
+          actor: { id: 'a1', type: 'admin', name: 'Admin' },
+          salespersonId: 'sp-1',
+        };
+        await expect(processOrderUpdate(options)).rejects.toThrow('db failed');
+        expect(notificationSpy).not.toHaveBeenCalled();
+      } finally {
+        updateCompositeSpy.mockRestore();
+        notificationSpy.mockRestore();
       }
     });
   });

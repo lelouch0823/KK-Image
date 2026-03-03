@@ -2,13 +2,23 @@
 import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
+import {
+    canTransitionOrderStatus,
+    hasForceStatusPermission,
+    INVALID_ORDER_STATUS_TRANSITION_ERROR,
+} from '../../../../../api/utils/order-state-machine.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
-import { BadRequestError } from '../../../errors.js';
+import { BadRequestError, ForbiddenError } from '../../../errors.js';
 import { invalidateCache } from '../../../middleware/cache.js';
 import { getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../../_shared/cache-urls.js';
 
 const app = new Hono();
+
+const isInsufficientStockError = (error) =>
+    String(error?.message || '').includes('insufficient variant stock');
+const isInvalidStatusTransitionError = (error) =>
+    String(error?.message || '').includes(INVALID_ORDER_STATUS_TRANSITION_ERROR);
 
 /**
  * POST / - 管理端创建订单
@@ -118,7 +128,7 @@ app.post('/', async (c) => {
 app.post('/batch', async (c) => {
     const { env } = c;
     const user = c.get('user');
-    const { ids, action, value, reason } = await c.req.json();
+    const { ids, action, value, reason, force } = await c.req.json();
     const repo = new OrderRepository(env.DB);
     const actorName = user?.name || 'Admin';
     const normalizedIds = Array.isArray(ids) ? ids.filter(Boolean) : [];
@@ -145,20 +155,44 @@ app.post('/batch', async (c) => {
     }
 
     if (normalizedAction === 'status') {
-        const updateReason = reason || MSG.ORDER.ACTIONS.BATCH_PREFIX + MSG.ORDER.ACTIONS[normalizedStatus];
-        
+        const forceStatusTransition = Boolean(force);
+        const actionLabel = MSG.ORDER.ACTIONS?.[normalizedStatus] || normalizedStatus;
+        const updateReason = reason || `${MSG.ORDER.ACTIONS.BATCH_PREFIX}${actionLabel}`;
+
         // 1. 先查询需要通知的订单信息
         const { results: orders } = await env.DB.prepare(
-            `SELECT id, order_no, salesperson_id FROM orders WHERE id IN (${normalizedIds.map(() => '?').join(',')})`
+            `SELECT id, order_no, salesperson_id, status FROM orders WHERE id IN (${normalizedIds.map(() => '?').join(',')})`
         ).bind(...normalizedIds).all();
         const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, (orders || []).map((o) => o.salesperson_id));
+        const outOfFlowOrder = (orders || []).find((o) => !canTransitionOrderStatus(o.status, normalizedStatus));
+        if (outOfFlowOrder) {
+            if (!forceStatusTransition) {
+                throw new BadRequestError(`Invalid status transition in batch: ${outOfFlowOrder.status} -> ${normalizedStatus}`);
+            }
+            if (!hasForceStatusPermission(user)) {
+                throw new ForbiddenError(MSG.AUTH.PERMISSION_DENIED);
+            }
+            if (!String(reason || '').trim()) {
+                throw new BadRequestError('Reason is required for forced status transition');
+            }
+        }
 
         // 2. 更新状态
-        await repo.batchUpdateStatus(normalizedIds, normalizedStatus, {
-            actorType: 'admin',
-            actorName: actorName,
-            reason: updateReason
-        });
+        try {
+            await repo.batchUpdateStatus(normalizedIds, normalizedStatus, {
+                actorType: 'admin',
+                actorName: actorName,
+                reason: updateReason
+            }, { forceStatusTransition });
+        } catch (error) {
+            if (isInsufficientStockError(error)) {
+                throw new BadRequestError('Insufficient stock: cannot mark order as delivered');
+            }
+            if (isInvalidStatusTransitionError(error)) {
+                throw new BadRequestError(`Invalid status transition in batch to ${normalizedStatus}`);
+            }
+            throw error;
+        }
 
         // 3. SOTA: 发送批量通知给销售
         if (orders && orders.length > 0) {
@@ -169,7 +203,7 @@ app.post('/batch', async (c) => {
                 receiver: 'sales',
                 salespersonId: order.salesperson_id,
                 actorName: actorName,
-                extra: { status: normalizedStatus }
+                extra: { status: normalizedStatus, force: forceStatusTransition }
             }));
 
             if (notifications.length > 0) {

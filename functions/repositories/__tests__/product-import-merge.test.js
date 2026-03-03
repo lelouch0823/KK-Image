@@ -90,6 +90,30 @@ describe('Product Import Variant Merge Logic', () => {
             expect(merged[0].price).toBe(120);
         });
 
+        it('matches existing variant by sku when existing also has variant_code', () => {
+            const existing = [
+                {
+                    id: 'id-1',
+                    variant_code: 'VC-1',
+                    sku: 'SKU-1',
+                    options_values: { Color: 'Red' },
+                    price: 100,
+                },
+            ];
+            const incoming = [
+                {
+                    sku: 'SKU-1',
+                    options_values: { Color: 'Red' },
+                    price: 120,
+                },
+            ];
+
+            const merged = mergeIncomingWithExisting(existing, incoming);
+            expect(merged).toHaveLength(1);
+            expect(merged[0].id).toBe('id-1');
+            expect(merged[0].price).toBe(120);
+        });
+
         it('does not falsely match when both variants have no code/sku/signature', () => {
             const existing = [
                 { id: 'id-empty', price: 100 }

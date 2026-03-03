@@ -12,6 +12,22 @@ const IMPORT_MODE = {
     SAFE_MERGE: 'safe_merge',
 };
 
+const appendLookup = (lookup, key, variant) => {
+    if (!key) return;
+    if (!lookup.has(key)) lookup.set(key, []);
+    lookup.get(key).push(variant);
+};
+
+const pickUnmatchedVariant = (lookup, key, matchedIds) => {
+    const list = lookup.get(key) || [];
+    for (const item of list) {
+        if (!matchedIds.has(item.id)) {
+            return item;
+        }
+    }
+    return null;
+};
+
 const normalizeImportMode = (value) => {
     const mode = String(value || '').trim().toLowerCase();
     if (mode === IMPORT_MODE.SAFE_MERGE) return IMPORT_MODE.SAFE_MERGE;
@@ -157,42 +173,67 @@ export const buildVariantMatchKey = (variant) => {
 };
 
 export const mergeIncomingWithExisting = (existingVariants, incomingVariants) => {
-    const existingMap = new Map();
+    const existingByCode = new Map();
+    const existingBySku = new Map();
+    const existingBySignature = new Map();
     const matchedExistingIds = new Set();
-    existingVariants.forEach(v => {
-        const key = buildVariantMatchKey(v);
-        if (!key) return;
-        existingMap.set(key, v);
+    existingVariants.forEach((variant) => {
+        const code = String(variant?.variant_code || '').trim();
+        const sku = String(variant?.sku || '').trim();
+        const signature = (() => {
+            const opts = variant?.options_values && typeof variant.options_values === 'object'
+                ? variant.options_values
+                : {};
+            const entries = Object.entries(opts)
+                .map(([k, v]) => [String(k || '').trim(), String(v || '').trim()])
+                .filter(([k, v]) => k && v)
+                .sort(([a], [b]) => a.localeCompare(b));
+            if (entries.length === 0) return null;
+            return `sig:${entries.map(([k, v]) => `${k}:${v}`).join('|')}`;
+        })();
+
+        appendLookup(existingByCode, code ? `code:${code}` : null, variant);
+        appendLookup(existingBySku, sku ? `sku:${sku}` : null, variant);
+        appendLookup(existingBySignature, signature, variant);
     });
-    
-    const incomingMap = new Map();
+
     const merged = [];
-    
-    incomingVariants.forEach(incoming => {
-        const key = buildVariantMatchKey(incoming);
-        if (key) {
-            incomingMap.set(key, true);
+
+    incomingVariants.forEach((incoming) => {
+        let existing = null;
+
+        const incomingCode = String(incoming?.variant_code || '').trim();
+        if (incomingCode) {
+            existing = pickUnmatchedVariant(existingByCode, `code:${incomingCode}`, matchedExistingIds);
         }
-        
-        const existing = key ? existingMap.get(key) : null;
+
+        const incomingSku = String(incoming?.sku || '').trim();
+        if (!existing && incomingSku) {
+            existing = pickUnmatchedVariant(existingBySku, `sku:${incomingSku}`, matchedExistingIds);
+        }
+
+        const incomingKey = buildVariantMatchKey(incoming);
+        if (!existing && incomingKey?.startsWith('sig:')) {
+            existing = pickUnmatchedVariant(existingBySignature, incomingKey, matchedExistingIds);
+        }
+
         if (existing) {
             matchedExistingIds.add(existing.id);
             merged.push({
                 ...incoming,
-                id: existing.id
+                id: existing.id,
             });
         } else {
             merged.push(incoming);
         }
     });
-    
-    existingVariants.forEach(v => {
-        const key = buildVariantMatchKey(v);
-        if (!key || (!incomingMap.has(key) && !matchedExistingIds.has(v.id))) {
-            merged.push(v);
+
+    existingVariants.forEach((variant) => {
+        if (!matchedExistingIds.has(variant.id)) {
+            merged.push(variant);
         }
     });
-    
+
     return merged;
 };
 
@@ -233,16 +274,22 @@ app.post('/', async (c) => {
     const updatedProductIds = new Set();
     
     for (const item of items) {
+        let createdProductId = null;
+        let rollbackProductId = null;
+        let rollbackProductPayload = null;
+        let productId = null;
+        let productOperation = null;
+
         try {
             assertBatchItem(item);
             const spu = item.spu ? String(item.spu).trim() : null;
-            let productId;
             let isNew = false;
             
             if (spu) {
                 const existing = await repo.findBySpu(spu);
                 if (existing) {
                     productId = existing.id;
+                    productOperation = 'updated';
                     const updateData = { ...item };
                     delete updateData.variants;
                     let nextUpdateData = updateData;
@@ -250,9 +297,16 @@ app.post('/', async (c) => {
                         nextUpdateData = buildSafeProductUpdateData(existing, updateData, conflicts);
                     }
                     if (Object.keys(nextUpdateData).length > 0) {
-                        await repo.updateWithMeta(productId, nextUpdateData);
+                        rollbackProductId = productId;
+                        rollbackProductPayload = Object.keys(nextUpdateData).reduce((acc, field) => {
+                            acc[field] = existing?.[field] ?? null;
+                            return acc;
+                        }, {});
+                        const updateResult = await repo.updateWithMeta(productId, nextUpdateData);
+                        if (updateResult?.success === false) {
+                            throw new Error(updateResult.error || 'Update product failed');
+                        }
                     }
-                    summary.updatedProducts++;
                 }
             }
             
@@ -261,12 +315,9 @@ app.post('/', async (c) => {
                 delete createData.variants;
                 const newProduct = await repo.create(createData);
                 productId = newProduct.id;
+                createdProductId = productId;
                 isNew = true;
-                summary.createdProducts++;
-            }
-
-            if (productId) {
-                updatedProductIds.add(productId);
+                productOperation = 'created';
             }
             
             if (item.variants && item.variants.length > 0) {
@@ -289,7 +340,33 @@ app.post('/', async (c) => {
                 summary.archivedVariants += syncResult?.archivedCount ?? syncResult?.deletedCount ?? 0;
                 summary.reactivatedVariants += syncResult?.reactivatedCount ?? 0;
             }
+
+            if (productOperation === 'created') {
+                summary.createdProducts++;
+            } else if (productOperation === 'updated') {
+                summary.updatedProducts++;
+            }
+            if (productId) {
+                updatedProductIds.add(productId);
+            }
         } catch (error) {
+            if (createdProductId) {
+                try {
+                    await env.DB.prepare('DELETE FROM products WHERE id = ?').bind(createdProductId).run();
+                } catch (rollbackError) {
+                    console.error('Batch product rollback failed:', rollbackError);
+                }
+                if (productOperation === 'created') {
+                    summary.createdProducts = Math.max(0, summary.createdProducts - 1);
+                }
+                updatedProductIds.delete(createdProductId);
+            } else if (rollbackProductId && rollbackProductPayload) {
+                try {
+                    await repo.updateWithMeta(rollbackProductId, rollbackProductPayload);
+                } catch (rollbackError) {
+                    console.error('Batch product update rollback failed:', rollbackError);
+                }
+            }
             summary.failedProducts++;
             errors.push(`Failed to process item ${item.spu || item.name}: ${error.message}`);
         }

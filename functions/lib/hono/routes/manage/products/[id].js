@@ -79,6 +79,23 @@ const normalizeVariantDimensionKeys = (variants = [], dimensions = []) => {
     });
 };
 
+const buildVariantRollbackPayload = (variants = []) =>
+    (variants || []).map((variant) => ({
+        id: variant.id,
+        sku: variant.sku,
+        price: Number(variant.price) || 0,
+        cost_price: variant.cost_price !== undefined && variant.cost_price !== null
+            ? Number(variant.cost_price)
+            : null,
+        stock_quantity: Number(variant.stock_quantity) || 0,
+        alert_threshold: Number(variant.alert_threshold) || 10,
+        options_values: variant.options_values || {},
+        image_id: variant.image_id || null,
+        status: variant.status || 'active',
+        barcode: variant.barcode ?? null,
+        supplier_sku: variant.supplier_sku ?? null,
+    }));
+
 const ensureProductExists = async (productRepo, productId) => {
     const product = await productRepo.findById(productId);
     if (!product) {
@@ -529,44 +546,58 @@ app.patch('/:id', async (c) => {
         const variantRepo = new ProductVariantRepository(env.DB);
         const auditRepo = new VariantAuditRepository(env.DB);
         const beforeVariants = await variantRepo.findByProductId(id);
+        let didSyncVariants = false;
+
         try {
-            const syncResult = await variantRepo.syncVariants(id, body.variants);
-            variantSync = {
-                created: syncResult?.createdCount ?? 0,
-                updated: syncResult?.updatedCount ?? 0,
-                archived: syncResult?.archivedCount ?? syncResult?.deletedCount ?? 0,
-                reactivated: syncResult?.reactivatedCount ?? 0,
-            };
+            try {
+                const syncResult = await variantRepo.syncVariants(id, body.variants);
+                didSyncVariants = true;
+                variantSync = {
+                    created: syncResult?.createdCount ?? 0,
+                    updated: syncResult?.updatedCount ?? 0,
+                    archived: syncResult?.archivedCount ?? syncResult?.deletedCount ?? 0,
+                    reactivated: syncResult?.reactivatedCount ?? 0,
+                };
+            } catch (error) {
+                if (isVariantSyncValidationError(error)) {
+                    throw new BadRequestError(error.message);
+                }
+                throw error;
+            }
+
+            const afterVariants = await variantRepo.findByProductId(id);
+            const variantImageRepo = new VariantImageRepository(env.DB, variantRepo);
+            const imageSyncPlan = resolveVariantImageSyncPlan({
+                inputVariants: body.variants,
+                persistedVariants: afterVariants,
+            });
+            if (imageSyncPlan.unresolved.length > 0) {
+                throw new BadRequestError(
+                    `Unable to reconcile variant image targets: ${JSON.stringify(imageSyncPlan.unresolved)}`
+                );
+            }
+            for (const task of imageSyncPlan.tasks) {
+                await variantImageRepo.syncImages(id, task.variantId, task.images);
+            }
+            try {
+                await archiveVariantImagesByFolder(env, id, imageSyncPlan.tasks);
+            } catch (error) {
+                console.error('Archive variant images by folder failed (product patch):', error);
+            }
+
+            const events = variantRepo.buildAuditEvents(id, beforeVariants, afterVariants);
+            await auditRepo.createBatch(events);
+            variantsUpdated = true;
         } catch (error) {
-            if (isVariantSyncValidationError(error)) {
-                throw new BadRequestError(error.message);
+            if (didSyncVariants) {
+                try {
+                    await variantRepo.syncVariants(id, buildVariantRollbackPayload(beforeVariants));
+                } catch (rollbackError) {
+                    console.error('Variant rollback failed (product patch):', rollbackError);
+                }
             }
             throw error;
         }
-
-        const afterVariants = await variantRepo.findByProductId(id);
-        const variantImageRepo = new VariantImageRepository(env.DB, variantRepo);
-        const imageSyncPlan = resolveVariantImageSyncPlan({
-            inputVariants: body.variants,
-            persistedVariants: afterVariants,
-        });
-        if (imageSyncPlan.unresolved.length > 0) {
-            throw new BadRequestError(
-                `Unable to reconcile variant image targets: ${JSON.stringify(imageSyncPlan.unresolved)}`
-            );
-        }
-        for (const task of imageSyncPlan.tasks) {
-            await variantImageRepo.syncImages(id, task.variantId, task.images);
-        }
-        try {
-            await archiveVariantImagesByFolder(env, id, imageSyncPlan.tasks);
-        } catch (error) {
-            console.error('Archive variant images by folder failed (product patch):', error);
-        }
-
-        const events = variantRepo.buildAuditEvents(id, beforeVariants, afterVariants);
-        await auditRepo.createBatch(events);
-        variantsUpdated = true;
     }
 
     // if product fields changed OR variants existed and successfully synced
@@ -622,43 +653,57 @@ app.put('/:id', async (c) => {
         const variantRepo = new ProductVariantRepository(env.DB);
         const auditRepo = new VariantAuditRepository(env.DB);
         const beforeVariants = await variantRepo.findByProductId(id);
+        let didSyncVariants = false;
+
         try {
-            const syncResult = await variantRepo.syncVariants(id, body.variants);
-            variantSync = {
-                created: syncResult?.createdCount ?? 0,
-                updated: syncResult?.updatedCount ?? 0,
-                archived: syncResult?.archivedCount ?? syncResult?.deletedCount ?? 0,
-                reactivated: syncResult?.reactivatedCount ?? 0,
-            };
+            try {
+                const syncResult = await variantRepo.syncVariants(id, body.variants);
+                didSyncVariants = true;
+                variantSync = {
+                    created: syncResult?.createdCount ?? 0,
+                    updated: syncResult?.updatedCount ?? 0,
+                    archived: syncResult?.archivedCount ?? syncResult?.deletedCount ?? 0,
+                    reactivated: syncResult?.reactivatedCount ?? 0,
+                };
+            } catch (error) {
+                if (isVariantSyncValidationError(error)) {
+                    throw new BadRequestError(error.message);
+                }
+                throw error;
+            }
+
+            const afterVariants = await variantRepo.findByProductId(id);
+            const variantImageRepo = new VariantImageRepository(env.DB, variantRepo);
+            const imageSyncPlan = resolveVariantImageSyncPlan({
+                inputVariants: body.variants,
+                persistedVariants: afterVariants,
+            });
+            if (imageSyncPlan.unresolved.length > 0) {
+                throw new BadRequestError(
+                    `Unable to reconcile variant image targets: ${JSON.stringify(imageSyncPlan.unresolved)}`
+                );
+            }
+            for (const task of imageSyncPlan.tasks) {
+                await variantImageRepo.syncImages(id, task.variantId, task.images);
+            }
+            try {
+                await archiveVariantImagesByFolder(env, id, imageSyncPlan.tasks);
+            } catch (error) {
+                console.error('Archive variant images by folder failed (product put):', error);
+            }
+
+            const events = variantRepo.buildAuditEvents(id, beforeVariants, afterVariants);
+            await auditRepo.createBatch(events);
         } catch (error) {
-            if (isVariantSyncValidationError(error)) {
-                throw new BadRequestError(error.message);
+            if (didSyncVariants) {
+                try {
+                    await variantRepo.syncVariants(id, buildVariantRollbackPayload(beforeVariants));
+                } catch (rollbackError) {
+                    console.error('Variant rollback failed (product put):', rollbackError);
+                }
             }
             throw error;
         }
-
-        const afterVariants = await variantRepo.findByProductId(id);
-        const variantImageRepo = new VariantImageRepository(env.DB, variantRepo);
-        const imageSyncPlan = resolveVariantImageSyncPlan({
-            inputVariants: body.variants,
-            persistedVariants: afterVariants,
-        });
-        if (imageSyncPlan.unresolved.length > 0) {
-            throw new BadRequestError(
-                `Unable to reconcile variant image targets: ${JSON.stringify(imageSyncPlan.unresolved)}`
-            );
-        }
-        for (const task of imageSyncPlan.tasks) {
-            await variantImageRepo.syncImages(id, task.variantId, task.images);
-        }
-        try {
-            await archiveVariantImagesByFolder(env, id, imageSyncPlan.tasks);
-        } catch (error) {
-            console.error('Archive variant images by folder failed (product put):', error);
-        }
-
-        const events = variantRepo.buildAuditEvents(id, beforeVariants, afterVariants);
-        await auditRepo.createBatch(events);
     }
 
     if (success) {

@@ -247,35 +247,45 @@ export async function detectAndLogFieldChanges(
   reason
 ) {
   const newData = { ...currentData };
-  const timelinePromises = [];
+  const fieldChanges = [];
   let hasChanges = false;
-  const timelineRepo = new OrderTimelineRepository(env.DB); // SOTA: 单例化
 
   for (const field of allowedFields) {
     if (updates[field] !== undefined && updates[field] !== currentData[field]) {
-      timelinePromises.push(
-        timelineRepo.addTimelineEntry(orderId, {
-          actionType: 'field_updated',
-          actorType: actor.type,
-          actorId: actor.id,
-          actorName: actor.name,
-          fieldName: field,
-          oldValue: currentData[field] || '',
-          newValue: updates[field] || '',
-          reason: reason || '',
-        })
-      );
+      fieldChanges.push({
+        fieldName: field,
+        oldValue: currentData[field] || '',
+        newValue: updates[field] || '',
+      });
       newData[field] = updates[field];
       hasChanges = true;
     }
   }
 
-  // 并行执行时间轴记录
-  if (timelinePromises.length > 0) {
-    await Promise.all(timelinePromises);
-  }
+  return { newData, hasChanges, fieldChanges };
+}
 
-  return { newData, hasChanges };
+async function detectOrderFileChanges(db, orderId, newFileIds) {
+  if (!Array.isArray(newFileIds)) {
+    return { hasChanges: false, oldFileIds: [], newFileIds: [] };
+  }
+  const { results: oldFiles } = await db.prepare(
+    'SELECT file_id FROM order_files WHERE order_id = ? ORDER BY sort_order'
+  ).bind(orderId).all();
+  const oldFileIds = (oldFiles || []).map((f) => f.file_id);
+  const hasChanges = JSON.stringify(newFileIds) !== JSON.stringify(oldFileIds);
+  return { hasChanges, oldFileIds, newFileIds };
+}
+
+async function archiveOrderFilesSafe(env, orderNo, orderId, fileIds) {
+  if (!Array.isArray(fileIds)) return;
+  try {
+    const { ensureOrderFolder, moveFilesToFolder } = await import('./folder-utils.js');
+    const folderId = await ensureOrderFolder(env, orderNo || orderId);
+    await moveFilesToFolder(env, fileIds, folderId);
+  } catch (e) {
+    console.error('File archiving error:', e);
+  }
 }
 
 /**
@@ -295,12 +305,14 @@ export async function detectAndLogFieldChanges(
 export async function processOrderUpdate(options) {
   const { env, orderId, orderNo, currentData, updates, fileIds, allowedFields, actor, reason, salespersonId } =
     options;
+  const currentStatus = options.currentStatus ?? currentData?.status;
+  const baselineData = { ...currentData, status: currentStatus };
 
   // 1. 检测字段变更
-  const { newData, hasChanges: dataChanged } = await detectAndLogFieldChanges(
+  const { newData, hasChanges: dataChanged, fieldChanges } = await detectAndLogFieldChanges(
     env,
     orderId,
-    currentData,
+    baselineData,
     updates || {},
     allowedFields,
     actor,
@@ -308,7 +320,8 @@ export async function processOrderUpdate(options) {
   );
 
   // 2. 检测文件变更
-  const filesChanged = await updateOrderFiles(env, orderId, orderNo, fileIds, actor, reason);
+  const fileChange = await detectOrderFileChanges(env.DB, orderId, fileIds);
+  const filesChanged = fileChange.hasChanges;
 
   // 3. 检测商品绑定变更（orders 顶级列，独立于 current_data JSON）
   const productIdChanged =
@@ -317,19 +330,53 @@ export async function processOrderUpdate(options) {
   const variantIdChanged =
     options.variantId !== undefined &&
     (options.currentVariantId === undefined || options.variantId !== options.currentVariantId);
+  const statusChanged = updates?.status !== undefined && updates.status !== currentStatus;
 
   // 4. 如果有任何变更（数据/文件/商品绑定），更新订单并发送通知
   if (dataChanged || filesChanged || productIdChanged || variantIdChanged) {
     const orderRepo = new OrderRepository(env.DB);
     const actorTypeStr = actor.type === 'admin' ? 'admin' : 'sales';
 
-    // SOTA: 检测 status 变更并更新顶级 status 列
-    // updateData 只更新 current_data JSON，不会更新 status 列
-    if (updates?.status !== undefined && updates.status !== currentData.status) {
-      await orderRepo.updateStatus(orderId, updates.status, actorTypeStr);
-    }
+    await orderRepo.updateComposite({
+      id: orderId,
+      actorType: actorTypeStr,
+      newData,
+      productId: options.productId,
+      variantId: options.variantId,
+      status: statusChanged ? updates.status : undefined,
+      fileIds: filesChanged ? fileChange.newFileIds : undefined,
+      forceStatusTransition: Boolean(options.forceStatusTransition),
+    });
 
-    await orderRepo.updateData(orderId, newData, actorTypeStr, options.productId, options.variantId);
+    const timelineRepo = new OrderTimelineRepository(env.DB);
+    const timelineTasks = (fieldChanges || []).map((change) => timelineRepo.addTimelineEntry(orderId, {
+      actionType: 'field_updated',
+      actorType: actor.type,
+      actorId: actor.id,
+      actorName: actor.name,
+      fieldName: change.fieldName,
+      oldValue: change.oldValue,
+      newValue: change.newValue,
+      reason: reason || '',
+    }));
+    if (filesChanged) {
+      timelineTasks.push(
+        timelineRepo.addTimelineEntry(orderId, {
+          actionType: 'field_updated',
+          fieldName: 'files',
+          actorType: actor.type,
+          actorId: actor.id,
+          actorName: actor.name,
+          oldValue: `${fileChange.oldFileIds.length} ${MSG.ORDER.IMAGES}`,
+          newValue: `${fileChange.newFileIds.length} ${MSG.ORDER.IMAGES}`,
+          reason: reason || '',
+        })
+      );
+      await archiveOrderFilesSafe(env, orderNo, orderId, fileChange.newFileIds);
+    }
+    if (timelineTasks.length > 0) {
+      await Promise.all(timelineTasks);
+    }
 
     // SOTA: 自动发送通知
     // 如果是管理员修改，通知销售员
