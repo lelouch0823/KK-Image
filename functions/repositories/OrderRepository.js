@@ -71,9 +71,14 @@ export class OrderRepository {
     return mutations.updateData(this.db, id, newData, actorType, productId, variantId);
   }
 
+  /** @see mutations.updateComposite */
+  async updateComposite(payload) {
+    return mutations.updateComposite(this.db, payload);
+  }
+
   /** @see mutations.updateStatus */
-  async updateStatus(id, newStatus, actorType) {
-    return mutations.updateStatus(this.db, id, newStatus, actorType);
+  async updateStatus(id, newStatus, actorType, options) {
+    return mutations.updateStatus(this.db, id, newStatus, actorType, options);
   }
 
   /** @see mutations.updateFiles */
@@ -82,8 +87,8 @@ export class OrderRepository {
   }
 
   /** @see mutations.batchUpdateStatus */
-  async batchUpdateStatus(ids, newStatus, timeline) {
-    return mutations.batchUpdateStatus(this.db, this.timelineRepo, ids, newStatus, timeline);
+  async batchUpdateStatus(ids, newStatus, timeline, options) {
+    return mutations.batchUpdateStatus(this.db, this.timelineRepo, ids, newStatus, timeline, options);
   }
 
   /** @see mutations.markAsRead */

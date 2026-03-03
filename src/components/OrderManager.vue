@@ -42,6 +42,7 @@
             <OrderStatusChanger
               :status="order.status"
               :loading="statusChanging[order.id]"
+              :permissions="currentUser?.permissions || []"
               :on-status-change="(e) => handleStatusChange(order, e)"
             />
           </template>
@@ -88,6 +89,7 @@
             <OrderStatusChanger
               :status="order.status"
               :loading="statusChanging[order.id]"
+              :permissions="currentUser?.permissions || []"
               :on-status-change="(e) => handleStatusChange(order, e)"
             />
           </template>
@@ -241,7 +243,7 @@ const {
 
 const { t } = useI18n();
 const { addToast } = useToast();
-const { authFetch } = useAuth();
+const { authFetch, currentUser } = useAuth();
 const route = useRoute();
 const router = useRouter();
 const { setContext } = useAI();
@@ -416,10 +418,10 @@ const changePage = (page) => {
 };
 
 // Status Change Handler (Local wrapper)
-const handleStatusChange = async (order, { status, note }) => {
+const handleStatusChange = async (order, { status, note, force }) => {
   statusChanging[order.id] = true;
   try {
-    const success = await changeStatus(order.id, status, note);
+    const success = await changeStatus(order.id, status, note, force);
     if (success) {
       if (filterState.value.status && filterState.value.status !== status) {
         handleFilterChange();

@@ -323,4 +323,89 @@ describe('product variant audit routes', () => {
     expect(res.status).toBe(200);
     expect(mockDimensionRepo.updateValueMeta).not.toHaveBeenCalled();
   });
+
+  it('PATCH /:id rolls back variant sync when image reconciliation is ambiguous', async () => {
+    mockProductRepo.findById.mockResolvedValue({ id: 'p1', name: 'Tee' });
+    mockVariantRepo.findByProductId
+      .mockResolvedValueOnce([
+        {
+          id: 'v-old',
+          product_id: 'p1',
+          sku: 'SKU-OLD',
+          price: 10,
+          cost_price: 6,
+          stock_quantity: 5,
+          alert_threshold: 1,
+          status: 'active',
+          options_values: { Color: 'Blue' },
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'v-a',
+          product_id: 'p1',
+          sku: '',
+          price: 11,
+          cost_price: 6,
+          stock_quantity: 5,
+          alert_threshold: 1,
+          status: 'active',
+          options_values: { Color: 'Red' },
+        },
+        {
+          id: 'v-b',
+          product_id: 'p1',
+          sku: '',
+          price: 12,
+          cost_price: 6,
+          stock_quantity: 5,
+          alert_threshold: 1,
+          status: 'active',
+          options_values: { Color: 'Red' },
+        },
+      ]);
+    mockVariantRepo.syncVariants.mockResolvedValue({
+      createdCount: 1,
+      updatedCount: 0,
+      archivedCount: 0,
+      reactivatedCount: 0,
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/p1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          variants: [
+            {
+              price: 12,
+              cost_price: 6,
+              stock_quantity: 5,
+              alert_threshold: 1,
+              status: 'active',
+              options_values: { Color: 'Red' },
+              images: [{ image_id: 'img-red', is_primary: 1 }],
+            },
+          ],
+        }),
+      },
+      { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mockVariantRepo.syncVariants).toHaveBeenCalledTimes(2);
+    expect(mockVariantRepo.syncVariants).toHaveBeenLastCalledWith(
+      'p1',
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'v-old',
+          sku: 'SKU-OLD',
+          options_values: { Color: 'Blue' },
+        }),
+      ])
+    );
+  });
 });

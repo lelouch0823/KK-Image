@@ -3,13 +3,23 @@ import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
+import {
+    canTransitionOrderStatus,
+    hasForceStatusPermission,
+    INVALID_ORDER_STATUS_TRANSITION_ERROR,
+} from '../../../../../api/utils/order-state-machine.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
-import { NotFoundError, BadRequestError, UnauthorizedError } from '../../../errors.js';
+import { NotFoundError, BadRequestError, UnauthorizedError, ForbiddenError } from '../../../errors.js';
 import { invalidateCache } from '../../../middleware/cache.js';
 import { getManageOrderCacheUrls, getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../../_shared/cache-urls.js';
 
 const app = new Hono();
+
+const isInsufficientStockError = (error) =>
+    String(error?.message || '').includes('insufficient variant stock');
+const isInvalidStatusTransitionError = (error) =>
+    String(error?.message || '').includes(INVALID_ORDER_STATUS_TRANSITION_ERROR);
 
 /**
  * GET /:id - 获取订单详情
@@ -58,6 +68,7 @@ app.patch('/:id', async (c) => {
     if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
 
     const { updates: updatesFromBody, reason, fileIds, productId, variantId } = body;
+    const forceStatusTransition = Boolean(body?.force);
     const updatesObj = updatesFromBody || body;
     const {
         reason: _unusedReason,
@@ -107,12 +118,27 @@ app.patch('/:id', async (c) => {
 
     // 管理员允许修改的所有字段（productId 是顶级表列，通过 options.productId 单独传递处理）
     const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
+    const requestedStatus = finalUpdates?.status;
+    const isStatusChange = requestedStatus !== undefined && requestedStatus !== order.status;
+
+    if (isStatusChange && !canTransitionOrderStatus(order.status, requestedStatus)) {
+        if (!forceStatusTransition) {
+            throw new BadRequestError(`Invalid status transition: ${order.status} -> ${requestedStatus}`);
+        }
+        if (!hasForceStatusPermission(user)) {
+            throw new ForbiddenError(MSG.AUTH.PERMISSION_DENIED);
+        }
+        if (!String(reason || '').trim()) {
+            throw new BadRequestError('Reason is required for forced status transition');
+        }
+    }
 
     const _result = await processOrderUpdate({
         env,
         orderId: id,
         orderNo: order.orderNo,
         currentData: order.currentData,
+        currentStatus: order.status,
         updates: finalUpdates,
         fileIds,
         productId, // 传入 product_id 以更新列
@@ -123,13 +149,15 @@ app.patch('/:id', async (c) => {
         actor: { type: 'admin', id: user?.id || 'admin', name: user?.name || 'Admin' },
         reason: reason || 'Admin Update',
         salespersonId: order.salespersonId, // 传入销售员ID以发送通知
+        forceStatusTransition,
     });
 
     const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, [order.salespersonId]);
     c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c, { salesTokens: notificationSalesTokens })));
     c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: notificationSalesTokens })));
 
-    return c.json({ success: true, message: MSG.ORDER.UPDATE_SUCCESS });
+    const updatedOrder = await orderRepo.findById(id);
+    return c.json({ success: true, message: MSG.ORDER.UPDATE_SUCCESS, data: updatedOrder });
 });
 
 /**
@@ -139,7 +167,7 @@ app.patch('/:id/status', async (c) => {
     const { env } = c;
     const user = c.get('user');
     const id = c.req.param('id');
-    const { status, note } = await c.req.json();
+    const { status, note, force } = await c.req.json();
     if (!ORDER_STATUSES.includes(status)) {
         throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
     }
@@ -149,7 +177,31 @@ app.patch('/:id/status', async (c) => {
     if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
 
     const oldStatus = order.status;
-    const success = await repo.updateStatus(id, status, 'admin');
+    const forceStatusTransition = Boolean(force);
+    if (status !== oldStatus && !canTransitionOrderStatus(oldStatus, status)) {
+        if (!forceStatusTransition) {
+            throw new BadRequestError(`Invalid status transition: ${oldStatus} -> ${status}`);
+        }
+        if (!hasForceStatusPermission(user)) {
+            throw new ForbiddenError(MSG.AUTH.PERMISSION_DENIED);
+        }
+        if (!String(note || '').trim()) {
+            throw new BadRequestError('Reason is required for forced status transition');
+        }
+    }
+
+    let success = false;
+    try {
+        success = await repo.updateStatus(id, status, 'admin', { forceStatusTransition });
+    } catch (error) {
+        if (isInsufficientStockError(error)) {
+            throw new BadRequestError('Insufficient stock: cannot mark order as delivered');
+        }
+        if (isInvalidStatusTransitionError(error)) {
+            throw new BadRequestError(`Invalid status transition: ${oldStatus} -> ${status}`);
+        }
+        throw error;
+    }
 
     if (success) {
         // 记录状态变更到时间轴

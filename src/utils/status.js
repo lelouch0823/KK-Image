@@ -6,6 +6,7 @@ export const STATUS_OPTIONS = [
   'shipping',
   'arrived',
   'delivered',
+  'void',
 ];
 
 export const STATUS_STYLES = {

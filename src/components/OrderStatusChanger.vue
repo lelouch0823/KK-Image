@@ -2,8 +2,9 @@
   <div class="inline-block">
     <!-- 触发按钮 -->
     <button
+      type="button"
       :disabled="loading"
-      class="focus:ring-primary/30 focus:ring-2 focus:ring-offset-1 focus:outline-none inline-flex items-center justify-between gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold shadow-sm transition-all duration-200 hover:shadow-md active:scale-95 disabled:opacity-50"
+      class="focus-visible:ring-primary/30 focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none inline-flex items-center justify-between gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold shadow-sm transition-all duration-200 hover:shadow-md active:scale-95 disabled:opacity-50"
       :class="currentStatusClass"
       @click="openModal"
     >
@@ -51,19 +52,40 @@
                 {{ t('order.manage.currentStatus') }}:
                 <span class="text-primary font-medium">{{ t(`order.statuses.${status}`) }}</span>
               </p>
+              <p class="mt-1 text-xs text-(--text-muted)">
+                {{ t('order.manage.transitionHint') }}
+              </p>
+            </div>
+            <div class="px-6 pb-4">
+              <div
+                class="border-info/20 bg-info-bg/40 rounded-xl border px-3 py-2"
+                aria-live="polite"
+              >
+                <p class="text-info text-xs">{{ t(friendlyTipKey) }}</p>
+              </div>
+              <p
+                v-if="!canUseForceOverride"
+                class="mt-2 text-xs text-(--text-secondary)"
+              >
+                {{ t('order.manage.friendlyNoPermissionTip') }}
+              </p>
             </div>
 
             <!-- 状态选择列表 -->
             <div class="px-6 pb-4">
-              <div class="grid grid-cols-2 gap-2">
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <button
-                  v-for="s in statusOptions"
+                  type="button"
+                  v-for="s in orderedStatusOptions"
                   :key="s"
-                  class="relative flex items-center gap-2.5 rounded-xl border-2 px-4 py-3 text-left transition-all duration-150"
+                  :disabled="isOutOfFlowStatus(s) && !canUseForceOverride"
+                  :aria-label="getStatusButtonAriaLabel(s)"
+                  class="focus-visible:ring-primary/30 relative flex cursor-pointer items-center gap-2.5 rounded-xl border-2 px-4 py-3 text-left transition-all duration-200 focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                   :class="[
                     selectedStatus === s
                       ? 'border-primary bg-primary/5 ring-primary/20 ring-2'
                       : 'border-(--border-color) hover:border-(--border-hover) hover:bg-(--bg-hover)',
+                    isOutOfFlowStatus(s) ? 'border-warning/40' : '',
                   ]"
                   @click="selectedStatus = s"
                 >
@@ -81,6 +103,19 @@
                     {{ t(`order.statuses.${s}`) }}
                   </span>
 
+                  <span
+                    class="ml-auto rounded-full px-2 py-0.5 text-[10px] font-medium"
+                    :class="[
+                      s === status
+                        ? 'bg-(--bg-muted) text-(--text-secondary)'
+                        : isOutOfFlowStatus(s)
+                          ? 'bg-warning/15 text-warning'
+                          : 'bg-success/15 text-success',
+                    ]"
+                  >
+                    {{ getStatusTagText(s) }}
+                  </span>
+
                   <!-- 选中勾 -->
                   <AppIcon
                     v-if="selectedStatus === s"
@@ -94,7 +129,8 @@
             <div class="px-6 pb-4">
               <label class="mb-2 block text-xs font-medium text-(--text-secondary)">
                 {{ t('order.manage.statusNote') }}
-                <span class="text-(--text-muted)">({{ t('common.optional') }})</span>
+                <span v-if="!requiresForceOverride" class="text-(--text-muted)">({{ t('common.optional') }})</span>
+                <span v-else class="text-danger">*</span>
               </label>
               <input
                 ref="noteInput"
@@ -102,13 +138,40 @@
                 type="text"
                 :placeholder="t('order.manage.statusNotePlaceholder')"
                 class="input"
+                :aria-required="requiresForceOverride ? 'true' : 'false'"
                 @keyup.enter="handleConfirm"
               />
+              <p
+                v-if="requiresForceOverride && !forceReasonValid"
+                role="alert"
+                class="mt-2 text-xs text-warning"
+              >
+                {{ t('order.manage.forceReasonRequired') }}
+              </p>
+            </div>
+
+            <div v-if="requiresForceOverride" class="px-6 pb-4">
+              <div aria-live="polite" class="border-warning/30 bg-(--color-warning-bg)/50 rounded-xl border p-3">
+                <p class="text-sm text-(--text-main)">
+                  {{ t('order.manage.forceTransitionWarning') }}
+                </p>
+                <label class="mt-2 flex items-center gap-2 text-sm text-(--text-main)">
+                  <input
+                    v-model="forceOverrideConfirmed"
+                    :disabled="!canUseForceOverride"
+                    type="checkbox"
+                    class="size-4 rounded border-(--border-color)"
+                  />
+                  <span v-if="canUseForceOverride">{{ t('order.manage.forceTransitionConfirm') }}</span>
+                  <span v-else class="text-danger">{{ t('order.manage.forceTransitionNoPermission') }}</span>
+                </label>
+              </div>
             </div>
 
             <!-- 危险操作提示 -->
             <div v-if="isDangerousStatus" class="px-6 pb-4">
               <div
+                aria-live="polite"
                 class="border-danger/20 bg-danger-bg flex items-start gap-2 rounded-xl border p-3"
               >
                 <AppIcon
@@ -124,6 +187,7 @@
             <!-- 操作按钮 -->
             <div class="flex items-center gap-3 px-6 pb-6">
               <button
+                type="button"
                 :disabled="submitting"
                 class="rounded-xl bg-(--bg-muted) px-4 py-2.5 text-sm font-semibold text-(--text-secondary) transition-all hover:bg-(--bg-hover) active:scale-95 disabled:opacity-50"
                 @click="closeModal"
@@ -131,6 +195,7 @@
                 {{ t('common.cancel') }}
               </button>
               <button
+                type="button"
                 :disabled="!canConfirm"
                 :class="[
                   'flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-(--text-inverse) shadow-lg transition-all active:scale-95',
@@ -156,10 +221,17 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { STATUS_OPTIONS, STATUS_STYLES, STATUS_DOTS } from '@/utils/status';
+import {
+  canTransitionOrderStatus,
+  getAllowedOrderTransitions,
+  hasForceStatusPermission,
+  isHighRiskOrderStatus,
+} from '@/utils/order-state-machine';
 
 const props = defineProps({
   status: { type: String, required: true },
   loading: Boolean,
+  permissions: { type: Array, default: () => [] },
   // 异步回调：返回 Promise 以便弹窗等待 API 完成后再关闭
   onStatusChange: { type: Function, default: null },
 });
@@ -172,6 +244,7 @@ const { t } = useI18n();
 const showModal = ref(false);
 const selectedStatus = ref('');
 const statusNote = ref('');
+const forceOverrideConfirmed = ref(false);
 const submitting = ref(false);
 const noteInput = ref(null);
 
@@ -186,19 +259,63 @@ const getStatusDotColor = (s) => STATUS_DOTS[s] || 'bg-gray-400';
 
 // 是否为危险状态
 const isDangerousStatus = computed(
-  () => selectedStatus.value === 'void' || selectedStatus.value === 'refunded'
+  () => isHighRiskOrderStatus(selectedStatus.value)
 );
 
+const allowedTransitions = computed(() => getAllowedOrderTransitions(props.status));
+const isOutOfFlowStatus = (s) => s !== props.status && !allowedTransitions.value.includes(s);
+const requiresForceOverride = computed(() => selectedStatus.value && isOutOfFlowStatus(selectedStatus.value));
+const canUseForceOverride = computed(() => hasForceStatusPermission(props.permissions));
+const forceReasonValid = computed(() => String(statusNote.value || '').trim().length > 0);
+const orderedStatusOptions = computed(() => {
+  const inFlow = statusOptions.filter((s) => s === props.status || allowedTransitions.value.includes(s));
+  const outOfFlow = statusOptions.filter((s) => !inFlow.includes(s));
+  return [...inFlow, ...outOfFlow];
+});
+
+const getStatusTagText = (s) => {
+  if (s === props.status) return t('order.manage.currentTag');
+  if (isOutOfFlowStatus(s)) return t('order.manage.forceTag');
+  return t('order.manage.flowTag');
+};
+
+const getStatusButtonAriaLabel = (s) => {
+  const label = t(`order.statuses.${s}`);
+  const tag = getStatusTagText(s);
+  return `${label} - ${tag}`;
+};
+
+const friendlyTipKey = computed(() => {
+  if (!selectedStatus.value || selectedStatus.value === props.status) {
+    return 'order.manage.friendlyPickTip';
+  }
+  if (requiresForceOverride.value) {
+    if (!canUseForceOverride.value) return 'order.manage.friendlyNoPermissionTip';
+    if (!forceOverrideConfirmed.value) return 'order.manage.friendlyForceConfirmTip';
+    if (!forceReasonValid.value) return 'order.manage.friendlyForceReasonTip';
+    return 'order.manage.friendlyForceReadyTip';
+  }
+  if (isHighRiskOrderStatus(selectedStatus.value)) {
+    return 'order.manage.friendlyRiskTip';
+  }
+  return 'order.manage.friendlyFlowTip';
+});
+
 // 是否可以确认
-const canConfirm = computed(
-  () => selectedStatus.value && selectedStatus.value !== props.status && !submitting.value
-);
+const canConfirm = computed(() => {
+  if (!selectedStatus.value || selectedStatus.value === props.status || submitting.value) return false;
+  if (!requiresForceOverride.value) return true;
+  if (!canUseForceOverride.value) return false;
+  if (!forceOverrideConfirmed.value) return false;
+  return forceReasonValid.value;
+});
 
 // 打开弹窗
 const openModal = () => {
   if (props.loading) return;
   selectedStatus.value = props.status;
   statusNote.value = '';
+  forceOverrideConfirmed.value = false;
   showModal.value = true;
 };
 
@@ -217,6 +334,7 @@ const handleConfirm = async () => {
     const payload = {
       status: selectedStatus.value,
       note: statusNote.value,
+      force: requiresForceOverride.value && forceOverrideConfirmed.value,
     };
 
     // SOTA: 使用 onStatusChange prop 回调实现真正的异步等待
@@ -270,5 +388,13 @@ watch(showModal, (val) => {
 }
 .fade-scale-enter-from .transform {
   transform: scale(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-scale-enter-active,
+  .fade-scale-leave-active,
+  .fade-scale-enter-active .transform {
+    transition: none !important;
+  }
 }
 </style>

@@ -758,6 +758,85 @@ describe('Product Routes — variant-first contract', () => {
             );
         });
 
+        it('should mark item as failed when updateWithMeta returns unsuccessful result', async () => {
+            mockProductRepo.findBySpu.mockResolvedValue({
+                id: 'existing-id',
+                spu: 'SPU-UPD-FAIL-1',
+                name: 'Old Name',
+            });
+            mockProductRepo.updateWithMeta.mockResolvedValue({ success: false, changes: 0, error: 'Invalid currency code' });
+
+            const app = createApp();
+            const res = await app.request(
+                'http://localhost/api/manage/products/batch',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: [
+                            {
+                                name: 'New Name',
+                                spu: 'SPU-UPD-FAIL-1',
+                                currency: 'INVALID',
+                                variants: [
+                                    { ...validVariants[0], sku: 'SKU-UPD-FAIL-1', variant_code: 'V-UPD-FAIL-1' },
+                                ],
+                            },
+                        ],
+                    }),
+                },
+                { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+                { waitUntil: vi.fn() }
+            );
+
+            expect(res.status).toBe(200);
+            const data = await res.json();
+            expect(data.success).toBe(false);
+            expect(data.summary.updatedProducts).toBe(0);
+            expect(data.summary.failedProducts).toBe(1);
+            expect(mockVariantRepo.syncVariants).not.toHaveBeenCalled();
+            expect(data.errors[0]).toContain('Invalid currency code');
+        });
+
+        it('should rollback newly created product when variant sync fails', async () => {
+            mockProductRepo.findBySpu.mockResolvedValue(null);
+            mockProductRepo.create.mockResolvedValue({ id: 'new-created-id' });
+            mockVariantRepo.findByProductId.mockResolvedValue([]);
+            mockVariantRepo.syncVariants.mockRejectedValue(new Error('duplicate variant signature in payload'));
+            const runDelete = vi.fn(async () => ({ success: true, meta: { changes: 1 } }));
+            const bindDelete = vi.fn(() => ({ run: runDelete }));
+            const prepare = vi.fn(() => ({ bind: bindDelete }));
+
+            const app = createApp();
+            const res = await app.request(
+                'http://localhost/api/manage/products/batch',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: [
+                            {
+                                name: 'Rollback Product',
+                                spu: 'SPU-ROLLBACK-1',
+                                variants: [{ ...validVariants[0], sku: 'SKU-ROLLBACK-1' }],
+                            },
+                        ],
+                    }),
+                },
+                { DB: { prepare }, executionCtx: { waitUntil: vi.fn() } },
+                { waitUntil: vi.fn() }
+            );
+
+            expect(res.status).toBe(200);
+            const data = await res.json();
+            expect(data.success).toBe(false);
+            expect(data.summary.createdProducts).toBe(0);
+            expect(data.summary.failedProducts).toBe(1);
+            expect(prepare).toHaveBeenCalledWith('DELETE FROM products WHERE id = ?');
+            expect(bindDelete).toHaveBeenCalledWith('new-created-id');
+            expect(runDelete).toHaveBeenCalled();
+        });
+
         it('should return success=false when all items fail', async () => {
             mockProductRepo.findBySpu.mockResolvedValue(null);
             mockProductRepo.create.mockRejectedValue(new Error('boom'));
