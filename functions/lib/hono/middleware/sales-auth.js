@@ -1,5 +1,22 @@
-import { verifyJWT, MSG } from '../_shared/utils.js';
-import { SalespersonRepository } from '../../../repositories/SalespersonRepository.js';
+import { MSG } from '../_shared/utils.js';
+import { authenticateSalesperson } from '../../../api/utils/salesperson-auth.js';
+
+const resolveAuthStatus = (message) => {
+    if (message === MSG.SALESPERSON.NOT_FOUND) return 404;
+    if (message === MSG.SALESPERSON.DISABLED || message === MSG.AUTH.FORBIDDEN) return 403;
+    if (
+        message === MSG.AUTH.REQUIRED ||
+        message === MSG.AUTH.EXPIRED ||
+        message === MSG.AUTH.JWT_REQUIRED ||
+        message === MSG.AUTH.JWT_SECRET_MISSING ||
+        message === MSG.AUTH.JWT_INVALID ||
+        message === MSG.AUTH.JWT_EXPIRED ||
+        (typeof message === 'string' && message.startsWith(`${MSG.AUTH.JWT_FAILED}:`))
+    ) {
+        return 401;
+    }
+    return null;
+};
 
 /**
  * 销售人员授权中间件
@@ -15,51 +32,19 @@ export const salesAuthMiddleware = async (c, next) => {
         return c.json({ success: false, error: 'Access token required in path' }, 400);
     }
 
-    let jwt = null;
-    const authHeader = c.req.header('Authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-        jwt = authHeader.substring(7);
-    }
-
-    if (!jwt) {
-        // 尝试从 cookie 获取，小程序也有可能使用 cookie
-        const cookieHeader = c.req.header('Cookie');
-        if (cookieHeader) {
-            const cookies = Object.fromEntries(
-                cookieHeader.split(';').map((c) => {
-                    const [name, ...value] = c.trim().split('=');
-                    return [name, value.join('=')];
-                })
-            );
-            jwt = cookies['sales_token'];
-        }
-    }
-
-    if (!jwt) {
-        return c.json({ success: false, error: MSG.AUTH.REQUIRED }, 401);
-    }
-
+    let salesperson = null;
     try {
-        const payload = await verifyJWT(jwt, c.env);
-        if (payload.type !== 'salesperson') {
-            return c.json({ success: false, error: MSG.AUTH.FORBIDDEN }, 403);
-        }
-
-        const repo = new SalespersonRepository(c.env.DB, c.env.JWT_SECRET);
-        const salesperson = await repo.findById(payload.id);
-
-        if (!salesperson || salesperson.access_token !== accessToken) {
-            return c.json({ success: false, error: MSG.SALESPERSON.NOT_FOUND }, 404);
-        }
-
-        if (!salesperson.is_active) {
-            return c.json({ success: false, error: MSG.SALESPERSON.DISABLED }, 403);
-        }
-
-        c.set('salesperson', salesperson);
-        return next();
+        salesperson = await authenticateSalesperson(c.req.raw, c.env, accessToken);
     } catch (err) {
-        console.error('Sales Auth Failed:', err);
-        return c.json({ success: false, error: MSG.AUTH.EXPIRED }, 401);
+        const errorMessage = typeof err?.message === 'string' && err.message ? err.message : MSG.AUTH.EXPIRED;
+        const status = resolveAuthStatus(errorMessage);
+        if (status) {
+            return c.json({ success: false, error: errorMessage }, status);
+        }
+        console.error('salesAuthMiddleware unexpected error');
+        return c.json({ success: false, error: MSG.COMMON.OP_FAILED }, 500);
     }
+
+    c.set('salesperson', salesperson);
+    await next();
 };

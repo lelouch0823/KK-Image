@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { OrderStatsRepository } from '../../../../../repositories/OrderStatsRepository.js';
 import { MSG, ORDER_STATUSES, getChinaDayStart, getChinaDateStr } from '../../../_shared/utils.js';
+import { parsePagination } from '../../../_shared/route-helpers.js';
 import { withCache } from '../../../middleware/cache.js';
 
 const app = new Hono();
@@ -11,14 +12,12 @@ const app = new Hono();
  */
 app.get('/', withCache(20), async (c) => {
     const { env } = c;
-    const url = new URL(c.req.url);
-    const page = parseInt(url.searchParams.get('page') || '1', 10);
-    const limit = parseInt(url.searchParams.get('limit') || '20', 10);
-    const salespersonId = url.searchParams.get('salesperson');
-    const status = url.searchParams.get('status');
-    const search = url.searchParams.get('search');
-    const startTime = parseInt(url.searchParams.get('startTime') || '0', 10);
-    const endTime = parseInt(url.searchParams.get('endTime') || '0', 10);
+    const { page, limit } = parsePagination(c);
+    const salespersonId = c.req.query('salesperson');
+    const status = c.req.query('status');
+    const search = c.req.query('search');
+    const startTime = parseInt(c.req.query('startTime') || '0', 10);
+    const endTime = parseInt(c.req.query('endTime') || '0', 10);
 
     const orderRepo = new OrderRepository(env.DB);
     const [result, { results: salespersons }] = await Promise.all([
