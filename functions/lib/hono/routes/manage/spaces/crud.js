@@ -14,13 +14,14 @@ import { z } from 'zod';
 import { requirePermission } from '../../../middleware/auth.js';
 import { withCache, invalidateCache } from '../../../middleware/cache.js';
 import { SpaceRepository } from '../../../../../repositories/SpaceRepository.js';
+import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
 import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { generateId, generateShareToken, MSG, getShareUrl } from '../../../_shared/utils.js';
 import {
   transformSpaceListItem,
   transformSpaceDetail,
 } from './transformers.js';
-import { NotFoundError, BadRequestError } from '../../../errors.js';
+import { NotFoundError } from '../../../errors.js';
 import { getManageSpaceCacheUrls, getSalesSpaceCacheUrls } from '../../_shared/cache-urls.js';
 
 const crud = new Hono();
@@ -181,12 +182,7 @@ crud.post(
       createdAt: nowMs,
       updatedAt: nowMs,
     };
-    if (newSpace.productId && !newSpace.variantId) {
-      throw new BadRequestError('variantId is required when productId is provided');
-    }
-    if (!newSpace.productId && newSpace.variantId) {
-      throw new BadRequestError('productId is required when variantId is provided');
-    }
+    await validateProductVariantBinding(env.DB, newSpace.productId, newSpace.variantId, { checkExistence: false });
 
     await repo.create(newSpace);
     invalidateSpaceCaches(c, { spaceId, productIds: [newSpace.productId] });
@@ -273,12 +269,7 @@ crud.on(
     }
     const nextProductId = data.productId !== undefined ? (data.productId || null) : (space.product_id || null);
     const nextVariantId = data.variantId !== undefined ? (data.variantId || null) : (space.variant_id || null);
-    if (nextProductId && !nextVariantId) {
-      throw new BadRequestError('variantId is required when productId is provided');
-    }
-    if (!nextProductId && nextVariantId) {
-      throw new BadRequestError('productId is required when variantId is provided');
-    }
+    await validateProductVariantBinding(env.DB, nextProductId, nextVariantId, { checkExistence: false });
     // 处理新的分享模式
     if (data.shareMode !== undefined) {
       updates.push('share_mode = ?');

@@ -2,8 +2,8 @@
 import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
-import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
-import { MSG } from '../../../_shared/utils.js';
+import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
+import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError, UnauthorizedError } from '../../../errors.js';
 import { invalidateCache } from '../../../middleware/cache.js';
@@ -69,7 +69,6 @@ app.patch('/:id', async (c) => {
     } = updatesObj;
 
     const { processOrderUpdate } = await import('../../../../../api/utils/order-utils.js');
-    const variantRepo = new ProductVariantRepository(env.DB);
 
     // 如果绑定了商品，从商品库获取信息覆盖提交的字段
     let finalUpdates = { ...updates };
@@ -77,25 +76,24 @@ app.patch('/:id', async (c) => {
     const hasVariantIdPayload = variantId !== undefined;
     const effectiveProductId = hasProductIdPayload ? productId : order.productId;
     let normalizedVariantId = hasVariantIdPayload ? (variantId || null) : undefined;
+    let validatedBinding = null;
 
-    if ((hasProductIdPayload && productId && !hasVariantIdPayload) || (hasVariantIdPayload && !normalizedVariantId && effectiveProductId)) {
-        throw new BadRequestError('variantId is required when productId is provided');
-    }
-
-    if (normalizedVariantId) {
-        if (!effectiveProductId) {
-            throw new BadRequestError('productId is required when variantId is provided');
+    if (hasProductIdPayload || hasVariantIdPayload) {
+        validatedBinding = await validateProductVariantBinding(env.DB, effectiveProductId, normalizedVariantId, { checkActive: true });
+        normalizedVariantId = validatedBinding.normalizedVariantId;
+        if (validatedBinding.variant) {
+            finalUpdates.sku = validatedBinding.variant.sku;
         }
-        const variant = await variantRepo.findByIdAndProductId(normalizedVariantId, effectiveProductId);
-        if (!variant) {
-            throw new BadRequestError('variantId does not belong to productId');
-        }
-        finalUpdates.sku = variant.sku;
     }
 
     if (effectiveProductId) {
-        const productRepo = new ProductRepository(env.DB);
-        const product = await productRepo.findById(effectiveProductId);
+        const product = validatedBinding?.product || await new ProductRepository(env.DB).findById(effectiveProductId);
+        if ((hasProductIdPayload || hasVariantIdPayload) && !product) {
+            throw new BadRequestError('productId does not exist');
+        }
+        if ((hasProductIdPayload || hasVariantIdPayload) && product?.status !== 'active') {
+            throw new BadRequestError('product must be active');
+        }
         if (product) {
             finalUpdates.name = product.name;
             finalUpdates.brand = product.brand;
@@ -142,6 +140,9 @@ app.patch('/:id/status', async (c) => {
     const user = c.get('user');
     const id = c.req.param('id');
     const { status, note } = await c.req.json();
+    if (!ORDER_STATUSES.includes(status)) {
+        throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
+    }
 
     const repo = new OrderRepository(env.DB);
     const order = await repo.findById(id);
@@ -209,6 +210,7 @@ app.post('/:id/comment', async (c) => {
         actorName: user?.name || 'Admin',
         comment
     });
+    await repo.setUnread(id, 'admin');
 
     // SOTA: Send notification to salesperson if assigned
     const order = await repo.findById(id);
@@ -234,12 +236,13 @@ app.post('/:id/comment', async (c) => {
  * DELETE /:id - 彻底删除订单 (Cascading Delete)
  */
 app.delete('/:id', async (c) => {
-    const { env, get } = c;
-    // Auth Check: Ensure only superadmin/admin can perform this action
-    const actorType = get('actorType');
-    const userRole = get('userRole');
+    const { env } = c;
+    const user = c.get('user');
+    const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
+    const canDeleteOrder =
+        user?.type === 'admin' && (permissions.includes('admin:full') || permissions.includes('*'));
 
-    if (actorType !== 'admin' || !['admin', 'superadmin'].includes(userRole)) {
+    if (!canDeleteOrder) {
         throw new UnauthorizedError(MSG.AUTH.PERMISSION_DENIED);
     }
 

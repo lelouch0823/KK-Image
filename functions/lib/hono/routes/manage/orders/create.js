@@ -1,7 +1,7 @@
 
 import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
-import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
+import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { BadRequestError } from '../../../errors.js';
@@ -33,18 +33,10 @@ app.post('/', async (c) => {
     const variantId = body.variantId ?? null;
     const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, [body.salespersonId]);
 
-    if (body.productId && !variantId) {
-        throw new BadRequestError('variantId is required when productId is provided');
-    }
-    if (variantId) {
-        if (!body.productId) {
-            throw new BadRequestError('productId is required when variantId is provided');
-        }
-        const variantRepo = new ProductVariantRepository(env.DB);
-        const variant = await variantRepo.findByIdAndProductId(variantId, body.productId);
-        if (!variant) {
-            throw new BadRequestError('variantId does not belong to productId');
-        }
+    await validateProductVariantBinding(env.DB, body.productId || null, variantId, { checkActive: true });
+
+    if (body.status && !ORDER_STATUSES.includes(body.status)) {
+        throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
     }
 
     // 1. 创建订单
@@ -117,18 +109,40 @@ app.post('/batch', async (c) => {
     const { ids, action, value, reason } = await c.req.json();
     const repo = new OrderRepository(env.DB);
     const actorName = user?.name || 'Admin';
+    const normalizedIds = Array.isArray(ids) ? ids.filter(Boolean) : [];
 
-    if (action === 'status') {
-        const updateReason = reason || MSG.ORDER.ACTIONS.BATCH_PREFIX + MSG.ORDER.ACTIONS[value];
+    if (normalizedIds.length === 0) {
+        throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);
+    }
+
+    const ACTION_STATUS_MAP = {
+        confirm: 'confirmed',
+        reject: 'rejected',
+        void: 'void',
+    };
+
+    let normalizedAction = action;
+    let normalizedStatus = value;
+    if (action in ACTION_STATUS_MAP) {
+        normalizedAction = 'status';
+        normalizedStatus = ACTION_STATUS_MAP[action];
+    }
+
+    if (normalizedAction !== 'status' || !ORDER_STATUSES.includes(normalizedStatus)) {
+        throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
+    }
+
+    if (normalizedAction === 'status') {
+        const updateReason = reason || MSG.ORDER.ACTIONS.BATCH_PREFIX + MSG.ORDER.ACTIONS[normalizedStatus];
         
         // 1. 先查询需要通知的订单信息
         const { results: orders } = await env.DB.prepare(
-            `SELECT id, order_no, salesperson_id FROM orders WHERE id IN (${ids.map(() => '?').join(',')})`
-        ).bind(...ids).all();
+            `SELECT id, order_no, salesperson_id FROM orders WHERE id IN (${normalizedIds.map(() => '?').join(',')})`
+        ).bind(...normalizedIds).all();
         const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, (orders || []).map((o) => o.salesperson_id));
 
         // 2. 更新状态
-        await repo.batchUpdateStatus(ids, value, {
+        await repo.batchUpdateStatus(normalizedIds, normalizedStatus, {
             actorType: 'admin',
             actorName: actorName,
             reason: updateReason
@@ -143,7 +157,7 @@ app.post('/batch', async (c) => {
                 receiver: 'sales',
                 salespersonId: order.salesperson_id,
                 actorName: actorName,
-                extra: { status: value }
+                extra: { status: normalizedStatus }
             }));
 
             if (notifications.length > 0) {
@@ -156,7 +170,7 @@ app.post('/batch', async (c) => {
         c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: notificationSalesTokens })));
     }
 
-    return c.json({ success: true, message: MSG.ORDER.BATCH_RESULT.replace('{valid}', ids.length) });
+    return c.json({ success: true, message: MSG.ORDER.BATCH_RESULT.replace('{valid}', normalizedIds.length) });
 });
 
 export default app;

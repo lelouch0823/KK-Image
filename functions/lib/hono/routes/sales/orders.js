@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { CreateOrderSchema, AddCommentSchema } from '../../schemas/sales.js';
 import { MSG, generateId, generateOrderNo, triggerWebhook } from '../../_shared/utils.js';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
-import { ProductVariantRepository } from '../../../../repositories/ProductVariantRepository.js';
+import { validateProductVariantBinding } from '../../../../api/utils/validation.js';
 import { parsePagination } from '../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors.js';
 import { withCache, invalidateCache } from '../../middleware/cache.js';
@@ -67,19 +67,7 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
     const orderNo = generateOrderNo();
     const variantId = data.variantId ?? null;
 
-    if (data.productId && !variantId) {
-        throw new BadRequestError('variantId is required when productId is provided');
-    }
-    if (variantId) {
-        if (!data.productId) {
-            throw new BadRequestError('productId is required when variantId is provided');
-        }
-        const variantRepo = new ProductVariantRepository(env.DB);
-        const variant = await variantRepo.findByIdAndProductId(variantId, data.productId);
-        if (!variant) {
-            throw new BadRequestError('variantId does not belong to productId');
-        }
-    }
+    await validateProductVariantBinding(env.DB, data.productId || null, variantId, { checkActive: true });
 
     // 1. 创建订单（事务）
     await orderRepo.create({
@@ -176,11 +164,14 @@ app.get('/:id', async (c) => {
  * PATCH /:id/read - 标记订单已读
  */
 app.patch('/:id/read', async (c) => {
+    const salesperson = c.get('salesperson');
     const token = c.req.param('token');
     const orderId = c.req.param('id');
     const { env } = c;
 
     const orderRepo = new OrderRepository(env.DB);
+    const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
+    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
     await orderRepo.markAsRead(orderId, 'sales');
     c.executionCtx.waitUntil(invalidateCache(getSalesOrderCacheUrls(c, { salesTokens: [token] })));
 
@@ -228,19 +219,9 @@ app.patch('/:id', async (c) => {
     const effectiveProductId = hasProductIdPayload ? productId : order.productId;
     let normalizedVariantId = hasVariantIdPayload ? (variantId || null) : undefined;
 
-    if ((hasProductIdPayload && productId && !hasVariantIdPayload) || (hasVariantIdPayload && !normalizedVariantId && effectiveProductId)) {
-        throw new BadRequestError('variantId is required when productId is provided');
-    }
-
-    if (normalizedVariantId) {
-        if (!effectiveProductId) {
-            throw new BadRequestError('productId is required when variantId is provided');
-        }
-        const variantRepo = new ProductVariantRepository(env.DB);
-        const variant = await variantRepo.findByIdAndProductId(normalizedVariantId, effectiveProductId);
-        if (!variant) {
-            throw new BadRequestError('variantId does not belong to productId');
-        }
+    if (hasProductIdPayload || hasVariantIdPayload) {
+        const binding = await validateProductVariantBinding(env.DB, effectiveProductId, normalizedVariantId, { checkActive: true });
+        normalizedVariantId = binding.normalizedVariantId;
     }
 
     // 销售端允许修改的字段

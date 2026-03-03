@@ -140,6 +140,72 @@ describe('sales routes resilience', () => {
     );
   });
 
+  it('rejects order creation when bound product is archived', async () => {
+    mocks.productVariantFindByIdAndProductId.mockResolvedValue({
+      id: 'v-1',
+      product_id: 'p-1',
+      status: 'active',
+    });
+    mocks.productFindById.mockResolvedValue({
+      id: 'p-1',
+      status: 'archived',
+      images: '[]',
+    });
+
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Shoes',
+          productId: 'p-1',
+          variantId: 'v-1',
+          fileIds: [],
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.orderCreate).not.toHaveBeenCalled();
+  });
+
+  it('rejects order creation when bound variant is archived', async () => {
+    mocks.productVariantFindByIdAndProductId.mockResolvedValue({
+      id: 'v-1',
+      product_id: 'p-1',
+      status: 'archived',
+    });
+    mocks.productFindById.mockResolvedValue({
+      id: 'p-1',
+      status: 'active',
+      images: '[]',
+    });
+
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Shoes',
+          productId: 'p-1',
+          variantId: 'v-1',
+          fileIds: [],
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.orderCreate).not.toHaveBeenCalled();
+  });
+
   it('sales products endpoints return stable schema under empty/error', async () => {
     const app = createProductsTestApp();
 
@@ -206,6 +272,13 @@ describe('sales routes resilience', () => {
   });
 
   it('invalidates sales order list cache after PATCH /:id/read', async () => {
+    mocks.orderFindByIdAndSalesperson.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      currentData: {},
+    });
+
     const app = createOrdersTestApp();
     const res = await app.request(
       'http://localhost/api/sales/token-1/orders/o-1/read',
@@ -221,6 +294,21 @@ describe('sales routes resilience', () => {
       .map(([urls]) => (Array.isArray(urls) ? urls : [urls]))
       .flat();
     expect(invalidatedUrls).toContain('http://localhost/api/sales/token-1/orders?page=1&limit=20');
+  });
+
+  it('rejects PATCH /:id/read when order does not belong to current salesperson', async () => {
+    mocks.orderFindByIdAndSalesperson.mockResolvedValue(null);
+
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders/other-order/read',
+      { method: 'PATCH' },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(404);
+    expect(mocks.orderMarkAsRead).not.toHaveBeenCalled();
   });
 
   it('invalidates manage order list cache after salesperson comment sets unread for admin', async () => {
