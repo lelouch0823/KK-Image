@@ -56,3 +56,6 @@ export { storeFile, getFileType } from '../api/utils/file-utils.js';
 
 // SQL 占位符工具
 export { placeholders, inClause } from '../api/utils/sql.js';
+
+// JSON 解析工具
+export { safeJsonParse, parseJsonArray, parseJsonObject } from '../api/utils/json.js';
