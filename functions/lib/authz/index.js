@@ -11,7 +11,7 @@ export function getPolicyMetadata() {
 }
 
 export function getPolicyActions() {
-  return POLICY_ACTIONS;
+  return [...POLICY_ACTIONS];
 }
 
 export function findUnknownPolicyActions(actions = []) {
