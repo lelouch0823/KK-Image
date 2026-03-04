@@ -17,6 +17,27 @@ import {
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
 
 const app = new Hono();
+const ACTION_STATUS_MAP = {
+    confirm: 'confirmed',
+    reject: 'rejected',
+    void: 'void',
+};
+
+function normalizeBatchAction(action, value) {
+    let normalizedAction = action;
+    let normalizedStatus = value;
+    if (action in ACTION_STATUS_MAP) {
+        normalizedAction = 'status';
+        normalizedStatus = ACTION_STATUS_MAP[action];
+    }
+    return { normalizedAction, normalizedStatus };
+}
+
+function assertValidBatchStatusAction(normalizedAction, normalizedStatus) {
+    if (normalizedAction !== 'status' || !ORDER_STATUSES.includes(normalizedStatus)) {
+        throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
+    }
+}
 
 /**
  * POST / - 管理端创建订单
@@ -135,22 +156,8 @@ app.post('/batch', async (c) => {
         throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);
     }
 
-    const ACTION_STATUS_MAP = {
-        confirm: 'confirmed',
-        reject: 'rejected',
-        void: 'void',
-    };
-
-    let normalizedAction = action;
-    let normalizedStatus = value;
-    if (action in ACTION_STATUS_MAP) {
-        normalizedAction = 'status';
-        normalizedStatus = ACTION_STATUS_MAP[action];
-    }
-
-    if (normalizedAction !== 'status' || !ORDER_STATUSES.includes(normalizedStatus)) {
-        throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
-    }
+    const { normalizedAction, normalizedStatus } = normalizeBatchAction(action, value);
+    assertValidBatchStatusAction(normalizedAction, normalizedStatus);
 
     if (normalizedAction === 'status') {
         const forceStatusTransition = Boolean(force);
