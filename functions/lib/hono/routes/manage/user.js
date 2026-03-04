@@ -3,7 +3,7 @@ import { UnauthorizedError } from '../../errors.js';
 import { requirePermission } from '../../middleware/auth.js';
 
 const app = new Hono();
-app.use('*', requirePermission('files:read'));
+app.use('*', requirePermission('users:read'));
 
 /**
  * GET /api/manage/user - 获取当前用户信息

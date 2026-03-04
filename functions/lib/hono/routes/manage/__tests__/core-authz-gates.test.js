@@ -248,9 +248,18 @@ describe('manage core authz gates', () => {
     expect(res.status).toBe(403);
   });
 
-  it('allows /manage/user when user has files:read direct permission', async () => {
+  it('denies /manage/user when user only has files:read direct permission', async () => {
     const app = new Hono();
     withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['files:read'] });
+    app.route('/api/manage/user', userApp);
+
+    const res = await app.request('http://localhost/api/manage/user', { method: 'GET' }, { DB: {} }, { waitUntil: vi.fn() });
+    expect(res.status).toBe(403);
+  });
+
+  it('allows /manage/user when user has users:read direct permission', async () => {
+    const app = new Hono();
+    withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['users:read'] });
     app.route('/api/manage/user', userApp);
 
     const res = await app.request('http://localhost/api/manage/user', { method: 'GET' }, { DB: {} }, { waitUntil: vi.fn() });
