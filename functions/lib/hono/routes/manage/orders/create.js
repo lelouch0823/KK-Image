@@ -4,14 +4,14 @@ import { OrderRepository } from '../../../../../repositories/OrderRepository.js'
 import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
 import {
     canTransitionOrderStatus,
-    hasForceStatusPermission,
     INVALID_ORDER_STATUS_TRANSITION_ERROR,
 } from '../../../../../api/utils/order-state-machine.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
-import { BadRequestError, ForbiddenError } from '../../../errors.js';
+import { BadRequestError } from '../../../errors.js';
 import { invalidateCache } from '../../../middleware/cache.js';
 import { getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../../_shared/cache-urls.js';
+import { assertRoutePermission } from './authz.js';
 
 const app = new Hono();
 
@@ -169,9 +169,7 @@ app.post('/batch', async (c) => {
             if (!forceStatusTransition) {
                 throw new BadRequestError(`Invalid status transition in batch: ${outOfFlowOrder.status} -> ${normalizedStatus}`);
             }
-            if (!hasForceStatusPermission(user)) {
-                throw new ForbiddenError(MSG.AUTH.PERMISSION_DENIED);
-            }
+            await assertRoutePermission(c, user, 'admin:full');
             if (!String(reason || '').trim()) {
                 throw new BadRequestError('Reason is required for forced status transition');
             }

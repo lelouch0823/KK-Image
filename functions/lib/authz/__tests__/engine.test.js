@@ -8,7 +8,7 @@ vi.mock('../opa-engine.js', () => ({
   evaluateDecisionWithOpa: opaMocks.evaluateDecisionWithOpa,
 }));
 
-import { evaluatePermission, getPolicyMetadata } from '../index.js';
+import { buildAuthzInput, evaluatePermission, getPolicyMetadata } from '../index.js';
 
 describe('authz engine', () => {
   it('uses opa by default and allows when decision allow=true', async () => {
@@ -67,5 +67,16 @@ describe('authz engine', () => {
     expect(metadata).toBeTruthy();
     expect(Array.isArray(metadata.actions)).toBe(true);
     expect(metadata.roles.admin.label).toBeTypeOf('string');
+  });
+
+  it('falls back role=admin when subject type is admin and role missing', () => {
+    const input = buildAuthzInput({
+      user: { id: 'root', type: 'admin', permissions: [] },
+      permission: 'admin:full',
+      path: '/api/v1/users',
+      method: 'GET',
+    });
+
+    expect(input.subject.role).toBe('admin');
   });
 });

@@ -72,7 +72,7 @@ vi.mock('../../../../../api/utils/order-utils.js', () => ({
 
 import detailApp from '../orders/detail.js';
 
-function createApp() {
+function createApp(user = { id: 'u-1', name: 'Admin', type: 'admin', permissions: ['admin:full'] }) {
   const app = new Hono();
   app.onError((err, c) =>
     c.json(
@@ -81,7 +81,7 @@ function createApp() {
     )
   );
   app.use('/api/manage/orders/*', async (c, next) => {
-    c.set('user', { id: 'u-1', name: 'Admin', type: 'admin', permissions: ['admin:full'] });
+    c.set('user', user);
     await next();
   });
   app.route('/api/manage/orders', detailApp);
@@ -160,6 +160,41 @@ describe('manage order detail routes', () => {
 
   it('allows privileged admin user to delete order', async () => {
     const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1',
+      { method: 'DELETE' },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.deleteOrderCascading).toHaveBeenCalledWith('order-1');
+  });
+
+  it('allows role=admin user to force status transition through OPA decision', async () => {
+    const app = createApp({ id: 'u-opa', name: 'DB Admin', type: 'user', role: 'admin', permissions: [] });
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/status',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'delivered', force: true, note: 'opa allows admin role' }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.updateStatus).toHaveBeenCalledWith(
+      'order-1',
+      'delivered',
+      'admin',
+      expect.objectContaining({ forceStatusTransition: true })
+    );
+  });
+
+  it('allows role=admin user to delete order through OPA decision', async () => {
+    const app = createApp({ id: 'u-opa', name: 'DB Admin', type: 'user', role: 'admin', permissions: [] });
     const res = await app.request(
       'http://localhost/api/manage/orders/order-1',
       { method: 'DELETE' },

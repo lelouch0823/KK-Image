@@ -189,28 +189,6 @@ export const MSG = {
     REQUIRED: '必填项不能为空',
   },
 
-  // 权限列表描述
-  PERMISSIONS: {
-    'files:read': '读取文件',
-    'files:write': '创建/编辑文件',
-    'files:delete': '删除文件',
-    'folders:read': '读取文件夹',
-    'folders:write': '创建/编辑文件夹',
-    'folders:delete': '删除文件夹',
-    'users:read': '查看用户',
-    'users:write': '管理用户',
-    'webhooks:read': '查看 Webhooks',
-    'webhooks:write': '管理 Webhooks',
-    'stats:read': '查看统计',
-    'admin:full': '完全管理员权限',
-  },
-
-  ROLES: {
-    ADMIN: '管理员',
-    USER: '普通用户',
-    GUEST: '访客',
-  },
-
   // AI 助手相关
   AI: {
     ASSISTANT: 'AI 助手',

@@ -10,7 +10,7 @@ export function buildAuthzInput({ user, permission, path, method }) {
     subject: {
       id: user?.id ?? null,
       type: user?.type ?? null,
-      role: user?.role ?? null,
+      role: user?.role ?? (user?.type === 'admin' ? 'admin' : null),
       permissions: Array.isArray(user?.permissions) ? user.permissions : [],
     },
     action: permission,

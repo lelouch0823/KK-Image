@@ -35,8 +35,3 @@ export function assertOrderStatusTransition(fromStatus, toStatus, options = {}) 
 export function isHighRiskOrderStatus(status) {
   return ORDER_HIGH_RISK_STATUSES.includes(status);
 }
-
-export function hasForceStatusPermission(user) {
-  const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
-  return user?.type === 'admin' && (permissions.includes('admin:full') || permissions.includes('*'));
-}

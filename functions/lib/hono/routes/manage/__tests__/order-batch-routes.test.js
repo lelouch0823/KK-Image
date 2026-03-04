@@ -49,7 +49,7 @@ vi.mock('../../_shared/cache-urls.js', () => ({
 
 import createAppRoutes from '../orders/create.js';
 
-const createApp = () => {
+const createApp = (user = { id: 'u-1', name: 'Admin', type: 'admin', permissions: ['admin:full'] }) => {
   const app = new Hono();
   app.onError((err, c) =>
     c.json(
@@ -58,7 +58,7 @@ const createApp = () => {
     )
   );
   app.use('/api/manage/orders/*', async (c, next) => {
-    c.set('user', { id: 'u-1', name: 'Admin', type: 'admin', permissions: ['admin:full'] });
+    c.set('user', user);
     await next();
   });
   app.route('/api/manage/orders', createAppRoutes);
@@ -216,6 +216,44 @@ describe('manage order batch route', () => {
           value: 'delivered',
           force: true,
           reason: 'manual override for legacy sync',
+        }),
+      },
+      {
+        DB: {
+          prepare: vi.fn(() => ({
+            bind: vi.fn(() => ({
+              all: vi.fn(async () => ({
+                results: [{ id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' }],
+              })),
+            })),
+          })),
+        },
+      },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.batchUpdateStatus).toHaveBeenCalledWith(
+      ['o-1'],
+      'delivered',
+      expect.objectContaining({ actorType: 'admin' }),
+      expect.objectContaining({ forceStatusTransition: true })
+    );
+  });
+
+  it('allows role=admin user to force batch transition through OPA decision', async () => {
+    const app = createApp({ id: 'u-opa', name: 'DB Admin', type: 'user', role: 'admin', permissions: [] });
+    const res = await app.request(
+      'http://localhost/api/manage/orders/batch',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: ['o-1'],
+          action: 'status',
+          value: 'delivered',
+          force: true,
+          reason: 'opa allows admin role',
         }),
       },
       {

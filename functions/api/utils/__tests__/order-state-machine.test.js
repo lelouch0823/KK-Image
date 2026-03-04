@@ -5,7 +5,6 @@ import {
   canTransitionOrderStatus,
   getAllowedOrderTransitions,
   assertOrderStatusTransition,
-  hasForceStatusPermission,
 } from '../order-state-machine.js';
 
 describe('order-state-machine', () => {
@@ -37,14 +36,5 @@ describe('order-state-machine', () => {
 
   it('allows rollback from delivered to void in normal flow', () => {
     expect(canTransitionOrderStatus('delivered', 'void')).toBe(true);
-  });
-
-  it('checks force permission from user permissions', () => {
-    expect(hasForceStatusPermission({ type: 'admin', permissions: ['admin:full'] })).toBe(true);
-    expect(hasForceStatusPermission({ type: 'admin', permissions: ['*'] })).toBe(true);
-    expect(hasForceStatusPermission({ type: 'admin', permissions: ['order:write'] })).toBe(false);
-    expect(hasForceStatusPermission({ type: 'salesperson', permissions: ['admin:full'] })).toBe(
-      false
-    );
   });
 });
