@@ -8,6 +8,10 @@ import { getManageTagCacheUrls } from '../_shared/cache-urls.js';
 
 const tagsRoute = new Hono();
 
+function scheduleManageTagCacheInvalidation(c) {
+    c.executionCtx.waitUntil(invalidateCache(getManageTagCacheUrls(c)));
+}
+
 // GET 获取所有标签
 tagsRoute.get('/', requirePermission('files:read'), withCache(30), async (c) => {
     const repo = new TagRepository(c.env.DB);
@@ -35,7 +39,7 @@ tagsRoute.post('/', requirePermission('files:write'), async (c) => {
         throw error;
     }
 
-    c.executionCtx.waitUntil(invalidateCache(getManageTagCacheUrls(c)));
+    scheduleManageTagCacheInvalidation(c);
 
     return c.json({ success: true, tag: { id, name: name.trim(), color } });
 });
@@ -47,7 +51,7 @@ tagsRoute.post('/assign', requirePermission('files:write'), async (c) => {
 
     const repo = new TagRepository(c.env.DB);
     await repo.assignToFile({ fileId: file_id, tagId: tag_id, createdAt: now() });
-    c.executionCtx.waitUntil(invalidateCache(getManageTagCacheUrls(c)));
+    scheduleManageTagCacheInvalidation(c);
     return c.json({ success: true });
 });
 
@@ -57,7 +61,7 @@ tagsRoute.delete('/assign', requirePermission('files:write'), async (c) => {
 
     const repo = new TagRepository(c.env.DB);
     await repo.removeFromFile(file_id, tag_id);
-    c.executionCtx.waitUntil(invalidateCache(getManageTagCacheUrls(c)));
+    scheduleManageTagCacheInvalidation(c);
     return c.json({ success: true });
 });
 

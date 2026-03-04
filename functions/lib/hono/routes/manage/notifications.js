@@ -8,6 +8,10 @@ import { requirePermission } from '../../middleware/auth.js';
 
 const app = new Hono();
 
+function scheduleManageNotificationCacheInvalidation(c) {
+    c.executionCtx.waitUntil(invalidateCache(getManageNotificationCacheUrls(c)));
+}
+
 /**
  * GET / - 获取管理员通知列表
  */
@@ -42,7 +46,7 @@ app.post('/', requirePermission('notifications:write'), async (c) => {
         metadata,
     });
 
-    c.executionCtx.waitUntil(invalidateCache(getManageNotificationCacheUrls(c)));
+    scheduleManageNotificationCacheInvalidation(c);
 
     return c.json({ success: true, message: MSG.COMMON.CREATE_SUCCESS, data: result });
 });
@@ -63,7 +67,7 @@ app.post('/:id/read', requirePermission('notifications:write'), async (c) => {
         await notifyRepo.markAsReadForAdmin(notificationId);
     }
 
-    c.executionCtx.waitUntil(invalidateCache(getManageNotificationCacheUrls(c)));
+    scheduleManageNotificationCacheInvalidation(c);
 
     return c.json({ success: true, message: MSG.COMMON.UPDATE_SUCCESS });
 });
