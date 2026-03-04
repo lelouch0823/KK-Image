@@ -6,11 +6,14 @@ import {
     canTransitionOrderStatus
 } from '../../../../../api/utils/order-state-machine.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
-import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { BadRequestError } from '../../../errors.js';
-import { invalidateCache } from '../../../middleware/cache.js';
-import { getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../../_shared/cache-urls.js';
 import { assertForceStatusTransitionAllowed } from './authz-helpers.js';
+import {
+    resolveSalesTokens,
+    invalidateOrderNotificationCaches,
+    scheduleOrderNotificationCacheInvalidation,
+    scheduleOrderAndSalespersonCacheInvalidation,
+} from './cache-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
 
 const app = new Hono();
@@ -36,7 +39,7 @@ app.post('/', async (c) => {
     const orderId = generateId();
     const orderNo = generateOrderNo();
     const variantId = body.variantId ?? null;
-    const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, [body.salespersonId]);
+    const notificationSalesTokens = await resolveSalesTokens(env.DB, [body.salespersonId]);
 
     await validateProductVariantBinding(env.DB, body.productId || null, variantId, { checkActive: true });
 
@@ -103,7 +106,7 @@ app.post('/', async (c) => {
                 metadata: { actorName: 'Admin' },
             });
 
-            await invalidateCache(getOrderNotificationCacheUrls(c, { salesTokens: notificationSalesTokens }));
+            await invalidateOrderNotificationCaches(c, { salesTokens: notificationSalesTokens });
 
             // Webhook (if needed for admin creation)
             await triggerWebhook(env, 'order.created_by_admin', { orderId, orderNo, admin: user?.name });
@@ -112,7 +115,7 @@ app.post('/', async (c) => {
         }
     })());
 
-    c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: notificationSalesTokens })));
+    scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens: notificationSalesTokens });
 
     return c.json({ success: true, data: { id: orderId, orderNo } }, 201);
 });
@@ -158,7 +161,7 @@ app.post('/batch', async (c) => {
         const { results: orders } = await env.DB.prepare(
             `SELECT id, order_no, salesperson_id, status FROM orders WHERE id IN (${normalizedIds.map(() => '?').join(',')})`
         ).bind(...normalizedIds).all();
-        const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, (orders || []).map((o) => o.salesperson_id));
+        const notificationSalesTokens = await resolveSalesTokens(env.DB, (orders || []).map((o) => o.salesperson_id));
         const outOfFlowOrder = (orders || []).find((o) => !canTransitionOrderStatus(o.status, normalizedStatus));
         if (outOfFlowOrder) {
             if (!forceStatusTransition) {
@@ -202,8 +205,8 @@ app.post('/batch', async (c) => {
             }
         }
 
-        c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c, { salesTokens: notificationSalesTokens })));
-        c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: notificationSalesTokens })));
+        scheduleOrderNotificationCacheInvalidation(c, { salesTokens: notificationSalesTokens });
+        scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens: notificationSalesTokens });
     }
 
     return c.json({ success: true, message: MSG.ORDER.BATCH_RESULT.replace('{valid}', normalizedIds.length) });

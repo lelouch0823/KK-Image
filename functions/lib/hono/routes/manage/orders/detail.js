@@ -7,11 +7,15 @@ import {
     canTransitionOrderStatus
 } from '../../../../../api/utils/order-state-machine.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
-import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
 import { invalidateCache } from '../../../middleware/cache.js';
-import { getManageOrderCacheUrls, getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../../_shared/cache-urls.js';
+import { getManageOrderCacheUrls } from '../../_shared/cache-urls.js';
 import { assertAdminFull, assertForceStatusTransitionAllowed } from './authz-helpers.js';
+import {
+    resolveSalesTokens,
+    scheduleOrderNotificationCacheInvalidation,
+    scheduleOrderAndSalespersonCacheInvalidation,
+} from './cache-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
 
 const app = new Hono();
@@ -142,9 +146,9 @@ app.patch('/:id', async (c) => {
         forceStatusTransition,
     });
 
-    const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, [order.salespersonId]);
-    c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c, { salesTokens: notificationSalesTokens })));
-    c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: notificationSalesTokens })));
+    const notificationSalesTokens = await resolveSalesTokens(env.DB, [order.salespersonId]);
+    scheduleOrderNotificationCacheInvalidation(c, { salesTokens: notificationSalesTokens });
+    scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens: notificationSalesTokens });
 
     const updatedOrder = await orderRepo.findById(id);
     return c.json({ success: true, message: MSG.ORDER.UPDATE_SUCCESS, data: updatedOrder });
@@ -217,9 +221,9 @@ app.patch('/:id/status', async (c) => {
         throw new BadRequestError(MSG.COMMON.OP_FAILED);
     }
 
-    const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, [order.salespersonId]);
-    c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c, { salesTokens: notificationSalesTokens })));
-    c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: notificationSalesTokens })));
+    const notificationSalesTokens = await resolveSalesTokens(env.DB, [order.salespersonId]);
+    scheduleOrderNotificationCacheInvalidation(c, { salesTokens: notificationSalesTokens });
+    scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens: notificationSalesTokens });
 
     return c.json({ success: true, message: MSG.ORDER.STATUS_CHANGED });
 });
@@ -264,8 +268,8 @@ app.post('/:id/comment', async (c) => {
         });
     }
 
-    const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, [order?.salespersonId]);
-    c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c, { salesTokens: notificationSalesTokens })));
+    const notificationSalesTokens = await resolveSalesTokens(env.DB, [order?.salespersonId]);
+    scheduleOrderNotificationCacheInvalidation(c, { salesTokens: notificationSalesTokens });
     return c.json({ success: true, message: MSG.ORDER.COMMENT_ADDED });
 });
 
@@ -280,11 +284,11 @@ app.delete('/:id', async (c) => {
     const id = c.req.param('id');
     const orderRepo = new OrderRepository(env.DB);
     const order = await orderRepo.findById(id);
-    const notificationSalesTokens = await getSalespersonAccessTokens(env.DB, [order?.salespersonId]);
+    const notificationSalesTokens = await resolveSalesTokens(env.DB, [order?.salespersonId]);
 
     await orderRepo.deleteOrderCascading(id);
 
-    c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: notificationSalesTokens })));
+    scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens: notificationSalesTokens });
 
     return c.json({ success: true, message: MSG.ORDER.DELETE_SUCCESS });
 });
