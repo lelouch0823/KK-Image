@@ -46,11 +46,3 @@ export const TokenSchema = z.object({
   expiresIn: z.number().int().min(60).max(604800).default(3600), // 1分钟到7天
 });
 
-/**
- * API Key 创建 Schema
- */
-export const CreateApiKeySchema = z.object({
-  name: z.string().min(1).max(100),
-  permissions: z.array(z.string()).default([]),
-  expiresAt: z.string().datetime().optional().nullable(),
-});
