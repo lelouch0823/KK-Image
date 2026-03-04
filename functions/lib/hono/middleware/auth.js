@@ -1,5 +1,6 @@
 import { verifyJWT, verifyApiKey, ADMIN_AUTH_COOKIE, MSG } from '../_shared/utils.js';
 import { evaluateUserPermission } from '../../authz/index.js';
+import { parse as parseCookie } from 'cookie';
 
 /**
  * 公开路由列表（无需认证）
@@ -43,13 +44,9 @@ export async function authMiddleware(c, next) {
   if (!token) {
     const cookieHeader = c.req.header('Cookie');
     if (cookieHeader) {
-      const cookies = Object.fromEntries(
-        cookieHeader.split(';').map((c) => {
-          const [name, ...value] = c.trim().split('=');
-          return [name, value.join('=')];
-        })
-      );
-      token = cookies[ADMIN_AUTH_COOKIE];
+      const cookies = parseCookie(cookieHeader);
+      const cookieToken = cookies[ADMIN_AUTH_COOKIE];
+      token = typeof cookieToken === 'string' ? cookieToken.replace(/^"(.+)"$/, '$1') : cookieToken;
     }
   }
 

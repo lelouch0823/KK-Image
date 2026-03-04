@@ -8,6 +8,11 @@ let cachedApiKeys = null;
 let lastCacheUpdate = 0;
 const CACHE_TTL = 60 * 1000; // 60 seconds TTL
 
+function resetApiKeyCache() {
+  cachedApiKeys = null;
+  lastCacheUpdate = 0;
+}
+
 /**
  * JWT 实现 - 使用 URL-safe Base64 (RFC 4648) 和安全比较
  */
@@ -261,50 +266,9 @@ async function getValidApiKeys(env) {
   return [];
 }
 
-// 保存 API Key 到 D1
-export async function saveApiKey(keyInfo, env) {
-  // 插入到 D1
-  await env.DB.prepare(
-    `INSERT INTO api_keys (id, key_value, name, permissions, created_at, expires_at, disabled)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       name = excluded.name,
-       permissions = excluded.permissions,
-       expires_at = excluded.expires_at,
-       disabled = excluded.disabled`
-  )
-    .bind(
-      keyInfo.id,
-      keyInfo.key,
-      keyInfo.name,
-      JSON.stringify(Array.isArray(keyInfo.permissions) ? keyInfo.permissions : []),
-      keyInfo.created_at || Date.now(),
-      keyInfo.expires_at || null,
-      keyInfo.disabled ? 1 : 0
-    )
-    .run();
-
-  // 强制使本地缓存失效 (下次读取时将从 DB 重新获取)
-  cachedApiKeys = null;
-  lastCacheUpdate = 0;
-
-  return keyInfo;
+export function __resetApiKeyCacheForTest() {
+  resetApiKeyCache();
 }
-
-// 删除 API Key
-export async function deleteApiKey(keyId, env) {
-  await env.DB.prepare('DELETE FROM api_keys WHERE id = ?').bind(keyId).run();
-
-  // 强制使本地缓存失效
-  cachedApiKeys = null;
-  lastCacheUpdate = 0;
-
-  return true;
-}
-
-// export { hasPermission, requirePermission } already handled by top-level import and existing usage?
-// No, I imported them, but I need to EXPORT them.
-// Since they are imported as named imports, I can just export them.
 
 // 验证 Cloudflare Turnstile
 export async function verifyTurnstile(token, secret) {
@@ -354,7 +318,6 @@ export async function authenticateAdmin(request, env) {
 
   try {
     const user = await verifyJWT(token, env);
-    // 这里可以扩展权限检查，例如 user.permissions.includes('admin')
     return user;
   } catch (_e) {
     throw new Error(MSG.AUTH.EXPIRED);

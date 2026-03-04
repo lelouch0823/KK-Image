@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   isAdminAuthenticated,
   authenticateAdmin,
-  saveApiKey,
-  deleteApiKey,
+  __resetApiKeyCacheForTest,
   verifyTurnstile,
   verifyJWT,
   generateJWT,
@@ -44,7 +43,7 @@ describe('Auth Utils 100% Coverage Final', () => {
   let db;
   let env;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
     db = {
       prepare: vi.fn().mockReturnThis(),
@@ -59,10 +58,8 @@ describe('Auth Utils 100% Coverage Final', () => {
       DEFAULT_API_KEY: 'default-tk'
     };
 
-    // Clear the internal cache in auth.js via deleteApiKey
-    // We must ensure the mock for prepare/bind/run exists.
-    await deleteApiKey('force-cache-clear', env);
-    vi.clearAllMocks(); // Clear mocks again after the "cleanup" call
+    __resetApiKeyCacheForTest();
+    vi.clearAllMocks();
   });
 
   describe('JWT Operations', () => {
@@ -108,9 +105,6 @@ describe('Auth Utils 100% Coverage Final', () => {
       // Second call: Cache hit (db.prepare should NOT be called again if TTL < 60s)
       const res2 = await verifyApiKey('v1', env);
       expect(res2.id).toBe('k1');
-      // Still 2 because deleteApiKey called prepare once in beforeEach, 
-      // then verifyApiKey first call called it once.
-      // So TOTAL prepare calls should be 2.
       expect(db.prepare).toHaveBeenCalledTimes(1);
     });
 
@@ -146,10 +140,10 @@ describe('Auth Utils 100% Coverage Final', () => {
       expect(res.permissions).toEqual([]);
     });
 
-    it('saveApiKey persists empty permissions by default', async () => {
-      await saveApiKey({ id: 'k3', key: 'v3', name: 'K3' }, env);
-      const bindArgs = db.bind.mock.calls[0];
-      expect(bindArgs[3]).toBe('[]');
+    it('does not expose api key mutation helpers in module surface', async () => {
+      const mod = await import('../auth');
+      expect(mod.saveApiKey).toBeUndefined();
+      expect(mod.deleteApiKey).toBeUndefined();
     });
   });
 
