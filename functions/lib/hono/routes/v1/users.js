@@ -8,6 +8,20 @@ import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
 import { assertKnownPermissions } from './_shared/permissions-validation.js';
 
 const app = new Hono();
+const USER_SELECT_FIELDS = 'id, username, name, email, role, permissions, created_at, updated_at';
+
+function toSafeUser(user) {
+  return {
+    id: user.id,
+    username: user.username,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    permissions: user.permissions ? JSON.parse(user.permissions) : [],
+    createdAt: user.created_at,
+    updatedAt: user.updated_at,
+  };
+}
 
 /**
  * GET /api/v1/users - 获取用户列表（管理员）
@@ -15,20 +29,8 @@ const app = new Hono();
 app.get('/', requirePermission('admin:full'), async (c) => {
   const { env } = c;
 
-  const { results } = await env.DB.prepare(
-    'SELECT id, username, name, email, role, permissions, created_at, updated_at FROM users'
-  ).all();
-
-  const safeUsers = results.map((u) => ({
-    id: u.id,
-    username: u.username,
-    name: u.name,
-    email: u.email,
-    role: u.role,
-    permissions: u.permissions ? JSON.parse(u.permissions) : [],
-    createdAt: u.created_at,
-    updatedAt: u.updated_at,
-  }));
+  const { results } = await env.DB.prepare(`SELECT ${USER_SELECT_FIELDS} FROM users`).all();
+  const safeUsers = results.map(toSafeUser);
 
   return c.json({ success: true, data: safeUsers });
 });
@@ -57,9 +59,7 @@ app.get('/:id', requirePermission('admin:full'), async (c) => {
   const id = c.req.param('id');
   const { env } = c;
 
-  const user = await env.DB.prepare(
-    'SELECT id, username, name, email, role, permissions, created_at, updated_at FROM users WHERE id = ?'
-  )
+  const user = await env.DB.prepare(`SELECT ${USER_SELECT_FIELDS} FROM users WHERE id = ?`)
     .bind(id)
     .first();
 
@@ -67,16 +67,7 @@ app.get('/:id', requirePermission('admin:full'), async (c) => {
 
   return c.json({
     success: true,
-    data: {
-      id: user.id,
-      username: user.username,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      permissions: user.permissions ? JSON.parse(user.permissions) : [],
-      createdAt: user.created_at,
-      updatedAt: user.updated_at,
-    },
+    data: toSafeUser(user),
   });
 });
 
@@ -190,24 +181,13 @@ app.put(
       .run();
 
     // 获取更新后的用户
-    const user = await env.DB.prepare(
-      'SELECT id, username, name, email, role, permissions, created_at, updated_at FROM users WHERE id = ?'
-    )
+    const user = await env.DB.prepare(`SELECT ${USER_SELECT_FIELDS} FROM users WHERE id = ?`)
       .bind(id)
       .first();
 
     return c.json({
       success: true,
-      data: {
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        permissions: user.permissions ? JSON.parse(user.permissions) : [],
-        createdAt: user.created_at,
-        updatedAt: user.updated_at,
-      },
+      data: toSafeUser(user),
     });
   }
 );
