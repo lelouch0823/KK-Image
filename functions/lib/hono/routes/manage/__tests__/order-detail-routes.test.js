@@ -296,6 +296,23 @@ describe('manage order detail routes', () => {
     expect(mocks.updateStatus).not.toHaveBeenCalled();
   });
 
+  it('returns 403 when non-admin forces PATCH /:id/status transition', async () => {
+    const app = createApp({ id: 'u-viewer', name: 'Viewer', type: 'user', role: 'viewer', permissions: [] });
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/status',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'delivered', force: true, note: 'try force as viewer' }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(403);
+    expect(mocks.updateStatus).not.toHaveBeenCalled();
+  });
+
   it('allows force override transition with note for privileged admin', async () => {
     const app = createApp();
     const res = await app.request(
@@ -459,5 +476,26 @@ describe('manage order detail routes', () => {
     expect(mocks.processOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
       forceStatusTransition: true,
     }));
+  });
+
+  it('returns 403 when non-admin forces PATCH /:id status jump', async () => {
+    const app = createApp({ id: 'u-viewer', name: 'Viewer', type: 'user', role: 'viewer', permissions: [] });
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          updates: { status: 'delivered' },
+          force: true,
+          reason: 'try force as viewer',
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(403);
+    expect(mocks.processOrderUpdate).not.toHaveBeenCalled();
   });
 });

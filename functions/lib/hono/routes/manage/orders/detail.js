@@ -21,6 +21,20 @@ const isInsufficientStockError = (error) =>
 const isInvalidStatusTransitionError = (error) =>
     String(error?.message || '').includes(INVALID_ORDER_STATUS_TRANSITION_ERROR);
 
+async function assertAdminFull(c, user) {
+    const allowed = await checkPermission(c, user, 'admin:full');
+    if (!allowed) {
+        throw new ForbiddenError(MSG.AUTH.PERMISSION_DENIED);
+    }
+}
+
+async function assertForceTransitionAllowed(c, user, reason) {
+    await assertAdminFull(c, user);
+    if (!String(reason || '').trim()) {
+        throw new BadRequestError('Reason is required for forced status transition');
+    }
+}
+
 /**
  * GET /:id - 获取订单详情
  */
@@ -125,16 +139,10 @@ app.patch('/:id', async (c) => {
         if (!forceStatusTransition) {
             throw new BadRequestError(`Invalid status transition: ${order.status} -> ${requestedStatus}`);
         }
-        const canForceTransition = await checkPermission(c, user, 'admin:full');
-        if (!canForceTransition) {
-            throw new ForbiddenError(MSG.AUTH.PERMISSION_DENIED);
-        }
-        if (!String(reason || '').trim()) {
-            throw new BadRequestError('Reason is required for forced status transition');
-        }
+        await assertForceTransitionAllowed(c, user, reason);
     }
 
-    const _result = await processOrderUpdate({
+    await processOrderUpdate({
         env,
         orderId: id,
         orderNo: order.orderNo,
@@ -183,13 +191,7 @@ app.patch('/:id/status', async (c) => {
         if (!forceStatusTransition) {
             throw new BadRequestError(`Invalid status transition: ${oldStatus} -> ${status}`);
         }
-        const canForceTransition = await checkPermission(c, user, 'admin:full');
-        if (!canForceTransition) {
-            throw new ForbiddenError(MSG.AUTH.PERMISSION_DENIED);
-        }
-        if (!String(note || '').trim()) {
-            throw new BadRequestError('Reason is required for forced status transition');
-        }
+        await assertForceTransitionAllowed(c, user, note);
     }
 
     let success = false;
@@ -292,11 +294,7 @@ app.post('/:id/comment', async (c) => {
 app.delete('/:id', async (c) => {
     const { env } = c;
     const user = c.get('user');
-    const canDeleteOrder = await checkPermission(c, user, 'admin:full');
-
-    if (!canDeleteOrder) {
-        throw new ForbiddenError(MSG.AUTH.PERMISSION_DENIED);
-    }
+    await assertAdminFull(c, user);
 
     const id = c.req.param('id');
     const orderRepo = new OrderRepository(env.DB);
