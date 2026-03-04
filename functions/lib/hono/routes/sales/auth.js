@@ -5,6 +5,7 @@ import { MSG, hashPassword } from '../../_shared/utils.js';
 import { SalespersonRepository } from '../../../../repositories/SalespersonRepository.js';
 import { loginRateLimitMiddleware } from '../../middleware/rateLimit.js';
 import { NotFoundError, ForbiddenError } from '../../errors.js';
+import { requireEntity } from '../../_shared/route-helpers.js';
 import {
   checkAndRespondLockout,
   handleLoginFailure,
@@ -132,9 +133,10 @@ app.post('/:token/auth', loginRateLimitMiddleware, async (c) => {
     if (lockoutRes) return lockoutRes;
 
     const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
-    const salesperson = await repo.findByToken(accessToken);
-
-    if (!salesperson) throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
+    const salesperson = await requireEntity(
+        repo.findByToken(accessToken),
+        () => new NotFoundError(MSG.SALESPERSON.NOT_FOUND)
+    );
     if (!salesperson.is_active) throw new ForbiddenError(MSG.SALESPERSON.DISABLED);
 
     const inputHash = await hashPassword(password, env.JWT_SECRET);

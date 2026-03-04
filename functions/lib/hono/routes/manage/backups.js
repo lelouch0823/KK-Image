@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
 import { MSG } from '../../_shared/utils.js';
 import { NotFoundError } from '../../errors.js';
+import { requireEntity } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 
@@ -52,9 +53,10 @@ app.post('/', requirePermission('admin:full'), async (c) => {
 app.get('/:filename', requirePermission('admin:full'), async (c) => {
     const { env } = c;
     const filename = c.req.param('filename');
-    const object = await env.R2_BACKUP_BUCKET.get(filename);
-
-    if (!object) throw new NotFoundError(MSG.COMMON.NOT_FOUND);
+    const object = await requireEntity(
+        env.R2_BACKUP_BUCKET.get(filename),
+        () => new NotFoundError(MSG.COMMON.NOT_FOUND)
+    );
 
     const headers = new Headers();
     object.writeHttpMetadata(headers);

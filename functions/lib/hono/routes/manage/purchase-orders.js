@@ -39,6 +39,10 @@ async function requireDraftPurchaseOrder(repo, poId, actionLabel) {
   return po;
 }
 
+function requireMutationSuccess(success, message) {
+  if (!success) throw new NotFoundError(message);
+}
+
 async function validateVariantItems(db, items = []) {
   if (!items || items.length === 0) return;
   const variantIds = [...new Set(items.map((item) => item.variant_id).filter(Boolean))];
@@ -202,7 +206,7 @@ app.put('/:id', async (c) => {
   const repo = new PurchaseOrderRepository(c.env.DB);
 
   const updated = await repo.update(c.req.param('id'), body);
-  if (!updated) throw new NotFoundError('未找到采购单或无有效字段更新');
+  requireMutationSuccess(updated, '未找到采购单或无有效字段更新');
 
   invalidatePoRelatedCaches(c, c.req.param('id'));
 
@@ -275,7 +279,7 @@ app.patch('/:id/items/:itemId', async (c) => {
   await requireDraftPurchaseOrder(repo, poId, '修改明细');
 
   const updated = await repo.updateItem(c.req.param('itemId'), body);
-  if (!updated) throw new NotFoundError('明细不存在');
+  requireMutationSuccess(updated, '明细不存在');
 
   invalidatePoRelatedCaches(c, poId);
 
@@ -293,7 +297,7 @@ app.delete('/:id/items/:itemId', async (c) => {
   await requireDraftPurchaseOrder(repo, poId, '删除明细');
 
   const removed = await repo.removeItem(c.req.param('itemId'));
-  if (!removed) throw new NotFoundError('明细不存在');
+  requireMutationSuccess(removed, '明细不存在');
 
   invalidatePoRelatedCaches(c, poId);
 

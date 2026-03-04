@@ -1,10 +1,9 @@
 import { MSG } from '../../../_shared/utils.js';
 import { NotFoundError } from '../../../errors.js';
+import { requireEntity } from '../../../_shared/route-helpers.js';
 
 export async function requireSpace(repo, spaceId) {
-  const space = await repo.findById(spaceId);
-  if (!space) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
-  return space;
+  return requireEntity(repo.findById(spaceId), () => new NotFoundError(MSG.SPACE.NOT_FOUND));
 }
 
 export function normalizeSpaceCreateFields(name, description) {

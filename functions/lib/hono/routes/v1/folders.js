@@ -53,8 +53,10 @@ app.get('/:id', withCache(60), async (c) => {
   const id = c.req.param('id');
   const repo = new FolderRepository(c.env.DB);
 
-  const detail = await repo.findDetail(id);
-  if (!detail) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
+  const detail = await requireEntity(
+    repo.findDetail(id),
+    () => new NotFoundError(MSG.FOLDER.NOT_FOUND)
+  );
 
   return c.json({
     success: true,
