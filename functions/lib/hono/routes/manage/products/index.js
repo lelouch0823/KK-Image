@@ -10,6 +10,7 @@ import { withCache } from '../../../middleware/cache.js';
 import { BadRequestError, ConflictError } from '../../../errors.js';
 import { requirePermission } from '../../../middleware/auth.js';
 import { scheduleProductCacheInvalidation } from './cache-helpers.js';
+import { normalizeVariantDimensionKeys, normalizeVariantExternalCodes } from './variant-normalizers.js';
 import batch from './batch.js';
 import exportRoute from './export.js';
 
@@ -22,34 +23,6 @@ app.route('/export', exportRoute);
 const REQUIRED_VARIANT_FIELDS = ['price', 'cost_price', 'stock_quantity', 'alert_threshold', 'status'];
 
 const isEmptyValue = (value) => value === undefined || value === null || value === '';
-
-const buildDimensionNameMap = (dimensions = []) =>
-    (dimensions || []).reduce((acc, item) => {
-        const id = String(item?.id || '').trim();
-        const name = String(item?.name || '').trim();
-        if (name && id) acc[name] = id;
-        return acc;
-    }, {});
-
-const normalizeVariantsWithDimensions = (variants = [], dimensions = []) => {
-    const nameMap = buildDimensionNameMap(dimensions);
-    return (variants || []).map((variant) => {
-        const normalized = {};
-        for (const [key, value] of Object.entries(variant?.options_values || {})) {
-            const rawKey = String(key || '').trim();
-            const nextKey = nameMap[rawKey] || rawKey;
-            if (!nextKey) continue;
-            if (value === undefined || value === null || String(value).trim() === '') continue;
-            normalized[nextKey] = String(value);
-        }
-        return {
-            ...variant,
-            options_values: normalized,
-            barcode: String(variant?.barcode ?? '').trim() || null,
-            supplier_sku: String(variant?.supplier_sku ?? '').trim() || null,
-        };
-    });
-};
 
 const validateVariants = (variants) => {
     if (!Array.isArray(variants) || variants.length === 0) {
@@ -262,7 +235,10 @@ app.post('/', async (c) => {
             }
         }
 
-        const normalizedVariants = normalizeVariantsWithDimensions(body.variants, createdDimensions);
+        const normalizedVariants = normalizeVariantDimensionKeys(
+            normalizeVariantExternalCodes(body.variants),
+            createdDimensions
+        );
         const variantRepo = new ProductVariantRepository(env.DB);
         const createdVariants = await variantRepo.createBatch(product.id, normalizedVariants);
 

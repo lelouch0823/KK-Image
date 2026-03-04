@@ -10,6 +10,7 @@ import { normalizeProductCurrency } from './currency.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
 import { requirePermission } from '../../../middleware/auth.js';
 import { scheduleProductCacheInvalidation } from './cache-helpers.js';
+import { normalizeVariantDimensionKeys, normalizeVariantExternalCodes } from './variant-normalizers.js';
 
 const app = new Hono();
 app.use('*', requirePermission('products:manage'));
@@ -45,38 +46,6 @@ const validateVariants = (variants) => {
             }
         }
     }
-};
-
-const normalizeVariantExternalCodes = (variants = []) => variants.map((variant) => ({
-    ...variant,
-    barcode: String(variant?.barcode ?? '').trim() || null,
-    supplier_sku: String(variant?.supplier_sku ?? '').trim() || null,
-}));
-
-const buildDimensionNameMap = (dimensions = []) =>
-    (dimensions || []).reduce((acc, item) => {
-        const name = String(item?.name || '').trim();
-        const id = String(item?.id || '').trim();
-        if (name && id) acc[name] = id;
-        return acc;
-    }, {});
-
-const normalizeVariantDimensionKeys = (variants = [], dimensions = []) => {
-    const nameMap = buildDimensionNameMap(dimensions);
-    return (variants || []).map((variant) => {
-        const normalized = {};
-        for (const [key, value] of Object.entries(variant?.options_values || {})) {
-            const rawKey = String(key || '').trim();
-            const nextKey = nameMap[rawKey] || rawKey;
-            if (!nextKey) continue;
-            if (value === undefined || value === null || String(value).trim() === '') continue;
-            normalized[nextKey] = String(value);
-        }
-        return {
-            ...variant,
-            options_values: normalized,
-        };
-    });
 };
 
 const buildVariantRollbackPayload = (variants = []) =>
