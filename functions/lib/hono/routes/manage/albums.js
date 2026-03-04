@@ -15,6 +15,49 @@ import { NotFoundError, BadRequestError } from '../../errors.js';
 const app = new Hono();
 app.use('*', requirePermission('files:read'));
 
+function toAlbumSummary(album) {
+  return {
+    id: album.id,
+    name: album.name,
+    description: album.description,
+    isPublic: Boolean(album.is_public),
+    shareToken: album.share_token,
+    shareUrl: getShareUrl(album.share_token),
+    fileCount: album.file_count,
+    coverUrl: album.cover_key ? getFileUrl(album.cover_key) : null,
+    createdAt: album.created_at,
+    updatedAt: album.updated_at,
+  };
+}
+
+function toAlbumDetail(album, files = []) {
+  return {
+    id: album.id,
+    name: album.name,
+    description: album.description,
+    isPublic: Boolean(album.is_public),
+    shareToken: album.share_token,
+    shareUrl: getShareUrl(album.share_token),
+    createdAt: album.created_at,
+    updatedAt: album.updated_at,
+    files: files.map((f) => ({
+      id: f.id,
+      name: f.name,
+      originalName: f.original_name,
+      size: f.size,
+      mimeType: f.mime_type,
+      url: getFileUrl(f.storage_key),
+      createdAt: f.created_at,
+    })),
+  };
+}
+
+async function requireAlbum(repo, albumId) {
+  const album = await repo.findById(albumId);
+  if (!album) throw new NotFoundError(MSG.ALBUM.NOT_FOUND);
+  return album;
+}
+
 // Schemas
 const CreateAlbumSchema = z.object({
   name: z.string().min(1).max(100),
@@ -39,18 +82,7 @@ app.get('/', async (c) => {
 
   return c.json({
     success: true,
-    data: results.map((album) => ({
-      id: album.id,
-      name: album.name,
-      description: album.description,
-      isPublic: Boolean(album.is_public),
-      shareToken: album.share_token,
-      shareUrl: getShareUrl(album.share_token),
-      fileCount: album.file_count,
-      coverUrl: album.cover_key ? getFileUrl(album.cover_key) : null,
-      createdAt: album.created_at,
-      updatedAt: album.updated_at,
-    })),
+    data: results.map(toAlbumSummary),
   });
 });
 
@@ -62,32 +94,13 @@ app.get('/:id', async (c) => {
   const albumId = c.req.param('id');
 
   const repo = new AlbumRepository(env.DB);
-  const album = await repo.findById(albumId);
-  if (!album) throw new NotFoundError(MSG.ALBUM.NOT_FOUND);
+  const album = await requireAlbum(repo, albumId);
 
   const files = await repo.getFiles(albumId);
 
   return c.json({
     success: true,
-    data: {
-      id: album.id,
-      name: album.name,
-      description: album.description,
-      isPublic: Boolean(album.is_public),
-      shareToken: album.share_token,
-      shareUrl: getShareUrl(album.share_token),
-      createdAt: album.created_at,
-      updatedAt: album.updated_at,
-      files: files.map((f) => ({
-        id: f.id,
-        name: f.name,
-        originalName: f.original_name,
-        size: f.size,
-        mimeType: f.mime_type,
-        url: getFileUrl(f.storage_key),
-        createdAt: f.created_at,
-      })),
-    },
+    data: toAlbumDetail(album, files),
   });
 });
 
@@ -138,8 +151,7 @@ app.put(
     const data = c.req.valid('json');
 
     const repo = new AlbumRepository(env.DB);
-    const album = await repo.findById(albumId);
-    if (!album) throw new NotFoundError(MSG.ALBUM.NOT_FOUND);
+    const album = await requireAlbum(repo, albumId);
 
     const updates = [];
     const values = [];
@@ -189,8 +201,7 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   const albumId = c.req.param('id');
 
   const repo = new AlbumRepository(env.DB);
-  const album = await repo.findById(albumId);
-  if (!album) throw new NotFoundError(MSG.ALBUM.NOT_FOUND);
+  await requireAlbum(repo, albumId);
 
   await repo.delete(albumId);
   return c.json({ success: true, message: MSG.ALBUM.DELETE_SUCCESS });
@@ -209,8 +220,7 @@ app.post(
     const { fileIds } = c.req.valid('json');
 
     const repo = new AlbumRepository(env.DB);
-    const album = await repo.findById(albumId);
-    if (!album) throw new NotFoundError(MSG.ALBUM.NOT_FOUND);
+    await requireAlbum(repo, albumId);
 
     await repo.addFiles(albumId, fileIds);
 
