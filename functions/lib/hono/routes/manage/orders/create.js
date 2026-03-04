@@ -3,8 +3,7 @@ import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
 import {
-    canTransitionOrderStatus,
-    INVALID_ORDER_STATUS_TRANSITION_ERROR,
+    canTransitionOrderStatus
 } from '../../../../../api/utils/order-state-machine.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
@@ -12,13 +11,9 @@ import { BadRequestError } from '../../../errors.js';
 import { invalidateCache } from '../../../middleware/cache.js';
 import { getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../../_shared/cache-urls.js';
 import { assertForceStatusTransitionAllowed } from './authz-helpers.js';
+import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
 
 const app = new Hono();
-
-const isInsufficientStockError = (error) =>
-    String(error?.message || '').includes('insufficient variant stock');
-const isInvalidStatusTransitionError = (error) =>
-    String(error?.message || '').includes(INVALID_ORDER_STATUS_TRANSITION_ERROR);
 
 /**
  * POST / - 管理端创建订单
