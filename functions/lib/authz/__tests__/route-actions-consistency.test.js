@@ -16,29 +16,47 @@ function walkJsFiles(dir, out = []) {
   return out;
 }
 
-function collectRouteActions() {
-  const routesDir = path.resolve(process.cwd(), 'functions/lib/hono/routes');
-  const files = walkJsFiles(routesDir);
+export function collectActionsFromSource(content) {
   const patterns = [
     /requirePermission\('([^']+)'\)/g,
     /assertRoutePermission\([^)]*'([^']+)'\)/g,
     /hasRoutePermission\([^)]*'([^']+)'\)/g,
+    /checkPermission\([^)]*'([^']+)'\)/g,
   ];
+  const actions = new Set();
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(content))) {
+      actions.add(match[1]);
+    }
+  }
+  return actions;
+}
+
+function collectRouteActions() {
+  const routesDir = path.resolve(process.cwd(), 'functions/lib/hono/routes');
+  const files = walkJsFiles(routesDir);
 
   const actions = new Set();
   for (const file of files) {
     const content = fs.readFileSync(file, 'utf8');
-    for (const pattern of patterns) {
-      let match;
-      while ((match = pattern.exec(content))) {
-        actions.add(match[1]);
-      }
+    for (const action of collectActionsFromSource(content)) {
+      actions.add(action);
     }
   }
   return actions;
 }
 
 describe('authz metadata route action consistency', () => {
+  it('collects actions from checkPermission calls', () => {
+    const source = `
+      await checkPermission(c, user, 'admin:full');
+      app.get('/x', requirePermission('files:read'));
+    `;
+
+    expect([...collectActionsFromSource(source)].sort()).toEqual(['admin:full', 'files:read']);
+  });
+
   it('keeps metadata actions aligned with route permission guards', () => {
     const routeActions = collectRouteActions();
     const metadataActions = new Set(metadata.actions || []);
