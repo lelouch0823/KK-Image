@@ -5,8 +5,27 @@ import { requirePermission } from '../../middleware/auth.js';
 import { generateId, hashPassword, MSG } from '../../_shared/utils.js';
 import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
+import { getPolicyMetadata } from '../../../authz/index.js';
 
 const app = new Hono();
+const policyMetadata = getPolicyMetadata();
+const POLICY_ACTION_SET = new Set(
+  (Array.isArray(policyMetadata.actions) ? policyMetadata.actions : []).filter(
+    (action) => typeof action === 'string' && action
+  )
+);
+
+function assertKnownPermissions(permissions) {
+  if (permissions === undefined) return;
+  const unknownPermissions = [
+    ...new Set(permissions.filter((permission) => !POLICY_ACTION_SET.has(permission))),
+  ];
+  if (unknownPermissions.length > 0) {
+    throw new BadRequestError(
+      `${MSG.COMMON.INVALID_PARAMS}: unknown permissions ${unknownPermissions.join(', ')}`
+    );
+  }
+}
 
 /**
  * GET /api/v1/users - 获取用户列表（管理员）
@@ -85,6 +104,7 @@ app.get('/:id', requirePermission('admin:full'), async (c) => {
 app.post('/', requirePermission('admin:full'), zValidator('json', CreateUserSchema), async (c) => {
   const data = c.req.valid('json');
   const { env } = c;
+  assertKnownPermissions(data.permissions);
 
   // 检查用户名是否已存在
   const existing = await env.DB.prepare('SELECT id FROM users WHERE username = ?')
@@ -146,6 +166,7 @@ app.put(
     const id = c.req.param('id');
     const data = c.req.valid('json');
     const { env } = c;
+    assertKnownPermissions(data.permissions);
 
     const existing = await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(id).first();
     if (!existing) throw new NotFoundError(MSG.USER.NOT_FOUND);
