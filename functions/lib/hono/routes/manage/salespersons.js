@@ -20,6 +20,10 @@ const getSalespersonAndOrderCacheUrls = (c) => [
     ...new Set([...getCacheUrls(c), ...getManageOrderCacheUrls(c)]),
 ];
 
+function scheduleSalespersonAndOrderCacheInvalidation(c) {
+    c.executionCtx.waitUntil(invalidateCache(getSalespersonAndOrderCacheUrls(c)));
+}
+
 // 验证 Schema
 const CreateSalespersonSchema = z.object({
     name: z.string().min(1, MSG.SALESPERSON.NAME_REQUIRED),
@@ -86,7 +90,7 @@ app.post('/', requirePermission('users:write'), zValidator('json', CreateSalespe
         password: body.password,
     });
 
-    c.executionCtx.waitUntil(invalidateCache(getSalespersonAndOrderCacheUrls(c)));
+    scheduleSalespersonAndOrderCacheInvalidation(c);
 
     return c.json({
         success: true,
@@ -147,7 +151,7 @@ const updateHandler = async (c) => {
         throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
     }
 
-    c.executionCtx.waitUntil(invalidateCache(getSalespersonAndOrderCacheUrls(c)));
+    scheduleSalespersonAndOrderCacheInvalidation(c);
 
     return c.json({
         success: true,
@@ -180,7 +184,7 @@ app.delete('/:id', requirePermission('users:write'), async (c) => {
         throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
     }
 
-    c.executionCtx.waitUntil(invalidateCache(getSalespersonAndOrderCacheUrls(c)));
+    scheduleSalespersonAndOrderCacheInvalidation(c);
 
     return c.json({ success: true, message: MSG.SALESPERSON.DELETE_SUCCESS });
 });
@@ -199,7 +203,7 @@ app.post('/:id/reset-token', requirePermission('users:write'), async (c) => {
         throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
     }
 
-    c.executionCtx.waitUntil(invalidateCache(getSalespersonAndOrderCacheUrls(c)));
+    scheduleSalespersonAndOrderCacheInvalidation(c);
 
     return c.json({
         success: true,

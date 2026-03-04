@@ -13,6 +13,10 @@ app.use('*', requirePermission('orders:manage'));
 
 const getCacheUrls = createCacheInvalidator('/api/manage/customers', ['page=1&limit=20']);
 
+function scheduleCustomerCacheInvalidation(c) {
+    c.executionCtx.waitUntil(invalidateCache(getCacheUrls(c)));
+}
+
 // 验证 Schema
 const CreateCustomerSchema = z.object({
     name: z.string().min(1, MSG.COMMON.REQUIRED),
@@ -78,7 +82,7 @@ app.post('/', zValidator('json', CreateCustomerSchema), async (c) => {
         createdBy: user.name,
     });
 
-    c.executionCtx.waitUntil(invalidateCache(getCacheUrls(c)));
+    scheduleCustomerCacheInvalidation(c);
 
     return c.json({
         success: true,
@@ -135,7 +139,7 @@ app.put('/:id', zValidator('json', UpdateCustomerSchema), async (c) => {
         throw new NotFoundError(MSG.COMMON.NOT_FOUND);
     }
 
-    c.executionCtx.waitUntil(invalidateCache(getCacheUrls(c)));
+    scheduleCustomerCacheInvalidation(c);
 
     return c.json({
         success: true,
@@ -163,7 +167,7 @@ app.delete('/:id', async (c) => {
         throw new NotFoundError(MSG.CUSTOMER.NOT_FOUND);
     }
 
-    c.executionCtx.waitUntil(invalidateCache(getCacheUrls(c)));
+    scheduleCustomerCacheInvalidation(c);
 
     return c.json({ success: true, message: MSG.CUSTOMER.DELETE_SUCCESS });
 });
