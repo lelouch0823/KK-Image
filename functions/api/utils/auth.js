@@ -312,9 +312,9 @@ function readBearerToken(request) {
   return null;
 }
 
-export function extractAdminAuthToken(request, { preferBearer = false } = {}) {
+export function extractAdminAuthToken(request, { preferBearer = false, includeBearer = true } = {}) {
   const cookieToken = readAdminCookieToken(request);
-  const bearerToken = readBearerToken(request);
+  const bearerToken = includeBearer ? readBearerToken(request) : null;
   if (preferBearer) {
     return bearerToken || cookieToken;
   }

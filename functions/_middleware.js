@@ -1,5 +1,5 @@
 import { sentryPagesPlugin } from '@sentry/cloudflare';
-import { verifyJWT, ADMIN_AUTH_COOKIE } from './api/utils/auth.js';
+import { verifyJWT, extractAdminAuthToken, ADMIN_AUTH_COOKIE } from './api/utils/auth.js';
 
 /**
  * Edge Middleware - 组合 Sentry 监控 + JWT 验证
@@ -31,17 +31,15 @@ export const onRequest = [
     }
 
     // 从 Cookie 中提取 JWT Token
-    const cookieHeader = request.headers.get('Cookie') || '';
-    const regex = new RegExp(`${ADMIN_AUTH_COOKIE}=([^;]+)`);
-    const match = cookieHeader.match(regex);
+    const token = extractAdminAuthToken(request, { includeBearer: false });
 
-    if (!match) {
+    if (!token) {
       return Response.redirect(`${url.origin}/login`, 302);
     }
 
     // 验证 JWT
     try {
-      await verifyJWT(match[1], env);
+      await verifyJWT(token, env);
       return next();
     } catch (_error) {
       // Token valid check failed, clear cookie
