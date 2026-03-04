@@ -4,8 +4,7 @@
  */
 
 import { MSG } from './messages.js';
-import { verifyJWT } from './auth.js';
-import { parse as parseCookie } from 'cookie';
+import { verifyJWT, extractRequestToken } from './auth.js';
 
 /**
  * 验证销售端 JWT 并返回销售信息
@@ -16,17 +15,7 @@ import { parse as parseCookie } from 'cookie';
  * @throws {Error} 鉴权失败时抛出错误
  */
 export async function authenticateSalesperson(request, env, accessToken) {
-  const cookieHeader = request.headers.get('Cookie') || '';
-  const cookies = parseCookie(cookieHeader);
-  let jwt = cookies.sales_token;
-
-  // Fallback to Bearer JWT for non-cookie clients.
-  if (!jwt) {
-    const authHeader = request.headers.get('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      jwt = authHeader.substring(7);
-    }
-  }
+  const jwt = extractRequestToken(request, { cookieName: 'sales_token' });
 
   if (!jwt) {
     throw new Error(MSG.AUTH.REQUIRED);

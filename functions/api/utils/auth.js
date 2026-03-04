@@ -298,12 +298,6 @@ function normalizeAuthToken(token) {
   return token.replace(/^"(.+)"$/, '$1');
 }
 
-function readAdminCookieToken(request) {
-  const cookieHeader = request.headers.get('Cookie') || '';
-  const cookies = parseCookie(cookieHeader);
-  return normalizeAuthToken(cookies[ADMIN_AUTH_COOKIE]);
-}
-
 function readBearerToken(request) {
   const authHeader = request.headers.get('Authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -312,13 +306,24 @@ function readBearerToken(request) {
   return null;
 }
 
-export function extractAdminAuthToken(request, { preferBearer = false, includeBearer = true } = {}) {
-  const cookieToken = readAdminCookieToken(request);
+export function extractRequestToken(
+  request,
+  { cookieName = null, preferBearer = false, includeBearer = true } = {}
+) {
+  const cookieToken = cookieName ? normalizeAuthToken(parseCookie(request.headers.get('Cookie') || '')[cookieName]) : null;
   const bearerToken = includeBearer ? readBearerToken(request) : null;
   if (preferBearer) {
     return bearerToken || cookieToken;
   }
   return cookieToken || bearerToken;
+}
+
+export function extractAdminAuthToken(request, { preferBearer = false, includeBearer = true } = {}) {
+  return extractRequestToken(request, {
+    cookieName: ADMIN_AUTH_COOKIE,
+    preferBearer,
+    includeBearer,
+  });
 }
 
 /**
