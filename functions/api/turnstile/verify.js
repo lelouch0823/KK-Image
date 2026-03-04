@@ -62,11 +62,8 @@ export async function onRequestGet(context) {
   // 检查是否为已认证管理员
   let isAdmin = false;
   try {
-    const { verifyJWT } = await import('../utils/auth.js');
-    const { parse: parseCookie } = await import('cookie');
-    const cookieHeader = request.headers.get('Cookie') || '';
-    const cookies = parseCookie(cookieHeader);
-    const token = cookies.auth_token;
+    const { verifyJWT, extractRequestToken } = await import('../utils/auth.js');
+    const token = extractRequestToken(request, { cookieName: 'auth_token', includeBearer: false });
     if (token) {
       await verifyJWT(token, env);
       isAdmin = true;
