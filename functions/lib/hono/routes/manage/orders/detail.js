@@ -20,6 +20,29 @@ import {
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
 
 const app = new Hono();
+const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
+
+function getAdminActor(user) {
+    return {
+        id: user?.id || 'admin',
+        name: user?.name || 'Admin',
+    };
+}
+
+async function requireOrder(repo, orderId) {
+    const order = await repo.findById(orderId);
+    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
+    return order;
+}
+
+async function assertStatusTransitionAllowed({ c, user, fromStatus, toStatus, forceStatusTransition, reason }) {
+    if (toStatus === undefined || toStatus === fromStatus) return;
+    if (canTransitionOrderStatus(fromStatus, toStatus)) return;
+    if (!forceStatusTransition) {
+        throw new BadRequestError(`Invalid status transition: ${fromStatus} -> ${toStatus}`);
+    }
+    await assertForceStatusTransitionAllowed(c, user, reason);
+}
 
 /**
  * GET /:id - 获取订单详情
@@ -28,8 +51,7 @@ app.get('/:id', async (c) => {
     const { env } = c;
     const id = c.req.param('id');
     const repo = new OrderRepository(env.DB);
-    const order = await repo.findById(id);
-    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
+    const order = await requireOrder(repo, id);
 
     // SOTA: 获取关联的文件和时间轴
     const { OrderTimelineRepository } = await import('../../../../../repositories/OrderTimelineRepository.js');
@@ -60,12 +82,12 @@ app.get('/:id', async (c) => {
 app.patch('/:id', async (c) => {
     const { env } = c;
     const user = c.get('user'); // 从 JWT 获取管理员信息
+    const actor = getAdminActor(user);
     const id = c.req.param('id');
     const body = await c.req.json();
 
     const orderRepo = new OrderRepository(env.DB);
-    const order = await orderRepo.findById(id);
-    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
+    const order = await requireOrder(orderRepo, id);
 
     const { updates: updatesFromBody, reason, fileIds, productId, variantId } = body;
     const forceStatusTransition = Boolean(body?.force);
@@ -116,17 +138,15 @@ app.patch('/:id', async (c) => {
         }
     }
 
-    // 管理员允许修改的所有字段（productId 是顶级表列，通过 options.productId 单独传递处理）
-    const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
     const requestedStatus = finalUpdates?.status;
-    const isStatusChange = requestedStatus !== undefined && requestedStatus !== order.status;
-
-    if (isStatusChange && !canTransitionOrderStatus(order.status, requestedStatus)) {
-        if (!forceStatusTransition) {
-            throw new BadRequestError(`Invalid status transition: ${order.status} -> ${requestedStatus}`);
-        }
-        await assertForceStatusTransitionAllowed(c, user, reason);
-    }
+    await assertStatusTransitionAllowed({
+        c,
+        user,
+        fromStatus: order.status,
+        toStatus: requestedStatus,
+        forceStatusTransition,
+        reason,
+    });
 
     await processOrderUpdate({
         env,
@@ -141,7 +161,7 @@ app.patch('/:id', async (c) => {
         currentProductId: order.productId,
         currentVariantId: order.variantId,
         allowedFields: ADMIN_EDITABLE_FIELDS,
-        actor: { type: 'admin', id: user?.id || 'admin', name: user?.name || 'Admin' },
+        actor: { type: 'admin', id: actor.id, name: actor.name },
         reason: reason || 'Admin Update',
         salespersonId: order.salespersonId, // 传入销售员ID以发送通知
         forceStatusTransition,
@@ -160,6 +180,7 @@ app.patch('/:id', async (c) => {
 app.patch('/:id/status', async (c) => {
     const { env } = c;
     const user = c.get('user');
+    const actor = getAdminActor(user);
     const id = c.req.param('id');
     const { status, note, force } = await c.req.json();
     if (!ORDER_STATUSES.includes(status)) {
@@ -167,17 +188,18 @@ app.patch('/:id/status', async (c) => {
     }
 
     const repo = new OrderRepository(env.DB);
-    const order = await repo.findById(id);
-    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
+    const order = await requireOrder(repo, id);
 
     const oldStatus = order.status;
     const forceStatusTransition = Boolean(force);
-    if (status !== oldStatus && !canTransitionOrderStatus(oldStatus, status)) {
-        if (!forceStatusTransition) {
-            throw new BadRequestError(`Invalid status transition: ${oldStatus} -> ${status}`);
-        }
-        await assertForceStatusTransitionAllowed(c, user, note);
-    }
+    await assertStatusTransitionAllowed({
+        c,
+        user,
+        fromStatus: oldStatus,
+        toStatus: status,
+        forceStatusTransition,
+        reason: note,
+    });
 
     let success = false;
     try {
@@ -197,8 +219,8 @@ app.patch('/:id/status', async (c) => {
         await repo.timelineRepo.addTimelineEntry(id, {
             actionType: 'status_changed',
             actorType: 'admin',
-            actorId: user?.id || 'admin',
-            actorName: user?.name || 'Admin',
+            actorId: actor.id,
+            actorName: actor.name,
             oldValue: oldStatus,
             newValue: status,
             reason: note || '',
@@ -213,7 +235,7 @@ app.patch('/:id/status', async (c) => {
                 orderNo: order.orderNo,
                 receiver: 'sales',
                 salespersonId: order.salespersonId,
-                actorName: user?.name || 'Admin',
+                actorName: actor.name,
                 extra: { status }
             });
         }
@@ -233,6 +255,7 @@ app.patch('/:id/status', async (c) => {
 app.post('/:id/comment', async (c) => {
     const { env } = c;
     const user = c.get('user');
+    const actor = getAdminActor(user);
     const id = c.req.param('id');
     // SOTA: Payload key mismatch fix (frontend sends 'comment', backend expected 'content')
     const { comment } = await c.req.json();
@@ -246,8 +269,8 @@ app.post('/:id/comment', async (c) => {
     await repo.timelineRepo.addTimelineEntry(id, {
         actionType: 'comment',
         actorType: 'admin',
-        actorId: user?.id || 'admin',
-        actorName: user?.name || 'Admin',
+        actorId: actor.id,
+        actorName: actor.name,
         comment
     });
     await repo.setUnread(id, 'admin');
@@ -262,7 +285,7 @@ app.post('/:id/comment', async (c) => {
             orderNo: order.orderNo,
             receiver: 'sales',
             salespersonId: order.salespersonId,
-            actorName: user?.name || 'Admin',
+            actorName: actor.name,
             extra: { comment }
         });
     }
