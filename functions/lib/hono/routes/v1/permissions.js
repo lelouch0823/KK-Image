@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { MSG } from '../../_shared/utils.js';
 import {
-  evaluateUserPermission,
+  evaluateActionPermission,
   findUnknownPolicyActions,
   getPolicyActions,
   getPolicyMetadata,
@@ -26,11 +26,9 @@ const PERMISSIONS = Object.fromEntries(
 );
 
 async function evaluateUserAction(user, action) {
-  return evaluateUserPermission({
+  return evaluateActionPermission({
     user,
     permission: action,
-    path: null,
-    method: null,
   });
 }
 

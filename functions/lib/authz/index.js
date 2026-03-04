@@ -48,6 +48,15 @@ export async function evaluateUserPermission({ user, permission, path, method })
   return evaluatePermission({ input });
 }
 
+export async function evaluateActionPermission({ user, permission }) {
+  return evaluateUserPermission({
+    user,
+    permission,
+    path: null,
+    method: null,
+  });
+}
+
 export async function evaluatePermission({ input = {} } = {}) {
   try {
     const decision = await evaluateDecisionWithOpa(input);

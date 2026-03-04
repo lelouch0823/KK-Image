@@ -8,7 +8,13 @@ vi.mock('../opa-engine.js', () => ({
   evaluateDecisionWithOpa: opaMocks.evaluateDecisionWithOpa,
 }));
 
-import { buildAuthzInput, evaluatePermission, evaluateUserPermission, getPolicyMetadata } from '../index.js';
+import {
+  buildAuthzInput,
+  evaluateActionPermission,
+  evaluatePermission,
+  evaluateUserPermission,
+  getPolicyMetadata,
+} from '../index.js';
 
 describe('authz engine', () => {
   it('uses opa by default and allows when decision allow=true', async () => {
@@ -96,6 +102,23 @@ describe('authz engine', () => {
       action: 'files:read',
       resource: { type: 'api_route', path: '/api/v1/permissions/user' },
       context: { method: 'GET' },
+    });
+  });
+
+  it('evaluates action permission with route-agnostic context', async () => {
+    opaMocks.evaluateDecisionWithOpa.mockResolvedValueOnce({ allow: true, reason: 'role_permission' });
+
+    const allowed = await evaluateActionPermission({
+      user: { id: 'u1', type: 'user', role: 'manager', permissions: [] },
+      permission: 'files:read',
+    });
+
+    expect(allowed).toBe(true);
+    expect(opaMocks.evaluateDecisionWithOpa).toHaveBeenCalledWith({
+      subject: { id: 'u1', type: 'user', role: 'manager', permissions: [] },
+      action: 'files:read',
+      resource: { type: 'api_route', path: null },
+      context: { method: null },
     });
   });
 });
