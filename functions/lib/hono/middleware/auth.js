@@ -109,11 +109,6 @@ export function requirePermission(permission) {
       return c.json({ success: false, error: 'Unauthorized' }, 401);
     }
 
-    // 兼容旧版逻辑：如果是 admin 用户或者是系统管理 token
-    if (user.type === 'admin' || user.permissions?.includes('admin:full')) {
-      return next();
-    }
-
     const authzInput = buildAuthzInput({
       user,
       permission,

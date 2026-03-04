@@ -170,6 +170,7 @@ export async function verifyJWT(token, env) {
     return {
       id: payload.sub,
       name: payload.name,
+      role: payload.role || (payload.type === 'admin' ? 'admin' : null),
       permissions: payload.permissions || ['read'],
       type: payload.type || 'jwt',
       iat: payload.iat,
@@ -192,6 +193,7 @@ export async function generateJWT(user, env, expiresIn = 3600) {
     sub: user.id,
     name: user.name,
     type: user.type,
+    role: user.role || (user.type === 'admin' ? 'admin' : null),
     permissions: user.permissions || ['read'],
     iat: now,
     exp: now + expiresIn,

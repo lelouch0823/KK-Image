@@ -60,7 +60,10 @@ allow if has_direct_permission
 
 decision := {"allow": allow, "reason": reason}
 
-reason := "role_wildcard" if has_role_wildcard
-reason := "role_permission" if has_role_permission
-reason := "direct_permission" if has_direct_permission
-reason := "deny" if not allow
+reason := "role_wildcard" if {
+  has_role_wildcard
+} else := "role_permission" if {
+  has_role_permission
+} else := "direct_permission" if {
+  has_direct_permission
+} else := "deny"

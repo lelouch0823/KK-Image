@@ -290,9 +290,7 @@ app.post('/:id/comment', async (c) => {
 app.delete('/:id', async (c) => {
     const { env } = c;
     const user = c.get('user');
-    const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
-    const canDeleteOrder =
-        user?.type === 'admin' && (permissions.includes('admin:full') || permissions.includes('*'));
+    const canDeleteOrder = hasForceStatusPermission(user);
 
     if (!canDeleteOrder) {
         throw new UnauthorizedError(MSG.AUTH.PERMISSION_DENIED);

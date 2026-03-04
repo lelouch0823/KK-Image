@@ -52,5 +52,14 @@ describe('requirePermission with authz engine', () => {
     expect(res.status).toBe(200);
     expect(authzMocks.evaluatePermission).toHaveBeenCalledTimes(1);
   });
+
+  it('does not bypass authz for admin:full token', async () => {
+    authzMocks.evaluatePermission.mockResolvedValueOnce(false);
+    const app = createApp({ id: 'u1', type: 'admin', role: 'admin', permissions: ['admin:full'] });
+
+    const res = await app.request('http://localhost/secure/ping', {}, { AUTHZ_ENGINE: 'opa' });
+    expect(res.status).toBe(403);
+    expect(authzMocks.evaluatePermission).toHaveBeenCalledTimes(1);
+  });
 });
 

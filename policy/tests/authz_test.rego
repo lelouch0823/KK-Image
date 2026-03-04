@@ -28,3 +28,14 @@ test_viewer_deny_files_delete if {
     "context": {"method": "DELETE"}
   }
 }
+
+test_admin_role_and_direct_permission_no_conflict if {
+  decision := authz.decision with input as {
+    "subject": {"role": "admin", "permissions": ["admin:full"]},
+    "action": "admin:full",
+    "resource": {"type": "api_route"},
+    "context": {"method": "GET"}
+  }
+  decision.allow == true
+  decision.reason == "role_wildcard"
+}
