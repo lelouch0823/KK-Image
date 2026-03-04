@@ -6,11 +6,10 @@ import { VariantImageRepository } from '../../../../../repositories/VariantImage
 import { resolveVariantImageSyncPlan } from './variant-image-sync.js';
 import { archiveVariantImagesByFolder } from './variant-image-folders.js';
 import { normalizeProductCurrency } from './currency.js';
-import { withCache, invalidateCache, getProductCacheUrls } from '../../../middleware/cache.js';
-import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
+import { withCache } from '../../../middleware/cache.js';
 import { BadRequestError, ConflictError } from '../../../errors.js';
-import { getSalesProductCacheUrls } from '../../_shared/cache-urls.js';
 import { requirePermission } from '../../../middleware/auth.js';
+import { scheduleProductCacheInvalidation } from './cache-helpers.js';
 import batch from './batch.js';
 import exportRoute from './export.js';
 
@@ -76,17 +75,6 @@ const parseJsonSafe = (value, fallback) => {
     } catch {
         return fallback;
     }
-};
-
-const invalidateProductCaches = (c, db, productId = null) => {
-    c.executionCtx.waitUntil((async () => {
-        const salesTokens = await getAllSalespersonAccessTokens(db);
-        const urls = [
-            ...getProductCacheUrls(c),
-            ...getSalesProductCacheUrls(c, { salesTokens, productId }),
-        ];
-        await invalidateCache([...new Set(urls)]);
-    })());
 };
 
 /**
@@ -304,7 +292,7 @@ app.post('/', async (c) => {
         throw error;
     }
 
-    invalidateProductCaches(c, env.DB, product?.id || null);
+    scheduleProductCacheInvalidation(c, env.DB, { productIds: [product?.id || null] });
 
     return c.json({ success: true, data: product }, 201);
 });

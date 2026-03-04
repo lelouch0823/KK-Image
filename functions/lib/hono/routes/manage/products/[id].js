@@ -7,11 +7,9 @@ import { VariantAuditRepository } from '../../../../../repositories/VariantAudit
 import { resolveVariantImageSyncPlan } from './variant-image-sync.js';
 import { archiveVariantImagesByFolder } from './variant-image-folders.js';
 import { normalizeProductCurrency } from './currency.js';
-import { invalidateCache, getProductCacheUrls } from '../../../middleware/cache.js';
-import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
-import { getSalesProductCacheUrls } from '../../_shared/cache-urls.js';
 import { requirePermission } from '../../../middleware/auth.js';
+import { scheduleProductCacheInvalidation } from './cache-helpers.js';
 
 const app = new Hono();
 app.use('*', requirePermission('products:manage'));
@@ -209,17 +207,6 @@ const loadVariantReplenishmentMap = async (db, variantIds = []) => {
     return map;
 };
 
-const invalidateProductCaches = (c, db, productId = null) => {
-    c.executionCtx.waitUntil((async () => {
-        const salesTokens = await getAllSalespersonAccessTokens(db);
-        const urls = [
-            ...getProductCacheUrls(c),
-            ...getSalesProductCacheUrls(c, { salesTokens, productId }),
-        ];
-        await invalidateCache([...new Set(urls)]);
-    })());
-};
-
 /**
  * GET /:id - 获取商品详情
  */
@@ -276,7 +263,7 @@ app.post('/:id/dimensions', async (c) => {
     const dimensionRepo = new ProductDimensionRepository(env.DB);
     try {
         const created = await dimensionRepo.createDimension(productId, body);
-        invalidateProductCaches(c, env.DB, productId);
+        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
         return c.json({ success: true, data: created }, 201);
     } catch (error) {
         throw new BadRequestError(error.message || 'Create dimension failed');
@@ -294,7 +281,7 @@ app.patch('/:id/dimensions/:dimensionId', async (c) => {
     const dimensionRepo = new ProductDimensionRepository(env.DB);
     try {
         const updated = await dimensionRepo.updateDimension(productId, dimensionId, body);
-        invalidateProductCaches(c, env.DB, productId);
+        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
         return c.json({ success: true, data: updated });
     } catch (error) {
         throw new BadRequestError(error.message || 'Update dimension failed');
@@ -320,7 +307,7 @@ app.patch('/:id/dimensions/:dimensionId/archive', async (c) => {
             effect = { archivedVariants: await dimensionRepo.archiveVariantsByDimension(productId, dimensionId) };
         }
         const archivedDimension = await dimensionRepo.archiveDimension(productId, dimensionId);
-        invalidateProductCaches(c, env.DB, productId);
+        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
         return c.json({ success: true, data: { dimension: archivedDimension, effect } });
     } catch (error) {
         throw new BadRequestError(error.message || 'Archive dimension failed');
@@ -338,7 +325,7 @@ app.post('/:id/dimensions/:dimensionId/values', async (c) => {
     const dimensionRepo = new ProductDimensionRepository(env.DB);
     try {
         const created = await dimensionRepo.addValue(productId, dimensionId, body);
-        invalidateProductCaches(c, env.DB, productId);
+        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
         return c.json({ success: true, data: created }, 201);
     } catch (error) {
         throw new BadRequestError(error.message || 'Add value failed');
@@ -356,7 +343,7 @@ app.patch('/:id/values/:valueId/archive', async (c) => {
     try {
         const effect = await dimensionRepo.archiveVariantsByValue(productId, valueId);
         const value = await dimensionRepo.archiveValue(productId, valueId);
-        invalidateProductCaches(c, env.DB, productId);
+        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
         return c.json({ success: true, data: { value, effect } });
     } catch (error) {
         throw new BadRequestError(error.message || 'Archive value failed');
@@ -373,7 +360,7 @@ app.patch('/:id/values/:valueId/restore', async (c) => {
     const dimensionRepo = new ProductDimensionRepository(env.DB);
     try {
         const value = await dimensionRepo.restoreValue(productId, valueId);
-        invalidateProductCaches(c, env.DB, productId);
+        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
         return c.json({ success: true, data: value });
     } catch (error) {
         throw new BadRequestError(error.message || 'Restore value failed');
@@ -420,7 +407,7 @@ app.post('/:id/variants/:variantId/images', async (c) => {
             imageId: body.imageId,
             isPrimary: Boolean(body.isPrimary),
         });
-        invalidateProductCaches(c, env.DB, productId);
+        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
         return c.json({ success: true, data: created }, 201);
     } catch (error) {
         if (isVariantOwnershipError(error)) {
@@ -447,7 +434,7 @@ app.patch('/:id/variants/:variantId/images/sort', async (c) => {
             variantId,
             imageIds: body.imageIds,
         });
-        invalidateProductCaches(c, env.DB, productId);
+        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
         return c.json({ success: true });
     } catch (error) {
         if (isVariantOwnershipError(error)) {
@@ -470,7 +457,7 @@ app.patch('/:id/variants/:variantId/images/:imageId/primary', async (c) => {
             variantId,
             imageId,
         });
-        invalidateProductCaches(c, env.DB, productId);
+        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
         return c.json({ success: true });
     } catch (error) {
         if (isVariantOwnershipError(error)) {
@@ -496,7 +483,7 @@ app.delete('/:id/variants/:variantId/images/:imageId', async (c) => {
         if (!removed) {
             throw new NotFoundError('Variant image not found');
         }
-        invalidateProductCaches(c, env.DB, productId);
+        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
         return c.json({ success: true });
     } catch (error) {
         if (isVariantOwnershipError(error)) {
@@ -605,7 +592,7 @@ app.patch('/:id', async (c) => {
     // if product fields changed OR variants existed and successfully synced
     if ((result.success && result.changes > 0) || variantsUpdated) {
         // 使缓存失效
-        invalidateProductCaches(c, env.DB, id);
+        scheduleProductCacheInvalidation(c, env.DB, { productIds: [id] });
         return c.json({
             success: true,
             message: 'Product updated',
@@ -710,7 +697,7 @@ app.put('/:id', async (c) => {
 
     if (success) {
         // 使缓存失效
-        invalidateProductCaches(c, env.DB, id);
+        scheduleProductCacheInvalidation(c, env.DB, { productIds: [id] });
         return c.json({
             success: true,
             message: 'Product updated',
@@ -755,7 +742,7 @@ app.delete('/:id', async (c) => {
             await auditRepo.createBatch(events);
         }
         // 使缓存失效
-        invalidateProductCaches(c, env.DB, id);
+        scheduleProductCacheInvalidation(c, env.DB, { productIds: [id] });
         return c.json({ success: true, message: 'Product variants archived' });
     } else {
         throw new BadRequestError('Delete failed');

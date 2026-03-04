@@ -1,10 +1,8 @@
 import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
-import { invalidateCache, getProductCacheUrls } from '../../../middleware/cache.js';
-import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { BadRequestError } from '../../../errors.js';
-import { getSalesProductCacheUrls } from '../../_shared/cache-urls.js';
+import { scheduleProductCacheInvalidation } from './cache-helpers.js';
 
 const app = new Hono();
 const IMPORT_MODE = {
@@ -385,21 +383,9 @@ app.post('/', async (c) => {
     };
 
     if (success) {
-        c.executionCtx.waitUntil((async () => {
-            const salesTokens = await getAllSalespersonAccessTokens(env.DB);
-            const urls = new Set([
-                ...getProductCacheUrls(c),
-                ...getSalesProductCacheUrls(c, { salesTokens }),
-            ]);
-
-            for (const productId of updatedProductIds) {
-                for (const url of getSalesProductCacheUrls(c, { salesTokens, productId })) {
-                    urls.add(url);
-                }
-            }
-
-            await invalidateCache([...urls]);
-        })());
+        scheduleProductCacheInvalidation(c, env.DB, {
+            productIds: [...updatedProductIds],
+        });
     }
 
     return c.json(result);
