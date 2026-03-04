@@ -25,6 +25,23 @@ function scheduleManageShareCacheInvalidation(c) {
   scheduleCacheInvalidation(c, getManageShareCacheUrls(c));
 }
 
+function toFolderListItem(folder) {
+  return {
+    ...folder,
+    isPublic: Boolean(folder.is_public),
+    createdAt: folder.created_at,
+    updatedAt: folder.updated_at,
+    subfolderCount: folder.subfolder_count,
+    fileCount: folder.file_count,
+  };
+}
+
+async function requireFolder(folderRepo, folderId) {
+  const folder = await folderRepo.findById(folderId);
+  if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
+  return folder;
+}
+
 // Schemas
 const CreateFolderSchema = z.object({
   name: z.string().min(1).max(100),
@@ -59,14 +76,7 @@ app.get('/', async (c) => {
 
   return c.json({
     success: true,
-    data: results.map((folder) => ({
-      ...folder,
-      isPublic: Boolean(folder.is_public),
-      createdAt: folder.created_at,
-      updatedAt: folder.updated_at,
-      subfolderCount: folder.subfolder_count,
-      fileCount: folder.file_count,
-    })),
+    data: results.map(toFolderListItem),
   });
 });
 
@@ -79,8 +89,7 @@ app.get('/:id', async (c) => {
   const folderRepo = new FolderRepository(env.DB);
   const fileRepo = new FileRepository(env.DB);
 
-  const folder = await folderRepo.findById(folderId);
-  if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
+  const folder = await requireFolder(folderRepo, folderId);
 
   // 并行获取子文件夹和文件
   const [subfolders, files, breadcrumbs] = await Promise.all([
@@ -194,8 +203,7 @@ app.put(
     const data = c.req.valid('json');
     const folderRepo = new FolderRepository(env.DB);
 
-    const folder = await folderRepo.findById(folderId);
-    if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
+    const folder = await requireFolder(folderRepo, folderId);
 
     const updates = [];
     const values = [];
@@ -279,8 +287,7 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
 
   if (folderId === 'root') throw new BadRequestError(MSG.FOLDER.ROOT_CANNOT_DELETE);
 
-  const folder = await folderRepo.findById(folderId);
-  if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
+  const folder = await requireFolder(folderRepo, folderId);
 
   if (folder.is_system) throw new ForbiddenError(MSG.FOLDER.SYSTEM_FOLDER_DELETE);
 
