@@ -6,6 +6,7 @@ import { generateId, hashPassword, MSG } from '../../_shared/utils.js';
 import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
 import { assertKnownPermissions } from './_shared/permissions-validation.js';
+import { appendOptionalUpdate } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 const USER_SELECT_FIELDS = 'id, username, name, email, role, permissions, created_at, updated_at';
@@ -147,22 +148,10 @@ app.put(
     const updates = [];
     const values = [];
 
-    if (data.name !== undefined) {
-      updates.push('name = ?');
-      values.push(data.name);
-    }
-    if (data.email !== undefined) {
-      updates.push('email = ?');
-      values.push(data.email);
-    }
-    if (data.role !== undefined) {
-      updates.push('role = ?');
-      values.push(data.role);
-    }
-    if (data.permissions !== undefined) {
-      updates.push('permissions = ?');
-      values.push(JSON.stringify(data.permissions));
-    }
+    appendOptionalUpdate(updates, values, 'name = ?', data.name);
+    appendOptionalUpdate(updates, values, 'email = ?', data.email);
+    appendOptionalUpdate(updates, values, 'role = ?', data.role);
+    appendOptionalUpdate(updates, values, 'permissions = ?', data.permissions, (value) => JSON.stringify(value));
     if (data.password) {
       updates.push('password_hash = ?');
       values.push(await hashPassword(data.password, env.JWT_SECRET));
