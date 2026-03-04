@@ -29,6 +29,18 @@ const invalidatePoRelatedCaches = (c, poId = null) => {
   scheduleCacheInvalidation(c, [...new Set(urls)]);
 };
 
+async function requirePurchaseOrder(repo, poId) {
+  const po = await repo.findById(poId);
+  if (!po) throw new NotFoundError('采购单不存在');
+  return po;
+}
+
+async function requireDraftPurchaseOrder(repo, poId, actionLabel) {
+  const po = await requirePurchaseOrder(repo, poId);
+  if (po.status !== 'draft') throw new BadRequestError(`仅草稿状态允许${actionLabel}`);
+  return po;
+}
+
 async function validateVariantItems(db, items = []) {
   if (!items || items.length === 0) return;
   const variantIds = [...new Set(items.map((item) => item.variant_id).filter(Boolean))];
@@ -121,9 +133,7 @@ app.get('/suggestions', withCache(20), async (c) => {
  */
 app.get('/:id', withCache(20), async (c) => {
   const repo = new PurchaseOrderRepository(c.env.DB);
-  const po = await repo.findById(c.req.param('id'));
-
-  if (!po) throw new NotFoundError('采购单不存在');
+  const po = await requirePurchaseOrder(repo, c.req.param('id'));
 
   return c.json({ success: true, data: po });
 });
@@ -235,22 +245,21 @@ app.patch('/:id/status', async (c) => {
  * Body: { items: [{ product_id, pre_order_id?, quantity, unit_cost }] }
  */
 app.post('/:id/items', async (c) => {
+  const poId = c.req.param('id');
   const body = await c.req.json();
   const repo = new PurchaseOrderRepository(c.env.DB);
 
   // 校验采购单存在且为草稿状态
-  const po = await repo.findById(c.req.param('id'));
-  if (!po) throw new NotFoundError('采购单不存在');
-  if (po.status !== 'draft') throw new BadRequestError('仅草稿状态允许添加明细');
+  await requireDraftPurchaseOrder(repo, poId, '添加明细');
 
   if (!body.items || body.items.length === 0) {
     throw new BadRequestError('请提供至少一条明细项');
   }
   await validateVariantItems(c.env.DB, body.items);
 
-  const ids = await repo.addItems(c.req.param('id'), body.items);
+  const ids = await repo.addItems(poId, body.items);
 
-  invalidatePoRelatedCaches(c, c.req.param('id'));
+  invalidatePoRelatedCaches(c, poId);
 
   return c.json({ success: true, data: { created: ids.length } }, 201);
 });
@@ -260,18 +269,17 @@ app.post('/:id/items', async (c) => {
  * Body: { quantity?, unit_cost? }
  */
 app.patch('/:id/items/:itemId', async (c) => {
+  const poId = c.req.param('id');
   const body = await c.req.json();
   const repo = new PurchaseOrderRepository(c.env.DB);
 
   // 校验采购单存在且为草稿状态
-  const po = await repo.findById(c.req.param('id'));
-  if (!po) throw new NotFoundError('采购单不存在');
-  if (po.status !== 'draft') throw new BadRequestError('仅草稿状态允许修改明细');
+  await requireDraftPurchaseOrder(repo, poId, '修改明细');
 
   const updated = await repo.updateItem(c.req.param('itemId'), body);
   if (!updated) throw new NotFoundError('明细不存在');
 
-  invalidatePoRelatedCaches(c, c.req.param('id'));
+  invalidatePoRelatedCaches(c, poId);
 
   return c.json({ success: true });
 });
@@ -280,17 +288,16 @@ app.patch('/:id/items/:itemId', async (c) => {
  * DELETE /:id/items/:itemId — 删除明细
  */
 app.delete('/:id/items/:itemId', async (c) => {
+  const poId = c.req.param('id');
   const repo = new PurchaseOrderRepository(c.env.DB);
 
   // 校验采购单状态
-  const po = await repo.findById(c.req.param('id'));
-  if (!po) throw new NotFoundError('采购单不存在');
-  if (po.status !== 'draft') throw new BadRequestError('仅草稿状态允许删除明细');
+  await requireDraftPurchaseOrder(repo, poId, '删除明细');
 
   const removed = await repo.removeItem(c.req.param('itemId'));
   if (!removed) throw new NotFoundError('明细不存在');
 
-  invalidatePoRelatedCaches(c, c.req.param('id'));
+  invalidatePoRelatedCaches(c, poId);
 
   return c.json({ success: true });
 });
@@ -301,14 +308,14 @@ app.delete('/:id/items/:itemId', async (c) => {
  * POST /:id/allocate — 手动触发成本分摊 (用于填写实际费用后重新计算)
  */
 app.post('/:id/allocate', async (c) => {
+  const poId = c.req.param('id');
   const service = new PurchaseOrderService(c.env.DB);
-  await service.allocateCosts(c.req.param('id'));
+  await service.allocateCosts(poId);
 
-  invalidatePoRelatedCaches(c, c.req.param('id'));
+  invalidatePoRelatedCaches(c, poId);
 
   const repo = new PurchaseOrderRepository(c.env.DB);
-  const po = await repo.findById(c.req.param('id'));
-  if (!po) throw new NotFoundError('采购单不存在');
+  const po = await requirePurchaseOrder(repo, poId);
 
   return c.json({ success: true, data: po });
 });
