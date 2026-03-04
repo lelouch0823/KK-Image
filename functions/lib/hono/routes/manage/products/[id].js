@@ -183,11 +183,7 @@ app.get('/:id', async (c) => {
     const { env } = c;
     const id = c.req.param('id');
     const repo = new ProductRepository(env.DB);
-    const product = await repo.findById(id);
-
-    if (!product) {
-        throw new NotFoundError('Product not found');
-    }
+    const product = await ensureProductExists(repo, id);
 
     const variantRepo = new ProductVariantRepository(env.DB);
     const dimensionRepo = new ProductDimensionRepository(env.DB);
@@ -363,10 +359,7 @@ app.post('/:id/variants/:variantId/images', async (c) => {
     }
 
     const productRepo = new ProductRepository(env.DB);
-    const product = await productRepo.findById(productId);
-    if (!product) {
-        throw new NotFoundError('Product not found');
-    }
+    await ensureProductExists(productRepo, productId);
 
     const variantImageRepo = new VariantImageRepository(env.DB);
     try {
@@ -684,10 +677,7 @@ app.delete('/:id', async (c) => {
     const { env } = c;
     const id = c.req.param('id');
     const repo = new ProductRepository(env.DB);
-    const product = await repo.findById(id);
-    if (!product) {
-        throw new NotFoundError('Product not found');
-    }
+    await ensureProductExists(repo, id);
     const now = Date.now();
     const variantRepo = new ProductVariantRepository(env.DB);
     const auditRepo = new VariantAuditRepository(env.DB);
