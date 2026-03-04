@@ -157,13 +157,10 @@ app.put(
 
     appendOptionalUpdate(updates, values, 'name = ?', data.name, (value) => value.trim());
     appendOptionalUpdate(updates, values, 'description = ?', data.description, (value) => value.trim());
-    if (data.isPublic !== undefined) {
-      updates.push('is_public = ?');
-      values.push(data.isPublic ? 1 : 0);
-      if (data.isPublic && !album.share_token) {
-        updates.push('share_token = ?');
-        values.push(generateShareToken());
-      }
+    appendOptionalUpdate(updates, values, 'is_public = ?', data.isPublic, (value) => (value ? 1 : 0));
+    if (data.isPublic && !album.share_token) {
+      updates.push('share_token = ?');
+      values.push(generateShareToken());
     }
     appendOptionalUpdate(updates, values, 'cover_file_id = ?', data.coverFileId);
 
