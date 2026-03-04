@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { LoginSchema, TokenSchema } from '../../schemas/user.js';
 import { generateJWT, ADMIN_AUTH_COOKIE, verifyTurnstile, MSG } from '../../_shared/utils.js';
+import { normalizeUserContext } from '../../_shared/auth-context.js';
 import { loginRateLimitMiddleware } from '../../middleware/rateLimit.js';
 import {
   checkAndRespondLockout,
@@ -142,11 +143,12 @@ app.get('/check', async (c) => {
  * GET /api/v1/auth/me - 获取当前用户信息
  */
 app.get('/me', async (c) => {
-  const user = c.get('user');
+  const rawUser = c.get('user');
 
-  if (!user) {
+  if (!rawUser) {
     return c.json({ success: false, error: MSG.AUTH.REQUIRED }, 401);
   }
+  const user = normalizeUserContext(rawUser);
 
   return c.json({
     success: true,
@@ -154,8 +156,8 @@ app.get('/me', async (c) => {
       id: user.id,
       name: user.name,
       type: user.type,
-      role: user.role || 'admin',
-      permissions: user.permissions || [],
+      role: user.role,
+      permissions: user.permissions,
     },
   });
 });

@@ -1,5 +1,6 @@
 import { verifyJWT, verifyApiKey, extractAdminAuthToken, MSG } from '../_shared/utils.js';
 import { evaluateUserPermission } from '../../authz/index.js';
+import { isLegacyJwtContext } from '../_shared/auth-context.js';
 
 /**
  * 公开路由列表（无需认证）
@@ -70,6 +71,15 @@ export async function authMiddleware(c, next) {
   // 验证 JWT
   try {
     const payload = await verifyJWT(token, c.env);
+    if (isLegacyJwtContext(payload)) {
+      return c.json(
+        {
+          success: false,
+          error: MSG.AUTH.EXPIRED,
+        },
+        401
+      );
+    }
     c.set('user', payload);
     return next();
   } catch (err) {
