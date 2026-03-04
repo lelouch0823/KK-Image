@@ -11,7 +11,7 @@ import { withCache } from '../../middleware/cache.js';
 import { generateId, generateShareToken, now, MSG } from '../../_shared/utils.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
-import { requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { appendOptionalUpdate, requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 import { getV1FolderAndShareCacheUrls } from './cache-urls.js';
 
 const app = new Hono();
@@ -141,18 +141,18 @@ app.put(
 
     const updates = [];
     const values = [];
-
-    for (const [key, value] of Object.entries(data)) {
-      if (value !== undefined) {
-        if (key === 'parentId' && value) {
-          const isDescendant = await repo.isDescendantOrSelf(id, value);
-          if (isDescendant) throw new BadRequestError(MSG.FOLDER.MOVE_TO_SELF);
-        }
-        const dbKey = key === 'isPublic' ? 'is_public' : key === 'parentId' ? 'parent_id' : key;
-        updates.push(`${dbKey} = ?`);
-        values.push(key === 'isPublic' ? (value ? 1 : 0) : value);
+    appendOptionalUpdate(updates, values, 'name = ?', data.name);
+    appendOptionalUpdate(updates, values, 'description = ?', data.description);
+    appendOptionalUpdate(updates, values, 'is_public = ?', data.isPublic, (value) => (value ? 1 : 0));
+    appendOptionalUpdate(updates, values, 'password = ?', data.password);
+    if (data.parentId !== undefined) {
+      if (data.parentId) {
+        const isDescendant = await repo.isDescendantOrSelf(id, data.parentId);
+        if (isDescendant) throw new BadRequestError(MSG.FOLDER.MOVE_TO_SELF);
       }
+      appendOptionalUpdate(updates, values, 'parent_id = ?', data.parentId);
     }
+    appendOptionalUpdate(updates, values, 'share_expires_at = ?', data.shareExpiresAt);
 
     if (updates.length === 0) throw new BadRequestError(MSG.COMMON.NO_UPDATE_FIELDS);
 
