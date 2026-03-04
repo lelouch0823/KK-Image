@@ -7,11 +7,12 @@ import {
   MoveFileSchema,
 } from '../../schemas/file.js';
 import { requirePermission } from '../../middleware/auth.js';
-import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { withCache } from '../../middleware/cache.js';
 import { getFileUrl, generateId, MSG } from '../../_shared/utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
+import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 
@@ -51,8 +52,9 @@ const getFileCacheUrlsByFolders = (c, folderIds = []) => {
 
 function scheduleFileCacheInvalidation(c, { folderIds = [], extraUrls = [] } = {}) {
   const mergedExtraUrls = Array.isArray(extraUrls) ? extraUrls : [extraUrls];
-  c.executionCtx.waitUntil(
-    invalidateCache([...getFileCacheUrlsByFolders(c, folderIds), ...mergedExtraUrls.filter(Boolean)])
+  scheduleCacheInvalidation(
+    c,
+    [...getFileCacheUrlsByFolders(c, folderIds), ...mergedExtraUrls.filter(Boolean)]
   );
 }
 

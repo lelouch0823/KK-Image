@@ -3,13 +3,14 @@ import { requirePermission } from '../../middleware/auth.js';
 import { generateId, now } from '../../_shared/utils.js';
 import { BadRequestError, ConflictError } from '../../errors.js';
 import { TagRepository } from '../../../../repositories/TagRepository.js';
-import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { withCache } from '../../middleware/cache.js';
 import { getManageTagCacheUrls } from '../_shared/cache-urls.js';
+import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 
 const tagsRoute = new Hono();
 
 function scheduleManageTagCacheInvalidation(c) {
-    c.executionCtx.waitUntil(invalidateCache(getManageTagCacheUrls(c)));
+    scheduleCacheInvalidation(c, getManageTagCacheUrls(c));
 }
 
 // GET 获取所有标签

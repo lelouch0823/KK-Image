@@ -3,9 +3,9 @@ import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { SalespersonRepository } from '../../../../repositories/SalespersonRepository.js';
 import { MSG } from '../../_shared/utils.js';
-import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { withCache } from '../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
-import { parsePagination, createCacheInvalidator } from '../../_shared/route-helpers.js';
+import { parsePagination, createCacheInvalidator, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 import { getManageOrderCacheUrls } from '../_shared/cache-urls.js';
 import { requirePermission } from '../../middleware/auth.js';
 
@@ -21,7 +21,7 @@ const getSalespersonAndOrderCacheUrls = (c) => [
 ];
 
 function scheduleSalespersonAndOrderCacheInvalidation(c) {
-    c.executionCtx.waitUntil(invalidateCache(getSalespersonAndOrderCacheUrls(c)));
+    scheduleCacheInvalidation(c, getSalespersonAndOrderCacheUrls(c));
 }
 
 // 验证 Schema

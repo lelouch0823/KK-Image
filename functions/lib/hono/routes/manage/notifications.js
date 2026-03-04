@@ -2,14 +2,15 @@ import { Hono } from 'hono';
 import { NotificationRepository } from '../../../../repositories/NotificationRepository.js';
 import { MSG } from '../../_shared/utils.js';
 import { BadRequestError } from '../../errors.js';
-import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { withCache } from '../../middleware/cache.js';
 import { getManageNotificationCacheUrls } from '../_shared/cache-urls.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 
 function scheduleManageNotificationCacheInvalidation(c) {
-    c.executionCtx.waitUntil(invalidateCache(getManageNotificationCacheUrls(c)));
+    scheduleCacheInvalidation(c, getManageNotificationCacheUrls(c));
 }
 
 /**

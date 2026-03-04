@@ -4,6 +4,7 @@
  */
 import { inClause } from '../../../api/utils/sql.js';
 import { parseRepoPagination } from '../../../api/utils/pagination.js';
+import { invalidateCache } from '../middleware/cache.js';
 
 /**
  * 从请求中解析分页参数
@@ -79,4 +80,13 @@ export async function getAllSalespersonAccessTokens(db) {
   } catch {
     return [];
   }
+}
+
+/**
+ * 异步调度缓存失效任务
+ * @param {Object} c - Hono context
+ * @param {string|string[]} urls - 待失效 URL
+ */
+export function scheduleCacheInvalidation(c, urls) {
+  c.executionCtx.waitUntil(invalidateCache(urls));
 }

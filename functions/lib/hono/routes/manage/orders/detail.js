@@ -8,9 +8,9 @@ import {
 } from '../../../../../api/utils/order-state-machine.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
-import { invalidateCache } from '../../../middleware/cache.js';
 import { getManageOrderCacheUrls } from '../../_shared/cache-urls.js';
 import { assertAdminFull, assertForceStatusTransitionAllowed } from './authz-helpers.js';
+import { scheduleCacheInvalidation } from '../../../_shared/route-helpers.js';
 import {
     resolveSalesTokens,
     scheduleOrderAndSalespersonCacheInvalidation,
@@ -42,7 +42,7 @@ app.get('/:id', async (c) => {
 
     // 标记管理员已读
     await repo.markAsRead(id, 'admin');
-    c.executionCtx.waitUntil(invalidateCache(getManageOrderCacheUrls(c)));
+    scheduleCacheInvalidation(c, getManageOrderCacheUrls(c));
 
     return c.json({
         success: true,

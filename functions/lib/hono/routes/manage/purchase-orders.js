@@ -13,9 +13,10 @@ import { PurchaseOrderRepository } from '../../../../repositories/PurchaseOrderR
 import { PurchaseOrderService } from '../../../../services/PurchaseOrderService.js';
 import { validateOrderQuantity } from '../../../../services/purchase-order-constraints.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
-import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { withCache } from '../../middleware/cache.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { getPurchaseOrderCacheUrls, getOrderAnalyticsCacheUrls } from '../_shared/cache-urls.js';
+import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 app.use('*', requirePermission('products:manage'));
@@ -25,7 +26,7 @@ const invalidatePoRelatedCaches = (c, poId = null) => {
     ...getPurchaseOrderCacheUrls(c, poId),
     ...getOrderAnalyticsCacheUrls(c),
   ];
-  c.executionCtx.waitUntil(invalidateCache([...new Set(urls)]));
+  scheduleCacheInvalidation(c, [...new Set(urls)]);
 };
 
 async function validateVariantItems(db, items = []) {

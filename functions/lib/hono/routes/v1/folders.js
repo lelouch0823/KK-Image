@@ -7,11 +7,12 @@ import {
   ShareSettingsSchema,
 } from '../../schemas/folder.js';
 import { requirePermission } from '../../middleware/auth.js';
-import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { withCache } from '../../middleware/cache.js';
 import { generateId, generateShareToken, now, MSG } from '../../_shared/utils.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
 import { getManageShareCacheUrls } from '../_shared/cache-urls.js';
+import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 
@@ -35,7 +36,7 @@ const getFolderAndShareCacheUrls = (c, parentIds = []) => {
 };
 
 function scheduleFolderAndShareCacheInvalidation(c, parentIds = []) {
-  c.executionCtx.waitUntil(invalidateCache(getFolderAndShareCacheUrls(c, parentIds)));
+  scheduleCacheInvalidation(c, getFolderAndShareCacheUrls(c, parentIds));
 }
 
 /**

@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth.js';
-import { invalidateCache } from '../../middleware/cache.js';
 
 import {
   generateId,
@@ -17,12 +16,13 @@ import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { NotFoundError, BadRequestError, ForbiddenError, ConflictError } from '../../errors.js';
 import { getManageShareCacheUrls } from '../_shared/cache-urls.js';
+import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 app.use('*', requirePermission('folders:read'));
 
 function scheduleManageShareCacheInvalidation(c) {
-  c.executionCtx.waitUntil(invalidateCache(getManageShareCacheUrls(c)));
+  scheduleCacheInvalidation(c, getManageShareCacheUrls(c));
 }
 
 // Schemas

@@ -3,9 +3,9 @@ import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { CustomerRepository } from '../../../../repositories/CustomerRepository.js';
 import { MSG } from '../../_shared/utils.js';
-import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { withCache } from '../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
-import { parsePagination, createCacheInvalidator } from '../../_shared/route-helpers.js';
+import { parsePagination, createCacheInvalidator, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 import { requirePermission } from '../../middleware/auth.js';
 
 const app = new Hono();
@@ -14,7 +14,7 @@ app.use('*', requirePermission('orders:manage'));
 const getCacheUrls = createCacheInvalidator('/api/manage/customers', ['page=1&limit=20']);
 
 function scheduleCustomerCacheInvalidation(c) {
-    c.executionCtx.waitUntil(invalidateCache(getCacheUrls(c)));
+    scheduleCacheInvalidation(c, getCacheUrls(c));
 }
 
 // 验证 Schema

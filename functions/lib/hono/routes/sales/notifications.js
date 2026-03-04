@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { NotificationRepository } from '../../../../repositories/NotificationRepository.js';
-import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { withCache } from '../../middleware/cache.js';
 import { getSalesNotificationCacheUrls } from '../_shared/cache-urls.js';
+import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 
@@ -36,7 +37,7 @@ app.post('/:id/read', async (c) => {
         await notifyRepo.markAsReadForSalesperson(notificationId, salesperson.id);
     }
 
-    c.executionCtx.waitUntil(invalidateCache(getSalesNotificationCacheUrls(c, token)));
+    scheduleCacheInvalidation(c, getSalesNotificationCacheUrls(c, token));
 
     return c.json({ success: true, message: '已读成功' });
 });
