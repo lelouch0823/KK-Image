@@ -6,14 +6,13 @@
 
 import { success, error } from '../utils/response.js';
 import { OrderRepository } from '../../repositories/OrderRepository.js';
+import { isCronAuthorized } from '../utils/cron-auth.js';
 
 export async function onRequest(context) {
   const { env, request } = context;
 
   // 1. 鉴权
-  const authHeader = request.headers.get('Authorization');
-  const secret = env.CRON_SECRET || 'dev-secret'; // 开发环境默认值
-  if (!authHeader || authHeader !== `Bearer ${secret}`) {
+  if (!isCronAuthorized(request, env)) {
     return error('Unauthorized', 401);
   }
 

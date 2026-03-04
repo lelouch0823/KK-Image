@@ -6,14 +6,13 @@
 
 import { success, error } from '../utils/response.js';
 import { performStreamingBackup, cleanupOldBackups } from '../utils/backup-utils.js';
+import { isCronAuthorized } from '../utils/cron-auth.js';
 
 export async function onRequest(context) {
   const { env, request } = context;
 
   // 1. 鉴权
-  const authHeader = request.headers.get('Authorization');
-  const secret = env.CRON_SECRET || 'dev-secret';
-  if (!authHeader || authHeader !== `Bearer ${secret}`) {
+  if (!isCronAuthorized(request, env)) {
     return error('Unauthorized', 401);
   }
 
