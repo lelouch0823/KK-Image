@@ -167,6 +167,29 @@ describe('product variant audit routes', () => {
     expect(mockAuditRepo.createBatch).toHaveBeenCalledTimes(1);
   });
 
+  it('DELETE /:id returns 400 when variants exist but archive update affects zero rows', async () => {
+    mockProductRepo.findById.mockResolvedValue({ id: 'p1' });
+    mockVariantRepo.findByProductId.mockResolvedValue([{ id: 'v1', product_id: 'p1', status: 'active' }]);
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/p1',
+      { method: 'DELETE' },
+      {
+        DB: {
+          prepare: vi.fn(() => ({
+            bind: vi.fn(() => ({ run: vi.fn(async () => ({ meta: { changes: 0 } })) })),
+          })),
+        },
+        executionCtx: { waitUntil: vi.fn() },
+      },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mockAuditRepo.createBatch).not.toHaveBeenCalled();
+  });
+
   it('PATCH /:id syncs images for newly created variant without id', async () => {
     mockProductRepo.updateWithMeta.mockResolvedValue({ success: true, changes: 1 });
     mockVariantRepo.syncVariants.mockResolvedValue();

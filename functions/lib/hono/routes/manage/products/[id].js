@@ -740,7 +740,9 @@ app.delete('/:id', async (c) => {
         .prepare(`UPDATE product_variants SET status = 'archived', updated_at = ? WHERE product_id = ?`)
         .bind(now, id)
         .run();
-    const success = (result.meta?.changes || 0) >= 0;
+    const changedRows = Number(result?.meta?.changes || 0);
+    const hadVariants = Array.isArray(beforeVariants) && beforeVariants.length > 0;
+    const success = changedRows > 0 || !hadVariants;
 
     if (success) {
         const events = (beforeVariants || []).map((variant) => ({
@@ -749,7 +751,9 @@ app.delete('/:id', async (c) => {
             action: 'variant_archived',
             changes: { before: { status: variant.status || 'active' }, after: { status: 'archived' } },
         }));
-        await auditRepo.createBatch(events);
+        if (events.length > 0) {
+            await auditRepo.createBatch(events);
+        }
         // 使缓存失效
         invalidateProductCaches(c, env.DB, id);
         return c.json({ success: true, message: 'Product variants archived' });
