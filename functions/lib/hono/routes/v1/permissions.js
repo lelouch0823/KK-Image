@@ -1,10 +1,15 @@
 import { Hono } from 'hono';
 import { MSG } from '../../_shared/utils.js';
-import { evaluateUserPermission, getPolicyMetadata } from '../../../authz/index.js';
+import {
+  evaluateUserPermission,
+  findUnknownPolicyActions,
+  getPolicyActions,
+  getPolicyMetadata,
+} from '../../../authz/index.js';
 
 const app = new Hono();
 const metadata = getPolicyMetadata();
-const POLICY_ACTIONS = Array.isArray(metadata.actions) ? metadata.actions : [];
+const POLICY_ACTIONS = getPolicyActions();
 const ACTION_LABELS = metadata.actionLabels || {};
 const ROLES = Object.fromEntries(
   Object.entries(metadata.roles || {}).map(([role, def]) => [
@@ -83,6 +88,16 @@ app.post('/check', async (c) => {
   }
   if (permissions.some((perm) => typeof perm !== 'string' || !perm)) {
     return c.json({ success: false, error: MSG.COMMON.INVALID_PARAMS }, 400);
+  }
+  const unknownPermissions = findUnknownPolicyActions(permissions);
+  if (unknownPermissions.length > 0) {
+    return c.json(
+      {
+        success: false,
+        error: `${MSG.COMMON.INVALID_PARAMS}: unknown permissions ${unknownPermissions.join(', ')}`,
+      },
+      400
+    );
   }
 
   const checks = await Promise.all(

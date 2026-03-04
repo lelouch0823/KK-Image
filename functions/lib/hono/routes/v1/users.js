@@ -5,21 +5,13 @@ import { requirePermission } from '../../middleware/auth.js';
 import { generateId, hashPassword, MSG } from '../../_shared/utils.js';
 import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
-import { getPolicyMetadata } from '../../../authz/index.js';
+import { findUnknownPolicyActions } from '../../../authz/index.js';
 
 const app = new Hono();
-const policyMetadata = getPolicyMetadata();
-const POLICY_ACTION_SET = new Set(
-  (Array.isArray(policyMetadata.actions) ? policyMetadata.actions : []).filter(
-    (action) => typeof action === 'string' && action
-  )
-);
 
 function assertKnownPermissions(permissions) {
   if (permissions === undefined) return;
-  const unknownPermissions = [
-    ...new Set(permissions.filter((permission) => !POLICY_ACTION_SET.has(permission))),
-  ];
+  const unknownPermissions = findUnknownPolicyActions(permissions);
   if (unknownPermissions.length > 0) {
     throw new BadRequestError(
       `${MSG.COMMON.INVALID_PARAMS}: unknown permissions ${unknownPermissions.join(', ')}`

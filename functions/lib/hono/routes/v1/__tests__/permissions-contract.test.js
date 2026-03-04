@@ -61,5 +61,18 @@ describe('v1 permissions contract', () => {
     expect(body.data.permissions['files:read']).toBe(true);
     expect(body.data.permissions['files:delete']).toBe(false);
   });
+
+  it('rejects unknown permissions in /check payload', async () => {
+    const app = createApp({ id: 'u3', name: 'V2', type: 'user', role: 'viewer', permissions: [] });
+    const res = await app.request('http://localhost/api/v1/permissions/check', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ permissions: ['files:read', 'unknown:perm'] }),
+    });
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.success).toBe(false);
+  });
 });
 
