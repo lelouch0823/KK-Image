@@ -1,0 +1,113 @@
+{
+  "roles": {
+    "admin": {
+      "label": "管理员",
+      "permissions": [
+        "admin:full"
+      ]
+    },
+    "manager": {
+      "label": "经理",
+      "permissions": [
+        "read",
+        "write",
+        "delete",
+        "share",
+        "files:read",
+        "files:write",
+        "files:delete",
+        "folders:read",
+        "folders:write",
+        "folders:delete",
+        "settings:read",
+        "spaces:manage",
+        "products:manage",
+        "orders:manage",
+        "users:read",
+        "stats:read"
+      ]
+    },
+    "sales": {
+      "label": "销售",
+      "permissions": [
+        "read",
+        "write",
+        "files:read",
+        "files:write",
+        "spaces:read",
+        "spaces:manage",
+        "orders:manage",
+        "products:read",
+        "users:read"
+      ]
+    },
+    "viewer": {
+      "label": "访客",
+      "permissions": [
+        "read",
+        "files:read",
+        "spaces:read",
+        "products:read",
+        "users:read",
+        "stats:read"
+      ]
+    },
+    "user": {
+      "label": "普通用户",
+      "permissions": [
+        "read",
+        "files:read",
+        "spaces:read",
+        "products:read"
+      ]
+    }
+  },
+  "actions": [
+    "read",
+    "write",
+    "delete",
+    "share",
+    "files:read",
+    "files:write",
+    "files:delete",
+    "folders:read",
+    "folders:write",
+    "folders:delete",
+    "settings:read",
+    "spaces:read",
+    "spaces:manage",
+    "products:read",
+    "products:manage",
+    "orders:manage",
+    "users:read",
+    "users:write",
+    "webhooks:read",
+    "webhooks:write",
+    "stats:read",
+    "admin:full"
+  ],
+  "actionLabels": {
+    "files:read": "读取文件",
+    "files:write": "创建/编辑文件",
+    "files:delete": "删除文件",
+    "folders:read": "读取文件夹",
+    "folders:write": "创建/编辑文件夹",
+    "folders:delete": "删除文件夹",
+    "users:read": "查看用户",
+    "users:write": "管理用户",
+    "webhooks:read": "查看 Webhooks",
+    "webhooks:write": "管理 Webhooks",
+    "stats:read": "查看统计",
+    "admin:full": "完全管理员权限",
+    "read": "通用读取",
+    "write": "通用写入",
+    "delete": "通用删除",
+    "share": "通用分享",
+    "settings:read": "读取设置",
+    "spaces:read": "读取空间",
+    "spaces:manage": "管理空间",
+    "products:read": "读取商品",
+    "products:manage": "管理商品",
+    "orders:manage": "管理订单"
+  }
+}

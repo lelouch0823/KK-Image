@@ -1,25 +1,24 @@
 import { Hono } from 'hono';
 import { MSG } from '../../_shared/utils.js';
+import { getPolicyMetadata } from '../../../authz/index.js';
 
 const app = new Hono();
+const metadata = getPolicyMetadata();
+const POLICY_ACTIONS = Array.isArray(metadata.actions) ? metadata.actions : [];
+const ACTION_LABELS = metadata.actionLabels || {};
+const ROLES = Object.fromEntries(
+  Object.entries(metadata.roles || {}).map(([role, def]) => [
+    role,
+    {
+      name: def?.label || role,
+      permissions: Array.isArray(def?.permissions) ? def.permissions : [],
+    },
+  ])
+);
 
-// 权限常量从 MSG 获取
-const PERMISSIONS = MSG.PERMISSIONS;
-
-const ROLES = {
-  admin: {
-    name: MSG.ROLES.ADMIN,
-    permissions: ['admin:full'],
-  },
-  user: {
-    name: MSG.ROLES.USER,
-    permissions: ['files:read', 'files:write', 'folders:read', 'folders:write'],
-  },
-  viewer: {
-    name: MSG.ROLES.GUEST,
-    permissions: ['files:read', 'folders:read'],
-  },
-};
+const PERMISSIONS = Object.fromEntries(
+  POLICY_ACTIONS.map((action) => [action, ACTION_LABELS[action] || MSG.PERMISSIONS?.[action] || action])
+);
 
 /**
  * GET /api/v1/permissions - 获取权限定义
@@ -44,7 +43,7 @@ app.get('/user', async (c) => {
 
   // 管理员拥有所有权限
   const effectivePermissions = userPermissions.includes('admin:full')
-    ? Object.keys(PERMISSIONS)
+    ? [...POLICY_ACTIONS]
     : userPermissions;
 
   return c.json({

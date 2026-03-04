@@ -13,6 +13,7 @@ export default defineConfig({
         include: [
             'src/**/__tests__/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
             'functions/**/__tests__/*.{test,spec}.js',
+            'scripts/**/__tests__/*.{test,spec}.{js,mjs}',
             'test/*.test.js'
         ],
         exclude: [

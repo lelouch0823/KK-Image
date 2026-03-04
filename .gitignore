@@ -103,6 +103,8 @@ jspm_packages/
 
 # Project specific
 .worktrees/
+policy/dist/
+scripts/bin/
 data/
 temp/
 tmp/

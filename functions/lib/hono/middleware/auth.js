@@ -1,5 +1,5 @@
 import { verifyJWT, verifyApiKey, ADMIN_AUTH_COOKIE, MSG } from '../_shared/utils.js';
-import { hasPermission } from '../../../api/utils/permissions.js';
+import { buildAuthzInput, evaluatePermission } from '../../authz/index.js';
 
 /**
  * 公开路由列表（无需认证）
@@ -114,13 +114,16 @@ export function requirePermission(permission) {
       return next();
     }
 
-    // 新增 RBAC 基于角色的校验
-    if (user.role && hasPermission(user.role, permission)) {
-      return next();
-    }
+    const authzInput = buildAuthzInput({
+      user,
+      permission,
+      path: c.req.path,
+      method: c.req.method,
+    });
 
-    // 如果没有配置系统 role，还可以兼容退回到之前的 permissions 数组检查
-    if (user.permissions?.includes(permission)) {
+    const allowed = await evaluatePermission({ input: authzInput });
+
+    if (allowed) {
       return next();
     }
 

@@ -16,6 +16,8 @@
     "test:unit": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
+    "authz:policy:test": "node scripts/policy/run-opa.mjs test policy/authz.rego policy/tests -v",
+    "authz:policy:build": "node scripts/policy/compile-opa.mjs",
     "test:webhook": "node test/webhook-test.js",
     "start": "wrangler pages dev dist --binding BASIC_USER=admin --binding BASIC_PASS=123 --binding JWT_SECRET=dev-secret-key-123 --port 8080",
     "dev:full": "pnpm build && pnpm start",
@@ -26,9 +28,11 @@
     "deploy:preview": "pnpm build && wrangler pages deploy dist --branch preview",
     "deploy:prod": "pnpm build && wrangler pages deploy dist --branch main",
     "db:migrate:preview": "wrangler d1 migrations apply DB --env preview --remote",
-    "db:migrate:prod": "wrangler d1 migrations apply DB --env production --remote"
+    "db:migrate:prod": "wrangler d1 migrations apply DB --env production --remote",
+    "db:migrations:check-prefix": "node scripts/check-migration-prefixes.mjs"
   },
   "dependencies": {
+    "@open-policy-agent/opa-wasm": "^1.10.0",
     "@hono/zod-validator": "^0.4.3",
     "@sentry/cloudflare": "^8.52.0",
     "@tanstack/vue-virtual": "^3.13.18",
