@@ -298,19 +298,27 @@ function normalizeAuthToken(token) {
   return token.replace(/^"(.+)"$/, '$1');
 }
 
-function extractAdminAuthToken(request) {
+function readAdminCookieToken(request) {
   const cookieHeader = request.headers.get('Cookie') || '';
   const cookies = parseCookie(cookieHeader);
-  let token = normalizeAuthToken(cookies[ADMIN_AUTH_COOKIE]);
+  return normalizeAuthToken(cookies[ADMIN_AUTH_COOKIE]);
+}
 
-  if (!token) {
-    const authHeader = request.headers.get('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = normalizeAuthToken(authHeader.substring(7));
-    }
+function readBearerToken(request) {
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return normalizeAuthToken(authHeader.substring(7));
   }
+  return null;
+}
 
-  return token;
+export function extractAdminAuthToken(request, { preferBearer = false } = {}) {
+  const cookieToken = readAdminCookieToken(request);
+  const bearerToken = readBearerToken(request);
+  if (preferBearer) {
+    return bearerToken || cookieToken;
+  }
+  return cookieToken || bearerToken;
 }
 
 /**

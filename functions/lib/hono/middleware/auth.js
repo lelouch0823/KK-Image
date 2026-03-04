@@ -1,6 +1,5 @@
-import { verifyJWT, verifyApiKey, ADMIN_AUTH_COOKIE, MSG } from '../_shared/utils.js';
+import { verifyJWT, verifyApiKey, extractAdminAuthToken, MSG } from '../_shared/utils.js';
 import { evaluateUserPermission } from '../../authz/index.js';
-import { parse as parseCookie } from 'cookie';
 
 /**
  * 公开路由列表（无需认证）
@@ -34,21 +33,7 @@ export async function authMiddleware(c, next) {
   }
 
   // 获取 Token（优先从 Authorization Header，其次从 Cookie）
-  let token = null;
-
-  const authHeader = c.req.header('Authorization');
-  if (authHeader?.startsWith('Bearer ')) {
-    token = authHeader.substring(7);
-  }
-
-  if (!token) {
-    const cookieHeader = c.req.header('Cookie');
-    if (cookieHeader) {
-      const cookies = parseCookie(cookieHeader);
-      const cookieToken = cookies[ADMIN_AUTH_COOKIE];
-      token = typeof cookieToken === 'string' ? cookieToken.replace(/^"(.+)"$/, '$1') : cookieToken;
-    }
-  }
+  let token = extractAdminAuthToken(c.req.raw, { preferBearer: true });
 
   // 检查 API Key
   if (!token) {

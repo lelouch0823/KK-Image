@@ -34,7 +34,16 @@ export {
 export { getShareUrl, getFileUrl } from '../api/utils/url.js';
 
 // 认证工具
-export { generateJWT, verifyJWT, ADMIN_AUTH_COOKIE, verifyTurnstile, timingSafeCompare, isAdminAuthenticated, verifyApiKey } from '../api/utils/auth.js';
+export {
+  generateJWT,
+  verifyJWT,
+  ADMIN_AUTH_COOKIE,
+  extractAdminAuthToken,
+  verifyTurnstile,
+  timingSafeCompare,
+  isAdminAuthenticated,
+  verifyApiKey,
+} from '../api/utils/auth.js';
 
 // 后端常量
 export { CORS_MAX_AGE, ORDER_STATUSES } from '../api/utils/constants.js';

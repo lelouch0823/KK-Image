@@ -55,4 +55,30 @@ describe('authMiddleware cookie token decoding', () => {
     expect(body).toEqual(expect.objectContaining({ success: true, user: expect.objectContaining({ id: 'u-1' }) }));
     expect(mocks.verifyJWT).toHaveBeenCalledWith(rawToken, expect.any(Object));
   });
+
+  it('accepts quoted bearer tokens', async () => {
+    const rawToken = 'jwt.bearer.value';
+    mocks.verifyJWT.mockImplementation(async (token) => {
+      if (token !== rawToken) {
+        throw new Error(`unexpected token: ${token}`);
+      }
+      return { id: 'u-2', role: 'admin' };
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/v1/private/ping',
+      {
+        headers: {
+          Authorization: `Bearer "${rawToken}"`,
+        },
+      },
+      { JWT_SECRET: 'test-secret' }
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body).toEqual(expect.objectContaining({ success: true, user: expect.objectContaining({ id: 'u-2' }) }));
+    expect(mocks.verifyJWT).toHaveBeenCalledWith(rawToken, expect.any(Object));
+  });
 });
