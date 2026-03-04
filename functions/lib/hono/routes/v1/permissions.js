@@ -2,10 +2,13 @@ import { Hono } from 'hono';
 import { MSG } from '../../_shared/utils.js';
 import {
   evaluateActionPermission,
-  findUnknownPolicyActions,
   getPolicyActions,
   getPolicyMetadata,
 } from '../../../authz/index.js';
+import {
+  findUnknownPermissions,
+  formatUnknownPermissionsError,
+} from './_shared/permissions-validation.js';
 
 const app = new Hono();
 const metadata = getPolicyMetadata();
@@ -32,6 +35,13 @@ async function evaluateUserAction(user, action) {
   });
 }
 
+async function evaluatePermissions(user, permissions) {
+  const checks = await Promise.all(
+    permissions.map(async (permission) => [permission, await evaluateUserAction(user, permission)])
+  );
+  return Object.fromEntries(checks);
+}
+
 /**
  * GET /api/v1/permissions - 获取权限定义
  */
@@ -54,11 +64,9 @@ app.get('/user', async (c) => {
     return c.json({ success: false, error: MSG.AUTH.REQUIRED }, 401);
   }
 
-  const checks = await Promise.all(
-    POLICY_ACTIONS.map(async (action) => [action, await evaluateUserAction(user, action)])
-  );
-  const effectivePermissions = checks.filter(([, allowed]) => allowed).map(([action]) => action);
-  const isAdmin = checks.find(([action]) => action === 'admin:full')?.[1] === true;
+  const decisionMap = await evaluatePermissions(user, POLICY_ACTIONS);
+  const effectivePermissions = POLICY_ACTIONS.filter((action) => decisionMap[action]);
+  const isAdmin = decisionMap['admin:full'] === true;
 
   return c.json({
     success: true,
@@ -87,21 +95,18 @@ app.post('/check', async (c) => {
   if (permissions.some((perm) => typeof perm !== 'string' || !perm)) {
     return c.json({ success: false, error: MSG.COMMON.INVALID_PARAMS }, 400);
   }
-  const unknownPermissions = findUnknownPolicyActions(permissions);
+  const unknownPermissions = findUnknownPermissions(permissions);
   if (unknownPermissions.length > 0) {
     return c.json(
       {
         success: false,
-        error: `${MSG.COMMON.INVALID_PARAMS}: unknown permissions ${unknownPermissions.join(', ')}`,
+        error: formatUnknownPermissionsError(unknownPermissions),
       },
       400
     );
   }
 
-  const checks = await Promise.all(
-    permissions.map(async (perm) => [perm, await evaluateUserAction(user, perm)])
-  );
-  const results = Object.fromEntries(checks);
+  const results = await evaluatePermissions(user, permissions);
 
   return c.json({
     success: true,

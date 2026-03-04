@@ -5,19 +5,9 @@ import { requirePermission } from '../../middleware/auth.js';
 import { generateId, hashPassword, MSG } from '../../_shared/utils.js';
 import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
-import { findUnknownPolicyActions } from '../../../authz/index.js';
+import { assertKnownPermissions } from './_shared/permissions-validation.js';
 
 const app = new Hono();
-
-function assertKnownPermissions(permissions) {
-  if (permissions === undefined) return;
-  const unknownPermissions = findUnknownPolicyActions(permissions);
-  if (unknownPermissions.length > 0) {
-    throw new BadRequestError(
-      `${MSG.COMMON.INVALID_PARAMS}: unknown permissions ${unknownPermissions.join(', ')}`
-    );
-  }
-}
 
 /**
  * GET /api/v1/users - 获取用户列表（管理员）
