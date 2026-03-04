@@ -11,7 +11,7 @@ const app = new Hono();
 /**
  * GET / - 获取管理员通知列表
  */
-app.get('/', requirePermission('files:read'), withCache(15), async (c) => {
+app.get('/', requirePermission('notifications:read'), withCache(15), async (c) => {
     const { env } = c;
     const limit = parseInt(c.req.query('limit') || '20');
     const unreadOnly = c.req.query('unread_only') === 'true';
@@ -24,7 +24,7 @@ app.get('/', requirePermission('files:read'), withCache(15), async (c) => {
 /**
  * POST / - 创建通知
  */
-app.post('/', requirePermission('files:write'), async (c) => {
+app.post('/', requirePermission('notifications:write'), async (c) => {
     const { env } = c;
     const body = await c.req.json();
     const { type = 'system', title, content = '', link = '', metadata = null, orderId = null } = body;
@@ -50,7 +50,7 @@ app.post('/', requirePermission('files:write'), async (c) => {
 /**
  * POST /:id/read - 标记通知已读
  */
-app.post('/:id/read', requirePermission('files:write'), async (c) => {
+app.post('/:id/read', requirePermission('notifications:write'), async (c) => {
     const notificationId = c.req.param('id');
     const { env } = c;
 

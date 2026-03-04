@@ -6,6 +6,7 @@ role_permissions := {
   "admin": {"*"},
   "manager": {
     "files:read", "files:write", "files:delete",
+    "notifications:read", "notifications:write",
     "folders:read", "folders:write", "folders:delete",
     "spaces:manage",
     "products:manage",
@@ -15,18 +16,21 @@ role_permissions := {
   },
   "sales": {
     "files:read", "files:write",
+    "notifications:read", "notifications:write",
     "spaces:read", "spaces:manage",
     "orders:manage",
     "users:read"
   },
   "viewer": {
     "files:read",
+    "notifications:read",
     "spaces:read",
     "users:read",
     "stats:read"
   },
   "user": {
     "files:read",
+    "notifications:read",
     "spaces:read"
   }
 }

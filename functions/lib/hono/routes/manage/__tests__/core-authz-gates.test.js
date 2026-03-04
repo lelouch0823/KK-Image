@@ -13,6 +13,7 @@ import albumsApp from '../albums.js';
 import spacesApp from '../spaces/index.js';
 import userApp from '../user.js';
 import searchApp from '../search.js';
+import notificationsApp from '../notifications.js';
 
 function withUser(app, user) {
   app.use('/api/manage/*', async (c, next) => {
@@ -21,7 +22,39 @@ function withUser(app, user) {
   });
 }
 
+function createNotificationDbStub() {
+  return {
+    prepare() {
+      return {
+        bind() {
+          return {
+            all: async () => ({ results: [] }),
+            first: async () => ({ count: 0 }),
+            run: async () => ({}),
+          };
+        },
+        all: async () => ({ results: [] }),
+        first: async () => ({ count: 0 }),
+        run: async () => ({}),
+      };
+    },
+  };
+}
+
+function ensureCacheApi() {
+  if (globalThis.caches?.default) return;
+  globalThis.caches = {
+    default: {
+      match: async () => null,
+      put: async () => {},
+      delete: async () => true,
+    },
+  };
+}
+
 describe('manage core authz gates', () => {
+  ensureCacheApi();
+
   it('denies viewer on customers list', async () => {
     const app = new Hono();
     withUser(app, { id: 'u-viewer', type: 'user', role: 'viewer', permissions: [] });
@@ -230,6 +263,52 @@ describe('manage core authz gates', () => {
     app.route('/api/manage/search', searchApp);
 
     const res = await app.request('http://localhost/api/manage/search', { method: 'GET' }, { DB: {} }, { waitUntil: vi.fn() });
+    expect(res.status).toBe(403);
+  });
+
+  it('denies /manage/notifications list when user only has files:read direct permission', async () => {
+    const app = new Hono();
+    withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['files:read'] });
+    app.route('/api/manage/notifications', notificationsApp);
+
+    const res = await app.request(
+      'http://localhost/api/manage/notifications',
+      { method: 'GET' },
+      { DB: createNotificationDbStub() },
+      { waitUntil: vi.fn() }
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it('allows /manage/notifications list when user has notifications:read direct permission', async () => {
+    const app = new Hono();
+    withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['notifications:read'] });
+    app.route('/api/manage/notifications', notificationsApp);
+
+    const res = await app.request(
+      'http://localhost/api/manage/notifications',
+      { method: 'GET' },
+      { DB: createNotificationDbStub() },
+      { waitUntil: vi.fn() }
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it('denies /manage/notifications create when user only has files:write direct permission', async () => {
+    const app = new Hono();
+    withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['files:write'] });
+    app.route('/api/manage/notifications', notificationsApp);
+
+    const res = await app.request(
+      'http://localhost/api/manage/notifications',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'n1' }),
+      },
+      { DB: createNotificationDbStub() },
+      { waitUntil: vi.fn() }
+    );
     expect(res.status).toBe(403);
   });
 });

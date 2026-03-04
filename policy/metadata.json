@@ -12,6 +12,8 @@
         "files:read",
         "files:write",
         "files:delete",
+        "notifications:read",
+        "notifications:write",
         "folders:read",
         "folders:write",
         "folders:delete",
@@ -27,6 +29,8 @@
       "permissions": [
         "files:read",
         "files:write",
+        "notifications:read",
+        "notifications:write",
         "spaces:read",
         "spaces:manage",
         "orders:manage",
@@ -37,6 +41,7 @@
       "label": "访客",
       "permissions": [
         "files:read",
+        "notifications:read",
         "spaces:read",
         "users:read",
         "stats:read"
@@ -46,6 +51,7 @@
       "label": "普通用户",
       "permissions": [
         "files:read",
+        "notifications:read",
         "spaces:read"
       ]
     }
@@ -54,6 +60,8 @@
     "files:read",
     "files:write",
     "files:delete",
+    "notifications:read",
+    "notifications:write",
     "folders:read",
     "folders:write",
     "folders:delete",
@@ -72,6 +80,8 @@
     "files:read": "读取文件",
     "files:write": "创建/编辑文件",
     "files:delete": "删除文件",
+    "notifications:read": "读取通知",
+    "notifications:write": "管理通知",
     "folders:read": "读取文件夹",
     "folders:write": "创建/编辑文件夹",
     "folders:delete": "删除文件夹",
