@@ -12,6 +12,47 @@ import { parsePagination } from '../../_shared/route-helpers.js';
 const app = new Hono();
 app.use('*', requirePermission('files:read'));
 
+function toFileListItem(file) {
+  return {
+    id: file.id,
+    name: file.name,
+    originalName: file.original_name,
+    size: file.size,
+    mimeType: file.mime_type,
+    url: getFileUrl(file.storage_key),
+    folderId: file.folder_id,
+    createdAt: file.created_at,
+  };
+}
+
+function toFileDetail(file) {
+  return {
+    id: file.id,
+    name: file.name,
+    originalName: file.original_name,
+    size: file.size,
+    mimeType: file.mime_type,
+    url: getFileUrl(file.storage_key),
+    folderId: file.folder_id,
+    storageKey: file.storage_key,
+    createdAt: file.created_at,
+    updatedAt: file.updated_at,
+  };
+}
+
+async function requireFile(repo, fileId) {
+  const file = await repo.findById(fileId);
+  if (!file) throw new NotFoundError(MSG.FILE.NOT_FOUND);
+  return file;
+}
+
+async function assertTargetFolderExists(db, targetFolderId) {
+  if (!targetFolderId || targetFolderId === 'root') return;
+  const folderRepo = new FolderRepository(db);
+  const folder = await folderRepo.findById(targetFolderId);
+  if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
+}
+
 // Schemas
 const DeleteFilesSchema = z.object({
   ids: z.array(z.string()).min(1).max(100),
@@ -40,16 +81,7 @@ app.get('/', async (c) => {
 
   return c.json({
     success: true,
-    data: result.items.map((f) => ({
-      id: f.id,
-      name: f.name,
-      originalName: f.original_name,
-      size: f.size,
-      mimeType: f.mime_type,
-      url: getFileUrl(f.storage_key),
-      folderId: f.folder_id,
-      createdAt: f.created_at,
-    })),
+    data: result.items.map(toFileListItem),
     pagination: {
       page: result.page,
       limit: result.limit,
@@ -67,23 +99,11 @@ app.get('/:id', async (c) => {
   const fileId = c.req.param('id');
 
   const repo = new FileRepository(env.DB);
-  const file = await repo.findById(fileId);
-  if (!file) throw new NotFoundError(MSG.FILE.NOT_FOUND);
+  const file = await requireFile(repo, fileId);
 
   return c.json({
     success: true,
-    data: {
-      id: file.id,
-      name: file.name,
-      originalName: file.original_name,
-      size: file.size,
-      mimeType: file.mime_type,
-      url: getFileUrl(file.storage_key),
-      folderId: file.folder_id,
-      storageKey: file.storage_key,
-      createdAt: file.created_at,
-      updatedAt: file.updated_at,
-    },
+    data: toFileDetail(file),
   });
 });
 
@@ -100,8 +120,7 @@ app.put(
     const { name } = c.req.valid('json');
 
     const repo = new FileRepository(env.DB);
-    const file = await repo.findById(fileId);
-    if (!file) throw new NotFoundError(MSG.FILE.NOT_FOUND);
+    const file = await requireFile(repo, fileId);
 
     if (name.trim() !== file.name) {
       const hasConflict = await repo.checkNameConflict(file.folder_id, name.trim(), fileId);
@@ -121,8 +140,7 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   const fileId = c.req.param('id');
 
   const repo = new FileRepository(env.DB);
-  const file = await repo.findById(fileId);
-  if (!file) throw new NotFoundError(MSG.FILE.NOT_FOUND);
+  const file = await requireFile(repo, fileId);
 
   // 软删除
   await repo.softDelete(fileId);
@@ -167,11 +185,7 @@ app.post(
     const { env } = c;
     const { ids, targetFolderId } = c.req.valid('json');
 
-    if (targetFolderId && targetFolderId !== 'root') {
-      const folderRepo = new FolderRepository(env.DB);
-      const folder = await folderRepo.findById(targetFolderId);
-      if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
-    }
+    await assertTargetFolderExists(env.DB, targetFolderId);
 
     const repo = new FileRepository(env.DB);
     
