@@ -1,17 +1,21 @@
 import { invalidateCache } from '../../middleware/cache.js';
 import {
   getManageOrderCacheUrls,
-  getOrderAndSalespersonCacheUrls,
-  getOrderNotificationCacheUrls,
   getSalesOrderCacheUrls,
 } from '../_shared/cache-urls.js';
+import {
+  invalidateOrderAndSalespersonCaches as invalidateOrderAndSalespersonCachesCore,
+  invalidateOrderNotificationCaches as invalidateOrderNotificationCachesCore,
+  scheduleOrderAndSalespersonCacheInvalidation as scheduleOrderAndSalespersonCacheInvalidationCore,
+  scheduleOrderNotificationCacheInvalidation as scheduleOrderNotificationCacheInvalidationCore,
+} from '../_shared/order-cache-helpers.js';
 
 export async function invalidateOrderNotificationCaches(c) {
-  return invalidateCache(getOrderNotificationCacheUrls(c));
+  return invalidateOrderNotificationCachesCore(c);
 }
 
 export async function invalidateOrderAndSalespersonCaches(c, { salesToken } = {}) {
-  return invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: [salesToken] }));
+  return invalidateOrderAndSalespersonCachesCore(c, { salesTokens: [salesToken] });
 }
 
 export async function invalidateSalesOrderListCaches(c, { salesToken } = {}) {
@@ -23,11 +27,11 @@ export async function invalidateManageOrderCaches(c) {
 }
 
 export function scheduleOrderNotificationCacheInvalidation(c) {
-  c.executionCtx.waitUntil(invalidateOrderNotificationCaches(c));
+  scheduleOrderNotificationCacheInvalidationCore(c);
 }
 
 export function scheduleOrderAndSalespersonCacheInvalidation(c, { salesToken } = {}) {
-  c.executionCtx.waitUntil(invalidateOrderAndSalespersonCaches(c, { salesToken }));
+  scheduleOrderAndSalespersonCacheInvalidationCore(c, { salesTokens: [salesToken] });
 }
 
 export function scheduleSalesOrderListCacheInvalidation(c, { salesToken } = {}) {

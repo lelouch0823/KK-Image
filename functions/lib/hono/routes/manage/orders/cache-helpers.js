@@ -1,9 +1,10 @@
 import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
-import { invalidateCache } from '../../../middleware/cache.js';
 import {
-  getOrderAndSalespersonCacheUrls,
-  getOrderNotificationCacheUrls,
-} from '../../_shared/cache-urls.js';
+  invalidateOrderAndSalespersonCaches,
+  invalidateOrderNotificationCaches,
+  scheduleOrderAndSalespersonCacheInvalidation,
+  scheduleOrderNotificationCacheInvalidation,
+} from '../../_shared/order-cache-helpers.js';
 
 function normalizeSalespersonIds(ids = []) {
   if (!Array.isArray(ids)) return [];
@@ -15,23 +16,14 @@ export async function resolveSalesTokens(db, salespersonIds = []) {
   return getSalespersonAccessTokens(db, normalizedIds);
 }
 
-export async function invalidateOrderNotificationCaches(c, { salesTokens = [] } = {}) {
-  return invalidateCache(getOrderNotificationCacheUrls(c, { salesTokens }));
-}
-
-export async function invalidateOrderAndSalespersonCaches(c, { salesTokens = [] } = {}) {
-  return invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens }));
-}
-
-export function scheduleOrderNotificationCacheInvalidation(c, { salesTokens = [] } = {}) {
-  c.executionCtx.waitUntil(invalidateOrderNotificationCaches(c, { salesTokens }));
-}
-
-export function scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens = [] } = {}) {
-  c.executionCtx.waitUntil(invalidateOrderAndSalespersonCaches(c, { salesTokens }));
-}
-
 export function scheduleOrderMutationCachesInvalidation(c, { salesTokens = [] } = {}) {
   scheduleOrderNotificationCacheInvalidation(c, { salesTokens });
   scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens });
 }
+
+export {
+  invalidateOrderNotificationCaches,
+  invalidateOrderAndSalespersonCaches,
+  scheduleOrderNotificationCacheInvalidation,
+  scheduleOrderAndSalespersonCacheInvalidation,
+};
