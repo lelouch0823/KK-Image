@@ -1,12 +1,11 @@
-import { invalidateCache, getProductCacheUrls } from '../../../middleware/cache.js';
-import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
+import { getProductCacheUrls } from '../../../middleware/cache.js';
 import { getSalesProductCacheUrls } from '../../_shared/cache-urls.js';
+import { scheduleSalesTokenAwareCacheInvalidation } from '../../_shared/sales-token-cache-helpers.js';
 
 export function scheduleProductCacheInvalidation(c, db, { productIds = [] } = {}) {
   const normalizedProductIds = [...new Set((productIds || []).filter(Boolean))];
 
-  c.executionCtx.waitUntil((async () => {
-    const salesTokens = await getAllSalespersonAccessTokens(db);
+  scheduleSalesTokenAwareCacheInvalidation(c, db, (salesTokens) => {
     const urls = new Set([
       ...getProductCacheUrls(c),
       ...getSalesProductCacheUrls(c, { salesTokens }),
@@ -18,6 +17,6 @@ export function scheduleProductCacheInvalidation(c, db, { productIds = [] } = {}
       }
     }
 
-    await invalidateCache([...urls]);
-  })());
+    return [...urls];
+  });
 }
