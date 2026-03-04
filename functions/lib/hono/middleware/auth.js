@@ -109,14 +109,7 @@ export function requirePermission(permission) {
       return c.json({ success: false, error: 'Unauthorized' }, 401);
     }
 
-    const authzInput = buildAuthzInput({
-      user,
-      permission,
-      path: c.req.path,
-      method: c.req.method,
-    });
-
-    const allowed = await evaluatePermission({ input: authzInput });
+    const allowed = await checkPermission(c, user, permission);
 
     if (allowed) {
       return next();
@@ -130,4 +123,14 @@ export function requirePermission(permission) {
       403
     );
   };
+}
+
+export async function checkPermission(c, user, permission) {
+  const authzInput = buildAuthzInput({
+    user,
+    permission,
+    path: c.req.path,
+    method: c.req.method,
+  });
+  return evaluatePermission({ input: authzInput });
 }
