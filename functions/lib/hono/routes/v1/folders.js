@@ -34,6 +34,10 @@ const getFolderAndShareCacheUrls = (c, parentIds = []) => {
   return [...new Set([...getFolderCacheUrls(c, parentIds), ...getManageShareCacheUrls(c)])];
 };
 
+function scheduleFolderAndShareCacheInvalidation(c, parentIds = []) {
+  c.executionCtx.waitUntil(invalidateCache(getFolderAndShareCacheUrls(c, parentIds)));
+}
+
 /**
  * GET /api/v1/folders - 获取文件夹列表
  * SOTA: 使用 Repository 的 list() 方法，通过 JOIN 消除 N+1 查询
@@ -112,7 +116,7 @@ app.post(
       updatedAt: timestamp,
     });
 
-    c.executionCtx.waitUntil(invalidateCache(getFolderAndShareCacheUrls(c, [data.parentId])));
+    scheduleFolderAndShareCacheInvalidation(c, [data.parentId]);
 
     return c.json(
       { success: true, data: { id, shareToken, ...data, createdAt: timestamp } },
@@ -171,7 +175,7 @@ app.put(
 
     await repo.update(id, updates, values);
 
-    c.executionCtx.waitUntil(invalidateCache(getFolderAndShareCacheUrls(c, [folder.parent_id, checkParentId, id])));
+    scheduleFolderAndShareCacheInvalidation(c, [folder.parent_id, checkParentId, id]);
 
     return c.json({ success: true, message: MSG.FOLDER.UPDATE_SUCCESS });
   }
@@ -194,7 +198,7 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
   }
 
   await repo.softDelete(id);
-  c.executionCtx.waitUntil(invalidateCache(getFolderAndShareCacheUrls(c, [folder.parent_id, id])));
+  scheduleFolderAndShareCacheInvalidation(c, [folder.parent_id, id]);
 
   return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
 });
@@ -214,7 +218,7 @@ app.put(
     // SOTA: 使用 Repository 封装的分享设置更新
     const shareInfo = await repo.updateShareSettings(id, { isPublic, password, expiresAt });
 
-    c.executionCtx.waitUntil(invalidateCache(getFolderAndShareCacheUrls(c, [id])));
+    scheduleFolderAndShareCacheInvalidation(c, [id]);
 
     return c.json({
       success: true,

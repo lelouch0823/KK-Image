@@ -21,6 +21,10 @@ import { getManageShareCacheUrls } from '../_shared/cache-urls.js';
 const app = new Hono();
 app.use('*', requirePermission('folders:read'));
 
+function scheduleManageShareCacheInvalidation(c) {
+  c.executionCtx.waitUntil(invalidateCache(getManageShareCacheUrls(c)));
+}
+
 // Schemas
 const CreateFolderSchema = z.object({
   name: z.string().min(1).max(100),
@@ -156,7 +160,7 @@ app.post(
       updatedAt: nowMs
     });
 
-    c.executionCtx.waitUntil(invalidateCache(getManageShareCacheUrls(c)));
+    scheduleManageShareCacheInvalidation(c);
 
     return c.json(
       {
@@ -252,7 +256,7 @@ app.put(
 
     const updated = await folderRepo.update(folderId, updates, values);
 
-    c.executionCtx.waitUntil(invalidateCache(getManageShareCacheUrls(c)));
+    scheduleManageShareCacheInvalidation(c);
 
     return c.json({
       success: true,
@@ -283,7 +287,7 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
   // 软删除
   await folderRepo.softDelete(folderId);
 
-  c.executionCtx.waitUntil(invalidateCache(getManageShareCacheUrls(c)));
+  scheduleManageShareCacheInvalidation(c);
 
   return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
 });
