@@ -9,7 +9,7 @@ import {
   getShareUrl,
   getFileUrl,
 } from '../../_shared/utils.js';
-import { appendOptionalUpdate } from '../../_shared/route-helpers.js';
+import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers.js';
 import { AlbumRepository } from '../../../../repositories/AlbumRepository.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 
@@ -54,9 +54,7 @@ function toAlbumDetail(album, files = []) {
 }
 
 async function requireAlbum(repo, albumId) {
-  const album = await repo.findById(albumId);
-  if (!album) throw new NotFoundError(MSG.ALBUM.NOT_FOUND);
-  return album;
+  return requireEntity(repo.findById(albumId), () => new NotFoundError(MSG.ALBUM.NOT_FOUND));
 }
 
 // Schemas

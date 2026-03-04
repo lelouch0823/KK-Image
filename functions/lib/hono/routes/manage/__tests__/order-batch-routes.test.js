@@ -34,9 +34,13 @@ vi.mock('../../../middleware/cache.js', () => ({
   invalidateCache: mocks.invalidateCache,
 }));
 
-vi.mock('../../../_shared/route-helpers.js', () => ({
-  getSalespersonAccessTokens: mocks.getSalespersonAccessTokens,
-}));
+vi.mock('../../../_shared/route-helpers.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getSalespersonAccessTokens: mocks.getSalespersonAccessTokens,
+  };
+});
 
 vi.mock('../../../../../api/utils/order-utils.js', () => ({
   createBatchOrderNotifications: mocks.createBatchOrderNotifications,

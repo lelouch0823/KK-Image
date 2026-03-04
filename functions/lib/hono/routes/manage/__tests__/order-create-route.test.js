@@ -20,9 +20,13 @@ vi.mock('../../../../../api/utils/validation.js', () => ({
   validateProductVariantBinding: mocks.validateProductVariantBinding,
 }));
 
-vi.mock('../../../_shared/route-helpers.js', () => ({
-  getSalespersonAccessTokens: mocks.getSalespersonAccessTokens,
-}));
+vi.mock('../../../_shared/route-helpers.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getSalespersonAccessTokens: mocks.getSalespersonAccessTokens,
+  };
+});
 
 vi.mock('../../../middleware/cache.js', () => ({
   invalidateCache: mocks.invalidateCache,

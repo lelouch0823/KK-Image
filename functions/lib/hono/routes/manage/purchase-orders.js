@@ -16,7 +16,7 @@ import { NotFoundError, BadRequestError } from '../../errors.js';
 import { withCache } from '../../middleware/cache.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { getPurchaseOrderCacheUrls, getOrderAnalyticsCacheUrls } from '../_shared/cache-urls.js';
-import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 app.use('*', requirePermission('products:manage'));
@@ -30,9 +30,7 @@ const invalidatePoRelatedCaches = (c, poId = null) => {
 };
 
 async function requirePurchaseOrder(repo, poId) {
-  const po = await repo.findById(poId);
-  if (!po) throw new NotFoundError('采购单不存在');
-  return po;
+  return requireEntity(repo.findById(poId), () => new NotFoundError('采购单不存在'));
 }
 
 async function requireDraftPurchaseOrder(repo, poId, actionLabel) {

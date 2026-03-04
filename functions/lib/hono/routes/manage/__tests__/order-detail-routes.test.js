@@ -61,12 +61,16 @@ vi.mock('../../_shared/cache-urls.js', () => ({
   getOrderNotificationCacheUrls: vi.fn(() => []),
 }));
 
-vi.mock('../../../_shared/route-helpers.js', () => ({
-  getSalespersonAccessTokens: mocks.getSalespersonAccessTokens,
-  scheduleCacheInvalidation: (c, urls) => {
-    c.executionCtx.waitUntil(mocks.invalidateCache(urls));
-  },
-}));
+vi.mock('../../../_shared/route-helpers.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getSalespersonAccessTokens: mocks.getSalespersonAccessTokens,
+    scheduleCacheInvalidation: (c, urls) => {
+      c.executionCtx.waitUntil(mocks.invalidateCache(urls));
+    },
+  };
+});
 
 vi.mock('../../../../../api/utils/order-utils.js', () => ({
   createOrderNotification: vi.fn(async () => {}),

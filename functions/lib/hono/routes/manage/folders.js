@@ -16,7 +16,7 @@ import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { NotFoundError, BadRequestError, ForbiddenError, ConflictError } from '../../errors.js';
 import { getManageShareCacheUrls } from '../_shared/cache-urls.js';
-import { appendOptionalUpdate, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { appendOptionalUpdate, requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 app.use('*', requirePermission('folders:read'));
@@ -37,9 +37,7 @@ function toFolderListItem(folder) {
 }
 
 async function requireFolder(folderRepo, folderId) {
-  const folder = await folderRepo.findById(folderId);
-  if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
-  return folder;
+  return requireEntity(folderRepo.findById(folderId), () => new NotFoundError(MSG.FOLDER.NOT_FOUND));
 }
 
 // Schemas

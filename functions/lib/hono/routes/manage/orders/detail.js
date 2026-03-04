@@ -10,7 +10,7 @@ import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
 import { getManageOrderCacheUrls } from '../../_shared/cache-urls.js';
 import { assertAdminFull, assertForceStatusTransitionAllowed } from './authz-helpers.js';
-import { scheduleCacheInvalidation } from '../../../_shared/route-helpers.js';
+import { requireEntity, scheduleCacheInvalidation } from '../../../_shared/route-helpers.js';
 import {
     resolveSalesTokens,
     scheduleOrderAndSalespersonCacheInvalidation,
@@ -30,9 +30,7 @@ function getAdminActor(user) {
 }
 
 async function requireOrder(repo, orderId) {
-    const order = await repo.findById(orderId);
-    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
-    return order;
+    return requireEntity(repo.findById(orderId), () => new NotFoundError(MSG.ORDER.NOT_FOUND));
 }
 
 async function assertStatusTransitionAllowed({ c, user, fromStatus, toStatus, forceStatusTransition, reason }) {
