@@ -13,8 +13,9 @@ import { getManageOrderCacheUrls } from '../../_shared/cache-urls.js';
 import { assertAdminFull, assertForceStatusTransitionAllowed } from './authz-helpers.js';
 import {
     resolveSalesTokens,
-    scheduleOrderNotificationCacheInvalidation,
     scheduleOrderAndSalespersonCacheInvalidation,
+    scheduleOrderNotificationCacheInvalidation,
+    scheduleOrderMutationCachesInvalidation,
 } from './cache-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
 
@@ -147,8 +148,7 @@ app.patch('/:id', async (c) => {
     });
 
     const notificationSalesTokens = await resolveSalesTokens(env.DB, [order.salespersonId]);
-    scheduleOrderNotificationCacheInvalidation(c, { salesTokens: notificationSalesTokens });
-    scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens: notificationSalesTokens });
+    scheduleOrderMutationCachesInvalidation(c, { salesTokens: notificationSalesTokens });
 
     const updatedOrder = await orderRepo.findById(id);
     return c.json({ success: true, message: MSG.ORDER.UPDATE_SUCCESS, data: updatedOrder });
@@ -222,8 +222,7 @@ app.patch('/:id/status', async (c) => {
     }
 
     const notificationSalesTokens = await resolveSalesTokens(env.DB, [order.salespersonId]);
-    scheduleOrderNotificationCacheInvalidation(c, { salesTokens: notificationSalesTokens });
-    scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens: notificationSalesTokens });
+    scheduleOrderMutationCachesInvalidation(c, { salesTokens: notificationSalesTokens });
 
     return c.json({ success: true, message: MSG.ORDER.STATUS_CHANGED });
 });

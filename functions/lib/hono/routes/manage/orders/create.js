@@ -11,8 +11,8 @@ import { assertForceStatusTransitionAllowed } from './authz-helpers.js';
 import {
     resolveSalesTokens,
     invalidateOrderNotificationCaches,
-    scheduleOrderNotificationCacheInvalidation,
     scheduleOrderAndSalespersonCacheInvalidation,
+    scheduleOrderMutationCachesInvalidation,
 } from './cache-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
 
@@ -205,8 +205,7 @@ app.post('/batch', async (c) => {
             }
         }
 
-        scheduleOrderNotificationCacheInvalidation(c, { salesTokens: notificationSalesTokens });
-        scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens: notificationSalesTokens });
+        scheduleOrderMutationCachesInvalidation(c, { salesTokens: notificationSalesTokens });
     }
 
     return c.json({ success: true, message: MSG.ORDER.BATCH_RESULT.replace('{valid}', normalizedIds.length) });

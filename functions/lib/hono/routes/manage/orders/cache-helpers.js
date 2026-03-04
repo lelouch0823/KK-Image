@@ -30,3 +30,8 @@ export function scheduleOrderNotificationCacheInvalidation(c, { salesTokens = []
 export function scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens = [] } = {}) {
   c.executionCtx.waitUntil(invalidateOrderAndSalespersonCaches(c, { salesTokens }));
 }
+
+export function scheduleOrderMutationCachesInvalidation(c, { salesTokens = [] } = {}) {
+  scheduleOrderNotificationCacheInvalidation(c, { salesTokens });
+  scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens });
+}

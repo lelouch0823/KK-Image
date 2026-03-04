@@ -36,6 +36,7 @@ import {
   resolveSalesTokens,
   scheduleOrderNotificationCacheInvalidation,
   scheduleOrderAndSalespersonCacheInvalidation,
+  scheduleOrderMutationCachesInvalidation,
 } from '../cache-helpers.js';
 
 describe('orders cache helpers', () => {
@@ -60,6 +61,17 @@ describe('orders cache helpers', () => {
 
     expect(cacheMocks.getOrderNotificationCacheUrls).toHaveBeenCalledWith(c, { salesTokens: ['ts'] });
     expect(cacheMocks.getOrderAndSalespersonCacheUrls).toHaveBeenCalledWith(c, { salesTokens: ['ts'] });
+    expect(waitUntil).toHaveBeenCalledTimes(2);
+  });
+
+  it('scheduleOrderMutationCachesInvalidation enqueues both cache groups', () => {
+    const waitUntil = vi.fn();
+    const c = { executionCtx: { waitUntil } };
+
+    scheduleOrderMutationCachesInvalidation(c, { salesTokens: ['ts2'] });
+
+    expect(cacheMocks.getOrderNotificationCacheUrls).toHaveBeenCalledWith(c, { salesTokens: ['ts2'] });
+    expect(cacheMocks.getOrderAndSalespersonCacheUrls).toHaveBeenCalledWith(c, { salesTokens: ['ts2'] });
     expect(waitUntil).toHaveBeenCalledTimes(2);
   });
 });
