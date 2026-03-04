@@ -24,6 +24,16 @@ export function buildAuthzInput({ user, permission, path, method }) {
   };
 }
 
+export async function evaluateUserPermission({ user, permission, path, method }) {
+  const input = buildAuthzInput({
+    user,
+    permission,
+    path,
+    method,
+  });
+  return evaluatePermission({ input });
+}
+
 export async function evaluatePermission({ input = {} } = {}) {
   try {
     const decision = await evaluateDecisionWithOpa(input);

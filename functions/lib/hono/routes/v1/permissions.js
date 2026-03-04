@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { MSG } from '../../_shared/utils.js';
-import { buildAuthzInput, evaluatePermission, getPolicyMetadata } from '../../../authz/index.js';
+import { evaluateUserPermission, getPolicyMetadata } from '../../../authz/index.js';
 
 const app = new Hono();
 const metadata = getPolicyMetadata();
@@ -20,12 +20,12 @@ const PERMISSIONS = Object.fromEntries(
   POLICY_ACTIONS.map((action) => [action, ACTION_LABELS[action] || action])
 );
 
-async function evaluateUserAction(user, action) {
-  return evaluatePermission({
-    input: buildAuthzInput({
-      user,
-      permission: action,
-    }),
+async function evaluateUserAction(c, user, action) {
+  return evaluateUserPermission({
+    user,
+    permission: action,
+    path: c.req.path,
+    method: c.req.method,
   });
 }
 
@@ -52,7 +52,7 @@ app.get('/user', async (c) => {
   }
 
   const checks = await Promise.all(
-    POLICY_ACTIONS.map(async (action) => [action, await evaluateUserAction(user, action)])
+    POLICY_ACTIONS.map(async (action) => [action, await evaluateUserAction(c, user, action)])
   );
   const effectivePermissions = checks.filter(([, allowed]) => allowed).map(([action]) => action);
   const isAdmin = checks.find(([action]) => action === 'admin:full')?.[1] === true;
@@ -86,7 +86,7 @@ app.post('/check', async (c) => {
   }
 
   const checks = await Promise.all(
-    permissions.map(async (perm) => [perm, await evaluateUserAction(user, perm)])
+    permissions.map(async (perm) => [perm, await evaluateUserAction(c, user, perm)])
   );
   const results = Object.fromEntries(checks);
 

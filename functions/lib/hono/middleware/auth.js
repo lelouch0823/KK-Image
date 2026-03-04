@@ -1,5 +1,5 @@
 import { verifyJWT, verifyApiKey, ADMIN_AUTH_COOKIE, MSG } from '../_shared/utils.js';
-import { buildAuthzInput, evaluatePermission } from '../../authz/index.js';
+import { evaluateUserPermission } from '../../authz/index.js';
 
 /**
  * 公开路由列表（无需认证）
@@ -126,11 +126,10 @@ export function requirePermission(permission) {
 }
 
 export async function checkPermission(c, user, permission) {
-  const authzInput = buildAuthzInput({
+  return evaluateUserPermission({
     user,
     permission,
     path: c.req.path,
     method: c.req.method,
   });
-  return evaluatePermission({ input: authzInput });
 }

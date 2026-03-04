@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
 
 const authzMocks = vi.hoisted(() => ({
-  evaluatePermission: vi.fn(),
+  evaluateUserPermission: vi.fn(),
 }));
 
 vi.mock('../../../authz/index.js', async () => {
   const actual = await vi.importActual('../../../authz/index.js');
   return {
     ...actual,
-    evaluatePermission: authzMocks.evaluatePermission,
+    evaluateUserPermission: authzMocks.evaluateUserPermission,
   };
 });
 
@@ -37,7 +37,7 @@ describe('requirePermission with authz engine', () => {
   });
 
   it('returns 403 when authz engine denies', async () => {
-    authzMocks.evaluatePermission.mockResolvedValueOnce(false);
+    authzMocks.evaluateUserPermission.mockResolvedValueOnce(false);
     const app = createApp({ id: 'u1', role: 'viewer', permissions: [] });
 
     const res = await app.request('http://localhost/secure/ping', {}, { AUTHZ_ENGINE: 'opa' });
@@ -45,21 +45,21 @@ describe('requirePermission with authz engine', () => {
   });
 
   it('allows request when authz engine allows', async () => {
-    authzMocks.evaluatePermission.mockResolvedValueOnce(true);
+    authzMocks.evaluateUserPermission.mockResolvedValueOnce(true);
     const app = createApp({ id: 'u1', role: 'manager', permissions: [] });
 
     const res = await app.request('http://localhost/secure/ping', {}, { AUTHZ_ENGINE: 'opa' });
     expect(res.status).toBe(200);
-    expect(authzMocks.evaluatePermission).toHaveBeenCalledTimes(1);
+    expect(authzMocks.evaluateUserPermission).toHaveBeenCalledTimes(1);
   });
 
   it('does not bypass authz for admin:full token', async () => {
-    authzMocks.evaluatePermission.mockResolvedValueOnce(false);
+    authzMocks.evaluateUserPermission.mockResolvedValueOnce(false);
     const app = createApp({ id: 'u1', type: 'admin', role: 'admin', permissions: ['admin:full'] });
 
     const res = await app.request('http://localhost/secure/ping', {}, { AUTHZ_ENGINE: 'opa' });
     expect(res.status).toBe(403);
-    expect(authzMocks.evaluatePermission).toHaveBeenCalledTimes(1);
+    expect(authzMocks.evaluateUserPermission).toHaveBeenCalledTimes(1);
   });
 });
 
