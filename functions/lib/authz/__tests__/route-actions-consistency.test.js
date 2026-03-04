@@ -43,7 +43,9 @@ describe('authz metadata route action consistency', () => {
     const routeActions = collectRouteActions();
     const metadataActions = new Set(metadata.actions || []);
     const unusedActions = [...metadataActions].filter((action) => !routeActions.has(action)).sort();
+    const missingActions = [...routeActions].filter((action) => !metadataActions.has(action)).sort();
 
     expect(unusedActions, `unused metadata actions: ${unusedActions.join(', ')}`).toEqual([]);
+    expect(missingActions, `missing metadata actions for routes: ${missingActions.join(', ')}`).toEqual([]);
   });
 });
