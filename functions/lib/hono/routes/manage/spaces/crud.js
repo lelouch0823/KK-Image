@@ -22,6 +22,7 @@ import {
 } from './transformers.js';
 import { NotFoundError } from '../../../errors.js';
 import { invalidateSpaceCaches } from './cache-helpers.js';
+import { appendOptionalUpdate } from '../../../_shared/route-helpers.js';
 import {
   buildSpaceInvalidatePayload,
   normalizeSpaceCreateFields,
@@ -220,54 +221,21 @@ crud.on(
     const updates = [];
     const values = [];
 
-    if (data.name !== undefined) {
-      updates.push('name = ?');
-      values.push(data.name.trim());
-    }
-    if (data.description !== undefined) {
-      updates.push('description = ?');
-      values.push(data.description.trim());
-    }
-    if (data.isPublic !== undefined) {
-      updates.push('is_public = ?');
-      values.push(data.isPublic ? 1 : 0);
-    }
-    if (data.password !== undefined) {
-      updates.push('password = ?');
-      values.push(data.password || null);
-    }
-    if (data.expiresAt !== undefined) {
-      updates.push('expires_at = ?');
-      values.push(data.expiresAt);
-    }
-    if (data.coverFileId !== undefined) {
-      updates.push('cover_file_id = ?');
-      values.push(data.coverFileId || null);
-    }
-    if (data.template !== undefined) {
-      updates.push('template = ?');
-      values.push(data.template);
-    }
-    if (data.templateData !== undefined) {
-      updates.push('template_data = ?');
-      values.push(JSON.stringify(data.templateData));
-    }
-    if (data.productId !== undefined) {
-      updates.push('product_id = ?');
-      values.push(data.productId || null);
-    }
-    if (data.variantId !== undefined) {
-      updates.push('variant_id = ?');
-      values.push(data.variantId || null);
-    }
+    appendOptionalUpdate(updates, values, 'name = ?', data.name, (value) => value.trim());
+    appendOptionalUpdate(updates, values, 'description = ?', data.description, (value) => value.trim());
+    appendOptionalUpdate(updates, values, 'is_public = ?', data.isPublic, (value) => (value ? 1 : 0));
+    appendOptionalUpdate(updates, values, 'password = ?', data.password, (value) => value || null);
+    appendOptionalUpdate(updates, values, 'expires_at = ?', data.expiresAt);
+    appendOptionalUpdate(updates, values, 'cover_file_id = ?', data.coverFileId, (value) => value || null);
+    appendOptionalUpdate(updates, values, 'template = ?', data.template);
+    appendOptionalUpdate(updates, values, 'template_data = ?', data.templateData, (value) => JSON.stringify(value));
+    appendOptionalUpdate(updates, values, 'product_id = ?', data.productId, (value) => value || null);
+    appendOptionalUpdate(updates, values, 'variant_id = ?', data.variantId, (value) => value || null);
     const nextProductId = data.productId !== undefined ? (data.productId || null) : (space.product_id || null);
     const nextVariantId = data.variantId !== undefined ? (data.variantId || null) : (space.variant_id || null);
     await validateProductVariantBinding(env.DB, nextProductId, nextVariantId, { checkExistence: false });
     // 处理新的分享模式
-    if (data.shareMode !== undefined) {
-      updates.push('share_mode = ?');
-      values.push(data.shareMode);
-    }
+    appendOptionalUpdate(updates, values, 'share_mode = ?', data.shareMode);
 
     updates.push('updated_at = ?');
     values.push(Date.now());

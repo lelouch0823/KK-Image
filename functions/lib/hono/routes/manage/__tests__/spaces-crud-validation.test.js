@@ -24,9 +24,13 @@ vi.mock('../../../middleware/cache.js', () => ({
   invalidateCache: vi.fn(async () => {}),
 }));
 
-vi.mock('../../../_shared/route-helpers.js', () => ({
-  getAllSalespersonAccessTokens: vi.fn(async () => []),
-}));
+vi.mock('../../../_shared/route-helpers.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getAllSalespersonAccessTokens: vi.fn(async () => []),
+  };
+});
 
 import spacesCrud from '../spaces/crud.js';
 

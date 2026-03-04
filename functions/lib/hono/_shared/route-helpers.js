@@ -20,6 +20,22 @@ export function parsePagination(c, { page: defaultPage = 1, limit: defaultLimit 
 }
 
 /**
+ * 在可选字段存在时追加 SQL 更新片段和值
+ * @param {string[]} updates
+ * @param {any[]} values
+ * @param {string} assignment - SQL 赋值片段，如 "name = ?"
+ * @param {any} value - 输入值；为 undefined 时不追加
+ * @param {(value: any) => any} transform - 入库前转换
+ * @returns {boolean} 是否发生追加
+ */
+export function appendOptionalUpdate(updates, values, assignment, value, transform = (next) => next) {
+  if (value === undefined) return false;
+  updates.push(assignment);
+  values.push(transform(value));
+  return true;
+}
+
+/**
  * 缓存失效 URL 工厂
  * @param {string} basePath - API 路径，如 '/api/manage/customers'
  * @param {string[]} extraParams - 额外的查询参数变体

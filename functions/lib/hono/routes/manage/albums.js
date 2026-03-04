@@ -9,6 +9,7 @@ import {
   getShareUrl,
   getFileUrl,
 } from '../../_shared/utils.js';
+import { appendOptionalUpdate } from '../../_shared/route-helpers.js';
 import { AlbumRepository } from '../../../../repositories/AlbumRepository.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 
@@ -156,14 +157,8 @@ app.put(
     const updates = [];
     const values = [];
 
-    if (data.name !== undefined) {
-      updates.push('name = ?');
-      values.push(data.name.trim());
-    }
-    if (data.description !== undefined) {
-      updates.push('description = ?');
-      values.push(data.description.trim());
-    }
+    appendOptionalUpdate(updates, values, 'name = ?', data.name, (value) => value.trim());
+    appendOptionalUpdate(updates, values, 'description = ?', data.description, (value) => value.trim());
     if (data.isPublic !== undefined) {
       updates.push('is_public = ?');
       values.push(data.isPublic ? 1 : 0);
@@ -172,10 +167,7 @@ app.put(
         values.push(generateShareToken());
       }
     }
-    if (data.coverFileId !== undefined) {
-      updates.push('cover_file_id = ?');
-      values.push(data.coverFileId);
-    }
+    appendOptionalUpdate(updates, values, 'cover_file_id = ?', data.coverFileId);
 
     updates.push('updated_at = ?');
     values.push(Date.now());

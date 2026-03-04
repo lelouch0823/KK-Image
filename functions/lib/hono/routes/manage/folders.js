@@ -16,7 +16,7 @@ import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { NotFoundError, BadRequestError, ForbiddenError, ConflictError } from '../../errors.js';
 import { getManageShareCacheUrls } from '../_shared/cache-urls.js';
-import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { appendOptionalUpdate, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 app.use('*', requirePermission('folders:read'));
@@ -221,22 +221,10 @@ app.put(
       }
     }
 
-    if (data.name !== undefined) {
-      updates.push('name = ?');
-      values.push(data.name.trim());
-    }
-    if (data.description !== undefined) {
-      updates.push('description = ?');
-      values.push(data.description.trim());
-    }
-    if (data.isPublic !== undefined) {
-      updates.push('is_public = ?');
-      values.push(data.isPublic ? 1 : 0);
-    }
-    if (data.password !== undefined) {
-      updates.push('password = ?');
-      values.push(data.password || null);
-    }
+    appendOptionalUpdate(updates, values, 'name = ?', data.name, (value) => value.trim());
+    appendOptionalUpdate(updates, values, 'description = ?', data.description, (value) => value.trim());
+    appendOptionalUpdate(updates, values, 'is_public = ?', data.isPublic, (value) => (value ? 1 : 0));
+    appendOptionalUpdate(updates, values, 'password = ?', data.password, (value) => value || null);
     if (data.parentId !== undefined) {
       if (data.parentId) {
         const isDescendant = await folderRepo.isDescendantOrSelf(folderId, data.parentId);
@@ -244,13 +232,9 @@ app.put(
           throw new BadRequestError(MSG.FOLDER.MOVE_TO_SELF);
         }
       }
-      updates.push('parent_id = ?');
-      values.push(data.parentId);
+      appendOptionalUpdate(updates, values, 'parent_id = ?', data.parentId);
     }
-    if (data.shareExpiresAt !== undefined) {
-      updates.push('share_expires_at = ?');
-      values.push(data.shareExpiresAt);
-    }
+    appendOptionalUpdate(updates, values, 'share_expires_at = ?', data.shareExpiresAt);
 
     // 自动生成分享令牌
     if ((data.isPublic === true || data.shareExpiresAt !== undefined) && !folder.share_token) {
