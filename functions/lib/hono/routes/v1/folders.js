@@ -11,32 +11,13 @@ import { withCache } from '../../middleware/cache.js';
 import { generateId, generateShareToken, now, MSG } from '../../_shared/utils.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
-import { getManageShareCacheUrls } from '../_shared/cache-urls.js';
 import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { getV1FolderAndShareCacheUrls } from './cache-urls.js';
 
 const app = new Hono();
 
-const getFolderCacheUrls = (c, parentIds = []) => {
-  const origin = new URL(c.req.url).origin;
-  const urls = [
-    `${origin}/api/v1/folders`,
-    `${origin}/api/v1/folders?parentId=null`,
-  ];
-  const ids = Array.isArray(parentIds) ? parentIds : [parentIds];
-  for (const parentId of ids) {
-    if (parentId && parentId !== 'root') {
-      urls.push(`${origin}/api/v1/folders/${parentId}`);
-    }
-  }
-  return [...new Set(urls)];
-};
-
-const getFolderAndShareCacheUrls = (c, parentIds = []) => {
-  return [...new Set([...getFolderCacheUrls(c, parentIds), ...getManageShareCacheUrls(c)])];
-};
-
 function scheduleFolderAndShareCacheInvalidation(c, parentIds = []) {
-  scheduleCacheInvalidation(c, getFolderAndShareCacheUrls(c, parentIds));
+  scheduleCacheInvalidation(c, getV1FolderAndShareCacheUrls(c, parentIds));
 }
 
 /**

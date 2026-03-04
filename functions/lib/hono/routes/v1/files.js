@@ -13,6 +13,7 @@ import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
 import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { getV1FileAndFolderCacheUrls } from './cache-urls.js';
 
 const app = new Hono();
 
@@ -24,37 +25,11 @@ const ALLOWED_SORT_COLUMNS = {
   updated_at: 'updated_at',
 };
 
-/**
- * 构建缓存失效 URL
- */
-const getFileCacheUrls = (c, folderId = null) => {
-  const origin = new URL(c.req.url).origin;
-  const urls = [
-    `${origin}/api/v1/files`,
-    `${origin}/api/v1/files?page=1&limit=20`,
-  ];
-  if (folderId && folderId !== 'root') {
-    urls.push(`${origin}/api/v1/folders/${folderId}`);
-  }
-  return urls;
-};
-
-const getFileCacheUrlsByFolders = (c, folderIds = []) => {
-  const origin = new URL(c.req.url).origin;
-  const urlSet = new Set(getFileCacheUrls(c));
-  for (const folderId of folderIds) {
-    if (folderId && folderId !== 'root') {
-      urlSet.add(`${origin}/api/v1/folders/${folderId}`);
-    }
-  }
-  return [...urlSet];
-};
-
 function scheduleFileCacheInvalidation(c, { folderIds = [], extraUrls = [] } = {}) {
   const mergedExtraUrls = Array.isArray(extraUrls) ? extraUrls : [extraUrls];
   scheduleCacheInvalidation(
     c,
-    [...getFileCacheUrlsByFolders(c, folderIds), ...mergedExtraUrls.filter(Boolean)]
+    [...getV1FileAndFolderCacheUrls(c, { folderIds }), ...mergedExtraUrls.filter(Boolean)]
   );
 }
 
