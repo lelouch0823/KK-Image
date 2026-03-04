@@ -9,10 +9,10 @@ import {
 } from '../../../../../api/utils/order-state-machine.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
-import { NotFoundError, BadRequestError, ForbiddenError } from '../../../errors.js';
+import { NotFoundError, BadRequestError } from '../../../errors.js';
 import { invalidateCache } from '../../../middleware/cache.js';
-import { checkPermission } from '../../../middleware/auth.js';
 import { getManageOrderCacheUrls, getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../../_shared/cache-urls.js';
+import { assertAdminFull, assertForceStatusTransitionAllowed } from './authz-helpers.js';
 
 const app = new Hono();
 
@@ -20,20 +20,6 @@ const isInsufficientStockError = (error) =>
     String(error?.message || '').includes('insufficient variant stock');
 const isInvalidStatusTransitionError = (error) =>
     String(error?.message || '').includes(INVALID_ORDER_STATUS_TRANSITION_ERROR);
-
-async function assertAdminFull(c, user) {
-    const allowed = await checkPermission(c, user, 'admin:full');
-    if (!allowed) {
-        throw new ForbiddenError(MSG.AUTH.PERMISSION_DENIED);
-    }
-}
-
-async function assertForceTransitionAllowed(c, user, reason) {
-    await assertAdminFull(c, user);
-    if (!String(reason || '').trim()) {
-        throw new BadRequestError('Reason is required for forced status transition');
-    }
-}
 
 /**
  * GET /:id - 获取订单详情
@@ -139,7 +125,7 @@ app.patch('/:id', async (c) => {
         if (!forceStatusTransition) {
             throw new BadRequestError(`Invalid status transition: ${order.status} -> ${requestedStatus}`);
         }
-        await assertForceTransitionAllowed(c, user, reason);
+        await assertForceStatusTransitionAllowed(c, user, reason);
     }
 
     await processOrderUpdate({
@@ -191,7 +177,7 @@ app.patch('/:id/status', async (c) => {
         if (!forceStatusTransition) {
             throw new BadRequestError(`Invalid status transition: ${oldStatus} -> ${status}`);
         }
-        await assertForceTransitionAllowed(c, user, note);
+        await assertForceStatusTransitionAllowed(c, user, note);
     }
 
     let success = false;
