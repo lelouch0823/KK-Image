@@ -8,23 +8,10 @@ import { Hono } from 'hono';
 import { requirePermission } from '../../../middleware/auth.js';
 import { MSG } from '../../../_shared/utils.js';
 import { SpaceRepository } from '../../../../../repositories/SpaceRepository.js';
-import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
-import { invalidateCache } from '../../../middleware/cache.js';
-import { getManageSpaceCacheUrls, getSalesSpaceCacheUrls } from '../../_shared/cache-urls.js';
+import { invalidateSpaceCaches } from './cache-helpers.js';
 
 const files = new Hono();
-
-const invalidateSpaceCaches = (c, options = {}) => {
-  c.executionCtx.waitUntil((async () => {
-    const salesTokens = await getAllSalespersonAccessTokens(c.env.DB);
-    const urls = [
-      ...getManageSpaceCacheUrls(c, options),
-      ...getSalesSpaceCacheUrls(c, { salesTokens, spaceId: options.spaceId }),
-    ];
-    await invalidateCache([...new Set(urls)]);
-  })());
-};
 
 /**
  * POST /files - 添加文件到空间

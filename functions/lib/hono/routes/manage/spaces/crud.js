@@ -12,17 +12,16 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requirePermission } from '../../../middleware/auth.js';
-import { withCache, invalidateCache } from '../../../middleware/cache.js';
+import { withCache } from '../../../middleware/cache.js';
 import { SpaceRepository } from '../../../../../repositories/SpaceRepository.js';
 import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
-import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { generateId, generateShareToken, MSG, getShareUrl } from '../../../_shared/utils.js';
 import {
   transformSpaceListItem,
   transformSpaceDetail,
 } from './transformers.js';
 import { NotFoundError } from '../../../errors.js';
-import { getManageSpaceCacheUrls, getSalesSpaceCacheUrls } from '../../_shared/cache-urls.js';
+import { invalidateSpaceCaches } from './cache-helpers.js';
 
 const crud = new Hono();
 
@@ -44,17 +43,6 @@ const UpdateSpaceSchema = CreateSpaceSchema.partial().extend({
   shareMode: z.enum(['none', 'all', 'selected']).optional(),
   sharedSalespersonIds: z.array(z.string()).optional(),
 });
-
-const invalidateSpaceCaches = (c, options = {}) => {
-  c.executionCtx.waitUntil((async () => {
-    const salesTokens = await getAllSalespersonAccessTokens(c.env.DB);
-    const urls = [
-      ...getManageSpaceCacheUrls(c, options),
-      ...getSalesSpaceCacheUrls(c, { salesTokens, spaceId: options.spaceId }),
-    ];
-    await invalidateCache([...new Set(urls)]);
-  })());
-};
 
 /**
  * GET / - 获取共享空间列表
