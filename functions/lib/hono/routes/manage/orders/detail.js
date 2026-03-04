@@ -9,7 +9,7 @@ import {
 } from '../../../../../api/utils/order-state-machine.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
-import { NotFoundError, BadRequestError, ForbiddenError, UnauthorizedError } from '../../../errors.js';
+import { NotFoundError, BadRequestError, ForbiddenError } from '../../../errors.js';
 import { invalidateCache } from '../../../middleware/cache.js';
 import { checkPermission } from '../../../middleware/auth.js';
 import { getManageOrderCacheUrls, getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../../_shared/cache-urls.js';
@@ -295,7 +295,7 @@ app.delete('/:id', async (c) => {
     const canDeleteOrder = await checkPermission(c, user, 'admin:full');
 
     if (!canDeleteOrder) {
-        throw new UnauthorizedError(MSG.AUTH.PERMISSION_DENIED);
+        throw new ForbiddenError(MSG.AUTH.PERMISSION_DENIED);
     }
 
     const id = c.req.param('id');

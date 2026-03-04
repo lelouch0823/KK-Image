@@ -206,6 +206,19 @@ describe('manage order detail routes', () => {
     expect(mocks.deleteOrderCascading).toHaveBeenCalledWith('order-1');
   });
 
+  it('returns 403 when non-admin user tries to delete order', async () => {
+    const app = createApp({ id: 'u-viewer', name: 'Viewer', type: 'user', role: 'viewer', permissions: [] });
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1',
+      { method: 'DELETE' },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(403);
+    expect(mocks.deleteOrderCascading).not.toHaveBeenCalled();
+  });
+
   it('rejects invalid status value in PATCH /:id/status', async () => {
     const app = createApp();
     const res = await app.request(
