@@ -293,6 +293,26 @@ export async function verifyTurnstile(token, secret) {
 import { parse as parseCookie } from 'cookie';
 import { MSG } from './messages.js';
 
+function normalizeAuthToken(token) {
+  if (typeof token !== 'string') return token;
+  return token.replace(/^"(.+)"$/, '$1');
+}
+
+function extractAdminAuthToken(request) {
+  const cookieHeader = request.headers.get('Cookie') || '';
+  const cookies = parseCookie(cookieHeader);
+  let token = normalizeAuthToken(cookies[ADMIN_AUTH_COOKIE]);
+
+  if (!token) {
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = normalizeAuthToken(authHeader.substring(7));
+    }
+  }
+
+  return token;
+}
+
 /**
  * 验证管理员权限 (Middleware Helper)
  * @param {Request} request
@@ -300,17 +320,7 @@ import { MSG } from './messages.js';
  * @returns {Promise<Object>} User payload
  */
 export async function authenticateAdmin(request, env) {
-  const cookieHeader = request.headers.get('Cookie') || '';
-  const cookies = parseCookie(cookieHeader);
-  let token = cookies[ADMIN_AUTH_COOKIE];
-
-  // Try Bearer token if no cookie
-  if (!token) {
-    const authHeader = request.headers.get('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
-    }
-  }
+  const token = extractAdminAuthToken(request);
 
   if (!token) {
     throw new Error(MSG.AUTH.REQUIRED);
@@ -360,15 +370,7 @@ export function timingSafeCompare(a, b) {
  */
 export async function isAdminAuthenticated(request, env) {
   try {
-    const cookieHeader = request.headers.get('Cookie') || '';
-    const cookies = parseCookie(cookieHeader);
-    let token = cookies[ADMIN_AUTH_COOKIE];
-    if (!token) {
-      const authHeader = request.headers.get('Authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.substring(7);
-      }
-    }
+    const token = extractAdminAuthToken(request);
     if (!token) return false;
     await verifyJWT(token, env);
     return true;

@@ -156,6 +156,16 @@ describe('Auth Utils 100% Coverage Final', () => {
       const req2 = new Request('https://api.test');
       expect(await isAdminAuthenticated(req2, env)).toBe(false);
     });
+
+    it('accepts quoted admin auth cookie token', async () => {
+      const token = await generateJWT({ id: 'admin-quoted' }, env);
+      const req = new Request('https://api.test', {
+        headers: { Cookie: `${ADMIN_AUTH_COOKIE}="${token}"` },
+      });
+
+      const user = await authenticateAdmin(req, env);
+      expect(user.id).toBe('admin-quoted');
+    });
   });
 
   describe('timingSafeCompare', () => {
