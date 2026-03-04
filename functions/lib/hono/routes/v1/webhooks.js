@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
 import { generatePrefixedId, generateHmacSignature, MSG } from '../../_shared/utils.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
+import { appendOptionalUpdate } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 
@@ -129,26 +130,11 @@ app.put('/:id', requirePermission('webhooks:write'), async (c) => {
   const updates = [];
   const values = [];
 
-  if (data.url !== undefined) {
-    updates.push('url = ?');
-    values.push(data.url);
-  }
-  if (data.events !== undefined) {
-    updates.push('events = ?');
-    values.push(JSON.stringify(data.events));
-  }
-  if (data.secret !== undefined) {
-    updates.push('secret = ?');
-    values.push(data.secret);
-  }
-  if (data.headers !== undefined) {
-    updates.push('headers = ?');
-    values.push(JSON.stringify(data.headers));
-  }
-  if (data.enabled !== undefined) {
-    updates.push('enabled = ?');
-    values.push(data.enabled ? 1 : 0);
-  }
+  appendOptionalUpdate(updates, values, 'url = ?', data.url);
+  appendOptionalUpdate(updates, values, 'events = ?', data.events, (value) => JSON.stringify(value));
+  appendOptionalUpdate(updates, values, 'secret = ?', data.secret);
+  appendOptionalUpdate(updates, values, 'headers = ?', data.headers, (value) => JSON.stringify(value));
+  appendOptionalUpdate(updates, values, 'enabled = ?', data.enabled, (value) => (value ? 1 : 0));
 
   updates.push('updated_by = ?');
   values.push(user.name || user.id);
