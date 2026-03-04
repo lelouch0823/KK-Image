@@ -13,6 +13,25 @@ import { invalidateSpaceCaches } from './cache-helpers.js';
 
 const files = new Hono();
 
+function assertFileIds(fileIds) {
+  if (!fileIds?.length) throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);
+  return fileIds;
+}
+
+async function requireSpace(repo, spaceId) {
+  const space = await repo.findById(spaceId);
+  if (!space) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
+  return space;
+}
+
+function buildSpaceInvalidatePayload(spaceId, space = null) {
+  return {
+    spaceId,
+    parentId: space?.parent_id || null,
+    productIds: [space?.product_id || null],
+  };
+}
+
 /**
  * POST /files - 添加文件到空间
  */
@@ -22,17 +41,16 @@ files.post('/', requirePermission('spaces:manage'), async (c) => {
   const { fileIds } = await c.req.json();
   const repo = new SpaceRepository(env.DB);
 
-  if (!fileIds?.length) throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);
+  const normalizedFileIds = assertFileIds(fileIds);
 
-  const space = await repo.findById(spaceId);
-  if (!space) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
+  const space = await requireSpace(repo, spaceId);
 
-  await repo.addFiles(spaceId, fileIds);
-  invalidateSpaceCaches(c, { spaceId, parentId: space.parent_id || null, productIds: [space.product_id] });
+  await repo.addFiles(spaceId, normalizedFileIds);
+  invalidateSpaceCaches(c, buildSpaceInvalidatePayload(spaceId, space));
 
   return c.json({
     success: true,
-    message: MSG.SPACE.ADD_FILES_SUCCESS.replace('{count}', fileIds.length),
+    message: MSG.SPACE.ADD_FILES_SUCCESS.replace('{count}', normalizedFileIds.length),
   });
 });
 
@@ -45,19 +63,15 @@ files.delete('/', requirePermission('spaces:manage'), async (c) => {
   const { fileIds } = await c.req.json();
   const repo = new SpaceRepository(env.DB);
 
-  if (!fileIds?.length) throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);
+  const normalizedFileIds = assertFileIds(fileIds);
 
-  await repo.removeFiles(spaceId, fileIds);
+  await repo.removeFiles(spaceId, normalizedFileIds);
   const space = await repo.findById(spaceId);
-  invalidateSpaceCaches(c, {
-    spaceId,
-    parentId: space?.parent_id || null,
-    productIds: [space?.product_id || null],
-  });
+  invalidateSpaceCaches(c, buildSpaceInvalidatePayload(spaceId, space));
 
   return c.json({
     success: true,
-    message: MSG.SPACE.REMOVE_FILES_SUCCESS.replace('{count}', fileIds.length),
+    message: MSG.SPACE.REMOVE_FILES_SUCCESS.replace('{count}', normalizedFileIds.length),
   });
 });
 
@@ -70,15 +84,11 @@ files.put('/order', requirePermission('spaces:manage'), async (c) => {
   const { fileIds } = await c.req.json();
   const repo = new SpaceRepository(env.DB);
 
-  if (!fileIds?.length) throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);
+  const normalizedFileIds = assertFileIds(fileIds);
 
-  await repo.reorderFiles(spaceId, fileIds);
+  await repo.reorderFiles(spaceId, normalizedFileIds);
   const space = await repo.findById(spaceId);
-  invalidateSpaceCaches(c, {
-    spaceId,
-    parentId: space?.parent_id || null,
-    productIds: [space?.product_id || null],
-  });
+  invalidateSpaceCaches(c, buildSpaceInvalidatePayload(spaceId, space));
 
   return c.json({
     success: true,
