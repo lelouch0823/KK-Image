@@ -11,8 +11,10 @@ import { invalidateCache, getProductCacheUrls } from '../../../middleware/cache.
 import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
 import { getSalesProductCacheUrls } from '../../_shared/cache-urls.js';
+import { requirePermission } from '../../../middleware/auth.js';
 
 const app = new Hono();
+app.use('*', requirePermission('products:manage'));
 
 const isVariantOwnershipError = (error) =>
     error?.message?.includes('Variant does not belong to product');

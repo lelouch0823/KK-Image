@@ -11,6 +11,10 @@ vi.mock('../../../../middleware/cache.js', () => ({
 function createApp() {
   const app = new Hono();
   app.onError((err, c) => c.json({ success: false, error: err.message }, err.statusCode || 500));
+  app.use('/api/manage/products/*', async (c, next) => {
+    c.set('user', { id: 'u-manager', type: 'user', role: 'manager', permissions: [] });
+    await next();
+  });
   app.route('/api/manage/products', productsApp);
   return app;
 }

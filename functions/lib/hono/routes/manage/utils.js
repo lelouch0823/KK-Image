@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
 import { getBlobByHash } from '../../../../api/utils/blob-utils.js';
 import { BadRequestError } from '../../errors.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const app = new Hono();
+app.use('*', requirePermission('files:write'));
 
 /**
  * GET /api/manage/utils/check-hash - 检查文件哈希

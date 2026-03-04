@@ -6,8 +6,10 @@ import { MSG } from '../../_shared/utils.js';
 import { withCache, invalidateCache } from '../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { parsePagination, createCacheInvalidator } from '../../_shared/route-helpers.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const app = new Hono();
+app.use('*', requirePermission('orders:manage'));
 
 const getCacheUrls = createCacheInvalidator('/api/manage/customers', ['page=1&limit=20']);
 

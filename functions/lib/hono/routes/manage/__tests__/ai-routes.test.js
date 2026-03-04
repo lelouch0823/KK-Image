@@ -27,6 +27,10 @@ import aiApp from '../ai.js';
 
 function createApp() {
   const app = new Hono();
+  app.use('/api/manage/ai/*', async (c, next) => {
+    c.set('user', { id: 'u-manager', type: 'user', role: 'manager', permissions: [] });
+    await next();
+  });
   app.route('/api/manage/ai', aiApp);
   return app;
 }

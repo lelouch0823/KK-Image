@@ -6,6 +6,10 @@ import * as aiUtils from '../../../../../utils/ai-utils.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) => c.json({ success: false, error: err.message }, err.statusCode || 500));
+  app.use('/api/manage/settings/*', async (c, next) => {
+    c.set('user', { id: 'u-admin', type: 'admin', role: 'admin', permissions: ['admin:full'] });
+    await next();
+  });
   app.route('/api/manage/settings', settingsApp);
   return app;
 }

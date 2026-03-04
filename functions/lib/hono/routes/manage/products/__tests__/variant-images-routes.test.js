@@ -55,6 +55,10 @@ function createApp() {
             err.statusCode || 500
         );
     });
+    app.use('/api/manage/products/*', async (c, next) => {
+        c.set('user', { id: 'u-manager', type: 'user', role: 'manager', permissions: [] });
+        await next();
+    });
     app.route('/api/manage/products', productsIndexApp);
     app.route('/api/manage/products', productsDetailApp);
     return app;

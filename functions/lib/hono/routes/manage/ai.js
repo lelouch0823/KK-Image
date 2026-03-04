@@ -17,8 +17,10 @@ import { executeAITool } from '../../../../utils/ai-tool-executor.js';
 import { extractToolCallsFromText, ContentGate } from '../../../../utils/ai-stream-helpers.js';
 import { DateUtils } from '../../../../api/utils/date.js';
 import { success } from '../../../../api/utils/response.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const app = new Hono();
+app.use('*', requirePermission('stats:read'));
 const MAX_TOOL_ROUNDS = 3;
 const MAX_TOOLS_PER_ROUND = 8;
 const INJECTION_PATTERNS = [

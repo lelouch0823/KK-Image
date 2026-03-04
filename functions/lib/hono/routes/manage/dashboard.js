@@ -4,8 +4,10 @@ import { StatsRepository } from '../../../../repositories/StatsRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { getChinaDayStart, getFileUrl } from '../../_shared/utils.js';
 import { withCache } from '../../middleware/cache.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const app = new Hono();
+app.use('*', requirePermission('stats:read'));
 
 /**
  * GET /overview - 获取仪表盘概览数据 (SOTA: 聚合接口)

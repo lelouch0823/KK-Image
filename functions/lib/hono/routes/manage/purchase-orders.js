@@ -14,9 +14,11 @@ import { PurchaseOrderService } from '../../../../services/PurchaseOrderService.
 import { validateOrderQuantity } from '../../../../services/purchase-order-constraints.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { requirePermission } from '../../middleware/auth.js';
 import { getPurchaseOrderCacheUrls, getOrderAnalyticsCacheUrls } from '../_shared/cache-urls.js';
 
 const app = new Hono();
+app.use('*', requirePermission('products:manage'));
 
 const invalidatePoRelatedCaches = (c, poId = null) => {
   const urls = [

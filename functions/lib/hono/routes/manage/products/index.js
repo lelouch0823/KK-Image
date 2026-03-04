@@ -10,10 +10,12 @@ import { withCache, invalidateCache, getProductCacheUrls } from '../../../middle
 import { getAllSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
 import { BadRequestError, ConflictError } from '../../../errors.js';
 import { getSalesProductCacheUrls } from '../../_shared/cache-urls.js';
+import { requirePermission } from '../../../middleware/auth.js';
 import batch from './batch.js';
 import exportRoute from './export.js';
 
 const app = new Hono();
+app.use('*', requirePermission('products:manage'));
 
 app.route('/batch', batch);
 app.route('/export', exportRoute);

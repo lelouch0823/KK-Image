@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import { UnauthorizedError } from '../../errors.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const app = new Hono();
+app.use('*', requirePermission('read'));
 
 /**
  * GET /api/manage/user - 获取当前用户信息

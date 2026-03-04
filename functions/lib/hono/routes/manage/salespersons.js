@@ -7,8 +7,10 @@ import { withCache, invalidateCache } from '../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { parsePagination, createCacheInvalidator } from '../../_shared/route-helpers.js';
 import { getManageOrderCacheUrls } from '../_shared/cache-urls.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const app = new Hono();
+app.use('*', requirePermission('users:read'));
 
 const getCacheUrls = createCacheInvalidator('/api/manage/salespersons', [
     'page=1&limit=20',
@@ -72,7 +74,7 @@ app.get('/', withCache(60), async (c) => {
 /**
  * POST / - 创建销售人员
  */
-app.post('/', zValidator('json', CreateSalespersonSchema), async (c) => {
+app.post('/', requirePermission('users:write'), zValidator('json', CreateSalespersonSchema), async (c) => {
     const { env } = c;
     const body = c.req.valid('json');
 
@@ -155,13 +157,13 @@ const updateHandler = async (c) => {
 };
 
 // 同时支持 PUT 和 PATCH 方法
-app.put('/:id', zValidator('json', UpdateSalespersonSchema), updateHandler);
-app.patch('/:id', zValidator('json', UpdateSalespersonSchema), updateHandler);
+app.put('/:id', requirePermission('users:write'), zValidator('json', UpdateSalespersonSchema), updateHandler);
+app.patch('/:id', requirePermission('users:write'), zValidator('json', UpdateSalespersonSchema), updateHandler);
 
 /**
  * DELETE /:id - 删除销售人员
  */
-app.delete('/:id', async (c) => {
+app.delete('/:id', requirePermission('users:write'), async (c) => {
     const { env } = c;
     const id = c.req.param('id');
 
@@ -186,7 +188,7 @@ app.delete('/:id', async (c) => {
 /**
  * POST /:id/reset-token - 重置访问令牌
  */
-app.post('/:id/reset-token', async (c) => {
+app.post('/:id/reset-token', requirePermission('users:write'), async (c) => {
     const { env } = c;
     const id = c.req.param('id');
 

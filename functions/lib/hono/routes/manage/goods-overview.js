@@ -16,8 +16,10 @@ import { Hono } from 'hono';
 import { getChinaDateStr } from '../../_shared/utils.js';
 import { GoodsOverviewRepository } from '../../../../repositories/GoodsOverviewRepository.js';
 import { withCache } from '../../middleware/cache.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const app = new Hono();
+app.use('*', requirePermission('products:manage'));
 
 /**
  * GET / — 变体管道分析列表

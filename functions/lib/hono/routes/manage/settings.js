@@ -2,8 +2,10 @@ import { Hono } from 'hono';
 import { BadRequestError } from '../../errors.js';
 import { SettingsRepository } from '../../../../repositories/SettingsRepository.js';
 import { parseModels, getModelHealthSnapshot } from '../../../../utils/ai-utils.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const app = new Hono();
+app.use('*', requirePermission('admin:full'));
 
 const normalizeApiBaseUrl = (rawUrl = '') => {
   const trimmed = String(rawUrl || '').trim().replace(/\/+$/, '');
