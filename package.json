@@ -18,6 +18,7 @@
     "test:coverage": "node node_modules/vitest/vitest.mjs run --coverage",
     "authz:policy:test": "node scripts/policy/run-opa.mjs test policy/authz.rego policy/tests -v",
     "authz:policy:build": "node scripts/policy/compile-opa.mjs",
+    "authz:policy:watch": "node scripts/policy/watch-opa.mjs",
     "test:webhook": "node test/webhook-test.js",
     "start": "wrangler pages dev dist --binding BASIC_USER=admin --binding BASIC_PASS=123 --binding JWT_SECRET=dev-secret-key-123 --port 8080",
     "dev:full": "pnpm build && pnpm start",
