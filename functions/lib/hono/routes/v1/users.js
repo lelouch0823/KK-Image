@@ -6,7 +6,7 @@ import { generateId, hashPassword, MSG } from '../../_shared/utils.js';
 import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
 import { assertKnownPermissions } from './_shared/permissions-validation.js';
-import { appendOptionalUpdate } from '../../_shared/route-helpers.js';
+import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 const USER_SELECT_FIELDS = 'id, username, name, email, role, permissions, created_at, updated_at';
@@ -60,11 +60,12 @@ app.get('/:id', requirePermission('admin:full'), async (c) => {
   const id = c.req.param('id');
   const { env } = c;
 
-  const user = await env.DB.prepare(`SELECT ${USER_SELECT_FIELDS} FROM users WHERE id = ?`)
-    .bind(id)
-    .first();
-
-  if (!user) throw new NotFoundError(MSG.USER.NOT_FOUND);
+  const user = await requireEntity(
+    env.DB.prepare(`SELECT ${USER_SELECT_FIELDS} FROM users WHERE id = ?`)
+      .bind(id)
+      .first(),
+    () => new NotFoundError(MSG.USER.NOT_FOUND)
+  );
 
   return c.json({
     success: true,
@@ -142,8 +143,10 @@ app.put(
     const { env } = c;
     assertKnownPermissions(data.permissions);
 
-    const existing = await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(id).first();
-    if (!existing) throw new NotFoundError(MSG.USER.NOT_FOUND);
+    await requireEntity(
+      env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(id).first(),
+      () => new NotFoundError(MSG.USER.NOT_FOUND)
+    );
 
     const updates = [];
     const values = [];
@@ -193,8 +196,10 @@ app.delete('/:id', requirePermission('admin:full'), async (c) => {
     throw new BadRequestError(MSG.USER.CANNOT_DELETE_SELF);
   }
 
-  const existing = await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(id).first();
-  if (!existing) throw new NotFoundError(MSG.USER.NOT_FOUND);
+  await requireEntity(
+    env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(id).first(),
+    () => new NotFoundError(MSG.USER.NOT_FOUND)
+  );
 
   await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
 

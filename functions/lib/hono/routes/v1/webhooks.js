@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
 import { generatePrefixedId, generateHmacSignature, MSG } from '../../_shared/utils.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
-import { appendOptionalUpdate } from '../../_shared/route-helpers.js';
+import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 
@@ -15,6 +15,13 @@ const WEBHOOK_EVENTS = [
   'user.login',
   'webhook.test',
 ];
+
+async function requireWebhookById(db, id, columns = '*') {
+  return requireEntity(
+    db.prepare(`SELECT ${columns} FROM webhooks WHERE id = ?`).bind(id).first(),
+    () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND)
+  );
+}
 
 /**
  * 将数据库行转换为 Webhook 对象
@@ -58,8 +65,7 @@ app.get('/:id', requirePermission('webhooks:read'), async (c) => {
   const id = c.req.param('id');
   const { env } = c;
 
-  const webhook = await env.DB.prepare('SELECT * FROM webhooks WHERE id = ?').bind(id).first();
-  if (!webhook) throw new NotFoundError(MSG.WEBHOOK.NOT_FOUND);
+  const webhook = await requireWebhookById(env.DB, id);
 
   return c.json({ success: true, data: rowToWebhook(webhook) });
 });
@@ -124,8 +130,7 @@ app.put('/:id', requirePermission('webhooks:write'), async (c) => {
   const user = c.get('user');
   const { env } = c;
 
-  const existing = await env.DB.prepare('SELECT id FROM webhooks WHERE id = ?').bind(id).first();
-  if (!existing) throw new NotFoundError(MSG.WEBHOOK.NOT_FOUND);
+  await requireWebhookById(env.DB, id, 'id');
 
   const updates = [];
   const values = [];
@@ -158,8 +163,7 @@ app.delete('/:id', requirePermission('webhooks:write'), async (c) => {
   const id = c.req.param('id');
   const { env } = c;
 
-  const existing = await env.DB.prepare('SELECT id FROM webhooks WHERE id = ?').bind(id).first();
-  if (!existing) throw new NotFoundError(MSG.WEBHOOK.NOT_FOUND);
+  await requireWebhookById(env.DB, id, 'id');
 
   await env.DB.prepare('DELETE FROM webhooks WHERE id = ?').bind(id).run();
 
@@ -174,8 +178,7 @@ app.post('/:id/test', requirePermission('webhooks:write'), async (c) => {
   const user = c.get('user');
   const { env } = c;
 
-  const row = await env.DB.prepare('SELECT * FROM webhooks WHERE id = ?').bind(id).first();
-  if (!row) throw new NotFoundError(MSG.WEBHOOK.NOT_FOUND);
+  const row = await requireWebhookById(env.DB, id);
 
   const webhook = rowToWebhook(row);
 
