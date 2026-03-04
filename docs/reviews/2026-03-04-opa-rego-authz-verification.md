@@ -20,6 +20,11 @@
   - `user` -> `read`
   - `products/index`、`products/[id]` -> `products:manage`
 - 新增回归测试：`functions/lib/hono/routes/manage/__tests__/core-authz-gates.test.js`
+- 追加收敛（推送后复审）：
+  - `files` 路由统一基线：`app.use('*', requirePermission('files:read'))`
+  - `folders` 路由统一基线：`app.use('*', requirePermission('folders:read'))`
+  - `albums` 路由统一基线：`app.use('*', requirePermission('files:read'))`
+  - `core-authz-gates` 新增 3 个拒绝用例（unknown role 访问 files/folders/albums 列表）
 
 ## 验证证据
 

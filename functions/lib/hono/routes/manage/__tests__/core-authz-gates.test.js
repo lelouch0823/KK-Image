@@ -7,6 +7,9 @@ import settingsApp from '../settings.js';
 import purchaseOrdersApp from '../purchase-orders.js';
 import aiApp from '../ai.js';
 import utilsApp from '../utils.js';
+import filesApp from '../files.js';
+import foldersApp from '../folders.js';
+import albumsApp from '../albums.js';
 
 function withUser(app, user) {
   app.use('/api/manage/*', async (c, next) => {
@@ -101,6 +104,48 @@ describe('manage core authz gates', () => {
 
     const res = await app.request(
       'http://localhost/api/manage/utils/check-hash?hash=abc',
+      { method: 'GET' },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it('denies unknown role on files list', async () => {
+    const app = new Hono();
+    withUser(app, { id: 'u-guest', type: 'user', role: 'guest', permissions: [] });
+    app.route('/api/manage/files', filesApp);
+
+    const res = await app.request(
+      'http://localhost/api/manage/files',
+      { method: 'GET' },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it('denies unknown role on folders list', async () => {
+    const app = new Hono();
+    withUser(app, { id: 'u-guest', type: 'user', role: 'guest', permissions: [] });
+    app.route('/api/manage/folders', foldersApp);
+
+    const res = await app.request(
+      'http://localhost/api/manage/folders',
+      { method: 'GET' },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it('denies unknown role on albums list', async () => {
+    const app = new Hono();
+    withUser(app, { id: 'u-guest', type: 'user', role: 'guest', permissions: [] });
+    app.route('/api/manage/albums', albumsApp);
+
+    const res = await app.request(
+      'http://localhost/api/manage/albums',
       { method: 'GET' },
       { DB: {} },
       { waitUntil: vi.fn() }

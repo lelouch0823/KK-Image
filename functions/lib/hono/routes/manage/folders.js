@@ -19,6 +19,7 @@ import { NotFoundError, BadRequestError, ForbiddenError, ConflictError } from '.
 import { getManageShareCacheUrls } from '../_shared/cache-urls.js';
 
 const app = new Hono();
+app.use('*', requirePermission('folders:read'));
 
 // Schemas
 const CreateFolderSchema = z.object({

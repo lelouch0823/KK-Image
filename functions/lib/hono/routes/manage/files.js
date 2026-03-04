@@ -10,6 +10,7 @@ import { NotFoundError, ConflictError } from '../../errors.js';
 import { parsePagination } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
+app.use('*', requirePermission('files:read'));
 
 // Schemas
 const DeleteFilesSchema = z.object({

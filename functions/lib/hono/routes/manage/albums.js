@@ -13,6 +13,7 @@ import { AlbumRepository } from '../../../../repositories/AlbumRepository.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 
 const app = new Hono();
+app.use('*', requirePermission('files:read'));
 
 // Schemas
 const CreateAlbumSchema = z.object({
