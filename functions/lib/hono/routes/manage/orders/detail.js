@@ -9,10 +9,10 @@ import {
 } from '../../../../../api/utils/order-state-machine.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
-import { NotFoundError, BadRequestError, UnauthorizedError } from '../../../errors.js';
+import { NotFoundError, BadRequestError, ForbiddenError, UnauthorizedError } from '../../../errors.js';
 import { invalidateCache } from '../../../middleware/cache.js';
+import { checkPermission } from '../../../middleware/auth.js';
 import { getManageOrderCacheUrls, getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../../_shared/cache-urls.js';
-import { assertRoutePermission, hasRoutePermission } from './authz.js';
 
 const app = new Hono();
 
@@ -125,7 +125,10 @@ app.patch('/:id', async (c) => {
         if (!forceStatusTransition) {
             throw new BadRequestError(`Invalid status transition: ${order.status} -> ${requestedStatus}`);
         }
-        await assertRoutePermission(c, user, 'admin:full');
+        const canForceTransition = await checkPermission(c, user, 'admin:full');
+        if (!canForceTransition) {
+            throw new ForbiddenError(MSG.AUTH.PERMISSION_DENIED);
+        }
         if (!String(reason || '').trim()) {
             throw new BadRequestError('Reason is required for forced status transition');
         }
@@ -180,7 +183,10 @@ app.patch('/:id/status', async (c) => {
         if (!forceStatusTransition) {
             throw new BadRequestError(`Invalid status transition: ${oldStatus} -> ${status}`);
         }
-        await assertRoutePermission(c, user, 'admin:full');
+        const canForceTransition = await checkPermission(c, user, 'admin:full');
+        if (!canForceTransition) {
+            throw new ForbiddenError(MSG.AUTH.PERMISSION_DENIED);
+        }
         if (!String(note || '').trim()) {
             throw new BadRequestError('Reason is required for forced status transition');
         }
@@ -286,7 +292,7 @@ app.post('/:id/comment', async (c) => {
 app.delete('/:id', async (c) => {
     const { env } = c;
     const user = c.get('user');
-    const canDeleteOrder = await hasRoutePermission(c, user, 'admin:full');
+    const canDeleteOrder = await checkPermission(c, user, 'admin:full');
 
     if (!canDeleteOrder) {
         throw new UnauthorizedError(MSG.AUTH.PERMISSION_DENIED);

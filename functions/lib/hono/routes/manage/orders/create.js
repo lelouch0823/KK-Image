@@ -8,10 +8,10 @@ import {
 } from '../../../../../api/utils/order-state-machine.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { getSalespersonAccessTokens } from '../../../_shared/route-helpers.js';
-import { BadRequestError } from '../../../errors.js';
+import { BadRequestError, ForbiddenError } from '../../../errors.js';
 import { invalidateCache } from '../../../middleware/cache.js';
+import { checkPermission } from '../../../middleware/auth.js';
 import { getOrderAndSalespersonCacheUrls, getOrderNotificationCacheUrls } from '../../_shared/cache-urls.js';
-import { assertRoutePermission } from './authz.js';
 
 const app = new Hono();
 
@@ -169,7 +169,10 @@ app.post('/batch', async (c) => {
             if (!forceStatusTransition) {
                 throw new BadRequestError(`Invalid status transition in batch: ${outOfFlowOrder.status} -> ${normalizedStatus}`);
             }
-            await assertRoutePermission(c, user, 'admin:full');
+            const canForceTransition = await checkPermission(c, user, 'admin:full');
+            if (!canForceTransition) {
+                throw new ForbiddenError(MSG.AUTH.PERMISSION_DENIED);
+            }
             if (!String(reason || '').trim()) {
                 throw new BadRequestError('Reason is required for forced status transition');
             }
