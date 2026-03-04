@@ -49,6 +49,13 @@ const getFileCacheUrlsByFolders = (c, folderIds = []) => {
   return [...urlSet];
 };
 
+function scheduleFileCacheInvalidation(c, { folderIds = [], extraUrls = [] } = {}) {
+  const mergedExtraUrls = Array.isArray(extraUrls) ? extraUrls : [extraUrls];
+  c.executionCtx.waitUntil(
+    invalidateCache([...getFileCacheUrlsByFolders(c, folderIds), ...mergedExtraUrls.filter(Boolean)])
+  );
+}
+
 /**
  * GET /api/v1/files - 获取文件列表
  */
@@ -189,7 +196,7 @@ app.post('/', requirePermission('files:write'), zValidator('json', CreateFileSch
   });
 
   // 使缓存失效
-  c.executionCtx.waitUntil(invalidateCache(getFileCacheUrlsByFolders(c, [data.folderId])));
+  scheduleFileCacheInvalidation(c, { folderIds: [data.folderId] });
 
   return c.json({
     success: true,
@@ -234,9 +241,10 @@ app.put('/:id', requirePermission('files:write'), async (c) => {
 
   await repo.update(id, updates);
   // 使详情缓存和列表缓存失效
-  c.executionCtx.waitUntil(
-    invalidateCache([...getFileCacheUrlsByFolders(c, [file.folder_id, checkFolderId]), c.req.url])
-  );
+  scheduleFileCacheInvalidation(c, {
+    folderIds: [file.folder_id, checkFolderId],
+    extraUrls: [c.req.url],
+  });
 
   return c.json({ success: true, message: MSG.FILE.UPDATE_SUCCESS });
 });
@@ -256,7 +264,7 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   await repo.softDelete(id);
 
   // 使缓存失效
-  c.executionCtx.waitUntil(invalidateCache(getFileCacheUrlsByFolders(c, [file.folder_id])));
+  scheduleFileCacheInvalidation(c, { folderIds: [file.folder_id] });
 
   return c.json({ success: true, message: MSG.FILE.DELETE_SUCCESS });
 });
@@ -281,9 +289,9 @@ app.post(
     await repo.softDeleteBatch(ids);
 
     // 使缓存失效
-    c.executionCtx.waitUntil(
-      invalidateCache(getFileCacheUrlsByFolders(c, targetFiles.map((item) => item.folder_id)))
-    );
+    scheduleFileCacheInvalidation(c, {
+      folderIds: targetFiles.map((item) => item.folder_id),
+    });
 
     return c.json({
       success: true,
@@ -327,9 +335,9 @@ app.post(
 
     await fileRepo.moveBatch(ids, targetFolderId || 'root');
     // 使缓存失效（源目录 + 目标目录 + 根列表）
-    c.executionCtx.waitUntil(
-      invalidateCache(getFileCacheUrlsByFolders(c, [...sourceFolderIds, targetFolderId]))
-    );
+    scheduleFileCacheInvalidation(c, {
+      folderIds: [...sourceFolderIds, targetFolderId],
+    });
 
     return c.json({
       success: true,
