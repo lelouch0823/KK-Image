@@ -4,7 +4,7 @@ import { requirePermission } from '../../middleware/auth.js';
 const searchRoute = new Hono();
 
 // GET /api/manage/search - 全文搜索
-searchRoute.get('/', requirePermission('read'), async (c) => {
+searchRoute.get('/', requirePermission('files:read'), async (c) => {
     const query = c.req.query('q');
 
     if (!query || query.trim() === '') {

@@ -9,8 +9,6 @@
     "manager": {
       "label": "经理",
       "permissions": [
-        "read",
-        "write",
         "files:read",
         "files:write",
         "files:delete",
@@ -27,8 +25,6 @@
     "sales": {
       "label": "销售",
       "permissions": [
-        "read",
-        "write",
         "files:read",
         "files:write",
         "spaces:read",
@@ -40,7 +36,6 @@
     "viewer": {
       "label": "访客",
       "permissions": [
-        "read",
         "files:read",
         "spaces:read",
         "users:read",
@@ -50,15 +45,12 @@
     "user": {
       "label": "普通用户",
       "permissions": [
-        "read",
         "files:read",
         "spaces:read"
       ]
     }
   },
   "actions": [
-    "read",
-    "write",
     "files:read",
     "files:write",
     "files:delete",
@@ -89,8 +81,6 @@
     "webhooks:write": "管理 Webhooks",
     "stats:read": "查看统计",
     "admin:full": "完全管理员权限",
-    "read": "通用读取",
-    "write": "通用写入",
     "spaces:read": "读取空间",
     "spaces:manage": "管理空间",
     "products:manage": "管理商品",

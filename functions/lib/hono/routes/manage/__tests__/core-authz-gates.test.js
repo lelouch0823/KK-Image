@@ -11,6 +11,8 @@ import filesApp from '../files.js';
 import foldersApp from '../folders.js';
 import albumsApp from '../albums.js';
 import spacesApp from '../spaces/index.js';
+import userApp from '../user.js';
+import searchApp from '../search.js';
 
 function withUser(app, user) {
   app.use('/api/manage/*', async (c, next) => {
@@ -201,6 +203,33 @@ describe('manage core authz gates', () => {
       { DB: {} },
       { waitUntil: vi.fn() }
     );
+    expect(res.status).toBe(403);
+  });
+
+  it('denies /manage/user when user only has legacy read direct permission', async () => {
+    const app = new Hono();
+    withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['read'] });
+    app.route('/api/manage/user', userApp);
+
+    const res = await app.request('http://localhost/api/manage/user', { method: 'GET' }, { DB: {} }, { waitUntil: vi.fn() });
+    expect(res.status).toBe(403);
+  });
+
+  it('allows /manage/user when user has files:read direct permission', async () => {
+    const app = new Hono();
+    withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['files:read'] });
+    app.route('/api/manage/user', userApp);
+
+    const res = await app.request('http://localhost/api/manage/user', { method: 'GET' }, { DB: {} }, { waitUntil: vi.fn() });
+    expect(res.status).toBe(200);
+  });
+
+  it('denies /manage/search when user only has legacy read direct permission', async () => {
+    const app = new Hono();
+    withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['read'] });
+    app.route('/api/manage/search', searchApp);
+
+    const res = await app.request('http://localhost/api/manage/search', { method: 'GET' }, { DB: {} }, { waitUntil: vi.fn() });
     expect(res.status).toBe(403);
   });
 });

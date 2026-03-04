@@ -5,7 +5,6 @@ default allow := false
 role_permissions := {
   "admin": {"*"},
   "manager": {
-    "read", "write",
     "files:read", "files:write", "files:delete",
     "folders:read", "folders:write", "folders:delete",
     "spaces:manage",
@@ -15,21 +14,18 @@ role_permissions := {
     "stats:read"
   },
   "sales": {
-    "read", "write",
     "files:read", "files:write",
     "spaces:read", "spaces:manage",
     "orders:manage",
     "users:read"
   },
   "viewer": {
-    "read",
     "files:read",
     "spaces:read",
     "users:read",
     "stats:read"
   },
   "user": {
-    "read",
     "files:read",
     "spaces:read"
   }
