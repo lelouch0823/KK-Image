@@ -3,6 +3,7 @@ import {
   assertNoDuplicatePrefixes,
   extractPrefix,
   findDuplicatePrefixes,
+  normalizeAllowlist,
 } from '../check-migration-prefixes.mjs';
 
 describe('check-migration-prefixes', () => {
@@ -33,5 +34,30 @@ describe('check-migration-prefixes', () => {
   it('does not throw when prefixes are unique', () => {
     expect(() => assertNoDuplicatePrefixes(['0001_init.sql', '0002_next.sql'])).not.toThrow();
   });
-});
 
+  it('accepts historical duplicate prefixes when allowlisted with exact file set', () => {
+    const allowlist = normalizeAllowlist({
+      '0002': ['0002_spaces.sql', '0002_add_share_expiration.sql'],
+    });
+
+    expect(() =>
+      assertNoDuplicatePrefixes(
+        ['0001_init.sql', '0002_add_share_expiration.sql', '0002_spaces.sql'],
+        allowlist
+      )
+    ).not.toThrow();
+  });
+
+  it('throws when duplicate prefix differs from allowlisted file set', () => {
+    const allowlist = normalizeAllowlist({
+      '0002': ['0002_spaces.sql', '0002_add_share_expiration.sql'],
+    });
+
+    expect(() =>
+      assertNoDuplicatePrefixes(
+        ['0001_init.sql', '0002_add_share_expiration.sql', '0002_spaces.sql', '0002_new.sql'],
+        allowlist
+      )
+    ).toThrow(/allowlist mismatch/i);
+  });
+});

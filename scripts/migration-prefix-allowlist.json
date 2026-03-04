@@ -1,0 +1,15 @@
+{
+  "0002": [
+    "0002_add_share_expiration.sql",
+    "0002_spaces.sql"
+  ],
+  "0013": [
+    "0013_backfill_order_files.sql",
+    "0013_notification_receiver.sql"
+  ],
+  "0047": [
+    "0047_product_currency.sql",
+    "0047_product_dimension_meta.sql",
+    "0047_variant_barcode_unique_active_only.sql"
+  ]
+}
