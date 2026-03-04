@@ -10,6 +10,7 @@ import utilsApp from '../utils.js';
 import filesApp from '../files.js';
 import foldersApp from '../folders.js';
 import albumsApp from '../albums.js';
+import spacesApp from '../spaces/index.js';
 
 function withUser(app, user) {
   app.use('/api/manage/*', async (c, next) => {
@@ -146,6 +147,20 @@ describe('manage core authz gates', () => {
 
     const res = await app.request(
       'http://localhost/api/manage/albums',
+      { method: 'GET' },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it('denies unknown role on spaces list', async () => {
+    const app = new Hono();
+    withUser(app, { id: 'u-guest', type: 'user', role: 'guest', permissions: [] });
+    app.route('/api/manage/spaces', spacesApp);
+
+    const res = await app.request(
+      'http://localhost/api/manage/spaces',
       { method: 'GET' },
       { DB: {} },
       { waitUntil: vi.fn() }

@@ -24,7 +24,8 @@
   - `files` 路由统一基线：`app.use('*', requirePermission('files:read'))`
   - `folders` 路由统一基线：`app.use('*', requirePermission('folders:read'))`
   - `albums` 路由统一基线：`app.use('*', requirePermission('files:read'))`
-  - `core-authz-gates` 新增 3 个拒绝用例（unknown role 访问 files/folders/albums 列表）
+  - `spaces` 顶层路由统一基线：`app.use('*', requirePermission('read'))`
+  - `core-authz-gates` 新增 4 个拒绝用例（unknown role 访问 files/folders/albums/spaces 列表）
 
 ## 验证证据
 
