@@ -142,14 +142,15 @@ export async function verifyApiKey(apiKey, env) {
     try {
       permissions = JSON.parse(permissions);
     } catch (_) {
-      permissions = ['read'];
+      permissions = [];
     }
   }
+  if (!Array.isArray(permissions)) permissions = [];
 
   return {
     id: keyInfo.id,
     name: keyInfo.name,
-    permissions: permissions || ['read'],
+    permissions,
     type: 'api_key',
   };
 }
@@ -171,7 +172,7 @@ export async function verifyJWT(token, env) {
       id: payload.sub,
       name: payload.name,
       role: payload.role || (payload.type === 'admin' ? 'admin' : null),
-      permissions: payload.permissions || ['read'],
+      permissions: Array.isArray(payload.permissions) ? payload.permissions : [],
       type: payload.type || 'jwt',
       iat: payload.iat,
       exp: payload.exp,
@@ -194,7 +195,7 @@ export async function generateJWT(user, env, expiresIn = 3600) {
     name: user.name,
     type: user.type,
     role: user.role || (user.type === 'admin' ? 'admin' : null),
-    permissions: user.permissions || ['read'],
+    permissions: Array.isArray(user.permissions) ? user.permissions : [],
     iat: now,
     exp: now + expiresIn,
   };
@@ -249,7 +250,7 @@ async function getValidApiKeys(env) {
         id: 'default',
         key: defaultApiKey,
         name: 'Default API Key',
-        permissions: ['read', 'write', 'delete'],
+        permissions: [],
         created_at: Date.now(),
         disabled: 0,
       },
@@ -276,7 +277,7 @@ export async function saveApiKey(keyInfo, env) {
       keyInfo.id,
       keyInfo.key,
       keyInfo.name,
-      JSON.stringify(keyInfo.permissions || ['read']),
+      JSON.stringify(Array.isArray(keyInfo.permissions) ? keyInfo.permissions : []),
       keyInfo.created_at || Date.now(),
       keyInfo.expires_at || null,
       keyInfo.disabled ? 1 : 0

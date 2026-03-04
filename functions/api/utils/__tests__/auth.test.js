@@ -85,6 +85,12 @@ describe('Auth Utils 100% Coverage Final', () => {
       await expect(verifyJWT(token, env)).rejects.toThrow(MSG.AUTH.JWT_FAILED);
       globalThis.Date.now = originalNow;
     });
+
+    it('defaults missing jwt permissions to empty array', async () => {
+      const token = await generateJWT({ id: 'u2', name: 'NoPerm', type: 'admin' }, env);
+      const decoded = await verifyJWT(token, env);
+      expect(decoded.permissions).toEqual([]);
+    });
   });
 
   describe('API Key Operations', () => {
@@ -122,6 +128,28 @@ describe('Auth Utils 100% Coverage Final', () => {
     it('should throw if default API key doesn\'t match provided one', async () => {
       db.all.mockRejectedValue(new Error('DB Fail'));
       await expect(verifyApiKey('wrong-tk', env)).rejects.toThrow(MSG.AUTH.API_KEY_INVALID);
+    });
+
+    it('falls back to empty permissions when api key permissions payload is invalid', async () => {
+      db.all.mockResolvedValueOnce({
+        results: [
+          { id: 'k2', key_value: 'v2', permissions: 'not-json', disabled: 0 }
+        ]
+      });
+      const res = await verifyApiKey('v2', env);
+      expect(res.permissions).toEqual([]);
+    });
+
+    it('uses empty permissions for default API key fallback', async () => {
+      db.all.mockRejectedValue(new Error('DB Fail'));
+      const res = await verifyApiKey('default-tk', env);
+      expect(res.permissions).toEqual([]);
+    });
+
+    it('saveApiKey persists empty permissions by default', async () => {
+      await saveApiKey({ id: 'k3', key: 'v3', name: 'K3' }, env);
+      const bindArgs = db.bind.mock.calls[0];
+      expect(bindArgs[3]).toBe('[]');
     });
   });
 

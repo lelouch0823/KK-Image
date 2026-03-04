@@ -51,6 +51,6 @@ export const TokenSchema = z.object({
  */
 export const CreateApiKeySchema = z.object({
   name: z.string().min(1).max(100),
-  permissions: z.array(z.string()).default(['read']),
+  permissions: z.array(z.string()).default([]),
   expiresAt: z.string().datetime().optional().nullable(),
 });
