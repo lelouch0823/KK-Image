@@ -25,12 +25,12 @@ const PERMISSIONS = Object.fromEntries(
   POLICY_ACTIONS.map((action) => [action, ACTION_LABELS[action] || action])
 );
 
-async function evaluateUserAction(c, user, action) {
+async function evaluateUserAction(user, action) {
   return evaluateUserPermission({
     user,
     permission: action,
-    path: c.req.path,
-    method: c.req.method,
+    path: null,
+    method: null,
   });
 }
 
@@ -57,7 +57,7 @@ app.get('/user', async (c) => {
   }
 
   const checks = await Promise.all(
-    POLICY_ACTIONS.map(async (action) => [action, await evaluateUserAction(c, user, action)])
+    POLICY_ACTIONS.map(async (action) => [action, await evaluateUserAction(user, action)])
   );
   const effectivePermissions = checks.filter(([, allowed]) => allowed).map(([action]) => action);
   const isAdmin = checks.find(([action]) => action === 'admin:full')?.[1] === true;
@@ -101,7 +101,7 @@ app.post('/check', async (c) => {
   }
 
   const checks = await Promise.all(
-    permissions.map(async (perm) => [perm, await evaluateUserAction(c, user, perm)])
+    permissions.map(async (perm) => [perm, await evaluateUserAction(user, perm)])
   );
   const results = Object.fromEntries(checks);
 
