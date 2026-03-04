@@ -6,13 +6,14 @@ import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 import { validateProductVariantBinding } from '../../../../api/utils/validation.js';
 import { parsePagination } from '../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors.js';
-import { withCache, invalidateCache } from '../../middleware/cache.js';
+import { withCache } from '../../middleware/cache.js';
 import {
-    getManageOrderCacheUrls,
-    getOrderAndSalespersonCacheUrls,
-    getOrderNotificationCacheUrls,
-    getSalesOrderCacheUrls,
-} from '../_shared/cache-urls.js';
+    invalidateOrderNotificationCaches,
+    scheduleSalesOrderListCacheInvalidation,
+    scheduleSalesOrderMutationCachesInvalidation,
+    scheduleSalesCommentCachesInvalidation,
+    scheduleOrderAndSalespersonCacheInvalidation,
+} from './orders-cache-helpers.js';
 
 const app = new Hono();
 
@@ -123,7 +124,7 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
                 salespersonId: salesperson.id,
             });
 
-            await invalidateCache(getOrderNotificationCacheUrls(c));
+            await invalidateOrderNotificationCaches(c);
 
             await triggerWebhook(env, 'order.created', { orderId, orderNo, salesperson: salesperson.name });
         } catch (e) {
@@ -131,7 +132,7 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
         }
     })());
 
-    c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: [token] })));
+    scheduleOrderAndSalespersonCacheInvalidation(c, { salesToken: token });
 
     return c.json({ success: true, data: { id: orderId, orderNo } }, 201);
 });
@@ -160,7 +161,7 @@ app.get('/:id', async (c) => {
 
     // Mark as read
     await orderRepo.markAsRead(orderId, 'sales');
-    c.executionCtx.waitUntil(invalidateCache(getSalesOrderCacheUrls(c, { salesTokens: [token] })));
+    scheduleSalesOrderListCacheInvalidation(c, { salesToken: token });
 
     return c.json({
         success: true,
@@ -185,7 +186,7 @@ app.patch('/:id/read', async (c) => {
     const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
     if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
     await orderRepo.markAsRead(orderId, 'sales');
-    c.executionCtx.waitUntil(invalidateCache(getSalesOrderCacheUrls(c, { salesTokens: [token] })));
+    scheduleSalesOrderListCacheInvalidation(c, { salesToken: token });
 
     return c.json({ success: true, message: MSG.ORDER.ALREADY_READ });
 });
@@ -261,8 +262,7 @@ app.patch('/:id', async (c) => {
         await orderRepo.updateStatus(orderId, 'pending', 'sales');
     }
 
-    c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: [token] })));
-    c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c)));
+    scheduleSalesOrderMutationCachesInvalidation(c, { salesToken: token });
 
     return c.json({ success: true, message: MSG.ORDER.UPDATE_SUCCESS });
 });
@@ -308,8 +308,7 @@ app.delete('/:id', async (c) => {
         extra: { status: 'void' }
     });
 
-    c.executionCtx.waitUntil(invalidateCache(getOrderAndSalespersonCacheUrls(c, { salesTokens: [token] })));
-    c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c)));
+    scheduleSalesOrderMutationCachesInvalidation(c, { salesToken: token });
 
     return c.json({ success: true, message: MSG.ORDER.VOID_SUCCESS });
 });
@@ -351,8 +350,7 @@ app.post('/:id/comment', zValidator('json', AddCommentSchema), async (c) => {
         extra: { comment: comment.trim() }
     });
 
-    c.executionCtx.waitUntil(invalidateCache(getOrderNotificationCacheUrls(c)));
-    c.executionCtx.waitUntil(invalidateCache(getManageOrderCacheUrls(c)));
+    scheduleSalesCommentCachesInvalidation(c);
     return c.json({ success: true, message: MSG.ORDER.COMMENT_ADDED });
 });
 
