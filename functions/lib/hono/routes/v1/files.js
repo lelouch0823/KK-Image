@@ -12,7 +12,7 @@ import { getFileUrl, generateId, MSG } from '../../_shared/utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
-import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 import { getV1FileAndFolderCacheUrls } from './cache-urls.js';
 
 const app = new Hono();
@@ -31,6 +31,15 @@ function scheduleFileCacheInvalidation(c, { folderIds = [], extraUrls = [] } = {
     c,
     [...getV1FileAndFolderCacheUrls(c, { folderIds }), ...mergedExtraUrls.filter(Boolean)]
   );
+}
+
+async function requireFile(repo, fileId) {
+  return requireEntity(repo.findById(fileId), () => new NotFoundError(MSG.FILE.NOT_FOUND));
+}
+
+async function assertTargetFolderExists(folderRepo, targetFolderId) {
+  if (!targetFolderId || targetFolderId === 'root') return;
+  await requireEntity(folderRepo.findById(targetFolderId), () => new NotFoundError(MSG.FOLDER.NOT_FOUND));
 }
 
 /**
@@ -130,9 +139,7 @@ app.get('/:id', withCache(60), async (c) => {
   const { env } = c;
 
   const repo = new FileRepository(env.DB);
-  const file = await repo.findById(id);
-
-  if (!file) throw new NotFoundError(MSG.FILE.NOT_FOUND);
+  const file = await requireFile(repo, id);
 
   return c.json({
     success: true,
@@ -190,8 +197,7 @@ app.put('/:id', requirePermission('files:write'), async (c) => {
   const { env } = c;
 
   const repo = new FileRepository(env.DB);
-  const file = await repo.findById(id);
-  if (!file) throw new NotFoundError(MSG.FILE.NOT_FOUND);
+  const file = await requireFile(repo, id);
 
   const updates = {};
   
@@ -234,8 +240,7 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   const { env } = c;
 
   const repo = new FileRepository(env.DB);
-  const file = await repo.findById(id);
-  if (!file) throw new NotFoundError(MSG.FILE.NOT_FOUND);
+  const file = await requireFile(repo, id);
 
   // 软删除 (Recycle Bin)
   await repo.softDelete(id);
@@ -292,10 +297,7 @@ app.post(
     const folderRepo = new FolderRepository(env.DB);
 
     // 验证目标文件夹存在
-    if (targetFolderId && targetFolderId !== 'root') {
-      const folder = await folderRepo.findById(targetFolderId);
-      if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
-    }
+    await assertTargetFolderExists(folderRepo, targetFolderId);
 
     // 批量重名检查
     const targetFiles = await fileRepo.findByIds(ids);

@@ -36,6 +36,19 @@ export function appendOptionalUpdate(updates, values, assignment, value, transfo
 }
 
 /**
+ * 断言异步查询结果存在，不存在时抛出调用方指定错误
+ * @template T
+ * @param {Promise<T | null | undefined>} entityPromise
+ * @param {() => Error} createError
+ * @returns {Promise<T>}
+ */
+export async function requireEntity(entityPromise, createError) {
+  const entity = await entityPromise;
+  if (!entity) throw createError();
+  return entity;
+}
+
+/**
  * 缓存失效 URL 工厂
  * @param {string} basePath - API 路径，如 '/api/manage/customers'
  * @param {string[]} extraParams - 额外的查询参数变体

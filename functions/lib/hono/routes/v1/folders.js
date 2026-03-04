@@ -11,13 +11,17 @@ import { withCache } from '../../middleware/cache.js';
 import { generateId, generateShareToken, now, MSG } from '../../_shared/utils.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
-import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 import { getV1FolderAndShareCacheUrls } from './cache-urls.js';
 
 const app = new Hono();
 
 function scheduleFolderAndShareCacheInvalidation(c, parentIds = []) {
   scheduleCacheInvalidation(c, getV1FolderAndShareCacheUrls(c, parentIds));
+}
+
+async function requireFolder(repo, folderId, message = MSG.FOLDER.NOT_FOUND) {
+  return requireEntity(repo.findById(folderId), () => new NotFoundError(message));
 }
 
 /**
@@ -75,8 +79,7 @@ app.post(
 
     // 验证父文件夹存在
     if (data.parentId) {
-      const parent = await repo.findById(data.parentId);
-      if (!parent) throw new NotFoundError(MSG.FOLDER.PARENT_NOT_FOUND);
+      await requireFolder(repo, data.parentId, MSG.FOLDER.PARENT_NOT_FOUND);
     }
 
     const hasConflict = await repo.checkNameConflict(data.parentId || null, data.name.trim());
@@ -119,8 +122,7 @@ app.put(
     const data = c.req.valid('json');
     const repo = new FolderRepository(c.env.DB);
 
-    const folder = await repo.findById(id);
-    if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
+    const folder = await requireFolder(repo, id);
 
     // 判断是否需要进行重名校验
     let checkParentId = folder.parent_id;
@@ -170,8 +172,7 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
   const id = c.req.param('id');
   const repo = new FolderRepository(c.env.DB);
 
-  const folder = await repo.findById(id);
-  if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
+  const folder = await requireFolder(repo, id);
 
   // SOTA: 使用 Repository 封装的 canDelete 检查
   const { canDelete } = await repo.canDelete(id);

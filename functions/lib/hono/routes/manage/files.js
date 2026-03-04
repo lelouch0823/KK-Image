@@ -7,7 +7,7 @@ import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
 import { NotFoundError, ConflictError } from '../../errors.js';
-import { parsePagination } from '../../_shared/route-helpers.js';
+import { parsePagination, requireEntity } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 app.use('*', requirePermission('files:read'));
@@ -41,16 +41,13 @@ function toFileDetail(file) {
 }
 
 async function requireFile(repo, fileId) {
-  const file = await repo.findById(fileId);
-  if (!file) throw new NotFoundError(MSG.FILE.NOT_FOUND);
-  return file;
+  return requireEntity(repo.findById(fileId), () => new NotFoundError(MSG.FILE.NOT_FOUND));
 }
 
 async function assertTargetFolderExists(db, targetFolderId) {
   if (!targetFolderId || targetFolderId === 'root') return;
   const folderRepo = new FolderRepository(db);
-  const folder = await folderRepo.findById(targetFolderId);
-  if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
+  await requireEntity(folderRepo.findById(targetFolderId), () => new NotFoundError(MSG.FOLDER.NOT_FOUND));
 }
 
 // Schemas
