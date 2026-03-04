@@ -10,7 +10,7 @@ import subspaces from './subspaces.js';
 import { requirePermission } from '../../../middleware/auth.js';
 
 const app = new Hono();
-app.use('*', requirePermission('read'));
+app.use('*', requirePermission('spaces:read'));
 
 // 挂载 CRUD 路由（列表、详情、统计、创建、更新、删除）
 app.route('/', crud);

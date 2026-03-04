@@ -65,7 +65,7 @@ subspaces.get('/', withCache(30), async (c) => {
  */
 subspaces.post(
   '/',
-  requirePermission('files:write'),
+  requirePermission('spaces:manage'),
   zValidator('json', CreateSubspaceSchema),
   async (c) => {
     const { env } = c;

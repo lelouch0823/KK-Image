@@ -29,7 +29,7 @@ const invalidateSpaceCaches = (c, options = {}) => {
 /**
  * POST /files - 添加文件到空间
  */
-files.post('/', requirePermission('files:write'), async (c) => {
+files.post('/', requirePermission('spaces:manage'), async (c) => {
   const { env } = c;
   const spaceId = c.req.param('id');
   const { fileIds } = await c.req.json();
@@ -52,7 +52,7 @@ files.post('/', requirePermission('files:write'), async (c) => {
 /**
  * DELETE /files - 从空间移除文件
  */
-files.delete('/', requirePermission('files:write'), async (c) => {
+files.delete('/', requirePermission('spaces:manage'), async (c) => {
   const { env } = c;
   const spaceId = c.req.param('id');
   const { fileIds } = await c.req.json();
@@ -77,7 +77,7 @@ files.delete('/', requirePermission('files:write'), async (c) => {
 /**
  * PUT /files/order - 更新文件排序
  */
-files.put('/order', requirePermission('files:write'), async (c) => {
+files.put('/order', requirePermission('spaces:manage'), async (c) => {
   const { env } = c;
   const spaceId = c.req.param('id');
   const { fileIds } = await c.req.json();

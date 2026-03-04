@@ -155,7 +155,7 @@ crud.get('/:id/stats', withCache(30), async (c) => {
  */
 crud.post(
   '/',
-  requirePermission('files:write'),
+  requirePermission('spaces:manage'),
   zValidator('json', CreateSpaceSchema),
   async (c) => {
     const { env } = c;
@@ -213,7 +213,7 @@ crud.post(
 crud.on(
   ['PUT', 'PATCH'],
   '/:id',
-  requirePermission('files:write'),
+  requirePermission('spaces:manage'),
   zValidator('json', UpdateSpaceSchema),
   async (c) => {
     const { env } = c;
@@ -309,7 +309,7 @@ crud.on(
 /**
  * DELETE /:id - 删除共享空间
  */
-crud.delete('/:id', requirePermission('files:delete'), async (c) => {
+crud.delete('/:id', requirePermission('spaces:manage'), async (c) => {
   const { env } = c;
   const spaceId = c.req.param('id');
   const repo = new SpaceRepository(env.DB);

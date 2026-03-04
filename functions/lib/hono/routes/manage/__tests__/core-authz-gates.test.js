@@ -167,4 +167,40 @@ describe('manage core authz gates', () => {
     );
     expect(res.status).toBe(403);
   });
+
+  it('denies spaces create when user only has read + files:write direct permissions', async () => {
+    const app = new Hono();
+    withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['read', 'files:write'] });
+    app.route('/api/manage/spaces', spacesApp);
+
+    const res = await app.request(
+      'http://localhost/api/manage/spaces',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'space-a' }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it('denies spaces file mutation when user only has read + files:write direct permissions', async () => {
+    const app = new Hono();
+    withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['read', 'files:write'] });
+    app.route('/api/manage/spaces', spacesApp);
+
+    const res = await app.request(
+      'http://localhost/api/manage/spaces/sp-1/files',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileIds: ['f-1'] }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+    expect(res.status).toBe(403);
+  });
 });

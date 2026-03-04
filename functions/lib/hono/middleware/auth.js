@@ -9,12 +9,17 @@ export const publicRoutes = [
   '/api/v1/auth/check',
   '/api/v1/auth/logout',
   '/api/v1/auth/token',
-  '/api/v1/health',
-  '/api/gallery',
-  '/api/space',
   '/api/sales/login',
   '/api/sales/wechat-login',
 ];
+
+// Routes that are intentionally public by prefix, with path-boundary matching.
+const publicRoutePrefixes = ['/api/v1/health', '/api/gallery', '/api/space'];
+
+function isPublicRoute(path) {
+  if (publicRoutes.includes(path)) return true;
+  return publicRoutePrefixes.some((route) => path === route || path.startsWith(`${route}/`));
+}
 
 /**
  * JWT 认证中间件
@@ -23,7 +28,7 @@ export async function authMiddleware(c, next) {
   const path = c.req.path;
 
   // 跳过公开路由
-  if (publicRoutes.some((route) => path.startsWith(route)) || /^\/api\/sales\/[^/]+\/auth$/.test(path)) {
+  if (isPublicRoute(path) || /^\/api\/sales\/[^/]+\/auth$/.test(path)) {
     return next();
   }
 
