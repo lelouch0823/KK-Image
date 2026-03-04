@@ -8,28 +8,15 @@ import { Hono } from 'hono';
 import { requirePermission } from '../../../middleware/auth.js';
 import { MSG } from '../../../_shared/utils.js';
 import { SpaceRepository } from '../../../../../repositories/SpaceRepository.js';
-import { NotFoundError, BadRequestError } from '../../../errors.js';
+import { BadRequestError } from '../../../errors.js';
 import { invalidateSpaceCaches } from './cache-helpers.js';
+import { buildSpaceInvalidatePayload, requireSpace } from './route-helpers.js';
 
 const files = new Hono();
 
 function assertFileIds(fileIds) {
   if (!fileIds?.length) throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);
   return fileIds;
-}
-
-async function requireSpace(repo, spaceId) {
-  const space = await repo.findById(spaceId);
-  if (!space) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
-  return space;
-}
-
-function buildSpaceInvalidatePayload(spaceId, space = null) {
-  return {
-    spaceId,
-    parentId: space?.parent_id || null,
-    productIds: [space?.product_id || null],
-  };
 }
 
 /**
@@ -46,7 +33,7 @@ files.post('/', requirePermission('spaces:manage'), async (c) => {
   const space = await requireSpace(repo, spaceId);
 
   await repo.addFiles(spaceId, normalizedFileIds);
-  invalidateSpaceCaches(c, buildSpaceInvalidatePayload(spaceId, space));
+  invalidateSpaceCaches(c, buildSpaceInvalidatePayload({ spaceId, space }));
 
   return c.json({
     success: true,
@@ -67,7 +54,7 @@ files.delete('/', requirePermission('spaces:manage'), async (c) => {
 
   await repo.removeFiles(spaceId, normalizedFileIds);
   const space = await repo.findById(spaceId);
-  invalidateSpaceCaches(c, buildSpaceInvalidatePayload(spaceId, space));
+  invalidateSpaceCaches(c, buildSpaceInvalidatePayload({ spaceId, space }));
 
   return c.json({
     success: true,
@@ -88,7 +75,7 @@ files.put('/order', requirePermission('spaces:manage'), async (c) => {
 
   await repo.reorderFiles(spaceId, normalizedFileIds);
   const space = await repo.findById(spaceId);
-  invalidateSpaceCaches(c, buildSpaceInvalidatePayload(spaceId, space));
+  invalidateSpaceCaches(c, buildSpaceInvalidatePayload({ spaceId, space }));
 
   return c.json({
     success: true,

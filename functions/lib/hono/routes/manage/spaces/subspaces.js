@@ -13,12 +13,15 @@ import { SpaceRepository } from '../../../../../repositories/SpaceRepository.js'
 import {
   generateId,
   generateShareToken,
-  MSG,
   getShareUrl,
 } from '../../../_shared/utils.js';
 import { transformSpaceListItem } from './transformers.js';
-import { NotFoundError } from '../../../errors.js';
 import { invalidateSpaceCaches } from './cache-helpers.js';
+import {
+  buildSpaceInvalidatePayload,
+  normalizeSpaceCreateFields,
+  requireSpace,
+} from './route-helpers.js';
 
 const subspaces = new Hono();
 
@@ -61,10 +64,10 @@ subspaces.post(
     const { name, description, isPublic, password, expiresAt, template, templateData } =
       c.req.valid('json');
     const repo = new SpaceRepository(env.DB);
+    const { name: normalizedName, description: normalizedDescription } = normalizeSpaceCreateFields(name, description);
 
     // 验证父空间存在
-    const parent = await repo.findById(parentId);
-    if (!parent) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
+    const parent = await requireSpace(repo, parentId);
 
     const spaceId = generateId();
     const shareToken = generateShareToken();
@@ -73,8 +76,8 @@ subspaces.post(
     const newSubspace = {
       id: spaceId,
       parentId,
-      name: name.trim(),
-      description: description.trim(),
+      name: normalizedName,
+      description: normalizedDescription,
       isPublic,
       password: password || null,
       shareToken,
@@ -86,7 +89,7 @@ subspaces.post(
     };
 
     await repo.createSubspace(newSubspace);
-    invalidateSpaceCaches(c, { spaceId: parentId, parentId, productIds: [parent.product_id] });
+    invalidateSpaceCaches(c, buildSpaceInvalidatePayload({ spaceId: parentId, parentId, productIds: [parent.product_id] }));
 
     return c.json(
       {
@@ -94,8 +97,8 @@ subspaces.post(
         data: {
           id: spaceId,
           parentId,
-          name: name.trim(),
-          description: description.trim(),
+          name: normalizedName,
+          description: normalizedDescription,
           isPublic,
           shareToken,
           shareUrl: getShareUrl(shareToken, 'space'),

@@ -22,6 +22,11 @@ import {
 } from './transformers.js';
 import { NotFoundError } from '../../../errors.js';
 import { invalidateSpaceCaches } from './cache-helpers.js';
+import {
+  buildSpaceInvalidatePayload,
+  normalizeSpaceCreateFields,
+  requireSpace,
+} from './route-helpers.js';
 
 const crud = new Hono();
 
@@ -150,6 +155,7 @@ crud.post(
     const { name, description, isPublic, password, expiresAt, template, templateData, productId, variantId } =
       c.req.valid('json');
     const repo = new SpaceRepository(env.DB);
+    const { name: normalizedName, description: normalizedDescription } = normalizeSpaceCreateFields(name, description);
 
     const spaceId = generateId();
     const shareToken = generateShareToken();
@@ -157,8 +163,8 @@ crud.post(
 
     const newSpace = {
       id: spaceId,
-      name: name.trim(),
-      description: description.trim(),
+      name: normalizedName,
+      description: normalizedDescription,
       isPublic,
       password: password || null,
       shareToken,
@@ -173,15 +179,15 @@ crud.post(
     await validateProductVariantBinding(env.DB, newSpace.productId, newSpace.variantId, { checkExistence: false });
 
     await repo.create(newSpace);
-    invalidateSpaceCaches(c, { spaceId, productIds: [newSpace.productId] });
+    invalidateSpaceCaches(c, buildSpaceInvalidatePayload({ spaceId, productIds: [newSpace.productId] }));
 
     return c.json(
       {
         success: true,
         data: {
           id: spaceId,
-          name: name.trim(),
-          description: description.trim(),
+          name: normalizedName,
+          description: normalizedDescription,
           isPublic,
           shareToken,
           shareUrl: getShareUrl(shareToken, 'space'),
@@ -209,8 +215,7 @@ crud.on(
     const data = c.req.valid('json');
     const repo = new SpaceRepository(env.DB);
 
-    const space = await repo.findById(spaceId);
-    if (!space) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
+    const space = await requireSpace(repo, spaceId);
 
     const updates = [];
     const values = [];
@@ -275,11 +280,14 @@ crud.on(
       await repo.updateSharedSalespersons(spaceId, data.sharedSalespersonIds);
     }
 
-    invalidateSpaceCaches(c, {
-      spaceId,
-      parentId: space.parent_id || null,
-      productIds: [space.product_id, nextProductId],
-    });
+    invalidateSpaceCaches(
+      c,
+      buildSpaceInvalidatePayload({
+        spaceId,
+        space,
+        productIds: [space.product_id, nextProductId],
+      })
+    );
 
     return c.json({
       success: true,
@@ -302,15 +310,10 @@ crud.delete('/:id', requirePermission('spaces:manage'), async (c) => {
   const spaceId = c.req.param('id');
   const repo = new SpaceRepository(env.DB);
 
-  const space = await repo.findById(spaceId);
-  if (!space) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
+  const space = await requireSpace(repo, spaceId);
 
   await repo.delete(spaceId);
-  invalidateSpaceCaches(c, {
-    spaceId,
-    parentId: space.parent_id || null,
-    productIds: [space.product_id],
-  });
+  invalidateSpaceCaches(c, buildSpaceInvalidatePayload({ spaceId, space, productIds: [space.product_id] }));
 
   return c.json({ success: true, message: MSG.SPACE.DELETE_SUCCESS });
 });
