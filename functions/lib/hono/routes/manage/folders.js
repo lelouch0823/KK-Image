@@ -294,10 +294,10 @@ app.post('/:id/upload', requirePermission('files:write'), async (c) => {
   const user = c.get('user');
 
   // 1. 验证文件夹是否存在
-  const folder = await env.DB.prepare('SELECT id FROM folders WHERE id = ?')
-    .bind(folderId)
-    .first();
-  if (!folder) throw new NotFoundError(MSG.FOLDER.NOT_FOUND);
+  await requireEntity(
+    env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(folderId).first(),
+    () => new NotFoundError(MSG.FOLDER.NOT_FOUND)
+  );
 
   // 2. 获取上传文件
   const formData = await c.req.parseBody();

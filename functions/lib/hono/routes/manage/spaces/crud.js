@@ -22,7 +22,7 @@ import {
 } from './transformers.js';
 import { NotFoundError } from '../../../errors.js';
 import { invalidateSpaceCaches } from './cache-helpers.js';
-import { appendOptionalUpdate } from '../../../_shared/route-helpers.js';
+import { appendOptionalUpdate, requireEntity } from '../../../_shared/route-helpers.js';
 import {
   buildSpaceInvalidatePayload,
   normalizeSpaceCreateFields,
@@ -87,8 +87,10 @@ crud.get('/:id', withCache(30), async (c) => {
   const spaceId = c.req.param('id');
   const repo = new SpaceRepository(env.DB);
 
-  const result = await repo.getWithFiles(spaceId);
-  if (!result) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
+  const result = await requireEntity(
+    repo.getWithFiles(spaceId),
+    () => new NotFoundError(MSG.SPACE.NOT_FOUND)
+  );
 
   // 获取已分享的销售员列表 (用于前端显示)
   const sharedSalespersons = await repo.getSharedSalespersons(spaceId);
@@ -118,8 +120,10 @@ crud.get('/:id/stats', withCache(30), async (c) => {
   const todayStart = getChinaDayStart();
   const startTimestamp = todayStart - (days - 1) * 86400000;
 
-  const stats = await repo.getStats(spaceId, days, startTimestamp);
-  if (!stats) throw new NotFoundError(MSG.SPACE.NOT_FOUND);
+  const stats = await requireEntity(
+    repo.getStats(spaceId, days, startTimestamp),
+    () => new NotFoundError(MSG.SPACE.NOT_FOUND)
+  );
 
   // 构建日期 -> 访问数的映射，补全缺失日期
   const trendMap = new Map(stats.trendData.map((d) => [d.date, d.count]));
