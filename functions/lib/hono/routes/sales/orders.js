@@ -4,7 +4,7 @@ import { CreateOrderSchema, AddCommentSchema } from '../../schemas/sales.js';
 import { MSG, generateId, generateOrderNo, triggerWebhook } from '../../_shared/utils.js';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 import { validateProductVariantBinding } from '../../../../api/utils/validation.js';
-import { parsePagination } from '../../_shared/route-helpers.js';
+import { parsePagination, requireEntity } from '../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors.js';
 import { withCache } from '../../middleware/cache.js';
 import {
@@ -23,6 +23,13 @@ app.onError((err, c) => {
     const error = err?.message || 'Internal Server Error';
     return c.json({ success: false, error, code }, statusCode);
 });
+
+async function requireSalesOrder(orderRepo, orderId, salespersonId) {
+    return requireEntity(
+        orderRepo.findByIdAndSalesperson(orderId, salespersonId),
+        () => new NotFoundError(MSG.ORDER.NOT_FOUND)
+    );
+}
 
 /**
  * GET / - 获取订单列表
@@ -147,9 +154,7 @@ app.get('/:id', async (c) => {
     const { env } = c;
 
     const orderRepo = new OrderRepository(env.DB);
-    const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
-
-    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
+    const order = await requireSalesOrder(orderRepo, orderId, salesperson.id);
 
     const { OrderTimelineRepository } = await import('../../../../repositories/OrderTimelineRepository.js');
     const tplRepo = new OrderTimelineRepository(env.DB);
@@ -183,8 +188,7 @@ app.patch('/:id/read', async (c) => {
     const { env } = c;
 
     const orderRepo = new OrderRepository(env.DB);
-    const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
-    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
+    await requireSalesOrder(orderRepo, orderId, salesperson.id);
     await orderRepo.markAsRead(orderId, 'sales');
     scheduleSalesOrderListCacheInvalidation(c, { salesToken: token });
 
@@ -202,8 +206,7 @@ app.patch('/:id', async (c) => {
     const { env } = c;
 
     const orderRepo = new OrderRepository(env.DB);
-    const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
-    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
+    const order = await requireSalesOrder(orderRepo, orderId, salesperson.id);
 
     const editableStatuses = ['pending', 'rejected', 'void'];
     if (!editableStatuses.includes(order.status)) {
@@ -277,9 +280,7 @@ app.delete('/:id', async (c) => {
     const { env } = c;
 
     const orderRepo = new OrderRepository(env.DB);
-    const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
-
-    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
+    const order = await requireSalesOrder(orderRepo, orderId, salesperson.id);
     if (order.status !== 'pending') throw new ForbiddenError(MSG.ORDER.ONLY_PENDING_CAN_VOID);
 
     await orderRepo.updateStatus(orderId, 'void', 'sales');
@@ -323,8 +324,7 @@ app.post('/:id/comment', zValidator('json', AddCommentSchema), async (c) => {
     const { env } = c;
 
     const orderRepo = new OrderRepository(env.DB);
-    const order = await orderRepo.findByIdAndSalesperson(orderId, salesperson.id);
-    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
+    const order = await requireSalesOrder(orderRepo, orderId, salesperson.id);
 
     const { OrderTimelineRepository } = await import('../../../../repositories/OrderTimelineRepository.js');
     const tplRepo = new OrderTimelineRepository(env.DB);

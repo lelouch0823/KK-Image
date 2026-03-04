@@ -5,7 +5,7 @@ import { CustomerRepository } from '../../../../repositories/CustomerRepository.
 import { MSG } from '../../_shared/utils.js';
 import { withCache } from '../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
-import { parsePagination, createCacheInvalidator, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { parsePagination, createCacheInvalidator, scheduleCacheInvalidation, requireEntity } from '../../_shared/route-helpers.js';
 import { requirePermission } from '../../middleware/auth.js';
 
 const app = new Hono();
@@ -99,11 +99,10 @@ app.get('/:id', async (c) => {
     const id = c.req.param('id');
 
     const repo = new CustomerRepository(env.DB);
-    const customer = await repo.findById(id);
-
-    if (!customer) {
-        throw new NotFoundError(MSG.COMMON.NOT_FOUND);
-    }
+    const customer = await requireEntity(
+        repo.findById(id),
+        () => new NotFoundError(MSG.COMMON.NOT_FOUND)
+    );
 
     // 转换为 camelCase 以兼容前端
     return c.json({

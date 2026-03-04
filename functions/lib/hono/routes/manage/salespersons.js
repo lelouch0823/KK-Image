@@ -5,7 +5,7 @@ import { SalespersonRepository } from '../../../../repositories/SalespersonRepos
 import { MSG } from '../../_shared/utils.js';
 import { withCache } from '../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
-import { parsePagination, createCacheInvalidator, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { parsePagination, createCacheInvalidator, scheduleCacheInvalidation, requireEntity } from '../../_shared/route-helpers.js';
 import { getManageOrderCacheUrls } from '../_shared/cache-urls.js';
 import { requirePermission } from '../../middleware/auth.js';
 
@@ -107,11 +107,10 @@ app.get('/:id', async (c) => {
     const id = c.req.param('id');
 
     const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
-    const salesperson = await repo.findById(id);
-
-    if (!salesperson) {
-        throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
-    }
+    const salesperson = await requireEntity(
+        repo.findById(id),
+        () => new NotFoundError(MSG.SALESPERSON.NOT_FOUND)
+    );
 
     return c.json({
         success: true,
