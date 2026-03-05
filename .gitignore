@@ -105,6 +105,7 @@ jspm_packages/
 .worktrees/
 policy/dist/
 scripts/bin/
+artifacts/
 data/
 temp/
 tmp/
