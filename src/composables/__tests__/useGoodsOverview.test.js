@@ -93,12 +93,26 @@ describe('useGoodsOverview Composable', () => {
             const mockResponse = { success: false, error: 'API Error message' };
             mockFetch.mockResolvedValueOnce({ json: () => Promise.resolve(mockResponse) });
 
-            const { loadData, error, items } = useGoodsOverview();
+            const { loadData, error, errorCode, items } = useGoodsOverview();
 
             await loadData();
 
             expect(error.value).toBe('API Error message');
+            expect(errorCode.value).toBeNull();
             expect(items.value).toEqual([]);
+        });
+
+        it('should mark forbidden state when API responds 403', async () => {
+            mockFetch.mockResolvedValueOnce({
+                status: 403,
+                json: () => Promise.resolve({ success: false, error: '权限不足: goods:read' }),
+            });
+
+            const { loadData, error, errorCode } = useGoodsOverview();
+            await loadData();
+
+            expect(errorCode.value).toBe('FORBIDDEN');
+            expect(error.value).toContain('权限不足');
         });
 
         it('should populate error when fetch throws an exception', async () => {

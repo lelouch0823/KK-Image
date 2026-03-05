@@ -7,6 +7,8 @@ const notifications = ref([]);
 const unreadCount = ref(0);
 const loading = ref(false);
 const initialized = ref(false);
+const permissionDenied = ref(false);
+const permissionDeniedReason = ref('');
 const lastNotificationTime = ref(Date.now()); // SOTA: Signal for auto-refresh
 let pollInterval = null;
 
@@ -32,6 +34,8 @@ export function useNotifications() {
     notifications.value = [];
     unreadCount.value = 0;
     initialized.value = false;
+    permissionDenied.value = false;
+    permissionDeniedReason.value = '';
   };
 
   /**
@@ -40,6 +44,8 @@ export function useNotifications() {
   const setAdminMode = () => {
     currentMode = 'admin';
     salesToken = null;
+    permissionDenied.value = false;
+    permissionDeniedReason.value = '';
   };
 
   /**
@@ -68,6 +74,8 @@ export function useNotifications() {
       const res = await authFetch(getApiUrl());
       const result = await res.json();
       if (result.success) {
+        permissionDenied.value = false;
+        permissionDeniedReason.value = '';
         const newUnreadCount = result.data.unreadCount;
 
         // SOTA: 如果未读数量增加，说明有新消息，触发刷新信号
@@ -80,6 +88,12 @@ export function useNotifications() {
         initialized.value = true;
       }
     } catch (e) {
+      if (Number(e?.status) === 403) {
+        permissionDenied.value = true;
+        permissionDeniedReason.value = e?.data?.error || e?.message || '权限不足';
+        stopPolling();
+        return;
+      }
       console.error('Failed to fetch notifications', e);
     } finally {
       loading.value = false;
@@ -153,6 +167,8 @@ export function useNotifications() {
     unreadCount,
     loading,
     initialized,
+    permissionDenied,
+    permissionDeniedReason,
     lastNotificationTime, // Export signal
     fetchNotifications,
     markAsRead,

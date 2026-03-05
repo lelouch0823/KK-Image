@@ -140,9 +140,14 @@
 
       <!-- Empty State / Error State -->
       <div v-if="!loading && (products.length === 0 || error)" class="flex h-full items-center justify-center p-8">
+        <PermissionDeniedState
+            v-if="error && errorCode === 'FORBIDDEN'"
+            :reason="error"
+            @retry="loadProducts()"
+        />
         <EmptyState
-            v-if="error"
-            icon="search" 
+            v-else-if="error"
+            icon="search"
             :title="t('common.error.network_error')"
             :description="error"
         >
@@ -198,6 +203,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Modal from '@/components/ui/Modal.vue';
+import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
@@ -205,7 +211,7 @@ const route = useRoute();
 const router = useRouter();
 const { setContext } = useAI();
 
-const { products, loading, error, pagination, loadProducts, deleteProduct, loadProduct } = useProducts();
+const { products, loading, error, errorCode, pagination, loadProducts, deleteProduct, loadProduct } = useProducts();
 
 const showStatsModal = ref(false);
 const showCreateModal = ref(false); 

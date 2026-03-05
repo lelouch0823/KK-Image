@@ -20,6 +20,8 @@ export function usePurchaseOrders() {
   const list = ref([]);
   const total = ref(0);
   const loading = ref(false);
+  const error = ref(null);
+  const errorCode = ref(null);
   const detail = ref(null);
   const detailLoading = ref(false);
   const suggestions = ref([]);
@@ -47,6 +49,8 @@ export function usePurchaseOrders() {
 
   const loadList = async () => {
     loading.value = true;
+    error.value = null;
+    errorCode.value = null;
     try {
       const params = new URLSearchParams();
       if (filters.status) params.set('status', filters.status);
@@ -54,15 +58,47 @@ export function usePurchaseOrders() {
       params.set('limit', String(filters.limit));
 
       const res = await fetch(`${API.MANAGE_PURCHASE_ORDERS}?${params}`);
+      const status = Number(res?.status || 0);
       const json = await res.json();
 
       if (json.success) {
         list.value = json.data.items;
         total.value = json.data.total;
+        return true;
       }
+
+      if (status === 403) {
+        errorCode.value = 'FORBIDDEN';
+        error.value = json.error || json.message || '权限不足';
+        return false;
+      }
+
+      if (status === 401) {
+        errorCode.value = 'UNAUTHORIZED';
+        error.value = json.error || json.message || '未授权';
+        return false;
+      }
+
+      error.value = json.error || t('purchaseOrder.error.loadFailed');
+      addToast({ message: error.value, type: 'error' });
+      return false;
     } catch (e) {
       console.error('loadPurchaseOrders failed:', e);
+      const status = Number(e?.status || 0);
+      if (status === 403) {
+        errorCode.value = 'FORBIDDEN';
+        error.value = e?.data?.error || e?.message || '权限不足';
+        return false;
+      }
+      if (status === 401) {
+        errorCode.value = 'UNAUTHORIZED';
+        error.value = e?.data?.error || e?.message || '未授权';
+        return false;
+      }
+      errorCode.value = 'NETWORK_ERROR';
+      error.value = e?.message || t('purchaseOrder.error.loadFailed');
       addToast({ message: t('purchaseOrder.error.loadFailed'), type: 'error' });
+      return false;
     } finally {
       loading.value = false;
     }
@@ -300,16 +336,29 @@ export function usePurchaseOrders() {
   const loadStats = async () => {
     try {
       const res = await fetch(API.MANAGE_PURCHASE_ORDER_STATS);
+      const status = Number(res?.status || 0);
       const json = await res.json();
-      if (json.success) stats.value = json.data;
+      if (json.success) {
+        stats.value = json.data;
+        return true;
+      }
+
+      // 统计接口权限应只影响统计模块，不应覆盖列表权限态（避免整页误封）
+      if (status === 401 || status === 403) {
+        stats.value = null;
+        return false;
+      }
+
+      return false;
     } catch (e) {
       console.error('loadStats failed:', e);
+      return false;
     }
   };
 
   return {
     // 状态
-    list, total, loading, detail, detailLoading,
+    list, total, loading, error, errorCode, detail, detailLoading,
     suggestions, suggestionsLoading, stats,
     filters, statusConfig,
     // 列表

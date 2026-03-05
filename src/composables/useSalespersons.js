@@ -92,6 +92,7 @@ export function useSalespersons() {
     salespersons: resource.items,
     loading: resource.loading,
     error: resource.error,
+    errorCode: resource.errorCode,
     pagination: resource.pagination,
     loadSalespersons: resource.loadItems,
     createSalesperson: resource.createItem,

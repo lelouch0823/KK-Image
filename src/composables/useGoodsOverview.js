@@ -15,6 +15,7 @@ export function useGoodsOverview() {
     const summary = ref(null);
     const loading = ref(false);
     const error = ref(null);
+    const errorCode = ref(null);
 
     const filters = reactive({
         category: '',
@@ -75,6 +76,7 @@ export function useGoodsOverview() {
     const loadData = async () => {
         loading.value = true;
         error.value = null;
+        errorCode.value = null;
 
         try {
             const params = new URLSearchParams();
@@ -87,17 +89,45 @@ export function useGoodsOverview() {
             const url = queryStr ? `${API.MANAGE_GOODS_OVERVIEW}?${queryStr}` : API.MANAGE_GOODS_OVERVIEW;
 
             const res = await fetch(url);
+            const status = Number(res?.status || 0);
             const json = await res.json();
 
             if (json.success) {
                 items.value = json.data.items;
                 availableFilters.value = json.data.filters || { categories: [], brands: [] };
+                return true;
+            }
+
+            if (status === 403) {
+                errorCode.value = 'FORBIDDEN';
+                error.value = json.error || json.message || '权限不足';
+                return false;
+            }
+
+            if (status === 401) {
+                errorCode.value = 'UNAUTHORIZED';
+                error.value = json.error || json.message || '未授权';
+                return false;
             } else {
                 error.value = json.error || '加载失败';
+                return false;
             }
         } catch (e) {
             console.error('loadGoodsOverview failed:', e);
+            const status = Number(e?.status || 0);
+            if (status === 403) {
+                errorCode.value = 'FORBIDDEN';
+                error.value = e?.data?.error || e?.message || '权限不足';
+                return false;
+            }
+            if (status === 401) {
+                errorCode.value = 'UNAUTHORIZED';
+                error.value = e?.data?.error || e?.message || '未授权';
+                return false;
+            }
+            errorCode.value = 'NETWORK_ERROR';
             error.value = e.message;
+            return false;
         } finally {
             loading.value = false;
         }
@@ -194,6 +224,7 @@ export function useGoodsOverview() {
         summary,
         loading,
         error,
+        errorCode,
         filters,
         availableFilters,
         // 多选

@@ -15,6 +15,8 @@
   - 完整的 D1 数据库表结构定义 (Orders, Files, Blobs, CRM)。
 - **[API 文档](api/README.md)**
   - 了解如何与 kk-life 后端交互。
+- **[授权策略系统（OPA/Rego）](developer-guide/authz-policy-system.md)**
+  - 权限策略设计、开发流程、测试门禁与工程标准。
 
 ### 📖 用户手册
 - [用户手册](user-manual/README.md)

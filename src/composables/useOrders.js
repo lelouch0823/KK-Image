@@ -40,6 +40,7 @@ export function useOrders() {
 
     resource.loading.value = true;
     resource.error.value = null;
+    resource.errorCode.value = null;
 
     const MAX_ITEMS = 200; // 限制列表最大长度，防止 OOM
 
@@ -100,12 +101,25 @@ export function useOrders() {
         return true;
       } else {
         resource.error.value = res.message || t('common.loadFailed');
+        resource.errorCode.value = 'BUSINESS_ERROR';
         addToast({ message: resource.error.value, type: 'error' });
         return false;
       }
     } catch (e) {
       if (e.name === 'AbortError') return false;
-      resource.error.value = t('common.networkError');
+      const status = Number(e?.status);
+      if (status === 403) {
+        resource.errorCode.value = 'FORBIDDEN';
+        resource.error.value = e?.data?.error || e?.message || t('common.error.forbidden') || '权限不足';
+        return false;
+      }
+      if (status === 401) {
+        resource.errorCode.value = 'UNAUTHORIZED';
+        resource.error.value = t('common.error.unauthorized') || '未授权';
+        return false;
+      }
+      resource.errorCode.value = 'NETWORK_ERROR';
+      resource.error.value = e?.data?.error || t('common.networkError');
       addToast({ message: resource.error.value, type: 'error' });
       return false;
     } finally {
@@ -376,6 +390,7 @@ export function useOrders() {
     statuses,
     pagination: resource.pagination,
     error: resource.error,
+    errorCode: resource.errorCode,
     loadOrders,
     getOrder,
     updateOrder,

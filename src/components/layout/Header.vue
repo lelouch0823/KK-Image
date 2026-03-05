@@ -34,6 +34,7 @@
       <!-- 通知铃铛 (桌面端) -->
       <div v-if="notificationsSupported" ref="notificationRef" class="relative">
         <button
+          v-if="!permissionDenied"
           class="relative flex size-9 items-center justify-center rounded-lg border border-(--border-color) transition-colors hover:bg-(--bg-hover)"
           :class="{ 'bg-(--bg-hover)': showNotifications }"
           @click="toggleNotifications"
@@ -45,9 +46,18 @@
             class="bg-danger absolute top-1.5 right-1.5 size-2 rounded-full border border-white"
           ></span>
         </button>
+        <button
+          v-else
+          class="relative flex size-9 cursor-not-allowed items-center justify-center rounded-lg border border-amber-300 bg-amber-50 text-amber-700"
+          :title="permissionDeniedReason || '通知读取权限不足'"
+          disabled
+        >
+          <AppIcon name="lock-closed" class="size-5" />
+        </button>
 
         <!-- 下拉弹窗 (PC端) -->
         <Transition
+          v-if="!permissionDenied"
           enter-active-class="transition duration-100 ease-out"
           enter-from-class="transform scale-95 opacity-0"
           enter-to-class="transform scale-100 opacity-100"
@@ -142,7 +152,7 @@ const route = useRoute();
 const viewTitle = computed(() => route.meta?.title || '管理后台');
 const { t } = useI18n();
 const { searchQuery } = useSearch();
-const { unreadCount, startPolling, stopPolling } = useNotifications();
+const { unreadCount, startPolling, stopPolling, permissionDenied, permissionDeniedReason } = useNotifications();
 const { isOpen, toggle: toggleAI } = useAI();
 const { isDark, toggleTheme } = useTheme();
 

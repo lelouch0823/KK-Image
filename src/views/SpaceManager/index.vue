@@ -35,6 +35,22 @@
       <Skeleton v-for="i in 6" :key="i" type="card" />
     </div>
 
+    <div v-else-if="errorCode === 'FORBIDDEN'" class="py-12">
+      <PermissionDeniedState
+        :reason="error"
+        @retry="loadSpaces()"
+      />
+    </div>
+
+    <div v-else-if="error" class="py-12">
+      <PermissionDeniedState
+        title="加载失败"
+        description="资源加载失败，请检查网络或稍后重试。"
+        :reason="error"
+        @retry="loadSpaces()"
+      />
+    </div>
+
     <!-- 空间列表 -->
     <div v-else-if="spaces.length > 0" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div
@@ -258,8 +274,9 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 
-const { spaces, loading, loadSpaces, deleteSpace } = useSpaces();
+const { spaces, loading, error, errorCode, loadSpaces, deleteSpace } = useSpaces();
 const { addToast } = useToast();
 const { t } = useI18n();
 

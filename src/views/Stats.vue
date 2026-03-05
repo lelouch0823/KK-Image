@@ -53,6 +53,15 @@
         <Skeleton class="h-[400px]" />
       </div>
 
+      <div v-else-if="errorCode === 'FORBIDDEN'" class="flex h-96 flex-col items-center justify-center">
+        <PermissionDeniedState
+          title="统计分析权限不足"
+          :description="error || '当前账号没有统计读取权限，请联系管理员分配 stats:read。'"
+          required-permission="stats:read"
+          @retry="loadStats"
+        />
+      </div>
+
       <!-- Error State -->
       <div v-else-if="error" class="flex h-96 flex-col items-center justify-center gap-4 text-center">
         <div class="bg-danger/10 text-danger ring-danger/20 flex size-20 items-center justify-center rounded-full ring-1">
@@ -302,6 +311,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 
 // Configure Chart.js defaults
 const configureChartDefaults = () => {
@@ -318,6 +328,7 @@ const { t } = useI18n();
 // --- State ---
 const loading = ref(true);
 const error = ref('');
+const errorCode = ref(null);
 const stats = ref(null);
 const trendChartRef = ref(null);
 const typeChartRef = ref(null);
@@ -480,6 +491,7 @@ const loadStats = async () => {
   
   loading.value = true;
   error.value = '';
+  errorCode.value = null;
   try {
     const response = await authFetch(API.STATS);
     if (!response.ok) throw new Error('API Request Failed');
@@ -499,6 +511,18 @@ const loadStats = async () => {
     // addToast({ message: t('stats.refreshSuccess'), type: 'success' });
   } catch (err) {
     console.error(err);
+    const status = Number(err?.status || 0);
+    if (status === 403) {
+      errorCode.value = 'FORBIDDEN';
+      error.value = err?.data?.error || err?.message || t('common.error.forbidden') || '权限不足';
+      return;
+    }
+    if (status === 401) {
+      errorCode.value = 'UNAUTHORIZED';
+      error.value = err?.data?.error || err?.message || t('common.error.unauthorized') || '未授权';
+      return;
+    }
+    errorCode.value = 'NETWORK_ERROR';
     // Don't clear stats if refresh fails, just show error toast
     if (!stats.value) error.value = t('stats.loadError');
     addToast({ message: t('stats.loadError'), type: 'error' });

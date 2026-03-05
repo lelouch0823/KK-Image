@@ -13,11 +13,31 @@ export function useFileManager() {
   // 状态
   const loading = ref(false);
   const error = ref(null);
+  const errorCode = ref(null);
   const currentFolder = ref(null); // null = root
   const subfolders = ref([]);
   const files = ref([]);
   const breadcrumbs = ref([]);
   const selectedFiles = ref([]);
+
+  const resolveErrorCode = (status, message = '') => {
+    const normalized = String(message || '');
+    if (Number(status) === 403 || normalized.includes('权限不足')) return 'FORBIDDEN';
+    if (Number(status) === 401 || normalized.includes('未授权')) return 'UNAUTHORIZED';
+    return null;
+  };
+
+  const setErrorState = (message, status = 0, options = {}) => {
+    const { silent = false, toastMessage = null, setGlobal = true } = options;
+    const code = resolveErrorCode(status, message);
+    if (setGlobal) {
+      errorCode.value = code;
+      error.value = message || t('fileOps.loadFailed');
+    }
+    if (!silent && (!setGlobal || (code !== 'FORBIDDEN' && code !== 'UNAUTHORIZED'))) {
+      toast.error(toastMessage || error.value);
+    }
+  };
 
   let abortController = null;
 
@@ -41,6 +61,7 @@ export function useFileManager() {
     if (!silent) {
       loading.value = true;
       error.value = null;
+      errorCode.value = null;
       selectedFiles.value = [];
     }
 
@@ -61,8 +82,7 @@ export function useFileManager() {
           files.value = res.data.files;
           breadcrumbs.value = res.data.breadcrumbs || [];
         } else {
-          toast.error(res.message);
-          error.value = res.message;
+          setErrorState(res.message);
         }
       } else {
         // 根目录：并行加载文件夹和文件
@@ -76,8 +96,7 @@ export function useFileManager() {
           subfolders.value = foldersRes.data;
           breadcrumbs.value = [];
         } else {
-          toast.error(foldersRes.message);
-          error.value = foldersRes.message;
+          setErrorState(foldersRes.message);
         }
 
         if (filesRes.success && filesRes.data) {
@@ -89,11 +108,9 @@ export function useFileManager() {
       }
     } catch (_e) {
       if (_e.name === 'AbortError') return;
-      if (!silent) {
-        const msg = t('fileOps.loadFailed');
-        toast.error(msg);
-        error.value = msg;
-      }
+      const status = Number(_e?.status || 0);
+      const msg = _e?.data?.error || _e?.message || t('fileOps.loadFailed');
+      setErrorState(msg, status, { silent, toastMessage: t('fileOps.loadFailed') });
     } finally {
       if (!silent) {
         loading.value = false;
@@ -119,11 +136,11 @@ export function useFileManager() {
         loadFolderData(currentFolder.value?.id);
         return true;
       } else {
-        error(res.message);
+        setErrorState(res.message, 0, { setGlobal: false });
         return false;
       }
     } catch (_e) {
-      error(t('fileOps.createFailed'));
+      setErrorState(t('fileOps.createFailed'), 0, { setGlobal: false });
       return false;
     }
   };
@@ -141,11 +158,11 @@ export function useFileManager() {
         loadFolderData(currentFolder.value?.id);
         return true;
       } else {
-        error(res.message);
+        setErrorState(res.message, 0, { setGlobal: false });
         return false;
       }
     } catch (_e) {
-      error(t('fileOps.updateFailed'));
+      setErrorState(t('fileOps.updateFailed'), 0, { setGlobal: false });
       return false;
     }
   };
@@ -165,11 +182,11 @@ export function useFileManager() {
         }
         return true;
       } else {
-        error(res.message);
+        setErrorState(res.message, 0, { setGlobal: false });
         return false;
       }
     } catch (_e) {
-      error(t('fileOps.deleteFailed'));
+      setErrorState(t('fileOps.deleteFailed'), 0, { setGlobal: false });
       return false;
     }
   };
@@ -185,10 +202,10 @@ export function useFileManager() {
         // Refresh current view (works for root too since id will be null/undefined)
         loadFolderData(currentFolder.value?.id);
       } else {
-        error(res.message);
+        setErrorState(res.message, 0, { setGlobal: false });
       }
     } catch (_e) {
-      error(t('fileOps.deleteFailed'));
+      setErrorState(t('fileOps.deleteFailed'), 0, { setGlobal: false });
     }
   };
 
@@ -197,6 +214,7 @@ export function useFileManager() {
   return {
     loading,
     error,
+    errorCode,
     currentFolder,
     subfolders,
     files,
@@ -223,11 +241,11 @@ export function useFileManager() {
           loadFolderData(currentFolder.value?.id);
           return true;
         } else {
-          error(res.message);
+          setErrorState(res.message, 0, { setGlobal: false });
           return false;
         }
       } catch (_e) {
-        error(t('fileOps.renameFailed'));
+        setErrorState(t('fileOps.renameFailed'), 0, { setGlobal: false });
         return false;
       }
     },
@@ -253,11 +271,11 @@ export function useFileManager() {
           loadFolderData(currentFolder.value?.id);
           return true;
         } else {
-          error(res.message);
+          setErrorState(res.message, 0, { setGlobal: false });
           return false;
         }
       } catch (_e) {
-        error(t('fileOps.deleteFailed'));
+        setErrorState(t('fileOps.deleteFailed'), 0, { setGlobal: false });
         return false;
       }
     },
@@ -275,11 +293,11 @@ export function useFileManager() {
           loadFolderData(currentFolder.value?.id);
           return true;
         } else {
-          error(res.message);
+          setErrorState(res.message, 0, { setGlobal: false });
           return false;
         }
       } catch (_e) {
-        error(t('fileOps.moveFailed'));
+        setErrorState(t('fileOps.moveFailed'), 0, { setGlobal: false });
         return false;
       }
     },
@@ -290,6 +308,7 @@ export function useFileManager() {
       if (!silent) {
         loading.value = true;
         error.value = null;
+        errorCode.value = null;
         selectedFiles.value = [];
       }
 
@@ -301,14 +320,12 @@ export function useFileManager() {
           currentFolder.value = { isTrash: true, name: t('trash.title') };
           breadcrumbs.value = [{ name: t('trash.title'), path: '/admin/trash' }];
         } else {
-          toast.error(res.message);
-          error.value = res.message;
+          setErrorState(res.message, 0, { silent });
         }
       } catch (_e) {
-        if (!silent) {
-          toast.error(t('fileOps.loadFailed'));
-          error.value = t('fileOps.loadFailed');
-        }
+        const status = Number(_e?.status || 0);
+        const msg = _e?.data?.error || _e?.message || t('fileOps.loadFailed');
+        setErrorState(msg, status, { silent, toastMessage: t('fileOps.loadFailed') });
       } finally {
         if (!silent) loading.value = false;
       }

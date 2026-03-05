@@ -27,6 +27,7 @@
 - JWT/Basic Auth 认证机制
 - 多级权限模型 (Admin/Sales/Guest)
 - 内容安全和审查
+- 策略实现细节请参见 [授权策略系统（OPA/Rego）](../developer-guide/authz-policy-system.md)
 
 ---
 

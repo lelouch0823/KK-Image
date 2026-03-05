@@ -136,6 +136,7 @@ export function useProducts() {
         products: resource.items,
         loading: resource.loading,
         error: resource.error,
+        errorCode: resource.errorCode,
         pagination: resource.pagination,
         loadProducts: resource.loadItems,
         createProduct: resource.createItem,

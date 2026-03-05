@@ -43,7 +43,15 @@
     />
 
     <!-- Error State -->
-    <div v-if="error" class="flex flex-1 flex-col items-center justify-center p-6">
+    <div v-if="errorCode === 'FORBIDDEN'" class="flex flex-1 flex-col items-center justify-center p-6">
+      <PermissionDeniedState
+        title="文件管理权限不足"
+        :description="error || '当前账号没有文件管理读取权限，请联系管理员分配 files:read。'"
+        required-permission="files:read"
+        @retry="loadFolderData(currentFolder?.id)"
+      />
+    </div>
+    <div v-else-if="error" class="flex flex-1 flex-col items-center justify-center p-6">
       <EmptyState
         icon="inbox"
         :title="t('common.error')"
@@ -242,6 +250,7 @@ import FileManagerToolbar from './FileManagerToolbar.vue';
 import FileManagerModals from './FileManagerModals.vue';
 import TrashModal from './TrashModal.vue';
 import AppImage from '@/components/ui/AppImage.vue';
+import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 
 import { useFileManager } from '@/composables/useFileManager';
 import { useI18n } from '@/composables/useI18n';
@@ -274,6 +283,7 @@ const {
   getFileExtension, 
   isImage,
   error,
+  errorCode,
 } = useFileManager();
 
 const { searchQuery, searchResults } = useSearch();

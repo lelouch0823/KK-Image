@@ -1,17 +1,8 @@
 import { loadPolicy } from '@open-policy-agent/opa-wasm';
-import { POLICY_DATA, POLICY_METADATA, POLICY_WASM_BASE64 } from './generated/policy-artifact.js';
+import { POLICY_DATA, POLICY_WASM_BASE64 } from './generated/policy-artifact.js';
 
 let cachedPolicyPromise = null;
 const DECISION_ENTRYPOINT = 'kk/authz/decision';
-let forceJsFallback = false;
-let fallbackLogged = false;
-
-const ROLE_PERMISSION_MAP = new Map(
-  Object.entries(POLICY_METADATA?.roles || {}).map(([role, def]) => [
-    role,
-    new Set(Array.isArray(def?.permissions) ? def.permissions : []),
-  ])
-);
 
 function decodeWasm(base64) {
   if (typeof atob === 'function') {
@@ -22,8 +13,8 @@ function decodeWasm(base64) {
     }
     return bytes;
   }
-  if (typeof Buffer !== 'undefined') {
-    return Uint8Array.from(Buffer.from(base64, 'base64'));
+  if (typeof globalThis !== 'undefined' && typeof globalThis.Buffer !== 'undefined') {
+    return Uint8Array.from(globalThis.Buffer.from(base64, 'base64'));
   }
   throw new Error('no base64 decoder available for OPA policy');
 }
@@ -36,39 +27,6 @@ function readDecision(resultSet) {
   return decision;
 }
 
-function normalizeSubject(subject = {}) {
-  const role = typeof subject?.role === 'string' ? subject.role.trim() : null;
-  const permissions = Array.isArray(subject?.permissions)
-    ? subject.permissions
-      .filter((perm) => typeof perm === 'string')
-      .map((perm) => perm.trim())
-      .filter(Boolean)
-    : [];
-
-  return { role, permissions };
-}
-
-function evaluateDecisionWithJsFallback(input = {}) {
-  const { role, permissions } = normalizeSubject(input?.subject || {});
-  const action = typeof input?.action === 'string' ? input.action : null;
-  const rolePermissions = role ? ROLE_PERMISSION_MAP.get(role) || new Set() : new Set();
-
-  const hasRoleWildcard = rolePermissions.has('admin:full');
-  const hasRolePermission = !!action && rolePermissions.has(action);
-  const hasDirectPermission = !!action && permissions.includes(action);
-
-  if (hasRoleWildcard) {
-    return { allow: true, reason: 'role_wildcard' };
-  }
-  if (hasRolePermission) {
-    return { allow: true, reason: 'role_permission' };
-  }
-  if (hasDirectPermission) {
-    return { allow: true, reason: 'direct_permission' };
-  }
-  return { allow: false, reason: 'deny' };
-}
-
 function isWasmCodegenBlockedError(error) {
   const message = `${error?.message || error || ''}`;
   return (
@@ -78,9 +36,16 @@ function isWasmCodegenBlockedError(error) {
 }
 
 async function initPolicy() {
-  const policy = await loadPolicy(decodeWasm(POLICY_WASM_BASE64));
-  policy.setData(POLICY_DATA);
-  return policy;
+  try {
+    const policy = await loadPolicy(decodeWasm(POLICY_WASM_BASE64));
+    policy.setData(POLICY_DATA);
+    return policy;
+  } catch (err) {
+    if (isWasmCodegenBlockedError(err)) {
+      throw new Error(`OPA wasm unavailable in current runtime: ${err.message || err}`);
+    }
+    throw err;
+  }
 }
 
 async function getPolicy() {
@@ -105,24 +70,7 @@ function evaluateWithDefault(policy, input) {
 }
 
 export async function evaluateDecisionWithOpa(input = {}) {
-  if (forceJsFallback) {
-    return evaluateDecisionWithJsFallback(input);
-  }
-
-  let policy;
-  try {
-    policy = await getPolicy();
-  } catch (loadErr) {
-    if (isWasmCodegenBlockedError(loadErr)) {
-      forceJsFallback = true;
-      if (!fallbackLogged) {
-        fallbackLogged = true;
-        console.info('[authz] OPA wasm unavailable, switched to deterministic JS fallback');
-      }
-      return evaluateDecisionWithJsFallback(input);
-    }
-    throw loadErr;
-  }
+  const policy = await getPolicy();
 
   try {
     return evaluateWithEntrypoint(policy, input);
@@ -131,14 +79,6 @@ export async function evaluateDecisionWithOpa(input = {}) {
     try {
       return evaluateWithDefault(policy, input);
     } catch (fallbackErr) {
-      if (isWasmCodegenBlockedError(fallbackErr)) {
-        forceJsFallback = true;
-        if (!fallbackLogged) {
-          fallbackLogged = true;
-          console.info('[authz] OPA wasm unavailable, switched to deterministic JS fallback');
-        }
-        return evaluateDecisionWithJsFallback(input);
-      }
       throw fallbackErr;
     }
   }
@@ -146,6 +86,4 @@ export async function evaluateDecisionWithOpa(input = {}) {
 
 export function clearOpaPolicyCacheForTests() {
   cachedPolicyPromise = null;
-  forceJsFallback = false;
-  fallbackLogged = false;
 }

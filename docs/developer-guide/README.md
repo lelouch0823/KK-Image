@@ -8,6 +8,7 @@
 - **[Cloudflare 开发规范](cloudflare-dev-standards.md)** - D1/R2/Functions 最佳实践
 - **[Wrangler 指南](wrangler-guide.md)** - CLI 工具使用说明
 - **[Pages Context](cloudflare-pages-context.md)** - 请求上下文和中间件
+- **[授权策略系统（OPA/Rego）](authz-policy-system.md)** - 权限架构、开发流程与标准
 
 ### 客户端开发
 - **[微信小程序 (minisales)](minisales.md)** - 销售端小程序开发指南

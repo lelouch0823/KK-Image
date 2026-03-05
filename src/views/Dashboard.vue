@@ -39,9 +39,16 @@
           />
         </div>
       </div>
+
+      <div v-if="dashboardErrorCode === 'FORBIDDEN'" class="mb-8">
+        <PermissionDeniedState
+          :reason="dashboardError"
+          @retry="fetchDashboardData"
+        />
+      </div>
       
       <!-- Metrics Grid -->
-      <div class="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div v-if="dashboardErrorCode !== 'FORBIDDEN'" class="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <!-- Today Orders -->
         <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-(--border-subtle) border-r-(--border-subtle) border-l-blue-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-(--bg-hover) dark:border-y-white/5 dark:border-r-white/5 dark:bg-(--bg-card)/60 dark:shadow-lg dark:hover:bg-[#161b26]">
            <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
@@ -140,7 +147,7 @@
       </div>
 
       <!-- Main Layout -->
-      <div class="grid h-full grid-cols-1 gap-6 pb-8 lg:grid-cols-12">
+      <div v-if="dashboardErrorCode !== 'FORBIDDEN'" class="grid h-full grid-cols-1 gap-6 pb-8 lg:grid-cols-12">
         
         <!-- Pending Orders List (Left Column - 5 cols) -->
         <div class="flex flex-col gap-6 lg:col-span-5">
@@ -328,7 +335,7 @@
         </div>
       </div>
       
-      <footer class="mt-auto py-4 text-center text-[10px] text-(--text-muted)">
+      <footer v-if="dashboardErrorCode !== 'FORBIDDEN'" class="mt-auto py-4 text-center text-[10px] text-(--text-muted)">
         {{ t('dashboard.footer') }}
       </footer>
     </div>
@@ -373,6 +380,7 @@ import ShareFolderModal from '@/components/ShareFolderModal.vue';
 import Modal from '@/components/ui/Modal.vue';
 import OrderDetail from '@/components/order/OrderDetail.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import {
   formatSize,
   formatDate,
@@ -393,6 +401,8 @@ const { copyShareLink } = useClipboard();
 const { setContext } = useAI();
 const isRefreshing = ref(false);
 const lastUpdatedTime = ref(new Date().toLocaleTimeString());
+const dashboardErrorCode = ref(null);
+const dashboardError = ref('');
 
 const recentFiles = ref([]);
 const recentShares = ref([]);
@@ -459,6 +469,8 @@ const refreshOrderDetail = async () => {
 // Data Fetching
 const fetchDashboardData = async () => {
   try {
+    dashboardErrorCode.value = null;
+    dashboardError.value = '';
     const res = await authFetchJson(API.MANAGE_DASHBOARD_OVERVIEW);
     if (res.success && res.data) {
       orderStats.value = res.data;
@@ -484,6 +496,14 @@ const fetchDashboardData = async () => {
       lastUpdatedTime.value = new Date().toLocaleTimeString();
     }
   } catch (e) {
+    const status = Number(e?.status);
+    if (status === 403) {
+      dashboardErrorCode.value = 'FORBIDDEN';
+      dashboardError.value = e?.data?.error || e?.message || '权限不足';
+      return;
+    }
+    dashboardErrorCode.value = 'ERROR';
+    dashboardError.value = e?.data?.error || e?.message || '加载失败';
     console.error('Dashboard data load failed', e);
   }
 };

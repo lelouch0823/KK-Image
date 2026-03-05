@@ -64,22 +64,17 @@ describe('opa-engine', () => {
     expect(evaluate).toHaveBeenNthCalledWith(2, { action: 'files:read' });
   });
 
-  it('uses deterministic fallback when wasm code generation is blocked', async () => {
+  it('throws explicit error when wasm code generation is blocked', async () => {
     opaMocks.loadPolicy.mockRejectedValueOnce(
       new Error('CompileError: WebAssembly.instantiate(): Wasm code generation disallowed by embedder')
     );
 
-    const allowDecision = await evaluateDecisionWithOpa({
-      subject: { role: 'admin', permissions: [] },
-      action: 'products:manage',
-    });
-    const denyDecision = await evaluateDecisionWithOpa({
-      subject: { role: 'guest', permissions: [] },
-      action: 'products:manage',
-    });
-
-    expect(allowDecision).toEqual({ allow: true, reason: 'role_wildcard' });
-    expect(denyDecision).toEqual({ allow: false, reason: 'deny' });
+    await expect(
+      evaluateDecisionWithOpa({
+        subject: { role: 'admin', permissions: [] },
+        action: 'products:manage',
+      })
+    ).rejects.toThrow('OPA wasm unavailable in current runtime');
     expect(opaMocks.loadPolicy).toHaveBeenCalledTimes(1);
   });
 });

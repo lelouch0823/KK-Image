@@ -187,6 +187,7 @@ export function useSpaces() {
     currentSpace,
     loading: resource.loading,
     error: resource.error,
+    errorCode: resource.errorCode,
     pagination: resource.pagination,
     loadSpaces,
     loadProductSpaces,
