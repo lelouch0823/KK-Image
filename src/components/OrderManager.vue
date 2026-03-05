@@ -1,15 +1,23 @@
 <template>
   <div class="flex flex-col gap-4 lg:h-full">
+    <div v-if="errorCode === 'FORBIDDEN'" class="flex flex-1 items-center justify-center py-12">
+      <PermissionDeniedState
+        title="订单管理权限不足"
+        :description="error || '当前账号没有订单读取权限，请联系管理员分配 orders:read。'"
+        required-permission="orders:manage"
+        @retry="refreshOrders"
+      />
+    </div>
     
     <!-- 订单统计仪表盘 (Desktop only inline) - NOTE: This seems unused or legacy comment, keeping structure but cleaning up -->
     
     <!-- Mobile Stats Modal -->
-    <Modal v-model="showStatsModal" :title="t('dashboard.stats')" size="xl">
+    <Modal v-if="errorCode !== 'FORBIDDEN'" v-model="showStatsModal" :title="t('dashboard.stats')" size="xl">
       <OrderDashboard @filter="(type) => { handleDashboardFilter(type); showStatsModal = false; }" />
     </Modal>
 
     <!-- 订单列表 -->
-    <div class="lg:flex-1 lg:overflow-y-auto">
+    <div v-if="errorCode !== 'FORBIDDEN'" class="lg:flex-1 lg:overflow-y-auto">
       <!-- 桌面表格视图 (lg+) -->
       <div class="hidden lg:block">
         <OrderTable
@@ -119,7 +127,7 @@
 
     <!-- Create Modal -->
     <OrderCreateModal
-      v-if="showCreateModal"
+      v-if="errorCode !== 'FORBIDDEN' && showCreateModal"
       v-model="showCreateModal"
       :salespersons="salespersons"
       :statuses="statuses"
@@ -127,7 +135,7 @@
     />
 
     <!-- 订单详情弹窗 -->
-    <Modal v-model="showDetailModal" size="6xl">
+    <Modal v-if="errorCode !== 'FORBIDDEN'" v-model="showDetailModal" size="6xl">
        <template #header>
         <div class="flex items-center gap-4">
           <h3 class="text-lg font-semibold text-(--text-main)">{{ t('order.detail.title') }}</h3>
@@ -166,7 +174,7 @@
 
     <!-- 订单编辑弹窗 -->
     <OrderEditModal
-      v-if="showEditModal && editingOrder"
+      v-if="errorCode !== 'FORBIDDEN' && showEditModal && editingOrder"
       :order="editingOrder"
       :submitting="isEditing"
       :statuses="statuses"
@@ -176,6 +184,7 @@
     />
     <!-- Confirm Dialog -->
     <ConfirmDialog
+      v-if="errorCode !== 'FORBIDDEN'"
       v-model="confirmData.show"
       :title="confirmData.title"
       :message="confirmData.message"
@@ -186,6 +195,7 @@
 
     <!-- Destructive Delete Modal -->
     <DestructiveConfirmModal
+      v-if="errorCode !== 'FORBIDDEN'"
       v-model="showDeleteModal"
       :title="t('order.detail.deletePermanently')"
       :description="t('order.detail.dangerWarning')"
@@ -223,6 +233,7 @@ import OrderDetail from './order/OrderDetail.vue';
 import OrderDashboard from './order/OrderDashboard.vue';
 import OrderCreateModal from '@/components/OrderCreateModal.vue';
 import DestructiveConfirmModal from '@/components/common/DestructiveConfirmModal.vue';
+import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
@@ -232,6 +243,8 @@ const {
   salespersons,
   statuses,
   loading,
+  error,
+  errorCode,
   pagination,
   loadOrders,
   getOrder,

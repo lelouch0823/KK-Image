@@ -1,5 +1,14 @@
 <template>
   <div class="flex h-full overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-page) shadow-sm">
+    <div v-if="errorCode === 'FORBIDDEN'" class="flex w-full items-center justify-center p-8">
+      <PermissionDeniedState
+        title="客户管理权限不足"
+        :description="error || '当前账号没有客户读取权限，请联系管理员分配 customers:read。'"
+        required-permission="orders:manage"
+        @retry="loadCustomers"
+      />
+    </div>
+    <template v-else>
     <!-- Left Side: Main Content -->
     <div class="flex min-w-0 flex-1 flex-col bg-(--bg-card)">
       <!-- 头部操作栏 -->
@@ -178,6 +187,7 @@
         @cancel="showFormModal = false"
       />
     </Modal>
+    </template>
   </div>
 </template>
 
@@ -185,6 +195,7 @@
 import { ref, reactive, computed, onMounted, onActivated, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
 import { useAI } from '@/composables/useAI';
 import { formatDate } from '@/utils/formatters';
 import { API } from '@/utils/constants';
@@ -197,12 +208,16 @@ import CustomerDetailContent from '@/components/customer/CustomerDetailContent.v
 import CustomerCards from '@/components/customer/CustomerCards.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 
 const { t } = useI18n();
 const { addToast } = useToast();
+const { authFetch } = useAuth();
 const { setContext } = useAI();
 
 const loading = ref(false);
+const error = ref('');
+const errorCode = ref(null);
 const customers = ref([]);
 const searchQuery = ref('');
 const pagination = reactive({
@@ -224,6 +239,8 @@ const getRowClass = (row) => {
 
 const loadCustomers = async (params = {}) => {
   loading.value = true;
+  error.value = '';
+  errorCode.value = null;
   try {
     const query = new URLSearchParams({
       page: params.page || pagination.page,
@@ -231,7 +248,7 @@ const loadCustomers = async (params = {}) => {
       search: searchQuery.value,
     });
 
-    const res = await fetch(`${API.MANAGE_CUSTOMER}?${query}`);
+    const res = await authFetch(`${API.MANAGE_CUSTOMER}?${query}`);
     const result = await res.json();
 
     if (result.success) {
@@ -239,8 +256,29 @@ const loadCustomers = async (params = {}) => {
       pagination.total = result.data.total;
       pagination.totalPages = result.data.totalPages;
       pagination.page = result.data.page;
+      return;
     }
+    if ((result.error || result.message || '').includes('权限不足')) {
+      errorCode.value = 'FORBIDDEN';
+      error.value = result.error || result.message || '权限不足';
+      return;
+    }
+    error.value = result.error || result.message || t('common.loadFailed');
+    addToast({ message: error.value, type: 'error' });
   } catch (_e) {
+    const status = Number(_e?.status || 0);
+    if (status === 403) {
+      errorCode.value = 'FORBIDDEN';
+      error.value = _e?.data?.error || _e?.message || '权限不足';
+      return;
+    }
+    if (status === 401) {
+      errorCode.value = 'UNAUTHORIZED';
+      error.value = _e?.data?.error || _e?.message || '未授权';
+      return;
+    }
+    errorCode.value = 'NETWORK_ERROR';
+    error.value = _e?.message || t('common.loadFailed');
     addToast({ message: t('common.loadFailed'), type: 'error' });
   } finally {
     loading.value = false;

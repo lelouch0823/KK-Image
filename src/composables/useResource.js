@@ -1,4 +1,4 @@
-import { ref, reactive, onScopeDispose } from 'vue';
+import { ref, reactive, onScopeDispose, getCurrentScope } from 'vue';
 import { useAuth } from './useAuth';
 import { useToast } from './useToast';
 import { useI18n } from './useI18n';
@@ -56,6 +56,7 @@ export function useResource(apiEndpoint, options = {}) {
     const items = ref([]);
     const loading = ref(false);
     const error = ref(null);
+    const errorCode = ref(null);
     const pagination = reactive({
         page: 1,
         limit: 20,
@@ -65,10 +66,12 @@ export function useResource(apiEndpoint, options = {}) {
 
     let abortController = new AbortController();
 
-    // 组件卸载时自动取消请求
-    onScopeDispose(() => {
-        abort();
-    });
+    // 仅在存在活动 effect scope 时注册清理，避免在普通函数上下文触发 Vue 警告
+    if (getCurrentScope()) {
+        onScopeDispose(() => {
+            abort();
+        });
+    }
 
     /**
      * 生成缓存键
@@ -125,6 +128,10 @@ export function useResource(apiEndpoint, options = {}) {
             return await fn();
         } catch (err) {
             if (err.name === 'AbortError') throw err;
+            const status = Number(err?.status);
+            // 仅重试可恢复错误：网络异常(无 status)、429、5xx
+            const shouldRetry = !Number.isFinite(status) || status === 429 || status >= 500;
+            if (!shouldRetry) throw err;
             if (attempt >= retryCount) throw err;
 
             const delay = retryDelay * Math.pow(2, attempt);
@@ -155,6 +162,7 @@ export function useResource(apiEndpoint, options = {}) {
 
         loading.value = true;
         error.value = null;
+        errorCode.value = null;
 
         const cacheKey = getCacheKey(params);
 
@@ -185,17 +193,6 @@ export function useResource(apiEndpoint, options = {}) {
                 const res = await authFetch(`${apiEndpoint}?${query.toString()}`, {
                     signal: abortController.signal,
                 });
-
-                if (!res.ok) {
-                    if (res.status === 401) {
-                        throw new Error('UNAUTHORIZED');
-                    } else if (res.status === 403) {
-                        throw new Error('FORBIDDEN');
-                    } else if (res.status >= 500) {
-                        throw new Error('SERVER_ERROR');
-                    }
-                }
-
                 return res.json();
             };
 
@@ -239,19 +236,25 @@ export function useResource(apiEndpoint, options = {}) {
                 return false;
             }
 
-            console.error(`useResource load error [${apiEndpoint}]:`, e);
-
-            if (e.message === 'UNAUTHORIZED') {
+            const status = Number(e?.status);
+            if (status === 401) {
+                errorCode.value = 'UNAUTHORIZED';
                 error.value = t('common.error.unauthorized') || '未授权';
-            } else if (e.message === 'FORBIDDEN') {
-                error.value = t('common.validation_error') || '无权操作';
-            } else if (e.message === 'SERVER_ERROR') {
+            } else if (status === 403) {
+                errorCode.value = 'FORBIDDEN';
+                error.value = e?.data?.error || e?.message || t('common.error.forbidden') || '权限不足';
+            } else if (status >= 500) {
+                errorCode.value = 'SERVER_ERROR';
                 error.value = t('common.error.server_error') || '服务器错误';
             } else {
-                error.value = e.data?.error || t('common.networkError');
+                errorCode.value = 'NETWORK_ERROR';
+                error.value = e?.data?.error || e?.message || t('common.networkError');
             }
 
-            addToast({ message: error.value, type: 'error' });
+            if (errorCode.value !== 'FORBIDDEN' && errorCode.value !== 'UNAUTHORIZED') {
+                console.error(`useResource load error [${apiEndpoint}]:`, e);
+                addToast({ message: error.value, type: 'error' });
+            }
             return false;
         } finally {
             loading.value = false;
@@ -408,6 +411,7 @@ export function useResource(apiEndpoint, options = {}) {
         items,
         loading,
         error,
+        errorCode,
         pagination,
         loadItems,
         createItem,

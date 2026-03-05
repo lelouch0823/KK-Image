@@ -1,5 +1,14 @@
 <template>
   <div class="space-y-6">
+    <div v-if="errorCode === 'FORBIDDEN'" class="rounded-xl border border-(--border-color) bg-(--bg-card) p-8">
+      <PermissionDeniedState
+        title="采购单权限不足"
+        :description="error || '当前账号没有采购单读取权限，请联系管理员分配 purchase_orders:read。'"
+        required-permission="products:manage"
+        @retry="loadList"
+      />
+    </div>
+    <template v-else>
     <!-- 页面标题与操作 -->
     <AppFilterBar
       :title="t('purchaseOrder.title')"
@@ -715,6 +724,7 @@
         </div>
       </transition>
     </Teleport>
+    </template>
   </div>
 </template>
 
@@ -739,10 +749,11 @@ import AppFilterBar from '@/components/ui/AppFilterBar.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 
 const { t } = useI18n();
 const {
-  list, total, loading, detail, detailLoading,
+  list, total, loading, error, errorCode, detail, detailLoading,
   suggestions, suggestionsLoading, stats,
   filters, statusConfig,
   loadList, loadStats, loadDetail,

@@ -150,10 +150,11 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
+import { useAccessControl } from '@/composables/useAccessControl';
 import { useToast } from '@/composables/useToast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -162,6 +163,7 @@ const router = useRouter();
 const route = useRoute();
 const { t } = useI18n();
 const { logout, currentUser } = useAuth();
+const { hasPermission, loadPermissions, permissionsLoaded, clearPermissions } = useAccessControl();
 const { addToast } = useToast();
 
 // 当前视图 key (从路由路径推断)
@@ -188,6 +190,18 @@ onMounted(() => {
     isCollapsed.value = saved === 'true';
   }
 });
+
+watch(
+  () => currentUser.value?.id,
+  async (id) => {
+    if (!id) {
+      clearPermissions();
+      return;
+    }
+    await loadPermissions({ force: true });
+  },
+  { immediate: true }
+);
 
 const toggleCollapse = () => {
   isCollapsed.value = !isCollapsed.value;
@@ -221,84 +235,76 @@ const menuItems = computed(() => [
     key: 'files',
     label: t('sidebar.files'),
     icon: 'folder',
-    // All roles can see files except some edge cases, assuming typical ones based on router
-    roles: ['admin', 'manager', 'sales', 'viewer']
+    permission: 'files:read'
   },
   {
     key: 'spaces',
     label: t('sidebar.spaces'),
     icon: 'rectangle-group',
-    roles: ['admin', 'manager', 'sales', 'viewer']
+    permission: 'spaces:read'
   },
   {
     key: 'products',
     label: t('views.products'),
     icon: 'cube',
-    roles: ['admin', 'manager', 'sales', 'viewer']
+    permission: 'products:manage'
   },
   {
     key: 'orders',
     label: t('order.manage.title'),
     icon: 'clipboard-document-list',
-    roles: ['admin', 'manager', 'sales']
+    permission: 'orders:manage'
   },
   {
     key: 'goods-overview',
     label: t('sidebar.goodsOverview'),
     icon: 'building-storefront',
-    roles: ['admin', 'manager']
+    permission: 'products:manage'
   },
   {
     key: 'purchase-orders',
     label: t('purchaseOrder.title'),
     icon: 'shopping-cart',
-    roles: ['admin', 'manager']
+    permission: 'products:manage'
   },
   {
     key: 'customers',
     label: t('customer.manage.title'),
     icon: 'users',
-    roles: ['admin', 'manager']
+    permission: 'orders:manage'
   },
   {
     key: 'salespersons',
     label: t('salesperson.title'),
     icon: 'briefcase',
-    roles: ['admin', 'manager']
+    permission: 'users:read'
   },
   {
     key: 'stats',
     label: t('sidebar.stats'),
     icon: 'chart-bar',
-    roles: ['admin', 'manager', 'viewer']
+    permission: 'stats:read'
   },
   {
     key: 'settings',
     label: t('settings.title'),
     icon: 'cog-8-tooth',
-    roles: ['admin']
+    permission: 'admin:full'
   },
   {
     key: 'audit-logs',
     label: t('router.audit_logs'),
     icon: 'document-text',
-    roles: ['admin']
+    permission: 'admin:full'
   }
 ]);
 
 // 过滤包含用户对应权限的菜单
 const visibleMenuItems = computed(() => {
-  const userRole = currentUser.value?.role;
-  
   return menuItems.value.filter(item => {
-    // 如果没有 roles 属性，默认所有人都可见
-    if (!item.roles || item.roles.length === 0) return true;
-    
-    // 如果当前并未加载完毕 role，默认显示最基础的无权限页面或通过后端401保障安全
-    // 为了防止菜单闪现为空白，对于需要权限的菜单项，只有明确 role 后才进行过滤
-    if (!userRole) return false;
-    
-    return item.roles.includes(userRole);
+    if (!item.permission) return true;
+    if (!permissionsLoaded.value) return false;
+    return hasPermission(item.permission);
   });
 });
 

@@ -1,5 +1,14 @@
 <template>
   <div class="rounded-xl border border-(--border-color) bg-(--bg-card) shadow-sm">
+    <div v-if="errorCode === 'FORBIDDEN'" class="p-6">
+      <PermissionDeniedState
+        title="销售人员管理权限不足"
+        :description="error || '当前账号没有销售人员管理权限，请联系管理员分配 salespersons:manage。'"
+        required-permission="users:read"
+        @retry="loadSalespersons()"
+      />
+    </div>
+    <template v-else>
     <!-- 头部操作栏 -->
     <!-- 头部操作栏 -->
     <div
@@ -105,6 +114,7 @@
       :loading="confirmData.loading"
       @confirm="confirmData.onConfirm"
     />
+    </template>
   </div>
 </template>
 
@@ -113,6 +123,7 @@ import { ref, computed, onMounted, onActivated } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSalespersons } from '@/composables/useSalespersons';
 import { useI18n } from '@/composables/useI18n';
+import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import Pagination from '@/components/ui/Pagination.vue';
@@ -125,6 +136,8 @@ import SalespersonDetailModal from './salesperson/SalespersonDetailModal.vue';
 const {
   salespersons,
   loading,
+  error,
+  errorCode,
   pagination,
   loadSalespersons,
   createSalesperson,

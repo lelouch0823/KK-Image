@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import nprogress from 'nprogress';
 import 'nprogress/nprogress.css';
 import { useAuth } from '@/composables/useAuth';
+import { useAccessControl } from '@/composables/useAccessControl';
 import { useI18n } from '@/composables/useI18n';
 import { APP_NAME } from '@/utils/constants';
 
@@ -98,67 +99,67 @@ const routes = [
                 path: 'files',
                 name: 'Files',
                 component: () => import('@/views/FileManager/index.vue'),
-                meta: { titleKey: 'router.file_management', roles: ['admin', 'manager', 'sales', 'viewer'] },
+                meta: { titleKey: 'router.file_management', permission: 'files:read' },
             },
             {
                 path: 'spaces',
                 name: 'Spaces',
                 component: () => import('@/views/SpaceManager/index.vue'),
-                meta: { titleKey: 'router.space_management', roles: ['admin', 'manager', 'sales', 'viewer'] },
+                meta: { titleKey: 'router.space_management', permission: 'spaces:read' },
             },
             {
                 path: 'salespersons',
                 name: 'Salespersons',
                 component: () => import('@/components/SalespersonManager.vue'), // 暂时兼容
-                meta: { titleKey: 'router.salesperson_management', roles: ['admin', 'manager'] },
+                meta: { titleKey: 'router.salesperson_management', permission: 'users:read' },
             },
             {
                 path: 'products',
                 name: 'Products',
                 component: () => import('@/components/ProductManager.vue'),
-                meta: { titleKey: 'router.product_management', roles: ['admin', 'manager', 'sales', 'viewer'] },
+                meta: { titleKey: 'router.product_management', permission: 'products:manage' },
             },
             {
                 path: 'orders',
                 name: 'Orders',
                 component: () => import('@/components/OrderManager.vue'), // 暂时兼容
-                meta: { titleKey: 'router.order_management', roles: ['admin', 'manager', 'sales'] },
+                meta: { titleKey: 'router.order_management', permission: 'orders:manage' },
             },
             {
                 path: 'goods-overview',
                 name: 'GoodsOverview',
                 component: () => import('@/views/GoodsOverview.vue'),
-                meta: { titleKey: 'router.goods_overview', roles: ['admin', 'manager'] },
+                meta: { titleKey: 'router.goods_overview', permission: 'products:manage' },
             },
             {
                 path: 'purchase-orders',
                 name: 'PurchaseOrders',
                 component: () => import('@/views/PurchaseOrders.vue'),
-                meta: { titleKey: 'router.purchase_orders', roles: ['admin', 'manager'] },
+                meta: { titleKey: 'router.purchase_orders', permission: 'products:manage' },
             },
             {
                 path: 'customers',
                 name: 'Customers',
                 component: () => import('@/views/Customers.vue'),
-                meta: { titleKey: 'router.customer_management', roles: ['admin', 'manager'] },
+                meta: { titleKey: 'router.customer_management', permission: 'orders:manage' },
             },
             {
                 path: 'stats',
                 name: 'Stats',
                 component: () => import('@/views/Stats.vue'),
-                meta: { titleKey: 'router.stats_analysis', roles: ['admin', 'manager', 'viewer'] },
+                meta: { titleKey: 'router.stats_analysis', permission: 'stats:read' },
             },
             {
                 path: 'settings',
                 name: 'Settings',
                 component: () => import('@/views/Settings.vue'),
-                meta: { titleKey: 'router.system_settings', roles: ['admin'] },
+                meta: { titleKey: 'router.system_settings', permission: 'admin:full' },
             },
             {
                 path: 'audit-logs',
                 name: 'AuditLogs',
                 component: () => import('@/views/AuditLogs.vue'),
-                meta: { titleKey: 'router.audit_logs', roles: ['admin'] },
+                meta: { titleKey: 'router.audit_logs', permission: 'admin:full' },
             },
             // Admin catch-all (prevents redirect to login for auth users)
             {
@@ -208,7 +209,8 @@ router.beforeEach(async (to, from, next) => {
         document.title = `${t(to.meta.titleKey)} | ${APP_NAME}`;
     }
 
-    const { checkAuth, isAuthenticated, currentUser } = useAuth();
+    const { checkAuth, isAuthenticated } = useAuth();
+    const { can, clearPermissions } = useAccessControl();
 
     // 检查认证状态 (如果尚未检查过)
     // 这里可以优化：如果已经 isAuthenticated.value 为 true，是否还需要 checkAuth?
@@ -223,19 +225,16 @@ router.beforeEach(async (to, from, next) => {
     // 1. 需要认证的页面
     if (to.matched.some(record => record.meta.requiresAuth)) {
         if (!isAuth) {
+            clearPermissions();
             next({
                 path: '/login',
                 query: { redirect: to.fullPath },
             });
         } else {
-            // 验证 RBAC 角色
-            const requireRoles = to.meta.roles;
-            if (requireRoles && requireRoles.length > 0) {
-                const userRole = currentUser.value?.role;
-                if (!userRole || !requireRoles.includes(userRole)) {
-                    // 权限不足，回退到主页或 403 页面
-                    return next({ name: 'Dashboard' });
-                }
+            const requiredPermission = to.meta.permission;
+            if (requiredPermission) {
+                const allowed = await can(requiredPermission);
+                if (!allowed) return next({ name: 'Dashboard' });
             }
             next();
         }

@@ -1,5 +1,14 @@
 <template>
   <div class="space-y-6">
+    <div v-if="errorCode === 'FORBIDDEN'" class="rounded-xl border border-(--border-color) bg-(--bg-card) p-8">
+      <PermissionDeniedState
+        title="订货总览权限不足"
+        :description="error || '当前账号没有订货总览读取权限，请联系管理员分配 goods:read。'"
+        required-permission="products:manage"
+        @retry="init"
+      />
+    </div>
+    <template v-else>
     <!-- 页面标题与操作 -->
     <AppFilterBar
       :title="t('sidebar.goodsOverview')"
@@ -363,6 +372,7 @@
         </button>
       </div>
     </transition>
+    </template>
   </div>
 </template>
 
@@ -379,6 +389,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppFilterBar from '@/components/ui/AppFilterBar.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 
 
 const { t } = useI18n();
@@ -386,7 +397,7 @@ const { addToast } = useToast();
 const { setContext } = useAI();
 const router = useRouter();
 const {
-  items, summary, loading, filters, availableFilters,
+  items, summary, loading, error, errorCode, filters, availableFilters,
   selectedItems, isAllSelected, toggleSelect, toggleSelectAll, isSelected, clearSelection,
   exportCSV, createPOFromSelected, isCreatingPO, init,
 } = useGoodsOverview();

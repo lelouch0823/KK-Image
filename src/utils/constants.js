@@ -78,6 +78,9 @@ export const API = {
   LOGIN: '/api/v1/auth/login',
   LOGOUT: '/api/v1/auth/logout',
   USER: '/api/v1/auth/me',
+  PERMISSIONS: '/api/v1/permissions',
+  PERMISSIONS_USER: '/api/v1/permissions/user',
+  PERMISSIONS_CHECK: '/api/v1/permissions/check',
 
   // 销售端订单 API (公开，Token 鉴权)
   SALES_AUTH: (token) => `/api/sales/${token}/auth`,
