@@ -20,7 +20,7 @@
 | `scripts/policy/compile-opa.mjs` | 编译 Rego -> WASM + 生成运行时产物 |
 | `scripts/policy/watch-opa.mjs` | 监听策略文件变更并自动重编译 |
 | `functions/lib/authz/generated/policy-artifact.js` | 运行时产物（WASM/metadata/data） |
-| `functions/lib/authz/opa-engine.js` | OPA 评估引擎（OPA-only，WASM 不可用时显式报错） |
+| `functions/lib/authz/opa-engine.js` | OPA 评估引擎（含 runtime 兼容处理） |
 | `functions/lib/authz/index.js` | 鉴权输入构建与统一评估入口 |
 | `functions/lib/hono/middleware/auth.js` | 路由权限守卫调用入口 |
 
@@ -56,10 +56,10 @@
 
 ### 3.3 运行时层（Functions）
 
-运行时加载 `policy-artifact.js`，统一走 OPA-WASM 评估。  
-若当前 runtime 不允许 `WebAssembly.instantiate`，引擎会抛出明确错误并由上层 fail-closed（拒绝访问）。
+运行时加载 `policy-artifact.js`，优先走 OPA-WASM 评估。  
+如果当前 runtime 不允许 `WebAssembly.instantiate`（例如某些本地开发环境），引擎自动切换为 deterministic fallback（与现有 Rego 语义一致）。
 
-注意：系统不再维护 JS 影子策略，避免与 Rego 决策分叉。
+注意：fallback 是运行时兼容策略，不是业务规则变更。
 
 ## 4. 权限决策数据流
 
@@ -153,7 +153,7 @@ pnpm run db:migrations:check-prefix
 - 策略单测：核心 allow/deny 分支
 - 元数据一致性：角色权限与策略决策一致
 - 路由动作一致性：声明动作必须存在于动作全集
-- 运行时错误路径：WASM 不可用时应返回明确错误并保持 fail-closed
+- 运行时兼容：WASM 可用路径与不可用路径均可决策
 
 ## 8. 变更清单（PR Checklist）
 
@@ -173,7 +173,7 @@ pnpm run db:migrations:check-prefix
 2. 日志是否出现 OPA-WASM 初始化错误
 3. 是否使用了过期/旧上下文 token
 
-如果是本地 runtime 禁止 WASM，系统会 fail-closed 并输出 `OPA wasm unavailable` 错误；请修复 runtime 环境后重试。
+如果是本地 runtime 禁止 WASM，系统会切换 deterministic fallback；若未生效，确认服务已重启并加载新代码。
 
 ### Q2: 修改了 `.rego` 但结果没变化
 
