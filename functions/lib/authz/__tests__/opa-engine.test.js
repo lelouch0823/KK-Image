@@ -1,19 +1,36 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const opaMocks = vi.hoisted(() => ({
   loadPolicy: vi.fn(),
+  wasmModule: { __wasm_module: true },
 }));
 
 vi.mock('@open-policy-agent/opa-wasm', () => ({
   loadPolicy: opaMocks.loadPolicy,
 }));
 
+vi.mock('../wasm-loader.worker.js', () => ({
+  getWorkerWasmModule: () => opaMocks.wasmModule,
+}));
+
 import { clearOpaPolicyCacheForTests, evaluateDecisionWithOpa } from '../opa-engine.js';
 
 describe('opa-engine', () => {
+  let originalWebSocketPair;
+
   beforeEach(() => {
     vi.clearAllMocks();
     clearOpaPolicyCacheForTests();
+    originalWebSocketPair = globalThis.WebSocketPair;
+    globalThis.WebSocketPair = function MockWebSocketPair() {};
+  });
+
+  afterEach(() => {
+    if (typeof originalWebSocketPair === 'undefined') {
+      delete globalThis.WebSocketPair;
+      return;
+    }
+    globalThis.WebSocketPair = originalWebSocketPair;
   });
 
   it('evaluates decision using explicit decision entrypoint', async () => {
@@ -27,6 +44,7 @@ describe('opa-engine', () => {
     const decision = await evaluateDecisionWithOpa(input);
 
     expect(decision.allow).toBe(true);
+    expect(opaMocks.loadPolicy).toHaveBeenCalledWith(opaMocks.wasmModule);
     expect(evaluate).toHaveBeenCalledWith(input, 'kk/authz/decision');
   });
 
@@ -64,22 +82,12 @@ describe('opa-engine', () => {
     expect(evaluate).toHaveBeenNthCalledWith(2, { action: 'files:read' });
   });
 
-  it('uses deterministic fallback when wasm code generation is blocked', async () => {
+  it('propagates init failure for fail-closed handling', async () => {
     opaMocks.loadPolicy.mockRejectedValueOnce(
-      new Error('CompileError: WebAssembly.instantiate(): Wasm code generation disallowed by embedder')
+      new Error('wasm module init failed')
     );
 
-    const allowDecision = await evaluateDecisionWithOpa({
-      subject: { role: 'admin', permissions: [] },
-      action: 'products:manage',
-    });
-    const denyDecision = await evaluateDecisionWithOpa({
-      subject: { role: 'guest', permissions: [] },
-      action: 'products:manage',
-    });
-
-    expect(allowDecision).toEqual({ allow: true, reason: 'role_wildcard' });
-    expect(denyDecision).toEqual({ allow: false, reason: 'deny' });
+    await expect(evaluateDecisionWithOpa({ action: 'products:manage' })).rejects.toThrow('wasm module init failed');
     expect(opaMocks.loadPolicy).toHaveBeenCalledTimes(1);
   });
 });

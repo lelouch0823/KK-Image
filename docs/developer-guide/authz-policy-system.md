@@ -19,8 +19,10 @@
 | `policy/tests/*.rego` | 策略单测（OPA 原生测试） |
 | `scripts/policy/compile-opa.mjs` | 编译 Rego -> WASM + 生成运行时产物 |
 | `scripts/policy/watch-opa.mjs` | 监听策略文件变更并自动重编译 |
-| `functions/lib/authz/generated/policy-artifact.js` | 运行时产物（WASM/metadata/data） |
-| `functions/lib/authz/opa-engine.js` | OPA 评估引擎（含 runtime 兼容处理） |
+| `functions/lib/authz/generated/policy-artifact.wasm` | 预编译 OPA-WASM 模块产物 |
+| `functions/lib/authz/generated/policy-artifact.js` | 运行时数据产物（metadata/data） |
+| `functions/lib/authz/wasm-loader.worker.js` | Workers 运行时 Wasm module 加载桥接 |
+| `functions/lib/authz/opa-engine.js` | OPA 评估引擎（OPA 单决策路径） |
 | `functions/lib/authz/index.js` | 鉴权输入构建与统一评估入口 |
 | `functions/lib/hono/middleware/auth.js` | 路由权限守卫调用入口 |
 
@@ -56,10 +58,10 @@
 
 ### 3.3 运行时层（Functions）
 
-运行时加载 `policy-artifact.js`，优先走 OPA-WASM 评估。  
-如果当前 runtime 不允许 `WebAssembly.instantiate`（例如某些本地开发环境），引擎自动切换为 deterministic fallback（与现有 Rego 语义一致）。
+运行时使用 Workers 原生 Wasm module binding 加载 `policy-artifact.wasm`，并注入 `policy-artifact.js` 的数据上下文。  
+生产/开发请求路径统一走 OPA 评估，不再维护 JS 影子策略。
 
-注意：fallback 是运行时兼容策略，不是业务规则变更。
+说明：单元测试在 Node 环境会从同一 wasm 工件加载并编译为 `WebAssembly.Module`，仅用于测试执行，不参与线上决策分叉。
 
 ## 4. 权限决策数据流
 
@@ -153,7 +155,7 @@ pnpm run db:migrations:check-prefix
 - 策略单测：核心 allow/deny 分支
 - 元数据一致性：角色权限与策略决策一致
 - 路由动作一致性：声明动作必须存在于动作全集
-- 运行时兼容：WASM 可用路径与不可用路径均可决策
+- 运行时一致性：Workers 与测试环境均使用同一 wasm 工件
 
 ## 8. 变更清单（PR Checklist）
 
@@ -173,7 +175,11 @@ pnpm run db:migrations:check-prefix
 2. 日志是否出现 OPA-WASM 初始化错误
 3. 是否使用了过期/旧上下文 token
 
-如果是本地 runtime 禁止 WASM，系统会切换 deterministic fallback；若未生效，确认服务已重启并加载新代码。
+如果本地仍出现 Wasm 初始化错误，优先确认：
+
+1. 已执行 `pnpm run authz:policy:build` 生成最新 `policy-artifact.wasm`
+2. 已重启 `wrangler/pages dev` 以加载新工件
+3. 运行时日志未出现旧版 `POLICY_WASM_BASE64` 相关代码路径
 
 ### Q2: 修改了 `.rego` 但结果没变化
 
