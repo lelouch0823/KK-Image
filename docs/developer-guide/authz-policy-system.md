@@ -2,6 +2,13 @@
 
 本文档定义 kk-life 当前授权系统的设计、开发流程和工程标准。目标是让权限逻辑在不同环境下行为一致、可测试、可演进。
 
+## 0. 当前状态（2026-03-05）
+
+- 已完成：授权运行时切换为 Workers 原生 Wasm 工件加载（`policy-artifact.wasm`）。
+- 已完成：移除运行时 JS fallback，线上/本地统一走 OPA 决策路径（fail-closed）。
+- 已完成：策略编译产物拆分为 wasm（二进制）+ metadata/data（js），降低策略产物耦合度。
+- 已完成：单元测试已覆盖 Workers 路径与 Node 测试路径，不存在第二套权限规则实现。
+
 ## 1. 设计目标
 
 - 单一真相源：权限规则由 `policy/` 统一定义，避免前后端分叉。
@@ -111,6 +118,26 @@ pnpm run authz:policy:watch
 该命令会监听 `policy/` 下 `.rego/.json` 变更并自动编译。  
 如果 `wrangler` 进程已启动，仍需要重启以加载新产物。
 
+### 5.4 本地联调标准命令
+
+推荐使用项目脚本，确保使用仓库内 wrangler 版本：
+
+```bash
+pnpm run dev:all
+```
+
+或静态产物模式：
+
+```bash
+pnpm run build
+pnpm run start
+```
+
+注意：
+
+- 不建议使用全局 `wrangler` 命令直接启动，避免版本差异导致行为不一致。
+- 当你修改了策略（`.rego/.json`）后，即使运行了 watch/build，也必须重启 `wrangler pages dev` 才会加载新 wasm 工件。
+
 ## 6. 开发标准
 
 ### 6.1 动作命名规范
@@ -189,6 +216,8 @@ pnpm run db:migrations:check-prefix
 pnpm run authz:policy:build
 # 然后重启 dev 进程
 ```
+
+如果你使用的是全局 wrangler，请改为项目脚本（`pnpm run dev:all` / `pnpm run start`）复现，先排除本地 CLI 版本偏差。
 
 ### Q3: 需要下载 OPA 二进制吗
 
