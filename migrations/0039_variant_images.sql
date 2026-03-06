@@ -12,15 +12,21 @@ CREATE TABLE IF NOT EXISTS variant_images (
     UNIQUE(variant_id, image_id),
     UNIQUE(variant_id, sort_order)
 );
+--> statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS idx_variant_images_variant ON variant_images(variant_id);
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS idx_variant_images_image ON variant_images(image_id);
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS idx_variant_images_variant_sort ON variant_images(variant_id, sort_order);
+--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS idx_variant_images_single_primary
 ON variant_images(variant_id)
 WHERE is_primary = 1;
+--> statement-breakpoint
 
 DROP TRIGGER IF EXISTS trg_variant_images_primary_insert_guard;
+--> statement-breakpoint
 CREATE TRIGGER trg_variant_images_primary_insert_guard
 BEFORE INSERT ON variant_images
 FOR EACH ROW
@@ -31,8 +37,10 @@ BEGIN
   WHERE variant_id = NEW.variant_id
     AND is_primary = 1;
 END;
+--> statement-breakpoint
 
 DROP TRIGGER IF EXISTS trg_variant_images_primary_update_guard;
+--> statement-breakpoint
 CREATE TRIGGER trg_variant_images_primary_update_guard
 BEFORE UPDATE OF is_primary, variant_id ON variant_images
 FOR EACH ROW
@@ -44,8 +52,10 @@ BEGIN
     AND id <> NEW.id
     AND is_primary = 1;
 END;
+--> statement-breakpoint
 
 DROP TRIGGER IF EXISTS trg_variant_images_primary_repair_after_insert;
+--> statement-breakpoint
 CREATE TRIGGER trg_variant_images_primary_repair_after_insert
 AFTER INSERT ON variant_images
 FOR EACH ROW
@@ -60,8 +70,10 @@ BEGIN
   SET is_primary = 1, updated_at = unixepoch()
   WHERE id = NEW.id;
 END;
+--> statement-breakpoint
 
 DROP TRIGGER IF EXISTS trg_variant_images_primary_repair_after_delete;
+--> statement-breakpoint
 CREATE TRIGGER trg_variant_images_primary_repair_after_delete
 AFTER DELETE ON variant_images
 FOR EACH ROW
@@ -82,8 +94,10 @@ BEGIN
     LIMIT 1
   );
 END;
+--> statement-breakpoint
 
 DROP TRIGGER IF EXISTS trg_variant_images_primary_repair_after_update;
+--> statement-breakpoint
 CREATE TRIGGER trg_variant_images_primary_repair_after_update
 AFTER UPDATE OF variant_id, is_primary ON variant_images
 FOR EACH ROW
@@ -120,3 +134,4 @@ BEGIN
       AND vi.is_primary = 1
   );
 END;
+--> statement-breakpoint

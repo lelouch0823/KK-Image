@@ -444,7 +444,7 @@ const shareUrl = computed(() => {
 const productImages = computed(() => {
   if (!boundProduct.value || !boundProduct.value._images) return [];
   return resolveProductImageSrcList({ images: boundProduct.value._images });
-};
+});
 
 const initData = async () => {
   const data = await loadSpace(props.space.id);

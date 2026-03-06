@@ -10,9 +10,12 @@ CREATE TABLE IF NOT EXISTS product_dimensions (
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
 );
+--> statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS idx_product_dimensions_product ON product_dimensions(product_id);
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS idx_product_dimensions_product_status ON product_dimensions(product_id, status);
+--> statement-breakpoint
 
 CREATE TABLE IF NOT EXISTS product_dimension_values (
     id TEXT PRIMARY KEY,
@@ -23,9 +26,12 @@ CREATE TABLE IF NOT EXISTS product_dimension_values (
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
 );
+--> statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS idx_product_dimension_values_dimension ON product_dimension_values(dimension_id);
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS idx_product_dimension_values_dimension_status ON product_dimension_values(dimension_id, status);
+--> statement-breakpoint
 
 CREATE TABLE IF NOT EXISTS product_dimension_aliases (
     id TEXT PRIMARY KEY,
@@ -34,19 +40,25 @@ CREATE TABLE IF NOT EXISTS product_dimension_aliases (
     to_name TEXT NOT NULL,
     created_at INTEGER NOT NULL
 );
+--> statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS idx_product_dimension_aliases_dimension ON product_dimension_aliases(dimension_id);
+--> statement-breakpoint
 
 ALTER TABLE product_variants ADD COLUMN variant_signature TEXT;
+--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS idx_product_variants_signature_unique
   ON product_variants(product_id, variant_signature)
   WHERE variant_signature IS NOT NULL AND TRIM(variant_signature) <> '';
+--> statement-breakpoint
 
 UPDATE product_variants
 SET variant_signature = options_values
 WHERE variant_signature IS NULL OR TRIM(variant_signature) = '';
+--> statement-breakpoint
 
 DROP TRIGGER IF EXISTS trg_product_dimensions_max_active_insert;
+--> statement-breakpoint
 CREATE TRIGGER trg_product_dimensions_max_active_insert
 BEFORE INSERT ON product_dimensions
 WHEN NEW.status = 'active'
@@ -60,8 +72,10 @@ BEGIN
     THEN RAISE(ABORT, 'active dimensions limit reached')
   END;
 END;
+--> statement-breakpoint
 
 DROP TRIGGER IF EXISTS trg_product_dimensions_max_active_update;
+--> statement-breakpoint
 CREATE TRIGGER trg_product_dimensions_max_active_update
 BEFORE UPDATE OF status ON product_dimensions
 WHEN NEW.status = 'active' AND OLD.status <> 'active'
@@ -75,3 +89,4 @@ BEGIN
     THEN RAISE(ABORT, 'active dimensions limit reached')
   END;
 END;
+--> statement-breakpoint
