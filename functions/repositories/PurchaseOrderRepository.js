@@ -206,6 +206,25 @@ export class PurchaseOrderRepository {
     return result.meta?.changes > 0;
   }
 
+  /**
+   * CAS 方式更新采购单状态
+   * 仅当当前状态匹配时更新成功，用于防并发重复流转
+   */
+  async updateStatusIfCurrent(id, currentStatus, nextStatus) {
+    const extra = nextStatus === 'completed' ? ', completed_at = ?' : '';
+    const now = Date.now();
+    const params = nextStatus === 'completed'
+      ? [nextStatus, now, now, id, currentStatus]
+      : [nextStatus, now, id, currentStatus];
+
+    const result = await this.db
+      .prepare(`UPDATE purchase_orders SET status = ?, updated_at = ?${extra} WHERE id = ? AND status = ?`)
+      .bind(...params)
+      .run();
+
+    return (result.meta?.changes || 0) > 0;
+  }
+
   // ─── 明细操作 ──────────────────────────────────────────
 
   /**
@@ -262,10 +281,18 @@ export class PurchaseOrderRepository {
   /**
    * 删除单条明细
    */
-  async removeItem(itemId) {
+  async removeItem(poIdOrItemId, itemIdMaybe) {
+    const useScopedDelete = typeof itemIdMaybe === 'string';
+    const sql = useScopedDelete
+      ? `DELETE FROM purchase_order_items WHERE id = ? AND po_id = ?`
+      : `DELETE FROM purchase_order_items WHERE id = ?`;
+    const params = useScopedDelete
+      ? [itemIdMaybe, poIdOrItemId]
+      : [poIdOrItemId];
+
     const result = await this.db
-      .prepare(`DELETE FROM purchase_order_items WHERE id = ?`)
-      .bind(itemId)
+      .prepare(sql)
+      .bind(...params)
       .run();
     return result.meta?.changes > 0;
   }
@@ -276,7 +303,12 @@ export class PurchaseOrderRepository {
    * @param {Object} updates - { quantity?, unit_cost? }
    * @returns {Promise<boolean>} 是否更新成功
    */
-  async updateItem(itemId, updates) {
+  async updateItem(poIdOrItemId, itemIdOrUpdates, updatesMaybe) {
+    const scoped = updatesMaybe !== undefined;
+    const poId = scoped ? poIdOrItemId : null;
+    const itemId = scoped ? itemIdOrUpdates : poIdOrItemId;
+    const updates = scoped ? updatesMaybe : itemIdOrUpdates;
+
     const fields = [];
     const values = [];
 
@@ -286,9 +318,14 @@ export class PurchaseOrderRepository {
 
     if (fields.length === 0) return false;
 
-    values.push(itemId);
+    const where = scoped ? 'WHERE id = ? AND po_id = ?' : 'WHERE id = ?';
+    if (scoped) {
+      values.push(itemId, poId);
+    } else {
+      values.push(itemId);
+    }
     const result = await this.db.prepare(
-      `UPDATE purchase_order_items SET ${fields.join(', ')} WHERE id = ?`
+      `UPDATE purchase_order_items SET ${fields.join(', ')} ${where}`
     ).bind(...values).run();
 
     return (result.meta?.changes || 0) > 0;
