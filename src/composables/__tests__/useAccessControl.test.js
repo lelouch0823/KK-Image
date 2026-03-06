@@ -54,6 +54,24 @@ describe('useAccessControl', () => {
     expect(allowed).toBe(true);
   });
 
+  it('does not treat "*" as global permission grant', async () => {
+    isAuthenticated.value = true;
+    mockAuthFetch.mockResolvedValueOnce({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { permissions: ['*'] },
+        }),
+    });
+
+    const { useAccessControl } = await import('../useAccessControl');
+    const access = useAccessControl();
+    access.clearPermissions();
+    const allowed = await access.can('notifications:read');
+
+    expect(allowed).toBe(false);
+  });
+
   it('denies missing permission', async () => {
     isAuthenticated.value = true;
     mockAuthFetch.mockResolvedValueOnce({

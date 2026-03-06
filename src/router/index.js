@@ -161,6 +161,12 @@ const routes = [
                 component: () => import('@/views/AuditLogs.vue'),
                 meta: { titleKey: 'router.audit_logs', permission: 'admin:full' },
             },
+            {
+                path: 'forbidden',
+                name: 'Forbidden',
+                component: () => import('@/views/NotFound.vue'),
+                meta: { titleKey: 'common.permissionDenied' },
+            },
             // Admin catch-all (prevents redirect to login for auth users)
             {
                 path: ':pathMatch(.*)*',
@@ -234,7 +240,7 @@ router.beforeEach(async (to, from, next) => {
             const requiredPermission = to.meta.permission;
             if (requiredPermission) {
                 const allowed = await can(requiredPermission);
-                if (!allowed) return next({ name: 'Dashboard' });
+                if (!allowed) return next({ name: 'Forbidden', query: { permission: requiredPermission } });
             }
             next();
         }

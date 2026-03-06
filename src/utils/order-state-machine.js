@@ -27,5 +27,5 @@ export function isHighRiskOrderStatus(status) {
 }
 
 export function hasForceStatusPermission(permissions = []) {
-  return Array.isArray(permissions) && (permissions.includes('admin:full') || permissions.includes('*'));
+  return Array.isArray(permissions) && permissions.includes('admin:full');
 }

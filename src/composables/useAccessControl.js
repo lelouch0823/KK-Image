@@ -9,7 +9,7 @@ let inflightLoad = null;
 
 function normalizePermissions(raw) {
   if (!Array.isArray(raw)) return [];
-  return raw.filter((item) => typeof item === 'string' && item.length > 0);
+  return raw.filter((item) => typeof item === 'string' && item.length > 0 && item !== '*');
 }
 
 function hasPermissionSync(permission) {
