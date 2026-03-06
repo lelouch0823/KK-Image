@@ -76,7 +76,7 @@
                   class="cf-turnstile"
                   :data-sitekey="turnstileSiteKey"
                   data-callback="onTurnstileSuccess"
-                  :data-theme="document.documentElement.classList.contains('dark') ? 'dark' : 'light'"
+                  :data-theme="turnstileTheme"
                 ></div>
               </div>
 
@@ -86,7 +86,8 @@
                 variant="primary"
                 block
                 size="lg"
-                :loading="loading || (turnstileEnabled && !turnstileToken)"
+                :loading="loading"
+                :disabled="loading || (turnstileEnabled && !turnstileToken)"
                 :text="
                   loading
                     ? t('auth.loggingIn')
@@ -142,7 +143,7 @@
 </template>
 
 <script setup>
-import { ref, onBeforeMount } from 'vue';
+import { ref, onBeforeMount, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
@@ -165,6 +166,12 @@ const turnstileToken = ref('');
 const turnstileContainer = ref(null);
 const turnstileEnabled = ref(false);
 const turnstileSiteKey = ref('');
+const turnstileTheme = ref('light');
+
+const detectTurnstileTheme = () => {
+  if (typeof document === 'undefined') return 'light';
+  return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+};
 
 // Turnstile 回调
 if (typeof window !== 'undefined') {
@@ -271,6 +278,10 @@ onBeforeMount(async () => {
   } catch {
     console.warn('Failed to load Turnstile config');
   }
+});
+
+onMounted(() => {
+  turnstileTheme.value = detectTurnstileTheme();
 });
 </script>
 
