@@ -23,7 +23,7 @@ async function loadNodeWasmModule() {
 
   const wasmPath = join(process.cwd(), 'functions', 'lib', 'authz', 'generated', 'policy-artifact.wasm');
   const wasmBytes = await readFile(wasmPath);
-  return WebAssembly.compile(wasmBytes);
+  return globalThis.WebAssembly.compile(wasmBytes);
 }
 
 async function getPolicyWasmInput() {

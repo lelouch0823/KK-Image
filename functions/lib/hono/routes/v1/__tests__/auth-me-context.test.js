@@ -19,7 +19,7 @@ describe('v1 auth /me context', () => {
   it('does not elevate missing role to admin for non-admin token context', async () => {
     const app = createApp({
       id: 'legacy-1',
-      name: 'Legacy User',
+      name: 'LegacyUser',
       type: 'jwt',
       permissions: [],
     });
@@ -36,7 +36,7 @@ describe('v1 auth /me context', () => {
   it('keeps admin fallback only for admin type payloads', async () => {
     const app = createApp({
       id: 'root',
-      name: 'Root',
+      name: 'RootUser',
       type: 'admin',
       permissions: ['admin:full'],
     });

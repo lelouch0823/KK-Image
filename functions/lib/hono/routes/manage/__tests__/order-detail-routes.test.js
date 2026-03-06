@@ -214,7 +214,7 @@ describe('manage order detail routes', () => {
   });
 
   it('returns 403 when non-admin user tries to delete order', async () => {
-    const app = createApp({ id: 'u-viewer', name: 'Viewer', type: 'user', role: 'viewer', permissions: [] });
+    const app = createApp({ id: 'u-viewer', name: 'ViewerUser', type: 'user', role: 'viewer', permissions: [] });
     const res = await app.request(
       'http://localhost/api/manage/orders/order-1',
       { method: 'DELETE' },
@@ -304,7 +304,7 @@ describe('manage order detail routes', () => {
   });
 
   it('returns 403 when non-admin forces PATCH /:id/status transition', async () => {
-    const app = createApp({ id: 'u-viewer', name: 'Viewer', type: 'user', role: 'viewer', permissions: [] });
+    const app = createApp({ id: 'u-viewer', name: 'ViewerUser', type: 'user', role: 'viewer', permissions: [] });
     const res = await app.request(
       'http://localhost/api/manage/orders/order-1/status',
       {
@@ -486,7 +486,7 @@ describe('manage order detail routes', () => {
   });
 
   it('returns 403 when non-admin forces PATCH /:id status jump', async () => {
-    const app = createApp({ id: 'u-viewer', name: 'Viewer', type: 'user', role: 'viewer', permissions: [] });
+    const app = createApp({ id: 'u-viewer', name: 'ViewerUser', type: 'user', role: 'viewer', permissions: [] });
     const res = await app.request(
       'http://localhost/api/manage/orders/order-1',
       {
