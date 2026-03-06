@@ -28,8 +28,10 @@
     "deploy:verify": "pnpm build && pnpm start & sleep 5 && pnpm deploy:check && pkill -f wrangler",
     "deploy:preview": "pnpm build && wrangler pages deploy dist --branch preview",
     "deploy:prod": "pnpm build && wrangler pages deploy dist --branch main",
-    "db:migrate:preview": "wrangler d1 migrations apply DB --env preview --remote",
-    "db:migrate:prod": "wrangler d1 migrations apply DB --env production --remote",
+    "db:migrate:preview": "node scripts/d1-safe-migrate.mjs preview",
+    "db:migrate:prod": "node scripts/d1-safe-migrate.mjs production",
+    "db:migrate:preview:raw": "wrangler d1 migrations apply DB --env preview --remote",
+    "db:migrate:prod:raw": "wrangler d1 migrations apply DB --env production --remote",
     "db:migrations:check-prefix": "node scripts/check-migration-prefixes.mjs",
     "qa:check-direct-protected-fetch": "node scripts/qa/check-direct-protected-fetch.mjs"
   },
