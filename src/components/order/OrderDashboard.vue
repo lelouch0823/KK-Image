@@ -97,6 +97,7 @@
 <script setup>
 import { ref, onMounted, onActivated } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
 import StatusChartModal from './StatusChartModal.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -106,6 +107,7 @@ defineProps({});
 defineEmits(['filter']);
 
 const { t } = useI18n();
+const { authFetch } = useAuth();
 
 const loading = ref(true);
 const showChartModal = ref(false);
@@ -119,7 +121,7 @@ const stats = ref({
 const loadStats = async () => {
   loading.value = true;
   try {
-    const res = await fetch(API.MANAGE_DASHBOARD_STATS, { credentials: 'include' });
+    const res = await authFetch(API.MANAGE_DASHBOARD_STATS);
     const result = await res.json();
     if (result.success) {
       stats.value = result.data;

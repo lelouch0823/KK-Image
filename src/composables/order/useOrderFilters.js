@@ -3,10 +3,12 @@ import { DateUtils } from '@/utils/date';
 import { API } from '@/utils/constants';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
+import { useAuth } from '@/composables/useAuth';
 
 export function useOrderFilters(loadOrders) {
     const { t } = useI18n();
     const { addToast } = useToast();
+    const { authFetch } = useAuth();
 
     // 初始化标志，用于在组件挂载时跳过 watch
     const isInitializing = ref(true);
@@ -69,11 +71,7 @@ export function useOrderFilters(loadOrders) {
             if (filterState.value.search) params.set('search', filterState.value.search);
 
             const url = `${API.MANAGE_ORDER_EXPORT}?${params.toString()}`;
-            const response = await fetch(url, { credentials: 'include' });
-
-            if (!response.ok) {
-                throw new Error('Export failed');
-            }
+            const response = await authFetch(url);
 
             const blob = await response.blob();
             const downloadUrl = window.URL.createObjectURL(blob);

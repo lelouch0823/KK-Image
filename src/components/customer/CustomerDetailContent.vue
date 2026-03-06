@@ -197,6 +197,7 @@
 import { ref, watch, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
 import { formatDate, formatCurrency } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -212,6 +213,7 @@ const emit = defineEmits(['close', 'refresh', 'edit']);
 
 const { t } = useI18n();
 const { addToast } = useToast();
+const { authFetch } = useAuth();
 
 const currentTab = ref('info');
 const orders = ref([]);
@@ -237,7 +239,7 @@ const loadOrders = async () => {
 
   loadingOrders.value = true;
   try {
-    const res = await fetch(API.MANAGE_CUSTOMER_ORDERS(props.customer.id));
+    const res = await authFetch(API.MANAGE_CUSTOMER_ORDERS(props.customer.id));
     const result = await res.json();
     if (result.success) {
       orders.value = result.data;
@@ -264,7 +266,7 @@ const confirmDelete = async () => {
 
   confirmData.value.loading = true;
   try {
-    const res = await fetch(`${API.MANAGE_CUSTOMER}/${props.customer.id}`, {
+    const res = await authFetch(`${API.MANAGE_CUSTOMER}/${props.customer.id}`, {
       method: 'DELETE',
     });
     const result = await res.json();

@@ -50,6 +50,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import SalespersonSelectModal from '@/components/salesperson/SalespersonSelectModal.vue';
@@ -80,6 +81,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const { t } = useI18n();
+const { authFetch } = useAuth();
 
 const showModal = ref(false);
 
@@ -98,7 +100,7 @@ const selectedSalespersons = computed(() =>
 // 此时加载的原因：如果直接由外部传入了 IDs（如编辑态），需要有名称才能渲染 tag
 const loadSalespersons = async () => {
   try {
-    const response = await fetch(API.SALESPERSONS, { credentials: 'include' });
+    const response = await authFetch(API.SALESPERSONS);
     const result = await response.json();
     if (result.success && result.data) {
       salespersons.value = result.data.salespersons || result.data || [];

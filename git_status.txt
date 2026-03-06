@@ -1,0 +1,28 @@
+ M src/components/FileSelector.vue
+ M src/components/SalespersonPicker.vue
+ M src/components/ShareFolderModal.vue
+ M src/components/ShareManagementModal.vue
+ M src/components/common/AIChatWidget.vue
+ M src/components/common/ImageUploader.vue
+ M src/components/customer/CustomerDetailContent.vue
+ M src/components/order/OrderDashboard.vue
+ M src/components/product/ProductImportModal.vue
+ M src/components/salesperson/SalespersonSelectModal.vue
+ M src/components/settings/tabs/AISettings.vue
+ M src/components/settings/tabs/BackupSettings.vue
+ M src/components/settings/tabs/WatermarkSettings.vue
+ M src/components/settings/tabs/__tests__/AISettings.test.js
+ M src/composables/__tests__/useGoodsOverview.test.js
+ M src/composables/__tests__/usePurchaseOrders.test.js
+ M src/composables/order/useOrderFilters.js
+ M src/composables/useAIStream.js
+ M src/composables/useGoodsOverview.js
+ M src/composables/usePurchaseOrders.js
+ M src/composables/useSearch.js
+ M src/composables/useTags.js
+ M src/composables/useUploadQueue.js
+ M src/composables/useWatermarkSettings.js
+ M src/views/Customers.vue
+?? docs/plans/2026-03-06-authz-request-core-optimization-plan.md
+?? git_status.txt
+?? src/components/settings/tabs/__tests__/AISettings.auth-fetch.test.js

@@ -1,10 +1,12 @@
 import { ref, watch } from 'vue';
+import { useAuth } from '@/composables/useAuth';
 
 const searchQuery = ref('');
 const searchResults = ref([]);
 const isSearching = ref(false);
 
 let searchTimeout = null;
+const { authFetch } = useAuth();
 
 const performSearch = async (query) => {
     if (!query) {
@@ -14,7 +16,7 @@ const performSearch = async (query) => {
 
     isSearching.value = true;
     try {
-        const res = await fetch(`/api/manage/search?q=${encodeURIComponent(query)}`);
+        const res = await authFetch(`/api/manage/search?q=${encodeURIComponent(query)}`);
         const data = await res.json();
         if (data.success) {
             searchResults.value = data.data;

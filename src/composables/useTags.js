@@ -1,13 +1,15 @@
 import { ref } from 'vue';
+import { useAuth } from '@/composables/useAuth';
 
 const tags = ref([]);
 const loadingTags = ref(false);
 
 export function useTags() {
+    const { authFetch } = useAuth();
     const fetchTags = async () => {
         loadingTags.value = true;
         try {
-            const res = await fetch('/api/manage/tags');
+            const res = await authFetch('/api/manage/tags');
             const data = await res.json();
             if (data.success) {
                 tags.value = data.tags;
@@ -21,7 +23,7 @@ export function useTags() {
 
     const createTag = async (name, color) => {
         try {
-            const res = await fetch('/api/manage/tags', {
+            const res = await authFetch('/api/manage/tags', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, color })
@@ -41,7 +43,7 @@ export function useTags() {
     };
 
     const assignTag = async (file_id, tag_id) => {
-        const res = await fetch('/api/manage/tags/assign', {
+        const res = await authFetch('/api/manage/tags/assign', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ file_id, tag_id })
@@ -50,7 +52,7 @@ export function useTags() {
     };
 
     const removeTag = async (file_id, tag_id) => {
-        const res = await fetch('/api/manage/tags/assign', {
+        const res = await authFetch('/api/manage/tags/assign', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ file_id, tag_id })

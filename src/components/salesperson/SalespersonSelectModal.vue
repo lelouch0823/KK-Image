@@ -118,6 +118,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
 import Modal from '@/components/ui/Modal.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -144,6 +145,7 @@ const props = defineProps({
 const emit = defineEmits(['update:show', 'close', 'confirm']);
 
 const { t } = useI18n();
+const { authFetch } = useAuth();
 
 const loading = ref(false);
 const salespersons = ref([]);
@@ -166,7 +168,7 @@ watch(() => props.show, (val) => {
 const loadSalespersons = async () => {
   loading.value = true;
   try {
-    const response = await fetch(API.SALESPERSONS, { credentials: 'include' });
+    const response = await authFetch(API.SALESPERSONS);
     const result = await response.json();
     if (result.success && result.data) {
       salespersons.value = result.data.salespersons || result.data || [];

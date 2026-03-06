@@ -127,10 +127,12 @@ import SettingsSection from '../SettingsSection.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
+import { useAuth } from '@/composables/useAuth';
 import { useWatermarkSettings } from '@/composables/useWatermarkSettings';
 
 const { t } = useI18n();
 const { addToast } = useToast();
+const { authFetch } = useAuth();
 const { loadSettings, watermarkSettings } = useWatermarkSettings();
 
 const saving = ref(false);
@@ -166,7 +168,7 @@ const saveSettings = async () => {
       { key: 'WATERMARK_SIZE_RATIO', value: String(form.WATERMARK_SIZE_RATIO), category: 'watermark' },
     ];
 
-    const res = await fetch('/api/manage/settings/batch', {
+    const res = await authFetch('/api/manage/settings/batch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ settings: settingsToSave }),

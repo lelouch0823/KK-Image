@@ -62,10 +62,12 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
 import { formatSize, formatDate } from '@/utils/formatters';
 
 const { t } = useI18n();
 const { addToast } = useToast();
+const { authFetch } = useAuth();
 
 const backups = ref([]);
 const loading = ref(true);
@@ -81,7 +83,7 @@ const columns = computed(() => [
 const fetchBackups = async () => {
   try {
     loading.value = true;
-    const res = await fetch('/api/manage/backups');
+    const res = await authFetch('/api/manage/backups');
     const json = await res.json();
     if (json.success) {
       backups.value = json.data;
@@ -98,7 +100,7 @@ const fetchBackups = async () => {
 const createBackup = async () => {
   try {
     creating.value = true;
-    const res = await fetch('/api/manage/backups', { method: 'POST' });
+    const res = await authFetch('/api/manage/backups', { method: 'POST' });
     const json = await res.json();
 
     if (json.success) {
@@ -116,8 +118,7 @@ const createBackup = async () => {
 
 const downloadBackup = async (backup) => {
   try {
-    const res = await fetch(`/api/manage/backups/${backup.name}`);
-    if (!res.ok) throw new Error(t('common.loadFailed'));
+    const res = await authFetch(`/api/manage/backups/${backup.name}`);
 
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);

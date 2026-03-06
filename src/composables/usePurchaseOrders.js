@@ -11,10 +11,12 @@ import { ref, reactive, computed } from 'vue';
 import { API } from '@/utils/constants';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
+import { useAuth } from '@/composables/useAuth';
 
 export function usePurchaseOrders() {
   const { addToast } = useToast();
   const { t } = useI18n();
+  const { authFetch } = useAuth();
 
   // ─── 状态 ────────────────────────────────────────────
   const list = ref([]);
@@ -57,26 +59,13 @@ export function usePurchaseOrders() {
       params.set('page', String(filters.page));
       params.set('limit', String(filters.limit));
 
-      const res = await fetch(`${API.MANAGE_PURCHASE_ORDERS}?${params}`);
-      const status = Number(res?.status || 0);
+      const res = await authFetch(`${API.MANAGE_PURCHASE_ORDERS}?${params}`);
       const json = await res.json();
 
       if (json.success) {
         list.value = json.data.items;
         total.value = json.data.total;
         return true;
-      }
-
-      if (status === 403) {
-        errorCode.value = 'FORBIDDEN';
-        error.value = json.error || json.message || '权限不足';
-        return false;
-      }
-
-      if (status === 401) {
-        errorCode.value = 'UNAUTHORIZED';
-        error.value = json.error || json.message || '未授权';
-        return false;
       }
 
       error.value = json.error || t('purchaseOrder.error.loadFailed');
@@ -109,7 +98,7 @@ export function usePurchaseOrders() {
   const loadDetail = async (id) => {
     detailLoading.value = true;
     try {
-      const res = await fetch(API.MANAGE_PURCHASE_ORDER_BY_ID(id));
+      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_BY_ID(id));
       const json = await res.json();
 
       if (json.success) {
@@ -128,7 +117,7 @@ export function usePurchaseOrders() {
 
   const createPO = async (data) => {
     try {
-      const res = await fetch(API.MANAGE_PURCHASE_ORDERS, {
+      const res = await authFetch(API.MANAGE_PURCHASE_ORDERS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -154,7 +143,7 @@ export function usePurchaseOrders() {
    */
   const createFromOrders = async (orderIds, poData = {}) => {
     try {
-      const res = await fetch(API.MANAGE_PURCHASE_ORDER_FROM_ORDERS, {
+      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_FROM_ORDERS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_ids: orderIds, ...poData }),
@@ -179,7 +168,7 @@ export function usePurchaseOrders() {
 
   const updatePO = async (id, updates) => {
     try {
-      const res = await fetch(API.MANAGE_PURCHASE_ORDER_BY_ID(id), {
+      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_BY_ID(id), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
@@ -204,7 +193,7 @@ export function usePurchaseOrders() {
 
   const updateStatus = async (id, newStatus) => {
     try {
-      const res = await fetch(API.MANAGE_PURCHASE_ORDER_STATUS(id), {
+      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_STATUS(id), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -232,7 +221,7 @@ export function usePurchaseOrders() {
 
   const addItems = async (poId, items) => {
     try {
-      const res = await fetch(API.MANAGE_PURCHASE_ORDER_ITEMS(poId), {
+      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_ITEMS(poId), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items }),
@@ -253,7 +242,7 @@ export function usePurchaseOrders() {
 
   const updateItem = async (poId, itemId, updates) => {
     try {
-      const res = await fetch(API.MANAGE_PURCHASE_ORDER_ITEM(poId, itemId), {
+      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_ITEM(poId, itemId), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
@@ -274,7 +263,7 @@ export function usePurchaseOrders() {
 
   const removeItem = async (poId, itemId) => {
     try {
-      const res = await fetch(API.MANAGE_PURCHASE_ORDER_ITEM(poId, itemId), {
+      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_ITEM(poId, itemId), {
         method: 'DELETE',
       });
       const json = await res.json();
@@ -295,7 +284,7 @@ export function usePurchaseOrders() {
 
   const allocateCosts = async (poId) => {
     try {
-      const res = await fetch(API.MANAGE_PURCHASE_ORDER_ALLOCATE(poId), {
+      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_ALLOCATE(poId), {
         method: 'POST',
       });
       const json = await res.json();
@@ -318,7 +307,7 @@ export function usePurchaseOrders() {
   const loadSuggestions = async () => {
     suggestionsLoading.value = true;
     try {
-      const res = await fetch(API.MANAGE_PURCHASE_ORDER_SUGGESTIONS);
+      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_SUGGESTIONS);
       const json = await res.json();
 
       if (json.success) {
@@ -335,23 +324,22 @@ export function usePurchaseOrders() {
 
   const loadStats = async () => {
     try {
-      const res = await fetch(API.MANAGE_PURCHASE_ORDER_STATS);
-      const status = Number(res?.status || 0);
+      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_STATS);
       const json = await res.json();
       if (json.success) {
         stats.value = json.data;
         return true;
       }
 
+      return false;
+    } catch (e) {
+      console.error('loadStats failed:', e);
+      const status = Number(e?.status || 0);
       // 统计接口权限应只影响统计模块，不应覆盖列表权限态（避免整页误封）
       if (status === 401 || status === 403) {
         stats.value = null;
         return false;
       }
-
-      return false;
-    } catch (e) {
-      console.error('loadStats failed:', e);
       return false;
     }
   };

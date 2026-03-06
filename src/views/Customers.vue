@@ -192,7 +192,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onActivated, watch } from 'vue';
+import { ref, reactive, onMounted, onActivated, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
@@ -317,7 +317,7 @@ const handleFormSubmit = async (formData) => {
 
     const method = editingId.value ? 'PUT' : 'POST';
 
-    const res = await fetch(url, {
+    const res = await authFetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData),

@@ -49,6 +49,7 @@
 import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
 import { useDragSort } from '@/composables/useDragSort';
 import { useImageCompression } from '@/composables/useImageCompression';
 import { API } from '@/utils/constants';
@@ -74,6 +75,7 @@ const emit = defineEmits(['update:modelValue']);
 
 const { t } = useI18n();
 const { addToast } = useToast();
+const { authFetch } = useAuth();
 
 // 处理状态
 const isProcessing = ref(false);
@@ -115,11 +117,10 @@ const { compressImage, getFileHash } = useImageCompression();
  */
 const checkOriginalHash = async (originalHash) => {
   try {
-    const response = await fetch(API.CHECK_HASH, {
+    const response = await authFetch(API.CHECK_HASH, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ original_hash: originalHash }),
-      credentials: 'include',
     });
     const result = await response.json();
     return result.success ? result.data : { exists: false };
@@ -150,10 +151,9 @@ const uploadFile = async (file, hash, originalHash) => {
     uploadUrl = `${uploadUrl}${separator}context=${props.context}`;
   }
 
-  const response = await fetch(uploadUrl, {
+  const response = await authFetch(uploadUrl, {
     method: 'POST',
     body: formData,
-    credentials: 'include',
   });
 
   const result = await response.json();
@@ -279,9 +279,8 @@ const removeFile = async (index) => {
   // 在非延迟模式下，且文件已上传，才物理删除
   if (!props.deferred && file.id && !file.isLocal) {
     try {
-      await fetch(`${API.FILES}/${file.id}`, {
+      await authFetch(`${API.FILES}/${file.id}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
     } catch (e) {
       console.warn('Failed to delete file from server', e);
@@ -331,9 +330,8 @@ const replaceFile = async (index, e) => {
       // 非延迟模式下才物理删除旧文件
       if (!props.deferred && oldFile.id && !oldFile.isLocal) {
         try {
-          await fetch(`${API.FILES}/${oldFile.id}`, {
+          await authFetch(`${API.FILES}/${oldFile.id}`, {
             method: 'DELETE',
-            credentials: 'include',
           });
         } catch (e) {
           console.warn('Failed to delete old file', e);

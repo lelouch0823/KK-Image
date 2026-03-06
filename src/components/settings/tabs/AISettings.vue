@@ -306,10 +306,12 @@ import SettingsSection from '../SettingsSection.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
+import { useAuth } from '@/composables/useAuth';
 import { inferModelSupportsVision } from '@/utils/ai-model-capabilities';
 
 const { t } = useI18n();
 const { addToast } = useToast();
+const { authFetch } = useAuth();
 
 const showKey = ref(false);
 const loading = ref(true);
@@ -334,7 +336,7 @@ const form = reactive({
 const fetchSettings = async () => {
   try {
     loading.value = true;
-    const res = await fetch('/api/manage/settings');
+    const res = await authFetch('/api/manage/settings');
     const json = await res.json();
     
     if (json.success && json.data && json.data.ai) {
@@ -364,7 +366,7 @@ const saveSettings = async () => {
       { key: 'AI_MODEL_HEALTH_WINDOW', value: String(form.AI_MODEL_HEALTH_WINDOW), category: 'ai' },
     ];
 
-    const res = await fetch('/api/manage/settings/batch', {
+    const res = await authFetch('/api/manage/settings/batch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ settings: settingsToSave }),
@@ -454,7 +456,7 @@ const onDrop = (targetIndex) => {
 const fetchModels = async () => {
   try {
     modelFetching.value = true;
-    const res = await fetch('/api/manage/settings/ai/models', {
+    const res = await authFetch('/api/manage/settings/ai/models', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -489,7 +491,7 @@ const testConnection = async () => {
     connectionResult.value = null;
 
     const candidateModels = splitModels(form.AI_MODELS);
-    const res = await fetch('/api/manage/settings/ai/test', {
+    const res = await authFetch('/api/manage/settings/ai/test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -530,7 +532,7 @@ const fetchHealthStats = async () => {
     healthLoading.value = true;
     const models = selectedModels.value.length > 0 ? selectedModels.value : availableModels.value;
     const query = models.length > 0 ? `?models=${encodeURIComponent(models.join(','))}` : '';
-    const res = await fetch(`/api/manage/settings/ai/health${query}`);
+    const res = await authFetch(`/api/manage/settings/ai/health${query}`);
     const json = await res.json();
     if (!json.success) {
       throw new Error(json.error || t('settings.ai.healthLoadFailed', 'Failed to load health stats'));

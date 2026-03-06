@@ -133,7 +133,7 @@ const emit = defineEmits(['update:modelValue', 'edit']);
 
 const { success, error } = useToast();
 const { t } = useI18n();
-const { getHeaders, authFetchJson } = useAuth();
+const { authFetchJson } = useAuth();
 const { copy } = useClipboard();
 
 const loading = ref(false);
@@ -198,11 +198,11 @@ const revokeShare = (item) => {
     onConfirm: async () => {
       confirmData.value.loading = true;
       try {
-        const res = await fetch(API.FOLDER_BY_ID(item.id), {
+        const res = await authFetchJson(API.FOLDER_BY_ID(item.id), {
           method: 'PUT',
-          headers: getHeaders(true),
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ isPublic: false, shareToken: null }),
-        }).then((r) => r.json());
+        });
 
         if (res.success) {
           success(t('common.shareRevoked'));

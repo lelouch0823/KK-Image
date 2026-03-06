@@ -171,12 +171,14 @@ import { ref, onMounted, computed } from 'vue';
 import { API } from '@/utils/constants';
 import { isImage } from '@/utils/formatters';
 import { useI18n } from '@/composables/useI18n';
+import { useAuth } from '@/composables/useAuth';
 import Modal from '@/components/ui/Modal.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const emit = defineEmits(['close', 'select']);
 const { t } = useI18n();
+const { authFetch } = useAuth();
 
 const allFolders = ref([]); // 所有文件夹扁平列表
 const files = ref([]);
@@ -202,7 +204,7 @@ const currentFolders = computed(() => {
 const loadFoldersStructure = async () => {
   try {
     // 使用 ?all=true 获取完整文件夹树
-    const response = await fetch(`${API.FOLDERS}?all=true`, { credentials: 'include' });
+    const response = await authFetch(`${API.FOLDERS}?all=true`);
     const result = await response.json();
     if (result.success) {
       allFolders.value = result.data || [];
@@ -253,7 +255,7 @@ const loadFiles = async () => {
     // 让我们假设 API.FOLDERS 返回所有一级文件夹。
     // 如果 API.FILES 能支持 parent_id=null 最好。目前复用 Folder logic.
 
-    const response = await fetch(url, { credentials: 'include' });
+    const response = await authFetch(url);
     const result = await response.json();
 
     if (result.success) {

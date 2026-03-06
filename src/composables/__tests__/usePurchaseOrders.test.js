@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockFetch = vi.fn();
-globalThis.fetch = mockFetch;
+const mockAuthFetch = vi.fn();
+globalThis.fetch = vi.fn(() => Promise.reject(new Error('direct fetch should not be used in manage composables')));
 
 const mocks = vi.hoisted(() => ({
   addToast: vi.fn(),
@@ -29,6 +29,10 @@ vi.mock('../useI18n', () => ({
   useI18n: () => ({ t: (key) => key }),
 }));
 
+vi.mock('../useAuth', () => ({
+  useAuth: () => ({ authFetch: mockAuthFetch }),
+}));
+
 import { usePurchaseOrders } from '../usePurchaseOrders';
 
 describe('usePurchaseOrders authz handling', () => {
@@ -37,52 +41,52 @@ describe('usePurchaseOrders authz handling', () => {
   });
 
   it('marks FORBIDDEN when list API responds 403', async () => {
-    mockFetch.mockResolvedValueOnce({
-      status: 403,
-      json: () => Promise.resolve({ success: false, error: '权限不足: purchase_orders:read' }),
-    });
+    const err = new Error('权限不足: purchase_orders:read');
+    err.status = 403;
+    err.data = { error: '权限不足: purchase_orders:read' };
+    mockAuthFetch.mockRejectedValueOnce(err);
 
     const { loadList, error, errorCode } = usePurchaseOrders();
     await loadList();
 
+    expect(mockAuthFetch).toHaveBeenCalledTimes(1);
     expect(errorCode.value).toBe('FORBIDDEN');
     expect(error.value).toContain('权限不足');
   });
 
   it('does not mark page forbidden when stats API responds 403', async () => {
-    mockFetch
+    const statsForbidden = new Error('权限不足: purchase_orders:stats');
+    statsForbidden.status = 403;
+    statsForbidden.data = { error: '权限不足: purchase_orders:stats' };
+    mockAuthFetch
       .mockResolvedValueOnce({
-        status: 200,
         json: () => Promise.resolve({ success: true, data: { items: [], total: 0 } }),
       })
-      .mockResolvedValueOnce({
-        status: 403,
-        json: () => Promise.resolve({ success: false, error: '权限不足: purchase_orders:stats' }),
-      });
+      .mockRejectedValueOnce(statsForbidden);
 
     const { loadList, loadStats, errorCode, stats } = usePurchaseOrders();
     await loadList();
     const ok = await loadStats();
 
+    expect(mockAuthFetch).toHaveBeenCalledTimes(2);
     expect(ok).toBe(false);
     expect(errorCode.value).toBeNull();
     expect(stats.value).toBeNull();
   });
 
   it('keeps list forbidden reason when list and stats both respond 403', async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        status: 403,
-        json: () => Promise.resolve({ success: false, error: '权限不足: purchase_orders:read' }),
-      })
-      .mockResolvedValueOnce({
-        status: 403,
-        json: () => Promise.resolve({ success: false, error: '权限不足: stats:read' }),
-      });
+    const listForbidden = new Error('权限不足: purchase_orders:read');
+    listForbidden.status = 403;
+    listForbidden.data = { error: '权限不足: purchase_orders:read' };
+    const statsForbidden = new Error('权限不足: stats:read');
+    statsForbidden.status = 403;
+    statsForbidden.data = { error: '权限不足: stats:read' };
+    mockAuthFetch.mockRejectedValueOnce(listForbidden).mockRejectedValueOnce(statsForbidden);
 
     const { loadList, loadStats, error, errorCode } = usePurchaseOrders();
     await Promise.all([loadList(), loadStats()]);
 
+    expect(mockAuthFetch).toHaveBeenCalledTimes(2);
     expect(errorCode.value).toBe('FORBIDDEN');
     expect(error.value).toContain('purchase_orders:read');
   });

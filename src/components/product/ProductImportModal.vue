@@ -123,6 +123,7 @@ import Modal from '@/components/ui/Modal.vue';
 import * as XLSX from 'xlsx';
 import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
@@ -144,6 +145,7 @@ const emit = defineEmits(['update:modelValue', 'success']);
 const { t } = useI18n();
 const { addToast } = useToast();
 const { importProducts } = useProducts(); 
+const { authFetch } = useAuth();
 
 const fileName = ref('');
 const fileSize = ref('');
@@ -654,7 +656,7 @@ const handleUploadImagesAndNext = async () => {
             formData.append('file', file);
             
             // Upload to API
-            const res = await fetch(`${API.MANAGE_UPLOAD}?context=product`, {
+            const res = await authFetch(`${API.MANAGE_UPLOAD}?context=product`, {
                 method: 'POST',
                 body: formData
             });

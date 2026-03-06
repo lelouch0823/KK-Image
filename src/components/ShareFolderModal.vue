@@ -171,7 +171,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'updated']);
 
 const { success, error } = useToast();
-const { getHeaders } = useAuth();
+const { authFetchJson } = useAuth();
 const { t } = useI18n();
 const { copy: clipboardCopy } = useClipboard();
 
@@ -212,14 +212,14 @@ const generateLink = async () => {
       timestamp = Date.now() + expiry.value * 24 * 60 * 60 * 1000;
     }
 
-    const res = await fetch(API.FOLDER_BY_ID(props.folder.id), {
+    const res = await authFetchJson(API.FOLDER_BY_ID(props.folder.id), {
       method: 'PUT',
-      headers: getHeaders(true),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         shareExpiresAt: timestamp,
         isPublic: true,
       }),
-    }).then((r) => r.json());
+    });
 
     if (res.success) {
       shareUrl.value = window.location.origin + res.data.shareUrl;

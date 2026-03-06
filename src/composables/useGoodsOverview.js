@@ -9,8 +9,10 @@
 
 import { ref, reactive, computed, watch } from 'vue';
 import { API } from '@/utils/constants';
+import { useAuth } from '@/composables/useAuth';
 
 export function useGoodsOverview() {
+    const { authFetch } = useAuth();
     const items = ref([]);
     const summary = ref(null);
     const loading = ref(false);
@@ -88,8 +90,7 @@ export function useGoodsOverview() {
             const queryStr = params.toString();
             const url = queryStr ? `${API.MANAGE_GOODS_OVERVIEW}?${queryStr}` : API.MANAGE_GOODS_OVERVIEW;
 
-            const res = await fetch(url);
-            const status = Number(res?.status || 0);
+            const res = await authFetch(url);
             const json = await res.json();
 
             if (json.success) {
@@ -98,20 +99,8 @@ export function useGoodsOverview() {
                 return true;
             }
 
-            if (status === 403) {
-                errorCode.value = 'FORBIDDEN';
-                error.value = json.error || json.message || '权限不足';
-                return false;
-            }
-
-            if (status === 401) {
-                errorCode.value = 'UNAUTHORIZED';
-                error.value = json.error || json.message || '未授权';
-                return false;
-            } else {
-                error.value = json.error || '加载失败';
-                return false;
-            }
+            error.value = json.error || '加载失败';
+            return false;
         } catch (e) {
             console.error('loadGoodsOverview failed:', e);
             const status = Number(e?.status || 0);
@@ -138,7 +127,7 @@ export function useGoodsOverview() {
      */
     const loadSummary = async () => {
         try {
-            const res = await fetch(API.MANAGE_GOODS_OVERVIEW_SUMMARY);
+            const res = await authFetch(API.MANAGE_GOODS_OVERVIEW_SUMMARY);
             const json = await res.json();
             if (json.success) {
                 summary.value = json.data;
@@ -180,7 +169,7 @@ export function useGoodsOverview() {
                 unit_cost: item.avgUnitCost || 0,
             }));
 
-            const res = await fetch(API.MANAGE_PURCHASE_ORDERS, {
+            const res = await authFetch(API.MANAGE_PURCHASE_ORDERS, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

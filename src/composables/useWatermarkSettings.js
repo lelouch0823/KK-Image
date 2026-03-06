@@ -1,6 +1,5 @@
 import { ref } from 'vue';
-import { useToast } from '@/composables/useToast';
-import { useI18n } from '@/composables/useI18n';
+import { useAuth } from '@/composables/useAuth';
 
 // 全局缓存状态，避免每次组件挂载都重新请求
 const watermarkSettings = ref({
@@ -16,8 +15,7 @@ const isLoaded = ref(false);
 const isLoading = ref(false);
 
 export function useWatermarkSettings() {
-    const { addToast } = useToast();
-    const { t } = useI18n();
+    const { authFetch } = useAuth();
 
     const loadSettings = async (force = false) => {
         if (isLoaded.value && !force) return watermarkSettings.value;
@@ -29,7 +27,7 @@ export function useWatermarkSettings() {
 
         try {
             isLoading.value = true;
-            const res = await fetch('/api/manage/settings');
+            const res = await authFetch('/api/manage/settings');
             const json = await res.json();
 
             if (json.success && json.data && json.data.watermark) {
