@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   repoAddItems: vi.fn(),
   repoUpdateItem: vi.fn(),
   repoRemoveItem: vi.fn(),
+  serviceUpdateStatus: vi.fn(),
 }));
 
 vi.mock('../../../../../repositories/PurchaseOrderRepository.js', () => ({
@@ -23,7 +24,7 @@ vi.mock('../../../../../repositories/PurchaseOrderRepository.js', () => ({
 
 vi.mock('../../../../../services/PurchaseOrderService.js', () => ({
   PurchaseOrderService: vi.fn(() => ({
-    updateStatus: vi.fn(),
+    updateStatus: mocks.serviceUpdateStatus,
     getSuggestions: vi.fn(async () => []),
     createFromOrders: vi.fn(),
     allocateCosts: vi.fn(),
@@ -90,6 +91,7 @@ describe('manage purchase-orders routes', () => {
     mocks.repoAddItems.mockResolvedValue(['poi-1']);
     mocks.repoUpdateItem.mockResolvedValue(true);
     mocks.repoRemoveItem.mockResolvedValue(true);
+    mocks.serviceUpdateStatus.mockResolvedValue({ success: true, cascadedOrders: 2 });
   });
 
   it('rejects adding item when pre_order_id product/variant mismatch', async () => {
@@ -153,5 +155,25 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(404);
+  });
+
+  it('returns procurement-specific cascade message on status update', async () => {
+    const app = createApp();
+    const db = createDb();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/status',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'ordered' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json?.data?.message || '').toContain('预订单采购状态');
   });
 });

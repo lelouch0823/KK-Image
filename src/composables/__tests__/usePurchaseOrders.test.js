@@ -90,4 +90,22 @@ describe('usePurchaseOrders authz handling', () => {
     expect(errorCode.value).toBe('FORBIDDEN');
     expect(error.value).toContain('purchase_orders:read');
   });
+
+  it('uses backend status-update message when present', async () => {
+    mockAuthFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        success: true,
+        data: { message: '状态已更新，同步更新了 2 个预订单采购状态' },
+      }),
+    });
+
+    const { updateStatus } = usePurchaseOrders();
+    const ok = await updateStatus('po-1', 'ordered');
+
+    expect(ok).toBe(true);
+    expect(mocks.addToast).toHaveBeenCalledWith({
+      message: '状态已更新，同步更新了 2 个预订单采购状态',
+      type: 'success',
+    });
+  });
 });

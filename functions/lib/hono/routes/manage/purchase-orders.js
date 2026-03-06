@@ -263,7 +263,7 @@ app.patch('/:id/status', async (c) => {
     data: {
       ...result,
       message: result.cascadedOrders > 0
-        ? `状态已更新，同步更新了 ${result.cascadedOrders} 个预订单`
+        ? `状态已更新，同步更新了 ${result.cascadedOrders} 个预订单采购状态`
         : '状态已更新',
     },
   });
