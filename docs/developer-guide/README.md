@@ -9,6 +9,7 @@
 - **[Wrangler 指南](wrangler-guide.md)** - CLI 工具使用说明
 - **[Pages Context](cloudflare-pages-context.md)** - 请求上下文和中间件
 - **[授权策略系统（OPA/Rego）](authz-policy-system.md)** - 权限架构、开发流程与标准
+- **[前端请求内核（Request Core）](../architecture/frontend-request-core.md)** - 受保护请求统一路径与适配器规范
 
 ### 客户端开发
 - **[微信小程序 (minisales)](minisales.md)** - 销售端小程序开发指南

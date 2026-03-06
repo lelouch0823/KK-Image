@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createStreamSanitizer, classifyAIStreamError } from '../useAIStream.js';
 import fs from 'node:fs';
 import path from 'node:path';
+import { cwd } from 'node:process';
 
 describe('createStreamSanitizer', () => {
   it('removes internal tags across chunk boundaries', () => {
@@ -51,7 +52,7 @@ describe('classifyAIStreamError', () => {
 
 describe('request path guard', () => {
   it('routes protected AI stream calls through request adapters instead of useAuth.authFetch', () => {
-    const source = fs.readFileSync(path.resolve(process.cwd(), 'src/composables/useAIStream.js'), 'utf8');
+    const source = fs.readFileSync(path.resolve(cwd(), 'src/composables/useAIStream.js'), 'utf8');
     expect(source).toContain('useRequestAdapters');
     expect(source).not.toContain('const { authFetch } = useAuth()');
     expect(source).not.toContain('authFetch(API_URLS.AI.STREAM');

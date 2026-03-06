@@ -369,3 +369,18 @@ git commit -m "docs(authz): document request core and close optimization plan"
 4. Task 7（CI 守卫）
 5. Task 8（全量验证 + 文档收口）
 
+## Status (2026-03-06)
+
+- [x] auth adapter only path verified
+- [x] deny/allow headless audit both pass
+- [x] ci guard script active
+
+### Execution Notes
+
+- Task 1 commit: `a80277b`
+- Task 2 commit: `9b1d003`
+- Task 3 commit: `fd1ee48`
+- Task 4 commit: `794732a`
+- Task 5 commit: `e88f881`
+- Task 6 commit: `4b4a59f`
+- Task 7 commit: `563c130`

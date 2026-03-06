@@ -231,3 +231,14 @@ pnpm run authz:policy:build
 
 该系统的关键价值不在“使用 OPA”本身，而在“策略定义、运行时决策、接口契约、测试门禁”全部围绕同一套规则闭环。  
 后续所有权限变更都应遵循本文档流程，避免策略分叉和隐性回归。
+
+## 11. 前端请求契约（补充）
+
+为保证 OPA 决策在前端不被“请求路径分叉”稀释，前端需遵守以下契约：
+
+- 管理端/受保护请求仅通过 request core + adapter 流程发起
+- 禁止在 `src/` 内直接 `fetch` 受保护端点（CI 守卫会阻断）
+- 页面级与路由级拒绝态统一落到 `/admin/forbidden`
+- 前端不得引入 `*` wildcard 的额外放权规则（仅认可 OPA 契约权限）
+
+实现细节见：`docs/architecture/frontend-request-core.md`

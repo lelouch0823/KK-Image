@@ -3,7 +3,7 @@ import { request } from '../http-core'
 
 describe('http-core request', () => {
   it('throws normalized error for non-2xx response', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 403,
       json: async () => ({ error: '权限不足: products:manage' }),

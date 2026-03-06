@@ -22,6 +22,7 @@ const adminRoutes = [
   '/admin/customers',
   '/admin/stats',
   '/admin/audit-logs',
+  '/admin/forbidden',
 ];
 
 function pickChromePath() {
@@ -445,8 +446,8 @@ async function run() {
         expression: `(() => {
           const alerts = Array.from(document.querySelectorAll('section[role="alert"]')).map((el) => (el.innerText || '').trim());
           const bodyText = (document.body?.innerText || '').trim();
-          const denied = alerts.some((txt) => /权限不足|访问受限|权限/.test(txt))
-            || /权限不足|访问受限/.test(bodyText);
+          const denied = alerts.some((txt) => /权限不足|访问受限|无权访问|权限/.test(txt))
+            || /权限不足|访问受限|无权访问/.test(bodyText);
           return {
             path: location.pathname,
             title: document.title,
@@ -468,15 +469,51 @@ async function run() {
       console.log(`[audit] ${route} -> denied=${results[results.length - 1].denied}`);
     }
 
+    const protectedResults = results.filter((item) => item.route !== '/admin/forbidden');
+    const violations = [];
+
+    if (AUDIT_SCENARIO === 'deny') {
+      for (const item of protectedResults) {
+        if (!item.denied) {
+          violations.push(`deny scenario should block ${item.route}`);
+        }
+      }
+    } else if (AUDIT_SCENARIO === 'allow') {
+      for (const item of protectedResults) {
+        if (item.denied) {
+          violations.push(`allow scenario should permit ${item.route}`);
+        }
+      }
+    } else {
+      throw new Error(`Unknown AUDIT_SCENARIO: ${AUDIT_SCENARIO}`);
+    }
+
     const reportPath = path.join(OUTPUT_DIR, 'report.json');
     await fs.writeFile(
       reportPath,
-      JSON.stringify({ baseUrl: BASE_URL, scenario: AUDIT_SCENARIO, results }, null, 2),
+      JSON.stringify(
+        {
+          baseUrl: BASE_URL,
+          scenario: AUDIT_SCENARIO,
+          summary: {
+            totalRoutes: results.length,
+            violations,
+          },
+          results,
+        },
+        null,
+        2
+      ),
       'utf8'
     );
 
     // eslint-disable-next-line no-console
     console.log(`[audit] report: ${reportPath}`);
+
+    if (violations.length > 0) {
+      throw new Error(`Audit violations: ${violations.join('; ')}`);
+    }
+
     await send('Browser.close').catch(() => {});
   } finally {
     try {
