@@ -205,6 +205,7 @@ import EmptyState from '@/components/ui/EmptyState.vue';
 import Modal from '@/components/ui/Modal.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import { useI18n } from '@/composables/useI18n';
+import { resolveBoundProductMainImageSrc } from '@/utils/product-image.js';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -257,17 +258,6 @@ const handleEdit = (product) => {
     editingProduct.value = { ...product };
 };
 
-const resolveVariantImageId = (variant) => {
-    if (!variant) return null;
-    if (variant.primaryImage) return variant.primaryImage;
-    if (variant.image_id) return variant.image_id;
-    if (Array.isArray(variant.images) && variant.images.length > 0) {
-        const primary = variant.images.find((img) => Number(img.is_primary) === 1) || variant.images[0];
-        return primary?.image_id || null;
-    }
-    return null;
-};
-
 const hydrateProductWithVariants = async (product) => {
     const full = await loadProduct(product.id);
     const hydrated = full ? { ...full } : { ...product };
@@ -275,14 +265,7 @@ const hydrateProductWithVariants = async (product) => {
     if (!hydrated.selectedVariant && variants.length > 0) {
         hydrated.selectedVariant = variants.find((variant) => variant.status === 'active') || variants[0];
     }
-    if (!hydrated.mainImage) {
-        const variantImage = resolveVariantImageId(hydrated.selectedVariant);
-        if (variantImage) {
-            hydrated.mainImage = `/file/${variantImage}`;
-        } else if (Array.isArray(hydrated.images) && hydrated.images[0]) {
-            hydrated.mainImage = `/file/${hydrated.images[0]}`;
-        }
-    }
+    hydrated.mainImage = resolveBoundProductMainImageSrc(hydrated) || hydrated.mainImage || null;
     return hydrated;
 };
 

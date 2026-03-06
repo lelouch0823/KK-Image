@@ -51,8 +51,8 @@
             <!-- Image -->
             <div class="relative size-10 shrink-0 overflow-hidden rounded-md border border-(--border-color) bg-(--bg-muted)">
                <AppImage 
-                  v-if="getMainImage(product)" 
-                  :src="getFileUrl(getMainImage(product))" 
+                  v-if="getMainImageSrc(product)" 
+                  :src="getMainImageSrc(product)" 
                   fit="cover"
                   class="size-full"
                />
@@ -88,6 +88,7 @@ import { useProducts } from '@/composables/useProducts';
 import { onClickOutside, useDebounceFn } from '@vueuse/core';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import { resolvePrimaryProductImageSrc } from '@/utils/product-image.js';
 
 const props = defineProps({
   modelValue: { type: String, default: '' }, // existing code compatibility
@@ -136,12 +137,5 @@ const select = (product) => {
     searchQuery.value = ''; // Reset for next time or clear.
 };
 
-const getFileUrl = (id) => `/file/${id}`;
-const getMainImage = (product) => {
-    try {
-        if (!product.images) return null;
-        const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
-        return Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
-    } catch { return null; }
-};
+const getMainImageSrc = (product) => resolvePrimaryProductImageSrc(product);
 </script>

@@ -207,6 +207,9 @@ import {
   getVariantAvailabilityState,
   isVariantSelectable,
 } from '@/utils/variant-meta';
+import {
+  resolveVariantPrimaryImageSrc,
+} from '@/utils/product-image.js';
 
 const props = defineProps({
   boundProduct: { type: Object, default: null },
@@ -369,31 +372,7 @@ const buildColorSwatchStyle = (rawValue) => {
   return { backgroundColor: color };
 };
 
-const resolveVariantImageId = (variant) => {
-    if (!variant) return null;
-    if (variant.primaryImage) return variant.primaryImage;
-    if (variant.image_id) return variant.image_id;
-    if (Array.isArray(variant.images) && variant.images.length > 0) {
-        const primary = variant.images.find((img) => Number(img.is_primary) === 1) || variant.images[0];
-        return primary?.image_id || null;
-    }
-    return null;
-};
-
-const resolveProductImageId = (product) => {
-    try {
-        if (!product?.images) return null;
-        const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
-        return Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
-    } catch {
-        return null;
-    }
-};
-
-const buildMainImagePath = (product, variant) => {
-  const imageId = resolveVariantImageId(variant) || resolveProductImageId(product);
-  return imageId ? `/file/${imageId}` : null;
-};
+const buildMainImagePath = (variant) => resolveVariantPrimaryImageSrc(variant);
 
 const matchBySelectedOptions = (variant) => {
   return dimensionKeys.value.every((dimension) => {
@@ -412,7 +391,7 @@ const emitVariantSelection = (variant) => {
   emit('select', {
     ...fullProductData.value,
     selectedVariant: rawVariant,
-    mainImage: buildMainImagePath(fullProductData.value, rawVariant),
+    mainImage: buildMainImagePath(rawVariant),
   });
 };
 

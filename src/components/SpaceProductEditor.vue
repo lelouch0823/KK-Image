@@ -380,6 +380,11 @@ import SpaceVisibilitySelector from './space/SpaceVisibilitySelector.vue';
 import SpaceMediaGrid from './space/SpaceMediaGrid.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
+import {
+  resolveBoundProductMainImageSrc,
+  resolveProductImageSrcList,
+  resolveSelectedVariantMainImageSrc,
+} from '@/utils/product-image.js';
 
 const props = defineProps({
   space: { type: Object, required: true },
@@ -438,24 +443,7 @@ const shareUrl = computed(() => {
 
 const productImages = computed(() => {
   if (!boundProduct.value || !boundProduct.value._images) return [];
-  try {
-    const imgs = typeof boundProduct.value._images === 'string' 
-      ? JSON.parse(boundProduct.value._images) 
-      : boundProduct.value._images;
-    return Array.isArray(imgs) ? imgs : [];
-  } catch (_e) {
-    return [];
-  }
-});
-
-const resolveVariantImageId = (variant) => {
-  if (!variant) return null;
-  if (variant.primaryImage) return variant.primaryImage;
-  if (Array.isArray(variant.images) && variant.images.length > 0) {
-    const primary = variant.images.find((img) => Number(img.is_primary) === 1) || variant.images[0];
-    return primary?.image_id || null;
-  }
-  return null;
+  return resolveProductImageSrcList({ images: boundProduct.value._images });
 };
 
 const initData = async () => {
@@ -465,16 +453,10 @@ const initData = async () => {
       const product = await loadProduct(data.productId);
       if (product) {
         const selectedVariant = (product.variants || []).find(v => v.id === (data.variantId || data.variant_id)) || null;
-        let mainImage = null;
-        if (selectedVariant) {
-           mainImage = resolveVariantImageId(selectedVariant);
-        }
-        if (!mainImage && product.display_image_id) {
-           mainImage = product.display_image_id;
-        } else if (product.images) {
-           const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
-           mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
-        }
+        const mainImage = resolveBoundProductMainImageSrc({
+          ...product,
+          selectedVariant,
+        });
         boundProduct.value = {
           id: product.id,
           name: product.name,
@@ -536,23 +518,9 @@ const openPreview = () => {
 };
 
 const handleProductSelect = (product) => {
-  let mainImage = null;
   const variant = product.selectedVariant;
   if (!variant) return;
-
-  if (product?.mainImage) {
-    mainImage = product.mainImage.replace('/file/', '');
-  } else {
-    mainImage = resolveVariantImageId(variant);
-  }
-
-  if (!mainImage && product.images) {
-    const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
-    mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
-  }
-  if (!mainImage && product.display_image_id) {
-    mainImage = product.display_image_id;
-  }
+  const mainImage = resolveSelectedVariantMainImageSrc(product);
   
   boundProduct.value = {
     id: product.id,

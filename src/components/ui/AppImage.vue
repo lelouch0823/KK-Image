@@ -33,6 +33,8 @@
       ref="imageRef"
       :src="currentSrc"
       :alt="alt"
+      :loading="nativeLoading"
+      decoding="async"
       :class="imageClasses"
       :style="imageStyle"
       @load="handleLoad"
@@ -123,7 +125,7 @@ const { t } = useI18n();
 // 状态管理
 const state = ref('idle'); // idle, loading, loaded, error
 const isIntersecting = ref(!props.lazy);
-const retryCount = ref(0);
+const usingFallback = ref(false);
 const containerRef = ref(null);
 const imageRef = ref(null);
 
@@ -135,7 +137,7 @@ const blurhashDataUrl = computed(() => {
 
 // 当前使用的图片 URL (支持 fallback)
 const currentSrc = computed(() => {
-  if (state.value === 'error' && props.fallback && retryCount.value === 0) {
+  if (usingFallback.value && props.fallback) {
     return props.fallback;
   }
   return props.src;
@@ -178,6 +180,8 @@ const imageClasses = computed(() => [
   `app-image__img--fit-${props.fit}`,
 ]);
 
+const nativeLoading = computed(() => (props.lazy ? 'lazy' : 'eager'));
+
 // 图片样式
 const imageStyle = computed(() => ({
   opacity: state.value === 'loaded' ? 1 : 0,
@@ -195,7 +199,8 @@ const badgeClass = computed(() => `app-image__badge--${props.status}`);
 let observer = null;
 
 onMounted(() => {
-  if (props.lazy && containerRef.value) {
+  const canObserve = typeof globalThis !== 'undefined' && typeof globalThis.IntersectionObserver === 'function';
+  if (props.lazy && containerRef.value && canObserve) {
     observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
@@ -206,6 +211,8 @@ onMounted(() => {
       { rootMargin: props.rootMargin }
     );
     observer.observe(containerRef.value);
+  } else {
+    isIntersecting.value = true;
   }
 });
 
@@ -214,9 +221,9 @@ onUnmounted(() => {
 });
 
 // 监听 src 变化
-watch(() => props.src, () => {
+watch(() => [props.src, props.fallback], () => {
   state.value = 'idle';
-  retryCount.value = 0;
+  usingFallback.value = false;
 });
 
 // 监听 shouldLoad 变化
@@ -233,9 +240,9 @@ function handleLoad() {
 }
 
 function handleError(e) {
-  // 如果有 fallback 且未尝试过，使用 fallback
-  if (props.fallback && retryCount.value === 0) {
-    retryCount.value = 1;
+  // 如果有 fallback 且未尝试过，切换到 fallback
+  if (props.fallback && !usingFallback.value) {
+    usingFallback.value = true;
     state.value = 'loading';
     return;
   }
@@ -249,8 +256,8 @@ function handleError(e) {
 }
 
 function handleRetry() {
-  retryCount.value = 0;
-  state.value = 'loading';
+  usingFallback.value = false;
+  state.value = props.src ? 'loading' : 'idle';
   emit('retry');
 }
 </script>
@@ -398,7 +405,7 @@ function handleRetry() {
   font-size: 0.625rem;
   font-weight: 700;
   color: var(--text-inverse);
-  background: varsuccess;
+  background: var(--color-success);
   border-radius: 0.25rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -409,7 +416,7 @@ function handleRetry() {
   font-size: 0.625rem;
   font-weight: 600;
   color: var(--text-inverse);
-  background-color: varprimary;
+  background-color: var(--color-primary);
   border-radius: 0.25rem;
 }
 </style>

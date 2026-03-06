@@ -136,6 +136,7 @@ import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import { getStatusBadgeClass } from '@/utils/status';
 import { generateRandomId } from '@/utils/common';
+import { resolveSelectedVariantMainImageSrc } from '@/utils/product-image.js';
 import { useSalesToken } from '@/composables/useSalesToken';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
@@ -297,20 +298,7 @@ const unbindProduct = () => {
   boundProductVariant.value = null;
 };
 
-const getProductMainImage = (product) => {
-  if (product?.mainImage) return product.mainImage;
-  const variant = product?.selectedVariant;
-  if (variant?.primaryImage) return `/file/${variant.primaryImage}`;
-  if (Array.isArray(variant?.images) && variant.images.length > 0) {
-    const primary = variant.images.find((img) => Number(img.is_primary) === 1) || variant.images[0];
-    if (primary?.image_id) return `/file/${primary.image_id}`;
-  }
-  try {
-    if (!product.images) return null;
-    const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
-    return Array.isArray(imgs) && imgs.length > 0 ? `/file/${imgs[0]}` : null;
-  } catch { return null; }
-};
+const getProductMainImage = (product) => resolveSelectedVariantMainImageSrc(product);
 
 // 存储初始值快照
 const initialValues = ref({

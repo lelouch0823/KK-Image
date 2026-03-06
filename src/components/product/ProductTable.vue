@@ -21,8 +21,8 @@
       <div class="flex items-center gap-4">
         <div class="relative size-12 shrink-0 overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-muted) transition-all group-hover:shadow-md">
             <AppImage 
-                v-if="getMainImage(row)" 
-                :src="getFileUrl(getMainImage(row))" 
+                v-if="getMainImageSrc(row)" 
+                :src="getMainImageSrc(row)" 
                 fit="cover"
                 class="product-table-image size-full"
                 rounded="none"
@@ -143,6 +143,7 @@ import AppTable from '@/components/ui/AppTable.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import { formatRelativeTime } from '@/utils/formatters';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core';
+import { resolvePrimaryProductImageSrc } from './image-resolver.js';
 
 const { t } = useI18n();
 defineProps({
@@ -169,14 +170,7 @@ const columns = computed(() => [
 // So key names in `columns` correspond to slots like `#cell-spu`. 
 // Column `key` is mostly for slot naming. 
 
-const getFileUrl = (id) => `/file/${id}`;
-const getMainImage = (product) => {
-    try {
-        if (!product.images) return null;
-        const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
-        return Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
-    } catch { return null; }
-};
+const getMainImageSrc = (product) => resolvePrimaryProductImageSrc(product);
 
 const getStockColor = (p) => {
     const qty = p.stock_quantity || 0;

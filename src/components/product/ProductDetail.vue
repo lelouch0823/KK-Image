@@ -7,7 +7,7 @@
             <div class="relative aspect-square w-full overflow-hidden rounded-xl bg-(--bg-muted) sm:aspect-4/3 lg:aspect-video">
                  <AppImage 
                     v-if="currentImage"
-                    :src="`/file/${currentImage}`"
+                    :src="currentImage"
                     :alt="product.name || 'Product image'"
                     fit="contain"
                     class="size-full transition-transform duration-500 motion-safe:hover:scale-105"
@@ -27,7 +27,7 @@
                   :class="currentIndex === idx ? 'border-primary ring-primary/20 opacity-100 ring-2' : 'border-transparent opacity-60 hover:opacity-100'"
                   @click="currentIndex = idx"
                 >
-                   <AppImage :src="`/file/${img}`" :alt="`${product.name || 'Product'} thumbnail ${idx + 1}`" fit="cover" class="size-full" />
+                   <AppImage :src="img" :alt="`${product.name || 'Product'} thumbnail ${idx + 1}`" fit="cover" class="size-full" />
                 </button>
             </div>
         </div>
@@ -246,6 +246,7 @@ import { getProductStatusVariant } from '@/utils/status';
 import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import { resolveProductImageSrcList, resolveVariantPrimaryImageSrc } from '@/utils/product-image.js';
 
 const props = defineProps({
     product: {
@@ -265,24 +266,11 @@ const variantColumns = computed(() => [
 ]);
 
 const images = computed(() => {
-    const variantImages = (props.product.variants || []).flatMap((variant) => {
-        if (variant.primaryImage) return [variant.primaryImage];
-        if (Array.isArray(variant.images) && variant.images.length > 0) {
-            const primary = variant.images.find((img) => Number(img.is_primary) === 1) || variant.images[0];
-            return primary?.image_id ? [primary.image_id] : [];
-        }
-        return [];
-    });
-    try {
-        const productImages = !props.product.images
-            ? []
-            : (typeof props.product.images === 'string' 
-            ? JSON.parse(props.product.images) 
-            : props.product.images);
-        return [...variantImages, ...productImages].filter((id, index, arr) => id && arr.indexOf(id) === index);
-    } catch {
-        return variantImages;
-    }
+    const variantImages = (props.product.variants || [])
+        .map((variant) => resolveVariantPrimaryImageSrc(variant))
+        .filter(Boolean);
+    const productImages = resolveProductImageSrcList(props.product);
+    return [...variantImages, ...productImages].filter((src, index, arr) => arr.indexOf(src) === index);
 });
 
 const currentImage = computed(() => images.value[currentIndex.value]);

@@ -13,8 +13,8 @@
             <!-- Image (Larger for better visual appeal) -->
             <div class="size-20 shrink-0 overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-muted)">
                  <AppImage 
-                    v-if="getMainImage(product)" 
-                    :src="getFileUrl(getMainImage(product))" 
+                    v-if="getMainImageSrc(product)" 
+                    :src="getMainImageSrc(product)" 
                     fit="cover"
                     class="size-full"
                     rounded="none"
@@ -78,6 +78,7 @@ import { useI18n } from '@/composables/useI18n';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import { resolvePrimaryProductImageSrc } from './image-resolver.js';
 
 const { t } = useI18n();
 defineProps({
@@ -88,14 +89,7 @@ defineProps({
 });
 defineEmits(['view', 'edit', 'share']);
 
-const getFileUrl = (id) => `/file/${id}`;
-const getMainImage = (product) => {
-    try {
-        if (!product.images) return null;
-        const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
-        return Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
-    } catch { return null; }
-};
+const getMainImageSrc = (product) => resolvePrimaryProductImageSrc(product);
 
 const getStatusVariant = (status) => {
     switch(status) {

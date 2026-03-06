@@ -203,4 +203,37 @@ describe('ProductBindingSection variant status and dimensions', () => {
     expect(wrapper.text()).toContain('版型');
     expect(wrapper.text()).toContain('季节');
   });
+
+  it('does not fallback to product image when selected variant has no image (strict mode)', async () => {
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'Strict Tee',
+      images: ['img-product-level'],
+      variants: [
+        {
+          id: 'v1',
+          sku: 'STRICT-1',
+          status: 'active',
+          stock_quantity: 5,
+          alert_threshold: 1,
+          options_values: { color: 'Black' },
+          images: [],
+          image_id: null,
+          primaryImage: null,
+        },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null },
+      global: { stubs: { ProductSelect: pickStub, AppImage: true } },
+    });
+
+    await wrapper.find('[data-testid="pick-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('select')).toBeTruthy());
+
+    const selected = wrapper.emitted('select')[0][0];
+    expect(selected.selectedVariant?.id).toBe('v1');
+    expect(selected.mainImage).toBeNull();
+  });
 });

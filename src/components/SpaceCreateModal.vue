@@ -131,6 +131,7 @@ import SpaceVisibilitySelector from '@/components/space/SpaceVisibilitySelector.
 import Modal from '@/components/ui/Modal.vue';
 import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import { resolveSelectedVariantMainImageSrc } from '@/utils/product-image.js';
 
 const props = defineProps({
   parentId: { type: String, default: null }, // 如果提供则为创建子空间
@@ -207,24 +208,7 @@ const submitButtonText = computed(() => {
 const handleProductSelect = (product) => {
   const variant = product.selectedVariant;
   if (!variant) return;
-  let mainImage = null;
-  if (product?.mainImage) {
-    mainImage = product.mainImage.replace('/file/', '');
-  } else if (variant?.primaryImage) {
-    mainImage = variant.primaryImage;
-  } else if (Array.isArray(variant?.images) && variant.images.length > 0) {
-    const primary = variant.images.find((img) => Number(img.is_primary) === 1) || variant.images[0];
-    mainImage = primary?.image_id || null;
-  }
-
-  if (!mainImage && product.images) {
-    const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
-    mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null;
-  }
-
-  if (!mainImage && product.display_image_id) {
-    mainImage = product.display_image_id;
-  }
+  const mainImage = resolveSelectedVariantMainImageSrc(product);
   
   boundProduct.value = {
     id: product.id,

@@ -34,6 +34,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { resolveSelectedVariantMainImageSrc } from '@/utils/product-image.js';
 import Modal from '@/components/ui/Modal.vue';
 import OrderForm from '@/components/order/OrderForm.vue';
 import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
@@ -61,20 +62,7 @@ const boundProductVariant = ref(null);
 const LOCKED_FIELDS = ['name', 'brand', 'series', 'sku'];
 const disabledFields = computed(() => boundProduct.value ? LOCKED_FIELDS : []);
 
-const getProductMainImage = (product) => {
-  if (product?.mainImage) return product.mainImage;
-  const variant = product?.selectedVariant;
-  if (variant?.primaryImage) return `/file/${variant.primaryImage}`;
-  if (Array.isArray(variant?.images) && variant.images.length > 0) {
-    const primary = variant.images.find((img) => Number(img.is_primary) === 1) || variant.images[0];
-    if (primary?.image_id) return `/file/${primary.image_id}`;
-  }
-  try {
-    if (!product.images) return null;
-    const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
-    return Array.isArray(imgs) && imgs.length > 0 ? `/file/${imgs[0]}` : null;
-  } catch { return null; }
-};
+const getProductMainImage = (product) => resolveSelectedVariantMainImageSrc(product);
 
 const handleProductSelect = (product) => {
   const mainImage = getProductMainImage(product);
