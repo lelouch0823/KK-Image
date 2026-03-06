@@ -205,7 +205,6 @@ import { useProducts } from '@/composables/useProducts';
 import { useSalesProducts } from '@/composables/useSalesProducts';
 import {
   getVariantAvailabilityState,
-  isVariantSelectable,
 } from '@/utils/variant-meta';
 import {
   resolveVariantPrimaryImageSrc,
@@ -321,7 +320,7 @@ const normalizedVariants = computed(() => {
       optionsMap,
       displayName: Object.values(optionsMap).join(' / ') || '-',
       availabilityState,
-      selectable: isVariantSelectable(variant),
+      selectable: isVariantSelectableByMode(variant),
     };
   });
 });
@@ -373,6 +372,12 @@ const buildColorSwatchStyle = (rawValue) => {
 };
 
 const buildMainImagePath = (variant) => resolveVariantPrimaryImageSrc(variant);
+
+const isVariantSelectableByMode = (variant) => {
+  const availabilityState = getVariantAvailabilityState(variant);
+  // Pre-order flows should allow active variants even when out of stock.
+  return availabilityState !== 'disabled_archived';
+};
 
 const matchBySelectedOptions = (variant) => {
   return dimensionKeys.value.every((dimension) => {

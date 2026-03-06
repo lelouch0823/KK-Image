@@ -62,7 +62,12 @@ export default {
     organization: '组织与属性',
     slug_seo: 'SEO 链接标识 (Slug)',
     slug_placeholder: '留空自动生成',
-    variant_sync_summary: '同步更新结果: +{created} 新增, {updated} 覆盖, {archived} 归档, {reactivated} 恢复',
+    variant_sync_summary_readable: '规格同步完成：{details}',
+    variant_sync_created: '新增 {count} 个规格',
+    variant_sync_updated: '更新 {count} 个规格',
+    variant_sync_archived: '归档 {count} 个规格',
+    variant_sync_reactivated: '恢复 {count} 个规格',
+    variant_sync_no_changes: '规格同步完成，未检测到数量变动',
   },
   table: {
     header: {

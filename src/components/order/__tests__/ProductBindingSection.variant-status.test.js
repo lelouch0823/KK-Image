@@ -4,6 +4,7 @@ import ProductBindingSection from '../ProductBindingSection.vue';
 
 const mocks = vi.hoisted(() => ({
   loadProduct: vi.fn(),
+  loadSalesProduct: vi.fn(),
 }));
 
 vi.mock('@/composables/useI18n', () => ({
@@ -16,8 +17,18 @@ vi.mock('@/composables/useProducts', () => ({
   }),
 }));
 
+vi.mock('@/composables/useSalesProducts', () => ({
+  useSalesProducts: () => ({
+    loadSalesProduct: mocks.loadSalesProduct,
+  }),
+}));
+
 const pickStub = {
   template: '<button data-testid="pick-product" @click="$emit(\'select\', { id: \'p1\' })">pick</button>',
+};
+
+const salesPickStub = {
+  template: '<button data-testid="pick-sales-product" @click="$emit(\'select\', { id: \'p1\' })">pick-sales</button>',
 };
 
 describe('ProductBindingSection variant status and dimensions', () => {
@@ -25,7 +36,7 @@ describe('ProductBindingSection variant status and dimensions', () => {
     vi.clearAllMocks();
   });
 
-  it('renders 3D selectors and disables non-orderable options', async () => {
+  it('renders 3D selectors and disables archived options', async () => {
     mocks.loadProduct.mockResolvedValueOnce({
       id: 'p1',
       name: 'Tee',
@@ -62,10 +73,10 @@ describe('ProductBindingSection variant status and dimensions', () => {
     expect(wrapper.find('[data-testid="dimension-material"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="dimension-size"]').exists()).toBe(true);
 
-    const sizeButtons = wrapper.findAll('[data-testid="dimension-size"]');
-    const mButton = sizeButtons.find((btn) => btn.text() === 'M');
-    expect(mButton).toBeTruthy();
-    expect(mButton.find('input').element.disabled).toBe(true);
+    const materialButtons = wrapper.findAll('[data-testid="dimension-material"]');
+    const silkButton = materialButtons.find((btn) => btn.text() === 'Silk');
+    expect(silkButton).toBeTruthy();
+    expect(silkButton.find('input').element.disabled).toBe(true);
   });
 
   it('adapts to 2D variants (no material)', async () => {
@@ -235,5 +246,61 @@ describe('ProductBindingSection variant status and dimensions', () => {
     const selected = wrapper.emitted('select')[0][0];
     expect(selected.selectedVariant?.id).toBe('v1');
     expect(selected.mainImage).toBeNull();
+  });
+
+  it('allows selecting active out-of-stock variant in admin mode', async () => {
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'Preorder Sneaker',
+      variants: [
+        {
+          id: 'v1',
+          sku: 'PRE-001',
+          status: 'active',
+          stock_quantity: 0,
+          alert_threshold: 5,
+          options_values: { color: 'Black', size: '42' },
+        },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null, mode: 'admin' },
+      global: { stubs: { ProductSelect: pickStub, AppImage: true } },
+    });
+
+    await wrapper.find('[data-testid="pick-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('select')).toBeTruthy());
+
+    const selected = wrapper.emitted('select')[0][0];
+    expect(selected.selectedVariant?.id).toBe('v1');
+  });
+
+  it('allows selecting active out-of-stock variant in sales mode', async () => {
+    mocks.loadSalesProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'Sales Preorder Sneaker',
+      variants: [
+        {
+          id: 'v1',
+          sku: 'PRE-SALES-001',
+          status: 'active',
+          stock_quantity: 0,
+          alert_threshold: 5,
+          options_values: { color: 'Black', size: '42' },
+        },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null, mode: 'sales', salesToken: 'token-1' },
+      global: { stubs: { SalesProductSelect: salesPickStub, AppImage: true } },
+    });
+
+    await wrapper.find('[data-testid="pick-sales-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('select')).toBeTruthy());
+
+    const selected = wrapper.emitted('select')[0][0];
+    expect(selected.selectedVariant?.id).toBe('v1');
   });
 });

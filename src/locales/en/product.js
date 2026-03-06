@@ -62,7 +62,12 @@ export default {
     organization: 'Organization',
     slug_seo: 'SEO Slug',
     slug_placeholder: 'Leave blank to auto-generate',
-    variant_sync_summary: 'Variants synced: +{created} created, {updated} updated, {archived} archived, {reactivated} reactivated',
+    variant_sync_summary_readable: 'Variant sync complete: {details}',
+    variant_sync_created: 'Created {count} variants',
+    variant_sync_updated: 'Updated {count} variants',
+    variant_sync_archived: 'Archived {count} variants',
+    variant_sync_reactivated: 'Reactivated {count} variants',
+    variant_sync_no_changes: 'Variant sync complete with no quantity changes',
   },
   table: {
     header: {

@@ -35,6 +35,77 @@ function parseJson(str) {
   }
 }
 
+function translateWithFallback(translate, key, params, fallback) {
+  const resolved = typeof translate === 'function' ? translate(key, params) : '';
+  if (!resolved || resolved === key) return fallback;
+  return resolved;
+}
+
+export function buildVariantSyncSummaryMessage(sync = {}, translate) {
+  const created = Math.max(0, Number(sync.created ?? 0));
+  const updated = Math.max(0, Number(sync.updated ?? 0));
+  const archived = Math.max(0, Number(sync.archived ?? 0));
+  const reactivated = Math.max(0, Number(sync.reactivated ?? 0));
+
+  const parts = [];
+  if (created > 0) {
+    parts.push(
+      translateWithFallback(
+        translate,
+        'product.form.variant_sync_created',
+        { count: created },
+        `Created ${created} variants`
+      )
+    );
+  }
+  if (updated > 0) {
+    parts.push(
+      translateWithFallback(
+        translate,
+        'product.form.variant_sync_updated',
+        { count: updated },
+        `Updated ${updated} variants`
+      )
+    );
+  }
+  if (archived > 0) {
+    parts.push(
+      translateWithFallback(
+        translate,
+        'product.form.variant_sync_archived',
+        { count: archived },
+        `Archived ${archived} variants`
+      )
+    );
+  }
+  if (reactivated > 0) {
+    parts.push(
+      translateWithFallback(
+        translate,
+        'product.form.variant_sync_reactivated',
+        { count: reactivated },
+        `Reactivated ${reactivated} variants`
+      )
+    );
+  }
+
+  if (parts.length === 0) {
+    return translateWithFallback(
+      translate,
+      'product.form.variant_sync_no_changes',
+      {},
+      'Variants synced with no quantity changes'
+    );
+  }
+
+  return translateWithFallback(
+    translate,
+    'product.form.variant_sync_summary_readable',
+    { details: parts.join('，') },
+    `Variants synced: ${parts.join(', ')}`
+  );
+}
+
 /**
  * 将原始 option 数据转换为表单模型
  */
@@ -526,17 +597,6 @@ export function useProductForm({ editMode, initialData, emit }) {
     return { success: true, data: result };
   };
 
-  const formatVariantSyncSummary = (sync = {}) => {
-    const created = Number(sync.created ?? 0);
-    const updated = Number(sync.updated ?? 0);
-    const archived = Number(sync.archived ?? 0);
-    const reactivated = Number(sync.reactivated ?? 0);
-    return (
-      t('product.form.variant_sync_summary', { created, updated, archived, reactivated }) ||
-      `Variants synced: +${created} created, ${updated} updated, ${archived} archived, ${reactivated} reactivated`
-    );
-  };
-
   const handleSubmit = async () => {
     if (!form.name) {
       addToast({
@@ -628,7 +688,7 @@ export function useProductForm({ editMode, initialData, emit }) {
 
       if (normalized.variantSync) {
         addToast({
-          message: formatVariantSyncSummary(normalized.variantSync),
+          message: buildVariantSyncSummaryMessage(normalized.variantSync, t),
           type: 'success',
         });
       } else {
