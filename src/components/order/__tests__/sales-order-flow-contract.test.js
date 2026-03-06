@@ -41,8 +41,10 @@ const mountView = () =>
       },
       stubs: {
         ProductBindingSection: {
+          props: ['variantSelectPolicy'],
           template: `
             <div>
+              <span data-testid="variant-policy">{{ variantSelectPolicy }}</span>
               <button data-testid="select-bound" @click="$emit('select', {
                 id: 'p-100',
                 name: 'Sneaker',
@@ -70,6 +72,11 @@ describe('sales order flow contract', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createSalesOrder.mockResolvedValue(true);
+  });
+
+  it('uses in_stock_only policy in sales order entry', () => {
+    const wrapper = mountView();
+    expect(wrapper.get('[data-testid="variant-policy"]').text()).toBe('in_stock_only');
   });
 
   it('keeps create payload structure for bound/unbound product modes', async () => {

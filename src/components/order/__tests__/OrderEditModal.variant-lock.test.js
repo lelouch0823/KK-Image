@@ -35,7 +35,10 @@ const baseOrder = {
 
 const buildStubs = (overrides = {}) => ({
   Modal: { template: '<div><slot name="header" /><slot /><slot name="footer" /></div>' },
-  ProductBindingSection: true,
+  ProductBindingSection: {
+    props: ['variantSelectPolicy'],
+    template: '<div data-testid="variant-policy">{{ variantSelectPolicy }}</div>',
+  },
   OrderOriginalInfo: true,
   ImageUploader: {
     template: '<div />',
@@ -68,6 +71,11 @@ const mountModal = (order, stubs = {}) =>
   });
 
 describe('OrderEditModal variant locking on edit', () => {
+  it('uses in_stock_only policy by default for variant selector', () => {
+    const wrapper = mountModal(baseOrder);
+    expect(wrapper.get('[data-testid="variant-policy"]').text()).toBe('in_stock_only');
+  });
+
   it('keeps bound variant specs in locked mode for existing bound orders', () => {
     const wrapper = mountModal(baseOrder);
     expect(wrapper.get('[data-testid="bound-variant"]').text()).not.toBe('null');

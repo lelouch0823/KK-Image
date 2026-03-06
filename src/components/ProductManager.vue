@@ -297,7 +297,14 @@ const handleEditFromDetail = async (product) => {
 };
 
 const handleModalSuccess = () => {
-    loadProducts();
+    loadProducts(
+        {
+            page: pagination.page || 1,
+            status: filters.status,
+            search: filters.search,
+        },
+        true
+    );
 };
 
 const handleDelete = async (product) => {

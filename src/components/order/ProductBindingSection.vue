@@ -26,8 +26,16 @@
           
           <div>
             <div class="mb-1.5 flex flex-wrap items-center gap-2 sm:gap-3">
-              <h2 class="text-base font-bold tracking-tight text-(--text-main) sm:text-lg">{{ boundProduct.name }}</h2>
-              <span class="rounded-md border border-(--border-subtle) bg-(--bg-muted) px-2 py-0.5 font-mono text-xs font-medium text-(--text-secondary) uppercase">
+              <h2
+                class="max-w-full min-w-0 flex-1 truncate text-base font-bold tracking-tight text-(--text-main) sm:text-lg"
+                :title="boundProduct.name || ''"
+              >
+                {{ displayProductName }}
+              </h2>
+              <span
+                class="max-w-[12rem] truncate rounded-md border border-(--border-subtle) bg-(--bg-muted) px-2 py-0.5 font-mono text-xs font-medium text-(--text-secondary) uppercase sm:max-w-[16rem]"
+                :title="displaySku || ''"
+              >
                 {{ displaySku || '—' }}
               </span>
               <span
@@ -79,9 +87,17 @@
 
         <section v-for="dimension in dimensionKeys" :key="dimension">
           <div class="mb-3 flex items-center justify-between">
-            <label class="text-sm font-bold text-(--text-main)">{{ getDimensionLabel(dimension) }}</label>
-            <span class="text-xs text-(--text-secondary) sm:text-[13px]">
-              {{ t('order.binding.selectedLabel') }}: {{ selectedOptions[dimension] || t('order.binding.unselected') }}
+            <label
+              class="max-w-[52%] truncate pr-3 text-sm font-bold text-(--text-main)"
+              :title="getDimensionLabel(dimension)"
+            >
+              {{ getDimensionLabelDisplay(dimension) }}
+            </label>
+            <span
+              class="max-w-[48%] truncate text-right text-xs text-(--text-secondary) sm:text-[13px]"
+              :title="selectedOptions[dimension] || ''"
+            >
+              {{ t('order.binding.selectedLabel') }}: {{ getSelectedOptionDisplay(dimension) || t('order.binding.unselected') }}
             </span>
           </div>
 
@@ -113,16 +129,16 @@
                 />
               </div>
               <span class="max-w-16 truncate text-center text-[11px] font-medium text-(--text-secondary) transition-colors peer-checked:font-bold peer-checked:text-(--text-main)" :title="option.label">
-                {{ option.label }}
+                {{ getOptionLabelDisplay(option.label) }}
               </span>
             </label>
           </div>
 
-          <div v-else :class="isSalesMode ? 'grid grid-cols-3 gap-2.5 sm:grid-cols-4' : 'grid grid-cols-4 gap-2.5 sm:grid-cols-6'">
+          <div v-else class="grid [grid-template-columns:repeat(auto-fit,minmax(6.75rem,1fr))] gap-2.5 sm:[grid-template-columns:repeat(auto-fit,minmax(7.5rem,1fr))]">
             <label
               v-for="option in getDimensionOptions(dimension)"
               :key="option.value"
-              class="focus-within:ring-primary/50 focus-within:ring-2 focus-within:ring-offset-1 focus-within:outline-none relative rounded-lg"
+              class="focus-within:ring-primary/50 focus-within:ring-2 focus-within:ring-offset-1 relative min-w-0 rounded-lg focus-within:outline-none"
               :class="[option.selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50']"
               :data-testid="getDimensionTestId(dimension)"
             >
@@ -136,10 +152,12 @@
                 @change="selectDimensionOption(dimension, option.value)"
               />
               <div
-                class="flex min-h-9 items-center justify-center rounded-lg border-2 border-(--border-subtle) px-2 py-1.5 text-center text-[13px] font-semibold text-(--text-secondary) transition-all peer-checked:border-(--text-main) peer-checked:text-(--text-main) sm:min-h-10 sm:text-sm"
+                class="flex min-h-11 items-center justify-center rounded-lg border-2 border-(--border-subtle) px-2 py-1.5 text-center text-[13px] font-semibold text-(--text-secondary) transition-all peer-checked:border-(--text-main) peer-checked:text-(--text-main) sm:min-h-11 sm:text-sm"
                 :class="{ 'border-dashed border-(--border-subtle)/50': !option.selectable }"
               >
-                {{ option.label }}
+                <span class="line-clamp-2 break-words" :title="option.label">
+                  {{ getOptionLabelDisplay(option.label) }}
+                </span>
               </div>
             </label>
           </div>
@@ -214,6 +232,11 @@ const props = defineProps({
   boundProduct: { type: Object, default: null },
   mode: { type: String, default: 'admin' }, // 'admin' | 'sales'
   salesToken: { type: String, default: '' },
+  variantSelectPolicy: {
+    type: String,
+    default: 'allow_out_of_stock',
+    validator: (value) => ['allow_out_of_stock', 'in_stock_only', 'all'].includes(String(value || '')),
+  },
 });
 
 const emit = defineEmits(['select', 'unbind', 'product-fetch-error', 'product-fetch-success']);
@@ -242,12 +265,24 @@ const variants = ref([]);
 const selectedVariantId = ref(null);
 const fullProductData = ref(null);
 const selectedOptions = reactive({});
-const availabilityTextMap = {
+const normalizedVariantSelectPolicy = computed(() => String(props.variantSelectPolicy || 'allow_out_of_stock'));
+const TEXT_LIMITS = Object.freeze({
+  productName: 48,
+  sku: 32,
+  dimensionLabel: 18,
+  selectedValue: 22,
+  optionLabel: 24,
+});
+const availabilityTextMap = computed(() => ({
   available: '可下单',
   low_stock: '低库存',
-  disabled_out_of_stock: '缺货（不可下单）',
-  disabled_archived: '已停用（不可下单）',
-};
+  disabled_out_of_stock: normalizedVariantSelectPolicy.value === 'in_stock_only'
+    ? '缺货（不可下单）'
+    : '缺货（可预订）',
+  disabled_archived: normalizedVariantSelectPolicy.value === 'all'
+    ? '已停用（可选）'
+    : '已停用（不可下单）',
+}));
 const COLOR_LABELS = ['color', '颜色', '顏色'];
 const COLOR_VALUE_MAP = {
   white: '#ffffff',
@@ -293,14 +328,26 @@ const getDimensionLabel = (dimensionKey) => {
   return map[dimensionKey] || String(dimensionKey || '');
 };
 
+const clampText = (value, maxLength) => {
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 1))}…`;
+};
+
+const getDimensionLabelDisplay = (dimensionKey) => clampText(getDimensionLabel(dimensionKey), TEXT_LIMITS.dimensionLabel);
+const getSelectedOptionDisplay = (dimensionKey) => clampText(selectedOptions[dimensionKey] || '', TEXT_LIMITS.selectedValue);
+const getOptionLabelDisplay = (value) => clampText(value, TEXT_LIMITS.optionLabel);
+const displayProductName = computed(() => clampText(props.boundProduct?.name || '', TEXT_LIMITS.productName));
+
 const getDimensionTestId = (dimensionKey) => `dimension-${String(dimensionKey || '').replace(/\s+/g, '_')}`;
 
 const displaySku = computed(() => {
   if (variants.value.length > 0 && selectedVariantId.value) {
     const v = variants.value.find(x => x.id === selectedVariantId.value);
-    if (v && v.sku) return v.sku;
+    if (v && v.sku) return clampText(v.sku, TEXT_LIMITS.sku);
   }
-  return props.boundProduct?.sku || '';
+  return clampText(props.boundProduct?.sku || '', TEXT_LIMITS.sku);
 });
 
 const normalizedVariants = computed(() => {
@@ -373,10 +420,22 @@ const buildColorSwatchStyle = (rawValue) => {
 
 const buildMainImagePath = (variant) => resolveVariantPrimaryImageSrc(variant);
 
+const normalizeVariantStatus = (variant) => String(variant?.status ?? '').trim().toLowerCase();
+const getVariantStockQuantity = (variant) => Number(variant?.stock_quantity ?? variant?.stockQuantity ?? 0);
+
 const isVariantSelectableByMode = (variant) => {
-  const availabilityState = getVariantAvailabilityState(variant);
-  // Pre-order flows should allow active variants even when out of stock.
-  return availabilityState !== 'disabled_archived';
+  const policy = normalizedVariantSelectPolicy.value;
+  if (policy === 'all') return true;
+
+  const isArchived = normalizeVariantStatus(variant) === 'archived';
+  if (isArchived) return false;
+
+  if (policy === 'in_stock_only') {
+    return getVariantStockQuantity(variant) > 0;
+  }
+
+  // Default for preorder/admin: allow active variants even when out of stock.
+  return true;
 };
 
 const matchBySelectedOptions = (variant) => {

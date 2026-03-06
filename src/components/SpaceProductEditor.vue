@@ -79,6 +79,7 @@
           <div class="mb-4">
             <ProductBindingSection
               :bound-product="boundProduct"
+              :variant-select-policy="'in_stock_only'"
               @select="handleProductSelect"
               @unbind="unbindProduct"
             />

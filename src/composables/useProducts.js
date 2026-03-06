@@ -119,17 +119,21 @@ export function useProducts() {
     };
 
     const createProductWithMeta = async (payload) => {
-        return resource.rawRequest('', {
+        const res = await resource.rawRequest('', {
             method: 'POST',
             body: JSON.stringify(payload),
         });
+        if (res?.success) resource.clearCache();
+        return res;
     };
 
     const updateProductWithMeta = async (productId, payload) => {
-        return resource.rawRequest(`/${productId}`, {
+        const res = await resource.rawRequest(`/${productId}`, {
             method: 'PATCH',
             body: JSON.stringify(payload),
         });
+        if (res?.success) resource.clearCache();
+        return res;
     };
 
     return {

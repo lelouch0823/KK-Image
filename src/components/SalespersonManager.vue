@@ -172,13 +172,23 @@ const currentPage = computed({
   set: () => {}, // 由 changePage 处理
 });
 
+const refreshCurrentList = (forceRefresh = false) => {
+  loadSalespersons(
+    {
+      page: pagination.page || 1,
+      search: searchQuery.value,
+    },
+    forceRefresh
+  );
+};
+
 // 初始化
 onMounted(() => {
-  loadSalespersons();
+  refreshCurrentList();
 });
 
 onActivated(() => {
-  loadSalespersons();
+  refreshCurrentList();
 });
 
 // 搜索
@@ -212,7 +222,7 @@ const handleSubmit = async (formData) => {
 
     if (success) {
       showModal.value = false;
-      loadSalespersons({ page: pagination.page });
+      refreshCurrentList(true);
     }
   } finally {
     submitting.value = false;
@@ -234,7 +244,7 @@ const confirmDelete = (person) => {
       try {
         const success = await deleteSalesperson(person.id);
         if (success) {
-          loadSalespersons({ page: pagination.page });
+          refreshCurrentList(true);
           confirmData.value.show = false;
         }
       } finally {

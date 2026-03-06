@@ -54,6 +54,7 @@
         <div class="space-y-4">
           <ProductBindingSection
             :bound-product="boundProduct"
+            :variant-select-policy="variantSelectPolicy"
             @select="handleProductSelect"
             @unbind="unbindProduct"
           />
@@ -136,6 +137,7 @@ import { resolveSelectedVariantMainImageSrc } from '@/utils/product-image.js';
 const props = defineProps({
   parentId: { type: String, default: null }, // 如果提供则为创建子空间
   initialProduct: { type: Object, default: null }, // 快捷分享：初始绑定的商品对象
+  variantSelectPolicy: { type: String, default: 'in_stock_only' },
 });
 
 const emit = defineEmits(['close', 'created']);

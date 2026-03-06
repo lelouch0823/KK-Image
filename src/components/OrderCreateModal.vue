@@ -7,9 +7,10 @@
   >
     <div class="p-4 sm:p-6">
       <div class="space-y-5">
-         <!-- Product Binding Section -->
+        <!-- Product Binding Section -->
         <ProductBindingSection
           :bound-product="boundProduct"
+          :variant-select-policy="'allow_out_of_stock'"
           @select="handleProductSelect"
           @unbind="unbindProduct"
         />

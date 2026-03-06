@@ -30,6 +30,7 @@
         <!-- 商品绑定区域 -->
         <ProductBindingSection
           :bound-product="boundProduct"
+          :variant-select-policy="variantSelectPolicy"
           @select="handleProductSelect"
           @unbind="unbindProduct"
         />
@@ -167,6 +168,7 @@ const props = defineProps({
     default: () => [],
   },
   zIndex: { type: [Number, String], default: 100 },
+  variantSelectPolicy: { type: String, default: 'in_stock_only' },
 });
 
 const emit = defineEmits(['close', 'submit', 'delete-order']);

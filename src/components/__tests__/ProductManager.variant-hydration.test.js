@@ -102,4 +102,18 @@ describe('ProductManager variant hydration', () => {
       'chart-bar',
     ]));
   });
+
+  it('handleModalSuccess refreshes with current filters and bypasses cache', async () => {
+    const wrapper = createWrapper();
+    wrapper.vm.filters.search = 'sneaker';
+    wrapper.vm.filters.status = 'active';
+    wrapper.vm.pagination.page = 2;
+
+    await wrapper.vm.handleModalSuccess();
+
+    expect(mocks.loadProducts).toHaveBeenLastCalledWith(
+      { page: 2, status: 'active', search: 'sneaker' },
+      true
+    );
+  });
 });

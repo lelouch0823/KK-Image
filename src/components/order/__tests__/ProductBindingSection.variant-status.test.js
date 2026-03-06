@@ -303,4 +303,147 @@ describe('ProductBindingSection variant status and dimensions', () => {
     const selected = wrapper.emitted('select')[0][0];
     expect(selected.selectedVariant?.id).toBe('v1');
   });
+
+  it('allows selecting out-of-stock variant when legacy status is numeric active flag', async () => {
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'Legacy Status Product',
+      variants: [
+        {
+          id: 'v1',
+          sku: 'LEG-001',
+          status: 1,
+          stock_quantity: 0,
+          alert_threshold: 5,
+          options_values: { color: 'Black', size: '42' },
+        },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null, mode: 'admin' },
+      global: { stubs: { ProductSelect: pickStub, AppImage: true } },
+    });
+
+    await wrapper.find('[data-testid="pick-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('select')).toBeTruthy());
+
+    const selected = wrapper.emitted('select')[0][0];
+    expect(selected.selectedVariant?.id).toBe('v1');
+  });
+
+  it('supports in_stock_only policy and disables out-of-stock options', async () => {
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'Policy Product',
+      variants: [
+        {
+          id: 'v1',
+          sku: 'POL-001',
+          status: 'active',
+          stock_quantity: 0,
+          alert_threshold: 5,
+          options_values: { color: 'Black', size: '42' },
+        },
+        {
+          id: 'v2',
+          sku: 'POL-002',
+          status: 'active',
+          stock_quantity: 8,
+          alert_threshold: 5,
+          options_values: { color: 'Black', size: '43' },
+        },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null, mode: 'admin', variantSelectPolicy: 'in_stock_only' },
+      global: { stubs: { ProductSelect: pickStub, AppImage: true } },
+    });
+
+    await wrapper.find('[data-testid="pick-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('select')).toBeTruthy());
+
+    const selectedEvents = wrapper.emitted('select');
+    const selected = selectedEvents[0][0];
+    expect(selected.selectedVariant?.id).toBe('v2');
+
+    await wrapper.vm.selectDimensionOption('size', '42');
+    const afterSelectEvents = wrapper.emitted('select');
+    expect(afterSelectEvents).toHaveLength(1);
+  });
+
+  it('supports all policy and allows selecting archived variants', async () => {
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'All Policy Product',
+      variants: [
+        {
+          id: 'v1',
+          sku: 'POL-ALL-001',
+          status: 'archived',
+          stock_quantity: 0,
+          alert_threshold: 5,
+          options_values: { color: 'Black', size: '42' },
+        },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null, mode: 'admin', variantSelectPolicy: 'all' },
+      global: { stubs: { ProductSelect: pickStub, AppImage: true } },
+    });
+
+    await wrapper.find('[data-testid="pick-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('select')).toBeTruthy());
+
+    const selected = wrapper.emitted('select')[0][0];
+    expect(selected.selectedVariant?.id).toBe('v1');
+  });
+
+  it('clamps long texts for product and option labels to keep layout stable', async () => {
+    const longName = '超长商品名称'.repeat(12);
+    const longSku = 'SKU-LONG-'.repeat(8);
+    const longOption = '超长规格值'.repeat(10);
+
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: longName,
+      variants: [
+        {
+          id: 'v1',
+          sku: longSku,
+          status: 'active',
+          stock_quantity: 6,
+          alert_threshold: 2,
+          options_values: { size: longOption },
+        },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null, mode: 'admin' },
+      global: { stubs: { ProductSelect: pickStub, AppImage: true } },
+    });
+
+    await wrapper.find('[data-testid="pick-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('select')).toBeTruthy());
+    const selected = wrapper.emitted('select')[0][0];
+    await wrapper.setProps({
+      boundProduct: {
+        id: selected.id,
+        name: selected.name,
+        sku: selected.selectedVariant?.sku || '',
+        mainImage: selected.mainImage || null,
+      },
+    });
+
+    const titleNode = wrapper.find(`h2[title="${longName}"]`);
+    expect(titleNode.exists()).toBe(true);
+    expect(titleNode.text().includes('…')).toBe(true);
+
+    const optionNode = wrapper.find(`span[title="${longOption}"]`);
+    expect(optionNode.exists()).toBe(true);
+    expect(optionNode.text().includes('…')).toBe(true);
+  });
 });

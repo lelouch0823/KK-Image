@@ -41,7 +41,13 @@ const mountView = () =>
       },
       stubs: {
         ProductBindingSection: {
-          template: '<button data-testid="trigger-product-error" @click="$emit(\'product-fetch-error\', \'fetch failed\')">error</button>',
+          props: ['variantSelectPolicy'],
+          template: `
+            <div>
+              <span data-testid="variant-policy">{{ variantSelectPolicy }}</span>
+              <button data-testid="trigger-product-error" @click="$emit('product-fetch-error', 'fetch failed')">error</button>
+            </div>
+          `,
         },
         OrderForm: {
           props: ['submitError'],
@@ -64,6 +70,7 @@ describe('SalesFormView resilience', () => {
   it('shows inline product-fetch error with retry action', async () => {
     mocks.createSalesOrder.mockResolvedValue(true);
     const wrapper = mountView();
+    expect(wrapper.get('[data-testid="variant-policy"]').text()).toBe('in_stock_only');
 
     await wrapper.get('[data-testid="trigger-product-error"]').trigger('click');
 

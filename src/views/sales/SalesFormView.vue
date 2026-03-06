@@ -11,6 +11,7 @@
       mode="sales"
       :sales-token="String(route.params.token || '')"
       :bound-product="boundProduct"
+      :variant-select-policy="'in_stock_only'"
       @select="handleProductSelect"
       @unbind="unbindProduct"
       @product-fetch-error="handleProductFetchError"
