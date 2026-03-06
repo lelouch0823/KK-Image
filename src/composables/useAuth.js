@@ -4,6 +4,7 @@
  */
 import { ref } from 'vue';
 import { API } from '@/utils/constants';
+import { request } from '@/utils/http-core';
 
 // 全局状态
 const isAuthenticated = ref(false);
@@ -81,27 +82,12 @@ export function useAuth() {
     };
 
     try {
-      const response = await fetch(url, opts);
-
-      // 如果遇到 401，更新状态
-      if (response.status === 401) {
+      return await request(url, opts);
+    } catch (error) {
+      if (error.status === 401) {
         isAuthenticated.value = false;
         currentUser.value = null;
       }
-
-      // HTTP 错误抛出，交由拦截器或业务层处理
-      if (!response.ok) {
-        const errorData = typeof response.json === 'function'
-          ? await response.json().catch(() => ({}))
-          : {};
-        const err = new Error(errorData.error || response.statusText);
-        err.status = response.status;
-        err.data = errorData;
-        throw err;
-      }
-
-      return response;
-    } catch (error) {
       if (error.name === 'AbortError') {
         console.debug(`Request to ${url} aborted`);
         // 抛出或返回特定的中止对象，视具体需求而定

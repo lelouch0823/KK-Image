@@ -57,4 +57,40 @@ describe('useAuth Composable Full Coverage', () => {
     await logout();
     expect(isAuthenticated.value).toBe(false);
   });
+
+  it('authFetch keeps credentials include and resets auth state on 401', async () => {
+    vi.resetModules();
+    const requestMock = vi
+      .fn()
+      .mockRejectedValue(Object.assign(new Error('Unauthorized'), { status: 401 }));
+    vi.doMock('@/utils/http-core', () => ({ request: requestMock }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        status: 401,
+        ok: false,
+        statusText: 'Unauthorized',
+        json: vi.fn().mockResolvedValue({}),
+      }),
+    );
+
+    const { useAuth: isolatedUseAuth } = await import('../useAuth');
+    const auth = isolatedUseAuth();
+    auth.isAuthenticated.value = true;
+    auth.currentUser.value = { id: 1 };
+
+    await expect(
+      auth.authFetch('/api/protected', { method: 'POST' }),
+    ).rejects.toMatchObject({ status: 401 });
+
+    expect(requestMock).toHaveBeenCalledWith(
+      '/api/protected',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+      }),
+    );
+    expect(auth.isAuthenticated.value).toBe(false);
+    expect(auth.currentUser.value).toBe(null);
+  });
 });
