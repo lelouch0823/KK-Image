@@ -124,7 +124,8 @@
 | `order_no` | TEXT | 唯一订单号 (ORD-Date-Seq) |
 | `salesperson_id`| TEXT | FK |
 | `customer_id`| TEXT | FK |
-| `status` | TEXT | `pending`, `confirmed`, `production`, `shipping`, `delivered`, `void` |
+| `status` | TEXT | `pending`, `confirmed`, `rejected`, `production`, `shipping`, `arrived`, `delivered`, `void` |
+| `procurement_status` | TEXT | `none`, `planned`, `ordered`, `partially_arrived`, `arrived` |
 | `original_data` | TEXT | JSON, 原始提交数据 (不可变) |
 | `current_data` | TEXT | JSON, 当前有效数据 |
 | `unread_by_admin`| INT | 1 = 管理员未读 |
