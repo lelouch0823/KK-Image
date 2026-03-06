@@ -14,6 +14,23 @@
 
 import { generateId, now } from '../api/utils/id.js';
 
+function isMissingColumnError(error, columns = []) {
+    const message = String(error?.message || error || '').toLowerCase();
+    if (!message.includes('no such column')) return false;
+    if (!columns || columns.length === 0) return true;
+    return columns.some((column) => message.includes(String(column).toLowerCase()));
+}
+
+function parseMetadata(metadata) {
+    if (!metadata) return null;
+    try {
+        return JSON.parse(metadata);
+    } catch (error) {
+        console.warn('notification metadata parse failed:', error);
+        return null;
+    }
+}
+
 export class NotificationRepository {
     /**
      * 构造函数
@@ -43,28 +60,36 @@ export class NotificationRepository {
     async create({ type, title, content = '', link = '', receiver, salespersonId = null, orderId = null, metadata = null }) {
         const id = generateId();
         const timestamp = now();
+        const metadataJson = metadata ? JSON.stringify(metadata) : null;
 
-        await this.db
-            .prepare(
-                `
+        try {
+            await this.db
+                .prepare(
+                    `
         INSERT INTO notifications 
           (id, type, title, content, link, is_read, receiver, salesperson_id, order_id, metadata, created_at)
         VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
         `
-            )
-            .bind(
-                id,
-                type,
-                title,
-                content,
-                link,
-                receiver,
-                salespersonId,
-                orderId,
-                metadata ? JSON.stringify(metadata) : null,
-                timestamp
-            )
-            .run();
+                )
+                .bind(id, type, title, content, link, receiver, salespersonId, orderId, metadataJson, timestamp)
+                .run();
+        } catch (error) {
+            if (!isMissingColumnError(error, ['receiver', 'salesperson_id', 'order_id'])) {
+                throw error;
+            }
+
+            // 兼容旧表结构（无 receiver/salesperson_id/order_id）
+            await this.db
+                .prepare(
+                    `
+        INSERT INTO notifications
+          (id, type, title, content, link, is_read, metadata, created_at)
+        VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+        `
+                )
+                .bind(id, type, title, content, link, metadataJson, timestamp)
+                .run();
+        }
 
         return { id };
     }
@@ -78,30 +103,62 @@ export class NotificationRepository {
         if (!notifications || notifications.length === 0) return;
 
         const timestamp = now();
-        const statements = notifications.map((n) =>
-            this.db
-                .prepare(
-                    `
+        const records = notifications.map((n) => ({
+            id: generateId(),
+            type: n.type || 'order',
+            title: n.title,
+            content: n.content || '',
+            link: n.link || '',
+            receiver: n.receiver,
+            salespersonId: n.salespersonId || null,
+            orderId: n.orderId || null,
+            metadataJson: n.metadata ? JSON.stringify(n.metadata) : null,
+        }));
+
+        try {
+            const statements = records.map((n) =>
+                this.db
+                    .prepare(
+                        `
           INSERT INTO notifications 
             (id, type, title, content, link, is_read, receiver, salesperson_id, order_id, metadata, created_at)
           VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
           `
-                )
-                .bind(
-                    generateId(),
-                    n.type || 'order',
-                    n.title,
-                    n.content || '',
-                    n.link || '',
-                    n.receiver,
-                    n.salespersonId || null,
-                    n.orderId || null,
-                    n.metadata ? JSON.stringify(n.metadata) : null,
-                    timestamp
-                )
-        );
+                    )
+                    .bind(
+                        n.id,
+                        n.type,
+                        n.title,
+                        n.content,
+                        n.link,
+                        n.receiver,
+                        n.salespersonId,
+                        n.orderId,
+                        n.metadataJson,
+                        timestamp
+                    )
+            );
 
-        await this.db.batch(statements);
+            await this.db.batch(statements);
+        } catch (error) {
+            if (!isMissingColumnError(error, ['receiver', 'salesperson_id', 'order_id'])) {
+                throw error;
+            }
+
+            // 兼容旧表结构（无 receiver/salesperson_id/order_id）
+            const legacyStatements = records.map((n) =>
+                this.db
+                    .prepare(
+                        `
+          INSERT INTO notifications
+            (id, type, title, content, link, is_read, metadata, created_at)
+          VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+          `
+                    )
+                    .bind(n.id, n.type, n.title, n.content, n.link, n.metadataJson, timestamp)
+            );
+            await this.db.batch(legacyStatements);
+        }
     }
 
     // ========================================
@@ -116,27 +173,52 @@ export class NotificationRepository {
      * @returns {Promise<{list: Array, unreadCount: number}>}
      */
     async listForAdmin({ unreadOnly = false, limit = 20 } = {}) {
-        let sql = `SELECT * FROM notifications WHERE receiver = 'admin'`;
-        const params = [];
+        try {
+            let sql = `SELECT * FROM notifications WHERE receiver = 'admin'`;
+            const params = [];
 
-        if (unreadOnly) {
-            sql += ` AND is_read = 0`;
+            if (unreadOnly) {
+                sql += ` AND is_read = 0`;
+            }
+
+            sql += ` ORDER BY is_read ASC, created_at DESC LIMIT ?`;
+            params.push(limit);
+
+            const { results } = await this.db.prepare(sql).bind(...params).all();
+
+            // 统计未读数量
+            const { count: unreadCount } = await this.db
+                .prepare(`SELECT COUNT(*) as count FROM notifications WHERE receiver = 'admin' AND is_read = 0`)
+                .first();
+
+            return {
+                list: results.map(this._mapNotification),
+                unreadCount,
+            };
+        } catch (error) {
+            if (!isMissingColumnError(error, ['receiver'])) {
+                throw error;
+            }
+
+            // 兼容旧表结构：历史库没有 receiver 字段时，管理端退化读取全部通知
+            let legacySql = `SELECT * FROM notifications`;
+            const params = [];
+            if (unreadOnly) {
+                legacySql += ` WHERE is_read = 0`;
+            }
+            legacySql += ` ORDER BY is_read ASC, created_at DESC LIMIT ?`;
+            params.push(limit);
+
+            const { results } = await this.db.prepare(legacySql).bind(...params).all();
+            const { count: unreadCount } = await this.db
+                .prepare(`SELECT COUNT(*) as count FROM notifications WHERE is_read = 0`)
+                .first();
+
+            return {
+                list: results.map(this._mapNotification),
+                unreadCount,
+            };
         }
-
-        sql += ` ORDER BY is_read ASC, created_at DESC LIMIT ?`;
-        params.push(limit);
-
-        const { results } = await this.db.prepare(sql).bind(...params).all();
-
-        // 统计未读数量
-        const { count: unreadCount } = await this.db
-            .prepare(`SELECT COUNT(*) as count FROM notifications WHERE receiver = 'admin' AND is_read = 0`)
-            .first();
-
-        return {
-            list: results.map(this._mapNotification),
-            unreadCount,
-        };
     }
 
     /**
@@ -148,30 +230,42 @@ export class NotificationRepository {
      * @returns {Promise<{list: Array, unreadCount: number}>}
      */
     async listForSalesperson(salespersonId, { unreadOnly = false, limit = 20 } = {}) {
-        let sql = `SELECT * FROM notifications WHERE receiver = 'sales' AND salesperson_id = ?`;
-        const params = [salespersonId];
+        try {
+            let sql = `SELECT * FROM notifications WHERE receiver = 'sales' AND salesperson_id = ?`;
+            const params = [salespersonId];
 
-        if (unreadOnly) {
-            sql += ` AND is_read = 0`;
+            if (unreadOnly) {
+                sql += ` AND is_read = 0`;
+            }
+
+            sql += ` ORDER BY is_read ASC, created_at DESC LIMIT ?`;
+            params.push(limit);
+
+            const { results } = await this.db.prepare(sql).bind(...params).all();
+
+            // 统计未读数量
+            const { count: unreadCount } = await this.db
+                .prepare(
+                    `SELECT COUNT(*) as count FROM notifications WHERE receiver = 'sales' AND salesperson_id = ? AND is_read = 0`
+                )
+                .bind(salespersonId)
+                .first();
+
+            return {
+                list: results.map(this._mapNotification),
+                unreadCount,
+            };
+        } catch (error) {
+            if (!isMissingColumnError(error, ['receiver', 'salesperson_id'])) {
+                throw error;
+            }
+
+            // 兼容旧表结构：历史库无销售端归属信息，返回空列表而非抛异常
+            return {
+                list: [],
+                unreadCount: 0,
+            };
         }
-
-        sql += ` ORDER BY is_read ASC, created_at DESC LIMIT ?`;
-        params.push(limit);
-
-        const { results } = await this.db.prepare(sql).bind(...params).all();
-
-        // 统计未读数量
-        const { count: unreadCount } = await this.db
-            .prepare(
-                `SELECT COUNT(*) as count FROM notifications WHERE receiver = 'sales' AND salesperson_id = ? AND is_read = 0`
-            )
-            .bind(salespersonId)
-            .first();
-
-        return {
-            list: results.map(this._mapNotification),
-            unreadCount,
-        };
     }
 
     // ========================================
@@ -184,7 +278,14 @@ export class NotificationRepository {
      * @returns {Promise<void>}
      */
     async markAsReadForAdmin(id) {
-        await this.db.prepare(`UPDATE notifications SET is_read = 1 WHERE id = ? AND receiver = 'admin'`).bind(id).run();
+        try {
+            await this.db.prepare(`UPDATE notifications SET is_read = 1 WHERE id = ? AND receiver = 'admin'`).bind(id).run();
+        } catch (error) {
+            if (!isMissingColumnError(error, ['receiver'])) {
+                throw error;
+            }
+            await this.db.prepare(`UPDATE notifications SET is_read = 1 WHERE id = ?`).bind(id).run();
+        }
     }
 
     /**
@@ -194,7 +295,13 @@ export class NotificationRepository {
      * @returns {Promise<void>}
      */
     async markAsReadForSalesperson(id, salespersonId) {
-        await this.db.prepare(`UPDATE notifications SET is_read = 1 WHERE id = ? AND receiver = 'sales' AND salesperson_id = ?`).bind(id, salespersonId).run();
+        try {
+            await this.db.prepare(`UPDATE notifications SET is_read = 1 WHERE id = ? AND receiver = 'sales' AND salesperson_id = ?`).bind(id, salespersonId).run();
+        } catch (error) {
+            if (!isMissingColumnError(error, ['receiver', 'salesperson_id'])) {
+                throw error;
+            }
+        }
     }
 
     /**
@@ -202,7 +309,14 @@ export class NotificationRepository {
      * @returns {Promise<void>}
      */
     async markAllAsReadForAdmin() {
-        await this.db.prepare(`UPDATE notifications SET is_read = 1 WHERE receiver = 'admin' AND is_read = 0`).run();
+        try {
+            await this.db.prepare(`UPDATE notifications SET is_read = 1 WHERE receiver = 'admin' AND is_read = 0`).run();
+        } catch (error) {
+            if (!isMissingColumnError(error, ['receiver'])) {
+                throw error;
+            }
+            await this.db.prepare(`UPDATE notifications SET is_read = 1 WHERE is_read = 0`).run();
+        }
     }
 
     /**
@@ -211,10 +325,16 @@ export class NotificationRepository {
      * @returns {Promise<void>}
      */
     async markAllAsReadForSalesperson(salespersonId) {
-        await this.db
-            .prepare(`UPDATE notifications SET is_read = 1 WHERE receiver = 'sales' AND salesperson_id = ? AND is_read = 0`)
-            .bind(salespersonId)
-            .run();
+        try {
+            await this.db
+                .prepare(`UPDATE notifications SET is_read = 1 WHERE receiver = 'sales' AND salesperson_id = ? AND is_read = 0`)
+                .bind(salespersonId)
+                .run();
+        } catch (error) {
+            if (!isMissingColumnError(error, ['receiver', 'salesperson_id'])) {
+                throw error;
+            }
+        }
     }
 
     // ========================================
@@ -233,9 +353,9 @@ export class NotificationRepository {
             content: n.content,
             link: n.link,
             is_read: n.is_read,
-            receiver: n.receiver,
+            receiver: n.receiver || 'admin',
             orderId: n.order_id,
-            metadata: n.metadata ? JSON.parse(n.metadata) : null,
+            metadata: parseMetadata(n.metadata),
             created_at: n.created_at,
         };
     }
