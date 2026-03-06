@@ -164,7 +164,7 @@ const routes = [
             {
                 path: 'forbidden',
                 name: 'Forbidden',
-                component: () => import('@/views/NotFound.vue'),
+                component: () => import('@/views/Forbidden.vue'),
                 meta: { titleKey: 'common.permissionDenied' },
             },
             // Admin catch-all (prevents redirect to login for auth users)

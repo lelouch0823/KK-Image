@@ -4,7 +4,8 @@
       <PermissionDeniedState
         title="采购单权限不足"
         :description="error || '当前账号没有采购单读取权限，请联系管理员分配 purchase_orders:read。'"
-        required-permission="products:manage"
+        home-to="/admin/forbidden"
+        home-text="查看权限说明"
         @retry="loadList"
       />
     </div>

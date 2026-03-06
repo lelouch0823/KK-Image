@@ -4,7 +4,8 @@
       <PermissionDeniedState
         title="订货总览权限不足"
         :description="error || '当前账号没有订货总览读取权限，请联系管理员分配 goods:read。'"
-        required-permission="products:manage"
+        home-to="/admin/forbidden"
+        home-text="查看权限说明"
         @retry="init"
       />
     </div>

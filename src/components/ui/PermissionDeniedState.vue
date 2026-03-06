@@ -24,10 +24,10 @@
           </button>
           <RouterLink
             v-if="showHome"
-            to="/admin/dashboard"
+            :to="homeTo"
             class="cursor-pointer rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-50 focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none dark:border-amber-600/60 dark:bg-amber-950/20 dark:text-amber-200 dark:hover:bg-amber-900/30"
           >
-            返回主页
+            {{ homeText }}
           </RouterLink>
         </div>
       </div>
@@ -60,6 +60,14 @@ const props = defineProps({
   showHome: {
     type: Boolean,
     default: true,
+  },
+  homeTo: {
+    type: String,
+    default: '/admin/forbidden',
+  },
+  homeText: {
+    type: String,
+    default: '查看权限说明',
   },
 });
 

@@ -4,7 +4,8 @@
       <PermissionDeniedState
         title="客户管理权限不足"
         :description="error || '当前账号没有客户读取权限，请联系管理员分配 customers:read。'"
-        required-permission="orders:manage"
+        home-to="/admin/forbidden"
+        home-text="查看权限说明"
         @retry="loadCustomers"
       />
     </div>
