@@ -14,16 +14,7 @@ import { PurchaseOrderRepository } from '../repositories/PurchaseOrderRepository
 import { ProductVariantRepository } from '../repositories/ProductVariantRepository.js';
 import { NotFoundError, BadRequestError } from '../lib/hono/errors.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
-
-/**
- * 采购单状态 → 预订单状态 映射
- * 当采购单状态变更时，自动联动更新关联的预订单状态
- */
-const PO_TO_ORDER_STATUS_MAP = {
-  ordered: 'production',    // 已下单 → 预订单变为 "生产中/采购中"
-  shipping: 'shipping',     // 在途 → 预订单变为 "运输中"
-  arrived: 'arrived',       // 已到货 → 预订单变为 "已到货"
-};
+import { PO_TO_PROCUREMENT_STATUS_MAP } from '../api/utils/order-procurement-state-machine.js';
 
 function buildSuggestionPricing(row, lastPurchasePriceMap) {
   const variantCostPrice = Number(row.cost_price) || 0;
@@ -79,21 +70,30 @@ export class PurchaseOrderService {
       throw new BadRequestError(`无法从 "${po.status}" 转换到 "${newStatus}"。允许的目标状态: ${allowed.join(', ')}`);
     }
 
-    // 2. 更新采购单状态
-    await this.repo.updateStatus(poId, newStatus);
+    // 2. CAS 更新采购单状态（防并发重复流转）
+    const updated = typeof this.repo.updateStatusIfCurrent === 'function'
+      ? await this.repo.updateStatusIfCurrent(poId, po.status, newStatus)
+      : await this.repo.updateStatus(poId, newStatus);
+    if (!updated) {
+      throw new BadRequestError('采购单状态已变化，请刷新后重试');
+    }
 
-    // 3. 级联更新预订单状态
+    // 3. 级联更新预订单采购状态（不再修改订单主状态）
     let cascadedOrders = 0;
-    const targetOrderStatus = PO_TO_ORDER_STATUS_MAP[newStatus];
+    const targetProcurementStatus = PO_TO_PROCUREMENT_STATUS_MAP[newStatus];
 
-    if (targetOrderStatus) {
+    if (targetProcurementStatus) {
       const linkedOrderIds = await this.repo.getLinkedOrderIds(poId);
       if (linkedOrderIds.length > 0) {
         const now = Date.now();
         const stmts = linkedOrderIds.map(orderId =>
           this.db.prepare(
-            `UPDATE orders SET status = ?, updated_at = ? WHERE id = ? AND status != ?`
-          ).bind(targetOrderStatus, now, orderId, targetOrderStatus)
+            `UPDATE orders
+             SET procurement_status = ?, updated_at = ?
+             WHERE id = ?
+               AND status NOT IN ('delivered', 'void')
+               AND COALESCE(procurement_status, 'none') != ?`
+          ).bind(targetProcurementStatus, now, orderId, targetProcurementStatus)
         );
         const results = await this.db.batch(stmts);
         cascadedOrders = results.filter(r => r.meta?.changes > 0).length;
