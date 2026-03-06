@@ -27,5 +27,7 @@ jobs:
       run: npm run authz:policy:build
     - name: Check migration prefixes
       run: npm run db:migrations:check-prefix
+    - name: Guard direct protected fetch regression
+      run: npm run qa:check-direct-protected-fetch
     - name: Run tests
       run: npm run ci-test
