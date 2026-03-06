@@ -47,6 +47,7 @@
             :order-no="order.orderNo"
             :product-name="currentData.name"
             :status="order.status"
+            :procurement-status="order.procurementStatus"
             :quantity="order.quantity || 1"
           />
 

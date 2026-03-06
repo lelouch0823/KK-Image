@@ -18,6 +18,7 @@ const sharedResource = useResource(API.MANAGE_ORDERS, {
 });
 const salespersons = ref([]);
 const statuses = ref([]);
+const procurementStatuses = ref([]);
 
 export function useOrders() {
   const { authFetch } = useAuth();
@@ -80,6 +81,9 @@ export function useOrders() {
         }
         if (res.data.statuses && statuses.value.length === 0) {
           statuses.value = res.data.statuses;
+        }
+        if (res.data.procurementStatuses && procurementStatuses.value.length === 0) {
+          procurementStatuses.value = res.data.procurementStatuses;
         }
 
         // Update pagination
@@ -388,6 +392,7 @@ export function useOrders() {
     orders: resource.items,
     salespersons,
     statuses,
+    procurementStatuses,
     pagination: resource.pagination,
     error: resource.error,
     errorCode: resource.errorCode,

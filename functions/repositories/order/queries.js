@@ -109,7 +109,7 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
         .prepare(
             `
       SELECT
-          o.id, o.order_no, o.current_data, o.status,
+          o.id, o.order_no, o.current_data, o.status, o.procurement_status,
           o.unread_by_sales as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
           f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
@@ -154,7 +154,7 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
  */
 export async function listForAdmin(
     db,
-    { salespersonId, customerId, status, search, startTime, endTime, page = 1, limit = 20 } = {}
+    { salespersonId, customerId, status, procurementStatus, search, startTime, endTime, page = 1, limit = 20 } = {}
 ) {
     // 验证分页参数
     const safePage = Math.max(1, Math.floor(Number(page) || 1));
@@ -175,6 +175,10 @@ export async function listForAdmin(
     if (status) {
         whereClause += ' AND o.status = ?';
         bindParams.push(status);
+    }
+    if (procurementStatus) {
+        whereClause += " AND COALESCE(o.procurement_status, 'none') = ?";
+        bindParams.push(procurementStatus);
     }
     if (startTime > 0) {
         whereClause += ' AND o.created_at >= ?';
@@ -199,7 +203,7 @@ export async function listForAdmin(
         .prepare(
             `
       SELECT
-          o.id, o.order_no, o.salesperson_id, o.current_data, o.status, o.product_id, o.variant_id, o.quantity,
+          o.id, o.order_no, o.salesperson_id, o.current_data, o.status, o.procurement_status, o.product_id, o.variant_id, o.quantity,
           o.unread_by_admin as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
           s.name as salesperson_name, s.store as salesperson_store,

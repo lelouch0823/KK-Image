@@ -16,6 +16,7 @@ export function useOrderFilters(loadOrders) {
     const filterState = ref({
         salesperson: '',
         status: '',
+        procurementStatus: '',
         search: '',
     });
 
@@ -33,6 +34,7 @@ export function useOrderFilters(loadOrders) {
         loadOrders({
             salesperson: filterState.value.salesperson,
             status: filterState.value.status,
+            procurementStatus: filterState.value.procurementStatus,
             search: filterState.value.search,
             startTime: filterDateRange.value.start,
             endTime: filterDateRange.value.end,
@@ -52,8 +54,10 @@ export function useOrderFilters(loadOrders) {
 
             filterDateRange.value = { start, end };
             filterState.value.status = '';
+            filterState.value.procurementStatus = '';
         } else if (type === 'pending') {
             filterState.value.status = 'pending';
+            filterState.value.procurementStatus = '';
             filterDateRange.value = { start: 0, end: 0 };
         }
 
@@ -68,6 +72,7 @@ export function useOrderFilters(loadOrders) {
             const params = new URLSearchParams();
             if (filterState.value.salesperson) params.set('salesperson', filterState.value.salesperson);
             if (filterState.value.status) params.set('status', filterState.value.status);
+            if (filterState.value.procurementStatus) params.set('procurementStatus', filterState.value.procurementStatus);
             if (filterState.value.search) params.set('search', filterState.value.search);
 
             const url = `${API.MANAGE_ORDER_EXPORT}?${params.toString()}`;
@@ -102,6 +107,7 @@ export function useOrderFilters(loadOrders) {
         loadOrders({
             salesperson: filterState.value.salesperson,
             status: filterState.value.status,
+            procurementStatus: filterState.value.procurementStatus,
             search: filterState.value.search,
             startTime: filterDateRange.value.start,
             endTime: filterDateRange.value.end,

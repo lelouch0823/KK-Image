@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { OrderStatsRepository } from '../../../../../repositories/OrderStatsRepository.js';
-import { MSG, ORDER_STATUSES, getChinaDayStart, getChinaDateStr } from '../../../_shared/utils.js';
+import { MSG, ORDER_STATUSES, ORDER_PROCUREMENT_STATUSES, getChinaDayStart, getChinaDateStr } from '../../../_shared/utils.js';
 import { parsePagination } from '../../../_shared/route-helpers.js';
 import { withCache } from '../../../middleware/cache.js';
 
@@ -15,6 +15,7 @@ app.get('/', withCache(20), async (c) => {
     const { page, limit } = parsePagination(c);
     const salespersonId = c.req.query('salesperson');
     const status = c.req.query('status');
+    const procurementStatus = c.req.query('procurementStatus');
     const search = c.req.query('search');
     const startTime = parseInt(c.req.query('startTime') || '0', 10);
     const endTime = parseInt(c.req.query('endTime') || '0', 10);
@@ -24,6 +25,9 @@ app.get('/', withCache(20), async (c) => {
         orderRepo.listForAdmin({
             salespersonId,
             status: status && ORDER_STATUSES.includes(status) ? status : null,
+            procurementStatus: procurementStatus && ORDER_PROCUREMENT_STATUSES.includes(procurementStatus)
+                ? procurementStatus
+                : null,
             search,
             startTime,
             endTime,
@@ -45,6 +49,7 @@ app.get('/', withCache(20), async (c) => {
                 store: s.store,
             })),
             statuses: ORDER_STATUSES,
+            procurementStatuses: ORDER_PROCUREMENT_STATUSES,
             pagination: {
                 page: result.page,
                 limit: result.limit,
@@ -99,6 +104,7 @@ app.get('/export', async (c) => {
     const url = new URL(c.req.url);
     const salespersonId = url.searchParams.get('salesperson');
     const status = url.searchParams.get('status');
+    const procurementStatus = url.searchParams.get('procurementStatus');
     const search = url.searchParams.get('search');
     const fromDate = url.searchParams.get('from');
     const toDate = url.searchParams.get('to');
@@ -113,6 +119,10 @@ app.get('/export', async (c) => {
     if (status && ORDER_STATUSES.includes(status)) {
         whereClause += ' AND o.status = ?';
         bindParams.push(status);
+    }
+    if (procurementStatus && ORDER_PROCUREMENT_STATUSES.includes(procurementStatus)) {
+        whereClause += " AND COALESCE(o.procurement_status, 'none') = ?";
+        bindParams.push(procurementStatus);
     }
     if (search) {
         whereClause += ' AND (o.order_no LIKE ? OR o.current_data LIKE ?)';

@@ -87,6 +87,17 @@
         />
       </div>
 
+      <!-- 采购状态筛选 -->
+      <div class="w-28 sm:w-40">
+        <Select
+          :model-value="filters.procurementStatus"
+          :options="procurementStatusOptions"
+          :placeholder="isMobile ? t('order.manage.procurementStatusShort') : t('order.manage.allProcurementStatuses')"
+          size="sm"
+          @update:model-value="$emit('update:filters', { ...filters, procurementStatus: $event })"
+        />
+      </div>
+
       <!-- 搜索 -->
       <div class="min-w-0 flex-1">
         <SearchInput
@@ -113,6 +124,7 @@ const {
   filters,
   salespersons = [],
   statuses = [],
+  procurementStatuses = [],
   exporting = false,
   showCreate = false,
 } = defineProps({
@@ -126,6 +138,10 @@ const {
     default: () => [],
   },
   statuses: {
+    type: Array,
+    default: () => [],
+  },
+  procurementStatuses: {
     type: Array,
     default: () => [],
   },
@@ -177,6 +193,14 @@ const statusOptions = computed(() => [
     value: '' 
   },
   ...statuses.map(s => ({ label: t(`order.statuses.${s}`), value: s }))
+]);
+
+const procurementStatusOptions = computed(() => [
+  {
+    label: isMobile.value ? t('order.manage.procurementStatusShort') : t('order.manage.allProcurementStatuses'),
+    value: '',
+  },
+  ...procurementStatuses.map((s) => ({ label: t(`order.procurementStatuses.${s}`), value: s })),
 ]);
 </script>
 

@@ -9,6 +9,14 @@
         >
           {{ productName || t('order.form.productName') }}
         </h2>
+        <div class="mt-2">
+          <OrderProcurementBadge
+            :status="procurementStatus"
+            dot
+            show-label
+            compact
+          />
+        </div>
       </div>
       <StatusBadge class="shrink-0" :variant="getStatusVariant(status)" size="md" dot>
         {{ t(`order.statuses.${status}`) }}
@@ -59,6 +67,7 @@ import { useI18n } from '@/composables/useI18n';
 import { STATUS_OPTIONS, getStatusVariant } from '@/utils/status';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import OrderProcurementBadge from './OrderProcurementBadge.vue';
 
 const props = defineProps({
   orderNo: {
@@ -72,6 +81,10 @@ const props = defineProps({
   status: {
     type: String,
     required: true,
+  },
+  procurementStatus: {
+    type: String,
+    default: 'none',
   },
   quantity: {
     type: Number,

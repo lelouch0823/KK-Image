@@ -68,4 +68,30 @@ describe('manage order list routes', () => {
     expect(res.status).toBe(200);
     expect(mocks.listForAdmin).toHaveBeenCalledWith(expect.objectContaining({ page: 1, limit: 1 }));
   });
+
+  it('passes valid procurementStatus to repository query options', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders?procurementStatus=ordered',
+      {},
+      { DB: createDb() },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.listForAdmin).toHaveBeenCalledWith(expect.objectContaining({ procurementStatus: 'ordered' }));
+  });
+
+  it('normalizes invalid procurementStatus to null', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders?procurementStatus=invalid',
+      {},
+      { DB: createDb() },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.listForAdmin).toHaveBeenCalledWith(expect.objectContaining({ procurementStatus: null }));
+  });
 });

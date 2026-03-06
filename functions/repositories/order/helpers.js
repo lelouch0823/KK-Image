@@ -28,11 +28,13 @@ export function parseJson(jsonStr) {
  */
 export function mapOrderListItem(order) {
     const currentData = parseJson(order.current_data);
+    const procurementStatus = order.procurement_status || 'none';
     return {
         id: order.id,
         orderNo: order.order_no,
         productName: currentData.name || '',
         status: order.status,
+        procurementStatus,
         hasNewFeedback: !!order.is_unread,
         mainImage: order.main_image_key ? `/file/${order.main_image_key}` : null,
         mainImageBlurhash: order.main_image_blurhash,
@@ -52,6 +54,7 @@ export function mapOrderListItem(order) {
 export function mapOrderDetail(order) {
     const originalData = parseJson(order.original_data);
     const currentData = parseJson(order.current_data);
+    const procurementStatus = order.procurement_status || 'none';
 
     return {
         id: order.id,
@@ -68,6 +71,7 @@ export function mapOrderDetail(order) {
             }
             : null,
         status: order.status,
+        procurementStatus,
         unreadByAdmin: !!order.unread_by_admin,
         unreadBySales: !!order.unread_by_sales,
         originalData,

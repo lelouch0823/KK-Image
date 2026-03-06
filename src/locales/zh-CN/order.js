@@ -4,6 +4,7 @@ export default {
   title: '预定管理',
   orderNo: '订单编号',
   status: '状态',
+  procurementStatus: '采购状态',
   createdAt: '提交时间',
   updatedAt: '更新时间',
 
@@ -17,6 +18,14 @@ export default {
     arrived: '已到货',
     delivered: '已交付',
     void: '已作废',
+  },
+
+  procurementStatuses: {
+    none: '未采购',
+    planned: '已规划',
+    ordered: '已下单',
+    partially_arrived: '部分到货',
+    arrived: '全部到货',
   },
 
   // 表单字段
@@ -105,8 +114,10 @@ export default {
     filterByStatus: '按状态筛选',
     allSalespersons: '全部销售',
     allStatuses: '全部状态',
+    allProcurementStatuses: '全部采购状态',
     salesShort: '销售',
     statusShort: '状态',
+    procurementStatusShort: '采购',
     editOrder: '编辑订单',
     orderStatus: '订单状态',
     changeStatus: '变更状态',

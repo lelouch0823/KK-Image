@@ -4,6 +4,7 @@ export default {
   title: 'Order Management',
   orderNo: 'Order No.',
   status: 'Status',
+  procurementStatus: 'Procurement',
   createdAt: 'Submitted At',
   updatedAt: 'Updated At',
 
@@ -17,6 +18,14 @@ export default {
     arrived: 'Arrived',
     delivered: 'Delivered',
     void: 'Void',
+  },
+
+  procurementStatuses: {
+    none: 'Not Procured',
+    planned: 'Planned',
+    ordered: 'Ordered',
+    partially_arrived: 'Partially Arrived',
+    arrived: 'Arrived',
   },
 
   // Form Fields
@@ -105,8 +114,10 @@ export default {
     filterByStatus: 'Filter by Status',
     allSalespersons: 'All Sales',
     allStatuses: 'All Statuses',
+    allProcurementStatuses: 'All Procurement',
     salesShort: 'Sales',
     statusShort: 'Status',
+    procurementStatusShort: 'Procure',
     editOrder: 'Edit Order',
     orderStatus: 'Order Status',
     changeStatus: 'Change Status',

@@ -35,6 +35,7 @@
               v-model:filters="filterState"
               :salespersons="salespersons"
               :statuses="statuses"
+              :procurement-statuses="procurementStatuses"
               :exporting="exporting"
               :show-create="true"
               class="border-none bg-transparent p-0 shadow-none"
@@ -47,12 +48,19 @@
 
           <!-- Status Slot -->
           <template #status="{ order }">
-            <OrderStatusChanger
-              :status="order.status"
-              :loading="statusChanging[order.id]"
-              :permissions="currentUser?.permissions || []"
-              :on-status-change="(e) => handleStatusChange(order, e)"
-            />
+            <div class="flex flex-col items-center gap-1">
+              <OrderStatusChanger
+                :status="order.status"
+                :loading="statusChanging[order.id]"
+                :permissions="currentUser?.permissions || []"
+                :on-status-change="(e) => handleStatusChange(order, e)"
+              />
+              <OrderProcurementBadge
+                :status="order.procurementStatus"
+                :show-label="false"
+                compact
+              />
+            </div>
           </template>
 
           <!-- Footer Slot: Pagination -->
@@ -79,6 +87,7 @@
               v-model:filters="filterState"
               :salespersons="salespersons"
               :statuses="statuses"
+              :procurement-statuses="procurementStatuses"
               :exporting="exporting"
               :show-create="true"
               class="mb-4"
@@ -94,12 +103,19 @@
           @edit="openEditModal"
         >
           <template #status="{ order }">
-            <OrderStatusChanger
-              :status="order.status"
-              :loading="statusChanging[order.id]"
-              :permissions="currentUser?.permissions || []"
-              :on-status-change="(e) => handleStatusChange(order, e)"
-            />
+            <div class="flex flex-col items-end gap-1">
+              <OrderStatusChanger
+                :status="order.status"
+                :loading="statusChanging[order.id]"
+                :permissions="currentUser?.permissions || []"
+                :on-status-change="(e) => handleStatusChange(order, e)"
+              />
+              <OrderProcurementBadge
+                :status="order.procurementStatus"
+                :show-label="false"
+                compact
+              />
+            </div>
           </template>
         </OrderCards>
         <!-- Mobile Infinite Scroll Trigger -->
@@ -228,6 +244,7 @@ import OrderFilters from './order/OrderFilters.vue';
 import OrderTable from './order/OrderTable.vue';
 import OrderCards from './order/OrderCards.vue';
 import OrderStatusChanger from './OrderStatusChanger.vue';
+import OrderProcurementBadge from './order/OrderProcurementBadge.vue';
 import OrderEditModal from './OrderEditModal.vue';
 import OrderDetail from './order/OrderDetail.vue';
 import OrderDashboard from './order/OrderDashboard.vue';
@@ -242,6 +259,7 @@ const {
   orders,
   salespersons,
   statuses,
+  procurementStatuses,
   loading,
   error,
   errorCode,
