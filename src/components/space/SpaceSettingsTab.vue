@@ -34,12 +34,13 @@
       </div>
 
       <div class="space-y-3 p-5">
-        <div class="flex gap-2">
+        <div class="flex min-w-0 gap-2">
           <input
             type="text"
             readonly
             :value="shareUrl"
-            class="flex-1 rounded-xl border border-(--border-color) bg-(--bg-muted) px-4 py-2.5 font-mono text-sm text-(--text-main)"
+            class="min-w-0 flex-1 truncate rounded-xl border border-(--border-color) bg-(--bg-muted) px-4 py-2.5 font-mono text-sm text-(--text-main)"
+            :title="shareUrl"
           />
           <button
             class="flex items-center gap-2 rounded-xl border border-(--border-color) bg-(--bg-card) px-4 py-2.5 text-sm text-(--text-main) transition-colors hover:bg-(--bg-hover)"

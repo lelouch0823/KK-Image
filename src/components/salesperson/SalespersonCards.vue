@@ -36,9 +36,9 @@
               {{ person.name?.charAt(0) || '?' }}
             </div>
             <!-- 姓名 -->
-            <div class="truncate text-sm font-bold text-(--text-main)">{{ person.name }}</div>
+            <div class="truncate text-sm font-bold text-(--text-main)" :title="person.name || '-'">{{ person.name || '-' }}</div>
             <!-- 门店 -->
-            <div class="mt-0.5 truncate text-xs text-(--text-secondary)">
+            <div class="mt-0.5 truncate text-xs text-(--text-secondary)" :title="person.store || '-'">
               {{ person.store || '-' }}
             </div>
             <!-- 订单数 (可点击跳转) -->

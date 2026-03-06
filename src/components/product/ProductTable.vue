@@ -39,10 +39,10 @@
         </div>
         <div class="min-w-0 flex-1 text-left">
             <div class="truncate font-[Outfit] font-medium text-(--text-main)" :title="row.name">{{ row.name }}</div>
-            <div class="mt-0.5 flex flex-wrap gap-2 text-xs text-(--text-secondary)">
-                <span v-if="row.brand" class="rounded-md bg-(--bg-muted) px-1.5 py-0.5 text-(--text-secondary)">{{ row.brand }}</span>
+            <div class="mt-0.5 flex min-w-0 flex-wrap gap-2 text-xs text-(--text-secondary)">
+                <span v-if="row.brand" class="max-w-[9rem] truncate rounded-md bg-(--bg-muted) px-1.5 py-0.5 text-(--text-secondary)" :title="row.brand">{{ row.brand }}</span>
                 <!-- Mobile Category fallback -->
-                <span v-if="row.category && !isLargeScreen" class="lg:hidden">{{ row.category }}</span>
+                <span v-if="row.category && !isLargeScreen" class="max-w-[8rem] truncate lg:hidden" :title="row.category">{{ row.category }}</span>
             </div>
         </div>
       </div>

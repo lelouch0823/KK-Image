@@ -7,10 +7,10 @@
   >
     <!-- Custom Header -->
     <template #header>
-      <div class="flex items-center gap-3">
-        <div>
+      <div class="flex min-w-0 items-center gap-3">
+        <div class="min-w-0">
           <div class="flex items-center gap-2">
-            <h2 class="text-lg font-semibold text-(--text-main)">
+            <h2 class="max-w-[16rem] truncate text-lg font-semibold text-(--text-main) sm:max-w-[26rem]" :title="spaceData?.name || t('spaceManager.detailTitle')">
               {{ spaceData?.name || t('spaceManager.detailTitle') }}
             </h2>
             <StatusBadge v-if="spaceData?.isPublic" variant="success" dot>

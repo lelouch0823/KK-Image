@@ -23,7 +23,7 @@
       </div>
 
       <!-- Name & Status -->
-      <h2 class="text-xl font-bold text-(--text-main)">{{ person.name }}</h2>
+      <h2 class="max-w-full truncate text-xl font-bold text-(--text-main)" :title="person.name || '-'">{{ person.name || '-' }}</h2>
       <div class="mt-2">
         <StatusBadge :variant="person.isActive ? 'success' : 'default'">
           {{ person.isActive ? t('salesperson.active') : t('salesperson.disabled') }}
@@ -33,15 +33,15 @@
       <!-- Info Grid -->
       <div class="mt-6 w-full space-y-4 rounded-xl bg-(--bg-muted)/50 p-4">
         <!-- Store -->
-        <div class="flex items-center justify-between">
+        <div class="flex min-w-0 items-center justify-between gap-3">
           <span class="text-sm text-(--text-secondary)">{{ t('salesperson.store') }}</span>
-          <span class="font-medium text-(--text-main)">{{ person.store || '-' }}</span>
+          <span class="max-w-[60%] truncate text-right font-medium text-(--text-main)" :title="person.store || '-'">{{ person.store || '-' }}</span>
         </div>
 
         <!-- Phone -->
-        <div class="flex items-center justify-between">
+        <div class="flex min-w-0 items-center justify-between gap-3">
           <span class="text-sm text-(--text-secondary)">{{ t('salesperson.phone') }}</span>
-          <span class="font-medium text-(--text-main)">{{ person.phone || '-' }}</span>
+          <span class="max-w-[60%] truncate text-right font-medium text-(--text-main)" :title="person.phone || '-'">{{ person.phone || '-' }}</span>
         </div>
 
         <!-- Orders -->
@@ -69,8 +69,8 @@
              <div class="mb-2 flex items-center justify-between">
                 <span class="text-sm text-(--text-secondary)">{{ t('salesperson.accessLink') }}</span>
              </div>
-             <div class="flex items-center gap-2">
-                 <div class="flex-1 truncate rounded border border-(--border-color) bg-(--bg-card) px-2 py-1.5 font-mono text-xs text-(--text-muted)">
+             <div class="flex min-w-0 items-center gap-2">
+                 <div class="flex-1 break-all rounded border border-(--border-color) bg-(--bg-card) px-2 py-1.5 font-mono text-xs text-(--text-muted)" :title="accessUrl">
                      {{ accessUrl }}
                  </div>
                  <button

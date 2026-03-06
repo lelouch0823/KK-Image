@@ -37,7 +37,7 @@
         class="border-primary/20 bg-primary/5 flex items-center gap-2 rounded-lg border px-3 py-1.5"
       >
         <AppIcon name="photo-solid" class="text-primary size-4" />
-        <span class="text-primary max-w-[100px] truncate text-xs font-medium">{{
+        <span class="text-primary max-w-[100px] truncate text-xs font-medium" :title="currentCoverFile.originalName || currentCoverFile.name || '-'">{{
           currentCoverFile.originalName || currentCoverFile.name
         }}</span>
       </div>
@@ -77,6 +77,7 @@
           <div
             v-else
             class="flex size-full items-center justify-center bg-(--bg-card) text-xs font-bold text-(--text-muted) uppercase"
+            :title="file.name || '-'"
           >
             {{ file.name?.split('.').pop() }}
           </div>

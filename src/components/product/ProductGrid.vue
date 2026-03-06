@@ -33,16 +33,16 @@
             <!-- Info -->
             <div class="min-w-0 flex-1">
                 <!-- Title -->
-                <h3 class="truncate text-[15px] leading-tight font-medium text-(--text-main)">
+                <h3 class="truncate text-[15px] leading-tight font-medium text-(--text-main)" :title="product.name || '-'">
                     {{ product.name }}
                 </h3>
                 
                 <!-- SPU + Stock Row -->
-                <div class="mt-1.5 flex items-center gap-2">
-                    <span class="rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono text-[11px] text-(--text-secondary)">
+                <div class="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
+                    <span class="max-w-[8.5rem] truncate rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono text-[11px] text-(--text-secondary)" :title="product.spu || '-'">
                         {{ product.spu }}
                     </span>
-                    <span class="text-[11px] text-(--text-secondary)">
+                    <span class="max-w-[8rem] truncate text-[11px] text-(--text-secondary)" :title="`${t('product.table.header.stock')}: ${product.stock_quantity}`">
                         {{ t('product.table.header.stock') }}: {{ product.stock_quantity }}
                     </span>
                     <span v-if="product.stock_quantity <= (product.alert_threshold || 10)" class="bg-danger-bg text-danger-text rounded px-1.5 py-0.5 text-[10px] font-bold">

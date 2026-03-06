@@ -47,7 +47,7 @@
           <span class="text-muted mb-2 text-xs font-bold uppercase">{{
             file.name?.split('.').pop()
           }}</span>
-          <span class="text-secondary line-clamp-2 text-center text-xs">{{
+          <span class="text-secondary line-clamp-2 text-center text-xs" :title="file.originalName || file.name || '-'">{{
             file.originalName || file.name
           }}</span>
         </div>

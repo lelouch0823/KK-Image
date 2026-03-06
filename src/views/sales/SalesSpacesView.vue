@@ -54,15 +54,15 @@
             </svg>
           </div>
           <!-- Template Badge -->
-          <span class="absolute top-3 left-3 rounded-full bg-black/50 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+          <span class="absolute top-3 left-3 max-w-[75%] truncate rounded-full bg-black/50 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm" :title="getTemplateLabel(space.template)">
             {{ getTemplateLabel(space.template) }}
           </span>
         </div>
 
         <!-- Info -->
         <div class="p-4">
-          <h3 class="group-hover:text-primary text-sm font-semibold text-(--text-main)">
-            {{ space.name }}
+          <h3 class="group-hover:text-primary truncate text-sm font-semibold text-(--text-main)" :title="space.name || '-'">
+            {{ space.name || '-' }}
           </h3>
           <p v-if="space.description" class="mt-1 line-clamp-2 text-xs text-(--text-secondary)">
             {{ space.description }}

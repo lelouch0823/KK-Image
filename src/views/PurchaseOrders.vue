@@ -297,7 +297,7 @@
                     :key="item.id"
                     class="group flex flex-col justify-between gap-3 rounded-xl border border-(--border-subtle) p-3 transition-colors hover:bg-(--bg-hover) sm:flex-row sm:items-center"
                   >
-                    <div class="flex items-center gap-3">
+                    <div class="flex min-w-0 items-center gap-3">
                       <!-- 商品主图 -->
                       <div class="size-14 shrink-0 overflow-hidden rounded-xl border border-(--border-subtle) bg-(--bg-muted) shadow-sm">
                         <AppImage v-if="item.product_images?.[0]" :src="getFileUrl(item.product_images[0])" :alt="item.product_name" class="size-full object-cover" />
@@ -307,19 +307,19 @@
                       </div>
                       
                       <!-- 商品信息 -->
-                      <div class="flex flex-col gap-1">
-                        <div class="hover:text-primary flex cursor-pointer items-center gap-2 transition-colors" @click="handleViewProductDetail(item.product_id)">
-                          <span class="line-clamp-1 text-sm font-medium text-(--text-main)" :title="item.product_name">{{ item.product_name || '—' }}</span>
-                          <span v-if="item.product_brand" class="shrink-0 rounded bg-(--bg-muted) px-1.5 py-0.5 text-[10px] font-medium text-(--text-secondary)">{{ item.product_brand }}</span>
+                      <div class="min-w-0 flex flex-col gap-1">
+                        <div class="hover:text-primary flex min-w-0 cursor-pointer items-center gap-2 transition-colors" @click="handleViewProductDetail(item.product_id)">
+                          <span class="line-clamp-1 min-w-0 text-sm font-medium break-all text-(--text-main)" :title="item.product_name">{{ item.product_name || '—' }}</span>
+                          <span v-if="item.product_brand" class="max-w-[8rem] shrink-0 truncate rounded bg-(--bg-muted) px-1.5 py-0.5 text-[10px] font-medium text-(--text-secondary)" :title="item.product_brand">{{ item.product_brand }}</span>
                           <span v-if="detail.status === 'draft'" class="text-danger flex shrink-0 cursor-pointer items-center gap-0.5 text-xs opacity-0 transition-opacity group-hover:opacity-100" @click="handleDetailRemoveItem(item.id)">
                             <AppIcon name="trash" class="size-3" />
                             {{ t('common.delete') }}
                           </span>
                         </div>
-                        <div class="flex flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)">
-                          <code class="rounded bg-(--bg-muted) px-1 py-0.5 font-mono text-[10px]">{{ item.product_sku || '-' }}</code>
+                        <div class="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)">
+                          <code class="max-w-[10rem] truncate rounded bg-(--bg-muted) px-1 py-0.5 font-mono text-[10px]" :title="item.product_sku || '-'">{{ item.product_sku || '-' }}</code>
                           <span class="text-(--text-muted)">·</span>
-                          <span v-if="item.customer_order_no" class="bg-info/10 text-info inline-flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium">
+                          <span v-if="item.customer_order_no" class="bg-info/10 text-info inline-flex max-w-[12rem] items-center gap-1 truncate rounded px-1 py-0.5 text-[10px] font-medium" :title="item.customer_order_no">
                             <AppIcon name="shopping-bag" class="size-3" />
                             {{ item.customer_order_no }}
                           </span>
@@ -329,8 +329,13 @@
                           </span>
                         </div>
                         <!-- Specs -->
-                        <div v-if="item.product_specifications && Object.keys(item.product_specifications).length > 0" class="mt-0.5 flex flex-wrap gap-1">
-                          <span v-for="(val, key) in item.product_specifications" :key="key" class="rounded border border-(--border-subtle) bg-(--bg-page) px-1.5 py-0.5 text-[10px] text-(--text-secondary)">
+                        <div v-if="item.product_specifications && Object.keys(item.product_specifications).length > 0" class="mt-0.5 flex min-w-0 flex-wrap gap-1">
+                          <span
+                            v-for="(val, key) in item.product_specifications"
+                            :key="key"
+                            class="max-w-full break-all rounded border border-(--border-subtle) bg-(--bg-page) px-1.5 py-0.5 text-[10px] text-(--text-secondary)"
+                            :title="`${key}: ${val}`"
+                          >
                             {{ key }}: {{ val }}
                           </span>
                         </div>
@@ -365,7 +370,7 @@
               <!-- 备注 -->
               <div v-if="detail.remark" class="rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-sm">
                 <h3 class="mb-2 text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.form.remark') }}</h3>
-                <p class="text-sm text-(--text-secondary)">{{ detail.remark }}</p>
+                <p class="text-sm break-all whitespace-pre-wrap text-(--text-secondary)">{{ detail.remark }}</p>
               </div>
             </div>
             
@@ -500,10 +505,10 @@
                                 </div>
                               </div>
                               <div class="min-w-0">
-                                <div class="truncate text-sm font-medium text-(--text-main)">{{ item.product_name }}</div>
-                                <div class="flex items-center gap-1.5 text-xs text-(--text-secondary)">
-                                  <span class="font-mono">{{ item.sku }}</span>
-                                  <span v-if="item.brand">· {{ item.brand }}</span>
+                                <div class="truncate text-sm font-medium text-(--text-main)" :title="item.product_name || '—'">{{ item.product_name || '—' }}</div>
+                                <div class="flex min-w-0 items-center gap-1.5 text-xs text-(--text-secondary)">
+                                  <span class="max-w-[8rem] truncate font-mono" :title="item.sku || '-'">{{ item.sku || '-' }}</span>
+                                  <span v-if="item.brand" class="max-w-[7rem] truncate" :title="item.brand">· {{ item.brand }}</span>
                                 </div>
                               </div>
                             </div>
@@ -623,7 +628,7 @@
             <p class="mb-5 text-sm text-(--text-secondary)">{{ t('purchaseOrder.form.confirmShortage') }}</p>
             <div class="border-warning/20 bg-warning/5 mb-5 max-h-40 overflow-y-auto rounded-xl border p-3">
               <div v-for="item in shortageItems" :key="`${item.product_id || 'p'}-${item.variant_id || 'v'}`" class="flex items-center justify-between py-1 text-sm">
-                <span class="text-(--text-main)">{{ item.product_name }}</span>
+                <span class="max-w-[70%] truncate text-(--text-main)" :title="item.product_name || '—'">{{ item.product_name || '—' }}</span>
                 <span class="text-danger font-[Outfit]">
                   {{ item.quantity }} / {{ item.required_quantity }}
                 </span>
@@ -679,21 +684,21 @@
               <div
                 v-for="s in suggestions"
                 :key="`${s.product_id}-${s.variant_id || 'no-variant'}`"
-                class="flex items-center justify-between rounded-xl border border-(--border-subtle) p-3 transition-colors hover:bg-(--bg-hover)"
+                class="flex flex-col gap-2 rounded-xl border border-(--border-subtle) p-3 transition-colors hover:bg-(--bg-hover) lg:flex-row lg:items-center lg:justify-between"
               >
-                <div class="flex items-center gap-3">
+                <div class="flex min-w-0 items-center gap-3">
                   <input v-model="selectedSuggestions" :value="s" type="checkbox" class="text-primary size-4 cursor-pointer rounded border-(--border-color) focus:ring-primary" />
-                  <div>
-                    <div class="text-sm font-medium text-(--text-main)">{{ s.product_name }}</div>
-                    <div class="text-xs text-(--text-secondary)">
-                      {{ s.sku }} · {{ s.brand }}
+                  <div class="min-w-0">
+                    <div class="truncate text-sm font-medium text-(--text-main)" :title="s.product_name || '—'">{{ s.product_name || '—' }}</div>
+                    <div class="truncate text-xs text-(--text-secondary)" :title="buildSuggestionMeta(s)">
+                      {{ buildSuggestionMeta(s) }}
                       <template v-if="s.variant_options && Object.keys(s.variant_options).length > 0">
-                        · {{ Object.values(s.variant_options).join(' / ') }}
+                        · {{ buildSuggestionVariantLabel(s.variant_options) }}
                       </template>
                     </div>
                   </div>
                 </div>
-                <div class="flex items-center gap-4 text-xs">
+                <div class="flex flex-wrap items-center gap-2 text-xs lg:justify-end">
                   <span class="text-danger font-semibold">{{ t('purchaseOrder.suggestions.shortage') }}: {{ s.shortage }}</span>
                   <span class="text-(--text-secondary)">{{ t('purchaseOrder.suggestions.stock') }}: {{ s.stock_quantity }}</span>
                   <span class="font-[Outfit] text-(--text-secondary)">成本 ¥{{ (s.variant_cost_price || s.cost_price || 0).toFixed(2) }}</span>
@@ -899,6 +904,18 @@ const formatDate = (ts) => {
   return new Date(ts).toLocaleDateString('zh-CN', {
     year: 'numeric', month: '2-digit', day: '2-digit',
   });
+};
+
+const buildSuggestionVariantLabel = (variantOptions = {}) =>
+  Object.values(variantOptions || {})
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join(' / ');
+
+const buildSuggestionMeta = (suggestion) => {
+  const sku = String(suggestion?.sku || '').trim();
+  const brand = String(suggestion?.brand || '').trim();
+  return [sku || '—', brand || '-'].join(' · ');
 };
 
 const openDetail = async (id) => {
