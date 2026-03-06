@@ -89,6 +89,34 @@ async function validateVariantItems(db, items = []) {
   }
 }
 
+async function validatePreOrderBinding(db, items = []) {
+  if (!items || items.length === 0) return;
+  const linkedItems = items.filter((item) => item.pre_order_id);
+  if (linkedItems.length === 0) return;
+
+  const orderIds = [...new Set(linkedItems.map((item) => item.pre_order_id))];
+  const placeholders = orderIds.map(() => '?').join(',');
+  const { results } = await db.prepare(`
+    SELECT id, status, product_id, variant_id
+    FROM orders
+    WHERE id IN (${placeholders})
+  `).bind(...orderIds).all();
+  const orderMap = new Map(results.map((row) => [row.id, row]));
+
+  for (const item of linkedItems) {
+    const order = orderMap.get(item.pre_order_id);
+    if (!order) {
+      throw new BadRequestError(`预订单不存在: ${item.pre_order_id}`);
+    }
+    if (order.status !== 'confirmed') {
+      throw new BadRequestError('仅可关联 confirmed 状态的预订单');
+    }
+    if (order.product_id !== item.product_id || order.variant_id !== item.variant_id) {
+      throw new BadRequestError('pre_order_id 与商品/变体不匹配');
+    }
+  }
+}
+
 // ─── 列表 & 统计 ───────────────────────────────────────
 
 /**
@@ -161,6 +189,7 @@ app.post('/', async (c) => {
   // 如果同时传入了明细项，一并添加
   if (body.items && body.items.length > 0) {
     await validateVariantItems(c.env.DB, body.items);
+    await validatePreOrderBinding(c.env.DB, body.items);
     await repo.addItems(po.id, body.items);
   }
 
@@ -258,6 +287,7 @@ app.post('/:id/items', async (c) => {
     throw new BadRequestError('请提供至少一条明细项');
   }
   await validateVariantItems(c.env.DB, body.items);
+  await validatePreOrderBinding(c.env.DB, body.items);
 
   const ids = await repo.addItems(poId, body.items);
 
@@ -278,7 +308,7 @@ app.patch('/:id/items/:itemId', async (c) => {
   // 校验采购单存在且为草稿状态
   await requireDraftPurchaseOrder(repo, poId, '修改明细');
 
-  const updated = await repo.updateItem(c.req.param('itemId'), body);
+  const updated = await repo.updateItem(poId, c.req.param('itemId'), body);
   requireMutationSuccess(updated, '明细不存在');
 
   invalidatePoRelatedCaches(c, poId);
@@ -296,7 +326,7 @@ app.delete('/:id/items/:itemId', async (c) => {
   // 校验采购单状态
   await requireDraftPurchaseOrder(repo, poId, '删除明细');
 
-  const removed = await repo.removeItem(c.req.param('itemId'));
+  const removed = await repo.removeItem(poId, c.req.param('itemId'));
   requireMutationSuccess(removed, '明细不存在');
 
   invalidatePoRelatedCaches(c, poId);
