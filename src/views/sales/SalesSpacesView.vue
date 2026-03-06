@@ -87,10 +87,12 @@
 <script setup>
 import { ref, inject, onMounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { useRequestAdapters } from '@/composables/useRequestAdapters';
 import { API } from '@/utils/constants';
 import AppImage from '@/components/ui/AppImage.vue';
 
 const { t } = useI18n();
+const { requestSales } = useRequestAdapters();
 const salesContext = inject('salesContext');
 
 const spaces = ref([]);
@@ -131,8 +133,8 @@ const loadSpaces = async () => {
   loading.value = true;
   try {
     const token = salesContext?.accessToken?.value || window.location.pathname.split('/')[2];
-    const res = await fetch(API.SALES_SPACES(token), {
-      credentials: 'include',
+    const res = await requestSales(API.SALES_SPACES(token), {
+      token,
     });
     const data = await res.json();
     if (data.success) {

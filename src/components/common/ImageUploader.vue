@@ -49,7 +49,7 @@
 import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
-import { useAuth } from '@/composables/useAuth';
+import { useRequestAdapters } from '@/composables/useRequestAdapters';
 import { useDragSort } from '@/composables/useDragSort';
 import { useImageCompression } from '@/composables/useImageCompression';
 import { API } from '@/utils/constants';
@@ -75,7 +75,7 @@ const emit = defineEmits(['update:modelValue']);
 
 const { t } = useI18n();
 const { addToast } = useToast();
-const { authFetch } = useAuth();
+const { requestAuth } = useRequestAdapters();
 
 // 处理状态
 const isProcessing = ref(false);
@@ -117,7 +117,7 @@ const { compressImage, getFileHash } = useImageCompression();
  */
 const checkOriginalHash = async (originalHash) => {
   try {
-    const response = await authFetch(API.CHECK_HASH, {
+    const response = await requestAuth(API.CHECK_HASH, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ original_hash: originalHash }),
@@ -151,7 +151,7 @@ const uploadFile = async (file, hash, originalHash) => {
     uploadUrl = `${uploadUrl}${separator}context=${props.context}`;
   }
 
-  const response = await authFetch(uploadUrl, {
+  const response = await requestAuth(uploadUrl, {
     method: 'POST',
     body: formData,
   });
@@ -279,7 +279,7 @@ const removeFile = async (index) => {
   // 在非延迟模式下，且文件已上传，才物理删除
   if (!props.deferred && file.id && !file.isLocal) {
     try {
-      await authFetch(`${API.FILES}/${file.id}`, {
+      await requestAuth(`${API.FILES}/${file.id}`, {
         method: 'DELETE',
       });
     } catch (e) {
@@ -330,7 +330,7 @@ const replaceFile = async (index, e) => {
       // 非延迟模式下才物理删除旧文件
       if (!props.deferred && oldFile.id && !oldFile.isLocal) {
         try {
-          await authFetch(`${API.FILES}/${oldFile.id}`, {
+          await requestAuth(`${API.FILES}/${oldFile.id}`, {
             method: 'DELETE',
           });
         } catch (e) {

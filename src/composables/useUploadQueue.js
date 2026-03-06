@@ -2,7 +2,7 @@ import { ref, computed, shallowRef } from 'vue';
 import { generateRandomId } from '@/utils/common';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
-import { useAuth } from '@/composables/useAuth';
+import { useRequestAdapters } from '@/composables/useRequestAdapters';
 import { API, MAX_UPLOAD_SIZE } from '@/utils/constants';
 
 // ============================================================
@@ -20,7 +20,7 @@ const folderRefreshCallbacks = shallowRef(new Map());
 export function useUploadQueue() {
   const { addToast } = useToast();
   const { t } = useI18n();
-  const { authFetch } = useAuth();
+  const { requestAuth } = useRequestAdapters();
 
   // 计算属性
   const hasItems = computed(() => queue.value.length > 0);
@@ -187,7 +187,7 @@ export function useUploadQueue() {
    */
   async function checkHash(hash) {
     try {
-      const res = await authFetch(API.CHECK_HASH, {
+      const res = await requestAuth(API.CHECK_HASH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ original_hash: hash }),

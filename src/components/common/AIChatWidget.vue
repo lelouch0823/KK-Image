@@ -167,17 +167,17 @@ import AISuggestions from '@/components/common/ai/AISuggestions.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { useI18n } from '@/composables/useI18n';
 import { useAI } from '@/composables/useAI';
-import { useAuth } from '@/composables/useAuth';
 import { useAIStream } from '@/composables/useAIStream';
 import { useImageCompression } from '@/composables/useImageCompression';
 import { useToast } from '@/composables/useToast';
+import { useRequestAdapters } from '@/composables/useRequestAdapters';
 import { throttle } from '@/utils/performance';
 import { inferCurrentView, inferAIEntityContext } from '@/components/common/ai/context-inference';
 
 const { isOpen, close, context, setContext } = useAI();
 const { t } = useI18n();
 const { addToast } = useToast();
-const { authFetch } = useAuth();
+const { requestAuth } = useRequestAdapters();
 const route = useRoute();
 const { width: windowWidth, height: windowHeight } = useWindowSize();
 const isMobile = computed(() => windowWidth.value <= 768);
@@ -591,7 +591,7 @@ const generateReport = async () => {
   isGeneratingReport.value = true;
   
   try {
-    const response = await authFetch(API_URLS.AI.REPORT, {
+    const response = await requestAuth(API_URLS.AI.REPORT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ context: context.value })

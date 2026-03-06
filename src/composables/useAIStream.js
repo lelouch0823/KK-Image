@@ -4,7 +4,7 @@ import { SSEParser } from '@/utils/streaming';
 import { useSmoothTypewriter } from '@/composables/useSmoothTypewriter';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
-import { useAuth } from '@/composables/useAuth';
+import { useRequestAdapters } from '@/composables/useRequestAdapters';
 
 /* global TextDecoder */
 
@@ -95,7 +95,7 @@ export function classifyAIStreamError(rawMessage = '') {
 export function useAIStream() {
     const { t } = useI18n();
     const { addToast } = useToast();
-    const { authFetch } = useAuth();
+    const { requestAuth } = useRequestAdapters();
 
     const isLoading = ref(false);
     const isStreaming = ref(false);
@@ -139,7 +139,7 @@ export function useAIStream() {
         resetTypewriter();
 
         try {
-            const response = await authFetch(API_URLS.AI.STREAM, {
+            const response = await requestAuth(API_URLS.AI.STREAM, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ messages, context }),

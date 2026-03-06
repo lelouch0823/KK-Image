@@ -156,6 +156,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
+import { useRequestAdapters } from '@/composables/useRequestAdapters';
 import { API } from '@/utils/constants';
 import { useSalesToken } from '@/composables/useSalesToken';
 import { useLightbox } from '@/composables/useLightbox';
@@ -188,6 +189,7 @@ const emit = defineEmits(['back', 'comment', 'refresh', 'duplicate', 'edit', 'de
 
 const { t } = useI18n();
 const { addToast } = useToast();
+const { requestSales } = useRequestAdapters();
 
 const showCorrectionModal = ref(false);
 const showEditModal = ref(false);
@@ -213,9 +215,9 @@ const markAsRead = async () => {
   if (props.mode !== 'sales' || !props.order.hasNewFeedback || !salesToken.value) return;
 
   try {
-    const response = await fetch(API.SALES_ORDER_READ(salesToken.value, props.order.id), {
+    const response = await requestSales(API.SALES_ORDER_READ(salesToken.value, props.order.id), {
       method: 'PATCH',
-      credentials: 'include',
+      token: salesToken.value,
     });
     if (!response.ok) {
       markReadError.value = t('common.loadFailed');
@@ -304,9 +306,9 @@ const executeVoid = async () => {
 
   confirmData.value.loading = true;
   try {
-    const res = await fetch(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {
+    const res = await requestSales(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {
       method: 'DELETE',
-      credentials: 'include',
+      token: salesToken.value,
     });
     const result = await res.json();
 
@@ -344,11 +346,11 @@ const handleUpdate = async (payload) => {
       requestBody.variantId = variantId;
     }
     
-    const res = await fetch(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {
+    const res = await requestSales(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
-      credentials: 'include',
+      token: salesToken.value,
     });
     const result = await res.json();
 
