@@ -97,16 +97,16 @@
                 </div>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-2">
-                    <code class="bg-muted text-secondary truncate rounded px-1.5 py-0.5 font-mono text-xs">{{ order.orderNo }}</code>
+                    <code class="bg-muted text-secondary max-w-[11rem] truncate rounded px-1.5 py-0.5 font-mono text-xs sm:max-w-[15rem]" :title="order.orderNo">{{ order.orderNo }}</code>
                     <span class="text-main shrink-0 font-[Outfit] text-sm font-medium">×{{ order.quantity || 1 }}</span>
                   </div>
-                  <div class="text-main mt-1.5 truncate text-sm font-medium">{{ order.productName || '—' }}</div>
+                  <div class="text-main mt-1.5 line-clamp-2 text-sm font-medium break-all" :title="order.productName || '—'">{{ order.productName || '—' }}</div>
                   <div class="text-secondary mt-1 flex items-center gap-2 text-xs">
-                    <span v-if="order.customer?.name" class="flex items-center gap-1">
+                    <span v-if="order.customer?.name" class="flex min-w-0 items-center gap-1">
                       <AppIcon name="user" class="size-3" />
-                      {{ order.customer.name }}
+                      <span class="truncate" :title="order.customer.name">{{ order.customer.name }}</span>
                     </span>
-                    <span v-if="order.brand" class="bg-muted rounded px-1.5 py-0.5">{{ order.brand }}</span>
+                    <span v-if="order.brand" class="bg-muted max-w-[9rem] truncate rounded px-1.5 py-0.5" :title="order.brand">{{ order.brand }}</span>
                   </div>
                 </div>
               </div>
@@ -313,5 +313,18 @@ watch(() => props.visible, async (val) => {
 }
 @keyframes shimmer {
   100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-slide-enter-active,
+  .modal-slide-leave-active,
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: none !important;
+  }
+
+  .skeleton-shimmer::after {
+    animation: none !important;
+  }
 }
 </style>

@@ -90,14 +90,18 @@
                 </div>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-2">
-                    <span class="text-main truncate text-sm font-medium">{{ variant.product_name }}</span>
+                    <span class="text-main truncate text-sm font-medium" :title="variant.product_name || '—'">{{ variant.product_name || '—' }}</span>
                     <span class="text-secondary shrink-0 font-[Outfit] text-xs">¥{{ Number(variant.unit_cost || 0).toFixed(2) }}</span>
                   </div>
                   <div class="text-secondary mt-0.5 flex flex-wrap items-center gap-2 text-xs">
-                    <span class="rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono">{{ variant.sku || '—' }}</span>
-                    <span v-if="variant.brand">{{ variant.brand }}</span>
-                    <span v-if="variant.variant_options && Object.keys(variant.variant_options).length > 0">
-                      · {{ Object.values(variant.variant_options).join(' / ') }}
+                    <span class="max-w-[12rem] truncate rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono" :title="variant.sku || '—'">{{ variant.sku || '—' }}</span>
+                    <span v-if="variant.brand" class="max-w-[8rem] truncate" :title="variant.brand">{{ variant.brand }}</span>
+                    <span
+                      v-if="variant.variant_options && Object.keys(variant.variant_options).length > 0"
+                      class="min-w-0 flex-1 truncate"
+                      :title="buildVariantOptionsLabel(variant)"
+                    >
+                      · {{ buildVariantOptionsLabel(variant) }}
                     </span>
                   </div>
                 </div>
@@ -213,6 +217,11 @@ const loadVariants = async () => {
 };
 
 const debouncedSearch = useDebounceFn(loadVariants, 250);
+const buildVariantOptionsLabel = (variant) =>
+  Object.values(variant?.variant_options || {})
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join(' / ');
 
 const confirm = () => {
   const variantMap = new Map((variants.value || []).map((variant) => [variant.variant_id, variant]));
@@ -263,5 +272,18 @@ const getFileUrl = (id) => `/file/${id}`;
 }
 @keyframes shimmer {
   100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-slide-enter-active,
+  .modal-slide-leave-active,
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: none !important;
+  }
+
+  .skeleton-shimmer::after {
+    animation: none !important;
+  }
 }
 </style>

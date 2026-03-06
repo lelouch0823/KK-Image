@@ -36,7 +36,10 @@
           <!-- 规格名 — sticky 首列 -->
           <td class="sticky left-0 z-10 bg-(--bg-card) px-4 py-2 font-medium text-(--text-main) transition-colors group-hover:bg-(--bg-muted)/30">
             <div class="flex items-center gap-2">
-              <span class="inline-flex h-6 items-center rounded-md bg-(--bg-muted) px-2 text-xs font-semibold text-(--text-secondary)">
+              <span
+                class="inline-flex h-6 max-w-[18rem] items-center truncate rounded-md bg-(--bg-muted) px-2 text-xs font-semibold text-(--text-secondary)"
+                :title="formatVariantName(variant.options_values)"
+              >
                 {{ formatVariantName(variant.options_values) }}
               </span>
             </div>

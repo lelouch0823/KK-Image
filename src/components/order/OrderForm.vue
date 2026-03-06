@@ -98,13 +98,20 @@
       <template v-if="boundProductVariant">
         <div class="border-primary/20 bg-primary/5 mt-4 space-y-3 rounded-lg border p-4">
           <h5 class="text-primary text-sm font-medium">{{ t('product.variant.title') || '商品规格' }}</h5>
-          <div class="grid grid-cols-2 gap-4">
-            <div v-for="(value, key) in boundProductVariant" :key="key" class="flex flex-col">
-              <span class="text-xs text-(--text-secondary)">{{ key }}</span>
-              <span class="text-sm font-medium text-(--text-main)">{{ value }}</span>
+          <div class="grid [grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr))] gap-3">
+            <div v-for="(value, key) in boundProductVariant" :key="key" class="min-w-0 rounded-md bg-(--bg-card)/70 p-2">
+              <span class="block truncate text-xs text-(--text-secondary)" :title="String(key)">
+                {{ key }}
+              </span>
+              <span
+                class="mt-1 block text-sm font-medium break-all text-(--text-main)"
+                :title="String(value ?? '')"
+              >
+                {{ value }}
+              </span>
             </div>
             <!-- 如果没有规格内容，显示占位符 -->
-            <div v-if="Object.keys(boundProductVariant).length === 0" class="col-span-2 text-sm text-(--text-muted)">
+            <div v-if="Object.keys(boundProductVariant).length === 0" class="[grid-column:1/-1] text-sm text-(--text-muted)">
               {{ t('product.variant.noSpecs') || '无规格信息' }}
             </div>
           </div>
