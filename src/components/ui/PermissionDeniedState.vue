@@ -1,5 +1,7 @@
 <template>
   <section
+    id="permission-denied-state"
+    data-testid="permission-denied-state"
     class="mx-auto w-full max-w-3xl rounded-2xl border border-amber-200/70 bg-gradient-to-br from-amber-50 via-(--bg-card) to-orange-50 p-6 shadow-sm dark:border-amber-700/40 dark:from-amber-950/30 dark:via-(--bg-card) dark:to-orange-950/25"
     role="alert"
     aria-live="polite"

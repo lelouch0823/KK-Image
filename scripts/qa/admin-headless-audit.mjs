@@ -445,13 +445,18 @@ async function run() {
       const evalResult = await send('Runtime.evaluate', {
         expression: `(() => {
           const alerts = Array.from(document.querySelectorAll('section[role="alert"]')).map((el) => (el.innerText || '').trim());
+          const hasPermissionDeniedState = Boolean(
+            document.querySelector('[data-testid="permission-denied-state"], #permission-denied-state')
+          );
           const bodyText = (document.body?.innerText || '').trim();
-          const denied = alerts.some((txt) => /权限不足|访问受限|无权访问|权限/.test(txt))
+          const denied = hasPermissionDeniedState
+            || alerts.some((txt) => /权限不足|访问受限|无权访问|权限/.test(txt))
             || /权限不足|访问受限|无权访问/.test(bodyText);
           return {
             path: location.pathname,
             title: document.title,
             alertCount: alerts.length,
+            hasPermissionDeniedState,
             denied,
             alerts
           };
@@ -486,6 +491,11 @@ async function run() {
       }
     } else {
       throw new Error(`Unknown AUDIT_SCENARIO: ${AUDIT_SCENARIO}`);
+    }
+
+    const forbiddenRoute = results.find((item) => item.route === '/admin/forbidden');
+    if (!forbiddenRoute?.hasPermissionDeniedState) {
+      violations.push('forbidden route must render permission-denied-state');
     }
 
     const reportPath = path.join(OUTPUT_DIR, 'report.json');

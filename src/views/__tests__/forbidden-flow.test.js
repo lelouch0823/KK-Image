@@ -1,13 +1,66 @@
-import fs from 'node:fs'
-import path from 'node:path'
-import { cwd } from 'node:process'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ref } from 'vue'
+
+const checkAuthMock = vi.fn()
+const canMock = vi.fn()
+const clearPermissionsMock = vi.fn()
+const isAuthenticated = ref(true)
+
+vi.mock('nprogress', () => ({
+  default: {
+    configure: vi.fn(),
+    start: vi.fn(),
+    done: vi.fn(),
+  },
+}))
+
+vi.mock('@/composables/useI18n', () => ({
+  useI18n: () => ({
+    t: (key) => key,
+  }),
+}))
+
+vi.mock('@/composables/useAuth', () => ({
+  useAuth: () => ({
+    checkAuth: checkAuthMock,
+    isAuthenticated,
+  }),
+}))
+
+vi.mock('@/composables/useAccessControl', () => ({
+  useAccessControl: () => ({
+    can: canMock,
+    clearPermissions: clearPermissionsMock,
+  }),
+}))
 
 describe('forbidden flow', () => {
-  it('navigates to unified forbidden page when route permission fails', () => {
-    const routerSource = fs.readFileSync(path.resolve(cwd(), 'src/router/index.js'), 'utf8')
+  beforeEach(() => {
+    vi.resetModules()
+    checkAuthMock.mockReset().mockResolvedValue(true)
+    canMock.mockReset()
+    clearPermissionsMock.mockReset()
+    isAuthenticated.value = true
+  })
 
-    expect(routerSource).toContain("component: () => import('@/views/Forbidden.vue')")
-    expect(routerSource).toContain("next({ name: 'Forbidden', query: { permission: requiredPermission } })")
+  it('navigates to unified forbidden page when route permission fails', async () => {
+    canMock.mockResolvedValue(false)
+    const { default: router } = await import('@/router/index.js')
+
+    await router.push('/admin/files')
+    await router.isReady()
+
+    expect(router.currentRoute.value.name).toBe('Forbidden')
+    expect(router.currentRoute.value.query.permission).toBe('files:read')
+  })
+
+  it('keeps original route when permission check passes', async () => {
+    canMock.mockResolvedValue(true)
+    const { default: router } = await import('@/router/index.js')
+
+    await router.push('/admin/files')
+    await router.isReady()
+
+    expect(router.currentRoute.value.name).toBe('Files')
   })
 })

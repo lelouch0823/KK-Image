@@ -46,6 +46,26 @@ describe('check-direct-protected-fetch', () => {
     expect(violations[1].file).toContain('src/views/permissions.js')
   })
 
+  it('fails when protected endpoint is passed through variables before fetch', async () => {
+    const rootDir = await createFixture()
+    await writeFile(
+      rootDir,
+      'src/composables/indirect.js',
+      [
+        "import { API } from '@/utils/constants'",
+        "const endpoint = API.MANAGE_PRODUCTS",
+        "const url = endpoint",
+        "export const run = () => fetch(url)",
+        '',
+      ].join('\n'),
+    )
+
+    const violations = await scanForDirectProtectedFetch({ rootDir })
+
+    expect(violations.length).toBe(1)
+    expect(violations[0].file).toContain('src/composables/indirect.js')
+  })
+
   it('allows explicit exceptions like useAuth.js', async () => {
     const rootDir = await createFixture()
     await writeFile(
