@@ -246,7 +246,7 @@
       </button>
       <button
         type="submit"
-        :disabled="!isValid || isSubmitting"
+        :disabled="isSubmitting"
         class="bg-primary shadow-primary/20 flex h-12 flex-1 items-center justify-center gap-2 rounded-xl font-medium text-(--text-inverse) shadow-lg transition-all focus-visible:ring-primary/30 focus-visible:ring-2 focus-visible:outline-none hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <AppIcon
@@ -264,6 +264,7 @@
 <script setup>
 import { watch, toRef, reactive, computed, ref, nextTick } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { useToast } from '@/composables/useToast';
 import { useOrderForm } from '@/composables/useOrderForm';
 import ImageUploader from '../common/ImageUploader.vue';
 import AutocompleteInput from '../ui/AutocompleteInput.vue';
@@ -287,6 +288,7 @@ submitError: { type: String, default: '' },
 const emit = defineEmits(['submit', 'cancel']);
 
 const { t } = useI18n();
+const { addToast } = useToast();
 
 const salespersonOptions = computed(() =>
   props.salespersons.map((sp) => ({
@@ -358,7 +360,22 @@ watch(
 const uploaderRef = ref(null);
 
 const handleSubmit = async () => {
-  if (!isValid.value || isSubmitting.value) return;
+  if (!isValid.value) {
+    if (uploadedFiles.value.length === 0) {
+      addToast({ message: t('order.form.pleaseUploadImage', '请至少上传一张商品图片'), type: 'warning' });
+    } else if (!form.name) {
+      addToast({ message: t('order.form.pleaseEnterName', '请填写商品名称'), type: 'warning' });
+    } else if (props.mode === 'admin' && !adminForm.salespersonId) {
+      addToast({ message: t('order.form.pleaseSelectSalesperson', '请选择销售人员'), type: 'warning' });
+    } else {
+      addToast({ message: t('order.form.pleaseComplete', '请完善必填信息'), type: 'warning' });
+    }
+    // 平滑滚动到顶部方便用户修正信息
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  
+  if (isSubmitting.value) return;
 
   setSubmitting(true);
   try {

@@ -34,9 +34,9 @@
 
       <div
         v-else-if="subspaces.length === 0"
-        class="text-secondary flex h-full flex-col items-center justify-center py-12"
+        class="text-secondary flex h-full flex-col items-center justify-center py-16 text-center"
       >
-        <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-(--bg-muted)">
+        <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full border-2 border-dashed border-(--border-color) bg-(--bg-muted)">
           <svg class="text-muted size-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -46,13 +46,18 @@
             ></path>
           </svg>
         </div>
-        <p class="text-sm">{{ t('spaceManager.emptySubspaces') }}</p>
-        <button
-          class="bg-primary mt-4 rounded-lg px-4 py-2 text-sm text-(--text-inverse) transition-colors hover:bg-(--color-primary-hover)"
+        <p class="mb-5 text-sm">{{ t('spaceManager.emptySubspaces') }}</p>
+        <AppButton
+          size="sm"
+          :text="t('spaceManager.createFirst')"
           @click="showCreateModal = true"
         >
-          {{ t('spaceManager.createFirst') }}
-        </button>
+          <template #icon-left>
+            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          </template>
+        </AppButton>
       </div>
 
       <!-- Subspace Cards -->
@@ -134,9 +139,9 @@
               </div>
             </div>
 
-            <!-- Actions -->
+            <!-- Actions (Always visible on mobile, hover on desktop) -->
             <div
-              class="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100"
+              class="flex items-center gap-2 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
             >
               <Tooltip :content="t('spaceManager.copyLink')">
                 <button
@@ -204,6 +209,7 @@ import Tooltip from '@/components/ui/Tooltip.vue';
 import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import AppImage from '@/components/ui/AppImage.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 
 const props = defineProps({
   spaceId: { type: String, required: true },

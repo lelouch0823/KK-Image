@@ -78,6 +78,7 @@
           <!-- 留言输入 -->
           <OrderCommentInput
             ref="commentInputRef"
+            :loading="commenting"
             :error="commentError"
             :pending-comment="pendingComment"
             @submit="sendComment"
@@ -184,6 +185,7 @@ const props = defineProps({
   commentError: { type: String, default: '' },
   pendingComment: { type: String, default: '' },
   commentClearKey: { type: Number, default: 0 },
+  commenting: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['back', 'comment', 'refresh', 'duplicate', 'edit', 'delete-order']);

@@ -157,7 +157,10 @@
         <OrderDetail
           :order="viewingOrder"
           mode="admin"
+          :commenting="commenting"
           @close="showDetailModal = false"
+          @comment="handleComment"
+          @refresh="refreshOrderDetail"
         />
       </div>
     </Modal>
@@ -192,7 +195,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'confirm']);
 
 const { t } = useI18n();
-const { loadOrders, orders, loading, getOrder } = useOrders();
+const { loadOrders, orders, loading, getOrder, addComment } = useOrders();
 
 // ─── 状态 ────────────────────────────────────────────
 const searchQuery = ref('');
@@ -201,6 +204,7 @@ const selected = ref([]);
 const showDetailModal = ref(false);
 const loadingDetail = ref(false);
 const viewingOrder = ref(null);
+const commenting = ref(false);
 
 const viewOrder = async (order) => {
   showDetailModal.value = true;
@@ -216,6 +220,26 @@ const viewOrder = async (order) => {
   }
   
   loadingDetail.value = false;
+};
+
+const refreshOrderDetail = async () => {
+  if (viewingOrder.value) {
+    const fullOrder = await getOrder(viewingOrder.value.id);
+    if (fullOrder) viewingOrder.value = fullOrder;
+  }
+};
+
+const handleComment = async (comment) => {
+  if (!viewingOrder.value || !comment.trim() || commenting.value) return;
+  commenting.value = true;
+  try {
+    const success = await addComment(viewingOrder.value.id, comment);
+    if (success) {
+      await refreshOrderDetail();
+    }
+  } finally {
+    commenting.value = false;
+  }
 };
 
 // ─── 前端过滤 ────────────────────────────────────────
