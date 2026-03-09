@@ -18,4 +18,20 @@ describe('ActionResultCard', () => {
     expect(wrapper.text()).toContain('ORD-20260309-001');
     expect(wrapper.text()).toContain('订单管理');
   });
+
+  it('shows a dedicated destination hint area for the target module', () => {
+    const wrapper = mount(ActionResultCard, {
+      props: {
+        action: {
+          successMessage: '采购单已创建，请前往采购单管理查看。',
+          createdEntityLabel: 'PO-20260309-001',
+          targetModule: 'purchaseOrders',
+        },
+      },
+    });
+
+    expect(wrapper.find('[data-testid="result-destination"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('前往查看');
+    expect(wrapper.text()).toContain('采购单管理');
+  });
 });

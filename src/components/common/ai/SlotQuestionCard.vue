@@ -1,12 +1,18 @@
 <template>
   <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4 shadow-sm">
-    <p class="text-sm font-semibold text-(--text-main)">还需要补充信息</p>
-    <p class="mt-1 text-sm text-(--text-secondary)">{{ promptText }}</p>
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="bg-primary/12 text-primary rounded-full px-2.5 py-1 text-[11px] font-medium">Step 1 · 补全信息</span>
+      <span class="rounded-full bg-(--bg-muted) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)">
+        {{ candidateGroups.length > 0 ? '可直接选择' : '继续补槽' }}
+      </span>
+    </div>
+    <p class="mt-3 text-sm font-semibold text-(--text-main)">还需要补充信息</p>
+    <p class="mt-1 text-sm leading-6 text-(--text-secondary)">{{ promptText }}</p>
     <div class="mt-3 flex flex-wrap gap-2">
       <span
         v-for="item in missingSlots"
         :key="item"
-        class="rounded-full bg-(--bg-muted) px-3 py-1 text-xs text-(--text-secondary)"
+        class="rounded-full bg-(--bg-muted) px-3 py-1 text-xs font-medium text-(--text-secondary)"
       >
         {{ item }}
       </span>
@@ -17,7 +23,10 @@
         :key="field.key"
         class="rounded-xl bg-(--bg-muted) p-3"
       >
-        <p class="text-xs font-medium text-(--text-main)">{{ field.label }} 候选项</p>
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-xs font-medium text-(--text-main)">{{ field.label }} 候选项</p>
+          <span class="text-[11px] text-(--text-secondary)">{{ field.candidates.length }} 项</span>
+        </div>
         <div class="mt-2 space-y-2">
           <button
             v-for="(candidate, index) in field.candidates"
@@ -30,8 +39,17 @@
             :class="selectedCandidates[field.key]?.value === candidate.value ? 'ring-primary/30 bg-primary/5 ring-2' : ''"
             @click="handleSelect(field.key, candidate, index)"
           >
-            <p class="text-sm text-(--text-main)">{{ index + 1 }}. {{ candidate.label || candidate.value }}</p>
-            <p v-if="candidate.description" class="mt-1 text-xs text-(--text-secondary)">{{ candidate.description }}</p>
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-(--text-main)">{{ index + 1 }}. {{ candidate.label || candidate.value }}</p>
+                <p v-if="candidate.description" class="mt-1 text-xs text-(--text-secondary)">{{ candidate.description }}</p>
+              </div>
+              <span
+                class="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-1 text-[10px] font-medium"
+              >
+                选择
+              </span>
+            </div>
           </button>
         </div>
         <div
@@ -39,7 +57,7 @@
           class="border-primary/20 bg-primary/5 mt-3 rounded-lg border px-3 py-2"
         >
           <p class="text-xs font-medium text-(--text-main)">已选择</p>
-          <p class="mt-1 text-sm text-(--text-main)">{{ selectedCandidates[field.key].label || selectedCandidates[field.key].value }}</p>
+          <p class="mt-1 text-sm font-medium text-(--text-main)">{{ selectedCandidates[field.key].label || selectedCandidates[field.key].value }}</p>
           <p v-if="selectedCandidates[field.key].description" class="mt-1 text-xs text-(--text-secondary)">
             {{ selectedCandidates[field.key].description }}
           </p>

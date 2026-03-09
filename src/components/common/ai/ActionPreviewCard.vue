@@ -1,8 +1,12 @@
 <template>
   <div class="border-primary/20 bg-primary/5 rounded-2xl border p-4 shadow-sm">
     <div class="flex items-start justify-between gap-3">
-      <div class="min-w-0">
-        <p class="text-sm font-semibold text-(--text-main)">{{ titleText }}</p>
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="bg-primary/12 text-primary rounded-full px-2.5 py-1 text-[11px] font-medium">Step 2 · 确认预览</span>
+          <span class="rounded-full bg-(--bg-card) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)">{{ entityLabel }}</span>
+        </div>
+        <p class="mt-3 text-sm font-semibold text-(--text-main)">{{ titleText }}</p>
         <p class="mt-1 text-sm text-(--text-secondary)">请确认以下信息后再创建。</p>
       </div>
       <button
@@ -42,7 +46,7 @@
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <p class="text-[11px] text-(--text-secondary)">{{ row.label }}</p>
-                <p class="mt-1 text-sm font-medium text-(--text-main)">{{ row.value }}</p>
+                <p class="mt-1 text-sm leading-6 font-medium text-(--text-main)">{{ row.value }}</p>
               </div>
               <div v-if="row.meta" class="shrink-0 text-right">
                 <p class="text-[11px] text-(--text-secondary)">单价</p>
@@ -71,6 +75,14 @@ const props = defineProps({
 const titleText = computed(() => props.action?.title || '创建预览');
 const entityType = computed(() => String(props.action?.entityType || '').trim());
 const summary = computed(() => props.action?.summary || {});
+const ENTITY_LABELS = {
+  order: '订单',
+  purchase_order: '采购单',
+  product: '商品',
+  customer: '客户',
+  salesperson: '销售员',
+};
+const entityLabel = computed(() => ENTITY_LABELS[entityType.value] || '记录');
 
 function toText(value) {
   if (value === undefined || value === null || value === '') return '-';
@@ -153,6 +165,18 @@ const sections = computed(() => {
         ['规格维度', Array.isArray(summary.value.dimensions) ? `${summary.value.dimensions.length} 个维度` : '0 个维度'],
         ['变体数量', Array.isArray(summary.value.variants) ? summary.value.variants.length : 0],
       ]),
+      Array.isArray(summary.value.variants) && summary.value.variants.length > 0
+        ? {
+            title: '变体样本',
+            layout: 'list',
+            rows: summary.value.variants.slice(0, 3).map((variant, index) => ({
+              key: `variant-${index}`,
+              label: `变体 ${index + 1}`,
+              value: Object.entries(variant.options_values || {}).map(([, item]) => item).filter(Boolean).join(' / ') || '未命名变体',
+              meta: variant.price !== undefined ? toText(variant.price) : null,
+            })),
+          }
+        : null,
     ].filter(Boolean);
   }
 
