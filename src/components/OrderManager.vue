@@ -121,18 +121,16 @@
         <!-- Mobile Infinite Scroll Trigger -->
         <div class="mt-4 pb-20">
           <!-- Loading More Indicator -->
-          <div v-if="mobileInfiniteScroll.isLoading.value" class="flex items-center justify-center py-4">
-            <div class="border-t-primary size-5 animate-spin rounded-full border-2 border-(--border-color)"></div>
-            <span class="text-secondary ml-2 text-sm">{{ t('common.loading') }}</span>
+          <div v-if="mobileInfiniteScroll.isLoading.value" class="flex items-center justify-center py-4 text-sm text-(--text-secondary)">
+            <AppIcon name="spinner" class="mr-2 size-5 animate-spin" />
+            <span>{{ t('common.loadingMore') || '正在加载...' }}</span>
           </div>
           <!-- Intersection Observer Trigger -->
           <div 
             v-else-if="mobileInfiniteScroll.canLoadMore.value"
             :ref="(el) => mobileInfiniteScroll.triggerRef.value = el"
-            class="flex items-center justify-center py-4 text-sm text-(--text-secondary)"
-          >
-            ↑ {{ t('common.loading') }}
-          </div>
+            class="h-10 w-full"
+          ></div>
           <!-- End of List -->
           <div v-else-if="orders.length > 0" class="py-4 text-center text-sm text-(--text-secondary)">
             {{ t('common.total') }} {{ pagination.total }} {{ t('common.items') }}
@@ -180,6 +178,7 @@
         ref="detailRef"
         :order="viewingOrder"
         mode="admin"
+        :commenting="commenting"
         @back="closeDetailModal"
         @comment="handleAdminComment"
         @refresh="refreshAfterComment"
@@ -311,6 +310,7 @@ const {
   handleAdminComment,
   refreshAfterComment,
   handleEditFromDetail,
+  commenting,
 } = useOrderModals(orders, refreshOrders, getOrder, updateOrder, addComment);
 
 const {

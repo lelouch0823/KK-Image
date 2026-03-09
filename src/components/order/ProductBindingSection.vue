@@ -187,16 +187,12 @@
       <p class="mb-3 text-sm font-medium text-(--text-secondary)">
         {{ isSalesMode ? t('order.binding.salesHint') : t('order.binding.hint') }}
       </p>
-      <SalesProductSelect
-        v-if="isSalesMode"
-        :token="salesToken"
-        @select="handleProductSelect"
-        @load-error="handleProductFetchError"
-      />
       <ProductSelect
-        v-else
+        :mode="mode"
+        :token="salesToken"
         status-filter="active"
         @select="handleProductSelect"
+        @load-error="handleProductFetchError"
       />
     </div>
 
@@ -215,7 +211,6 @@
 import { ref, reactive, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import ProductSelect from '@/components/product/ProductSelect.vue';
-import SalesProductSelect from '@/components/order/SalesProductSelect.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import Lightbox from '@/components/ui/Lightbox.vue';

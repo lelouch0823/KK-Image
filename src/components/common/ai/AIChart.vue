@@ -15,7 +15,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, onUnmounted } from 'vue';
 import {
   Chart as ChartJS,
   Title,
@@ -79,24 +79,52 @@ const chartComponent = computed(() => {
 // SOTA: Load colors from CSS variables
 const chartColors = ref([]);
 const grayColors = ref({});
+let themeObserver = null;
+
+const loadThemeColors = () => {
+  // Use a slight timeout to ensure CSS variables are applied by browser after class change
+  setTimeout(() => {
+    const style = getComputedStyle(document.documentElement);
+    chartColors.value = [
+      style.getPropertyValue('--color-chart-1').trim() || '#3B82F6',
+      style.getPropertyValue('--color-chart-2').trim() || '#8B5CF6',
+      style.getPropertyValue('--color-chart-3').trim() || '#10B981',
+      style.getPropertyValue('--color-chart-4').trim() || '#F59E0B',
+      style.getPropertyValue('--color-chart-5').trim() || '#EF4444',
+    ];
+    grayColors.value = {
+      100: style.getPropertyValue('--color-gray-100').trim() || '#F3F4F6',
+      200: style.getPropertyValue('--color-gray-200').trim() || '#E5E7EB',
+      400: style.getPropertyValue('--color-gray-400').trim() || '#9CA3AF',
+      500: style.getPropertyValue('--color-gray-500').trim() || '#6B7280',
+      600: style.getPropertyValue('--color-gray-600').trim() || '#4B5563',
+      900: style.getPropertyValue('--color-gray-900').trim() || '#111827',
+    };
+  }, 10);
+};
 
 onMounted(() => {
-  const style = getComputedStyle(document.documentElement);
-  chartColors.value = [
-    style.getPropertyValue('--color-chart-1').trim() || '#3B82F6',
-    style.getPropertyValue('--color-chart-2').trim() || '#8B5CF6',
-    style.getPropertyValue('--color-chart-3').trim() || '#10B981',
-    style.getPropertyValue('--color-chart-4').trim() || '#F59E0B',
-    style.getPropertyValue('--color-chart-5').trim() || '#EF4444',
-  ];
-  grayColors.value = {
-    100: style.getPropertyValue('--color-gray-100').trim() || '#F3F4F6',
-    200: style.getPropertyValue('--color-gray-200').trim() || '#E5E7EB',
-    400: style.getPropertyValue('--color-gray-400').trim() || '#9CA3AF',
-    500: style.getPropertyValue('--color-gray-500').trim() || '#6B7280',
-    600: style.getPropertyValue('--color-gray-600').trim() || '#4B5563',
-    900: style.getPropertyValue('--color-gray-900').trim() || '#111827',
-  };
+  loadThemeColors();
+  
+  // React to dark mode toggle
+  themeObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.attributeName === 'class') {
+        loadThemeColors();
+      }
+    });
+  });
+  
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class']
+  });
+});
+
+onUnmounted(() => {
+  if (themeObserver) {
+    themeObserver.disconnect();
+  }
 });
 
 // Enhance data with application theme colors

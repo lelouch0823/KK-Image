@@ -57,11 +57,8 @@
       <div 
         v-if="infiniteScroll.canLoadMore.value && filteredOrders.length === orders.length"
         :ref="(el) => infiniteScroll.triggerRef.value = el"
-        class="flex items-center justify-center py-4 text-sm text-(--text-secondary)"
-      >
-        <div v-if="infiniteScroll.isLoading.value" class="border-t-primary size-5 animate-spin rounded-full border-2 border-(--border-color)"></div>
-        <span v-else>↑ {{ t('common.loading') }}</span>
-      </div>
+        class="h-10 w-full"
+      ></div>
       <div v-else-if="orders.length > 0 && !infiniteScroll.canLoadMore.value" class="py-4 text-center text-sm text-(--text-secondary)">
         {{ t('common.total') }} {{ pagination?.total || orders.length }} {{ t('common.items') }}
       </div>

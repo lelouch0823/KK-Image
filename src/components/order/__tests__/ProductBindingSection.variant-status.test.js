@@ -294,7 +294,7 @@ describe('ProductBindingSection variant status and dimensions', () => {
 
     const wrapper = mount(ProductBindingSection, {
       props: { boundProduct: null, mode: 'sales', salesToken: 'token-1' },
-      global: { stubs: { SalesProductSelect: salesPickStub, AppImage: true } },
+      global: { stubs: { ProductSelect: salesPickStub, AppImage: true } },
     });
 
     await wrapper.find('[data-testid="pick-sales-product"]').trigger('click');

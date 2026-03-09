@@ -10,6 +10,7 @@
       :comment-error="commentError"
       :pending-comment="pendingComment"
       :comment-clear-key="commentClearKey"
+      :commenting="commenting"
       @back="handleBack"
       @comment="handleComment"
       @refresh="handleRefresh"
@@ -67,6 +68,7 @@ const detailError = ref('');
 const commentError = ref('');
 const pendingComment = ref('');
 const commentClearKey = ref(0);
+const commenting = ref(false);
 
 // Inject for shared actions if needed, e.g. causing a list refresh
 const salesContext = inject('salesContext', {});
@@ -98,15 +100,21 @@ const handleBack = () => {
 };
 
 const handleComment = async (comment) => {
-  if (!order.value) return;
+  if (!order.value || commenting.value) return;
+  commenting.value = true;
   pendingComment.value = comment;
-  const success = await addSalesComment(token.value, order.value.id, comment);
-  if (success) {
-    commentError.value = '';
-    commentClearKey.value += 1;
-    await fetchOrder();
-  } else {
-    commentError.value = t('common.loadFailed');
+  
+  try {
+    const success = await addSalesComment(token.value, order.value.id, comment);
+    if (success) {
+      commentError.value = '';
+      commentClearKey.value += 1;
+      await fetchOrder();
+    } else {
+      commentError.value = t('common.loadFailed');
+    }
+  } finally {
+    commenting.value = false;
   }
 };
 

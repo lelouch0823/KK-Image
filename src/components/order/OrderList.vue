@@ -105,7 +105,7 @@
     <!-- 加载更多 -->
     <div v-if="loadingMore" class="flex items-center justify-center py-4 text-xs text-(--text-secondary)">
       <AppIcon name="spinner" class="mr-2 size-4 animate-spin" />
-      {{ t('common.loading') }}...
+      {{ t('common.loadingMore') || '正在加载...' }}
     </div>
   </div>
 </template>

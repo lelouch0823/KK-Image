@@ -17,6 +17,7 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
     const editingOrder = ref(null);
     const viewingOrder = ref(null);
     const isEditing = ref(false);
+    const commenting = ref(false);
 
     // --- Create ---
     const handleCreateOrder = async (data) => {
@@ -97,10 +98,16 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
     };
 
     const handleAdminComment = async (comment) => {
-        if (!viewingOrder.value || !comment.trim()) return;
-        const success = await addComment(viewingOrder.value.id, comment);
-        if (success) {
-            refreshAfterComment();
+        if (!viewingOrder.value || !comment.trim() || commenting.value) return;
+
+        commenting.value = true;
+        try {
+            const success = await addComment(viewingOrder.value.id, comment);
+            if (success) {
+                await refreshAfterComment();
+            }
+        } finally {
+            commenting.value = false;
         }
     };
 
@@ -134,6 +141,7 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
         closeDetailModal,
         handleAdminComment,
         refreshAfterComment,
-        handleEditFromDetail
+        handleEditFromDetail,
+        commenting
     };
 }
