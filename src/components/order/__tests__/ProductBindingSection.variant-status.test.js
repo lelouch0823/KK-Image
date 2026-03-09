@@ -24,11 +24,13 @@ vi.mock('@/composables/useSalesProducts', () => ({
 }));
 
 const pickStub = {
-  template: '<button data-testid="pick-product" @click="$emit(\'select\', { id: \'p1\' })">pick</button>',
+  template:
+    '<button data-testid="pick-product" @click="$emit(\'select\', { id: \'p1\' })">pick</button>',
 };
 
 const salesPickStub = {
-  template: '<button data-testid="pick-sales-product" @click="$emit(\'select\', { id: \'p1\' })">pick-sales</button>',
+  template:
+    '<button data-testid="pick-sales-product" @click="$emit(\'select\', { id: \'p1\' })">pick-sales</button>',
 };
 
 describe('ProductBindingSection variant status and dimensions', () => {
@@ -41,9 +43,30 @@ describe('ProductBindingSection variant status and dimensions', () => {
       id: 'p1',
       name: 'Tee',
       variants: [
-        { id: 'v1', sku: 'Y-C-S', status: 'active', stock_quantity: 10, alert_threshold: 3, options_values: { color: 'Yellow', material: 'Cotton', size: 'S' } },
-        { id: 'v2', sku: 'Y-C-M', status: 'active', stock_quantity: 0, alert_threshold: 3, options_values: { color: 'Yellow', material: 'Cotton', size: 'M' } },
-        { id: 'v3', sku: 'Y-S-S', status: 'archived', stock_quantity: 9, alert_threshold: 3, options_values: { color: 'Yellow', material: 'Silk', size: 'S' } },
+        {
+          id: 'v1',
+          sku: 'Y-C-S',
+          status: 'active',
+          stock_quantity: 10,
+          alert_threshold: 3,
+          options_values: { color: 'Yellow', material: 'Cotton', size: 'S' },
+        },
+        {
+          id: 'v2',
+          sku: 'Y-C-M',
+          status: 'active',
+          stock_quantity: 0,
+          alert_threshold: 3,
+          options_values: { color: 'Yellow', material: 'Cotton', size: 'M' },
+        },
+        {
+          id: 'v3',
+          sku: 'Y-S-S',
+          status: 'archived',
+          stock_quantity: 9,
+          alert_threshold: 3,
+          options_values: { color: 'Yellow', material: 'Silk', size: 'S' },
+        },
       ],
     });
 
@@ -84,8 +107,22 @@ describe('ProductBindingSection variant status and dimensions', () => {
       id: 'p1',
       name: 'Pants',
       variants: [
-        { id: 'v1', sku: 'B-S', status: 'active', stock_quantity: 4, alert_threshold: 1, options_values: { color: 'Black', size: 'S' } },
-        { id: 'v2', sku: 'B-M', status: 'active', stock_quantity: 6, alert_threshold: 1, options_values: { color: 'Black', size: 'M' } },
+        {
+          id: 'v1',
+          sku: 'B-S',
+          status: 'active',
+          stock_quantity: 4,
+          alert_threshold: 1,
+          options_values: { color: 'Black', size: 'S' },
+        },
+        {
+          id: 'v2',
+          sku: 'B-M',
+          status: 'active',
+          stock_quantity: 6,
+          alert_threshold: 1,
+          options_values: { color: 'Black', size: 'M' },
+        },
       ],
     });
 
@@ -116,7 +153,14 @@ describe('ProductBindingSection variant status and dimensions', () => {
       id: 'p1',
       name: 'Fabric',
       variants: [
-        { id: 'v1', sku: 'COT', status: 'active', stock_quantity: 8, alert_threshold: 2, options_values: { material: 'Cotton' } },
+        {
+          id: 'v1',
+          sku: 'COT',
+          status: 'active',
+          stock_quantity: 8,
+          alert_threshold: 2,
+          options_values: { material: 'Cotton' },
+        },
       ],
     });
 
@@ -445,5 +489,106 @@ describe('ProductBindingSection variant status and dimensions', () => {
     const optionNode = wrapper.find(`span[title="${longOption}"]`);
     expect(optionNode.exists()).toBe(true);
     expect(optionNode.text().includes('…')).toBe(true);
+  });
+
+  it('uses compact mobile layout tokens and touch-safe actions for bound products', async () => {
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'Mobile Compact Tee',
+      variants: [
+        {
+          id: 'v1',
+          sku: 'MOBILE-001',
+          status: 'active',
+          stock_quantity: 6,
+          alert_threshold: 2,
+          replenishment_quantity: 9,
+          replenishment_po_count: 1,
+          options_values: { color: 'Black', size: '42' },
+        },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null, mode: 'admin' },
+      global: { stubs: { ProductSelect: pickStub, AppImage: true } },
+    });
+
+    await wrapper.find('[data-testid="pick-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('select')).toBeTruthy());
+    const selected = wrapper.emitted('select')[0][0];
+    await wrapper.setProps({
+      boundProduct: {
+        id: selected.id,
+        name: selected.name,
+        sku: selected.selectedVariant?.sku || '',
+        mainImage: selected.mainImage || null,
+      },
+    });
+
+    expect(wrapper.find('[data-testid="binding-header"]').classes()).toEqual(
+      expect.arrayContaining(['px-3', 'py-2.5', 'sm:px-5', 'sm:py-3.5'])
+    );
+    expect(wrapper.find('[data-testid="bound-image-shell"]').classes()).toEqual(
+      expect.arrayContaining(['size-14', 'sm:size-20'])
+    );
+    expect(wrapper.find('[data-testid="inventory-summary"]').classes()).toEqual(
+      expect.arrayContaining(['p-3', 'sm:p-4'])
+    );
+    expect(wrapper.find('[data-testid="unbind-product"]').classes()).toEqual(
+      expect.arrayContaining(['min-h-11', 'min-w-11', 'inline-flex'])
+    );
+    expect(wrapper.find('[data-testid="dimension-options-size"]').classes()).toEqual(
+      expect.arrayContaining(['gap-2'])
+    );
+  });
+
+  it('uses refined meta and summary tokens in the compact mobile card', async () => {
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'Polished Compact Tee',
+      variants: [
+        {
+          id: 'v1',
+          sku: 'POLISH-001',
+          status: 'active',
+          stock_quantity: 12,
+          alert_threshold: 2,
+          replenishment_quantity: 3,
+          replenishment_po_count: 2,
+          options_values: { size: '42' },
+        },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null, mode: 'admin' },
+      global: { stubs: { ProductSelect: pickStub, AppImage: true } },
+    });
+
+    await wrapper.find('[data-testid="pick-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('select')).toBeTruthy());
+    const selected = wrapper.emitted('select')[0][0];
+    await wrapper.setProps({
+      boundProduct: {
+        id: selected.id,
+        name: selected.name,
+        sku: selected.selectedVariant?.sku || '',
+        mainImage: selected.mainImage || null,
+      },
+    });
+
+    expect(wrapper.find('[data-testid="bound-sku"]').classes()).toEqual(
+      expect.arrayContaining(['bg-(--bg-muted)/45', 'border-(--border-subtle)/80'])
+    );
+    expect(wrapper.find('[data-testid="availability-badge"]').classes()).toEqual(
+      expect.arrayContaining(['border', 'border-current/10'])
+    );
+    expect(wrapper.find('[data-testid="inventory-stats"]').classes()).toEqual(
+      expect.arrayContaining(['divide-x', 'divide-(--border-subtle)/60'])
+    );
+    expect(wrapper.find('[data-testid="dimension-option-card-size"]').classes()).toEqual(
+      expect.arrayContaining(['bg-(--bg-muted)/20'])
+    );
   });
 });

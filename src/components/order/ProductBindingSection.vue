@@ -1,6 +1,9 @@
 <template>
   <div class="rounded-xl border border-(--border-subtle) bg-(--bg-card) shadow-sm">
-    <div class="rounded-t-xl border-b border-(--border-subtle) bg-(--bg-muted)/40 px-4 py-3 sm:px-6 sm:py-4">
+    <div
+      data-testid="binding-header"
+      class="rounded-t-xl border-b border-(--border-subtle) bg-(--bg-muted)/25 px-3 py-2.5 sm:px-5 sm:py-3.5"
+    >
       <h4 class="flex items-center gap-2 text-sm font-semibold text-(--text-main)">
         <AppIcon name="link" class="text-primary size-4" />
         {{ isSalesMode ? t('order.binding.salesTitle') : t('order.binding.title') }}
@@ -9,38 +12,44 @@
 
     <!-- Bound Product Card -->
     <div v-if="boundProduct" class="">
-      <div class="flex flex-col gap-4 border-b border-(--border-subtle) p-4 sm:flex-row sm:items-start sm:justify-between sm:p-6">
-        <div class="flex gap-3 sm:gap-4">
-          <div class="size-16 flex-shrink-0 overflow-hidden rounded-lg border border-(--border-subtle) bg-(--bg-muted) sm:size-20">
-            <AppImage 
-              v-if="boundProduct.mainImage" 
-              :src="boundProduct.mainImage" 
-              fit="cover" 
-              class="size-full cursor-pointer object-cover transition-transform hover:scale-105" 
+      <div
+        class="flex flex-col gap-3 border-b border-(--border-subtle) p-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-5"
+      >
+        <div class="flex gap-2.5 sm:gap-4">
+          <div
+            data-testid="bound-image-shell"
+            class="size-14 flex-shrink-0 overflow-hidden rounded-lg border border-(--border-subtle) bg-(--bg-muted) sm:size-20"
+          >
+            <AppImage
+              v-if="boundProduct.mainImage"
+              :src="boundProduct.mainImage"
+              fit="cover"
+              class="size-full cursor-pointer object-cover transition-transform hover:scale-105"
               @click="openLightbox"
             />
             <div v-else class="flex h-full items-center justify-center text-(--text-muted)">
               <AppIcon name="photo" class="size-8 stroke-[1.5]" />
             </div>
           </div>
-          
-          <div>
-            <div class="mb-1.5 flex flex-wrap items-center gap-2 sm:gap-3">
+
+          <div class="min-w-0">
+            <div class="mb-1 flex flex-wrap items-center gap-1.5 sm:gap-2.5">
               <h2
-                class="max-w-full min-w-0 flex-1 truncate text-base font-bold tracking-tight text-(--text-main) sm:text-lg"
+                class="max-w-full min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight text-(--text-main) sm:text-lg"
                 :title="boundProduct.name || ''"
               >
                 {{ displayProductName }}
               </h2>
               <span
-                class="max-w-[12rem] truncate rounded-md border border-(--border-subtle) bg-(--bg-muted) px-2 py-0.5 font-mono text-xs font-medium text-(--text-secondary) uppercase sm:max-w-[16rem]"
+                data-testid="bound-sku"
+                class="max-w-[10rem] truncate rounded-md border border-(--border-subtle)/80 bg-(--bg-muted)/45 px-1.5 py-0.5 font-mono text-[10px] font-medium tracking-[0.08em] text-(--text-secondary) uppercase sm:max-w-[16rem] sm:px-2 sm:text-xs"
                 :title="displaySku || ''"
               >
                 {{ displaySku || '—' }}
               </span>
               <span
                 v-if="isSalesMode"
-                class="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[11px] font-medium"
+                class="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-medium sm:text-[11px]"
               >
                 {{ t('order.binding.bound') }}
               </span>
@@ -48,10 +57,15 @@
             <div class="flex items-center gap-3">
               <span
                 v-if="currentAvailabilityState"
-                class="flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+                data-testid="availability-badge"
+                class="flex items-center gap-1 rounded-full border border-current/10 px-2 py-0.5 text-[11px] font-medium sm:px-2.5 sm:text-xs"
                 :class="availabilityBadgeClass"
               >
-                <AppIcon v-if="currentAvailabilityState === 'available'" name="check-circle" class="size-3.5" />
+                <AppIcon
+                  v-if="currentAvailabilityState === 'available'"
+                  name="check-circle"
+                  class="size-3.5"
+                />
                 {{ availabilityTextMap[currentAvailabilityState] }}
               </span>
             </div>
@@ -59,18 +73,20 @@
         </div>
 
         <div class="flex gap-2 self-end sm:self-auto">
-          <a 
+          <a
             v-if="isAdminMode"
             :href="`/admin/products?edit=${boundProduct.id}`"
             target="_blank"
-            class="hover:bg-primary/10 hover:text-primary cursor-pointer rounded-lg p-2 text-(--text-muted) transition-colors"
+            data-testid="edit-product"
+            class="hover:bg-primary/10 hover:text-primary inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg p-2 text-(--text-muted) transition-colors"
             :title="t('product.action.edit')"
           >
             <AppIcon name="pencil-square" class="size-5" />
           </a>
-          <button 
-            type="button" 
-            class="cursor-pointer rounded-lg p-2 text-(--text-muted) transition-colors hover:bg-(--color-danger-bg) hover:text-(--color-danger-text)"
+          <button
+            type="button"
+            data-testid="unbind-product"
+            class="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg p-2 text-(--text-muted) transition-colors hover:bg-(--color-danger-bg) hover:text-(--color-danger-text)"
             :title="t('order.binding.unbind')"
             @click="$emit('unbind')"
           >
@@ -80,13 +96,16 @@
       </div>
 
       <!-- Configuration Body -->
-      <div v-if="variants.length > 0" class="relative space-y-5 p-4 sm:space-y-7 sm:p-6">
-        <div v-if="isLoadingDetails" class="absolute inset-0 z-10 flex items-center justify-center bg-(--bg-card)/50 backdrop-blur-sm">
-           <AppIcon name="spinner" class="text-primary size-6 animate-spin" />
+      <div v-if="variants.length > 0" class="relative space-y-4 p-3 sm:space-y-6 sm:p-5">
+        <div
+          v-if="isLoadingDetails"
+          class="absolute inset-0 z-10 flex items-center justify-center bg-(--bg-card)/50 backdrop-blur-sm"
+        >
+          <AppIcon name="spinner" class="text-primary size-6 animate-spin" />
         </div>
 
         <section v-for="dimension in dimensionKeys" :key="dimension">
-          <div class="mb-3 flex items-center justify-between">
+          <div class="mb-2.5 flex items-center justify-between gap-3">
             <label
               class="max-w-[52%] truncate pr-3 text-sm font-bold text-(--text-main)"
               :title="getDimensionLabel(dimension)"
@@ -97,15 +116,20 @@
               class="max-w-[48%] truncate text-right text-xs text-(--text-secondary) sm:text-[13px]"
               :title="selectedOptions[dimension] || ''"
             >
-              {{ t('order.binding.selectedLabel') }}: {{ getSelectedOptionDisplay(dimension) || t('order.binding.unselected') }}
+              {{ t('order.binding.selectedLabel') }}:
+              {{ getSelectedOptionDisplay(dimension) || t('order.binding.unselected') }}
             </span>
           </div>
 
-          <div v-if="isColorDimension(dimension)" class="flex flex-wrap gap-x-4 gap-y-3 sm:gap-5">
+          <div
+            v-if="isColorDimension(dimension)"
+            :data-testid="`dimension-options-${String(dimension)}`"
+            class="flex flex-wrap gap-x-3 gap-y-2.5 sm:gap-4"
+          >
             <label
               v-for="option in getDimensionOptions(dimension)"
               :key="option.value"
-              class="group flex flex-col items-center gap-1.5 focus-within:outline-none"
+              class="group flex flex-col items-center gap-1 focus-within:outline-none"
               :class="[option.selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50']"
               :data-testid="getDimensionTestId(dimension)"
             >
@@ -128,13 +152,20 @@
                   class="size-4 text-white mix-blend-difference drop-shadow-md sm:size-5"
                 />
               </div>
-              <span class="max-w-16 truncate text-center text-[11px] font-medium text-(--text-secondary) transition-colors peer-checked:font-bold peer-checked:text-(--text-main)" :title="option.label">
+              <span
+                class="max-w-14 truncate text-center text-[10px] font-medium text-(--text-secondary) transition-colors peer-checked:font-bold peer-checked:text-(--text-main) sm:max-w-16 sm:text-[11px]"
+                :title="option.label"
+              >
                 {{ getOptionLabelDisplay(option.label) }}
               </span>
             </label>
           </div>
 
-          <div v-else class="grid [grid-template-columns:repeat(auto-fit,minmax(6.75rem,1fr))] gap-2.5 sm:[grid-template-columns:repeat(auto-fit,minmax(7.5rem,1fr))]">
+          <div
+            v-else
+            :data-testid="`dimension-options-${String(dimension)}`"
+            class="grid [grid-template-columns:repeat(auto-fit,minmax(5.75rem,1fr))] gap-2 sm:[grid-template-columns:repeat(auto-fit,minmax(7.25rem,1fr))] sm:gap-2.5"
+          >
             <label
               v-for="option in getDimensionOptions(dimension)"
               :key="option.value"
@@ -152,7 +183,8 @@
                 @change="selectDimensionOption(dimension, option.value)"
               />
               <div
-                class="flex min-h-11 items-center justify-center rounded-lg border-2 border-(--border-subtle) px-2 py-1.5 text-center text-[13px] font-semibold text-(--text-secondary) transition-all peer-checked:border-(--text-main) peer-checked:text-(--text-main) sm:min-h-11 sm:text-sm"
+                :data-testid="`dimension-option-card-${String(dimension)}`"
+                class="flex min-h-11 items-center justify-center rounded-lg border-2 border-(--border-subtle)/80 bg-(--bg-muted)/20 px-2 py-1 text-center text-xs font-semibold text-(--text-secondary) transition-all peer-checked:border-(--text-main) peer-checked:bg-(--bg-muted)/45 peer-checked:text-(--text-main) sm:min-h-11 sm:py-1.5 sm:text-sm"
                 :class="{ 'border-dashed border-(--border-subtle)/50': !option.selectable }"
               >
                 <span class="line-clamp-2 break-words" :title="option.label">
@@ -164,17 +196,34 @@
         </section>
 
         <!-- Inventory Info Footer -->
-        <div class="flex flex-col justify-between gap-4 rounded-xl bg-(--bg-muted)/50 p-4 sm:flex-row sm:items-center">
-          <div class="flex gap-6">
-            <div>
-              <p class="mb-1 text-[10px] font-bold tracking-widest text-(--text-secondary) uppercase">{{ t('order.binding.stockLabel') }}</p>
-              <p class="text-sm font-semibold text-(--text-main)">{{ selectedStockQuantity }} {{ t('order.binding.stockUnit') }}</p>
+        <div
+          data-testid="inventory-summary"
+          class="flex flex-col justify-between gap-3 rounded-lg border border-(--border-subtle)/60 bg-(--bg-muted)/30 p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-4"
+        >
+          <div data-testid="inventory-stats" class="flex divide-x divide-(--border-subtle)/60">
+            <div class="pr-4 sm:pr-5">
+              <p
+                class="mb-1 text-[9px] font-bold tracking-[0.18em] text-(--text-secondary) uppercase sm:text-[10px]"
+              >
+                {{ t('order.binding.stockLabel') }}
+              </p>
+              <p class="text-sm font-semibold text-(--text-main)">
+                {{ selectedStockQuantity }} {{ t('order.binding.stockUnit') }}
+              </p>
             </div>
-            <div>
-              <p class="mb-1 text-[10px] font-bold tracking-widest text-(--text-secondary) uppercase">{{ t('order.binding.replenishmentLabel') }}</p>
+            <div class="pl-4 sm:pl-5">
+              <p
+                class="mb-1 text-[9px] font-bold tracking-[0.18em] text-(--text-secondary) uppercase sm:text-[10px]"
+              >
+                {{ t('order.binding.replenishmentLabel') }}
+              </p>
               <p class="text-sm font-semibold text-(--text-main)">
                 {{ selectedReplenishmentQuantity }} {{ t('order.binding.stockUnit') }}
-                <span v-if="selectedReplenishmentPoCount > 0" class="ml-1 text-xs font-normal text-(--text-secondary)">({{ selectedReplenishmentPoCount }} {{ t('order.binding.poUnit') }})</span>
+                <span
+                  v-if="selectedReplenishmentPoCount > 0"
+                  class="ml-1 text-xs font-normal text-(--text-secondary)"
+                  >({{ selectedReplenishmentPoCount }} {{ t('order.binding.poUnit') }})</span
+                >
               </p>
             </div>
           </div>
@@ -216,12 +265,8 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import Lightbox from '@/components/ui/Lightbox.vue';
 import { useProducts } from '@/composables/useProducts';
 import { useSalesProducts } from '@/composables/useSalesProducts';
-import {
-  getVariantAvailabilityState,
-} from '@/utils/variant-meta';
-import {
-  resolveVariantPrimaryImageSrc,
-} from '@/utils/product-image.js';
+import { getVariantAvailabilityState } from '@/utils/variant-meta';
+import { resolveVariantPrimaryImageSrc } from '@/utils/product-image.js';
 
 const props = defineProps({
   boundProduct: { type: Object, default: null },
@@ -230,7 +275,8 @@ const props = defineProps({
   variantSelectPolicy: {
     type: String,
     default: 'allow_out_of_stock',
-    validator: (value) => ['allow_out_of_stock', 'in_stock_only', 'all'].includes(String(value || '')),
+    validator: (value) =>
+      ['allow_out_of_stock', 'in_stock_only', 'all'].includes(String(value || '')),
   },
 });
 
@@ -250,7 +296,7 @@ const openLightbox = () => {
   if (!props.boundProduct?.mainImage) return;
   lightboxFile.value = {
     url: props.boundProduct.mainImage,
-    name: props.boundProduct.name || 'Image Preview'
+    name: props.boundProduct.name || 'Image Preview',
   };
   isLightboxVisible.value = true;
 };
@@ -260,7 +306,9 @@ const variants = ref([]);
 const selectedVariantId = ref(null);
 const fullProductData = ref(null);
 const selectedOptions = reactive({});
-const normalizedVariantSelectPolicy = computed(() => String(props.variantSelectPolicy || 'allow_out_of_stock'));
+const normalizedVariantSelectPolicy = computed(() =>
+  String(props.variantSelectPolicy || 'allow_out_of_stock')
+);
 const TEXT_LIMITS = Object.freeze({
   productName: 48,
   sku: 32,
@@ -271,12 +319,10 @@ const TEXT_LIMITS = Object.freeze({
 const availabilityTextMap = computed(() => ({
   available: '可下单',
   low_stock: '低库存',
-  disabled_out_of_stock: normalizedVariantSelectPolicy.value === 'in_stock_only'
-    ? '缺货（不可下单）'
-    : '缺货（可预订）',
-  disabled_archived: normalizedVariantSelectPolicy.value === 'all'
-    ? '已停用（可选）'
-    : '已停用（不可下单）',
+  disabled_out_of_stock:
+    normalizedVariantSelectPolicy.value === 'in_stock_only' ? '缺货（不可下单）' : '缺货（可预订）',
+  disabled_archived:
+    normalizedVariantSelectPolicy.value === 'all' ? '已停用（可选）' : '已停用（不可下单）',
 }));
 const COLOR_LABELS = ['color', '颜色', '顏色'];
 const COLOR_VALUE_MAP = {
@@ -292,18 +338,30 @@ const COLOR_VALUE_MAP = {
   pink: '#ec4899',
   orange: '#f97316',
   // Chinese mapping
-  '白': '#ffffff', '白色': '#ffffff',
-  '黑': '#111827', '黑色': '#111827',
-  '红': '#ef4444', '红色': '#ef4444',
-  '蓝': '#3b82f6', '蓝色': '#3b82f6',
-  '绿': '#10b981', '绿色': '#10b981',
-  '黄': '#f59e0b', '黄色': '#f59e0b',
-  '灰': '#9ca3af', '灰色': '#9ca3af',
-  '深灰': '#4b5563', '浅灰': '#d1d5db',
-  '银色': '#e5e7eb', '银': '#e5e7eb',
-  '紫': '#8b5cf6', '紫色': '#8b5cf6',
-  '粉': '#ec4899', '粉色': '#ec4899',
-  '橙': '#f97316', '橙色': '#f97316',
+  白: '#ffffff',
+  白色: '#ffffff',
+  黑: '#111827',
+  黑色: '#111827',
+  红: '#ef4444',
+  红色: '#ef4444',
+  蓝: '#3b82f6',
+  蓝色: '#3b82f6',
+  绿: '#10b981',
+  绿色: '#10b981',
+  黄: '#f59e0b',
+  黄色: '#f59e0b',
+  灰: '#9ca3af',
+  灰色: '#9ca3af',
+  深灰: '#4b5563',
+  浅灰: '#d1d5db',
+  银色: '#e5e7eb',
+  银: '#e5e7eb',
+  紫: '#8b5cf6',
+  紫色: '#8b5cf6',
+  粉: '#ec4899',
+  粉色: '#ec4899',
+  橙: '#f97316',
+  橙色: '#f97316',
 };
 
 const parseOptionsValues = (value) => {
@@ -330,16 +388,21 @@ const clampText = (value, maxLength) => {
   return `${text.slice(0, Math.max(0, maxLength - 1))}…`;
 };
 
-const getDimensionLabelDisplay = (dimensionKey) => clampText(getDimensionLabel(dimensionKey), TEXT_LIMITS.dimensionLabel);
-const getSelectedOptionDisplay = (dimensionKey) => clampText(selectedOptions[dimensionKey] || '', TEXT_LIMITS.selectedValue);
+const getDimensionLabelDisplay = (dimensionKey) =>
+  clampText(getDimensionLabel(dimensionKey), TEXT_LIMITS.dimensionLabel);
+const getSelectedOptionDisplay = (dimensionKey) =>
+  clampText(selectedOptions[dimensionKey] || '', TEXT_LIMITS.selectedValue);
 const getOptionLabelDisplay = (value) => clampText(value, TEXT_LIMITS.optionLabel);
-const displayProductName = computed(() => clampText(props.boundProduct?.name || '', TEXT_LIMITS.productName));
+const displayProductName = computed(() =>
+  clampText(props.boundProduct?.name || '', TEXT_LIMITS.productName)
+);
 
-const getDimensionTestId = (dimensionKey) => `dimension-${String(dimensionKey || '').replace(/\s+/g, '_')}`;
+const getDimensionTestId = (dimensionKey) =>
+  `dimension-${String(dimensionKey || '').replace(/\s+/g, '_')}`;
 
 const displaySku = computed(() => {
   if (variants.value.length > 0 && selectedVariantId.value) {
-    const v = variants.value.find(x => x.id === selectedVariantId.value);
+    const v = variants.value.find((x) => x.id === selectedVariantId.value);
     if (v && v.sku) return clampText(v.sku, TEXT_LIMITS.sku);
   }
   return clampText(props.boundProduct?.sku || '', TEXT_LIMITS.sku);
@@ -375,7 +438,9 @@ const dimensionKeys = computed(() => {
     }
   }
 
-  const dimensions = Array.isArray(fullProductData.value?.dimensions) ? fullProductData.value.dimensions : [];
+  const dimensions = Array.isArray(fullProductData.value?.dimensions)
+    ? fullProductData.value.dimensions
+    : [];
   const orderedByDimensions = dimensions
     .map((dimension) => String(dimension?.id || '').trim())
     .filter((id) => id && keysFromVariants.includes(id));
@@ -389,14 +454,23 @@ const currentSelectedVariant = computed(() => {
   return normalizedVariants.value.find((v) => v.id === selectedVariantId.value) || null;
 });
 
-const currentAvailabilityState = computed(() => currentSelectedVariant.value?.availabilityState || '');
-const selectedStockQuantity = computed(() => Number(currentSelectedVariant.value?.stock_quantity || 0));
-const selectedReplenishmentQuantity = computed(() => Number(currentSelectedVariant.value?.replenishment_quantity || 0));
-const selectedReplenishmentPoCount = computed(() => Number(currentSelectedVariant.value?.replenishment_po_count || 0));
+const currentAvailabilityState = computed(
+  () => currentSelectedVariant.value?.availabilityState || ''
+);
+const selectedStockQuantity = computed(() =>
+  Number(currentSelectedVariant.value?.stock_quantity || 0)
+);
+const selectedReplenishmentQuantity = computed(() =>
+  Number(currentSelectedVariant.value?.replenishment_quantity || 0)
+);
+const selectedReplenishmentPoCount = computed(() =>
+  Number(currentSelectedVariant.value?.replenishment_po_count || 0)
+);
 const availabilityBadgeClass = computed(() => {
   if (currentAvailabilityState.value === 'available') return 'bg-(--color-success-bg) text-success';
   if (currentAvailabilityState.value === 'low_stock') return 'bg-(--color-warning-bg) text-warning';
-  if (currentAvailabilityState.value === 'disabled_out_of_stock') return 'bg-(--color-danger-bg) text-(--color-danger-text)';
+  if (currentAvailabilityState.value === 'disabled_out_of_stock')
+    return 'bg-(--color-danger-bg) text-(--color-danger-text)';
   return 'bg-(--bg-muted) text-(--text-secondary)';
 });
 
@@ -407,16 +481,22 @@ const isColorDimension = (dimensionKey) => {
 };
 
 const buildColorSwatchStyle = (rawValue) => {
-  const value = String(rawValue || '').trim().toLowerCase();
+  const value = String(rawValue || '')
+    .trim()
+    .toLowerCase();
   const isHex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value);
-  const color = isHex ? value : (COLOR_VALUE_MAP[value] || '#94a3b8');
+  const color = isHex ? value : COLOR_VALUE_MAP[value] || '#94a3b8';
   return { backgroundColor: color };
 };
 
 const buildMainImagePath = (variant) => resolveVariantPrimaryImageSrc(variant);
 
-const normalizeVariantStatus = (variant) => String(variant?.status ?? '').trim().toLowerCase();
-const getVariantStockQuantity = (variant) => Number(variant?.stock_quantity ?? variant?.stockQuantity ?? 0);
+const normalizeVariantStatus = (variant) =>
+  String(variant?.status ?? '')
+    .trim()
+    .toLowerCase();
+const getVariantStockQuantity = (variant) =>
+  Number(variant?.stock_quantity ?? variant?.stockQuantity ?? 0);
 
 const isVariantSelectableByMode = (variant) => {
   const policy = normalizedVariantSelectPolicy.value;
@@ -468,13 +548,17 @@ const getDimensionOptions = (dimension) => {
   const dimIndex = dimensionKeys.value.indexOf(dimension);
   const prefixDimensions = dimensionKeys.value.filter((_, idx) => idx < dimIndex);
   const scoped = normalizedVariants.value.filter((variant) =>
-    prefixDimensions.every((d) => !selectedOptions[d] || variant.optionsMap[d] === selectedOptions[d])
+    prefixDimensions.every(
+      (d) => !selectedOptions[d] || variant.optionsMap[d] === selectedOptions[d]
+    )
   );
   const values = [...new Set(scoped.map((v) => v.optionsMap[dimension]).filter(Boolean))];
   return values.map((value) => ({
     value,
     label: value,
-    selectable: scoped.some((variant) => variant.optionsMap[dimension] === value && variant.selectable),
+    selectable: scoped.some(
+      (variant) => variant.optionsMap[dimension] === value && variant.selectable
+    ),
   }));
 };
 
@@ -537,12 +621,15 @@ const handleProductFetchError = (message) => {
   emit('product-fetch-error', message || t('common.loadFailed'));
 };
 
-watch(() => props.boundProduct, (newVal) => {
+watch(
+  () => props.boundProduct,
+  (newVal) => {
     if (!newVal) {
-        variants.value = [];
-        selectedVariantId.value = null;
-        fullProductData.value = null;
-        for (const dimension of Object.keys(selectedOptions)) selectedOptions[dimension] = '';
+      variants.value = [];
+      selectedVariantId.value = null;
+      fullProductData.value = null;
+      for (const dimension of Object.keys(selectedOptions)) selectedOptions[dimension] = '';
     }
-});
+  }
+);
 </script>
