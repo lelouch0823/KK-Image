@@ -25,6 +25,11 @@ import { D1ActionSessionStore } from '../../../../ai/action-session-store.js';
 import { createActionSubmitters } from '../../../../ai/action-submitters.js';
 import { getActionAdapter } from '../../../../ai/action-registry.js';
 import { extractActionSlots } from '../../../../ai/slot-extraction.js';
+import {
+    resolveOrderProductSlot,
+    resolveOrderVariantSlot,
+    resolvePurchaseOrderItemsSlot,
+} from '../../../../ai/slot-resolvers.js';
 import { createManagedOrder } from './orders/create-order.js';
 import { createManagedProduct } from './products/create-product.js';
 
@@ -237,82 +242,6 @@ function detectExplicitConfirmation(text = '') {
     return /^(确认|确定|提交|创建吧|就这样|可以创建了)$/.test(normalized);
 }
 
-function normalizeComparable(value = '') {
-    return String(value || '').trim().toLowerCase();
-}
-
-function pickVariantOptionValue(optionsValues = {}, aliases = []) {
-    const entries = Object.entries(optionsValues || {});
-    for (const alias of aliases) {
-        const target = normalizeComparable(alias);
-        const found = entries.find(([key]) => normalizeComparable(key) === target);
-        if (found && String(found[1] || '').trim()) {
-            return String(found[1]).trim();
-        }
-    }
-    return '';
-}
-
-async function resolveOrderVariantSlot(rawValue, slots, { variantRepo }) {
-    const existing = String(rawValue || '').trim();
-    if (existing) return existing;
-
-    const productId = String(slots.productId || '').trim();
-    if (!productId) return rawValue;
-
-    const color = String(slots.color || '').trim();
-    const size = String(slots.size || '').trim();
-    const sku = String(slots.sku || '').trim();
-    if (!color && !size && !sku) return rawValue;
-
-    const variants = await variantRepo.findByProductId(productId);
-    const activeVariants = (variants || []).filter((variant) => String(variant.status || '').toLowerCase() === 'active');
-    const matched = activeVariants.filter((variant) => {
-        if (sku && normalizeComparable(variant.sku) !== normalizeComparable(sku)) return false;
-        const variantColor = pickVariantOptionValue(variant.options_values, ['color', '颜色', '顏色']);
-        const variantSize = pickVariantOptionValue(variant.options_values, ['size', '尺码', '尺碼']);
-        if (color && normalizeComparable(variantColor) !== normalizeComparable(color)) return false;
-        if (size && normalizeComparable(variantSize) !== normalizeComparable(size)) return false;
-        return true;
-    });
-
-    return matched.length === 1 ? matched[0].id : rawValue;
-}
-
-async function resolvePurchaseOrderItemsSlot(items, { variantRepo }) {
-    if (!Array.isArray(items)) return items;
-    const resolved = [];
-
-    for (const item of items) {
-        if (item?.product_id && item?.variant_id) {
-            resolved.push(item);
-            continue;
-        }
-
-        const query = String(item?.variant_query || '').trim();
-        if (!query) {
-            resolved.push(item);
-            continue;
-        }
-
-        const search = await variantRepo.searchForAI({ search: query, limit: 5 });
-        if (Array.isArray(search?.items) && search.items.length === 1) {
-            const matched = search.items[0];
-            resolved.push({
-                ...item,
-                product_id: matched.product_id,
-                variant_id: matched.id,
-                unit_cost: item.unit_cost ?? matched.cost_price ?? 0,
-            });
-            continue;
-        }
-
-        resolved.push(item);
-    }
-
-    return resolved;
-}
-
 async function deriveContextActionSlots(context = {}, { productRepo, variantRepo }) {
     const selectedId = String(context?.selectedId || '').trim();
     const selectedType = String(context?.selectedType || '').trim();
@@ -345,6 +274,8 @@ async function deriveContextActionSlots(context = {}, { productRepo, variantRepo
 
 function createActionOrchestrator(c, env, user = null) {
     const customerRepo = new CustomerRepository(env.DB);
+    const productRepo = new ProductRepository(env.DB);
+    const variantRepo = new ProductVariantRepository(env.DB);
     const purchaseOrderRepo = new PurchaseOrderRepository(env.DB);
     const purchaseOrderService = new PurchaseOrderService(env.DB);
     const salespersonRepo = new SalespersonRepository(env.DB, env.JWT_SECRET);
@@ -378,10 +309,11 @@ function createActionOrchestrator(c, env, user = null) {
                     if (!Array.isArray(results) || results.length !== 1) return rawValue;
                     return results[0]?.id || rawValue;
                 },
-                variantId: async (rawValue, slots) => resolveOrderVariantSlot(rawValue, slots, { variantRepo: new ProductVariantRepository(env.DB) }),
+                productId: async (rawValue, slots) => resolveOrderProductSlot(rawValue, slots, { productRepo }),
+                variantId: async (rawValue, slots) => resolveOrderVariantSlot(rawValue, slots, { variantRepo }),
             },
             purchase_order: {
-                items: async (items) => resolvePurchaseOrderItemsSlot(items, { variantRepo: new ProductVariantRepository(env.DB) }),
+                items: async (items) => resolvePurchaseOrderItemsSlot(items, { variantRepo }),
             },
         },
         extractActionSlots,
