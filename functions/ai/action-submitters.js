@@ -1,0 +1,79 @@
+function pickDefined(source = {}, keys = []) {
+  return keys.reduce((acc, key) => {
+    if (source[key] !== undefined) {
+      acc[key] = source[key];
+    }
+    return acc;
+  }, {});
+}
+
+export function createActionSubmitters(deps = {}) {
+  return {
+    async create_customer(slots = {}) {
+      if (!deps.customerRepo?.create) throw new Error('Customer create dependency is unavailable');
+      const payload = pickDefined(slots, ['name', 'phone', 'company', 'email', 'address', 'tags', 'remark']);
+      const created = await deps.customerRepo.create(payload);
+      return {
+        id: created.id,
+        label: created.name || payload.name || created.id,
+      };
+    },
+
+    async create_product(slots = {}) {
+      if (!deps.productService?.create) throw new Error('Product create dependency is unavailable');
+      if (!Array.isArray(slots.variants) || slots.variants.length === 0) {
+        throw new Error('At least one variant is required');
+      }
+      const payload = pickDefined(slots, ['name', 'currency', 'spu', 'brand', 'category', 'description', 'images', 'dimensions']);
+      payload.variants = slots.variants;
+      const created = await deps.productService.create(payload);
+      return {
+        id: created.id,
+        label: created.name || payload.name || created.id,
+      };
+    },
+
+    async create_order(slots = {}) {
+      if (!deps.orderService?.create) throw new Error('Order create dependency is unavailable');
+      const payload = pickDefined(slots, ['productName', 'salespersonId', 'productId', 'variantId', 'quantity', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'status', 'fileIds']);
+      const created = await deps.orderService.create(payload);
+      return {
+        id: created.id,
+        label: created.orderNo || created.id,
+      };
+    },
+
+    async create_purchase_order(slots = {}) {
+      const mode = String(slots.mode || 'manual').trim();
+      if (mode === 'from_orders') {
+        if (!deps.purchaseOrderService?.createFromOrders) throw new Error('Purchase order from-orders dependency is unavailable');
+        const orderIds = Array.isArray(slots.order_ids) ? slots.order_ids : [];
+        const payload = pickDefined(slots, ['remark', 'currency', 'allocation_method', 'estimated_shipping_cost', 'estimated_tariff_cost']);
+        const created = await deps.purchaseOrderService.createFromOrders(orderIds, payload);
+        return {
+          id: created.id,
+          label: created.po_no || created.id,
+        };
+      }
+
+      if (!deps.purchaseOrderRepo?.create) throw new Error('Purchase order create dependency is unavailable');
+      const payload = pickDefined(slots, ['remark', 'currency', 'allocation_method', 'estimated_shipping_cost', 'estimated_tariff_cost']);
+      if (Array.isArray(slots.items)) payload.items = slots.items;
+      const created = await deps.purchaseOrderRepo.create(payload);
+      return {
+        id: created.id,
+        label: created.po_no || created.id,
+      };
+    },
+
+    async create_salesperson(slots = {}) {
+      if (!deps.salespersonRepo?.create) throw new Error('Salesperson create dependency is unavailable');
+      const payload = pickDefined(slots, ['name', 'store', 'phone', 'password']);
+      const created = await deps.salespersonRepo.create(payload);
+      return {
+        id: created.id,
+        label: created.name || payload.name || created.id,
+      };
+    },
+  };
+}
