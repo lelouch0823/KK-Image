@@ -1,0 +1,206 @@
+function firstMatch(text, patterns = []) {
+  for (const pattern of patterns) {
+    const match = String(text || '').match(pattern);
+    if (match?.[1]) return String(match[1]).trim();
+  }
+  return '';
+}
+
+function firstNumber(text, patterns = []) {
+  const value = firstMatch(text, patterns);
+  if (!value) return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function extractPhone(text = '') {
+  const match = String(text).match(/1\d{10}/);
+  return match?.[0] || '';
+}
+
+function extractEmail(text = '') {
+  const match = String(text).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  return match?.[0] || '';
+}
+
+function splitValues(value = '') {
+  return String(value)
+    .split(/[|/、,，]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function cartesianDimensions(dimensions = []) {
+  if (!Array.isArray(dimensions) || dimensions.length === 0) return [{}];
+  return dimensions.reduce((acc, dimension) => {
+    const values = Array.isArray(dimension.values) ? dimension.values : [];
+    const next = [];
+    for (const row of acc) {
+      for (const value of values) {
+        next.push({ ...row, [dimension.name]: value });
+      }
+    }
+    return next;
+  }, [{}]);
+}
+
+function extractCustomerSlots(text = '') {
+  const slots = {};
+  const name = firstMatch(text, [
+    /(?:客户|联系人)\s*([A-Za-z][A-Za-z\s-]{1,40}|[\u4e00-\u9fa5]{2,12})/,
+    /(?:姓名|名字|名称)\s*[:：]?\s*([A-Za-z][A-Za-z\s-]{1,40}|[\u4e00-\u9fa5]{2,12})/,
+  ]);
+  if (name) slots.name = name;
+
+  const phone = extractPhone(text);
+  if (phone) slots.phone = phone;
+
+  const email = extractEmail(text);
+  if (email) slots.email = email;
+
+  const company = firstMatch(text, [
+    /(?:公司)\s*[:：]?\s*([^\s，,。]+)/,
+  ]);
+  if (company) slots.company = company;
+
+  const address = firstMatch(text, [
+    /(?:地址)\s*[:：]?\s*([^\n。]+)/,
+  ]);
+  if (address) slots.address = address;
+
+  return slots;
+}
+
+function extractSalespersonSlots(text = '') {
+  const slots = {};
+  const name = firstMatch(text, [
+    /(?:业务员|销售员|导购)\s*([A-Za-z][A-Za-z\s-]{1,40}|[\u4e00-\u9fa5]{2,12})/,
+    /(?:姓名|名字|名称)\s*[:：]?\s*([A-Za-z][A-Za-z\s-]{1,40}|[\u4e00-\u9fa5]{2,12})/,
+  ]);
+  if (name) slots.name = name;
+
+  const store = firstMatch(text, [/门店\s*[:：]?\s*([^\n，,。]+)/, /店铺\s*[:：]?\s*([^\n，,。]+)/]);
+  if (store) slots.store = store;
+
+  const phone = extractPhone(text);
+  if (phone) slots.phone = phone;
+
+  const password = firstMatch(text, [/密码\s*[:：=]?\s*([^\s，,。]+)/]);
+  if (password) slots.password = password;
+
+  return slots;
+}
+
+function extractOrderSlots(text = '') {
+  const slots = {};
+  const productName = firstMatch(text, [
+    /(?:商品名|产品名|名称)\s*[:：]?\s*([A-Za-z0-9][A-Za-z0-9\s._/-]{1,80}|[\u4e00-\u9fa5A-Za-z0-9\s._/-]{2,80})/,
+  ]);
+  if (productName) slots.productName = productName;
+
+  const salesperson = firstMatch(text, [
+    /给\s*([A-Za-z][A-Za-z\s-]{1,40}|[\u4e00-\u9fa5]{2,12}?)(?=\s*(?:下|建|创建|订单|，|,|。|$))/,
+    /(?:销售员|业务员)\s*[:：]?\s*([A-Za-z][A-Za-z\s-]{1,40}|[\u4e00-\u9fa5]{2,12})/,
+  ]);
+  if (salesperson) slots.salespersonId = salesperson;
+
+  const quantity = firstNumber(text, [
+    /数量\s*[:：=]?\s*(\d+)/,
+    /(\d+)\s*(?:件|个|双|套|箱)/,
+  ]);
+  if (quantity) slots.quantity = quantity;
+
+  return slots;
+}
+
+function extractPurchaseOrderSlots(text = '') {
+  const slots = {};
+  if (/(?:从订单|根据订单|按订单)/.test(text)) {
+    slots.mode = 'from_orders';
+  }
+
+  const orderIds = Array.from(new Set((String(text).match(/\bord-[a-z0-9-]+\b/gi) || []).map((item) => item.trim())));
+  if (orderIds.length > 0) slots.order_ids = orderIds;
+
+  const remark = firstMatch(text, [/备注\s*[:：]?\s*([^\n，,。]+)/]);
+  if (remark) slots.remark = remark;
+
+  const currency = firstMatch(text, [/\b(CNY|USD|EUR|GBP|JPY)\b/i, /(人民币|美元|欧元|英镑|日元)/]);
+  if (currency) {
+    const currencyMap = { 人民币: 'CNY', 美元: 'USD', 欧元: 'EUR', 英镑: 'GBP', 日元: 'JPY' };
+    slots.currency = currencyMap[currency] || currency.toUpperCase();
+  }
+
+  return slots;
+}
+
+function extractProductSlots(text = '') {
+  const slots = {};
+  const name = firstMatch(text, [
+    /(?:商品名|产品名|名称)\s*[:：]?\s*([A-Za-z0-9\u4e00-\u9fa5][A-Za-z0-9\u4e00-\u9fa5\s._/-]{1,80}?)(?=\s+(?:SPU|币种|规格|售价|价格|成本|库存|预警)\b|[，,。]|$)/,
+  ]);
+  if (name) slots.name = name;
+
+  const spu = firstMatch(text, [/\bSPU\s*[:：]?\s*([A-Za-z0-9_-]+)/i]);
+  if (spu) slots.spu = spu;
+
+  const currency = firstMatch(text, [/\b(CNY|USD|EUR|GBP|JPY)\b/i, /(人民币|美元|欧元|英镑|日元)/]);
+  if (currency) {
+    const currencyMap = { 人民币: 'CNY', 美元: 'USD', 欧元: 'EUR', 英镑: 'GBP', 日元: 'JPY' };
+    slots.currency = currencyMap[currency] || currency.toUpperCase();
+  }
+
+  const specBlock = firstMatch(text, [/规格\s*[:：]?\s*([^\n]+?)(?=(?:售价|价格|成本|库存|预警|$))/]);
+  const dimensions = [];
+  if (specBlock) {
+    const segments = specBlock.split(/[;；]/).map((item) => item.trim()).filter(Boolean);
+    for (const segment of segments) {
+      const [rawName, rawValues] = segment.split('=').map((item) => String(item || '').trim());
+      if (!rawName || !rawValues) continue;
+      const values = splitValues(rawValues);
+      if (values.length === 0) continue;
+      dimensions.push({ name: rawName, values });
+    }
+  }
+  if (dimensions.length > 0) {
+    slots.dimensions = dimensions;
+  }
+
+  const price = firstNumber(text, [/售价\s*[:：=]?\s*(\d+)/, /价格\s*[:：=]?\s*(\d+)/]);
+  const costPrice = firstNumber(text, [/成本\s*[:：=]?\s*(\d+)/]);
+  const stock = firstNumber(text, [/库存\s*[:：=]?\s*(\d+)/]);
+  const alert = firstNumber(text, [/预警\s*[:：=]?\s*(\d+)/]);
+
+  if (dimensions.length > 0 && price !== null && costPrice !== null && stock !== null) {
+    slots.variants = cartesianDimensions(dimensions).map((optionsValues) => ({
+      options_values: optionsValues,
+      price,
+      cost_price: costPrice,
+      stock_quantity: stock,
+      alert_threshold: alert ?? 10,
+      status: 'active',
+    }));
+  }
+
+  return slots;
+}
+
+export function extractActionSlots(entityType, text = '') {
+  const source = String(text || '').trim();
+  if (!source) return {};
+
+  switch (String(entityType || '').trim()) {
+    case 'customer':
+      return extractCustomerSlots(source);
+    case 'salesperson':
+      return extractSalespersonSlots(source);
+    case 'order':
+      return extractOrderSlots(source);
+    case 'purchase_order':
+      return extractPurchaseOrderSlots(source);
+    case 'product':
+      return extractProductSlots(source);
+    default:
+      return {};
+  }
+}

@@ -31,6 +31,7 @@ describe('AIActionOrchestrator', () => {
       getActionAdapter,
       submitters,
       slotResolvers: {},
+      extractActionSlots: () => ({}),
     });
   });
 
@@ -58,6 +59,24 @@ describe('AIActionOrchestrator', () => {
       expect.objectContaining({ name: 'Alice' })
     );
     expect(submitters.create_customer).not.toHaveBeenCalled();
+  });
+
+  it('extracts initial slots from natural language before deciding missing fields', async () => {
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {},
+      extractActionSlots: () => ({ name: 'Alice', phone: '13800000000' }),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '新增客户 Alice，电话 13800000000',
+    });
+
+    expect(result.kind).toBe('action_preview');
+    expect(result.payload.summary).toEqual(expect.objectContaining({ name: 'Alice', phone: '13800000000' }));
   });
 
   it('submits only after explicit confirmation in awaiting_confirmation state', async () => {
@@ -125,6 +144,7 @@ describe('AIActionOrchestrator', () => {
           salespersonId: vi.fn(async (rawValue) => rawValue === '张三' ? 'sp-1' : rawValue),
         },
       },
+      extractActionSlots: () => ({ salespersonId: '张三' }),
     });
 
     const result = await orchestrator.advance({

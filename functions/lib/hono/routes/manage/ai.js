@@ -24,6 +24,7 @@ import { AIActionOrchestrator } from '../../../../ai/action-orchestrator.js';
 import { D1ActionSessionStore } from '../../../../ai/action-session-store.js';
 import { createActionSubmitters } from '../../../../ai/action-submitters.js';
 import { getActionAdapter } from '../../../../ai/action-registry.js';
+import { extractActionSlots } from '../../../../ai/slot-extraction.js';
 import { createManagedOrder } from './orders/create-order.js';
 import { createManagedProduct } from './products/create-product.js';
 
@@ -273,6 +274,7 @@ function createActionOrchestrator(c, env, user = null) {
                 },
             },
         },
+        extractActionSlots,
     });
 }
 

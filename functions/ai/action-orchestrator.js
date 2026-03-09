@@ -18,11 +18,12 @@ function buildSessionId() {
 }
 
 export class AIActionOrchestrator {
-  constructor({ sessionStore, getActionAdapter, submitters = {}, slotResolvers = {} }) {
+  constructor({ sessionStore, getActionAdapter, submitters = {}, slotResolvers = {}, extractActionSlots = () => ({}) }) {
     this.sessionStore = sessionStore;
     this.getActionAdapter = getActionAdapter;
     this.submitters = submitters;
     this.slotResolvers = slotResolvers;
+    this.extractActionSlots = extractActionSlots;
   }
 
   async advance({ userId, text = '', slots = {}, confirmation = false }) {
@@ -37,7 +38,9 @@ export class AIActionOrchestrator {
     const adapter = this.getActionAdapter(intent.entityType);
     if (!adapter) return null;
 
-    const missingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(slots[slot]));
+    const extractedSlots = this.extractActionSlots(adapter.entityType, text);
+    const mergedSlots = { ...extractedSlots, ...slots };
+    const missingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(mergedSlots[slot]));
 
     const sessionId = buildSessionId();
     await this.sessionStore.createSession({
@@ -45,13 +48,13 @@ export class AIActionOrchestrator {
       userId,
       actionType: adapter.actionType,
       entityType: adapter.entityType,
-      slots,
+      slots: mergedSlots,
     });
 
     if (missingSlots.length > 0) {
       await this.sessionStore.updateSession(sessionId, {
         status: 'collecting',
-        slots,
+        slots: mergedSlots,
       });
 
       return {
@@ -60,14 +63,16 @@ export class AIActionOrchestrator {
           sessionId,
           entityType: adapter.entityType,
           missingSlots,
+          prompt: this.#buildPrompt(adapter, missingSlots),
+          fields: this.#buildFieldMeta(adapter, missingSlots),
         },
       };
     }
 
-    const preview = this.#buildPreview(adapter, slots);
+    const preview = this.#buildPreview(adapter, mergedSlots);
     await this.sessionStore.updateSession(sessionId, {
       status: 'awaiting_confirmation',
-      slots,
+      slots: mergedSlots,
       preview,
     });
 
@@ -90,13 +95,18 @@ export class AIActionOrchestrator {
     const slots = parseJsonObject(session.slots_json, {});
 
     if (session.status === 'collecting' && !confirmation) {
-      const nextSlots = { ...slots };
+      const extractedSlots = this.extractActionSlots(adapter.entityType, text);
+      const nextSlots = { ...slots, ...extractedSlots };
       const normalizedText = String(text || '').trim();
       const missingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(nextSlots[slot]));
 
-      if (normalizedText && missingSlots.length > 0) {
+      if (normalizedText && missingSlots.length > 0 && Object.keys(extractedSlots || {}).length === 0) {
         const targetSlot = missingSlots[0];
         nextSlots[targetSlot] = await this.#resolveSlotValue(adapter.entityType, targetSlot, normalizedText);
+      }
+
+      for (const [slotName, rawValue] of Object.entries(nextSlots)) {
+        nextSlots[slotName] = await this.#resolveSlotValue(adapter.entityType, slotName, rawValue);
       }
 
       const nextMissingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(nextSlots[slot]));
@@ -111,6 +121,8 @@ export class AIActionOrchestrator {
             sessionId: session.id,
             entityType: session.entity_type,
             missingSlots: nextMissingSlots,
+            prompt: this.#buildPrompt(adapter, nextMissingSlots),
+            fields: this.#buildFieldMeta(adapter, nextMissingSlots),
           },
         };
       }
@@ -163,9 +175,22 @@ export class AIActionOrchestrator {
 
   #buildPreview(adapter, slots) {
     return {
-      title: `${adapter.entityType} create preview`,
+      title: `${adapter.entityType} 创建预览`,
       summary: { ...slots },
     };
+  }
+
+  #buildPrompt(adapter, missingSlots = []) {
+    const labels = this.#buildFieldMeta(adapter, missingSlots).map((item) => item.label);
+    return labels.length > 0 ? `还需要补充：${labels.join('、')}` : '请继续补充创建所需的信息。';
+  }
+
+  #buildFieldMeta(adapter, missingSlots = []) {
+    return missingSlots.map((slot) => ({
+      key: slot,
+      label: adapter.fieldLabels?.[slot] || slot,
+      type: Array.isArray(adapter.requiredSlots) && adapter.requiredSlots.includes(slot) ? 'required' : 'optional',
+    }));
   }
 
   #hasValue(value) {
