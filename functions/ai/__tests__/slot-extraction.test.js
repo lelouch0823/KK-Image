@@ -134,4 +134,45 @@ describe('extractActionSlots', () => {
       })
     );
   });
+
+  it('extracts freer product specification language with color counts and numeric size ranges', () => {
+    const result = extractActionSlots(
+      'product',
+      '创建商品 跑鞋，黑白两个颜色，40到42码，每个库存10，售价100，成本60，预警2'
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        name: '跑鞋',
+        dimensions: expect.any(Array),
+        variants: expect.any(Array),
+      })
+    );
+    expect(result.dimensions).toEqual([
+      expect.objectContaining({ name: '颜色', values: ['黑色', '白色'] }),
+      expect.objectContaining({ name: '尺码', values: ['40', '41', '42'] }),
+    ]);
+    expect(result.variants).toHaveLength(6);
+    expect(result.variants[0]).toEqual(
+      expect.objectContaining({
+        stock_quantity: 10,
+        price: 100,
+        cost_price: 60,
+        alert_threshold: 2,
+      })
+    );
+  });
+
+  it('extracts freer product specification language with slash-separated sizes', () => {
+    const result = extractActionSlots(
+      'product',
+      '新建商品 凉鞋，颜色黑色 白色，尺码 36/37/38，库存 5，售价 80，成本 40'
+    );
+
+    expect(result.dimensions).toEqual([
+      expect.objectContaining({ name: '颜色', values: ['黑色', '白色'] }),
+      expect.objectContaining({ name: '尺码', values: ['36', '37', '38'] }),
+    ]);
+    expect(result.variants).toHaveLength(6);
+  });
 });

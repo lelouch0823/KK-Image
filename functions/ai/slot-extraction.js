@@ -30,6 +30,51 @@ function splitValues(value = '') {
     .filter(Boolean);
 }
 
+function expandNumericRange(start, end) {
+  const a = Number.parseInt(String(start || '').trim(), 10);
+  const b = Number.parseInt(String(end || '').trim(), 10);
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b < a || (b - a) > 20) return [];
+  return Array.from({ length: b - a + 1 }, (_, index) => String(a + index));
+}
+
+function parseFreeColorValues(text = '') {
+  const compactPair = String(text).match(/([黑白红蓝绿黄灰紫粉棕银金橙米卡藏青深蓝浅蓝]{2,6})(?:两个颜色|两个色|两种颜色|两色)/);
+  if (compactPair?.[1]) {
+    const chars = compactPair[1].split('').filter(Boolean);
+    const normalizedCompact = chars.map((item) => item.endsWith('色') ? item : `${item}色`);
+    return [...new Set(normalizedCompact)];
+  }
+
+  const explicitColorBlock = firstMatch(text, [
+    /(?:颜色|顏色)\s*[:：]?\s*([^\n，,。]+)/,
+    /([黑白红蓝绿黄灰紫粉棕银金橙米卡藏青深蓝浅蓝]+(?:色)?(?:\s*[、/\s|]\s*[黑白红蓝绿黄灰紫粉棕银金橙米卡藏青深蓝浅蓝]+(?:色)?)+)/,
+  ]);
+  if (!explicitColorBlock) return [];
+
+  const rawParts = explicitColorBlock
+    .replace(/两个颜色|两个色|两种颜色|两色/g, '')
+    .split(/[、/\s|,，]/)
+    .map((item) => String(item || '').trim())
+    .filter(Boolean);
+
+  const normalized = rawParts.map((item) => item.endsWith('色') ? item : `${item}色`);
+  return [...new Set(normalized)];
+}
+
+function parseFreeSizeValues(text = '') {
+  const rangeMatch = String(text).match(/(\d{2,3})\s*(?:到|-|至)\s*(\d{2,3})\s*码/);
+  if (rangeMatch) {
+    return expandNumericRange(rangeMatch[1], rangeMatch[2]);
+  }
+
+  const block = firstMatch(text, [
+    /(?:尺码|尺碼|码数|碼數)\s*[:：]?\s*([0-9/\s|、，,-]{2,40})/,
+    /((?:\d{2,3}\s*[/、，|]\s*)+\d{2,3})/,
+  ]);
+  if (!block) return [];
+  return [...new Set(splitValues(block))];
+}
+
 function cartesianDimensions(dimensions = []) {
   if (!Array.isArray(dimensions) || dimensions.length === 0) return [{}];
   return dimensions.reduce((acc, dimension) => {
@@ -186,6 +231,7 @@ function extractProductSlots(text = '') {
   const slots = {};
   const name = firstMatch(text, [
     /(?:商品名|产品名|名称)\s*[:：]?\s*([A-Za-z0-9\u4e00-\u9fa5][A-Za-z0-9\u4e00-\u9fa5\s._/-]{1,80}?)(?=\s+(?:SPU|币种|规格|售价|价格|成本|库存|预警)\b|[，,。]|$)/,
+    /(?:创建商品|新建商品|新增商品|创建产品|新建产品)\s+([A-Za-z0-9\u4e00-\u9fa5][A-Za-z0-9\u4e00-\u9fa5\s._/-]{1,40}?)(?=[，,。]|$|\s+(?:黑白|颜色|尺码|尺碼|售价|价格|成本|库存|预警))/,
   ]);
   if (name) slots.name = name;
 
@@ -214,13 +260,29 @@ function extractProductSlots(text = '') {
     slots.dimensions = dimensions;
   }
 
+  if (dimensions.length === 0) {
+    const freeColors = parseFreeColorValues(text);
+    const freeSizes = parseFreeSizeValues(text);
+    const freeDimensions = [];
+    if (freeColors.length > 0) {
+      freeDimensions.push({ name: '颜色', values: freeColors });
+    }
+    if (freeSizes.length > 0) {
+      freeDimensions.push({ name: '尺码', values: freeSizes });
+    }
+    if (freeDimensions.length > 0) {
+      slots.dimensions = freeDimensions;
+    }
+  }
+
   const price = firstNumber(text, [/售价\s*[:：=]?\s*(\d+)/, /价格\s*[:：=]?\s*(\d+)/]);
   const costPrice = firstNumber(text, [/成本\s*[:：=]?\s*(\d+)/]);
   const stock = firstNumber(text, [/库存\s*[:：=]?\s*(\d+)/]);
   const alert = firstNumber(text, [/预警\s*[:：=]?\s*(\d+)/]);
 
-  if (dimensions.length > 0 && price !== null && costPrice !== null && stock !== null) {
-    slots.variants = cartesianDimensions(dimensions).map((optionsValues) => ({
+  const activeDimensions = Array.isArray(slots.dimensions) ? slots.dimensions : dimensions;
+  if (activeDimensions.length > 0 && price !== null && costPrice !== null && stock !== null) {
+    slots.variants = cartesianDimensions(activeDimensions).map((optionsValues) => ({
       options_values: optionsValues,
       price,
       cost_price: costPrice,
