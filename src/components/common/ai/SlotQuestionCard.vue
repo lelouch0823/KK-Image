@@ -19,14 +19,17 @@
       >
         <p class="text-xs font-medium text-(--text-main)">{{ field.label }} 候选项</p>
         <div class="mt-2 space-y-2">
-          <div
+          <button
             v-for="(candidate, index) in field.candidates"
             :key="candidate.value || index"
-            class="rounded-lg bg-(--bg-card) px-3 py-2"
+            :data-testid="`candidate-option-${index}`"
+            type="button"
+            class="hover:bg-primary/5 block w-full rounded-lg bg-(--bg-card) px-3 py-2 text-left transition-colors"
+            @click="$emit('select', { fieldKey: field.key, candidate, index })"
           >
             <p class="text-sm text-(--text-main)">{{ index + 1 }}. {{ candidate.label || candidate.value }}</p>
             <p v-if="candidate.description" class="mt-1 text-xs text-(--text-secondary)">{{ candidate.description }}</p>
-          </div>
+          </button>
         </div>
         <p class="mt-2 text-xs text-(--text-secondary)">回复序号、名称或 ID 即可选择。</p>
       </div>
@@ -36,6 +39,8 @@
 
 <script setup>
 import { computed } from 'vue';
+
+defineEmits(['select']);
 
 const props = defineProps({
   action: {

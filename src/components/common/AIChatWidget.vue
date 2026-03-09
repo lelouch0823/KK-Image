@@ -74,6 +74,7 @@
           <SlotQuestionCard
             v-if="actionCard?.type === 'slot_request'"
             :action="actionCard"
+            @select="handleCandidateSelect"
           />
           <ActionPreviewCard
             v-else-if="actionCard?.type === 'action_preview'"
@@ -529,6 +530,13 @@ const clearHistory = () => {
 const confirmAction = async () => {
   if (isStreamingLoading.value || isAIStreaming.value) return;
   userInput.value = '确认';
+  await sendMessage();
+};
+
+const handleCandidateSelect = async ({ candidate } = {}) => {
+  const value = String(candidate?.value || '').trim();
+  if (!value || isStreamingLoading.value || isAIStreaming.value) return;
+  userInput.value = value;
   await sendMessage();
 };
 
