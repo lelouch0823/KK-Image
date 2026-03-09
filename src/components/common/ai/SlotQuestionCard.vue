@@ -25,11 +25,21 @@
             :data-testid="`candidate-option-${index}`"
             type="button"
             class="hover:bg-primary/5 block w-full rounded-lg bg-(--bg-card) px-3 py-2 text-left transition-colors"
-            @click="$emit('select', { fieldKey: field.key, candidate, index })"
+            @click="handleSelect(field.key, candidate, index)"
           >
             <p class="text-sm text-(--text-main)">{{ index + 1 }}. {{ candidate.label || candidate.value }}</p>
             <p v-if="candidate.description" class="mt-1 text-xs text-(--text-secondary)">{{ candidate.description }}</p>
           </button>
+        </div>
+        <div
+          v-if="selectedCandidates[field.key]"
+          class="border-primary/20 bg-primary/5 mt-3 rounded-lg border px-3 py-2"
+        >
+          <p class="text-xs font-medium text-(--text-main)">已选择</p>
+          <p class="mt-1 text-sm text-(--text-main)">{{ selectedCandidates[field.key].label || selectedCandidates[field.key].value }}</p>
+          <p v-if="selectedCandidates[field.key].description" class="mt-1 text-xs text-(--text-secondary)">
+            {{ selectedCandidates[field.key].description }}
+          </p>
         </div>
         <p class="mt-2 text-xs text-(--text-secondary)">回复序号、名称或 ID 即可选择。</p>
       </div>
@@ -38,9 +48,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
-defineEmits(['select']);
+const emit = defineEmits(['select']);
 
 const props = defineProps({
   action: {
@@ -49,6 +59,7 @@ const props = defineProps({
   },
 });
 
+const selectedCandidates = ref({});
 const missingSlots = computed(() => Array.isArray(props.action?.missingSlots) ? props.action.missingSlots : []);
 const candidateGroups = computed(() => {
   const fields = Array.isArray(props.action?.fields) ? props.action.fields : [];
@@ -60,4 +71,12 @@ const promptText = computed(() => {
     ? `请补充以下字段：${missingSlots.value.join('、')}`
     : '请继续补充创建所需的信息。';
 });
+
+const handleSelect = (fieldKey, candidate, index) => {
+  selectedCandidates.value = {
+    ...selectedCandidates.value,
+    [fieldKey]: candidate,
+  };
+  emit('select', { fieldKey, candidate, index });
+};
 </script>

@@ -28,4 +28,30 @@ describe('SlotQuestionCard', () => {
       [{ fieldKey: 'salespersonId', candidate: { value: 'sp-1', label: '张三', description: '深圳店' }, index: 0 }],
     ]);
   });
+
+  it('shows selected candidate summary locally after click', async () => {
+    const wrapper = mount(SlotQuestionCard, {
+      props: {
+        action: {
+          missingSlots: ['salespersonId'],
+          fields: [
+            {
+              key: 'salespersonId',
+              label: '销售员',
+              candidates: [
+                { value: 'sp-1', label: '张三', description: '深圳店' },
+                { value: 'sp-2', label: '李四', description: '广州店' },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    await wrapper.find('[data-testid="candidate-option-1"]').trigger('click');
+
+    expect(wrapper.text()).toContain('已选择');
+    expect(wrapper.text()).toContain('李四');
+    expect(wrapper.text()).toContain('广州店');
+  });
 });
