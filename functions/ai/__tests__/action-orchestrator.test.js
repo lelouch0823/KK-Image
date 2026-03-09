@@ -338,4 +338,44 @@ describe('AIActionOrchestrator', () => {
       })
     );
   });
+
+  it('runs slot resolvers in dependency-safe order so variantId can depend on resolved productId', async () => {
+    const resolverCalls = [];
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {
+        order: {
+          productId: vi.fn(async (_rawValue, slots) => {
+            resolverCalls.push(`product:${slots.productName}`);
+            return 'prod-1';
+          }),
+          variantId: vi.fn(async (_rawValue, slots) => {
+            resolverCalls.push(`variant:${slots.productId}`);
+            return slots.productId === 'prod-1' ? 'var-1' : '';
+          }),
+        },
+      },
+      extractActionSlots: () => ({
+        productName: '跑鞋',
+        salespersonId: 'sp-1',
+        quantity: 1,
+      }),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '创建订单 跑鞋',
+    });
+
+    expect(result.kind).toBe('action_preview');
+    expect(result.payload.summary).toEqual(
+      expect.objectContaining({
+        productId: 'prod-1',
+        variantId: 'var-1',
+      })
+    );
+    expect(resolverCalls).toEqual(['product:跑鞋', 'variant:prod-1']);
+  });
 });
