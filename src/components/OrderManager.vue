@@ -228,6 +228,7 @@ import { onMounted, onUnmounted, onActivated, watch, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
 import { useNotifications } from '@/composables/useNotifications';
+import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import { useI18n } from '@/composables/useI18n';
 import { useAI } from '@/composables/useAI';
 import { useOrderFilters } from '@/composables/order/useOrderFilters';
@@ -278,8 +279,9 @@ const route = useRoute();
 const router = useRouter();
 const { setContext } = useAI();
 
-// SOTA: Auto-refresh on notification
-const { lastNotificationTime } = useNotifications();
+useNotifications();
+const { subscribeModule } = useAppRefreshBus();
+let stopOrdersRefreshSubscription = null;
 
 // Initialize Composables
 const {
@@ -366,14 +368,6 @@ const mobileInfiniteScroll = useInfiniteScroll(async () => {
 const onEditSubmit = (payload) => handleEditSubmit(payload, pagination.page);
 const onBatchAction = (action) => handleBatchAction(action, pagination.page);
 
-// Watch for notifications to auto-refresh
-watch(lastNotificationTime, () => {
-  // Only refresh if not editing or viewing detail to avoid disruption
-  if (!showEditModal.value && !showDetailModal.value && !showCreateModal.value) {
-    refreshOrders();
-  }
-});
-
 // SOTA: 监听路由 query 中 salesperson 参数变化，响应从销售管理跳转过来的筛选
 watch(
   () => route.query.salesperson,
@@ -427,6 +421,12 @@ watch([showDetailModal, viewingOrder], ([isOpen, order]) => {
 
 // Lifecycle
 onMounted(() => {
+  stopOrdersRefreshSubscription = subscribeModule('orders', () => {
+    if (!showEditModal.value && !showDetailModal.value && !showCreateModal.value) {
+      refreshOrders();
+    }
+  });
+
   // 从 URL 参数读取销售筛选 (从销售管理页面跳转过来)
   const salespersonParam = route.query.salesperson;
   if (salespersonParam) {
@@ -467,5 +467,7 @@ const handleStatusChange = async (order, { status, note, force }) => {
 onUnmounted(() => {
   // 清理局部 UI 状态
   Object.keys(statusChanging).forEach(key => delete statusChanging[key]);
+  stopOrdersRefreshSubscription?.();
+  stopOrdersRefreshSubscription = null;
 });
 </script>

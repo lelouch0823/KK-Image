@@ -162,6 +162,7 @@ import { usePushNotification } from '@/composables/usePushNotification';
 import { useOrders } from '@/composables/useOrders';
 import { useSalesOrderStateMachine } from '@/composables/sales/useSalesOrderStateMachine';
 import { useNotifications } from '@/composables/useNotifications';
+import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import OrderLogin from '@/components/order/OrderLogin.vue';
 import SalesNotificationList from '@/components/order/SalesNotificationList.vue';
 import AppErrorBoundary from '@/components/common/AppErrorBoundary.vue';
@@ -190,11 +191,12 @@ const { t } = useI18n();
 const { requestPermission, showOrderFeedbackNotification } = usePushNotification();
 const {
   unreadCount: notificationUnreadCount,
-  lastNotificationTime,
   setSalesMode,
   startPolling: startNotificationPolling,
   stopPolling: stopNotificationPolling,
 } = useNotifications();
+const { subscribeModule } = useAppRefreshBus();
+let stopSalesOrdersRefreshSubscription = null;
 
 const accessToken = computed(() => route.params.token);
 
@@ -287,23 +289,6 @@ const handleBoundaryRecover = async () => {
   await salesOrderStateMachine.retry('loadOrders');
 };
 
-// Auto-refresh logic (Centralized)
-watch(lastNotificationTime, async () => {
-  if (isAuthenticated.value && isListPage.value) {
-    const prevFeedbackIds = new Set(orders.value.filter((o) => o.hasNewFeedback).map((o) => o.id));
-    await salesOrderStateMachine.loadOrders();
-    
-    // Check for NEW feedback
-    orders.value.forEach((order) => {
-      if (order.hasNewFeedback && !prevFeedbackIds.has(order.id)) {
-        showOrderFeedbackNotification(order, () => {
-           router.push(`/sales/${accessToken.value}/detail/${order.id}`);
-        });
-      }
-    });
-  }
-});
-
 // Auth & Init
 const checkAuth = async () => {
   if (!accessToken.value) {
@@ -339,6 +324,21 @@ watch(accessToken, () => {
 });
 
 onMounted(async () => {
+  stopSalesOrdersRefreshSubscription = subscribeModule('salesOrders', async () => {
+    if (isAuthenticated.value && isListPage.value) {
+      const prevFeedbackIds = new Set(orders.value.filter((o) => o.hasNewFeedback).map((o) => o.id));
+      await salesOrderStateMachine.loadOrders();
+
+      orders.value.forEach((order) => {
+        if (order.hasNewFeedback && !prevFeedbackIds.has(order.id)) {
+          showOrderFeedbackNotification(order, () => {
+            router.push(`/sales/${accessToken.value}/detail/${order.id}`);
+          });
+        }
+      });
+    }
+  });
+
   await checkAuth();
   if (isAuthenticated.value) {
     requestPermission();
@@ -349,5 +349,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   stopNotificationPolling();
+  stopSalesOrdersRefreshSubscription?.();
+  stopSalesOrdersRefreshSubscription = null;
 });
 </script>

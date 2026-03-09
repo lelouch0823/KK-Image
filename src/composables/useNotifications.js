@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import { API } from '@/utils/constants';
 import { useAuth } from '@/composables/useAuth';
+import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 
 // Global state to share across components (e.g. Header and List)
 const notifications = ref([]);
@@ -22,6 +23,7 @@ let salesToken = null;
  */
 export function useNotifications() {
   const { authFetch } = useAuth();
+  const { publishRefresh } = useAppRefreshBus();
 
   /**
    * 设置销售端模式
@@ -81,6 +83,10 @@ export function useNotifications() {
         // SOTA: 如果未读数量增加，说明有新消息，触发刷新信号
         if (newUnreadCount > unreadCount.value) {
           lastNotificationTime.value = Date.now();
+          publishRefresh({
+            module: currentMode === 'sales' ? 'salesOrders' : 'orders',
+            reason: 'notification',
+          });
         }
 
         notifications.value = result.data.list;
