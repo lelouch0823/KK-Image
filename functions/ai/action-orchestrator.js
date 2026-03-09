@@ -17,6 +17,10 @@ function buildSessionId() {
   return `act-${Date.now()}`;
 }
 
+function isCandidateResult(value) {
+  return value && typeof value === 'object' && value.kind === 'candidates' && Array.isArray(value.candidates);
+}
+
 export class AIActionOrchestrator {
   constructor({ sessionStore, getActionAdapter, submitters = {}, slotResolvers = {}, extractActionSlots = () => ({}) }) {
     this.sessionStore = sessionStore;
@@ -63,8 +67,8 @@ export class AIActionOrchestrator {
           sessionId,
           entityType: adapter.entityType,
           missingSlots,
-          prompt: this.#buildPrompt(adapter, missingSlots),
-          fields: this.#buildFieldMeta(adapter, missingSlots),
+          prompt: this.#buildPrompt(adapter, missingSlots, mergedSlots),
+          fields: this.#buildFieldMeta(adapter, missingSlots, mergedSlots),
         },
       };
     }
@@ -98,6 +102,7 @@ export class AIActionOrchestrator {
       const extractedSlots = this.extractActionSlots(adapter.entityType, text);
       const nextSlots = { ...slots, ...extractedSlots };
       const normalizedText = String(text || '').trim();
+      this.#applyCandidateChoiceFromText(nextSlots, normalizedText);
       const missingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(nextSlots[slot]));
 
       if (normalizedText && missingSlots.length > 0 && Object.keys(extractedSlots || {}).length === 0) {
@@ -119,8 +124,8 @@ export class AIActionOrchestrator {
             sessionId: session.id,
             entityType: session.entity_type,
             missingSlots: nextMissingSlots,
-            prompt: this.#buildPrompt(adapter, nextMissingSlots),
-            fields: this.#buildFieldMeta(adapter, nextMissingSlots),
+            prompt: this.#buildPrompt(adapter, nextMissingSlots, nextSlots),
+            fields: this.#buildFieldMeta(adapter, nextMissingSlots, nextSlots),
           },
         };
       }
@@ -178,16 +183,17 @@ export class AIActionOrchestrator {
     };
   }
 
-  #buildPrompt(adapter, missingSlots = []) {
-    const labels = this.#buildFieldMeta(adapter, missingSlots).map((item) => item.label);
+  #buildPrompt(adapter, missingSlots = [], slots = {}) {
+    const labels = this.#buildFieldMeta(adapter, missingSlots, slots).map((item) => item.label);
     return labels.length > 0 ? `还需要补充：${labels.join('、')}` : '请继续补充创建所需的信息。';
   }
 
-  #buildFieldMeta(adapter, missingSlots = []) {
+  #buildFieldMeta(adapter, missingSlots = [], slots = {}) {
     return missingSlots.map((slot) => ({
       key: slot,
       label: adapter.fieldLabels?.[slot] || slot,
       type: Array.isArray(adapter.requiredSlots) && adapter.requiredSlots.includes(slot) ? 'required' : 'optional',
+      candidates: this.#getCandidateChoicesForField(slots, slot),
     }));
   }
 
@@ -211,9 +217,61 @@ export class AIActionOrchestrator {
     ]);
 
     for (const slotName of slotNames) {
-      slots[slotName] = await this.#resolveSlotValue(entityType, slotName, slots[slotName], slots);
+      const resolvedValue = await this.#resolveSlotValue(entityType, slotName, slots[slotName], slots);
+      if (isCandidateResult(resolvedValue)) {
+        if (!slots.__candidateChoices || typeof slots.__candidateChoices !== 'object') {
+          slots.__candidateChoices = {};
+        }
+        slots.__candidateChoices[slotName] = resolvedValue.candidates;
+        slots[slotName] = '';
+        continue;
+      }
+      if (slots.__candidateChoices && Object.prototype.hasOwnProperty.call(slots.__candidateChoices, slotName)) {
+        delete slots.__candidateChoices[slotName];
+      }
+      slots[slotName] = resolvedValue;
     }
 
     return slots;
+  }
+
+  #applyCandidateChoiceFromText(slots = {}, text = '') {
+    const pending = slots.__candidateChoices;
+    if (!pending || typeof pending !== 'object') return;
+    const normalizedText = String(text || '').trim();
+    if (!normalizedText) return;
+
+    const entries = Object.entries(pending);
+    if (entries.length !== 1) return;
+
+    const [slotName, candidates] = entries[0];
+    if (!Array.isArray(candidates) || candidates.length === 0) return;
+
+    let matched = null;
+    const numeric = Number.parseInt(normalizedText, 10);
+    if (Number.isFinite(numeric) && numeric >= 1 && numeric <= candidates.length) {
+      matched = candidates[numeric - 1];
+    } else {
+      const comparable = normalizedText.toLowerCase();
+      matched = candidates.find((candidate) => {
+        const label = String(candidate?.label || '').toLowerCase();
+        const value = String(candidate?.value || '').toLowerCase();
+        return comparable === label || comparable === value;
+      }) || null;
+    }
+
+    if (!matched) return;
+
+    slots[slotName] = matched.value;
+    delete slots.__candidateChoices[slotName];
+    if (Object.keys(slots.__candidateChoices).length === 0) {
+      delete slots.__candidateChoices;
+    }
+  }
+
+  #getCandidateChoicesForField(slots = {}, slotName) {
+    const pending = slots.__candidateChoices;
+    if (!pending || typeof pending !== 'object') return undefined;
+    return Array.isArray(pending[slotName]) ? pending[slotName] : undefined;
   }
 }

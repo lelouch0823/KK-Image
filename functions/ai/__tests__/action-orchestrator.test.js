@@ -378,4 +378,84 @@ describe('AIActionOrchestrator', () => {
     );
     expect(resolverCalls).toEqual(['product:跑鞋', 'variant:prod-1']);
   });
+
+  it('returns candidate choices in slot_request when a resolver is ambiguous', async () => {
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {
+        order: {
+          salespersonId: vi.fn(async () => ({
+            kind: 'candidates',
+            candidates: [
+              { value: 'sp-1', label: '张三', description: '深圳店' },
+              { value: 'sp-2', label: '张三', description: '广州店' },
+            ],
+          })),
+        },
+      },
+      extractActionSlots: () => ({
+        productName: '跑鞋',
+        salespersonId: '张三',
+      }),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '给张三创建订单，商品名 跑鞋',
+    });
+
+    expect(result.kind).toBe('slot_request');
+    expect(result.payload.fields).toEqual([
+      expect.objectContaining({
+        key: 'salespersonId',
+        candidates: [
+          expect.objectContaining({ value: 'sp-1' }),
+          expect.objectContaining({ value: 'sp-2' }),
+        ],
+      }),
+    ]);
+  });
+
+  it('accepts a numeric candidate choice in the next collecting turn', async () => {
+    sessionStore.getLatestActiveSession.mockResolvedValueOnce({
+      id: 'act-4',
+      user_id: 'user-1',
+      action_type: 'create_order',
+      entity_type: 'order',
+      status: 'collecting',
+      slots_json: JSON.stringify({
+        productName: '跑鞋',
+        __candidateChoices: {
+          salespersonId: [
+            { value: 'sp-1', label: '张三', description: '深圳店' },
+            { value: 'sp-2', label: '张三', description: '广州店' },
+          ],
+        },
+      }),
+      preview_json: null,
+    });
+
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {},
+      extractActionSlots: () => ({}),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '1',
+      confirmation: false,
+    });
+
+    expect(result.kind).toBe('action_preview');
+    expect(result.payload.summary).toEqual(
+      expect.objectContaining({
+        salespersonId: 'sp-1',
+      })
+    );
+  });
 });

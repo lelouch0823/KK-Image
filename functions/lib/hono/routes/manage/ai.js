@@ -26,6 +26,7 @@ import { createActionSubmitters } from '../../../../ai/action-submitters.js';
 import { getActionAdapter } from '../../../../ai/action-registry.js';
 import { extractActionSlots } from '../../../../ai/slot-extraction.js';
 import {
+    resolveSalespersonSlot,
     resolveOrderProductSlot,
     resolveOrderVariantSlot,
     resolvePurchaseOrderItemsSlot,
@@ -302,13 +303,7 @@ function createActionOrchestrator(c, env, user = null) {
         }),
         slotResolvers: {
             order: {
-                salespersonId: async (rawValue) => {
-                    const search = String(rawValue || '').trim();
-                    if (!search) return rawValue;
-                    const { results } = await salespersonRepo.list({ page: 1, limit: 10, search });
-                    if (!Array.isArray(results) || results.length !== 1) return rawValue;
-                    return results[0]?.id || rawValue;
-                },
+                salespersonId: async (rawValue, slots) => resolveSalespersonSlot(rawValue, slots, { salespersonRepo }),
                 productId: async (rawValue, slots) => resolveOrderProductSlot(rawValue, slots, { productRepo }),
                 variantId: async (rawValue, slots) => resolveOrderVariantSlot(rawValue, slots, { variantRepo }),
             },
