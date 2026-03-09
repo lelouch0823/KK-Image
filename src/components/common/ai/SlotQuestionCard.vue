@@ -23,8 +23,11 @@
             v-for="(candidate, index) in field.candidates"
             :key="candidate.value || index"
             :data-testid="`candidate-option-${index}`"
+            :data-selected="selectedCandidates[field.key]?.value === candidate.value ? 'true' : 'false'"
+            :disabled="Boolean(selectedCandidates[field.key])"
             type="button"
-            class="hover:bg-primary/5 block w-full rounded-lg bg-(--bg-card) px-3 py-2 text-left transition-colors"
+            class="hover:bg-primary/5 block w-full rounded-lg bg-(--bg-card) px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            :class="selectedCandidates[field.key]?.value === candidate.value ? 'ring-primary/30 bg-primary/5 ring-2' : ''"
             @click="handleSelect(field.key, candidate, index)"
           >
             <p class="text-sm text-(--text-main)">{{ index + 1 }}. {{ candidate.label || candidate.value }}</p>
@@ -73,6 +76,7 @@ const promptText = computed(() => {
 });
 
 const handleSelect = (fieldKey, candidate, index) => {
+  if (selectedCandidates.value[fieldKey]) return;
   selectedCandidates.value = {
     ...selectedCandidates.value,
     [fieldKey]: candidate,

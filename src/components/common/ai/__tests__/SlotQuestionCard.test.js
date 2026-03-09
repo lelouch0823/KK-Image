@@ -54,4 +54,37 @@ describe('SlotQuestionCard', () => {
     expect(wrapper.text()).toContain('李四');
     expect(wrapper.text()).toContain('广州店');
   });
+
+  it('marks the selected candidate button as active and disables further clicks', async () => {
+    const wrapper = mount(SlotQuestionCard, {
+      props: {
+        action: {
+          missingSlots: ['salespersonId'],
+          fields: [
+            {
+              key: 'salespersonId',
+              label: '销售员',
+              candidates: [
+                { value: 'sp-1', label: '张三', description: '深圳店' },
+                { value: 'sp-2', label: '李四', description: '广州店' },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    const first = wrapper.find('[data-testid="candidate-option-0"]');
+    const second = wrapper.find('[data-testid="candidate-option-1"]');
+
+    await first.trigger('click');
+
+    expect(first.attributes('data-selected')).toBe('true');
+    expect(first.attributes('disabled')).toBeDefined();
+    expect(second.attributes('disabled')).toBeDefined();
+
+    await second.trigger('click');
+
+    expect(wrapper.emitted('select')).toHaveLength(1);
+  });
 });
