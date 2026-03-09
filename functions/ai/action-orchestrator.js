@@ -27,7 +27,7 @@ export class AIActionOrchestrator {
   async advance({ userId, text = '', slots = {}, confirmation = false }) {
     const activeSession = await this.sessionStore.getLatestActiveSession(userId);
     if (activeSession) {
-      return this.#resumeSession({ session: activeSession, confirmation });
+      return this.#resumeSession({ session: activeSession, text, confirmation });
     }
 
     const intent = detectCreateIntent(text);
@@ -81,19 +81,62 @@ export class AIActionOrchestrator {
     };
   }
 
-  async #resumeSession({ session, confirmation }) {
-    if (!confirmation || session.status !== 'awaiting_confirmation') {
-      return null;
-    }
-
-    const slots = parseJsonObject(session.slots_json, {});
-    const submitter = this.submitters[session.action_type];
-    if (typeof submitter !== 'function') {
-      throw new Error(`Missing submitter for ${session.action_type}`);
-    }
+  async #resumeSession({ session, text, confirmation }) {
     const adapter = this.getActionAdapter(session.entity_type);
     if (!adapter) {
       throw new Error(`Missing action adapter for ${session.entity_type}`);
+    }
+    const slots = parseJsonObject(session.slots_json, {});
+
+    if (session.status === 'collecting' && !confirmation) {
+      const nextSlots = { ...slots };
+      const normalizedText = String(text || '').trim();
+      const missingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(nextSlots[slot]));
+
+      if (normalizedText && missingSlots.length > 0) {
+        nextSlots[missingSlots[0]] = normalizedText;
+      }
+
+      const nextMissingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(nextSlots[slot]));
+      if (nextMissingSlots.length > 0) {
+        await this.sessionStore.updateSession(session.id, {
+          status: 'collecting',
+          slots: nextSlots,
+        });
+        return {
+          kind: 'slot_request',
+          payload: {
+            sessionId: session.id,
+            entityType: session.entity_type,
+            missingSlots: nextMissingSlots,
+          },
+        };
+      }
+
+      const preview = this.#buildPreview(adapter, nextSlots);
+      await this.sessionStore.updateSession(session.id, {
+        status: 'awaiting_confirmation',
+        slots: nextSlots,
+        preview,
+      });
+
+      return {
+        kind: 'action_preview',
+        payload: {
+          sessionId: session.id,
+          entityType: adapter.entityType,
+          title: preview.title,
+          summary: preview.summary,
+        },
+      };
+    }
+
+    if (!confirmation || session.status !== 'awaiting_confirmation') {
+      return null;
+    }
+    const submitter = this.submitters[session.action_type];
+    if (typeof submitter !== 'function') {
+      throw new Error(`Missing submitter for ${session.action_type}`);
     }
 
     const created = await submitter(slots);

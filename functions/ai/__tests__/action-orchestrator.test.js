@@ -82,4 +82,25 @@ describe('AIActionOrchestrator', () => {
     );
     expect(result.payload.targetModule).toBe('customers');
   });
+
+  it('collects the next missing slot from a follow-up user reply', async () => {
+    sessionStore.getLatestActiveSession.mockResolvedValueOnce({
+      id: 'act-2',
+      user_id: 'user-1',
+      action_type: 'create_customer',
+      entity_type: 'customer',
+      status: 'collecting',
+      slots_json: JSON.stringify({}),
+      preview_json: null,
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: 'Alice',
+      confirmation: false,
+    });
+
+    expect(result.kind).toBe('action_preview');
+    expect(result.payload.summary).toEqual(expect.objectContaining({ name: 'Alice' }));
+  });
 });
