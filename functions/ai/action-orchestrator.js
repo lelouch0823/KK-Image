@@ -18,10 +18,11 @@ function buildSessionId() {
 }
 
 export class AIActionOrchestrator {
-  constructor({ sessionStore, getActionAdapter, submitters = {} }) {
+  constructor({ sessionStore, getActionAdapter, submitters = {}, slotResolvers = {} }) {
     this.sessionStore = sessionStore;
     this.getActionAdapter = getActionAdapter;
     this.submitters = submitters;
+    this.slotResolvers = slotResolvers;
   }
 
   async advance({ userId, text = '', slots = {}, confirmation = false }) {
@@ -94,7 +95,8 @@ export class AIActionOrchestrator {
       const missingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(nextSlots[slot]));
 
       if (normalizedText && missingSlots.length > 0) {
-        nextSlots[missingSlots[0]] = normalizedText;
+        const targetSlot = missingSlots[0];
+        nextSlots[targetSlot] = await this.#resolveSlotValue(adapter.entityType, targetSlot, normalizedText);
       }
 
       const nextMissingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(nextSlots[slot]));
@@ -169,5 +171,12 @@ export class AIActionOrchestrator {
   #hasValue(value) {
     if (Array.isArray(value)) return value.length > 0;
     return value !== undefined && value !== null && String(value).trim() !== '';
+  }
+
+  async #resolveSlotValue(entityType, slotName, rawValue) {
+    const resolverGroup = this.slotResolvers?.[entityType];
+    const resolver = resolverGroup?.[slotName];
+    if (typeof resolver !== 'function') return rawValue;
+    return resolver(rawValue);
   }
 }

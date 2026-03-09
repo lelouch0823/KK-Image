@@ -30,6 +30,7 @@ describe('AIActionOrchestrator', () => {
       sessionStore,
       getActionAdapter,
       submitters,
+      slotResolvers: {},
     });
   });
 
@@ -102,5 +103,42 @@ describe('AIActionOrchestrator', () => {
 
     expect(result.kind).toBe('action_preview');
     expect(result.payload.summary).toEqual(expect.objectContaining({ name: 'Alice' }));
+  });
+
+  it('resolves collected slot values before preview when a slot resolver is configured', async () => {
+    sessionStore.getLatestActiveSession.mockResolvedValueOnce({
+      id: 'act-3',
+      user_id: 'user-1',
+      action_type: 'create_order',
+      entity_type: 'order',
+      status: 'collecting',
+      slots_json: JSON.stringify({ productName: 'Classic Runner' }),
+      preview_json: null,
+    });
+
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {
+        order: {
+          salespersonId: vi.fn(async (rawValue) => rawValue === '张三' ? 'sp-1' : rawValue),
+        },
+      },
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '张三',
+      confirmation: false,
+    });
+
+    expect(result.kind).toBe('action_preview');
+    expect(result.payload.summary).toEqual(
+      expect.objectContaining({
+        productName: 'Classic Runner',
+        salespersonId: 'sp-1',
+      })
+    );
   });
 });

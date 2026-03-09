@@ -262,6 +262,17 @@ function createActionOrchestrator(c, env, user = null) {
                 create: (payload) => createManagedProduct(c, payload),
             },
         }),
+        slotResolvers: {
+            order: {
+                salespersonId: async (rawValue) => {
+                    const search = String(rawValue || '').trim();
+                    if (!search) return rawValue;
+                    const { results } = await salespersonRepo.list({ page: 1, limit: 10, search });
+                    if (!Array.isArray(results) || results.length !== 1) return rawValue;
+                    return results[0]?.id || rawValue;
+                },
+            },
+        },
     });
 }
 
