@@ -48,7 +48,8 @@ export async function executeAITool(name, args, repos) {
         variantRepo,
         customerRepo,
         goodsOverviewRepo,
-        purchaseOrderRepo
+        purchaseOrderRepo,
+        purchaseOrderService
     } = repos;
 
     try {
@@ -230,6 +231,24 @@ export async function executeAITool(name, args, repos) {
                 const dt = await customerRepo.findById(args.id);
                 return dt || { error: true, message: 'Customer not found' };
             }
+            case 'getCustomerOrders': {
+                if (!args.customerId) return { error: true, message: 'Missing customer ID' };
+                const limit = parseLimit(args.limit, 10, 20);
+                const res = await orderRepo.listForAdmin({
+                    customerId: args.customerId,
+                    limit,
+                    page: 1,
+                });
+                return withPagingMeta({
+                    items: res.items || [],
+                    total: res.total,
+                    limit,
+                    page: 1,
+                    scope: {
+                        customerId: args.customerId,
+                    },
+                });
+            }
 
             // --- 订货总览 (Goods Overview) ---
             case 'getGoodsOverviewSummary': {
@@ -287,6 +306,19 @@ export async function executeAITool(name, args, repos) {
                     return { error: true, message: 'Purchase stats is unavailable' };
                 }
                 return await purchaseOrderRepo.getStats();
+            }
+            case 'getPurchaseSuggestions': {
+                if (!purchaseOrderService?.getSuggestions) {
+                    return { error: true, message: 'Purchase suggestions is unavailable' };
+                }
+                const items = await purchaseOrderService.getSuggestions();
+                return withPagingMeta({
+                    items,
+                    total: Array.isArray(items) ? items.length : 0,
+                    limit: Array.isArray(items) ? items.length : 0,
+                    page: 1,
+                    scope: {},
+                });
             }
 
             default:
