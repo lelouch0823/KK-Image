@@ -71,6 +71,19 @@
             :is-generating-report="isGeneratingReport"
             @generate-report="generateReport"
           />
+          <SlotQuestionCard
+            v-if="actionCard?.type === 'slot_request'"
+            :action="actionCard"
+          />
+          <ActionPreviewCard
+            v-else-if="actionCard?.type === 'action_preview'"
+            :action="actionCard"
+            @confirm="confirmAction"
+          />
+          <ActionResultCard
+            v-else-if="actionCard?.type === 'action_result'"
+            :action="actionCard"
+          />
         </div>
 
         <!-- Input Area -->
@@ -173,6 +186,9 @@ import { useToast } from '@/composables/useToast';
 import { useRequestAdapters } from '@/composables/useRequestAdapters';
 import { throttle } from '@/utils/performance';
 import { inferCurrentView, inferAIEntityContext } from '@/components/common/ai/context-inference';
+import SlotQuestionCard from '@/components/common/ai/SlotQuestionCard.vue';
+import ActionPreviewCard from '@/components/common/ai/ActionPreviewCard.vue';
+import ActionResultCard from '@/components/common/ai/ActionResultCard.vue';
 
 const { isOpen, close, context, setContext } = useAI();
 const { t } = useI18n();
@@ -417,6 +433,7 @@ const {
   isLoading: isStreamingLoading,
   isStreaming: isAIStreaming,
   toolStatus,
+  actionCard,
 } = useAIStream();
 
 const isGeneratingReport = ref(false);
@@ -507,6 +524,12 @@ const clearHistory = () => {
   if (confirm(t('ai.clearConfirm'))) {
     messages.value = [createWelcomeMessage()];
   }
+};
+
+const confirmAction = async () => {
+  if (isStreamingLoading.value || isAIStreaming.value) return;
+  userInput.value = '确认';
+  await sendMessage();
 };
 
 const sendMessage = async () => {

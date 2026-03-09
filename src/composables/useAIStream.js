@@ -5,6 +5,7 @@ import { useSmoothTypewriter } from '@/composables/useSmoothTypewriter';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useRequestAdapters } from '@/composables/useRequestAdapters';
+import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 
 /* global TextDecoder */
 
@@ -92,14 +93,43 @@ export function classifyAIStreamError(rawMessage = '') {
     };
 }
 
+export function reduceAIStreamEvent(event, state, { publishRefresh } = {}) {
+    if (!event || typeof event !== 'object') return false;
+
+    if (event.type === 'slot_request' || event.type === 'action_preview') {
+        state.actionCard = {
+            type: event.type,
+            ...(event.data || {}),
+        };
+        return true;
+    }
+
+    if (event.type === 'action_submitted') {
+        state.actionCard = {
+            type: 'action_result',
+            ...(event.data || {}),
+        };
+        return true;
+    }
+
+    if (event.type === 'module_refresh') {
+        publishRefresh?.(event.data || {});
+        return true;
+    }
+
+    return false;
+}
+
 export function useAIStream() {
     const { t } = useI18n();
     const { addToast } = useToast();
     const { requestAuth } = useRequestAdapters();
+    const { publishRefresh } = useAppRefreshBus();
 
     const isLoading = ref(false);
     const isStreaming = ref(false);
     const toolStatus = ref('');
+    const actionCard = ref(null);
 
     // 请求取消控制器
     let abortController = null;
@@ -136,6 +166,7 @@ export function useAIStream() {
         isLoading.value = true;
         isStreaming.value = false;
         toolStatus.value = '';
+        actionCard.value = null;
         resetTypewriter();
 
         try {
@@ -162,6 +193,17 @@ export function useAIStream() {
                 const parsedEvents = parser.feed(chunk);
 
                 for (const event of parsedEvents) {
+                    const handledActionEvent = reduceAIStreamEvent(event, { actionCard: actionCard.value }, { publishRefresh });
+                    if (handledActionEvent) {
+                        if (event.type !== 'module_refresh') {
+                            actionCard.value = {
+                                type: event.type === 'action_submitted' ? 'action_result' : event.type,
+                                ...(event.data || {}),
+                            };
+                        }
+                        continue;
+                    }
+
                     if (event.type === 'text_delta' && event.data?.content) {
                         const cleaned = sanitizer.push(event.data.content);
                         if (cleaned) {
@@ -265,6 +307,7 @@ export function useAIStream() {
         isStreaming,
         isThinking,
         toolStatus,
+        actionCard,
         resetStream: resetTypewriter
     };
 }

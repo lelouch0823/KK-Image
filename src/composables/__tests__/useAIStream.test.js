@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { createStreamSanitizer, classifyAIStreamError } from '../useAIStream.js';
+import { describe, it, expect, vi } from 'vitest';
+import { createStreamSanitizer, classifyAIStreamError, reduceAIStreamEvent } from '../useAIStream.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { cwd } from 'node:process';
@@ -56,5 +56,31 @@ describe('request path guard', () => {
     expect(source).toContain('useRequestAdapters');
     expect(source).not.toContain('const { authFetch } = useAuth()');
     expect(source).not.toContain('authFetch(API_URLS.AI.STREAM');
+  });
+});
+
+describe('reduceAIStreamEvent', () => {
+  it('stores structured action cards for slot requests and previews', () => {
+    const state = { actionCard: null };
+    const publishRefresh = () => {
+      throw new Error('should not publish refresh for slot_request');
+    };
+
+    reduceAIStreamEvent({ type: 'slot_request', data: { sessionId: 'act-1', missingSlots: ['name'] } }, state, { publishRefresh });
+    expect(state.actionCard).toEqual(expect.objectContaining({ type: 'slot_request', sessionId: 'act-1' }));
+
+    reduceAIStreamEvent({ type: 'action_preview', data: { sessionId: 'act-1', title: '预览' } }, state, { publishRefresh });
+    expect(state.actionCard).toEqual(expect.objectContaining({ type: 'action_preview', title: '预览' }));
+  });
+
+  it('publishes module refresh events through the refresh bus', () => {
+    const state = { actionCard: null };
+    const publishRefresh = vi.fn();
+
+    reduceAIStreamEvent({ type: 'module_refresh', data: { module: 'orders', reason: 'ai_created' } }, state, { publishRefresh });
+
+    expect(publishRefresh).toHaveBeenCalledWith(
+      expect.objectContaining({ module: 'orders', reason: 'ai_created' })
+    );
   });
 });
