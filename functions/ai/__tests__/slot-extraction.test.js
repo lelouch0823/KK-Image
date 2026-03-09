@@ -40,6 +40,19 @@ describe('extractActionSlots', () => {
     );
   });
 
+  it('extracts order color and size hints from natural language', () => {
+    const result = extractActionSlots('order', '帮我创建订单，商品名 跑鞋，黑色，42码，给张三 2件');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        productName: '跑鞋',
+        color: '黑色',
+        size: '42',
+        quantity: 2,
+      })
+    );
+  });
+
   it('extracts purchase-order from-orders mode and order ids', () => {
     const result = extractActionSlots('purchase_order', '从订单 ord-1, ord-2 创建采购单，备注 补货');
 
@@ -48,6 +61,24 @@ describe('extractActionSlots', () => {
         mode: 'from_orders',
         order_ids: ['ord-1', 'ord-2'],
         remark: '补货',
+      })
+    );
+  });
+
+  it('extracts manual purchase-order item draft from natural language', () => {
+    const result = extractActionSlots('purchase_order', '创建采购单，跑鞋 黑色 42 补货 20件，单价 60，备注 急单');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        mode: 'manual',
+        items: [
+          expect.objectContaining({
+            variant_query: '跑鞋 黑色 42',
+            quantity: 20,
+            unit_cost: 60,
+          }),
+        ],
+        remark: '急单',
       })
     );
   });

@@ -40,6 +40,9 @@ export class AIActionOrchestrator {
 
     const extractedSlots = this.extractActionSlots(adapter.entityType, text);
     const mergedSlots = { ...extractedSlots, ...slots };
+    for (const [slotName, rawValue] of Object.entries(mergedSlots)) {
+      mergedSlots[slotName] = await this.#resolveSlotValue(adapter.entityType, slotName, rawValue, mergedSlots);
+    }
     const missingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(mergedSlots[slot]));
 
     const sessionId = buildSessionId();
@@ -102,11 +105,11 @@ export class AIActionOrchestrator {
 
       if (normalizedText && missingSlots.length > 0 && Object.keys(extractedSlots || {}).length === 0) {
         const targetSlot = missingSlots[0];
-        nextSlots[targetSlot] = await this.#resolveSlotValue(adapter.entityType, targetSlot, normalizedText);
+        nextSlots[targetSlot] = await this.#resolveSlotValue(adapter.entityType, targetSlot, normalizedText, nextSlots);
       }
 
       for (const [slotName, rawValue] of Object.entries(nextSlots)) {
-        nextSlots[slotName] = await this.#resolveSlotValue(adapter.entityType, slotName, rawValue);
+        nextSlots[slotName] = await this.#resolveSlotValue(adapter.entityType, slotName, rawValue, nextSlots);
       }
 
       const nextMissingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(nextSlots[slot]));
@@ -198,10 +201,10 @@ export class AIActionOrchestrator {
     return value !== undefined && value !== null && String(value).trim() !== '';
   }
 
-  async #resolveSlotValue(entityType, slotName, rawValue) {
+  async #resolveSlotValue(entityType, slotName, rawValue, slots = {}) {
     const resolverGroup = this.slotResolvers?.[entityType];
     const resolver = resolverGroup?.[slotName];
     if (typeof resolver !== 'function') return rawValue;
-    return resolver(rawValue);
+    return resolver(rawValue, slots);
   }
 }

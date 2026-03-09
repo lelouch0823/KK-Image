@@ -192,4 +192,78 @@ describe('AIActionOrchestrator', () => {
       })
     );
   });
+
+  it('resolves order variant from extracted color and size hints', async () => {
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {
+        order: {
+          variantId: vi.fn(async (_rawValue, slots) => {
+            if (slots.productId === 'prod-1' && slots.color === '黑色' && slots.size === '42') return 'var-42-black';
+            return _rawValue;
+          }),
+          productId: vi.fn(async (rawValue) => rawValue),
+        },
+      },
+      extractActionSlots: () => ({
+        productName: '跑鞋',
+        productId: 'prod-1',
+        salespersonId: 'sp-1',
+        color: '黑色',
+        size: '42',
+        quantity: 2,
+        variantId: '',
+      }),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '帮我创建订单，跑鞋 黑色 42码 给张三 2件',
+    });
+
+    expect(result.kind).toBe('action_preview');
+    expect(result.payload.summary).toEqual(
+      expect.objectContaining({
+        productId: 'prod-1',
+        variantId: 'var-42-black',
+      })
+    );
+  });
+
+  it('resolves manual purchase-order items from variant query', async () => {
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {
+        purchase_order: {
+          items: vi.fn(async (items) => items.map((item) => ({
+            ...item,
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+          }))),
+        },
+      },
+      extractActionSlots: () => ({
+        mode: 'manual',
+        items: [{ variant_query: '跑鞋 黑色 42', quantity: 20, unit_cost: 60 }],
+      }),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '创建采购单，跑鞋 黑色 42 补货 20件 单价60',
+    });
+
+    expect(result.kind).toBe('action_preview');
+    expect(result.payload.summary.items).toEqual([
+      expect.objectContaining({
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        quantity: 20,
+      }),
+    ]);
+  });
 });
