@@ -266,4 +266,41 @@ describe('AIActionOrchestrator', () => {
       }),
     ]);
   });
+
+  it('resolves productId and variantId for orders without page context when resolvers can uniquely match', async () => {
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {
+        order: {
+          productId: vi.fn(async (_rawValue, slots) => slots.productName === '跑鞋' ? 'prod-1' : _rawValue),
+          variantId: vi.fn(async (_rawValue, slots) => {
+            if (slots.productId === 'prod-1' && slots.color === '黑色' && slots.size === '42') return 'var-42-black';
+            return _rawValue;
+          }),
+        },
+      },
+      extractActionSlots: () => ({
+        productName: '跑鞋',
+        salespersonId: 'sp-1',
+        color: '黑色',
+        size: '42',
+        quantity: 2,
+      }),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '帮我创建订单，跑鞋 黑色 42码 给张三 2件',
+    });
+
+    expect(result.kind).toBe('action_preview');
+    expect(result.payload.summary).toEqual(
+      expect.objectContaining({
+        productId: 'prod-1',
+        variantId: 'var-42-black',
+      })
+    );
+  });
 });

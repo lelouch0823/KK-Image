@@ -39,10 +39,7 @@ export class AIActionOrchestrator {
     if (!adapter) return null;
 
     const extractedSlots = this.extractActionSlots(adapter.entityType, text);
-    const mergedSlots = { ...extractedSlots, ...slots };
-    for (const [slotName, rawValue] of Object.entries(mergedSlots)) {
-      mergedSlots[slotName] = await this.#resolveSlotValue(adapter.entityType, slotName, rawValue, mergedSlots);
-    }
+    const mergedSlots = await this.#applySlotResolvers(adapter.entityType, { ...extractedSlots, ...slots });
     const missingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(mergedSlots[slot]));
 
     const sessionId = buildSessionId();
@@ -108,9 +105,7 @@ export class AIActionOrchestrator {
         nextSlots[targetSlot] = await this.#resolveSlotValue(adapter.entityType, targetSlot, normalizedText, nextSlots);
       }
 
-      for (const [slotName, rawValue] of Object.entries(nextSlots)) {
-        nextSlots[slotName] = await this.#resolveSlotValue(adapter.entityType, slotName, rawValue, nextSlots);
-      }
+      await this.#applySlotResolvers(adapter.entityType, nextSlots);
 
       const nextMissingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(nextSlots[slot]));
       if (nextMissingSlots.length > 0) {
@@ -206,5 +201,19 @@ export class AIActionOrchestrator {
     const resolver = resolverGroup?.[slotName];
     if (typeof resolver !== 'function') return rawValue;
     return resolver(rawValue, slots);
+  }
+
+  async #applySlotResolvers(entityType, slots = {}) {
+    const resolverGroup = this.slotResolvers?.[entityType] || {};
+    const slotNames = new Set([
+      ...Object.keys(slots),
+      ...Object.keys(resolverGroup),
+    ]);
+
+    for (const slotName of slotNames) {
+      slots[slotName] = await this.#resolveSlotValue(entityType, slotName, slots[slotName], slots);
+    }
+
+    return slots;
   }
 }
