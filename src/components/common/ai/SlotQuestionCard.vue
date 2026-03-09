@@ -51,7 +51,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const emit = defineEmits(['select']);
 
@@ -83,4 +83,11 @@ const handleSelect = (fieldKey, candidate, index) => {
   };
   emit('select', { fieldKey, candidate, index });
 };
+
+watch(
+  () => props.action,
+  () => {
+    selectedCandidates.value = {};
+  }
+);
 </script>

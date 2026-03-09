@@ -87,4 +87,47 @@ describe('SlotQuestionCard', () => {
 
     expect(wrapper.emitted('select')).toHaveLength(1);
   });
+
+  it('clears local selected state when the action payload changes', async () => {
+    const wrapper = mount(SlotQuestionCard, {
+      props: {
+        action: {
+          sessionId: 'act-1',
+          missingSlots: ['salespersonId'],
+          fields: [
+            {
+              key: 'salespersonId',
+              label: '销售员',
+              candidates: [
+                { value: 'sp-1', label: '张三', description: '深圳店' },
+                { value: 'sp-2', label: '李四', description: '广州店' },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    await wrapper.find('[data-testid="candidate-option-0"]').trigger('click');
+    expect(wrapper.text()).toContain('已选择');
+
+    await wrapper.setProps({
+      action: {
+        sessionId: 'act-2',
+        missingSlots: ['productId'],
+        fields: [
+          {
+            key: 'productId',
+            label: '商品',
+            candidates: [
+              { value: 'prod-1', label: '跑鞋', description: 'SPU-1' },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(wrapper.text()).not.toContain('已选择');
+    expect(wrapper.find('[data-testid="candidate-option-0"]').attributes('data-selected')).toBe('false');
+  });
 });
