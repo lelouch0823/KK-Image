@@ -79,6 +79,37 @@ describe('AIActionOrchestrator', () => {
     expect(result.payload.summary).toEqual(expect.objectContaining({ name: 'Alice', phone: '13800000000' }));
   });
 
+  it('merges context-provided slots before evaluating missing fields', async () => {
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {},
+      extractActionSlots: () => ({ quantity: 2 }),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '创建订单 2 件',
+      slots: {
+        productName: 'Classic Runner',
+        productId: 'prod-1',
+        variantId: 'var-1',
+        salespersonId: 'sp-1',
+      },
+    });
+
+    expect(result.kind).toBe('action_preview');
+    expect(result.payload.summary).toEqual(
+      expect.objectContaining({
+        productId: 'prod-1',
+        variantId: 'var-1',
+        salespersonId: 'sp-1',
+        quantity: 2,
+      })
+    );
+  });
+
   it('submits only after explicit confirmation in awaiting_confirmation state', async () => {
     sessionStore.getLatestActiveSession.mockResolvedValueOnce({
       id: 'act-1',

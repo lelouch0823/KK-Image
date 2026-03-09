@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
 
-/* global ReadableStream */
-
 const { callAIStream, parseSSEChunk, advance } = vi.hoisted(() => ({
   callAIStream: vi.fn(),
   parseSSEChunk: vi.fn(),

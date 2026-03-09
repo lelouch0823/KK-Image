@@ -237,6 +237,36 @@ function detectExplicitConfirmation(text = '') {
     return /^(确认|确定|提交|创建吧|就这样|可以创建了)$/.test(normalized);
 }
 
+async function deriveContextActionSlots(context = {}, { productRepo, variantRepo }) {
+    const selectedId = String(context?.selectedId || '').trim();
+    const selectedType = String(context?.selectedType || '').trim();
+    if (!selectedId || !selectedType) return {};
+
+    if (selectedType === 'variant' && variantRepo?.findById) {
+        const variant = await variantRepo.findById(selectedId);
+        if (!variant) return {};
+        const product = variant.product_id && productRepo?.findById
+            ? await productRepo.findById(variant.product_id)
+            : null;
+        return {
+            productId: variant.product_id || null,
+            variantId: variant.id || selectedId,
+            productName: product?.name || '',
+        };
+    }
+
+    if (selectedType === 'product' && productRepo?.findById) {
+        const product = await productRepo.findById(selectedId);
+        if (!product) return {};
+        return {
+            productId: product.id,
+            productName: product.name || '',
+        };
+    }
+
+    return {};
+}
+
 function createActionOrchestrator(c, env, user = null) {
     const customerRepo = new CustomerRepository(env.DB);
     const purchaseOrderRepo = new PurchaseOrderRepository(env.DB);
@@ -352,10 +382,17 @@ app.post('/chat', async (c) => {
     console.info('[AI Chat][InputModalities]', JSON.stringify(inputSummary));
 
     const latestUserText = extractLatestUserText(history);
+    const actionProductRepo = new ProductRepository(env.DB);
+    const actionVariantRepo = new ProductVariantRepository(env.DB);
+    const contextSlots = await deriveContextActionSlots(clientContext, {
+        productRepo: actionProductRepo,
+        variantRepo: actionVariantRepo,
+    });
     const actionOrchestrator = createActionOrchestrator(c, env, c.get('user'));
     const actionResult = await actionOrchestrator.advance({
         userId: c.get('user')?.id || 'anonymous',
         text: latestUserText,
+        slots: contextSlots,
         confirmation: detectExplicitConfirmation(latestUserText),
     });
     if (actionResult) {
@@ -501,10 +538,17 @@ app.post('/stream', async (c) => {
     console.info('[AI Stream][InputModalities]', JSON.stringify(inputSummary));
 
     const latestUserText = extractLatestUserText(history);
+    const actionProductRepo = new ProductRepository(env.DB);
+    const actionVariantRepo = new ProductVariantRepository(env.DB);
+    const contextSlots = await deriveContextActionSlots(clientContext, {
+        productRepo: actionProductRepo,
+        variantRepo: actionVariantRepo,
+    });
     const actionOrchestrator = createActionOrchestrator(c, env, c.get('user'));
     const actionResult = await actionOrchestrator.advance({
         userId: c.get('user')?.id || 'anonymous',
         text: latestUserText,
+        slots: contextSlots,
         confirmation: detectExplicitConfirmation(latestUserText),
     });
 
