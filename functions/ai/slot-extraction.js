@@ -146,43 +146,36 @@ function extractPurchaseOrderSlots(text = '') {
   }
 
   if (slots.mode === 'manual') {
-    const quantity = firstNumber(text, [
-      /补货\s*(\d+)\s*(?:件|个|双|套|箱)/,
-      /数量\s*[:：=]?\s*(\d+)/,
-      /(\d+)\s*(?:件|个|双|套|箱)/,
-    ]);
-    const unitCost = firstNumber(text, [
-      /单价\s*[:：=]?\s*(\d+)/,
-      /成本\s*[:：=]?\s*(\d+)/,
-    ]);
+    const bodyText = String(text).split(/备注\s*[:：]?/)[0];
+    const normalizedBody = bodyText.replace(/^(创建(?:采购单|备货单|补货单)[，,\s]*)/, '').trim();
+    const segments = normalizedBody.split(/[;；]/).map((item) => item.trim()).filter(Boolean);
+    const items = [];
 
-    const variantQuery = firstMatch(text, [
-      /(?:采购单|备货单|补货单)[，,\s]*([A-Za-z0-9\u4e00-\u9fa5\s._/-]{2,60}?)(?=\s*(?:补货|采购|单价|备注|$))/,
-      /(?:商品名|产品名|名称)\s*[:：]?\s*([A-Za-z0-9\u4e00-\u9fa5\s._/-]{2,60}?)(?=\s*(?:补货|采购|单价|备注|$))/,
-    ]);
-    const color = firstMatch(text, [
-      /([黑白红蓝绿黄灰紫粉棕银金橙米卡藏青深蓝浅蓝]+色)/,
-      /颜色\s*[:：]?\s*([^\s，,。]+)/,
-    ]);
-    const size = firstMatch(text, [
-      /(\d+(?:\.\d+)?)\s*码/,
-      /尺码\s*[:：]?\s*([A-Za-z0-9.]+)/,
-    ]);
+    for (const segment of segments) {
+      const quantity = firstNumber(segment, [
+        /补货\s*(\d+)\s*(?:件|个|双|套|箱)/,
+        /数量\s*[:：=]?\s*(\d+)/,
+        /(\d+)\s*(?:件|个|双|套|箱)/,
+      ]);
+      const unitCost = firstNumber(segment, [
+        /单价\s*[:：=]?\s*(\d+)/,
+        /成本\s*[:：=]?\s*(\d+)/,
+      ]);
+      const variantQuery = firstMatch(segment, [
+        /^([A-Za-z0-9\u4e00-\u9fa5\s._/-]{2,60}?)(?=\s*(?:补货|采购|单价|成本|$))/,
+      ]);
 
-    const parts = variantQuery
-      ? [variantQuery]
-      : [firstMatch(text, [
-          /(?:采购单|备货单|补货单)[，,\s]*([A-Za-z0-9\u4e00-\u9fa5._/-]{2,40})/,
-          /(?:商品名|产品名|名称)\s*[:：]?\s*([A-Za-z0-9\u4e00-\u9fa5._/-]{2,40})/,
-        ]), color, size].filter(Boolean);
-    if (parts.length > 0 || quantity !== null || unitCost !== null) {
-      slots.items = [
-        {
-          variant_query: parts.join(' ').trim(),
+      if (variantQuery || quantity !== null || unitCost !== null) {
+        items.push({
+          variant_query: String(variantQuery || '').trim(),
           quantity: quantity ?? 1,
           unit_cost: unitCost ?? undefined,
-        },
-      ];
+        });
+      }
+    }
+
+    if (items.length > 0) {
+      slots.items = items;
     }
   }
 

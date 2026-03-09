@@ -267,6 +267,41 @@ describe('AIActionOrchestrator', () => {
     ]);
   });
 
+  it('resolves multiple manual purchase-order items as a batch', async () => {
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {
+        purchase_order: {
+          items: vi.fn(async (items) => items.map((item, index) => ({
+            ...item,
+            product_id: `prod-${index + 1}`,
+            variant_id: `var-${index + 1}`,
+          }))),
+        },
+      },
+      extractActionSlots: () => ({
+        mode: 'manual',
+        items: [
+          { variant_query: '跑鞋 黑色 42', quantity: 20, unit_cost: 60 },
+          { variant_query: '凉鞋 白色 38', quantity: 10, unit_cost: 50 },
+        ],
+      }),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '创建采购单，跑鞋 黑色 42 补货 20件 单价60；凉鞋 白色 38 补货 10件 单价50',
+    });
+
+    expect(result.kind).toBe('action_preview');
+    expect(result.payload.summary.items).toEqual([
+      expect.objectContaining({ product_id: 'prod-1', variant_id: 'var-1', quantity: 20 }),
+      expect.objectContaining({ product_id: 'prod-2', variant_id: 'var-2', quantity: 10 }),
+    ]);
+  });
+
   it('resolves productId and variantId for orders without page context when resolvers can uniquely match', async () => {
     orchestrator = new AIActionOrchestrator({
       sessionStore,

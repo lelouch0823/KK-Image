@@ -83,6 +83,30 @@ describe('extractActionSlots', () => {
     );
   });
 
+  it('extracts multiple manual purchase-order items separated by semicolons', () => {
+    const result = extractActionSlots(
+      'purchase_order',
+      '创建采购单，跑鞋 黑色 42 补货 20件 单价60；凉鞋 白色 38 补货 10件 单价50，备注 急单'
+    );
+
+    expect(result.mode).toBe('manual');
+    expect(result.items).toHaveLength(2);
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({
+        variant_query: '跑鞋 黑色 42',
+        quantity: 20,
+        unit_cost: 60,
+      })
+    );
+    expect(result.items[1]).toEqual(
+      expect.objectContaining({
+        variant_query: '凉鞋 白色 38',
+        quantity: 10,
+        unit_cost: 50,
+      })
+    );
+  });
+
   it('extracts product fields, dimensions, and generated variants from structured text', () => {
     const result = extractActionSlots(
       'product',
