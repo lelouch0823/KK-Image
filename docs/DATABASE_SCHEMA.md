@@ -157,6 +157,21 @@
 ### `webhooks` & `webhook_logs`
 外部系统集成回调配置及日志。
 
+### `ai_action_sessions` (AI 动作会话)
+AI 创建事务的短期状态存储，用于在多轮追问、预览和确认之间恢复上下文。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `user_id` | TEXT | 发起动作的后台用户 ID |
+| `action_type` | TEXT | 如 `create_order` |
+| `entity_type` | TEXT | 如 `order`, `customer` |
+| `status` | TEXT | `collecting`, `awaiting_confirmation`, `completed`, `cancelled` |
+| `slots_json` | TEXT | JSON, 已收集字段 |
+| `preview_json` | TEXT | JSON, 预览数据 |
+| `expires_at` | INTEGER | 过期时间戳 |
+| `created_at` | INTEGER | 创建时间 |
+| `updated_at` | INTEGER | 更新时间 |
+
 ---
 
 ## ER Diagram (Simplified)
