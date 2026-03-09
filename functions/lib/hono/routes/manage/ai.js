@@ -11,6 +11,8 @@ import { ProductVariantRepository } from '../../../../repositories/ProductVarian
 import { CustomerRepository } from '../../../../repositories/CustomerRepository.js';
 import { GoodsOverviewRepository } from '../../../../repositories/GoodsOverviewRepository.js';
 import { PurchaseOrderRepository } from '../../../../repositories/PurchaseOrderRepository.js';
+import { PurchaseOrderService } from '../../../../services/PurchaseOrderService.js';
+import { SalespersonRepository } from '../../../../repositories/SalespersonRepository.js';
 import { SettingsRepository } from '../../../../repositories/SettingsRepository.js';
 import { callAIStream, callAI, callAIAuto, parseSSEChunk, SYSTEM_PROMPT } from '../../../../utils/ai-utils.js';
 import { executeAITool } from '../../../../utils/ai-tool-executor.js';
@@ -22,6 +24,8 @@ import { AIActionOrchestrator } from '../../../../ai/action-orchestrator.js';
 import { D1ActionSessionStore } from '../../../../ai/action-session-store.js';
 import { createActionSubmitters } from '../../../../ai/action-submitters.js';
 import { getActionAdapter } from '../../../../ai/action-registry.js';
+import { createManagedOrder } from './orders/create-order.js';
+import { createManagedProduct } from './products/create-product.js';
 
 const app = new Hono();
 app.use('*', requirePermission('stats:read'));
@@ -232,11 +236,32 @@ function detectExplicitConfirmation(text = '') {
     return /^(确认|确定|提交|创建吧|就这样|可以创建了)$/.test(normalized);
 }
 
-function createActionOrchestrator(env) {
+function createActionOrchestrator(c, env, user = null) {
+    const customerRepo = new CustomerRepository(env.DB);
+    const purchaseOrderRepo = new PurchaseOrderRepository(env.DB);
+    const purchaseOrderService = new PurchaseOrderService(env.DB);
+    const salespersonRepo = new SalespersonRepository(env.DB, env.JWT_SECRET);
+
     return new AIActionOrchestrator({
         sessionStore: new D1ActionSessionStore(env.DB),
         getActionAdapter,
-        submitters: createActionSubmitters({}),
+        submitters: createActionSubmitters({
+            customerRepo: {
+                create: (payload) => customerRepo.create({
+                    ...payload,
+                    createdBy: user?.name || user?.id || 'AI',
+                }),
+            },
+            purchaseOrderRepo,
+            purchaseOrderService,
+            salespersonRepo,
+            orderService: {
+                create: (payload) => createManagedOrder(c, payload, user),
+            },
+            productService: {
+                create: (payload) => createManagedProduct(c, payload),
+            },
+        }),
     });
 }
 
@@ -314,7 +339,7 @@ app.post('/chat', async (c) => {
     console.info('[AI Chat][InputModalities]', JSON.stringify(inputSummary));
 
     const latestUserText = extractLatestUserText(history);
-    const actionOrchestrator = createActionOrchestrator(env);
+    const actionOrchestrator = createActionOrchestrator(c, env, c.get('user'));
     const actionResult = await actionOrchestrator.advance({
         userId: c.get('user')?.id || 'anonymous',
         text: latestUserText,
@@ -463,7 +488,7 @@ app.post('/stream', async (c) => {
     console.info('[AI Stream][InputModalities]', JSON.stringify(inputSummary));
 
     const latestUserText = extractLatestUserText(history);
-    const actionOrchestrator = createActionOrchestrator(env);
+    const actionOrchestrator = createActionOrchestrator(c, env, c.get('user'));
     const actionResult = await actionOrchestrator.advance({
         userId: c.get('user')?.id || 'anonymous',
         text: latestUserText,

@@ -193,11 +193,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onActivated, watch } from 'vue';
+import { ref, reactive, onMounted, onActivated, onUnmounted, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { useAI } from '@/composables/useAI';
+import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import { formatDate } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import SearchInput from '@/components/ui/SearchInput.vue';
@@ -215,6 +216,7 @@ const { t } = useI18n();
 const { addToast } = useToast();
 const { authFetch } = useAuth();
 const { setContext } = useAI();
+const { subscribeModule } = useAppRefreshBus();
 
 const loading = ref(false);
 const error = ref('');
@@ -233,6 +235,7 @@ const editingId = ref(null);
 const editingCustomer = ref(null);
 const showDetailPanel = ref(false);
 const viewingCustomer = ref(null);
+let stopCustomersRefreshSubscription = null;
 
 const getRowClass = (row) => {
   return viewingCustomer.value?.id === row.id ? 'bg-(--color-primary-bg)/50' : '';
@@ -347,11 +350,22 @@ const handleFormSubmit = async (formData) => {
 };
 
 onMounted(() => {
+  stopCustomersRefreshSubscription = subscribeModule('customers', () => {
+    if (!showFormModal.value) {
+      loadCustomers();
+    }
+  });
+
   loadCustomers();
 });
 
 onActivated(() => {
   loadCustomers();
+});
+
+onUnmounted(() => {
+  stopCustomersRefreshSubscription?.();
+  stopCustomersRefreshSubscription = null;
 });
 
 watch([showDetailPanel, viewingCustomer], ([isOpen, customer]) => {

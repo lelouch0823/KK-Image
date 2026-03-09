@@ -186,10 +186,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, defineAsyncComponent, watch } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, defineAsyncComponent, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useProducts } from '@/composables/useProducts';
 import { useAI } from '@/composables/useAI';
+import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 const ProductStats = defineAsyncComponent(() => import('./product/ProductStats.vue'));
 import ProductFilters from './product/ProductFilters.vue';
 import ProductTable from './product/ProductTable.vue';
@@ -211,6 +212,7 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { setContext } = useAI();
+const { subscribeModule } = useAppRefreshBus();
 
 const { products, loading, error, errorCode, pagination, loadProducts, deleteProduct, loadProduct } = useProducts();
 
@@ -224,6 +226,7 @@ const isEditMode = ref(false);
 const editingProduct = ref(null);
 const viewingProduct = ref(null);
 const sharingProduct = ref(null);
+let stopProductsRefreshSubscription = null;
 
 const filters = reactive({
     search: '',
@@ -231,6 +234,16 @@ const filters = reactive({
 });
 
 onMounted(async () => {
+    stopProductsRefreshSubscription = subscribeModule('products', () => {
+        if (!showCreateModal.value && !showDetailModal.value && !showImportModal.value && !showExportModal.value) {
+            loadProducts({
+                page: pagination.page || 1,
+                status: filters.status,
+                search: filters.search,
+            }, true);
+        }
+    });
+
     loadProducts();
     
     // Auto-open edit modal if query param is present
@@ -244,6 +257,11 @@ onMounted(async () => {
             router.replace({ query });
         }
     }
+});
+
+onUnmounted(() => {
+    stopProductsRefreshSubscription?.();
+    stopProductsRefreshSubscription = null;
 });
 
 const handleCreate = () => {

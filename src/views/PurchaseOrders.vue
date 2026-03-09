@@ -307,7 +307,7 @@
                       </div>
                       
                       <!-- 商品信息 -->
-                      <div class="min-w-0 flex flex-col gap-1">
+                      <div class="flex min-w-0 flex-col gap-1">
                         <div class="hover:text-primary flex min-w-0 cursor-pointer items-center gap-2 transition-colors" @click="handleViewProductDetail(item.product_id)">
                           <span class="line-clamp-1 min-w-0 text-sm font-medium break-all text-(--text-main)" :title="item.product_name">{{ item.product_name || '—' }}</span>
                           <span v-if="item.product_brand" class="max-w-[8rem] shrink-0 truncate rounded bg-(--bg-muted) px-1.5 py-0.5 text-[10px] font-medium text-(--text-secondary)" :title="item.product_brand">{{ item.product_brand }}</span>
@@ -333,7 +333,7 @@
                           <span
                             v-for="(val, key) in item.product_specifications"
                             :key="key"
-                            class="max-w-full break-all rounded border border-(--border-subtle) bg-(--bg-page) px-1.5 py-0.5 text-[10px] text-(--text-secondary)"
+                            class="max-w-full rounded border border-(--border-subtle) bg-(--bg-page) px-1.5 py-0.5 text-[10px] break-all text-(--text-secondary)"
                             :title="`${key}: ${val}`"
                           >
                             {{ key }}: {{ val }}
@@ -735,7 +735,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onActivated, onDeactivated, watch } from 'vue';
+import { ref, reactive, computed, onActivated, onDeactivated, onMounted, onUnmounted, watch } from 'vue';
 
 const getFileUrl = (id) => `/file/${id}`;
 import { useRoute, useRouter } from 'vue-router';
@@ -744,6 +744,7 @@ import { usePurchaseOrders } from '@/composables/usePurchaseOrders';
 import { usePurchaseOrderModals } from '@/composables/usePurchaseOrderModals';
 import { useToast } from '@/composables/useToast';
 import { useAI } from '@/composables/useAI';
+import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import { validateOrderQuantity } from '@/utils/purchase-order-constraints';
 import { reconcileVariantSelection } from '@/utils/purchase-order-variant-selection';
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
@@ -759,7 +760,7 @@ import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 
 const { t } = useI18n();
 const {
-  list, total, loading, error, errorCode, detail, detailLoading,
+  list, total, loading, error, errorCode, detail, detailLoading: _detailLoading,
   suggestions, suggestionsLoading, stats,
   filters, statusConfig,
   loadList, loadStats, loadDetail,
@@ -771,6 +772,7 @@ const route = useRoute();
 const router = useRouter();
 const { addToast } = useToast();
 const { setContext } = useAI();
+const { subscribeModule } = useAppRefreshBus();
 
 // ─── 本地状态 ────────────────────────────────────────
 
@@ -782,7 +784,7 @@ const {
   showProductPicker,
   pickerTarget,
   showShortageConfirm,
-  confirmData,
+  confirmData: _confirmData,
   viewProductId,
   detailFocusedVariantId: getDetailFocusedVariantId,
   openOrderPicker,
@@ -803,6 +805,7 @@ const createForm = reactive({
 
 const poItems = reactive([]);
 const selectedSuggestions = ref([]);
+let stopPurchaseOrdersRefreshSubscription = null;
 
 // ─── 计算属性 ────────────────────────────────────────
 
@@ -1161,6 +1164,14 @@ const handleCreateFromSuggestions = async () => {
 
 // ─── 生命周期 ────────────────────────────────────────
 
+onMounted(() => {
+  stopPurchaseOrdersRefreshSubscription = subscribeModule('purchaseOrders', async () => {
+    if (!showCreateModal.value && !showDetail.value) {
+      await Promise.all([loadList(), loadStats()]);
+    }
+  });
+});
+
 // 使用 onActivated 代替 onMounted，确保在 keep-alive 环境下
 // 每次导航进入该页面时都会重新拉取最新数据
 onActivated(async () => {
@@ -1231,6 +1242,11 @@ onDeactivated(() => {
     selectedId: null,
     selectedType: null,
   });
+});
+
+onUnmounted(() => {
+  stopPurchaseOrdersRefreshSubscription?.();
+  stopPurchaseOrdersRefreshSubscription = null;
 });
 </script>
 

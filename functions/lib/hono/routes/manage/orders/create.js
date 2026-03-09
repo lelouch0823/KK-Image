@@ -1,7 +1,6 @@
 
 import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
-import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
 import {
     canTransitionOrderStatus
 } from '../../../../../api/utils/order-state-machine.js';
@@ -10,11 +9,10 @@ import { BadRequestError } from '../../../errors.js';
 import { assertForceStatusTransitionAllowed } from './authz-helpers.js';
 import {
     resolveSalesTokens,
-    invalidateOrderNotificationCaches,
-    scheduleOrderAndSalespersonCacheInvalidation,
     scheduleOrderMutationCachesInvalidation,
 } from './cache-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
+import { createManagedOrder } from './create-order.js';
 
 const app = new Hono();
 const ACTION_STATUS_MAP = {
@@ -43,102 +41,9 @@ function assertValidBatchStatusAction(normalizedAction, normalizedStatus) {
  * POST / - 管理端创建订单
  */
 app.post('/', async (c) => {
-    const { env } = c;
     const body = await c.req.json();
-    const user = c.get('user'); // Admin user
-
-    // Dynamic import to avoid top-level issues if any
-    const { generateId, generateOrderNo, triggerWebhook } = await import('../../../_shared/utils.js');
-    const { NotificationRepository } = await import('../../../../../repositories/NotificationRepository.js');
-
-    // Validation (Simple version, or reuse schema)
-    if (!body.productName || !body.salespersonId) {
-        return c.json({ success: false, error: 'Product Name and Salesperson are required' }, 400);
-    }
-
-    const orderRepo = new OrderRepository(env.DB);
-    const orderId = generateId();
-    const orderNo = generateOrderNo();
-    const variantId = body.variantId ?? null;
-    const notificationSalesTokens = await resolveSalesTokens(env.DB, [body.salespersonId]);
-
-    await validateProductVariantBinding(env.DB, body.productId || null, variantId, { checkActive: true });
-
-    if (body.status && !ORDER_STATUSES.includes(body.status)) {
-        throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
-    }
-
-    // 1. 创建订单
-    await orderRepo.create({
-        id: orderId,
-        orderNo,
-        salespersonId: body.salespersonId,
-        data: {
-            name: body.productName,
-            brand: body.brand || '',
-            series: body.series || '',
-            sku: body.sku || '',
-            size: body.size || '',
-            color: body.color || '',
-            material: body.material || '',
-            remark: body.remark || '',
-            deadline: body.deadline || '',
-        },
-        quantity: body.quantity || 1,
-        // Admin can set initial status
-        status: body.status || 'pending',
-        productId: body.productId || null,
-        variantId,
-        mainImageId: body.fileIds?.[0] || null,
-        fileIds: body.fileIds || [],
-        timeline: {
-            actionType: 'created',
-            actorType: 'admin',
-            actorId: user?.id || 'admin',
-            actorName: user?.name || 'Admin',
-            comment: 'Admin created order', // Optional context
-        },
-    });
-
-    // 创建订单后将临时上传文件归档到订单目录，避免文件长期留在根目录
-    const fileIds = Array.isArray(body.fileIds) ? body.fileIds.filter(Boolean) : [];
-    if (fileIds.length > 0) {
-        try {
-            const { ensureOrderFolder, moveFilesToFolder } = await import('../../../../../api/utils/folder-utils.js');
-            const orderFolderId = await ensureOrderFolder(env, orderNo);
-            await moveFilesToFolder(env, fileIds, orderFolderId);
-        } catch (error) {
-            console.error('Order file archiving error (manage create):', error);
-        }
-    }
-
-    // 2. 通知销售人员 (Async)
-    c.executionCtx.waitUntil((async () => {
-        try {
-            const notifyRepo = new NotificationRepository(env.DB);
-            // Notify Salesperson
-            await notifyRepo.create({
-                type: 'order',
-                title: JSON.stringify({ key: 'notification.orderAssigned', params: { orderNo } }),
-                content: `Order ${orderNo} has been assigned to you`,
-                receiver: 'sales',
-                salespersonId: body.salespersonId,
-                orderId,
-                metadata: { actorName: 'Admin' },
-            });
-
-            await invalidateOrderNotificationCaches(c, { salesTokens: notificationSalesTokens });
-
-            // Webhook (if needed for admin creation)
-            await triggerWebhook(env, 'order.created_by_admin', { orderId, orderNo, admin: user?.name });
-        } catch (e) {
-            console.error('Async notify failed:', e);
-        }
-    })());
-
-    scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens: notificationSalesTokens });
-
-    return c.json({ success: true, data: { id: orderId, orderNo } }, 201);
+    const result = await createManagedOrder(c, body);
+    return c.json({ success: true, data: result }, 201);
 });
 
 /**

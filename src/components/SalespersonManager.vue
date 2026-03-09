@@ -119,10 +119,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onActivated } from 'vue';
+import { ref, computed, onMounted, onActivated, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSalespersons } from '@/composables/useSalespersons';
 import { useI18n } from '@/composables/useI18n';
+import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -149,6 +150,7 @@ const {
 
 const { t } = useI18n();
 const router = useRouter();
+const { subscribeModule } = useAppRefreshBus();
 
 const searchQuery = ref('');
 const showModal = ref(false);
@@ -156,6 +158,7 @@ const submitting = ref(false);
 const editingSalesperson = ref(null);
 const showDetailModal = ref(false);
 const detailPerson = ref(null);
+let stopSalespersonsRefreshSubscription = null;
 
 // 确认弹窗状态
 const confirmData = ref({
@@ -184,11 +187,22 @@ const refreshCurrentList = (forceRefresh = false) => {
 
 // 初始化
 onMounted(() => {
+  stopSalespersonsRefreshSubscription = subscribeModule('salespersons', () => {
+    if (!showModal.value && !showDetailModal.value) {
+      refreshCurrentList(true);
+    }
+  });
+
   refreshCurrentList();
 });
 
 onActivated(() => {
   refreshCurrentList();
+});
+
+onUnmounted(() => {
+  stopSalespersonsRefreshSubscription?.();
+  stopSalespersonsRefreshSubscription = null;
 });
 
 // 搜索

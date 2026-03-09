@@ -91,6 +91,10 @@ export class AIActionOrchestrator {
     if (typeof submitter !== 'function') {
       throw new Error(`Missing submitter for ${session.action_type}`);
     }
+    const adapter = this.getActionAdapter(session.entity_type);
+    if (!adapter) {
+      throw new Error(`Missing action adapter for ${session.entity_type}`);
+    }
 
     const created = await submitter(slots);
     await this.sessionStore.updateSession(session.id, {
@@ -106,6 +110,8 @@ export class AIActionOrchestrator {
         entityType: session.entity_type,
         createdEntityId: created.id,
         createdEntityLabel: created.label || created.id,
+        targetModule: adapter.targetModule,
+        successMessage: created.message || '已完成创建，请前往对应模块查看。',
       },
     };
   }

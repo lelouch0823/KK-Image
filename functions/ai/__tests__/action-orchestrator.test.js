@@ -80,5 +80,6 @@ describe('AIActionOrchestrator', () => {
     expect(submitters.create_customer).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Alice' })
     );
+    expect(result.payload.targetModule).toBe('customers');
   });
 });
