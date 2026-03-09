@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
-import { MSG } from '../../../../api/utils/messages.js';
 import { AI_TOOLS } from '../../../../api/utils/ai-prompts.js';
 import { OrderStatsRepository } from '../../../../repositories/OrderStatsRepository.js';
 import { SystemStatsRepository } from '../../../../repositories/SystemStatsRepository.js';
@@ -11,26 +10,16 @@ import { ProductVariantRepository } from '../../../../repositories/ProductVarian
 import { CustomerRepository } from '../../../../repositories/CustomerRepository.js';
 import { GoodsOverviewRepository } from '../../../../repositories/GoodsOverviewRepository.js';
 import { PurchaseOrderRepository } from '../../../../repositories/PurchaseOrderRepository.js';
-import { PurchaseOrderService } from '../../../../services/PurchaseOrderService.js';
-import { SalespersonRepository } from '../../../../repositories/SalespersonRepository.js';
 import { SettingsRepository } from '../../../../repositories/SettingsRepository.js';
 import { callAIStream, callAI, callAIAuto, parseSSEChunk, SYSTEM_PROMPT } from '../../../../utils/ai-utils.js';
 import { executeAITool } from '../../../../utils/ai-tool-executor.js';
-import { extractToolCallsFromText, ContentGate } from '../../../../utils/ai-stream-helpers.js';
 import { DateUtils } from '../../../../api/utils/date.js';
 import { success } from '../../../../api/utils/response.js';
 import { requirePermission } from '../../middleware/auth.js';
-import { AIActionOrchestrator } from '../../../../ai/action-orchestrator.js';
-import { D1ActionSessionStore } from '../../../../ai/action-session-store.js';
-import { createActionSubmitters } from '../../../../ai/action-submitters.js';
-import { getActionAdapter } from '../../../../ai/action-registry.js';
-import { extractActionSlots } from '../../../../ai/slot-extraction.js';
-import {
-    resolveSalespersonSlot,
-    resolveOrderProductSlot,
-    resolveOrderVariantSlot,
-    resolvePurchaseOrderItemsSlot,
-} from '../../../../ai/slot-resolvers.js';
+import { detectInjectionSignals, prepareConversationRequest } from '../../../../ai/conversation-service.js';
+import { runAIStreamEngine } from '../../../../ai/stream-engine.js';
+import { createAIActionService } from '../../../../ai/action-service.js';
+import { createAIRequestTelemetry } from '../../../../ai/telemetry.js';
 import { createManagedOrder } from './orders/create-order.js';
 import { createManagedProduct } from './products/create-product.js';
 
@@ -38,16 +27,6 @@ const app = new Hono();
 app.use('*', requirePermission('stats:read'));
 const MAX_TOOL_ROUNDS = 3;
 const MAX_TOOLS_PER_ROUND = 8;
-const INJECTION_PATTERNS = [
-    /ignore\s+(all\s+)?previous\s+instructions?/i,
-    /disregard\s+(all\s+)?(system|developer)\s+instructions?/i,
-    /reveal\s+(the\s+)?system\s+prompt/i,
-    /show\s+(me\s+)?(your\s+)?(hidden|internal)\s+(prompt|rules?)/i,
-    /developer\s+message/i,
-    /print\s+(all\s+)?environment\s+variables?/i,
-    /api[_\s-]?key|secret|token/i,
-    /越狱|忽略(以上|之前|先前)指令|泄露(系统|提示词|密钥)/i,
-];
 
 function parseBooleanFlag(value, fallback = false) {
     if (typeof value === 'boolean') return value;
@@ -62,79 +41,6 @@ function parseModelListForLog(modelsValue = '') {
         .split(',')
         .map((item) => item.trim())
         .filter(Boolean);
-}
-
-function summarizeImageUrl(url = '') {
-    const value = String(url || '');
-    const isDataUrl = value.startsWith('data:');
-    const isHttpUrl = /^https?:\/\//i.test(value);
-    let mime = '';
-    if (isDataUrl) {
-        const match = value.match(/^data:([^;,]+)/i);
-        mime = match?.[1] || '';
-    }
-    return {
-        isDataUrl,
-        isHttpUrl,
-        mime: mime || null,
-        length: value.length || 0,
-    };
-}
-
-function summarizeUserInputModalities(history = []) {
-    const summary = {
-        userMessageCount: 0,
-        textParts: 0,
-        imageParts: 0,
-        dataUrlImages: 0,
-        httpUrlImages: 0,
-        imageMimes: [],
-        maxImageUrlLength: 0,
-    };
-    const mimeSet = new Set();
-
-    const visitContent = (content) => {
-        if (typeof content === 'string') {
-            if (content.trim()) summary.textParts += 1;
-            return;
-        }
-        if (Array.isArray(content)) {
-            content.forEach(visitContent);
-            return;
-        }
-        if (!content || typeof content !== 'object') return;
-
-        if (content.type === 'text' && typeof content.text === 'string' && content.text.trim()) {
-            summary.textParts += 1;
-            return;
-        }
-
-        if (content.type === 'image_url' && typeof content.image_url?.url === 'string') {
-            summary.imageParts += 1;
-            const imageInfo = summarizeImageUrl(content.image_url.url);
-            if (imageInfo.isDataUrl) summary.dataUrlImages += 1;
-            if (imageInfo.isHttpUrl) summary.httpUrlImages += 1;
-            if (imageInfo.mime) mimeSet.add(imageInfo.mime);
-            summary.maxImageUrlLength = Math.max(summary.maxImageUrlLength, imageInfo.length);
-            return;
-        }
-
-        if (typeof content.text === 'string' && content.text.trim()) {
-            summary.textParts += 1;
-        }
-    };
-
-    if (Array.isArray(history)) {
-        history
-            .filter((msg) => msg?.role === 'user')
-            .forEach((msg) => {
-                summary.userMessageCount += 1;
-                visitContent(msg.content);
-            });
-    }
-
-    summary.imageMimes = Array.from(mimeSet);
-    return summary;
 }
 
 function logModelUsageTelemetry(channel, {
@@ -158,66 +64,6 @@ function logModelUsageTelemetry(channel, {
     }));
 }
 
-function detectInjectionSignals(rawText = '') {
-    const text = String(rawText || '');
-    if (!text.trim()) return [];
-    return INJECTION_PATTERNS
-        .filter((pattern) => pattern.test(text))
-        .map((pattern) => pattern.toString());
-}
-
-function hasImagePart(content) {
-    if (Array.isArray(content)) {
-        return content.some((part) => part?.type === 'image_url' && typeof part.image_url?.url === 'string');
-    }
-    if (content && typeof content === 'object') {
-        return content.type === 'image_url' && typeof content.image_url?.url === 'string';
-    }
-    return false;
-}
-
-function hasImageInLatestUserTurn(history = []) {
-    if (!Array.isArray(history) || history.length === 0) return false;
-    for (let i = history.length - 1; i >= 0; i -= 1) {
-        const msg = history[i];
-        if (msg?.role !== 'user') continue;
-        return hasImagePart(msg.content);
-    }
-    return false;
-}
-
-function buildSystemContent(basePrompt, { visionFirst = false } = {}) {
-    if (!visionFirst) return basePrompt;
-    return `${basePrompt}
-
-<vision_first_mode>
-图像优先：本轮用户输入包含图片，你必须优先基于图片内容回答，不要优先转成 SKU/ID 检索问答。
-若当前模型无法识别图片，请以以下前缀开头回复：
-[IMAGE_UNSUPPORTED] 当前模型无法识别图片，请移除图片或切换模型。
-</vision_first_mode>`.trim();
-}
-
-function extractUserTextForDetection(content) {
-    if (typeof content === 'string') {
-        return content;
-    }
-    if (Array.isArray(content)) {
-        return content
-            .filter((part) => part?.type === 'text' && typeof part.text === 'string')
-            .map((part) => part.text)
-            .join('\n');
-    }
-    if (content && typeof content === 'object') {
-        if (content.type === 'text' && typeof content.text === 'string') {
-            return content.text;
-        }
-        if (typeof content.text === 'string') {
-            return content.text;
-        }
-    }
-    return '';
-}
-
 function logInjectionTelemetry(channel, entries = []) {
     if (!Array.isArray(entries) || entries.length === 0) return;
     console.warn('[AI PromptInjection][Detected]', JSON.stringify({
@@ -227,92 +73,11 @@ function logInjectionTelemetry(channel, entries = []) {
     }));
 }
 
-function extractLatestUserText(history = []) {
-    if (!Array.isArray(history) || history.length === 0) return '';
-    for (let i = history.length - 1; i >= 0; i -= 1) {
-        const msg = history[i];
-        if (msg?.role !== 'user') continue;
-        return extractUserTextForDetection(msg.content);
+function createRequestId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
     }
-    return '';
-}
-
-function detectExplicitConfirmation(text = '') {
-    const normalized = String(text || '').trim();
-    if (!normalized) return false;
-    return /^(确认|确定|提交|创建吧|就这样|可以创建了)$/.test(normalized);
-}
-
-async function deriveContextActionSlots(context = {}, { productRepo, variantRepo }) {
-    const selectedId = String(context?.selectedId || '').trim();
-    const selectedType = String(context?.selectedType || '').trim();
-    if (!selectedId || !selectedType) return {};
-
-    if (selectedType === 'variant' && variantRepo?.findById) {
-        const variant = await variantRepo.findById(selectedId);
-        if (!variant) return {};
-        const product = variant.product_id && productRepo?.findById
-            ? await productRepo.findById(variant.product_id)
-            : null;
-        return {
-            productId: variant.product_id || null,
-            variantId: variant.id || selectedId,
-            productName: product?.name || '',
-        };
-    }
-
-    if (selectedType === 'product' && productRepo?.findById) {
-        const product = await productRepo.findById(selectedId);
-        if (!product) return {};
-        return {
-            productId: product.id,
-            productName: product.name || '',
-        };
-    }
-
-    return {};
-}
-
-function createActionOrchestrator(c, env, user = null) {
-    const customerRepo = new CustomerRepository(env.DB);
-    const productRepo = new ProductRepository(env.DB);
-    const variantRepo = new ProductVariantRepository(env.DB);
-    const purchaseOrderRepo = new PurchaseOrderRepository(env.DB);
-    const purchaseOrderService = new PurchaseOrderService(env.DB);
-    const salespersonRepo = new SalespersonRepository(env.DB, env.JWT_SECRET);
-
-    return new AIActionOrchestrator({
-        sessionStore: new D1ActionSessionStore(env.DB),
-        getActionAdapter,
-        submitters: createActionSubmitters({
-            customerRepo: {
-                create: (payload) => customerRepo.create({
-                    ...payload,
-                    createdBy: user?.name || user?.id || 'AI',
-                }),
-            },
-            purchaseOrderRepo,
-            purchaseOrderService,
-            salespersonRepo,
-            orderService: {
-                create: (payload) => createManagedOrder(c, payload, user),
-            },
-            productService: {
-                create: (payload) => createManagedProduct(c, payload),
-            },
-        }),
-        slotResolvers: {
-            order: {
-                salespersonId: async (rawValue, slots) => resolveSalespersonSlot(rawValue, slots, { salespersonRepo }),
-                productId: async (rawValue, slots) => resolveOrderProductSlot(rawValue, slots, { productRepo }),
-                variantId: async (rawValue, slots) => resolveOrderVariantSlot(rawValue, slots, { variantRepo }),
-            },
-            purchase_order: {
-                items: async (items) => resolvePurchaseOrderItemsSlot(items, { variantRepo }),
-            },
-        },
-        extractActionSlots,
-    });
+    return `req-${Date.now()}`;
 }
 
 async function resolveAIRuntimeEnv(env) {
@@ -380,39 +145,56 @@ app.post('/chat', async (c) => {
     const { env } = c;
     const { messages: history, context: clientContext = {} } = await c.req.json();
     const runtimeEnv = await resolveAIRuntimeEnv(env);
-    const visionFirst = hasImageInLatestUserTurn(history);
-    const inputSummary = summarizeUserInputModalities(history);
-    const userSignals = history
-        .filter((msg) => msg?.role === 'user')
-        .flatMap((msg) => detectInjectionSignals(extractUserTextForDetection(msg.content)));
+    const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
+    const prepared = await prepareConversationRequest({
+        history,
+        runtimeEnv,
+        channel: 'chat',
+        basePrompt: SYSTEM_PROMPT(todayDate, clientContext),
+    });
+    const { visionFirst, latestUserText, messages, telemetry } = prepared;
+    const inputSummary = telemetry.inputSummary;
+    const userSignals = telemetry.userSignals;
+    const requestId = createRequestId();
     logInjectionTelemetry('chat.user_input', userSignals);
     console.info('[AI Chat][InputModalities]', JSON.stringify(inputSummary));
 
-    const latestUserText = extractLatestUserText(history);
-    const actionProductRepo = new ProductRepository(env.DB);
-    const actionVariantRepo = new ProductVariantRepository(env.DB);
-    const contextSlots = await deriveContextActionSlots(clientContext, {
-        productRepo: actionProductRepo,
-        variantRepo: actionVariantRepo,
-    });
-    const actionOrchestrator = createActionOrchestrator(c, env, c.get('user'));
-    const actionResult = await actionOrchestrator.advance({
-        userId: c.get('user')?.id || 'anonymous',
+    const actionService = createAIActionService();
+    const actionHandle = await actionService.handleTurn({
         text: latestUserText,
-        slots: contextSlots,
-        confirmation: detectExplicitConfirmation(latestUserText),
+        context: clientContext,
+        user: c.get('user'),
+        actionContext: {
+            c,
+            env,
+            user: c.get('user'),
+            createManagedOrder,
+            createManagedProduct,
+            repos: {
+                productRepo: new ProductRepository(env.DB),
+                variantRepo: new ProductVariantRepository(env.DB),
+            },
+        },
     });
-    if (actionResult) {
+    if (actionHandle.handled) {
+        console.info('[AI RequestTelemetry]', JSON.stringify(createAIRequestTelemetry({
+            requestId,
+            userId: c.get('user')?.id || null,
+            sessionId: actionHandle.actionResult?.payload?.sessionId || null,
+            routeType: 'chat',
+            visionFirst,
+            actionKind: actionHandle.actionResult?.kind || null,
+            entityType: actionHandle.actionResult?.payload?.entityType || null,
+            finalStatus: 'action_handled',
+        })));
         return success({
             message: {
                 role: 'assistant',
-                content: actionResult.payload?.successMessage || actionResult.kind,
-                action: actionResult,
+                content: actionHandle.actionResult.payload?.successMessage || actionHandle.actionResult.kind,
+                action: actionHandle.actionResult,
             },
         });
     }
-
-
         const orderStatsRepo = new OrderStatsRepository(env.DB);
         const systemStatsRepo = new SystemStatsRepository(env.DB);
         const orderRepo = new OrderRepository(env.DB);
@@ -422,14 +204,6 @@ app.post('/chat', async (c) => {
         const customerRepo = new CustomerRepository(env.DB);
         const goodsOverviewRepo = new GoodsOverviewRepository(env.DB);
         const purchaseOrderRepo = new PurchaseOrderRepository(env.DB);
-
-        const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
-        const systemContent = buildSystemContent(
-            SYSTEM_PROMPT(todayDate, clientContext),
-            { visionFirst }
-        );
-
-        let messages = [{ role: "system", content: systemContent }, ...history];
 
         let response = await callAI(messages, visionFirst ? [] : AI_TOOLS, runtimeEnv);
         logModelUsageTelemetry('Chat', {
@@ -488,6 +262,15 @@ app.post('/chat', async (c) => {
             }
         }
 
+        console.info('[AI RequestTelemetry]', JSON.stringify(createAIRequestTelemetry({
+            requestId,
+            userId: c.get('user')?.id || null,
+            routeType: 'chat',
+            visionFirst,
+            selectedModel: response?._meta?.model || null,
+            modelSwitched: Boolean(response?._meta?.switched),
+            finalStatus: 'completed',
+        })));
         return success({ message: response.choices[0].message });
 });
 
@@ -536,43 +319,59 @@ app.post('/stream', async (c) => {
     const { env } = c;
     const { messages: history, context: clientContext = {} } = await c.req.json();
     const runtimeEnv = await resolveAIRuntimeEnv(env);
-    const visionFirst = hasImageInLatestUserTurn(history);
-    const inputSummary = summarizeUserInputModalities(history);
-    const userSignals = history
-        .filter((msg) => msg?.role === 'user')
-        .flatMap((msg) => detectInjectionSignals(extractUserTextForDetection(msg.content)));
+    const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
+    const prepared = await prepareConversationRequest({
+        history,
+        runtimeEnv,
+        channel: 'stream',
+        basePrompt: SYSTEM_PROMPT(todayDate, clientContext),
+    });
+    const { visionFirst, latestUserText, telemetry } = prepared;
+    const inputSummary = telemetry.inputSummary;
+    const userSignals = telemetry.userSignals;
+    const requestId = createRequestId();
     logInjectionTelemetry('stream.user_input', userSignals);
     console.info('[AI Stream][InputModalities]', JSON.stringify(inputSummary));
 
-    const latestUserText = extractLatestUserText(history);
-    const actionProductRepo = new ProductRepository(env.DB);
-    const actionVariantRepo = new ProductVariantRepository(env.DB);
-    const contextSlots = await deriveContextActionSlots(clientContext, {
-        productRepo: actionProductRepo,
-        variantRepo: actionVariantRepo,
-    });
-    const actionOrchestrator = createActionOrchestrator(c, env, c.get('user'));
-    const actionResult = await actionOrchestrator.advance({
-        userId: c.get('user')?.id || 'anonymous',
+    const actionService = createAIActionService();
+    const actionHandle = await actionService.handleTurn({
         text: latestUserText,
-        slots: contextSlots,
-        confirmation: detectExplicitConfirmation(latestUserText),
+        context: clientContext,
+        user: c.get('user'),
+        actionContext: {
+            c,
+            env,
+            user: c.get('user'),
+            createManagedOrder,
+            createManagedProduct,
+            repos: {
+                productRepo: new ProductRepository(env.DB),
+                variantRepo: new ProductVariantRepository(env.DB),
+            },
+        },
     });
 
     return streamSSE(c, async (stream) => {
         try {
-            if (actionResult) {
-                await stream.writeSSE({ event: actionResult.kind, data: JSON.stringify(actionResult.payload || {}) });
-                if (actionResult.kind === 'action_submitted' && actionResult.payload?.targetModule) {
+            if (actionHandle.handled) {
+                console.info('[AI RequestTelemetry]', JSON.stringify(createAIRequestTelemetry({
+                    requestId,
+                    userId: c.get('user')?.id || null,
+                    sessionId: actionHandle.actionResult?.payload?.sessionId || null,
+                    routeType: 'stream',
+                    visionFirst,
+                    actionKind: actionHandle.actionResult?.kind || null,
+                    entityType: actionHandle.actionResult?.payload?.entityType || null,
+                    finalStatus: 'action_handled',
+                })));
+                await stream.writeSSE({
+                    event: actionHandle.event.type,
+                    data: JSON.stringify(actionHandle.event.data || {}),
+                });
+                if (actionHandle.refreshEvent) {
                     await stream.writeSSE({
-                        event: 'module_refresh',
-                        data: JSON.stringify({
-                            module: actionResult.payload.targetModule,
-                            reason: 'ai_created',
-                            entityId: actionResult.payload.createdEntityId || null,
-                            timestamp: Date.now(),
-                            silent: true,
-                        }),
+                        event: actionHandle.refreshEvent.type,
+                        data: JSON.stringify(actionHandle.refreshEvent.data || {}),
                     });
                 }
                 await stream.writeSSE({ event: 'done', data: '{}' });
@@ -597,15 +396,9 @@ app.post('/stream', async (c) => {
                 return result;
             };
 
-            const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
-            const systemContent = buildSystemContent(
-                SYSTEM_PROMPT(todayDate, clientContext),
-                { visionFirst }
-            );
-            let messages = [{ role: "system", content: systemContent }, ...history];
+            let messages = [...prepared.messages];
 
             const streamResult = await callAIStream(messages, visionFirst ? [] : AI_TOOLS, runtimeEnv);
-            const aiStream = streamResult.body;
             logModelUsageTelemetry('Stream', {
                 runtimeEnv,
                 selectedModel: streamResult.model,
@@ -615,15 +408,26 @@ app.post('/stream', async (c) => {
                 phase: 'initial',
             });
 
-            if (streamResult.switched) {
-                await stream.writeSSE({ event: 'model_switch', data: JSON.stringify({ model: streamResult.model, reason: 'rate_limit' }) });
-            }
-
             const gateEnabled = parseBooleanFlag(runtimeEnv.AI_STREAM_GATE_ENABLED, true);
             const strictMode = parseBooleanFlag(runtimeEnv.AI_STREAM_GATE_STRICT_MODE, false);
-            const initialParsed = await processStreamToSSE(aiStream, stream, { gateEnabled, strictMode });
+            const engineResult = await runAIStreamEngine({
+                initialResult: streamResult,
+                initialMessages: messages,
+                runtimeEnv,
+                tools: AI_TOOLS,
+                callAIStream,
+                parseSSEChunk,
+                emit: async (event) => {
+                    await stream.writeSSE({ event: event.type, data: JSON.stringify(event.data || {}) });
+                },
+                executeTool,
+                maxToolRounds: MAX_TOOL_ROUNDS,
+                maxToolsPerRound: MAX_TOOLS_PER_ROUND,
+                streamOptions: { gateEnabled, strictMode },
+            });
+            const { initialParsed } = engineResult;
             const { fullContent, toolCalls } = initialParsed;
-            let roundTelemetry = { rounds: 0, executedTools: 0, lastToolCalls: toolCalls.length };
+            const roundTelemetry = engineResult.roundTelemetry;
             if (String(fullContent || '').includes('[IMAGE_UNSUPPORTED]')) {
                 console.warn('[AI Stream][ImageUnsupportedResponse]', JSON.stringify({
                     selectedModel: streamResult.model || null,
@@ -632,10 +436,6 @@ app.post('/stream', async (c) => {
                     inputSummary,
                     phase: 'initial',
                 }));
-            }
-
-            if (toolCalls.length > 0) {
-                roundTelemetry = await handleToolCallsToSSE(toolCalls, fullContent, messages, executeTool, stream, runtimeEnv, { gateEnabled, strictMode });
             }
 
             if (gateEnabled) {
@@ -653,155 +453,30 @@ app.post('/stream', async (c) => {
                 }));
             }
 
+            console.info('[AI RequestTelemetry]', JSON.stringify(createAIRequestTelemetry({
+                requestId,
+                userId: c.get('user')?.id || null,
+                routeType: 'stream',
+                visionFirst,
+                selectedModel: streamResult.model || null,
+                modelSwitched: Boolean(streamResult.switched),
+                toolRounds: roundTelemetry.rounds || 0,
+                executedTools: roundTelemetry.executedTools > 0 ? ['tool_execution'] : [],
+                finalStatus: 'completed',
+            })));
             await stream.writeSSE({ event: 'done', data: '{}' });
         } catch (err) {
             console.error('[AI Hono Stream] Error:', err);
+            console.info('[AI RequestTelemetry]', JSON.stringify(createAIRequestTelemetry({
+                requestId,
+                userId: c.get('user')?.id || null,
+                routeType: 'stream',
+                visionFirst,
+                finalStatus: 'failed',
+            })));
             await stream.writeSSE({ event: 'error', data: JSON.stringify({ message: err.message }) });
         }
     });
 });
-
-/**
- * 内部辅助：处理流并发送到 SSE
- */
-async function processStreamToSSE(aiStream, sseStream, options = {}) {
-    const reader = aiStream.getReader();
-    const decoder = new TextDecoder();
-    let fullContent = '';
-    let toolCalls = [];
-    let buffer = '';
-    const gateEnabled = options.gateEnabled !== false;
-    const gate = gateEnabled ? new ContentGate({
-        lookahead: 80,
-        suspectWindow: options.strictMode ? 260 : 220,
-    }) : null;
-
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split('\n');
-        buffer = parts.pop();
-
-        for (const part of parts) {
-            const chunks = parseSSEChunk(part + '\n');
-            for (const chunk of chunks) {
-                if (chunk.done) continue;
-                const delta = chunk.choices?.[0]?.delta;
-                if (!delta) continue;
-
-                if (delta.content) {
-                    fullContent += delta.content;
-                    if (!gate) {
-                        await sseStream.writeSSE({ event: 'text_delta', data: JSON.stringify({ content: delta.content }) });
-                    } else {
-                        const { safeText } = gate.push(delta.content);
-                        if (safeText) {
-                            await sseStream.writeSSE({ event: 'text_delta', data: JSON.stringify({ content: safeText }) });
-                        }
-                    }
-                }
-
-                if (delta.tool_calls) {
-                    for (const tc of delta.tool_calls) {
-                        if (tc.index !== undefined) {
-                            if (!toolCalls[tc.index]) toolCalls[tc.index] = { id: '', name: '', arguments: '' };
-                            if (tc.id) toolCalls[tc.index].id = tc.id;
-                            if (tc.function?.name) toolCalls[tc.index].name = tc.function.name;
-                            if (tc.function?.arguments) toolCalls[tc.index].arguments += tc.function.arguments;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (gate) {
-        const remaining = gate.flush();
-        if (remaining) {
-            await sseStream.writeSSE({ event: 'text_delta', data: JSON.stringify({ content: remaining }) });
-        }
-    }
-
-    // 3. 检查是否需要从文本中提取工具调用 (某些模型的兼容)
-    if (toolCalls.length === 0 && fullContent) {
-        const { cleanText, toolCalls: textToolCalls } = extractToolCallsFromText(fullContent);
-        if (textToolCalls.length > 0) {
-            console.log(`[AI Stream] Detected ${textToolCalls.length} text-based tool calls`);
-            toolCalls = textToolCalls;
-            fullContent = cleanText;
-        }
-    }
-
-    return {
-        fullContent,
-        toolCalls,
-        gateStats: gate?.getStats ? gate.getStats() : null,
-    };
-}
-
-/**
- * 内部辅助：处理工具调用并发送到 SSE
- */
-async function handleToolCallsToSSE(toolCalls, fullContent, messages, executeTool, sseStream, env, streamOptions = {}) {
-    let round = 0;
-    let pendingCalls = toolCalls;
-    let currentContent = fullContent;
-    let executedTools = 0;
-
-    while (pendingCalls.length > 0 && round < MAX_TOOL_ROUNDS) {
-        round += 1;
-        const roundCalls = pendingCalls
-            .filter((tc) => tc?.name)
-            .slice(0, MAX_TOOLS_PER_ROUND);
-        if (roundCalls.length === 0) break;
-
-        messages.push({
-            role: 'assistant',
-            content: currentContent || null,
-            tool_calls: roundCalls.map((tc) => ({
-                id: tc.id,
-                type: 'function',
-                function: { name: tc.name, arguments: tc.arguments }
-            }))
-        });
-
-        for (const tc of roundCalls) {
-            await sseStream.writeSSE({ event: 'tool_call', data: JSON.stringify({ name: tc.name, status: 'started' }) });
-
-            let args = {};
-            try {
-                args = tc.arguments ? JSON.parse(tc.arguments) : {};
-            } catch (_parseErr) {
-                console.warn(`[AI Stream] Failed to parse tool arguments: ${tc.arguments}`);
-            }
-
-            const result = await executeTool(tc.name, args);
-            await sseStream.writeSSE({ event: 'tool_result', data: JSON.stringify({ name: tc.name, summary: MSG.AI.TOOLS.RESULT_READY }) });
-            messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
-            executedTools += 1;
-        }
-
-        currentContent = null;
-        const nextResult = await callAIStream(messages, AI_TOOLS, env);
-        if (nextResult.switched) {
-            await sseStream.writeSSE({ event: 'model_switch', data: JSON.stringify({ model: nextResult.model, reason: 'rate_limit' }) });
-        }
-        const parsed = await processStreamToSSE(nextResult.body, sseStream, streamOptions);
-        pendingCalls = parsed.toolCalls;
-        currentContent = parsed.fullContent;
-    }
-
-    if (round >= MAX_TOOL_ROUNDS && pendingCalls.length > 0) {
-        console.warn(`[AI Stream] Reached max tool call rounds (${MAX_TOOL_ROUNDS}), stopping`);
-    }
-
-    return {
-        rounds: round,
-        executedTools,
-        lastToolCalls: pendingCalls.length,
-    };
-}
 
 export default app;

@@ -83,4 +83,23 @@ describe('reduceAIStreamEvent', () => {
       expect.objectContaining({ module: 'orders', reason: 'ai_created' })
     );
   });
+
+  it('keeps assistant draft text intact when action preview arrives', () => {
+    const state = {
+      actionCard: null,
+      toolStatus: '',
+      fullContent: '已解析到商品信息',
+      displayedContent: '已解析到商品信息',
+    };
+
+    reduceAIStreamEvent(
+      { type: 'action_preview', data: { sessionId: 'act-1', title: '确认预览' } },
+      state,
+      { publishRefresh: vi.fn() }
+    );
+
+    expect(state.actionCard).toEqual(expect.objectContaining({ type: 'action_preview', title: '确认预览' }));
+    expect(state.fullContent).toBe('已解析到商品信息');
+    expect(state.displayedContent).toBe('已解析到商品信息');
+  });
 });

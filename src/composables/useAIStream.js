@@ -6,6 +6,12 @@ import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useRequestAdapters } from '@/composables/useRequestAdapters';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
+import { classifyStreamFailure } from '@/composables/ai/streamErrorState';
+import {
+    createInitialAIChatSessionState,
+    finalizeAIChatSessionState,
+    reduceAIChatSessionEvent,
+} from '@/composables/ai/chatSessionState';
 
 /* global TextDecoder */
 
@@ -96,24 +102,40 @@ export function classifyAIStreamError(rawMessage = '') {
 export function reduceAIStreamEvent(event, state, { publishRefresh } = {}) {
     if (!event || typeof event !== 'object') return false;
 
-    if (event.type === 'slot_request' || event.type === 'action_preview') {
-        state.actionCard = {
-            type: event.type,
-            ...(event.data || {}),
-        };
-        return true;
-    }
-
-    if (event.type === 'action_submitted') {
-        state.actionCard = {
-            type: 'action_result',
-            ...(event.data || {}),
-        };
-        return true;
-    }
-
     if (event.type === 'module_refresh') {
         publishRefresh?.(event.data || {});
+        return true;
+    }
+
+    const nextState = reduceAIChatSessionEvent(event, {
+        ...createInitialAIChatSessionState(),
+        toolStatus: state.toolStatus || '',
+        fullContent: state.fullContent || '',
+        displayedContent: state.displayedContent || '',
+        actionState: {
+            status: state.actionCard?.type === 'slot_request'
+                ? 'collecting_slots'
+                : state.actionCard?.type === 'action_preview'
+                    ? 'awaiting_confirmation'
+                    : state.actionCard?.type === 'action_result'
+                        ? 'submitted'
+                        : 'idle',
+            card: state.actionCard || null,
+            error: null,
+        },
+    });
+
+    if (nextState.actionState.card) {
+        state.actionCard = nextState.actionState.card;
+        if (Object.prototype.hasOwnProperty.call(state, 'toolStatus')) {
+            state.toolStatus = nextState.toolStatus;
+        }
+        if (Object.prototype.hasOwnProperty.call(state, 'fullContent')) {
+            state.fullContent = nextState.fullContent;
+        }
+        if (Object.prototype.hasOwnProperty.call(state, 'displayedContent')) {
+            state.displayedContent = nextState.displayedContent;
+        }
         return true;
     }
 
@@ -130,6 +152,7 @@ export function useAIStream() {
     const isStreaming = ref(false);
     const toolStatus = ref('');
     const actionCard = ref(null);
+    const sessionState = ref(createInitialAIChatSessionState());
 
     // 请求取消控制器
     let abortController = null;
@@ -167,7 +190,14 @@ export function useAIStream() {
         isStreaming.value = false;
         toolStatus.value = '';
         actionCard.value = null;
+        sessionState.value = reduceAIChatSessionEvent({ type: 'request_started' }, sessionState.value);
         resetTypewriter();
+
+        const syncSessionState = (nextState) => {
+            sessionState.value = nextState;
+            toolStatus.value = nextState.toolStatus;
+            actionCard.value = nextState.actionState.card;
+        };
 
         try {
             const response = await requestAuth(API_URLS.AI.STREAM, {
@@ -193,13 +223,15 @@ export function useAIStream() {
                 const parsedEvents = parser.feed(chunk);
 
                 for (const event of parsedEvents) {
-                    const handledActionEvent = reduceAIStreamEvent(event, { actionCard: actionCard.value }, { publishRefresh });
+                    const handledActionEvent = reduceAIStreamEvent(event, {
+                        actionCard: actionCard.value,
+                        toolStatus: toolStatus.value,
+                        fullContent: sessionState.value.fullContent,
+                        displayedContent: sessionState.value.displayedContent,
+                    }, { publishRefresh });
                     if (handledActionEvent) {
                         if (event.type !== 'module_refresh') {
-                            actionCard.value = {
-                                type: event.type === 'action_submitted' ? 'action_result' : event.type,
-                                ...(event.data || {}),
-                            };
+                            syncSessionState(reduceAIChatSessionEvent(event, sessionState.value));
                         }
                         continue;
                     }
@@ -207,19 +239,22 @@ export function useAIStream() {
                     if (event.type === 'text_delta' && event.data?.content) {
                         const cleaned = sanitizer.push(event.data.content);
                         if (cleaned) {
+                            syncSessionState(reduceAIChatSessionEvent({ type: 'text_delta', data: { content: cleaned } }, sessionState.value));
                             pushToTypewriter(cleaned);
                         }
                     } else if (event.type === 'content_block') {
                         if (event.data?.type === 'table' && event.data?.content) {
                             // 表格内容（工具调用结果）直接推送
+                            syncSessionState(reduceAIChatSessionEvent({ type: 'content_block', data: { content: event.data.content } }, sessionState.value));
                             pushToTypewriter(event.data.content);
                         } else if (event.data?.content) {
+                            syncSessionState(reduceAIChatSessionEvent({ type: 'content_block', data: { content: event.data.content } }, sessionState.value));
                             pushToTypewriter(event.data.content);
                         }
                     } else if (event.type === 'tool_call') {
-                        toolStatus.value = event.data?.name || '';
+                        syncSessionState(reduceAIChatSessionEvent(event, sessionState.value));
                     } else if (event.type === 'tool_result') {
-                        toolStatus.value = '';
+                        syncSessionState(reduceAIChatSessionEvent(event, sessionState.value));
                     } else if (event.type === 'model_switch') {
                         // 模型切换通知
                         addToast({
@@ -227,6 +262,15 @@ export function useAIStream() {
                             type: 'info'
                         });
                     } else if (event.type === 'error') {
+                        syncSessionState(reduceAIChatSessionEvent(event, sessionState.value));
+                        const structured = classifyStreamFailure(event.data || {});
+                        if (structured.category === 'tool_error' || structured.category === 'action_error') {
+                            addToast({ message: structured.userMessage || t('ai.error'), type: 'error' });
+                            const structuredError = new Error(structured.userMessage || 'Stream Error');
+                            structuredError.isHandled = true;
+                            structuredError.category = structured.category;
+                            throw structuredError;
+                        }
                         const classified = classifyAIStreamError(event.data?.message || '');
                         if (classified.kind === 'image_input_format') {
                             addToast({
@@ -253,8 +297,10 @@ export function useAIStream() {
 
             const finalSanitized = sanitizer.flush();
             if (finalSanitized) {
+                syncSessionState(reduceAIChatSessionEvent({ type: 'text_delta', data: { content: finalSanitized } }, sessionState.value));
                 pushToTypewriter(finalSanitized);
             }
+            syncSessionState(finalizeAIChatSessionState(sessionState.value));
         } catch (err) {
             // 忽略用户主动取消的请求
             if (err.name === 'AbortError') {

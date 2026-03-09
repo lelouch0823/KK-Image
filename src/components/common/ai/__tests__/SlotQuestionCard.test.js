@@ -55,11 +55,12 @@ describe('SlotQuestionCard', () => {
     expect(wrapper.text()).toContain('广州店');
   });
 
-  it('marks the selected candidate button as active and disables further clicks', async () => {
+  it('allows reselecting a candidate before submission instead of hard-locking the field', async () => {
     const wrapper = mount(SlotQuestionCard, {
       props: {
         action: {
-          missingSlots: ['salespersonId'],
+          missingSlots: ['salespersonId', 'productId'],
+          currentFieldKey: 'salespersonId',
           fields: [
             {
               key: 'salespersonId',
@@ -80,12 +81,14 @@ describe('SlotQuestionCard', () => {
     await first.trigger('click');
 
     expect(first.attributes('data-selected')).toBe('true');
-    expect(first.attributes('disabled')).toBeDefined();
-    expect(second.attributes('disabled')).toBeDefined();
+    expect(wrapper.text()).toContain('当前补槽字段');
+
+    await wrapper.find('[data-testid="reselect-salespersonId"]').trigger('click');
 
     await second.trigger('click');
 
-    expect(wrapper.emitted('select')).toHaveLength(1);
+    expect(second.attributes('data-selected')).toBe('true');
+    expect(wrapper.emitted('select')).toHaveLength(2);
   });
 
   it('clears local selected state when the action payload changes', async () => {

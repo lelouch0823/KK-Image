@@ -8,6 +8,9 @@
     </div>
     <p class="mt-3 text-sm font-semibold text-(--text-main)">还需要补充信息</p>
     <p class="mt-1 text-sm leading-6 text-(--text-secondary)">{{ promptText }}</p>
+    <p v-if="currentFieldLabel" class="mt-2 text-xs font-medium text-(--text-main)">
+      当前补槽字段：{{ currentFieldLabel }}
+    </p>
     <div class="mt-3 flex flex-wrap gap-2">
       <span
         v-for="item in missingSlots"
@@ -56,7 +59,17 @@
           v-if="selectedCandidates[field.key]"
           class="border-primary/20 bg-primary/5 mt-3 rounded-lg border px-3 py-2"
         >
-          <p class="text-xs font-medium text-(--text-main)">已选择</p>
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-xs font-medium text-(--text-main)">已选择</p>
+            <button
+              :data-testid="`reselect-${field.key}`"
+              type="button"
+              class="text-primary text-xs font-medium"
+              @click="clearSelection(field.key)"
+            >
+              重新选择
+            </button>
+          </div>
           <p class="mt-1 text-sm font-medium text-(--text-main)">{{ selectedCandidates[field.key].label || selectedCandidates[field.key].value }}</p>
           <p v-if="selectedCandidates[field.key].description" class="mt-1 text-xs text-(--text-secondary)">
             {{ selectedCandidates[field.key].description }}
@@ -86,6 +99,12 @@ const candidateGroups = computed(() => {
   const fields = Array.isArray(props.action?.fields) ? props.action.fields : [];
   return fields.filter((field) => Array.isArray(field?.candidates) && field.candidates.length > 0);
 });
+const currentFieldLabel = computed(() => {
+  const currentKey = String(props.action?.currentFieldKey || '').trim();
+  if (!currentKey) return '';
+  const currentField = candidateGroups.value.find((field) => field.key === currentKey);
+  return currentField?.label || currentKey;
+});
 const promptText = computed(() => {
   if (typeof props.action?.prompt === 'string' && props.action.prompt.trim()) return props.action.prompt;
   return missingSlots.value.length > 0
@@ -100,6 +119,12 @@ const handleSelect = (fieldKey, candidate, index) => {
     [fieldKey]: candidate,
   };
   emit('select', { fieldKey, candidate, index });
+};
+
+const clearSelection = (fieldKey) => {
+  const nextSelected = { ...selectedCandidates.value };
+  delete nextSelected[fieldKey];
+  selectedCandidates.value = nextSelected;
 };
 
 watch(

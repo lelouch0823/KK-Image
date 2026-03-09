@@ -446,4 +446,48 @@ describe('manage ai routes - variant tool integration', () => {
     expect(Array.isArray(firstCallTools)).toBe(true);
     expect(firstCallTools.length).toBeGreaterThan(0);
   });
+
+  it('POST /stream returns a structured error event when tool rounds are exhausted', async () => {
+    parseSSEChunk.mockImplementation((raw) => {
+      const text = String(raw || '');
+      if (text.includes('[DONE]')) return [{ done: true }];
+      return [{
+        choices: [{
+          delta: {
+            tool_calls: [{
+              index: 0,
+              id: 'tc_1',
+              function: { name: 'searchVariants', arguments: '{"search":"scale"}' },
+            }],
+          },
+        }],
+      }];
+    });
+
+    callAIStream.mockImplementation(async () => ({
+      body: createSSEReadable(['tool-call-round-repeat']),
+      model: 'model-a',
+      switched: false,
+    }));
+    executeAITool.mockResolvedValue({ items: [{ id: 'v-1' }] });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/ai/stream',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: '帮我查变体' }],
+          context: {},
+        }),
+      },
+      { DB: createDbWithSettingsRows([]) }
+    );
+
+    const text = await res.text();
+    expect(res.status).toBe(200);
+    expect(text).toContain('"type":"tool_round_exhausted"');
+    expect(text).toContain('当前请求过于复杂');
+  });
 });

@@ -71,19 +71,11 @@
             :is-generating-report="isGeneratingReport"
             @generate-report="generateReport"
           />
-          <SlotQuestionCard
-            v-if="actionCard?.type === 'slot_request'"
+          <AIChatActionPanel
+            v-if="actionCard"
             :action="actionCard"
             @select="handleCandidateSelect"
-          />
-          <ActionPreviewCard
-            v-else-if="actionCard?.type === 'action_preview'"
-            :action="actionCard"
             @confirm="confirmAction"
-          />
-          <ActionResultCard
-            v-else-if="actionCard?.type === 'action_result'"
-            :action="actionCard"
           />
         </div>
 
@@ -175,21 +167,18 @@ import { ref, nextTick, watch, computed, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useDraggable, useStorage, useWindowSize } from '@vueuse/core';
 import { API as API_URLS } from '@/utils/constants';
-import { renderMarkdown, fixIncompleteMarkdown } from '@/utils/ai-markdown';
 import ChatMessage from '@/components/common/ai/ChatMessage.vue';
 import AISuggestions from '@/components/common/ai/AISuggestions.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { useI18n } from '@/composables/useI18n';
 import { useAI } from '@/composables/useAI';
+import { useAIChatSession } from '@/composables/useAIChatSession';
 import { useAIStream } from '@/composables/useAIStream';
 import { useImageCompression } from '@/composables/useImageCompression';
 import { useToast } from '@/composables/useToast';
 import { useRequestAdapters } from '@/composables/useRequestAdapters';
-import { throttle } from '@/utils/performance';
 import { inferCurrentView, inferAIEntityContext } from '@/components/common/ai/context-inference';
-import SlotQuestionCard from '@/components/common/ai/SlotQuestionCard.vue';
-import ActionPreviewCard from '@/components/common/ai/ActionPreviewCard.vue';
-import ActionResultCard from '@/components/common/ai/ActionResultCard.vue';
+import AIChatActionPanel from '@/components/common/ai/AIChatActionPanel.vue';
 
 const { isOpen, close, context, setContext } = useAI();
 const { t } = useI18n();
@@ -299,48 +288,6 @@ const { compressImageToDataUrl } = useImageCompression({
   applyWatermark: false,
 });
 
-const createWelcomeMessage = () => ({
-  role: 'assistant',
-  content: t('ai.welcome'),
-  html: renderMarkdown(t('ai.welcome'))
-});
-
-const normalizeUserContentParts = (content) => {
-  if (!Array.isArray(content)) return null;
-  const parts = content.filter((part) => {
-    if (part?.type === 'text' && typeof part.text === 'string') return true;
-    if (part?.type === 'image_url' && typeof part.image_url?.url === 'string') return true;
-    return false;
-  });
-  return parts.length > 0 ? parts : null;
-};
-
-const normalizeStoredMessages = (raw) => {
-  if (!Array.isArray(raw)) return [createWelcomeMessage()];
-  const normalized = raw
-    .map((msg) => {
-      if (msg?.role === 'assistant' && typeof msg.content === 'string') {
-        return {
-          role: 'assistant',
-          content: msg.content,
-          html: typeof msg.html === 'string' && msg.html ? msg.html : renderMarkdown(msg.content),
-        };
-      }
-      if (msg?.role === 'user') {
-        const userParts = normalizeUserContentParts(msg.content);
-        if (!userParts) return null;
-        return {
-          role: 'user',
-          content: userParts,
-          html: '',
-        };
-      }
-      return null;
-    })
-    .filter(Boolean);
-  return normalized.length > 0 ? normalized : [createWelcomeMessage()];
-};
-
 const handleFile = async (file) => {
   if (!file || (!file.type.startsWith('image/') && !file.name?.match(/\.(jpg|jpeg|png|webp|gif)$/i))) {
     addToast({ message: t('ai.onlyImages', '仅支持图片格式文件'), type: 'error' });
@@ -426,6 +373,19 @@ const handleSuggestion = (text) => {
   sendMessage();
 };
 
+const {
+  messages,
+  appendUserMessage,
+  beginAssistantDraft,
+  applyStreamState,
+  finalizeAssistantDraft,
+  discardEmptyAssistantDraft,
+  resetMessages,
+  removeImagesFromLatestUserMessage,
+} = useAIChatSession({
+  welcomeContent: t('ai.welcome'),
+});
+
 const { 
   stream: startAIStream,
   fullContent,
@@ -455,43 +415,11 @@ const shouldShowReportButtonForMessage = (msg, index) => {
   return msg.content?.includes('[REPORT_AVAILABLE]');
 };
 
-// SOTA: Throttled Markdown rendering - use fullContent for proper parsing
-const throttledRender = throttle((content, targetMsg) => {
-  if (targetMsg) {
-    targetMsg.html = renderMarkdown(content);
-    scrollToBottom();
-  }
-}, 100);
-
 // Listen for streaming content updates
 // Use fullContent for markdown rendering (complete text), streamContent for display
 watch([fullContent, streamContent], ([full, displayed]) => {
-  if (messages.value.length > 0) {
-    const lastMsg = messages.value[messages.value.length - 1];
-    if (lastMsg.role === 'assistant') {
-      lastMsg.content = displayed; // For typewriter display
-      // Use fullContent for markdown rendering (contains complete text)
-      throttledRender(full, lastMsg);
-    }
-  }
-});
-
-const messages = useStorage('ai-chat-messages-v2', [createWelcomeMessage()]);
-messages.value = normalizeStoredMessages(messages.value);
-
-// SOTA: 流式输出彻底结束后进行一次性的词法补全纠错与数据落地定型
-watch(isAIStreaming, (streaming, oldStreaming) => {
-  if (oldStreaming === true && streaming === false && messages.value.length > 0) {
-    const lastMsg = messages.value[messages.value.length - 1];
-    if (lastMsg.role === 'assistant' && fullContent.value) {
-      const fixedContent = fixIncompleteMarkdown(fullContent.value);
-      // 永久保存纠正后的源码防止历史记录损坏
-      lastMsg.content = fixedContent; 
-      // 强制执行最后一次满血渲染
-      lastMsg.html = renderMarkdown(fixedContent);
-      scrollToBottom();
-    }
-  }
+  applyStreamState({ fullContent: full, displayedContent: displayed });
+  scrollToBottom();
 });
 
 const scrollToBottom = async () => {
@@ -523,7 +451,7 @@ watch([streamContent, fullContent, toolStatus, isAIStreaming, isAwaitingAssistan
 
 const clearHistory = () => {
   if (confirm(t('ai.clearConfirm'))) {
-    messages.value = [createWelcomeMessage()];
+    resetMessages();
   }
 };
 
@@ -555,7 +483,7 @@ const sendMessage = async () => {
     userParts.push({ type: 'image_url', image_url: { url: currentImage } });
   }
 
-  messages.value.push({ role: 'user', content: userParts, html: '' });
+  appendUserMessage(userParts);
   userInput.value = '';
   attachedImage.value = null;
   // loading state managed by useAIStream
@@ -566,7 +494,7 @@ const sendMessage = async () => {
   await scrollToBottom();
 
   // Add placeholder for assistant response
-  messages.value.push({ role: 'assistant', content: '', html: '' });
+  beginAssistantDraft();
   
   const historyToSend = messages.value.slice(-8, -1).map(({ role, content }) => ({ role, content }));
 
@@ -584,25 +512,13 @@ const sendMessage = async () => {
         addToast({ message: t('ai.modelImageNotSupported', '当前模型不支持识别图片，请移除图片或切换模型。'), type: 'error' });
         finalAssistantContent = finalAssistantContent.replace('[IMAGE_UNSUPPORTED]', '').trim();
       }
-
-      lastMsg.content = finalAssistantContent;
-      lastMsg.html = renderMarkdown(finalAssistantContent);
-      if (!lastMsg.content) {
-        messages.value.pop();
-      }
+      finalizeAssistantDraft(finalAssistantContent);
     }
   } catch (_err) {
     // Error is handled in useAIStream (toast)
-    const lastMsg = messages.value[messages.value.length - 1];
-    if (lastMsg?.role === 'assistant' && !lastMsg.content && !lastMsg.html) {
-      messages.value.pop();
-    }
+    discardEmptyAssistantDraft();
     if (_err?.isImageError) {
-      const lastUserMessage = [...messages.value].reverse().find((item) => item?.role === 'user');
-      const userPartsInHistory = normalizeUserContentParts(lastUserMessage?.content);
-      if (lastUserMessage && userPartsInHistory) {
-        lastUserMessage.content = userPartsInHistory.filter((part) => part.type !== 'image_url');
-      }
+      removeImagesFromLatestUserMessage();
     }
   } finally {
     const elapsed = Date.now() - awaitingSince.value;
