@@ -18,6 +18,10 @@ import { extractToolCallsFromText, ContentGate } from '../../../../utils/ai-stre
 import { DateUtils } from '../../../../api/utils/date.js';
 import { success } from '../../../../api/utils/response.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { AIActionOrchestrator } from '../../../../ai/action-orchestrator.js';
+import { D1ActionSessionStore } from '../../../../ai/action-session-store.js';
+import { createActionSubmitters } from '../../../../ai/action-submitters.js';
+import { getActionAdapter } from '../../../../ai/action-registry.js';
 
 const app = new Hono();
 app.use('*', requirePermission('stats:read'));
@@ -212,6 +216,30 @@ function logInjectionTelemetry(channel, entries = []) {
     }));
 }
 
+function extractLatestUserText(history = []) {
+    if (!Array.isArray(history) || history.length === 0) return '';
+    for (let i = history.length - 1; i >= 0; i -= 1) {
+        const msg = history[i];
+        if (msg?.role !== 'user') continue;
+        return extractUserTextForDetection(msg.content);
+    }
+    return '';
+}
+
+function detectExplicitConfirmation(text = '') {
+    const normalized = String(text || '').trim();
+    if (!normalized) return false;
+    return /^(确认|确定|提交|创建吧|就这样|可以创建了)$/.test(normalized);
+}
+
+function createActionOrchestrator(env) {
+    return new AIActionOrchestrator({
+        sessionStore: new D1ActionSessionStore(env.DB),
+        getActionAdapter,
+        submitters: createActionSubmitters({}),
+    });
+}
+
 async function resolveAIRuntimeEnv(env) {
     try {
         const settingsRepo = new SettingsRepository(env.DB);
@@ -284,6 +312,23 @@ app.post('/chat', async (c) => {
         .flatMap((msg) => detectInjectionSignals(extractUserTextForDetection(msg.content)));
     logInjectionTelemetry('chat.user_input', userSignals);
     console.info('[AI Chat][InputModalities]', JSON.stringify(inputSummary));
+
+    const latestUserText = extractLatestUserText(history);
+    const actionOrchestrator = createActionOrchestrator(env);
+    const actionResult = await actionOrchestrator.advance({
+        userId: c.get('user')?.id || 'anonymous',
+        text: latestUserText,
+        confirmation: detectExplicitConfirmation(latestUserText),
+    });
+    if (actionResult) {
+        return success({
+            message: {
+                role: 'assistant',
+                content: actionResult.payload?.successMessage || actionResult.kind,
+                action: actionResult,
+            },
+        });
+    }
 
 
         const orderStatsRepo = new OrderStatsRepository(env.DB);
@@ -417,8 +462,34 @@ app.post('/stream', async (c) => {
     logInjectionTelemetry('stream.user_input', userSignals);
     console.info('[AI Stream][InputModalities]', JSON.stringify(inputSummary));
 
+    const latestUserText = extractLatestUserText(history);
+    const actionOrchestrator = createActionOrchestrator(env);
+    const actionResult = await actionOrchestrator.advance({
+        userId: c.get('user')?.id || 'anonymous',
+        text: latestUserText,
+        confirmation: detectExplicitConfirmation(latestUserText),
+    });
+
     return streamSSE(c, async (stream) => {
         try {
+            if (actionResult) {
+                await stream.writeSSE({ event: actionResult.kind, data: JSON.stringify(actionResult.payload || {}) });
+                if (actionResult.kind === 'action_submitted' && actionResult.payload?.targetModule) {
+                    await stream.writeSSE({
+                        event: 'module_refresh',
+                        data: JSON.stringify({
+                            module: actionResult.payload.targetModule,
+                            reason: 'ai_created',
+                            entityId: actionResult.payload.createdEntityId || null,
+                            timestamp: Date.now(),
+                            silent: true,
+                        }),
+                    });
+                }
+                await stream.writeSSE({ event: 'done', data: '{}' });
+                return;
+            }
+
             const orderStatsRepo = new OrderStatsRepository(env.DB);
             const systemStatsRepo = new SystemStatsRepository(env.DB);
             const orderRepo = new OrderRepository(env.DB);
