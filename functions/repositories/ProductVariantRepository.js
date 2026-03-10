@@ -356,7 +356,6 @@ export class ProductVariantRepository {
                         sku = excluded.sku,
                         price = excluded.price,
                         cost_price = excluded.cost_price,
-                        stock_quantity = excluded.stock_quantity,
                         alert_threshold = excluded.alert_threshold,
                         options_values = excluded.options_values,
                         variant_signature = excluded.variant_signature,

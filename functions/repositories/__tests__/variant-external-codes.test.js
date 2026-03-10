@@ -56,7 +56,7 @@ describe('ProductVariantRepository external codes', () => {
     expect(upsertStmt.params).toContain('SUP-TEE-Y-S');
   });
 
-  it('syncVariants should overwrite stock_quantity via upsert update clause', async () => {
+  it('syncVariants should keep stock_quantity out of the upsert update clause', async () => {
     await repo.syncVariants('product-1', [{
       id: 'variant-1',
       sku: 'SKU-1',
@@ -70,7 +70,7 @@ describe('ProductVariantRepository external codes', () => {
 
     const statements = db.batch.mock.calls[0][0];
     const upsertStmt = statements[1];
-    expect(upsertStmt.sql).toContain('stock_quantity = excluded.stock_quantity');
+    expect(upsertStmt.sql).not.toContain('stock_quantity = excluded.stock_quantity');
   });
 
   it('syncVariants should throw friendly error when barcode violates unique constraint', async () => {
