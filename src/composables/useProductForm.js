@@ -24,6 +24,10 @@ function normalizeCurrencyCode(value) {
   return CURRENCY_CODE_SET.has(code) ? code : 'CNY';
 }
 
+function isExistingVariantInEditMode(editModeRef, variant) {
+  return Boolean(editModeRef?.value && variant?.id);
+}
+
 /**
  * 安全解析 JSON 字符串
  */
@@ -656,11 +660,15 @@ export function useProductForm({ editMode, initialData, emit }) {
           })),
         variants: form.variants.map((variant) => {
           const { _clientKey, ...variantPayload } = variant;
-          return {
+          const payload = {
             ...variantPayload,
             barcode: String(variant.barcode || '').trim() || null,
             supplier_sku: String(variant.supplier_sku || '').trim() || null,
           };
+          if (isExistingVariantInEditMode(editMode, variant)) {
+            delete payload.stock_quantity;
+          }
+          return payload;
         }),
       };
 

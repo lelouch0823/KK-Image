@@ -82,6 +82,7 @@
                   <ProductVariantTable
                     v-model="form.variants"
                     :currency-symbol="CURRENCY_SYMBOLS[form.currency] || '¥'"
+                    :inventory-readonly="editMode"
                   />
                 </div>
 

@@ -109,6 +109,7 @@
               type="number"
               class="variant-input"
               placeholder="0"
+              :readonly="isStockReadonly(variant)"
               @input="(e) => updateVariantField(idx, 'stock_quantity', parseNumberInput(e.target.value))"
             >
           </td>
@@ -156,6 +157,10 @@ const props = defineProps({
         type: Array,
         default: () => []
     },
+    inventoryReadonly: {
+        type: Boolean,
+        default: false,
+    },
     /** 货币符号，默认 ¥ */
     currencySymbol: {
         type: String,
@@ -196,6 +201,7 @@ watch(() => props.modelValue, () => {
 }, { immediate: true });
 
 const getVariants = () => (Array.isArray(props.modelValue) ? props.modelValue : []);
+const isStockReadonly = (variant) => Boolean(props.inventoryReadonly && variant?.id);
 
 const emitNextVariants = (updater) => {
     const current = getVariants();
