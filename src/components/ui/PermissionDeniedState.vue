@@ -13,7 +13,7 @@
       <div class="min-w-0 flex-1">
         <h3 class="text-lg font-semibold text-amber-900 dark:text-amber-200">{{ titleText }}</h3>
         <p class="mt-1 text-sm leading-6 text-amber-800/90 dark:text-amber-100/90">{{ descriptionText }}</p>
-        <p v-if="reason" class="mt-2 break-words rounded-lg bg-amber-100/80 px-3 py-2 text-xs text-amber-900 dark:bg-amber-500/15 dark:text-amber-100">
+        <p v-if="reason" class="mt-2 rounded-lg bg-amber-100/80 px-3 py-2 text-xs break-words text-amber-900 dark:bg-amber-500/15 dark:text-amber-100">
           {{ reason }}
         </p>
         <div class="mt-4 flex flex-wrap items-center gap-2">

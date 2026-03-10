@@ -9,7 +9,12 @@
       "Bash(npx wrangler kv namespace delete:*)",
       "Bash(npx wrangler kv namespace create:*)",
       "Bash(pnpm build)",
-      "Bash(git -C \"O:\\\\Code\\\\KK-Image\" log:*)"
+      "Bash(git -C \"O:\\\\Code\\\\KK-Image\" log:*)",
+      "Bash(git -C \"O:\\\\Code\\\\KK-Image\" status --short)",
+      "Bash(git -C \"O:\\\\Code\\\\KK-Image\" diff --stat)",
+      "Bash(git -C \"O:\\\\Code\\\\KK-Image\" rev-parse HEAD)",
+      "Bash(git -C \"O:\\\\Code\\\\KK-Image\" log --oneline -6)",
+      "Bash(git -C \"O:\\\\Code\\\\KK-Image\" rev-parse HEAD~1)"
     ]
   }
 }

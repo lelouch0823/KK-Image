@@ -73,11 +73,6 @@ const ensureProductExists = async (productRepo, productId) => {
     return product;
 };
 
-const normalizeDimensionValues = (values = []) =>
-    (values || [])
-        .map((entry) => (typeof entry === 'string' ? entry : entry?.value))
-        .map((value) => String(value || '').trim())
-        .filter(Boolean);
 
 const hasOwnMeta = (value) =>
     value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, 'meta');

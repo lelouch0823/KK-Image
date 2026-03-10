@@ -21,7 +21,7 @@ export class PurchaseOrderRepository {
   async generatePoNo() {
     const now = new Date();
     // 使用中国时区
-    const dateStr = now.toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' })
+    now.toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' })
       .replace(/\//g, '')
       .replace(/(\d{4})(\d{1,2})(\d{1,2})/, (_, y, m, d) => `${y}${m.padStart(2, '0')}${d.padStart(2, '0')}`);
 

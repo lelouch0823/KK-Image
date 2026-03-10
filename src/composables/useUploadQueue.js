@@ -3,6 +3,7 @@ import { generateRandomId } from '@/utils/common';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useRequestAdapters } from '@/composables/useRequestAdapters';
+import { useImageCompression } from '@/composables/useImageCompression';
 import { API, MAX_UPLOAD_SIZE } from '@/utils/constants';
 
 // ============================================================
@@ -213,7 +214,6 @@ export function useUploadQueue() {
     if (finalFile.type.startsWith('image/') && finalFile.type !== 'image/gif') {
       item.status = 'compressing';
       try {
-        const { useImageCompression } = await import('@/composables/useImageCompression');
         const { compressImage } = useImageCompression();
 
         // compressImage 内部包含了 drawWatermark 的逻辑

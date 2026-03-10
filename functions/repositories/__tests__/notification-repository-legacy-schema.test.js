@@ -14,7 +14,7 @@ function createLegacySchemaDbStub() {
     const normalizedSql = String(sql || '');
 
     return {
-      bind(...params) {
+      bind(..._params) {
         return {
           async all() {
             if (normalizedSql.includes("WHERE receiver = 'admin'")) {

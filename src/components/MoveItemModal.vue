@@ -206,7 +206,6 @@ const confirmMove = async () => {
   const folders = props.itemsToMove.filter(i => i.type === 'folder').map(i => i.id);
   
   try {
-    let successCount = 0;
     
     // Batch move files
     if (files.length > 0) {
@@ -215,9 +214,7 @@ const confirmMove = async () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ids: files, targetFolderId: targetFolderId === 'root' ? null : targetFolderId }), // DB usually treats null as root for parent_id
        }).then(r => r.json());
-       
-       if (res.success) successCount++;
-       else throw new Error(res.message || 'File move failed');
+       if (!res.success) throw new Error(res.message || 'File move failed');
     }
     
     // Move folders individually (since we don't have batch move folder API yet, or we reuse updateFolder)
@@ -233,7 +230,6 @@ const confirmMove = async () => {
              if (!res.success) throw new Error(res.message);
           })
        ));
-       successCount++;
     }
 
     addToast({ message: t('moveFile.moveSuccess'), type: 'success' });

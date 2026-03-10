@@ -70,7 +70,7 @@
                 <span class="text-sm text-(--text-secondary)">{{ t('salesperson.accessLink') }}</span>
              </div>
              <div class="flex min-w-0 items-center gap-2">
-                 <div class="flex-1 break-all rounded border border-(--border-color) bg-(--bg-card) px-2 py-1.5 font-mono text-xs text-(--text-muted)" :title="accessUrl">
+                 <div class="flex-1 rounded border border-(--border-color) bg-(--bg-card) px-2 py-1.5 font-mono text-xs break-all text-(--text-muted)" :title="accessUrl">
                      {{ accessUrl }}
                  </div>
                  <button

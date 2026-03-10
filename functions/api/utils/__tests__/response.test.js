@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { jsonResponse, success, error } from '../response';
 
 // 模拟 Global Response 对象，因为 Vitest 环境中默认没有 Response

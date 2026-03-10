@@ -8,7 +8,7 @@ import {
   generateJWT,
   verifyApiKey,
   timingSafeCompare,
-  generateApiKey,
+
   ADMIN_AUTH_COOKIE
 } from '../auth';
 import { MSG } from '../messages';

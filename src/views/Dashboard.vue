@@ -3,7 +3,7 @@
     <!-- Fixed Background Gradient Mesh -->
     <div class="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       <!-- Top Left Blob -->
-      <div class="absolute -top-[10%] -left-[10%] size-[50%] rounded-full bg-primary/5 blur-[120px] dark:bg-primary/10"></div>
+      <div class="bg-primary/5 absolute -top-[10%] -left-[10%] size-[50%] rounded-full blur-[120px] dark:bg-primary/10"></div>
       <!-- Top Right Blob -->
       <div class="absolute top-[20%] right-[10%] size-[40%] rounded-full bg-purple-500/5 blur-[120px] dark:bg-purple-500/10"></div>
     </div>
@@ -173,7 +173,7 @@
                             @click="viewOrder(order)"
                         >
                             <div class="mb-1 flex items-start justify-between">
-                                <span class="font-mono text-xs font-medium text-primary group-hover:text-primary/80">
+                                <span class="text-primary font-mono text-xs font-medium group-hover:text-primary/80">
                                     {{ order.orderNo }}
                                 </span>
                                 <span class="rounded border border-(--border-subtle) bg-white px-1.5 py-0.5 text-[10px] text-(--text-secondary) dark:border-white/5 dark:bg-[#1a202c] dark:text-slate-500">
@@ -201,7 +201,7 @@
                 
                 <!-- Footer -->
                 <div class="border-t border-(--border-subtle) bg-(--bg-card) p-4 text-center dark:border-white/5 dark:bg-(--bg-card)/50">
-                    <router-link to="/orders?status=pending" class="flex w-full items-center justify-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80">
+                    <router-link to="/orders?status=pending" class="text-primary flex w-full items-center justify-center gap-1 text-xs font-medium transition-colors hover:text-primary/80">
                         {{ t('dashboard.viewAllPending') }}
                         <span class="material-symbols-outlined text-sm">arrow_forward</span>
                     </router-link>
@@ -244,7 +244,7 @@
                                 </div>
                                 <div>
                                     <div class="text-sm font-medium text-(--text-main)">{{ item.name }}</div>
-                                    <div class="cursor-pointer font-mono text-[10px] text-(--text-secondary) hover:text-primary dark:hover:text-primary/80" @click="handleCopyShareLink(item)">
+                                    <div class="hover:text-primary dark:hover:text-primary/80 cursor-pointer font-mono text-[10px] text-(--text-secondary)" @click="handleCopyShareLink(item)">
                                         {{ item.shareToken }}
                                     </div>
                                 </div>
@@ -259,7 +259,7 @@
                 <div class="border-t border-(--border-subtle) bg-(--bg-card) p-3 text-center dark:border-white/5 dark:bg-[#11141d]">
                     <AppButton
                         variant="secondary"
-                        class="w-full border-none! bg-transparent! text-primary hover:text-primary/80"
+                        class="text-primary w-full border-none! bg-transparent! hover:text-primary/80"
                         size="sm"
                         :text="t('dashboard.viewHistory')"
                         @click="showShareManager = true"
@@ -323,7 +323,7 @@
                 <div class="border-t border-(--border-subtle) bg-(--bg-card) p-3 text-center dark:border-white/5 dark:bg-[#11141d]">
                     <AppButton
                         variant="secondary"
-                        class="w-full border-none! bg-transparent! text-primary hover:text-primary/80"
+                        class="text-primary w-full border-none! bg-transparent! hover:text-primary/80"
                         size="sm"
                         :text="t('dashboard.browseAllFiles')"
                         @click="router.push('/admin/files')"

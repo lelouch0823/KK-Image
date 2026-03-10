@@ -39,7 +39,7 @@ vi.mock('../../../../../../repositories/ProductVariantRepository.js', () => ({
   ProductVariantRepository: class {
     syncVariants(...args) { return mockVariantRepo.syncVariants(...args); }
     findByProductId(...args) { return mockVariantRepo.findByProductId(...args); }
-    buildAuditEvents(...args) {
+    buildAuditEvents(..._args) {
       return [
         { variant_id: 'v1', product_id: 'p1', action: 'variant_updated', changes: { before: { price: 10 }, after: { price: 12 } } },
       ];

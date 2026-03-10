@@ -169,7 +169,7 @@
             <label
               v-for="option in getDimensionOptions(dimension)"
               :key="option.value"
-              class="focus-within:ring-primary/50 focus-within:ring-2 focus-within:ring-offset-1 relative min-w-0 rounded-lg focus-within:outline-none"
+              class="focus-within:ring-primary/50 focus-within:ring-2 focus-within:ring-offset-1 focus-within:outline-none relative min-w-0 rounded-lg"
               :class="[option.selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50']"
               :data-testid="getDimensionTestId(dimension)"
             >

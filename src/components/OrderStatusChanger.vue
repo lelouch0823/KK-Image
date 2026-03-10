@@ -75,12 +75,12 @@
             <div class="px-6 pb-4">
               <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <button
-                  type="button"
                   v-for="s in orderedStatusOptions"
                   :key="s"
+                  type="button"
                   :disabled="isOutOfFlowStatus(s) && !canUseForceOverride"
                   :aria-label="getStatusButtonAriaLabel(s)"
-                  class="focus-visible:ring-primary/30 relative flex cursor-pointer items-center gap-2.5 rounded-xl border-2 px-4 py-3 text-left transition-all duration-200 focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                  class="focus-visible:ring-primary/30 focus-visible:ring-2 focus-visible:outline-none relative flex cursor-pointer items-center gap-2.5 rounded-xl border-2 px-4 py-3 text-left transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50"
                   :class="[
                     selectedStatus === s
                       ? 'border-primary bg-primary/5 ring-primary/20 ring-2'
@@ -144,14 +144,14 @@
               <p
                 v-if="requiresForceOverride && !forceReasonValid"
                 role="alert"
-                class="mt-2 text-xs text-warning"
+                class="text-warning mt-2 text-xs"
               >
                 {{ t('order.manage.forceReasonRequired') }}
               </p>
             </div>
 
             <div v-if="requiresForceOverride" class="px-6 pb-4">
-              <div aria-live="polite" class="border-warning/30 bg-(--color-warning-bg)/50 rounded-xl border p-3">
+              <div aria-live="polite" class="border-warning/30 rounded-xl border bg-(--color-warning-bg)/50 p-3">
                 <p class="text-sm text-(--text-main)">
                   {{ t('order.manage.forceTransitionWarning') }}
                 </p>
@@ -222,7 +222,6 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { STATUS_OPTIONS, STATUS_STYLES, STATUS_DOTS } from '@/utils/status';
 import {
-  canTransitionOrderStatus,
   getAllowedOrderTransitions,
   hasForceStatusPermission,
   isHighRiskOrderStatus,

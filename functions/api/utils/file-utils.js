@@ -68,6 +68,7 @@ function getExtension(name) {
  * @param {string[]} allowed
  * @returns {boolean}
  */
+// eslint-disable-next-line no-unused-vars
 function isMimeAllowed(mimeType, allowed) {
   if (!mimeType) return false;
   return allowed.some((prefix) => mimeType.startsWith(prefix));
@@ -86,6 +87,7 @@ function resolveMaxSize(env, options) {
 /**
  * 获取允许的 MIME 前缀
  */
+// eslint-disable-next-line no-unused-vars
 function resolveAllowedMimes(options) {
   return options?.allowedMimePrefixes || DEFAULT_ALLOWED_MIME_PREFIXES;
 }
@@ -136,7 +138,6 @@ export async function storeFile(env, file, options = {}) {
     originalHash,
     folderId = 'root',
     createdBy,
-    skipTypeCheck = false,
   } = options;
 
   // ── 1. 基础验证 ──

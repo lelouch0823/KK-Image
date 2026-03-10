@@ -152,7 +152,10 @@ export default [
             // 允许 console（后端调试需要）
             "no-console": "off",
             // 禁止 debugger
-            "no-debugger": "warn"
+            "no-debugger": "warn",
+            // 禁用针对 JS 文件的 vue 误报规则
+            "vue/one-component-per-file": "off",
+            "vue/component-definition-name-casing": "off"
         }
     },
 

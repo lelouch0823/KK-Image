@@ -87,7 +87,7 @@
                 <div
                   v-for="(val, vIdx) in opt.values"
                   :key="vIdx"
-                  class="border-primary/20 bg-primary/10 text-primary flex min-w-0 max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-all hover:bg-primary/20"
+                  class="border-primary/20 bg-primary/10 text-primary flex max-w-full min-w-0 items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-all hover:bg-primary/20"
                 >
                   <!-- 动态交互设色圆点 -->
                   <label 
@@ -117,7 +117,7 @@
                   <div
                     v-for="(archived, aIdx) in opt.archivedValues"
                     :key="`${archived.id || archived.value}-${aIdx}`"
-                    class="flex min-w-0 max-w-full items-center gap-2 rounded-full border border-dashed border-(--border-strong) bg-(--bg-muted)/60 px-3 py-1.5 text-sm font-medium text-(--text-muted) transition-colors hover:border-(--border-color) hover:text-(--text-secondary)"
+                    class="flex max-w-full min-w-0 items-center gap-2 rounded-full border border-dashed border-(--border-strong) bg-(--bg-muted)/60 px-3 py-1.5 text-sm font-medium text-(--text-muted) transition-colors hover:border-(--border-color) hover:text-(--text-secondary)"
                   >
                     <span class="text-[10px]">[{{ t('product.form.archived_values', '已归档') }}]</span>
                     <span class="max-w-[10rem] truncate" :title="archived.value">{{ archived.value }}</span>

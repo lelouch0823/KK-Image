@@ -33,7 +33,7 @@
 <script setup>
 import CustomerDetailContent from './CustomerDetailContent.vue';
 
-const props = defineProps({
+defineProps({
   modelValue: Boolean,
   customer: { type: Object, default: () => ({}) },
 });

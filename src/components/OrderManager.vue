@@ -286,7 +286,6 @@ let stopOrdersRefreshSubscription = null;
 // Initialize Composables
 const {
   filterState,
-  filterDateRange,
   exporting,
   handleFilterChange,
   handleDashboardFilter,
@@ -317,7 +316,6 @@ const {
 
 const {
   selectedIds,
-  batchProcessing,
   confirmData,
   handleBatchAction,
   handleVoidOrder,
@@ -366,7 +364,6 @@ const mobileInfiniteScroll = useInfiniteScroll(async () => {
 
 // Wrappers to inject pagination
 const onEditSubmit = (payload) => handleEditSubmit(payload, pagination.page);
-const onBatchAction = (action) => handleBatchAction(action, pagination.page);
 
 // SOTA: 监听路由 query 中 salesperson 参数变化，响应从销售管理跳转过来的筛选
 watch(
