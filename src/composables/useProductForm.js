@@ -24,6 +24,11 @@ function normalizeCurrencyCode(value) {
   return CURRENCY_CODE_SET.has(code) ? code : 'CNY';
 }
 
+function formatSubmittedCurrency(value) {
+  const code = String(value || '').trim().toUpperCase();
+  return code || 'CNY';
+}
+
 function isExistingVariantInEditMode(editModeRef, variant) {
   return Boolean(editModeRef?.value && variant?.id);
 }
@@ -643,7 +648,7 @@ export function useProductForm({ editMode, initialData, emit }) {
         brand: form.brand,
         series: form.series,
         category: form.category,
-        currency: normalizeCurrencyCode(form.currency),
+        currency: formatSubmittedCurrency(form.currency),
         spu: form.spu || undefined,
         slug: form.slug || undefined,
         images: currentImageIds,

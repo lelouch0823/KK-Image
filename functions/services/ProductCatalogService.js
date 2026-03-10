@@ -9,14 +9,11 @@ import { normalizeProductCurrency } from '../lib/hono/routes/manage/products/cur
 import { scheduleProductCacheInvalidation } from '../lib/hono/routes/manage/products/cache-helpers.js';
 import { normalizeVariantDimensionKeys, normalizeVariantExternalCodes } from '../lib/hono/routes/manage/products/variant-normalizers.js';
 import { BadRequestError, ConflictError, NotFoundError } from '../lib/hono/errors.js';
-
-const REQUIRED_VARIANT_FIELDS = ['price', 'cost_price', 'stock_quantity', 'alert_threshold', 'status'];
+import { validateProductPayload } from '../lib/hono/routes/manage/products/product-schema.js';
 const PRODUCT_MUTABLE_FIELDS = new Set([
     'name', 'spu', 'slug', 'category', 'brand', 'series',
     'currency', 'description', 'images', 'specifications', 'options',
 ]);
-
-const isEmptyValue = (value) => value === undefined || value === null || value === '';
 
 const isVariantSyncValidationError = (error) => {
     const message = String(error?.message || '');
@@ -33,23 +30,6 @@ const normalizeMeta = (meta) => {
     if (meta === undefined || meta === null || meta === '') return null;
     return typeof meta === 'string' ? meta : JSON.stringify(meta);
 };
-
-function validateVariants(variants) {
-    if (!Array.isArray(variants) || variants.length === 0) {
-        throw new BadRequestError('At least one variant is required');
-    }
-
-    for (const [index, variant] of variants.entries()) {
-        if (!variant || typeof variant !== 'object') {
-            throw new BadRequestError(`Variant #${index + 1} is invalid`);
-        }
-        for (const field of REQUIRED_VARIANT_FIELDS) {
-            if (isEmptyValue(variant[field])) {
-                throw new BadRequestError(`Variant #${index + 1} missing required field: ${field}`);
-            }
-        }
-    }
-}
 
 function buildCatalogRollbackPayload(variants = []) {
     return (variants || []).map((variant) => ({
@@ -172,13 +152,8 @@ export class ProductCatalogService {
             throw new BadRequestError('Name is required');
         }
 
-        const normalizedCurrency = normalizeProductCurrency(body.currency);
-        if (!normalizedCurrency) {
-            throw new BadRequestError('Invalid currency code');
-        }
-
-        body.currency = normalizedCurrency;
-        validateVariants(body.variants);
+        body = validateProductPayload(body, { requireVariants: true });
+        body.currency = normalizeProductCurrency(body.currency);
 
         const normalizedSpu = typeof body.spu === 'string' ? body.spu.trim() : '';
         if (normalizedSpu) {
@@ -270,9 +245,7 @@ export class ProductCatalogService {
         if (nextBody.dimensions !== undefined) delete nextBody.dimensions;
 
         if (nextBody.currency !== undefined) {
-            const normalizedCurrency = normalizeProductCurrency(nextBody.currency);
-            if (!normalizedCurrency) throw new BadRequestError('Invalid currency code');
-            nextBody.currency = normalizedCurrency;
+            nextBody.currency = normalizeProductCurrency(nextBody.currency);
         }
 
         if (nextBody.variants !== undefined) {
@@ -283,8 +256,9 @@ export class ProductCatalogService {
                 normalizeVariantExternalCodes(nextBody.variants),
                 dimensions
             );
-            validateVariants(nextBody.variants);
         }
+
+        Object.assign(nextBody, validateProductPayload(nextBody));
 
         const hasProductFieldUpdates = Object.keys(nextBody).some((key) => PRODUCT_MUTABLE_FIELDS.has(key));
         if (!hasProductFieldUpdates) {
