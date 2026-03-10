@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
 import productsApp from '../index.js';
@@ -343,6 +345,16 @@ describe('Product Routes — variant-first contract', () => {
     });
 
     describe('POST /batch', () => {
+        it('delegates batch orchestration to ProductCatalogService instead of route-local rollback branches', () => {
+            const routePath = path.resolve(process.cwd(), 'functions/lib/hono/routes/manage/products/batch.js');
+            const source = fs.readFileSync(routePath, 'utf8');
+
+            expect(source).toContain('ProductCatalogService');
+            expect(source).toContain('batchImport');
+            expect(source).not.toContain('rollbackProductId');
+            expect(source).not.toContain('rollbackProductPayload');
+        });
+
         it('should reject item when product name is empty', async () => {
             const app = createApp();
             const res = await app.request(

@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { mergeIncomingWithExisting, buildVariantMatchKey } from '../../lib/hono/routes/manage/products/batch.js';
+import { ProductCatalogService } from '../../services/ProductCatalogService.js';
 
 describe('Product Import Variant Merge Logic', () => {
+    it('exposes batch import orchestration on ProductCatalogService', () => {
+        const service = new ProductCatalogService({});
+        expect(typeof service.batchImport).toBe('function');
+    });
     
     describe('buildVariantMatchKey', () => {
         it('uses variant_code primarily', () => {
