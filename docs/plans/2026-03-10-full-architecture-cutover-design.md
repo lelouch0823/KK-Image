@@ -205,6 +205,8 @@ Three gates are required.
 - per-variant reservation reconciliation
 - projection replay validation
 - procurement impact reconciliation
+- cutover runbook executed in downtime order
+- rollback trigger points documented before launch
 
 ### 6.2 Behavioral correctness
 
@@ -254,4 +256,3 @@ The cutover is complete only when all of the following are true:
 - all targeted test suites pass
 - migration reconciliation passes
 - the repository no longer contains old-architecture write paths
-
