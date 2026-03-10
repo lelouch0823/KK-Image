@@ -2,7 +2,9 @@ import { BadRequestError } from '../lib/hono/errors.js';
 
 const DEMAND_ACTIVE_STATUS = 'confirmed';
 const DEMAND_RELEASE_STATUSES = new Set(['void', 'rejected', 'cancelled']);
+const RESERVATION_ACTIVE_STATUSES = new Set(['confirmed', 'production', 'shipping']);
 const SHIPMENT_PREP_STATUSES = new Set(['shipping', 'delivered']);
+const SHIPMENT_CONSUME_STATUSES = new Set(['delivered']);
 
 export class DemandService {
   constructor(db) {
@@ -16,15 +18,33 @@ export class DemandService {
     }
 
     const normalizedFrom = String(fromStatus || '').trim() || null;
+    const entersReservation = !RESERVATION_ACTIVE_STATUSES.has(normalizedFrom) && RESERVATION_ACTIVE_STATUSES.has(normalizedTo);
+    const releasesReservation = RESERVATION_ACTIVE_STATUSES.has(normalizedFrom) && DEMAND_RELEASE_STATUSES.has(normalizedTo);
+    const consumesReservation = RESERVATION_ACTIVE_STATUSES.has(normalizedFrom) && SHIPMENT_CONSUME_STATUSES.has(normalizedTo);
+
     return {
       createsDemand: normalizedTo === DEMAND_ACTIVE_STATUS && normalizedFrom !== DEMAND_ACTIVE_STATUS,
       releasesDemand: normalizedFrom === DEMAND_ACTIVE_STATUS && DEMAND_RELEASE_STATUSES.has(normalizedTo),
       stockDeductionPending: SHIPMENT_PREP_STATUSES.has(normalizedTo),
+      entersReservation,
+      releasesReservation,
+      consumesReservation,
     };
   }
 
   async syncOrderTransition(payload = {}) {
-    return this.getTransitionEffect(payload);
+    const effect = this.getTransitionEffect(payload);
+    const quantity = Math.max(0, Number(payload?.quantity) || 0);
+
+    let reservationDelta = 0;
+    if (effect.entersReservation) reservationDelta += quantity;
+    if (effect.releasesReservation || effect.consumesReservation) reservationDelta -= quantity;
+
+    return {
+      ...effect,
+      reservationDelta,
+      shipmentDelta: effect.consumesReservation ? -quantity : 0,
+    };
   }
 
   async getDemandSummaryByVariant() {

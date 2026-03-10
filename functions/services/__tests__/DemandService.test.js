@@ -10,6 +10,11 @@ describe('DemandService', () => {
       createsDemand: true,
       releasesDemand: false,
       stockDeductionPending: false,
+      entersReservation: true,
+      releasesReservation: false,
+      consumesReservation: false,
+      reservationDelta: 0,
+      shipmentDelta: 0,
     });
   });
 
@@ -17,11 +22,11 @@ describe('DemandService', () => {
     const service = new DemandService({});
 
     await expect(service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'void' }))
-      .resolves.toMatchObject({ releasesDemand: true });
+      .resolves.toMatchObject({ releasesDemand: true, releasesReservation: true });
     await expect(service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'rejected' }))
-      .resolves.toMatchObject({ releasesDemand: true });
+      .resolves.toMatchObject({ releasesDemand: true, releasesReservation: true });
     await expect(service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'cancelled' }))
-      .resolves.toMatchObject({ releasesDemand: true });
+      .resolves.toMatchObject({ releasesDemand: true, releasesReservation: true });
   });
 
   it('flags shipping and delivered transitions for later stock deduction integration', async () => {
@@ -30,7 +35,7 @@ describe('DemandService', () => {
     await expect(service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'shipping' }))
       .resolves.toMatchObject({ stockDeductionPending: true });
     await expect(service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'delivered' }))
-      .resolves.toMatchObject({ stockDeductionPending: true });
+      .resolves.toMatchObject({ stockDeductionPending: true, consumesReservation: true });
   });
 
   it('aggregates confirmed demand by variant', async () => {
