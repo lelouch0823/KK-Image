@@ -36,14 +36,15 @@
     "qa:check-direct-protected-fetch": "node scripts/qa/check-direct-protected-fetch.mjs"
   },
   "dependencies": {
-    "@open-policy-agent/opa-wasm": "^1.10.0",
     "@hono/zod-validator": "^0.4.3",
+    "@open-policy-agent/opa-wasm": "^1.10.0",
     "@sentry/cloudflare": "^8.52.0",
     "@tanstack/vue-virtual": "^3.13.18",
     "@vueuse/core": "^14.1.0",
     "browser-image-compression": "^2.0.2",
     "chart.js": "^4.5.1",
     "chartjs-adapter-date-fns": "^3.0.0",
+    "cookie": "^1.1.1",
     "date-fns": "^4.1.0",
     "dompurify": "^3.3.1",
     "hono": "^4.11.7",
@@ -86,6 +87,6 @@
     "vitest": "^3.2.4",
     "wait-on": "^7.2.0",
     "workbox-window": "^7.4.0",
-    "wrangler": "^4.61.0"
+    "wrangler": "^4.71.0"
   }
 }
