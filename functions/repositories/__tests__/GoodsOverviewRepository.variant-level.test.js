@@ -24,7 +24,10 @@ describe('GoodsOverviewRepository variant-level', () => {
       sku: 'TEE-YELLOW-S',
       brand: 'KK',
       category: 'Top',
-      stock_quantity: 3,
+      stock_quantity: 7,
+      on_hand: 7,
+      reserved: 2,
+      available: 3,
       alert_threshold: 2,
       images: '[]',
       confirmed_qty: 2,
@@ -45,9 +48,12 @@ describe('GoodsOverviewRepository variant-level', () => {
     const sql = db.prepare.mock.calls[0][0];
     expect(sql).toContain('o.variant_id');
     expect(sql).toContain('GROUP BY o.variant_id');
+    expect(sql).toContain('inventory_balances');
     expect(list[0].id).toBe('var-1');
     expect(list[0].productId).toBe('prod-1');
     expect(list[0].productCode).toBe('P0001');
     expect(list[0].variantCode).toBe('V0001');
+    expect(list[0].stockQuantity).toBe(7);
+    expect(list[0].shortage).toBe(-1);
   });
 });

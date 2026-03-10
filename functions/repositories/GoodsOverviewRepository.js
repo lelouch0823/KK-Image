@@ -49,7 +49,9 @@ export class GoodsOverviewRepository {
       variantLabel,
       brand: row.brand || '',
       category: row.category || '',
-      stockQuantity: row.stock_quantity || 0,
+      stockQuantity: row.on_hand ?? row.stock_quantity ?? 0,
+      reservedQuantity: row.reserved || 0,
+      availableQuantity: row.available ?? row.stock_quantity ?? 0,
       alertThreshold: row.alert_threshold || 10,
       images,
       confirmedQty: row.confirmed_qty,
@@ -58,7 +60,7 @@ export class GoodsOverviewRepository {
       arrivedQty: row.arrived_qty,
       totalDemand: row.total_demand,
       orderCount: row.order_count,
-      shortage: calculateInventoryShortage(row.total_demand, row.stock_quantity),
+      shortage: calculateInventoryShortage(row.total_demand, row.available ?? row.stock_quantity),
       // 成本数据 (来自采购单明细聚合)
       avgUnitCost: Math.round(avgUnitCost * 100) / 100,
       avgFreight: Math.round(avgFreight * 100) / 100,
@@ -118,7 +120,10 @@ export class GoodsOverviewRepository {
             COALESCE(pv.sku, p.spu, '-') as sku,
             COALESCE(p.brand, json_extract(o.current_data, '$.brand'), '-') as brand,
             COALESCE(p.category, '-') as category,
-            COALESCE(pv.stock_quantity, 0) as stock_quantity,
+            COALESCE(ib.on_hand, pv.stock_quantity, 0) as stock_quantity,
+            COALESCE(ib.on_hand, pv.stock_quantity, 0) as on_hand,
+            COALESCE(ib.reserved, 0) as reserved,
+            COALESCE(ib.available, COALESCE(pv.stock_quantity, 0)) as available,
             COALESCE(pv.alert_threshold, 10) as alert_threshold,
             pv.options_values as variant_options,
             CASE
@@ -131,13 +136,14 @@ export class GoodsOverviewRepository {
             COALESCE(SUM(CASE WHEN o.status = 'arrived' THEN o.quantity ELSE 0 END), 0) as arrived_qty,
             COALESCE(SUM(o.quantity), 0) as total_demand,
             COUNT(o.id) as order_count,
-            COALESCE(SUM(o.quantity), 0) - COALESCE(MAX(pv.stock_quantity), 0) as shortage,
+            COALESCE(SUM(o.quantity), 0) - COALESCE(MAX(COALESCE(ib.available, pv.stock_quantity, 0)), 0) as shortage,
             COALESCE(pc.avg_unit_cost, 0) as avg_unit_cost,
             COALESCE(pc.avg_freight, 0) as avg_freight,
             COALESCE(pc.avg_tariff, 0) as avg_tariff
         FROM orders o
         LEFT JOIN products p ON o.product_id = p.id
         LEFT JOIN product_variants pv ON pv.id = o.variant_id
+        LEFT JOIN inventory_balances ib ON ib.variant_id = o.variant_id
         LEFT JOIN files fv ON fv.id = pv.image_id
         LEFT JOIN (
           SELECT variant_id,
@@ -233,9 +239,10 @@ export class GoodsOverviewRepository {
       this.db.prepare(`
         SELECT COUNT(*) as count FROM (
             SELECT o.variant_id as id,
-                COALESCE(SUM(o.quantity), 0) - COALESCE(MAX(pv.stock_quantity), 0) as shortage
+                COALESCE(SUM(o.quantity), 0) - COALESCE(MAX(COALESCE(ib.available, pv.stock_quantity, 0)), 0) as shortage
             FROM orders o
             LEFT JOIN product_variants pv ON pv.id = o.variant_id
+            LEFT JOIN inventory_balances ib ON ib.variant_id = o.variant_id
             WHERE o.status IN (${this.STATUS_IN_CLAUSE}) AND o.product_id IS NOT NULL
               AND o.variant_id IS NOT NULL
               AND pv.status = 'active'

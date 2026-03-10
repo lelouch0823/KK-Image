@@ -19,6 +19,14 @@ import { InventoryService } from './InventoryService.js';
 import { DemandService } from './DemandService.js';
 import { calculateInventoryShortage } from '../repositories/GoodsOverviewRepository.js';
 
+function resolveInventorySnapshot(row = {}) {
+  const onHand = Number(row.on_hand ?? row.stock_quantity ?? 0) || 0;
+  const reserved = Number(row.reserved ?? 0) || 0;
+  const available = Number(row.available ?? Math.max(onHand - reserved, 0)) || 0;
+
+  return { onHand, reserved, available };
+}
+
 function buildSuggestionPricing(row, lastPurchasePriceMap) {
   const variantCostPrice = Number(row.cost_price) || 0;
   const rawSuggested = Number(row.suggested_purchase_price) || 0;
@@ -249,11 +257,14 @@ export class PurchaseOrderService {
         p.brand,
         COALESCE(pv.cost_price, 0) AS cost_price,
         COALESCE(pv.suggested_purchase_price, 0) AS suggested_purchase_price,
-        COALESCE(pv.stock_quantity, 0) AS stock_quantity,
+        COALESCE(ib.on_hand, pv.stock_quantity, 0) AS on_hand,
+        COALESCE(ib.reserved, 0) AS reserved,
+        COALESCE(ib.available, COALESCE(pv.stock_quantity, 0)) AS available,
         p.images,
         pv.options_values AS variant_options
       FROM product_variants pv
       JOIN products p ON pv.product_id = p.id
+      LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
       WHERE pv.id IN (${placeholders})
         AND pv.status = 'active'
     `).bind(...variantIds).all();
@@ -269,8 +280,8 @@ export class PurchaseOrderService {
           order_ids: [],
         };
         const totalDemand = Number(demand.total_demand || 0);
-        const stockQuantity = Number(row.stock_quantity || 0);
-        const shortage = calculateInventoryShortage(totalDemand, stockQuantity);
+        const { onHand, available } = resolveInventorySnapshot(row);
+        const shortage = calculateInventoryShortage(totalDemand, available);
         return {
           ...buildSuggestionPricing(row, lastPurchasePriceMap),
           variant_id: row.variant_id,
@@ -281,7 +292,8 @@ export class PurchaseOrderService {
           sku: row.sku,
           brand: row.brand,
           cost_price: Number(row.cost_price) || 0,
-          stock_quantity: stockQuantity,
+          stock_quantity: onHand,
+          available_quantity: available,
           total_demand: totalDemand,
           shortage,
           order_count: Number(demand.order_count || 0),
