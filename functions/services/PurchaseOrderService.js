@@ -15,6 +15,7 @@ import { ProductVariantRepository } from '../repositories/ProductVariantReposito
 import { NotFoundError, BadRequestError } from '../lib/hono/errors.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 import { PO_TO_PROCUREMENT_STATUS_MAP } from '../api/utils/order-procurement-state-machine.js';
+import { InventoryService } from './InventoryService.js';
 
 function buildSuggestionPricing(row, lastPurchasePriceMap) {
   const variantCostPrice = Number(row.cost_price) || 0;
@@ -42,6 +43,7 @@ export class PurchaseOrderService {
     this.db = db;
     this.repo = new PurchaseOrderRepository(db);
     this.variantRepo = new ProductVariantRepository(db);
+    this.inventoryService = new InventoryService(db, this.variantRepo);
   }
 
   // ─── 状态机级联 (Cascading State Machine) ────────────
@@ -354,28 +356,14 @@ export class PurchaseOrderService {
       }
     }
 
-    const operator = direction === 'increment' ? '+' : '-';
-    const now = Date.now();
-
-    const stmts = [];
-    for (const [variantId, qty] of Object.entries(variantStockChanges)) {
-      stmts.push(
-        this.db.prepare(
-          `UPDATE product_variants
-           SET stock_quantity = MAX(0, stock_quantity ${operator} ?),
-               updated_at = ?
-           WHERE id = ?`
-        ).bind(qty, now, variantId)
-      );
-    }
-    if (stmts.length > 0) {
-      await this.db.batch(stmts);
-    }
-
-    return {
-      productCount: Object.keys(variantStockChanges).length,
-      totalQty: Object.values(variantStockChanges).reduce((a, b) => a + b, 0),
-    };
+    const type = direction === 'increment' ? 'purchase_arrival' : 'manual_adjustment';
+    const multiplier = direction === 'increment' ? 1 : -1;
+    const mutations = Object.entries(variantStockChanges).map(([variantId, qty]) => ({
+      type,
+      variantId,
+      quantityDelta: qty * multiplier,
+    }));
+    return this.inventoryService.applyBatch(mutations);
   }
 
   _parseJson(str) {
