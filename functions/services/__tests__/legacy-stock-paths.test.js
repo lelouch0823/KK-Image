@@ -37,7 +37,7 @@ function collectDirectStockWritePaths() {
 }
 
 describe('legacy stock mutation paths', () => {
-  it('does not leave direct product_variants stock writes outside InventoryService', () => {
+  it('does not leave direct business stock writes outside InventoryService internals', () => {
     const offenders = collectDirectStockWritePaths();
 
     expect(

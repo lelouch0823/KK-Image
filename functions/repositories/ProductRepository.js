@@ -19,14 +19,16 @@ export class ProductRepository {
         return `
             WITH variant_agg AS (
                 SELECT
-                    product_id,
+                    pv.product_id,
                     MIN(price) AS min_price,
                     MIN(COALESCE(cost_price, 0)) AS min_cost_price,
-                    SUM(COALESCE(stock_quantity, 0)) AS total_stock_quantity,
+                    SUM(COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS total_stock_quantity,
+                    SUM(COALESCE(ib.available, pv.stock_quantity, 0)) AS total_available_quantity,
                     MIN(COALESCE(alert_threshold, 10)) AS min_alert_threshold,
                     SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active_variant_count
-                FROM product_variants
-                GROUP BY product_id
+                FROM product_variants pv
+                LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
+                GROUP BY pv.product_id
             )
         `;
     }
@@ -39,6 +41,7 @@ export class ProductRepository {
                 COALESCE(va.min_price, 0) AS price,
                 COALESCE(va.min_cost_price, 0) AS cost_price,
                 COALESCE(va.total_stock_quantity, 0) AS stock_quantity,
+                COALESCE(va.total_available_quantity, COALESCE(va.total_stock_quantity, 0)) AS available_quantity,
                 COALESCE(va.min_alert_threshold, 10) AS alert_threshold,
                 CASE WHEN COALESCE(va.active_variant_count, 0) > 0 THEN 'active' ELSE 'archived' END AS derived_status
             FROM products p
@@ -261,21 +264,6 @@ export class ProductRepository {
     async findById(id) {
         const result = await this.db.prepare(this._productSelectSQL('p.id = ?')).bind(id).first();
         return this._parseResult(result);
-    }
-
-    /**
-     * 原子增减库存
-     * @param {string} productId
-     * @param {number} delta - 正数加库存，负数减库存
-     */
-    async adjustStock(productId, delta) {
-        const now = Date.now();
-        const result = await this.db.prepare(
-            `UPDATE product_variants
-             SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ?
-             WHERE product_id = ?`
-        ).bind(delta, now, productId).run();
-        return (result.meta?.changes || 0) > 0;
     }
 
     /**

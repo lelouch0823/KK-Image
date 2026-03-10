@@ -17,7 +17,6 @@ import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 import { PO_TO_PROCUREMENT_STATUS_MAP } from '../api/utils/order-procurement-state-machine.js';
 import { InventoryService } from './InventoryService.js';
 import { DemandService } from './DemandService.js';
-import { calculateInventoryShortage } from '../repositories/GoodsOverviewRepository.js';
 
 function resolveInventorySnapshot(row = {}) {
   const onHand = Number(row.on_hand ?? row.stock_quantity ?? 0) || 0;
@@ -281,7 +280,7 @@ export class PurchaseOrderService {
         };
         const totalDemand = Number(demand.total_demand || 0);
         const { onHand, available } = resolveInventorySnapshot(row);
-        const shortage = calculateInventoryShortage(totalDemand, available);
+        const shortage = Math.max(totalDemand - available, 0);
         return {
           ...buildSuggestionPricing(row, lastPurchasePriceMap),
           variant_id: row.variant_id,

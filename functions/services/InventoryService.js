@@ -94,7 +94,17 @@ export class InventoryService {
 
   async applyMutation(payload = {}) {
     const mutation = this.validateMutation(payload);
-    await this.variantRepo.adjustStock(mutation.variantId, mutation.quantityDelta);
+    if (typeof this.db?.prepare === 'function') {
+      await this.db.prepare(
+        `UPDATE product_variants
+         SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ?
+         WHERE id = ?`
+      ).bind(mutation.quantityDelta, Date.now(), mutation.variantId).run();
+    } else if (typeof this.variantRepo?.adjustStock === 'function') {
+      await this.variantRepo.adjustStock(mutation.variantId, mutation.quantityDelta);
+    } else {
+      throw new Error('InventoryService requires a DB handle or variant repository adjustStock implementation');
+    }
     return mutation;
   }
 

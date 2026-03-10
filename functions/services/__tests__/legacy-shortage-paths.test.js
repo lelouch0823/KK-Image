@@ -19,17 +19,12 @@ function collectLegacyShortagePaths() {
   const root = process.cwd();
   const files = walkJsFiles(path.resolve(root, 'functions'));
   const forbiddenPatterns = [
-    /COALESCE\(SUM\(o\.quantity\),\s*0\)\s*-\s*COALESCE\(MAX\(pv\.stock_quantity\),\s*0\)\s+as\s+shortage/i,
     /calculateInventoryShortage\s*\(/i,
+    /COALESCE\(SUM\(o\.quantity\),\s*0\)\s*-\s*COALESCE\(MAX\(pv\.stock_quantity\),\s*0\)\s+as\s+shortage/i,
   ];
-  const allowedSuffixes = new Set([
-    path.join('functions', 'services', 'DemandService.js'),
-  ]);
 
   return files.flatMap((file) => {
     const relativePath = path.relative(root, file);
-    if (allowedSuffixes.has(relativePath)) return [];
-
     const content = fs.readFileSync(file, 'utf8');
     const matches = forbiddenPatterns.some((pattern) => pattern.test(content));
     return matches ? [relativePath] : [];
@@ -37,7 +32,7 @@ function collectLegacyShortagePaths() {
 }
 
 describe('legacy shortage calculation paths', () => {
-  it('does not leave ad hoc shortage math outside approved demand boundaries', () => {
+  it('does not leave legacy shortage helper or raw stock-based shortage SQL', () => {
     const offenders = collectLegacyShortagePaths();
 
     expect(

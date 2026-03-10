@@ -89,19 +89,50 @@ export class ProductVariantRepository {
     }
 
     async findByProductId(productId) {
-        const results = await this.db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY created_at ASC').bind(productId).all();
+        const results = await this.db.prepare(`
+            SELECT
+                pv.*,
+                COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity,
+                COALESCE(ib.on_hand, pv.stock_quantity, 0) AS on_hand,
+                COALESCE(ib.reserved, 0) AS reserved,
+                COALESCE(ib.available, COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS available_quantity
+            FROM product_variants pv
+            LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
+            WHERE pv.product_id = ?
+            ORDER BY pv.created_at ASC
+        `).bind(productId).all();
         return (results.results || []).map(r => ({...r, options_values: JSON.parse(r.options_values || '{}')}));
     }
 
     async findById(variantId) {
-        const row = await this.db.prepare('SELECT * FROM product_variants WHERE id = ?').bind(variantId).first();
+        const row = await this.db.prepare(`
+            SELECT
+                pv.*,
+                COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity,
+                COALESCE(ib.on_hand, pv.stock_quantity, 0) AS on_hand,
+                COALESCE(ib.reserved, 0) AS reserved,
+                COALESCE(ib.available, COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS available_quantity
+            FROM product_variants pv
+            LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
+            WHERE pv.id = ?
+        `).bind(variantId).first();
         if (!row) return null;
         return { ...row, options_values: JSON.parse(row.options_values || '{}') };
     }
 
     async findByIdAndProductId(variantId, productId) {
         const row = await this.db
-            .prepare('SELECT * FROM product_variants WHERE id = ? AND product_id = ?')
+            .prepare(`
+                SELECT
+                    pv.*,
+                    COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity,
+                    COALESCE(ib.on_hand, pv.stock_quantity, 0) AS on_hand,
+                    COALESCE(ib.reserved, 0) AS reserved,
+                    COALESCE(ib.available, COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS available_quantity
+                FROM product_variants pv
+                LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
+                WHERE pv.id = ? AND pv.product_id = ?
+            `)
             .bind(variantId, productId)
             .first();
         if (!row) return null;
@@ -146,12 +177,17 @@ export class ProductVariantRepository {
         const sql = `
             SELECT
                 pv.*,
+                COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity,
+                COALESCE(ib.on_hand, pv.stock_quantity, 0) AS on_hand,
+                COALESCE(ib.reserved, 0) AS reserved,
+                COALESCE(ib.available, COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS available_quantity,
                 p.name AS product_name,
                 p.spu AS product_spu,
                 p.brand AS product_brand,
                 p.category AS product_category
             FROM product_variants pv
             JOIN products p ON p.id = pv.product_id
+            LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
             ${where}
             ORDER BY p.updated_at DESC, p.created_at DESC, pv.created_at ASC
             LIMIT ?
@@ -202,14 +238,6 @@ export class ProductVariantRepository {
         return variant;
     }
     
-    async adjustStock(variantId, delta) {
-        const timestamp = now();
-        const result = await this.db.prepare(
-            `UPDATE product_variants SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ? WHERE id = ?`
-        ).bind(delta, timestamp, variantId).run();
-        return result.meta?.changes > 0;
-    }
-
     async updateMovingAverageCost(variantId, newlyArrivedQuantity, totalArrivedCost) {
         const safeArrivedQty = Math.max(0, Number(newlyArrivedQuantity) || 0);
         if (!variantId || safeArrivedQty <= 0) return false;

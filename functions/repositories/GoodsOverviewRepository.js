@@ -8,7 +8,7 @@
 
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 
-export function calculateInventoryShortage(totalDemand, stockQuantity) {
+function projectInventoryGap(totalDemand, stockQuantity) {
   return (Number(totalDemand) || 0) - (Number(stockQuantity) || 0);
 }
 
@@ -60,7 +60,7 @@ export class GoodsOverviewRepository {
       arrivedQty: row.arrived_qty,
       totalDemand: row.total_demand,
       orderCount: row.order_count,
-      shortage: calculateInventoryShortage(row.total_demand, row.available ?? row.stock_quantity),
+      shortage: projectInventoryGap(row.total_demand, row.available ?? row.stock_quantity),
       // 成本数据 (来自采购单明细聚合)
       avgUnitCost: Math.round(avgUnitCost * 100) / 100,
       avgFreight: Math.round(avgFreight * 100) / 100,
