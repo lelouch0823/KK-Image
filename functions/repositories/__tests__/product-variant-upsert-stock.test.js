@@ -32,7 +32,7 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
     repo = new ProductVariantRepository(db);
   });
 
-  it('overwrites stock_quantity in upsert update clause', async () => {
+  it('does not overwrite stock_quantity in upsert update clause for existing variants', async () => {
     await repo.syncVariants('p-1', [
       {
         id: 'v-1',
@@ -47,7 +47,7 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
 
     const statements = db.batch.mock.calls[0][0];
     const upsertStmt = statements.find((stmt) => stmt.sql.includes('ON CONFLICT(id) DO UPDATE SET'));
-    expect(upsertStmt.sql).toContain('stock_quantity = excluded.stock_quantity');
+    expect(upsertStmt.sql).not.toContain('stock_quantity = excluded.stock_quantity');
   });
 
   it('keeps stock_quantity on insert bindings for new variants', async () => {
