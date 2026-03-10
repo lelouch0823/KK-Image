@@ -61,4 +61,44 @@ describe('DemandService', () => {
       },
     ]);
   });
+
+  it('aggregates active reservation demand beyond confirmed only', async () => {
+    const stmt = {
+      all: vi.fn(async () => ({
+        results: [
+          { variant_id: 'variant-1', total_demand: 9, order_count: 3, order_ids: 'o-1,o-2,o-3' },
+        ],
+      })),
+    };
+    const db = { prepare: vi.fn(() => stmt) };
+    const service = new DemandService(db);
+
+    const rows = await service.getDemandSummaryByVariant();
+    const sql = db.prepare.mock.calls[0][0];
+
+    expect(sql).toContain("o.status IN ('confirmed', 'production', 'shipping', 'arrived')");
+    expect(rows[0]).toMatchObject({
+      variant_id: 'variant-1',
+      total_demand: 9,
+      order_count: 3,
+    });
+  });
+
+  it('persists reservation projection and ledger rows when syncing transitions', async () => {
+    const run = vi.fn(async () => ({ meta: { changes: 1 } }));
+    const bind = vi.fn(() => ({ run }));
+    const prepare = vi.fn(() => ({ bind }));
+    const service = new DemandService({ prepare });
+
+    await service.syncOrderTransition({
+      orderId: 'o-1',
+      variantId: 'variant-1',
+      quantity: 4,
+      fromStatus: 'confirmed',
+      toStatus: 'delivered',
+    });
+
+    expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_balances'));
+    expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_ledger'));
+  });
 });

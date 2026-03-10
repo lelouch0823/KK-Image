@@ -1,3 +1,4 @@
+import { generateId } from '../api/utils/id.js';
 import { ProductVariantRepository } from '../repositories/ProductVariantRepository.js';
 import { BadRequestError } from '../lib/hono/errors.js';
 
@@ -95,11 +96,43 @@ export class InventoryService {
   async applyMutation(payload = {}) {
     const mutation = this.validateMutation(payload);
     if (typeof this.db?.prepare === 'function') {
+      const timestamp = Date.now();
       await this.db.prepare(
         `UPDATE product_variants
          SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ?
          WHERE id = ?`
-      ).bind(mutation.quantityDelta, Date.now(), mutation.variantId).run();
+      ).bind(mutation.quantityDelta, timestamp, mutation.variantId).run();
+
+      await this.db.prepare(
+        `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
+         VALUES (?, ?, 0, ?, ?)
+         ON CONFLICT(variant_id) DO UPDATE SET
+           on_hand = MAX(0, inventory_balances.on_hand + ?),
+           available = MAX(0, MAX(0, inventory_balances.on_hand + ?) - inventory_balances.reserved),
+           updated_at = excluded.updated_at`
+      ).bind(
+        mutation.variantId,
+        Math.max(mutation.quantityDelta, 0),
+        Math.max(mutation.quantityDelta, 0),
+        timestamp,
+        mutation.quantityDelta,
+        mutation.quantityDelta
+      ).run();
+
+      await this.db.prepare(
+        `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        generateId(),
+        mutation.variantId,
+        mutation.type,
+        mutation.quantityDelta,
+        payload.referenceType || 'inventory_service',
+        payload.referenceId || mutation.variantId,
+        timestamp,
+        JSON.stringify(payload.metadata || {}),
+        timestamp
+      ).run();
     } else if (typeof this.variantRepo?.adjustStock === 'function') {
       await this.variantRepo.adjustStock(mutation.variantId, mutation.quantityDelta);
     } else {

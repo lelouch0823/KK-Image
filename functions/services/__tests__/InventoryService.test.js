@@ -66,4 +66,22 @@ describe('InventoryService', () => {
     expect(variantRepo.adjustStock).toHaveBeenNthCalledWith(1, 'variant-1', 5);
     expect(variantRepo.adjustStock).toHaveBeenNthCalledWith(2, 'variant-2', -2);
   });
+
+  it('updates projection balances when a DB handle is available', async () => {
+    const run = vi.fn(async () => ({ meta: { changes: 1 } }));
+    const bind = vi.fn(() => ({ run }));
+    const prepare = vi.fn(() => ({ bind }));
+    const db = { prepare };
+    service = new InventoryService(db, variantRepo);
+
+    await service.applyMutation({
+      type: 'order_shipment',
+      variantId: 'variant-1',
+      quantityDelta: -3,
+    });
+
+    expect(prepare).toHaveBeenCalledWith(expect.stringContaining('UPDATE product_variants'));
+    expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_balances'));
+    expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_ledger'));
+  });
 });
