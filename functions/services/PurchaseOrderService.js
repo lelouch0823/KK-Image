@@ -17,6 +17,7 @@ import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 import { PO_TO_PROCUREMENT_STATUS_MAP } from '../api/utils/order-procurement-state-machine.js';
 import { InventoryService } from './InventoryService.js';
 import { DemandService } from './DemandService.js';
+import { calculateInventoryShortage } from '../repositories/GoodsOverviewRepository.js';
 
 function buildSuggestionPricing(row, lastPurchasePriceMap) {
   const variantCostPrice = Number(row.cost_price) || 0;
@@ -230,10 +231,16 @@ export class PurchaseOrderService {
    * @returns {Promise<Array>} 建议列表
    */
   async getSuggestions() {
-    // 获取有缺口的变体及关联的已确认订单
+    const demandRows = await this.demandService.getDemandSummaryByVariant();
+    const variantIds = demandRows.map((row) => row.variant_id).filter(Boolean);
+    if (variantIds.length === 0) {
+      return [];
+    }
+
+    const placeholders = variantIds.map(() => '?').join(',');
     const { results } = await this.db.prepare(`
-      SELECT 
-        o.variant_id AS variant_id,
+      SELECT
+        pv.id AS variant_id,
         p.id AS product_id,
         p.product_code AS product_code,
         pv.variant_code AS variant_code,
@@ -244,46 +251,48 @@ export class PurchaseOrderService {
         COALESCE(pv.suggested_purchase_price, 0) AS suggested_purchase_price,
         COALESCE(pv.stock_quantity, 0) AS stock_quantity,
         p.images,
-        pv.options_values AS variant_options,
-        COALESCE(SUM(o.quantity), 0) AS total_demand,
-        COALESCE(SUM(o.quantity), 0) - COALESCE(pv.stock_quantity, 0) AS shortage,
-        COUNT(o.id) AS order_count,
-        GROUP_CONCAT(DISTINCT o.id) AS order_ids
-      FROM orders o
-      JOIN products p ON o.product_id = p.id
-      JOIN product_variants pv ON o.variant_id = pv.id
-      WHERE o.status = 'confirmed'
-        AND o.product_id IS NOT NULL
-        AND o.variant_id IS NOT NULL
+        pv.options_values AS variant_options
+      FROM product_variants pv
+      JOIN products p ON pv.product_id = p.id
+      WHERE pv.id IN (${placeholders})
         AND pv.status = 'active'
-      GROUP BY o.variant_id
-      HAVING shortage > 0
-      ORDER BY shortage DESC
-    `).all();
+    `).bind(...variantIds).all();
 
-    const variantIds = results.map((row) => row.variant_id).filter(Boolean);
+    const demandByVariant = new Map(demandRows.map((row) => [row.variant_id, row]));
     const lastPurchasePriceMap = await this.repo.getLastPurchasePricesByVariant(variantIds);
 
-    return results.map(row => ({
-      ...buildSuggestionPricing(row, lastPurchasePriceMap),
-      variant_id: row.variant_id,
-      product_id: row.product_id,
-      product_code: row.product_code,
-      variant_code: row.variant_code,
-      product_name: row.product_name,
-      sku: row.sku,
-      brand: row.brand,
-      cost_price: Number(row.cost_price) || 0,
-      stock_quantity: row.stock_quantity,
-      total_demand: row.total_demand,
-      shortage: row.shortage,
-      order_count: row.order_count,
-      // 关联的预订单 ID 列表
-      order_ids: row.order_ids ? row.order_ids.split(',') : [],
-      images: this._parseJson(row.images),
-      variant_options: this._parseJson(row.variant_options),
-      variant_display_name: buildVariantDisplayName(this._parseJson(row.variant_options)),
-    }));
+    return results
+      .map((row) => {
+        const demand = demandByVariant.get(row.variant_id) || {
+          total_demand: 0,
+          order_count: 0,
+          order_ids: [],
+        };
+        const totalDemand = Number(demand.total_demand || 0);
+        const stockQuantity = Number(row.stock_quantity || 0);
+        const shortage = calculateInventoryShortage(totalDemand, stockQuantity);
+        return {
+          ...buildSuggestionPricing(row, lastPurchasePriceMap),
+          variant_id: row.variant_id,
+          product_id: row.product_id,
+          product_code: row.product_code,
+          variant_code: row.variant_code,
+          product_name: row.product_name,
+          sku: row.sku,
+          brand: row.brand,
+          cost_price: Number(row.cost_price) || 0,
+          stock_quantity: stockQuantity,
+          total_demand: totalDemand,
+          shortage,
+          order_count: Number(demand.order_count || 0),
+          order_ids: Array.isArray(demand.order_ids) ? demand.order_ids : [],
+          images: this._parseJson(row.images),
+          variant_options: this._parseJson(row.variant_options),
+          variant_display_name: buildVariantDisplayName(this._parseJson(row.variant_options)),
+        };
+      })
+      .filter((row) => row.shortage > 0)
+      .sort((a, b) => b.shortage - a.shortage);
   }
 
   /**
