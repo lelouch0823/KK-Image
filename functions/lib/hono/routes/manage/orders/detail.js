@@ -18,6 +18,7 @@ import {
     scheduleOrderMutationCachesInvalidation,
 } from './cache-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
+import { DemandService } from '../../../../../services/DemandService.js';
 
 const app = new Hono();
 const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
@@ -165,6 +166,16 @@ app.patch('/:id', async (c) => {
         forceStatusTransition,
     });
 
+    const nextStatus = finalUpdates?.status ?? order.status;
+    const demandService = new DemandService(env.DB);
+    await demandService.syncOrderTransition({
+        orderId: id,
+        fromStatus: order.status,
+        toStatus: nextStatus,
+        quantity: finalUpdates?.quantity ?? order.quantity,
+        variantId: normalizedVariantId ?? order.variantId,
+    });
+
     const notificationSalesTokens = await resolveSalesTokens(env.DB, [order.salespersonId]);
     scheduleOrderMutationCachesInvalidation(c, { salesTokens: notificationSalesTokens });
 
@@ -213,6 +224,15 @@ app.patch('/:id/status', async (c) => {
     }
 
     if (success) {
+        const demandService = new DemandService(env.DB);
+        await demandService.syncOrderTransition({
+            orderId: id,
+            fromStatus: oldStatus,
+            toStatus: status,
+            quantity: order.quantity,
+            variantId: order.variantId,
+        });
+
         // 记录状态变更到时间轴
         await repo.timelineRepo.addTimelineEntry(id, {
             actionType: 'status_changed',

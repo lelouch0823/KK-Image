@@ -16,6 +16,7 @@ import { NotFoundError, BadRequestError } from '../lib/hono/errors.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 import { PO_TO_PROCUREMENT_STATUS_MAP } from '../api/utils/order-procurement-state-machine.js';
 import { InventoryService } from './InventoryService.js';
+import { DemandService } from './DemandService.js';
 
 function buildSuggestionPricing(row, lastPurchasePriceMap) {
   const variantCostPrice = Number(row.cost_price) || 0;
@@ -44,6 +45,7 @@ export class PurchaseOrderService {
     this.repo = new PurchaseOrderRepository(db);
     this.variantRepo = new ProductVariantRepository(db);
     this.inventoryService = new InventoryService(db, this.variantRepo);
+    this.demandService = new DemandService(db);
   }
 
   // ─── 状态机级联 (Cascading State Machine) ────────────

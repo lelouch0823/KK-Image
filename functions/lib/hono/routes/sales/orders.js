@@ -14,6 +14,7 @@ import {
     scheduleSalesCommentCachesInvalidation,
     scheduleOrderAndSalespersonCacheInvalidation,
 } from './orders-cache-helpers.js';
+import { DemandService } from '../../../../services/DemandService.js';
 
 const app = new Hono();
 
@@ -104,6 +105,15 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
             actorId: salesperson.id,
             actorName: salesperson.name,
         },
+    });
+
+    const demandService = new DemandService(env.DB);
+    await demandService.syncOrderTransition({
+        orderId,
+        fromStatus: null,
+        toStatus: 'pending',
+        quantity: data.quantity,
+        variantId,
     });
 
     // 创建订单后将临时上传文件归档到订单目录，避免文件滞留在根目录
@@ -261,6 +271,18 @@ app.patch('/:id', async (c) => {
         reason: reason.trim(),
     });
 
+    const nextStatus = ['rejected', 'void'].includes(order.status)
+        ? 'pending'
+        : (updates?.status ?? order.status);
+    const demandService = new DemandService(env.DB);
+    await demandService.syncOrderTransition({
+        orderId,
+        fromStatus: order.status,
+        toStatus: nextStatus,
+        quantity: updates?.quantity ?? order.quantity,
+        variantId: normalizedVariantId ?? order.variantId,
+    });
+
     if (['rejected', 'void'].includes(order.status)) {
         await orderRepo.updateStatus(orderId, 'pending', 'sales');
     }
@@ -284,6 +306,15 @@ app.delete('/:id', async (c) => {
     if (order.status !== 'pending') throw new ForbiddenError(MSG.ORDER.ONLY_PENDING_CAN_VOID);
 
     await orderRepo.updateStatus(orderId, 'void', 'sales');
+
+    const demandService = new DemandService(env.DB);
+    await demandService.syncOrderTransition({
+        orderId,
+        fromStatus: order.status,
+        toStatus: 'void',
+        quantity: order.quantity,
+        variantId: order.variantId,
+    });
 
     // SOTA: 记录时间轴
     const { OrderTimelineRepository } = await import('../../../../repositories/OrderTimelineRepository.js');

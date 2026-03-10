@@ -5,6 +5,7 @@ import { ensureOrderFolder, moveFilesToFolder } from '../../../../../api/utils/f
 import { generateId, generateOrderNo, triggerWebhook } from '../../../_shared/utils.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { BadRequestError } from '../../../errors.js';
+import { DemandService } from '../../../../../services/DemandService.js';
 import {
   resolveSalesTokens,
   invalidateOrderNotificationCaches,
@@ -58,6 +59,15 @@ export async function createManagedOrder(c, body, user = c.get('user')) {
       actorName: user?.name || 'Admin',
       comment: 'Admin created order',
     },
+  });
+
+  const demandService = new DemandService(env.DB);
+  await demandService.syncOrderTransition({
+    orderId,
+    fromStatus: null,
+    toStatus: body.status || 'pending',
+    quantity: body.quantity || 1,
+    variantId,
   });
 
   const fileIds = Array.isArray(body.fileIds) ? body.fileIds.filter(Boolean) : [];
