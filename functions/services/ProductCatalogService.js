@@ -5,7 +5,6 @@ import { VariantImageRepository } from '../repositories/VariantImageRepository.j
 import { VariantAuditRepository } from '../repositories/VariantAuditRepository.js';
 import { resolveVariantImageSyncPlan } from '../lib/hono/routes/manage/products/variant-image-sync.js';
 import { archiveVariantImagesByFolder } from '../lib/hono/routes/manage/products/variant-image-folders.js';
-import { normalizeProductCurrency } from '../lib/hono/routes/manage/products/currency.js';
 import { scheduleProductCacheInvalidation } from '../lib/hono/routes/manage/products/cache-helpers.js';
 import { normalizeVariantDimensionKeys, normalizeVariantExternalCodes } from '../lib/hono/routes/manage/products/variant-normalizers.js';
 import { BadRequestError, ConflictError, NotFoundError } from '../lib/hono/errors.js';
@@ -153,7 +152,6 @@ export class ProductCatalogService {
         }
 
         body = validateProductPayload(body, { requireVariants: true });
-        body.currency = normalizeProductCurrency(body.currency);
 
         const normalizedSpu = typeof body.spu === 'string' ? body.spu.trim() : '';
         if (normalizedSpu) {
@@ -243,10 +241,6 @@ export class ProductCatalogService {
         const incomingDimensions = Array.isArray(body.dimensions) ? body.dimensions : null;
         const nextBody = { ...body };
         if (nextBody.dimensions !== undefined) delete nextBody.dimensions;
-
-        if (nextBody.currency !== undefined) {
-            nextBody.currency = normalizeProductCurrency(nextBody.currency);
-        }
 
         if (nextBody.variants !== undefined) {
             const dimensions = incomingDimensions
