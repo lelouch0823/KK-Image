@@ -158,6 +158,10 @@ P0 后的约束：
 - 成本核算与入库批次进一步耦合
 - 逐步将控制器中的流程编排迁移到显式 domain service
 
+补充迁移说明见：
+
+- `docs/plans/2026-03-10-product-module-inventory-ledger-followup.md`
+
 ---
 
 ## 5. 代码边界调整
