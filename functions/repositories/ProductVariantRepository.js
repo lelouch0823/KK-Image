@@ -76,6 +76,21 @@ export class ProductVariantRepository {
                     timestamp
                 )
             );
+            statements.push(
+                this.db.prepare(
+                    `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
+                     VALUES (?, ?, 0, ?, ?)
+                     ON CONFLICT(variant_id) DO UPDATE SET
+                        on_hand = excluded.on_hand,
+                        available = excluded.available,
+                        updated_at = excluded.updated_at`
+                ).bind(
+                    id,
+                    Number(v.stock_quantity) || 0,
+                    Number(v.stock_quantity) || 0,
+                    timestamp
+                )
+            );
             results.push({ ...v, id, sku, product_id: productId });
         }
         try {
@@ -410,6 +425,23 @@ export class ProductVariantRepository {
                     timestamp
                 )
             );
+            if (!targetExisting) {
+                statements.push(
+                    this.db.prepare(
+                        `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
+                         VALUES (?, ?, 0, ?, ?)
+                         ON CONFLICT(variant_id) DO UPDATE SET
+                            on_hand = excluded.on_hand,
+                            available = excluded.available,
+                            updated_at = excluded.updated_at`
+                    ).bind(
+                        id,
+                        Number(v.stock_quantity) || 0,
+                        Number(v.stock_quantity) || 0,
+                        timestamp
+                    )
+                );
+            }
             results.push({ ...v, id, sku, product_id: productId });
         }
 

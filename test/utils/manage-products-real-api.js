@@ -2,10 +2,19 @@ import assert from 'assert';
 import { describe, vi } from 'vitest';
 
 export const RUN_REAL_API_TESTS = process.env.RUN_REAL_API_TESTS === '1';
-export const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:8080';
 const BASIC_USER = process.env.BASIC_USER || 'admin';
 const BASIC_PASS = process.env.BASIC_PASS || '123';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
+
+export function getBaseUrl() {
+  const configured = String(process.env.BASE_URL || '').trim();
+  if (configured.startsWith('http://') || configured.startsWith('https://')) {
+    return configured;
+  }
+  return 'http://127.0.0.1:8080';
+}
+
+export const BASE_URL = getBaseUrl();
 
 export function describeIfRealApi(name, suiteFn) {
   const runner = RUN_REAL_API_TESTS ? describe : describe.skip;
@@ -24,7 +33,7 @@ export const uniqueSeed = (prefix = 'wf') =>
 
 export async function getBearerToken() {
   if (ADMIN_TOKEN) return ADMIN_TOKEN;
-  const response = await fetch(`${BASE_URL}/api/v1/auth/login`, {
+  const response = await fetch(`${getBaseUrl()}/api/v1/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -50,7 +59,7 @@ export async function apiRequest(path, {
   const headers = { 'Content-Type': 'application/json' };
   if (finalAuth) headers.Authorization = finalAuth;
 
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const response = await fetch(`${getBaseUrl()}${path}`, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,

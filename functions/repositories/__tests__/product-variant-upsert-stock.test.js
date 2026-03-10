@@ -67,4 +67,25 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
     const upsertStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO product_variants'));
     expect(upsertStmt.params).toContain(9);
   });
+
+  it('seeds inventory_balances for newly inserted variants', async () => {
+    await repo.createBatch('p-1', [
+      {
+        id: 'v-3',
+        sku: 'SKU-3',
+        price: 88,
+        cost_price: 44,
+        stock_quantity: 10,
+        alert_threshold: 2,
+        status: 'active',
+        options_values: { color: 'red' },
+      },
+    ]);
+
+    const statements = db.batch.mock.calls[0][0];
+    const balanceStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO inventory_balances'));
+    expect(balanceStmt).toBeDefined();
+    expect(balanceStmt.params).toContain('v-3');
+    expect(balanceStmt.params).toContain(10);
+  });
 });
