@@ -77,13 +77,13 @@
     <template #cell-stock="{ row }">
       <div class="flex items-center justify-center gap-2">
           <div :class="getStockColor(row)" class="text-sm font-semibold">
-              {{ row.stock_quantity || 0 }}
+              {{ resolveDisplayStock(row) }}
           </div>
           <!-- Low stock indicator dot -->
           <div
-               v-if="(row.stock_quantity || 0) <= (row.alert_threshold || 10)" 
+               v-if="resolveDisplayStock(row) <= (row.alert_threshold || 10)" 
                class="size-2 animate-pulse rounded-full"
-               :class="(row.stock_quantity || 0) === 0 ? 'bg-danger' : 'bg-warning'"
+               :class="resolveDisplayStock(row) === 0 ? 'bg-danger' : 'bg-warning'"
                :title="t('product.text.lowStock')"
           ></div>
       </div>
@@ -172,8 +172,11 @@ const columns = computed(() => [
 
 const getMainImageSrc = (product) => resolvePrimaryProductImageSrc(product);
 
+const resolveDisplayStock = (product) =>
+    Number(product?.available_quantity ?? product?.available ?? product?.stock_quantity ?? 0);
+
 const getStockColor = (p) => {
-    const qty = p.stock_quantity || 0;
+    const qty = resolveDisplayStock(p);
     const threshold = p.alert_threshold || 10;
     if (qty === 0) return 'text-danger font-bold';
     if (qty <= threshold) return 'text-warning font-bold';

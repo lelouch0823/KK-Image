@@ -52,7 +52,8 @@ describe('executeAITool - variant aware tools', () => {
         id: 'var-1',
         product_id: 'prod-1',
         options_values: { Color: 'Red', Size: '42' },
-        stock_quantity: 5,
+        stock_quantity: 8,
+        available_quantity: 5,
       }),
     };
     const productRepo = {
@@ -71,6 +72,7 @@ describe('executeAITool - variant aware tools', () => {
     expect(result).toEqual(
       expect.objectContaining({
         id: 'var-1',
+        available_quantity: 5,
         product: {
           id: 'prod-1',
           name: 'Sneaker',

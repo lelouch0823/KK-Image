@@ -158,9 +158,9 @@
                      <template #cell-price="{ row: variant }">
                          <span class="font-[Outfit] font-medium text-(--text-main)">{{ formatMoney(variant.price) }}</span>
                      </template>
-                     <template #cell-stock="{ row: variant }">
-                         <StatusBadge :variant="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'danger' : 'success'" :dot="true" class="rounded-full! px-2! py-0.5!">
-                             {{ variant.stock_quantity }}
+                      <template #cell-stock="{ row: variant }">
+                         <StatusBadge :variant="resolveVariantStock(variant) <= (variant.alert_threshold || product.alert_threshold || 10) ? 'danger' : 'success'" :dot="true" class="rounded-full! px-2! py-0.5!">
+                             {{ resolveVariantStock(variant) }}
                          </StatusBadge>
                      </template>
                  </AppTable>
@@ -176,8 +176,8 @@
                   </div>
                   <div class="mt-2 flex items-center justify-between text-xs">
                     <span class="text-(--text-secondary)">{{ t('product.table.variant.stock', 'Stock') }}</span>
-                    <span :class="variant.stock_quantity <= (variant.alert_threshold || product.alert_threshold || 10) ? 'text-danger' : 'text-success'">
-                      {{ variant.stock_quantity }}
+                    <span :class="resolveVariantStock(variant) <= (variant.alert_threshold || product.alert_threshold || 10) ? 'text-danger' : 'text-success'">
+                      {{ resolveVariantStock(variant) }}
                     </span>
                   </div>
                 </div>
@@ -315,11 +315,14 @@ const specs = computed(() => {
     }
 });
 
+const resolveVariantStock = (variant) =>
+    Number(variant?.available_quantity ?? variant?.available ?? variant?.stock_quantity ?? 0);
+
 const stockColorClass = computed(() => {
     // If variants exist, aggregate stock
-    let q = props.product.stock_quantity || 0;
+    let q = Number(props.product.available_quantity ?? props.product.available ?? props.product.stock_quantity ?? 0);
     if (props.product.variants && props.product.variants.length > 0) {
-        q = props.product.variants.reduce((sum, v) => sum + (v.stock_quantity || 0), 0);
+        q = props.product.variants.reduce((sum, v) => sum + resolveVariantStock(v), 0);
     }
     const t_val = props.product.alert_threshold || 10;
     if (q <= t_val) return 'text-danger font-bold';
@@ -327,9 +330,9 @@ const stockColorClass = computed(() => {
 });
 
 const totalStock = computed(() => {
-    let q = props.product.stock_quantity || 0;
+    let q = Number(props.product.available_quantity ?? props.product.available ?? props.product.stock_quantity ?? 0);
     if (props.product.variants && props.product.variants.length > 0) {
-        q = props.product.variants.reduce((sum, v) => sum + (v.stock_quantity || 0), 0);
+        q = props.product.variants.reduce((sum, v) => sum + resolveVariantStock(v), 0);
     }
     return q;
 });

@@ -700,7 +700,7 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-2 text-xs lg:justify-end">
                   <span class="text-danger font-semibold">{{ t('purchaseOrder.suggestions.shortage') }}: {{ s.shortage }}</span>
-                  <span class="text-(--text-secondary)">{{ t('purchaseOrder.suggestions.stock') }}: {{ s.stock_quantity }}</span>
+                  <span class="text-(--text-secondary)">{{ t('purchaseOrder.suggestions.stock') }}: {{ s.available_quantity ?? s.stock_quantity }}</span>
                   <span class="font-[Outfit] text-(--text-secondary)">成本 ¥{{ (s.variant_cost_price || s.cost_price || 0).toFixed(2) }}</span>
                   <span class="font-[Outfit] text-(--text-secondary)">建议 ¥{{ (s.suggested_purchase_price || s.cost_price || 0).toFixed(2) }}</span>
                   <span v-if="s.last_purchase_price != null" class="font-[Outfit] text-(--text-secondary)">

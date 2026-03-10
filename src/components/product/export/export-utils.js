@@ -56,9 +56,22 @@ const toNumericOrEmpty = (value) => {
   return Number.isFinite(numeric) ? numeric : '';
 };
 
-const resolveStockFlag = ({ stock_quantity, alert_threshold }) => {
-  const stock = Number(stock_quantity || 0);
-  const alert = Number(alert_threshold || 0);
+const resolveProjectedStock = ({ available_quantity, available, on_hand, stock_quantity }) => {
+  if (available_quantity !== undefined && available_quantity !== null && available_quantity !== '') {
+    return Number(available_quantity) || 0;
+  }
+  if (available !== undefined && available !== null && available !== '') {
+    return Number(available) || 0;
+  }
+  if (on_hand !== undefined && on_hand !== null && on_hand !== '') {
+    return Number(on_hand) || 0;
+  }
+  return Number(stock_quantity || 0) || 0;
+};
+
+const resolveStockFlag = (variant) => {
+  const stock = resolveProjectedStock(variant || {});
+  const alert = Number(variant?.alert_threshold || 0);
   if (stock <= 0) return 'OUT_OF_STOCK';
   if (alert > 0 && stock <= alert) return 'LOW_STOCK';
   return 'NORMAL';
@@ -98,7 +111,7 @@ export const flattenProductsToVariantRows = (products = []) => {
         image_id: variant?.image_id || variant?.primaryImage || '',
         price: toNumericOrEmpty(variant?.price),
         cost_price: toNumericOrEmpty(variant?.cost_price),
-        stock_quantity: toNumericOrEmpty(variant?.stock_quantity),
+        stock_quantity: toNumericOrEmpty(resolveProjectedStock(variant || {})),
         alert_threshold: toNumericOrEmpty(variant?.alert_threshold),
         moq: toNumericOrEmpty(variant?.moq),
         pack_size: toNumericOrEmpty(variant?.pack_size),

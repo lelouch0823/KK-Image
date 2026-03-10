@@ -591,4 +591,43 @@ describe('ProductBindingSection variant status and dimensions', () => {
       expect.arrayContaining(['bg-(--bg-muted)/20'])
     );
   });
+
+  it('uses available inventory semantics when variant exposes available_quantity', async () => {
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'Projection Product',
+      variants: [
+        {
+          id: 'v1',
+          sku: 'PROJ-001',
+          status: 'active',
+          stock_quantity: 10,
+          available_quantity: 3,
+          alert_threshold: 2,
+          replenishment_quantity: 0,
+          replenishment_po_count: 0,
+          options_values: { size: '42' },
+        },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null, mode: 'admin', variantSelectPolicy: 'in_stock_only' },
+      global: { stubs: { ProductSelect: pickStub, AppImage: true } },
+    });
+
+    await wrapper.find('[data-testid="pick-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('select')).toBeTruthy());
+    const selected = wrapper.emitted('select')[0][0];
+    await wrapper.setProps({
+      boundProduct: {
+        id: selected.id,
+        name: selected.name,
+        sku: selected.selectedVariant?.sku || '',
+        mainImage: selected.mainImage || null,
+      },
+    });
+
+    expect(wrapper.find('[data-testid="inventory-summary"]').text()).toContain('3');
+  });
 });

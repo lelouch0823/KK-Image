@@ -133,6 +133,7 @@ app.get('/:id', withCache(30), async (c) => {
         primaryImage: primary?.image_id || variant.image_id || null,
         replenishment_quantity: replenishment.replenishment_quantity,
         replenishment_po_count: replenishment.replenishment_po_count,
+        available_quantity: Number(variant.available_quantity ?? variant.available ?? variant.stock_quantity ?? 0),
       };
     })
   );

@@ -458,7 +458,12 @@ const currentAvailabilityState = computed(
   () => currentSelectedVariant.value?.availabilityState || ''
 );
 const selectedStockQuantity = computed(() =>
-  Number(currentSelectedVariant.value?.stock_quantity || 0)
+  Number(
+    currentSelectedVariant.value?.available_quantity ??
+    currentSelectedVariant.value?.available ??
+    currentSelectedVariant.value?.stock_quantity ??
+    0
+  )
 );
 const selectedReplenishmentQuantity = computed(() =>
   Number(currentSelectedVariant.value?.replenishment_quantity || 0)
@@ -496,7 +501,13 @@ const normalizeVariantStatus = (variant) =>
     .trim()
     .toLowerCase();
 const getVariantStockQuantity = (variant) =>
-  Number(variant?.stock_quantity ?? variant?.stockQuantity ?? 0);
+  Number(
+    variant?.available_quantity ??
+    variant?.available ??
+    variant?.stock_quantity ??
+    variant?.stockQuantity ??
+    0
+  );
 
 const isVariantSelectableByMode = (variant) => {
   const policy = normalizedVariantSelectPolicy.value;

@@ -97,7 +97,8 @@ app.get('/variants', withCache(30), async (c) => {
         pv.variant_code,
         pv.options_values AS variant_options,
         pv.cost_price,
-        pv.stock_quantity,
+        COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity,
+        COALESCE(ib.available, COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS available_quantity,
         pv.alert_threshold,
         pv.moq,
         pv.pack_size,
@@ -105,6 +106,7 @@ app.get('/variants', withCache(30), async (c) => {
         pv.image_id AS variant_image_id
       FROM product_variants pv
       JOIN products p ON p.id = pv.product_id
+      LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
       ${where}
       ORDER BY p.updated_at DESC, p.created_at DESC, pv.created_at ASC
       LIMIT ? OFFSET ?
@@ -127,6 +129,7 @@ app.get('/variants', withCache(30), async (c) => {
             variant_code: row.variant_code || null,
             variant_options: variantOptions,
             stock_quantity: Number(row.stock_quantity || 0),
+            available_quantity: Number(row.available_quantity || row.stock_quantity || 0),
             unit_cost: Number(row.cost_price || 0),
             moq: row.moq ?? null,
             pack_size: row.pack_size ?? null,

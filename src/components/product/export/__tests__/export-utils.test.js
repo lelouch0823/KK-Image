@@ -23,7 +23,10 @@ describe('product export utils', () => {
             variant_code: 'V001',
             options_values: { Color: 'Red', Size: 'L' },
             price: 100,
-            stock_quantity: 2,
+            stock_quantity: 8,
+            on_hand: 8,
+            reserved: 3,
+            available_quantity: 2,
             alert_threshold: 5,
           },
         ],
@@ -36,6 +39,7 @@ describe('product export utils', () => {
       variant_id: 'v1',
       color: 'Red',
       size: 'L',
+      stock_quantity: 2,
       stock_flag: 'LOW_STOCK',
     });
   });
