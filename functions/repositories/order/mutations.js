@@ -9,6 +9,7 @@
 
 import { generateId, now } from '../../api/utils/id.js';
 import { assertOrderStatusTransition } from '../../api/utils/order-state-machine.js';
+import { InventoryService } from '../../services/InventoryService.js';
 
 export const INSUFFICIENT_VARIANT_STOCK_ERROR = 'insufficient variant stock for delivery';
 
@@ -20,27 +21,13 @@ function getDeliveryStockDelta(oldStatus, newStatus, quantity) {
     return 0;
 }
 
-async function getVariantStock(db, variantId) {
-    if (!variantId) return 0;
-    const row = await db
-        .prepare('SELECT stock_quantity FROM product_variants WHERE id = ?')
-        .bind(variantId)
-        .first();
-    return Math.max(0, Number(row?.stock_quantity) || 0);
+function resolveInventoryService(db, options = {}) {
+    return options.inventoryService || new InventoryService(db);
 }
 
-async function assertVariantStockSufficient(db, variantId, requiredQty) {
-    const safeRequiredQty = Math.max(0, Number(requiredQty) || 0);
-    if (!variantId || safeRequiredQty <= 0) return;
-    const stockQty = await getVariantStock(db, variantId);
-    if (stockQty < safeRequiredQty) {
-        throw new Error(INSUFFICIENT_VARIANT_STOCK_ERROR);
-    }
-}
-
-async function assertBatchDeliveryStockSufficient(db, requirementsByVariant) {
+async function assertBatchDeliveryStockSufficient(inventoryService, requirementsByVariant) {
     for (const [variantId, requiredQty] of requirementsByVariant.entries()) {
-        await assertVariantStockSufficient(db, variantId, requiredQty);
+        await inventoryService.assertSufficient(variantId, requiredQty);
     }
 }
 
@@ -163,10 +150,12 @@ export async function updateComposite(db, {
     status = undefined,
     fileIds = undefined,
     forceStatusTransition = false,
+    inventoryService = undefined,
 }) {
     const timestamp = now();
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
     const statements = [];
+    const stockService = inventoryService || new InventoryService(db);
 
     if (status !== undefined) {
         const currentOrder = await db
@@ -178,18 +167,14 @@ export async function updateComposite(db, {
         }
         const stockDelta = getDeliveryStockDelta(currentOrder?.status, status, currentOrder?.quantity);
         if (currentOrder?.variant_id && stockDelta < 0) {
-            await assertVariantStockSufficient(db, currentOrder.variant_id, Math.abs(stockDelta));
+            await stockService.assertSufficient(currentOrder.variant_id, Math.abs(stockDelta));
         }
         if (currentOrder?.variant_id && stockDelta !== 0) {
-            statements.push(
-                db
-                    .prepare(
-                        `UPDATE product_variants
-                         SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ?
-                         WHERE id = ?`
-                    )
-                    .bind(stockDelta, timestamp, currentOrder.variant_id)
-            );
+            await stockService.applyMutation({
+                type: 'order_shipment',
+                variantId: currentOrder.variant_id,
+                quantityDelta: stockDelta,
+            });
         }
     }
 
@@ -249,6 +234,7 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
     const { forceStatusTransition = false } = options;
     const timestamp = now();
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
+    const inventoryService = resolveInventoryService(db, options);
     const currentOrder = await db
         .prepare('SELECT status, variant_id, quantity FROM orders WHERE id = ?')
         .bind(id)
@@ -260,18 +246,16 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
     const canAdjustVariantStock = Boolean(currentOrder?.variant_id) && stockDelta !== 0;
 
     if (canAdjustVariantStock && stockDelta < 0) {
-        await assertVariantStockSufficient(db, currentOrder.variant_id, Math.abs(stockDelta));
+        await inventoryService.assertSufficient(currentOrder.variant_id, Math.abs(stockDelta));
     }
 
     if (canAdjustVariantStock) {
+        await inventoryService.applyMutation({
+            type: 'order_shipment',
+            variantId: currentOrder.variant_id,
+            quantityDelta: stockDelta,
+        });
         const statements = [
-            db
-                .prepare(
-                    `UPDATE product_variants
-                     SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ?
-                     WHERE id = ?`
-                )
-                .bind(stockDelta, timestamp, currentOrder.variant_id),
             db
                 .prepare(
                     `
@@ -336,6 +320,7 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
     const { forceStatusTransition = false } = options;
     const timestamp = now();
     const batchStatements = [];
+    const inventoryService = resolveInventoryService(db, options);
     const placeholders = ids.map(() => '?').join(',');
     const { results: existingOrders = [] } = await db
         .prepare(`SELECT id, status, variant_id, quantity FROM orders WHERE id IN (${placeholders})`)
@@ -356,21 +341,19 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
             deliveryRequirementsByVariant.set(order.variant_id, prev + requiredQty);
         }
     }
-    await assertBatchDeliveryStockSufficient(db, deliveryRequirementsByVariant);
+    await assertBatchDeliveryStockSufficient(inventoryService, deliveryRequirementsByVariant);
+
+    const inventoryMutations = [];
 
     for (const id of ids) {
         const order = orderMap.get(id);
         const stockDelta = getDeliveryStockDelta(order?.status, newStatus, order?.quantity);
         if (order?.variant_id && stockDelta !== 0) {
-            batchStatements.push(
-                db
-                    .prepare(
-                        `UPDATE product_variants
-                         SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ?
-                         WHERE id = ?`
-                    )
-                    .bind(stockDelta, timestamp, order.variant_id)
-            );
+            inventoryMutations.push({
+                type: 'order_shipment',
+                variantId: order.variant_id,
+                quantityDelta: stockDelta,
+            });
         }
 
         batchStatements.push(
@@ -389,6 +372,9 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
         }
     }
 
+    if (inventoryMutations.length > 0) {
+        await inventoryService.applyBatch(inventoryMutations);
+    }
     await db.batch(batchStatements);
 }
 

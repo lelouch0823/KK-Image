@@ -55,6 +55,25 @@ export class InventoryService {
     this.variantRepo = variantRepo;
   }
 
+  async getOnHand(variantId) {
+    if (!variantId) return 0;
+    const variant = typeof this.variantRepo.findById === 'function'
+      ? await this.variantRepo.findById(variantId)
+      : null;
+    return Math.max(0, Number(variant?.stock_quantity) || 0);
+  }
+
+  async assertSufficient(variantId, requiredQty) {
+    const safeRequiredQty = Math.max(0, Number(requiredQty) || 0);
+    if (!variantId || safeRequiredQty <= 0) return true;
+
+    const onHand = await this.getOnHand(variantId);
+    if (onHand < safeRequiredQty) {
+      throw new Error('insufficient variant stock for delivery');
+    }
+    return true;
+  }
+
   validateMutation(payload = {}) {
     const type = String(payload.type || '').trim();
     const variantId = String(payload.variantId || '').trim();

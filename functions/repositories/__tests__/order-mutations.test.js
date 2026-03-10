@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { updateData, create } from '../order/mutations.js';
 
@@ -113,6 +115,16 @@ describe('Order Mutations SQL Binding', () => {
 
             const bindArgs = db.bind.mock.calls[0];
             expect(bindArgs).toContain('v_001');
+        });
+    });
+
+    describe('cutover guardrails', () => {
+        it('does not keep direct product_variants stock update SQL in order mutations', () => {
+            const filePath = path.resolve(process.cwd(), 'functions/repositories/order/mutations.js');
+            const source = fs.readFileSync(filePath, 'utf8');
+
+            expect(source).not.toContain('UPDATE product_variants');
+            expect(source).not.toContain('SET stock_quantity = MAX(0, stock_quantity + ?)');
         });
     });
 });

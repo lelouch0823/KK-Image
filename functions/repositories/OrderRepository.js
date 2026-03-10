@@ -12,6 +12,7 @@ import { OrderTimelineRepository } from './OrderTimelineRepository.js';
 import * as queries from './order/queries.js';
 import * as mutations from './order/mutations.js';
 import { parseJson, mapOrderListItem, mapOrderDetail } from './order/helpers.js';
+import { InventoryService } from '../services/InventoryService.js';
 
 export class OrderRepository {
   /**
@@ -21,6 +22,7 @@ export class OrderRepository {
   constructor(db) {
     this.db = db;
     this.timelineRepo = new OrderTimelineRepository(db);
+    this.inventoryService = new InventoryService(db);
   }
 
   // ========================================
@@ -73,12 +75,18 @@ export class OrderRepository {
 
   /** @see mutations.updateComposite */
   async updateComposite(payload) {
-    return mutations.updateComposite(this.db, payload);
+    return mutations.updateComposite(this.db, {
+      ...payload,
+      inventoryService: payload?.inventoryService || this.inventoryService,
+    });
   }
 
   /** @see mutations.updateStatus */
   async updateStatus(id, newStatus, actorType, options) {
-    return mutations.updateStatus(this.db, id, newStatus, actorType, options);
+    return mutations.updateStatus(this.db, id, newStatus, actorType, {
+      ...(options || {}),
+      inventoryService: options?.inventoryService || this.inventoryService,
+    });
   }
 
   /** @see mutations.updateFiles */
@@ -88,7 +96,10 @@ export class OrderRepository {
 
   /** @see mutations.batchUpdateStatus */
   async batchUpdateStatus(ids, newStatus, timeline, options) {
-    return mutations.batchUpdateStatus(this.db, this.timelineRepo, ids, newStatus, timeline, options);
+    return mutations.batchUpdateStatus(this.db, this.timelineRepo, ids, newStatus, timeline, {
+      ...(options || {}),
+      inventoryService: options?.inventoryService || this.inventoryService,
+    });
   }
 
   /** @see mutations.markAsRead */

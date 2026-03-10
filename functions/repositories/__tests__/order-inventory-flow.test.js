@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { updateStatus, batchUpdateStatus } from '../order/mutations.js';
+import { OrderRepository } from '../OrderRepository.js';
 
 function createStatement(sql, { firstResult = null, allResult = { results: [] }, runResult = { success: true } } = {}) {
   const statement = {
@@ -50,32 +51,41 @@ describe('order inventory flow on status transitions', () => {
   it('deducts variant stock when status changes to delivered', async () => {
     const db = createMockDb({
       singleOrder: { status: 'arrived', variant_id: 'v-1', quantity: 3 },
-      variantStockById: { 'v-1': 10 },
     });
+    const inventoryService = {
+      assertSufficient: vi.fn(async () => true),
+      applyMutation: vi.fn(async () => true),
+    };
 
-    await updateStatus(db, 'o-1', 'delivered', 'admin');
+    await updateStatus(db, 'o-1', 'delivered', 'admin', { inventoryService });
 
     expect(db.batch).toHaveBeenCalledTimes(1);
-    const statements = db.batch.mock.calls[0][0];
-    const stockStmt = statements.find((stmt) => stmt.sql.includes('UPDATE product_variants'));
-    expect(stockStmt).toBeDefined();
-    expect(stockStmt.params[0]).toBe(-3);
-    expect(stockStmt.params[2]).toBe('v-1');
+    expect(inventoryService.assertSufficient).toHaveBeenCalledWith('v-1', 3);
+    expect(inventoryService.applyMutation).toHaveBeenCalledWith({
+      type: 'order_shipment',
+      variantId: 'v-1',
+      quantityDelta: -3,
+    });
   });
 
   it('restores variant stock when status moves away from delivered', async () => {
     const db = createMockDb({
       singleOrder: { status: 'delivered', variant_id: 'v-1', quantity: 2 },
     });
+    const inventoryService = {
+      assertSufficient: vi.fn(async () => true),
+      applyMutation: vi.fn(async () => true),
+    };
 
-    await updateStatus(db, 'o-1', 'void', 'admin');
+    await updateStatus(db, 'o-1', 'void', 'admin', { inventoryService });
 
     expect(db.batch).toHaveBeenCalledTimes(1);
-    const statements = db.batch.mock.calls[0][0];
-    const stockStmt = statements.find((stmt) => stmt.sql.includes('UPDATE product_variants'));
-    expect(stockStmt).toBeDefined();
-    expect(stockStmt.params[0]).toBe(2);
-    expect(stockStmt.params[2]).toBe('v-1');
+    expect(inventoryService.assertSufficient).not.toHaveBeenCalled();
+    expect(inventoryService.applyMutation).toHaveBeenCalledWith({
+      type: 'order_shipment',
+      variantId: 'v-1',
+      quantityDelta: 2,
+    });
   });
 
   it('does not adjust stock for non-delivery transitions', async () => {
@@ -100,15 +110,18 @@ describe('order inventory flow on status transitions', () => {
     const timelineRepo = {
       createInsertStatement: vi.fn(() => null),
     };
+    const inventoryService = {
+      assertSufficient: vi.fn(async () => true),
+      applyBatch: vi.fn(async () => ({ productCount: 1, totalQty: 4 })),
+    };
 
-    await batchUpdateStatus(db, timelineRepo, ['o-1', 'o-2'], 'void');
+    await batchUpdateStatus(db, timelineRepo, ['o-1', 'o-2'], 'void', undefined, { inventoryService });
 
     expect(db.batch).toHaveBeenCalledTimes(1);
-    const statements = db.batch.mock.calls[0][0];
-    const stockStatements = statements.filter((stmt) => stmt.sql.includes('UPDATE product_variants'));
-    expect(stockStatements).toHaveLength(1);
-    expect(stockStatements[0].params[0]).toBe(4);
-    expect(stockStatements[0].params[2]).toBe('v-1');
+    expect(inventoryService.assertSufficient).not.toHaveBeenCalled();
+    expect(inventoryService.applyBatch).toHaveBeenCalledWith([
+      { type: 'order_shipment', variantId: 'v-1', quantityDelta: 4 },
+    ]);
   });
 
   it('rejects delivered transition when variant stock is lower than order quantity', async () => {
@@ -153,11 +166,91 @@ describe('order inventory flow on status transitions', () => {
   it('allows out-of-flow transition with force override', async () => {
     const db = createMockDb({
       singleOrder: { status: 'pending', variant_id: 'v-1', quantity: 2 },
-      variantStockById: { 'v-1': 10 },
     });
+    const inventoryService = {
+      assertSufficient: vi.fn(async () => true),
+      applyMutation: vi.fn(async () => true),
+    };
 
-    await updateStatus(db, 'o-1', 'delivered', 'admin', { forceStatusTransition: true });
+    await updateStatus(db, 'o-1', 'delivered', 'admin', { forceStatusTransition: true, inventoryService });
 
     expect(db.batch).toHaveBeenCalledTimes(1);
+    expect(inventoryService.applyMutation).toHaveBeenCalledWith({
+      type: 'order_shipment',
+      variantId: 'v-1',
+      quantityDelta: -2,
+    });
+  });
+
+  it('routes delivery stock checks and mutations through InventoryService', async () => {
+    const db = createMockDb({
+      singleOrder: { status: 'arrived', variant_id: 'v-1', quantity: 3 },
+    });
+    const inventoryService = {
+      assertSufficient: vi.fn(async () => true),
+      applyMutation: vi.fn(async () => true),
+    };
+
+    await updateStatus(db, 'o-1', 'delivered', 'admin', { inventoryService });
+
+    expect(inventoryService.assertSufficient).toHaveBeenCalledWith('v-1', 3);
+    expect(inventoryService.applyMutation).toHaveBeenCalledWith({
+      type: 'order_shipment',
+      variantId: 'v-1',
+      quantityDelta: -3,
+    });
+    const stockUpdateCalls = db.prepare.mock.calls.filter(([sql]) => sql.includes('UPDATE product_variants'));
+    expect(stockUpdateCalls).toHaveLength(0);
+  });
+
+  it('routes batch delivery mutations through InventoryService aggregation', async () => {
+    const db = createMockDb({
+      batchOrders: [
+        { id: 'o-1', status: 'arrived', variant_id: 'v-1', quantity: 2 },
+        { id: 'o-2', status: 'arrived', variant_id: 'v-2', quantity: 4 },
+      ],
+    });
+    const timelineRepo = {
+      createInsertStatement: vi.fn(() => null),
+    };
+    const inventoryService = {
+      assertSufficient: vi.fn(async () => true),
+      applyBatch: vi.fn(async () => ({ productCount: 2, totalQty: 6 })),
+    };
+
+    await batchUpdateStatus(db, timelineRepo, ['o-1', 'o-2'], 'delivered', undefined, { inventoryService });
+
+    expect(inventoryService.assertSufficient).toHaveBeenNthCalledWith(1, 'v-1', 2);
+    expect(inventoryService.assertSufficient).toHaveBeenNthCalledWith(2, 'v-2', 4);
+    expect(inventoryService.applyBatch).toHaveBeenCalledWith([
+      { type: 'order_shipment', variantId: 'v-1', quantityDelta: -2 },
+      { type: 'order_shipment', variantId: 'v-2', quantityDelta: -4 },
+    ]);
+    const stockUpdateCalls = db.prepare.mock.calls.filter(([sql]) => sql.includes('UPDATE product_variants'));
+    expect(stockUpdateCalls).toHaveLength(0);
+  });
+
+  it('OrderRepository passes InventoryService into status mutations', async () => {
+    const db = { prepare: vi.fn(), batch: vi.fn() };
+    const repo = new OrderRepository(db);
+    repo.inventoryService = {
+      assertSufficient: vi.fn(async () => true),
+      applyMutation: vi.fn(async () => true),
+    };
+    vi.spyOn(db, 'prepare').mockReturnValue({
+      bind: vi.fn(() => ({
+        first: vi.fn(async () => ({ status: 'arrived', variant_id: 'v-1', quantity: 1 })),
+        run: vi.fn(async () => ({ success: true })),
+      })),
+    });
+    db.batch.mockResolvedValue([]);
+
+    await repo.updateStatus('o-1', 'delivered', 'admin', { forceStatusTransition: true });
+
+    expect(repo.inventoryService.applyMutation).toHaveBeenCalledWith({
+      type: 'order_shipment',
+      variantId: 'v-1',
+      quantityDelta: -1,
+    });
   });
 });
