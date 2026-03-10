@@ -236,4 +236,115 @@ describeIfRealApi('Manage Inventory Linkage Real API Workflow', function () {
     assert.strictEqual(Number(finalOverviewItem.availableQuantity || 0), 3);
     assert.strictEqual(Number(finalOverviewItem.shortage || 0), 5);
   });
+
+  it('keeps projection unchanged on insufficient delivery and releases reservation on void', async () => {
+    const token = await getBearerToken();
+    const seed = uniqueSeed('inv-edge');
+    const salespersonId = await ensureSalespersonId(token, seed);
+
+    const createdProduct = await apiRequest('/api/manage/products', {
+      bearerToken: token,
+      method: 'POST',
+      body: {
+        name: `Inventory Edge Product ${seed}`,
+        spu: `EDGE-${seed}`,
+        currency: 'CNY',
+        brand: 'KK',
+        category: 'Workflow',
+        dimensions: [{ name: 'Color', values: ['Black'] }],
+        variants: [
+          {
+            sku: `EDGE-BLACK-${seed}`,
+            price: 99,
+            cost_price: 55,
+            stock_quantity: 3,
+            alert_threshold: 1,
+            status: 'active',
+            options_values: { Color: 'Black' },
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+    const productId = createdProduct.json?.data?.id;
+    const detail = await apiRequest(`/api/manage/products/${productId}`, {
+      bearerToken: token,
+      expectedStatus: 200,
+    });
+    const variantId = detail.json?.data?.variants?.[0]?.id;
+    assert.ok(variantId, 'variant id missing');
+
+    const createdOrder = await apiRequest('/api/manage/orders', {
+      bearerToken: token,
+      method: 'POST',
+      body: {
+        productName: `Inventory Edge Product ${seed}`,
+        salespersonId,
+        productId,
+        variantId,
+        quantity: 4,
+        fileIds: [],
+      },
+      expectedStatus: 201,
+    });
+    const orderId = createdOrder.json?.data?.id;
+    assert.ok(orderId, 'order id missing');
+
+    await apiRequest(`/api/manage/orders/${orderId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'confirmed' },
+      expectedStatus: 200,
+    });
+
+    const confirmedSuggestions = await apiRequest('/api/manage/purchase-orders/suggestions', {
+      bearerToken: token,
+      expectedStatus: 200,
+    });
+    const confirmedSuggestion = findSuggestion(confirmedSuggestions.json, variantId);
+    assert.ok(confirmedSuggestion, 'confirmed suggestion missing');
+    assert.strictEqual(Number(confirmedSuggestion.stock_quantity || 0), 3);
+    assert.strictEqual(Number(confirmedSuggestion.available_quantity || 0), 0);
+    assert.strictEqual(Number(confirmedSuggestion.shortage || 0), 4);
+
+    await apiRequest(`/api/manage/orders/${orderId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'delivered' },
+      expectedStatus: 400,
+    });
+
+    const failedDeliverySuggestions = await apiRequest('/api/manage/purchase-orders/suggestions', {
+      bearerToken: token,
+      expectedStatus: 200,
+    });
+    const failedDeliverySuggestion = findSuggestion(failedDeliverySuggestions.json, variantId);
+    assert.ok(failedDeliverySuggestion, 'failed delivery suggestion missing');
+    assert.strictEqual(Number(failedDeliverySuggestion.stock_quantity || 0), 3);
+    assert.strictEqual(Number(failedDeliverySuggestion.available_quantity || 0), 0);
+    assert.strictEqual(Number(failedDeliverySuggestion.shortage || 0), 4);
+
+    await apiRequest(`/api/manage/orders/${orderId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'void' },
+      expectedStatus: 200,
+    });
+
+    const voidedSuggestions = await apiRequest('/api/manage/purchase-orders/suggestions', {
+      bearerToken: token,
+      expectedStatus: 200,
+    });
+    const voidedSuggestion = findSuggestion(voidedSuggestions.json, variantId);
+    assert.ok(!voidedSuggestion, 'voided order should no longer produce purchase suggestion');
+
+    const finalDetail = await apiRequest(`/api/manage/products/${productId}`, {
+      bearerToken: token,
+      expectedStatus: 200,
+    });
+    const finalVariant = findVariant(finalDetail.json, variantId);
+    assert.ok(finalVariant, 'final variant missing');
+    assert.strictEqual(Number(finalVariant.stock_quantity || 0), 3);
+    assert.strictEqual(Number(finalVariant.available_quantity || 0), 3);
+  });
 });

@@ -151,6 +151,23 @@ class WorkflowDb {
 
         return { results: [] };
       },
+      async first() {
+        if (sql.includes('FROM product_variants pv') && sql.includes('WHERE pv.id = ?')) {
+          const variantId = stmt.params[0];
+          const variant = db.state.variants.get(variantId);
+          if (!variant) return null;
+          const balance = db.state.balances.get(variantId) || { on_hand: 0, reserved: 0, available: 0 };
+          return {
+            ...variant,
+            options_values: JSON.stringify(variant.options_values || {}),
+            stock_quantity: balance.on_hand,
+            on_hand: balance.on_hand,
+            reserved: balance.reserved,
+            available_quantity: balance.available,
+          };
+        }
+        return null;
+      },
     };
     return stmt;
   }
@@ -239,6 +256,45 @@ describe('inventory-demand-purchase workflow', () => {
       expect.objectContaining({ event_type: 'reservation_release', quantity_delta: -4 }),
       expect.objectContaining({ event_type: 'order_shipment', quantity_delta: -4 }),
       expect.objectContaining({ event_type: 'purchase_arrival', quantity_delta: 5 }),
+    ]));
+  });
+
+  it('releases reservation on void and keeps projection unchanged when shipment is rejected for insufficient stock', async () => {
+    const state = {
+      products: new Map([['product-1', { id: 'product-1', name: 'Workflow Tee', product_code: 'P-1', brand: 'KK', category: 'Top' }]]),
+      variants: new Map([['variant-1', {
+        id: 'variant-1',
+        product_id: 'product-1',
+        sku: 'TEE-RED-M',
+        variant_code: 'V-1',
+        cost_price: 20,
+        stock_quantity: 3,
+        alert_threshold: 2,
+        options_values: { Color: 'Red', Size: 'M' },
+      }]]),
+      balances: new Map([['variant-1', { on_hand: 3, reserved: 0, available: 3 }]]),
+      ledger: [],
+      orders: [{ id: 'order-1', variant_id: 'variant-1', quantity: 4, status: 'pending' }],
+    };
+    const db = new WorkflowDb(state);
+    const demandService = new DemandService(db);
+    const inventoryService = new InventoryService(db);
+
+    state.orders[0].status = 'confirmed';
+    await demandService.syncOrderTransition({ orderId: 'order-1', variantId: 'variant-1', quantity: 4, fromStatus: 'pending', toStatus: 'confirmed' });
+    expect(state.balances.get('variant-1')).toEqual({ on_hand: 3, reserved: 4, available: 0 });
+
+    await expect(
+      inventoryService.assertSufficient('variant-1', 4)
+    ).rejects.toThrow(/insufficient variant stock/i);
+    expect(state.balances.get('variant-1')).toEqual({ on_hand: 3, reserved: 4, available: 0 });
+
+    state.orders[0].status = 'void';
+    await demandService.syncOrderTransition({ orderId: 'order-1', variantId: 'variant-1', quantity: 4, fromStatus: 'confirmed', toStatus: 'void' });
+    expect(state.balances.get('variant-1')).toEqual({ on_hand: 3, reserved: 0, available: 3 });
+    expect(state.ledger).toEqual(expect.arrayContaining([
+      expect.objectContaining({ event_type: 'reservation_hold', quantity_delta: 4 }),
+      expect.objectContaining({ event_type: 'reservation_release', quantity_delta: -4 }),
     ]));
   });
 });

@@ -61,4 +61,38 @@ describe('PurchaseOrderService procurement status cascade', () => {
 
     await expect(service.updateStatus('po-1', 'ordered')).rejects.toThrow(/状态已变化|refresh/i);
   });
+
+  it('does not double-apply inventory when repeated arrival is attempted through stale state', async () => {
+    const db = createDb();
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      findById: vi.fn(async () => ({ id: 'po-1', status: 'shipping', items: [{ variant_id: 'v-1', quantity: 5 }] })),
+      updateStatus: vi.fn(async () => true),
+      updateStatusIfCurrent: vi.fn(async () => false),
+      getLinkedOrderIds: vi.fn(async () => []),
+    };
+    service.inventoryService = {
+      applyBatch: vi.fn(async () => ({ productCount: 1, totalQty: 5 })),
+    };
+
+    await expect(service.updateStatus('po-1', 'arrived')).rejects.toThrow(/状态已变化|refresh/i);
+    expect(service.inventoryService.applyBatch).not.toHaveBeenCalled();
+  });
+
+  it('rejects cancelling an arrived purchase order and does not touch inventory', async () => {
+    const db = createDb();
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      findById: vi.fn(async () => ({ id: 'po-1', status: 'arrived', items: [{ variant_id: 'v-1', quantity: 5 }] })),
+      updateStatus: vi.fn(async () => true),
+      updateStatusIfCurrent: vi.fn(async () => true),
+      getLinkedOrderIds: vi.fn(async () => []),
+    };
+    service.inventoryService = {
+      applyBatch: vi.fn(async () => ({ productCount: 1, totalQty: 5 })),
+    };
+
+    await expect(service.updateStatus('po-1', 'cancelled')).rejects.toThrow(/无法从 "arrived" 转换到 "cancelled"/);
+    expect(service.inventoryService.applyBatch).not.toHaveBeenCalled();
+  });
 });
