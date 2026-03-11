@@ -43,6 +43,9 @@ Router (src/router/index.js)
 | `Dashboard.vue` | `/admin/dashboard` | all | 管理仪表盘 |
 | `FileManager/` | `/admin/files` | admin, manager, sales, viewer | 文件管理 |
 | `SpaceManager/` | `/admin/spaces` | admin, manager, sales, viewer | 空间管理 |
+| `Products.vue` | `/admin/products` | admin, manager | 商品管理 |
+| `Orders.vue` | `/admin/orders` | admin, manager | 订单管理 |
+| `Salespersons.vue` | `/admin/salespersons` | admin | 销售人员管理 |
 | `GoodsOverview.vue` | `/admin/goods-overview` | admin, manager | 商品库存概览 |
 | `PurchaseOrders.vue` | `/admin/purchase-orders` | admin, manager | 采购单管理 |
 | `Customers.vue` | `/admin/customers` | admin, manager | 客户管理 |
