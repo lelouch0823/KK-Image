@@ -21,13 +21,12 @@
       :title="t('auditLogs.title')"
     >
       <template #filters>
-        <select
+        <AppSelect
           v-model="filterAction"
-          class="focus:border-primary focus:outline-none rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-primary)"
-        >
-          <option value="">{{ t('auditLogs.allActions') }}</option>
-          <option v-for="a in availableActions" :key="a" :value="a">{{ a }}</option>
-        </select>
+          :options="actionOptions"
+          :placeholder="t('auditLogs.allActions')"
+          size="sm"
+        />
       </template>
       <template #actions>
         <AppButton variant="secondary" :text="t('common.refresh')" @click="fetchLogs" />
@@ -105,6 +104,7 @@ import { useAuth } from '@/composables/useAuth';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppFilterBar from '@/components/ui/AppFilterBar.vue';
 import AppTable from '@/components/ui/AppTable.vue';
+import AppSelect from '@/components/ui/Select.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 
@@ -118,6 +118,10 @@ const errorCode = ref(null);
 const filterAction = ref('');
 const availableActions = ref([]);
 const pagination = ref({ page: 1, pageSize: 50, total: 0, totalPages: 1 });
+const actionOptions = computed(() => [
+  { value: '', label: t('auditLogs.allActions') },
+  ...availableActions.value.map((action) => ({ value: action, label: action })),
+]);
 
 const columns = computed(() => [
   { key: 'created_at', label: t('auditLogs.time'), width: '120px' },

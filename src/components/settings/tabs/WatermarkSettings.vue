@@ -44,16 +44,11 @@
           <!-- Position -->
           <div class="space-y-2">
             <label class="text-primary text-sm font-medium">{{ t('settings.watermark.position', 'Position') }}</label>
-            <select
+            <AppSelect
               v-model="form.WATERMARK_POSITION"
-              class="focus:border-primary focus:ring-primary/10 focus:ring-1 focus:outline-none w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 text-sm transition-colors dark:bg-(--bg-muted)"
-            >
-              <option value="bottom-right">{{ t('settings.watermark.posBottomRight', 'Bottom Right') }}</option>
-              <option value="bottom-left">{{ t('settings.watermark.posBottomLeft', 'Bottom Left') }}</option>
-              <option value="top-right">{{ t('settings.watermark.posTopRight', 'Top Right') }}</option>
-              <option value="top-left">{{ t('settings.watermark.posTopLeft', 'Top Left') }}</option>
-              <option value="center">{{ t('settings.watermark.posCenter', 'Center') }}</option>
-            </select>
+              :options="positionOptions"
+              :placeholder="t('settings.watermark.posBottomRight', 'Bottom Right')"
+            />
           </div>
 
           <div class="grid grid-cols-2 gap-4">
@@ -125,6 +120,7 @@
 import { onMounted, reactive, ref } from 'vue';
 import SettingsSection from '../SettingsSection.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppSelect from '@/components/ui/Select.vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
@@ -145,6 +141,14 @@ const form = reactive({
   WATERMARK_COLOR: '#ffffff',
   WATERMARK_SIZE_RATIO: '0.05'
 });
+
+const positionOptions = [
+  { value: 'bottom-right', label: t('settings.watermark.posBottomRight', 'Bottom Right') },
+  { value: 'bottom-left', label: t('settings.watermark.posBottomLeft', 'Bottom Left') },
+  { value: 'top-right', label: t('settings.watermark.posTopRight', 'Top Right') },
+  { value: 'top-left', label: t('settings.watermark.posTopLeft', 'Top Left') },
+  { value: 'center', label: t('settings.watermark.posCenter', 'Center') },
+];
 
 const loadCurrentSettings = async () => {
   await loadSettings(true); // reload from server

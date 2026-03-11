@@ -27,21 +27,17 @@
       </template>
 
       <template #filters>
-          <select
+          <FilterSelect
             v-model="filters.brand"
-            class="focus:border-primary focus:outline-none rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main)"
-          >
-            <option value="">{{ t('goodsOverview.filter.allBrands') }}</option>
-            <option v-for="b in availableFilters.brands" :key="b" :value="b">{{ b }}</option>
-          </select>
+            :options="brandOptions"
+            :placeholder="t('goodsOverview.filter.allBrands')"
+          />
 
-          <select
+          <FilterSelect
             v-model="filters.category"
-            class="focus:border-primary focus:outline-none rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main)"
-          >
-            <option value="">{{ t('goodsOverview.filter.allCategories') }}</option>
-            <option v-for="c in availableFilters.categories" :key="c" :value="c">{{ c }}</option>
-          </select>
+            :options="categoryOptions"
+            :placeholder="t('goodsOverview.filter.allCategories')"
+          />
 
           <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-(--text-secondary)">
             <input
@@ -52,15 +48,13 @@
             {{ t('goodsOverview.filter.shortageOnly') }}
           </label>
 
-          <select
-            v-model="filters.sort"
-            class="focus:border-primary focus:outline-none ml-auto rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main)"
-          >
-            <option value="shortage">{{ t('goodsOverview.sort.shortage') }}</option>
-            <option value="demand">{{ t('goodsOverview.sort.demand') }}</option>
-            <option value="name">{{ t('goodsOverview.sort.name') }}</option>
-            <option value="cost">{{ t('goodsOverview.sort.cost') }}</option>
-          </select>
+          <div class="ml-auto">
+            <FilterSelect
+              v-model="filters.sort"
+              :options="sortOptions"
+              :placeholder="t('goodsOverview.sort.shortage')"
+            />
+          </div>
       </template>
 
       <template #content>
@@ -356,6 +350,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
+import FilterSelect from '@/design-system/composed/FilterSelect.vue';
 import MetricTile from '@/design-system/composed/MetricTile.vue';
 import SummaryStrip from '@/design-system/composed/SummaryStrip.vue';
 import FloatingSelectionBar from '@/design-system/composed/FloatingSelectionBar.vue';
@@ -388,6 +383,23 @@ const columns = computed(() => [
   { key: 'avgFreight', label: t('goodsOverview.table.freight'), align: 'center', class: 'hidden lg:table-cell' },
   { key: 'landedCost', label: t('goodsOverview.table.landedCost'), align: 'center', class: 'hidden lg:table-cell' },
   { key: 'status', label: t('goodsOverview.table.status'), align: 'center' },
+]);
+
+const brandOptions = computed(() => [
+  { value: '', label: t('goodsOverview.filter.allBrands') },
+  ...availableFilters.brands.map((brand) => ({ value: brand, label: brand })),
+]);
+
+const categoryOptions = computed(() => [
+  { value: '', label: t('goodsOverview.filter.allCategories') },
+  ...availableFilters.categories.map((category) => ({ value: category, label: category })),
+]);
+
+const sortOptions = computed(() => [
+  { value: 'shortage', label: t('goodsOverview.sort.shortage') },
+  { value: 'demand', label: t('goodsOverview.sort.demand') },
+  { value: 'name', label: t('goodsOverview.sort.name') },
+  { value: 'cost', label: t('goodsOverview.sort.cost') },
 ]);
 
 const handleCreatePO = async () => {

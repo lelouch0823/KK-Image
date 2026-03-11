@@ -118,14 +118,12 @@
                     class="focus:border-primary w-full rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs text-(--text-main) outline-none"
                     :placeholder="t('product.import.conflicts.search_placeholder', '搜索 SPU/SKU/字段')"
                 />
-                <select
+                <AppSelect
                     v-model="conflictLevelFilter"
-                    class="focus:border-primary w-full rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs text-(--text-main) outline-none"
-                >
-                    <option value="all">{{ t('product.import.conflicts.level_all', '全部层级') }}</option>
-                    <option value="product">{{ t('product.import.conflicts.level_product', '商品层') }}</option>
-                    <option value="variant">{{ t('product.import.conflicts.level_variant', '变体层') }}</option>
-                </select>
+                    :options="conflictLevelOptions"
+                    :placeholder="t('product.import.conflicts.level_all', '全部层级')"
+                    size="sm"
+                />
                 <button type="button" class="btn btn-ghost btn-xs cursor-pointer justify-self-start" @click="copyVisibleConflicts">
                     {{ t('product.import.conflicts.copy_visible', '复制当前结果') }}
                 </button>
@@ -177,6 +175,7 @@
 import { computed, ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppSelect from '@/components/ui/Select.vue';
 
 const props = defineProps({
     fileName: { type: String, default: '' },
@@ -216,6 +215,11 @@ const showPreprocessStats = computed(() => (
 const conflictsExpanded = ref(true);
 const conflictSearch = ref('');
 const conflictLevelFilter = ref('all');
+const conflictLevelOptions = computed(() => [
+    { value: 'all', label: t('product.import.conflicts.level_all', '全部层级') },
+    { value: 'product', label: t('product.import.conflicts.level_product', '商品层') },
+    { value: 'variant', label: t('product.import.conflicts.level_variant', '变体层') },
+]);
 const progressPercent = computed(() => {
     const total = Number(props.importStats?.total || 0);
     if (total <= 0) return 0;

@@ -182,15 +182,14 @@
             </p>
 
             <div class="mb-3 flex flex-wrap items-center gap-2">
-              <select
-                v-model="selectedFetchedModel"
-                class="focus:border-primary focus:ring-primary/20 focus:ring-1 focus:outline-none min-w-[220px] rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-xs text-(--text-main)"
-              >
-                <option value="">{{ t('settings.ai.selectModel', 'Select a model') }}</option>
-                <option v-for="model in availableModels" :key="`opt-${model}`" :value="model">
-                  {{ model }}
-                </option>
-              </select>
+              <div class="min-w-[220px]">
+                <AppSelect
+                  v-model="selectedFetchedModel"
+                  :options="availableModelOptions"
+                  :placeholder="t('settings.ai.selectModel', 'Select a model')"
+                  size="sm"
+                />
+              </div>
               <button
                 type="button"
                 :disabled="!selectedFetchedModel"
@@ -304,6 +303,7 @@
 import { ref, onMounted, reactive, computed } from 'vue';
 import SettingsSection from '../SettingsSection.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppSelect from '@/components/ui/Select.vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
@@ -321,6 +321,10 @@ const testing = ref(false);
 const availableModels = ref([]);
 const connectionResult = ref(null);
 const selectedFetchedModel = ref('');
+const availableModelOptions = computed(() => [
+  { value: '', label: t('settings.ai.selectModel', 'Select a model') },
+  ...availableModels.value.map((model) => ({ value: model, label: model })),
+]);
 const draggingIndex = ref(-1);
 const healthLoading = ref(false);
 const healthStats = ref([]);

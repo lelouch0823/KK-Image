@@ -441,10 +441,13 @@
                   </div>
                   <div>
                     <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.allocationMethod') }}</label>
-                    <select v-model="createForm.allocation_method" class="focus:ring-primary focus:ring-2 focus:outline-none mt-1 w-full rounded-xl border border-(--border-color) bg-(--bg-page) px-3 py-2.5 text-sm text-(--text-main)">
-                      <option value="by_quantity">{{ t('purchaseOrder.form.byQuantity') }}</option>
-                      <option value="by_value">{{ t('purchaseOrder.form.byValue') }}</option>
-                    </select>
+                    <AppSelect
+                      v-model="createForm.allocation_method"
+                      :options="allocationMethodOptions"
+                      :placeholder="t('purchaseOrder.form.byQuantity')"
+                      size="sm"
+                      class="mt-1"
+                    />
                   </div>
                 </div>
 
@@ -759,6 +762,7 @@ import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppTable from '@/components/ui/AppTable.vue';
+import AppSelect from '@/components/ui/Select.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import MetricTile from '@/design-system/composed/MetricTile.vue';
@@ -905,6 +909,11 @@ const columns = computed(() => [
   { key: 'total_goods_cost', label: t('purchaseOrder.table.totalGoodsCost') },
   { key: 'remark', label: t('purchaseOrder.form.remark') },
   { key: 'created_at', label: t('purchaseOrder.table.createdAt') },
+]);
+
+const allocationMethodOptions = computed(() => [
+  { value: 'by_quantity', label: t('purchaseOrder.form.byQuantity') },
+  { value: 'by_value', label: t('purchaseOrder.form.byValue') },
 ]);
 
 // ─── 方法 ────────────────────────────────────────────

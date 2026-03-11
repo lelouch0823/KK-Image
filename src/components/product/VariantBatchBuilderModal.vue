@@ -25,10 +25,12 @@
           <input v-model.number="defaults.price" data-testid="default-price" class="input p-2 text-sm" type="number" placeholder="Price">
           <input v-model.number="defaults.cost_price" data-testid="default-cost" class="input p-2 text-sm" type="number" placeholder="Cost">
           <input v-model.number="defaults.stock_quantity" data-testid="default-stock" class="input p-2 text-sm" type="number" placeholder="Stock">
-          <select v-model="defaults.status" data-testid="default-status" class="input p-2 text-sm">
-            <option value="active">active</option>
-            <option value="archived">archived</option>
-          </select>
+          <AppSelect
+            v-model="defaults.status"
+            :options="statusOptions"
+            data-testid="default-status"
+            size="sm"
+          />
         </div>
 
         <div class="mt-5 flex justify-end gap-2">
@@ -47,6 +49,7 @@
 <script setup>
 import { reactive, ref } from 'vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppSelect from '@/components/ui/Select.vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -64,6 +67,11 @@ const defaults = reactive({
   alert_threshold: 10,
   status: 'active',
 });
+
+const statusOptions = [
+  { value: 'active', label: 'active' },
+  { value: 'archived', label: 'archived' },
+];
 
 const parseValues = (raw) => {
   const parts = String(raw || '')

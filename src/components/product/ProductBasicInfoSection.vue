@@ -36,14 +36,12 @@
         <label class="mb-1.5 block text-sm font-medium text-(--text-main)">{{
           t('product.form.currency', 'Currency')
         }}</label>
-        <select
+        <AppSelect
           v-model="form.currency"
-          class="focus:border-primary focus:ring-primary focus:ring-1 focus:outline-none w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main) transition-colors"
-        >
-          <option v-for="c in currencyOptions" :key="c.code" :value="c.code">
-            {{ c.symbol }} {{ c.code }} — {{ c.label }}
-          </option>
-        </select>
+          :options="currencySelectOptions"
+          :placeholder="t('product.form.currency', 'Currency')"
+          size="sm"
+        />
       </div>
     </div>
 
@@ -70,16 +68,25 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppInput from '@/components/ui/AppInput.vue';
+import AppSelect from '@/components/ui/Select.vue';
 
 // 使用组件内部的 i18n，不从父组件透传
 const { t } = useI18n();
 
-defineProps({
+const props = defineProps({
   // 共享的 reactive form 对象，直接修改无需 emit
   form: { type: Object, required: true },
   // 货币选项列表（从 useProductForm 传入）
   currencyOptions: { type: Array, required: true },
 });
+
+const currencySelectOptions = computed(() =>
+  props.currencyOptions.map((c) => ({
+    value: c.code,
+    label: `${c.symbol} ${c.code} — ${c.label}`,
+  }))
+);
 </script>
