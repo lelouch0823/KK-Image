@@ -9,144 +9,53 @@
     </div>
 
     <!-- Main Content -->
-    <div class="relative z-10 flex h-full flex-col px-4 py-8 sm:px-6 lg:px-8">
-      <!-- Header Area -->
-      <div class="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 class="text-2xl font-bold tracking-tight text-(--text-main) sm:text-3xl">
-            {{ t('dashboard.title') }}
-          </h1>
-          <div class="mt-1 flex items-center gap-2 text-sm text-(--text-secondary)">
-            <span class="flex items-center gap-1.5">
-              <span class="relative flex size-2">
-                <span class="absolute inline-flex size-full  animate-ping rounded-full bg-emerald-500 opacity-75"></span>
-                <span class="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
-              </span>
-              {{ t('dashboard.liveStatus') }}
-            </span>
-            <span>·</span>
-            <span>{{ t('dashboard.lastUpdated') }}: {{ lastUpdatedTime }}</span>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-3">
+    <div class="relative z-10 px-4 py-8 sm:px-6 lg:px-8">
+      <DashboardShell :title="t('dashboard.title')" :description="dashboardDescription">
+        <template #actions>
           <AppButton
             variant="secondary"
             :text="t('common.refresh')"
-            icon="refresh"
             :loading="isRefreshing"
             @click="handleRefresh"
-          />
-        </div>
-      </div>
+          >
+            <template #icon-left>
+              <AppIcon name="arrow-path" class="size-4" />
+            </template>
+          </AppButton>
+        </template>
 
-      <div v-if="dashboardErrorCode === 'FORBIDDEN'" class="mb-8">
-        <PermissionDeniedState
-          :reason="dashboardError"
-          home-to="/admin/forbidden"
-          home-text="查看权限说明"
-          @retry="fetchDashboardData"
-        />
-      </div>
-      
-      <!-- Metrics Grid -->
-      <div v-if="dashboardErrorCode !== 'FORBIDDEN'" class="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <!-- Today Orders -->
-        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-(--border-subtle) border-r-(--border-subtle) border-l-blue-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-(--bg-hover) dark:border-y-white/5 dark:border-r-white/5 dark:bg-(--bg-card)/60 dark:shadow-lg dark:hover:bg-[#161b26]">
-           <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
-               <AppIcon name="clock" class="rotate-12 size-20 text-blue-500 select-none" />
-           </div>
-           <div class="relative z-10 flex items-start justify-between">
-              <div>
-                 <p class="mb-1 text-xs font-semibold tracking-wider text-(--text-secondary) uppercase">{{ t('dashboard.todayOrders') }}</p>
-                 <h2 class="mb-2 text-3xl font-bold text-(--text-main)">{{ orderStats.todayCount }}</h2>
-                     <div class="flex items-center gap-1 text-xs font-medium text-emerald-500">
-                    <AppIcon name="trending-up" class="size-3.5" />
-                    <span>+12% {{ t('dashboard.vsYesterday') }}</span> 
-                 </div>
-              </div>
-              <div class="flex size-10 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10">
-                 <AppIcon name="clock" class="size-5 text-blue-500 dark:text-blue-400" />
-              </div>
-           </div>
-           <div class="mt-4 h-12 w-full">
-              <canvas id="chart1"></canvas>
-           </div>
-        </div>
+        <template #summary>
+          <div v-if="dashboardErrorCode === 'FORBIDDEN'" class="mb-8">
+            <PermissionDeniedState
+              :reason="dashboardError"
+              home-to="/admin/forbidden"
+              home-text="查看权限说明"
+              @retry="fetchDashboardData"
+            />
+          </div>
 
-        <!-- Pending Orders (Pending Processing) -->
-        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-(--border-subtle) border-r-(--border-subtle) border-l-red-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-(--bg-hover) dark:border-y-white/5 dark:border-r-white/5 dark:bg-(--bg-card)/60 dark:shadow-lg dark:hover:bg-[#161b26]">
-           <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
-               <AppIcon name="exclamation-circle" class="rotate-12 size-20 text-red-500 select-none" />
-           </div>
-           <div class="relative z-10 flex items-start justify-between">
-              <div>
-                 <p class="mb-1 text-xs font-semibold tracking-wider text-(--text-secondary) uppercase">{{ t('dashboard.pendingOrders') }}</p>
-                 <h2 class="mb-2 text-3xl font-bold text-red-500 dark:text-red-400">{{ orderStats.pendingCount }}</h2>
-                 <div class="flex items-center gap-1 text-xs font-medium text-red-500/80 dark:text-red-400/80">
-                    <AppIcon name="exclamation-triangle" class="size-3.5" />
-                    <span>{{ t('dashboard.actionNeeded') }}</span>
-                 </div>
-              </div>
-              <div class="flex size-10 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10">
-                 <AppIcon name="exclamation-circle" class="size-5 text-red-500 dark:text-red-400" />
-              </div>
-           </div>
-           <div class="mt-4 h-12 w-full opacity-60">
-              <canvas id="chart2"></canvas>
-           </div>
-        </div>
+          <StatGroup v-else :columns="4">
+            <AppStatCard
+              v-for="card in summaryCards"
+              :key="card.key"
+              :label="card.label"
+              :value="card.value"
+              :variant="card.variant"
+            >
+              <template #icon>
+                <AppIcon :name="card.icon" class="size-5" />
+              </template>
+              <template #footer>
+                <div class="flex items-center gap-2 text-xs text-(--text-secondary)">
+                  <span v-if="card.footer">{{ card.footer }}</span>
+                  <span v-if="card.meta" :class="card.metaClass">{{ card.meta }}</span>
+                </div>
+              </template>
+            </AppStatCard>
+          </StatGroup>
+        </template>
 
-        <!-- Weekly Orders -->
-        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-(--border-subtle) border-r-(--border-subtle) border-l-emerald-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-(--bg-hover) dark:border-y-white/5 dark:border-r-white/5 dark:bg-(--bg-card)/60 dark:shadow-lg dark:hover:bg-[#161b26]">
-           <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
-               <AppIcon name="chart-bar" class="rotate-12 size-20 text-emerald-500 select-none" />
-           </div>
-           <div class="relative z-10 flex items-start justify-between">
-              <div>
-                 <div class="flex items-center gap-2">
-                    <p class="mb-1 text-xs font-semibold tracking-wider text-(--text-secondary) uppercase">{{ t('dashboard.weekOrders') }}</p>
-                 </div>
-                 <h2 class="mb-2 text-3xl font-bold text-(--text-main)">{{ orderStats.weekCount || 0 }}</h2>
-                 <div class="flex items-center gap-1 text-xs font-medium text-(--text-secondary)">
-                    <AppIcon name="minus" class="size-3.5" />
-                    <span v-if="weekTrend === 0">{{ t('dashboard.trendSame') }}</span>
-                    <span v-else :class="weekTrend > 0 ? 'text-emerald-500' : 'text-red-500'">
-                        {{ weekTrend > 0 ? '↑' : '↓' }} {{ Math.abs(weekTrend) }}%
-                    </span>
-                 </div>
-              </div>
-              <div class="flex size-10 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10">
-                 <AppIcon name="chart-bar" class="size-5 text-emerald-500 dark:text-emerald-400" />
-              </div>
-           </div>
-           <div class="mt-4 h-12 w-full">
-              <canvas id="chart3"></canvas>
-           </div>
-        </div>
-
-        <!-- Active Shares -->
-        <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-(--border-subtle) border-r-(--border-subtle) border-l-purple-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-(--bg-hover) dark:border-y-white/5 dark:border-r-white/5 dark:bg-(--bg-card)/60 dark:shadow-lg dark:hover:bg-[#161b26]">
-           <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
-               <AppIcon name="share" class="rotate-12 size-20 text-purple-500 select-none" />
-           </div>
-           <div class="relative z-10 flex items-start justify-between">
-              <div>
-                 <p class="mb-1 text-xs font-semibold tracking-wider text-(--text-secondary) uppercase">{{ t('dashboard.activeShares') }}</p>
-                 <h2 class="mb-2 text-3xl font-bold text-(--text-main)">{{ orderStats.activeSharesCount || 0 }}</h2>
-                 <div class="flex items-center gap-1 text-xs font-medium text-(--text-secondary)">
-                    <span>{{ t('dashboard.acrossProjects') }}</span>
-                 </div>
-              </div>
-              <div class="flex size-10 items-center justify-center rounded-lg border border-purple-500/20 bg-purple-500/10">
-                 <AppIcon name="share" class="size-5 text-purple-500 dark:text-purple-400" />
-              </div>
-           </div>
-           <div class="mt-4 h-12 w-full">
-              <canvas id="chart4"></canvas>
-           </div>
-        </div>
-      </div>
+        <template #main>
 
       <!-- Main Layout -->
       <div v-if="dashboardErrorCode !== 'FORBIDDEN'" class="grid h-full grid-cols-1 gap-6 pb-8 lg:grid-cols-12">
@@ -336,10 +245,14 @@
             </div>
         </div>
       </div>
-      
-      <footer v-if="dashboardErrorCode !== 'FORBIDDEN'" class="mt-auto py-4 text-center text-[10px] text-(--text-muted)">
-        {{ t('dashboard.footer') }}
-      </footer>
+        </template>
+
+        <template #secondary>
+          <footer v-if="dashboardErrorCode !== 'FORBIDDEN'" class="py-4 text-center text-[10px] text-(--text-muted)">
+            {{ t('dashboard.footer') }}
+          </footer>
+        </template>
+      </DashboardShell>
     </div>
 
     <!-- Modals -->
@@ -394,6 +307,10 @@ import {
 import { API } from '@/utils/constants';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
+import AppStatCard from '@/components/ui/AppStatCard.vue';
+import DashboardShell from '@/design-system/patterns/DashboardShell.vue';
+import StatGroup from '@/design-system/composed/StatGroup.vue';
 import Chart from 'chart.js/auto';
 
 const router = useRouter();
@@ -424,6 +341,53 @@ const weekTrend = computed(() => {
   if (last === 0) return current > 0 ? 100 : 0;
   return Math.round(((current - last) / last) * 100);
 });
+
+const dashboardDescription = computed(() => {
+  return `${t('dashboard.liveStatus')} · ${t('dashboard.lastUpdated')}: ${lastUpdatedTime.value}`;
+});
+
+const summaryCards = computed(() => [
+  {
+    key: 'today',
+    label: t('dashboard.todayOrders'),
+    value: orderStats.value.todayCount,
+    variant: 'info',
+    icon: 'clock',
+    footer: t('dashboard.liveStatus'),
+    meta: `+12% ${t('dashboard.vsYesterday')}`,
+    metaClass: 'text-success',
+  },
+  {
+    key: 'pending',
+    label: t('dashboard.pendingOrders'),
+    value: orderStats.value.pendingCount,
+    variant: 'danger',
+    icon: 'exclamation-circle',
+    footer: t('dashboard.actionNeeded'),
+    meta: '',
+    metaClass: '',
+  },
+  {
+    key: 'week',
+    label: t('dashboard.weekOrders'),
+    value: orderStats.value.weekCount || 0,
+    variant: 'success',
+    icon: 'chart-bar',
+    footer: weekTrend.value === 0 ? t('dashboard.trendSame') : '',
+    meta: weekTrend.value === 0 ? '' : `${weekTrend.value > 0 ? '↑' : '↓'} ${Math.abs(weekTrend.value)}%`,
+    metaClass: weekTrend.value > 0 ? 'text-success' : 'text-danger',
+  },
+  {
+    key: 'shares',
+    label: t('dashboard.activeShares'),
+    value: orderStats.value.activeSharesCount || 0,
+    variant: 'purple',
+    icon: 'share',
+    footer: t('dashboard.acrossProjects'),
+    meta: '',
+    metaClass: '',
+  },
+]);
 
 const showShareManager = ref(false);
 const showEditShare = ref(false);
