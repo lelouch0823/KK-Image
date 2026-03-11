@@ -58,6 +58,9 @@
 | SalespersonRepository | `SalespersonRepository.js` | 销售人员管理 | `salespersons` |
 | SpaceRepository | `SpaceRepository.js` | 共享空间 | `spaces`, `space_files` |
 | PurchaseOrderRepository | `PurchaseOrderRepository.js` | 采购单管理 | `purchase_orders` |
+| ProductDimensionRepository | `ProductDimensionRepository.js` | 商品自定义维度与变体规格管理 | `product_dimensions`, `product_dimension_values` |
+| GoodsOverviewRepository | `GoodsOverviewRepository.js` | 订货总览视图查询 | 与产品及订单宽表相关 |
+| VariantImageRepository | `VariantImageRepository.js` | 变体图集管理 | 关联表 |
 | NotificationRepository | `NotificationRepository.js` | 通知系统 | `notifications` |
 | StatsRepository | `StatsRepository.js` | 系统统计 | 多表聚合 |
 
@@ -332,7 +335,8 @@ CustomerRepository      → customers
 SalespersonRepository   → salespersons
 SpaceRepository         → spaces, space_files, space_salesperson_shares
 PurchaseOrderRepository → purchase_orders, purchase_order_items
-NotificationRepository  → notifications
+ProductDimensionRepository → product_dimensions, product_dimension_values
+NotificationsRepository → notifications
 ```
 
 ---

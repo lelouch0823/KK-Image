@@ -79,7 +79,7 @@ functions/lib/hono/
 │   ├── /files                             # 文件管理
 │   ├── /spaces                            # 空间管理
 │   ├── /orders                            # 订单管理
-│   ├── /products                          # 产品管理
+│   ├── /products                          # 商品管理 (SPU/SKU/Variants)
 │   ├── /customers                         # 客户管理
 │   ├── /salespersons                      # 销售人员管理
 │   ├── /notifications                     # 通知管理
@@ -87,12 +87,13 @@ functions/lib/hono/
 │   ├── /stats                             # 统计
 │   ├── /upload                            # 上传
 │   ├── /search                            # 全文搜索
-│   ├── /trash                              # 回收站
+│   ├── /trash                             # 回收站
 │   ├── /settings                          # 设置
 │   ├── /audit-logs                        # 审计日志
 │   ├── /ai                                # AI 功能
 │   ├── /goods-overview                    # 订货总览
-│   └── /purchase-orders                   # 采购单管理
+│   ├── /purchase-orders                   # 采购单管理
+│   └── /inventory/ledger                  # 库存分类账查询
 │
 └── /sales                                 # 销售端 API
     ├── POST /login                        # 登录
