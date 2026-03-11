@@ -11,6 +11,10 @@ const mocks = vi.hoisted(() => ({
   loadStats: vi.fn(),
   loadDetail: vi.fn(),
   loadSuggestions: vi.fn(),
+  detailState: {
+    detail: null,
+    detailLoading: true,
+  },
 }));
 
 vi.mock('@/composables/useI18n', () => ({
@@ -24,8 +28,8 @@ vi.mock('@/composables/usePurchaseOrders', () => ({
     loading: ref(false),
     error: ref(''),
     errorCode: ref(''),
-    detail: ref(null),
-    detailLoading: ref(true),
+    detail: computed(() => mocks.detailState.detail),
+    detailLoading: computed(() => mocks.detailState.detailLoading),
     suggestions: ref([]),
     suggestionsLoading: ref(false),
     stats: ref(null),
@@ -85,6 +89,8 @@ describe('PurchaseOrders detail shell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.routeQuery = {};
+    mocks.detailState.detail = null;
+    mocks.detailState.detailLoading = true;
     mocks.loadList.mockResolvedValue();
     mocks.loadStats.mockResolvedValue();
     mocks.loadDetail.mockResolvedValue();
@@ -137,5 +143,30 @@ describe('PurchaseOrders detail shell', () => {
     });
 
     expect(mocks.routerReplace).not.toHaveBeenCalled();
+  });
+
+  it('shows retry action when purchase-order detail failed to load', async () => {
+    mocks.detailState.detailLoading = false;
+
+    const wrapper = mount(PurchaseOrders, {
+      global: {
+        stubs: {
+          Teleport: true,
+          Transition: false,
+          OrderPickerModal: { template: '<div />' },
+          ProductPickerModal: { template: '<div />' },
+          ProductDetailModal: { template: '<div />' },
+          AppImage: { template: '<div />' },
+          AppIcon: { template: '<i />' },
+          AppFilterBar: { template: '<div />' },
+          AppButton: { template: '<button><slot /></button>' },
+          AppTable: { template: '<div />' },
+          StatusBadge: { template: '<div><slot /></div>' },
+          PermissionDeniedState: { template: '<div />' },
+        },
+      },
+    });
+
+    expect(wrapper.find('[data-testid="purchase-order-detail-retry"]').exists()).toBe(true);
   });
 });

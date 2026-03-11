@@ -20,6 +20,7 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
     const commenting = ref(false);
     const detailHydrating = ref(false);
     const detailHydrationError = ref('');
+    const detailEditLoading = ref(false);
 
     // --- Create ---
     const handleCreateOrder = async (data) => {
@@ -135,9 +136,14 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
         }
     };
 
-    const handleEditFromDetail = (order) => {
-        editingOrder.value = order;
-        showEditModal.value = true;
+    const handleEditFromDetail = async (order) => {
+        if (!order?.id || detailEditLoading.value) return;
+        detailEditLoading.value = true;
+        try {
+            await openEditModal(order);
+        } finally {
+            detailEditLoading.value = false;
+        }
     };
 
     return {
@@ -149,6 +155,7 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
         viewingOrder,
         detailHydrating,
         detailHydrationError,
+        detailEditLoading,
         isEditing,
 
         handleCreateOrder,

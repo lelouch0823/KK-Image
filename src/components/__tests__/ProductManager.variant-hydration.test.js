@@ -166,4 +166,26 @@ describe('ProductManager variant hydration', () => {
 
     expect(mocks.routerReplace).not.toHaveBeenCalled();
   });
+
+  it('opens edit modal immediately while query.edit hydration is still pending', async () => {
+    mocks.routeQuery = { edit: 'p-pending' };
+    let resolveProduct;
+    mocks.loadProduct.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveProduct = resolve;
+        })
+    );
+
+    const wrapper = createWrapper();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.showCreateModal).toBe(true);
+    expect(wrapper.vm.isEditMode).toBe(true);
+
+    resolveProduct({ id: 'p-pending', name: 'Hydrated Pending Product' });
+    await vi.waitFor(() => {
+      expect(mocks.routerReplace).toHaveBeenCalledWith({ query: {} });
+    });
+  });
 });

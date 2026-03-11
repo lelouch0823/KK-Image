@@ -1,5 +1,15 @@
 <template>
   <div v-if="embedded && modelValue" class="flex h-full flex-col">
+    <div
+      v-if="initializationError"
+      role="alert"
+      class="border-danger/20 bg-danger/5 text-danger mx-6 mt-6 rounded-xl border px-4 py-3 text-sm"
+    >
+      <div class="flex items-center justify-between gap-3">
+        <span>{{ initializationError }}</span>
+        <AppButton variant="secondary" :text="t('common.retry')" @click="$emit('retry-init')" />
+      </div>
+    </div>
     <div class="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-6">
       <form id="product-form" class="space-y-8" @submit.prevent="handleSubmit">
         <div class="space-y-6">
@@ -71,6 +81,7 @@
               : t('product.action.create')
         "
         :loading="submitting"
+        :disabled="initializing"
         @click="handleSubmit"
       />
     </div>
@@ -116,7 +127,17 @@
             </button>
           </div>
 
-          <div class="custom-scrollbar max-h-[70vh] overflow-y-auto p-6">
+          <div class="custom-scrollbar relative max-h-[70vh] overflow-y-auto p-6">
+            <div
+              v-if="initializationError"
+              role="alert"
+              class="border-danger/20 bg-danger/5 text-danger mb-4 rounded-xl border px-4 py-3 text-sm"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <span>{{ initializationError }}</span>
+                <AppButton variant="secondary" :text="t('common.retry')" @click="$emit('retry-init')" />
+              </div>
+            </div>
             <form id="product-form" class="space-y-8" @submit.prevent="handleSubmit">
               <div class="space-y-6">
                 <ProductBasicInfoSection :form="form" :currency-options="CURRENCY_OPTIONS" />
@@ -187,8 +208,33 @@
                     : t('product.action.create')
               "
               :loading="submitting"
+              :disabled="initializing"
               @click="handleSubmit"
             />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="initializing"
+      class="fixed inset-0 z-[60] flex items-center justify-center bg-(--color-overlay-dim)/70 backdrop-blur-sm"
+    >
+      <div class="w-full max-w-sm rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-2xl">
+        <div class="flex items-start gap-3">
+          <div class="bg-primary/10 text-primary mt-0.5 flex size-10 items-center justify-center rounded-full">
+            <svg class="size-5 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" opacity="0.2" />
+              <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-(--text-main)">
+              {{ t('product.workflow.loading_title', 'Loading complete product data') }}
+            </p>
+            <p class="mt-1 text-sm text-(--text-secondary)">
+              {{ t('product.workflow.loading_body', 'Syncing dimensions, variants, and inventory details.') }}
+            </p>
           </div>
         </div>
       </div>
@@ -278,8 +324,16 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  initializing: {
+    type: Boolean,
+    default: false,
+  },
+  initializationError: {
+    type: String,
+    default: '',
+  },
 });
-const emit = defineEmits(['update:modelValue', 'success']);
+const emit = defineEmits(['update:modelValue', 'success', 'retry-init']);
 
 // 所有表单状态与逻辑由 composable 统一管理
 const {

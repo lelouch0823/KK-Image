@@ -10,10 +10,14 @@
         <div class="flex items-center gap-2">
           <button
             class="hover:bg-primary hover:text-inverse bg-primary/10 text-primary flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-            :disabled="!order"
+            :disabled="!order || hydrating || editPending"
             @click="$emit('edit', order)"
           >
-            <AppIcon name="pencil-square" class="size-3.5" />
+            <AppIcon
+              :name="editPending ? 'spinner' : 'pencil-square'"
+              class="size-3.5"
+              :class="{ 'animate-spin': editPending }"
+            />
             {{ t('order.manage.editOrder') }}
           </button>
           <button
@@ -112,6 +116,10 @@ defineProps({
     default: '',
   },
   commenting: {
+    type: Boolean,
+    default: false,
+  },
+  editPending: {
     type: Boolean,
     default: false,
   },

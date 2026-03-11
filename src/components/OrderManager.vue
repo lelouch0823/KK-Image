@@ -156,6 +156,7 @@
       :hydrating="detailHydrating"
       :hydration-error="detailHydrationError"
       :commenting="commenting"
+      :edit-pending="detailEditLoading"
       @close="closeDetailModal"
       @retry="() => viewingOrder?.id && openDetailModal(viewingOrder)"
       @comment="handleAdminComment"
@@ -280,6 +281,7 @@ const {
   viewingOrder,
   detailHydrating,
   detailHydrationError,
+  detailEditLoading,
   isEditing,
   handleCreateOrder,
   openEditModal,

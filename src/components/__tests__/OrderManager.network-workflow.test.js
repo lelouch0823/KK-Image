@@ -160,4 +160,27 @@ describe('OrderManager network workflow', () => {
 
     expect(mocks.routerReplace).toHaveBeenCalledWith({ query: {} });
   });
+
+  it('hydrates full order before opening edit from detail', async () => {
+    let resolveOrder;
+    mocks.getOrder.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveOrder = resolve;
+        })
+    );
+
+    const wrapper = createWrapper();
+    const pending = wrapper.vm.handleEditFromDetail({ id: 'o-edit', orderNo: 'SO-EDIT' });
+
+    expect(mocks.getOrder).toHaveBeenCalledWith('o-edit');
+    expect(wrapper.vm.showEditModal).toBe(false);
+    expect(wrapper.vm.editingOrder).toBe(null);
+
+    resolveOrder({ id: 'o-edit', orderNo: 'SO-EDIT', currentData: { name: 'Hydrated Order' } });
+    await pending;
+
+    expect(wrapper.vm.showEditModal).toBe(true);
+    expect(wrapper.vm.editingOrder.currentData.name).toBe('Hydrated Order');
+  });
 });

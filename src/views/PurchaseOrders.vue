@@ -243,6 +243,7 @@
 
               <div
                 v-else-if="!detail"
+                role="alert"
                 class="flex min-h-[240px] items-center justify-center px-6 py-10 text-center text-(--text-secondary)"
               >
                 <div>
@@ -252,6 +253,14 @@
                   <p class="mt-2 text-sm">
                     {{ t('purchaseOrder.detail.loadFailedHint', '未能加载采购单详情，请关闭后重试。') }}
                   </p>
+                  <button
+                    type="button"
+                    data-testid="purchase-order-detail-retry"
+                    class="bg-primary mt-4 rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) transition-colors hover:bg-primary/90"
+                    @click="retryDetail"
+                  >
+                    {{ t('common.retry') }}
+                  </button>
                 </div>
               </div>
 
@@ -843,6 +852,7 @@ const createForm = reactive({
 
 const poItems = reactive([]);
 const selectedSuggestions = ref([]);
+const detailRequestId = ref('');
 let stopPurchaseOrdersRefreshSubscription = null;
 
 // ─── 计算属性 ────────────────────────────────────────
@@ -960,8 +970,15 @@ const buildSuggestionMeta = (suggestion) => {
 };
 
 const openDetail = async (id) => {
+  detailRequestId.value = String(id || '').trim();
   showDetail.value = true;
   await loadDetail(id);
+};
+
+const retryDetail = async () => {
+  const id = detailRequestId.value || String(route.query.id || '').trim();
+  if (!id) return;
+  await openDetail(id);
 };
 
 // ─── 新建/编辑采购单 - 选择器打开 ──────────────────────

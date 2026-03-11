@@ -83,6 +83,9 @@
         v-model="showCreateModal"
         :edit-mode="isEditMode"
         :initial-data="editingProduct"
+        :initializing="queryEditInitializing"
+        :initialization-error="queryEditError"
+        @retry-init="() => route.query.edit && handleQueryEditOpen(route.query.edit)"
         @success="handleModalSuccess"
     />
 
@@ -217,6 +220,8 @@ const isEditMode = ref(false);
 const editingProduct = ref(null);
 const viewingProduct = ref(null);
 const sharingProduct = ref(null);
+const queryEditInitializing = ref(false);
+const queryEditError = ref('');
 let stopProductsRefreshSubscription = null;
 
 const filters = reactive({
@@ -239,14 +244,7 @@ onMounted(async () => {
     
     // Auto-open edit modal if query param is present
     if (route.query.edit) {
-        const product = await loadProduct(route.query.edit);
-        if (product) {
-            handleEdit(product);
-            // Clean up the query param without reloading page
-            const query = { ...route.query };
-            delete query.edit;
-            router.replace({ query });
-        }
+        handleQueryEditOpen(route.query.edit);
     }
 });
 
@@ -265,6 +263,31 @@ const handleEdit = (product) => {
     isEditMode.value = true;
     showCreateModal.value = true;
     editingProduct.value = { ...product };
+};
+
+const handleQueryEditOpen = async (productId) => {
+    if (!productId) return;
+    isEditMode.value = true;
+    showCreateModal.value = true;
+    queryEditInitializing.value = true;
+    queryEditError.value = '';
+    editingProduct.value = editingProduct.value || {};
+
+    try {
+        const product = await loadProduct(productId);
+        if (product) {
+            handleEdit(product);
+            const query = { ...route.query };
+            delete query.edit;
+            router.replace({ query });
+            return;
+        }
+        queryEditError.value = t('product.workflow.edit_load_failed', 'Failed to load the editor. Please try again.');
+    } catch (error) {
+        queryEditError.value = error?.message || t('product.workflow.edit_load_failed', 'Failed to load the editor. Please try again.');
+    } finally {
+        queryEditInitializing.value = false;
+    }
 };
 
 const decorateProductPreview = (product) => {
@@ -345,5 +368,19 @@ watch([showDetailModal, viewingProduct], ([isOpen, product]) => {
         selectedId: null,
         selectedType: null,
     });
+});
+
+watch(showCreateModal, (isOpen) => {
+    if (!isOpen) {
+        queryEditInitializing.value = false;
+        queryEditError.value = '';
+        editingProduct.value = null;
+        isEditMode.value = false;
+        if (route.query.edit) {
+            const query = { ...route.query };
+            delete query.edit;
+            router.replace({ query });
+        }
+    }
 });
 </script>
