@@ -4,6 +4,7 @@
  */
 
 import { getShareUrl, getFileUrl } from '../../../_shared/utils.js';
+import { parseJsonArray, parseJsonObject } from '../../../../../api/utils/json.js';
 
 /**
  * 投影商品字段到空间模版数据中
@@ -11,7 +12,7 @@ import { getShareUrl, getFileUrl } from '../../../_shared/utils.js';
  * @returns {Object} 包含商品字段的 templateData
  */
 export function projectSpaceTemplateData(space) {
-  const templateData = space.template_data ? JSON.parse(space.template_data) : {};
+  const templateData = parseJsonObject(space.template_data, {});
 
   // 如果绑定了产品，用产品表 JOIN 过来的数据覆盖空间的模板字段
   if (space.product_id) {
@@ -21,20 +22,12 @@ export function projectSpaceTemplateData(space) {
     if (space.p_price !== undefined) templateData.price = space.p_price !== null ? String(space.p_price) : '';
 
     if (space.p_specs) {
-      try {
-        const specs = typeof space.p_specs === 'string' ? JSON.parse(space.p_specs) : space.p_specs;
-        if (specs?.material) templateData.material = specs.material || '';
-      } catch (_e) {
-        // console.error 忽略 JSON 解析错误
-      }
+      const specs = parseJsonObject(space.p_specs, {});
+      if (specs?.material) templateData.material = specs.material || '';
     }
 
     if (space.p_images) {
-      try {
-        templateData.images = typeof space.p_images === 'string' ? JSON.parse(space.p_images) : space.p_images;
-      } catch (_e) {
-        // ignore
-      }
+      templateData.images = parseJsonArray(space.p_images, []);
     }
   }
 

@@ -13,6 +13,7 @@
  */
 
 import { generateId, now } from '../api/utils/id.js';
+import { parseJsonObject } from '../api/utils/json.js';
 
 function isMissingColumnError(error, columns = []) {
     const message = String(error?.message || error || '').toLowerCase();
@@ -22,13 +23,7 @@ function isMissingColumnError(error, columns = []) {
 }
 
 function parseMetadata(metadata) {
-    if (!metadata) return null;
-    try {
-        return JSON.parse(metadata);
-    } catch (error) {
-        console.warn('notification metadata parse failed:', error);
-        return null;
-    }
+    return parseJsonObject(metadata, null);
 }
 
 export class NotificationRepository {

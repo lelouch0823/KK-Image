@@ -9,6 +9,7 @@ import { success, error } from '../utils/response.js';
 import { MSG } from '../utils/messages.js';
 import { timingSafeCompare, isAdminAuthenticated } from '../utils/auth.js';
 import { getFileType } from '../utils/file-utils.js';
+import { parseJsonArray } from '../utils/json.js';
 import { getFileUrl } from '../utils/url.js';
 import { projectSpaceTemplateData } from '../../lib/hono/routes/manage/spaces/transformers.js';
 
@@ -67,28 +68,24 @@ async function getSpaceData(space, env) {
 
   // 注入商品自带的图片到文件列表中 (置于首部)
   if (space.p_images) {
-    try {
-      const pImages = typeof space.p_images === 'string' ? JSON.parse(space.p_images) : space.p_images;
-      if (Array.isArray(pImages) && pImages.length > 0) {
-        const productFiles = pImages.map((imgUrl, index) => ({
-          id: `product-img-${index}`,
-          name: `Product Image ${index + 1}`,
-          size: 0,
-          type: 'image',
-          mimeType: 'image/jpeg', // Assumption for rendering
-          url: imgUrl,
-          thumbnailUrl: imgUrl,
-        }));
+    const pImages = parseJsonArray(space.p_images, []);
+    if (pImages.length > 0) {
+      const productFiles = pImages.map((imgUrl, index) => ({
+        id: `product-img-${index}`,
+        name: `Product Image ${index + 1}`,
+        size: 0,
+        type: 'image',
+        mimeType: 'image/jpeg', // Assumption for rendering
+        url: imgUrl,
+        thumbnailUrl: imgUrl,
+      }));
 
-        // prepend to allFiles
-        allFiles.unshift(...productFiles);
+      // prepend to allFiles
+      allFiles.unshift(...productFiles);
 
-        // Also add to 'default' section grouping if needed for specific templates
-        if (!groupedFiles['default']) groupedFiles['default'] = [];
-        groupedFiles['default'].unshift(...productFiles);
-      }
-    } catch (_e) {
-      // ignore json parse error
+      // Also add to 'default' section grouping if needed for specific templates
+      if (!groupedFiles['default']) groupedFiles['default'] = [];
+      groupedFiles['default'].unshift(...productFiles);
     }
   }
 

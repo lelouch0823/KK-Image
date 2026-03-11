@@ -5,6 +5,7 @@
  */
 
 import { generateJWT, MSG, hashPassword } from './utils.js';
+import { parseJsonArray } from '../../../api/utils/json.js';
 import {
   checkLoginLockout,
   recordLoginFailure,
@@ -183,7 +184,7 @@ export async function authenticateAdminUser(env, username, password) {
     name: dbUser.name,
     type: 'user',
     role: dbUser.role,
-    permissions: dbUser.permissions ? JSON.parse(dbUser.permissions) : [],
+    permissions: parseJsonArray(dbUser.permissions, []),
   };
 }
 

@@ -1,4 +1,5 @@
 import { parseRepoPagination } from '../api/utils/pagination.js';
+import { parseJsonArray } from '../api/utils/json.js';
 
 /**
  * 客户仓库
@@ -27,10 +28,7 @@ export class CustomerRepository {
     if (customer) {
       if (customer.tags) {
         try {
-          customer.tags = JSON.parse(customer.tags);
-          if (!Array.isArray(customer.tags)) {
-            customer.tags = [customer.tags];
-          }
+          customer.tags = parseJsonArray(customer.tags, []);
         } catch {
           customer.tags = [customer.tags];
         }
@@ -90,11 +88,7 @@ export class CustomerRepository {
       let tags = [];
       if (c.tags) {
         try {
-          tags = JSON.parse(c.tags);
-          // 如果解析结果不是数组，包装为数组
-          if (!Array.isArray(tags)) {
-            tags = [tags];
-          }
+          tags = parseJsonArray(c.tags, []);
         } catch {
           // 如果解析失败，可能是纯字符串，包装为数组
           tags = [c.tags];

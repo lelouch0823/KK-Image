@@ -2,6 +2,7 @@
 
 import { generatePrefixedId, generateHmacSignature, isValidUrl } from './id.js';
 import { MAX_WEBHOOK_RETRIES, WEBHOOK_TIMEOUT_MS } from './constants.js';
+import { parseJsonArray, parseJsonObject } from './json.js';
 
 // 支持的事件类型
 export const WEBHOOK_EVENTS = {
@@ -142,7 +143,7 @@ async function getRegisteredWebhooks(env, eventType) {
       .filter((webhook) => {
         // 检查事件类型匹配
         if (webhook.events) {
-          const events = JSON.parse(webhook.events);
+          const events = parseJsonArray(webhook.events, []);
           if (events.length > 0) {
             return events.includes(eventType);
           }
@@ -153,9 +154,9 @@ async function getRegisteredWebhooks(env, eventType) {
       .map((row) => ({
         id: row.id,
         url: row.url,
-        events: row.events ? JSON.parse(row.events) : [],
+        events: parseJsonArray(row.events, []),
         secret: row.secret,
-        headers: row.headers ? JSON.parse(row.headers) : {},
+        headers: parseJsonObject(row.headers, {}),
         enabled: Boolean(row.enabled),
       }));
   } catch (error) {
@@ -299,9 +300,9 @@ export async function getWebhooks(env) {
   return results.map((row) => ({
     id: row.id,
     url: row.url,
-    events: row.events ? JSON.parse(row.events) : [],
+    events: parseJsonArray(row.events, []),
     secret: row.secret,
-    headers: row.headers ? JSON.parse(row.headers) : {},
+    headers: parseJsonObject(row.headers, {}),
     enabled: Boolean(row.enabled),
     createdBy: row.created_by,
     createdAt: row.created_at,

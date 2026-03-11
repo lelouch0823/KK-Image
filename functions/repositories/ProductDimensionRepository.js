@@ -1,4 +1,5 @@
 import { generateId, now } from '../api/utils/id.js';
+import { safeJsonParse } from '../api/utils/json.js';
 
 const ACTIVE_STATUS = 'active';
 const ARCHIVED_STATUS = 'archived';
@@ -20,11 +21,7 @@ const formatMeta = (meta) => {
 const parseJSON = (value, fallback) => {
     if (value === undefined || value === null || value === '') return fallback;
     if (typeof value !== 'string') return value;
-    try {
-        return JSON.parse(value);
-    } catch {
-        return fallback;
-    }
+    return safeJsonParse(value, fallback);
 };
 
 export class ProductDimensionRepository {

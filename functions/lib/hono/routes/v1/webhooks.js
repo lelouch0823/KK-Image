@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
+import { parseJsonArray, parseJsonObject } from '../../../../api/utils/json.js';
 import { generatePrefixedId, generateHmacSignature, MSG } from '../../_shared/utils.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers.js';
@@ -30,9 +31,9 @@ function rowToWebhook(row) {
   return {
     id: row.id,
     url: row.url,
-    events: row.events ? JSON.parse(row.events) : WEBHOOK_EVENTS,
+    events: parseJsonArray(row.events, WEBHOOK_EVENTS),
     secret: row.secret,
-    headers: row.headers ? JSON.parse(row.headers) : {},
+    headers: parseJsonObject(row.headers, {}),
     enabled: Boolean(row.enabled),
     createdBy: row.created_by,
     createdAt: row.created_at,

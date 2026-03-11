@@ -4,6 +4,7 @@ import { CreateUserSchema, UpdateUserSchema } from '../../schemas/user.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { generateId, hashPassword, MSG } from '../../_shared/utils.js';
 import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
+import { parseJsonArray } from '../../../../api/utils/json.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
 import { assertKnownPermissions } from './_shared/permissions-validation.js';
 import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers.js';
@@ -18,7 +19,7 @@ function toSafeUser(user) {
     name: user.name,
     email: user.email,
     role: user.role,
-    permissions: user.permissions ? JSON.parse(user.permissions) : [],
+    permissions: parseJsonArray(user.permissions, []),
     createdAt: user.created_at,
     updatedAt: user.updated_at,
   };

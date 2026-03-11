@@ -7,6 +7,7 @@
  */
 
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
+import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 
 function projectInventoryGap(totalDemand, stockQuantity) {
   return (Number(totalDemand) || 0) - (Number(stockQuantity) || 0);
@@ -24,14 +25,8 @@ export class GoodsOverviewRepository {
    * 内部映射函数，处理解析和默认值
    */
   _mapItem(row) {
-    let images = [];
-    try {
-      images = row.images ? JSON.parse(row.images) : [];
-    } catch { /* ignore */ }
-    let variantOptions = {};
-    try {
-      variantOptions = row.variant_options ? JSON.parse(row.variant_options) : {};
-    } catch { /* ignore */ }
+    const images = parseJsonArray(row.images, []);
+    const variantOptions = parseJsonObject(row.variant_options, {});
 
     const avgUnitCost = row.avg_unit_cost || 0;
     const avgFreight = row.avg_freight || 0;
