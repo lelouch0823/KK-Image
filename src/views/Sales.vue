@@ -124,9 +124,9 @@
 
       <!-- Content Area using Router View -->
       <AppErrorBoundary :reset-key="route.fullPath" @recover="handleBoundaryRecover">
-        <main class="mx-auto max-w-screen-xl px-4 py-6 pb-24 sm:px-6">
+        <MobileSalesShell :title="pageTitle" :description="salesDescription">
             <router-view />
-        </main>
+        </MobileSalesShell>
       </AppErrorBoundary>
 
       <!-- Bottom TabBar -->
@@ -169,6 +169,7 @@ import AppErrorBoundary from '@/components/common/AppErrorBoundary.vue';
 import AsyncStatePanel from '@/components/common/AsyncStatePanel.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import MobileSalesShell from '@/design-system/patterns/MobileSalesShell.vue';
 import { resolveSalesOrderEntry, isSalesOrderV2Enabled } from '@/config/feature-flags';
 import { onClickOutside } from '@vueuse/core';
 
@@ -214,6 +215,8 @@ const pageTitle = computed(() => {
   if (isSpacesPage.value) return t('salesSpaces.title');
   return '';
 });
+
+const salesDescription = computed(() => salesperson.value?.name || '');
 
 const salesOrderV2Enabled = computed(() => isSalesOrderV2Enabled());
 const salesOrderEntry = computed(() => (salesOrderV2Enabled.value ? resolveSalesOrderEntry() : 'legacy'));

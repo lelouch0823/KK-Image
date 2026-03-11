@@ -33,6 +33,20 @@
 
     <!-- 相册内容 -->
     <template v-else-if="album">
+      <PublicViewerShell :title="album.name" :description="t('gallery.files', { count: album.fileCount })">
+        <template #actions>
+          <AppButton
+            variant="secondary"
+            size="sm"
+            :text="t('gallery.share')"
+            @click="shareAlbum"
+          >
+            <template #icon-left>
+              <AppIcon name="share" class="size-4" />
+            </template>
+          </AppButton>
+        </template>
+
       <!-- Header -->
       <header
         class="sticky top-0 z-40 border-b border-(--border-color) bg-(--bg-card)/95 backdrop-blur-sm"
@@ -142,6 +156,7 @@
       >
         <a href="/" class="hover:text-primary transition-colors">{{ t('gallery.poweredBy') }}</a>
       </footer>
+      </PublicViewerShell>
     </template>
 
     <!-- Lightbox 组件 -->
@@ -167,6 +182,8 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import PasswordGate from '@/components/common/PasswordGate.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import AppImage from '@/components/ui/AppImage.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import PublicViewerShell from '@/design-system/patterns/PublicViewerShell.vue';
 import { API, APP_NAME } from '@/utils/constants';
 import { isImage } from '@/utils/formatters';
 
