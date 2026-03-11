@@ -14,6 +14,8 @@
   - 文件上传 (`/upload`, `/check-hash`)
   - 订单管理 (`/orders`)
   - 客户与销售人员管理
+  - 商品与库存管理 (`/products`, `/inventory`)
+  - 采购单管理 (`/purchase-orders`)
 
 ## 2. Sales API (销售端)
 > **Base URL**: `/api/sales/:token`  

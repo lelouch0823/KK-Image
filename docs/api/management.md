@@ -226,7 +226,39 @@
 
 ---
 
-## 7. 备份 (Backups)
+---
+
+## 7. 商品与库存系统 (Product & Inventory)
+
+### 获取商品列表 (SPU)
+`GET /api/manage/products`
+
+### 创建商品 SPU
+`POST /api/manage/products`
+
+### 获取/管理变体 (SKU)
+`GET /api/manage/products/:id/variants`
+`POST /api/manage/products/:id/variants`
+
+### 查询库存分类账
+`GET /api/manage/inventory/ledger`
+
+---
+
+## 8. 采购单管理 (Purchase Orders)
+
+### 获取采购单列表
+`GET /api/manage/purchase-orders`
+
+### 创建采购单
+`POST /api/manage/purchase-orders`
+
+### 更新采购单状态
+`POST /api/manage/purchase-orders/:id/status`
+
+---
+
+## 9. 备份 (Backups)
 
 ### 触发数据库备份
 `POST /api/manage/backups`

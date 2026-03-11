@@ -77,6 +77,10 @@ Base URL: `/api/manage`
 | GET | `/orders` | 订单管理列表 |
 | PATCH | `/orders/:id` | 修改订单 (支持 `productId` 绑定) |
 | POST | `/salespersons` | 创建销售员 |
+| GET/POST | `/products` | 商品 SPU 管理 |
+| GET/POST | `/products/:id/variants` | 商品变体 SKU 及附加规格管理 |
+| GET/POST | `/purchase-orders` | 采购单及入库明细管理 |
+| GET | `/inventory/ledger` | 库存分类账与结存查询 |
 
 ---
 

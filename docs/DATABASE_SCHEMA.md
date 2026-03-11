@@ -142,7 +142,62 @@
 
 ---
 
-## 4. 系统模块
+## 4. 商品与库存系统 (Product & Inventory) - [SOTA]
+
+### `products` (商品 SPU)
+核心商品信息，不包含业务字段（如价格、库存）。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `name` | TEXT | 商品名称 |
+| `spu` | TEXT | 唯一 SPU 编码 |
+| `product_code` | TEXT | 自动生成的商品短码 |
+| `category` / `brand` / `series` | TEXT | 分类与品牌信息 |
+| `images` | TEXT | JSON Array of files.id |
+| `specifications` | TEXT | JSON, 商品基础规格属性 |
+| `options` | TEXT | JSON, 变体选项定义 (如 `["Color", "Size"]`) |
+
+### `product_variants` (商品变体 SKU)
+挂载价格、库存等核心业务信息。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `product_id` | TEXT | FK -> products.id |
+| `sku` | TEXT | 唯一 SKU 编码 |
+| `price` / `cost_price` | REAL | 售价与成本价 |
+| `stock_quantity` | INTEGER | 冗余的库存数量（以 inventory_balances 为准）|
+| `options_values` | TEXT | JSON, 对应 options 的实际值 (如 `{"Color": "Red"}`) |
+| `variant_signature` | TEXT | 签名去重字段 |
+| `image_id` | TEXT | FK -> files.id (变体专属图片) |
+| `status` | TEXT | `active`, `archived` |
+
+### `product_dimensions` & `product_dimension_values` & `aliases`
+商品级的多维规格与值映射，支持变体维度的可扩展性。
+
+### `inventory_ledger` & `inventory_balances` (库存分类账)
+采用分类账模型记录所有库存变动。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` / `variant_id` | TEXT | PK / FK -> product_variants.id |
+| `event_type` | TEXT | `purchase_in`, `sales_out`, `manual_adjustment` 等 |
+| `quantity_delta` | INTEGER | 变动数量 (+/-) |
+| `reference_type` / `reference_id` | TEXT | 关联单据 (如 `purchase_order`) |
+
+*balances 表记录实时结存 (on_hand, reserved, available)。*
+
+### `purchase_orders` & `purchase_order_items` (采购单)
+支持多商品合并采购、运费关税分摊。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `po_no` | TEXT | 唯一采购单号 |
+| `status` | TEXT | `draft`, `ordered`, `shipping`, `arrived`, `completed`, `cancelled` |
+| `actual_shipping_cost` | REAL | 运费 |
+| `allocation_method` | TEXT | 分摊方式 (`by_quantity`, `by_value`) |
+
+---
+
+## 5. 系统模块
 
 ### `users` (管理员)
 后台通过用户名/密码登录。
@@ -183,8 +238,15 @@ erDiagram
     
     SPACES }o--o{ FILES : highlights
     
+    PRODUCTS ||--o{ PRODUCT_VARIANTS : has
+    PRODUCT_VARIANTS ||--o{ INVENTORY_LEDGER : tracks
+    
+    PURCHASE_ORDERS ||--o{ PURCHASE_ORDER_ITEMS : contains
+    PURCHASE_ORDER_ITEMS }o--|| PRODUCTS : buys
+    
     SALESPERSONS ||--o{ ORDERS : submits
     CUSTOMERS ||--o{ ORDERS : owns
     ORDERS ||--o{ ORDER_TIMELINE : logs
     ORDERS }o--o{ FILES : attachments
+    ORDERS }o--|| PRODUCT_VARIANTS : contains
 ```

@@ -20,6 +20,9 @@
 
 ### 📖 用户手册
 - [用户手册](user-manual/README.md)
+
+### 📖 用户手册
+- [用户手册](user-manual/README.md)
   - 学习如何管理文件、创建共享空间。
 - **[销售端手册](user-manual/sales-guide.md)**
   - 销售人员使用指南，包括微信小程序操作。
@@ -32,6 +35,8 @@
 - **文件管理 (File Manager)**
 - **订单系统 (Order Management)**
 - **客户管理 (CRM)**
+- **商品与库存管理 (Product & Inventory)**
+- **采购单管理 (Purchase Orders)**
 - **Webhooks & Integrations**
 
 ---

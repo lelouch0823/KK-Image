@@ -94,6 +94,7 @@ functions/
 
 **D1 Database (SQLite)**:
 - 核心业务数据: `orders`, `customers`, `salespersons`
+- 商品与供应链: `products`, `product_variants`, `purchase_orders`, `inventory_ledger`
 - 文件元数据: `files`, `blobs`, `folders`
 - 系统配置: `users`, `webhooks`, `notifications`
 
@@ -110,6 +111,13 @@ erDiagram
     CUSTOMERS ||--o{ ORDERS : owns
     ORDERS ||--o{ ORDER_TIMELINE : logs
     ORDERS }o--o{ FILES : attachments
+    ORDERS }o--|| PRODUCT_VARIANTS : contains
+    
+    PRODUCTS ||--o{ PRODUCT_VARIANTS : has
+    PRODUCT_VARIANTS ||--o{ INVENTORY_LEDGER : tracks
+    
+    PURCHASE_ORDERS ||--o{ PURCHASE_ORDER_ITEMS : contains
+    PURCHASE_ORDER_ITEMS }o--|| PRODUCTS : buys
     
     FILES }o--|| BLOBS : "content_hash"
     FOLDERS ||--o{ FILES : contains
