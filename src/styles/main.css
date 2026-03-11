@@ -1,4 +1,8 @@
-@import "./variables.css";
+@import "./tokens/primitive.css";
+@import "./tokens/semantic.css";
+@import "./tokens/motion.css";
+@import "./tokens/charts.css";
+@import "./tokens/themes.css";
 @import "tailwindcss";
 
 /* Enable class-based dark mode */

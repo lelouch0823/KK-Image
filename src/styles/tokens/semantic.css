@@ -1,0 +1,30 @@
+:root {
+    --color-secondary: var(--color-gray-500);
+    --color-secondary-hover: var(--color-gray-700);
+
+    --bg-page: var(--color-gray-50);
+    --bg-card: #ffffff;
+    --bg-hover: var(--color-gray-50);
+    --bg-active: var(--color-gray-100);
+    --bg-muted: var(--color-gray-50);
+    --bg-secondary: var(--color-gray-100);
+
+    --border-color: var(--color-gray-200);
+    --border-hover: var(--color-gray-300);
+    --border-subtle: var(--color-gray-100);
+    --border-strong: var(--color-gray-400);
+
+    --border-success: #a7f3d0;
+    --border-warning: #fde68a;
+    --border-danger: #fecaca;
+    --border-info: #bfdbfe;
+
+    --text-main: var(--color-gray-900);
+    --text-secondary: var(--color-gray-500);
+    --text-muted: var(--color-gray-400);
+    --text-inverse: #ffffff;
+
+    --color-overlay-blur: rgba(0, 0, 0, 0.5);
+    --color-overlay-dim: rgba(0, 0, 0, 0.3);
+    --color-modal-bg: #ffffff;
+}

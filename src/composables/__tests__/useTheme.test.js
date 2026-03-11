@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { useTheme } from '../useTheme';
 
 describe('useTheme Composable', () => {
@@ -59,5 +61,15 @@ describe('useTheme Composable', () => {
     
     initTheme();
     expect(isDark.value).toBe(false);
+  });
+
+  it('main.css should import layered token entrypoints', () => {
+    const mainCss = readFileSync(resolve(process.cwd(), 'src/styles/main.css'), 'utf8');
+
+    expect(mainCss).toContain('@import "./tokens/primitive.css";');
+    expect(mainCss).toContain('@import "./tokens/semantic.css";');
+    expect(mainCss).toContain('@import "./tokens/motion.css";');
+    expect(mainCss).toContain('@import "./tokens/charts.css";');
+    expect(mainCss).toContain('@import "./tokens/themes.css";');
   });
 });
