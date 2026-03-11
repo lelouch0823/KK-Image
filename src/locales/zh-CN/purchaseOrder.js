@@ -46,6 +46,9 @@ export default {
     linkedOrder: '关联订单',
     publicStock: '补公共库存',
     orderLocked: '与预定单关联的商品请通过管理关联订单来变更',
+    loadingTitle: '正在刷新采购单详情',
+    loadingBody: '先展示详情容器，完整采购单信息会在后台补齐。',
+    loadFailedHint: '未能加载采购单详情，请关闭后重试。',
   },
 
   // 表单

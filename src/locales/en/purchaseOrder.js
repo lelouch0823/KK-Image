@@ -42,6 +42,9 @@ export default {
     linkedOrder: 'Linked Order',
     publicStock: 'Public Stock',
     orderLocked: 'Items linked to customer orders must be changed via order management.',
+    loadingTitle: 'Refreshing purchase-order details',
+    loadingBody: 'Showing the detail shell first while fuller purchase-order data loads in the background.',
+    loadFailedHint: 'Unable to load purchase-order details. Close and try again.',
   },
 
   form: {

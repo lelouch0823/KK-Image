@@ -193,15 +193,20 @@
     <!-- ==================== 详情面板 (弹窗) ==================== -->
     <Teleport to="body">
       <transition name="fade">
-        <div v-if="showDetail && detail" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          v-if="showDetail"
+          data-testid="purchase-order-detail-shell"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        >
           <!-- 背景遮罩 -->
           <div class="absolute inset-0 bg-(--color-overlay-dim) backdrop-blur-sm" @click="showDetail = false"></div>
           <!-- 面板 -->
           <div class="relative flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-(--color-modal-bg) shadow-xl" style="max-height: calc(100vh - 3rem)">
             <div class="flex shrink-0 items-center justify-between border-b border-(--border-color) px-6 py-4">
               <div>
-                <h2 class="text-lg font-bold text-(--text-main)">{{ detail.po_no }}</h2>
+                <h2 class="text-lg font-bold text-(--text-main)">{{ detail?.po_no || (t('purchaseOrder.detail.title') || '采购单详情') }}</h2>
                 <span
+                  v-if="detail?.status"
                   class="mt-1 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
                   :style="{
                     color: statusConfig[detail.status]?.color || 'inherit',
@@ -217,7 +222,40 @@
             </div>
 
             <div class="flex h-full min-h-0 flex-col">
-              <div class="flex-1 space-y-6 overflow-y-auto p-6">
+              <div
+                v-if="_detailLoading"
+                class="border-b border-(--border-color) bg-(--bg-muted)/55 px-6 py-4"
+              >
+                <div class="flex items-start gap-4">
+                  <div class="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full">
+                    <AppIcon name="spinner" class="size-5 animate-spin" />
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-(--text-main)">
+                      {{ t('purchaseOrder.detail.loadingTitle', '正在刷新采购单详情') }}
+                    </p>
+                    <p class="mt-1 text-sm text-(--text-secondary)">
+                      {{ t('purchaseOrder.detail.loadingBody', '先展示详情容器，完整采购单信息会在后台补齐。') }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                v-else-if="!detail"
+                class="flex min-h-[240px] items-center justify-center px-6 py-10 text-center text-(--text-secondary)"
+              >
+                <div>
+                  <p class="text-sm font-medium text-(--text-main)">
+                    {{ t('purchaseOrder.error.notFound') }}
+                  </p>
+                  <p class="mt-2 text-sm">
+                    {{ t('purchaseOrder.detail.loadFailedHint', '未能加载采购单详情，请关闭后重试。') }}
+                  </p>
+                </div>
+              </div>
+
+              <div v-else class="flex-1 space-y-6 overflow-y-auto p-6">
                 <!-- 状态可视化 (Stepper) -->
                 <div class="mb-4">
                   <div class="relative flex items-center justify-between">
@@ -375,7 +413,7 @@
             </div>
             
             <!-- Footer Fixed Action Bar -->
-            <div class="flex items-center justify-between border-t border-(--border-color) bg-(--bg-card) px-6 py-4">
+              <div v-if="detail" class="flex items-center justify-between border-t border-(--border-color) bg-(--bg-card) px-6 py-4">
               <div class="flex items-center gap-3">
                 <!-- 左侧：次要/辅助操作 -->
                 <button
