@@ -1,4 +1,6 @@
 <template>
+  <ManagementListShell :title="t('sidebar.files')" :description="t('fileManager.filesHeader')">
+  <template #content>
   <div
     class="relative flex min-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card)"
     @dragenter="onDragEnter"
@@ -235,6 +237,8 @@
     <!-- Recycling Bin Modal -->
     <TrashModal v-model="showTrashModal" @change="loadFolderData(currentFolder?.id)" />
   </div>
+  </template>
+  </ManagementListShell>
 </template>
 
 <script setup>
@@ -251,6 +255,7 @@ import FileManagerModals from './FileManagerModals.vue';
 import TrashModal from './TrashModal.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
+import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
 import { useFileManager } from '@/composables/useFileManager';
 import { useI18n } from '@/composables/useI18n';

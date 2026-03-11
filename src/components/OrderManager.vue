@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col gap-4 lg:h-full">
+  <ManagementListShell :title="t('order.manage.title')" :description="t('order.manage.subtitle') || t('order.manage.title')">
     <div v-if="errorCode === 'FORBIDDEN'" class="flex flex-1 items-center justify-center py-12">
       <PermissionDeniedState
         title="订单管理权限不足"
@@ -17,7 +17,8 @@
     </Modal>
 
     <!-- 订单列表 -->
-    <div v-if="errorCode !== 'FORBIDDEN'" class="lg:flex-1 lg:overflow-y-auto">
+    <template #content>
+    <div v-if="errorCode !== 'FORBIDDEN'" class="lg:overflow-y-auto">
       <!-- 桌面表格视图 (lg+) -->
       <div class="hidden lg:block">
         <OrderTable
@@ -138,6 +139,7 @@
         </div>
       </div>
     </div>
+    </template>
 
     <!-- Create Modal -->
     <OrderCreateModal
@@ -198,7 +200,7 @@
       :loading="isDeleting"
       @confirm="executeOrderDeletion(viewingOrder)"
     />
-  </div>
+  </ManagementListShell>
 </template>
 
 <script setup>
@@ -229,6 +231,7 @@ import OrderDashboard from './order/OrderDashboard.vue';
 import OrderCreateModal from '@/components/OrderCreateModal.vue';
 import DestructiveConfirmModal from '@/components/common/DestructiveConfirmModal.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
+import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';

@@ -1,17 +1,6 @@
 <template>
-  <div class="flex flex-col rounded-xl border border-(--border-color) bg-(--bg-page) backdrop-blur-sm transition-all duration-500 lg:h-full">
-    
-    <!-- 1. Header (Compact like OrderManager) -->
-    <div class="shrink-0 border-b border-(--border-color) p-3 sm:p-4">
-      <div class="flex items-center justify-between gap-3">
-        <!-- Title -->
-        <div class="min-w-0">
-            <h2 class="truncate text-base font-semibold text-(--text-main) sm:text-lg">{{ t('product.manager.title') }}</h2>
-            <p class="hidden text-sm text-(--text-secondary) sm:block">{{ t('product.manager.subtitle') }}</p>
-        </div>
-
-        <!-- Actions -->
-        <div class="flex shrink-0 items-center gap-1 sm:gap-2">
+  <ManagementListShell :title="t('product.manager.title')" :description="t('product.manager.subtitle')">
+      <template #actions>
             <!-- Create Button -->
             <button 
                 class="bg-primary shadow-primary/20 flex items-center justify-center gap-2 rounded-lg text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:bg-primary-hover active:scale-95 max-sm:size-9 sm:h-9 sm:px-4"
@@ -48,18 +37,15 @@
             >
                 <AppIcon name="chart-bar" class="size-5" />
             </button>
-        </div>
-      </div>
+      </template>
 
-       <!-- Filters Toolbar -->
-       <div class="mt-2.5 sm:mt-3">
+      <template #filters>
             <ProductFilters 
                 v-model:search="filters.search" 
                 v-model:status="filters.status"
                 @refresh="loadProducts({ page: 1, status: filters.status, search: filters.search })"
             />
-       </div>
-    </div>
+      </template>
 
     <!-- Stats Modal (Popup) -->
     <Modal v-model="showStatsModal" :title="t('product.manager.stats_overview')">
@@ -103,9 +89,9 @@
         :product="viewingProduct"
         @success="handleModalSuccess"
     />
-    
-    <!-- 2. Content Area (Table/Grid) -->
-    <div class="relative flex-1 lg:min-h-[400px] lg:overflow-hidden">
+
+      <template #content>
+    <div class="relative lg:min-h-[400px] lg:overflow-hidden">
       <!-- Loading Overlay -->
       <div v-if="loading" class="absolute inset-0 z-10 flex items-center justify-center bg-(--bg-page)/50 backdrop-blur-[1px]">
         <AppIcon name="spinner" class="text-primary size-10 animate-spin" />
@@ -166,17 +152,15 @@
         </EmptyState>
       </div>
     </div>
-    
-    <!-- Footer / Pagination -->
-     <div class="shrink-0 border-t border-(--border-color) bg-(--bg-muted) p-4">
+     <div class="border-t border-(--border-color) bg-(--bg-muted) p-4">
         <Pagination
             v-model:current-page="pagination.page"
             :total-pages="pagination.totalPages"
             @change="(p) => loadProducts({ page: p })"
         />
     </div>
-
-  </div>
+      </template>
+  </ManagementListShell>
 </template>
 
 <script setup>
@@ -201,6 +185,7 @@ import Modal from '@/components/ui/Modal.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import { useI18n } from '@/composables/useI18n';
 import { resolveBoundProductMainImageSrc } from '@/utils/product-image.js';
+import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
 const { t } = useI18n();
 const route = useRoute();
