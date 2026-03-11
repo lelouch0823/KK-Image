@@ -1,5 +1,82 @@
 <template>
-  <Teleport to="body">
+  <div v-if="embedded && modelValue" class="flex h-full flex-col">
+    <div class="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-6">
+      <form id="product-form" class="space-y-8" @submit.prevent="handleSubmit">
+        <div class="space-y-6">
+          <ProductBasicInfoSection :form="form" :currency-options="CURRENCY_OPTIONS" />
+
+          <ProductOptionsBuilder
+            :options="form.options"
+            @add-option="addOption"
+            @remove-option="removeOption"
+            @add-value="addOptionValue"
+            @remove-value="removeOptionValue"
+            @restore-value="restoreOptionValue"
+            @batch-build="showVariantBatchBuilder = true"
+            @generate-variants="generateVariants"
+          />
+
+          <div
+            v-if="form.variants.length > 0"
+            class="space-y-4 rounded-xl border border-(--border-color) bg-(--bg-muted)/50 p-4"
+          >
+            <div class="flex items-center justify-between">
+              <h4 class="font-bold text-(--text-main)">
+                {{ t('product.form.variants_title', 'Variants') }}
+              </h4>
+              <button
+                type="button"
+                class="text-primary text-sm font-medium"
+                @click="showVariantImageManager = true"
+              >
+                {{ t('product.form.manage_variant_images', 'Manage Variant Images') }}
+              </button>
+            </div>
+            <ProductVariantTable
+              v-model="form.variants"
+              :currency-symbol="CURRENCY_SYMBOLS[form.currency] || '¥'"
+              :inventory-readonly="editMode"
+            />
+          </div>
+
+          <div>
+            <ImageUploader
+              v-model="imageObjects"
+              :label="t('product.form.media')"
+              :hint="t('product.form.media_help')"
+              :upload-endpoint="API.MANAGE_UPLOAD"
+              :max-files="10"
+              context="product"
+            />
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div
+      class="flex justify-end gap-3 border-t border-(--border-color) bg-(--bg-muted) px-6 py-4"
+    >
+      <AppButton
+        variant="secondary"
+        :text="t('product.action.cancel')"
+        @click="$emit('update:modelValue', false)"
+      />
+      <AppButton
+        variant="primary"
+        :text="
+          submitting
+            ? t('common.saving')
+            : editMode
+              ? t('product.action.save')
+              : t('product.action.create')
+        "
+        :loading="submitting"
+        @click="handleSubmit"
+      />
+    </div>
+  </div>
+
+  <Teleport v-else to="body">
     <div
       v-if="modelValue"
       class="fixed inset-0 z-50 overflow-y-auto"
@@ -7,20 +84,16 @@
       role="dialog"
       aria-modal="true"
     >
-      <!-- Backdrop -->
       <div
         class="fixed inset-0 bg-(--color-overlay-dim) backdrop-blur-sm transition-opacity"
         aria-hidden="true"
         @click="$emit('update:modelValue', false)"
       ></div>
 
-      <!-- Modal Container -->
       <div class="flex min-h-screen items-center justify-center p-4">
-        <!-- Modal Panel -->
         <div
           class="relative w-full max-w-4xl transform overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) text-left shadow-2xl transition-all"
         >
-          <!-- Header -->
           <div
             class="flex items-center justify-between border-b border-(--border-color) bg-(--bg-muted)/50 px-6 py-4"
           >
@@ -43,14 +116,11 @@
             </button>
           </div>
 
-          <!-- Content -->
           <div class="custom-scrollbar max-h-[70vh] overflow-y-auto p-6">
             <form id="product-form" class="space-y-8" @submit.prevent="handleSubmit">
               <div class="space-y-6">
-                <!-- 基础信息 -->
                 <ProductBasicInfoSection :form="form" :currency-options="CURRENCY_OPTIONS" />
 
-                <!-- 选项维度构建器 -->
                 <ProductOptionsBuilder
                   :options="form.options"
                   @add-option="addOption"
@@ -62,7 +132,6 @@
                   @generate-variants="generateVariants"
                 />
 
-                <!-- 变体矩阵 -->
                 <div
                   v-if="form.variants.length > 0"
                   class="space-y-4 rounded-xl border border-(--border-color) bg-(--bg-muted)/50 p-4"
@@ -86,7 +155,6 @@
                   />
                 </div>
 
-                <!-- 产品图片 -->
                 <div>
                   <ImageUploader
                     v-model="imageObjects"
@@ -101,7 +169,6 @@
             </form>
           </div>
 
-          <!-- Footer -->
           <div
             class="flex justify-end gap-3 border-t border-(--border-color) bg-(--bg-muted) px-6 py-4"
           >
@@ -127,21 +194,18 @@
       </div>
     </div>
 
-    <!-- 变体图片管理弹窗 -->
     <VariantImageManagerModal
       v-model="showVariantImageManager"
       :variants="form.variants"
       @update-images="handleUpdateVariantImages"
     />
 
-    <!-- 批量构建变体弹窗 -->
     <VariantBatchBuilderModal
       v-model="showVariantBatchBuilder"
       :existing-variants="form.variants"
       @apply="handleBatchBuilderApply"
     />
 
-    <!-- 维度归档向导 -->
     <DimensionArchiveModal
       :wizard="dimensionArchiveWizard"
       :format-variant-sample="formatVariantSample"
@@ -149,7 +213,6 @@
       @confirm="confirmDimensionArchive"
     />
 
-    <!-- 值归档确认弹窗 -->
     <ValueArchiveModal
       :wizard="valueArchiveWizard"
       :format-variant-sample="formatVariantSample"
@@ -157,6 +220,34 @@
       @confirm="confirmValueArchive"
     />
   </Teleport>
+
+  <template v-if="embedded">
+    <VariantImageManagerModal
+      v-model="showVariantImageManager"
+      :variants="form.variants"
+      @update-images="handleUpdateVariantImages"
+    />
+
+    <VariantBatchBuilderModal
+      v-model="showVariantBatchBuilder"
+      :existing-variants="form.variants"
+      @apply="handleBatchBuilderApply"
+    />
+
+    <DimensionArchiveModal
+      :wizard="dimensionArchiveWizard"
+      :format-variant-sample="formatVariantSample"
+      @close="closeDimensionArchiveWizard"
+      @confirm="confirmDimensionArchive"
+    />
+
+    <ValueArchiveModal
+      :wizard="valueArchiveWizard"
+      :format-variant-sample="formatVariantSample"
+      @close="closeValueArchiveWizard"
+      @confirm="confirmValueArchive"
+    />
+  </template>
 </template>
 
 <script setup>
@@ -182,6 +273,10 @@ const props = defineProps({
   initialData: {
     type: Object,
     default: () => ({}),
+  },
+  embedded: {
+    type: Boolean,
+    default: false,
   },
 });
 const emit = defineEmits(['update:modelValue', 'success']);

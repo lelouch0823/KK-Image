@@ -46,7 +46,10 @@ describe('ProductManager variant hydration', () => {
           ProductFilters: { template: '<div />' },
           ProductTable: { template: '<div />' },
           ProductCreateModal: { template: '<div />' },
-          ProductDetailModal: { template: '<div><slot name="header-actions" :product="{}" /></div>' },
+          ProductWorkflowModal: {
+            template: '<div data-testid="workflow-modal" />',
+            props: ['show', 'product'],
+          },
           ProductImportModal: { template: '<div />' },
           ProductExportModal: { template: '<div />' },
           ProductGrid: { template: '<div />' },
@@ -75,7 +78,7 @@ describe('ProductManager variant hydration', () => {
     expect(wrapper.vm.sharingProduct.selectedVariant.id).toBe('v-1');
   });
 
-  it('handleEditFromDetail should use hydration path', async () => {
+  it('handleEditWithHydration should use hydration path', async () => {
     mocks.loadProduct.mockResolvedValue({
       id: 'p-2',
       name: 'Hydrated 2',
@@ -83,12 +86,43 @@ describe('ProductManager variant hydration', () => {
     });
 
     const wrapper = createWrapper();
-    await wrapper.vm.handleEditFromDetail({ id: 'p-2', name: 'Lite 2' });
+    await wrapper.vm.handleEditWithHydration({ id: 'p-2', name: 'Lite 2' });
 
     expect(mocks.loadProduct).toHaveBeenCalledWith('p-2');
     expect(wrapper.vm.isEditMode).toBe(true);
     expect(wrapper.vm.showCreateModal).toBe(true);
     expect(wrapper.vm.editingProduct.id).toBe('p-2');
+  });
+
+  it('renders product workflow modal instead of separate detail modal', () => {
+    const wrapper = createWrapper();
+
+    expect(wrapper.find('[data-testid="workflow-modal"]').exists()).toBe(true);
+    expect(wrapper.html()).not.toContain('header-actions');
+  });
+
+  it('opens workflow detail immediately without pre-hydrating product detail', async () => {
+    let resolveLoad;
+    mocks.loadProduct.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveLoad = resolve;
+        })
+    );
+
+    const wrapper = createWrapper();
+    const pending = wrapper.vm.handleView({ id: 'p-9', name: 'Quick View' });
+
+    expect(wrapper.vm.showDetailModal).toBe(true);
+    expect(wrapper.vm.viewingProduct).toEqual({ id: 'p-9', name: 'Quick View', mainImage: null });
+    expect(mocks.loadProduct).not.toHaveBeenCalled();
+
+    resolveLoad?.({
+      id: 'p-9',
+      name: 'Hydrated View',
+      variants: [{ id: 'v-9', sku: 'SKU-9', status: 'active' }],
+    });
+    await pending;
   });
 
   it('renders header action icons for create/import/export/stats', () => {

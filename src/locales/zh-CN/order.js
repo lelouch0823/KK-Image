@@ -102,6 +102,10 @@ export default {
     typeOrderNoToConfirm: '请输入单号 {orderNo} 以确认操作',
     deleteSuccess: '订单删除成功',
   },
+  workflow: {
+    detail_loading_title: '正在刷新订单详情',
+    detail_loading_body: '先展示当前快照，完整订单信息会在后台补齐。',
+  },
 
   // 管理端
   manage: {

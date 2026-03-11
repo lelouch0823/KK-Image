@@ -141,29 +141,17 @@
       </div>
     </transition>
 
-    <!-- 订单详情弹窗 -->
-    <Modal
-      v-model="showDetailModal"
-      :title="t('order.detail.title') || '预定单详情'"
-      size="5xl"
-      body-class="p-0 bg-(--bg-page) relative min-h-[50vh]"
-    >
-      <div v-if="loadingDetail" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-(--bg-page)/80 backdrop-blur-sm">
-        <AppIcon name="spinner" class="text-primary size-8 animate-spin" />
-        <div class="text-secondary mt-4 text-sm">{{ t('common.loading') }}</div>
-      </div>
-      
-      <div v-if="viewingOrder" class="h-[75vh] overflow-y-auto p-4 sm:p-6">
-        <OrderDetail
-          :order="viewingOrder"
-          mode="admin"
-          :commenting="commenting"
-          @close="showDetailModal = false"
-          @comment="handleComment"
-          @refresh="refreshOrderDetail"
-        />
-      </div>
-    </Modal>
+    <OrderWorkflowModal
+      v-model:show="showDetailModal"
+      :order="viewingOrder"
+      :hydrating="loadingDetail"
+      :hydration-error="detailError"
+      :commenting="commenting"
+      @close="closeDetail"
+      @retry="() => viewingOrder?.id && viewOrder(viewingOrder)"
+      @comment="handleComment"
+      @refresh="refreshOrderDetail"
+    />
   </Teleport>
 </template>
 
@@ -181,8 +169,7 @@
 import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useOrders } from '@/composables/useOrders';
-import Modal from '@/components/ui/Modal.vue';
-import OrderDetail from '@/components/order/OrderDetail.vue';
+import OrderWorkflowModal from '@/components/order/OrderWorkflowModal.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
@@ -205,28 +192,52 @@ const showDetailModal = ref(false);
 const loadingDetail = ref(false);
 const viewingOrder = ref(null);
 const commenting = ref(false);
+const detailError = ref('');
 
 const viewOrder = async (order) => {
   showDetailModal.value = true;
   loadingDetail.value = true;
+  detailError.value = '';
+  viewingOrder.value = order ? { ...order } : null;
   
-  // 获取完整的订单详情（包含图片等），以免详情页部分信息缺失
-  const fullOrder = await getOrder(order.id);
-  
-  if (fullOrder) {
-    viewingOrder.value = fullOrder;
-  } else {
-    showDetailModal.value = false;
+  try {
+    const fullOrder = await getOrder(order.id);
+    if (fullOrder) {
+      viewingOrder.value = fullOrder;
+    } else {
+      detailError.value = t('common.loadFailed');
+    }
+  } catch (_e) {
+    detailError.value = t('common.networkError');
+  } finally {
+    loadingDetail.value = false;
   }
-  
-  loadingDetail.value = false;
 };
 
 const refreshOrderDetail = async () => {
   if (viewingOrder.value) {
-    const fullOrder = await getOrder(viewingOrder.value.id);
-    if (fullOrder) viewingOrder.value = fullOrder;
+    loadingDetail.value = true;
+    detailError.value = '';
+    try {
+      const fullOrder = await getOrder(viewingOrder.value.id);
+      if (fullOrder) {
+        viewingOrder.value = fullOrder;
+      } else {
+        detailError.value = t('common.loadFailed');
+      }
+    } catch (_e) {
+      detailError.value = t('common.networkError');
+    } finally {
+      loadingDetail.value = false;
+    }
   }
+};
+
+const closeDetail = () => {
+  showDetailModal.value = false;
+  loadingDetail.value = false;
+  detailError.value = '';
+  viewingOrder.value = null;
 };
 
 const handleComment = async (comment) => {

@@ -102,6 +102,10 @@ export default {
     typeOrderNoToConfirm: 'Type {orderNo} to confirm',
     deleteSuccess: 'Order deleted successfully',
   },
+  workflow: {
+    detail_loading_title: 'Refreshing order details',
+    detail_loading_body: 'Showing the current snapshot while richer order data loads in the background.',
+  },
 
   // Management Side
   manage: {

@@ -95,20 +95,11 @@
     />
 
     <!-- Detail Modal -->
-    <ProductDetailModal
+    <ProductWorkflowModal
         v-model:show="showDetailModal"
-        :initial-data="viewingProduct"
-    >
-        <template #header-actions="{ product }">
-            <button 
-                class="hover:bg-primary hover:text-inverse bg-primary/10 text-primary flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-                @click="handleEditFromDetail(product)"
-            >
-                <AppIcon name="pencil-square" class="size-3.5" />
-                {{ t('product.action.edit') }}
-            </button>
-        </template>
-    </ProductDetailModal>
+        :product="viewingProduct"
+        @success="handleModalSuccess"
+    />
     
     <!-- 2. Content Area (Table/Grid) -->
     <div class="relative flex-1 lg:min-h-[400px] lg:overflow-hidden">
@@ -195,7 +186,7 @@ const ProductStats = defineAsyncComponent(() => import('./product/ProductStats.v
 import ProductFilters from './product/ProductFilters.vue';
 import ProductTable from './product/ProductTable.vue';
 import ProductCreateModal from './product/ProductCreateModal.vue'; 
-import ProductDetailModal from './product/ProductDetailModal.vue'; 
+import ProductWorkflowModal from './product/ProductWorkflowModal.vue'; 
 const ProductImportModal = defineAsyncComponent(() => import('./product/ProductImportModal.vue'));
 const ProductExportModal = defineAsyncComponent(() => import('./product/ProductExportModal.vue'));
 import ProductGrid from './product/ProductGrid.vue';
@@ -276,6 +267,17 @@ const handleEdit = (product) => {
     editingProduct.value = { ...product };
 };
 
+const decorateProductPreview = (product) => {
+    if (!product) return null;
+    const preview = { ...product };
+    const variants = Array.isArray(preview.variants) ? preview.variants : [];
+    if (!preview.selectedVariant && variants.length > 0) {
+        preview.selectedVariant = variants.find((variant) => variant.status === 'active') || variants[0];
+    }
+    preview.mainImage = resolveBoundProductMainImageSrc(preview) || preview.mainImage || null;
+    return preview;
+};
+
 const hydrateProductWithVariants = async (product) => {
     const full = await loadProduct(product.id);
     const hydrated = full ? { ...full } : { ...product };
@@ -294,7 +296,7 @@ const handleEditWithHydration = async (product) => {
 };
 
 const handleView = async (product) => {
-    viewingProduct.value = await hydrateProductWithVariants(product);
+    viewingProduct.value = decorateProductPreview(product);
     showDetailModal.value = true;
 };
 
@@ -307,11 +309,6 @@ const handleShareCreated = (space) => {
     showShareModal.value = false;
     // Redirect to the space management page automatically for this new space
     router.push(`/manage/space/${space.id}`);
-};
-
-const handleEditFromDetail = async (product) => {
-    showDetailModal.value = false;
-    await handleEditWithHydration(product);
 };
 
 const handleModalSuccess = () => {

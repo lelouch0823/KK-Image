@@ -18,6 +18,8 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
     const viewingOrder = ref(null);
     const isEditing = ref(false);
     const commenting = ref(false);
+    const detailHydrating = ref(false);
+    const detailHydrationError = ref('');
 
     // --- Create ---
     const handleCreateOrder = async (data) => {
@@ -78,23 +80,37 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
 
     // --- Detail ---
     const openDetailModal = async (order) => {
-        const fullOrder = await getOrder(order.id);
-        if (fullOrder) {
-            viewingOrder.value = fullOrder;
-            showDetailModal.value = true;
+        viewingOrder.value = order ? { ...order } : null;
+        showDetailModal.value = true;
+        detailHydrationError.value = '';
+        detailHydrating.value = true;
 
-            const idx = orders.value.findIndex((o) => o.id === order.id);
-            if (idx !== -1 && orders.value[idx].hasNewFeedback) {
-                orders.value[idx].hasNewFeedback = false;
-            }
-            return true;
+        const idx = orders.value.findIndex((o) => o.id === order.id);
+        if (idx !== -1 && orders.value[idx].hasNewFeedback) {
+            orders.value[idx].hasNewFeedback = false;
         }
-        return false;
+
+        try {
+            const fullOrder = await getOrder(order.id);
+            if (fullOrder) {
+                viewingOrder.value = fullOrder;
+                return true;
+            }
+            detailHydrationError.value = t('common.loadFailed');
+            return false;
+        } catch (_e) {
+            detailHydrationError.value = t('common.networkError');
+            return false;
+        } finally {
+            detailHydrating.value = false;
+        }
     };
 
     const closeDetailModal = () => {
         showDetailModal.value = false;
         viewingOrder.value = null;
+        detailHydrationError.value = '';
+        detailHydrating.value = false;
     };
 
     const handleAdminComment = async (comment) => {
@@ -131,6 +147,8 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
         showStatsModal,
         editingOrder,
         viewingOrder,
+        detailHydrating,
+        detailHydrationError,
         isEditing,
 
         handleCreateOrder,

@@ -10,6 +10,18 @@ export default {
     create_title: 'Create New Product',
     edit_title: 'Edit Product',
   },
+  workflow: {
+    preparing_edit_label: 'Preparing Edit',
+    preparing_edit_title: 'Preparing Edit',
+    preparing_edit_action: 'Preparing Edit...',
+    detail_loading_title: 'Refreshing product details',
+    detail_loading_body: 'Showing the current snapshot while richer product data loads in the background.',
+    loading_title: 'Loading complete product data',
+    loading_body: 'Syncing dimensions, variants, and inventory details.',
+    edit_load_failed: 'Failed to load the editor. Please try again.',
+    skeleton_label: 'Editor Preview',
+    back_to_detail: 'Back to Detail',
+  },
   form: {
     name: 'Product Name',
     name_placeholder: 'Enter product name',

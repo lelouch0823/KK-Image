@@ -10,6 +10,18 @@ export default {
     create_title: '创建新商品',
     edit_title: '编辑商品',
   },
+  workflow: {
+    preparing_edit_label: '准备编辑',
+    preparing_edit_title: '正在准备编辑',
+    preparing_edit_action: '正在准备编辑...',
+    detail_loading_title: '正在刷新商品详情',
+    detail_loading_body: '先展示当前快照，完整规格和库存信息会在后台补齐。',
+    loading_title: '正在加载完整商品数据',
+    loading_body: '正在同步规格、变体和库存信息。',
+    edit_load_failed: '编辑器加载失败，请重试。',
+    skeleton_label: '编辑器预览',
+    back_to_detail: '返回详情',
+  },
   form: {
     name: '商品名称',
     name_placeholder: '请输入商品名称',

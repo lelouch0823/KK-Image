@@ -149,43 +149,20 @@
     />
 
     <!-- 订单详情弹窗 -->
-    <Modal v-if="errorCode !== 'FORBIDDEN'" v-model="showDetailModal" size="6xl">
-       <template #header>
-        <div class="flex items-center gap-4">
-          <h3 class="text-lg font-semibold text-(--text-main)">{{ t('order.detail.title') }}</h3>
-          <div class="flex items-center gap-2">
-            <!-- Edit Button -->
-            <button
-               class="hover:bg-primary hover:text-inverse bg-primary/10 text-primary flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-               @click="handleEditFromDetail(viewingOrder)"
-            >
-               <AppIcon name="pencil-square" class="size-3.5" />
-               {{ t('order.manage.editOrder') }}
-            </button>
-            <!-- Save PDF Button -->
-            <button
-               class="hover:text-primary hover:bg-(--bg-hover) flex items-center gap-1.5 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-xs font-medium text-(--text-secondary) transition-colors"
-               @click="detailRef?.handleSavePdf()"
-            >
-               <AppIcon name="arrow-down-tray" class="size-3.5" />
-               {{ t('common.savePdf') }}
-            </button>
-          </div>
-        </div>
-      </template>
-      <OrderDetail
-        v-if="viewingOrder"
-        ref="detailRef"
-        :order="viewingOrder"
-        mode="admin"
-        :commenting="commenting"
-        @back="closeDetailModal"
-        @comment="handleAdminComment"
-        @refresh="refreshAfterComment"
-        @edit="handleEditFromDetail"
-        @delete-order="() => showDeleteModal = true"
-      />
-    </Modal>
+    <OrderWorkflowModal
+      v-if="errorCode !== 'FORBIDDEN'"
+      v-model:show="showDetailModal"
+      :order="viewingOrder"
+      :hydrating="detailHydrating"
+      :hydration-error="detailHydrationError"
+      :commenting="commenting"
+      @close="closeDetailModal"
+      @retry="() => viewingOrder?.id && openDetailModal(viewingOrder)"
+      @comment="handleAdminComment"
+      @refresh="refreshAfterComment"
+      @edit="handleEditFromDetail"
+      @delete-order="() => showDeleteModal = true"
+    />
 
     <!-- 订单编辑弹窗 -->
     <OrderEditModal
@@ -246,7 +223,7 @@ import OrderCards from './order/OrderCards.vue';
 import OrderStatusChanger from './OrderStatusChanger.vue';
 import OrderProcurementBadge from './order/OrderProcurementBadge.vue';
 import OrderEditModal from './OrderEditModal.vue';
-import OrderDetail from './order/OrderDetail.vue';
+import OrderWorkflowModal from './order/OrderWorkflowModal.vue';
 import OrderDashboard from './order/OrderDashboard.vue';
 import OrderCreateModal from '@/components/OrderCreateModal.vue';
 import DestructiveConfirmModal from '@/components/common/DestructiveConfirmModal.vue';
@@ -301,6 +278,8 @@ const {
   showStatsModal,
   editingOrder,
   viewingOrder,
+  detailHydrating,
+  detailHydrationError,
   isEditing,
   handleCreateOrder,
   openEditModal,
@@ -317,7 +296,6 @@ const {
 const {
   selectedIds,
   confirmData,
-  handleBatchAction,
   handleVoidOrder,
 } = useOrderBatch(refreshOrders, batchAction, changeStatus);
 

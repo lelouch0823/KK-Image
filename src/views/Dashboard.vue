@@ -349,17 +349,17 @@
       :folder="editingFolder"
       @updated="handleEditUpdated"
     />
-    <Modal v-model="showDetailModal" size="6xl" :title="t('order.detail.title')">
-      <OrderDetail
-        v-if="viewingOrder"
-        :order="viewingOrder"
-        mode="admin"
-        :commenting="commenting"
-        @back="closeDetailModal"
-        @refresh="refreshOrderDetail"
-        @comment="handleComment"
-      />
-    </Modal>
+    <OrderWorkflowModal
+      v-model:show="showDetailModal"
+      :order="viewingOrder"
+      :hydrating="detailHydrating"
+      :hydration-error="detailHydrationError"
+      :commenting="commenting"
+      @close="closeDetailModal"
+      @retry="() => viewingOrder?.id && viewOrder(viewingOrder)"
+      @refresh="refreshOrderDetail"
+      @comment="handleComment"
+    />
     <ConfirmDialog
       v-model="confirmData.show"
       :title="confirmData.title"
@@ -381,8 +381,7 @@ import { useClipboard } from '@/composables/useClipboard';
 import { useAI } from '@/composables/useAI';
 import ShareManagementModal from '@/components/ShareManagementModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
-import Modal from '@/components/ui/Modal.vue';
-import OrderDetail from '@/components/order/OrderDetail.vue';
+import OrderWorkflowModal from '@/components/order/OrderWorkflowModal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import {
@@ -433,6 +432,8 @@ const editingFolder = ref(null);
 const showDetailModal = ref(false);
 const viewingOrder = ref(null);
 const commenting = ref(false);
+const detailHydrating = ref(false);
+const detailHydrationError = ref('');
 
 const confirmData = ref({
   show: false,
@@ -448,24 +449,49 @@ let charts = {};
 
 // Order Management
 const viewOrder = async (order) => {
-  const fullOrder = await getOrder(order.id);
-  if (fullOrder) {
-    viewingOrder.value = fullOrder;
-    showDetailModal.value = true;
+  viewingOrder.value = order ? { ...order } : null;
+  showDetailModal.value = true;
+  detailHydrationError.value = '';
+  detailHydrating.value = true;
+  try {
+    const fullOrder = await getOrder(order.id);
+    if (fullOrder) {
+      viewingOrder.value = fullOrder;
+      return true;
+    }
+    detailHydrationError.value = t('common.loadFailed');
+    return false;
+  } catch (_e) {
+    detailHydrationError.value = t('common.networkError');
+    return false;
+  } finally {
+    detailHydrating.value = false;
   }
 };
 
 const closeDetailModal = () => {
   showDetailModal.value = false;
   viewingOrder.value = null;
+  detailHydrationError.value = '';
+  detailHydrating.value = false;
   fetchDashboardData();
 };
 
 const refreshOrderDetail = async () => {
   if (viewingOrder.value) {
-    const fullOrder = await getOrder(viewingOrder.value.id);
-    if (fullOrder) {
-      viewingOrder.value = fullOrder;
+    detailHydrationError.value = '';
+    detailHydrating.value = true;
+    try {
+      const fullOrder = await getOrder(viewingOrder.value.id);
+      if (fullOrder) {
+        viewingOrder.value = fullOrder;
+      } else {
+        detailHydrationError.value = t('common.loadFailed');
+      }
+    } catch (_e) {
+      detailHydrationError.value = t('common.networkError');
+    } finally {
+      detailHydrating.value = false;
     }
   }
   fetchDashboardData();
