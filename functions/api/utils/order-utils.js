@@ -243,8 +243,8 @@ export async function detectAndLogFieldChanges(
   currentData,
   updates,
   allowedFields,
-  actor,
-  reason
+  _actor,
+  _reason
 ) {
   const newData = { ...currentData };
   const fieldChanges = [];

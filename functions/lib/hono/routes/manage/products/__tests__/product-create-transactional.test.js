@@ -62,7 +62,7 @@ describe('createManagedProduct transactional rollback boundaries', () => {
   it('removes all newly created catalog rows when create fails after product insert', async () => {
     const run = vi.fn(async () => ({ meta: { changes: 1 } }));
     const db = {
-      prepare: vi.fn((sql) => ({
+      prepare: vi.fn((_sql) => ({
         bind: vi.fn(() => ({ run })),
       })),
     };

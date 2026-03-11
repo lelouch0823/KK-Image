@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { OrderStatsRepository } from '../../../../../repositories/OrderStatsRepository.js';
+import { parseJsonObject } from '../../../../../api/utils/json.js';
 import { MSG, ORDER_STATUSES, ORDER_PROCUREMENT_STATUSES, getChinaDayStart, getChinaDateStr } from '../../../_shared/utils.js';
 import { parsePagination } from '../../../_shared/route-helpers.js';
 import { withCache } from '../../../middleware/cache.js';
@@ -162,7 +163,7 @@ app.get('/export', async (c) => {
 
     const header = columns.map(c => c.label).join(',');
     const rows = orders.map(o => {
-        const data = JSON.parse(o.current_data || '{}');
+        const data = parseJsonObject(o.current_data, {});
         return [
             escapeCSV(o.order_no),
             escapeCSV(data.name),

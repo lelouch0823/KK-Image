@@ -6,6 +6,7 @@
 
 import { success, error } from '../utils/response.js';
 import { OrderRepository } from '../../repositories/OrderRepository.js';
+import { parseJsonObject } from '../utils/json.js';
 import { isCronAuthorized } from '../utils/cron-auth.js';
 
 export async function onRequest(context) {
@@ -83,7 +84,7 @@ export async function onRequest(context) {
       .all();
 
     for (const order of deadlineOrders) {
-      const data = JSON.parse(order.current_data);
+      const data = parseJsonObject(order.current_data, {});
       const deadline = data.deadline;
 
       const exists = await env.DB.prepare(

@@ -33,11 +33,10 @@ function createMockDb() {
 
 describe('ProductRepository — SPU 重构', () => {
     let db;
-    let statements;
     let repo;
 
     beforeEach(() => {
-        ({ db, statements } = createMockDb());
+        ({ db } = createMockDb());
         repo = new ProductRepository(db);
         // 模拟 crypto.randomUUID
         vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'test-uuid') });
