@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { parseJsonObject } from '../../../../api/utils/json.js';
 import { streamSSE } from 'hono/streaming';
 import { AI_TOOLS } from '../../../../api/utils/ai-prompts.js';
 import { OrderStatsRepository } from '../../../../repositories/OrderStatsRepository.js';
@@ -228,7 +229,7 @@ app.post('/chat', async (c) => {
             messages.push(choice.message);
             for (const toolCall of choice.message.tool_calls) {
                 const functionName = toolCall.function.name;
-                const args = JSON.parse(toolCall.function.arguments);
+                const args = parseJsonObject(toolCall.function.arguments, {});
                 const result = await executeAITool(functionName, args, { 
                     orderStatsRepo, systemStatsRepo, orderRepo, orderTimelineRepo, productRepo, variantRepo, customerRepo, goodsOverviewRepo, purchaseOrderRepo
                 });

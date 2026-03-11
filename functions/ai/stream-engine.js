@@ -142,7 +142,7 @@ export async function runAIStreamEngine({
 
       let args = {};
       try {
-        args = tc.arguments ? JSON.parse(tc.arguments) : {};
+        args = parseJsonObject(tc.arguments, {});
       } catch (_parseErr) {
         console.warn(`[AI Stream] Failed to parse tool arguments: ${tc.arguments}`);
       }
@@ -191,3 +191,4 @@ export async function runAIStreamEngine({
     },
   };
 }
+import { parseJsonObject } from '../api/utils/json.js';

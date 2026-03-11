@@ -1,4 +1,5 @@
 // 认证工具模块 - 处理 API Key 和 JWT 认证
+import { parseJsonArray } from './json.js';
 
 // 管理员认证 Cookie 名称
 export const ADMIN_AUTH_COOKIE = 'ADMIN_AUTH';
@@ -144,11 +145,7 @@ export async function verifyApiKey(apiKey, env) {
   // Parse permissions if string
   let permissions = keyInfo.permissions;
   if (typeof permissions === 'string') {
-    try {
-      permissions = JSON.parse(permissions);
-    } catch (_) {
-      permissions = [];
-    }
+    permissions = parseJsonArray(permissions, []);
   }
   if (!Array.isArray(permissions)) permissions = [];
 

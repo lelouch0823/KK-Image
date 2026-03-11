@@ -2,6 +2,7 @@
  * @fileoverview 智能存储路由器 - 根据规则选择最优存储
  * @module storage/router
  */
+import { safeJsonParse } from './_shared/utils.js';
 
 /**
  * @typedef {Object} RoutingRule
@@ -43,7 +44,7 @@ export class SmartRouter {
   _parseRules() {
     try {
       if (this.env.STORAGE_RULES) {
-        return JSON.parse(this.env.STORAGE_RULES);
+        return safeJsonParse(this.env.STORAGE_RULES, DEFAULT_RULES);
       }
     } catch (error) {
       console.warn('Failed to parse STORAGE_RULES, using defaults:', error);

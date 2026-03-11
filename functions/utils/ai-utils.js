@@ -346,10 +346,9 @@ export function parseSSEChunk(chunk) {
             if (data === '[DONE]') {
                 results.push({ done: true });
             } else {
-                try {
-                    results.push(JSON.parse(data));
-                } catch (_e) {
-                    // 忽略无法解析的行
+                const parsed = safeJsonParse(data);
+                if (parsed) {
+                    results.push(parsed);
                 }
             }
         }
@@ -465,3 +464,4 @@ export async function callAIAuto({ messages, tools = [], env, preferStream = tru
  * 格式化系统提示词
  */
 export { SYSTEM_PROMPT } from '../api/utils/ai-prompts.js';
+import { safeJsonParse } from '../api/utils/json.js';

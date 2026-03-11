@@ -346,7 +346,7 @@ export async function processToolCalls(toolCalls, executeTool, sendSSE, toolResu
         sendSSE('tool_call', { name: tc.name, status: 'started' });
 
         // 执行工具
-        const args = tc.arguments ? JSON.parse(tc.arguments) : {};
+        const args = parseJsonObject(tc.arguments, {});
         const result = await executeTool(tc.name, args);
 
         sendSSE('tool_result', { name: tc.name, summary: toolResultMsg });
@@ -366,3 +366,4 @@ export async function processToolCalls(toolCalls, executeTool, sendSSE, toolResu
 
     return newMessages;
 }
+import { parseJsonObject } from '../api/utils/json.js';
