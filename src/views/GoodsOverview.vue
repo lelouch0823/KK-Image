@@ -10,10 +10,9 @@
       />
     </div>
     <template v-else>
-    <!-- 页面标题与操作 -->
-    <AppFilterBar
+    <ManagementListShell
       :title="t('sidebar.goodsOverview')"
-      :subtitle="t('goodsOverview.subtitle')"
+      :description="t('goodsOverview.subtitle')"
     >
       <template #actions>
         <AppButton
@@ -27,9 +26,7 @@
         </AppButton>
       </template>
 
-      <!-- 筛选栏 (放置在 AppFilterBar 下方的 filters slot) -->
       <template #filters>
-        <div class="flex flex-wrap items-center gap-3">
           <select
             v-model="filters.brand"
             class="focus:border-primary focus:outline-none rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main)"
@@ -64,9 +61,9 @@
             <option value="name">{{ t('goodsOverview.sort.name') }}</option>
             <option value="cost">{{ t('goodsOverview.sort.cost') }}</option>
           </select>
-        </div>
       </template>
-    </AppFilterBar>
+
+      <template #content>
 
     <!-- ===== 管道概览卡片：骨架屏 or 真实数据 ===== -->
     <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -373,6 +370,8 @@
         </button>
       </div>
     </transition>
+      </template>
+    </ManagementListShell>
     </template>
   </div>
 </template>
@@ -387,10 +386,10 @@ import { useGoodsOverview } from '@/composables/useGoodsOverview';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppButton from '@/components/ui/AppButton.vue';
-import AppFilterBar from '@/components/ui/AppFilterBar.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
+import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
 
 const { t } = useI18n();

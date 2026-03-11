@@ -10,10 +10,9 @@
       />
     </div>
     <template v-else>
-    <!-- 页面标题与操作 -->
-    <AppFilterBar
+    <ManagementListShell
       :title="t('purchaseOrder.title')"
-      :subtitle="t('purchaseOrder.subtitle')"
+      :description="t('purchaseOrder.subtitle')"
     >
       <template #actions>
         <!-- 智能建议按钮 -->
@@ -32,9 +31,7 @@
         />
       </template>
 
-      <!-- 状态筛选 -->
       <template #filters>
-        <div class="flex flex-wrap items-center gap-2">
           <AppButton
             v-for="tab in statusTabs"
             :key="tab.value"
@@ -44,9 +41,9 @@
             class="!rounded-full"
             @click="filters.status = tab.value"
           />
-        </div>
       </template>
-    </AppFilterBar>
+
+      <template #content>
 
     <!-- ===== 统计卡片：骨架屏 or 真实数据 ===== -->
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
@@ -777,6 +774,8 @@
         </div>
       </transition>
     </Teleport>
+      </template>
+    </ManagementListShell>
     </template>
   </div>
 </template>
@@ -799,11 +798,11 @@ import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.v
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
-import AppFilterBar from '@/components/ui/AppFilterBar.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
+import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
 const { t } = useI18n();
 const {
