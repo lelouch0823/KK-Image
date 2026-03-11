@@ -313,14 +313,13 @@
     </div>
 
     <!-- ===== 浮动操作栏 ===== -->
-    <transition name="action-bar-slide-up">
-      <div
-        v-if="selectedItems.length > 0"
-        class="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-2xl border border-(--border-color) bg-(--bg-card) px-6 py-3 shadow-2xl backdrop-blur-xl"
-      >
+    <FloatingSelectionBar :visible="selectedItems.length > 0">
+      <template #summary>
         <span class="text-sm font-medium text-(--text-main)">
           {{ t('goodsOverview.batch.selected', { count: selectedItems.length }) }}
         </span>
+      </template>
+      <template #default>
         <button
           class="bg-primary flex cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="isCreatingPO"
@@ -336,8 +335,8 @@
         >
           {{ t('goodsOverview.batch.deselectAll') }}
         </button>
-      </div>
-    </transition>
+      </template>
+    </FloatingSelectionBar>
       </template>
     </ManagementListShell>
     </template>
@@ -359,6 +358,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import MetricTile from '@/design-system/composed/MetricTile.vue';
 import SummaryStrip from '@/design-system/composed/SummaryStrip.vue';
+import FloatingSelectionBar from '@/design-system/composed/FloatingSelectionBar.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
 
@@ -461,14 +461,4 @@ onDeactivated(() => {
   }
 }
 
-/* 浮动操作栏入场动画 */
-.action-bar-slide-up-enter-active,
-.action-bar-slide-up-leave-active {
-  transition: all 0.3s ease;
-}
-.action-bar-slide-up-enter-from,
-.action-bar-slide-up-leave-to {
-  transform: translateX(-50%) translateY(100%);
-  opacity: 0;
-}
 </style>
