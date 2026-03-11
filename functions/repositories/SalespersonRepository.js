@@ -1,5 +1,7 @@
 import { generateId, generateShareToken, hashPassword, now } from '../api/utils/id.js';
 import { parseRepoPagination } from '../api/utils/pagination.js';
+import { hasChanges } from '../api/utils/result.js';
+import { buildSetClause } from '../api/utils/sql.js';
 
 /**
  * 销售人员仓库
@@ -66,7 +68,7 @@ export class SalespersonRepository {
       .prepare('UPDATE salespersons SET wechat_openid = ?, updated_at = ? WHERE id = ?')
       .bind(openid, now(), id)
       .run();
-    return result.success && result.meta.changes > 0;
+    return hasChanges(result);
   }
 
   /**
@@ -192,47 +194,40 @@ export class SalespersonRepository {
    * @returns {Promise<boolean>}
    */
   async update(id, data) {
-    const updates = [];
-    const values = [];
+    const updateData = {};
 
     if (data.name !== undefined) {
-      updates.push('name = ?');
-      values.push(data.name.trim());
+      updateData.name = data.name.trim();
     }
     if (data.store !== undefined) {
-      updates.push('store = ?');
-      values.push(data.store || null);
+      updateData.store = data.store || null;
     }
     if (data.phone !== undefined) {
-      updates.push('phone = ?');
-      values.push(data.phone || null);
+      updateData.phone = data.phone || null;
     }
     if (data.password) {
       const passwordHash = await hashPassword(data.password, this.jwtSecret);
-      updates.push('password_hash = ?');
-      values.push(passwordHash);
+      updateData.password_hash = passwordHash;
     }
     if (data.isActive !== undefined) {
-      updates.push('is_active = ?');
-      values.push(data.isActive ? 1 : 0);
+      updateData.is_active = data.isActive ? 1 : 0;
     }
 
-    if (updates.length === 0) return false;
+    if (Object.keys(updateData).length === 0) return false;
 
-    updates.push('updated_at = ?');
-    values.push(now());
-    values.push(id);
+    updateData.updated_at = now();
+    const { clause, values } = buildSetClause(updateData);
 
     const result = await this.db
       .prepare(
         `
-            UPDATE salespersons SET ${updates.join(', ')} WHERE id = ?
+            UPDATE salespersons SET ${clause} WHERE id = ?
         `
       )
-      .bind(...values)
+      .bind(...values, id)
       .run();
 
-    return result.success;
+    return hasChanges(result);
   }
 
   /**
@@ -249,7 +244,7 @@ export class SalespersonRepository {
       )
       .bind(id)
       .run();
-    return result.success && result.meta.changes > 0;
+    return hasChanges(result);
   }
 
   /**
@@ -268,7 +263,7 @@ export class SalespersonRepository {
       .bind(newToken, now(), id)
       .run();
 
-    if (result.meta.changes === 0) throw new Error('Salesperson not found');
+    if (!hasChanges(result)) throw new Error('Salesperson not found');
     return newToken;
   }
 
@@ -307,6 +302,6 @@ export class SalespersonRepository {
       )
       .bind(now(), ip || null, device || null, now(), id)
       .run();
-    return result.success;
+    return hasChanges(result);
   }
 }

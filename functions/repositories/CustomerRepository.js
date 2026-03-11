@@ -1,5 +1,7 @@
 import { parseRepoPagination } from '../api/utils/pagination.js';
 import { parseJsonArray } from '../api/utils/json.js';
+import { hasChanges } from '../api/utils/result.js';
+import { buildSetClause } from '../api/utils/sql.js';
 
 /**
  * 客户仓库
@@ -160,38 +162,34 @@ export class CustomerRepository {
    * @returns {Promise<boolean>}
    */
   async update(id, data) {
-    const updates = [];
-    const bindings = [];
+    const updateData = {};
 
     const fields = ['name', 'phone', 'company', 'email', 'address', 'remark'];
     fields.forEach((field) => {
       if (data[field] !== undefined) {
-        updates.push(`${field} = ?`);
-        bindings.push(data[field]);
+        updateData[field] = data[field];
       }
     });
 
     if (data.tags !== undefined) {
-      updates.push('tags = ?');
-      bindings.push(JSON.stringify(data.tags));
+      updateData.tags = JSON.stringify(data.tags);
     }
 
-    if (updates.length === 0) return false;
+    if (Object.keys(updateData).length === 0) return false;
 
-    updates.push('updated_at = ?');
-    bindings.push(Date.now());
-    bindings.push(id);
+    updateData.updated_at = Date.now();
+    const { clause, values } = buildSetClause(updateData);
 
     const result = await this.db
       .prepare(
         `
-            UPDATE customers SET ${updates.join(', ')} WHERE id = ?
+            UPDATE customers SET ${clause} WHERE id = ?
         `
       )
-      .bind(...bindings)
+      .bind(...values, id)
       .run();
 
-    return result.success;
+    return hasChanges(result);
   }
 
   /**
@@ -208,7 +206,7 @@ export class CustomerRepository {
       )
       .bind(id)
       .run();
-    return result.success && result.meta.changes > 0;
+    return hasChanges(result);
   }
 
   /**

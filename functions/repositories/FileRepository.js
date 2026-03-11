@@ -6,6 +6,7 @@
  */
 import { inClause } from '../api/utils/sql.js';
 import { parseRepoPagination } from '../api/utils/pagination.js';
+import { buildSetClause } from '../api/utils/sql.js';
 
 /** 允许更新的列名白名单 */
 const ALLOWED_UPDATE_COLUMNS = new Set([
@@ -167,13 +168,12 @@ export class FileRepository {
         const safeKeys = Object.keys(updates).filter(k => ALLOWED_UPDATE_COLUMNS.has(k));
         if (safeKeys.length === 0) return;
 
-        const setClause = safeKeys.map(k => `${k} = ?`).join(', ');
-        const values = safeKeys.map(k => updates[k]);
-        values.push(Date.now()); // updated_at
-        values.push(id);
+        const updateData = Object.fromEntries(safeKeys.map((key) => [key, updates[key]]));
+        updateData.updated_at = Date.now();
+        const { clause, values } = buildSetClause(updateData);
 
-        await this.db.prepare(`UPDATE files SET ${setClause}, updated_at = ? WHERE id = ?`)
-            .bind(...values)
+        await this.db.prepare(`UPDATE files SET ${clause} WHERE id = ?`)
+            .bind(...values, id)
             .run();
     }
 

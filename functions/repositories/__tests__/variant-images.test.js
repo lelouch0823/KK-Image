@@ -140,6 +140,26 @@ describe('VariantImageRepository', () => {
         expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('DELETE FROM variant_images'));
     });
 
+    it('returns false when deleteImage affects zero rows', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes('FROM product_variants')) {
+                stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('DELETE FROM variant_images')) {
+                stmt.run.mockResolvedValue({ meta: { changes: 0 } });
+            }
+            return stmt;
+        });
+
+        const removed = await repo.deleteImage({
+            productId: 'product_1',
+            variantId: 'variant_1',
+            imageId: 'file_missing',
+        });
+
+        expect(removed).toBe(false);
+    });
+
     it('rejects cross-product variant operations', async () => {
         db.prepare.mockImplementation((sql) => {
             const stmt = createPreparedStatement(sql);
