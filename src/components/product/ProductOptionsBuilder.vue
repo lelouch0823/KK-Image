@@ -18,7 +18,7 @@
           class="flex items-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-medium text-(--text-secondary) shadow-sm transition-colors hover:bg-(--bg-page) hover:text-(--text-main)"
           @click="$emit('batch-build')"
         >
-          <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+          <AppIcon name="sparkles" class="size-4.5" />
           {{ t('product.form.batch_build_variants', 'Batch Build') }}
         </button>
         <button
@@ -26,7 +26,7 @@
           class="bg-primary shadow-primary/20 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-(--text-inverse) shadow-md transition-all hover:bg-primary-hover active:scale-95"
           @click="$emit('add-option')"
         >
-          <span class="material-symbols-outlined text-[18px]">add</span>
+          <AppIcon name="plus" class="size-4.5" />
           {{ t('product.form.add_option', 'Add Option') }}
         </button>
       </div>
@@ -42,7 +42,7 @@
         <div class="flex items-start p-5 sm:p-6">
           <!-- 拖拽把手图标 Placeholder -->
           <div class="mt-2 mr-3 flex shrink-0 cursor-grab text-(--text-muted) transition-colors hover:text-(--text-secondary) active:cursor-grabbing sm:mr-4">
-            <span class="material-symbols-outlined text-xl">drag_indicator</span>
+            <AppIcon name="bars-3" class="size-5" />
           </div>
 
           <div class="flex-1 space-y-6">
@@ -69,7 +69,7 @@
                 :title="t('common.delete', 'Delete')"
                 @click="$emit('remove-option', idx)"
               >
-                <span class="material-symbols-outlined text-[20px]">delete</span>
+                <AppIcon name="trash" class="size-5" />
               </button>
             </div>
 
@@ -105,10 +105,11 @@
                   <span class="max-w-[12rem] truncate" :title="val">{{ val }}</span>
                   <button
                     type="button"
+                    :data-testid="`remove-value-${idx}-${vIdx}`"
                     class="text-primary/70 flex items-center justify-center transition-colors hover:text-primary"
                     @click="$emit('remove-value', opt, vIdx)"
                   >
-                    <span class="material-symbols-outlined text-[16px]">close</span>
+                    <AppIcon name="x-mark" class="size-4" />
                   </button>
                 </div>
 
@@ -128,7 +129,7 @@
                       :title="t('common.restore', 'Restore')"
                       @click="$emit('restore-value', opt, archived, aIdx)"
                     >
-                      <span class="material-symbols-outlined text-[16px]">restore</span>
+                      <AppIcon name="arrow-path" class="size-4" />
                     </button>
                   </div>
                 </template>
@@ -152,7 +153,7 @@
                         class="text-primary flex items-center justify-center transition-colors hover:text-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
                         @click="isColorDimension(opt.name) ? $emit('add-value', opt, { color: pendingColorSelection }) : $emit('add-value', opt)"
                       >
-                        <span class="material-symbols-outlined">add_circle</span>
+                        <AppIcon name="plus" class="size-5" />
                       </button>
                     </template>
                   </AppInput>
@@ -183,6 +184,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 

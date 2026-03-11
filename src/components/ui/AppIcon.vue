@@ -347,6 +347,13 @@ const icons = {
     strokeWidth: '2',
     path: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />'
   },
+  'minus': {
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: '2',
+    path: '<path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14" />'
+  },
   'pencil-square': {
     viewBox: '0 0 24 24',
     fill: 'none',

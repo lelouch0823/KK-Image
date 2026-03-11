@@ -1,0 +1,28 @@
+# Typography
+
+## Rule
+
+Use one primary UI sans family and one mono family across the product.
+
+## Current Direction
+
+- UI sans: shared application sans only
+- Mono: shared mono family for IDs, order numbers, SKUs, technical values, and tabular numeric emphasis
+
+## Do
+
+- Use shared heading weights and size scale
+- Use mono only for technical or numeric emphasis
+- Keep page titles and section titles inside the shared sans family
+
+## Do Not
+
+- Add page-local `font-[...]` experiments
+- Reintroduce `font-display`
+- Use `Outfit` or similar as a module-local numeric branding shortcut
+
+## Migration Priority
+
+1. Remove `font-display`
+2. Remove `font-[Outfit]` from high-visibility dashboard and procurement pages
+3. Normalize numeric emphasis with the shared mono family where needed

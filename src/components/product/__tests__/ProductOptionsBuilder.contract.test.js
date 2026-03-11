@@ -67,10 +67,8 @@ describe('ProductOptionsBuilder event contract', () => {
       expect.objectContaining({ color: expect.any(String) }),
     ]);
 
-    const removeValueButton = wrapper
-      .findAll('button')
-      .find((btn) => btn.find('.material-symbols-outlined').exists() && btn.find('.material-symbols-outlined').text().trim() === 'close');
-    expect(removeValueButton).toBeTruthy();
+    const removeValueButton = wrapper.find('[data-testid="remove-value-0-0"]');
+    expect(removeValueButton.exists()).toBe(true);
     await removeValueButton.trigger('click');
     expect(wrapper.emitted('remove-value')?.[0]).toEqual([option, 0]);
 

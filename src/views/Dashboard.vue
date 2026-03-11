@@ -54,19 +54,19 @@
         <!-- Today Orders -->
         <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-(--border-subtle) border-r-(--border-subtle) border-l-blue-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-(--bg-hover) dark:border-y-white/5 dark:border-r-white/5 dark:bg-(--bg-card)/60 dark:shadow-lg dark:hover:bg-[#161b26]">
            <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
-               <span class="material-symbols-outlined rotate-12 transform text-8xl text-blue-500 select-none">schedule</span>
+               <AppIcon name="clock" class="rotate-12 size-20 text-blue-500 select-none" />
            </div>
            <div class="relative z-10 flex items-start justify-between">
               <div>
                  <p class="mb-1 text-xs font-semibold tracking-wider text-(--text-secondary) uppercase">{{ t('dashboard.todayOrders') }}</p>
                  <h2 class="mb-2 text-3xl font-bold text-(--text-main)">{{ orderStats.todayCount }}</h2>
                      <div class="flex items-center gap-1 text-xs font-medium text-emerald-500">
-                    <span class="material-symbols-outlined text-sm">trending_up</span>
+                    <AppIcon name="trending-up" class="size-3.5" />
                     <span>+12% {{ t('dashboard.vsYesterday') }}</span> 
                  </div>
               </div>
               <div class="flex size-10 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10">
-                 <span class="material-symbols-outlined text-xl text-blue-500 dark:text-blue-400">schedule</span>
+                 <AppIcon name="clock" class="size-5 text-blue-500 dark:text-blue-400" />
               </div>
            </div>
            <div class="mt-4 h-12 w-full">
@@ -77,19 +77,19 @@
         <!-- Pending Orders (Pending Processing) -->
         <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-(--border-subtle) border-r-(--border-subtle) border-l-red-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-(--bg-hover) dark:border-y-white/5 dark:border-r-white/5 dark:bg-(--bg-card)/60 dark:shadow-lg dark:hover:bg-[#161b26]">
            <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
-               <span class="material-symbols-outlined rotate-12 transform text-8xl text-red-500 select-none">error</span>
+               <AppIcon name="exclamation-circle" class="rotate-12 size-20 text-red-500 select-none" />
            </div>
            <div class="relative z-10 flex items-start justify-between">
               <div>
                  <p class="mb-1 text-xs font-semibold tracking-wider text-(--text-secondary) uppercase">{{ t('dashboard.pendingOrders') }}</p>
                  <h2 class="mb-2 text-3xl font-bold text-red-500 dark:text-red-400">{{ orderStats.pendingCount }}</h2>
                  <div class="flex items-center gap-1 text-xs font-medium text-red-500/80 dark:text-red-400/80">
-                    <span class="material-symbols-outlined text-sm">priority_high</span>
+                    <AppIcon name="exclamation-triangle" class="size-3.5" />
                     <span>{{ t('dashboard.actionNeeded') }}</span>
                  </div>
               </div>
               <div class="flex size-10 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10">
-                 <span class="material-symbols-outlined text-xl text-red-500 dark:text-red-400">error_outline</span>
+                 <AppIcon name="exclamation-circle" class="size-5 text-red-500 dark:text-red-400" />
               </div>
            </div>
            <div class="mt-4 h-12 w-full opacity-60">
@@ -100,7 +100,7 @@
         <!-- Weekly Orders -->
         <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-(--border-subtle) border-r-(--border-subtle) border-l-emerald-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-(--bg-hover) dark:border-y-white/5 dark:border-r-white/5 dark:bg-(--bg-card)/60 dark:shadow-lg dark:hover:bg-[#161b26]">
            <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
-               <span class="material-symbols-outlined rotate-12 transform text-8xl text-emerald-500 select-none">bar_chart</span>
+               <AppIcon name="chart-bar" class="rotate-12 size-20 text-emerald-500 select-none" />
            </div>
            <div class="relative z-10 flex items-start justify-between">
               <div>
@@ -109,7 +109,7 @@
                  </div>
                  <h2 class="mb-2 text-3xl font-bold text-(--text-main)">{{ orderStats.weekCount || 0 }}</h2>
                  <div class="flex items-center gap-1 text-xs font-medium text-(--text-secondary)">
-                    <span class="material-symbols-outlined text-sm">horizontal_rule</span>
+                    <AppIcon name="minus" class="size-3.5" />
                     <span v-if="weekTrend === 0">{{ t('dashboard.trendSame') }}</span>
                     <span v-else :class="weekTrend > 0 ? 'text-emerald-500' : 'text-red-500'">
                         {{ weekTrend > 0 ? '↑' : '↓' }} {{ Math.abs(weekTrend) }}%
@@ -117,7 +117,7 @@
                  </div>
               </div>
               <div class="flex size-10 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10">
-                 <span class="material-symbols-outlined text-xl text-emerald-500 dark:text-emerald-400">bar_chart</span>
+                 <AppIcon name="chart-bar" class="size-5 text-emerald-500 dark:text-emerald-400" />
               </div>
            </div>
            <div class="mt-4 h-12 w-full">
@@ -128,7 +128,7 @@
         <!-- Active Shares -->
         <div class="group relative overflow-hidden rounded-2xl border-t border-r border-b border-l-2 border-y-(--border-subtle) border-r-(--border-subtle) border-l-purple-500/50 bg-white/70 p-6 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-(--bg-hover) dark:border-y-white/5 dark:border-r-white/5 dark:bg-(--bg-card)/60 dark:shadow-lg dark:hover:bg-[#161b26]">
            <div class="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
-               <span class="material-symbols-outlined rotate-12 transform text-8xl text-purple-500 select-none">share</span>
+               <AppIcon name="share" class="rotate-12 size-20 text-purple-500 select-none" />
            </div>
            <div class="relative z-10 flex items-start justify-between">
               <div>
@@ -139,7 +139,7 @@
                  </div>
               </div>
               <div class="flex size-10 items-center justify-center rounded-lg border border-purple-500/20 bg-purple-500/10">
-                 <span class="material-symbols-outlined text-xl text-purple-500 dark:text-purple-400">share</span>
+                 <AppIcon name="share" class="size-5 text-purple-500 dark:text-purple-400" />
               </div>
            </div>
            <div class="mt-4 h-12 w-full">
@@ -193,7 +193,7 @@
                     </div>
                     <div v-else class="flex h-full flex-col items-center justify-center p-8 text-center text-sm text-(--text-secondary)">
                          <div class="flex flex-col items-center gap-2">
-                             <span class="material-symbols-outlined text-3xl text-(--text-muted) opacity-50">task_alt</span>
+                             <AppIcon name="check-circle" class="size-8 text-(--text-muted) opacity-50" />
                              {{ t('dashboard.noPendingOrders') }}
                          </div>
                     </div>
@@ -203,7 +203,7 @@
                 <div class="border-t border-(--border-subtle) bg-(--bg-card) p-4 text-center dark:border-white/5 dark:bg-(--bg-card)/50">
                     <router-link to="/orders?status=pending" class="text-primary flex w-full items-center justify-center gap-1 text-xs font-medium transition-colors hover:text-primary/80">
                         {{ t('dashboard.viewAllPending') }}
-                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                        <AppIcon name="arrow-right" class="size-3.5" />
                     </router-link>
                 </div>
             </div>
@@ -222,7 +222,7 @@
 
                 <div v-if="recentShares.length === 0" class="flex flex-1 flex-col items-center justify-center bg-(--bg-muted)/30 p-10 text-center dark:bg-[#0f1219]/30">
                     <div class="mb-4 flex size-16 items-center justify-center rounded-full border border-(--border-subtle) bg-(--bg-card) shadow-inner dark:border-white/5 dark:bg-[#151921]">
-                        <span class="material-symbols-outlined text-3xl text-(--text-muted)">link_off</span>
+                        <AppIcon name="no-symbol" class="size-8 text-(--text-muted)" />
                     </div>
                     <h4 class="mb-1 text-base font-medium text-(--text-main)">{{ t('dashboard.noActiveShares') }}</h4>
                     <p class="mx-auto max-w-xs text-xs text-(--text-secondary)">{{ t('dashboard.noActiveSharesDesc') }}</p>
@@ -240,7 +240,7 @@
                         <li v-for="item in recentShares" :key="item.id" class="flex items-center justify-between p-4 transition-colors hover:bg-(--bg-hover) dark:hover:bg-[#161b26]">
                             <div class="flex items-center gap-3">
                                 <div class="flex size-8 items-center justify-center rounded border border-purple-500/20 bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                                    <span class="material-symbols-outlined text-lg">folder_shared</span>
+                                    <AppIcon name="folder" class="size-4.5" />
                                 </div>
                                 <div>
                                     <div class="text-sm font-medium text-(--text-main)">{{ item.name }}</div>
@@ -265,7 +265,7 @@
                         @click="showShareManager = true"
                     >
                         <template #append>
-                            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                            <AppIcon name="arrow-right" class="size-3.5" />
                         </template>
                     </AppButton>
                 </div>
@@ -281,17 +281,17 @@
 
                 <div v-if="recentFiles.length === 0" class="flex flex-1 flex-col items-center justify-center bg-(--bg-muted)/30 p-10 text-center dark:bg-[#0f1219]/30">
                     <div class="mb-4 flex size-16 items-center justify-center rounded-full border border-(--border-subtle) bg-(--bg-card) shadow-inner dark:border-white/5 dark:bg-[#151921]">
-                        <span class="material-symbols-outlined text-3xl text-(--text-muted)">folder_off</span>
+                        <AppIcon name="archive-box-x-mark" class="size-8 text-(--text-muted)" />
                     </div>
                     <h4 class="mb-1 text-base font-medium text-(--text-main)">{{ t('dashboard.noRecentFiles') }}</h4>
                     <p class="mx-auto max-w-xs text-xs text-(--text-secondary)">{{ t('dashboard.noRecentFilesDesc') }}</p>
                     <div class="pointer-events-none mt-8 grid w-full max-w-sm grid-cols-2 gap-4 opacity-30 blur-[1px]">
                         <div class="flex items-center gap-3 rounded-lg border border-(--border-subtle) bg-white p-3 dark:border-white/5 dark:bg-[#151921]">
-                            <span class="material-symbols-outlined text-blue-500 dark:text-blue-400">description</span>
+                            <AppIcon name="document-text" class="size-5 text-blue-500 dark:text-blue-400" />
                             <div class="h-1.5 w-20 rounded bg-slate-200 dark:bg-slate-800"></div>
                         </div>
                         <div class="flex items-center gap-3 rounded-lg border border-(--border-subtle) bg-white p-3 dark:border-white/5 dark:bg-[#151921]">
-                            <span class="material-symbols-outlined text-green-500 dark:text-green-400">image</span>
+                            <AppIcon name="photo" class="size-5 text-green-500 dark:text-green-400" />
                             <div class="h-1.5 w-16 rounded bg-slate-200 dark:bg-slate-800"></div>
                         </div>
                     </div>
@@ -309,7 +309,7 @@
                                        class="size-full"
                                        fit="cover"
                                      />
-                                     <span v-else class="material-symbols-outlined text-lg">description</span>
+                                     <AppIcon v-else name="document-text" class="size-4.5" />
                                 </div>
                                 <div class="min-w-0">
                                     <div class="max-w-[150px] truncate text-sm font-medium text-(--text-main) sm:max-w-xs">{{ file.name }}</div>
@@ -329,7 +329,7 @@
                         @click="router.push('/admin/files')"
                     >
                         <template #append>
-                            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                            <AppIcon name="arrow-right" class="size-3.5" />
                         </template>
                     </AppButton>
                 </div>

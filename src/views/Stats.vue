@@ -24,7 +24,7 @@
       <!-- Header -->
       <div class="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 class="font-display bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-3xl font-bold tracking-tight text-transparent dark:from-blue-200 dark:to-indigo-200">
+          <h1 class="text-primary text-3xl font-bold tracking-tight">
             {{ t('stats.statusOverview') }}
           </h1>
           <p class="mt-2 text-(--text-secondary)">{{ t('ai.subtitle') }}</p>
