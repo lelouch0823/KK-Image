@@ -563,7 +563,11 @@ export class ProductCatalogService {
         }
 
         if (result.success && result.changes === 0) {
-            throw new NotFoundError('No rows updated. Product may not exist or no changes.');
+            return {
+                changes: 0,
+                variantSync: variantSync || undefined,
+                variantsUpdated: false,
+            };
         }
 
         throw new BadRequestError(result.error || 'Update failed');

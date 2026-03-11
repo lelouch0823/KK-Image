@@ -313,6 +313,34 @@ describe('product variant audit routes', () => {
     expect(mockProductRepo.findById).toHaveBeenCalledWith('p1');
   });
 
+  it('PATCH /:id returns 200 for product no-op updates when product still exists', async () => {
+    mockProductRepo.findById.mockResolvedValue({
+      id: 'p1',
+      name: 'Tee',
+      currency: 'CNY',
+      images: [],
+      specifications: {},
+      options: [],
+    });
+    mockProductRepo.updateWithMeta.mockResolvedValue({ success: true, changes: 0 });
+    mockVariantRepo.findByProductId.mockResolvedValue([]);
+    mockDimensionRepo.listByProduct.mockResolvedValue([]);
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/p1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Tee' }),
+      },
+      { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+  });
+
   it('PATCH /:id does not clear existing dimension value meta when payload omits meta', async () => {
     mockProductRepo.findById.mockResolvedValue({ id: 'p1', name: 'Tee' });
     mockVariantRepo.findByProductId
