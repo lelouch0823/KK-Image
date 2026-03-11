@@ -1,5 +1,5 @@
 // 认证工具模块 - 处理 API Key 和 JWT 认证
-import { parseJsonArray } from './json.js';
+import { parseJsonArray, safeJsonParse } from './json.js';
 
 // 管理员认证 Cookie 名称
 export const ADMIN_AUTH_COOKIE = 'ADMIN_AUTH';
@@ -88,7 +88,10 @@ class SimpleJWT {
     }
 
     // 解码载荷
-    const payload = JSON.parse(this.base64UrlDecode(encodedPayload));
+    const payload = safeJsonParse(this.base64UrlDecode(encodedPayload));
+    if (!payload || Array.isArray(payload) || typeof payload !== 'object') {
+      throw new Error(MSG.AUTH.JWT_INVALID);
+    }
 
     // 检查过期时间
     if (payload.exp && Date.now() / 1000 > payload.exp) {
