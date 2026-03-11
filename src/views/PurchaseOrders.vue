@@ -64,58 +64,17 @@
       </template>
 
       <template v-else-if="stats">
-        <div
+        <MetricTile
           v-for="card in statCards"
           :key="card.key"
-          class="group relative cursor-pointer overflow-hidden rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl sm:p-5"
-          :class="{ 'ring-primary/20 ring-2': filters.status === card.key }"
+          :label="card.label"
+          :value="card.count"
+          :icon="card.icon"
+          :tone="card.tone"
+          :active="filters.status === card.key"
+          clickable
           @click="filters.status = filters.status === card.key ? '' : card.key"
-        >
-          <div class="relative z-10 flex items-start justify-between">
-            <div>
-              <h3 class="text-xs font-medium text-(--text-secondary) sm:text-sm">{{ card.label }}</h3>
-              <div class="mt-1.5 font-[Outfit] text-2xl font-bold tracking-tight text-(--text-main) sm:mt-2 sm:text-3xl">
-                {{ card.count }}
-              </div>
-            </div>
-            <div
-              class="flex size-9 items-center justify-center rounded-xl transition-colors sm:size-10"
-              :class="[
-                card.key === '' ? 'bg-primary/10 text-primary' :
-                card.key === 'draft' ? 'bg-slate-500/10 text-slate-500' :
-                card.key === 'ordered' ? 'bg-amber-500/10 text-amber-500' :
-                card.key === 'shipping' ? 'bg-purple-500/10 text-purple-500' :
-                card.key === 'arrived' ? 'bg-emerald-500/10 text-emerald-500' :
-                'bg-blue-500/10 text-blue-500'
-              ]"
-            >
-              <!-- 全部 -->
-              <AppIcon v-if="card.key === ''" name="bars-4" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
-              <!-- 草稿 -->
-              <AppIcon v-else-if="card.key === 'draft'" name="pencil-square" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
-              <!-- 已下单 -->
-              <AppIcon v-else-if="card.key === 'ordered'" name="clipboard-document-check" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
-              <!-- 运输中 -->
-              <AppIcon v-else-if="card.key === 'shipping'" name="truck" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
-              <!-- 已到货 -->
-              <AppIcon v-else-if="card.key === 'arrived'" name="cube" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
-              <!-- 已结算 -->
-              <AppIcon v-else-if="card.key === 'settled'" name="check-badge" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
-            </div>
-          </div>
-          <!-- 光晕背景 -->
-          <div
-            class="absolute -top-4 -right-4 -z-0 size-24 rounded-full opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-100"
-            :class="[
-              card.key === '' ? 'bg-primary/10' :
-              card.key === 'draft' ? 'bg-slate-500/10' :
-              card.key === 'ordered' ? 'bg-amber-500/10' :
-              card.key === 'shipping' ? 'bg-purple-500/10' :
-              card.key === 'arrived' ? 'bg-emerald-500/10' :
-              'bg-blue-500/10'
-            ]"
-          ></div>
-        </div>
+        />
       </template>
     </div>
 
@@ -802,6 +761,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
+import MetricTile from '@/design-system/composed/MetricTile.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
 const { t } = useI18n();
@@ -859,12 +819,12 @@ let stopPurchaseOrdersRefreshSubscription = null;
 const statCards = computed(() => {
   if (!stats.value) return [];
   return [
-    { key: '', label: t('purchaseOrder.filter.all'), count: stats.value.total || 0 },
-    { key: 'draft', label: t('purchaseOrder.status.draft'), count: stats.value.draft_count || 0 },
-    { key: 'ordered', label: t('purchaseOrder.status.ordered'), count: stats.value.ordered_count || 0 },
-    { key: 'shipping', label: t('purchaseOrder.status.shipping'), count: stats.value.shipping_count || 0 },
-    { key: 'arrived', label: t('purchaseOrder.status.arrived'), count: stats.value.arrived_count || 0 },
-    { key: 'completed', label: t('purchaseOrder.status.completed'), count: stats.value.completed_count || 0 },
+    { key: '', label: t('purchaseOrder.filter.all'), count: stats.value.total || 0, icon: 'bars-4', tone: 'primary' },
+    { key: 'draft', label: t('purchaseOrder.status.draft'), count: stats.value.draft_count || 0, icon: 'pencil-square', tone: 'slate' },
+    { key: 'ordered', label: t('purchaseOrder.status.ordered'), count: stats.value.ordered_count || 0, icon: 'clipboard-document-check', tone: 'warning' },
+    { key: 'shipping', label: t('purchaseOrder.status.shipping'), count: stats.value.shipping_count || 0, icon: 'truck', tone: 'purple' },
+    { key: 'arrived', label: t('purchaseOrder.status.arrived'), count: stats.value.arrived_count || 0, icon: 'cube', tone: 'success' },
+    { key: 'completed', label: t('purchaseOrder.status.completed'), count: stats.value.completed_count || 0, icon: 'check-badge', tone: 'info' },
   ];
 });
 const stepsList = [
