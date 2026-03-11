@@ -8,6 +8,9 @@ const mocks = vi.hoisted(() => ({
   loadProduct: vi.fn(),
   loadProducts: vi.fn(),
   deleteProduct: vi.fn(),
+  routeQuery: {},
+  routerReplace: vi.fn(),
+  routerPush: vi.fn(),
 }));
 
 vi.mock('@/composables/useProducts', () => ({
@@ -27,13 +30,14 @@ vi.mock('@/composables/useI18n', () => ({
 }));
 
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ query: {} }),
-  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+  useRoute: () => ({ query: mocks.routeQuery }),
+  useRouter: () => ({ replace: mocks.routerReplace, push: mocks.routerPush }),
 }));
 
 describe('ProductManager variant hydration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.routeQuery = {};
     mocks.loadProducts.mockResolvedValue();
     mocks.deleteProduct.mockResolvedValue(true);
   });
@@ -149,5 +153,17 @@ describe('ProductManager variant hydration', () => {
       { page: 2, status: 'active', search: 'sneaker' },
       true
     );
+  });
+
+  it('preserves query.edit when edit hydration fails during auto-open', async () => {
+    mocks.routeQuery = { edit: 'p-404' };
+    mocks.loadProduct.mockResolvedValue(null);
+
+    createWrapper();
+    await vi.waitFor(() => {
+      expect(mocks.loadProduct).toHaveBeenCalledWith('p-404');
+    });
+
+    expect(mocks.routerReplace).not.toHaveBeenCalled();
   });
 });

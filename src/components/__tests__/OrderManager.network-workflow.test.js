@@ -145,4 +145,19 @@ describe('OrderManager network workflow', () => {
     expect(wrapper.find('[data-testid="order-workflow"]').exists()).toBe(true);
     expect(mocks.routerReplace).not.toHaveBeenCalled();
   });
+
+  it('clears query only after the user closes the detail shell', async () => {
+    mocks.routeQuery = { id: 'o-close' };
+    mocks.getOrder.mockResolvedValue({ id: 'o-close', orderNo: 'SO-CLOSE' });
+
+    const wrapper = createWrapper();
+    await vi.waitFor(() => {
+      expect(wrapper.vm.showDetailModal).toBe(true);
+    });
+
+    wrapper.vm.showDetailModal = false;
+    await wrapper.vm.$nextTick();
+
+    expect(mocks.routerReplace).toHaveBeenCalledWith({ query: {} });
+  });
 });

@@ -113,4 +113,29 @@ describe('PurchaseOrders detail shell', () => {
 
     expect(wrapper.find('[data-testid="purchase-order-detail-shell"]').exists()).toBe(true);
   });
+
+  it('preserves query-driven intent until user dismisses the detail shell', async () => {
+    mocks.routeQuery = { id: 'po-1' };
+
+    mount(PurchaseOrders, {
+      global: {
+        stubs: {
+          Teleport: true,
+          Transition: false,
+          OrderPickerModal: { template: '<div />' },
+          ProductPickerModal: { template: '<div />' },
+          ProductDetailModal: { template: '<div />' },
+          AppImage: { template: '<div />' },
+          AppIcon: { template: '<i />' },
+          AppFilterBar: { template: '<div />' },
+          AppButton: { template: '<button><slot /></button>' },
+          AppTable: { template: '<div />' },
+          StatusBadge: { template: '<div><slot /></div>' },
+          PermissionDeniedState: { template: '<div />' },
+        },
+      },
+    });
+
+    expect(mocks.routerReplace).not.toHaveBeenCalled();
+  });
 });

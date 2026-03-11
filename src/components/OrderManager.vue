@@ -359,13 +359,7 @@ watch(
   () => route.query.id,
   async (newId) => {
     if (newId) {
-      const success = await openDetailModal({ id: newId });
-      if (!success) {
-        // 如果数据获取失败或订单不存在，清理 URL 避免不断重试或刷新时报错
-        const query = { ...route.query };
-        delete query.id;
-        router.replace({ query });
-      }
+      await openDetailModal({ id: newId });
     }
   },
   { immediate: true }

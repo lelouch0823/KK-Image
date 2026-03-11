@@ -1217,13 +1217,16 @@ onActivated(async () => {
 
   if (route.query.id) {
     const targetId = route.query.id;
-    // 使用 replace 移除 URL 上的参数防止反复触发打开详情
-    let newQuery = { ...route.query };
-    delete newQuery.id;
-    router.replace({ path: route.path, query: newQuery });
-    
     // 打开关联的详情弹窗
     openDetail(targetId);
+  }
+});
+
+watch(showDetail, (isOpen) => {
+  if (!isOpen && route.query.id) {
+    const newQuery = { ...route.query };
+    delete newQuery.id;
+    router.replace({ path: route.path, query: newQuery });
   }
 });
 
