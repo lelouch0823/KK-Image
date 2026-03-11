@@ -1,3 +1,8 @@
+import { parseRepoPagination } from '../api/utils/pagination.js';
+import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
+import { buildSetClause } from '../api/utils/sql.js';
+import { hasChanges } from '../api/utils/result.js';
+
 /**
  * 采购单仓储 (Purchase Order Repository)
  * ========================================
@@ -102,9 +107,9 @@ export class PurchaseOrderRepository {
       ...po,
       items: poItems.map(item => ({
         ...item,
-        product_images: this._parseJson(item.product_images),
-        product_specifications: this._parseJson(item.product_specifications),
-        variant_options: this._parseJson(item.variant_options),
+        product_images: parseJsonArray(item.product_images, []),
+        product_specifications: parseJsonObject(item.product_specifications, {}),
+        variant_options: parseJsonObject(item.variant_options, {}),
       })),
     };
   }
@@ -114,8 +119,10 @@ export class PurchaseOrderRepository {
    */
   async list(filters = {}) {
     const { status, search = '', page = 1, limit = 20 } = filters;
-    const safePage = Math.max(1, Math.floor(Number(page)));
-    const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit))));
+    const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
+      { page, limit },
+      { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
+    );
 
     let where = '1=1';
     const params = [];
@@ -147,7 +154,7 @@ export class PurchaseOrderRepository {
         ORDER BY po.created_at DESC
         LIMIT ? OFFSET ?
       `)
-      .bind(...params, safeLimit, (safePage - 1) * safeLimit)
+      .bind(...params, safeLimit, offset)
       .all();
 
     return {
@@ -178,15 +185,14 @@ export class PurchaseOrderRepository {
     if (Object.keys(updateData).length === 0) return false;
 
     updateData.updated_at = Date.now();
-    const sets = Object.keys(updateData).map(k => `${k} = ?`).join(', ');
-    const values = [...Object.values(updateData), id];
+    const { clause, values } = buildSetClause(updateData);
 
     const result = await this.db
-      .prepare(`UPDATE purchase_orders SET ${sets} WHERE id = ?`)
-      .bind(...values)
+      .prepare(`UPDATE purchase_orders SET ${clause} WHERE id = ?`)
+      .bind(...values, id)
       .run();
 
-    return result.meta?.changes > 0;
+    return hasChanges(result);
   }
 
   /**
@@ -203,7 +209,7 @@ export class PurchaseOrderRepository {
       .bind(...params)
       .run();
 
-    return result.meta?.changes > 0;
+    return hasChanges(result);
   }
 
   /**
@@ -222,7 +228,7 @@ export class PurchaseOrderRepository {
       .bind(...params)
       .run();
 
-    return (result.meta?.changes || 0) > 0;
+    return hasChanges(result);
   }
 
   // ─── 明细操作 ──────────────────────────────────────────
@@ -294,7 +300,7 @@ export class PurchaseOrderRepository {
       .prepare(sql)
       .bind(...params)
       .run();
-    return result.meta?.changes > 0;
+    return hasChanges(result);
   }
 
   /**
@@ -328,7 +334,7 @@ export class PurchaseOrderRepository {
       `UPDATE purchase_order_items SET ${fields.join(', ')} ${where}`
     ).bind(...values).run();
 
-    return (result.meta?.changes || 0) > 0;
+    return hasChanges(result);
   }
 
   /**
@@ -434,12 +440,4 @@ export class PurchaseOrderRepository {
   }
 
   // ─── 内部工具 ──────────────────────────────────────────
-
-  _parseJson(str) {
-    try {
-      return typeof str === 'string' ? JSON.parse(str) : (str || []);
-    } catch {
-      return [];
-    }
-  }
 }

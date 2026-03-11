@@ -5,17 +5,19 @@ import { SalespersonRepository } from '../../../../repositories/SalespersonRepos
 import { MSG } from '../../_shared/utils.js';
 import { withCache } from '../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
-import { parsePagination, createCacheInvalidator, scheduleCacheInvalidation, requireEntity } from '../../_shared/route-helpers.js';
+import { parsePagination, createListCacheInvalidator, scheduleCacheInvalidation, requireEntity } from '../../_shared/route-helpers.js';
 import { getManageOrderCacheUrls } from '../_shared/cache-urls.js';
 import { requirePermission } from '../../middleware/auth.js';
 
 const app = new Hono();
 app.use('*', requirePermission('users:read'));
 
-const getCacheUrls = createCacheInvalidator('/api/manage/salespersons', [
-    'page=1&limit=20',
-    'page=1&limit=50',
-]);
+const getCacheUrls = createListCacheInvalidator('/api/manage/salespersons', {
+    allowedKeys: ['page', 'limit', 'search'],
+    defaults: { page: 1, limit: 50 },
+    maxLimit: 100,
+    queryVariants: [{ limit: 20 }],
+});
 const getSalespersonAndOrderCacheUrls = (c) => [
     ...new Set([...getCacheUrls(c), ...getManageOrderCacheUrls(c)]),
 ];

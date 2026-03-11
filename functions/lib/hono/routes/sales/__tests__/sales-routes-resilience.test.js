@@ -268,7 +268,7 @@ describe('sales routes resilience', () => {
     const invalidatedUrls = mocks.invalidateCache.mock.calls
       .map(([urls]) => (Array.isArray(urls) ? urls : [urls]))
       .flat();
-    expect(invalidatedUrls).toContain('http://localhost/api/sales/token-1/orders?page=1&limit=20');
+    expect(invalidatedUrls).toContain('http://localhost/api/sales/token-1/orders?limit=20&page=1');
   });
 
   it('invalidates sales order list cache after PATCH /:id/read', async () => {
@@ -293,7 +293,7 @@ describe('sales routes resilience', () => {
     const invalidatedUrls = mocks.invalidateCache.mock.calls
       .map(([urls]) => (Array.isArray(urls) ? urls : [urls]))
       .flat();
-    expect(invalidatedUrls).toContain('http://localhost/api/sales/token-1/orders?page=1&limit=20');
+    expect(invalidatedUrls).toContain('http://localhost/api/sales/token-1/orders?limit=20&page=1');
   });
 
   it('rejects PATCH /:id/read when order does not belong to current salesperson', async () => {

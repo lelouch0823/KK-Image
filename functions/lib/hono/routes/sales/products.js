@@ -3,8 +3,10 @@ import { ProductRepository } from '../../../../repositories/ProductRepository.js
 import { ProductVariantRepository } from '../../../../repositories/ProductVariantRepository.js';
 import { ProductDimensionRepository } from '../../../../repositories/ProductDimensionRepository.js';
 import { VariantImageRepository } from '../../../../repositories/VariantImageRepository.js';
+import { parseJsonArray } from '../../../../api/utils/json.js';
 import { NotFoundError } from '../../errors.js';
 import { withCache } from '../../middleware/cache.js';
+import { parsePagination } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 
@@ -14,15 +16,6 @@ app.onError((err, c) => {
   const error = err?.message || 'Internal Server Error';
   return c.json({ success: false, error, code }, statusCode);
 });
-
-const parseJsonSafe = (value, fallback) => {
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
-};
 
 const loadVariantReplenishmentMap = async (db, variantIds = []) => {
   const normalizedIds = [...new Set((variantIds || []).filter(Boolean))];
@@ -57,21 +50,19 @@ const loadVariantReplenishmentMap = async (db, variantIds = []) => {
  */
 app.get('/', withCache(20), async (c) => {
   const { env } = c;
-  const { search = '', page = 1, limit = 12 } = c.req.query();
-
-  const normalizedPage = Math.max(1, parseInt(page, 10) || 1);
-  const normalizedLimit = Math.min(30, Math.max(1, parseInt(limit, 10) || 12));
+  const { page, limit } = parsePagination(c, { limit: 12 });
+  const search = c.req.query('search') || '';
 
   const repo = new ProductRepository(env.DB);
   const result = await repo.search({
     search: String(search || '').trim(),
     status: 'active',
-    page: normalizedPage,
-    limit: normalizedLimit,
+    page,
+    limit,
   });
 
   const items = (result.items || []).map((item) => {
-    const images = Array.isArray(item.images) ? item.images : parseJsonSafe(item.images, []);
+    const images = parseJsonArray(item.images, []);
     return {
       id: item.id,
       name: item.name,
@@ -88,8 +79,8 @@ app.get('/', withCache(20), async (c) => {
     data: items,
     meta: {
       total: Number(result.total || 0),
-      page: normalizedPage,
-      limit: normalizedLimit,
+      page: result.page ?? page,
+      limit: result.limit ?? limit,
     },
   });
 });

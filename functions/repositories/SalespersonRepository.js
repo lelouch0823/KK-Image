@@ -1,4 +1,5 @@
 import { generateId, generateShareToken, hashPassword, now } from '../api/utils/id.js';
+import { parseRepoPagination } from '../api/utils/pagination.js';
 
 /**
  * 销售人员仓库
@@ -77,10 +78,10 @@ export class SalespersonRepository {
    * @returns {Promise<{results: Array, total: number, pages: number}>}
    */
   async list({ page = 1, limit = 50, search = '' }) {
-    // 验证分页参数
-    const safePage = Math.max(1, Math.floor(Number(page) || 1));
-    const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 50)));
-    const offset = (safePage - 1) * safeLimit;
+    const { limit: safeLimit, offset } = parseRepoPagination(
+      { page, limit },
+      { defaultPage: 1, defaultLimit: 50, maxLimit: 100 }
+    );
 
     let whereClause = '1=1';
     const bindings = [];

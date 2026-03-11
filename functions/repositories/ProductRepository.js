@@ -1,4 +1,9 @@
 
+import { parseRepoPagination } from '../api/utils/pagination.js';
+import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
+import { buildSetClause } from '../api/utils/sql.js';
+import { hasChanges } from '../api/utils/result.js';
+
 export class ProductRepository {
     constructor(db) {
         this.db = db;
@@ -230,17 +235,16 @@ export class ProductRepository {
 
         updateData.updated_at = now;
 
-        const sets = Object.keys(updateData).map(k => `${k} = ?`).join(', ');
-        const values = [...Object.values(updateData), id];
+        const { clause, values } = buildSetClause(updateData);
 
         try {
-            const result = await this.db.prepare(`UPDATE products SET ${sets} WHERE id = ?`)
-                .bind(...values)
+            const result = await this.db.prepare(`UPDATE products SET ${clause} WHERE id = ?`)
+                .bind(...values, id)
                 .run();
 
             return {
                 success: result.success,
-                changes: result.meta?.changes || 0
+                changes: hasChanges(result) ? (result.meta?.changes || 0) : 0
             };
         } catch (e) {
             console.error('[ProductRepository.updateWithMeta] Error:', e);
@@ -271,9 +275,10 @@ export class ProductRepository {
      * @param {Object} filters { search, category, brand, status, page, limit }
      */
     async search(filters = {}) {
-        // 验证分页参数
-        const safePage = Math.max(1, Math.floor(Number(filters.page) || 1));
-        const safeLimit = filters.limit ? Math.min(100, Math.max(1, Math.floor(Number(filters.limit)))) : 0;
+        const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
+            { page: filters.page, limit: filters.limit },
+            { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
+        );
 
         let query = this._productSelectSQL('1=1');
         const params = [];
@@ -303,11 +308,8 @@ export class ProductRepository {
         const countParams = [...params];
 
         query += ' ORDER BY p.created_at DESC';
-
-        if (safeLimit > 0) {
-            query += ' LIMIT ? OFFSET ?';
-            params.push(safeLimit, (safePage - 1) * safeLimit);
-        }
+        query += ' LIMIT ? OFFSET ?';
+        params.push(safeLimit, offset);
 
         const results = await this.db.prepare(query).bind(...params).all();
 
@@ -317,7 +319,10 @@ export class ProductRepository {
 
         return {
             items: (results.results || []).map(item => this._parseResult(item)),
-            total: countResult.total
+            total: countResult.total,
+            page: safePage,
+            limit: safeLimit,
+            totalPages: Math.ceil((countResult?.total || 0) / safeLimit),
         };
     }
 
@@ -327,9 +332,9 @@ export class ProductRepository {
             return {
                 ...item,
                 status: item.derived_status || item.status,
-                images: JSON.parse(item.images || '[]'),
-                specifications: JSON.parse(item.specifications || '{}'),
-                options: JSON.parse(item.options || '[]'),
+                images: parseJsonArray(item.images, []),
+                specifications: parseJsonObject(item.specifications, {}),
+                options: parseJsonArray(item.options, []),
             };
         } catch (e) {
             console.error('Error parsing product JSON:', e);

@@ -7,18 +7,15 @@
  * @module repositories/order/helpers
  */
 
+import { parseJsonObject } from '../../api/utils/json.js';
+
 /**
  * 安全解析 JSON 字符串
  * @param {string|null} jsonStr - JSON 字符串
  * @returns {Object} 解析后的对象，失败返回空对象
  */
 export function parseJson(jsonStr) {
-    try {
-        return jsonStr ? JSON.parse(jsonStr) : {};
-    } catch (e) {
-        console.warn('JSON parse failed:', e);
-        return {};
-    }
+    return parseJsonObject(jsonStr, {});
 }
 
 /**

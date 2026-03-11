@@ -5,13 +5,17 @@ import { CustomerRepository } from '../../../../repositories/CustomerRepository.
 import { MSG } from '../../_shared/utils.js';
 import { withCache } from '../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
-import { parsePagination, createCacheInvalidator, scheduleCacheInvalidation, requireEntity } from '../../_shared/route-helpers.js';
+import { parsePagination, createListCacheInvalidator, scheduleCacheInvalidation, requireEntity } from '../../_shared/route-helpers.js';
 import { requirePermission } from '../../middleware/auth.js';
 
 const app = new Hono();
 app.use('*', requirePermission('orders:manage'));
 
-const getCacheUrls = createCacheInvalidator('/api/manage/customers', ['page=1&limit=20']);
+const getCacheUrls = createListCacheInvalidator('/api/manage/customers', {
+    allowedKeys: ['page', 'limit', 'search'],
+    defaults: { page: 1, limit: 20 },
+    maxLimit: 100,
+});
 
 function scheduleCustomerCacheInvalidation(c) {
     scheduleCacheInvalidation(c, getCacheUrls(c));

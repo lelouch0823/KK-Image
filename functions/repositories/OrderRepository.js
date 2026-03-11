@@ -11,7 +11,6 @@
 import { OrderTimelineRepository } from './OrderTimelineRepository.js';
 import * as queries from './order/queries.js';
 import * as mutations from './order/mutations.js';
-import { parseJson, mapOrderListItem, mapOrderDetail } from './order/helpers.js';
 import { InventoryService } from '../services/InventoryService.js';
 
 export class OrderRepository {
@@ -115,23 +114,5 @@ export class OrderRepository {
   /** @see mutations.deleteWithRelations */
   async deleteOrderCascading(id) {
     return mutations.deleteWithRelations(this.db, id);
-  }
-
-
-
-  // ========================================
-  // 内部工具 (保留用于兼容性)
-  // ========================================
-
-  _parseJson(jsonStr) {
-    return parseJson(jsonStr);
-  }
-
-  _mapOrderListItem(order) {
-    return mapOrderListItem(order);
-  }
-
-  _mapOrderDetail(order) {
-    return mapOrderDetail(order);
   }
 }

@@ -7,6 +7,7 @@
  * @module repositories/order/queries
  */
 
+import { parseRepoPagination } from '../../api/utils/pagination.js';
 import { mapOrderDetail, mapOrderListItem } from './helpers.js';
 
 /**
@@ -87,10 +88,10 @@ export async function findStalePending(db, thresholdTimestamp) {
  * @returns {Promise<Object>}
  */
 export async function listBySalesperson(db, salespersonId, { status, page = 1, limit = 20 } = {}) {
-    // 验证分页参数
-    const safePage = Math.max(1, Math.floor(Number(page) || 1));
-    const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 20)));
-    const offset = (safePage - 1) * safeLimit;
+    const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
+        { page, limit },
+        { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
+    );
 
     let where = 'WHERE salesperson_id = ?';
     const params = [salespersonId];
@@ -156,10 +157,10 @@ export async function listForAdmin(
     db,
     { salespersonId, customerId, status, procurementStatus, search, startTime, endTime, page = 1, limit = 20 } = {}
 ) {
-    // 验证分页参数
-    const safePage = Math.max(1, Math.floor(Number(page) || 1));
-    const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 20)));
-    const offset = (safePage - 1) * safeLimit;
+    const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
+        { page, limit },
+        { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
+    );
 
     let whereClause = '1=1';
     const bindParams = [];

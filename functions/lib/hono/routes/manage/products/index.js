@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
+import { parseJsonArray, parseJsonObject } from '../../../../../api/utils/json.js';
 import { withCache } from '../../../middleware/cache.js';
 import { requirePermission } from '../../../middleware/auth.js';
+import { parsePagination } from '../../../_shared/route-helpers.js';
 import { createManagedProduct } from './create-product.js';
 import batch from './batch.js';
 import exportRoute from './export.js';
@@ -12,22 +14,17 @@ app.use('*', requirePermission('products:manage'));
 app.route('/batch', batch);
 app.route('/export', exportRoute);
 
-const parseJsonSafe = (value, fallback) => {
-    if (!value) return fallback;
-    try {
-        return JSON.parse(value);
-    } catch {
-        return fallback;
-    }
-};
-
 /**
  * GET / - 搜索商品列表
  * SOTA: 使用边缘缓存 (TTL 60s) 减少 DB 压力
  */
 app.get('/', withCache(60), async (c) => {
     const { env } = c;
-    const { search, category, brand, status, page = 1, limit = 20 } = c.req.query();
+    const { page, limit } = parsePagination(c);
+    const search = c.req.query('search');
+    const category = c.req.query('category');
+    const brand = c.req.query('brand');
+    const status = c.req.query('status');
 
     const repo = new ProductRepository(env.DB);
     const result = await repo.search({
@@ -35,8 +32,8 @@ app.get('/', withCache(60), async (c) => {
         category,
         brand,
         status,
-        page: parseInt(page),
-        limit: parseInt(limit)
+        page,
+        limit
     });
     const items = (result.items || []).map((item) => ({
         ...item,
@@ -48,8 +45,8 @@ app.get('/', withCache(60), async (c) => {
         data: items,
         meta: {
             total: result.total,
-            page: parseInt(page),
-            limit: parseInt(limit)
+            page: result.page,
+            limit: result.limit
         }
     });
 });
@@ -59,12 +56,8 @@ app.get('/', withCache(60), async (c) => {
  */
 app.get('/variants', withCache(30), async (c) => {
     const { env } = c;
-    const { search = '', page = 1, limit = 50 } = c.req.query();
-
-    const normalizedPage = Math.max(1, parseInt(page, 10) || 1);
-    const normalizedLimit = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
-    const offset = (normalizedPage - 1) * normalizedLimit;
-    const keyword = String(search || '').trim();
+    const { page, limit, offset } = parsePagination(c, { limit: 50 });
+    const keyword = String(c.req.query('search') || '').trim();
 
     let where = 'WHERE pv.status = ?';
     const binds = ['active'];
@@ -115,10 +108,10 @@ app.get('/variants', withCache(30), async (c) => {
     const countResult = await env.DB.prepare(countSql).bind(...binds).all();
     const total = Number(countResult?.results?.[0]?.total || 0);
 
-    const listResult = await env.DB.prepare(listSql).bind(...binds, normalizedLimit, offset).all();
+    const listResult = await env.DB.prepare(listSql).bind(...binds, limit, offset).all();
     const items = (listResult?.results || []).map((row) => {
-        const productImages = parseJsonSafe(row.product_images, []);
-        const variantOptions = parseJsonSafe(row.variant_options, {});
+        const productImages = parseJsonArray(row.product_images, []);
+        const variantOptions = parseJsonObject(row.variant_options, {});
         return {
             variant_id: row.variant_id,
             product_id: row.product_id,
@@ -143,8 +136,8 @@ app.get('/variants', withCache(30), async (c) => {
         data: items,
         meta: {
             total,
-            page: normalizedPage,
-            limit: normalizedLimit,
+            page,
+            limit,
         },
     });
 });

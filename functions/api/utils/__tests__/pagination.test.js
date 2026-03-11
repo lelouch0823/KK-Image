@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toPositiveInt, parseRepoPagination } from '../pagination.js';
+import { toPositiveInt, parseRepoPagination, normalizeListQuery } from '../pagination.js';
 
 describe('pagination utils', () => {
   it('coerces invalid values with fallback', () => {
@@ -19,5 +19,36 @@ describe('pagination utils', () => {
   it('clamps non-positive numeric values to minimum bounds', () => {
     expect(parseRepoPagination({ page: -3, limit: 0 }, { defaultLimit: 20, maxLimit: 100 }))
       .toEqual({ page: 1, limit: 1, offset: 0 });
+  });
+
+  it('normalizes list query for cache-safe string output', () => {
+    expect(normalizeListQuery(
+      { page: '0', limit: '999', search: '', status: 'active', misc: 'skip-me' },
+      {
+        allowedKeys: ['page', 'limit', 'search', 'status'],
+        defaults: { page: 1, limit: 20 },
+        maxLimit: 100,
+      }
+    )).toEqual({
+      limit: '100',
+      page: '1',
+      status: 'active',
+    });
+  });
+
+  it('keeps allowed non-empty values and injects default pagination', () => {
+    expect(normalizeListQuery(
+      { search: 'abc', category: 'bags', page: undefined, limit: null },
+      {
+        allowedKeys: ['page', 'limit', 'search', 'category'],
+        defaults: { page: 1, limit: 20 },
+        maxLimit: 100,
+      }
+    )).toEqual({
+      category: 'bags',
+      limit: '20',
+      page: '1',
+      search: 'abc',
+    });
   });
 });

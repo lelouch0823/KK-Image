@@ -5,6 +5,7 @@
  * 负责文件记录 (Files) 的数据库基础操作。
  */
 import { inClause } from '../api/utils/sql.js';
+import { parseRepoPagination } from '../api/utils/pagination.js';
 
 /** 允许更新的列名白名单 */
 const ALLOWED_UPDATE_COLUMNS = new Set([
@@ -117,9 +118,10 @@ export class FileRepository {
      * @param {Object} pagination
      */
     async findAll(filter = {}, { page = 1, limit = 50 } = {}) {
-        // 验证分页参数
-        const safePage = Math.max(1, Math.floor(Number(page) || 1));
-        const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 50)));
+        const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
+            { page, limit },
+            { defaultPage: 1, defaultLimit: 50, maxLimit: 100 }
+        );
         const bindings = [];
 
         let sql = "SELECT * FROM files";
@@ -142,7 +144,7 @@ export class FileRepository {
         const total = countResult?.total || 0;
 
         sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-        bindings.push(safeLimit, (safePage - 1) * safeLimit);
+        bindings.push(safeLimit, offset);
 
         const { results } = await this.db.prepare(sql).bind(...bindings).all();
 

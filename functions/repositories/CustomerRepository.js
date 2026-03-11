@@ -1,3 +1,5 @@
+import { parseRepoPagination } from '../api/utils/pagination.js';
+
 /**
  * 客户仓库
  * 处理客户的 CRUD 和数据转换
@@ -48,10 +50,10 @@ export class CustomerRepository {
    * @returns {Promise<{results: Array, total: number, pages: number}>}
    */
   async list({ page = 1, limit = 20, search = '' }) {
-    // 验证分页参数
-    const safePage = Math.max(1, Math.floor(Number(page) || 1));
-    const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 20)));
-    const offset = (safePage - 1) * safeLimit;
+    const { limit: safeLimit, offset } = parseRepoPagination(
+      { page, limit },
+      { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
+    );
 
     let whereClause = '1=1';
     const bindings = [];

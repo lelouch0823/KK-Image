@@ -3,7 +3,7 @@
  * @module lib/hono/_shared/route-helpers
  */
 import { inClause } from '../../../api/utils/sql.js';
-import { parseRepoPagination } from '../../../api/utils/pagination.js';
+import { normalizeListQuery, parseRepoPagination } from '../../../api/utils/pagination.js';
 import { invalidateCache } from '../middleware/cache.js';
 
 /**
@@ -62,6 +62,39 @@ export function createCacheInvalidator(basePath, extraParams = []) {
       ...extraParams.map((p) => `${origin}${basePath}?${p}`),
     ];
   };
+}
+
+function serializeQuery(query = {}) {
+  return Object.entries(query)
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join('&');
+}
+
+export function buildListCacheUrls(origin, basePath, config = {}) {
+  const urls = [`${origin}${basePath}`];
+  const variants = [];
+
+  variants.push({});
+  if (config.query && typeof config.query === 'object') {
+    variants.push(config.query);
+  }
+  if (Array.isArray(config.queryVariants)) {
+    variants.push(...config.queryVariants);
+  }
+
+  for (const variant of variants) {
+    const normalized = normalizeListQuery(variant, config);
+    const query = serializeQuery(normalized);
+    if (query) {
+      urls.push(`${origin}${basePath}?${query}`);
+    }
+  }
+
+  return [...new Set(urls)];
+}
+
+export function createListCacheInvalidator(basePath, config = {}) {
+  return (c) => buildListCacheUrls(new URL(c.req.url).origin, basePath, config);
 }
 
 /**

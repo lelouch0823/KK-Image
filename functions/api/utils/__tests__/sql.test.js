@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { placeholders, inClause } from '../sql.js';
+import { placeholders, inClause, buildSetClause } from '../sql.js';
 
 describe('sql helpers', () => {
   it('placeholders returns empty string for empty input', () => {
@@ -16,5 +16,12 @@ describe('sql helpers', () => {
 
   it('inClause wraps placeholders for non-empty input', () => {
     expect(inClause(['a', 'b'])).toBe('(?,?)');
+  });
+
+  it('buildSetClause returns deterministic clause and values', () => {
+    expect(buildSetClause({ updated_at: 1, name: 'x' })).toEqual({
+      clause: 'name = ?, updated_at = ?',
+      values: ['x', 1],
+    });
   });
 });

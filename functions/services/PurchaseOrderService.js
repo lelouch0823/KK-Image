@@ -12,6 +12,7 @@
 
 import { PurchaseOrderRepository } from '../repositories/PurchaseOrderRepository.js';
 import { ProductVariantRepository } from '../repositories/ProductVariantRepository.js';
+import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { NotFoundError, BadRequestError } from '../lib/hono/errors.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 import { PO_TO_PROCUREMENT_STATUS_MAP } from '../api/utils/order-procurement-state-machine.js';
@@ -297,9 +298,9 @@ export class PurchaseOrderService {
           shortage,
           order_count: Number(demand.order_count || 0),
           order_ids: Array.isArray(demand.order_ids) ? demand.order_ids : [],
-          images: this._parseJson(row.images),
-          variant_options: this._parseJson(row.variant_options),
-          variant_display_name: buildVariantDisplayName(this._parseJson(row.variant_options)),
+          images: parseJsonArray(row.images, []),
+          variant_options: parseJsonObject(row.variant_options, {}),
+          variant_display_name: buildVariantDisplayName(parseJsonObject(row.variant_options, {})),
         };
       })
       .filter((row) => row.shortage > 0)
@@ -386,13 +387,5 @@ export class PurchaseOrderService {
       quantityDelta: qty * multiplier,
     }));
     return this.inventoryService.applyBatch(mutations);
-  }
-
-  _parseJson(str) {
-    try {
-      return typeof str === 'string' ? JSON.parse(str) : (str || []);
-    } catch {
-      return [];
-    }
   }
 }

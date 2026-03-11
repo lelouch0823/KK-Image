@@ -5,6 +5,7 @@
  * 涉及文件夹的 CRUD、层级统计及物理存储清理关联逻辑。
  */
 import { inClause } from '../api/utils/sql.js';
+import { parseRepoPagination } from '../api/utils/pagination.js';
 
 export class FolderRepository {
     constructor(db) {
@@ -246,10 +247,10 @@ export class FolderRepository {
      * 获取所有已分享的文件夹 (含分页)
      */
     async findShared({ page = 1, limit = 20 } = {}) {
-        // 验证分页参数
-        const safePage = Math.max(1, Math.floor(Number(page) || 1));
-        const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 20)));
-        const offset = (safePage - 1) * safeLimit;
+        const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
+            { page, limit },
+            { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
+        );
 
         const totalResult = await this.db.prepare(
             'SELECT COUNT(*) as total FROM folders WHERE share_token IS NOT NULL'
@@ -275,6 +276,10 @@ export class FolderRepository {
      * @returns {Promise<{ items: Object[], total: number, page: number, limit: number, totalPages: number }>}
      */
     async list({ parentId, search, page = 1, limit = 20 } = {}) {
+        const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
+            { page, limit },
+            { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
+        );
         const conditions = ['f.is_deleted = 0'];
         const bindings = [];
 
@@ -299,7 +304,6 @@ export class FolderRepository {
         const total = countResult?.total || 0;
 
         // 分页 + 统计查询（使用 LEFT JOIN 一次性获取 fileCount/subfolderCount）
-        const offset = (page - 1) * limit;
         const { results } = await this.db.prepare(`
             SELECT f.*,
                 COALESCE(sub.subfolder_count, 0) as subfolderCount,
@@ -318,9 +322,9 @@ export class FolderRepository {
             WHERE ${where}
             ORDER BY f.name ASC
             LIMIT ? OFFSET ?
-        `).bind(...bindings, limit, offset).all();
+        `).bind(...bindings, safeLimit, offset).all();
 
-        return { items: results, total, page, limit, totalPages: Math.ceil(total / limit) };
+        return { items: results, total, page: safePage, limit: safeLimit, totalPages: Math.ceil(total / safeLimit) };
     }
 
     /**

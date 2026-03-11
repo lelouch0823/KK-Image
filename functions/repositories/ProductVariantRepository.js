@@ -1,4 +1,7 @@
 import { generateId, now } from '../api/utils/id.js';
+import { parseJsonObject } from '../api/utils/json.js';
+import { parseRepoPagination } from '../api/utils/pagination.js';
+import { hasChanges } from '../api/utils/result.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 
 export class ProductVariantRepository {
@@ -104,7 +107,7 @@ export class ProductVariantRepository {
     }
 
     async findByProductId(productId) {
-        const results = await this.db.prepare(`
+        const result = await this.db.prepare(`
             SELECT
                 pv.*,
                 COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity,
@@ -116,7 +119,7 @@ export class ProductVariantRepository {
             WHERE pv.product_id = ?
             ORDER BY pv.created_at ASC
         `).bind(productId).all();
-        return (results.results || []).map(r => ({...r, options_values: JSON.parse(r.options_values || '{}')}));
+        return (result?.results || []).map((r) => ({ ...r, options_values: parseJsonObject(r.options_values, {}) }));
     }
 
     async findById(variantId) {
@@ -132,7 +135,7 @@ export class ProductVariantRepository {
             WHERE pv.id = ?
         `).bind(variantId).first();
         if (!row) return null;
-        return { ...row, options_values: JSON.parse(row.options_values || '{}') };
+        return { ...row, options_values: parseJsonObject(row.options_values, {}) };
     }
 
     async findByIdAndProductId(variantId, productId) {
@@ -151,11 +154,14 @@ export class ProductVariantRepository {
             .bind(variantId, productId)
             .first();
         if (!row) return null;
-        return { ...row, options_values: JSON.parse(row.options_values || '{}') };
+        return { ...row, options_values: parseJsonObject(row.options_values, {}) };
     }
 
     async searchForAI(filters = {}) {
-        const safeLimit = filters.limit ? Math.min(20, Math.max(1, Math.floor(Number(filters.limit)))) : 10;
+        const { limit: safeLimit } = parseRepoPagination(
+            { limit: filters.limit },
+            { defaultPage: 1, defaultLimit: 10, maxLimit: 20 }
+        );
         const params = [];
         let where = 'WHERE 1=1';
 
@@ -219,12 +225,7 @@ export class ProductVariantRepository {
         const result = await this.db.prepare(sql).bind(...params, safeLimit).all();
         
         const items = (result.results || []).map((row) => {
-            let optionsValues = {};
-            try {
-                optionsValues = JSON.parse(row.options_values || '{}');
-            } catch {
-                optionsValues = {};
-            }
+            const optionsValues = parseJsonObject(row.options_values, {});
             return {
                 ...row,
                 options_values: optionsValues,
@@ -275,7 +276,7 @@ export class ProductVariantRepository {
             .prepare('UPDATE product_variants SET cost_price = ?, updated_at = ? WHERE id = ?')
             .bind(nextCost, now(), variantId)
             .run();
-        return (result.meta?.changes || 0) > 0;
+        return hasChanges(result);
     }
 
     buildAuditEvents(productId, beforeVariants = [], afterVariants = []) {

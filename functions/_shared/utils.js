@@ -64,7 +64,10 @@ export { generateETag, matchesETag } from '../api/utils/etag.js';
 export { storeFile, getFileType } from '../api/utils/file-utils.js';
 
 // SQL 占位符工具
-export { placeholders, inClause } from '../api/utils/sql.js';
+export { placeholders, inClause, buildSetClause } from '../api/utils/sql.js';
+
+// D1 结果工具
+export { getChangesCount, hasChanges } from '../api/utils/result.js';
 
 // JSON 解析工具
 export { safeJsonParse, parseJsonArray, parseJsonObject } from '../api/utils/json.js';

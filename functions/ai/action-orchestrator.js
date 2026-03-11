@@ -1,14 +1,5 @@
+import { parseJsonObject } from '../api/utils/json.js';
 import { detectCreateIntent } from './canonicalization.js';
-
-function parseJsonObject(value, fallback = {}) {
-  if (!value) return fallback;
-  if (typeof value === 'object') return value;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
-}
 
 function buildSessionId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {

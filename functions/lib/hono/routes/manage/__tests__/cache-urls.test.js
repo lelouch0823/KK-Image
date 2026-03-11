@@ -54,21 +54,21 @@ describe('route cache url helpers', () => {
   it('builds manage orders cache urls', () => {
     const c = createContext('https://example.com/api/manage/orders');
     const urls = getManageOrderCacheUrls(c);
-    expect(urls).toContain('https://example.com/api/manage/orders?page=1&limit=20');
+    expect(urls).toContain('https://example.com/api/manage/orders?limit=20&page=1');
     expect(urls).toContain('https://example.com/api/manage/orders/stats');
   });
 
   it('builds share and tag cache urls', () => {
     const c = createContext('https://example.com/api/manage/shares');
-    expect(getManageShareCacheUrls(c)).toContain('https://example.com/api/manage/shares?page=1&limit=20');
+    expect(getManageShareCacheUrls(c)).toContain('https://example.com/api/manage/shares?limit=20&page=1');
     expect(getManageTagCacheUrls(c)).toContain('https://example.com/api/manage/tags');
   });
 
   it('builds salesperson and order notification cache urls', () => {
     const c = createContext('https://example.com/api/manage/orders');
-    expect(getManageSalespersonCacheUrls(c)).toContain('https://example.com/api/manage/salespersons?page=1&limit=50');
+    expect(getManageSalespersonCacheUrls(c)).toContain('https://example.com/api/manage/salespersons?limit=50&page=1');
     expect(getOrderAndSalespersonCacheUrls(c, { salesTokens: ['token-a'] }))
-      .toContain('https://example.com/api/sales/token-a/orders?page=1&limit=20');
+      .toContain('https://example.com/api/sales/token-a/orders?limit=20&page=1');
 
     const notificationUrls = getOrderNotificationCacheUrls(c, { salesTokens: ['token-a'] });
     expect(notificationUrls).toContain('https://example.com/api/manage/notifications');
@@ -88,7 +88,7 @@ describe('route cache url helpers', () => {
   it('builds sales cache urls', () => {
     const c = createContext('https://example.com/api/sales/token-a/orders');
     expect(getSalesOrderCacheUrls(c, { salesTokens: ['token-a'] }))
-      .toContain('https://example.com/api/sales/token-a/orders?page=1&limit=20');
+      .toContain('https://example.com/api/sales/token-a/orders?limit=20&page=1');
     expect(getSalesStatsCacheUrls(c, { salesTokens: ['token-a'] }))
       .toContain('https://example.com/api/sales/token-a/stats');
     expect(getSalesProductCacheUrls(c, { salesTokens: ['token-a'], productId: 'prod-1' }))

@@ -32,7 +32,7 @@ describe('v1 cache url helpers', () => {
     const urls = getV1FolderAndShareCacheUrls(c, ['f-1']);
     expect(urls).toContain('https://example.com/api/v1/folders/f-1');
     expect(urls).toContain('https://example.com/api/manage/shares');
-    expect(urls).toContain('https://example.com/api/manage/shares?page=1&limit=20');
+    expect(urls).toContain('https://example.com/api/manage/shares?limit=20&page=1');
   });
 
   it('builds v1 file list cache urls', () => {

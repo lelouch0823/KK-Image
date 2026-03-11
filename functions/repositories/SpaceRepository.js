@@ -11,19 +11,21 @@ export class SpaceRepository {
         this.db = db;
     }
 
-    /**
-     * 获取空间列表 (含封面和文件数)
-     * @returns {Promise<Array>}
-     */
-    async findAll() {
-        const { results } = await this.db
-            .prepare(
-                `
-        SELECT s.*,
-          COALESCE(sf_count.file_count, 0) as file_count,
-          f.storage_key as cover_storage_key,
-          p.spu as p_sku, p.brand as p_brand, p.series as p_series, COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price, p.specifications as p_specs, p.images as p_images,
-          pv.sku as pv_sku, pv.price as pv_price,
+    _productProjectionSQL() {
+        return `
+          p.spu as p_sku,
+          p.brand as p_brand,
+          p.series as p_series,
+          COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
+          p.specifications as p_specs,
+          p.images as p_images,
+          pv.sku as pv_sku,
+          pv.price as pv_price
+        `;
+    }
+
+    _variantImageProjectionSQL() {
+        return `
           (
             SELECT vi.image_id
             FROM variant_images vi
@@ -42,15 +44,43 @@ export class SpaceRepository {
             pv.image_id,
             json_extract(p.images, '$[0]')
           ) as display_image_id
-        FROM spaces s
+        `;
+    }
+
+    _spaceFileCountJoinSQL() {
+        return `
         LEFT JOIN (
             SELECT space_id, COUNT(*) as file_count
             FROM space_files
             GROUP BY space_id
         ) sf_count ON sf_count.space_id = s.id
+      `;
+    }
+
+    _spaceProductJoinsSQL() {
+        return `
         LEFT JOIN files f ON s.cover_file_id = f.id
         LEFT JOIN products p ON s.product_id = p.id
         LEFT JOIN product_variants pv ON s.variant_id = pv.id
+      `;
+    }
+
+    /**
+     * 获取空间列表 (含封面和文件数)
+     * @returns {Promise<Array>}
+     */
+    async findAll() {
+        const { results } = await this.db
+            .prepare(
+                `
+        SELECT s.*,
+          COALESCE(sf_count.file_count, 0) as file_count,
+          f.storage_key as cover_storage_key,
+          ${this._productProjectionSQL()},
+          ${this._variantImageProjectionSQL()}
+        FROM spaces s
+        ${this._spaceFileCountJoinSQL()}
+        ${this._spaceProductJoinsSQL()}
         ORDER BY s.updated_at DESC
       `
             )
@@ -70,33 +100,10 @@ export class SpaceRepository {
         SELECT s.*,
           COALESCE(sf_count.file_count, 0) as file_count,
           f.storage_key as cover_storage_key,
-          (
-            SELECT vi.image_id
-            FROM variant_images vi
-            WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
-            ORDER BY vi.sort_order ASC, vi.created_at ASC
-            LIMIT 1
-          ) as variant_primary_image_id,
-          COALESCE(
-            (
-              SELECT vi.image_id
-              FROM variant_images vi
-              WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
-              ORDER BY vi.sort_order ASC, vi.created_at ASC
-              LIMIT 1
-            ),
-            pv.image_id,
-            json_extract(p.images, '$[0]')
-          ) as display_image_id
+          ${this._variantImageProjectionSQL()}
         FROM spaces s
-        LEFT JOIN (
-            SELECT space_id, COUNT(*) as file_count
-            FROM space_files
-            GROUP BY space_id
-        ) sf_count ON sf_count.space_id = s.id
-        LEFT JOIN files f ON s.cover_file_id = f.id
-        LEFT JOIN products p ON s.product_id = p.id
-        LEFT JOIN product_variants pv ON s.variant_id = pv.id
+        ${this._spaceFileCountJoinSQL()}
+        ${this._spaceProductJoinsSQL()}
         WHERE s.product_id = ?
         ORDER BY s.updated_at DESC
       `
@@ -114,26 +121,8 @@ export class SpaceRepository {
     async findById(id) {
         return await this.db.prepare(`
             SELECT s.*,
-              (
-                SELECT vi.image_id
-                FROM variant_images vi
-                WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
-                ORDER BY vi.sort_order ASC, vi.created_at ASC
-                LIMIT 1
-              ) as variant_primary_image_id,
-              COALESCE(
-                (
-                  SELECT vi.image_id
-                  FROM variant_images vi
-                  WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
-                  ORDER BY vi.sort_order ASC, vi.created_at ASC
-                  LIMIT 1
-                ),
-                pv.image_id,
-                json_extract(p.images, '$[0]')
-              ) as display_image_id,
-              p.spu as p_sku, p.brand as p_brand, p.series as p_series, COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price, p.specifications as p_specs, p.images as p_images,
-              pv.sku as pv_sku, pv.price as pv_price
+              ${this._variantImageProjectionSQL()},
+              ${this._productProjectionSQL()}
             FROM spaces s
             LEFT JOIN products p ON s.product_id = p.id
             LEFT JOIN product_variants pv ON s.variant_id = pv.id
@@ -346,35 +335,11 @@ export class SpaceRepository {
         SELECT s.*,
             COALESCE(sf_count.file_count, 0) as file_count,
             f.storage_key as cover_storage_key,
-            p.spu as p_sku, p.brand as p_brand, p.series as p_series, COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price, p.specifications as p_specs, p.images as p_images,
-            pv.sku as pv_sku, pv.price as pv_price,
-            (
-              SELECT vi.image_id
-              FROM variant_images vi
-              WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
-              ORDER BY vi.sort_order ASC, vi.created_at ASC
-              LIMIT 1
-            ) as variant_primary_image_id,
-            COALESCE(
-              (
-                SELECT vi.image_id
-                FROM variant_images vi
-                WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
-                ORDER BY vi.sort_order ASC, vi.created_at ASC
-                LIMIT 1
-              ),
-              pv.image_id,
-              json_extract(p.images, '$[0]')
-            ) as display_image_id
+            ${this._productProjectionSQL()},
+            ${this._variantImageProjectionSQL()}
         FROM spaces s
-        LEFT JOIN (
-            SELECT space_id, COUNT(*) as file_count
-            FROM space_files
-            GROUP BY space_id
-        ) sf_count ON sf_count.space_id = s.id
-        LEFT JOIN files f ON s.cover_file_id = f.id
-        LEFT JOIN products p ON s.product_id = p.id
-        LEFT JOIN product_variants pv ON s.variant_id = pv.id
+        ${this._spaceFileCountJoinSQL()}
+        ${this._spaceProductJoinsSQL()}
         WHERE s.parent_id = ?
         ORDER BY s.sort_order ASC, s.updated_at DESC
       `
@@ -466,26 +431,8 @@ export class SpaceRepository {
             SELECT s.*, 
                 (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
                 f.storage_key as cover_storage_key,
-                p.spu as p_sku, p.brand as p_brand, p.series as p_series, COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price, p.specifications as p_specs, p.images as p_images,
-                pv.sku as pv_sku, pv.price as pv_price,
-                (
-                  SELECT vi.image_id
-                  FROM variant_images vi
-                  WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
-                  ORDER BY vi.sort_order ASC, vi.created_at ASC
-                  LIMIT 1
-                ) as variant_primary_image_id,
-                COALESCE(
-                  (
-                    SELECT vi.image_id
-                    FROM variant_images vi
-                    WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
-                    ORDER BY vi.sort_order ASC, vi.created_at ASC
-                    LIMIT 1
-                  ),
-                  pv.image_id,
-                  json_extract(p.images, '$[0]')
-                ) as display_image_id
+                ${this._productProjectionSQL()},
+                ${this._variantImageProjectionSQL()}
             FROM spaces s
             LEFT JOIN files f ON s.cover_file_id = f.id
             LEFT JOIN products p ON s.product_id = p.id
@@ -510,26 +457,8 @@ export class SpaceRepository {
         const space = await this.db.prepare(`
             SELECT s.*,
                 f.storage_key as cover_storage_key,
-                p.spu as p_sku, p.brand as p_brand, p.series as p_series, COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price, p.specifications as p_specs, p.images as p_images,
-                pv.sku as pv_sku, pv.price as pv_price,
-                (
-                  SELECT vi.image_id
-                  FROM variant_images vi
-                  WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
-                  ORDER BY vi.sort_order ASC, vi.created_at ASC
-                  LIMIT 1
-                ) as variant_primary_image_id,
-                COALESCE(
-                  (
-                    SELECT vi.image_id
-                    FROM variant_images vi
-                    WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
-                    ORDER BY vi.sort_order ASC, vi.created_at ASC
-                    LIMIT 1
-                  ),
-                  pv.image_id,
-                  json_extract(p.images, '$[0]')
-                ) as display_image_id
+                ${this._productProjectionSQL()},
+                ${this._variantImageProjectionSQL()}
             FROM spaces s
             LEFT JOIN files f ON s.cover_file_id = f.id
             LEFT JOIN products p ON s.product_id = p.id

@@ -36,7 +36,7 @@ describe('ProductVariantRepository — variant_code', () => {
     it('createBatch 应返回数据库生成的 variant_code', async () => {
         db.prepare.mockImplementation((sql) => {
             const stmt = createPreparedStatement(sql);
-            if (sql.includes('SELECT * FROM product_variants WHERE product_id = ?')) {
+            if (sql.includes('FROM product_variants pv') && sql.includes('WHERE pv.product_id = ?')) {
                 stmt.all.mockResolvedValue({
                     results: [{
                         id: 'variant-1',
@@ -57,7 +57,7 @@ describe('ProductVariantRepository — variant_code', () => {
     it('createBatch 在空 sku 时应自动生成非空 sku', async () => {
         db.prepare.mockImplementation((sql) => {
             const stmt = createPreparedStatement(sql);
-            if (sql.includes('SELECT * FROM product_variants WHERE product_id = ?')) {
+            if (sql.includes('FROM product_variants pv') && sql.includes('WHERE pv.product_id = ?')) {
                 stmt.all.mockResolvedValue({
                     results: [{
                         id: 'variant-empty',

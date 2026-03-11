@@ -1,3 +1,5 @@
+import { buildListCacheUrls } from '../../_shared/route-helpers.js';
+
 const getOrigin = (c) => new URL(c.req.url).origin;
 const dedupe = (urls = []) => [...new Set(urls.filter(Boolean))];
 
@@ -15,10 +17,11 @@ export function getManageNotificationCacheUrls(c) {
 
 export function getManageShareCacheUrls(c) {
   const origin = getOrigin(c);
-  return [
-    `${origin}/api/manage/shares`,
-    `${origin}/api/manage/shares?page=1&limit=20`,
-  ];
+  return buildListCacheUrls(origin, '/api/manage/shares', {
+    allowedKeys: ['page', 'limit'],
+    defaults: { page: 1, limit: 20 },
+    maxLimit: 100,
+  });
 }
 
 export function getManageTagCacheUrls(c) {
@@ -43,12 +46,12 @@ export function getSalesOrderCacheUrls(c, { salesTokens = [] } = {}) {
   const uniqueTokens = [...new Set((salesTokens || []).filter(Boolean))];
 
   for (const token of uniqueTokens) {
-    urls.push(`${origin}/api/sales/${token}/orders`);
-    urls.push(`${origin}/api/sales/${token}/orders?page=1&limit=20`);
-    for (const status of SALES_ORDER_STATUSES) {
-      urls.push(`${origin}/api/sales/${token}/orders?page=1&limit=20&status=${status}`);
-      urls.push(`${origin}/api/sales/${token}/orders?status=${status}&page=1&limit=20`);
-    }
+    urls.push(...buildListCacheUrls(origin, `/api/sales/${token}/orders`, {
+      allowedKeys: ['page', 'limit', 'status'],
+      defaults: { page: 1, limit: 20 },
+      maxLimit: 100,
+      queryVariants: SALES_ORDER_STATUSES.map((status) => ({ status })),
+    }));
   }
 
   return dedupe(urls);
@@ -67,8 +70,11 @@ export function getSalesProductCacheUrls(c, { salesTokens = [], productId = null
   const uniqueTokens = [...new Set((salesTokens || []).filter(Boolean))];
 
   for (const token of uniqueTokens) {
-    urls.push(`${origin}/api/sales/${token}/products`);
-    urls.push(`${origin}/api/sales/${token}/products?search=&page=1&limit=12`);
+    urls.push(...buildListCacheUrls(origin, `/api/sales/${token}/products`, {
+      allowedKeys: ['page', 'limit', 'search'],
+      defaults: { page: 1, limit: 12 },
+      maxLimit: 30,
+    }));
     if (productId) {
       urls.push(`${origin}/api/sales/${token}/products/${productId}`);
     }
@@ -112,8 +118,11 @@ export function getGoodsOverviewCacheUrls(c) {
 export function getPurchaseOrderCacheUrls(c, poId = null) {
   const origin = getOrigin(c);
   const urls = [
-    `${origin}/api/manage/purchase-orders`,
-    `${origin}/api/manage/purchase-orders?page=1&limit=20`,
+    ...buildListCacheUrls(origin, '/api/manage/purchase-orders', {
+      allowedKeys: ['page', 'limit', 'status', 'search'],
+      defaults: { page: 1, limit: 20 },
+      maxLimit: 100,
+    }),
     `${origin}/api/manage/purchase-orders/stats`,
     `${origin}/api/manage/purchase-orders/suggestions`,
   ];
@@ -128,19 +137,23 @@ export function getPurchaseOrderCacheUrls(c, poId = null) {
 export function getManageOrderCacheUrls(c) {
   const origin = getOrigin(c);
   return [
-    `${origin}/api/manage/orders`,
-    `${origin}/api/manage/orders?page=1&limit=20`,
+    ...buildListCacheUrls(origin, '/api/manage/orders', {
+      allowedKeys: ['page', 'limit', 'status', 'procurementStatus', 'search', 'salesperson', 'startTime', 'endTime'],
+      defaults: { page: 1, limit: 20 },
+      maxLimit: 100,
+    }),
     `${origin}/api/manage/orders/stats`,
   ];
 }
 
 export function getManageSalespersonCacheUrls(c) {
   const origin = getOrigin(c);
-  return [
-    `${origin}/api/manage/salespersons`,
-    `${origin}/api/manage/salespersons?page=1&limit=20`,
-    `${origin}/api/manage/salespersons?page=1&limit=50`,
-  ];
+  return buildListCacheUrls(origin, '/api/manage/salespersons', {
+    allowedKeys: ['page', 'limit', 'search'],
+    defaults: { page: 1, limit: 50 },
+    maxLimit: 100,
+    queryVariants: [{ limit: 20 }],
+  });
 }
 
 export function getOrderNotificationCacheUrls(c, { salesTokens = [] } = {}) {
