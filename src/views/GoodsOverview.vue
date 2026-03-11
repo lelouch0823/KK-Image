@@ -88,101 +88,69 @@
       </template>
 
       <template v-else-if="summary">
-        <!-- 待订货 -->
-        <div class="group relative overflow-hidden rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl sm:p-5">
-          <div class="relative z-10 flex items-start justify-between">
-            <div>
-              <h3 class="text-xs font-medium text-(--text-secondary) sm:text-sm">{{ t('goodsOverview.pipeline.confirmed') }}</h3>
-              <div class="mt-1.5 font-[Outfit] text-2xl font-bold tracking-tight text-(--text-main) sm:mt-2 sm:text-3xl">
-                {{ summary.byStatus.confirmed.products }}
-              </div>
-            </div>
-            <div class="text-warning flex size-9 items-center justify-center rounded-xl bg-(--color-warning-bg) transition-colors group-hover:bg-warning group-hover:text-white sm:size-10">
-              <AppIcon name="clipboard-document-check" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
-            </div>
-          </div>
-          <div class="relative z-10 mt-2 flex items-center gap-2 text-xs font-medium text-(--text-secondary)">
+        <MetricTile
+          :label="t('goodsOverview.pipeline.confirmed')"
+          :value="summary.byStatus.confirmed.products"
+          icon="clipboard-document-check"
+          tone="warning"
+        >
+          <template #meta>
             <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.confirmed.count }) }}</span>
             <span class="text-(--text-muted)">·</span>
             <span>{{ summary.byStatus.confirmed.qty }} {{ t('goodsOverview.unit') }}</span>
-          </div>
-          <div class="absolute -top-4 -right-4 -z-0 size-24 rounded-full bg-(--color-warning-bg) opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-100"></div>
-        </div>
+          </template>
+        </MetricTile>
 
-        <!-- 生产中 -->
-        <div class="group relative overflow-hidden rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl sm:p-5">
-          <div class="relative z-10 flex items-start justify-between">
-            <div>
-              <h3 class="text-xs font-medium text-(--text-secondary) sm:text-sm">{{ t('goodsOverview.pipeline.production') }}</h3>
-              <div class="mt-1.5 font-[Outfit] text-2xl font-bold tracking-tight text-(--text-main) sm:mt-2 sm:text-3xl">
-                {{ summary.byStatus.production.products }}
-              </div>
-            </div>
-            <div class="text-info flex size-9 items-center justify-center rounded-xl bg-(--color-info-bg) transition-colors group-hover:bg-info group-hover:text-white sm:size-10">
-              <AppIcon name="beaker" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
-            </div>
-          </div>
-          <div class="relative z-10 mt-2 flex items-center gap-2 text-xs font-medium text-(--text-secondary)">
+        <MetricTile
+          :label="t('goodsOverview.pipeline.production')"
+          :value="summary.byStatus.production.products"
+          icon="beaker"
+          tone="info"
+        >
+          <template #meta>
             <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.production.count }) }}</span>
             <span class="text-(--text-muted)">·</span>
             <span>{{ summary.byStatus.production.qty }} {{ t('goodsOverview.unit') }}</span>
-          </div>
-          <div class="absolute -top-4 -right-4 -z-0 size-24 rounded-full bg-(--color-info-bg) opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-100"></div>
-        </div>
+          </template>
+        </MetricTile>
 
-        <!-- 运输中 -->
-        <div class="group relative overflow-hidden rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl sm:p-5">
-          <div class="relative z-10 flex items-start justify-between">
-            <div>
-              <h3 class="text-xs font-medium text-(--text-secondary) sm:text-sm">{{ t('goodsOverview.pipeline.shipping') }}</h3>
-              <div class="mt-1.5 font-[Outfit] text-2xl font-bold tracking-tight text-(--text-main) sm:mt-2 sm:text-3xl">
-                {{ summary.byStatus.shipping.products }}
-              </div>
-            </div>
-            <div class="flex size-9 items-center justify-center rounded-xl bg-(--color-purple-bg) text-(--color-purple) transition-colors group-hover:bg-(--color-purple) group-hover:text-white sm:size-10">
-              <AppIcon name="building-storefront" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
-            </div>
-          </div>
-          <div class="relative z-10 mt-2 flex items-center gap-2 text-xs font-medium text-(--text-secondary)">
+        <MetricTile
+          :label="t('goodsOverview.pipeline.shipping')"
+          :value="summary.byStatus.shipping.products"
+          icon="building-storefront"
+          tone="purple"
+        >
+          <template #meta>
             <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.shipping.count }) }}</span>
             <span class="text-(--text-muted)">·</span>
             <span>{{ summary.byStatus.shipping.qty }} {{ t('goodsOverview.unit') }}</span>
-          </div>
-          <div class="absolute -top-4 -right-4 -z-0 size-24 rounded-full bg-(--color-purple-bg) opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-100"></div>
-        </div>
+          </template>
+        </MetricTile>
 
-        <!-- 已到货 -->
-        <div class="group relative overflow-hidden rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl sm:p-5">
-          <div class="relative z-10 flex items-start justify-between">
-            <div>
-              <h3 class="text-xs font-medium text-(--text-secondary) sm:text-sm">{{ t('goodsOverview.pipeline.arrived') }}</h3>
-              <div class="mt-1.5 font-[Outfit] text-2xl font-bold tracking-tight text-(--text-main) sm:mt-2 sm:text-3xl">
-                {{ summary.byStatus.arrived.products }}
-              </div>
-            </div>
-            <div class="text-success flex size-9 items-center justify-center rounded-xl bg-(--color-success-bg) transition-colors group-hover:bg-success group-hover:text-white sm:size-10">
-              <AppIcon name="check" class="size-4 transition-transform duration-300 group-hover:scale-110 sm:size-5" />
-            </div>
-          </div>
-          <div class="relative z-10 mt-2 flex items-center gap-2 text-xs font-medium text-(--text-secondary)">
+        <MetricTile
+          :label="t('goodsOverview.pipeline.arrived')"
+          :value="summary.byStatus.arrived.products"
+          icon="check"
+          tone="success"
+        >
+          <template #meta>
             <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.arrived.count }) }}</span>
             <span class="text-(--text-muted)">·</span>
             <span>{{ summary.byStatus.arrived.qty }} {{ t('goodsOverview.unit') }}</span>
-          </div>
-          <div class="absolute -top-4 -right-4 -z-0 size-24 rounded-full bg-(--color-success-bg) opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-100"></div>
-        </div>
+          </template>
+        </MetricTile>
       </template>
     </div>
 
     <!-- ===== 总需求 + 缺货摘要：骨架屏 or 真实数据 ===== -->
-    <div v-if="loading && !summary" class="flex flex-wrap gap-4 rounded-xl border border-(--border-color) bg-(--bg-card) px-5 py-3">
+    <SummaryStrip v-if="loading && !summary">
       <div class="skeleton-shimmer h-5 w-28 rounded bg-(--bg-muted)" />
       <div class="h-5 w-px bg-(--border-color)"></div>
       <div class="skeleton-shimmer h-5 w-24 rounded bg-(--bg-muted)" />
       <div class="h-5 w-px bg-(--border-color)"></div>
       <div class="skeleton-shimmer h-5 w-24 rounded bg-(--bg-muted)" />
-    </div>
-    <div v-else-if="summary" class="flex flex-wrap gap-4 rounded-xl border border-(--border-color) bg-(--bg-card) px-5 py-3">
+    </SummaryStrip>
+    <SummaryStrip v-else-if="summary">
       <div class="flex items-center gap-2">
         <span class="text-secondary text-sm">{{ t('goodsOverview.summary.totalProducts') }}:</span>
         <span class="text-primary font-semibold">{{ summary.totalProducts }}</span>
@@ -197,7 +165,7 @@
         <span class="text-secondary text-sm">{{ t('goodsOverview.summary.shortageCount') }}:</span>
         <span class="text-danger font-semibold">{{ summary.shortageCount }}</span>
       </div>
-    </div>
+    </SummaryStrip>
 
 
 
@@ -389,6 +357,8 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
+import MetricTile from '@/design-system/composed/MetricTile.vue';
+import SummaryStrip from '@/design-system/composed/SummaryStrip.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
 
