@@ -168,7 +168,7 @@
       </AppInput>
 
       <!-- 视图切换 -->
-      <div class="hidden items-center rounded-lg border border-(--border-color) bg-(--bg-input) p-1 sm:flex">
+      <div class="hidden items-center rounded-lg border border-(--border-color) bg-(--bg-card) p-1 sm:flex">
           <AppButton
               v-for="mode in ['grid', 'list']"
               :key="mode"

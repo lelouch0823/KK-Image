@@ -23,11 +23,11 @@ const props = defineProps({
 });
 
 const colors = {
-  blue: { bg: 'bg-info', shadow: 'varinfo' },
-  teal: { bg: 'bg-success', shadow: 'varsuccess' },
-  orange: { bg: 'bg-warning', shadow: 'varwarning' },
+  blue: { bg: 'bg-info', shadow: '59,130,246' },
+  teal: { bg: 'bg-success', shadow: '16,185,129' },
+  orange: { bg: 'bg-warning', shadow: '245,158,11' },
   indigo: { bg: 'bg-purple-500', shadow: 'var(--color-purple)' },
-  pink: { bg: 'bg-danger', shadow: 'vardanger' },
+  pink: { bg: 'bg-danger', shadow: '239,68,68' },
 };
 
 const colorClass = computed(() => colors[props.color]?.bg || 'bg-info');

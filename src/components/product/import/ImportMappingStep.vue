@@ -83,7 +83,7 @@
                         :key="preset"
                         type="button"
                         class="cursor-pointer rounded-full border px-2 py-1 text-xs transition-colors"
-                        :class="normalizeName(spec.name) === normalizeName(preset) ? 'border-primary bg-primary/10 text-primary' : 'border-(--border-color) text-(--text-secondary) hover:bg-(--bg-card-hover)'"
+                        :class="normalizeName(spec.name) === normalizeName(preset) ? 'border-primary bg-primary/10 text-primary' : 'border-(--border-color) text-(--text-secondary) hover:bg-(--bg-hover)'"
                         @click="setSpecName(index, preset)"
                     >
                         {{ preset }}
@@ -94,7 +94,7 @@
                     <input
                         :value="spec.name"
                         type="text"
-                        class="focus:border-primary w-full rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) outline-none"
+                        class="focus:border-primary w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main) outline-none"
                         :placeholder="t('product.import.specs.name_placeholder', '输入规格名（如：颜色）')"
                         @input="setSpecName(index, $event.target.value)"
                     />
@@ -117,7 +117,7 @@
                 <button
                     type="button"
                     class="cursor-pointer rounded-lg border px-3 py-2 text-left transition-colors"
-                    :class="importMode === 'safe_merge' ? 'border-primary bg-primary/10 text-primary' : 'border-(--border-color) text-(--text-main) hover:bg-(--bg-card-hover)'"
+                    :class="importMode === 'safe_merge' ? 'border-primary bg-primary/10 text-primary' : 'border-(--border-color) text-(--text-main) hover:bg-(--bg-hover)'"
                     @click="updateImportMode('safe_merge')"
                 >
                     <p class="text-sm font-semibold">{{ t('product.import.mode.safe_merge', '仅更新无冲突（推荐）') }}</p>
@@ -126,7 +126,7 @@
                 <button
                     type="button"
                     class="cursor-pointer rounded-lg border px-3 py-2 text-left transition-colors"
-                    :class="importMode === 'replace' ? 'border-primary bg-primary/10 text-primary' : 'border-(--border-color) text-(--text-main) hover:bg-(--bg-card-hover)'"
+                    :class="importMode === 'replace' ? 'border-primary bg-primary/10 text-primary' : 'border-(--border-color) text-(--text-main) hover:bg-(--bg-hover)'"
                     @click="updateImportMode('replace')"
                 >
                     <p class="text-sm font-semibold">{{ t('product.import.mode.replace', '全覆盖更新') }}</p>

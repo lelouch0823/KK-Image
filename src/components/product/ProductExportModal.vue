@@ -12,7 +12,7 @@
           <button
             type="button"
             class="cursor-pointer rounded-xl border px-4 py-3 text-left transition-colors"
-            :class="form.format === 'excel' ? 'border-primary bg-primary/5' : 'border-(--border-color) hover:bg-(--bg-card-hover)'"
+            :class="form.format === 'excel' ? 'border-primary bg-primary/5' : 'border-(--border-color) hover:bg-(--bg-hover)'"
             :disabled="isGenerating"
             @click="form.format = 'excel'"
           >
@@ -27,7 +27,7 @@
           <button
             type="button"
             class="cursor-pointer rounded-xl border px-4 py-3 text-left transition-colors"
-            :class="form.format === 'csv' ? 'border-primary bg-primary/5' : 'border-(--border-color) hover:bg-(--bg-card-hover)'"
+            :class="form.format === 'csv' ? 'border-primary bg-primary/5' : 'border-(--border-color) hover:bg-(--bg-hover)'"
             :disabled="isGenerating"
             @click="form.format = 'csv'"
           >
@@ -45,11 +45,11 @@
       <section class="space-y-2">
         <h4 class="text-sm font-semibold text-(--text-main)">{{ t('product.exportModal.scope', '导出范围') }}</h4>
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label class="cursor-pointer rounded-xl border border-(--border-color) px-4 py-3 hover:bg-(--bg-card-hover)">
+          <label class="cursor-pointer rounded-xl border border-(--border-color) px-4 py-3 hover:bg-(--bg-hover)">
             <input v-model="form.scope" type="radio" class="mr-2" value="all" :disabled="isGenerating" />
             {{ t('product.exportModal.scope_all', '全部商品') }}
           </label>
-          <label class="cursor-pointer rounded-xl border border-(--border-color) px-4 py-3 hover:bg-(--bg-card-hover)">
+          <label class="cursor-pointer rounded-xl border border-(--border-color) px-4 py-3 hover:bg-(--bg-hover)">
             <input v-model="form.scope" type="radio" class="mr-2" value="filtered" :disabled="isGenerating" />
             {{ t('product.exportModal.scope_filtered', '当前筛选结果') }}
           </label>
@@ -61,7 +61,7 @@
           <p class="text-sm font-medium text-(--text-main)">{{ t('product.exportModal.progress', '文件生成进度') }}</p>
           <span class="text-xs text-(--text-secondary)">{{ progress }}%</span>
         </div>
-        <div class="h-2 overflow-hidden rounded-full bg-(--bg-input)">
+        <div class="h-2 overflow-hidden rounded-full bg-(--bg-muted)">
           <div class="bg-primary h-full transition-all duration-300" :style="{ width: `${progress}%` }"></div>
         </div>
         <div class="mt-3 space-y-1 text-xs text-(--text-secondary)">

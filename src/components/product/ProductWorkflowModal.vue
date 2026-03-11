@@ -23,7 +23,7 @@
           <button
             v-if="mode === 'edit'"
             type="button"
-            class="rounded-lg border border-(--border-color) px-3 py-1.5 text-xs font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-card-hover) hover:text-(--text-main)"
+            class="rounded-lg border border-(--border-color) px-3 py-1.5 text-xs font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover) hover:text-(--text-main)"
             @click="returnToDetail"
           >
             {{ t('product.workflow.back_to_detail', 'Back to Detail') }}
@@ -71,7 +71,7 @@
             </button>
             <button
               type="button"
-              class="rounded-lg px-3 py-1.5 text-xs font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-card-hover)"
+              class="rounded-lg px-3 py-1.5 text-xs font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
               @click="clearEditError"
             >
               {{ t('product.action.cancel') }}

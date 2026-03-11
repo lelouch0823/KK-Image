@@ -88,7 +88,7 @@
                 <!-- 箭头 -->
                 <AppIcon
                   name="chevron-down"
-                  class="size-4 shrink-0 -rotate-90 text-(--text-quaternary) opacity-50 transition-transform group-hover:translate-x-1 group-hover:opacity-100"
+                  class="size-4 shrink-0 -rotate-90 text-(--text-muted) opacity-50 transition-transform group-hover:translate-x-1 group-hover:opacity-100"
                 />
               </div>
             </div>

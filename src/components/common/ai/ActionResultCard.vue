@@ -1,7 +1,7 @@
 <template>
   <div class="border-(--color-success-border, #bbf7d0) bg-(--color-success-bg, #f0fdf4) rounded-2xl border p-4 shadow-sm">
     <div class="flex items-start gap-3">
-      <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-(--bg-card) text-[varsuccess] shadow-sm">
+      <div class="text-success flex size-10 shrink-0 items-center justify-center rounded-xl bg-(--bg-card) shadow-sm">
         <AppIcon name="check-badge" class="size-5" />
       </div>
       <div class="min-w-0 flex-1">

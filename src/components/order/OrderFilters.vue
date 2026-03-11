@@ -14,7 +14,7 @@
 
         <!-- Stats Button -->
         <button
-          class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) transition-all hover:bg-(--bg-card-hover) active:scale-95"
+          class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) transition-all hover:bg-(--bg-hover) active:scale-95"
           :title="t('dashboard.stats')"
           @click="$emit('show-stats')"
         >
@@ -23,7 +23,7 @@
 
         <button
           :disabled="exporting"
-          class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) text-(--text-main) transition-all hover:bg-(--bg-card-hover) active:scale-95 disabled:opacity-50"
+          class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-main) transition-all hover:bg-(--bg-hover) active:scale-95 disabled:opacity-50"
           :title="t('order.manage.export')"
           @click="$emit('export')"
         >
@@ -45,7 +45,7 @@
         
         <!-- Mobile Stats Button -->
         <button
-          class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) transition-all active:scale-95"
+          class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) transition-all active:scale-95"
           :title="t('dashboard.stats')"
           @click="$emit('show-stats')"
         >
@@ -54,7 +54,7 @@
 
         <button
           :disabled="exporting"
-          class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) text-(--text-main) transition-all active:scale-95 disabled:opacity-50"
+          class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-main) transition-all active:scale-95 disabled:opacity-50"
           :title="t('order.manage.export')"
           @click="$emit('export')"
         >

@@ -597,13 +597,13 @@ const generateReport = async () => {
   margin-bottom: 0.75em;
 }
 .markdown-body a {
-  color: varinfo;
+  color: var(--color-info);
   text-decoration: none;
   border-bottom: 1px solid transparent;
   transition: border-color 0.2s;
 }
 .markdown-body a:hover {
-  border-bottom-color: varinfo;
+  border-bottom-color: var(--color-info);
 }
 .markdown-body ul, .markdown-body ol {
   padding-left: 1.5em;

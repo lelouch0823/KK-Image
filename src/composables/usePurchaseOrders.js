@@ -40,11 +40,11 @@ export function usePurchaseOrders() {
 
   const statusConfig = computed(() => ({
     draft: { label: t('purchaseOrder.status.draft'), color: 'var(--text-secondary)', bg: 'var(--bg-muted)' },
-    ordered: { label: t('purchaseOrder.status.ordered'), color: 'varwarning', bg: 'var(--color-warning-bg)' },
+    ordered: { label: t('purchaseOrder.status.ordered'), color: 'var(--color-warning-text)', bg: 'var(--color-warning-bg)' },
     shipping: { label: t('purchaseOrder.status.shipping'), color: 'var(--color-purple)', bg: 'var(--color-purple-bg)' },
-    arrived: { label: t('purchaseOrder.status.arrived'), color: 'varinfo', bg: 'var(--color-info-bg)' },
-    completed: { label: t('purchaseOrder.status.completed'), color: 'varsuccess', bg: 'var(--color-success-bg)' },
-    cancelled: { label: t('purchaseOrder.status.cancelled'), color: 'vardanger', bg: 'var(--color-danger-bg)' },
+    arrived: { label: t('purchaseOrder.status.arrived'), color: 'var(--color-info-text)', bg: 'var(--color-info-bg)' },
+    completed: { label: t('purchaseOrder.status.completed'), color: 'var(--color-success-text)', bg: 'var(--color-success-bg)' },
+    cancelled: { label: t('purchaseOrder.status.cancelled'), color: 'var(--color-danger-text)', bg: 'var(--color-danger-bg)' },
   }));
 
   // ─── 列表 ────────────────────────────────────────────

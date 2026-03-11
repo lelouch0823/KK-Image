@@ -22,7 +22,7 @@
         :type="!textarea ? type : undefined"
         :disabled="disabled"
         :required="required"
-        class="focus:border-primary focus:ring-primary focus:ring-1 focus:outline-none block w-full rounded-lg border bg-(--bg-input) text-(--text-main) placeholder-(--text-muted) transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+        class="focus:border-primary focus:ring-primary focus:ring-1 focus:outline-none block w-full rounded-lg border bg-(--bg-card) text-(--text-main) placeholder-(--text-muted) transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
         :class="[
           inputClasses,
           error ? 'border-danger focus:border-danger focus:ring-danger' : 'border-(--border-color)',

@@ -183,7 +183,7 @@
             variant="ghost"
             block
             size="sm"
-            class="text-danger hover:bg-danger/10 hover:text-(--color-danger-hover)"
+            class="text-danger hover:bg-danger/10 hover:text-danger"
             :text="t('space.delete')"
             @click.stop="confirmDelete(space)"
           >

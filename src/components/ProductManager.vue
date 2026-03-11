@@ -24,7 +24,7 @@
 
             <!-- Import Button -->
             <button
-                class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) text-(--text-secondary) transition-all hover:bg-(--bg-card-hover) hover:text-indigo-600 active:scale-95"
+                class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all hover:bg-(--bg-hover) hover:text-info active:scale-95"
                 :title="t('product.action.import')"
                 @click="showImportModal = true"
             >
@@ -33,7 +33,7 @@
 
             <!-- Export Button -->
             <button
-                class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) text-(--text-secondary) transition-all hover:bg-(--bg-card-hover) hover:text-indigo-600 active:scale-95"
+                class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all hover:bg-(--bg-hover) hover:text-info active:scale-95"
                 :title="t('product.action.export')"
                 @click="handleExport"
             >
@@ -42,7 +42,7 @@
 
              <!-- Stats Button -->
             <button
-                class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-input) transition-all hover:bg-(--bg-card-hover) active:scale-95"
+                class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) transition-all hover:bg-(--bg-hover) active:scale-95"
                 :title="t('product.manager.stats_overview')"
                 @click="showStatsModal = true"
             >

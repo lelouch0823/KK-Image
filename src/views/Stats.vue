@@ -182,7 +182,7 @@
                 <div
                     v-for="(space, index) in stats.traffic?.topSpaces"
                     :key="space.id"
-                    class="group flex items-center justify-between rounded-xl border border-transparent bg-(--bg-subtle) p-4 transition-all hover:border-primary/20 hover:bg-primary/5"
+                    class="group flex items-center justify-between rounded-xl border border-transparent bg-(--bg-muted) p-4 transition-all hover:border-primary/20 hover:bg-primary/5"
                 >
                     <div class="flex items-center gap-4">
                         <div 
