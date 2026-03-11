@@ -37,29 +37,37 @@ describe('repository update helper convergence', () => {
     ({ db } = createDb());
   });
 
-  it('CustomerRepository.update returns false when D1 reports zero changes', async () => {
+  it('CustomerRepository.update returns true for no-op updates when record still exists', async () => {
     const repo = new CustomerRepository(db);
     const statement = createStatement('UPDATE customers');
     statement.run.mockResolvedValue({ success: true, meta: { changes: 0 } });
     db.prepare.mockReturnValueOnce(statement);
+    db.prepare.mockReturnValueOnce({
+      bind: vi.fn(() => ({
+        first: vi.fn(async () => ({ id: 'customer-1' })),
+      })),
+    });
 
     const updatePromise = repo.update('customer-1', { remark: 'note', name: 'Alice' });
-    statement.run.mockResolvedValue({ success: true, meta: { changes: 0 } });
 
-    await expect(updatePromise).resolves.toBe(false);
+    await expect(updatePromise).resolves.toBe(true);
     expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('UPDATE customers SET name = ?, remark = ?, updated_at = ? WHERE id = ?'));
   });
 
-  it('SalespersonRepository.update returns false when D1 reports zero changes', async () => {
+  it('SalespersonRepository.update returns true for no-op updates when record still exists', async () => {
     const repo = new SalespersonRepository(db, 'jwt-secret');
     const statement = createStatement('UPDATE salespersons');
     statement.run.mockResolvedValue({ success: true, meta: { changes: 0 } });
     db.prepare.mockReturnValueOnce(statement);
+    db.prepare.mockReturnValueOnce({
+      bind: vi.fn(() => ({
+        first: vi.fn(async () => ({ id: 'sales-1' })),
+      })),
+    });
 
     const updatePromise = repo.update('sales-1', { phone: '138', name: 'Bob' });
-    statement.run.mockResolvedValue({ success: true, meta: { changes: 0 } });
 
-    await expect(updatePromise).resolves.toBe(false);
+    await expect(updatePromise).resolves.toBe(true);
     expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('UPDATE salespersons SET name = ?, phone = ?, updated_at = ? WHERE id = ?'));
   });
 
@@ -83,5 +91,20 @@ describe('repository update helper convergence', () => {
     db.prepare.mockReturnValueOnce(statement);
 
     await expect(repo.recordLogin('sales-1', '127.0.0.1', 'browser')).resolves.toBe(false);
+  });
+
+  it('CustomerRepository preserves scalar tag payloads as single-item arrays', async () => {
+    const repo = new CustomerRepository(db);
+    db.prepare.mockReturnValueOnce({
+      bind: vi.fn(() => ({
+        first: vi.fn(async () => ({
+          id: 'customer-1',
+          tags: '"vip"',
+        })),
+      })),
+    });
+
+    const customer = await repo.findById('customer-1');
+    expect(customer.tags).toEqual(['vip']);
   });
 });

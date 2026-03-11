@@ -68,7 +68,9 @@ export class SalespersonRepository {
       .prepare('UPDATE salespersons SET wechat_openid = ?, updated_at = ? WHERE id = ?')
       .bind(openid, now(), id)
       .run();
-    return hasChanges(result);
+    if (hasChanges(result)) return true;
+    const existing = await this.db.prepare('SELECT id FROM salespersons WHERE id = ?').bind(id).first();
+    return Boolean(existing);
   }
 
   /**
@@ -227,7 +229,9 @@ export class SalespersonRepository {
       .bind(...values, id)
       .run();
 
-    return hasChanges(result);
+    if (hasChanges(result)) return true;
+    const existing = await this.db.prepare('SELECT id FROM salespersons WHERE id = ?').bind(id).first();
+    return Boolean(existing);
   }
 
   /**

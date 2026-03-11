@@ -1,5 +1,5 @@
 import { parseRepoPagination } from '../api/utils/pagination.js';
-import { parseJsonArray } from '../api/utils/json.js';
+import { safeJsonParse } from '../api/utils/json.js';
 import { hasChanges } from '../api/utils/result.js';
 import { buildSetClause } from '../api/utils/sql.js';
 
@@ -29,10 +29,13 @@ export class CustomerRepository {
 
     if (customer) {
       if (customer.tags) {
-        try {
-          customer.tags = parseJsonArray(customer.tags, []);
-        } catch {
-          customer.tags = [customer.tags];
+        const parsedTags = safeJsonParse(customer.tags, customer.tags);
+        if (Array.isArray(parsedTags)) {
+          customer.tags = parsedTags;
+        } else if (parsedTags !== null && parsedTags !== undefined && parsedTags !== '') {
+          customer.tags = [parsedTags];
+        } else {
+          customer.tags = [];
         }
       } else {
         customer.tags = [];
@@ -89,11 +92,11 @@ export class CustomerRepository {
     const results = listResult.results.map((c) => {
       let tags = [];
       if (c.tags) {
-        try {
-          tags = parseJsonArray(c.tags, []);
-        } catch {
-          // 如果解析失败，可能是纯字符串，包装为数组
-          tags = [c.tags];
+        const parsedTags = safeJsonParse(c.tags, c.tags);
+        if (Array.isArray(parsedTags)) {
+          tags = parsedTags;
+        } else if (parsedTags !== null && parsedTags !== undefined && parsedTags !== '') {
+          tags = [parsedTags];
         }
       }
       return { ...c, tags };
@@ -189,7 +192,9 @@ export class CustomerRepository {
       .bind(...values, id)
       .run();
 
-    return hasChanges(result);
+    if (hasChanges(result)) return true;
+    const existing = await this.db.prepare('SELECT id FROM customers WHERE id = ?').bind(id).first();
+    return Boolean(existing);
   }
 
   /**
