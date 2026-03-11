@@ -55,6 +55,7 @@ const props = defineProps({
   footerClass: { type: String, default: '' },
   activeBorder: { type: Boolean, default: false }, // Highlight border on active/selected
   indicator: { type: String, default: null }, // Color for the title indicator (e.g. 'rose', 'blue')
+  glow: { type: Boolean, default: false },
 });
 
 defineEmits(['click']);
@@ -76,6 +77,23 @@ const indicatorClass = computed(() => {
 
 const bodyClass = computed(() => {
   return props.padding;
+});
+
+const blobClass = computed(() => {
+  const colors = {
+    blue: 'bg-blue-500/40',
+    teal: 'bg-teal-500/40',
+    orange: 'bg-orange-500/40',
+    indigo: 'bg-indigo-500/40',
+    pink: 'bg-pink-500/40',
+    danger: 'bg-red-500/40',
+    purple: 'bg-purple-500/40',
+    cyan: 'bg-cyan-500/40',
+    info: 'bg-info/40',
+    success: 'bg-success/40',
+    warning: 'bg-warning/40',
+  };
+  return colors[props.indicator] || 'bg-primary/30';
 });
 
 const borderClass = computed(() => {

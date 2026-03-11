@@ -204,6 +204,14 @@ const isConfirmDisabled = computed(() => {
   return false;
 });
 
+const confirmButtonVariant = computed(() => {
+  if (props.type === 'danger') return 'danger';
+  if (props.type === 'warning') return 'outline';
+  if (props.type === 'success') return 'primary';
+  if (props.type === 'info') return 'outline';
+  return 'primary';
+});
+
 // Type-based styling using CSS variables
 const typeClasses = computed(() => {
   const types = {
