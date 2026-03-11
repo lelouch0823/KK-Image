@@ -21,18 +21,8 @@
 
     <!-- Main Content -->
     <div class="relative z-10 px-6 py-8 sm:px-10">
-      <!-- Header -->
-      <div class="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <h1 class="text-primary text-3xl font-bold tracking-tight">
-            {{ t('stats.statusOverview') }}
-          </h1>
-          <p class="mt-2 text-(--text-secondary)">{{ t('ai.subtitle') }}</p>
-        </div>
-        
-        <!-- Refresh Button -->
-        <div class="flex items-center gap-2">
-          <!-- Refresh Button -->
+      <DashboardShell :title="t('stats.statusOverview')" :description="t('ai.subtitle')">
+        <template #actions>
           <AppButton
             variant="outline"
             :loading="loading"
@@ -43,8 +33,9 @@
               <AppIcon name="arrow-path" class="size-4" />
             </template>
           </AppButton>
-        </div>
-      </div>
+        </template>
+
+        <template #main>
 
       <!-- Loading State -->
       <div v-if="loading && !stats" class="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -291,6 +282,8 @@
                 </div>
         </AppCard>
       </div>
+        </template>
+      </DashboardShell>
     </div>
   </div>
 </template>
@@ -312,6 +305,7 @@ import Skeleton from '@/components/ui/Skeleton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
+import DashboardShell from '@/design-system/patterns/DashboardShell.vue';
 
 // Configure Chart.js defaults
 const configureChartDefaults = () => {
