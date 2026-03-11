@@ -41,6 +41,7 @@
               <button
                 v-if="closable"
                 type="button"
+                aria-label="Close modal"
                 class="-mr-1 p-1 text-(--text-muted) transition-colors hover:text-(--text-main)"
                 @click="close"
               >

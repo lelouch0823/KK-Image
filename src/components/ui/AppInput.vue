@@ -22,6 +22,7 @@
         :type="!textarea ? type : undefined"
         :disabled="disabled"
         :required="required"
+        :aria-invalid="error ? 'true' : 'false'"
         class="focus:border-primary focus:ring-primary focus:ring-1 focus:outline-none block w-full rounded-lg border bg-(--bg-card) text-(--text-main) placeholder-(--text-muted) transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
         :class="[
           inputClasses,
@@ -40,7 +41,7 @@
     </div>
 
     <!-- Error Message -->
-    <p v-if="error" class="text-danger mt-1 text-xs">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-danger mt-1 text-xs">{{ error }}</p>
     <!-- Helper Text -->
     <p v-else-if="hint" class="mt-1 text-xs text-(--text-muted)">{{ hint }}</p>
   </div>
