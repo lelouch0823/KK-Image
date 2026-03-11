@@ -129,6 +129,29 @@ export default [
                 varsIgnorePattern: "^_",
                 caughtErrorsIgnorePattern: "^_"
             }],
+            "no-restricted-syntax": [
+                "warn",
+                {
+                    selector: "Literal[value='material-symbols-outlined']",
+                    message: "Use AppIcon instead of Material Symbols in production UI."
+                },
+                {
+                    selector: "Literal[value='varinfo']",
+                    message: "Use semantic tokens instead of pseudo token values."
+                },
+                {
+                    selector: "Literal[value='varsuccess']",
+                    message: "Use semantic tokens instead of pseudo token values."
+                },
+                {
+                    selector: "Literal[value='vardanger']",
+                    message: "Use semantic tokens instead of pseudo token values."
+                },
+                {
+                    selector: "Literal[value='varwarning']",
+                    message: "Use semantic tokens instead of pseudo token values."
+                }
+            ],
             // 禁止 console（生产代码）
             "no-console": ["warn", { allow: ["warn", "error"] }],
             // 禁止 debugger

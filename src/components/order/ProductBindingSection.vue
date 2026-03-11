@@ -336,7 +336,7 @@ const COLOR_VALUE_MAP = {
   grey: '#9ca3af',
   purple: '#8b5cf6',
   pink: '#ec4899',
-  orange: '#f97316',
+  orange: 'var(--color-primary)',
   // Chinese mapping
   白: '#ffffff',
   白色: '#ffffff',
@@ -360,8 +360,8 @@ const COLOR_VALUE_MAP = {
   紫色: '#8b5cf6',
   粉: '#ec4899',
   粉色: '#ec4899',
-  橙: '#f97316',
-  橙色: '#f97316',
+  橙: 'var(--color-primary)',
+  橙色: 'var(--color-primary)',
 };
 
 const parseOptionsValues = (value) => {

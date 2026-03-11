@@ -69,7 +69,7 @@ export const getProductStatusVariant = (status) => {
  * 使用 CSS 变量的对应颜色值，便于后续切换主题
  */
 export const STATUS_HEX_COLORS = {
-  pending: '#f97316', // orange-500
+  pending: 'var(--color-primary)', // orange action token
   confirmed: '#22c55e', // green-500
   production: '#8b5cf6', // violet-500
   shipping: '#3b82f6', // blue-500
@@ -85,7 +85,7 @@ export const STATUS_HEX_COLORS = {
  * @returns {string} hex 颜色值
  */
 export const getStatusHexColor = (status) => {
-  return STATUS_HEX_COLORS[status] || '#cbd5e1';
+  return STATUS_HEX_COLORS[status] || 'var(--border-color)';
 };
 
 /**

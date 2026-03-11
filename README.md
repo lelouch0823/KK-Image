@@ -26,6 +26,7 @@
 - **[🔌 API 文档](docs/api-docs/README.md)** - 完整的 API 接口说明
 - **[🚀 部署指南](docs/deployment/README.md)** - 生产环境部署配置
 - **[🤝 贡献指南](docs/contributing/README.md)** - 参与项目开发
+- **[🎨 设计系统文档](docs/design-system/MASTER.md)** - Token、基础组件、页面模式与治理规则
 
 > [!IMPORTANT]
 >
