@@ -107,13 +107,20 @@
       >
         <!-- 采购单编号 -->
         <template #cell-po_no="{ row: po }">
-          <code class="rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono text-xs text-(--text-secondary)">{{ po.po_no }}</code>
+          <code
+            data-testid="purchase-order-po-chip"
+            class="inline-flex items-center rounded-full border border-(--border-color)/70 bg-(--bg-muted) px-2.5 py-1 font-mono text-[11px] font-semibold tracking-[0.04em] text-(--text-main)"
+          >
+            {{ po.po_no }}
+          </code>
         </template>
 
         <template #cell-status="{ row: po }">
           <StatusBadge
             v-if="po.status"
+            data-testid="purchase-order-status-badge"
             :variant="['draft','cancelled'].includes(po.status) ? 'default' : (['ordered'].includes(po.status) ? 'warning' : (po.status === 'shipping' ? 'purple' : (po.status === 'arrived' ? 'info' : 'success')))"
+            class="ring-1 ring-black/5"
           >
             {{ statusConfig[po.status]?.label || po.status }}
           </StatusBadge>
@@ -126,7 +133,12 @@
 
         <!-- 商品总金额 -->
         <template #cell-total_goods_cost="{ row: po }">
-          <span class="font-[Outfit] font-medium text-(--text-main)">¥{{ (po.total_goods_cost || 0).toFixed(2) }}</span>
+          <span
+            data-testid="purchase-order-total-cost"
+            class="inline-flex min-w-[7.5rem] justify-end rounded-lg bg-(--bg-muted)/65 px-2.5 py-1 font-[Outfit] text-sm font-semibold text-(--text-main)"
+          >
+            ¥{{ (po.total_goods_cost || 0).toFixed(2) }}
+          </span>
         </template>
 
         <!-- 备注 -->
