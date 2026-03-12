@@ -18,18 +18,13 @@
           </div>
 
           <div class="border-b border-(--border-subtle) px-6 py-3">
-            <div class="relative">
-              <div class="text-muted pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <AppIcon name="magnifying-glass" class="size-4" />
-              </div>
-              <input
-                v-model="searchQuery"
-                type="text"
-                class="text-main w-full rounded-xl border border-(--border-color) bg-(--bg-page) py-2.5 pr-4 pl-10 text-sm transition-colors placeholder:text-muted focus:border-primary focus:ring-primary/20 focus:ring-2 focus:outline-none"
-                :placeholder="t('purchaseOrder.selection.searchVariant', '搜索商品名 / SKU / 变体')"
-                @input="debouncedSearch"
-              />
-            </div>
+            <SearchInput
+              v-model="searchQuery"
+              :placeholder="t('purchaseOrder.selection.searchVariant', '搜索商品名 / SKU / 变体')"
+              input-class="!rounded-xl !bg-(--bg-page)"
+              :debounce="0"
+              @search="debouncedSearch"
+            />
           </div>
 
           <div class="min-h-0 flex-1 overflow-y-auto px-6 py-3">
@@ -144,6 +139,7 @@ import { useProducts } from '@/composables/useProducts';
 import { countUnavailableSelectedVariants } from '@/utils/purchase-order-variant-selection';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import SearchInput from '@/components/ui/SearchInput.vue';
 
 const props = defineProps({
   visible: { type: Boolean, default: false },

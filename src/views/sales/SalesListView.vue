@@ -8,25 +8,12 @@
   >
     <!-- Search Bar -->
     <div class="sticky top-14 z-20 -mx-4 mb-4 border-b border-(--border-color) bg-(--bg-page)/85 px-4 py-3 backdrop-blur-md transition-all sm:top-20 sm:mx-0 sm:rounded-xl sm:border sm:bg-(--bg-card)/90 sm:shadow-sm">
-      <div class="group relative">
-        <AppIcon
-          name="magnifying-glass"
-          class="text-secondary absolute top-1/2 left-3.5 size-5 -translate-y-1/2 transition-colors group-focus-within:text-primary"
-        />
-        <input
-          v-model="searchQuery"
-          type="text"
-          :placeholder="t('common.searchPlaceholder')"
-          class="focus:border-primary focus:ring-primary/10 focus:bg-(--bg-card) focus:ring-4 w-full rounded-xl border border-(--border-color) bg-(--bg-muted) py-2.5 pr-10 pl-11 text-sm shadow-sm transition-all outline-none placeholder:text-(--text-muted)"
-        />
-        <button
-            v-if="searchQuery"
-            class="text-secondary absolute top-1/2 right-2.5 inline-flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full p-1 hover:text-primary hover:bg-(--bg-muted) focus-visible:ring-primary/30 focus-visible:ring-2 focus-visible:outline-none"
-            @click="searchQuery = ''"
-        >
-            <AppIcon name="x-mark" class="size-4" />
-        </button>
-      </div>
+      <SearchInput
+        v-model="searchQuery"
+        :placeholder="t('common.searchPlaceholder')"
+        input-class="!h-11 !rounded-xl !bg-(--bg-muted) shadow-sm"
+        :debounce="0"
+      />
     </div>
 
     <!-- Pull Indicator (Visual only, logic in OrderList or here) -->
@@ -73,6 +60,7 @@ import { useI18n } from '@/composables/useI18n';
 import { usePullToRefresh } from '@/composables/usePullToRefresh';
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll';
 import OrderList from '@/components/order/OrderList.vue';
+import SearchInput from '@/components/ui/SearchInput.vue';
 
 const router = useRouter();
 const route = useRoute();

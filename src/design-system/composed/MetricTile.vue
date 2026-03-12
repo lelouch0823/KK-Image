@@ -1,6 +1,6 @@
 <template>
   <div
-    class="group relative overflow-hidden rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl sm:p-5"
+    class="group relative overflow-hidden rounded-2xl bg-(--bg-card) p-4 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:p-5"
     :class="[clickable ? 'cursor-pointer' : '', active ? 'ring-primary/20 ring-2' : '']"
     @click="clickable && $emit('click')"
   >
@@ -18,7 +18,7 @@
     <div v-if="$slots.meta || meta" class="relative z-10 mt-2 flex items-center gap-2 text-xs font-medium text-(--text-secondary)">
       <slot name="meta">{{ meta }}</slot>
     </div>
-    <div class="absolute -top-4 -right-4 -z-0 size-24 rounded-full opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-100" :class="blobClass"></div>
+    <div class="absolute -top-4 -right-4 z-0 size-24 rounded-full opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-100" :class="blobClass"></div>
   </div>
 </template>
 

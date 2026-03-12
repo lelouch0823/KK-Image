@@ -61,7 +61,7 @@
         <!-- 骨架卡片 x4 -->
         <div
           v-for="i in 4" :key="'sk-card-' + i"
-          class="relative overflow-hidden rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-lg sm:p-5"
+          class="relative overflow-hidden rounded-2xl bg-(--bg-card) p-4 shadow-sm sm:p-5"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1 space-y-3">
@@ -160,7 +160,7 @@
 
 
     <!-- ===== 数据表格：AppTable ===== -->
-    <div class="overflow-hidden rounded-xl border border-(--border-color) shadow-sm">
+    <div class="overflow-hidden rounded-xl bg-(--bg-card) shadow-sm">
       <AppTable
         :columns="columns"
         :data="items"
