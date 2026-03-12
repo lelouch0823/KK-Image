@@ -23,12 +23,12 @@
               {{ t('auth.password') }}
             </label>
             <div class="group relative">
-              <input
+              <AppInput
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
                 :placeholder="t('auth.passwordPlaceholder')"
                 autocomplete="current-password"
-                class="focus:border-primary focus:ring-primary/10 focus:bg-(--bg-card) focus:ring-4 focus:outline-none placeholder:text-muted/60 h-12 w-full rounded-xl border border-(--border-color) bg-(--bg-muted) px-4 pr-12 text-sm transition-all"
+                class="pr-12"
               />
               <button
                 type="button"
@@ -44,16 +44,7 @@
           <!-- 记住我 -->
           <label class="mb-6 flex cursor-pointer items-center gap-2 select-none">
             <div class="relative">
-              <input v-model="rememberMe" type="checkbox" class="peer sr-only" />
-              <div
-                class="peer-checked:bg-primary peer-checked:border-primary flex size-5 items-center justify-center rounded-md border-2 border-(--border-hover) transition-all"
-              >
-                <AppIcon
-                  v-if="rememberMe"
-                  name="check"
-                  class="size-3 stroke-3 text-(--text-inverse)"
-                />
-              </div>
+              <AppCheckbox v-model="rememberMe" />
             </div>
             <span class="text-secondary text-sm">{{ t('order.portal.rememberMe') }}</span>
           </label>
@@ -93,6 +84,8 @@
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
+import AppCheckbox from '@/components/ui/AppCheckbox.vue';
 
 const props = defineProps({
   error: { type: String, default: '' },

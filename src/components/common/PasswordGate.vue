@@ -14,11 +14,11 @@
           <p class="text-secondary mt-1 text-sm">{{ subtitle || t('auth.passwordSubtitle') }}</p>
         </div>
         <form @submit.prevent="handleSubmit">
-          <input
+          <AppInput
             v-model="passwordInput"
             type="password"
             :placeholder="placeholder || t('auth.passwordAccessPlaceholder')"
-            class="focus:border-primary focus:bg-(--bg-card) focus:outline-none mb-4 h-12 w-full rounded-xl border border-(--border-color) bg-(--bg-muted) px-4 text-sm transition-colors"
+            class="mb-4"
             autofocus
           />
           <button
@@ -40,6 +40,7 @@
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 
 const { t } = useI18n();
 

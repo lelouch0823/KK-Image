@@ -22,14 +22,13 @@
       </button>
 
       <!-- 搜索框 (桌面端) -->
-      <div class="relative hidden lg:block">
-        <input
+      <div class="hidden lg:block">
+        <SearchInput
           v-model="searchQuery"
-          type="text"
           :placeholder="t('header.searchPlaceholder')"
-          class="h-9 w-64 rounded-lg border border-(--border-color) bg-(--bg-page) pr-4 pl-9 text-sm transition-all focus:border-gray-300 focus:ring-2 focus:ring-gray-200 focus:outline-none"
+          input-class="h-9 w-64 !bg-(--bg-page)"
+          :debounce="0"
         />
-        <AppIcon name="magnifying-glass" class="text-secondary absolute top-1/2 left-3 size-4 -translate-y-1/2" />
       </div>
       <!-- 通知铃铛 (桌面端) -->
       <div v-if="notificationsSupported" ref="notificationRef" class="relative">
@@ -113,17 +112,15 @@
     <!-- 移动端搜索遮罩 (Search Overlay) -->
     <transition name="fade">
       <div v-if="showMobileSearch" class="absolute inset-0 z-50 flex items-center bg-(--bg-card) px-4 lg:hidden">
-        <div class="relative flex-1">
-            <input
-            ref="mobileSearchInputRef"
-            v-model="searchQuery"
-            type="text"
-            :placeholder="t('header.searchPlaceholder')"
-            class="h-10 w-full rounded-lg border border-(--border-color) bg-(--bg-page) pr-4 pl-10 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-            @keydown.esc="closeMobileSearch"
-            @blur="!searchQuery && closeMobileSearch()"
+        <div class="flex-1">
+            <SearchInput
+              ref="mobileSearchInputRef"
+              v-model="searchQuery"
+              :placeholder="t('header.searchPlaceholder')"
+              input-class="h-10 !bg-(--bg-page)"
+              :debounce="0"
+              @clear="closeMobileSearch"
             />
-            <AppIcon name="magnifying-glass" class="text-secondary absolute top-1/2 left-3 size-5 -translate-y-1/2" />
         </div>
         <button class="text-secondary ml-3 p-2 font-medium" @click="closeMobileSearch">
             {{ t('common.cancel') }}
@@ -144,6 +141,7 @@ import { onClickOutside } from '@vueuse/core';
 import { useAI } from '@/composables/useAI';
 import { useTheme } from '@/composables/useTheme';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import SearchInput from '@/components/ui/SearchInput.vue';
 
 defineEmits(['openSidebar']);
 
