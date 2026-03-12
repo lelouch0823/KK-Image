@@ -181,7 +181,19 @@ describe('PurchaseOrders detail shell', () => {
       estimated_tariff_cost: 60,
       actual_shipping_cost: null,
       actual_tariff_cost: null,
-      items: [],
+      items: [
+        {
+          id: 'item-1',
+          product_id: 'prod-1',
+          product_name: 'Premium Canvas Bag',
+          product_brand: 'KK',
+          product_sku: 'KK-BAG-01',
+          product_images: [],
+          quantity: 12,
+          unit_cost: 25.5,
+          product_specifications: { Color: 'Black' },
+        },
+      ],
     };
 
     const wrapper = mount(PurchaseOrders, {
@@ -213,5 +225,7 @@ describe('PurchaseOrders detail shell', () => {
     expect(wrapper.find('[data-testid="purchase-order-detail-cost"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="purchase-order-detail-items"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="purchase-order-detail-footer"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="purchase-order-detail-status-chip"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="purchase-order-detail-item-card"]').exists()).toBe(true);
   });
 });

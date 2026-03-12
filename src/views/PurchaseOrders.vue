@@ -178,12 +178,14 @@
           <div class="relative flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-(--color-modal-bg) shadow-xl" style="max-height: calc(100vh - 3rem)">
             <div
               data-testid="purchase-order-detail-summary"
-              class="flex shrink-0 items-center justify-between border-b border-(--border-color) px-6 py-4"
+              class="flex shrink-0 items-center justify-between border-b border-(--border-color) bg-linear-to-r from-(--bg-card) via-(--bg-card) to-(--bg-muted)/30 px-6 py-4"
             >
-              <div>
-                <h2 class="text-lg font-bold text-(--text-main)">{{ detail?.po_no || (t('purchaseOrder.detail.title') || '采购单详情') }}</h2>
+              <div class="min-w-0">
+                <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">Purchase Order</p>
+                <h2 class="truncate text-lg font-bold text-(--text-main)">{{ detail?.po_no || (t('purchaseOrder.detail.title') || '采购单详情') }}</h2>
                 <span
                   v-if="detail?.status"
+                  data-testid="purchase-order-detail-status-chip"
                   class="mt-1 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
                   :style="{
                     color: statusConfig[detail.status]?.color || 'inherit',
@@ -337,7 +339,8 @@
                   <div
                     v-for="item in detail.items"
                     :key="item.id"
-                    class="group flex flex-col justify-between gap-3 rounded-2xl border border-(--border-subtle) bg-(--bg-muted)/30 p-3 transition-colors hover:bg-(--bg-hover) sm:flex-row sm:items-center"
+                    data-testid="purchase-order-detail-item-card"
+                    class="group flex flex-col justify-between gap-3 rounded-2xl border border-(--border-subtle) bg-linear-to-r from-(--bg-card) to-(--bg-muted)/40 p-3 transition-colors duration-200 hover:border-primary/20 hover:bg-(--bg-hover) sm:flex-row sm:items-center"
                   >
                     <div class="flex min-w-0 items-center gap-3">
                       <!-- 商品主图 -->
@@ -349,23 +352,23 @@
                       </div>
                       
                       <!-- 商品信息 -->
-                      <div class="flex min-w-0 flex-col gap-1">
+                      <div class="flex min-w-0 flex-col gap-1.5">
                         <div class="hover:text-primary flex min-w-0 cursor-pointer items-center gap-2 transition-colors" @click="handleViewProductDetail(item.product_id)">
                           <span class="line-clamp-1 min-w-0 text-sm font-medium break-all text-(--text-main)" :title="item.product_name">{{ item.product_name || '—' }}</span>
-                          <span v-if="item.product_brand" class="max-w-[8rem] shrink-0 truncate rounded bg-(--bg-muted) px-1.5 py-0.5 text-[10px] font-medium text-(--text-secondary)" :title="item.product_brand">{{ item.product_brand }}</span>
+                          <span v-if="item.product_brand" class="max-w-[8rem] shrink-0 truncate rounded-full border border-(--border-color)/70 bg-(--bg-muted) px-2 py-0.5 text-[10px] font-medium text-(--text-secondary)" :title="item.product_brand">{{ item.product_brand }}</span>
                           <span v-if="detail.status === 'draft'" class="text-danger flex shrink-0 cursor-pointer items-center gap-0.5 text-xs opacity-0 transition-opacity group-hover:opacity-100" @click="handleDetailRemoveItem(item.id)">
                             <AppIcon name="trash" class="size-3" />
                             {{ t('common.delete') }}
                           </span>
                         </div>
                         <div class="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)">
-                          <code class="max-w-[10rem] truncate rounded bg-(--bg-muted) px-1 py-0.5 font-mono text-[10px]" :title="item.product_sku || '-'">{{ item.product_sku || '-' }}</code>
+                          <code class="max-w-[10rem] truncate rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-[10px]" :title="item.product_sku || '-'">{{ item.product_sku || '-' }}</code>
                           <span class="text-(--text-muted)">·</span>
-                          <span v-if="item.customer_order_no" class="bg-info/10 text-info inline-flex max-w-[12rem] items-center gap-1 truncate rounded px-1 py-0.5 text-[10px] font-medium" :title="item.customer_order_no">
+                          <span v-if="item.customer_order_no" class="bg-info/10 text-info inline-flex max-w-[12rem] items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium" :title="item.customer_order_no">
                             <AppIcon name="shopping-bag" class="size-3" />
                             {{ item.customer_order_no }}
                           </span>
-                          <span v-else class="bg-warning/10 text-warning inline-flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium">
+                          <span v-else class="bg-warning/10 text-warning inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium">
                             <AppIcon name="building-storefront" class="size-3" />
                             {{ t('purchaseOrder.detail.publicStock') }}
                           </span>
