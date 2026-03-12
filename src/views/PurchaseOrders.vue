@@ -34,40 +34,69 @@
       <template #content>
 
     <!-- ===== 统计卡片：骨架屏 or 真实数据 ===== -->
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
-      <template v-if="loading && !stats">
-        <!-- 骨架卡片 ×6 -->
-        <div
-          v-for="i in 6" :key="'sk-card-' + i"
-          class="relative overflow-hidden rounded-2xl bg-(--bg-card) p-4 shadow-none sm:p-5"
-        >
-          <div class="flex items-start justify-between">
-            <div class="flex-1 space-y-3">
-              <div class="skeleton-shimmer h-3.5 w-16 rounded bg-(--bg-muted)" />
-              <div class="skeleton-shimmer h-8 w-12 rounded bg-(--bg-muted)" />
-            </div>
-            <div class="skeleton-shimmer size-9 rounded-xl bg-(--bg-muted) sm:size-10" />
-          </div>
+    <section
+      data-testid="purchase-order-overview-strip"
+      class="space-y-3 rounded-[1.75rem] border border-(--border-color)/70 bg-linear-to-br from-(--bg-card) via-(--bg-card) to-(--bg-muted)/55 p-3 shadow-sm sm:p-4"
+    >
+      <div class="flex flex-col gap-1 px-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p class="text-xs font-semibold tracking-[0.18em] text-(--text-muted) uppercase">Procurement Snapshot</p>
+          <h2 class="text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.subtitle') }}</h2>
         </div>
-      </template>
+        <p class="text-xs text-(--text-secondary)">
+          {{ filters.status ? statusConfig[filters.status]?.label || t('purchaseOrder.filter.all') : t('purchaseOrder.filter.all') }}
+        </p>
+      </div>
 
-      <template v-else-if="stats">
-        <MetricTile
-          v-for="card in statCards"
-          :key="card.key"
-          :label="card.label"
-          :value="card.count"
-          :icon="card.icon"
-          :tone="card.tone"
-          :active="filters.status === card.key"
-          flat
-          clickable
-          @click="filters.status = filters.status === card.key ? '' : card.key"
-        />
-      </template>
-    </div>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
+        <template v-if="loading && !stats">
+          <!-- 骨架卡片 ×6 -->
+          <div
+            v-for="i in 6" :key="'sk-card-' + i"
+            class="relative overflow-hidden rounded-2xl border border-(--border-color)/60 bg-(--bg-card)/90 p-4 shadow-none sm:p-5"
+          >
+            <div class="flex items-start justify-between">
+              <div class="flex-1 space-y-3">
+                <div class="skeleton-shimmer h-3.5 w-16 rounded bg-(--bg-muted)" />
+                <div class="skeleton-shimmer h-8 w-12 rounded bg-(--bg-muted)" />
+              </div>
+              <div class="skeleton-shimmer size-9 rounded-xl bg-(--bg-muted) sm:size-10" />
+            </div>
+          </div>
+        </template>
+
+        <template v-else-if="stats">
+          <MetricTile
+            v-for="card in statCards"
+            :key="card.key"
+            :label="card.label"
+            :value="card.count"
+            :icon="card.icon"
+            :tone="card.tone"
+            :active="filters.status === card.key"
+            flat
+            clickable
+            @click="filters.status = filters.status === card.key ? '' : card.key"
+          />
+        </template>
+      </div>
+    </section>
 
     <!-- ===== 数据表格：AppTable ===== -->
+      <section
+        data-testid="purchase-order-list-panel"
+        class="overflow-hidden rounded-[1.75rem] border border-(--border-color)/70 bg-(--bg-card) shadow-sm"
+      >
+        <div class="flex items-center justify-between border-b border-(--border-color)/70 px-4 py-3 sm:px-5">
+          <div>
+            <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">Orders</p>
+            <h3 class="text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.title') }}</h3>
+          </div>
+          <span class="rounded-full bg-(--bg-muted) px-2.5 py-1 text-xs font-medium text-(--text-secondary)">
+            {{ t('purchaseOrder.pagination.total', { count: total }) }}
+          </span>
+        </div>
+
       <AppTable
         :columns="columns"
         :data="list"
@@ -112,7 +141,7 @@
       </AppTable>
 
       <!-- 分页 -->
-      <div v-if="total > filters.limit" class="flex items-center justify-between border-t border-(--border-color)/70 px-4 py-3">
+      <div v-if="total > filters.limit" class="flex items-center justify-between border-t border-(--border-color)/70 bg-(--bg-muted)/35 px-4 py-3">
         <p class="text-sm text-(--text-secondary)">
           {{ t('purchaseOrder.pagination.total', { count: total }) }}
         </p>
@@ -133,6 +162,7 @@
           </button>
         </div>
       </div>
+      </section>
 
     <!-- ==================== 详情面板 (弹窗) ==================== -->
     <Teleport to="body">
@@ -146,7 +176,10 @@
           <div class="absolute inset-0 bg-(--color-overlay-dim) backdrop-blur-sm" @click="showDetail = false"></div>
           <!-- 面板 -->
           <div class="relative flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-(--color-modal-bg) shadow-xl" style="max-height: calc(100vh - 3rem)">
-            <div class="flex shrink-0 items-center justify-between border-b border-(--border-color) px-6 py-4">
+            <div
+              data-testid="purchase-order-detail-summary"
+              class="flex shrink-0 items-center justify-between border-b border-(--border-color) px-6 py-4"
+            >
               <div>
                 <h2 class="text-lg font-bold text-(--text-main)">{{ detail?.po_no || (t('purchaseOrder.detail.title') || '采购单详情') }}</h2>
                 <span
@@ -209,66 +242,84 @@
               </div>
 
               <div v-else class="flex-1 space-y-6 overflow-y-auto p-6">
-                <!-- 状态可视化 (Stepper) -->
-                <div class="mb-4">
-                  <div class="relative flex items-center justify-between">
-                    <div class="absolute top-1/2 left-0 h-0.5 w-full -translate-y-1/2 bg-(--border-color)"></div>
-                    <div 
-                      class="bg-primary absolute top-1/2 left-0 h-0.5 -translate-y-1/2 transition-all duration-500"
-                      :style="{ width: getStepperProgress(detail.status) }"
-                    ></div>
-                    
-                    <div v-for="step in stepsList" :key="step.value" class="relative z-10 flex flex-col items-center gap-2">
-                      <div 
-                        class="flex size-6 items-center justify-center rounded-full border-2 transition-colors duration-300"
-                        :class="getStepIconClasses(detail.status, step.value)"
-                      >
-                        <AppIcon v-if="isStepCompleted(detail.status, step.value)" name="check" class="size-3.5 text-(--text-inverse)" stroke-width="3" />
-                        <div v-else-if="detail.status === step.value" class="bg-primary size-2 rounded-full"></div>
+                <div class="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(18rem,0.95fr)]">
+                  <!-- 状态可视化 (Stepper) -->
+                  <div
+                    data-testid="purchase-order-detail-progress"
+                    class="rounded-2xl border border-(--border-color)/70 bg-(--bg-card) p-4 shadow-sm"
+                  >
+                    <div class="mb-4 flex items-start justify-between gap-3">
+                      <div>
+                        <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">Workflow</p>
+                        <h3 class="text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.detail.title', '采购单详情') }}</h3>
                       </div>
-                      <span class="text-xs font-medium" :class="detail.status === step.value ? 'text-(--text-main)' : isStepCompleted(detail.status, step.value) ? 'text-(--text-main)' : 'text-(--text-muted)'">
-                        {{ step.label }}
+                      <span class="rounded-full bg-(--bg-muted) px-2.5 py-1 text-xs font-medium text-(--text-secondary)">
+                        {{ statusConfig[detail.status]?.label || detail.status }}
                       </span>
                     </div>
-                  </div>
-                </div>
+                    <div class="relative flex items-center justify-between">
+                      <div class="absolute top-1/2 left-0 h-0.5 w-full -translate-y-1/2 bg-(--border-color)"></div>
+                      <div
+                        class="bg-primary absolute top-1/2 left-0 h-0.5 -translate-y-1/2 transition-all duration-500"
+                        :style="{ width: getStepperProgress(detail.status) }"
+                      ></div>
 
-              <!-- 费用信息 -->
-              <div class="rounded-2xl bg-(--bg-card) p-4 shadow-sm">
-                <h3 class="mb-3 text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.detail.costInfo') }}</h3>
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedShipping') }}</div>
-                    <div class="mt-0.5 font-[Outfit] font-medium text-(--text-main)">¥{{ (detail.estimated_shipping_cost || 0).toFixed(2) }}</div>
-                  </div>
-                  <div>
-                    <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedTariff') }}</div>
-                    <div class="mt-0.5 font-[Outfit] font-medium text-(--text-main)">¥{{ (detail.estimated_tariff_cost || 0).toFixed(2) }}</div>
-                  </div>
-                  <div>
-                    <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.table.actualShipping') }}</div>
-                    <div class="mt-0.5 font-[Outfit] font-medium text-(--text-main)">
-                      {{ detail.actual_shipping_cost != null ? `¥${detail.actual_shipping_cost.toFixed(2)}` : '—' }}
+                      <div v-for="step in stepsList" :key="step.value" class="relative z-10 flex flex-col items-center gap-2">
+                        <div
+                          class="flex size-7 items-center justify-center rounded-full border-2 transition-colors duration-300"
+                          :class="getStepIconClasses(detail.status, step.value)"
+                        >
+                          <AppIcon v-if="isStepCompleted(detail.status, step.value)" name="check" class="size-3.5 text-(--text-inverse)" stroke-width="3" />
+                          <div v-else-if="detail.status === step.value" class="bg-primary size-2 rounded-full"></div>
+                        </div>
+                        <span class="text-center text-xs font-medium" :class="detail.status === step.value ? 'text-(--text-main)' : isStepCompleted(detail.status, step.value) ? 'text-(--text-main)' : 'text-(--text-muted)'">
+                          {{ step.label }}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.table.actualTariff') }}</div>
-                    <div class="mt-0.5 font-[Outfit] font-medium text-(--text-main)">
-                      {{ detail.actual_tariff_cost != null ? `¥${detail.actual_tariff_cost.toFixed(2)}` : '—' }}
+
+                  <!-- 费用信息 -->
+                  <div
+                    data-testid="purchase-order-detail-cost"
+                    class="rounded-2xl border border-(--border-color)/70 bg-linear-to-br from-(--bg-card) to-(--bg-muted)/40 p-4 shadow-sm"
+                  >
+                    <div class="mb-3 flex items-start justify-between gap-3">
+                      <div>
+                        <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">Cost Summary</p>
+                        <h3 class="text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.detail.costInfo') }}</h3>
+                      </div>
+                      <span class="rounded-full border border-(--border-color) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)">
+                        {{ detail.allocation_method === 'by_value' ? t('purchaseOrder.form.byValue') : t('purchaseOrder.form.byQuantity') }}
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                      <div class="rounded-xl bg-(--bg-muted)/55 p-3">
+                        <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedShipping') }}</div>
+                        <div class="mt-1 font-[Outfit] text-base font-semibold text-(--text-main)">¥{{ (detail.estimated_shipping_cost || 0).toFixed(2) }}</div>
+                      </div>
+                      <div class="rounded-xl bg-(--bg-muted)/55 p-3">
+                        <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedTariff') }}</div>
+                        <div class="mt-1 font-[Outfit] text-base font-semibold text-(--text-main)">¥{{ (detail.estimated_tariff_cost || 0).toFixed(2) }}</div>
+                      </div>
+                      <div class="rounded-xl bg-(--bg-muted)/40 p-3">
+                        <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.table.actualShipping') }}</div>
+                        <div class="mt-1 font-[Outfit] text-base font-semibold text-(--text-main)">
+                          {{ detail.actual_shipping_cost != null ? `¥${detail.actual_shipping_cost.toFixed(2)}` : '—' }}
+                        </div>
+                      </div>
+                      <div class="rounded-xl bg-(--bg-muted)/40 p-3">
+                        <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.table.actualTariff') }}</div>
+                        <div class="mt-1 font-[Outfit] text-base font-semibold text-(--text-main)">
+                          {{ detail.actual_tariff_cost != null ? `¥${detail.actual_tariff_cost.toFixed(2)}` : '—' }}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <!-- 分摊方式 -->
-                <div class="mt-3 flex items-center gap-2 text-xs">
-                  <span class="text-(--text-secondary)">{{ t('purchaseOrder.form.allocationMethod') }}:</span>
-                  <span class="font-medium text-(--text-main)">
-                    {{ detail.allocation_method === 'by_value' ? t('purchaseOrder.form.byValue') : t('purchaseOrder.form.byQuantity') }}
-                  </span>
-                </div>
-              </div>
 
               <!-- 明细列表 -->
-              <div class="rounded-2xl bg-(--bg-card) p-4 shadow-sm">
+              <div data-testid="purchase-order-detail-items" class="rounded-2xl border border-(--border-color)/70 bg-(--bg-card) p-4 shadow-sm">
                 <div class="mb-3 flex items-center justify-between">
                   <h3 class="text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.detail.items') }} ({{ detail.items?.length || 0 }})</h3>
                   <div v-if="detail.status === 'draft'" class="flex items-center gap-2">
@@ -286,7 +337,7 @@
                   <div
                     v-for="item in detail.items"
                     :key="item.id"
-                    class="group flex flex-col justify-between gap-3 rounded-xl border border-(--border-subtle) p-3 transition-colors hover:bg-(--bg-hover) sm:flex-row sm:items-center"
+                    class="group flex flex-col justify-between gap-3 rounded-2xl border border-(--border-subtle) bg-(--bg-muted)/30 p-3 transition-colors hover:bg-(--bg-hover) sm:flex-row sm:items-center"
                   >
                     <div class="flex min-w-0 items-center gap-3">
                       <!-- 商品主图 -->
@@ -359,14 +410,18 @@
               </div>
 
               <!-- 备注 -->
-              <div v-if="detail.remark" class="rounded-2xl bg-(--bg-card) p-4 shadow-sm">
+              <div v-if="detail.remark" class="rounded-2xl border border-(--border-color)/70 bg-(--bg-card) p-4 shadow-sm">
                 <h3 class="mb-2 text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.form.remark') }}</h3>
                 <p class="text-sm break-all whitespace-pre-wrap text-(--text-secondary)">{{ detail.remark }}</p>
               </div>
             </div>
             
             <!-- Footer Fixed Action Bar -->
-              <div v-if="detail" class="flex items-center justify-between border-t border-(--border-color) bg-(--bg-card) px-6 py-4">
+              <div
+                v-if="detail"
+                data-testid="purchase-order-detail-footer"
+                class="flex items-center justify-between border-t border-(--border-color) bg-linear-to-r from-(--bg-card) to-(--bg-muted)/35 px-6 py-4"
+              >
               <div class="flex items-center gap-3">
                 <!-- 左侧：次要/辅助操作 -->
                 <button

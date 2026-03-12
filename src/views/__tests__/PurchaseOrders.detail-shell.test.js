@@ -169,4 +169,49 @@ describe('PurchaseOrders detail shell', () => {
 
     expect(wrapper.find('[data-testid="purchase-order-detail-retry"]').exists()).toBe(true);
   });
+
+  it('keeps summary, progress, cost, and items regions visible once detail loads', () => {
+    mocks.detailState.detailLoading = false;
+    mocks.detailState.detail = {
+      id: 'po-1',
+      po_no: 'PO-20260312-001',
+      status: 'ordered',
+      allocation_method: 'by_quantity',
+      estimated_shipping_cost: 120,
+      estimated_tariff_cost: 60,
+      actual_shipping_cost: null,
+      actual_tariff_cost: null,
+      items: [],
+    };
+
+    const wrapper = mount(PurchaseOrders, {
+      global: {
+        stubs: {
+          Teleport: true,
+          Transition: false,
+          OrderPickerModal: { template: '<div />' },
+          ProductPickerModal: { template: '<div />' },
+          ProductDetailModal: { template: '<div />' },
+          AppImage: { template: '<div />' },
+          AppIcon: { template: '<i />' },
+          AppFilterBar: { template: '<div />' },
+          AppButton: { template: '<button><slot /></button>' },
+          AppInput: { template: '<input />' },
+          AppCheckbox: { template: '<input type="checkbox" />' },
+          AppSelect: { template: '<select />' },
+          AppTable: { template: '<div />' },
+          StatusBadge: { template: '<div><slot /></div>' },
+          PermissionDeniedState: { template: '<div />' },
+          MetricTile: { template: '<div />' },
+          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+        },
+      },
+    });
+
+    expect(wrapper.find('[data-testid="purchase-order-detail-summary"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="purchase-order-detail-progress"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="purchase-order-detail-cost"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="purchase-order-detail-items"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="purchase-order-detail-footer"]').exists()).toBe(true);
+  });
 });

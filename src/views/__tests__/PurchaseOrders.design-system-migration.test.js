@@ -22,5 +22,6 @@ describe('PurchaseOrders design-system migration', () => {
     expect(source).toContain('clickable');
     expect(source).toContain('flat');
     expect(source).toContain('no-border');
+    expect(source).toContain('data-testid="purchase-order-overview-strip"');
   });
 });
