@@ -33,10 +33,9 @@
           <!-- Watermark Text -->
           <div class="space-y-2">
             <label class="text-primary text-sm font-medium">{{ t('settings.watermark.text', 'Watermark Text') }}</label>
-            <input
+            <AppInput
               v-model="form.WATERMARK_TEXT"
               type="text"
-              class="focus:border-primary focus:ring-primary/10 focus:ring-1 focus:outline-none w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 text-sm transition-colors dark:bg-(--bg-muted)"
               placeholder="e.g. KK-Image"
             />
           </div>
@@ -120,6 +119,7 @@
 import { onMounted, reactive, ref } from 'vue';
 import SettingsSection from '../SettingsSection.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 import AppSelect from '@/components/ui/Select.vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';

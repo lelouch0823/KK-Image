@@ -10,11 +10,10 @@
         <div class="space-y-2">
           <label class="text-primary text-sm font-medium">{{ t('settings.ai.apiUrl', 'API Base URL') }}</label>
           <div class="relative">
-            <input
+            <AppInput
               v-model="form.AI_API_URL"
               type="url"
               placeholder="https://api.openai.com/v1"
-              class="focus:border-primary focus:ring-primary/10 focus:ring-1 focus:outline-none w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 text-sm transition-colors dark:bg-(--bg-muted)"
             />
           </div>
           <p class="text-secondary text-xs">{{ t('settings.ai.apiUrlDesc', 'The base URL for the OpenAI-compatible API provider.') }}</p>
@@ -24,10 +23,10 @@
         <div class="space-y-2">
           <label class="text-primary text-sm font-medium">{{ t('settings.ai.apiKey', 'API Key') }}</label>
           <div class="relative">
-            <input
+            <AppInput
               v-model="form.AI_API_KEY"
               :type="showKey ? 'text' : 'password'"
-              class="focus:border-primary focus:ring-primary/10 focus:ring-1 focus:outline-none w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 pr-10 text-sm transition-colors dark:bg-(--bg-muted)"
+              class="pr-10"
               placeholder="sk-..."
             />
             <button
@@ -303,6 +302,7 @@
 import { ref, onMounted, reactive, computed } from 'vue';
 import SettingsSection from '../SettingsSection.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 import AppSelect from '@/components/ui/Select.vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';

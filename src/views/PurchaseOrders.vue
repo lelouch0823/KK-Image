@@ -428,16 +428,16 @@
                 <!-- 基础信息 -->
                 <div>
                   <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.remark') }}</label>
-                  <input v-model="createForm.remark" type="text" class="focus:ring-primary focus:ring-2 focus:outline-none mt-1 w-full rounded-xl border border-(--border-color) bg-(--bg-page) px-3 py-2.5 text-sm text-(--text-main)" :placeholder="t('purchaseOrder.form.remarkPlaceholder')" />
+                  <AppInput v-model="createForm.remark" type="text" class="mt-1" :placeholder="t('purchaseOrder.form.remarkPlaceholder')" />
                 </div>
                 <div class="grid grid-cols-3 gap-4">
                   <div>
                     <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedShipping') }}</label>
-                    <input v-model.number="createForm.estimated_shipping_cost" type="number" step="0.01" class="focus:ring-primary focus:ring-2 focus:outline-none mt-1 w-full rounded-xl border border-(--border-color) bg-(--bg-page) px-3 py-2.5 text-sm text-(--text-main)" />
+                    <AppInput v-model="createForm.estimated_shipping_cost" type="number" step="0.01" class="mt-1" />
                   </div>
                   <div>
                     <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedTariff') }}</label>
-                    <input v-model.number="createForm.estimated_tariff_cost" type="number" step="0.01" class="focus:ring-primary focus:ring-2 focus:outline-none mt-1 w-full rounded-xl border border-(--border-color) bg-(--bg-page) px-3 py-2.5 text-sm text-(--text-main)" />
+                    <AppInput v-model="createForm.estimated_tariff_cost" type="number" step="0.01" class="mt-1" />
                   </div>
                   <div>
                     <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.allocationMethod') }}</label>
@@ -761,6 +761,7 @@ import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppSelect from '@/components/ui/Select.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
