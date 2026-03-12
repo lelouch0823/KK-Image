@@ -92,6 +92,7 @@ describe('OrderManager network workflow', () => {
     return mount(OrderManager, {
       global: {
         stubs: {
+          ManagementListShell: { template: '<div><slot name="content" /><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
           Modal: { template: '<div><slot name="header" /><slot /></div>', props: ['modelValue', 'title', 'size'] },
           OrderDashboard: { template: '<div />' },
@@ -102,7 +103,7 @@ describe('OrderManager network workflow', () => {
           Pagination: { template: '<div />' },
           OrderCards: { template: '<div />' },
           AppIcon: { template: '<i />' },
-          OrderCreateModal: { template: '<div />' },
+          OrderCreateModal: { template: '<div v-if="modelValue" data-testid="order-create-modal" />', props: ['modelValue'] },
           OrderEditModal: { template: '<div />' },
           OrderWorkflowModal: { template: '<div data-testid="order-workflow" />', props: ['show', 'order'] },
           ConfirmDialog: { template: '<div />' },
@@ -182,5 +183,14 @@ describe('OrderManager network workflow', () => {
 
     expect(wrapper.vm.showEditModal).toBe(true);
     expect(wrapper.vm.editingOrder.currentData.name).toBe('Hydrated Order');
+  });
+
+  it('opens create modal when toggled from the manager', async () => {
+    const wrapper = createWrapper();
+
+    wrapper.vm.showCreateModal = true;
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('[data-testid="order-create-modal"]').exists()).toBe(true);
   });
 });

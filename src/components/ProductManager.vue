@@ -13,7 +13,7 @@
 
             <!-- Import Button -->
             <button
-                class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all hover:bg-(--bg-hover) hover:text-info active:scale-95"
+                class="hover:text-info hover:bg-(--bg-hover) flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all active:scale-95"
                 :title="t('product.action.import')"
                 @click="showImportModal = true"
             >
@@ -22,7 +22,7 @@
 
             <!-- Export Button -->
             <button
-                class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all hover:bg-(--bg-hover) hover:text-info active:scale-95"
+                class="hover:text-info hover:bg-(--bg-hover) flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all active:scale-95"
                 :title="t('product.action.export')"
                 @click="handleExport"
             >

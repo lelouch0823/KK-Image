@@ -21,6 +21,8 @@
     <div v-if="$slots.detail">
       <slot name="detail" />
     </div>
+
+    <slot />
   </div>
 </template>
 

@@ -348,13 +348,13 @@
                     <div v-if="detail.status === 'draft'" class="flex items-center justify-end gap-3 pl-12 sm:pl-0">
                       <div class="flex flex-col items-center">
                         <span class="mb-1 text-[10px] text-(--text-secondary)">{{ t('purchaseOrder.table.quantity') }}</span>
-                        <input v-model.number="item.quantity" type="number" min="1" class="focus:border-primary focus:ring-primary focus:ring-1 focus:outline-none w-16 rounded-md border border-(--border-color) bg-(--bg-page) px-2 py-1 text-center font-[Outfit] text-sm text-(--text-main)" @change="handleDetailUpdateItem(item.id, 'quantity', item.quantity)" />
+                        <AppInput v-model="item.quantity" type="number" min="1" class="w-16 text-center" size="sm" @change="handleDetailUpdateItem(item.id, 'quantity', item.quantity)" />
                       </div>
                       <div class="flex flex-col items-center">
                         <span class="mb-1 text-[10px] text-(--text-secondary)">{{ t('purchaseOrder.table.unitCost') }}</span>
                         <div class="relative">
                           <span class="absolute top-1.5 left-2 text-xs text-(--text-secondary)">¥</span>
-                          <input v-model.number="item.unit_cost" type="number" step="0.01" min="0" class="focus:border-primary focus:ring-primary focus:ring-1 focus:outline-none w-20 rounded-md border border-(--border-color) bg-(--bg-page) py-1 pr-2 pl-5 text-right font-[Outfit] text-sm text-(--text-main)" @change="handleDetailUpdateItem(item.id, 'unit_cost', item.unit_cost)" />
+                          <AppInput v-model="item.unit_cost" type="number" step="0.01" min="0" class="w-20 pr-2 pl-5 text-right" size="sm" @change="handleDetailUpdateItem(item.id, 'unit_cost', item.unit_cost)" />
                         </div>
                       </div>
                     </div>
@@ -523,14 +523,12 @@
                           <!-- 数量 (可编辑) -->
                           <td class="px-4 py-3 text-center">
                             <div class="flex flex-col items-center">
-                              <input
-                                v-model.number="item.quantity"
+                              <AppInput
+                                v-model="item.quantity"
                                 type="number"
                                 min="1"
-                                class="focus:ring-primary/20 focus:ring-2 focus:outline-none w-20 rounded-lg border px-2 py-1.5 text-center font-[Outfit] text-sm transition-colors"
-                                :class="item.required_quantity && item.quantity < item.required_quantity
-                                  ? 'border-danger bg-danger/5 text-danger'
-                                  : 'border-(--border-color) bg-(--bg-page) text-(--text-main)'"
+                                class="w-20 text-center"
+                                size="sm"
                               />
                               <span
                                 v-if="item.required_quantity && item.quantity < item.required_quantity"
@@ -543,12 +541,13 @@
 
                           <!-- 单价 (可编辑) -->
                           <td class="px-4 py-3 text-right">
-                            <input
-                              v-model.number="item.unit_cost"
+                            <AppInput
+                              v-model="item.unit_cost"
                               type="number"
                               step="0.01"
                               min="0"
-                              class="focus:ring-primary/20 focus:ring-2 focus:outline-none w-24 rounded-lg border border-(--border-color) bg-(--bg-page) px-2 py-1.5 text-right font-[Outfit] text-sm text-(--text-main) transition-colors"
+                              class="w-24 text-right"
+                              size="sm"
                             />
                           </td>
 
@@ -693,7 +692,7 @@
                 class="flex flex-col gap-2 rounded-xl border border-(--border-subtle) p-3 transition-colors hover:bg-(--bg-hover) lg:flex-row lg:items-center lg:justify-between"
               >
                 <div class="flex min-w-0 items-center gap-3">
-                  <input v-model="selectedSuggestions" :value="s" type="checkbox" class="text-primary size-4 cursor-pointer rounded border-(--border-color) focus:ring-primary" />
+                  <AppCheckbox v-model="selectedSuggestions" :value="s" />
                   <div class="min-w-0">
                     <div class="truncate text-sm font-medium text-(--text-main)" :title="s.product_name || '—'">{{ s.product_name || '—' }}</div>
                     <div class="truncate text-xs text-(--text-secondary)" :title="buildSuggestionMeta(s)">
@@ -762,6 +761,7 @@ import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
+import AppCheckbox from '@/components/ui/AppCheckbox.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppSelect from '@/components/ui/Select.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';

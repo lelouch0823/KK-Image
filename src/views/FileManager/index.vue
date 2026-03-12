@@ -81,7 +81,7 @@
       </div>
        <div v-if="displayedFiles.length > 0 && viewMode === 'list'" class="hidden lg:block">
          <label class="text-secondary flex cursor-pointer items-center gap-2 hover:text-primary">
-            <input type="checkbox" class="checkbox checkbox-sm checkbox-primary rounded" :checked="selectedIds.size === displayedFiles.length && displayedFiles.length > 0" @change="selectAll">
+            <AppCheckbox :checked="selectedIds.size === displayedFiles.length && displayedFiles.length > 0" @change="selectAll" />
             <span>{{ t('fileManager.manage.selectAll') }}</span>
          </label>
        </div>
@@ -254,6 +254,7 @@ import FileManagerToolbar from './FileManagerToolbar.vue';
 import FileManagerModals from './FileManagerModals.vue';
 import TrashModal from './TrashModal.vue';
 import AppImage from '@/components/ui/AppImage.vue';
+import AppCheckbox from '@/components/ui/AppCheckbox.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 

@@ -95,4 +95,21 @@ describe('ProductCreateModal variant-first payload', () => {
         expect(payload).not.toHaveProperty('alert_threshold');
         expect(payload).not.toHaveProperty('status');
     });
+
+    it('fills form when edit data arrives after modal is already open', async () => {
+        const wrapper = createWrapper();
+
+        await wrapper.setProps({
+            modelValue: true,
+            editMode: true,
+            initialData: {
+                id: 'p-late',
+                name: 'Late Product',
+                currency: 'CNY',
+                variants: [],
+            },
+        });
+
+        expect(wrapper.vm.form.name).toBe('Late Product');
+    });
 });

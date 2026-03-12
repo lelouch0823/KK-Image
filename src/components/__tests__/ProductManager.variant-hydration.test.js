@@ -46,10 +46,11 @@ describe('ProductManager variant hydration', () => {
     return mount(ProductManager, {
       global: {
         stubs: {
+          ManagementListShell: { template: '<div><slot name="actions" /><slot name="filters" /><slot name="content" /><slot /></div>' },
           ProductStats: { template: '<div />' },
           ProductFilters: { template: '<div />' },
           ProductTable: { template: '<div />' },
-          ProductCreateModal: { template: '<div />' },
+          ProductCreateModal: { template: '<div v-if="modelValue" data-testid="product-create-modal" />', props: ['modelValue'] },
           ProductWorkflowModal: {
             template: '<div data-testid="workflow-modal" />',
             props: ['show', 'product'],
@@ -187,5 +188,15 @@ describe('ProductManager variant hydration', () => {
     await vi.waitFor(() => {
       expect(mocks.routerReplace).toHaveBeenCalledWith({ query: {} });
     });
+  });
+
+  it('opens create modal when clicking create button', async () => {
+    const wrapper = createWrapper();
+
+    wrapper.vm.handleCreate();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.showCreateModal).toBe(true);
+    expect(wrapper.find('[data-testid="product-create-modal"]').exists()).toBe(true);
   });
 });

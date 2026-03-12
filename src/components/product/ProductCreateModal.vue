@@ -370,8 +370,8 @@ const {
 
 // 父组件唯一负责监听弹窗开/关并触发状态初始化
 watch(
-  () => props.modelValue,
-  (isOpen) => {
+  [() => props.modelValue, () => props.initialData],
+  ([isOpen]) => {
     if (isOpen) {
       if (props.editMode && props.initialData) {
         fillFormFromData(props.initialData);

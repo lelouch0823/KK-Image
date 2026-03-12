@@ -40,11 +40,7 @@
           />
 
           <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-(--text-secondary)">
-            <input
-              v-model="filters.shortageOnly"
-              type="checkbox"
-              class="text-primary size-4 rounded border-(--border-color) focus:ring-primary"
-            />
+            <AppCheckbox v-model="filters.shortageOnly" />
             {{ t('goodsOverview.filter.shortageOnly') }}
           </label>
 
@@ -173,22 +169,12 @@
       >
         <!-- 复选框列头 -->
         <template #header-selection>
-          <input 
-            type="checkbox" 
-            :checked="isAllSelected" 
-            class="text-primary size-4 cursor-pointer rounded border-(--border-color) focus:ring-primary" 
-            @change="toggleSelectAll" 
-          />
+          <AppCheckbox :checked="isAllSelected" @change="toggleSelectAll" />
         </template>
 
         <!-- 复选框列内容 -->
         <template #cell-selection="{ row: item }">
-          <input 
-            type="checkbox" 
-            :checked="isSelected(item)" 
-            class="text-primary size-4 cursor-pointer rounded border-(--border-color) focus:ring-primary" 
-            @change="toggleSelect(item)" 
-          />
+          <AppCheckbox :checked="isSelected(item)" @change="toggleSelect(item)" />
         </template>
 
         <!-- 商品名称列 -->
@@ -347,6 +333,7 @@ import { useGoodsOverview } from '@/composables/useGoodsOverview';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppCheckbox from '@/components/ui/AppCheckbox.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
