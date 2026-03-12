@@ -10,11 +10,4 @@ describe('Dashboard design-system migration', () => {
     expect(source).toContain('AppStatCard');
     expect(source).not.toContain('material-symbols-outlined');
   });
-
-  it('keeps the dashboard main layout spanning the full shell grid width', () => {
-    const source = readFileSync(resolve(process.cwd(), 'src/views/Dashboard.vue'), 'utf8');
-
-    expect(source).toContain('template #main');
-    expect(source).toContain('lg:col-span-12');
-  });
 });

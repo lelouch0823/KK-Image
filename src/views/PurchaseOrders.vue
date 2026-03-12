@@ -31,18 +31,6 @@
         />
       </template>
 
-      <template #filters>
-          <AppButton
-            v-for="tab in statusTabs"
-            :key="tab.value"
-            size="sm"
-            :variant="filters.status === tab.value ? 'primary' : 'secondary'"
-            :text="tab.label"
-            class="!rounded-full"
-            @click="filters.status = tab.value"
-          />
-      </template>
-
       <template #content>
 
     <!-- ===== 统计卡片：骨架屏 or 真实数据 ===== -->
@@ -51,7 +39,7 @@
         <!-- 骨架卡片 ×6 -->
         <div
           v-for="i in 6" :key="'sk-card-' + i"
-          class="relative overflow-hidden rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-lg sm:p-5"
+          class="relative overflow-hidden rounded-2xl bg-(--bg-card) p-4 shadow-none sm:p-5"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1 space-y-3">
@@ -72,6 +60,7 @@
           :icon="card.icon"
           :tone="card.tone"
           :active="filters.status === card.key"
+          flat
           clickable
           @click="filters.status = filters.status === card.key ? '' : card.key"
         />
@@ -79,12 +68,12 @@
     </div>
 
     <!-- ===== 数据表格：AppTable ===== -->
-    <div class="overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) shadow-sm">
       <AppTable
         :columns="columns"
         :data="list"
         :loading="loading"
         :empty-text="t('purchaseOrder.empty')"
+        no-border
         @row-click="(row) => openDetail(row.id)"
       >
         <!-- 采购单编号 -->
@@ -123,7 +112,7 @@
       </AppTable>
 
       <!-- 分页 -->
-      <div v-if="total > filters.limit" class="flex items-center justify-between border-t border-(--border-color) px-4 py-3">
+      <div v-if="total > filters.limit" class="flex items-center justify-between border-t border-(--border-color)/70 px-4 py-3">
         <p class="text-sm text-(--text-secondary)">
           {{ t('purchaseOrder.pagination.total', { count: total }) }}
         </p>
@@ -144,7 +133,6 @@
           </button>
         </div>
       </div>
-    </div>
 
     <!-- ==================== 详情面板 (弹窗) ==================== -->
     <Teleport to="body">
@@ -246,7 +234,7 @@
                 </div>
 
               <!-- 费用信息 -->
-              <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-sm">
+              <div class="rounded-2xl bg-(--bg-card) p-4 shadow-sm">
                 <h3 class="mb-3 text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.detail.costInfo') }}</h3>
                 <div class="grid grid-cols-2 gap-4">
                   <div>
@@ -280,7 +268,7 @@
               </div>
 
               <!-- 明细列表 -->
-              <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-sm">
+              <div class="rounded-2xl bg-(--bg-card) p-4 shadow-sm">
                 <div class="mb-3 flex items-center justify-between">
                   <h3 class="text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.detail.items') }} ({{ detail.items?.length || 0 }})</h3>
                   <div v-if="detail.status === 'draft'" class="flex items-center gap-2">
@@ -371,7 +359,7 @@
               </div>
 
               <!-- 备注 -->
-              <div v-if="detail.remark" class="rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-sm">
+              <div v-if="detail.remark" class="rounded-2xl bg-(--bg-card) p-4 shadow-sm">
                 <h3 class="mb-2 text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.form.remark') }}</h3>
                 <p class="text-sm break-all whitespace-pre-wrap text-(--text-secondary)">{{ detail.remark }}</p>
               </div>
@@ -452,7 +440,7 @@
                 </div>
 
                 <!-- 分隔线 + 采购商品列表 -->
-                <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-card) shadow-sm">
+                <div class="rounded-2xl bg-(--bg-card) shadow-sm">
                   <!-- 列表头部 -->
                   <div class="flex items-center justify-between border-b border-(--border-subtle) px-4 py-3">
                     <h3 class="text-sm font-semibold text-(--text-main)">
@@ -881,15 +869,6 @@ const handleStatusUpdate = async (newStatus) => {
     loadStats();
   }
 };
-const statusTabs = computed(() => [
-  { value: '', label: t('purchaseOrder.filter.all') },
-  { value: 'draft', label: t('purchaseOrder.status.draft') },
-  { value: 'ordered', label: t('purchaseOrder.status.ordered') },
-  { value: 'shipping', label: t('purchaseOrder.status.shipping') },
-  { value: 'arrived', label: t('purchaseOrder.status.arrived') },
-  { value: 'completed', label: t('purchaseOrder.status.completed') },
-]);
-
 // 当前采购单可跳转的下一个状态
 const nextStatuses = computed(() => {
   if (!detail.value) return [];

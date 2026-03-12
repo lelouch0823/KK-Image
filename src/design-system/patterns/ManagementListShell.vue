@@ -4,7 +4,7 @@
       <template v-if="$slots.actions" #actions><slot name="actions" /></template>
     </PageHeader>
 
-    <StatePanel v-if="$slots.filters">
+    <StatePanel v-if="$slots.filters" :variant="filtersVariant">
       <div class="flex flex-wrap items-center gap-3">
         <slot name="filters" />
       </div>
@@ -14,7 +14,7 @@
       <slot name="summary" />
     </div>
 
-    <StatePanel v-if="$slots.content">
+    <StatePanel v-if="$slots.content" variant="panel">
       <slot name="content" />
     </StatePanel>
 
@@ -33,5 +33,6 @@ import StatePanel from '@/design-system/composed/StatePanel.vue';
 defineProps({
   title: { type: String, default: '' },
   description: { type: String, default: '' },
+  filtersVariant: { type: String, default: 'toolbar' },
 });
 </script>

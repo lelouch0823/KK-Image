@@ -186,6 +186,97 @@ export class ProductDimensionRepository {
             .run();
     }
 
+    async restoreSnapshot(productId, snapshot = []) {
+        const current = await this.listByProduct(productId);
+        const snapshotDimensionIds = new Set((snapshot || []).map((dimension) => dimension.id));
+        const statements = [];
+        const timestamp = now();
+
+        for (const dimension of snapshot || []) {
+            const dimensionId = String(dimension?.id || '').trim();
+            if (!dimensionId) continue;
+            const dimensionName = String(dimension?.name || '').trim();
+            const sortOrder = Number.isInteger(dimension?.sort_order) ? dimension.sort_order : 0;
+            const createdAt = Number(dimension?.created_at || timestamp);
+
+            statements.push(
+                this.db.prepare(
+                    `INSERT INTO product_dimensions (id, product_id, name, status, sort_order, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)
+                     ON CONFLICT(id) DO UPDATE SET
+                        name = excluded.name,
+                        status = excluded.status,
+                        sort_order = excluded.sort_order,
+                        updated_at = excluded.updated_at`
+                ).bind(
+                    dimensionId,
+                    productId,
+                    dimensionName,
+                    dimension?.status || ACTIVE_STATUS,
+                    sortOrder,
+                    createdAt,
+                    timestamp
+                )
+            );
+
+            const snapshotValues = Array.isArray(dimension?.values) ? dimension.values : [];
+            const snapshotValueIds = new Set();
+            for (const value of snapshotValues) {
+                const valueId = String(value?.id || '').trim();
+                if (!valueId) continue;
+                snapshotValueIds.add(valueId);
+                statements.push(
+                    this.db.prepare(
+                        `INSERT INTO product_dimension_values (id, dimension_id, value, status, sort_order, meta, created_at, updated_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                         ON CONFLICT(id) DO UPDATE SET
+                            value = excluded.value,
+                            status = excluded.status,
+                            sort_order = excluded.sort_order,
+                            meta = excluded.meta,
+                            updated_at = excluded.updated_at`
+                    ).bind(
+                        valueId,
+                        dimensionId,
+                        String(value?.value || '').trim(),
+                        value?.status || ACTIVE_STATUS,
+                        Number.isInteger(value?.sort_order) ? value.sort_order : 0,
+                        formatMeta(value?.meta),
+                        Number(value?.created_at || timestamp),
+                        timestamp
+                    )
+                );
+            }
+
+            const existingDimension = (current || []).find((item) => item.id === dimensionId);
+            for (const value of existingDimension?.values || []) {
+                if (snapshotValueIds.has(value.id)) continue;
+                statements.push(
+                    this.db.prepare("UPDATE product_dimension_values SET status = 'archived', updated_at = ? WHERE id = ?")
+                        .bind(timestamp, value.id)
+                );
+            }
+        }
+
+        for (const dimension of current || []) {
+            if (snapshotDimensionIds.has(dimension.id)) continue;
+            statements.push(
+                this.db.prepare("UPDATE product_dimensions SET status = 'archived', updated_at = ? WHERE id = ?")
+                    .bind(timestamp, dimension.id)
+            );
+            for (const value of dimension.values || []) {
+                statements.push(
+                    this.db.prepare("UPDATE product_dimension_values SET status = 'archived', updated_at = ? WHERE id = ?")
+                        .bind(timestamp, value.id)
+                );
+            }
+        }
+
+        if (statements.length > 0) {
+            await this.db.batch(statements);
+        }
+    }
+
     async archiveDimension(productId, dimensionId) {
         const row = await this.db
             .prepare('SELECT * FROM product_dimensions WHERE id = ? AND product_id = ?')

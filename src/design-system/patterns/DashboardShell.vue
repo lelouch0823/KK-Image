@@ -11,7 +11,9 @@
     </div>
 
     <div v-if="$slots.main" class="grid gap-6 lg:grid-cols-12">
-      <slot name="main" />
+      <div class="lg:col-span-12">
+        <slot name="main" />
+      </div>
     </div>
 
     <div v-if="$slots.secondary">

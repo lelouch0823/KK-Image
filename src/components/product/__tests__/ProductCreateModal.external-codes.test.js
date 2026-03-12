@@ -58,6 +58,7 @@ describe('ProductCreateModal external codes', () => {
     wrapper.vm.generateVariants();
 
     expect(wrapper.vm.form.variants).toHaveLength(1);
+    expect(wrapper.vm.form.variants[0].sku).toBe('');
     expect(wrapper.vm.form.variants[0]).toHaveProperty('barcode', '');
     expect(wrapper.vm.form.variants[0]).toHaveProperty('supplier_sku', '');
   });
@@ -82,5 +83,31 @@ describe('ProductCreateModal external codes', () => {
     const payload = mocks.createProduct.mock.calls[0][0];
     expect(payload.variants[0].barcode).toBe('6901234567890');
     expect(payload.variants[0].supplier_sku).toBe('SUP-BLUE-L');
+  });
+
+  it('blocks submit when a variant sku is empty', async () => {
+    const wrapper = createWrapper();
+    wrapper.vm.form.name = 'Variant Product';
+    wrapper.vm.form.variants = [{
+      sku: '',
+      price: 100,
+      cost_price: 70,
+      stock_quantity: 8,
+      alert_threshold: 2,
+      status: 'active',
+      options_values: { Color: 'Blue', Size: 'L' },
+      barcode: '',
+      supplier_sku: '',
+    }];
+
+    await wrapper.vm.handleSubmit();
+
+    expect(mocks.createProduct).not.toHaveBeenCalled();
+    expect(mocks.addToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'error',
+        message: 'Please complete each variant SKU/price/cost/inventory/alert/status',
+      })
+    );
   });
 });

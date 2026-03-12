@@ -3,6 +3,7 @@
     :columns="columns"
     :data="data"
     :loading="loading"
+    :row-class="rowClass"
     row-key="id"
     :empty-text="t('salesperson.emptyList')"
     no-border
@@ -87,7 +88,7 @@ import AppTable from '@/components/ui/AppTable.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 
-const props = defineProps({
+defineProps({
   data: {
     type: Array,
     required: true,
@@ -95,6 +96,10 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false,
+  },
+  rowClass: {
+    type: Function,
+    default: () => '',
   },
 });
 

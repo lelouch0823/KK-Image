@@ -304,4 +304,17 @@ describe('ProductVariantRepository external codes', () => {
     expect(rows[0].id).not.toBe('variant-archived-old');
     expect(rows.createdCount).toBe(1);
   });
+
+  it('syncVariants should reject empty sku instead of auto-generating one', async () => {
+    await expect(repo.syncVariants('product-1', [{
+      price: 12,
+      cost_price: 8,
+      stock_quantity: 3,
+      alert_threshold: 1,
+      options_values: { color: 'Yellow' },
+      status: 'active',
+    }])).rejects.toThrow(/sku is required/i);
+
+    expect(db.batch).not.toHaveBeenCalled();
+  });
 });

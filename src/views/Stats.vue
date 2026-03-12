@@ -38,19 +38,13 @@
         <template #main>
 
       <!-- Loading State -->
-      <div
-        v-if="loading && !stats"
-        class="grid grid-cols-1 gap-6 lg:col-span-12 md:grid-cols-3"
-      >
+      <div v-if="loading && !stats" class="grid grid-cols-1 gap-6 md:grid-cols-3">
         <Skeleton v-for="i in 3" :key="i" template="stat-card" />
         <Skeleton class="h-[400px] lg:col-span-2" />
         <Skeleton class="h-[400px]" />
       </div>
 
-      <div
-        v-else-if="errorCode === 'FORBIDDEN'"
-        class="flex h-96 flex-col items-center justify-center lg:col-span-12"
-      >
+      <div v-else-if="errorCode === 'FORBIDDEN'" class="flex h-96 flex-col items-center justify-center">
         <PermissionDeniedState
           title="统计分析权限不足"
           :description="error || '当前账号没有统计读取权限，请联系管理员分配 stats:read。'"
@@ -60,10 +54,7 @@
       </div>
 
       <!-- Error State -->
-      <div
-        v-else-if="error"
-        class="flex h-96 flex-col items-center justify-center gap-4 text-center lg:col-span-12"
-      >
+      <div v-else-if="error" class="flex h-96 flex-col items-center justify-center gap-4 text-center">
         <div class="bg-danger/10 text-danger ring-danger/20 flex size-20 items-center justify-center rounded-full ring-1">
           <AppIcon name="exclamation-triangle" class="size-10" />
         </div>
@@ -78,7 +69,7 @@
       </div>
 
       <!-- Dashboard Content -->
-      <div v-else-if="stats" class="animate-fade-in-up grid gap-6 lg:col-span-12">
+      <div v-else-if="stats" class="animate-fade-in-up grid gap-6">
         
         <!-- Key Metrics Row -->
         <div class="grid grid-cols-1 gap-6 md:grid-cols-3">

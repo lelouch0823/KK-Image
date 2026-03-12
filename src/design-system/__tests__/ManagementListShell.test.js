@@ -22,4 +22,33 @@ describe('ManagementListShell', () => {
     expect(wrapper.get('[data-testid="summary"]').text()).toBe('Summary');
     expect(wrapper.get('[data-testid="content"]').text()).toBe('Content');
   });
+
+  it('uses a lighter toolbar surface for filters and a primary panel for content', () => {
+    const wrapper = mount(ManagementListShell, {
+      props: {
+        title: 'Orders',
+      },
+      slots: {
+        filters: '<div>Filters</div>',
+        content: '<div>Content</div>',
+      },
+    });
+
+    expect(wrapper.get('[data-surface-variant="toolbar"]').text()).toContain('Filters');
+    expect(wrapper.get('[data-surface-variant="panel"]').text()).toContain('Content');
+  });
+
+  it('supports a plain filters surface without the toolbar shell', () => {
+    const wrapper = mount(ManagementListShell, {
+      props: {
+        title: 'Orders',
+        filtersVariant: 'plain',
+      },
+      slots: {
+        filters: '<div>Filters</div>',
+      },
+    });
+
+    expect(wrapper.get('[data-surface-variant="plain"]').text()).toContain('Filters');
+  });
 });

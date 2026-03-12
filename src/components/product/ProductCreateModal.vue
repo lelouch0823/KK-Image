@@ -30,6 +30,16 @@
             v-if="form.variants.length > 0"
             class="space-y-4 rounded-xl border border-(--border-color) bg-(--bg-muted)/50 p-4"
           >
+            <div
+              v-if="editMode && incompleteVariantCount > 0"
+              role="alert"
+              class="border-warning/30 bg-warning-bg/80 text-warning-text flex items-start gap-3 rounded-xl border px-4 py-3 text-sm"
+            >
+              <svg class="mt-0.5 size-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.485 0l5.58 9.92c.75 1.334-.213 2.981-1.742 2.981H4.42c-1.53 0-2.492-1.647-1.743-2.98l5.58-9.921ZM11 7a1 1 0 1 0-2 0v3a1 1 0 1 0 2 0V7Zm-1 7a1.25 1.25 0 1 0 0-2.5A1.25 1.25 0 0 0 10 14Z" clip-rule="evenodd" />
+              </svg>
+              <span>{{ incompleteVariantsBannerMessage }}</span>
+            </div>
             <div class="flex items-center justify-between">
               <h4 class="font-bold text-(--text-main)">
                 {{ t('product.form.variants_title', 'Variants') }}
@@ -81,7 +91,7 @@
               : t('product.action.create')
         "
         :loading="submitting"
-        :disabled="initializing"
+        :disabled="initializing || (editMode && incompleteVariantCount > 0)"
         @click="handleSubmit"
       />
     </div>
@@ -157,6 +167,16 @@
                   v-if="form.variants.length > 0"
                   class="space-y-4 rounded-xl border border-(--border-color) bg-(--bg-muted)/50 p-4"
                 >
+                  <div
+                    v-if="editMode && incompleteVariantCount > 0"
+                    role="alert"
+                    class="border-warning/30 bg-warning-bg/80 text-warning-text flex items-start gap-3 rounded-xl border px-4 py-3 text-sm"
+                  >
+                    <svg class="mt-0.5 size-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.485 0l5.58 9.92c.75 1.334-.213 2.981-1.742 2.981H4.42c-1.53 0-2.492-1.647-1.743-2.98l5.58-9.921ZM11 7a1 1 0 1 0-2 0v3a1 1 0 1 0 2 0V7Zm-1 7a1.25 1.25 0 1 0 0-2.5A1.25 1.25 0 0 0 10 14Z" clip-rule="evenodd" />
+                    </svg>
+                    <span>{{ incompleteVariantsBannerMessage }}</span>
+                  </div>
                   <div class="flex items-center justify-between">
                     <h4 class="font-bold text-(--text-main)">
                       {{ t('product.form.variants_title', 'Variants') }}
@@ -208,7 +228,7 @@
                     : t('product.action.create')
               "
               :loading="submitting"
-              :disabled="initializing"
+              :disabled="initializing || (editMode && incompleteVariantCount > 0)"
               @click="handleSubmit"
             />
           </div>
@@ -362,6 +382,8 @@ const {
   handleUpdateVariantImages,
   handleBatchBuilderApply,
   handleSubmit,
+  incompleteVariantCount,
+  incompleteVariantsBannerMessage,
 } = useProductForm({
   editMode: toRef(props, 'editMode'),
   initialData: toRef(props, 'initialData'),

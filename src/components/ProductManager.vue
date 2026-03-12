@@ -100,7 +100,8 @@
       <!-- Desktop Table (Show only if data exists) -->
       <div v-if="!loading && !error && products.length > 0" class="custom-scrollbar hidden h-full overflow-auto lg:block">
          <ProductTable 
-           :products="products" 
+           :products="products"
+           :row-class="getRowClass"
            @view="handleView"
            @edit="handleEditWithHydration" 
            @delete="handleDelete" 
@@ -111,7 +112,8 @@
       <!-- Mobile Grid (Show only if data exists) -->
       <div v-if="!loading && !error && products.length > 0" class="p-4 lg:hidden">
         <ProductGrid 
-            :products="products" 
+            :products="products"
+            :card-class="getRowClass"
             @view="handleView"
             @edit="handleEditWithHydration"
             @share="handleShare"
@@ -152,7 +154,7 @@
         </EmptyState>
       </div>
     </div>
-     <div class="border-t border-(--border-color) bg-(--bg-muted) p-4">
+     <div class="mt-4 border-t border-(--border-color)/70 pt-4">
         <Pagination
             v-model:current-page="pagination.page"
             :total-pages="pagination.totalPages"
@@ -168,7 +170,9 @@ import { ref, reactive, onMounted, onUnmounted, defineAsyncComponent, watch } fr
 import { useRoute, useRouter } from 'vue-router';
 import { useProducts } from '@/composables/useProducts';
 import { useAI } from '@/composables/useAI';
+import { useToast } from '@/composables/useToast';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
+import { useManagedListSelection } from '@/composables/useManagedListSelection';
 const ProductStats = defineAsyncComponent(() => import('./product/ProductStats.vue'));
 import ProductFilters from './product/ProductFilters.vue';
 import ProductTable from './product/ProductTable.vue';
@@ -191,7 +195,9 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { setContext } = useAI();
+const { addToast } = useToast();
 const { subscribeModule } = useAppRefreshBus();
+const { clearSelection, getRowClass, handleCreated, selectItem } = useManagedListSelection();
 
 const { products, loading, error, errorCode, pagination, loadProducts, deleteProduct, loadProduct } = useProducts();
 
@@ -304,6 +310,7 @@ const handleEditWithHydration = async (product) => {
 };
 
 const handleView = async (product) => {
+    selectItem(product);
     viewingProduct.value = decorateProductPreview(product);
     showDetailModal.value = true;
 };
@@ -319,15 +326,44 @@ const handleShareCreated = (space) => {
     router.push(`/manage/space/${space.id}`);
 };
 
-const handleModalSuccess = () => {
-    loadProducts(
-        {
-            page: pagination.page || 1,
-            status: filters.status,
-            search: filters.search,
+const handleModalSuccess = async (createdProduct = null) => {
+    if (!createdProduct?.id || isEditMode.value) {
+        await loadProducts(
+            {
+                page: pagination.page || 1,
+                status: filters.status,
+                search: filters.search,
+            },
+            true
+        );
+        return;
+    }
+
+    await handleCreated({
+        createdId: createdProduct.id,
+        resetToFirstPage: () => {
+            pagination.page = 1;
         },
-        true
-    );
+        reload: () => loadProducts(
+            {
+                page: 1,
+                status: filters.status,
+                search: filters.search,
+            },
+            true
+        ),
+        getItems: () => products.value,
+        autoOpen: true,
+        openDetail: (product) => {
+            handleView(product);
+        },
+        onHiddenByFilters: () => {
+            addToast({
+                message: t('product.manager.createdHiddenByFilters', '商品已创建，但当前筛选条件未显示该项'),
+                type: 'info',
+            });
+        },
+    });
 };
 
 const handleDelete = async (product) => {
@@ -342,6 +378,9 @@ const handleExport = () => {
 };
 
 watch([showDetailModal, viewingProduct], ([isOpen, product]) => {
+    if (!isOpen) {
+        clearSelection();
+    }
     if (isOpen && product?.id) {
         setContext({
             selectedId: product.id,

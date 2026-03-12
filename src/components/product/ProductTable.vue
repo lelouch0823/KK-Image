@@ -4,6 +4,7 @@
     :data="products"
     :loading="loading"
     :no-border="true"
+    :row-class="rowClass"
     row-key="id"
     :empty-text="t('product.table.empty')"
     :virtual="products.length > 50"
@@ -148,7 +149,8 @@ import { resolvePrimaryProductImageSrc } from './image-resolver.js';
 const { t } = useI18n();
 defineProps({
     products: { type: Array, default: () => [] },
-    loading: { type: Boolean, default: false }
+    loading: { type: Boolean, default: false },
+    rowClass: { type: Function, default: () => '' },
 });
 defineEmits(['edit', 'delete', 'view', 'share']);
 

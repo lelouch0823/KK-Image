@@ -21,4 +21,15 @@ describe('DashboardShell', () => {
     expect(wrapper.get('[data-testid="summary"]').text()).toBe('Summary');
     expect(wrapper.get('[data-testid="main"]').text()).toBe('Main');
   });
+
+  it('wraps the main slot in a full-width grid item', () => {
+    const wrapper = mount(DashboardShell, {
+      slots: {
+        main: '<div data-testid="main">Main</div>',
+      },
+    });
+
+    expect(wrapper.find('.lg\\:grid-cols-12').exists()).toBe(true);
+    expect(wrapper.find('.lg\\:col-span-12').exists()).toBe(true);
+  });
 });

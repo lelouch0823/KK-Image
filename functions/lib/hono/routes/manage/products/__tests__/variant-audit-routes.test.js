@@ -126,7 +126,7 @@ describe('product variant audit routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: 'Tee',
-          variants: [{ id: 'v1', price: 12, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active' }],
+          variants: [{ id: 'v1', sku: 'SKU-1', price: 12, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active' }],
         }),
       },
       { DB: {}, executionCtx: { waitUntil: vi.fn() } },
@@ -210,8 +210,8 @@ describe('product variant audit routes', () => {
         body: JSON.stringify({
           name: 'Tee',
           variants: [
-            { id: 'v-legacy', price: 10, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active', options_values: { Color: 'Blue' } },
-            { price: 12, cost_price: 7, stock_quantity: 4, alert_threshold: 1, status: 'active', options_values: { Color: 'Red' }, images: [{ image_id: 'img-new', is_primary: 1 }] },
+            { id: 'v-legacy', sku: 'SKU-OLD', price: 10, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active', options_values: { Color: 'Blue' } },
+            { sku: 'SKU-NEW', price: 12, cost_price: 7, stock_quantity: 4, alert_threshold: 1, status: 'active', options_values: { Color: 'Red' }, images: [{ image_id: 'img-new', is_primary: 1 }] },
           ],
         }),
       },
@@ -270,7 +270,7 @@ describe('product variant audit routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: 'Tee',
-          variants: [{ price: 12, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active', options_values: { color: 'red' } }],
+          variants: [{ sku: 'SKU-RED', price: 12, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active', options_values: { color: 'red' } }],
         }),
       },
       { DB: {}, executionCtx: { waitUntil: vi.fn() } },
@@ -301,7 +301,7 @@ describe('product variant audit routes', () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          variants: [{ id: 'v1', price: 12, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active' }],
+          variants: [{ id: 'v1', sku: 'SKU-1', price: 12, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active' }],
         }),
       },
       { DB: {}, executionCtx: { waitUntil: vi.fn() } },
@@ -368,7 +368,7 @@ describe('product variant audit routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dimensions: [{ id: 'dim-color', name: 'Color', values: [{ value: 'Red' }] }],
-          variants: [{ id: 'v1', price: 10, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active' }],
+          variants: [{ id: 'v1', sku: 'SKU-1', price: 10, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active' }],
         }),
       },
       { DB: {}, executionCtx: { waitUntil: vi.fn() } },
@@ -399,7 +399,7 @@ describe('product variant audit routes', () => {
         {
           id: 'v-a',
           product_id: 'p1',
-          sku: '',
+          sku: 'SKU-A',
           price: 11,
           cost_price: 6,
           stock_quantity: 5,
@@ -410,7 +410,7 @@ describe('product variant audit routes', () => {
         {
           id: 'v-b',
           product_id: 'p1',
-          sku: '',
+          sku: 'SKU-B',
           price: 12,
           cost_price: 6,
           stock_quantity: 5,
@@ -435,6 +435,7 @@ describe('product variant audit routes', () => {
         body: JSON.stringify({
           variants: [
             {
+              sku: 'SKU-NEW-RED',
               price: 12,
               cost_price: 6,
               stock_quantity: 5,

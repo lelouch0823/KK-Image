@@ -25,13 +25,21 @@
           <th class="min-w-[80px] px-4 py-3">{{ t('product.table.variant.alert', 'Alert') }}</th>
           <th class="min-w-[100px] px-4 py-3">{{ t('product.table.variant.status', 'Status') }}</th>
           <th class="min-w-[80px] px-4 py-3">{{ t('product.table.variant.images', 'Images') }}</th>
+          <th class="min-w-[80px] px-4 py-3">{{ t('common.actions', 'Actions') }}</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-(--border-color)/40">
         <tr
           v-for="(variant, idx) in getVariants()"
           :key="variant.id || variant._clientKey || idx"
-          class="group transition-colors hover:bg-(--bg-muted)/30"
+          :data-testid="`variant-row-${idx}`"
+          :data-variant-state="variant.status || 'active'"
+          :class="[
+            'group transition-colors',
+            variant.status === 'pending_incomplete'
+              ? 'bg-warning-bg/60 hover:bg-warning-bg/70'
+              : 'hover:bg-(--bg-muted)/30',
+          ]"
         >
           <!-- 规格名 — sticky 首列 -->
           <td class="sticky left-0 z-10 bg-(--bg-card) px-4 py-2 font-medium text-(--text-main) transition-colors group-hover:bg-(--bg-muted)/30">
@@ -42,7 +50,18 @@
               >
                 {{ formatVariantName(variant.options_values) }}
               </span>
+              <AppIcon
+                v-if="variant.status === 'pending_incomplete'"
+                name="exclamation-triangle"
+                class="text-warning size-4"
+              />
             </div>
+            <p
+              v-if="variant.status === 'pending_incomplete'"
+              class="text-warning-text mt-1 text-xs"
+            >
+              {{ t('product.form.incomplete_variant_hint', 'This legacy variant no longer matches the current spec structure.') }}
+            </p>
           </td>
           <!-- SKU -->
           <td class="p-2 ">
@@ -125,7 +144,14 @@
           </td>
           <!-- 状态 -->
           <td class="px-3 py-2">
+            <span
+              v-if="variant.status === 'pending_incomplete'"
+              class="bg-warning-bg text-warning-text border-warning/30 inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold"
+            >
+              {{ t('product.table.variant.pending', 'Pending') }}
+            </span>
             <button
+              v-else
               type="button"
               class="flex items-center justify-center rounded-md p-1 transition-colors outline-none hover:bg-(--bg-muted)"
               :title="variant.status === 'archived' ? t('common.archived', 'Archived') : t('common.active', 'Active')"
@@ -138,6 +164,17 @@
           <!-- 图片数量 -->
           <td class="px-4 py-2 text-xs text-(--text-secondary)">
             {{ variant.images?.length || 0 }}
+          </td>
+          <td class="px-3 py-2">
+            <button
+              :data-testid="`delete-variant-${idx}`"
+              type="button"
+              class="text-danger inline-flex items-center justify-center rounded-md p-1 transition-colors hover:bg-danger/10"
+              :title="t('common.delete', 'Delete')"
+              @click="removeVariant(indexSafe(idx))"
+            >
+              <AppIcon name="trash" class="size-4.5" />
+            </button>
           </td>
         </tr>
       </tbody>
@@ -216,6 +253,12 @@ const updateVariantField = (index, field, value) => {
         return list;
     });
 };
+
+const removeVariant = (index) => {
+    emitNextVariants((list) => list.filter((_, itemIndex) => itemIndex !== index));
+};
+
+const indexSafe = (index) => Number(index);
 
 const parseNumberInput = (rawValue) => {
     if (rawValue === '') return '';

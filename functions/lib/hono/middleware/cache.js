@@ -6,6 +6,13 @@
 
 import { sha256Hex } from '../../../_shared/utils.js';
 
+function createCacheRequest(url, accept = 'application/json') {
+  return new Request(url, {
+    method: 'GET',
+    headers: { Accept: accept || 'application/json' },
+  });
+}
+
 export function withCache(ttlSeconds = 60) {
   return async (c, next) => {
     // 仅缓存 GET 请求
@@ -14,10 +21,7 @@ export function withCache(ttlSeconds = 60) {
     }
 
     const cache = caches.default;
-    const cacheKey = new Request(c.req.url, {
-      method: 'GET',
-      headers: { Accept: c.req.header('Accept') || 'application/json' },
-    });
+    const cacheKey = createCacheRequest(c.req.url, c.req.header('Accept'));
 
     // 尝试从缓存获取
     const cached = await cache.match(cacheKey);
@@ -67,7 +71,7 @@ export async function invalidateCache(urls) {
   const cache = caches.default;
   const urlArray = Array.isArray(urls) ? urls : [urls];
 
-  await Promise.all(urlArray.map((url) => cache.delete(new Request(url))));
+  await Promise.all(urlArray.map((url) => cache.delete(createCacheRequest(url))));
 }
 
 /**

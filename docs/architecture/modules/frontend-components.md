@@ -90,9 +90,15 @@ src/components/
 - **特性**: 多层级堆叠管理、ESC关闭、滚动锁定
 
 #### AppTable 表格组件
-- **Props**: `columns`, `data`, `virtual`, `loading`, `clickable`
-- **Slots**: `toolbar`, `cell-{key}`, `header-{key}`
+- **Props**: `columns`, `data`, `virtual`, `loading`, `clickable`, `minRows`, `sparseThreshold`, `fillSparseSpace`
+- **Slots**: `toolbar`, `cell-{key}`, `header-{key}`, `footer`, `empty`
 - **依赖**: `@tanstack/vue-virtual` (虚拟滚动)
+- **默认契约**:
+  - 管理列表使用稳定列表舞台，默认 `minRows = 7`
+  - 少量数据阈值默认 `sparseThreshold = 3`
+  - 少量数据时默认开启 `fillSparseSpace`，用被动补全区维持舞台完整感
+  - 标准业务列表优先分页，不默认启用内部纵向滚动
+  - `virtual` 或弹窗等特殊场景才使用内部滚动例外
 
 #### AppIcon 图标组件
 - **Props**: `name`, `class`, `strokeWidth`

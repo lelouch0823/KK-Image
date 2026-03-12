@@ -1,7 +1,7 @@
 import { BadRequestError } from '../../../errors.js';
 import { normalizeProductCurrency } from './currency.js';
 
-const REQUIRED_VARIANT_FIELDS = ['price', 'cost_price', 'stock_quantity', 'alert_threshold', 'status'];
+const REQUIRED_VARIANT_FIELDS = ['sku', 'price', 'cost_price', 'stock_quantity', 'alert_threshold', 'status'];
 const VALID_VARIANT_STATUSES = new Set(['active', 'archived']);
 
 const isEmptyValue = (value) => value === undefined || value === null || value === '';
@@ -13,7 +13,10 @@ function assertNonNegativeNumber(value, message) {
   }
 }
 
-export function validateProductPayload(payload = {}, { requireVariants = false } = {}) {
+export function validateProductPayload(
+  payload = {},
+  { requireVariants = false, allowExistingVariantStockOmission = false } = {}
+) {
   const normalized = { ...payload };
 
   if (normalized.currency !== undefined) {
@@ -35,14 +38,33 @@ export function validateProductPayload(payload = {}, { requireVariants = false }
       }
 
       for (const field of REQUIRED_VARIANT_FIELDS) {
+        if (
+          field === 'stock_quantity' &&
+          allowExistingVariantStockOmission &&
+          String(variant.id || '').trim() &&
+          variant.stock_quantity === undefined
+        ) {
+          continue;
+        }
         if (isEmptyValue(variant[field])) {
           throw new BadRequestError(`Variant #${index + 1} missing required field: ${field}`);
         }
       }
 
+      if (String(variant.sku || '').trim() === '') {
+        throw new BadRequestError(`Variant #${index + 1} missing required field: sku`);
+      }
       assertNonNegativeNumber(variant.price, `Variant #${index + 1} price must be non-negative`);
       assertNonNegativeNumber(variant.cost_price, `Variant #${index + 1} cost_price must be non-negative`);
-      assertNonNegativeNumber(variant.stock_quantity, `Variant #${index + 1} stock_quantity must be non-negative`);
+      if (
+        !(
+          allowExistingVariantStockOmission &&
+          String(variant.id || '').trim() &&
+          variant.stock_quantity === undefined
+        )
+      ) {
+        assertNonNegativeNumber(variant.stock_quantity, `Variant #${index + 1} stock_quantity must be non-negative`);
+      }
       assertNonNegativeNumber(variant.alert_threshold, `Variant #${index + 1} alert_threshold must be non-negative`);
 
       if (!VALID_VARIANT_STATUSES.has(String(variant.status || '').trim())) {

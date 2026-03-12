@@ -14,6 +14,13 @@ const mockVariantRepo = {
   syncVariants: vi.fn(),
   findByProductId: vi.fn(),
 };
+const mockDimensionRepo = {
+  listByProduct: vi.fn(),
+  createDimension: vi.fn(),
+  addValue: vi.fn(),
+  updateDimension: vi.fn(),
+  updateValueMeta: vi.fn(),
+};
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
   ProductRepository: class {
@@ -35,9 +42,11 @@ vi.mock('../../../../../../repositories/ProductVariantRepository.js', () => ({
 
 vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
   ProductDimensionRepository: class {
-    listByProduct() { return []; }
-    createDimension() { return { id: 'dim-1', name: 'Color' }; }
-    addValue() { return { id: 'value-1', value: 'Red' }; }
+    listByProduct(...args) { return mockDimensionRepo.listByProduct(...args); }
+    createDimension(...args) { return mockDimensionRepo.createDimension(...args); }
+    addValue(...args) { return mockDimensionRepo.addValue(...args); }
+    updateDimension(...args) { return mockDimensionRepo.updateDimension(...args); }
+    updateValueMeta(...args) { return mockDimensionRepo.updateValueMeta(...args); }
   },
 }));
 
@@ -97,6 +106,11 @@ describe('product validation rules', () => {
       archivedCount: 0,
       reactivatedCount: 0,
     });
+    mockDimensionRepo.listByProduct.mockResolvedValue([]);
+    mockDimensionRepo.createDimension.mockResolvedValue({ id: 'dim-1', name: 'Color' });
+    mockDimensionRepo.addValue.mockResolvedValue({ id: 'value-1', value: 'Red' });
+    mockDimensionRepo.updateDimension.mockResolvedValue({ id: 'dim-1', name: 'Color' });
+    mockDimensionRepo.updateValueMeta.mockResolvedValue(undefined);
   });
 
   it('rejects invalid currency, negative price/stock, invalid status, and empty variants', async () => {
@@ -161,5 +175,75 @@ describe('product validation rules', () => {
       { waitUntil: vi.fn() }
     );
     expect(emptyVariants.status).toBe(400);
+  });
+
+  it('rejects empty sku on both create and patch', async () => {
+    const app = createApp();
+
+    const createRes = await app.request(
+      'http://localhost/api/manage/products',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Tee', variants: [createVariant({ sku: '' })] }),
+      },
+      { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+    expect(createRes.status).toBe(400);
+
+    const patchRes = await app.request(
+      'http://localhost/api/manage/products/p1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variants: [createVariant({ id: 'variant-1', sku: '' })] }),
+      },
+      { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+    expect(patchRes.status).toBe(400);
+  });
+
+  it('allows patching an existing variant without stock_quantity', async () => {
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/products/p1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          variants: [{ id: 'variant-1', sku: 'SKU-1', price: 100, cost_price: 60, alert_threshold: 2, status: 'active' }],
+        }),
+      },
+      { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+  });
+
+  it('does not mutate dimensions before rejecting an invalid patch payload', async () => {
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/products/p1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dimensions: [{ name: 'Color', values: [{ value: 'Red' }] }],
+          variants: [{ id: 'variant-1', sku: '', price: 100, cost_price: 60, alert_threshold: 2, status: 'active' }],
+        }),
+      },
+      { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mockDimensionRepo.createDimension).not.toHaveBeenCalled();
+    expect(mockDimensionRepo.updateDimension).not.toHaveBeenCalled();
+    expect(mockDimensionRepo.addValue).not.toHaveBeenCalled();
   });
 });

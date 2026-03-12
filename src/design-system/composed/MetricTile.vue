@@ -1,7 +1,11 @@
 <template>
   <div
-    class="group relative overflow-hidden rounded-2xl bg-(--bg-card) p-4 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:p-5"
-    :class="[clickable ? 'cursor-pointer' : '', active ? 'ring-primary/20 ring-2' : '']"
+    class="group relative overflow-hidden rounded-2xl bg-(--bg-card) p-4 backdrop-blur-xl transition-all duration-300 sm:p-5"
+    :class="[
+      clickable ? 'cursor-pointer' : '',
+      active ? 'ring-primary/20 ring-2' : '',
+      flat ? 'shadow-none' : 'shadow-sm hover:-translate-y-0.5 hover:shadow-md',
+    ]"
     @click="clickable && $emit('click')"
   >
     <div class="relative z-10 flex items-start justify-between">
@@ -34,6 +38,7 @@ const props = defineProps({
   meta: { type: String, default: '' },
   clickable: { type: Boolean, default: false },
   active: { type: Boolean, default: false },
+  flat: { type: Boolean, default: false },
 });
 
 defineEmits(['click']);

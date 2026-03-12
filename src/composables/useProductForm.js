@@ -1,9 +1,8 @@
 // useProductForm — ProductCreateModal 的表单状态与逻辑层
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
-import { buildVariantSku } from '@/components/product/variant-sku.js';
 
 // 货币配置常量
 export const CURRENCY_OPTIONS = [
@@ -31,6 +30,22 @@ function formatSubmittedCurrency(value) {
 
 function isExistingVariantInEditMode(editModeRef, variant) {
   return Boolean(editModeRef?.value && variant?.id);
+}
+
+function normalizeOptionKeys(optionsValues) {
+  return Object.keys(optionsValues || {})
+    .map((key) => String(key || '').trim())
+    .filter(Boolean)
+    .sort();
+}
+
+export function detectIncompleteVariant(activeDimensionNames = [], variant = {}, isEditMode = false) {
+  if (!isEditMode || !variant?.id) return false;
+  const activeKeys = [...new Set((activeDimensionNames || []).map((name) => String(name || '').trim()).filter(Boolean))].sort();
+  const variantKeys = normalizeOptionKeys(variant.options_values);
+  if (activeKeys.length === 0) return false;
+  if (variantKeys.length !== activeKeys.length) return true;
+  return activeKeys.some((key, index) => key !== variantKeys[index]);
 }
 
 /**
@@ -252,9 +267,56 @@ export function useProductForm({ editMode, initialData, emit }) {
     _clientKey: variant._clientKey || variant.id || nextVariantLocalKey(),
   });
 
+  const activeDimensionNames = computed(() =>
+    form.options
+      .map((option) => String(option?.name || '').trim())
+      .filter(Boolean)
+  );
+
+  const markVariantCompleteness = (variant = {}, dimensionNames = activeDimensionNames.value) => {
+    const normalized = ensureVariantLocalKey(variant);
+    if (detectIncompleteVariant(dimensionNames, normalized, editMode.value)) {
+      return {
+        ...normalized,
+        status: 'pending_incomplete',
+        _incomplete: true,
+      };
+    }
+
+    if (normalized.status === 'pending_incomplete') {
+      return {
+        ...normalized,
+        status: 'active',
+        _incomplete: false,
+      };
+    }
+
+    return {
+      ...normalized,
+      _incomplete: false,
+    };
+  };
+
+  const incompleteVariants = computed(() =>
+    form.variants.filter((variant) => detectIncompleteVariant(activeDimensionNames.value, variant, editMode.value))
+  );
+
+  const incompleteVariantCount = computed(() => incompleteVariants.value.length);
+
+  const incompleteVariantsBannerMessage = computed(() =>
+    t(
+      'product.form.incomplete_variants_banner',
+      `There are ${incompleteVariantCount.value} legacy variants that no longer match the current specs. Remove/archive them before saving.`
+    )
+  );
+
   // ——— 表单初始化 ———
   function fillFormFromData(data) {
     const imgs = parseJson(data.images) || [];
+    const nextOptions = buildOptionsFromDimensions(data);
+    const nextDimensionNames = nextOptions
+      .map((option) => String(option?.name || '').trim())
+      .filter(Boolean);
 
     Object.assign(form, {
       name: data.name || '',
@@ -266,9 +328,9 @@ export function useProductForm({ editMode, initialData, emit }) {
       spu: data.spu || '',
       slug: data.slug || '',
       images: imgs,
-      options: buildOptionsFromDimensions(data),
+      options: nextOptions,
       variants: (data.variants || []).map((variant) =>
-        ensureVariantLocalKey({
+        markVariantCompleteness({
           ...variant,
           cost_price: variant.cost_price ?? 0,
           alert_threshold: variant.alert_threshold ?? 10,
@@ -276,7 +338,7 @@ export function useProductForm({ editMode, initialData, emit }) {
           barcode: variant.barcode || '',
           supplier_sku: variant.supplier_sku || '',
           images: Array.isArray(variant.images) ? variant.images : [],
-        })
+        }, nextDimensionNames)
       ),
     });
 
@@ -308,6 +370,9 @@ export function useProductForm({ editMode, initialData, emit }) {
   // ——— 笛卡尔积生成变体 ———
   const generateVariants = () => {
     const validOptions = form.options.filter((o) => o.name && o.values.length > 0);
+    const dimensionNames = validOptions
+      .map((option) => String(option?.name || '').trim())
+      .filter(Boolean);
     if (validOptions.length === 0) {
       form.variants = [];
       return;
@@ -328,21 +393,17 @@ export function useProductForm({ editMode, initialData, emit }) {
 
     const oldVariantsMap = new Map();
     form.variants.forEach((v) => {
-      const key = JSON.stringify(v.options_values);
+      const key = variantOptionsKey(v.options_values);
       oldVariantsMap.set(key, v);
     });
 
-    form.variants = cartesian.map((combo) => {
-      const key = JSON.stringify(combo);
+    const generatedVariants = cartesian.map((combo) => {
+      const key = variantOptionsKey(combo);
       const old = oldVariantsMap.get(key);
-      if (old) return old;
+      if (old) return markVariantCompleteness(old, dimensionNames);
 
-      return ensureVariantLocalKey({
-        sku: buildVariantSku({
-          spu: form.spu,
-          optionsValues: combo,
-          seed: `${Date.now()}-${Math.random()}`,
-        }),
+      return markVariantCompleteness({
+        sku: '',
         barcode: '',
         supplier_sku: '',
         price: 0,
@@ -352,8 +413,21 @@ export function useProductForm({ editMode, initialData, emit }) {
         options_values: combo,
         status: 'active',
         images: [],
-      });
+      }, dimensionNames);
     });
+
+    if (!editMode.value) {
+      form.variants = generatedVariants;
+      return;
+    }
+
+    const generatedKeys = new Set(generatedVariants.map((variant) => variantOptionsKey(variant.options_values)));
+    const preservedExistingVariants = form.variants.filter((variant) => {
+      if (!variant?.id) return false;
+      return !generatedKeys.has(variantOptionsKey(variant.options_values));
+    }).map((variant) => markVariantCompleteness(variant, dimensionNames));
+
+    form.variants = [...preservedExistingVariants, ...generatedVariants].map((variant) => markVariantCompleteness(variant, dimensionNames));
   };
 
   // ——— 选项 CRUD ———
@@ -585,8 +659,9 @@ export function useProductForm({ editMode, initialData, emit }) {
       if (existingMap.has(key)) continue;
       const optionsValues = variant.options_values || {};
       form.variants.push({
-        ...ensureVariantLocalKey(variant),
-        sku: buildVariantSku({ spu: form.spu, optionsValues, seed: key }),
+        ...markVariantCompleteness(variant),
+        sku: String(variant.sku || ''),
+        options_values: optionsValues,
       });
       existingMap.set(key, variant);
     }
@@ -623,6 +698,7 @@ export function useProductForm({ editMode, initialData, emit }) {
     }
     const invalidVariant = form.variants.find(
       (variant) =>
+        !String(variant.sku || '').trim() ||
         variant.price === undefined ||
         variant.cost_price === undefined ||
         variant.stock_quantity === undefined ||
@@ -631,7 +707,17 @@ export function useProductForm({ editMode, initialData, emit }) {
     );
     if (invalidVariant) {
       addToast({
-        message: t('common.validation_error', '请完善每个变体的价格/成本/库存/预警/状态'),
+        message: t('common.validation_error', 'Please complete each variant SKU/price/cost/inventory/alert/status'),
+        type: 'error',
+      });
+      return;
+    }
+    if (incompleteVariantCount.value > 0) {
+      addToast({
+        message: t(
+          'product.form.incomplete_variants_block_submit',
+          'Remove or archive incomplete legacy variants before saving'
+        ),
         type: 'error',
       });
       return;
@@ -664,7 +750,7 @@ export function useProductForm({ editMode, initialData, emit }) {
             })),
           })),
         variants: form.variants.map((variant) => {
-          const { _clientKey, ...variantPayload } = variant;
+          const { _clientKey, _incomplete, ...variantPayload } = variant;
           const payload = {
             ...variantPayload,
             barcode: String(variant.barcode || '').trim() || null,
@@ -712,7 +798,7 @@ export function useProductForm({ editMode, initialData, emit }) {
       }
 
       if (normalized.success) {
-        emit('success');
+        emit('success', normalized.data || null);
         emit('update:modelValue', false);
       }
     } finally {
@@ -750,5 +836,8 @@ export function useProductForm({ editMode, initialData, emit }) {
     handleSubmit,
     variantOptionsKey,
     ensureVariantLocalKey,
+    incompleteVariants,
+    incompleteVariantCount,
+    incompleteVariantsBannerMessage,
   };
 }

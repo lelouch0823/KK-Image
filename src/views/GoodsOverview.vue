@@ -13,6 +13,7 @@
     <ManagementListShell
       :title="t('sidebar.goodsOverview')"
       :description="t('goodsOverview.subtitle')"
+      filters-variant="plain"
     >
       <template #actions>
         <AppButton
@@ -61,7 +62,7 @@
         <!-- 骨架卡片 x4 -->
         <div
           v-for="i in 4" :key="'sk-card-' + i"
-          class="relative overflow-hidden rounded-2xl bg-(--bg-card) p-4 shadow-sm sm:p-5"
+          class="relative overflow-hidden rounded-2xl bg-(--bg-card) p-4 shadow-none sm:p-5"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1 space-y-3">
@@ -83,6 +84,7 @@
           :value="summary.byStatus.confirmed.products"
           icon="clipboard-document-check"
           tone="warning"
+          flat
         >
           <template #meta>
             <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.confirmed.count }) }}</span>
@@ -96,6 +98,7 @@
           :value="summary.byStatus.production.products"
           icon="beaker"
           tone="info"
+          flat
         >
           <template #meta>
             <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.production.count }) }}</span>
@@ -109,6 +112,7 @@
           :value="summary.byStatus.shipping.products"
           icon="building-storefront"
           tone="purple"
+          flat
         >
           <template #meta>
             <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.shipping.count }) }}</span>
@@ -122,6 +126,7 @@
           :value="summary.byStatus.arrived.products"
           icon="check"
           tone="success"
+          flat
         >
           <template #meta>
             <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.arrived.count }) }}</span>
@@ -133,14 +138,14 @@
     </div>
 
     <!-- ===== 总需求 + 缺货摘要：骨架屏 or 真实数据 ===== -->
-    <SummaryStrip v-if="loading && !summary">
+    <SummaryStrip v-if="loading && !summary" flat>
       <div class="skeleton-shimmer h-5 w-28 rounded bg-(--bg-muted)" />
       <div class="h-5 w-px bg-(--border-color)"></div>
       <div class="skeleton-shimmer h-5 w-24 rounded bg-(--bg-muted)" />
       <div class="h-5 w-px bg-(--border-color)"></div>
       <div class="skeleton-shimmer h-5 w-24 rounded bg-(--bg-muted)" />
     </SummaryStrip>
-    <SummaryStrip v-else-if="summary">
+    <SummaryStrip v-else-if="summary" flat>
       <div class="flex items-center gap-2">
         <span class="text-secondary text-sm">{{ t('goodsOverview.summary.totalProducts') }}:</span>
         <span class="text-primary font-semibold">{{ summary.totalProducts }}</span>
@@ -160,12 +165,12 @@
 
 
     <!-- ===== 数据表格：AppTable ===== -->
-    <div class="overflow-hidden rounded-xl bg-(--bg-card) shadow-sm">
       <AppTable
         :columns="columns"
         :data="items"
         :loading="loading"
         :empty-text="t('goodsOverview.empty')"
+        no-border
       >
         <!-- 复选框列头 -->
         <template #header-selection>
@@ -290,7 +295,6 @@
           />
         </template>
       </AppTable>
-    </div>
 
     <!-- ===== 浮动操作栏 ===== -->
     <FloatingSelectionBar :visible="selectedItems.length > 0">

@@ -17,7 +17,10 @@
         <div
           v-for="person in data"
           :key="person.id"
-          class="group relative cursor-pointer overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+          :class="[
+            'group relative cursor-pointer overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) transition-all duration-300 hover:-translate-y-1 hover:shadow-lg',
+            cardClass(person),
+          ]"
           @click="$emit('view-detail', person)"
         >
           <!-- 状态标签 (Top Right) -->
@@ -111,6 +114,10 @@ defineProps({
   loading: {
     type: Boolean,
     default: false,
+  },
+  cardClass: {
+    type: Function,
+    default: () => '',
   },
 });
 

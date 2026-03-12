@@ -9,11 +9,4 @@ describe('Stats design-system migration', () => {
     expect(source).toContain('DashboardShell');
     expect(source).not.toContain('font-display');
   });
-
-  it('keeps the stats main layout spanning the full shell grid width', () => {
-    const source = readFileSync(resolve(process.cwd(), 'src/views/Stats.vue'), 'utf8');
-
-    expect(source).toContain('template #main');
-    expect(source).toContain('lg:col-span-12');
-  });
 });

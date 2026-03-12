@@ -5,7 +5,8 @@
         :key="product.id"
         :class="[
             'group relative cursor-pointer overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) shadow-sm transition-all duration-300 active:scale-[0.98] active:bg-(--bg-hover) active:shadow-none',
-            getStatusBorderClass(product.status)
+            getStatusBorderClass(product.status),
+            cardClass(product),
         ]"
         @click="$emit('view', product)"
     >
@@ -85,7 +86,11 @@ defineProps({
     products: {
         type: Array,
         default: () => []
-    }
+    },
+    cardClass: {
+        type: Function,
+        default: () => '',
+    },
 });
 defineEmits(['view', 'edit', 'share']);
 

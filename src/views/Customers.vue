@@ -1,50 +1,42 @@
 <template>
-  <div class="flex h-full overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-page) shadow-sm">
-    <div v-if="errorCode === 'FORBIDDEN'" class="flex w-full items-center justify-center p-8">
-      <PermissionDeniedState
-        title="客户管理权限不足"
-        :description="error || '当前账号没有客户读取权限，请联系管理员分配 customers:read。'"
-        home-to="/admin/forbidden"
-        home-text="查看权限说明"
-        @retry="loadCustomers"
-      />
-    </div>
-    <template v-else>
-    <!-- Left Side: Main Content -->
-    <div class="flex min-w-0 flex-1 flex-col bg-(--bg-card)">
-      <!-- 头部操作栏 -->
-      <div
-        class="flex shrink-0 flex-col justify-between gap-4 border-b border-(--border-color) p-4 sm:flex-row sm:items-center"
+  <ManagementListShell :title="t('customer.manage.title')" :description="t('customer.manage.subtitle')">
+    <template #actions>
+      <AppButton
+        variant="primary"
+        :text="t('customer.manage.addCustomer')"
+        @click="openCreateModal"
       >
-        <div>
-          <h2 class="text-primary text-lg font-semibold">{{ t('customer.manage.title') }}</h2>
-          <p class="mt-1 text-sm text-(--text-secondary)">{{ t('customer.manage.subtitle') }}</p>
-        </div>
+        <template #icon-left>
+          <AppIcon name="plus" class="size-4" />
+        </template>
+      </AppButton>
+    </template>
 
-        <div class="flex flex-wrap items-center gap-3">
-          <!-- 搜索 -->
-          <SearchInput
-            v-model="searchQuery"
-            :placeholder="t('customer.manage.searchPlaceholder')"
-            class="w-full sm:w-64"
-            @search="handleSearch"
+    <template #filters>
+      <SearchInput
+        v-model="searchQuery"
+        :placeholder="t('customer.manage.searchPlaceholder')"
+        class="w-full sm:w-64"
+        @search="handleSearch"
+      />
+    </template>
+
+    <template #content>
+      <div class="flex h-full min-h-[28rem] overflow-hidden">
+        <div v-if="errorCode === 'FORBIDDEN'" class="flex w-full items-center justify-center p-8">
+          <PermissionDeniedState
+            title="客户管理权限不足"
+            :description="error || '当前账号没有客户读取权限，请联系管理员分配 customers:read。'"
+            home-to="/admin/forbidden"
+            home-text="查看权限说明"
+            @retry="loadCustomers"
           />
-
-          <!-- 添加按钮 -->
-          <AppButton
-            variant="primary"
-            :text="t('customer.manage.addCustomer')"
-            @click="openCreateModal"
-          >
-            <template #icon-left>
-                <AppIcon name="plus" class="size-4" />
-            </template>
-          </AppButton>
         </div>
-      </div>
-
-      <!-- 客户列表 -->
-      <div class="flex-1 overflow-auto p-4 lg:p-0">
+        <template v-else>
+        <!-- Left Side: Main Content -->
+        <div class="flex min-w-0 flex-1 flex-col">
+          <!-- 客户列表 -->
+          <div class="flex-1 overflow-auto p-4 lg:p-0">
         <!-- 桌面端表格 (lg+) -->
         <div class="hidden size-full lg:block">
           <AppTable
@@ -152,29 +144,32 @@
            </div>
         </div>
       </div>
-    </div>
+        </div>
 
-    <!-- Right Side: Detail Panel (Desktop Push) -->
-    <div
-      v-if="showDetailPanel"
-      class="hidden w-96 shrink-0 flex-col border-l border-(--border-color) bg-(--bg-card) transition-all duration-300 ease-in-out lg:flex"
-    >
-      <CustomerDetailContent
-        :customer="viewingCustomer"
-        @close="showDetailPanel = false"
-        @refresh="loadCustomers"
-        @edit="openEditModal"
-      />
-    </div>
+        <!-- Right Side: Detail Panel (Desktop Push) -->
+        <div
+          v-if="showDetailPanel"
+          class="hidden w-96 shrink-0 flex-col border-l border-(--border-color) bg-(--bg-card) transition-all duration-300 ease-in-out lg:flex"
+        >
+          <CustomerDetailContent
+            :customer="viewingCustomer"
+            @close="showDetailPanel = false"
+            @refresh="loadCustomers"
+            @edit="openEditModal"
+          />
+        </div>
 
-    <!-- Mobile Overlay Panel -->
-    <CustomerDetailPanel
-      v-model="showDetailPanel"
-      class="lg:hidden"
-      :customer="viewingCustomer"
-      @refresh="loadCustomers"
-      @edit="openEditModal"
-    />
+        <!-- Mobile Overlay Panel -->
+        <CustomerDetailPanel
+          v-model="showDetailPanel"
+          class="lg:hidden"
+          :customer="viewingCustomer"
+          @refresh="loadCustomers"
+          @edit="openEditModal"
+        />
+        </template>
+      </div>
+    </template>
 
     <!-- 客户表单弹窗 -->
     <Modal
@@ -188,8 +183,7 @@
         @cancel="showFormModal = false"
       />
     </Modal>
-    </template>
-  </div>
+  </ManagementListShell>
 </template>
 
 <script setup>
@@ -201,7 +195,9 @@ import { useAI } from '@/composables/useAI';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import { formatDate } from '@/utils/formatters';
 import { API } from '@/utils/constants';
+import { useManagedListSelection } from '@/composables/useManagedListSelection';
 import SearchInput from '@/components/ui/SearchInput.vue';
+import AppTable from '@/components/ui/AppTable.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import Modal from '@/components/ui/Modal.vue';
 import CustomerForm from '@/components/customer/CustomerForm.vue';
@@ -211,6 +207,8 @@ import CustomerCards from '@/components/customer/CustomerCards.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
+import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -237,9 +235,21 @@ const showDetailPanel = ref(false);
 const viewingCustomer = ref(null);
 let stopCustomersRefreshSubscription = null;
 
-const getRowClass = (row) => {
-  return viewingCustomer.value?.id === row.id ? 'bg-(--color-primary-bg)/50' : '';
-};
+const columns = [
+  { key: 'name', label: t('customer.form.name') },
+  { key: 'contact', label: t('customer.manage.searchPlaceholder') || 'Contact' },
+  { key: 'company', label: t('customer.form.company') },
+  { key: 'tags', label: t('customer.form.tags') },
+  { key: 'createdAt', label: t('common.createdAt', 'Created At') },
+  { key: 'actions', label: '' },
+];
+
+const {
+  clearSelection,
+  getRowClass,
+  handleCreated,
+  selectItem,
+} = useManagedListSelection();
 
 const loadCustomers = async (params = {}) => {
   loading.value = true;
@@ -311,6 +321,7 @@ const openEditModal = (customer) => {
 };
 
 const openDetail = (customer) => {
+  selectItem(customer);
   viewingCustomer.value = customer;
   showDetailPanel.value = true;
 };
@@ -335,12 +346,32 @@ const handleFormSubmit = async (formData) => {
         type: 'success',
       });
       showFormModal.value = false;
-      loadCustomers();
 
-      // Update viewing customer if open
-      if (viewingCustomer.value && viewingCustomer.value.id === editingId.value) {
-        viewingCustomer.value = { ...viewingCustomer.value, ...formData };
+      if (editingId.value) {
+        loadCustomers();
+
+        if (viewingCustomer.value && viewingCustomer.value.id === editingId.value) {
+          viewingCustomer.value = { ...viewingCustomer.value, ...formData };
+        }
+        return;
       }
+
+      await handleCreated({
+        createdId: result.data?.id,
+        resetToFirstPage: () => {
+          pagination.page = 1;
+        },
+        reload: () => loadCustomers({ page: 1 }),
+        getItems: () => customers.value,
+        openDetail,
+        autoOpen: true,
+        onHiddenByFilters: () => {
+          addToast({
+            message: t('customer.manage.createdHiddenByFilters', '客户已创建，但当前筛选条件未显示该客户'),
+            type: 'info',
+          });
+        },
+      });
     } else {
       addToast({ message: result.message, type: 'error' });
     }
@@ -369,6 +400,9 @@ onUnmounted(() => {
 });
 
 watch([showDetailPanel, viewingCustomer], ([isOpen, customer]) => {
+  if (!isOpen) {
+    clearSelection();
+  }
   if (isOpen && customer?.id) {
     setContext({
       selectedId: customer.id,

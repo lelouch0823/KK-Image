@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Management List Concepts</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    :root{--bg:#f8fafc;--bg-2:#f1f5f9;--canvas:#ffffff;--surface:#fffffff2;--soft:#f8fbff;--soft-2:#f3f7fd;--text:#0f172a;--muted:#475569;--faint:#64748b;--line:#cbd5e166;--line-2:#94a3b833;--primary:#2563eb;--primary-strong:#1d4ed8;--primary-soft:#dbeafe;--primary-wash:#eff6ff;--green:#15803d;--green-bg:#dcfce7;--amber:#b45309;--amber-bg:#fef3c7;--red:#b91c1c;--red-bg:#fee2e2;--blue:#1d4ed8;--blue-bg:#dbeafe}
+    *{box-sizing:border-box} body{margin:0;font-family:"Inter","Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--text);background:radial-gradient(circle at top left,#dbeafe 0,transparent 26%),radial-gradient(circle at top right,#eff6ff 0,transparent 32%),linear-gradient(180deg,#ffffff,var(--bg))}
+    .page{width:min(1180px,calc(100% - 36px));margin:0 auto;padding:28px 0 44px}
+    .topbar,.head,.toolbar,.pager{display:flex;justify-content:space-between;gap:16px}.topbar{align-items:end;margin-bottom:24px}.head{align-items:flex-start}.toolbar,.pager{align-items:center}
+    .eyebrow,.tag,.chip,.btn,.page-btn,.pick,.pill{display:inline-flex;align-items:center}.eyebrow,.tag,.chip,.pick{border:1px solid var(--line);background:#ffffff;color:var(--muted)}
+    .eyebrow,.pick{padding:6px 12px;border-radius:999px;font-size:12px}.eyebrow{text-transform:uppercase;letter-spacing:.04em}
+    h1{margin:10px 0 8px;font-size:34px;line-height:1.08;letter-spacing:-.04em} h2{margin:8px 0 6px;font-size:28px;letter-spacing:-.04em} h3{margin:0 0 8px;font-size:25px;letter-spacing:-.03em}
+    p{margin:0}.intro,.desc,.sub,.note{color:var(--muted);line-height:1.7}.intro{max-width:720px;font-size:15px}.desc,.sub,.note{font-size:14px}
+    .legend{display:flex;gap:10px;flex-wrap:wrap}.tag{padding:10px 14px;border-radius:999px;font-size:13px;box-shadow:0 1px 2px #0f172a0a}
+    .grid{display:grid;grid-template-columns:1fr;gap:22px}
+    .concept{min-height:auto;padding:22px;border-radius:30px;background:linear-gradient(180deg,#fffffff5,#f8fbfff2);border:1px solid #ffffff;box-shadow:0 24px 64px #0f172a12}
+    .concept-header{display:flex;justify-content:space-between;gap:14px;margin-bottom:18px}.pick{align-self:flex-start}.pick.rec{background:var(--primary);color:#eff6ff;border-color:transparent}
+    .mock{border-radius:28px;overflow:hidden;background:var(--canvas);border:1px solid var(--line);box-shadow:inset 0 1px 0 #ffffff}
+    .shell{height:100%;padding:22px;display:flex;flex-direction:column;gap:18px}
+    .btn,.page-btn{justify-content:center;border:1px solid var(--line);background:#fff;color:var(--text);font-size:13px;font-weight:600;transition:background-color .2s,border-color .2s,color .2s,box-shadow .2s}
+    .btn{min-height:42px;padding:0 16px;border-radius:999px;cursor:pointer;box-shadow:0 1px 2px #0f172a08}.btn.primary{background:var(--primary);color:#eff6ff;border-color:transparent;box-shadow:0 14px 28px #2563eb2e}
+    .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stat{padding:16px;border-radius:18px;background:#ffffff;border:1px solid var(--line);box-shadow:0 10px 24px #0f172a08}
+    .label{display:block;margin-bottom:10px;color:var(--faint);font-size:12px}.value{font-size:24px;letter-spacing:-.05em}.pill{margin-top:10px;padding:4px 8px;border-radius:999px;background:var(--primary-soft);color:var(--primary-strong);font-size:12px}
+    .filters{display:grid;gap:12px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .input,.select,.chip{min-height:44px;border-radius:14px;font-size:13px}.input,.select{display:inline-flex;align-items:center;padding:0 14px;border:1px solid var(--line);background:#fff}.chip{padding:0 14px;border-radius:999px;background:#fff;box-shadow:0 1px 2px #0f172a08}
+    .input.wide{min-width:210px;flex:1 1 220px}.select{min-width:128px;color:var(--muted)}
+    .table-wrap,.table-card{flex:1;display:flex;flex-direction:column;min-height:0}.table-toolbar{padding:16px 0 14px;color:var(--muted);font-size:13px}
+    table{width:100%;border-collapse:collapse;font-size:13px} thead th{padding:14px 12px;text-align:left;color:var(--faint);font-size:12px;font-weight:700;letter-spacing:.03em;background:transparent} tbody td{padding:16px 12px;vertical-align:middle}
+    .order{font-weight:700;letter-spacing:-.02em}.small{display:block;margin-top:4px;color:var(--faint);font-size:12px}.money{font-weight:700;letter-spacing:-.03em}.links{display:flex;gap:8px;flex-wrap:wrap}.link{color:var(--primary-strong);font-weight:600}
+    .status{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:600}.status:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.75}
+    .green{color:var(--green);background:var(--green-bg)}.amber{color:var(--amber);background:var(--amber-bg)}.red{color:var(--red);background:var(--red-bg)}.blue{color:var(--blue);background:var(--blue-bg)}
+    .page-btn{min-width:36px;height:36px;border-radius:999px;cursor:pointer}.page-btn.active{background:var(--primary);color:#eff6ff;border-color:transparent}
+    .minimal .mock{background:linear-gradient(180deg,#ffffff,#f8fafc)} .minimal .table-card{background:transparent;border:none} .minimal thead tr{border-bottom:1px solid var(--line)} .minimal tbody tr{border-bottom:1px solid #e2e8f0} .minimal tbody tr:nth-child(2n){background:#f8fafc80}
+    .panel .filters{padding:14px;border-radius:20px;background:var(--soft);border:1px solid #dbeafe} .panel .table-card{border-radius:24px;background:#fff;border:1px solid var(--line);box-shadow:0 18px 42px #0f172a0d;padding:0 18px 18px} .panel thead tr{border-bottom:1px solid var(--line)} .panel tbody tr{border-bottom:1px solid #e2e8f0}
+    .soft .mock{background:linear-gradient(180deg,#fbfdff,#f6f9fc)} .soft .stat,.soft .filters,.soft .table-card{background:var(--soft-2);border:1px solid #dbe3ee} .soft .filters{padding:16px;border-radius:22px} .soft .table-card{border-radius:26px;padding:0 18px 18px} .soft thead tr{border-bottom:1px solid var(--line)} .soft tbody tr{border-bottom:1px dashed #cbd5e1} .soft tbody tr:nth-child(2n){background:#ffffff94}
+    .footer{margin-top:22px;padding:16px 18px;border-radius:18px;background:#fff;border:1px solid var(--line);color:var(--muted);font-size:13px;line-height:1.7;box-shadow:0 8px 20px #0f172a08}
+    @media (max-width:900px){.page{width:min(100%,calc(100% - 24px));padding-top:20px}.topbar,.head,.toolbar,.pager{flex-direction:column;align-items:flex-start}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}} @media (max-width:620px){.stats{grid-template-columns:1fr}.shell{padding:18px}table{min-width:720px}}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <div>
+        <div class="eyebrow">KK Image Admin / Order List Concepts</div>
+        <h1>订单管理列表页 3 个方向设计稿</h1>
+        <p class="intro">目标是同时解决两个问题：筛选表单外层包裹感太重，以及表格线框感过强。三稿使用同一套信息结构，只改变容器层级和分隔方式。</p>
+      </div>
+      <div class="legend">
+        <div class="tag">A 最轻</div>
+        <div class="tag">B 最平衡</div>
+        <div class="tag">C 最稳妥</div>
+      </div>
+    </div>
+    <div class="grid">
+      <section class="concept minimal">
+        <div class="concept-header">
+          <div><h3>A. Ultra Minimal</h3><p class="desc">去掉几乎所有外层壳，只保留输入框与表格本体。信息靠留白、字号和轻分割组织。</p></div>
+          <div class="pick">最轻盈</div>
+        </div>
+        <div class="mock"><div class="shell">
+          <div class="head"><div><div class="eyebrow">Orders</div><h2>订单管理</h2><p class="sub">查看订单状态、跟进采购流转，并处理异常订单。</p></div><div class="legend"><div class="btn">导出</div><div class="btn primary">新建订单</div></div></div>
+          <div class="stats">
+            <div class="stat"><span class="label">全部订单</span><div class="value">1,284</div><span class="pill">+8.4% 本周</span></div>
+            <div class="stat"><span class="label">待处理</span><div class="value">76</div><span class="pill">18 单今天新增</span></div>
+            <div class="stat"><span class="label">待采购</span><div class="value">31</div><span class="pill">7 单超 24h</span></div>
+            <div class="stat"><span class="label">异常订单</span><div class="value">12</div><span class="pill">需要人工复核</span></div>
+          </div>
+          <div class="filters">
+            <div class="row"><div class="input wide">搜索订单号 / 客户 / 销售</div><div class="select">全部状态</div><div class="select">采购状态</div><div class="select">最近 30 天</div></div>
+            <div class="row"><div class="chip">销售: 全部</div><div class="chip">高优先级</div><div class="chip">仅看未归档</div><div class="chip">重置筛选</div></div>
+          </div>
+          <div class="table-wrap"><div class="table-card">
+            <div class="table-toolbar">共 1,284 条记录，当前显示 1 - 4，只有轻分隔线，没有厚重外框。</div>
+            <div style="overflow:auto">
+              <table>
+                <thead><tr><th>订单</th><th>客户</th><th>状态</th><th>采购</th><th>金额</th><th>销售</th><th>更新时间</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="order">SO-240312-001</span><span class="small">3 个商品 / 上海</span></td><td>林岚贸易<span class="small">周婷</span></td><td><span class="status green">已确认</span></td><td><span class="status blue">采购中</span></td><td><span class="money">¥ 18,420</span></td><td>唐越</td><td>10:42</td><td><div class="links"><span class="link">详情</span><span class="link">编辑</span></div></td></tr>
+                  <tr><td><span class="order">SO-240312-002</span><span class="small">1 个商品 / 北京</span></td><td>云汐传媒<span class="small">于航</span></td><td><span class="status amber">待付款</span></td><td><span class="status amber">未开始</span></td><td><span class="money">¥ 6,800</span></td><td>苏南</td><td>09:18</td><td><div class="links"><span class="link">详情</span><span class="link">催办</span></div></td></tr>
+                  <tr><td><span class="order">SO-240311-127</span><span class="small">5 个商品 / 深圳</span></td><td>屿川品牌<span class="small">许知</span></td><td><span class="status red">异常</span></td><td><span class="status red">缺货</span></td><td><span class="money">¥ 27,600</span></td><td>顾澄</td><td>昨天 18:36</td><td><div class="links"><span class="link">详情</span><span class="link">处理</span></div></td></tr>
+                  <tr><td><span class="order">SO-240311-103</span><span class="small">2 个商品 / 杭州</span></td><td>光霁工作室<span class="small">沈旻</span></td><td><span class="status green">已发货</span></td><td><span class="status green">完成</span></td><td><span class="money">¥ 12,960</span></td><td>唐越</td><td>昨天 15:02</td><td><div class="links"><span class="link">详情</span><span class="link">打印</span></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pager"><span class="note">更像在一张画布上工作</span><div class="legend"><div class="page-btn">1</div><div class="page-btn active">2</div><div class="page-btn">3</div><div class="page-btn">4</div></div></div>
+          </div></div>
+        </div></div>
+      </section>
+      <section class="concept panel">
+        <div class="concept-header">
+          <div><h3>B. Lite Panel</h3><p class="desc">筛选区改成轻工具带，表格保留一个很淡的主容器。避免卡片套卡片，同时让列表区保持稳态。</p></div>
+          <div class="pick rec">推荐</div>
+        </div>
+        <div class="mock"><div class="shell">
+          <div class="head"><div><div class="eyebrow">Orders</div><h2>订单管理</h2><p class="sub">统一跟进订单、采购和销售协作。视觉目标是轻、稳、精致。</p></div><div class="legend"><div class="btn">批量导出</div><div class="btn primary">创建订单</div></div></div>
+          <div class="stats">
+            <div class="stat"><span class="label">本月成交</span><div class="value">¥ 2.34M</div><span class="pill">较上月 +12%</span></div>
+            <div class="stat"><span class="label">待处理订单</span><div class="value">76</div><span class="pill">优先处理 9 单</span></div>
+            <div class="stat"><span class="label">采购进行中</span><div class="value">31</div><span class="pill">平均时长 13h</span></div>
+            <div class="stat"><span class="label">异常提醒</span><div class="value">12</div><span class="pill">4 单需补库存</span></div>
+          </div>
+          <div class="filters">
+            <div class="row"><div class="input wide">搜索订单号 / 客户 / 联系方式</div><div class="select">订单状态</div><div class="select">采购状态</div><div class="select">销售人员</div><div class="btn">更多筛选</div></div>
+            <div class="row"><div class="chip">高优先级</div><div class="chip">含异常</div><div class="chip">今日新增</div><div class="chip">重置</div></div>
+          </div>
+          <div class="table-wrap"><div class="table-card">
+            <div class="toolbar table-toolbar"><span>已选择 12 条订单，可批量改状态、导出、指派</span><div class="legend"><div class="btn">批量操作</div><div class="btn">刷新</div></div></div>
+            <div style="overflow:auto">
+              <table>
+                <thead><tr><th>订单信息</th><th>客户</th><th>订单状态</th><th>采购进度</th><th>订单金额</th><th>销售</th><th>更新时间</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="order">SO-240312-001</span><span class="small">2026-03-12 10:42 / 3 个商品</span></td><td>林岚贸易<span class="small">周婷 138****2761</span></td><td><span class="status green">已确认</span></td><td><span class="status blue">采购中</span></td><td><span class="money">¥ 18,420</span></td><td>唐越</td><td>10:42</td><td><div class="links"><span class="link">详情</span><span class="link">编辑</span><span class="link">催采</span></div></td></tr>
+                  <tr><td><span class="order">SO-240312-002</span><span class="small">2026-03-12 09:18 / 1 个商品</span></td><td>云汐传媒<span class="small">于航 186****0072</span></td><td><span class="status amber">待付款</span></td><td><span class="status amber">未开始</span></td><td><span class="money">¥ 6,800</span></td><td>苏南</td><td>09:18</td><td><div class="links"><span class="link">详情</span><span class="link">提醒</span></div></td></tr>
+                  <tr><td><span class="order">SO-240311-127</span><span class="small">2026-03-11 18:36 / 5 个商品</span></td><td>屿川品牌<span class="small">许知 155****3321</span></td><td><span class="status red">异常</span></td><td><span class="status red">缺货</span></td><td><span class="money">¥ 27,600</span></td><td>顾澄</td><td>昨天 18:36</td><td><div class="links"><span class="link">详情</span><span class="link">处理</span></div></td></tr>
+                  <tr><td><span class="order">SO-240311-103</span><span class="small">2026-03-11 15:02 / 2 个商品</span></td><td>光霁工作室<span class="small">沈旻 137****9942</span></td><td><span class="status green">已发货</span></td><td><span class="status green">已完成</span></td><td><span class="money">¥ 12,960</span></td><td>唐越</td><td>昨天 15:02</td><td><div class="links"><span class="link">详情</span><span class="link">打印</span></div></td></tr>
+                  <tr><td><span class="order">SO-240311-084</span><span class="small">2026-03-11 11:27 / 4 个商品</span></td><td>初见生活<span class="small">赵禾 133****7812</span></td><td><span class="status blue">生产中</span></td><td><span class="status blue">待入库</span></td><td><span class="money">¥ 9,540</span></td><td>叶舟</td><td>昨天 11:27</td><td><div class="links"><span class="link">详情</span><span class="link">跟进</span></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pager"><span class="note">主容器只保留一层，行分隔更轻，hover 更柔和</span><div class="legend"><div class="page-btn">1</div><div class="page-btn active">2</div><div class="page-btn">3</div><div class="page-btn">4</div></div></div>
+          </div></div>
+        </div></div>
+      </section>
+      <section class="concept soft">
+        <div class="concept-header">
+          <div><h3>C. Soft Section</h3><p class="desc">保留区块，但所有模块都改成浅底、弱边界和更统一的圆角，视觉更稳健。</p></div>
+          <div class="pick">最保守</div>
+        </div>
+        <div class="mock"><div class="shell">
+          <div class="head"><div><div class="eyebrow">Orders</div><h2>订单管理</h2><p class="sub">适合从现有偏卡片式后台平滑过渡，整体不会跳得太明显。</p></div><div class="legend"><div class="btn">导出订单</div><div class="btn primary">创建订单</div></div></div>
+          <div class="stats">
+            <div class="stat"><span class="label">订单总数</span><div class="value">1,284</div><span class="pill">分区感更明显</span></div>
+            <div class="stat"><span class="label">待确认</span><div class="value">42</div><span class="pill">需要销售跟进</span></div>
+            <div class="stat"><span class="label">待采购</span><div class="value">31</div><span class="pill">采购提醒开启</span></div>
+            <div class="stat"><span class="label">已完成</span><div class="value">876</div><span class="pill">完成率 68.2%</span></div>
+          </div>
+          <div class="filters">
+            <div class="row"><div class="input wide">搜索订单号、客户、手机号</div><div class="select">状态筛选</div><div class="select">采购阶段</div><div class="select">时间范围</div></div>
+            <div class="row"><div class="chip">按异常排序</div><div class="chip">仅看我的订单</div><div class="chip">导出当前结果</div></div>
+          </div>
+          <div class="table-wrap"><div class="table-card">
+            <div class="table-toolbar">浅色区块适合保留一定系统化分组感，更适合当前仍有较多 panel 的后台。</div>
+            <div style="overflow:auto">
+              <table>
+                <thead><tr><th>订单信息</th><th>客户</th><th>订单状态</th><th>采购状态</th><th>金额</th><th>负责人</th><th>更新时间</th><th>动作</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="order">SO-240312-001</span><span class="small">3 个商品 / 备注完整</span></td><td>林岚贸易<span class="small">周婷</span></td><td><span class="status green">已确认</span></td><td><span class="status blue">采购中</span></td><td><span class="money">¥ 18,420</span></td><td>唐越</td><td>10:42</td><td><div class="links"><span class="link">详情</span><span class="link">编辑</span></div></td></tr>
+                  <tr><td><span class="order">SO-240312-002</span><span class="small">1 个商品 / 常规单</span></td><td>云汐传媒<span class="small">于航</span></td><td><span class="status amber">待付款</span></td><td><span class="status amber">未开始</span></td><td><span class="money">¥ 6,800</span></td><td>苏南</td><td>09:18</td><td><div class="links"><span class="link">详情</span><span class="link">提醒</span></div></td></tr>
+                  <tr><td><span class="order">SO-240311-127</span><span class="small">5 个商品 / 需要补货</span></td><td>屿川品牌<span class="small">许知</span></td><td><span class="status red">异常</span></td><td><span class="status red">缺货</span></td><td><span class="money">¥ 27,600</span></td><td>顾澄</td><td>昨天 18:36</td><td><div class="links"><span class="link">详情</span><span class="link">处理</span></div></td></tr>
+                  <tr><td><span class="order">SO-240311-103</span><span class="small">2 个商品 / 已发货</span></td><td>光霁工作室<span class="small">沈旻</span></td><td><span class="status green">已发货</span></td><td><span class="status green">完成</span></td><td><span class="money">¥ 12,960</span></td><td>唐越</td><td>昨天 15:02</td><td><div class="links"><span class="link">详情</span><span class="link">打印</span></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pager"><span class="note">模块更完整，但仍比现在的卡片感轻很多</span><div class="legend"><div class="page-btn">1</div><div class="page-btn active">2</div><div class="page-btn">3</div><div class="page-btn">4</div></div></div>
+          </div></div>
+        </div></div>
+      </section>
+    </div>
+    <div class="footer">建议优先关注三点差异：第一，筛选区是否还像一个“被包裹的模块”；第二，表格边界是否还有明显线框感；第三，页面是否足够稳，不会和你现有系统风格完全脱节。当前我的推荐顺序是 B、A、C。</div>
+  </div>
+</body>
+</html>

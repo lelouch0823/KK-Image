@@ -61,5 +61,46 @@ describe('ProductVariantTable', () => {
         expect(wrapper.find('input[placeholder="SKU"]').element.value).toBe('SKU-FROM-PARENT');
         expect(wrapper.find('input[placeholder="0.00"]').element.value).toBe('20');
     });
-});
 
+    it('removes a variant row when delete action is clicked', async () => {
+        const wrapper = mount(ProductVariantTable, {
+            props: {
+                modelValue: [
+                    ...baseVariants,
+                    {
+                        ...baseVariants[0],
+                        id: 'v2',
+                        sku: 'SKU-2',
+                        options_values: { Color: 'Blue' },
+                    },
+                ],
+            },
+        });
+
+        await wrapper.find('[data-testid="delete-variant-0"]').trigger('click');
+
+        const updates = wrapper.emitted('update:modelValue');
+        expect(updates).toBeTruthy();
+        const lastPayload = updates[updates.length - 1][0];
+        expect(lastPayload).toHaveLength(1);
+        expect(lastPayload[0].id).toBe('v2');
+    });
+
+    it('renders incomplete variants as pending warning rows', () => {
+        const wrapper = mount(ProductVariantTable, {
+            props: {
+                modelValue: [
+                    {
+                        ...baseVariants[0],
+                        status: 'pending_incomplete',
+                        options_values: { Color: 'Red' },
+                    },
+                ],
+            },
+        });
+
+        expect(wrapper.find('[data-testid="variant-row-0"]').attributes('data-variant-state')).toBe('pending_incomplete');
+        expect(wrapper.text()).toContain('Pending');
+        expect(wrapper.text()).toContain('This legacy variant no longer matches the current spec structure.');
+    });
+});

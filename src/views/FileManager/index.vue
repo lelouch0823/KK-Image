@@ -2,7 +2,7 @@
   <ManagementListShell :title="t('sidebar.files')" :description="t('fileManager.filesHeader')">
   <template #content>
   <div
-    class="relative flex min-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card)"
+    class="relative flex min-h-[calc(100vh-8rem)] flex-col overflow-hidden"
     @dragenter="onDragEnter"
     @dragleave="onDragLeave"
     @dragover="onDragOver"

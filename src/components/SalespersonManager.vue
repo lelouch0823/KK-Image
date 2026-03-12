@@ -1,6 +1,26 @@
 <template>
-  <div class="rounded-xl border border-(--border-color) bg-(--bg-card) shadow-sm">
-    <div v-if="errorCode === 'FORBIDDEN'" class="p-6">
+  <ManagementListShell :title="t('salesperson.title')" :description="t('salesperson.subtitle')">
+    <template #actions>
+      <button
+        class="bg-primary shadow-primary/10 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) shadow-lg transition-all hover:bg-(--color-primary-hover) active:scale-95"
+        @click="openModal()"
+      >
+        <AppIcon name="plus" class="size-4" />
+        {{ t('salesperson.create') }}
+      </button>
+    </template>
+
+    <template #filters>
+      <SearchInput
+        v-model="searchQuery"
+        :placeholder="t('common.searchPlaceholder')"
+        class="w-full sm:w-64"
+        @search="handleSearch"
+      />
+    </template>
+
+    <template #content>
+    <div v-if="errorCode === 'FORBIDDEN'" class="p-2 sm:p-4">
       <PermissionDeniedState
         title="销售人员管理权限不足"
         :description="error || '当前账号没有销售人员管理权限，请联系管理员分配 salespersons:manage。'"
@@ -9,54 +29,13 @@
       />
     </div>
     <template v-else>
-    <!-- 头部操作栏 -->
-    <!-- 头部操作栏 -->
-    <div
-      class="flex flex-col gap-4 border-b border-(--border-color) p-4 sm:flex-row sm:items-center sm:justify-between"
-    >
-      <!-- Title Section -->
-      <div class="flex items-center justify-between sm:block">
-        <div>
-          <h2 class="text-lg font-semibold text-(--text-main)">{{ t('salesperson.title') }}</h2>
-          <p class="mt-1 text-sm text-(--text-secondary)">{{ t('salesperson.subtitle') }}</p>
-        </div>
-
-        <!-- Mobile Create Button -->
-        <button
-          class="bg-primary shadow-primary/20 flex size-9 items-center justify-center rounded-xl text-(--text-inverse) shadow-lg transition-all active:scale-95 sm:hidden "
-          @click="openModal()"
-        >
-          <AppIcon name="plus" class="size-5" />
-        </button>
-      </div>
-
-      <div class="flex flex-wrap items-center gap-3">
-        <!-- 搜索 -->
-        <SearchInput
-          v-model="searchQuery"
-          :placeholder="t('common.searchPlaceholder')"
-          class="w-full sm:w-64"
-          @search="handleSearch"
-        />
-
-        <!-- 新建按钮 (Desktop) -->
-        <button
-          class="bg-primary shadow-primary/10 hidden items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) shadow-lg transition-all hover:bg-(--color-primary-hover) active:scale-95 sm:flex "
-          @click="openModal()"
-        >
-          <AppIcon name="plus" class="size-4" />
-          {{ t('salesperson.create') }}
-        </button>
-      </div>
-    </div>
-
-    <!-- 列表内容 -->
     <div class="overflow-x-auto">
       <!-- 桌面表格视图 (lg+) -->
       <div class="hidden lg:block">
         <SalespersonTable
           :data="salespersons"
           :loading="loading"
+          :row-class="getRowClass"
           @edit="openModal"
           @delete="confirmDelete"
           @copy="copyAccessLink"
@@ -70,6 +49,7 @@
         <SalespersonCards
           :data="salespersons"
           :loading="loading"
+          :card-class="getRowClass"
           @edit="openModal"
           @delete="confirmDelete"
           @copy="copyAccessLink"
@@ -80,7 +60,7 @@
     </div>
 
     <!-- 分页 -->
-    <div class="border-t border-(--border-color) p-4">
+    <div class="mt-4 border-t border-(--border-color)/70 pt-4">
       <Pagination
         v-model:current-page="currentPage"
         :total-pages="pagination.totalPages"
@@ -115,20 +95,24 @@
       @confirm="confirmData.onConfirm"
     />
     </template>
-  </div>
+    </template>
+  </ManagementListShell>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onActivated, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onActivated, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSalespersons } from '@/composables/useSalespersons';
 import { useI18n } from '@/composables/useI18n';
+import { useToast } from '@/composables/useToast';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
+import { useManagedListSelection } from '@/composables/useManagedListSelection';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import SalespersonTable from './salesperson/SalespersonTable.vue';
 import SalespersonCards from './salesperson/SalespersonCards.vue';
 import SalespersonForm from './salesperson/SalespersonForm.vue';
@@ -149,6 +133,7 @@ const {
 } = useSalespersons();
 
 const { t } = useI18n();
+const { addToast } = useToast();
 const router = useRouter();
 const { subscribeModule } = useAppRefreshBus();
 
@@ -159,6 +144,7 @@ const editingSalesperson = ref(null);
 const showDetailModal = ref(false);
 const detailPerson = ref(null);
 let stopSalespersonsRefreshSubscription = null;
+const { clearSelection, getRowClass, handleCreated, selectItem } = useManagedListSelection();
 
 // 确认弹窗状态
 const confirmData = ref({
@@ -176,7 +162,7 @@ const currentPage = computed({
 });
 
 const refreshCurrentList = (forceRefresh = false) => {
-  loadSalespersons(
+  return loadSalespersons(
     {
       page: pagination.page || 1,
       search: searchQuery.value,
@@ -236,7 +222,29 @@ const handleSubmit = async (formData) => {
 
     if (success) {
       showModal.value = false;
-      refreshCurrentList(true);
+      if (formData.id) {
+        await refreshCurrentList(true);
+        return;
+      }
+
+      await handleCreated({
+        createdId: success.id,
+        resetToFirstPage: () => {
+          pagination.page = 1;
+        },
+        reload: () => loadSalespersons({ page: 1, search: searchQuery.value }, true),
+        getItems: () => salespersons.value,
+        autoOpen: true,
+        openDetail: (person) => {
+          handleViewDetail(person);
+        },
+        onHiddenByFilters: () => {
+          addToast({
+            message: t('salesperson.createdHiddenByFilters', '销售人员已创建，但当前筛选条件未显示该项'),
+            type: 'info',
+          });
+        },
+      });
     }
   } finally {
     submitting.value = false;
@@ -299,7 +307,14 @@ const handleViewOrders = (person) => {
 };
 
 const handleViewDetail = (person) => {
+  selectItem(person);
   detailPerson.value = person;
   showDetailModal.value = true;
 };
+
+watch(showDetailModal, (isOpen) => {
+  if (!isOpen) {
+    clearSelection();
+  }
+});
 </script>

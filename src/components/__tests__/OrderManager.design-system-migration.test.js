@@ -7,4 +7,11 @@ describe('OrderManager design-system migration', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/components/OrderManager.vue'), 'utf8');
     expect(source).toContain('ManagementListShell');
   });
+
+  it('keeps the page title in the shell instead of the filter bar', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/components/order/OrderFilters.vue'), 'utf8');
+    expect(source).toContain('<AppFilterBar');
+    expect(source).not.toContain('<AppFilterBar :title=');
+    expect(source).not.toContain('<AppFilterBar :subtitle=');
+  });
 });

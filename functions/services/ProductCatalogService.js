@@ -52,6 +52,16 @@ function buildCatalogRollbackPayload(variants = []) {
     }));
 }
 
+function buildProductRollbackPayload(product = {}) {
+    const rollback = {};
+    for (const field of PRODUCT_MUTABLE_FIELDS) {
+        if (Object.prototype.hasOwnProperty.call(product, field)) {
+            rollback[field] = product[field];
+        }
+    }
+    return rollback;
+}
+
 const appendLookup = (lookup, key, variant) => {
     if (!key) return;
     if (!lookup.has(key)) lookup.set(key, []);
@@ -472,6 +482,10 @@ export class ProductCatalogService {
         const nextBody = { ...body };
         if (nextBody.dimensions !== undefined) delete nextBody.dimensions;
 
+        Object.assign(nextBody, validateProductPayload(nextBody, {
+            allowExistingVariantStockOmission: true,
+        }));
+
         if (nextBody.variants !== undefined) {
             const dimensions = incomingDimensions
                 ? await this.syncDimensionsFromPayload(productId, incomingDimensions)
@@ -481,8 +495,6 @@ export class ProductCatalogService {
                 dimensions
             );
         }
-
-        Object.assign(nextBody, validateProductPayload(nextBody));
 
         const hasProductFieldUpdates = Object.keys(nextBody).some((key) => PRODUCT_MUTABLE_FIELDS.has(key));
         if (!hasProductFieldUpdates) {
@@ -607,21 +619,33 @@ export class ProductCatalogService {
             let createdProductId = null;
             let productId = null;
             let productOperation = null;
+            let existingProductSnapshot = null;
+            let existingVariantsSnapshot = null;
+            let existingDimensionsSnapshot = null;
 
             try {
                 assertBatchItem(item);
-                const spu = item.spu ? String(item.spu).trim() : null;
+                const normalizedItem = validateProductPayload({
+                    ...item,
+                    variants: normalizeVariantExternalCodes(item.variants),
+                }, { requireVariants: true });
+                const spu = normalizedItem.spu ? String(normalizedItem.spu).trim() : null;
                 let isNew = false;
 
                 if (spu) {
                     const existing = await this.productRepo.findBySpu(spu);
                     if (existing) {
                         productId = existing.id;
+                        existingProductSnapshot = typeof this.productRepo.findById === 'function'
+                            ? await this.productRepo.findById(productId)
+                            : existing;
+                        existingDimensionsSnapshot = await this.dimensionRepo.listByProduct(productId);
                         productOperation = 'updated';
-                        const updateData = { ...item };
+                        const updateData = { ...normalizedItem };
                         delete updateData.variants;
+                        delete updateData.dimensions;
                         const nextUpdateData = importMode === IMPORT_MODE.SAFE_MERGE
-                            ? buildSafeProductUpdateData(existing, updateData, conflicts)
+                            ? buildSafeProductUpdateData(existingProductSnapshot || existing, updateData, conflicts)
                             : updateData;
                         if (Object.keys(nextUpdateData).length > 0) {
                             const updateResult = await this.productRepo.updateWithMeta(productId, nextUpdateData);
@@ -633,8 +657,9 @@ export class ProductCatalogService {
                 }
 
                 if (!productId) {
-                    const createData = { ...item };
+                    const createData = { ...normalizedItem };
                     delete createData.variants;
+                    delete createData.dimensions;
                     const newProduct = await this.productRepo.create(createData);
                     productId = newProduct.id;
                     createdProductId = productId;
@@ -642,14 +667,20 @@ export class ProductCatalogService {
                     productOperation = 'created';
                 }
 
-                if (item.variants && item.variants.length > 0) {
+                if (normalizedItem.variants && normalizedItem.variants.length > 0) {
                     const existingVariants = isNew ? [] : await this.variantRepo.findByProductId(productId);
-                    const variantsToSync = mergeIncomingWithExisting(existingVariants, item.variants);
+                    existingVariantsSnapshot = existingVariants;
+                    let normalizedVariants = normalizedItem.variants;
+                    if (Array.isArray(normalizedItem.dimensions) && normalizedItem.dimensions.length > 0) {
+                        const dimensions = await this.syncDimensionsFromPayload(productId, normalizedItem.dimensions);
+                        normalizedVariants = normalizeVariantDimensionKeys(normalizedVariants, dimensions);
+                    }
+                    const variantsToSync = mergeIncomingWithExisting(existingVariants, normalizedVariants);
                     const nextVariantsToSync = importMode === IMPORT_MODE.SAFE_MERGE
-                        ? buildSafeVariantSyncPayload(existingVariants, variantsToSync, conflicts, item)
+                        ? buildSafeVariantSyncPayload(existingVariants, variantsToSync, conflicts, normalizedItem)
                         : variantsToSync;
                     const existingIdSet = new Set(existingVariants.map((variant) => variant.id));
-                    const incomingVariantCount = Array.isArray(item.variants) ? item.variants.length : 0;
+                    const incomingVariantCount = Array.isArray(normalizedItem.variants) ? normalizedItem.variants.length : 0;
                     const matchedUpdateCount = nextVariantsToSync.reduce((count, variant) => (
                         variant?.id && existingIdSet.has(variant.id) ? count + 1 : count
                     ), 0);
@@ -682,6 +713,23 @@ export class ProductCatalogService {
                         summary.createdProducts = Math.max(0, summary.createdProducts - 1);
                     }
                     updatedProductIds.delete(createdProductId);
+                } else if (productOperation === 'updated' && productId) {
+                    try {
+                        if (existingProductSnapshot) {
+                            const rollbackProductData = buildProductRollbackPayload(existingProductSnapshot);
+                            if (Object.keys(rollbackProductData).length > 0) {
+                                await this.productRepo.updateWithMeta(productId, rollbackProductData);
+                            }
+                        }
+                        if (existingDimensionsSnapshot && typeof this.dimensionRepo.restoreSnapshot === 'function') {
+                            await this.dimensionRepo.restoreSnapshot(productId, existingDimensionsSnapshot);
+                        }
+                        if (existingVariantsSnapshot) {
+                            await this.variantRepo.syncVariants(productId, buildCatalogRollbackPayload(existingVariantsSnapshot));
+                        }
+                    } catch (rollbackError) {
+                        console.error('Batch product update rollback failed:', rollbackError);
+                    }
                 }
                 summary.failedProducts++;
                 errors.push(`Failed to process item ${item.spu || item.name}: ${error.message}`);

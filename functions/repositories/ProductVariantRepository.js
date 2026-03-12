@@ -12,8 +12,7 @@ export class ProductVariantRepository {
     buildVariantSku(inputSku, variantId) {
         const normalized = String(inputSku || '').trim();
         if (normalized) return normalized;
-        const seed = String(variantId || generateId()).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-        return `SKU-${seed.slice(0, 8)}`;
+        throw new Error(`variant sku is required${variantId ? ` (${variantId})` : ''}`);
     }
 
     normalizeExternalCode(value) {

@@ -58,10 +58,7 @@
         <template #main>
 
       <!-- Main Layout -->
-      <div
-        v-if="dashboardErrorCode !== 'FORBIDDEN'"
-        class="grid h-full grid-cols-1 gap-6 pb-8 lg:col-span-12 lg:grid-cols-12"
-      >
+      <div v-if="dashboardErrorCode !== 'FORBIDDEN'" class="grid h-full grid-cols-1 gap-6 pb-8 lg:grid-cols-12">
         
         <!-- Pending Orders List (Left Column - 5 cols) -->
         <div class="flex flex-col gap-6 lg:col-span-5">
