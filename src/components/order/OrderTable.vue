@@ -5,6 +5,7 @@
     :loading="loading"
     row-key="id"
     class="h-full"
+    no-border
     :virtual="data.length > 50"
     :estimate-size="64"
     @row-click="$emit('detail', $event)"

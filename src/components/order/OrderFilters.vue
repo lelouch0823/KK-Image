@@ -1,5 +1,5 @@
 <template>
-  <AppFilterBar :title="t('order.manage.title')" :subtitle="t('order.manage.subtitle')">
+  <AppFilterBar>
     <template #actions>
       <!-- Desktop: Create + Export buttons -->
       <div class="hidden shrink-0 items-center gap-2 sm:flex">
