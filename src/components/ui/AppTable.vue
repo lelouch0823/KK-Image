@@ -36,13 +36,22 @@
                 :key="col.key"
                 class="px-4 py-3.5 font-semibold whitespace-nowrap"
                 :class="[
+                  col.sortable ? 'cursor-pointer select-none' : '',
                   col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
                   col.class
                 ]"
                 :style="{ width: col.width }"
+                @click="toggleSort(col)"
               >
                 <slot :name="`header-${col.key}`" :column="col">
-                  {{ col.label }}
+                  <span class="inline-flex items-center gap-1">
+                    <span>{{ col.label }}</span>
+                    <AppIcon
+                      v-if="col.sortable"
+                      :name="getSortIcon(col)"
+                      class="size-4 text-(--text-muted)"
+                    />
+                  </span>
                 </slot>
               </th>
             </tr>
@@ -224,9 +233,17 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  sortBy: {
+    type: String,
+    default: '',
+  },
+  sortOrder: {
+    type: String,
+    default: '',
+  },
 });
 
-const emit = defineEmits(['row-click']);
+const emit = defineEmits(['row-click', 'sort-change']);
 
 const { t } = useI18n();
 const parentRef = ref(null);
@@ -242,6 +259,27 @@ const stageMinHeight = computed(() => {
   const rowHeight = props.estimateSize || 48;
   return `${headerHeight + rowHeight * props.minRows}px`;
 });
+
+const getSortIcon = (column) => {
+  if (props.sortBy !== column.key || !props.sortOrder) return 'arrows-up-down';
+  return props.sortOrder === 'asc' ? 'chevron-up' : 'chevron-down';
+};
+
+const toggleSort = (column) => {
+  if (!column?.sortable) return;
+
+  if (props.sortBy !== column.key) {
+    emit('sort-change', { sortBy: column.key, sortOrder: 'asc' });
+    return;
+  }
+
+  if (props.sortOrder === 'asc') {
+    emit('sort-change', { sortBy: column.key, sortOrder: 'desc' });
+    return;
+  }
+
+  emit('sort-change', { sortBy: '', sortOrder: '' });
+};
 
 // TanStack Virtual 配置 - 使用 computed 来响应数据变化
 const rowVirtualizerOptions = computed(() => ({

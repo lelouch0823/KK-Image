@@ -3,7 +3,7 @@
       <template #actions>
             <!-- Create Button -->
             <button 
-                class="bg-primary shadow-primary/20 flex items-center justify-center gap-2 rounded-lg text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:bg-primary-hover active:scale-95 max-sm:size-9 sm:h-9 sm:px-4"
+                class="bg-primary shadow-primary/20 flex items-center justify-center gap-2 rounded-lg text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:bg-primary-hover active:scale-95 max-sm:size-9 sm:h-9 sm:px-4 lg:hidden"
                 :title="t('product.action.create')"
                 @click="handleCreate"
             >
@@ -13,7 +13,7 @@
 
             <!-- Import Button -->
             <button
-                class="hover:text-info hover:bg-(--bg-hover) flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all active:scale-95"
+                class="hover:text-info hover:bg-(--bg-hover) flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all active:scale-95 lg:hidden"
                 :title="t('product.action.import')"
                 @click="showImportModal = true"
             >
@@ -22,7 +22,7 @@
 
             <!-- Export Button -->
             <button
-                class="hover:text-info hover:bg-(--bg-hover) flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all active:scale-95"
+                class="hover:text-info hover:bg-(--bg-hover) flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all active:scale-95 lg:hidden"
                 :title="t('product.action.export')"
                 @click="handleExport"
             >
@@ -31,7 +31,7 @@
 
              <!-- Stats Button -->
             <button
-                class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) transition-all hover:bg-(--bg-hover) active:scale-95"
+                class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) transition-all hover:bg-(--bg-hover) active:scale-95 lg:hidden"
                 :title="t('product.manager.stats_overview')"
                 @click="showStatsModal = true"
             >
@@ -43,8 +43,48 @@
             <ProductFilters 
                 v-model:search="filters.search" 
                 v-model:status="filters.status"
-                @refresh="loadProducts({ page: 1, status: filters.status, search: filters.search })"
-            />
+                v-model:brand="filters.brand"
+                v-model:category="filters.category"
+                v-model:has-stock="filters.hasStock"
+                :brand-options="brandOptions"
+                :category-options="categoryOptions"
+                @refresh="handleFilterRefresh"
+            >
+                <template #actions>
+                    <button 
+                        class="bg-primary shadow-primary/20 flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap text-(--text-inverse) shadow-sm transition-all hover:bg-primary-hover active:scale-95 xl:px-4"
+                        :title="t('product.action.create')"
+                        @click="handleCreate"
+                    >
+                        <AppIcon name="plus" class="size-4" />
+                        <span>{{ t('product.action.create') }}</span>
+                    </button>
+
+                    <button
+                        class="hover:text-info hover:bg-(--bg-hover) flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all active:scale-95"
+                        :title="t('product.action.import')"
+                        @click="showImportModal = true"
+                    >
+                        <AppIcon name="arrow-up-tray" class="size-5" />
+                    </button>
+
+                    <button
+                        class="hover:text-info hover:bg-(--bg-hover) flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all active:scale-95"
+                        :title="t('product.action.export')"
+                        @click="handleExport"
+                    >
+                        <AppIcon name="arrow-down-tray" class="size-5" />
+                    </button>
+
+                    <button
+                        class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) transition-all hover:bg-(--bg-hover) active:scale-95"
+                        :title="t('product.manager.stats_overview')"
+                        @click="showStatsModal = true"
+                    >
+                        <AppIcon name="chart-bar" class="size-5" />
+                    </button>
+                </template>
+            </ProductFilters>
       </template>
 
     <!-- Stats Modal (Popup) -->
@@ -102,10 +142,13 @@
          <ProductTable 
            :products="products"
            :row-class="getRowClass"
+           :sort-by="filters.sortBy"
+           :sort-order="filters.sortOrder"
            @view="handleView"
            @edit="handleEditWithHydration" 
            @delete="handleDelete" 
            @share="handleShare"
+           @sort-change="handleSortChange"
         />
       </div>
 
@@ -125,7 +168,7 @@
         <PermissionDeniedState
             v-if="error && errorCode === 'FORBIDDEN'"
             :reason="error"
-            @retry="loadProducts()"
+            @retry="reloadProducts"
         />
         <EmptyState
             v-else-if="error"
@@ -134,7 +177,7 @@
             :description="error"
         >
             <template #action>
-                 <button class="btn btn-primary" @click="loadProducts()">
+                 <button class="btn btn-primary" @click="reloadProducts">
                     {{ t('common.action.retry') }}
                  </button>
             </template>
@@ -158,7 +201,7 @@
         <Pagination
             v-model:current-page="pagination.page"
             :total-pages="pagination.totalPages"
-            @change="(p) => loadProducts({ page: p })"
+            @change="(p) => loadProducts(buildProductQuery({ page: p }))"
         />
     </div>
       </template>
@@ -166,7 +209,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, defineAsyncComponent, watch } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, defineAsyncComponent, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useProducts } from '@/composables/useProducts';
 import { useAI } from '@/composables/useAI';
@@ -199,7 +242,7 @@ const { addToast } = useToast();
 const { subscribeModule } = useAppRefreshBus();
 const { clearSelection, getRowClass, handleCreated, selectItem } = useManagedListSelection();
 
-const { products, loading, error, errorCode, pagination, loadProducts, deleteProduct, loadProduct } = useProducts();
+const { products, loading, error, errorCode, availableFilters, pagination, loadProducts, deleteProduct, loadProduct } = useProducts();
 
 const showStatsModal = ref(false);
 const showCreateModal = ref(false); 
@@ -217,21 +260,47 @@ let stopProductsRefreshSubscription = null;
 
 const filters = reactive({
     search: '',
-    status: ''
+    status: '',
+    brand: '',
+    category: '',
+    hasStock: '',
+    sortBy: '',
+    sortOrder: '',
 });
+
+const buildProductQuery = (overrides = {}) => {
+    const query = {
+        page: pagination.page || 1,
+        search: filters.search,
+        status: filters.status,
+        brand: filters.brand,
+        category: filters.category,
+        hasStock: filters.hasStock,
+        sortBy: filters.sortBy,
+        sortOrder: filters.sortOrder,
+        ...overrides,
+    };
+
+    return Object.fromEntries(
+        Object.entries(query).filter(([, value]) => value !== '' && value !== null && value !== undefined)
+    );
+};
+
+const reloadProducts = (overrides = {}, forceRefresh = false) => loadProducts(buildProductQuery(overrides), forceRefresh);
+const handleFilterRefresh = () => reloadProducts({ page: 1 });
+
+const brandOptions = computed(() => availableFilters.value?.brands || []);
+
+const categoryOptions = computed(() => availableFilters.value?.categories || []);
 
 onMounted(async () => {
     stopProductsRefreshSubscription = subscribeModule('products', () => {
         if (!showCreateModal.value && !showDetailModal.value && !showImportModal.value && !showExportModal.value) {
-            loadProducts({
-                page: pagination.page || 1,
-                status: filters.status,
-                search: filters.search,
-            }, true);
+            reloadProducts({}, true);
         }
     });
 
-    loadProducts();
+    reloadProducts();
     
     // Auto-open edit modal if query param is present
     if (route.query.edit) {
@@ -328,14 +397,7 @@ const handleShareCreated = (space) => {
 
 const handleModalSuccess = async (createdProduct = null) => {
     if (!createdProduct?.id || isEditMode.value) {
-        await loadProducts(
-            {
-                page: pagination.page || 1,
-                status: filters.status,
-                search: filters.search,
-            },
-            true
-        );
+        await reloadProducts({}, true);
         return;
     }
 
@@ -344,14 +406,7 @@ const handleModalSuccess = async (createdProduct = null) => {
         resetToFirstPage: () => {
             pagination.page = 1;
         },
-        reload: () => loadProducts(
-            {
-                page: 1,
-                status: filters.status,
-                search: filters.search,
-            },
-            true
-        ),
+        reload: () => reloadProducts({ page: 1 }, true),
         getItems: () => products.value,
         autoOpen: true,
         openDetail: (product) => {
@@ -369,12 +424,18 @@ const handleModalSuccess = async (createdProduct = null) => {
 const handleDelete = async (product) => {
     if (confirm(t('product.action.delete_confirm_message', { name: product.name }))) {
         await deleteProduct(product.id);
-        loadProducts(); 
+        reloadProducts(); 
     }
 };
 
 const handleExport = () => {
     showExportModal.value = true;
+};
+
+const handleSortChange = async ({ sortBy, sortOrder }) => {
+    filters.sortBy = sortBy;
+    filters.sortOrder = sortOrder;
+    await reloadProducts({ page: 1 });
 };
 
 watch([showDetailModal, viewingProduct], ([isOpen, product]) => {

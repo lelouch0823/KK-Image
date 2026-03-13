@@ -1,8 +1,10 @@
+import { computed } from 'vue';
 import { useResource } from './useResource';
 import { API } from '@/utils/constants';
 
 export function useProducts() {
     const resource = useResource(API.MANAGE_PRODUCTS);
+    const availableFilters = computed(() => resource.lastResponse.value?.filters || { brands: [], categories: [] });
 
     const importProducts = async (items, { importMode = 'replace' } = {}) => {
         return resource.rawRequest('/batch', {
@@ -141,6 +143,7 @@ export function useProducts() {
         loading: resource.loading,
         error: resource.error,
         errorCode: resource.errorCode,
+        availableFilters,
         pagination: resource.pagination,
         loadProducts: resource.loadItems,
         createProduct: resource.createItem,

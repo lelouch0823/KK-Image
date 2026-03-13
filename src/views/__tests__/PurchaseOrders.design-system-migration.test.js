@@ -14,6 +14,7 @@ describe('PurchaseOrders design-system migration', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/views/PurchaseOrders.vue'), 'utf8');
 
     expect(source).not.toContain('overflow-hidden rounded-xl bg-(--bg-card) shadow-sm');
+    expect(source).not.toContain('data-testid="purchase-order-list-panel"');
   });
 
   it('uses overview cards as the single status filter control', () => {

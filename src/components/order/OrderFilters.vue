@@ -1,39 +1,8 @@
 <template>
   <AppFilterBar>
     <template #actions>
-      <!-- Desktop: Create + Export buttons -->
-      <div class="hidden shrink-0 items-center gap-2 sm:flex">
-        <button
-          v-if="showCreate"
-          class="bg-primary shadow-primary/20 flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:opacity-90 active:scale-95"
-          @click="$emit('create')"
-        >
-          <AppIcon name="plus" class="size-4" />
-          {{ t('order.manage.create') }}
-        </button>
-
-        <!-- Stats Button -->
-        <button
-          class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) transition-all hover:bg-(--bg-hover) active:scale-95"
-          :title="t('dashboard.stats')"
-          @click="$emit('show-stats')"
-        >
-          <AppIcon name="chart-bar" class="size-5" />
-        </button>
-
-        <button
-          :disabled="exporting"
-          class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-main) transition-all hover:bg-(--bg-hover) active:scale-95 disabled:opacity-50"
-          :title="t('order.manage.export')"
-          @click="$emit('export')"
-        >
-          <AppIcon v-if="exporting" name="spinner" class="size-4 animate-spin" />
-          <AppIcon v-else name="arrow-down-tray" class="size-4" />
-        </button>
-      </div>
-
       <!-- Mobile: Icon buttons only -->
-      <div class="flex shrink-0 items-center gap-1 sm:hidden">
+      <div class="flex shrink-0 items-center gap-1 lg:hidden">
         <button
           v-if="showCreate"
           class="bg-primary flex size-9 items-center justify-center rounded-lg text-(--text-inverse) shadow-sm transition-all active:scale-95"
@@ -66,7 +35,7 @@
 
     <template #filters>
       <!-- 销售筛选 -->
-      <div class="w-24 sm:w-36">
+      <div class="w-24 sm:w-36 lg:w-28 xl:w-36">
         <Select
           :model-value="filters.salesperson"
           :options="salespersonOptions"
@@ -77,7 +46,7 @@
       </div>
 
       <!-- 状态筛选 -->
-      <div class="w-24 sm:w-32">
+      <div class="w-24 sm:w-32 lg:w-24 xl:w-32">
         <Select
           :model-value="filters.status"
           :options="statusOptions"
@@ -88,7 +57,7 @@
       </div>
 
       <!-- 采购状态筛选 -->
-      <div class="w-28 sm:w-40">
+      <div class="w-28 sm:w-40 lg:w-32 xl:w-40">
         <Select
           :model-value="filters.procurementStatus"
           :options="procurementStatusOptions"
@@ -99,7 +68,7 @@
       </div>
 
       <!-- 搜索 -->
-      <div class="min-w-0 flex-1">
+      <div class="min-w-0 basis-full lg:min-w-[12rem] lg:flex-1">
         <SearchInput
           :model-value="filters.search"
           :placeholder="t('common.searchPlaceholder')"
@@ -107,6 +76,36 @@
           @update:model-value="$emit('update:filters', { ...filters, search: $event })"
           @search="$emit('search')"
         />
+      </div>
+
+      <!-- Desktop: inline actions next to search -->
+      <div class="hidden shrink-0 items-center gap-2 lg:flex">
+        <button
+          v-if="showCreate"
+          class="bg-primary shadow-primary/20 flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap text-(--text-inverse) shadow-sm transition-all hover:opacity-90 active:scale-95 xl:px-4"
+          @click="$emit('create')"
+        >
+          <AppIcon name="plus" class="size-4" />
+          {{ t('order.manage.create') }}
+        </button>
+
+        <button
+          class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) transition-all hover:bg-(--bg-hover) active:scale-95"
+          :title="t('dashboard.stats')"
+          @click="$emit('show-stats')"
+        >
+          <AppIcon name="chart-bar" class="size-5" />
+        </button>
+
+        <button
+          :disabled="exporting"
+          class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-main) transition-all hover:bg-(--bg-hover) active:scale-95 disabled:opacity-50"
+          :title="t('order.manage.export')"
+          @click="$emit('export')"
+        >
+          <AppIcon v-if="exporting" name="spinner" class="size-4 animate-spin" />
+          <AppIcon v-else name="arrow-down-tray" class="size-4" />
+        </button>
       </div>
     </template>
   </AppFilterBar>

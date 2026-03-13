@@ -83,20 +83,6 @@
     </section>
 
     <!-- ===== 数据表格：AppTable ===== -->
-      <section
-        data-testid="purchase-order-list-panel"
-        class="overflow-hidden rounded-[1.75rem] border border-(--border-color)/70 bg-(--bg-card) shadow-sm"
-      >
-        <div class="flex items-center justify-between border-b border-(--border-color)/70 px-4 py-3 sm:px-5">
-          <div>
-            <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">Orders</p>
-            <h3 class="text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.title') }}</h3>
-          </div>
-          <span class="rounded-full bg-(--bg-muted) px-2.5 py-1 text-xs font-medium text-(--text-secondary)">
-            {{ t('purchaseOrder.pagination.total', { count: total }) }}
-          </span>
-        </div>
-
       <AppTable
         :columns="columns"
         :data="list"
@@ -105,6 +91,18 @@
         no-border
         @row-click="(row) => openDetail(row.id)"
       >
+        <template #toolbar>
+          <div class="mb-3 flex items-center justify-between border-b border-(--border-color)/35 px-1 pb-3">
+            <div>
+              <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">Orders</p>
+              <h3 class="text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.title') }}</h3>
+            </div>
+            <span class="rounded-full bg-(--bg-muted) px-2.5 py-1 text-xs font-medium text-(--text-secondary)">
+              {{ t('purchaseOrder.pagination.total', { count: total }) }}
+            </span>
+          </div>
+        </template>
+
         <!-- 采购单编号 -->
         <template #cell-po_no="{ row: po }">
           <code
@@ -174,7 +172,6 @@
           </button>
         </div>
       </div>
-      </section>
 
     <!-- ==================== 详情面板 (弹窗) ==================== -->
     <Teleport to="body">

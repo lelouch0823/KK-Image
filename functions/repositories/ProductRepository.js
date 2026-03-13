@@ -5,6 +5,13 @@ import { buildSetClause } from '../api/utils/sql.js';
 import { hasChanges } from '../api/utils/result.js';
 
 export class ProductRepository {
+    static PRODUCT_SORT_FIELDS = Object.freeze({
+        price: 'price',
+        stock: 'available_quantity',
+        updatedAt: 'p.updated_at',
+        name: 'p.name COLLATE NOCASE',
+    });
+
     constructor(db) {
         this.db = db;
     }
@@ -53,6 +60,75 @@ export class ProductRepository {
             LEFT JOIN variant_agg va ON va.product_id = p.id
             WHERE ${whereClause}
         `;
+    }
+
+    buildProductFilterClause(filters = {}, { omit = [] } = {}) {
+        const clauses = [];
+        const params = [];
+
+        if (filters.status && !omit.includes('status')) {
+            clauses.push("(CASE WHEN COALESCE(va.active_variant_count, 0) > 0 THEN 'active' ELSE 'archived' END) = ?");
+            params.push(filters.status);
+        }
+
+        if (filters.category && !omit.includes('category')) {
+            clauses.push('p.category = ?');
+            params.push(filters.category);
+        }
+
+        if (filters.brand && !omit.includes('brand')) {
+            clauses.push('p.brand = ?');
+            params.push(filters.brand);
+        }
+
+        if (filters.search && !omit.includes('search')) {
+            clauses.push('(p.name LIKE ? OR p.spu LIKE ? OR p.series LIKE ?)');
+            const term = `%${filters.search}%`;
+            params.push(term, term, term);
+        }
+
+        if (filters.hasStock === 'in_stock' && !omit.includes('hasStock')) {
+            clauses.push('COALESCE(va.total_available_quantity, COALESCE(va.total_stock_quantity, 0)) > 0');
+        } else if (filters.hasStock === 'out_of_stock' && !omit.includes('hasStock')) {
+            clauses.push('COALESCE(va.total_available_quantity, COALESCE(va.total_stock_quantity, 0)) <= 0');
+        }
+
+        return {
+            clause: clauses.length > 0 ? clauses.join(' AND ') : '1=1',
+            params,
+        };
+    }
+
+    async listAvailableBrands(filters = {}) {
+        const { clause, params } = this.buildProductFilterClause(filters, { omit: ['brand'] });
+        const sql = `
+            ${this._variantAggregateCTE()}
+            SELECT DISTINCT p.brand AS brand
+            FROM products p
+            LEFT JOIN variant_agg va ON va.product_id = p.id
+            WHERE ${clause}
+              AND p.brand IS NOT NULL
+              AND p.brand != ''
+            ORDER BY p.brand COLLATE NOCASE
+        `;
+        const result = await this.db.prepare(sql).bind(...params).all();
+        return (result.results || []).map((row) => row.brand).filter(Boolean);
+    }
+
+    async listAvailableCategories(filters = {}) {
+        const { clause, params } = this.buildProductFilterClause(filters, { omit: ['category'] });
+        const sql = `
+            ${this._variantAggregateCTE()}
+            SELECT DISTINCT p.category AS category
+            FROM products p
+            LEFT JOIN variant_agg va ON va.product_id = p.id
+            WHERE ${clause}
+              AND p.category IS NOT NULL
+              AND p.category != ''
+            ORDER BY p.category COLLATE NOCASE
+        `;
+        const result = await this.db.prepare(sql).bind(...params).all();
+        return (result.results || []).map((row) => row.category).filter(Boolean);
     }
 
     /**
@@ -279,43 +355,29 @@ export class ProductRepository {
             { page: filters.page, limit: filters.limit },
             { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
         );
+        const normalizedSortOrder = String(filters.sortOrder || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+        const requestedSortField = ProductRepository.PRODUCT_SORT_FIELDS[filters.sortBy];
 
-        let query = this._productSelectSQL('1=1');
-        const params = [];
-
-        if (filters.status) {
-            query += " AND (CASE WHEN COALESCE(va.active_variant_count, 0) > 0 THEN 'active' ELSE 'archived' END) = ?";
-            params.push(filters.status);
-        }
-
-        if (filters.category) {
-            query += ' AND category = ?';
-            params.push(filters.category);
-        }
-
-        if (filters.brand) {
-            query += ' AND brand = ?';
-            params.push(filters.brand);
-        }
-
-        if (filters.search) {
-            query += ' AND (name LIKE ? OR spu LIKE ? OR series LIKE ?)';
-            const term = `%${filters.search}%`;
-            params.push(term, term, term);
-        }
+        const { clause, params } = this.buildProductFilterClause(filters);
+        let query = this._productSelectSQL(clause);
 
         const countQuery = `SELECT COUNT(*) as total FROM (${query}) q`;
         const countParams = [...params];
 
-        query += ' ORDER BY p.created_at DESC';
+        if (requestedSortField) {
+            query += ` ORDER BY ${requestedSortField} ${normalizedSortOrder}, p.created_at DESC`;
+        } else {
+            query += ' ORDER BY p.created_at DESC';
+        }
         query += ' LIMIT ? OFFSET ?';
         params.push(safeLimit, offset);
 
-        const results = await this.db.prepare(query).bind(...params).all();
-
-        const countResult = await this.db.prepare(countQuery)
-            .bind(...countParams)
-            .first();
+        const [results, countResult, brands, categories] = await Promise.all([
+            this.db.prepare(query).bind(...params).all(),
+            this.db.prepare(countQuery).bind(...countParams).first(),
+            this.listAvailableBrands(filters),
+            this.listAvailableCategories(filters),
+        ]);
 
         return {
             items: (results.results || []).map(item => this._parseResult(item)),
@@ -323,6 +385,10 @@ export class ProductRepository {
             page: safePage,
             limit: safeLimit,
             totalPages: Math.ceil((countResult?.total || 0) / safeLimit),
+            filters: {
+                brands,
+                categories,
+            },
         };
     }
 

@@ -5,6 +5,7 @@ import ProductManager from '../ProductManager.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const mocks = vi.hoisted(() => ({
+  availableFilters: { value: { brands: [], categories: [] } },
   loadProduct: vi.fn(),
   loadProducts: vi.fn(),
   deleteProduct: vi.fn(),
@@ -16,6 +17,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/composables/useProducts', () => ({
   useProducts: () => ({
     products: ref([]),
+    availableFilters: mocks.availableFilters,
     loading: ref(false),
     error: ref(''),
     pagination: reactive({ page: 1, totalPages: 1 }),
@@ -37,6 +39,7 @@ vi.mock('vue-router', () => ({
 describe('ProductManager variant hydration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.availableFilters.value = { brands: [], categories: [] };
     mocks.routeQuery = {};
     mocks.loadProducts.mockResolvedValue();
     mocks.deleteProduct.mockResolvedValue(true);

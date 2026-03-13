@@ -63,7 +63,7 @@
         <div
           v-for="space in spaces"
           :key="space.id"
-          class="group cursor-pointer overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) transition-all hover:shadow-lg"
+          class="group cursor-pointer overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) transition-all hover:border-(--border-hover) hover:shadow-sm"
           @click="openSpaceDetail(space)"
         >
           <div

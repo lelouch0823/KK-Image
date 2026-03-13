@@ -4,12 +4,15 @@
     :data="products"
     :loading="loading"
     :no-border="true"
+    :sort-by="sortBy"
+    :sort-order="sortOrder"
     :row-class="rowClass"
     row-key="id"
     :empty-text="t('product.table.empty')"
     :virtual="products.length > 50"
     :estimate-size="64"
     @row-click="$emit('view', $event)"
+    @sort-change="$emit('sort-change', $event)"
   >
     <template #toolbar>
       <slot name="toolbar" />
@@ -151,8 +154,10 @@ defineProps({
     products: { type: Array, default: () => [] },
     loading: { type: Boolean, default: false },
     rowClass: { type: Function, default: () => '' },
+    sortBy: { type: String, default: '' },
+    sortOrder: { type: String, default: '' },
 });
-defineEmits(['edit', 'delete', 'view', 'share']);
+defineEmits(['edit', 'delete', 'view', 'share', 'sort-change']);
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isLargeScreen = breakpoints.greater('lg');
@@ -161,8 +166,8 @@ const columns = computed(() => [
   { key: 'product', label: t('product.table.header.product'), align: 'left', width: '300px' },
   { key: 'spu', label: t('product.form.spu'), align: 'center', class: 'hidden md:table-cell' },
   { key: 'category', label: t('product.table.header.category'), align: 'center', class: 'hidden lg:table-cell' },
-  { key: 'price', label: t('product.table.header.price'), align: 'center' },
-  { key: 'stock', label: t('product.table.header.stock'), align: 'center' },
+  { key: 'price', label: t('product.table.header.price'), align: 'center', sortable: true },
+  { key: 'stock', label: t('product.table.header.stock'), align: 'center', sortable: true },
   { key: 'status', label: t('product.table.header.status'), align: 'center' },
   { key: 'updatedAt', label: t('common.updated'), align: 'center', class: 'hidden xl:table-cell' }, // Mapped from updated_at to updatedAt in template slot? No, access raw row.
   { key: 'actions', label: t('product.table.header.actions'), align: 'center', width: '100px' },

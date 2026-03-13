@@ -57,6 +57,7 @@ export function useResource(apiEndpoint, options = {}) {
     const loading = ref(false);
     const error = ref(null);
     const errorCode = ref(null);
+    const lastResponse = ref(null);
     const pagination = reactive({
         page: 1,
         limit: 20,
@@ -197,6 +198,7 @@ export function useResource(apiEndpoint, options = {}) {
             };
 
             const res = await retryWithBackoff(fetchFn);
+            lastResponse.value = res;
 
             if (res.success) {
                 const listData = listPath
@@ -412,6 +414,7 @@ export function useResource(apiEndpoint, options = {}) {
         loading,
         error,
         errorCode,
+        lastResponse,
         pagination,
         loadItems,
         createItem,

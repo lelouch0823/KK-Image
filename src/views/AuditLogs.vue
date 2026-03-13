@@ -1,44 +1,39 @@
 <template>
-  <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-    <div v-if="errorCode === 'FORBIDDEN'" class="rounded-xl border border-(--border-color) bg-(--bg-card) p-8">
-      <PermissionDeniedState
-        title="审计日志权限不足"
-        :description="error || '当前账号没有审计日志读取权限，请联系管理员分配 audit_logs:read。'"
-        required-permission="admin:full"
-        @retry="fetchLogs"
-      />
-    </div>
-    <div v-else-if="error" class="rounded-xl border border-(--border-color) bg-(--bg-card) p-8">
-      <PermissionDeniedState
-        title="审计日志加载失败"
-        :description="errorCode === 'UNAUTHORIZED' ? '登录状态失效，请重新登录后重试。' : '请求失败，请检查网络后重试。'"
-        :reason="error"
-        @retry="fetchLogs"
-      />
-    </div>
-    <template v-else>
-    <AppFilterBar
-      :title="t('auditLogs.title')"
-    >
-      <template #filters>
+  <div v-if="errorCode === 'FORBIDDEN'" class="rounded-xl border border-(--border-color) bg-(--bg-card) p-8">
+    <PermissionDeniedState
+      title="审计日志权限不足"
+      :description="error || '当前账号没有审计日志读取权限，请联系管理员分配 audit_logs:read。'"
+      required-permission="admin:full"
+      @retry="fetchLogs"
+    />
+  </div>
+  <div v-else-if="error" class="rounded-xl border border-(--border-color) bg-(--bg-card) p-8">
+    <PermissionDeniedState
+      title="审计日志加载失败"
+      :description="errorCode === 'UNAUTHORIZED' ? '登录状态失效，请重新登录后重试。' : '请求失败，请检查网络后重试。'"
+      :reason="error"
+      @retry="fetchLogs"
+    />
+  </div>
+  <ManagementListShell v-else :title="t('auditLogs.title')" description="">
+    <template #filters>
         <AppSelect
           v-model="filterAction"
           :options="actionOptions"
           :placeholder="t('auditLogs.allActions')"
           size="sm"
         />
-      </template>
-      <template #actions>
+    </template>
+    <template #actions>
         <AppButton variant="secondary" :text="t('common.refresh')" @click="fetchLogs" />
-      </template>
-    </AppFilterBar>
-
-    <div class="mt-4">
+    </template>
+    <template #content>
       <AppTable
         :columns="columns"
         :data="logs"
         :loading="loading"
         :empty-text="t('auditLogs.empty')"
+        no-border
       >
         <template #cell-created_at="{ value }">
           <span class="text-xs text-(--text-secondary)">{{ formatTime(value) }}</span>
@@ -92,9 +87,8 @@
           </div>
         </template>
       </AppTable>
-    </div>
     </template>
-  </div>
+  </ManagementListShell>
 </template>
 
 <script setup>
@@ -102,11 +96,11 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import AppButton from '@/components/ui/AppButton.vue';
-import AppFilterBar from '@/components/ui/AppFilterBar.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppSelect from '@/components/ui/Select.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
+import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
 const { t } = useI18n();
 const { authFetch } = useAuth();

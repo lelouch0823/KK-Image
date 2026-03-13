@@ -89,7 +89,7 @@
         </div>
 
         <!-- 文件列表 -->
-        <div v-else class="h-full overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) shadow-sm">
+        <div v-else class="h-full overflow-hidden">
           <AppTable
             :columns="columns"
             :data="files"

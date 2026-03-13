@@ -191,6 +191,144 @@ describe('ProductRepository — SPU 重构', () => {
             expect(searchSql[0]).toContain('spu LIKE');
             expect(searchSql[0]).not.toContain('sku LIKE');
         });
+
+        it('应支持组合品牌、分类、有库存和排序查询', async () => {
+            db.prepare.mockImplementation((sql) => {
+                const stmt = createPreparedStatement(sql);
+                if (sql.includes('FROM products p')) {
+                    stmt.all.mockResolvedValue({
+                        results: [{
+                            id: 'test-id',
+                            name: 'Test',
+                            brand: 'KK',
+                            category: 'Top',
+                            stock_quantity: 8,
+                            available_quantity: 8,
+                            images: '[]',
+                            specifications: '{}',
+                            options: '[]',
+                        }]
+                    });
+                }
+                if (sql.includes('COUNT(*)')) {
+                    stmt.first.mockResolvedValue({ total: 1 });
+                }
+                return stmt;
+            });
+
+            await repo.search({
+                brand: 'KK',
+                category: 'Top',
+                hasStock: 'in_stock',
+                sortBy: 'stock',
+                sortOrder: 'desc',
+            });
+
+            const listSql = db.prepare.mock.calls.find((call) => call[0].includes('ORDER BY'))?.[0] || '';
+            expect(listSql).toContain('brand = ?');
+            expect(listSql).toContain('category = ?');
+            expect(listSql).toContain('COALESCE(va.total_available_quantity, COALESCE(va.total_stock_quantity, 0)) > 0');
+            expect(listSql).toContain('ORDER BY available_quantity DESC');
+        });
+
+        it('返回品牌分面元数据时应忽略当前品牌条件但保留其他条件', async () => {
+            db.prepare.mockImplementation((sql) => {
+                const stmt = createPreparedStatement(sql);
+
+                if (sql.includes('SELECT DISTINCT p.brand AS brand')) {
+                    stmt.all.mockResolvedValue({
+                        results: [{ brand: 'KK' }, { brand: 'ACME' }],
+                    });
+                    return stmt;
+                }
+
+                if (sql.includes('SELECT DISTINCT p.category AS category')) {
+                    stmt.all.mockResolvedValue({
+                        results: [{ category: 'Top' }],
+                    });
+                    return stmt;
+                }
+
+                if (sql.includes('COUNT(*)')) {
+                    stmt.first.mockResolvedValue({ total: 1 });
+                    return stmt;
+                }
+
+                if (sql.includes('FROM products p')) {
+                    stmt.all.mockResolvedValue({
+                        results: [{
+                            id: 'test-id',
+                            name: 'Test',
+                            brand: 'KK',
+                            category: 'Top',
+                            images: '[]',
+                            specifications: '{}',
+                            options: '[]',
+                        }]
+                    });
+                }
+
+                return stmt;
+            });
+
+            const result = await repo.search({
+                brand: 'KK',
+                category: 'Top',
+                search: 'tee',
+                hasStock: 'in_stock',
+            });
+
+            expect(result.filters.brands).toEqual(['KK', 'ACME']);
+        });
+
+        it('返回分类分面元数据时应忽略当前分类条件但保留其他条件', async () => {
+            db.prepare.mockImplementation((sql) => {
+                const stmt = createPreparedStatement(sql);
+
+                if (sql.includes('SELECT DISTINCT p.brand AS brand')) {
+                    stmt.all.mockResolvedValue({
+                        results: [{ brand: 'KK' }],
+                    });
+                    return stmt;
+                }
+
+                if (sql.includes('SELECT DISTINCT p.category AS category')) {
+                    stmt.all.mockResolvedValue({
+                        results: [{ category: 'Top' }, { category: 'Shoes' }],
+                    });
+                    return stmt;
+                }
+
+                if (sql.includes('COUNT(*)')) {
+                    stmt.first.mockResolvedValue({ total: 1 });
+                    return stmt;
+                }
+
+                if (sql.includes('FROM products p')) {
+                    stmt.all.mockResolvedValue({
+                        results: [{
+                            id: 'test-id',
+                            name: 'Test',
+                            brand: 'KK',
+                            category: 'Top',
+                            images: '[]',
+                            specifications: '{}',
+                            options: '[]',
+                        }]
+                    });
+                }
+
+                return stmt;
+            });
+
+            const result = await repo.search({
+                brand: 'KK',
+                category: 'Top',
+                status: 'active',
+            });
+
+            expect(result.filters.categories).toEqual(['Top', 'Shoes']);
+        });
     });
 
     // ---------------------------------------------------------------

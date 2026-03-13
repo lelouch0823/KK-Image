@@ -25,6 +25,9 @@ app.get('/', withCache(60), async (c) => {
     const category = c.req.query('category');
     const brand = c.req.query('brand');
     const status = c.req.query('status');
+    const hasStock = c.req.query('hasStock');
+    const sortBy = c.req.query('sortBy');
+    const sortOrder = c.req.query('sortOrder');
 
     const repo = new ProductRepository(env.DB);
     const result = await repo.search({
@@ -32,6 +35,9 @@ app.get('/', withCache(60), async (c) => {
         category,
         brand,
         status,
+        hasStock,
+        sortBy,
+        sortOrder,
         page,
         limit
     });
@@ -47,7 +53,8 @@ app.get('/', withCache(60), async (c) => {
             total: result.total,
             page: result.page,
             limit: result.limit
-        }
+        },
+        filters: result.filters || { brands: [], categories: [] },
     });
 });
 
