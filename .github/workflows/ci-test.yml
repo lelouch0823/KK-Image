@@ -29,5 +29,9 @@ jobs:
       run: npm run db:migrations:check-prefix
     - name: Guard direct protected fetch regression
       run: npm run qa:check-direct-protected-fetch
+    - name: Guard audit route coverage
+      run: npm run qa:check-audit-route-coverage
+    - name: Run audit regression tests
+      run: npm run test:audit
     - name: Run tests
       run: npm run ci-test

@@ -1,5 +1,6 @@
 const VALID_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const VALID_SEVERITIES = new Set(['normal', 'high', 'critical']);
+const VALID_RUNTIME_ASSERTION_LEVELS = new Set(['static', 'runtime']);
 
 export function normalizeAuditRouteMethod(method) {
   return String(method || '').trim().toUpperCase();
@@ -35,6 +36,10 @@ export function declareAuditRoute(input = {}) {
   if (!targetType) {
     throw new Error('Audit route declaration requires targetType');
   }
+  const runtimeAssertionLevel = String(input.runtimeAssertionLevel || 'static').trim();
+  if (!VALID_RUNTIME_ASSERTION_LEVELS.has(runtimeAssertionLevel)) {
+    throw new Error(`Invalid audit runtime assertion level: ${runtimeAssertionLevel}`);
+  }
 
   return {
     method,
@@ -47,6 +52,9 @@ export function declareAuditRoute(input = {}) {
       ? [...new Set(input.resultModes)]
       : ['success', 'denied', 'failed'],
     phase: input.phase || 'phase2',
+    excludedReason: input.excludedReason || null,
+    runtimeAssertionLevel,
+    highRisk: Boolean(input.highRisk),
     key: normalizeAuditRouteKey({ method, path }),
   };
 }

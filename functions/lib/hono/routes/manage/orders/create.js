@@ -18,8 +18,8 @@ import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
-    { method: 'POST', path: '/', domain: 'orders', action: 'order.create', severity: 'high', targetType: 'order' },
-    { method: 'POST', path: '/batch', domain: 'orders', action: 'order.batch_update', severity: 'high', targetType: 'order' },
+    { method: 'POST', path: '/', domain: 'orders', action: 'order.create', severity: 'high', targetType: 'order', runtimeAssertionLevel: 'runtime', highRisk: true },
+    { method: 'POST', path: '/batch', domain: 'orders', action: 'order.batch_update', severity: 'high', targetType: 'order', highRisk: true },
 ]);
 const ACTION_STATUS_MAP = {
     confirm: 'confirmed',

@@ -5,7 +5,7 @@ import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
-    { method: 'POST', path: '/upload', domain: 'sales-files', action: 'sales.file.upload', severity: 'normal', targetType: 'file' },
+    { method: 'POST', path: '/upload', domain: 'sales-files', action: 'sales.file.upload', severity: 'normal', targetType: 'file', runtimeAssertionLevel: 'runtime' },
 ]);
 
 /**

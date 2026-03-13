@@ -120,8 +120,13 @@ export function buildRequestAuditEvent(c, params = {}) {
   });
 }
 
-export function shouldAuditRequest(method) {
-  return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method || '').toUpperCase());
+export function shouldAuditRequest(method, path = '') {
+  const normalizedMethod = String(method || '').toUpperCase();
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(normalizedMethod)) {
+    return true;
+  }
+  const normalizedPath = String(path || '');
+  return normalizedMethod === 'GET' && /\/api\/(?:manage|v1)\/audit-logs\/export(?:\/)?$/.test(normalizedPath);
 }
 
 export function getAuditScheduler(c) {

@@ -30,7 +30,12 @@ function createApp(user) {
     if (user) c.set('user', user);
     await next();
   });
+  app.use('/api/manage/*', async (c, next) => {
+    if (user) c.set('user', user);
+    await next();
+  });
   app.get('/secure/ping', requirePermission('files:read'), (c) => c.json({ success: true }));
+  app.get('/api/manage/audit-logs/export', requirePermission('audit:export'), (c) => c.json({ success: true }));
   app.post('/secure/ping', requirePermission('files:read'), (c) => c.json({ success: true }));
   return app;
 }
@@ -57,6 +62,22 @@ describe('requirePermission with authz engine', () => {
       expect.objectContaining({
         result: 'denied',
         summary: expect.stringContaining('denied'),
+      })
+    );
+  });
+
+  it('records denied audit event for export GET when authz engine denies', async () => {
+    authzMocks.evaluateUserPermission.mockResolvedValueOnce(false);
+    const app = createApp({ id: 'u1', role: 'viewer', permissions: [] });
+
+    const res = await app.request('http://localhost/api/manage/audit-logs/export', {}, { AUTHZ_ENGINE: 'opa', DB: {} });
+    expect(res.status).toBe(403);
+    expect(authzMocks.recordAuditEvent).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({
+        result: 'denied',
+        action: 'audit-logs.get.denied',
+        metadata: expect.objectContaining({ permission: 'audit:export', method: 'GET' }),
       })
     );
   });

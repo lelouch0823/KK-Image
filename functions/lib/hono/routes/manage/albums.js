@@ -217,7 +217,7 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   const albumId = c.req.param('id');
 
   const repo = new AlbumRepository(env.DB);
-  await requireAlbum(repo, albumId);
+  const album = await requireAlbum(repo, albumId);
 
   await repo.delete(albumId);
   scheduleAuditEvent(c, {
@@ -246,7 +246,7 @@ app.post(
     const { fileIds } = c.req.valid('json');
 
     const repo = new AlbumRepository(env.DB);
-    await requireAlbum(repo, albumId);
+    const album = await requireAlbum(repo, albumId);
 
     await repo.addFiles(albumId, fileIds);
     scheduleAuditEvent(c, {
@@ -256,8 +256,8 @@ app.post(
       severity: 'high',
       targetType: 'album',
       targetId: albumId,
-      target_label: albumId,
-      summary: `Added ${fileIds.length} files to album ${albumId}`,
+      target_label: album.name,
+      summary: `Added ${fileIds.length} files to album ${album.name}`,
       metadata: { count: fileIds.length },
     });
 

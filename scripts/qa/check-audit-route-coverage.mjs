@@ -3,22 +3,17 @@ import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { extractWriteRoutesFromFile, extractWriteRoutesFromTree } from './extract-write-routes.mjs';
 import { normalizeAuditRouteKey } from '../../functions/lib/hono/_shared/audit-route-contract.js';
+import {
+  getIgnoredAuditRouteKeys,
+  ignoredAuditRoutes,
+} from '../../functions/lib/hono/_shared/audit-route-exclusions.js';
 const routeRoots = [
   'functions/lib/hono/routes/manage',
   'functions/lib/hono/routes/sales',
   'functions/lib/hono/routes/v1',
 ];
 
-const ignoredRoutes = new Set([
-  'POST /:id/dimensions/impact',
-  'POST /ai/models',
-  'POST /ai/test',
-  'POST /check-hash',
-  'POST /chat',
-  'POST /report',
-  'POST /stream',
-  'POST /check',
-]);
+const ignoredRoutes = new Set(getIgnoredAuditRouteKeys());
 
 export async function loadDeclarations(file) {
   const moduleUrl = pathToFileURL(resolve(file)).href;
@@ -112,10 +107,49 @@ export async function collectAuditCoverageViolations() {
   return violations;
 }
 
+export async function collectActiveRouteLegacyAuditUsage() {
+  const allRoutes = (
+    await Promise.all(routeRoots.map((root) => extractWriteRoutesFromTree(root)))
+  ).flat();
+  const files = [...new Set(allRoutes.map((route) => route.file).filter(Boolean))].sort();
+  const usages = [];
+
+  for (const file of files) {
+    const source = readFileSync(resolve(file), 'utf8');
+    if (source.includes('logAudit(')) {
+      usages.push(file);
+    }
+  }
+
+  return usages;
+}
+
+export async function buildAuditCoverageReport() {
+  const allRoutes = (
+    await Promise.all(routeRoots.map((root) => extractWriteRoutesFromTree(root)))
+  ).flat();
+  const routeFiles = [...new Set(allRoutes.map((route) => route.file).filter(Boolean))].sort();
+  const violations = await collectAuditCoverageViolations();
+  const legacyAuditRouteFiles = await collectActiveRouteLegacyAuditUsage();
+
+  return {
+    routeFileCount: routeFiles.length,
+    routeFiles,
+    ignoredRoutes: ignoredAuditRoutes,
+    legacyAuditRouteFiles,
+    violations,
+  };
+}
+
 const isMain = import.meta.url === pathToFileURL(process.argv[1] || '').href;
 
 if (isMain) {
-  const violations = await collectAuditCoverageViolations();
+  const report = await buildAuditCoverageReport();
+  const violations = report.violations;
+  if (process.argv.includes('--json')) {
+    console.log(JSON.stringify(report, null, 2));
+    process.exit(violations.length > 0 || report.legacyAuditRouteFiles.length > 0 ? 1 : 0);
+  }
   if (violations.length > 0) {
     console.error('Audit coverage violations:');
     for (const violation of violations) {
@@ -123,10 +157,14 @@ if (isMain) {
     }
     process.exit(1);
   }
-
-  const allRoutes = (
-    await Promise.all(routeRoots.map((root) => extractWriteRoutesFromTree(root)))
-  ).flat();
-  const files = [...new Set(allRoutes.map((route) => route.file).filter(Boolean))];
-  console.log(`Audit coverage OK (${files.length} files checked)`);
+  if (report.legacyAuditRouteFiles.length > 0) {
+    console.error('Legacy route audit usage detected:');
+    for (const file of report.legacyAuditRouteFiles) {
+      console.error(`- ${file}`);
+    }
+    process.exit(1);
+  }
+  console.log(`Audit coverage OK (${report.routeFileCount} files checked)`);
 }
+
+export { ignoredAuditRoutes, getIgnoredAuditRouteKeys };

@@ -35,6 +35,30 @@ function isPublicRoute(path) {
  */
 export async function authMiddleware(c, next) {
   const path = c.req.path;
+  const method = c.req.method;
+  const shouldAudit = shouldAuditRequest(method, path);
+  const auditContext = shouldAudit ? getRequestAuditContext(c) : null;
+  const scheduler = shouldAudit ? getAuditScheduler(c) : null;
+  const domain = shouldAudit ? inferAuditDomainFromPath(path) : null;
+  const targetId = shouldAudit ? inferAuditTargetFromPath(path) : null;
+
+  const recordUnauthorizedAttempt = (reason) => {
+    if (!shouldAudit || !c.env?.DB) return;
+    scheduler(recordAuditEvent(c.env.DB, {
+      ...auditContext,
+      userId: auditContext.actor_id,
+      domain,
+      action: `${domain}.${method.toLowerCase()}.unauthorized`,
+      result: 'denied',
+      severity: 'high',
+      targetType: domain,
+      targetId,
+      summary: `Unauthorized ${method} attempt on ${path}`,
+      metadata: { path, method, reason },
+      ip: auditContext.ip_address,
+      user_agent: auditContext.user_agent,
+    }));
+  };
 
   // 跳过公开路由
   if (isPublicRoute(path) || /^\/api\/sales\/[^/]+\/auth$/.test(path)) {
@@ -55,6 +79,7 @@ export async function authMiddleware(c, next) {
         return next();
       } catch (err) {
         console.error('API Key Verification Failed:', err);
+        recordUnauthorizedAttempt('invalid_api_key');
         return c.json(
           {
             success: false,
@@ -67,6 +92,7 @@ export async function authMiddleware(c, next) {
   }
 
   if (!token) {
+    recordUnauthorizedAttempt('missing_token');
     return c.json(
       {
         success: false,
@@ -80,6 +106,7 @@ export async function authMiddleware(c, next) {
   try {
     const payload = await verifyJWT(token, c.env);
     if (isLegacyJwtContext(payload)) {
+      recordUnauthorizedAttempt('legacy_jwt_context');
       return c.json(
         {
           success: false,
@@ -92,6 +119,7 @@ export async function authMiddleware(c, next) {
     return next();
   } catch (err) {
     console.error('JWT Verification Failed:', err);
+    recordUnauthorizedAttempt('invalid_jwt');
     return c.json(
       {
         success: false,
@@ -110,7 +138,7 @@ export function requirePermission(permission) {
   return async (c, next) => {
     const user = c.get('user');
     const method = c.req.method;
-    const shouldAudit = shouldAuditRequest(method);
+    const shouldAudit = shouldAuditRequest(method, c.req.path);
     const auditContext = getRequestAuditContext(c);
     const scheduler = getAuditScheduler(c);
     const domain = inferAuditDomainFromPath(c.req.path);

@@ -16,6 +16,7 @@
     "test:unit": "node node_modules/vitest/vitest.mjs",
     "test:ui": "node node_modules/vitest/vitest.mjs --ui",
     "test:coverage": "node node_modules/vitest/vitest.mjs run --coverage",
+    "test:audit": "node node_modules/vitest/vitest.mjs functions/lib/hono/_shared/__tests__/audit-route-contract-metadata.test.js functions/lib/hono/_shared/__tests__/audit-runtime-alignment.test.js functions/lib/hono/routes/manage/__tests__/audit-logs-routes.test.js functions/lib/hono/routes/manage/__tests__/albums-routes.test.js functions/lib/hono/routes/manage/__tests__/upload-route.test.js functions/lib/hono/routes/manage/__tests__/ops-support-routes.test.js functions/lib/hono/routes/manage/__tests__/folders-routes.test.js functions/lib/hono/routes/sales/__tests__/audit-routes.test.js functions/lib/hono/routes/manage/orders/__tests__/create-routes.test.js functions/lib/hono/routes/manage/products/__tests__/batch-routes.test.js functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js functions/lib/hono/routes/v1/__tests__/webhooks-routes.test.js functions/lib/hono/routes/v1/__tests__/file-folder-audit-routes.test.js scripts/qa/__tests__/audit-coverage-consistency.test.js functions/lib/hono/middleware/__tests__/auth-opa.test.js functions/lib/hono/middleware/__tests__/auth-public-routes.test.js",
     "authz:policy:test": "node scripts/policy/run-opa.mjs test policy/authz.rego policy/tests -v",
     "authz:policy:build": "node scripts/policy/compile-opa.mjs",
     "authz:policy:watch": "node scripts/policy/watch-opa.mjs",
@@ -33,7 +34,9 @@
     "db:migrate:preview:raw": "wrangler d1 migrations apply DB --env preview --remote",
     "db:migrate:prod:raw": "wrangler d1 migrations apply DB --env production --remote",
     "db:migrations:check-prefix": "node scripts/check-migration-prefixes.mjs",
-    "qa:check-direct-protected-fetch": "node scripts/qa/check-direct-protected-fetch.mjs"
+    "qa:check-direct-protected-fetch": "node scripts/qa/check-direct-protected-fetch.mjs",
+    "qa:check-audit-route-coverage": "node scripts/qa/check-audit-route-coverage.mjs",
+    "qa:check-audit-route-coverage:json": "node scripts/qa/check-audit-route-coverage.mjs --json"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.4.3",

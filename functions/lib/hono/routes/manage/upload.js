@@ -57,9 +57,10 @@ app.post('/', requirePermission('files:write'), async (c) => {
         folderId,
         createdBy: user.id || 'admin',
     });
+    const uploadedFileId = result?.file?.id || result?.id || null;
 
     // 如果传了 spaceId，则将文件关联到该空间
-    if (spaceId && result?.file?.id) {
+    if (spaceId && uploadedFileId) {
         // 获取当前空间的最大 sort_order
         const maxOrderRow = await env.DB.prepare(
             'SELECT MAX(sort_order) as max_order FROM space_files WHERE space_id = ?'
@@ -68,7 +69,7 @@ app.post('/', requirePermission('files:write'), async (c) => {
 
         await env.DB.prepare(
             'INSERT INTO space_files (space_id, file_id, sort_order, added_at) VALUES (?, ?, ?, ?)'
-        ).bind(spaceId, result.file.id, nextOrder, Date.now()).run();
+        ).bind(spaceId, uploadedFileId, nextOrder, Date.now()).run();
 
         // 更新空间的 updated_at
         await env.DB.prepare('UPDATE spaces SET updated_at = ? WHERE id = ?')
@@ -80,7 +81,7 @@ app.post('/', requirePermission('files:write'), async (c) => {
         result: 'success',
         severity: 'normal',
         targetType: 'file',
-        targetId: result?.file?.id || result?.id || null,
+        targetId: uploadedFileId,
         target_label: file.name,
         summary: `Uploaded ${file.name}`,
         metadata: { context: normalizedContext || null, orderId, spaceId },

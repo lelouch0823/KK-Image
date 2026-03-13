@@ -8,8 +8,8 @@ import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
-    { method: 'POST', path: '/', domain: 'backups', action: 'backup.create', severity: 'critical', targetType: 'backup' },
-    { method: 'DELETE', path: '/:filename', domain: 'backups', action: 'backup.delete', severity: 'critical', targetType: 'backup' },
+    { method: 'POST', path: '/', domain: 'backups', action: 'backup.create', severity: 'critical', targetType: 'backup', runtimeAssertionLevel: 'runtime', highRisk: true },
+    { method: 'DELETE', path: '/:filename', domain: 'backups', action: 'backup.delete', severity: 'critical', targetType: 'backup', highRisk: true },
 ]);
 
 /**

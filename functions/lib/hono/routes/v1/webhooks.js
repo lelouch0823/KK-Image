@@ -9,10 +9,10 @@ import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
-  { method: 'POST', path: '/', domain: 'v1-webhooks', action: 'v1.webhook.create', severity: 'critical', targetType: 'webhook' },
-  { method: 'PUT', path: '/:id', domain: 'v1-webhooks', action: 'v1.webhook.update', severity: 'critical', targetType: 'webhook' },
-  { method: 'DELETE', path: '/:id', domain: 'v1-webhooks', action: 'v1.webhook.delete', severity: 'critical', targetType: 'webhook' },
-  { method: 'POST', path: '/:id/test', domain: 'v1-webhooks', action: 'v1.webhook.test', severity: 'high', targetType: 'webhook' },
+  { method: 'POST', path: '/', domain: 'v1-webhooks', action: 'v1.webhook.create', severity: 'critical', targetType: 'webhook', runtimeAssertionLevel: 'runtime', highRisk: true },
+  { method: 'PUT', path: '/:id', domain: 'v1-webhooks', action: 'v1.webhook.update', severity: 'critical', targetType: 'webhook', highRisk: true },
+  { method: 'DELETE', path: '/:id', domain: 'v1-webhooks', action: 'v1.webhook.delete', severity: 'critical', targetType: 'webhook', highRisk: true },
+  { method: 'POST', path: '/:id/test', domain: 'v1-webhooks', action: 'v1.webhook.test', severity: 'high', targetType: 'webhook', runtimeAssertionLevel: 'runtime' },
 ]);
 
 const WEBHOOK_EVENTS = [

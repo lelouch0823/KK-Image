@@ -9,6 +9,8 @@
 - **[Wrangler 指南](wrangler-guide.md)** - CLI 工具使用说明
 - **[Pages Context](cloudflare-pages-context.md)** - 请求上下文和中间件
 - **[授权策略系统（OPA/Rego）](authz-policy-system.md)** - 权限架构、开发流程与标准
+- **[审计保留与归档](audit-retention.md)** - 审计数据保留分层与维护建议
+- **[审计告警与升级钩子](audit-alerting.md)** - 高风险事件告警基线
 - **[前端请求内核（Request Core）](../architecture/frontend-request-core.md)** - 受保护请求统一路径与适配器规范
 
 ### 客户端开发

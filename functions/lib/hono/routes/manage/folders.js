@@ -331,12 +331,10 @@ app.post('/:id/upload', requirePermission('files:write'), async (c) => {
   const folderId = c.req.param('id');
   const { env } = c;
   const user = c.get('user');
+  const folderRepo = new FolderRepository(env.DB);
 
   // 1. 验证文件夹是否存在
-  await requireEntity(
-    env.DB.prepare('SELECT id FROM folders WHERE id = ?').bind(folderId).first(),
-    () => new NotFoundError(MSG.FOLDER.NOT_FOUND)
-  );
+  const folder = await requireFolder(folderRepo, folderId);
 
   // 2. 获取上传文件
   const formData = await c.req.parseBody();
@@ -363,8 +361,8 @@ app.post('/:id/upload', requirePermission('files:write'), async (c) => {
     severity: 'normal',
     targetType: 'folder',
     targetId: folderId,
-    target_label: folderId,
-    summary: `Uploaded file into folder ${folderId}`,
+    target_label: folder.name,
+    summary: `Uploaded file into folder ${folder.name}`,
     metadata: { fileId: result?.id || null },
   });
 
