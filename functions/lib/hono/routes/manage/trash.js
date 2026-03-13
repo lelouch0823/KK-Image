@@ -6,8 +6,15 @@ import { getFileUrl, MSG } from '../../_shared/utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { decrementRefCount } from '../../../../api/utils/blob-utils.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+    { method: 'POST', path: '/restore', domain: 'trash', action: 'trash.restore', severity: 'high', targetType: 'trash' },
+    { method: 'POST', path: '/delete', domain: 'trash', action: 'trash.delete', severity: 'critical', targetType: 'trash' },
+    { method: 'DELETE', path: '/empty', domain: 'trash', action: 'trash.empty', severity: 'critical', targetType: 'trash' },
+]);
 
 // Schemas
 const RestoreSchema = z.object({
@@ -75,6 +82,15 @@ app.post('/restore', requirePermission('files:write'), zValidator('json', Restor
     if (folderIds.length > 0) {
         await Promise.all(folderIds.map(id => folderRepo.restore(id)));
     }
+    scheduleAuditEvent(c, {
+        domain: 'trash',
+        action: 'trash.restore',
+        result: 'success',
+        severity: 'high',
+        targetType: 'trash',
+        summary: `Restored ${fileIds.length + folderIds.length} trash items`,
+        metadata: { fileCount: fileIds.length, folderCount: folderIds.length },
+    });
 
     return c.json({ success: true, message: MSG.COMMON.RESTORE_SUCCESS || 'Restore successful' });
 });
@@ -120,6 +136,15 @@ app.post('/delete', requirePermission('files:delete'), zValidator('json', Delete
             await folderRepo.deleteRecursive(folderId);
         }
     }
+    scheduleAuditEvent(c, {
+        domain: 'trash',
+        action: 'trash.delete',
+        result: 'success',
+        severity: 'critical',
+        targetType: 'trash',
+        summary: `Permanently deleted ${fileIds.length + folderIds.length} trash items`,
+        metadata: { fileCount: fileIds.length, folderCount: folderIds.length },
+    });
 
     return c.json({ success: true, message: MSG.COMMON.DELETE_SUCCESS });
 });
@@ -166,6 +191,15 @@ app.delete('/empty', requirePermission('files:delete'), async (c) => {
             await folderRepo.deleteRecursive(folder.id);
         }
     }
+    scheduleAuditEvent(c, {
+        domain: 'trash',
+        action: 'trash.empty',
+        result: 'success',
+        severity: 'critical',
+        targetType: 'trash',
+        summary: 'Emptied trash',
+        metadata: { fileCount: files.length, folderCount: folders.length },
+    });
 
     return c.json({ success: true, message: MSG.COMMON.DELETE_SUCCESS });
 });

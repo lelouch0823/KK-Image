@@ -13,8 +13,14 @@ import {
 } from './cache-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
 import { createManagedOrder } from './create-order.js';
+import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+    { method: 'POST', path: '/', domain: 'orders', action: 'order.create', severity: 'high', targetType: 'order' },
+    { method: 'POST', path: '/batch', domain: 'orders', action: 'order.batch_update', severity: 'high', targetType: 'order' },
+]);
 const ACTION_STATUS_MAP = {
     confirm: 'confirmed',
     reject: 'rejected',
@@ -43,6 +49,16 @@ function assertValidBatchStatusAction(normalizedAction, normalizedStatus) {
 app.post('/', async (c) => {
     const body = await c.req.json();
     const result = await createManagedOrder(c, body);
+    scheduleAuditEvent(c, {
+        domain: 'orders',
+        action: 'order.create',
+        result: 'success',
+        severity: 'high',
+        targetType: 'order',
+        targetId: result?.id || null,
+        target_label: result?.orderNo || result?.id || null,
+        summary: `Created order ${result?.orderNo || result?.id || ''}`.trim(),
+    });
     return c.json({ success: true, data: result }, 201);
 });
 
@@ -119,6 +135,15 @@ app.post('/batch', async (c) => {
 
         scheduleOrderMutationCachesInvalidation(c, { salesTokens: notificationSalesTokens });
     }
+    scheduleAuditEvent(c, {
+        domain: 'orders',
+        action: 'order.batch_update',
+        result: 'success',
+        severity: 'high',
+        targetType: 'order',
+        summary: `Batch updated ${normalizedIds.length} orders`,
+        metadata: { count: normalizedIds.length, action: normalizedAction, status: normalizedStatus, force: Boolean(force) },
+    });
 
     return c.json({ success: true, message: MSG.ORDER.BATCH_RESULT.replace('{valid}', normalizedIds.length) });
 });

@@ -3,8 +3,13 @@ import { zValidator } from '@hono/zod-validator';
 import { BindWechatSchema } from '../../schemas/sales.js';
 import { SalespersonRepository } from '../../../../repositories/SalespersonRepository.js';
 import { withCache } from '../../middleware/cache.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+    { method: 'POST', path: '/bind-wechat', domain: 'sales-profile', action: 'sales.profile.bind_wechat', severity: 'high', targetType: 'salesperson' },
+]);
 
 /**
  * GET /auth - 获取当前认证状态
@@ -43,6 +48,16 @@ app.post('/bind-wechat', zValidator('json', BindWechatSchema), async (c) => {
 
     const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
     await repo.updateWechatOpenid(salesperson.id, openid);
+    scheduleAuditEvent(c, {
+        domain: 'sales-profile',
+        action: 'sales.profile.bind_wechat',
+        result: 'success',
+        severity: 'high',
+        targetType: 'salesperson',
+        targetId: salesperson.id,
+        target_label: salesperson.name,
+        summary: `${salesperson.name} bound WeChat`,
+    });
 
     return c.json({ success: true, message: '绑定成功' });
 });

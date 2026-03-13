@@ -12,8 +12,17 @@ import {
 import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers.js';
 import { AlbumRepository } from '../../../../repositories/AlbumRepository.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+  { method: 'POST', path: '/', domain: 'albums', action: 'album.create', severity: 'high', targetType: 'album' },
+  { method: 'PUT', path: '/:id', domain: 'albums', action: 'album.update', severity: 'high', targetType: 'album' },
+  { method: 'DELETE', path: '/:id', domain: 'albums', action: 'album.delete', severity: 'critical', targetType: 'album' },
+  { method: 'POST', path: '/:id/files', domain: 'albums', action: 'album.file.add', severity: 'high', targetType: 'album' },
+  { method: 'DELETE', path: '/:id/files', domain: 'albums', action: 'album.file.remove', severity: 'high', targetType: 'album' },
+]);
 app.use('*', requirePermission('files:read'));
 
 function toAlbumSummary(album) {
@@ -129,6 +138,16 @@ app.post(
       createdAt: nowMs,
       updatedAt: nowMs
     });
+    scheduleAuditEvent(c, {
+      domain: 'albums',
+      action: 'album.create',
+      result: 'success',
+      severity: 'high',
+      targetType: 'album',
+      targetId: albumId,
+      target_label: name.trim(),
+      summary: `Created album ${name.trim()}`,
+    });
 
     return c.json({
       success: true,
@@ -168,6 +187,16 @@ app.put(
     values.push(Date.now());
 
     const updated = await repo.update(albumId, updates, values);
+    scheduleAuditEvent(c, {
+      domain: 'albums',
+      action: 'album.update',
+      result: 'success',
+      severity: 'high',
+      targetType: 'album',
+      targetId: albumId,
+      target_label: updated.name || albumId,
+      summary: `Updated album ${updated.name || albumId}`,
+    });
 
     return c.json({
       success: true,
@@ -191,6 +220,16 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   await requireAlbum(repo, albumId);
 
   await repo.delete(albumId);
+  scheduleAuditEvent(c, {
+    domain: 'albums',
+    action: 'album.delete',
+    result: 'success',
+    severity: 'critical',
+    targetType: 'album',
+    targetId: albumId,
+    target_label: album.name,
+    summary: `Deleted album ${album.name}`,
+  });
   return c.json({ success: true, message: MSG.ALBUM.DELETE_SUCCESS });
 });
 
@@ -210,6 +249,17 @@ app.post(
     await requireAlbum(repo, albumId);
 
     await repo.addFiles(albumId, fileIds);
+    scheduleAuditEvent(c, {
+      domain: 'albums',
+      action: 'album.file.add',
+      result: 'success',
+      severity: 'high',
+      targetType: 'album',
+      targetId: albumId,
+      target_label: albumId,
+      summary: `Added ${fileIds.length} files to album ${albumId}`,
+      metadata: { count: fileIds.length },
+    });
 
     return c.json({
       success: true,
@@ -230,6 +280,17 @@ app.delete('/:id/files', requirePermission('files:write'), async (c) => {
 
   const repo = new AlbumRepository(env.DB);
   await repo.removeFiles(albumId, fileIds);
+  scheduleAuditEvent(c, {
+    domain: 'albums',
+    action: 'album.file.remove',
+    result: 'success',
+    severity: 'high',
+    targetType: 'album',
+    targetId: albumId,
+    target_label: albumId,
+    summary: `Removed ${fileIds.length} files from album ${albumId}`,
+    metadata: { count: fileIds.length },
+  });
 
   return c.json({
     success: true,

@@ -13,8 +13,16 @@ import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
 import { appendOptionalUpdate, requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 import { getV1FolderAndShareCacheUrls } from './cache-urls.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+  { method: 'POST', path: '/', domain: 'v1-folders', action: 'v1.folder.create', severity: 'high', targetType: 'folder' },
+  { method: 'PUT', path: '/:id', domain: 'v1-folders', action: 'v1.folder.update', severity: 'high', targetType: 'folder' },
+  { method: 'DELETE', path: '/:id', domain: 'v1-folders', action: 'v1.folder.delete', severity: 'critical', targetType: 'folder' },
+  { method: 'PUT', path: '/:id/share', domain: 'v1-folders', action: 'v1.folder.share_update', severity: 'high', targetType: 'folder' },
+]);
 
 function scheduleFolderAndShareCacheInvalidation(c, parentIds = []) {
   scheduleCacheInvalidation(c, getV1FolderAndShareCacheUrls(c, parentIds));
@@ -104,6 +112,16 @@ app.post(
     });
 
     scheduleFolderAndShareCacheInvalidation(c, [data.parentId]);
+    scheduleAuditEvent(c, {
+      domain: 'v1-folders',
+      action: 'v1.folder.create',
+      result: 'success',
+      severity: 'high',
+      targetType: 'folder',
+      targetId: id,
+      target_label: data.name,
+      summary: `Created folder ${data.name}`,
+    });
 
     return c.json(
       { success: true, data: { id, shareToken, ...data, createdAt: timestamp } },
@@ -162,6 +180,16 @@ app.put(
     await repo.update(id, updates, values);
 
     scheduleFolderAndShareCacheInvalidation(c, [folder.parent_id, checkParentId, id]);
+    scheduleAuditEvent(c, {
+      domain: 'v1-folders',
+      action: 'v1.folder.update',
+      result: 'success',
+      severity: 'high',
+      targetType: 'folder',
+      targetId: id,
+      target_label: data.name || folder.name,
+      summary: `Updated folder ${data.name || folder.name}`,
+    });
 
     return c.json({ success: true, message: MSG.FOLDER.UPDATE_SUCCESS });
   }
@@ -184,6 +212,16 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
 
   await repo.softDelete(id);
   scheduleFolderAndShareCacheInvalidation(c, [folder.parent_id, id]);
+  scheduleAuditEvent(c, {
+    domain: 'v1-folders',
+    action: 'v1.folder.delete',
+    result: 'success',
+    severity: 'critical',
+    targetType: 'folder',
+    targetId: id,
+    target_label: folder.name,
+    summary: `Deleted folder ${folder.name}`,
+  });
 
   return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
 });
@@ -204,6 +242,16 @@ app.put(
     const shareInfo = await repo.updateShareSettings(id, { isPublic, password, expiresAt });
 
     scheduleFolderAndShareCacheInvalidation(c, [id]);
+    scheduleAuditEvent(c, {
+      domain: 'v1-folders',
+      action: 'v1.folder.share_update',
+      result: 'success',
+      severity: 'high',
+      targetType: 'folder',
+      targetId: id,
+      target_label: id,
+      summary: `Updated folder share settings ${id}`,
+    });
 
     return c.json({
       success: true,

@@ -11,6 +11,10 @@ const scopedFiles = [
   'functions/lib/hono/routes/manage/products/index.js',
   'functions/lib/hono/routes/manage/products/[id].js',
   'functions/lib/hono/routes/v1/users.js',
+  'functions/lib/hono/routes/v1/auth.js',
+  'functions/lib/hono/routes/v1/files.js',
+  'functions/lib/hono/routes/v1/folders.js',
+  'functions/lib/hono/routes/v1/webhooks.js',
   'functions/lib/hono/routes/manage/settings.js',
   'functions/lib/hono/routes/manage/salespersons.js',
   'functions/lib/hono/routes/manage/purchase-orders.js',
@@ -19,15 +23,23 @@ const scopedFiles = [
   'functions/lib/hono/routes/manage/backups.js',
   'functions/lib/hono/routes/manage/spaces/crud.js',
   'functions/lib/hono/routes/manage/spaces/files.js',
+  'functions/lib/hono/routes/manage/albums.js',
+  'functions/lib/hono/routes/manage/orders/create.js',
+  'functions/lib/hono/routes/manage/upload.js',
+  'functions/lib/hono/routes/manage/trash.js',
+  'functions/lib/hono/routes/manage/products/batch.js',
   'functions/lib/hono/routes/sales/orders.js',
   'functions/lib/hono/routes/sales/files.js',
   'functions/lib/hono/routes/sales/auth.js',
+  'functions/lib/hono/routes/sales/notifications.js',
+  'functions/lib/hono/routes/sales/profile.js',
 ];
 
 const ignoredRoutes = new Set([
   'POST /:id/dimensions/impact',
   'POST /ai/models',
   'POST /ai/test',
+  'POST /check-hash',
 ]);
 
 async function loadDeclarations(file) {

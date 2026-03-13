@@ -10,8 +10,15 @@ import {
   clearFailures,
   authenticateAdminUser,
 } from '../../_shared/auth-helpers.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+  { method: 'POST', path: '/login', domain: 'v1-auth', action: 'admin.auth.login', severity: 'high', targetType: 'user' },
+  { method: 'POST', path: '/token', domain: 'v1-auth', action: 'admin.auth.token', severity: 'high', targetType: 'user' },
+  { method: 'POST', path: '/logout', domain: 'v1-auth', action: 'admin.auth.logout', severity: 'normal', targetType: 'user' },
+]);
 
 /**
  * POST /api/v1/auth/login - 用户登录
@@ -91,6 +98,16 @@ app.post('/token', loginRateLimitMiddleware, zValidator('json', TokenSchema), as
 
   const user = authenticatedUser;
   const token = await generateJWT(user, env, expiresIn);
+  scheduleAuditEvent(c, {
+    domain: 'v1-auth',
+    action: 'admin.auth.token',
+    result: 'success',
+    severity: 'high',
+    targetType: 'user',
+    targetId: user.id,
+    target_label: user.name,
+    summary: `${user.name} generated API token`,
+  });
 
   return c.json({
     success: true,
@@ -109,6 +126,19 @@ app.post('/token', loginRateLimitMiddleware, zValidator('json', TokenSchema), as
 app.post('/logout', async (c) => {
   const isSecure = c.req.url.startsWith('https://');
   const cookie = `${ADMIN_AUTH_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax${isSecure ? '; Secure' : ''}`;
+  const user = c.get('user');
+  if (user) {
+    scheduleAuditEvent(c, {
+      domain: 'v1-auth',
+      action: 'admin.auth.logout',
+      result: 'success',
+      severity: 'normal',
+      targetType: 'user',
+      targetId: user.id,
+      target_label: user.name,
+      summary: `${user.name} logged out`,
+    });
+  }
 
   return c.json(
     {

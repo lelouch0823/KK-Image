@@ -4,8 +4,16 @@ import { parseJsonArray, parseJsonObject } from '../../../../api/utils/json.js';
 import { generatePrefixedId, generateHmacSignature, MSG } from '../../_shared/utils.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+  { method: 'POST', path: '/', domain: 'v1-webhooks', action: 'v1.webhook.create', severity: 'critical', targetType: 'webhook' },
+  { method: 'PUT', path: '/:id', domain: 'v1-webhooks', action: 'v1.webhook.update', severity: 'critical', targetType: 'webhook' },
+  { method: 'DELETE', path: '/:id', domain: 'v1-webhooks', action: 'v1.webhook.delete', severity: 'critical', targetType: 'webhook' },
+  { method: 'POST', path: '/:id/test', domain: 'v1-webhooks', action: 'v1.webhook.test', severity: 'high', targetType: 'webhook' },
+]);
 
 const WEBHOOK_EVENTS = [
   'file.uploaded',
@@ -118,6 +126,16 @@ app.post('/', requirePermission('webhooks:write'), async (c) => {
     createdBy: user.name || user.id,
     createdAt: nowMs,
   };
+  scheduleAuditEvent(c, {
+    domain: 'v1-webhooks',
+    action: 'v1.webhook.create',
+    result: 'success',
+    severity: 'critical',
+    targetType: 'webhook',
+    targetId: id,
+    target_label: data.url,
+    summary: `Created webhook ${data.url}`,
+  });
 
   return c.json({ success: true, data: webhook }, 201);
 });
@@ -153,6 +171,16 @@ app.put('/:id', requirePermission('webhooks:write'), async (c) => {
     .run();
 
   const updated = await env.DB.prepare('SELECT * FROM webhooks WHERE id = ?').bind(id).first();
+  scheduleAuditEvent(c, {
+    domain: 'v1-webhooks',
+    action: 'v1.webhook.update',
+    result: 'success',
+    severity: 'critical',
+    targetType: 'webhook',
+    targetId: id,
+    target_label: updated?.url || id,
+    summary: `Updated webhook ${updated?.url || id}`,
+  });
 
   return c.json({ success: true, data: rowToWebhook(updated) });
 });
@@ -167,6 +195,16 @@ app.delete('/:id', requirePermission('webhooks:write'), async (c) => {
   await requireWebhookById(env.DB, id, 'id');
 
   await env.DB.prepare('DELETE FROM webhooks WHERE id = ?').bind(id).run();
+  scheduleAuditEvent(c, {
+    domain: 'v1-webhooks',
+    action: 'v1.webhook.delete',
+    result: 'success',
+    severity: 'critical',
+    targetType: 'webhook',
+    targetId: id,
+    target_label: id,
+    summary: `Deleted webhook ${id}`,
+  });
 
   return c.json({ success: true, message: MSG.WEBHOOK.DELETE_SUCCESS });
 });
@@ -237,6 +275,17 @@ app.post('/:id/test', requirePermission('webhooks:write'), async (c) => {
       Date.now()
     )
     .run();
+  scheduleAuditEvent(c, {
+    domain: 'v1-webhooks',
+    action: 'v1.webhook.test',
+    result: 'success',
+    severity: 'high',
+    targetType: 'webhook',
+    targetId: id,
+    target_label: webhook.url,
+    summary: `Tested webhook ${webhook.url}`,
+    metadata: { status: response.status, ok: response.ok },
+  });
 
   return c.json({
     success: true,

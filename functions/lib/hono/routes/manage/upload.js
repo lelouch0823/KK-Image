@@ -2,8 +2,13 @@ import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
 import { MSG, storeFile } from '../../_shared/utils.js';
 import { BadRequestError } from '../../errors.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+    { method: 'POST', path: '/', domain: 'uploads', action: 'upload.create', severity: 'normal', targetType: 'file' },
+]);
 
 /**
  * POST / - 管理端上传接口
@@ -69,6 +74,17 @@ app.post('/', requirePermission('files:write'), async (c) => {
         await env.DB.prepare('UPDATE spaces SET updated_at = ? WHERE id = ?')
             .bind(Date.now(), spaceId).run();
     }
+    scheduleAuditEvent(c, {
+        domain: 'uploads',
+        action: 'upload.create',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'file',
+        targetId: result?.file?.id || result?.id || null,
+        target_label: file.name,
+        summary: `Uploaded ${file.name}`,
+        metadata: { context: normalizedContext || null, orderId, spaceId },
+    });
 
     return c.json({
         success: true,

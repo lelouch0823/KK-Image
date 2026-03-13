@@ -14,8 +14,17 @@ import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
 import { requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 import { getV1FileAndFolderCacheUrls } from './cache-urls.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+  { method: 'POST', path: '/', domain: 'v1-files', action: 'v1.file.create', severity: 'normal', targetType: 'file' },
+  { method: 'PUT', path: '/:id', domain: 'v1-files', action: 'v1.file.update', severity: 'normal', targetType: 'file' },
+  { method: 'DELETE', path: '/:id', domain: 'v1-files', action: 'v1.file.delete', severity: 'high', targetType: 'file' },
+  { method: 'POST', path: '/batch/delete', domain: 'v1-files', action: 'v1.file.batch_delete', severity: 'high', targetType: 'file' },
+  { method: 'POST', path: '/batch/move', domain: 'v1-files', action: 'v1.file.batch_move', severity: 'high', targetType: 'file' },
+]);
 
 /** sort 列名白名单 - 二次防御 SQL 注入 */
 const ALLOWED_SORT_COLUMNS = {
@@ -181,6 +190,16 @@ app.post('/', requirePermission('files:write'), zValidator('json', CreateFileSch
 
   // 使缓存失效
   scheduleFileCacheInvalidation(c, { folderIds: [data.folderId] });
+  scheduleAuditEvent(c, {
+    domain: 'v1-files',
+    action: 'v1.file.create',
+    result: 'success',
+    severity: 'normal',
+    targetType: 'file',
+    targetId: id,
+    target_label: data.name.trim(),
+    summary: `Created file record ${data.name.trim()}`,
+  });
 
   return c.json({
     success: true,
@@ -228,6 +247,16 @@ app.put('/:id', requirePermission('files:write'), async (c) => {
     folderIds: [file.folder_id, checkFolderId],
     extraUrls: [c.req.url],
   });
+  scheduleAuditEvent(c, {
+    domain: 'v1-files',
+    action: 'v1.file.update',
+    result: 'success',
+    severity: 'normal',
+    targetType: 'file',
+    targetId: id,
+    target_label: updates.name || file.name,
+    summary: `Updated file ${updates.name || file.name}`,
+  });
 
   return c.json({ success: true, message: MSG.FILE.UPDATE_SUCCESS });
 });
@@ -247,6 +276,16 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
 
   // 使缓存失效
   scheduleFileCacheInvalidation(c, { folderIds: [file.folder_id] });
+  scheduleAuditEvent(c, {
+    domain: 'v1-files',
+    action: 'v1.file.delete',
+    result: 'success',
+    severity: 'high',
+    targetType: 'file',
+    targetId: id,
+    target_label: file.name,
+    summary: `Deleted file ${file.name}`,
+  });
 
   return c.json({ success: true, message: MSG.FILE.DELETE_SUCCESS });
 });
@@ -273,6 +312,15 @@ app.post(
     // 使缓存失效
     scheduleFileCacheInvalidation(c, {
       folderIds: targetFiles.map((item) => item.folder_id),
+    });
+    scheduleAuditEvent(c, {
+      domain: 'v1-files',
+      action: 'v1.file.batch_delete',
+      result: 'success',
+      severity: 'high',
+      targetType: 'file',
+      summary: `Batch deleted ${ids.length} files`,
+      metadata: { count: ids.length },
     });
 
     return c.json({
@@ -316,6 +364,15 @@ app.post(
     // 使缓存失效（源目录 + 目标目录 + 根列表）
     scheduleFileCacheInvalidation(c, {
       folderIds: [...sourceFolderIds, targetFolderId],
+    });
+    scheduleAuditEvent(c, {
+      domain: 'v1-files',
+      action: 'v1.file.batch_move',
+      result: 'success',
+      severity: 'high',
+      targetType: 'file',
+      summary: `Batch moved ${ids.length} files`,
+      metadata: { count: ids.length, targetFolderId: targetFolderId || 'root' },
     });
 
     return c.json({
