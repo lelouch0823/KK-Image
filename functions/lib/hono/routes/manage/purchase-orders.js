@@ -17,8 +17,20 @@ import { withCache } from '../../middleware/cache.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { getPurchaseOrderCacheUrls, getOrderAnalyticsCacheUrls } from '../_shared/cache-urls.js';
 import { requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+  { method: 'POST', path: '/', domain: 'purchase-orders', action: 'purchase_order.create', severity: 'high', targetType: 'purchase_order' },
+  { method: 'POST', path: '/from-orders', domain: 'purchase-orders', action: 'purchase_order.create_from_orders', severity: 'high', targetType: 'purchase_order' },
+  { method: 'PUT', path: '/:id', domain: 'purchase-orders', action: 'purchase_order.update', severity: 'high', targetType: 'purchase_order' },
+  { method: 'PATCH', path: '/:id/status', domain: 'purchase-orders', action: 'purchase_order.status.change', severity: 'high', targetType: 'purchase_order' },
+  { method: 'POST', path: '/:id/items', domain: 'purchase-orders', action: 'purchase_order.item.create', severity: 'high', targetType: 'purchase_order' },
+  { method: 'PATCH', path: '/:id/items/:itemId', domain: 'purchase-orders', action: 'purchase_order.item.update', severity: 'high', targetType: 'purchase_order' },
+  { method: 'DELETE', path: '/:id/items/:itemId', domain: 'purchase-orders', action: 'purchase_order.item.delete', severity: 'high', targetType: 'purchase_order' },
+  { method: 'POST', path: '/:id/allocate', domain: 'purchase-orders', action: 'purchase_order.allocate', severity: 'high', targetType: 'purchase_order' },
+]);
 app.use('*', requirePermission('products:manage'));
 
 const invalidatePoRelatedCaches = (c, poId = null) => {
@@ -197,6 +209,17 @@ app.post('/', async (c) => {
 
   // 返回完整的采购单
   const fullPo = await repo.findById(po.id);
+  scheduleAuditEvent(c, {
+    domain: 'purchase-orders',
+    action: 'purchase_order.create',
+    result: 'success',
+    severity: 'high',
+    targetType: 'purchase_order',
+    targetId: po.id,
+    target_label: po.id,
+    summary: `Created purchase order ${po.id}`,
+    metadata: { itemCount: Array.isArray(body.items) ? body.items.length : 0 },
+  });
   return c.json({ success: true, data: fullPo }, 201);
 });
 
@@ -220,6 +243,17 @@ app.post('/from-orders', async (c) => {
   });
 
   invalidatePoRelatedCaches(c, po?.id);
+  scheduleAuditEvent(c, {
+    domain: 'purchase-orders',
+    action: 'purchase_order.create_from_orders',
+    result: 'success',
+    severity: 'high',
+    targetType: 'purchase_order',
+    targetId: po?.id,
+    target_label: po?.id || null,
+    summary: `Created purchase order ${po?.id || ''} from orders`,
+    metadata: { orderIds: body.order_ids },
+  });
 
   return c.json({ success: true, data: po }, 201);
 });
@@ -240,6 +274,17 @@ app.put('/:id', async (c) => {
   invalidatePoRelatedCaches(c, c.req.param('id'));
 
   const po = await repo.findById(c.req.param('id'));
+  scheduleAuditEvent(c, {
+    domain: 'purchase-orders',
+    action: 'purchase_order.update',
+    result: 'success',
+    severity: 'high',
+    targetType: 'purchase_order',
+    targetId: c.req.param('id'),
+    target_label: c.req.param('id'),
+    summary: `Updated purchase order ${c.req.param('id')}`,
+    metadata: body,
+  });
   return c.json({ success: true, data: po });
 });
 
@@ -257,6 +302,17 @@ app.patch('/:id/status', async (c) => {
   const result = await service.updateStatus(c.req.param('id'), body.status);
 
   invalidatePoRelatedCaches(c, c.req.param('id'));
+  scheduleAuditEvent(c, {
+    domain: 'purchase-orders',
+    action: 'purchase_order.status.change',
+    result: 'success',
+    severity: 'high',
+    targetType: 'purchase_order',
+    targetId: c.req.param('id'),
+    target_label: c.req.param('id'),
+    summary: `Changed purchase order ${c.req.param('id')} status to ${body.status}`,
+    metadata: { status: body.status },
+  });
 
   return c.json({
     success: true,
@@ -292,6 +348,17 @@ app.post('/:id/items', async (c) => {
   const ids = await repo.addItems(poId, body.items);
 
   invalidatePoRelatedCaches(c, poId);
+  scheduleAuditEvent(c, {
+    domain: 'purchase-orders',
+    action: 'purchase_order.item.create',
+    result: 'success',
+    severity: 'high',
+    targetType: 'purchase_order',
+    targetId: poId,
+    target_label: poId,
+    summary: `Added ${ids.length} items to purchase order ${poId}`,
+    metadata: { count: ids.length },
+  });
 
   return c.json({ success: true, data: { created: ids.length } }, 201);
 });
@@ -312,6 +379,17 @@ app.patch('/:id/items/:itemId', async (c) => {
   requireMutationSuccess(updated, '明细不存在');
 
   invalidatePoRelatedCaches(c, poId);
+  scheduleAuditEvent(c, {
+    domain: 'purchase-orders',
+    action: 'purchase_order.item.update',
+    result: 'success',
+    severity: 'high',
+    targetType: 'purchase_order',
+    targetId: poId,
+    target_label: poId,
+    summary: `Updated purchase order item ${c.req.param('itemId')}`,
+    metadata: body,
+  });
 
   return c.json({ success: true });
 });
@@ -330,6 +408,16 @@ app.delete('/:id/items/:itemId', async (c) => {
   requireMutationSuccess(removed, '明细不存在');
 
   invalidatePoRelatedCaches(c, poId);
+  scheduleAuditEvent(c, {
+    domain: 'purchase-orders',
+    action: 'purchase_order.item.delete',
+    result: 'success',
+    severity: 'high',
+    targetType: 'purchase_order',
+    targetId: poId,
+    target_label: poId,
+    summary: `Deleted purchase order item ${c.req.param('itemId')}`,
+  });
 
   return c.json({ success: true });
 });
@@ -348,6 +436,16 @@ app.post('/:id/allocate', async (c) => {
 
   const repo = new PurchaseOrderRepository(c.env.DB);
   const po = await requirePurchaseOrder(repo, poId);
+  scheduleAuditEvent(c, {
+    domain: 'purchase-orders',
+    action: 'purchase_order.allocate',
+    result: 'success',
+    severity: 'high',
+    targetType: 'purchase_order',
+    targetId: poId,
+    target_label: poId,
+    summary: `Allocated costs for purchase order ${poId}`,
+  });
 
   return c.json({ success: true, data: po });
 });

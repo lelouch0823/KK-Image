@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   repoUpdateItem: vi.fn(),
   repoRemoveItem: vi.fn(),
   serviceUpdateStatus: vi.fn(),
+  scheduleAuditEvent: vi.fn(),
 }));
 
 vi.mock('../../../../../repositories/PurchaseOrderRepository.js', () => ({
@@ -52,6 +53,14 @@ vi.mock('../../../_shared/route-helpers.js', () => ({
   },
   scheduleCacheInvalidation: vi.fn(),
 }));
+
+vi.mock('../../../_shared/audit-helpers.js', async () => {
+  const actual = await vi.importActual('../../../_shared/audit-helpers.js');
+  return {
+    ...actual,
+    scheduleAuditEvent: mocks.scheduleAuditEvent,
+  };
+});
 
 import purchaseOrdersApp from '../purchase-orders.js';
 
@@ -175,5 +184,9 @@ describe('manage purchase-orders routes', () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json?.data?.message || '').toContain('预订单采购状态');
+    expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: 'purchase_order.status.change', domain: 'purchase-orders' })
+    );
   });
 });

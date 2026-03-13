@@ -13,6 +13,7 @@ import {
   formatRetryAfter,
 } from '../middleware/rateLimit.js';
 import { setCookie } from 'hono/cookie';
+import { scheduleAuditEvent } from './audit-helpers.js';
 
 // ============================
 // Cookie 常量
@@ -59,6 +60,17 @@ export async function checkAndRespondLockout(c, identifier) {
 
   const lockoutStatus = await checkLoginLockout(kv, ip, identifier);
   if (lockoutStatus.locked) {
+    scheduleAuditEvent(c, {
+      domain: 'sales-auth',
+      action: 'sales.auth.locked',
+      result: 'denied',
+      severity: 'high',
+      targetType: 'salesperson',
+      targetId: identifier,
+      target_label: identifier,
+      summary: `Locked login attempt for ${identifier}`,
+      metadata: { retryAfter: lockoutStatus.retryAfter },
+    });
     return c.json(
       {
         success: false,
@@ -86,6 +98,17 @@ export async function handleLoginFailure(c, identifier, errorMsg = MSG.AUTH.INVA
   const failureResult = await recordLoginFailure(kv, ip, identifier, c.executionCtx);
 
   if (failureResult.locked) {
+    scheduleAuditEvent(c, {
+      domain: 'sales-auth',
+      action: 'sales.auth.locked',
+      result: 'failed',
+      severity: 'high',
+      targetType: 'salesperson',
+      targetId: identifier,
+      target_label: identifier,
+      summary: `Locked login after failures for ${identifier}`,
+      metadata: { retryAfter: failureResult.retryAfter },
+    });
     return c.json(
       {
         success: false,
@@ -96,6 +119,18 @@ export async function handleLoginFailure(c, identifier, errorMsg = MSG.AUTH.INVA
       { 'Retry-After': String(failureResult.retryAfter) }
     );
   }
+
+  scheduleAuditEvent(c, {
+    domain: 'sales-auth',
+    action: 'sales.auth.failed',
+    result: 'failed',
+    severity: 'high',
+    targetType: 'salesperson',
+    targetId: identifier,
+    target_label: identifier,
+    summary: `Failed login for ${identifier}`,
+    metadata: { remaining: failureResult.remaining },
+  });
 
   return c.json(
     { success: false, error: errorMsg, remaining: failureResult.remaining },

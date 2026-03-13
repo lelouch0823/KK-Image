@@ -22,4 +22,13 @@ describe('extractWriteRoutesFromFile', () => {
       expect.objectContaining({ method: 'POST', path: '/batch/move' }),
     ]));
   });
+
+  it('extracts multi-method routes declared via .on()', async () => {
+    const routes = await extractWriteRoutesFromFile('functions/lib/hono/routes/manage/spaces/crud.js');
+
+    expect(routes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ method: 'PUT', path: '/:id' }),
+      expect.objectContaining({ method: 'PATCH', path: '/:id' }),
+    ]));
+  });
 });

@@ -17,8 +17,16 @@ import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { NotFoundError, BadRequestError, ForbiddenError, ConflictError } from '../../errors.js';
 import { getManageShareCacheUrls } from '../_shared/cache-urls.js';
 import { appendOptionalUpdate, requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+  { method: 'POST', path: '/', domain: 'folders', action: 'folder.create', severity: 'high', targetType: 'folder' },
+  { method: 'PUT', path: '/:id', domain: 'folders', action: 'folder.update', severity: 'high', targetType: 'folder' },
+  { method: 'DELETE', path: '/:id', domain: 'folders', action: 'folder.delete', severity: 'critical', targetType: 'folder' },
+  { method: 'POST', path: '/:id/upload', domain: 'folders', action: 'folder.upload', severity: 'normal', targetType: 'folder' },
+]);
 app.use('*', requirePermission('folders:read'));
 
 function scheduleManageShareCacheInvalidation(c) {
@@ -168,6 +176,17 @@ app.post(
     });
 
     scheduleManageShareCacheInvalidation(c);
+    scheduleAuditEvent(c, {
+      domain: 'folders',
+      action: 'folder.create',
+      result: 'success',
+      severity: 'high',
+      targetType: 'folder',
+      targetId: folderId,
+      target_label: name.trim(),
+      summary: `Created folder ${name.trim()}`,
+      metadata: { parentId: parentId || null, isPublic },
+    });
 
     return c.json(
       {
@@ -247,6 +266,16 @@ app.put(
     const updated = await folderRepo.update(folderId, updates, values);
 
     scheduleManageShareCacheInvalidation(c);
+    scheduleAuditEvent(c, {
+      domain: 'folders',
+      action: 'folder.update',
+      result: 'success',
+      severity: 'high',
+      targetType: 'folder',
+      targetId: folderId,
+      target_label: updated.name || folderId,
+      summary: `Updated folder ${updated.name || folderId}`,
+    });
 
     return c.json({
       success: true,
@@ -277,6 +306,16 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
   await folderRepo.softDelete(folderId);
 
   scheduleManageShareCacheInvalidation(c);
+  scheduleAuditEvent(c, {
+    domain: 'folders',
+    action: 'folder.delete',
+    result: 'success',
+    severity: 'critical',
+    targetType: 'folder',
+    targetId: folderId,
+    target_label: folder.name,
+    summary: `Deleted folder ${folder.name}`,
+  });
 
   return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
 });
@@ -316,6 +355,17 @@ app.post('/:id/upload', requirePermission('files:write'), async (c) => {
     originalHash,
     folderId,
     createdBy: user.id,
+  });
+  scheduleAuditEvent(c, {
+    domain: 'folders',
+    action: 'folder.upload',
+    result: 'success',
+    severity: 'normal',
+    targetType: 'folder',
+    targetId: folderId,
+    target_label: folderId,
+    summary: `Uploaded file into folder ${folderId}`,
+    metadata: { fileId: result?.id || null },
   });
 
   // 5. 触发 Webhook（后台执行，保留 try-catch 因为是非阻塞后台任务）

@@ -6,8 +6,14 @@ import { withCache } from '../../middleware/cache.js';
 import { getManageNotificationCacheUrls } from '../_shared/cache-urls.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+    { method: 'POST', path: '/', domain: 'notifications', action: 'notification.create', severity: 'normal', targetType: 'notification' },
+    { method: 'POST', path: '/:id/read', domain: 'notifications', action: 'notification.read', severity: 'normal', targetType: 'notification' },
+]);
 
 function scheduleManageNotificationCacheInvalidation(c) {
     scheduleCacheInvalidation(c, getManageNotificationCacheUrls(c));
@@ -48,6 +54,17 @@ app.post('/', requirePermission('notifications:write'), async (c) => {
     });
 
     scheduleManageNotificationCacheInvalidation(c);
+    scheduleAuditEvent(c, {
+        domain: 'notifications',
+        action: 'notification.create',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'notification',
+        targetId: result?.id || null,
+        target_label: title,
+        summary: `Created notification ${title}`,
+        metadata: { type, orderId },
+    });
 
     return c.json({ success: true, message: MSG.COMMON.CREATE_SUCCESS, data: result });
 });
@@ -69,6 +86,16 @@ app.post('/:id/read', requirePermission('notifications:write'), async (c) => {
     }
 
     scheduleManageNotificationCacheInvalidation(c);
+    scheduleAuditEvent(c, {
+        domain: 'notifications',
+        action: 'notification.read',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'notification',
+        targetId: notificationId,
+        target_label: notificationId,
+        summary: notificationId === 'all' ? 'Marked all notifications as read' : `Marked notification ${notificationId} as read`,
+    });
 
     return c.json({ success: true, message: MSG.COMMON.UPDATE_SUCCESS });
 });

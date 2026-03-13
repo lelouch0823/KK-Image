@@ -46,6 +46,11 @@ graph TD
 - **Sales**: 基于 Access Token (`/api/sales/:token`)，受限访问。
 - **Guest**: 基于 Share Token (`/space/:token`) + Password，只读访问。
 
+### 2.4 统一操作审计
+- **统一底座**: 高风险写操作落入统一 `audit_logs` 模型，而不是各模块各自维护零散日志。
+- **服务端优先**: success / denied / failed 事件由后端统一生成。
+- **Phase 2 工程化**: 高风险写路由通过路由审计声明建模，并由自动抽取脚本校验覆盖一致性。
+
 ## 3. 目录结构规范
 
 ```bash

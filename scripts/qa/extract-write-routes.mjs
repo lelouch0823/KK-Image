@@ -1,7 +1,8 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, relative } from 'node:path';
 
-const WRITE_ROUTE_REGEX = /app\.(post|put|patch|delete)\(\s*(['"`])([^'"`]+)\2/g;
+const WRITE_ROUTE_REGEX = /\b[A-Za-z_$][\w$]*\.(post|put|patch|delete)\(\s*(['"`])([^'"`]+)\2/g;
+const WRITE_ROUTE_ON_ARRAY_REGEX = /\b[A-Za-z_$][\w$]*\.on\(\s*\[([^\]]+)\]\s*,\s*(['"`])([^'"`]+)\2/g;
 
 function walk(dir, predicate, output = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -26,6 +27,16 @@ export function extractWriteRoutesFromSource(source, file = '') {
       method: match[1].toUpperCase(),
       path: match[3],
     });
+  }
+  while ((match = WRITE_ROUTE_ON_ARRAY_REGEX.exec(source)) !== null) {
+    const methods = [...match[1].matchAll(/['"`](POST|PUT|PATCH|DELETE)['"`]/gi)].map((item) => item[1].toUpperCase());
+    for (const method of methods) {
+      routes.push({
+        file,
+        method,
+        path: match[3],
+      });
+    }
   }
   return routes;
 }

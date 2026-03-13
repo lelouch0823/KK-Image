@@ -3,8 +3,14 @@ import { requirePermission } from '../../middleware/auth.js';
 import { MSG } from '../../_shared/utils.js';
 import { NotFoundError } from '../../errors.js';
 import { requireEntity } from '../../_shared/route-helpers.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+    { method: 'POST', path: '/', domain: 'backups', action: 'backup.create', severity: 'critical', targetType: 'backup' },
+    { method: 'DELETE', path: '/:filename', domain: 'backups', action: 'backup.delete', severity: 'critical', targetType: 'backup' },
+]);
 
 /**
  * GET / - 列出所有备份
@@ -34,6 +40,16 @@ app.post('/', requirePermission('admin:full'), async (c) => {
     const { env } = c;
     const { performStreamingBackup } = await import('../../../../api/utils/backup-utils.js');
     const { filename, key } = await performStreamingBackup(env);
+    scheduleAuditEvent(c, {
+        domain: 'backups',
+        action: 'backup.create',
+        result: 'success',
+        severity: 'critical',
+        targetType: 'backup',
+        targetId: key,
+        target_label: filename,
+        summary: `Created backup ${filename}`,
+    });
 
     return c.json({
         success: true,
@@ -73,6 +89,16 @@ app.delete('/:filename', requirePermission('admin:full'), async (c) => {
     const { env } = c;
     const filename = c.req.param('filename');
     await env.R2_BACKUP_BUCKET.delete(filename);
+    scheduleAuditEvent(c, {
+        domain: 'backups',
+        action: 'backup.delete',
+        result: 'success',
+        severity: 'critical',
+        targetType: 'backup',
+        targetId: filename,
+        target_label: filename,
+        summary: `Deleted backup ${filename}`,
+    });
     return c.json({ success: true, message: MSG.COMMON.DELETE_SUCCESS });
 });
 

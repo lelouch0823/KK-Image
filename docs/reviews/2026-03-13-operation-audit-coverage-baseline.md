@@ -12,6 +12,12 @@ Date: 2026-03-13
 - `functions/lib/hono/routes/v1/users.js`
 - `functions/lib/hono/routes/manage/settings.js`
 - `functions/lib/hono/routes/manage/salespersons.js`
+- `functions/lib/hono/routes/manage/purchase-orders.js`
+- `functions/lib/hono/routes/manage/notifications.js`
+- `functions/lib/hono/routes/manage/folders.js`
+- `functions/lib/hono/routes/manage/backups.js`
+- `functions/lib/hono/routes/manage/spaces/crud.js`
+- `functions/lib/hono/routes/manage/spaces/files.js`
 
 ## Sales critical route coverage
 
@@ -30,5 +36,11 @@ node scripts/qa/check-audit-route-coverage.mjs
 Expected:
 
 ```text
-Audit coverage OK
+Audit coverage OK (14 files checked)
 ```
+
+## Phase 2 Notes
+
+- Coverage script now uses write-route extraction plus route audit declarations.
+- Non-mutating exploratory POST endpoints are explicitly excluded instead of being silently ignored.
+- Sales-side route declarations exist, but current hard gate still focuses on the admin high-risk set.

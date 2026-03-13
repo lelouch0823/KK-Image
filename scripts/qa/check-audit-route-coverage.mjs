@@ -12,6 +12,12 @@ const scopedFiles = [
   'functions/lib/hono/routes/v1/users.js',
   'functions/lib/hono/routes/manage/settings.js',
   'functions/lib/hono/routes/manage/salespersons.js',
+  'functions/lib/hono/routes/manage/purchase-orders.js',
+  'functions/lib/hono/routes/manage/notifications.js',
+  'functions/lib/hono/routes/manage/folders.js',
+  'functions/lib/hono/routes/manage/backups.js',
+  'functions/lib/hono/routes/manage/spaces/crud.js',
+  'functions/lib/hono/routes/manage/spaces/files.js',
 ];
 
 const ignoredRoutes = new Set([

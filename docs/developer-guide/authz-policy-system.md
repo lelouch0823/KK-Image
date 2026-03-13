@@ -160,6 +160,21 @@ pnpm run start
 - 禁止依赖前端菜单可见性替代后端鉴权
 - 禁止在业务 handler 内散写角色字符串判断替代统一引擎
 
+### 6.5 审计声明规范
+
+- 所有高风险写路由必须显式提供路由审计声明
+- 审计声明应靠近路由定义，优先使用 `declareAuditRoutes(...)`
+- 声明至少包含：`method`、`path`、`domain`、`action`、`severity`、`targetType`
+- 新增高风险写路由时，除了权限守卫，还必须同时通过审计覆盖脚本
+
+本地检查命令：
+
+```bash
+node scripts/qa/check-audit-route-coverage.mjs
+```
+
+该脚本会自动抽取写路由定义，并比对路由审计声明，而不是只依赖手工清单。
+
 ### 6.4 上下文规范
 
 - 鉴权输入只使用标准字段：`subject/action/resource/context`

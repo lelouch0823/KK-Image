@@ -28,8 +28,16 @@ import {
   normalizeSpaceCreateFields,
   requireSpace,
 } from './route-helpers.js';
+import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 
 const crud = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+  { method: 'POST', path: '/', domain: 'spaces', action: 'space.create', severity: 'high', targetType: 'space' },
+  { method: 'PUT', path: '/:id', domain: 'spaces', action: 'space.update', severity: 'high', targetType: 'space' },
+  { method: 'PATCH', path: '/:id', domain: 'spaces', action: 'space.update', severity: 'high', targetType: 'space' },
+  { method: 'DELETE', path: '/:id', domain: 'spaces', action: 'space.delete', severity: 'critical', targetType: 'space' },
+]);
 
 // Schemas
 const CreateSpaceSchema = z.object({
@@ -185,6 +193,17 @@ crud.post(
 
     await repo.create(newSpace);
     invalidateSpaceCaches(c, buildSpaceInvalidatePayload({ spaceId, productIds: [newSpace.productId] }));
+    scheduleAuditEvent(c, {
+      domain: 'spaces',
+      action: 'space.create',
+      result: 'success',
+      severity: 'high',
+      targetType: 'space',
+      targetId: spaceId,
+      target_label: normalizedName,
+      summary: `Created space ${normalizedName}`,
+      metadata: { productId: newSpace.productId, variantId: newSpace.variantId },
+    });
 
     return c.json(
       {
@@ -260,6 +279,17 @@ crud.on(
         productIds: [space.product_id, nextProductId],
       })
     );
+    scheduleAuditEvent(c, {
+      domain: 'spaces',
+      action: 'space.update',
+      result: 'success',
+      severity: 'high',
+      targetType: 'space',
+      targetId: spaceId,
+      target_label: updated.name || spaceId,
+      summary: `Updated space ${updated.name || spaceId}`,
+      metadata: { productId: nextProductId, variantId: nextVariantId },
+    });
 
     return c.json({
       success: true,
@@ -286,6 +316,16 @@ crud.delete('/:id', requirePermission('spaces:manage'), async (c) => {
 
   await repo.delete(spaceId);
   invalidateSpaceCaches(c, buildSpaceInvalidatePayload({ spaceId, space, productIds: [space.product_id] }));
+  scheduleAuditEvent(c, {
+    domain: 'spaces',
+    action: 'space.delete',
+    result: 'success',
+    severity: 'critical',
+    targetType: 'space',
+    targetId: spaceId,
+    target_label: space.name,
+    summary: `Deleted space ${space.name}`,
+  });
 
   return c.json({ success: true, message: MSG.SPACE.DELETE_SUCCESS });
 });
