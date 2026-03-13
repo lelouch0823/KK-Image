@@ -22,8 +22,13 @@ import {
   normalizeSpaceCreateFields,
   requireSpace,
 } from './route-helpers.js';
+import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 
 const subspaces = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+  { method: 'POST', path: '/', domain: 'spaces', action: 'space.subspace.create', severity: 'high', targetType: 'space' },
+]);
 
 // Schema
 const CreateSubspaceSchema = z.object({
@@ -90,6 +95,17 @@ subspaces.post(
 
     await repo.createSubspace(newSubspace);
     invalidateSpaceCaches(c, buildSpaceInvalidatePayload({ spaceId: parentId, parentId, productIds: [parent.product_id] }));
+    scheduleAuditEvent(c, {
+      domain: 'spaces',
+      action: 'space.subspace.create',
+      result: 'success',
+      severity: 'high',
+      targetType: 'space',
+      targetId: spaceId,
+      target_label: normalizedName,
+      summary: `Created subspace ${normalizedName}`,
+      metadata: { parentId },
+    });
 
     return c.json(
       {

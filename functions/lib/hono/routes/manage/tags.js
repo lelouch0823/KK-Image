@@ -6,8 +6,15 @@ import { TagRepository } from '../../../../repositories/TagRepository.js';
 import { withCache } from '../../middleware/cache.js';
 import { getManageTagCacheUrls } from '../_shared/cache-urls.js';
 import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const tagsRoute = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+    { method: 'POST', path: '/', domain: 'tags', action: 'tag.create', severity: 'normal', targetType: 'tag' },
+    { method: 'POST', path: '/assign', domain: 'tags', action: 'tag.assign', severity: 'normal', targetType: 'tag' },
+    { method: 'DELETE', path: '/assign', domain: 'tags', action: 'tag.unassign', severity: 'normal', targetType: 'tag' },
+]);
 
 function scheduleManageTagCacheInvalidation(c) {
     scheduleCacheInvalidation(c, getManageTagCacheUrls(c));
@@ -41,6 +48,16 @@ tagsRoute.post('/', requirePermission('files:write'), async (c) => {
     }
 
     scheduleManageTagCacheInvalidation(c);
+    scheduleAuditEvent(c, {
+        domain: 'tags',
+        action: 'tag.create',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'tag',
+        targetId: id,
+        target_label: name.trim(),
+        summary: `Created tag ${name.trim()}`,
+    });
 
     return c.json({ success: true, tag: { id, name: name.trim(), color } });
 });
@@ -53,6 +70,16 @@ tagsRoute.post('/assign', requirePermission('files:write'), async (c) => {
     const repo = new TagRepository(c.env.DB);
     await repo.assignToFile({ fileId: file_id, tagId: tag_id, createdAt: now() });
     scheduleManageTagCacheInvalidation(c);
+    scheduleAuditEvent(c, {
+        domain: 'tags',
+        action: 'tag.assign',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'tag',
+        targetId: tag_id,
+        target_label: tag_id,
+        summary: `Assigned tag ${tag_id} to file ${file_id}`,
+    });
     return c.json({ success: true });
 });
 
@@ -63,6 +90,16 @@ tagsRoute.delete('/assign', requirePermission('files:write'), async (c) => {
     const repo = new TagRepository(c.env.DB);
     await repo.removeFromFile(file_id, tag_id);
     scheduleManageTagCacheInvalidation(c);
+    scheduleAuditEvent(c, {
+        domain: 'tags',
+        action: 'tag.unassign',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'tag',
+        targetId: tag_id,
+        target_label: tag_id,
+        summary: `Removed tag ${tag_id} from file ${file_id}`,
+    });
     return c.json({ success: true });
 });
 

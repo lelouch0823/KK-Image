@@ -1,38 +1,12 @@
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
-import { extractWriteRoutesFromFile } from './extract-write-routes.mjs';
+import { extractWriteRoutesFromFile, extractWriteRoutesFromTree } from './extract-write-routes.mjs';
 import { normalizeAuditRouteKey } from '../../functions/lib/hono/_shared/audit-route-contract.js';
-
-const scopedFiles = [
-  'functions/lib/hono/routes/manage/orders/detail.js',
-  'functions/lib/hono/routes/manage/customers.js',
-  'functions/lib/hono/routes/manage/files.js',
-  'functions/lib/hono/routes/manage/products/index.js',
-  'functions/lib/hono/routes/manage/products/[id].js',
-  'functions/lib/hono/routes/v1/users.js',
-  'functions/lib/hono/routes/v1/auth.js',
-  'functions/lib/hono/routes/v1/files.js',
-  'functions/lib/hono/routes/v1/folders.js',
-  'functions/lib/hono/routes/v1/webhooks.js',
-  'functions/lib/hono/routes/manage/settings.js',
-  'functions/lib/hono/routes/manage/salespersons.js',
-  'functions/lib/hono/routes/manage/purchase-orders.js',
-  'functions/lib/hono/routes/manage/notifications.js',
-  'functions/lib/hono/routes/manage/folders.js',
-  'functions/lib/hono/routes/manage/backups.js',
-  'functions/lib/hono/routes/manage/spaces/crud.js',
-  'functions/lib/hono/routes/manage/spaces/files.js',
-  'functions/lib/hono/routes/manage/albums.js',
-  'functions/lib/hono/routes/manage/orders/create.js',
-  'functions/lib/hono/routes/manage/upload.js',
-  'functions/lib/hono/routes/manage/trash.js',
-  'functions/lib/hono/routes/manage/products/batch.js',
-  'functions/lib/hono/routes/sales/orders.js',
-  'functions/lib/hono/routes/sales/files.js',
-  'functions/lib/hono/routes/sales/auth.js',
-  'functions/lib/hono/routes/sales/notifications.js',
-  'functions/lib/hono/routes/sales/profile.js',
+const routeRoots = [
+  'functions/lib/hono/routes/manage',
+  'functions/lib/hono/routes/sales',
+  'functions/lib/hono/routes/v1',
 ];
 
 const ignoredRoutes = new Set([
@@ -40,6 +14,10 @@ const ignoredRoutes = new Set([
   'POST /ai/models',
   'POST /ai/test',
   'POST /check-hash',
+  'POST /chat',
+  'POST /report',
+  'POST /stream',
+  'POST /check',
 ]);
 
 export async function loadDeclarations(file) {
@@ -73,8 +51,12 @@ export function extractScheduledAuditActionsFromSource(source = '') {
 
 export async function collectAuditCoverageViolations() {
   const violations = [];
+  const allRoutes = (
+    await Promise.all(routeRoots.map((root) => extractWriteRoutesFromTree(root)))
+  ).flat();
+  const files = [...new Set(allRoutes.map((route) => route.file).filter(Boolean))].sort();
 
-  for (const file of scopedFiles) {
+  for (const file of files) {
     const source = readFileSync(resolve(file), 'utf8');
     const discoveredRoutes = await extractWriteRoutesFromFile(file);
     const declarations = await loadDeclarations(file);
@@ -125,5 +107,9 @@ if (isMain) {
     process.exit(1);
   }
 
-  console.log(`Audit coverage OK (${scopedFiles.length} files checked)`);
+  const allRoutes = (
+    await Promise.all(routeRoots.map((root) => extractWriteRoutesFromTree(root)))
+  ).flat();
+  const files = [...new Set(allRoutes.map((route) => route.file).filter(Boolean))];
+  console.log(`Audit coverage OK (${files.length} files checked)`);
 }
