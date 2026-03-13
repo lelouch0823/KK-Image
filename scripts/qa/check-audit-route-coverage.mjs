@@ -27,6 +27,10 @@ export async function loadDeclarations(file) {
 }
 
 export function extractScheduledAuditActionsFromSource(source = '') {
+  return extractScheduledAuditPropertyLiterals(source, 'action');
+}
+
+export function extractScheduledAuditPropertyLiterals(source = '', propertyName = 'action') {
   const actions = new Set();
   const marker = 'scheduleAuditEvent(';
   let start = 0;
@@ -35,7 +39,8 @@ export function extractScheduledAuditActionsFromSource(source = '') {
     const index = source.indexOf(marker, start);
     if (index === -1) break;
     const window = source.slice(index, index + 1200);
-    const actionMatches = window.matchAll(/action\s*:\s*([^,\n}]+)/g);
+    const propertyRegex = new RegExp(`${propertyName}\\s*:\\s*([^,\\n}]+)`, 'g');
+    const actionMatches = window.matchAll(propertyRegex);
     for (const match of actionMatches) {
       const actionExpr = match[1];
       const stringLiterals = [...actionExpr.matchAll(/['"`]([^'"`]+)['"`]/g)].map((item) => item[1]);
@@ -62,7 +67,10 @@ export async function collectAuditCoverageViolations() {
     const declarations = await loadDeclarations(file);
     const discoveredKeys = new Set(discoveredRoutes.map((route) => normalizeAuditRouteKey(route)));
     const declaredKeys = new Set(declarations.map((route) => route.key || normalizeAuditRouteKey(route)));
-    const scheduledActions = extractScheduledAuditActionsFromSource(source);
+    const scheduledActions = extractScheduledAuditPropertyLiterals(source, 'action');
+    const scheduledDomains = extractScheduledAuditPropertyLiterals(source, 'domain');
+    const scheduledTargetTypes = extractScheduledAuditPropertyLiterals(source, 'targetType');
+    const scheduledSeverities = extractScheduledAuditPropertyLiterals(source, 'severity');
 
     for (const route of discoveredRoutes) {
       const key = normalizeAuditRouteKey(route);
@@ -84,6 +92,15 @@ export async function collectAuditCoverageViolations() {
       }
       if (!scheduledActions.has(declaration.action)) {
         violations.push(`${file} declaration action ${declaration.action} has no visible scheduleAuditEvent action match`);
+      }
+      if (!scheduledDomains.has(declaration.domain)) {
+        violations.push(`${file} declaration domain ${declaration.domain} has no visible scheduleAuditEvent domain match`);
+      }
+      if (!scheduledTargetTypes.has(declaration.targetType)) {
+        violations.push(`${file} declaration targetType ${declaration.targetType} has no visible scheduleAuditEvent targetType match`);
+      }
+      if (!scheduledSeverities.has(declaration.severity)) {
+        violations.push(`${file} declaration severity ${declaration.severity} has no visible scheduleAuditEvent severity match`);
       }
     }
 
