@@ -36,7 +36,7 @@ node scripts/qa/check-audit-route-coverage.mjs
 Expected:
 
 ```text
-Audit coverage OK (14 files checked)
+Audit coverage OK (17 files checked)
 ```
 
 ## Phase 2 Notes

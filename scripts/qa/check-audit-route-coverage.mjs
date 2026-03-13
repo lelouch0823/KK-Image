@@ -1,5 +1,6 @@
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { extractWriteRoutesFromFile } from './extract-write-routes.mjs';
 import { normalizeAuditRouteKey } from '../../functions/lib/hono/_shared/audit-route-contract.js';
 
@@ -18,6 +19,9 @@ const scopedFiles = [
   'functions/lib/hono/routes/manage/backups.js',
   'functions/lib/hono/routes/manage/spaces/crud.js',
   'functions/lib/hono/routes/manage/spaces/files.js',
+  'functions/lib/hono/routes/sales/orders.js',
+  'functions/lib/hono/routes/sales/files.js',
+  'functions/lib/hono/routes/sales/auth.js',
 ];
 
 const ignoredRoutes = new Set([
@@ -35,6 +39,7 @@ async function loadDeclarations(file) {
 const violations = [];
 
 for (const file of scopedFiles) {
+  const source = readFileSync(resolve(file), 'utf8');
   const discoveredRoutes = await extractWriteRoutesFromFile(file);
   const declarations = await loadDeclarations(file);
   const discoveredKeys = new Set(discoveredRoutes.map((route) => normalizeAuditRouteKey(route)));
@@ -58,6 +63,10 @@ for (const file of scopedFiles) {
     if (!discoveredKeys.has(key)) {
       violations.push(`${file} has stale declaration for ${key}`);
     }
+  }
+
+  if (declarations.length > 0 && !source.includes('scheduleAuditEvent(') && !source.includes('logAudit(')) {
+    violations.push(`${file} declares audit routes but has no visible audit call site`);
   }
 }
 
