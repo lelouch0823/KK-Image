@@ -121,6 +121,16 @@ app.post('/:id/dimensions', async (c) => {
     try {
         const created = await dimensionRepo.createDimension(productId, body);
         scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        scheduleAuditEvent(c, {
+            domain: 'products',
+            action: 'product.dimension.create',
+            result: 'success',
+            severity: 'high',
+            targetType: 'product',
+            targetId: productId,
+            target_label: productId,
+            summary: `Created dimension on product ${productId}`,
+        });
         return c.json({ success: true, data: created }, 201);
     } catch (error) {
         throw new BadRequestError(error.message || 'Create dimension failed');
@@ -139,6 +149,16 @@ app.patch('/:id/dimensions/:dimensionId', async (c) => {
     try {
         const updated = await dimensionRepo.updateDimension(productId, dimensionId, body);
         scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        scheduleAuditEvent(c, {
+            domain: 'products',
+            action: 'product.dimension.update',
+            result: 'success',
+            severity: 'high',
+            targetType: 'product',
+            targetId: productId,
+            target_label: productId,
+            summary: `Updated dimension ${dimensionId} on product ${productId}`,
+        });
         return c.json({ success: true, data: updated });
     } catch (error) {
         throw new BadRequestError(error.message || 'Update dimension failed');
@@ -165,6 +185,16 @@ app.patch('/:id/dimensions/:dimensionId/archive', async (c) => {
         }
         const archivedDimension = await dimensionRepo.archiveDimension(productId, dimensionId);
         scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        scheduleAuditEvent(c, {
+            domain: 'products',
+            action: 'product.dimension.archive',
+            result: 'success',
+            severity: 'high',
+            targetType: 'product',
+            targetId: productId,
+            target_label: productId,
+            summary: `Archived dimension ${dimensionId} on product ${productId}`,
+        });
         return c.json({ success: true, data: { dimension: archivedDimension, effect } });
     } catch (error) {
         throw new BadRequestError(error.message || 'Archive dimension failed');
@@ -183,6 +213,16 @@ app.post('/:id/dimensions/:dimensionId/values', async (c) => {
     try {
         const created = await dimensionRepo.addValue(productId, dimensionId, body);
         scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        scheduleAuditEvent(c, {
+            domain: 'products',
+            action: 'product.dimension_value.create',
+            result: 'success',
+            severity: 'high',
+            targetType: 'product',
+            targetId: productId,
+            target_label: productId,
+            summary: `Created dimension value on product ${productId}`,
+        });
         return c.json({ success: true, data: created }, 201);
     } catch (error) {
         throw new BadRequestError(error.message || 'Add value failed');
@@ -201,6 +241,16 @@ app.patch('/:id/values/:valueId/archive', async (c) => {
         const effect = await dimensionRepo.archiveVariantsByValue(productId, valueId);
         const value = await dimensionRepo.archiveValue(productId, valueId);
         scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        scheduleAuditEvent(c, {
+            domain: 'products',
+            action: 'product.dimension_value.archive',
+            result: 'success',
+            severity: 'high',
+            targetType: 'product',
+            targetId: productId,
+            target_label: productId,
+            summary: `Archived dimension value ${valueId} on product ${productId}`,
+        });
         return c.json({ success: true, data: { value, effect } });
     } catch (error) {
         throw new BadRequestError(error.message || 'Archive value failed');
@@ -218,6 +268,16 @@ app.patch('/:id/values/:valueId/restore', async (c) => {
     try {
         const value = await dimensionRepo.restoreValue(productId, valueId);
         scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        scheduleAuditEvent(c, {
+            domain: 'products',
+            action: 'product.dimension_value.restore',
+            result: 'success',
+            severity: 'high',
+            targetType: 'product',
+            targetId: productId,
+            target_label: productId,
+            summary: `Restored dimension value ${valueId} on product ${productId}`,
+        });
         return c.json({ success: true, data: value });
     } catch (error) {
         throw new BadRequestError(error.message || 'Restore value failed');
@@ -262,6 +322,16 @@ app.post('/:id/variants/:variantId/images', async (c) => {
             isPrimary: Boolean(body.isPrimary),
         });
         scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        scheduleAuditEvent(c, {
+            domain: 'products',
+            action: 'product.variant_image.create',
+            result: 'success',
+            severity: 'high',
+            targetType: 'product',
+            targetId: productId,
+            target_label: productId,
+            summary: `Added variant image to product ${productId}`,
+        });
         return c.json({ success: true, data: created }, 201);
     } catch (error) {
         if (isVariantOwnershipError(error)) {
@@ -289,6 +359,16 @@ app.patch('/:id/variants/:variantId/images/sort', async (c) => {
             imageIds: body.imageIds,
         });
         scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        scheduleAuditEvent(c, {
+            domain: 'products',
+            action: 'product.variant_image.sort',
+            result: 'success',
+            severity: 'high',
+            targetType: 'product',
+            targetId: productId,
+            target_label: productId,
+            summary: `Sorted variant images on product ${productId}`,
+        });
         return c.json({ success: true });
     } catch (error) {
         if (isVariantOwnershipError(error)) {
@@ -312,6 +392,16 @@ app.patch('/:id/variants/:variantId/images/:imageId/primary', async (c) => {
             imageId,
         });
         scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        scheduleAuditEvent(c, {
+            domain: 'products',
+            action: 'product.variant_image.primary',
+            result: 'success',
+            severity: 'high',
+            targetType: 'product',
+            targetId: productId,
+            target_label: productId,
+            summary: `Changed primary variant image on product ${productId}`,
+        });
         return c.json({ success: true });
     } catch (error) {
         if (isVariantOwnershipError(error)) {
@@ -338,6 +428,16 @@ app.delete('/:id/variants/:variantId/images/:imageId', async (c) => {
             throw new NotFoundError('Variant image not found');
         }
         scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        scheduleAuditEvent(c, {
+            domain: 'products',
+            action: 'product.variant_image.delete',
+            result: 'success',
+            severity: 'high',
+            targetType: 'product',
+            targetId: productId,
+            target_label: productId,
+            summary: `Deleted variant image on product ${productId}`,
+        });
         return c.json({ success: true });
     } catch (error) {
         if (isVariantOwnershipError(error)) {

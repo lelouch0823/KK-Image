@@ -221,6 +221,16 @@ app.patch('/:id/read', async (c) => {
     await requireSalesOrder(orderRepo, orderId, salesperson.id);
     await orderRepo.markAsRead(orderId, 'sales');
     scheduleSalesOrderListCacheInvalidation(c, { salesToken: token });
+    scheduleAuditEvent(c, {
+        domain: 'sales-orders',
+        action: 'sales.order.read',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'order',
+        targetId: orderId,
+        target_label: orderId,
+        summary: `${salesperson.name} marked order ${orderId} as read`,
+    });
 
     return c.json({ success: true, message: MSG.ORDER.ALREADY_READ });
 });
