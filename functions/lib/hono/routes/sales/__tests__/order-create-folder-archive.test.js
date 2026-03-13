@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   invalidateCache: vi.fn(async () => {}),
   ensureOrderFolder: vi.fn(),
   moveFilesToFolder: vi.fn(),
+  scheduleAuditEvent: vi.fn(),
 }));
 
 vi.mock('../../../middleware/cache.js', () => ({
@@ -40,6 +41,14 @@ vi.mock('../../../../../api/utils/folder-utils.js', () => ({
   ensureOrderFolder: mocks.ensureOrderFolder,
   moveFilesToFolder: mocks.moveFilesToFolder,
 }));
+
+vi.mock('../../../_shared/audit-helpers.js', async () => {
+  const actual = await vi.importActual('../../../_shared/audit-helpers.js');
+  return {
+    ...actual,
+    scheduleAuditEvent: mocks.scheduleAuditEvent,
+  };
+});
 
 import ordersApp from '../orders.js';
 
@@ -86,6 +95,10 @@ describe('sales order create route', () => {
       expect.anything(),
       ['file-1', 'file-2'],
       'folder-order-1'
+    );
+    expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: 'sales.order.create', domain: 'sales-orders' })
     );
   });
 });

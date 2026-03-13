@@ -295,7 +295,7 @@ const menuItems = computed(() => [
     key: 'audit-logs',
     label: t('router.audit_logs'),
     icon: 'document-text',
-    permission: 'admin:full'
+    permission: 'audit:read'
   }
 ]);
 

@@ -4,6 +4,7 @@ import { CreateUserSchema, UpdateUserSchema } from '../../schemas/user.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { generateId, hashPassword, MSG } from '../../_shared/utils.js';
 import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { parseJsonArray } from '../../../../api/utils/json.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
 import { assertKnownPermissions } from './_shared/permissions-validation.js';
@@ -113,6 +114,17 @@ app.post('/', requirePermission('admin:full'), zValidator('json', CreateUserSche
   // 审计日志 (SOTA: 非阻塞记录)
   const { userId: opUserId, ip } = getAuditContext(c);
   c.executionCtx.waitUntil(logAudit(env.DB, { userId: opUserId, action: 'user:create', targetType: 'user', targetId: id, payload: { username: data.username, role: data.role || 'user' }, ip }));
+  scheduleAuditEvent(c, {
+    domain: 'users',
+    action: 'user.create',
+    result: 'success',
+    severity: 'high',
+    targetType: 'user',
+    targetId: id,
+    target_label: data.username,
+    summary: `Created user ${data.username}`,
+    metadata: { username: data.username, role: data.role || 'user' },
+  });
 
   return c.json(
     {
@@ -178,6 +190,24 @@ app.put(
       .bind(id)
       .first();
 
+    scheduleAuditEvent(c, {
+      domain: 'users',
+      action: 'user.update',
+      result: 'success',
+      severity: 'high',
+      targetType: 'user',
+      targetId: id,
+      target_label: user?.username || id,
+      summary: `Updated user ${user?.username || id}`,
+      metadata: {
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        permissions: data.permissions,
+        passwordChanged: Boolean(data.password),
+      },
+    });
+
     return c.json({
       success: true,
       data: toSafeUser(user),
@@ -207,6 +237,16 @@ app.delete('/:id', requirePermission('admin:full'), async (c) => {
   // 审计日志 (SOTA: 非阻塞记录)
   const { userId: opUserId, ip } = getAuditContext(c);
   c.executionCtx.waitUntil(logAudit(env.DB, { userId: opUserId, action: 'user:delete', targetType: 'user', targetId: id, ip }));
+  scheduleAuditEvent(c, {
+    domain: 'users',
+    action: 'user.delete',
+    result: 'success',
+    severity: 'critical',
+    targetType: 'user',
+    targetId: id,
+    target_label: id,
+    summary: `Deleted user ${id}`,
+  });
 
   return c.json({ success: true, message: MSG.USER.DELETE_SUCCESS });
 });

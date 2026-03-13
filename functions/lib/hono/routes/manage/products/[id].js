@@ -4,6 +4,7 @@ import { ProductVariantRepository } from '../../../../../repositories/ProductVar
 import { ProductDimensionRepository } from '../../../../../repositories/ProductDimensionRepository.js';
 import { VariantImageRepository } from '../../../../../repositories/VariantImageRepository.js';
 import { VariantAuditRepository } from '../../../../../repositories/VariantAuditRepository.js';
+import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
 import { requirePermission } from '../../../middleware/auth.js';
 import { scheduleProductCacheInvalidation } from './cache-helpers.js';
@@ -338,6 +339,17 @@ app.patch('/:id', async (c) => {
     const body = await c.req.json();
     const service = new ProductCatalogService(c.env.DB);
     const result = await service.patchProduct(c, id, body);
+    scheduleAuditEvent(c, {
+        domain: 'products',
+        action: 'product.update',
+        result: 'success',
+        severity: 'high',
+        targetType: 'product',
+        targetId: id,
+        target_label: id,
+        summary: `Updated product ${id}`,
+        metadata: { changeCount: Array.isArray(result?.changes) ? result.changes.length : undefined },
+    });
     return c.json({
         success: true,
         message: 'Product updated',
@@ -354,6 +366,17 @@ app.put('/:id', async (c) => {
     const body = await c.req.json();
     const service = new ProductCatalogService(c.env.DB);
     const result = await service.putProduct(c, id, body);
+    scheduleAuditEvent(c, {
+        domain: 'products',
+        action: 'product.replace',
+        result: 'success',
+        severity: 'high',
+        targetType: 'product',
+        targetId: id,
+        target_label: id,
+        summary: `Replaced product ${id}`,
+        metadata: { changeCount: Array.isArray(result?.changes) ? result.changes.length : undefined },
+    });
     return c.json({
         success: true,
         message: 'Product updated',
@@ -392,6 +415,17 @@ app.delete('/:id', async (c) => {
         if (events.length > 0) {
             await auditRepo.createBatch(events);
         }
+        scheduleAuditEvent(c, {
+            domain: 'products',
+            action: 'product.archive',
+            result: 'success',
+            severity: 'critical',
+            targetType: 'product',
+            targetId: id,
+            target_label: id,
+            summary: `Archived product ${id}`,
+            metadata: { variantCount: events.length },
+        });
         // 使缓存失效
         scheduleProductCacheInvalidation(c, env.DB, { productIds: [id] });
         return c.json({ success: true, message: 'Product variants archived' });

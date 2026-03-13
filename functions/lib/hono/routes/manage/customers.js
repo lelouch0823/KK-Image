@@ -7,6 +7,7 @@ import { withCache } from '../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { parsePagination, createListCacheInvalidator, scheduleCacheInvalidation, requireEntity } from '../../_shared/route-helpers.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 
 const app = new Hono();
 app.use('*', requirePermission('orders:manage'));
@@ -87,6 +88,17 @@ app.post('/', zValidator('json', CreateCustomerSchema), async (c) => {
     });
 
     scheduleCustomerCacheInvalidation(c);
+    scheduleAuditEvent(c, {
+        domain: 'customers',
+        action: 'customer.create',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'customer',
+        targetId: customer.id,
+        target_label: customer.name,
+        summary: `${user.name} created customer ${customer.name}`,
+        metadata: body,
+    });
 
     return c.json({
         success: true,
@@ -143,6 +155,17 @@ app.put('/:id', zValidator('json', UpdateCustomerSchema), async (c) => {
     }
 
     scheduleCustomerCacheInvalidation(c);
+    scheduleAuditEvent(c, {
+        domain: 'customers',
+        action: 'customer.update',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'customer',
+        targetId: id,
+        target_label: id,
+        summary: `Customer ${id} updated`,
+        metadata: body,
+    });
 
     return c.json({
         success: true,
@@ -171,6 +194,16 @@ app.delete('/:id', async (c) => {
     }
 
     scheduleCustomerCacheInvalidation(c);
+    scheduleAuditEvent(c, {
+        domain: 'customers',
+        action: 'customer.delete',
+        result: 'success',
+        severity: 'high',
+        targetType: 'customer',
+        targetId: id,
+        target_label: id,
+        summary: `Customer ${id} deleted`,
+    });
 
     return c.json({ success: true, message: MSG.CUSTOMER.DELETE_SUCCESS });
 });

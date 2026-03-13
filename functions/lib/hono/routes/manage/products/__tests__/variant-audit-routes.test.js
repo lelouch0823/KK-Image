@@ -27,6 +27,7 @@ const mockFolderUtils = {
   ensureVariantFolder: vi.fn(),
   moveFilesToFolder: vi.fn(),
 };
+const mockScheduleAuditEvent = vi.fn();
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
   ProductRepository: class {
@@ -79,6 +80,14 @@ vi.mock('../../../../middleware/cache.js', () => ({
   getProductCacheUrls: vi.fn(() => []),
 }));
 
+vi.mock('../../../../_shared/audit-helpers.js', async () => {
+  const actual = await vi.importActual('../../../../_shared/audit-helpers.js');
+  return {
+    ...actual,
+    scheduleAuditEvent: (...args) => mockScheduleAuditEvent(...args),
+  };
+});
+
 function createApp() {
   const app = new Hono();
   app.onError((err, c) => {
@@ -104,6 +113,7 @@ describe('product variant audit routes', () => {
     mockDimensionRepo.updateValueMeta.mockResolvedValue();
     mockFolderUtils.ensureVariantFolder.mockResolvedValue('folder-variant');
     mockFolderUtils.moveFilesToFolder.mockResolvedValue(undefined);
+    mockScheduleAuditEvent.mockReset();
   });
 
   it('PATCH /:id writes audit logs for variant changes', async () => {
@@ -142,6 +152,10 @@ describe('product variant audit routes', () => {
       reactivated: 0,
     });
     expect(mockAuditRepo.createBatch).toHaveBeenCalledTimes(1);
+    expect(mockScheduleAuditEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: 'product.update', domain: 'products' })
+    );
   });
 
   it('DELETE /:id writes archived audit logs for existing variants', async () => {
@@ -165,6 +179,10 @@ describe('product variant audit routes', () => {
 
     expect(res.status).toBe(200);
     expect(mockAuditRepo.createBatch).toHaveBeenCalledTimes(1);
+    expect(mockScheduleAuditEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: 'product.archive', severity: 'critical' })
+    );
   });
 
   it('DELETE /:id returns 400 when variants exist but archive update affects zero rows', async () => {

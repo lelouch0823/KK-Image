@@ -8,6 +8,7 @@ import { NotFoundError, BadRequestError } from '../../errors.js';
 import { parsePagination, createListCacheInvalidator, scheduleCacheInvalidation, requireEntity } from '../../_shared/route-helpers.js';
 import { getManageOrderCacheUrls } from '../_shared/cache-urls.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 
 const app = new Hono();
 app.use('*', requirePermission('users:read'));
@@ -93,6 +94,17 @@ app.post('/', requirePermission('users:write'), zValidator('json', CreateSalespe
     });
 
     scheduleSalespersonAndOrderCacheInvalidation(c);
+    scheduleAuditEvent(c, {
+        domain: 'salespersons',
+        action: 'salesperson.create',
+        result: 'success',
+        severity: 'high',
+        targetType: 'salesperson',
+        targetId: salesperson.id,
+        target_label: salesperson.name,
+        summary: `Created salesperson ${salesperson.name}`,
+        metadata: { store: salesperson.store, phone: salesperson.phone },
+    });
 
     return c.json({
         success: true,
@@ -153,6 +165,23 @@ const updateHandler = async (c) => {
     }
 
     scheduleSalespersonAndOrderCacheInvalidation(c);
+    scheduleAuditEvent(c, {
+        domain: 'salespersons',
+        action: 'salesperson.update',
+        result: 'success',
+        severity: 'high',
+        targetType: 'salesperson',
+        targetId: id,
+        target_label: id,
+        summary: `Updated salesperson ${id}`,
+        metadata: {
+            name: body.name,
+            store: body.store,
+            phone: body.phone,
+            isActive: body.isActive,
+            passwordChanged: Boolean(body.password),
+        },
+    });
 
     return c.json({
         success: true,
@@ -186,6 +215,16 @@ app.delete('/:id', requirePermission('users:write'), async (c) => {
     }
 
     scheduleSalespersonAndOrderCacheInvalidation(c);
+    scheduleAuditEvent(c, {
+        domain: 'salespersons',
+        action: 'salesperson.delete',
+        result: 'success',
+        severity: 'critical',
+        targetType: 'salesperson',
+        targetId: id,
+        target_label: id,
+        summary: `Deleted salesperson ${id}`,
+    });
 
     return c.json({ success: true, message: MSG.SALESPERSON.DELETE_SUCCESS });
 });
@@ -205,6 +244,16 @@ app.post('/:id/reset-token', requirePermission('users:write'), async (c) => {
     }
 
     scheduleSalespersonAndOrderCacheInvalidation(c);
+    scheduleAuditEvent(c, {
+        domain: 'salespersons',
+        action: 'salesperson.reset_token',
+        result: 'success',
+        severity: 'critical',
+        targetType: 'salesperson',
+        targetId: id,
+        target_label: id,
+        summary: `Reset salesperson token for ${id}`,
+    });
 
     return c.json({
         success: true,

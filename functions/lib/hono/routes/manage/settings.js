@@ -3,6 +3,7 @@ import { BadRequestError } from '../../errors.js';
 import { SettingsRepository } from '../../../../repositories/SettingsRepository.js';
 import { parseModels, getModelHealthSnapshot } from '../../../../utils/ai-utils.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 
 const app = new Hono();
 app.use('*', requirePermission('admin:full'));
@@ -111,6 +112,15 @@ app.post('/batch', async (c) => {
 
   const repo = new SettingsRepository(c.env.DB);
   const count = await repo.batchUpsert(settings);
+  scheduleAuditEvent(c, {
+    domain: 'settings',
+    action: 'settings.batch_upsert',
+    result: 'success',
+    severity: 'high',
+    targetType: 'setting',
+    summary: `Updated ${count} settings`,
+    metadata: { count, keys: settings.map((item) => item?.key).filter(Boolean) },
+  });
 
   return c.json({ success: true, data: { count } });
 });
@@ -122,6 +132,17 @@ app.put('/:key', async (c) => {
 
   const repo = new SettingsRepository(c.env.DB);
   await repo.upsert(key, { value, category, description });
+  scheduleAuditEvent(c, {
+    domain: 'settings',
+    action: 'settings.update',
+    result: 'success',
+    severity: 'high',
+    targetType: 'setting',
+    targetId: key,
+    target_label: key,
+    summary: `Updated setting ${key}`,
+    metadata: { category, description },
+  });
 
   return c.json({ success: true, data: { key, value } });
 });

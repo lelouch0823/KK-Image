@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { MSG } from '../../_shared/utils.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 
 const app = new Hono();
 
@@ -30,6 +31,17 @@ app.post('/upload', async (c) => {
         originalHash, // 传递给存储逻辑
         folderId,
         createdBy: salesperson.id,
+    });
+    scheduleAuditEvent(c, {
+        domain: 'sales-files',
+        action: 'sales.file.upload',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'file',
+        targetId: result?.id || null,
+        target_label: file?.name || result?.name || null,
+        summary: `${salesperson.name} uploaded ${file?.name || 'a file'}`,
+        metadata: { orderId: orderId || null, instantUpload: Boolean(result?.instantUpload) },
     });
 
     return c.json({

@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 
 const authzMocks = vi.hoisted(() => ({
   evaluateUserPermission: vi.fn(),
+  recordAuditEvent: vi.fn(async () => {}),
 }));
 
 vi.mock('../../../authz/index.js', async () => {
@@ -10,6 +11,14 @@ vi.mock('../../../authz/index.js', async () => {
   return {
     ...actual,
     evaluateUserPermission: authzMocks.evaluateUserPermission,
+  };
+});
+
+vi.mock('../../_shared/audit-helpers.js', async () => {
+  const actual = await vi.importActual('../../_shared/audit-helpers.js');
+  return {
+    ...actual,
+    recordAuditEvent: authzMocks.recordAuditEvent,
   };
 });
 
@@ -22,6 +31,7 @@ function createApp(user) {
     await next();
   });
   app.get('/secure/ping', requirePermission('files:read'), (c) => c.json({ success: true }));
+  app.post('/secure/ping', requirePermission('files:read'), (c) => c.json({ success: true }));
   return app;
 }
 
@@ -40,8 +50,15 @@ describe('requirePermission with authz engine', () => {
     authzMocks.evaluateUserPermission.mockResolvedValueOnce(false);
     const app = createApp({ id: 'u1', role: 'viewer', permissions: [] });
 
-    const res = await app.request('http://localhost/secure/ping', {}, { AUTHZ_ENGINE: 'opa' });
+    const res = await app.request('http://localhost/secure/ping', { method: 'POST' }, { AUTHZ_ENGINE: 'opa', DB: {} });
     expect(res.status).toBe(403);
+    expect(authzMocks.recordAuditEvent).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({
+        result: 'denied',
+        summary: expect.stringContaining('denied'),
+      })
+    );
   });
 
   it('allows request when authz engine allows', async () => {

@@ -15,6 +15,7 @@ import {
     scheduleOrderAndSalespersonCacheInvalidation,
 } from './orders-cache-helpers.js';
 import { DemandService } from '../../../../services/DemandService.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 
 const app = new Hono();
 
@@ -150,6 +151,17 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
     })());
 
     scheduleOrderAndSalespersonCacheInvalidation(c, { salesToken: token });
+    scheduleAuditEvent(c, {
+        domain: 'sales-orders',
+        action: 'sales.order.create',
+        result: 'success',
+        severity: 'high',
+        targetType: 'order',
+        targetId: orderId,
+        target_label: orderNo,
+        summary: `${salesperson.name} created order ${orderNo}`,
+        metadata: { salespersonId: salesperson.id, productId: data.productId || null, variantId },
+    });
 
     return c.json({ success: true, data: { id: orderId, orderNo } }, 201);
 });
@@ -288,6 +300,17 @@ app.patch('/:id', async (c) => {
     }
 
     scheduleSalesOrderMutationCachesInvalidation(c, { salesToken: token });
+    scheduleAuditEvent(c, {
+        domain: 'sales-orders',
+        action: 'sales.order.update',
+        result: 'success',
+        severity: 'high',
+        targetType: 'order',
+        targetId: orderId,
+        target_label: order.orderNo,
+        summary: `${salesperson.name} updated order ${order.orderNo}`,
+        metadata: { reason: reason.trim(), productId: productId || null, variantId: normalizedVariantId ?? order.variantId },
+    });
 
     return c.json({ success: true, message: MSG.ORDER.UPDATE_SUCCESS });
 });
@@ -341,6 +364,17 @@ app.delete('/:id', async (c) => {
     });
 
     scheduleSalesOrderMutationCachesInvalidation(c, { salesToken: token });
+    scheduleAuditEvent(c, {
+        domain: 'sales-orders',
+        action: 'sales.order.void',
+        result: 'success',
+        severity: 'high',
+        targetType: 'order',
+        targetId: orderId,
+        target_label: order.orderNo,
+        summary: `${salesperson.name} voided order ${order.orderNo}`,
+        changes_json: { before: { status: order.status }, after: { status: 'void' } },
+    });
 
     return c.json({ success: true, message: MSG.ORDER.VOID_SUCCESS });
 });
@@ -382,6 +416,17 @@ app.post('/:id/comment', zValidator('json', AddCommentSchema), async (c) => {
     });
 
     scheduleSalesCommentCachesInvalidation(c);
+    scheduleAuditEvent(c, {
+        domain: 'sales-orders',
+        action: 'sales.order.comment.create',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'order',
+        targetId: orderId,
+        target_label: order.orderNo,
+        summary: `${salesperson.name} commented on order ${order.orderNo}`,
+        metadata: { comment: comment.trim() },
+    });
     return c.json({ success: true, message: MSG.ORDER.COMMENT_ADDED });
 });
 

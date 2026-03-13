@@ -7,6 +7,7 @@ import { parsePagination } from '../../../_shared/route-helpers.js';
 import { createManagedProduct } from './create-product.js';
 import batch from './batch.js';
 import exportRoute from './export.js';
+import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 
 const app = new Hono();
 app.use('*', requirePermission('products:manage'));
@@ -155,6 +156,17 @@ app.get('/variants', withCache(30), async (c) => {
 app.post('/', async (c) => {
     const body = await c.req.json();
     const product = await createManagedProduct(c, body);
+    scheduleAuditEvent(c, {
+        domain: 'products',
+        action: 'product.create',
+        result: 'success',
+        severity: 'high',
+        targetType: 'product',
+        targetId: product.id,
+        target_label: product.name,
+        summary: `Created product ${product.name}`,
+        metadata: { name: product.name, brand: product.brand || null },
+    });
     return c.json({ success: true, data: product }, 201);
 });
 

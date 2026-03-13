@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   dimensionListByProduct: vi.fn(),
   dimensionGetMap: vi.fn(),
   variantImageListByVariant: vi.fn(),
+  scheduleAuditEvent: vi.fn(),
 }));
 
 vi.mock('../../../middleware/cache.js', () => ({
@@ -76,6 +77,14 @@ vi.mock('../../../../../repositories/OrderTimelineRepository.js', () => ({
 vi.mock('../../../../../api/utils/order-utils.js', () => ({
   createOrderNotification: mocks.createOrderNotification,
 }));
+
+vi.mock('../../../_shared/audit-helpers.js', async () => {
+  const actual = await vi.importActual('../../../_shared/audit-helpers.js');
+  return {
+    ...actual,
+    scheduleAuditEvent: mocks.scheduleAuditEvent,
+  };
+});
 
 import ordersApp from '../orders.js';
 import productsApp from '../products.js';
@@ -338,5 +347,9 @@ describe('sales routes resilience', () => {
       .map(([urls]) => (Array.isArray(urls) ? urls : [urls]))
       .flat();
     expect(invalidatedUrls).toContain('http://localhost/api/manage/orders');
+    expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: 'sales.order.comment.create', domain: 'sales-orders' })
+    );
   });
 });

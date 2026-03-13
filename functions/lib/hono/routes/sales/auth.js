@@ -15,6 +15,7 @@ import {
   getClientIp,
   getUserAgent,
 } from '../../_shared/auth-helpers.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 
 const app = new Hono();
 
@@ -57,6 +58,17 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', SalesLoginSchema
     const ip = getClientIp(c);
     const userAgent = getUserAgent(c);
     await repo.recordLogin(salesperson.id, ip, userAgent);
+    scheduleAuditEvent(c, {
+      domain: 'sales-auth',
+      action: 'sales.auth.login',
+      result: 'success',
+      severity: 'high',
+      targetType: 'salesperson',
+      targetId: salesperson.id,
+      target_label: salesperson.name,
+      summary: `${salesperson.name} logged in`,
+      metadata: { loginType: 'password' },
+    });
 
     return c.json({
         success: true,
@@ -109,6 +121,16 @@ app.post('/wechat-login', loginRateLimitMiddleware, zValidator('json', WechatLog
     const ip = getClientIp(c);
     const userAgent = getUserAgent(c);
     await repo.recordLogin(salesperson.id, ip, userAgent);
+    scheduleAuditEvent(c, {
+      domain: 'sales-auth',
+      action: 'sales.auth.wechat_login',
+      result: 'success',
+      severity: 'high',
+      targetType: 'salesperson',
+      targetId: salesperson.id,
+      target_label: salesperson.name,
+      summary: `${salesperson.name} logged in with WeChat`,
+    });
 
     return c.json({
         success: true,
@@ -155,6 +177,16 @@ app.post('/:token/auth', loginRateLimitMiddleware, async (c) => {
     const ip = getClientIp(c);
     const userAgent = getUserAgent(c);
     await repo.recordLogin(salesperson.id, ip, userAgent);
+    scheduleAuditEvent(c, {
+      domain: 'sales-auth',
+      action: 'sales.auth.token_login',
+      result: 'success',
+      severity: 'high',
+      targetType: 'salesperson',
+      targetId: salesperson.id,
+      target_label: salesperson.name,
+      summary: `${salesperson.name} authenticated via access token`,
+    });
 
     return c.json({
         success: true,

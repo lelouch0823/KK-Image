@@ -6,6 +6,7 @@ import { getFileUrl, MSG } from '../../_shared/utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
+import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { NotFoundError, ConflictError } from '../../errors.js';
 import { parsePagination, requireEntity } from '../../_shared/route-helpers.js';
 
@@ -145,6 +146,17 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   // 审计日志 (SOTA: 非阻塞记录)
   const { userId, ip } = getAuditContext(c);
   c.executionCtx.waitUntil(logAudit(env.DB, { userId, action: 'files:delete', targetType: 'file', targetId: fileId, payload: { name: file.name }, ip }));
+  scheduleAuditEvent(c, {
+    domain: 'files',
+    action: 'file.delete',
+    result: 'success',
+    severity: 'high',
+    targetType: 'file',
+    targetId: fileId,
+    target_label: file.name,
+    summary: `Deleted file ${file.name}`,
+    metadata: { name: file.name },
+  });
 
   return c.json({ success: true, message: MSG.FILE.DELETE_SUCCESS });
 });
@@ -167,6 +179,15 @@ app.post(
     // 审计日志 (SOTA: 非阻塞记录)
     const { userId, ip } = getAuditContext(c);
     c.executionCtx.waitUntil(logAudit(env.DB, { userId, action: 'files:batch_delete', targetType: 'file', payload: { ids }, ip }));
+    scheduleAuditEvent(c, {
+      domain: 'files',
+      action: 'file.batch_delete',
+      result: 'success',
+      severity: 'high',
+      targetType: 'file',
+      summary: `Batch deleted ${ids.length} files`,
+      metadata: { ids, count: ids.length },
+    });
     return c.json({ success: true, message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', ids.length) });
   }
 );
@@ -198,6 +219,15 @@ app.post(
     }
 
     await repo.moveBatch(ids, targetFolderId || 'root');
+    scheduleAuditEvent(c, {
+      domain: 'files',
+      action: 'file.batch_move',
+      result: 'success',
+      severity: 'high',
+      targetType: 'file',
+      summary: `Moved ${ids.length} files`,
+      metadata: { ids, targetFolderId: targetFolderId || 'root' },
+    });
 
     return c.json({ success: true, message: MSG.FILE.MOVE_SUCCESS.replace('{count}', ids.length) });
   }

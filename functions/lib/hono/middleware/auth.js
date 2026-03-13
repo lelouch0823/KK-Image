@@ -1,6 +1,14 @@
 import { verifyJWT, verifyApiKey, extractAdminAuthToken, MSG } from '../_shared/utils.js';
 import { evaluateUserPermission } from '../../authz/index.js';
 import { isLegacyJwtContext } from '../_shared/auth-context.js';
+import {
+  getAuditScheduler,
+  getRequestAuditContext,
+  inferAuditDomainFromPath,
+  inferAuditTargetFromPath,
+  recordAuditEvent,
+  shouldAuditRequest,
+} from '../_shared/audit-helpers.js';
 
 /**
  * 公开路由列表（无需认证）
@@ -101,8 +109,30 @@ export async function authMiddleware(c, next) {
 export function requirePermission(permission) {
   return async (c, next) => {
     const user = c.get('user');
+    const method = c.req.method;
+    const shouldAudit = shouldAuditRequest(method);
+    const auditContext = getRequestAuditContext(c);
+    const scheduler = getAuditScheduler(c);
+    const domain = inferAuditDomainFromPath(c.req.path);
+    const targetId = inferAuditTargetFromPath(c.req.path);
 
     if (!user) {
+      if (shouldAudit && c.env?.DB) {
+        scheduler(recordAuditEvent(c.env.DB, {
+          ...auditContext,
+          userId: auditContext.actor_id,
+          domain,
+          action: `${domain}.${method.toLowerCase()}.unauthorized`,
+          result: 'denied',
+          severity: 'high',
+          targetType: domain,
+          targetId,
+          summary: `Unauthorized ${method} attempt on ${c.req.path}`,
+          metadata: { permission, path: c.req.path, method },
+          ip: auditContext.ip_address,
+          user_agent: auditContext.user_agent,
+        }));
+      }
       return c.json({ success: false, error: 'Unauthorized' }, 401);
     }
 
@@ -110,6 +140,23 @@ export function requirePermission(permission) {
 
     if (allowed) {
       return next();
+    }
+
+    if (shouldAudit && c.env?.DB) {
+      scheduler(recordAuditEvent(c.env.DB, {
+        ...auditContext,
+        userId: auditContext.actor_id,
+        domain,
+        action: `${domain}.${method.toLowerCase()}.denied`,
+        result: 'denied',
+        severity: 'high',
+        targetType: domain,
+        targetId,
+        summary: `${auditContext.actor_name} was denied ${method} on ${c.req.path}`,
+        metadata: { permission, path: c.req.path, method },
+        ip: auditContext.ip_address,
+        user_agent: auditContext.user_agent,
+      }));
     }
 
     return c.json(

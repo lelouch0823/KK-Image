@@ -28,6 +28,10 @@ role_permissions := {
     "users:read",
     "stats:read"
   },
+  "auditor": {
+    "audit:read",
+    "audit:export"
+  },
   "user": {
     "files:read",
     "notifications:read",

@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
     'http://localhost/api/manage/orders/stats',
   ]),
   getSalespersonAccessTokens: vi.fn(async () => []),
+  scheduleAuditEvent: vi.fn(),
 }));
 
 vi.mock('../../../../../repositories/OrderRepository.js', () => ({
@@ -69,6 +70,14 @@ vi.mock('../../../_shared/route-helpers.js', async (importOriginal) => {
     scheduleCacheInvalidation: (c, urls) => {
       c.executionCtx.waitUntil(mocks.invalidateCache(urls));
     },
+  };
+});
+
+vi.mock('../../../_shared/audit-helpers.js', async () => {
+  const actual = await vi.importActual('../../../_shared/audit-helpers.js');
+  return {
+    ...actual,
+    scheduleAuditEvent: mocks.scheduleAuditEvent,
   };
 });
 
@@ -163,6 +172,10 @@ describe('manage order detail routes', () => {
 
     expect(res.status).toBe(200);
     expect(mocks.setUnread).toHaveBeenCalledWith('order-1', 'admin');
+    expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: 'order.comment.create', domain: 'orders' })
+    );
   });
 
   it('allows privileged admin user to delete order', async () => {
@@ -176,6 +189,10 @@ describe('manage order detail routes', () => {
 
     expect(res.status).toBe(200);
     expect(mocks.deleteOrderCascading).toHaveBeenCalledWith('order-1');
+    expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: 'order.delete', severity: 'critical' })
+    );
   });
 
   it('allows role=admin user to force status transition through OPA decision', async () => {
@@ -440,6 +457,10 @@ describe('manage order detail routes', () => {
       status: 'confirmed',
     });
     expect(mocks.findById).toHaveBeenCalledTimes(2);
+    expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: 'order.update', domain: 'orders' })
+    );
   });
 
   it('rejects PATCH /:id status jump without force override', async () => {
@@ -483,6 +504,10 @@ describe('manage order detail routes', () => {
     expect(mocks.processOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
       forceStatusTransition: true,
     }));
+    expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: 'order.update', severity: 'high' })
+    );
   });
 
   it('returns 403 when non-admin forces PATCH /:id status jump', async () => {

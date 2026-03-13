@@ -159,7 +159,7 @@ const routes = [
                 path: 'audit-logs',
                 name: 'AuditLogs',
                 component: () => import('@/views/AuditLogs.vue'),
-                meta: { titleKey: 'router.audit_logs', permission: 'admin:full' },
+                meta: { titleKey: 'router.audit_logs', permission: 'audit:read' },
             },
             {
                 path: 'forbidden',

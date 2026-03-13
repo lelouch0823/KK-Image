@@ -19,6 +19,7 @@ import {
 } from './cache-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
 import { DemandService } from '../../../../../services/DemandService.js';
+import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 
 const app = new Hono();
 const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
@@ -180,6 +181,18 @@ app.patch('/:id', async (c) => {
     scheduleOrderMutationCachesInvalidation(c, { salesTokens: notificationSalesTokens });
 
     const updatedOrder = await orderRepo.findById(id);
+    scheduleAuditEvent(c, {
+        domain: 'orders',
+        action: 'order.update',
+        result: 'success',
+        severity: forceStatusTransition ? 'high' : 'normal',
+        targetType: 'order',
+        targetId: id,
+        target_label: order.orderNo,
+        summary: `${actor.name} updated order ${order.orderNo}`,
+        changes_json: { before: { status: order.status }, after: { status: updatedOrder?.status ?? nextStatus } },
+        metadata: { reason: reason || 'Admin Update', force: forceStatusTransition },
+    });
     return c.json({ success: true, message: MSG.ORDER.UPDATE_SUCCESS, data: updatedOrder });
 });
 
@@ -264,6 +277,18 @@ app.patch('/:id/status', async (c) => {
     const notificationSalesTokens = await resolveSalesTokens(env.DB, [order.salespersonId]);
     scheduleOrderMutationCachesInvalidation(c, { salesTokens: notificationSalesTokens });
 
+    scheduleAuditEvent(c, {
+        domain: 'orders',
+        action: forceStatusTransition ? 'order.status.force_change' : 'order.status.change',
+        result: 'success',
+        severity: forceStatusTransition ? 'high' : 'normal',
+        targetType: 'order',
+        targetId: id,
+        target_label: order.orderNo,
+        summary: `${actor.name} changed order ${order.orderNo} status to ${status}`,
+        changes_json: { before: { status: oldStatus }, after: { status } },
+        metadata: { force: forceStatusTransition, note: note || '' },
+    });
     return c.json({ success: true, message: MSG.ORDER.STATUS_CHANGED });
 });
 
@@ -310,6 +335,17 @@ app.post('/:id/comment', async (c) => {
 
     const notificationSalesTokens = await resolveSalesTokens(env.DB, [order?.salespersonId]);
     scheduleOrderNotificationCacheInvalidation(c, { salesTokens: notificationSalesTokens });
+    scheduleAuditEvent(c, {
+        domain: 'orders',
+        action: 'order.comment.create',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'order',
+        targetId: id,
+        target_label: order?.orderNo || id,
+        summary: `${actor.name} added a comment to order ${order?.orderNo || id}`,
+        metadata: { comment },
+    });
     return c.json({ success: true, message: MSG.ORDER.COMMENT_ADDED });
 });
 
@@ -329,6 +365,17 @@ app.delete('/:id', async (c) => {
     await orderRepo.deleteOrderCascading(id);
 
     scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens: notificationSalesTokens });
+    scheduleAuditEvent(c, {
+        domain: 'orders',
+        action: 'order.delete',
+        result: 'success',
+        severity: 'critical',
+        targetType: 'order',
+        targetId: id,
+        target_label: order?.orderNo || id,
+        summary: `${user?.name || 'Admin'} deleted order ${order?.orderNo || id}`,
+        metadata: { salespersonId: order?.salespersonId || null },
+    });
 
     return c.json({ success: true, message: MSG.ORDER.DELETE_SUCCESS });
 });

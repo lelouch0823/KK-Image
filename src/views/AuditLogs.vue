@@ -2,8 +2,8 @@
   <div v-if="errorCode === 'FORBIDDEN'" class="rounded-xl border border-(--border-color) bg-(--bg-card) p-8">
     <PermissionDeniedState
       title="审计日志权限不足"
-      :description="error || '当前账号没有审计日志读取权限，请联系管理员分配 audit_logs:read。'"
-      required-permission="admin:full"
+      :description="error || '当前账号没有审计日志读取权限，请联系管理员分配 audit:read 或 admin:full。'"
+      required-permission="audit:read"
       @retry="fetchLogs"
     />
   </div>
@@ -17,12 +17,31 @@
   </div>
   <ManagementListShell v-else :title="t('auditLogs.title')" description="">
     <template #filters>
+      <div class="grid gap-3 md:grid-cols-4">
         <AppSelect
           v-model="filterAction"
           :options="actionOptions"
           :placeholder="t('auditLogs.allActions')"
           size="sm"
         />
+        <AppSelect
+          v-model="filterResult"
+          :options="resultOptions"
+          :placeholder="t('auditLogs.allResults')"
+          size="sm"
+        />
+        <AppSelect
+          v-model="filterSeverity"
+          :options="severityOptions"
+          :placeholder="t('auditLogs.allSeverities')"
+          size="sm"
+        />
+        <AppInput
+          v-model="filterActor"
+          :placeholder="t('auditLogs.user')"
+          size="sm"
+        />
+      </div>
     </template>
     <template #actions>
         <AppButton variant="secondary" :text="t('common.refresh')" @click="fetchLogs" />
@@ -39,8 +58,9 @@
           <span class="text-xs text-(--text-secondary)">{{ formatTime(value) }}</span>
         </template>
         
-        <template #cell-user_id="{ value }">
+        <template #cell-actor_display="{ value, row }">
           <span class="font-medium text-(--text-primary)">{{ value }}</span>
+          <div class="text-xs text-(--text-tertiary)">{{ row.actor_type || '-' }}</div>
         </template>
         
         <template #cell-action="{ value }">
@@ -49,19 +69,31 @@
           </StatusBadge>
         </template>
 
+        <template #cell-result="{ value }">
+          <StatusBadge :variant="resultBadgeVariant(value)">
+            {{ value }}
+          </StatusBadge>
+        </template>
+
+        <template #cell-severity="{ value }">
+          <StatusBadge :variant="severityBadgeVariant(value)">
+            {{ value }}
+          </StatusBadge>
+        </template>
+
         <template #cell-target="{ row }">
           <span class="text-(--text-secondary)">
-            {{ row.target_type }}<span v-if="row.target_id" class="text-(--text-tertiary)"> / {{ row.target_id.substring(0, 8) }}…</span>
+            {{ row.target_type }}<span v-if="row.target_label || row.target_id" class="text-(--text-tertiary)"> / {{ row.target_label || row.target_id }}</span>
           </span>
         </template>
-        
-        <template #cell-ip_address="{ value }">
-          <span class="font-mono text-xs text-(--text-secondary)">{{ value || '-' }}</span>
+
+        <template #cell-summary_display="{ value }">
+          <div class="max-w-sm text-sm text-(--text-primary)">{{ value }}</div>
         </template>
         
         <template #cell-details="{ row }">
           <div class="max-w-xs truncate text-xs text-(--text-tertiary)">
-            {{ row.payload ? JSON.parse(row.payload) : '-' }}
+            {{ formatAuditDetails(row) }}
           </div>
         </template>
         
@@ -97,10 +129,12 @@ import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppTable from '@/components/ui/AppTable.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 import AppSelect from '@/components/ui/Select.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
+import { formatAuditDetails, normalizeAuditRow } from '@/utils/audit-log';
 
 const { t } = useI18n();
 const { authFetch } = useAuth();
@@ -110,19 +144,36 @@ const loading = ref(false);
 const error = ref('');
 const errorCode = ref(null);
 const filterAction = ref('');
+const filterResult = ref('');
+const filterSeverity = ref('');
+const filterActor = ref('');
 const availableActions = ref([]);
 const pagination = ref({ page: 1, pageSize: 50, total: 0, totalPages: 1 });
 const actionOptions = computed(() => [
   { value: '', label: t('auditLogs.allActions') },
   ...availableActions.value.map((action) => ({ value: action, label: action })),
 ]);
+const resultOptions = computed(() => [
+  { value: '', label: t('auditLogs.allResults') },
+  { value: 'success', label: 'success' },
+  { value: 'denied', label: 'denied' },
+  { value: 'failed', label: 'failed' },
+]);
+const severityOptions = computed(() => [
+  { value: '', label: t('auditLogs.allSeverities') },
+  { value: 'normal', label: 'normal' },
+  { value: 'high', label: 'high' },
+  { value: 'critical', label: 'critical' },
+]);
 
 const columns = computed(() => [
   { key: 'created_at', label: t('auditLogs.time'), width: '120px' },
-  { key: 'user_id', label: t('auditLogs.user') },
+  { key: 'actor_display', label: t('auditLogs.user') },
   { key: 'action', label: t('auditLogs.action') },
+  { key: 'result', label: t('auditLogs.result') },
+  { key: 'severity', label: t('auditLogs.severity') },
   { key: 'target', label: t('auditLogs.target') },
-  { key: 'ip_address', label: 'IP' },
+  { key: 'summary_display', label: t('auditLogs.summary') },
   { key: 'details', label: t('auditLogs.details') },
 ]);
 
@@ -137,6 +188,18 @@ const actionBadgeVariant = (action) => {
   return 'primary';
 };
 
+const resultBadgeVariant = (result) => {
+  if (result === 'failed') return 'danger';
+  if (result === 'denied') return 'warning';
+  return 'success';
+};
+
+const severityBadgeVariant = (severity) => {
+  if (severity === 'critical') return 'danger';
+  if (severity === 'high') return 'warning';
+  return 'primary';
+};
+
 const fetchLogs = async () => {
   loading.value = true;
   error.value = '';
@@ -144,11 +207,14 @@ const fetchLogs = async () => {
   try {
     const params = new URLSearchParams({ page: pagination.value.page, pageSize: pagination.value.pageSize });
     if (filterAction.value) params.set('action', filterAction.value);
+    if (filterResult.value) params.set('result', filterResult.value);
+    if (filterSeverity.value) params.set('severity', filterSeverity.value);
+    if (filterActor.value) params.set('actorId', filterActor.value);
 
     const res = await authFetch(`/api/manage/audit-logs?${params}`);
     const json = await res.json();
     if (json.success) {
-      logs.value = json.data;
+      logs.value = (json.data || []).map((row) => normalizeAuditRow(row));
       pagination.value = json.pagination;
       return;
     }
@@ -195,6 +261,11 @@ const goPage = (p) => {
 };
 
 watch(filterAction, () => {
+  pagination.value.page = 1;
+  fetchLogs();
+});
+
+watch([filterResult, filterSeverity, filterActor], () => {
   pagination.value.page = 1;
   fetchLogs();
 });

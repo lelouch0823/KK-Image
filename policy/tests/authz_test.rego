@@ -39,3 +39,21 @@ test_admin_role_and_direct_permission_no_conflict if {
   decision.allow == true
   decision.reason == "role_wildcard"
 }
+
+test_auditor_can_read_audit if {
+  authz.allow with input as {
+    "subject": {"role": "auditor"},
+    "action": "audit:read",
+    "resource": {"type": "api_route"},
+    "context": {"method": "GET"}
+  }
+}
+
+test_direct_audit_export_permission if {
+  authz.allow with input as {
+    "subject": {"role": "viewer", "permissions": ["audit:export"]},
+    "action": "audit:export",
+    "resource": {"type": "api_route"},
+    "context": {"method": "GET"}
+  }
+}

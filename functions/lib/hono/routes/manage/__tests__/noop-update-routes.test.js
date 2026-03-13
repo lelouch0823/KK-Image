@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   fileFindById: vi.fn(),
   fileUpdate: vi.fn(),
   fileCheckNameConflict: vi.fn(),
+  scheduleAuditEvent: vi.fn(),
 }));
 
 vi.mock('../../../../../repositories/CustomerRepository.js', () => ({
@@ -40,6 +41,14 @@ vi.mock('../../../../../api/utils/audit.js', () => ({
   logAudit: vi.fn(async () => {}),
   getAuditContext: vi.fn(() => ({ userId: 'u-admin', ip: '127.0.0.1' })),
 }));
+
+vi.mock('../../../_shared/audit-helpers.js', async () => {
+  const actual = await vi.importActual('../../../_shared/audit-helpers.js');
+  return {
+    ...actual,
+    scheduleAuditEvent: mocks.scheduleAuditEvent,
+  };
+});
 
 import customersApp from '../customers.js';
 import salespersonsApp from '../salespersons.js';
@@ -103,6 +112,10 @@ describe('manage no-op update routes', () => {
 
     expect(res.status).toBe(200);
     expect(mocks.customerUpdate).toHaveBeenCalledWith('customer-1', expect.objectContaining({ name: 'Alice' }));
+    expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: 'customer.update', domain: 'customers' })
+    );
   });
 
   it('returns 200 for salesperson no-op update', async () => {

@@ -1,4 +1,4 @@
-import { generateId } from '../../lib/hono/_shared/utils.js';
+import { getRequestAuditContext, recordAuditEvent } from '../../lib/hono/_shared/audit-helpers.js';
 
 /**
  * 记录一条审计日志到 D1
@@ -13,15 +13,7 @@ import { generateId } from '../../lib/hono/_shared/utils.js';
  */
 export async function logAudit(db, { userId, action, targetType, targetId = null, payload = null, ip = null }) {
     try {
-        const id = generateId();
-        const payloadStr = payload ? (typeof payload === 'string' ? payload : JSON.stringify(payload)) : null;
-
-        await db.prepare(
-            `INSERT INTO audit_logs (id, user_id, action, target_type, target_id, payload, ip_address, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-        )
-            .bind(id, userId, action, targetType, targetId, payloadStr, ip, Date.now())
-            .run();
+        await recordAuditEvent(db, { userId, action, targetType, targetId, payload, ip });
     } catch (err) {
         // 审计日志写入失败不应阻断正常业务，只打印错误
         console.error('[AuditLog] 写入失败:', err);
@@ -34,10 +26,16 @@ export async function logAudit(db, { userId, action, targetType, targetId = null
  * @returns {{ userId: string, ip: string }}
  */
 export function getAuditContext(c) {
-    const user = c.get('user');
-    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+    const context = getRequestAuditContext(c);
     return {
-        userId: user?.id || 'anonymous',
-        ip,
+        userId: context.actor_id,
+        ip: context.ip_address,
+        actorType: context.actor_type,
+        actorName: context.actor_name,
+        actorRole: context.actor_role,
+        sourceApp: context.source_app,
+        requestId: context.request_id,
+        traceId: context.trace_id,
+        userAgent: context.user_agent,
     };
 }
