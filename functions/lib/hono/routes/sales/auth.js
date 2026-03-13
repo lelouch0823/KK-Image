@@ -16,8 +16,14 @@ import {
   getUserAgent,
 } from '../../_shared/auth-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+  { method: 'POST', path: '/login', domain: 'sales-auth', action: 'sales.auth.login', severity: 'high', targetType: 'salesperson' },
+  { method: 'POST', path: '/wechat-login', domain: 'sales-auth', action: 'sales.auth.wechat_login', severity: 'high', targetType: 'salesperson' },
+  { method: 'POST', path: '/:token/auth', domain: 'sales-auth', action: 'sales.auth.token_login', severity: 'high', targetType: 'salesperson' },
+]);
 
 /**
  * POST /login - 用户名密码登录

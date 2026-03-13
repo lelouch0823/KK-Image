@@ -9,8 +9,16 @@ import { parsePagination, createListCacheInvalidator, scheduleCacheInvalidation,
 import { getManageOrderCacheUrls } from '../_shared/cache-urls.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+    { method: 'POST', path: '/', domain: 'salespersons', action: 'salesperson.create', severity: 'high', targetType: 'salesperson' },
+    { method: 'PUT', path: '/:id', domain: 'salespersons', action: 'salesperson.update', severity: 'high', targetType: 'salesperson' },
+    { method: 'PATCH', path: '/:id', domain: 'salespersons', action: 'salesperson.update', severity: 'high', targetType: 'salesperson' },
+    { method: 'DELETE', path: '/:id', domain: 'salespersons', action: 'salesperson.delete', severity: 'critical', targetType: 'salesperson' },
+    { method: 'POST', path: '/:id/reset-token', domain: 'salespersons', action: 'salesperson.reset_token', severity: 'critical', targetType: 'salesperson' },
+]);
 app.use('*', requirePermission('users:read'));
 
 const getCacheUrls = createListCacheInvalidator('/api/manage/salespersons', {

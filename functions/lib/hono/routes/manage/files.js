@@ -7,10 +7,17 @@ import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { NotFoundError, ConflictError } from '../../errors.js';
 import { parsePagination, requireEntity } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+  { method: 'PUT', path: '/:id', domain: 'files', action: 'file.rename', severity: 'normal', targetType: 'file' },
+  { method: 'DELETE', path: '/:id', domain: 'files', action: 'file.delete', severity: 'high', targetType: 'file' },
+  { method: 'POST', path: '/batch/delete', domain: 'files', action: 'file.batch_delete', severity: 'high', targetType: 'file' },
+  { method: 'POST', path: '/batch/move', domain: 'files', action: 'file.batch_move', severity: 'high', targetType: 'file' },
+]);
 app.use('*', requirePermission('files:read'));
 
 function toFileListItem(file) {
@@ -126,6 +133,17 @@ app.put(
     }
 
     await repo.update(fileId, { name: name.trim() });
+    scheduleAuditEvent(c, {
+      domain: 'files',
+      action: 'file.rename',
+      result: 'success',
+      severity: 'normal',
+      targetType: 'file',
+      targetId: fileId,
+      target_label: name.trim(),
+      summary: `Renamed file ${file.name} to ${name.trim()}`,
+      metadata: { previousName: file.name, nextName: name.trim() },
+    });
     return c.json({ success: true, message: MSG.FILE.RENAME_SUCCESS });
   }
 );

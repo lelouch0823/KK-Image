@@ -4,8 +4,13 @@ import { SettingsRepository } from '../../../../repositories/SettingsRepository.
 import { parseModels, getModelHealthSnapshot } from '../../../../utils/ai-utils.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+  { method: 'POST', path: '/batch', domain: 'settings', action: 'settings.batch_upsert', severity: 'high', targetType: 'setting' },
+  { method: 'PUT', path: '/:key', domain: 'settings', action: 'settings.update', severity: 'high', targetType: 'setting' },
+]);
 app.use('*', requirePermission('admin:full'));
 
 const normalizeApiBaseUrl = (rawUrl = '') => {

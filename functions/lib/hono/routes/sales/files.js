@@ -1,8 +1,12 @@
 import { Hono } from 'hono';
 import { MSG } from '../../_shared/utils.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+    { method: 'POST', path: '/upload', domain: 'sales-files', action: 'sales.file.upload', severity: 'normal', targetType: 'file' },
+]);
 
 /**
  * POST /upload - 上传文件

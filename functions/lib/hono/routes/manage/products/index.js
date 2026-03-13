@@ -8,8 +8,12 @@ import { createManagedProduct } from './create-product.js';
 import batch from './batch.js';
 import exportRoute from './export.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+    { method: 'POST', path: '/', domain: 'products', action: 'product.create', severity: 'high', targetType: 'product' },
+]);
 app.use('*', requirePermission('products:manage'));
 
 app.route('/batch', batch);

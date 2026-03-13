@@ -5,6 +5,7 @@ import { app } from '../functions/lib/hono/app.js';
 import { mockEnv } from './utils/mocks.js';
 import { generateJWT } from '../functions/api/utils/auth.js';
 import { errorHandler } from '../functions/lib/hono/middleware/errorHandler.js';
+import { declareAuditRoute } from '../functions/lib/hono/_shared/audit-route-contract.js';
 
 describe('Audit Log Utility', () => {
     it('getAuditContext should extract user and IP correctly', () => {
@@ -137,5 +138,24 @@ describe('Audit failure recording', () => {
 
         expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO audit_logs'));
         expect(result.status).toBe(500);
+    });
+});
+
+describe('Audit route declaration contract', () => {
+    it('normalizes route audit declarations', () => {
+        const declaration = declareAuditRoute({
+            method: 'patch',
+            path: '/api/manage/orders/:id/status',
+            domain: 'orders',
+            action: 'order.status.change',
+            severity: 'high',
+            targetType: 'order',
+        });
+
+        expect(declaration.method).toBe('PATCH');
+        expect(declaration.domain).toBe('orders');
+        expect(declaration.action).toBe('order.status.change');
+        expect(declaration.severity).toBe('high');
+        expect(declaration.targetType).toBe('order');
     });
 });

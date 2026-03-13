@@ -8,8 +8,14 @@ import { NotFoundError, BadRequestError } from '../../errors.js';
 import { parsePagination, createListCacheInvalidator, scheduleCacheInvalidation, requireEntity } from '../../_shared/route-helpers.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+    { method: 'POST', path: '/', domain: 'customers', action: 'customer.create', severity: 'normal', targetType: 'customer' },
+    { method: 'PUT', path: '/:id', domain: 'customers', action: 'customer.update', severity: 'normal', targetType: 'customer' },
+    { method: 'DELETE', path: '/:id', domain: 'customers', action: 'customer.delete', severity: 'high', targetType: 'customer' },
+]);
 app.use('*', requirePermission('orders:manage'));
 
 const getCacheUrls = createListCacheInvalidator('/api/manage/customers', {

@@ -16,8 +16,16 @@ import {
 } from './orders-cache-helpers.js';
 import { DemandService } from '../../../../services/DemandService.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+    { method: 'POST', path: '/', domain: 'sales-orders', action: 'sales.order.create', severity: 'high', targetType: 'order' },
+    { method: 'PATCH', path: '/:id/read', domain: 'sales-orders', action: 'sales.order.read', severity: 'normal', targetType: 'order' },
+    { method: 'PATCH', path: '/:id', domain: 'sales-orders', action: 'sales.order.update', severity: 'high', targetType: 'order' },
+    { method: 'DELETE', path: '/:id', domain: 'sales-orders', action: 'sales.order.void', severity: 'high', targetType: 'order' },
+    { method: 'POST', path: '/:id/comment', domain: 'sales-orders', action: 'sales.order.comment.create', severity: 'normal', targetType: 'order' },
+]);
 
 app.onError((err, c) => {
     const statusCode = Number(err?.statusCode || 500);

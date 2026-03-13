@@ -20,8 +20,15 @@ import {
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
 import { DemandService } from '../../../../../services/DemandService.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+    { method: 'PATCH', path: '/:id', domain: 'orders', action: 'order.update', severity: 'high', targetType: 'order' },
+    { method: 'PATCH', path: '/:id/status', domain: 'orders', action: 'order.status.change', severity: 'high', targetType: 'order' },
+    { method: 'POST', path: '/:id/comment', domain: 'orders', action: 'order.comment.create', severity: 'normal', targetType: 'order' },
+    { method: 'DELETE', path: '/:id', domain: 'orders', action: 'order.delete', severity: 'critical', targetType: 'order' },
+]);
 const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
 
 function getAdminActor(user) {

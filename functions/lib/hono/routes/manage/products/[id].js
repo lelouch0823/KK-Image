@@ -5,12 +5,28 @@ import { ProductDimensionRepository } from '../../../../../repositories/ProductD
 import { VariantImageRepository } from '../../../../../repositories/VariantImageRepository.js';
 import { VariantAuditRepository } from '../../../../../repositories/VariantAuditRepository.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
 import { requirePermission } from '../../../middleware/auth.js';
 import { scheduleProductCacheInvalidation } from './cache-helpers.js';
 import { ProductCatalogService } from '../../../../../services/ProductCatalogService.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+    { method: 'POST', path: '/:id/dimensions', domain: 'products', action: 'product.dimension.create', severity: 'high', targetType: 'product' },
+    { method: 'PATCH', path: '/:id/dimensions/:dimensionId', domain: 'products', action: 'product.dimension.update', severity: 'high', targetType: 'product' },
+    { method: 'PATCH', path: '/:id/dimensions/:dimensionId/archive', domain: 'products', action: 'product.dimension.archive', severity: 'high', targetType: 'product' },
+    { method: 'POST', path: '/:id/dimensions/:dimensionId/values', domain: 'products', action: 'product.dimension_value.create', severity: 'high', targetType: 'product' },
+    { method: 'PATCH', path: '/:id/values/:valueId/archive', domain: 'products', action: 'product.dimension_value.archive', severity: 'high', targetType: 'product' },
+    { method: 'PATCH', path: '/:id/values/:valueId/restore', domain: 'products', action: 'product.dimension_value.restore', severity: 'high', targetType: 'product' },
+    { method: 'POST', path: '/:id/variants/:variantId/images', domain: 'products', action: 'product.variant_image.create', severity: 'high', targetType: 'product' },
+    { method: 'PATCH', path: '/:id/variants/:variantId/images/sort', domain: 'products', action: 'product.variant_image.sort', severity: 'high', targetType: 'product' },
+    { method: 'PATCH', path: '/:id/variants/:variantId/images/:imageId/primary', domain: 'products', action: 'product.variant_image.primary', severity: 'high', targetType: 'product' },
+    { method: 'DELETE', path: '/:id/variants/:variantId/images/:imageId', domain: 'products', action: 'product.variant_image.delete', severity: 'high', targetType: 'product' },
+    { method: 'PATCH', path: '/:id', domain: 'products', action: 'product.update', severity: 'high', targetType: 'product' },
+    { method: 'PUT', path: '/:id', domain: 'products', action: 'product.replace', severity: 'high', targetType: 'product' },
+    { method: 'DELETE', path: '/:id', domain: 'products', action: 'product.archive', severity: 'critical', targetType: 'product' },
+]);
 app.use('*', requirePermission('products:manage'));
 
 const isVariantOwnershipError = (error) =>

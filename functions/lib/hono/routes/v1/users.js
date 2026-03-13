@@ -5,12 +5,18 @@ import { requirePermission } from '../../middleware/auth.js';
 import { generateId, hashPassword, MSG } from '../../_shared/utils.js';
 import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { parseJsonArray } from '../../../../api/utils/json.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
 import { assertKnownPermissions } from './_shared/permissions-validation.js';
 import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
+export const auditRouteDeclarations = declareAuditRoutes([
+  { method: 'POST', path: '/', domain: 'users', action: 'user.create', severity: 'high', targetType: 'user' },
+  { method: 'PUT', path: '/:id', domain: 'users', action: 'user.update', severity: 'high', targetType: 'user' },
+  { method: 'DELETE', path: '/:id', domain: 'users', action: 'user.delete', severity: 'critical', targetType: 'user' },
+]);
 const USER_SELECT_FIELDS = 'id, username, name, email, role, permissions, created_at, updated_at';
 
 function toSafeUser(user) {
