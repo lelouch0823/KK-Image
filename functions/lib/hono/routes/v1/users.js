@@ -3,7 +3,6 @@ import { zValidator } from '@hono/zod-validator';
 import { CreateUserSchema, UpdateUserSchema } from '../../schemas/user.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { generateId, hashPassword, MSG } from '../../_shared/utils.js';
-import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { parseJsonArray } from '../../../../api/utils/json.js';
@@ -117,9 +116,6 @@ app.post('/', requirePermission('admin:full'), zValidator('json', CreateUserSche
     )
     .run();
 
-  // 审计日志 (SOTA: 非阻塞记录)
-  const { userId: opUserId, ip } = getAuditContext(c);
-  c.executionCtx.waitUntil(logAudit(env.DB, { userId: opUserId, action: 'user:create', targetType: 'user', targetId: id, payload: { username: data.username, role: data.role || 'user' }, ip }));
   scheduleAuditEvent(c, {
     domain: 'users',
     action: 'user.create',
@@ -240,9 +236,6 @@ app.delete('/:id', requirePermission('admin:full'), async (c) => {
 
   await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
 
-  // 审计日志 (SOTA: 非阻塞记录)
-  const { userId: opUserId, ip } = getAuditContext(c);
-  c.executionCtx.waitUntil(logAudit(env.DB, { userId: opUserId, action: 'user:delete', targetType: 'user', targetId: id, ip }));
   scheduleAuditEvent(c, {
     domain: 'users',
     action: 'user.delete',

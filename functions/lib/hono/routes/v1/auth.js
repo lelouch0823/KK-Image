@@ -58,6 +58,16 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', LoginSchema), as
   const user = authenticatedUser;
   const expiresIn = 7 * 24 * 60 * 60; // 7 天
   const token = await generateJWT(user, env, expiresIn);
+  scheduleAuditEvent(c, {
+    domain: 'v1-auth',
+    action: 'admin.auth.login',
+    result: 'success',
+    severity: 'high',
+    targetType: 'user',
+    targetId: user.id,
+    target_label: user.name,
+    summary: `${user.name} logged in`,
+  });
 
   // 设置 Cookie（本地开发时不使用 Secure）
   const isSecure = c.req.url.startsWith('https://');

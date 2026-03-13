@@ -5,7 +5,6 @@ import { requirePermission } from '../../middleware/auth.js';
 import { getFileUrl, MSG } from '../../_shared/utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
-import { logAudit, getAuditContext } from '../../../../api/utils/audit.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { NotFoundError, ConflictError } from '../../errors.js';
@@ -160,10 +159,6 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
 
   // 软删除
   await repo.softDelete(fileId);
-
-  // 审计日志 (SOTA: 非阻塞记录)
-  const { userId, ip } = getAuditContext(c);
-  c.executionCtx.waitUntil(logAudit(env.DB, { userId, action: 'files:delete', targetType: 'file', targetId: fileId, payload: { name: file.name }, ip }));
   scheduleAuditEvent(c, {
     domain: 'files',
     action: 'file.delete',
@@ -193,10 +188,6 @@ app.post(
     const repo = new FileRepository(env.DB);
     // SOTA: 软删除
     await repo.softDeleteBatch(ids);
-
-    // 审计日志 (SOTA: 非阻塞记录)
-    const { userId, ip } = getAuditContext(c);
-    c.executionCtx.waitUntil(logAudit(env.DB, { userId, action: 'files:batch_delete', targetType: 'file', payload: { ids }, ip }));
     scheduleAuditEvent(c, {
       domain: 'files',
       action: 'file.batch_delete',
