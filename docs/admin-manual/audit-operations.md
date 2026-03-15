@@ -58,6 +58,7 @@ GET /api/manage/audit-logs/export?format=csv&domain=orders&severity=high
 - 导出始终是过滤后导出，不提供整表裸导出
 - 单次导出上限由服务端限制
 - 导出操作本身会写入审计事件 `audit.export`
+- CSV 导出会对以 `=`, `+`, `-`, `@` 开头的危险单元格做安全转义，避免表格公式注入
 
 ## 事故排查建议
 
@@ -88,6 +89,21 @@ GET /api/manage/audit-logs/export?format=csv&domain=orders&severity=high
 1. 结合应用错误日志与请求 ID
 2. 核对目标实体当时状态
 3. 判断是否为输入问题、状态机冲突或库存/约束错误
+
+## 审计来源可信度
+
+- `source_app` 仅从服务端可确认的认证上下文推断，不再信任客户端自报来源头
+- `ip_address` 默认使用服务端提供的 `CF-Connecting-IP`
+- `request_id` 默认使用服务端提供的 `CF-Ray`
+- 如业务需要额外链路 ID，应由服务端内部代码显式写入审计事件或元数据
+
+## 审计访问留痕
+
+- 查看审计列表：`GET /api/manage/audit-logs` 会写入 `audit.read`
+- 查看动作枚举：`GET /api/manage/audit-logs/actions` 会写入 `audit.actions.read`
+- 导出审计：`GET /api/manage/audit-logs/export` 会写入 `audit.export`
+
+这三类事件用于追踪谁在查看、枚举或导出审计数据。
 
 ### 高风险删除或归档
 

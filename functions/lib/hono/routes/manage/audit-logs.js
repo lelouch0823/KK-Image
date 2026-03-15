@@ -118,7 +118,8 @@ function toCsvValue(value) {
         : typeof value === 'object'
             ? JSON.stringify(value)
             : String(value);
-    return `"${normalized.replaceAll('"', '""')}"`;
+    const sanitized = /^[=+\-@]/.test(normalized) ? `'${normalized}` : normalized;
+    return `"${sanitized.replaceAll('"', '""')}"`;
 }
 
 function buildAuditCsv(rows = []) {
@@ -151,7 +152,7 @@ app.get('/', requirePermission('audit:read'), async (c) => {
     const { env } = c;
     const page = parseIntParam(c.req.query('page'), 1);
     const pageSize = parseIntParam(c.req.query('pageSize'), 50, { min: 1, max: 100 });
-    const { whereClause, bindings } = buildAuditLogFilters(c);
+    const { whereClause, bindings, filters } = buildAuditLogFilters(c);
     const offset = (page - 1) * pageSize;
 
         // 查询总数
@@ -170,6 +171,16 @@ app.get('/', requirePermission('audit:read'), async (c) => {
         )
             .bind(...bindings, pageSize, offset)
             .all();
+
+        scheduleAuditEvent(c, {
+            domain: 'audit-logs',
+            action: 'audit.read',
+            result: 'success',
+            severity: 'normal',
+            targetType: 'audit_log',
+            summary: `Read audit logs page ${page}`,
+            metadata: { ...filters, page, pageSize, count: (results || []).length },
+        });
 
         return c.json({
             success: true,
@@ -194,6 +205,16 @@ app.get('/actions', requirePermission('audit:read'), async (c) => {
         const { results } = await env.DB.prepare(
             'SELECT DISTINCT action FROM audit_logs ORDER BY action'
         ).all();
+
+        scheduleAuditEvent(c, {
+            domain: 'audit-logs',
+            action: 'audit.actions.read',
+            result: 'success',
+            severity: 'normal',
+            targetType: 'audit_log',
+            summary: `Read ${results.length} audit actions`,
+            metadata: { count: results.length },
+        });
 
         return c.json({
             success: true,

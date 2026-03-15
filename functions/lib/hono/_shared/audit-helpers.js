@@ -33,8 +33,6 @@ export function sanitizeAuditData(input) {
 }
 
 function inferSourceApp(c) {
-  const explicit = c?.req?.header?.('X-Source-App');
-  if (explicit) return explicit;
   const user = c?.get?.('user');
   if (user?.type === 'sales') return 'sales-web';
   if (user?.type === 'admin' || user?.role === 'admin') return 'admin-web';
@@ -43,7 +41,7 @@ function inferSourceApp(c) {
 
 export function getRequestAuditContext(c) {
   const user = c?.get?.('user');
-  const ip = c?.req?.header?.('CF-Connecting-IP') || c?.req?.header?.('X-Forwarded-For') || 'unknown';
+  const ip = c?.req?.header?.('CF-Connecting-IP') || 'unknown';
   return {
     actor_type: user?.type || (user?.role === 'admin' ? 'admin' : 'anonymous'),
     actor_id: user?.id || 'anonymous',
@@ -51,8 +49,8 @@ export function getRequestAuditContext(c) {
     actor_role: user?.role || user?.type || 'anonymous',
     ip_address: ip,
     user_agent: c?.req?.header?.('User-Agent') || 'unknown',
-    request_id: c?.req?.header?.('CF-Ray') || c?.req?.header?.('X-Request-Id') || null,
-    trace_id: c?.req?.header?.('X-Trace-Id') || null,
+    request_id: c?.req?.header?.('CF-Ray') || null,
+    trace_id: null,
     source_app: inferSourceApp(c),
   };
 }

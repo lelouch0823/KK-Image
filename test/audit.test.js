@@ -1,6 +1,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { getAuditContext, logAudit } from '../functions/api/utils/audit.js';
+import { getRequestAuditContext } from '../functions/lib/hono/_shared/audit-helpers.js';
 import { app } from '../functions/lib/hono/app.js';
 import { mockEnv } from './utils/mocks.js';
 import { generateJWT } from '../functions/api/utils/auth.js';
@@ -36,6 +37,35 @@ describe('Audit Log Utility', () => {
         const context = getAuditContext(mockContext);
         expect(context.userId).toBe('anonymous');
         expect(context.ip).toBe('unknown');
+    });
+
+    it('getRequestAuditContext should prefer trusted server context over forgeable headers', () => {
+        const mockContext = {
+            get: (key) => {
+                if (key === 'user') {
+                    return { id: 'admin_1', type: 'admin', role: 'admin', name: 'Admin' };
+                }
+                return null;
+            },
+            req: {
+                header: (name) => {
+                    if (name === 'CF-Connecting-IP') return '203.0.113.1';
+                    if (name === 'CF-Ray') return 'cf-ray-1';
+                    if (name === 'X-Source-App') return 'evil-client';
+                    if (name === 'X-Forwarded-For') return '1.1.1.1, 2.2.2.2';
+                    if (name === 'X-Request-Id') return 'forged-id';
+                    if (name === 'X-Trace-Id') return 'forged-trace';
+                    return null;
+                }
+            }
+        };
+
+        const context = getRequestAuditContext(mockContext);
+
+        expect(context.source_app).toBe('admin-web');
+        expect(context.ip_address).toBe('203.0.113.1');
+        expect(context.request_id).toBe('cf-ray-1');
+        expect(context.trace_id).toBe(null);
     });
 
     it('logAudit should prepare and run the correct SQL', async () => {
