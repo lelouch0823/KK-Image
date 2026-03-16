@@ -1,0 +1,10 @@
+{
+  "name": "quota-reject",
+  "quotaResult": {
+    "allowed": false,
+    "reason": "rpm_exceeded"
+  },
+  "expected": {
+    "quotaDecision": "rpm_exceeded"
+  }
+}

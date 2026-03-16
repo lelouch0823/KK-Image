@@ -70,4 +70,32 @@ describe('ai-utils dynamic fallback and health stats', () => {
     const stable = snapshot.models.find((m) => m.model === 'stable-b');
     expect(slow.failureRate).toBeGreaterThan(stable.failureRate);
   });
+
+  it('retries transient provider failures before succeeding', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        createJsonResponse({ ok: false, status: 503, payload: { error: 'overloaded' } })
+      )
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          payload: {
+            choices: [{ message: { role: 'assistant', content: 'ok-after-retry' } }],
+          },
+        })
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await callAI([{ role: 'user', content: 'retry please' }], [], {
+      AI_API_URL: 'https://api.example.com/v1',
+      AI_API_KEY: 'sk-test',
+      AI_MODELS: 'primary-model',
+      AI_RETRY_ATTEMPTS: '1',
+      AI_RETRY_BASE_DELAY_MS: '1',
+      AI_RETRY_JITTER_MS: '0',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.choices[0].message.content).toBe('ok-after-retry');
+  });
 });

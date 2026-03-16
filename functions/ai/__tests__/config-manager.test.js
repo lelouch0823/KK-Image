@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AIConfigManager, createAIConfigManager } from '../config-manager.js';
 import {
-  AIConfigKeyMap,
   getDefaultValue,
   validateConfigValue,
   parseBooleanFlag,
@@ -317,7 +316,6 @@ describe('config-schema', () => {
 
 describe('createAIConfigManager', () => {
   it('should create instance with env', () => {
-    const mockRepo = createMockSettingsRepo();
     const env = {
       DB: {},
       AI_MODEL: 'gpt-4',

@@ -114,16 +114,24 @@
             <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <input
                     v-model.trim="conflictSearch"
+                    data-testid="conflict-search-input"
                     type="text"
                     class="focus:border-primary w-full rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs text-(--text-main) outline-none"
                     :placeholder="t('product.import.conflicts.search_placeholder', '搜索 SPU/SKU/字段')"
                 />
-                <AppSelect
+                <select
                     v-model="conflictLevelFilter"
-                    :options="conflictLevelOptions"
-                    :placeholder="t('product.import.conflicts.level_all', '全部层级')"
-                    size="sm"
-                />
+                    data-testid="conflict-level-select"
+                    class="focus:border-primary w-full rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs text-(--text-main) outline-none"
+                >
+                    <option
+                        v-for="option in conflictLevelOptions"
+                        :key="option.value"
+                        :value="option.value"
+                    >
+                        {{ option.label }}
+                    </option>
+                </select>
                 <button type="button" class="btn btn-ghost btn-xs cursor-pointer justify-self-start" @click="copyVisibleConflicts">
                     {{ t('product.import.conflicts.copy_visible', '复制当前结果') }}
                 </button>
@@ -175,7 +183,6 @@
 import { computed, ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppIcon from '@/components/ui/AppIcon.vue';
-import AppSelect from '@/components/ui/Select.vue';
 
 const props = defineProps({
     fileName: { type: String, default: '' },

@@ -1,135 +1,19 @@
 import { MSG } from '../api/utils/messages.js';
 import { safeJsonParse } from '../api/utils/json.js';
+import {
+    getModelHealthSnapshot,
+    getNextAvailableModelIndex,
+    isModelAvailable,
+    markModelRateLimited,
+    parseHealthWindow,
+    parseModels,
+    recordModelHealth,
+    resetModelHealthStatsForTests,
+    resolveModelOrder,
+} from '../ai/model-policy.js';
+import { executeWithRetry } from '../ai/retry-manager.js';
 
-/**
- * 模型冷却池 (In-Memory Map)
- * Key: Model Name
- * Value: Cooldown Expiry Timestamp (ms)
- * 注意：In-Memory 状态在 Cloudflare Workers 中是临时的，但在热实例中有效，
- * 足以应对短时间内的连续请求重试。
- */
-const MODEL_COOLDOWNS = new Map();
-const COOLDOWN_DURATION = 60 * 1000; // 60秒冷却时间
-const MODEL_HEALTH = new Map();
-const DEFAULT_HEALTH_WINDOW = 20;
-const MIN_HEALTH_WINDOW = 5;
-const MAX_HEALTH_WINDOW = 200;
-
-function parseBooleanFlag(value, fallback = false) {
-    if (typeof value === 'boolean') return value;
-    if (value === undefined || value === null) return fallback;
-    const normalized = String(value).trim().toLowerCase();
-    if (!normalized) return fallback;
-    return ['1', 'true', 'yes', 'on', 'enabled'].includes(normalized);
-}
-
-function parseHealthWindow(value) {
-    const n = Number.parseInt(String(value ?? ''), 10);
-    if (!Number.isFinite(n)) return DEFAULT_HEALTH_WINDOW;
-    return Math.min(MAX_HEALTH_WINDOW, Math.max(MIN_HEALTH_WINDOW, n));
-}
-
-function ensureModelHealth(modelName) {
-    if (!MODEL_HEALTH.has(modelName)) {
-        MODEL_HEALTH.set(modelName, { events: [] });
-    }
-    return MODEL_HEALTH.get(modelName);
-}
-
-function recordModelHealth(modelName, { ok, latencyMs = null }, windowSize = DEFAULT_HEALTH_WINDOW) {
-    const store = ensureModelHealth(modelName);
-    store.events.push({
-        ok: Boolean(ok),
-        latencyMs: Number.isFinite(latencyMs) ? latencyMs : null,
-        at: Date.now(),
-    });
-
-    if (store.events.length > windowSize) {
-        store.events.splice(0, store.events.length - windowSize);
-    }
-}
-
-function getModelMetrics(modelName) {
-    const store = MODEL_HEALTH.get(modelName);
-    const events = Array.isArray(store?.events) ? store.events : [];
-    const requests = events.length;
-    const failures = events.filter((item) => !item.ok).length;
-    const successfulEvents = events.filter((item) => item.ok && Number.isFinite(item.latencyMs));
-    const avgLatencyMs = successfulEvents.length > 0
-        ? Math.round(successfulEvents.reduce((acc, item) => acc + item.latencyMs, 0) / successfulEvents.length)
-        : null;
-    const failureRate = requests > 0 ? failures / requests : 0;
-    const lastSuccessAt = [...events].reverse().find((item) => item.ok)?.at || null;
-    const lastFailureAt = [...events].reverse().find((item) => !item.ok)?.at || null;
-    // 失败率优先，延迟次优；无样本则保持中性分值。
-    const latencyScore = Number.isFinite(avgLatencyMs) ? avgLatencyMs : 1000;
-    const score = failureRate * 100000 + latencyScore;
-
-    return { requests, failures, failureRate, avgLatencyMs, lastSuccessAt, lastFailureAt, score };
-}
-
-function rankFallbackModels(models) {
-    if (!Array.isArray(models) || models.length <= 2) return models;
-    const primary = models[0];
-    const fallbackSorted = [...models.slice(1)].sort((left, right) => {
-        const leftMetrics = getModelMetrics(left);
-        const rightMetrics = getModelMetrics(right);
-        if (leftMetrics.score !== rightMetrics.score) {
-            return leftMetrics.score - rightMetrics.score;
-        }
-        return left.localeCompare(right);
-    });
-    return [primary, ...fallbackSorted];
-}
-
-function resolveModelOrder(models, env) {
-    const enabled = parseBooleanFlag(env?.AI_DYNAMIC_FALLBACK_ENABLED, false);
-    if (!enabled) return models;
-    return rankFallbackModels(models);
-}
-
-/**
- * 检查模型是否可用 (未在冷却中)
- */
-function isModelAvailable(modelName) {
-    if (!MODEL_COOLDOWNS.has(modelName)) return true;
-    const expiry = MODEL_COOLDOWNS.get(modelName);
-    if (Date.now() > expiry) {
-        MODEL_COOLDOWNS.delete(modelName);
-        return true;
-    }
-    return false;
-}
-
-/**
- * 将模型标记为限流 (进入冷却)
- */
-function markModelRateLimited(modelName) {
-    console.warn(`[AI] Marking model ${modelName} as rate-limited for ${COOLDOWN_DURATION / 1000}s`);
-    MODEL_COOLDOWNS.set(modelName, Date.now() + COOLDOWN_DURATION);
-}
-
-/**
- * 获取下一个可用模型的索引
- */
-function getNextAvailableModelIndex(models, currentIndex) {
-    for (let i = currentIndex + 1; i < models.length; i++) {
-        if (isModelAvailable(models[i])) {
-            return i;
-        }
-    }
-    return -1; // 没有更多可用模型
-}
-
-/**
- * 解析模型列表环境变量
- * @param {string} modelsEnv - 逗号分隔的模型列表
- * @returns {string[]} 模型名称数组
- */
-export function parseModels(modelsEnv) {
-    if (!modelsEnv) return [];
-    return modelsEnv.split(',').map(m => m.trim()).filter(Boolean);
-}
+export { getModelHealthSnapshot, parseModels, resetModelHealthStatsForTests };
 
 /**
  * 从响应头中提取限流状态
@@ -156,6 +40,9 @@ async function executeAIRequest(env, modelIndex, requestFn) {
     const { AI_API_KEY, AI_API_URL, AI_MODELS, AI_MODEL, AI_MODEL_SWITCH_THRESHOLD } = env;
     const threshold = parseInt(AI_MODEL_SWITCH_THRESHOLD || '5');
     const healthWindow = parseHealthWindow(env?.AI_MODEL_HEALTH_WINDOW);
+    const retryAttempts = parseInt(env?.AI_RETRY_ATTEMPTS || '0', 10);
+    const retryBaseDelayMs = parseInt(env?.AI_RETRY_BASE_DELAY_MS || '0', 10);
+    const retryJitterMs = parseInt(env?.AI_RETRY_JITTER_MS || '0', 10);
 
     // 解析模型列表
     const models = parseModels(AI_MODELS);
@@ -179,12 +66,36 @@ async function executeAIRequest(env, modelIndex, requestFn) {
     }
     const currentModel = orderedModels[activeIndex];
     const cleanApiUrl = AI_API_URL.replace(/\/+$/, '');
+    let retryCount = 0;
 
     // 执行请求
     const requestStartedAt = Date.now();
     let response;
     try {
-        response = await requestFn(currentModel, AI_API_KEY, cleanApiUrl);
+        response = await executeWithRetry(
+            async () => {
+                const currentResponse = await requestFn(currentModel, AI_API_KEY, cleanApiUrl);
+
+                if (!currentResponse.ok) {
+                    if (currentResponse.status === 429) {
+                        return currentResponse;
+                    }
+
+                    const errorBody = await currentResponse.text();
+                    throw new Error(`AI API error (${currentResponse.status}) [model:${currentModel}]: ${errorBody}`);
+                }
+
+                return currentResponse;
+            },
+            {
+                retries: retryAttempts,
+                baseDelayMs: retryBaseDelayMs,
+                jitterMs: retryJitterMs,
+                onRetry: () => {
+                    retryCount += 1;
+                },
+            }
+        );
     } catch (err) {
         const latency = Date.now() - requestStartedAt;
         recordModelHealth(currentModel, { ok: false, latencyMs: latency }, healthWindow);
@@ -202,23 +113,28 @@ async function executeAIRequest(env, modelIndex, requestFn) {
         const nextIndex = getNextAvailableModelIndex(orderedModels, activeIndex);
         if (nextIndex !== -1) {
             console.log(`[AI] Model ${currentModel} low quota (${rateLimit.modelRemaining}), switching...`);
-            return executeAIRequest(env, nextIndex, requestFn);
+            const switchedResult = await executeAIRequest(env, nextIndex, requestFn);
+            return {
+                ...switchedResult,
+                retryCount: retryCount + (switchedResult.retryCount || 0),
+            };
         }
     }
 
-    // 处理 API 错误
     if (!response.ok) {
-        // 429 限流
         if (response.status === 429) {
             markModelRateLimited(currentModel);
             const nextIndex = getNextAvailableModelIndex(orderedModels, activeIndex);
             if (nextIndex !== -1) {
                 console.log(`[AI] Model ${currentModel} 429 rate limited, switching...`);
-                return executeAIRequest(env, nextIndex, requestFn);
+                const switchedResult = await executeAIRequest(env, nextIndex, requestFn);
+                return {
+                    ...switchedResult,
+                    retryCount: retryCount + (switchedResult.retryCount || 0),
+                };
             }
         }
 
-        // 其他错误抛出
         const errorBody = await response.text();
         throw new Error(`AI API error (${response.status}) [model:${currentModel}]: ${errorBody}`);
     }
@@ -227,29 +143,9 @@ async function executeAIRequest(env, modelIndex, requestFn) {
         response,
         model: currentModel,
         switched: activeIndex > 0, // 只要不是 0 号位，就算 switched
-        rateLimit
+        rateLimit,
+        retryCount,
     };
-}
-
-export function getModelHealthSnapshot({ models = [], windowSize = DEFAULT_HEALTH_WINDOW } = {}) {
-    const normalizedWindow = parseHealthWindow(windowSize);
-    const knownModels = [...new Set([
-        ...models.filter(Boolean).map((item) => String(item).trim()),
-        ...Array.from(MODEL_HEALTH.keys()),
-    ])];
-
-    return {
-        windowSize: normalizedWindow,
-        models: knownModels.map((model) => ({
-            model,
-            ...getModelMetrics(model),
-        })),
-    };
-}
-
-export function resetModelHealthStatsForTests() {
-    MODEL_COOLDOWNS.clear();
-    MODEL_HEALTH.clear();
 }
 
 /**
@@ -291,7 +187,8 @@ export async function callAI(messages, tools, env, modelIndex = 0) {
         _meta: {
             model: result.model,
             switched: result.switched,
-            rateLimit: result.rateLimit
+            rateLimit: result.rateLimit,
+            retryCount: result.retryCount || 0,
         }
     };
 }
@@ -328,7 +225,8 @@ export async function callAIStream(messages, tools, env, modelIndex = 0) {
         body: result.response.body,
         model: result.model,
         switched: result.switched,
-        rateLimit: result.rateLimit
+        rateLimit: result.rateLimit,
+        retryCount: result.retryCount || 0,
     };
 }
 

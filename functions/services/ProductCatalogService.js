@@ -3,6 +3,7 @@ import { ProductVariantRepository } from '../repositories/ProductVariantReposito
 import { ProductDimensionRepository } from '../repositories/ProductDimensionRepository.js';
 import { VariantImageRepository } from '../repositories/VariantImageRepository.js';
 import { VariantAuditRepository } from '../repositories/VariantAuditRepository.js';
+import { generateId } from '../api/utils/id.js';
 import { resolveVariantImageSyncPlan } from '../lib/hono/routes/manage/products/variant-image-sync.js';
 import { archiveVariantImagesByFolder } from '../lib/hono/routes/manage/products/variant-image-folders.js';
 import { scheduleProductCacheInvalidation } from '../lib/hono/routes/manage/products/cache-helpers.js';
@@ -60,6 +61,27 @@ function buildProductRollbackPayload(product = {}) {
         }
     }
     return rollback;
+}
+
+function assignGeneratedSkuForPatchVariants(variants = [], variantRepo) {
+    return (variants || []).map((variant) => {
+        if (String(variant?.sku || '').trim() || String(variant?.id || '').trim()) {
+            return variant;
+        }
+
+        const fallbackSeed = variant._clientKey
+            || variant.variant_code
+            || JSON.stringify(variant.options_values || {})
+            || generateId();
+        const buildFallbackVariantSku = typeof variantRepo?.buildFallbackVariantSku === 'function'
+            ? variantRepo.buildFallbackVariantSku.bind(variantRepo)
+            : (value) => `SKU-${String(value || generateId()).replace(/[^a-zA-Z0-9]+/g, '').toUpperCase()}`;
+
+        return {
+            ...variant,
+            sku: buildFallbackVariantSku(fallbackSeed),
+        };
+    });
 }
 
 const appendLookup = (lookup, key, variant) => {
@@ -484,6 +506,7 @@ export class ProductCatalogService {
 
         Object.assign(nextBody, validateProductPayload(nextBody, {
             allowExistingVariantStockOmission: true,
+            allowGeneratedVariantSku: true,
         }));
 
         if (nextBody.variants !== undefined) {
@@ -491,7 +514,10 @@ export class ProductCatalogService {
                 ? await this.syncDimensionsFromPayload(productId, incomingDimensions)
                 : await this.dimensionRepo.listByProduct(productId);
             nextBody.variants = normalizeVariantDimensionKeys(
-                normalizeVariantExternalCodes(nextBody.variants),
+                assignGeneratedSkuForPatchVariants(
+                    normalizeVariantExternalCodes(nextBody.variants),
+                    this.variantRepo
+                ),
                 dimensions
             );
         }

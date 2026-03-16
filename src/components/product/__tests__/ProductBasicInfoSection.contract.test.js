@@ -79,7 +79,7 @@ describe('ProductBasicInfoSection contract', () => {
       },
     });
 
-    await wrapper.find('select').setValue('USD');
+    await wrapper.get('[data-testid="currency-select"]').setValue('USD');
     expect(form.currency).toBe('USD');
   });
 });

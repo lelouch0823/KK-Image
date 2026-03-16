@@ -1,7 +1,7 @@
 import { BadRequestError } from '../../../errors.js';
 import { normalizeProductCurrency } from './currency.js';
 
-const REQUIRED_VARIANT_FIELDS = ['sku', 'price', 'cost_price', 'stock_quantity', 'alert_threshold', 'status'];
+const REQUIRED_VARIANT_FIELDS = ['price', 'cost_price', 'stock_quantity', 'alert_threshold', 'status'];
 const VALID_VARIANT_STATUSES = new Set(['active', 'archived']);
 
 const isEmptyValue = (value) => value === undefined || value === null || value === '';
@@ -15,7 +15,7 @@ function assertNonNegativeNumber(value, message) {
 
 export function validateProductPayload(
   payload = {},
-  { requireVariants = false, allowExistingVariantStockOmission = false } = {}
+  { requireVariants = false, allowExistingVariantStockOmission = false, allowGeneratedVariantSku = false } = {}
 ) {
   const normalized = { ...payload };
 
@@ -51,7 +51,11 @@ export function validateProductPayload(
         }
       }
 
-      if (String(variant.sku || '').trim() === '') {
+      const canGenerateSku =
+        allowGeneratedVariantSku &&
+        !String(variant.id || '').trim();
+
+      if (String(variant.sku || '').trim() === '' && !canGenerateSku) {
         throw new BadRequestError(`Variant #${index + 1} missing required field: sku`);
       }
       assertNonNegativeNumber(variant.price, `Variant #${index + 1} price must be non-negative`);

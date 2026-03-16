@@ -1,0 +1,10 @@
+{
+  "name": "basic-chat",
+  "history": [
+    { "role": "user", "content": "帮我总结今天的订单情况" }
+  ],
+  "expected": {
+    "decision": "allow",
+    "visionFirst": false
+  }
+}

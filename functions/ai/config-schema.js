@@ -23,6 +23,7 @@ export const AIConfigSchema = {
     enabled: { type: 'boolean', default: true },
     requestsPerMinute: { type: 'number', min: 1, max: 1000, default: 60 },
     tokensPerDay: { type: 'number', min: 1000, default: 100000 },
+    imageRequestsPerMinute: { type: 'number', min: 1, max: 1000, default: 20 },
   },
 
   // 流式配置
@@ -58,6 +59,12 @@ export const AIConfigSchema = {
     sampleRate: { type: 'number', min: 0, max: 1, default: 1.0 },
     includeTokenUsage: { type: 'boolean', default: true },
   },
+
+  rollout: {
+    quotasEnabled: { type: 'boolean', default: true },
+    observabilityV2Enabled: { type: 'boolean', default: true },
+    safetyEnforcementEnabled: { type: 'boolean', default: true },
+  },
 };
 
 /**
@@ -78,6 +85,7 @@ export const AIConfigKeyMap = {
   AI_RATE_LIMIT_ENABLED: 'rateLimit.enabled',
   AI_RATE_LIMIT_RPM: 'rateLimit.requestsPerMinute',
   AI_RATE_LIMIT_TPD: 'rateLimit.tokensPerDay',
+  AI_RATE_LIMIT_IMAGE_RPM: 'rateLimit.imageRequestsPerMinute',
 
   // 流式相关
   AI_STREAM_GATE_ENABLED: 'streaming.gateEnabled',
@@ -104,6 +112,10 @@ export const AIConfigKeyMap = {
   AI_TELEMETRY_ENABLED: 'telemetry.enabled',
   AI_TELEMETRY_SAMPLE_RATE: 'telemetry.sampleRate',
   AI_TELEMETRY_INCLUDE_TOKEN_USAGE: 'telemetry.includeTokenUsage',
+
+  AI_ROLLOUT_QUOTAS_ENABLED: 'rollout.quotasEnabled',
+  AI_ROLLOUT_OBSERVABILITY_V2_ENABLED: 'rollout.observabilityV2Enabled',
+  AI_ROLLOUT_SAFETY_ENFORCEMENT_ENABLED: 'rollout.safetyEnforcementEnabled',
 };
 
 /**

@@ -25,7 +25,7 @@ describe('VariantBatchBuilderModal', () => {
     await wrapper.get('[data-testid="input-sizes"]').setValue('S,M');
     await wrapper.get('[data-testid="default-price"]').setValue('99');
     await wrapper.get('[data-testid="default-stock"]').setValue('12');
-    await wrapper.get('[data-testid="default-status"]').setValue('active');
+    await wrapper.get('[data-testid="default-status-select"]').setValue('active');
 
     await wrapper.get('[data-testid="apply-btn"]').trigger('click');
 

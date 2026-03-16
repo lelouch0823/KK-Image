@@ -499,6 +499,122 @@ describe('manage ai routes - variant tool integration', () => {
     expect(firstCallTools.length).toBeGreaterThan(0);
   });
 
+  it('passes request context signal into callAIStream runtime env', async () => {
+    let capturedSignal = null;
+    parseSSEChunk.mockImplementation((raw) => {
+      const text = String(raw || '');
+      if (text.includes('[DONE]')) return [{ done: true }];
+      return [{ choices: [{ delta: { content: 'ok' } }] }];
+    });
+    callAIStream.mockImplementation(async (_messages, _tools, runtimeEnv) => {
+      capturedSignal = runtimeEnv?.AI_REQUEST_SIGNAL || null;
+      return {
+        body: createSSEReadable(['text-round-1']),
+        model: 'model-a',
+        switched: false,
+      };
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/ai/stream',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: 'ping' }],
+          context: {},
+        }),
+      },
+      { DB: createDbWithSettingsRows([]) }
+    );
+
+    expect(res.status).toBe(200);
+    await res.text();
+    expect(capturedSignal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('records retry count in request telemetry for stream requests', async () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    parseSSEChunk.mockImplementation((raw) => {
+      const text = String(raw || '');
+      if (text.includes('[DONE]')) return [{ done: true }];
+      return [{ choices: [{ delta: { content: 'ok' } }] }];
+    });
+    callAIStream.mockResolvedValue({
+      body: createSSEReadable(['text-round-1']),
+      model: 'model-a',
+      switched: false,
+      retryCount: 2,
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/ai/stream',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: 'ping' }],
+          context: {},
+        }),
+      },
+      { DB: createDbWithSettingsRows([]) }
+    );
+
+    await res.text();
+    expect(res.status).toBe(200);
+    expect(infoSpy).toHaveBeenCalledWith(
+      '[AI RequestTelemetry]',
+      expect.stringContaining('"retryCount":2')
+    );
+  });
+
+  it('returns quota rejection before invoking callAIStream', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/ai/stream',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-test-ai-quota-deny': 'rpm_exceeded',
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: 'ping' }],
+          context: {},
+        }),
+      },
+      {
+        DB: createDbWithSettingsRows([]),
+        AI_KV: { get: vi.fn(), put: vi.fn() },
+        executionCtx: { waitUntil: vi.fn() },
+      }
+    );
+
+    expect(res.status).toBe(429);
+    expect(callAIStream).not.toHaveBeenCalled();
+  });
+
+  it('blocks oversized requests before invoking AI providers', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/ai/chat',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: 'x'.repeat(12000) }],
+          context: {},
+        }),
+      },
+      { DB: createDbWithSettingsRows([]) }
+    );
+
+    expect(res.status).toBe(400);
+    expect(callAI).not.toHaveBeenCalled();
+  });
+
   it('POST /stream returns a structured error event when tool rounds are exhausted', async () => {
     parseSSEChunk.mockImplementation((raw) => {
       const text = String(raw || '');

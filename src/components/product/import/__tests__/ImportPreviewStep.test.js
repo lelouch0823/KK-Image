@@ -175,12 +175,12 @@ describe('ImportPreviewStep', () => {
             }
         });
 
-        const select = wrapper.find('select');
+        const select = wrapper.get('[data-testid="conflict-level-select"]');
         await select.setValue('variant');
         expect(wrapper.text()).toContain('SKU-V');
         expect(wrapper.text()).not.toContain('SPU-P');
 
-        const input = wrapper.find('input[type="text"]');
+        const input = wrapper.get('[data-testid="conflict-search-input"]');
         await input.setValue('price');
         expect(wrapper.text()).toContain('price');
         await input.setValue('not-found-keyword');

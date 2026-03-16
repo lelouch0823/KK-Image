@@ -9,6 +9,15 @@ export class ProductVariantRepository {
         this.db = db;
     }
 
+    buildFallbackVariantSku(variantId) {
+        const normalizedId = String(variantId || '')
+            .trim()
+            .replace(/[^a-zA-Z0-9]+/g, '')
+            .toUpperCase();
+        if (normalizedId) return `SKU-${normalizedId}`;
+        return `SKU-${String(generateId()).replace(/[^a-zA-Z0-9]+/g, '').toUpperCase()}`;
+    }
+
     buildVariantSku(inputSku, variantId) {
         const normalized = String(inputSku || '').trim();
         if (normalized) return normalized;
@@ -53,7 +62,7 @@ export class ProductVariantRepository {
 
         for (const v of variantsData) {
             const id = v.id || generateId();
-            const sku = this.buildVariantSku(v.sku, id);
+            const sku = String(v.sku || '').trim() || this.buildFallbackVariantSku(id);
             const optionsValues = this.normalizeOptionsValues(v.options_values || {});
             const variantSignature = this.buildVariantSignature(optionsValues);
             statements.push(

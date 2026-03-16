@@ -15,7 +15,7 @@
     <button
       v-if="clearable && modelValue"
       type="button"
-      class="absolute top-1/2 right-2 -translate-y-1/2 p-1 text-(--text-muted) transition-colors hover:text-(--text-main)"
+      class="absolute top-1/2 right-2 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center p-1 text-(--text-muted) transition-colors hover:text-(--text-main)"
       @click="clear"
     >
       <AppIcon name="x-mark" class="size-4" />

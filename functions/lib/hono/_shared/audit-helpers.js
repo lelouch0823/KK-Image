@@ -173,7 +173,7 @@ export async function recordAuditEvent(db, params = {}) {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   if (!stmt || typeof stmt.bind !== 'function') return event;
-  await stmt.bind(
+  const boundStmt = stmt.bind(
       event.id,
       event.user_id,
       event.actor_type,
@@ -197,7 +197,9 @@ export async function recordAuditEvent(db, params = {}) {
       event.ip_address,
       event.user_agent,
       event.created_at,
-    ).run();
+    );
+  if (!boundStmt || typeof boundStmt.run !== 'function') return event;
+  await boundStmt.run();
   return event;
 }
 
@@ -274,6 +276,10 @@ export function scheduleAuditEvent(c, params = {}) {
   if (!c?.env?.DB) return Promise.resolve(null);
   const scheduler = getAuditScheduler(c);
   const event = buildRequestAuditEvent(c, params);
-  scheduler(recordAuditEvent(c.env.DB, event));
+  const job = Promise.resolve(recordAuditEvent(c.env.DB, event)).catch((error) => {
+    console.error('[Audit] Failed to record audit event:', error);
+    return null;
+  });
+  scheduler(job);
   return Promise.resolve(event);
 }

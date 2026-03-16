@@ -1,0 +1,16 @@
+{
+  "name": "multimodal-chat",
+  "history": [
+    {
+      "role": "user",
+      "content": [
+        { "type": "text", "text": "这是什么商品" },
+        { "type": "image_url", "image_url": { "url": "data:image/png;base64,abc" } }
+      ]
+    }
+  ],
+  "expected": {
+    "decision": "allow",
+    "visionFirst": true
+  }
+}

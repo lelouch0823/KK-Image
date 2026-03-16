@@ -11,7 +11,6 @@ import { ProductVariantRepository } from '../../../../repositories/ProductVarian
 import { CustomerRepository } from '../../../../repositories/CustomerRepository.js';
 import { GoodsOverviewRepository } from '../../../../repositories/GoodsOverviewRepository.js';
 import { PurchaseOrderRepository } from '../../../../repositories/PurchaseOrderRepository.js';
-import { SettingsRepository } from '../../../../repositories/SettingsRepository.js';
 import { callAIStream, callAI, callAIAuto, parseSSEChunk, SYSTEM_PROMPT } from '../../../../utils/ai-utils.js';
 import { executeAITool } from '../../../../utils/ai-tool-executor.js';
 import { DateUtils } from '../../../../api/utils/date.js';
@@ -20,13 +19,18 @@ import { requirePermission } from '../../middleware/auth.js';
 import { detectInjectionSignals, prepareConversationRequest } from '../../../../ai/conversation-service.js';
 import { runAIStreamEngine } from '../../../../ai/stream-engine.js';
 import { createAIActionService } from '../../../../ai/action-service.js';
-import { createAIRequestTelemetry } from '../../../../ai/telemetry.js';
+import { createAIRequestTelemetry, createAISpanRecord, createAITraceRecord, createAIUsageDailyRecord } from '../../../../ai/telemetry.js';
 import { createManagedOrder } from './orders/create-order.js';
 import { createManagedProduct } from './products/create-product.js';
 import { AIConfigManager } from '../../../../ai/config-manager.js';
+import { createAIRequestContext } from '../../../../ai/request-context.js';
+import { aiRateLimitMiddleware } from '../../middleware/ai-rate-limit.js';
+import { createAITelemetryWriter } from '../../../../ai/telemetry-writer.js';
+import { validateAIRequest } from '../../../../ai/input-validator.js';
 
 const app = new Hono();
 app.use('*', requirePermission('stats:read'));
+app.use('*', aiRateLimitMiddleware);
 
 function parseBooleanFlag(value, fallback = false) {
     if (typeof value === 'boolean') return value;
@@ -78,6 +82,15 @@ function createRequestId() {
         return crypto.randomUUID();
     }
     return `req-${Date.now()}`;
+}
+
+function createTelemetryWriter(env) {
+    return createAITelemetryWriter({ db: env?.DB });
+}
+
+function estimateUsageTokens(history = []) {
+    const raw = JSON.stringify(history || []);
+    return Math.max(1, Math.ceil(raw.length / 4));
 }
 
 async function resolveAIRuntimeEnv(env) {
@@ -163,8 +176,17 @@ ${JSON.stringify(toolResults, null, 2)}
  */
 app.post('/chat', async (c) => {
     const { env } = c;
-    const { messages: history, context: clientContext = {} } = await c.req.json();
-    const runtimeEnv = await resolveAIRuntimeEnv(env);
+    const body = c.get('aiRequestBody') || await c.req.json();
+    const { messages: history, context: clientContext = {} } = body;
+    const requestContext = createAIRequestContext({
+        userId: c.get('user')?.id || null,
+        routeType: 'chat',
+    });
+    const telemetryWriter = createTelemetryWriter(env);
+    const runtimeEnv = {
+        ...(await resolveAIRuntimeEnv(env)),
+        AI_REQUEST_SIGNAL: requestContext.signal,
+    };
     const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
     const prepared = await prepareConversationRequest({
         history,
@@ -176,8 +198,21 @@ app.post('/chat', async (c) => {
     const inputSummary = telemetry.inputSummary;
     const userSignals = telemetry.userSignals;
     const requestId = createRequestId();
+    requestContext.addSpan(createAISpanRecord({ spanType: 'request_start', status: 'started', detail: { routeType: 'chat' } }));
     logInjectionTelemetry('chat.user_input', userSignals);
     console.info('[AI Chat][InputModalities]', JSON.stringify(inputSummary));
+    const safetyCheck = validateAIRequest({
+        history,
+        limits: {
+            maxInputLength: Number(runtimeEnv.AI_MAX_INPUT_LENGTH || 10000),
+            maxImageCount: 4,
+            maxImageUrlLength: Number(runtimeEnv.AI_MAX_IMAGE_SIZE || 5000000),
+        },
+        userSignals,
+    });
+    if (safetyCheck.decision === 'block') {
+        return c.json({ success: false, error: safetyCheck.reason }, 400);
+    }
 
     const actionService = createAIActionService();
     const actionHandle = await actionService.handleTurn({
@@ -203,10 +238,28 @@ app.post('/chat', async (c) => {
             sessionId: actionHandle.actionResult?.payload?.sessionId || null,
             routeType: 'chat',
             visionFirst,
+            retryCount: 0,
+            cancellationReason: requestContext.getAbortReason(),
             actionKind: actionHandle.actionResult?.kind || null,
             entityType: actionHandle.actionResult?.payload?.entityType || null,
             finalStatus: 'action_handled',
         })));
+        await telemetryWriter.writeAll({
+            trace: createAITraceRecord({
+                requestId,
+                traceId: requestContext.traceId,
+                userId: c.get('user')?.id || null,
+                routeType: 'chat',
+                quotaDecision: c.get('aiQuotaDecision')?.reason || 'allowed',
+                finalStatus: 'action_handled',
+            }),
+            spans: requestContext.getSpans(),
+            usageDaily: createAIUsageDailyRecord({
+                userId: c.get('user')?.id || 'anonymous',
+                requestCount: 1,
+                estimatedTokens: estimateUsageTokens(history),
+            }),
+        });
         return success({
             message: {
                 role: 'assistant',
@@ -225,7 +278,13 @@ app.post('/chat', async (c) => {
         const goodsOverviewRepo = new GoodsOverviewRepository(env.DB);
         const purchaseOrderRepo = new PurchaseOrderRepository(env.DB);
 
-        let response = await callAI(messages, visionFirst ? [] : AI_TOOLS, runtimeEnv);
+        let response = await callAI(messages, (visionFirst || safetyCheck.disableTools) ? [] : AI_TOOLS, runtimeEnv);
+        requestContext.addSpan(createAISpanRecord({
+            requestId,
+            spanType: 'provider_call',
+            status: 'completed',
+            detail: { phase: 'initial', model: response?._meta?.model || null },
+        }));
         logModelUsageTelemetry('Chat', {
             runtimeEnv,
             selectedModel: response?._meta?.model,
@@ -262,6 +321,12 @@ app.post('/chat', async (c) => {
                 });
             }
             response = await callAI(messages, [], runtimeEnv);
+            requestContext.addSpan(createAISpanRecord({
+                requestId,
+                spanType: 'provider_call',
+                status: 'completed',
+                detail: { phase: 'post_tool', model: response?._meta?.model || null },
+            }));
             logModelUsageTelemetry('Chat', {
                 runtimeEnv,
                 selectedModel: response?._meta?.model,
@@ -289,8 +354,29 @@ app.post('/chat', async (c) => {
             visionFirst,
             selectedModel: response?._meta?.model || null,
             modelSwitched: Boolean(response?._meta?.switched),
+            retryCount: Number(response?._meta?.retryCount || 0),
+            cancellationReason: requestContext.getAbortReason(),
             finalStatus: 'completed',
         })));
+        await telemetryWriter.writeAll({
+            trace: createAITraceRecord({
+                requestId,
+                traceId: requestContext.traceId,
+                userId: c.get('user')?.id || null,
+                routeType: 'chat',
+                selectedModel: response?._meta?.model || null,
+                retryCount: Number(response?._meta?.retryCount || 0),
+                quotaDecision: c.get('aiQuotaDecision')?.reason || 'allowed',
+                cancellationReason: requestContext.getAbortReason(),
+                finalStatus: 'completed',
+            }),
+            spans: requestContext.getSpans(),
+            usageDaily: createAIUsageDailyRecord({
+                userId: c.get('user')?.id || 'anonymous',
+                requestCount: 1,
+                estimatedTokens: estimateUsageTokens(history),
+            }),
+        });
         return success({ message: response.choices[0].message });
 });
 
@@ -337,8 +423,17 @@ app.post('/report', async (c) => {
  */
 app.post('/stream', async (c) => {
     const { env } = c;
-    const { messages: history, context: clientContext = {} } = await c.req.json();
-    const runtimeEnv = await resolveAIRuntimeEnv(env);
+    const body = c.get('aiRequestBody') || await c.req.json();
+    const { messages: history, context: clientContext = {} } = body;
+    const requestContext = createAIRequestContext({
+        userId: c.get('user')?.id || null,
+        routeType: 'stream',
+    });
+    const telemetryWriter = createTelemetryWriter(env);
+    const runtimeEnv = {
+        ...(await resolveAIRuntimeEnv(env)),
+        AI_REQUEST_SIGNAL: requestContext.signal,
+    };
     const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
     const prepared = await prepareConversationRequest({
         history,
@@ -350,8 +445,21 @@ app.post('/stream', async (c) => {
     const inputSummary = telemetry.inputSummary;
     const userSignals = telemetry.userSignals;
     const requestId = createRequestId();
+    requestContext.addSpan(createAISpanRecord({ requestId, spanType: 'request_start', status: 'started', detail: { routeType: 'stream' } }));
     logInjectionTelemetry('stream.user_input', userSignals);
     console.info('[AI Stream][InputModalities]', JSON.stringify(inputSummary));
+    const safetyCheck = validateAIRequest({
+        history,
+        limits: {
+            maxInputLength: Number(runtimeEnv.AI_MAX_INPUT_LENGTH || 10000),
+            maxImageCount: 4,
+            maxImageUrlLength: Number(runtimeEnv.AI_MAX_IMAGE_SIZE || 5000000),
+        },
+        userSignals,
+    });
+    if (safetyCheck.decision === 'block') {
+        return c.json({ success: false, error: safetyCheck.reason }, 400);
+    }
 
     const actionService = createAIActionService();
     const actionHandle = await actionService.handleTurn({
@@ -380,10 +488,28 @@ app.post('/stream', async (c) => {
                     sessionId: actionHandle.actionResult?.payload?.sessionId || null,
                     routeType: 'stream',
                     visionFirst,
+                    retryCount: 0,
+                    cancellationReason: requestContext.getAbortReason(),
                     actionKind: actionHandle.actionResult?.kind || null,
                     entityType: actionHandle.actionResult?.payload?.entityType || null,
                     finalStatus: 'action_handled',
                 })));
+                await telemetryWriter.writeAll({
+                    trace: createAITraceRecord({
+                        requestId,
+                        traceId: requestContext.traceId,
+                        userId: c.get('user')?.id || null,
+                        routeType: 'stream',
+                        quotaDecision: c.get('aiQuotaDecision')?.reason || 'allowed',
+                        finalStatus: 'action_handled',
+                    }),
+                    spans: requestContext.getSpans(),
+                    usageDaily: createAIUsageDailyRecord({
+                        userId: c.get('user')?.id || 'anonymous',
+                        requestCount: 1,
+                        estimatedTokens: estimateUsageTokens(history),
+                    }),
+                });
                 await stream.writeSSE({
                     event: actionHandle.event.type,
                     data: JSON.stringify(actionHandle.event.data || {}),
@@ -418,7 +544,13 @@ app.post('/stream', async (c) => {
 
             let messages = [...prepared.messages];
 
-            const streamResult = await callAIStream(messages, visionFirst ? [] : AI_TOOLS, runtimeEnv);
+            const streamResult = await callAIStream(messages, (visionFirst || safetyCheck.disableTools) ? [] : AI_TOOLS, runtimeEnv);
+            requestContext.addSpan(createAISpanRecord({
+                requestId,
+                spanType: 'provider_call',
+                status: 'completed',
+                detail: { phase: 'initial', model: streamResult.model || null, retryCount: streamResult.retryCount || 0 },
+            }));
             logModelUsageTelemetry('Stream', {
                 runtimeEnv,
                 selectedModel: streamResult.model,
@@ -444,6 +576,7 @@ app.post('/stream', async (c) => {
                 maxToolRounds: runtimeEnv.AI_MAX_TOOL_ROUNDS ?? 3,
                 maxToolsPerRound: runtimeEnv.AI_MAX_TOOLS_PER_ROUND ?? 8,
                 streamOptions: { gateEnabled, strictMode },
+                requestContext,
             });
             const { initialParsed } = engineResult;
             const { fullContent, toolCalls } = initialParsed;
@@ -480,10 +613,32 @@ app.post('/stream', async (c) => {
                 visionFirst,
                 selectedModel: streamResult.model || null,
                 modelSwitched: Boolean(streamResult.switched),
+                retryCount: Number(streamResult.retryCount || 0),
                 toolRounds: roundTelemetry.rounds || 0,
                 executedTools: roundTelemetry.executedTools > 0 ? ['tool_execution'] : [],
+                cancellationReason: requestContext.getAbortReason(),
                 finalStatus: 'completed',
             })));
+            await telemetryWriter.writeAll({
+                trace: createAITraceRecord({
+                    requestId,
+                    traceId: requestContext.traceId,
+                    userId: c.get('user')?.id || null,
+                    routeType: 'stream',
+                    selectedModel: streamResult.model || null,
+                    retryCount: Number(streamResult.retryCount || 0),
+                    toolRounds: roundTelemetry.rounds || 0,
+                    quotaDecision: c.get('aiQuotaDecision')?.reason || 'allowed',
+                    cancellationReason: requestContext.getAbortReason(),
+                    finalStatus: 'completed',
+                }),
+                spans: requestContext.getSpans(),
+                usageDaily: createAIUsageDailyRecord({
+                    userId: c.get('user')?.id || 'anonymous',
+                    requestCount: 1,
+                    estimatedTokens: estimateUsageTokens(history),
+                }),
+            });
             await stream.writeSSE({ event: 'done', data: '{}' });
         } catch (err) {
             console.error('[AI Hono Stream] Error:', err);
@@ -492,8 +647,27 @@ app.post('/stream', async (c) => {
                 userId: c.get('user')?.id || null,
                 routeType: 'stream',
                 visionFirst,
+                retryCount: 0,
+                cancellationReason: requestContext.getAbortReason(),
                 finalStatus: 'failed',
             })));
+            await telemetryWriter.writeAll({
+                trace: createAITraceRecord({
+                    requestId,
+                    traceId: requestContext.traceId,
+                    userId: c.get('user')?.id || null,
+                    routeType: 'stream',
+                    quotaDecision: c.get('aiQuotaDecision')?.reason || 'allowed',
+                    cancellationReason: requestContext.getAbortReason(),
+                    finalStatus: 'failed',
+                }),
+                spans: requestContext.getSpans(),
+                usageDaily: createAIUsageDailyRecord({
+                    userId: c.get('user')?.id || 'anonymous',
+                    requestCount: 1,
+                    estimatedTokens: estimateUsageTokens(history),
+                }),
+            });
             await stream.writeSSE({ event: 'error', data: JSON.stringify({ message: err.message }) });
         }
     });

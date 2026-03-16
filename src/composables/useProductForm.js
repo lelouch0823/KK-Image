@@ -698,7 +698,7 @@ export function useProductForm({ editMode, initialData, emit }) {
     }
     const invalidVariant = form.variants.find(
       (variant) =>
-        !String(variant.sku || '').trim() ||
+        (!editMode.value && !String(variant.sku || '').trim()) ||
         variant.price === undefined ||
         variant.cost_price === undefined ||
         variant.stock_quantity === undefined ||

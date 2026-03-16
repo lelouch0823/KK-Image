@@ -50,6 +50,13 @@ export const POLICY_METADATA = {
         "stats:read"
       ]
     },
+    "auditor": {
+      "label": "审计员",
+      "permissions": [
+        "audit:read",
+        "audit:export"
+      ]
+    },
     "user": {
       "label": "普通用户",
       "permissions": [
@@ -77,6 +84,8 @@ export const POLICY_METADATA = {
     "webhooks:read",
     "webhooks:write",
     "stats:read",
+    "audit:read",
+    "audit:export",
     "admin:full"
   ],
   "actionLabels": {
@@ -93,6 +102,8 @@ export const POLICY_METADATA = {
     "webhooks:read": "查看 Webhooks",
     "webhooks:write": "管理 Webhooks",
     "stats:read": "查看统计",
+    "audit:read": "读取操作审计",
+    "audit:export": "导出操作审计",
     "admin:full": "完全管理员权限",
     "spaces:read": "读取空间",
     "spaces:manage": "管理空间",
