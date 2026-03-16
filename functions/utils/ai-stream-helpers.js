@@ -1,7 +1,9 @@
+import { parseJsonObject } from '../api/utils/json.js';
+
 /**
  * AI Stream Helpers
  * ===================
- * 
+ *
  * 流式响应处理的辅助函数，包括：
  * - SSE 事件发送
  * - 文本格式工具调用解析
@@ -366,4 +368,3 @@ export async function processToolCalls(toolCalls, executeTool, sendSSE, toolResu
 
     return newMessages;
 }
-import { parseJsonObject } from '../api/utils/json.js';

@@ -1,4 +1,5 @@
 import { MSG } from '../api/utils/messages.js';
+import { safeJsonParse } from '../api/utils/json.js';
 
 /**
  * 模型冷却池 (In-Memory Map)
@@ -464,4 +465,3 @@ export async function callAIAuto({ messages, tools = [], env, preferStream = tru
  * 格式化系统提示词
  */
 export { SYSTEM_PROMPT } from '../api/utils/ai-prompts.js';
-import { safeJsonParse } from '../api/utils/json.js';

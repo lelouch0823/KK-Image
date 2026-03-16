@@ -1,5 +1,6 @@
 import { MSG } from '../api/utils/messages.js';
 import { AI_TOOLS } from '../api/utils/ai-prompts.js';
+import { parseJsonObject } from '../api/utils/json.js';
 import { callAIStream as defaultCallAIStream, parseSSEChunk as defaultParseSSEChunk } from '../utils/ai-utils.js';
 import { extractToolCallsFromText as defaultExtractToolCallsFromText, ContentGate as DefaultContentGate } from '../utils/ai-stream-helpers.js';
 
@@ -191,4 +192,3 @@ export async function runAIStreamEngine({
     },
   };
 }
-import { parseJsonObject } from '../api/utils/json.js';
