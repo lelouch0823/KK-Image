@@ -23,11 +23,10 @@ import { createAIActionService } from '../../../../ai/action-service.js';
 import { createAIRequestTelemetry } from '../../../../ai/telemetry.js';
 import { createManagedOrder } from './orders/create-order.js';
 import { createManagedProduct } from './products/create-product.js';
+import { AIConfigManager } from '../../../../ai/config-manager.js';
 
 const app = new Hono();
 app.use('*', requirePermission('stats:read'));
-const MAX_TOOL_ROUNDS = 3;
-const MAX_TOOLS_PER_ROUND = 8;
 
 function parseBooleanFlag(value, fallback = false) {
     if (typeof value === 'boolean') return value;
@@ -83,29 +82,49 @@ function createRequestId() {
 
 async function resolveAIRuntimeEnv(env) {
     try {
-        const settingsRepo = new SettingsRepository(env.DB);
-        const grouped = await settingsRepo.getAllGrouped();
-        const ai = grouped?.ai || {};
-        const pick = (key, fallback = '') => {
-            const value = String(ai[key] ?? '').trim();
-            return value || fallback;
-        };
+        const configManager = new AIConfigManager(env.DB, env);
 
+        // 使用配置管理器获取配置，支持分层配置：DB > 环境变量 > 默认值
+        const [apiUrl, apiKey, models, dynamicFallback, healthWindow, switchThreshold,
+               streamGateEnabled, streamGateStrictMode, maxToolRounds, maxToolsPerRound] = await Promise.all([
+            configManager.get('AI_API_URL'),
+            configManager.get('AI_API_KEY'),
+            configManager.get('AI_MODELS'),
+            configManager.get('AI_DYNAMIC_FALLBACK_ENABLED'),
+            configManager.get('AI_MODEL_HEALTH_WINDOW'),
+            configManager.get('AI_MODEL_SWITCH_THRESHOLD'),
+            configManager.get('AI_STREAM_GATE_ENABLED'),
+            configManager.get('AI_STREAM_GATE_STRICT_MODE'),
+            configManager.get('AI_MAX_TOOL_ROUNDS'),
+            configManager.get('AI_MAX_TOOLS_PER_ROUND'),
+        ]);
+
+        // 从env中提取可序列化的配置值，排除DB等对象
+        const { DB: _db, ...serializableEnv } = env;
         return {
-            ...env,
-            AI_API_URL: pick('AI_API_URL', env.AI_API_URL || ''),
-            AI_API_KEY: pick('AI_API_KEY', env.AI_API_KEY || ''),
-            AI_MODELS: pick('AI_MODELS', env.AI_MODELS || env.AI_MODEL || ''),
-            AI_MODEL: pick('AI_MODEL', env.AI_MODEL || ''),
-            AI_DYNAMIC_FALLBACK_ENABLED: pick('AI_DYNAMIC_FALLBACK_ENABLED', env.AI_DYNAMIC_FALLBACK_ENABLED || 'false'),
-            AI_MODEL_HEALTH_WINDOW: pick('AI_MODEL_HEALTH_WINDOW', env.AI_MODEL_HEALTH_WINDOW || '20'),
-            AI_MODEL_SWITCH_THRESHOLD: pick('AI_MODEL_SWITCH_THRESHOLD', env.AI_MODEL_SWITCH_THRESHOLD || '5'),
-            AI_STREAM_GATE_ENABLED: pick('AI_STREAM_GATE_ENABLED', env.AI_STREAM_GATE_ENABLED || 'true'),
-            AI_STREAM_GATE_STRICT_MODE: pick('AI_STREAM_GATE_STRICT_MODE', env.AI_STREAM_GATE_STRICT_MODE || 'false'),
+            ...serializableEnv,
+            AI_API_URL: apiUrl || env.AI_API_URL || '',
+            AI_API_KEY: apiKey || env.AI_API_KEY || '',
+            AI_MODELS: models || env.AI_MODELS || env.AI_MODEL || '',
+            AI_MODEL: models?.split(',')[0] || env.AI_MODEL || '',
+            AI_DYNAMIC_FALLBACK_ENABLED: String(dynamicFallback !== undefined ? dynamicFallback : env.AI_DYNAMIC_FALLBACK_ENABLED || 'false'),
+            AI_MODEL_HEALTH_WINDOW: String(healthWindow !== undefined ? healthWindow : env.AI_MODEL_HEALTH_WINDOW || '20'),
+            AI_MODEL_SWITCH_THRESHOLD: String(switchThreshold !== undefined ? switchThreshold : env.AI_MODEL_SWITCH_THRESHOLD || '5'),
+            AI_STREAM_GATE_ENABLED: String(streamGateEnabled !== undefined ? streamGateEnabled : env.AI_STREAM_GATE_ENABLED || 'true'),
+            AI_STREAM_GATE_STRICT_MODE: String(streamGateStrictMode !== undefined ? streamGateStrictMode : env.AI_STREAM_GATE_STRICT_MODE || 'false'),
+            // 将新配置注入到环境变量中供其他模块使用
+            AI_MAX_TOOL_ROUNDS: maxToolRounds !== undefined ? maxToolRounds : (env.AI_MAX_TOOL_ROUNDS ? parseInt(env.AI_MAX_TOOL_ROUNDS) : 3),
+            AI_MAX_TOOLS_PER_ROUND: maxToolsPerRound !== undefined ? maxToolsPerRound : (env.AI_MAX_TOOLS_PER_ROUND ? parseInt(env.AI_MAX_TOOLS_PER_ROUND) : 8),
         };
     } catch (error) {
         console.warn('[AI] Failed to load runtime AI settings from DB, fallback to env:', error?.message);
-        return env;
+        // 返回原始env（排除DB对象），但确保包含默认配置值
+        const { DB: _db, ...serializableEnv } = env;
+        return {
+            ...serializableEnv,
+            AI_MAX_TOOL_ROUNDS: env.AI_MAX_TOOL_ROUNDS ? parseInt(env.AI_MAX_TOOL_ROUNDS) : 3,
+            AI_MAX_TOOLS_PER_ROUND: env.AI_MAX_TOOLS_PER_ROUND ? parseInt(env.AI_MAX_TOOLS_PER_ROUND) : 8,
+        };
     }
 }
 
@@ -422,8 +441,8 @@ app.post('/stream', async (c) => {
                     await stream.writeSSE({ event: event.type, data: JSON.stringify(event.data || {}) });
                 },
                 executeTool,
-                maxToolRounds: MAX_TOOL_ROUNDS,
-                maxToolsPerRound: MAX_TOOLS_PER_ROUND,
+                maxToolRounds: runtimeEnv.AI_MAX_TOOL_ROUNDS ?? 3,
+                maxToolsPerRound: runtimeEnv.AI_MAX_TOOLS_PER_ROUND ?? 8,
                 streamOptions: { gateEnabled, strictMode },
             });
             const { initialParsed } = engineResult;

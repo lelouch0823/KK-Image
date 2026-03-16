@@ -23,6 +23,16 @@ vi.mock('../../../../../utils/ai-tool-executor.js', () => ({
   executeAITool,
 }));
 
+// Mock AIConfigManager to avoid SettingsRepository dependency issues in tests
+const { AIConfigManager } = vi.hoisted(() => ({
+  AIConfigManager: vi.fn(),
+}));
+
+vi.mock('../../../../../ai/config-manager.js', () => ({
+  AIConfigManager,
+  createAIConfigManager: (env) => new AIConfigManager(env.DB, env),
+}));
+
 import aiApp from '../ai.js';
 
 function createApp() {
@@ -36,13 +46,30 @@ function createApp() {
 }
 
 function createDbWithSettingsRows(rows = []) {
+  // 跟踪当前绑定的参数
+  let boundParams = [];
+
   return {
-    prepare: vi.fn(() => ({
-      all: vi.fn(async () => ({ results: rows })),
-      bind: vi.fn(function () { return this; }),
-      run: vi.fn(async () => ({ success: true })),
-      first: vi.fn(async () => null),
-    })),
+    prepare: vi.fn((sql) => {
+      // 重置绑定参数
+      boundParams = [];
+
+      return {
+        all: vi.fn(async () => ({ results: rows })),
+        bind: vi.fn(function (...args) {
+          boundParams = args;
+          return this;
+        }),
+        run: vi.fn(async () => ({ success: true })),
+        first: vi.fn(async () => {
+          // 根据绑定的参数查找匹配的行
+          // 假设第一个参数是key，第二个是category
+          const [key, category] = boundParams;
+          const found = rows.find(r => r.key === key && r.category === category);
+          return found || null;
+        }),
+      };
+    }),
   };
 }
 
@@ -60,6 +87,31 @@ function createSSEReadable(events) {
 describe('manage ai routes - variant tool integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Setup AIConfigManager mock to return config values from DB rows
+    AIConfigManager.mockImplementation(function(db, env) {
+      this.env = env;
+      this.db = db;
+      this.get = vi.fn(async (key) => {
+        // First try to get from DB (simulate SettingsRepository behavior)
+        if (db && db.prepare) {
+          try {
+            const result = await db.prepare().bind(key, 'ai').first();
+            if (result && result.value !== undefined) {
+              return result.value;
+            }
+          } catch (_e) {
+            // Ignore DB errors, fall through to env
+          }
+        }
+        // Then try env
+        if (env && env[key]) return env[key];
+        // Otherwise return undefined to trigger fallback
+        return undefined;
+      });
+      this.getFullConfig = vi.fn(async () => ({}));
+    });
+
     parseSSEChunk.mockImplementation((raw) => {
       const lines = String(raw || '').split('\n').filter(Boolean);
       const parsed = [];
