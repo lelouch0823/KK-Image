@@ -2,16 +2,10 @@ import { MSG } from '../api/utils/messages.js';
 import { safeJsonParse } from '../api/utils/json.js';
 import {
     getModelHealthSnapshot,
-    getNextAvailableModelIndex,
-    isModelAvailable,
-    markModelRateLimited,
-    parseHealthWindow,
     parseModels,
-    recordModelHealth,
     resetModelHealthStatsForTests,
-    resolveModelOrder,
 } from '../ai/model-policy.js';
-import { executeWithRetry } from '../ai/retry-manager.js';
+import { executeAIRequest } from '../ai/request-executor.js';
 
 export { getModelHealthSnapshot, parseModels, resetModelHealthStatsForTests };
 
@@ -30,122 +24,20 @@ export function getRateLimitStatus(response) {
 }
 
 /**
- * 通用 AI 请求执行器 - 处理模型选择、限流和重试逻辑
- * @param {Object} env - 环境变量
- * @param {number} modelIndex - 当前尝试的模型索引
- * @param {Function} requestFn - 请求执行函数 (model, apiKey, apiUrl) => Promise<Response>
- * @returns {Promise<{ response: Response, model: string, switched: boolean, rateLimit: Object }>}
+ * Internal wrapper that calls the new request-executor with signal from runtime env
+ * @param {Object} env - Environment including optional AI_REQUEST_SIGNAL
+ * @param {number} modelIndex - Current model index
+ * @param {Function} requestFn - Request function
+ * @returns {Promise<{ response: Response, model: string, switched: boolean, rateLimit: Object, retryCount: number }>}
  */
-async function executeAIRequest(env, modelIndex, requestFn) {
-    const { AI_API_KEY, AI_API_URL, AI_MODELS, AI_MODEL, AI_MODEL_SWITCH_THRESHOLD } = env;
-    const threshold = parseInt(AI_MODEL_SWITCH_THRESHOLD || '5');
-    const healthWindow = parseHealthWindow(env?.AI_MODEL_HEALTH_WINDOW);
-    const retryAttempts = parseInt(env?.AI_RETRY_ATTEMPTS || '0', 10);
-    const retryBaseDelayMs = parseInt(env?.AI_RETRY_BASE_DELAY_MS || '0', 10);
-    const retryJitterMs = parseInt(env?.AI_RETRY_JITTER_MS || '0', 10);
-
-    // 解析模型列表
-    const models = parseModels(AI_MODELS);
-    if (models.length === 0 && AI_MODEL) {
-        models.push(AI_MODEL);
-    }
-    const orderedModels = resolveModelOrder(models, env);
-
-    if (!AI_API_KEY || !AI_API_URL || orderedModels.length === 0) {
-        throw new Error(MSG.AI.CONFIG_MISSING);
-    }
-
-    // 智能模型选择
-    let activeIndex = modelIndex;
-    if (!isModelAvailable(orderedModels[activeIndex])) {
-        const nextIndex = getNextAvailableModelIndex(orderedModels, activeIndex);
-        if (nextIndex !== -1) {
-            activeIndex = nextIndex;
-        }
-        // 如果所有都不可用，只能尝试当前的
-    }
-    const currentModel = orderedModels[activeIndex];
-    const cleanApiUrl = AI_API_URL.replace(/\/+$/, '');
-    let retryCount = 0;
-
-    // 执行请求
-    const requestStartedAt = Date.now();
-    let response;
-    try {
-        response = await executeWithRetry(
-            async () => {
-                const currentResponse = await requestFn(currentModel, AI_API_KEY, cleanApiUrl);
-
-                if (!currentResponse.ok) {
-                    if (currentResponse.status === 429) {
-                        return currentResponse;
-                    }
-
-                    const errorBody = await currentResponse.text();
-                    throw new Error(`AI API error (${currentResponse.status}) [model:${currentModel}]: ${errorBody}`);
-                }
-
-                return currentResponse;
-            },
-            {
-                retries: retryAttempts,
-                baseDelayMs: retryBaseDelayMs,
-                jitterMs: retryJitterMs,
-                onRetry: () => {
-                    retryCount += 1;
-                },
-            }
-        );
-    } catch (err) {
-        const latency = Date.now() - requestStartedAt;
-        recordModelHealth(currentModel, { ok: false, latencyMs: latency }, healthWindow);
-        throw err;
-    }
-    const latency = Date.now() - requestStartedAt;
-    recordModelHealth(currentModel, { ok: response.ok, latencyMs: latency }, healthWindow);
-
-    // 检查限流状态
-    const rateLimit = getRateLimitStatus(response);
-
-    // 额度不足预警切换
-    if (rateLimit.modelRemaining < threshold) {
-        markModelRateLimited(currentModel);
-        const nextIndex = getNextAvailableModelIndex(orderedModels, activeIndex);
-        if (nextIndex !== -1) {
-            console.log(`[AI] Model ${currentModel} low quota (${rateLimit.modelRemaining}), switching...`);
-            const switchedResult = await executeAIRequest(env, nextIndex, requestFn);
-            return {
-                ...switchedResult,
-                retryCount: retryCount + (switchedResult.retryCount || 0),
-            };
-        }
-    }
-
-    if (!response.ok) {
-        if (response.status === 429) {
-            markModelRateLimited(currentModel);
-            const nextIndex = getNextAvailableModelIndex(orderedModels, activeIndex);
-            if (nextIndex !== -1) {
-                console.log(`[AI] Model ${currentModel} 429 rate limited, switching...`);
-                const switchedResult = await executeAIRequest(env, nextIndex, requestFn);
-                return {
-                    ...switchedResult,
-                    retryCount: retryCount + (switchedResult.retryCount || 0),
-                };
-            }
-        }
-
-        const errorBody = await response.text();
-        throw new Error(`AI API error (${response.status}) [model:${currentModel}]: ${errorBody}`);
-    }
-
-    return {
-        response,
-        model: currentModel,
-        switched: activeIndex > 0, // 只要不是 0 号位，就算 switched
-        rateLimit,
-        retryCount,
-    };
+async function runExecutor(env, modelIndex, requestFn) {
+    const signal = env?.AI_REQUEST_SIGNAL;
+    return executeAIRequest({
+        env,
+        modelIndex,
+        signal,
+        requestFn,
+    });
 }
 
 /**
@@ -157,7 +49,7 @@ async function executeAIRequest(env, modelIndex, requestFn) {
  * @returns {Promise<{ response: Object, model: string, switched: boolean }>}
  */
 export async function callAI(messages, tools, env, modelIndex = 0) {
-    const result = await executeAIRequest(env, modelIndex, async (model, apiKey, apiUrl) => {
+    const result = await runExecutor(env, modelIndex, async ({ model, apiKey, apiUrl, signal }) => {
         return fetch(`${apiUrl}/chat/completions`, {
             method: 'POST',
             headers: {
@@ -171,7 +63,8 @@ export async function callAI(messages, tools, env, modelIndex = 0) {
                 tool_choice: tools.length > 0 ? 'auto' : undefined,
                 // MiniMax M2.1 思考模型支持：分离推理内容
                 reasoning_split: true
-            })
+            }),
+            signal,
         });
     });
 
@@ -202,7 +95,7 @@ export async function callAI(messages, tools, env, modelIndex = 0) {
  * @returns {Promise<{ body: ReadableStream, model: string, switched: boolean }>}
  */
 export async function callAIStream(messages, tools, env, modelIndex = 0) {
-    const result = await executeAIRequest(env, modelIndex, async (model, apiKey, apiUrl) => {
+    const result = await runExecutor(env, modelIndex, async ({ model, apiKey, apiUrl, signal }) => {
         return fetch(`${apiUrl}/chat/completions`, {
             method: 'POST',
             headers: {
@@ -217,7 +110,8 @@ export async function callAIStream(messages, tools, env, modelIndex = 0) {
                 stream: true,
                 // MiniMax M2.1 思考模型支持：分离推理内容
                 reasoning_split: true
-            })
+            }),
+            signal,
         });
     });
 
@@ -258,9 +152,9 @@ export function parseSSEChunk(chunk) {
 
 /**
  * 智能 AI 调用 - 自动处理流式/非流式切换
- * 
+ *
  * 当模型返回 400 错误（不支持某种模式）时，自动切换到另一模式重试。
- * 
+ *
  * @param {Object} options
  * @param {Array} options.messages - 消息数组
  * @param {Array} options.tools - 工具定义（可选）
@@ -270,6 +164,8 @@ export function parseSSEChunk(chunk) {
  * @returns {Promise<{ content: string, toolCalls?: Array, model?: string }>}
  */
 export async function callAIAuto({ messages, tools = [], env, preferStream = true, _accumulate = true }) {
+    const signal = env?.AI_REQUEST_SIGNAL;
+
     const tryStream = async () => {
         const result = await callAIStream(messages, tools, env);
         const reader = result.body.getReader();
@@ -280,6 +176,12 @@ export async function callAIAuto({ messages, tools = [], env, preferStream = tru
         const toolCalls = [];
 
         while (true) {
+            // Check abort during streaming
+            if (signal?.aborted) {
+                reader.cancel();
+                throw new Error(`AI request aborted: ${signal.reason || 'aborted'}`);
+            }
+
             const { done, value } = await reader.read();
             if (done) break;
 
@@ -345,8 +247,17 @@ export async function callAIAuto({ messages, tools = [], env, preferStream = tru
     try {
         return await primaryFn();
     } catch (err) {
+        // Do not fallback on abort errors
+        if (signal?.aborted || err.name === 'AbortError' || err.message?.includes('aborted')) {
+            throw err;
+        }
+
         // 如果是 400 错误（不支持该模式），切换到另一模式
         if (err.message?.includes('400') || err.message?.includes('invalid_parameter')) {
+            // Check abort before fallback
+            if (signal?.aborted) {
+                throw new Error(`AI request aborted: ${signal.reason || 'aborted'}`);
+            }
             console.log('[AI Auto] Primary mode failed, switching to fallback mode...');
             try {
                 return await fallbackFn();

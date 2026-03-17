@@ -139,7 +139,22 @@ export async function executeAIRequest({
           apiUrl: cleanApiUrl,
           signal,
         });
-        break; // Success, exit retry loop
+
+        // Check if response is retryable error (5xx, 429)
+        if (!response.ok) {
+          const status = response.status;
+          const retryableStatuses = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
+
+          if (retryableStatuses.has(status) && attempt < retryAttempts) {
+            const delay = retryBaseDelayMs * (2 ** attempt) + retryJitterMs;
+            retryCount += 1;
+            await sleep(delay, signal);
+            attempt += 1;
+            continue;
+          }
+        }
+
+        break; // Success or non-retryable error, exit retry loop
       } catch (error) {
         // Check if aborted during fetch
         if (signal?.aborted) {

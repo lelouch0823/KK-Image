@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { callAI, getModelHealthSnapshot, resetModelHealthStatsForTests } from '../ai-utils.js';
+import { callAI, callAIAuto, getModelHealthSnapshot, resetModelHealthStatsForTests } from '../ai-utils.js';
 
 const createJsonResponse = ({ ok = true, status = 200, payload = {}, headers = {} } = {}) => ({
   ok,
@@ -97,5 +97,76 @@ describe('ai-utils dynamic fallback and health stats', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(result.choices[0].message.content).toBe('ok-after-retry');
+  });
+});
+
+describe('ai-utils abort signal propagation', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    resetModelHealthStatsForTests();
+  });
+
+  it('passes AI_REQUEST_SIGNAL to fetch in callAI', async () => {
+    const controller = new AbortController();
+    let capturedSignal = null;
+
+    const fetchMock = vi.fn().mockImplementation(async (url, options) => {
+      capturedSignal = options?.signal;
+      return createJsonResponse({
+        payload: { choices: [{ message: { role: 'assistant', content: 'ok' } }] },
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await callAI([{ role: 'user', content: 'ping' }], [], {
+      AI_API_URL: 'https://api.example.com/v1',
+      AI_API_KEY: 'sk-test',
+      AI_MODELS: 'primary-model',
+      AI_REQUEST_SIGNAL: controller.signal,
+    });
+
+    expect(capturedSignal).toBe(controller.signal);
+  });
+
+  it('throws immediately when signal is already aborted in callAI', async () => {
+    const controller = new AbortController();
+    controller.abort('client_disconnect');
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      callAI([{ role: 'user', content: 'ping' }], [], {
+        AI_API_URL: 'https://api.example.com/v1',
+        AI_API_KEY: 'sk-test',
+        AI_MODELS: 'primary-model',
+        AI_REQUEST_SIGNAL: controller.signal,
+      })
+    ).rejects.toThrow(/aborted/);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('does not enter fallback mode in callAIAuto after abort', async () => {
+    const controller = new AbortController();
+    controller.abort('client_disconnect');
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      callAIAuto({
+        messages: [{ role: 'user', content: 'ping' }],
+        env: {
+          AI_API_URL: 'https://api.example.com/v1',
+          AI_API_KEY: 'sk-test',
+          AI_MODELS: 'primary-model',
+          AI_REQUEST_SIGNAL: controller.signal,
+        },
+      })
+    ).rejects.toThrow(/aborted/);
+
+    // Should not attempt any fetch since signal is aborted
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
