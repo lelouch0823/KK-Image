@@ -169,4 +169,38 @@ describe('ai-utils abort signal propagation', () => {
     // Should not attempt any fetch since signal is aborted
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it('preserves AbortError semantics when callAIAuto is aborted mid-stream', async () => {
+    const controller = new AbortController();
+    const encoder = new TextEncoder();
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      body: new ReadableStream({
+        async pull(streamController) {
+          streamController.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"hi"}}]}\n\n'));
+          controller.abort('client_disconnect');
+          streamController.close();
+        },
+      }),
+    }));
+
+    await expect(
+      callAIAuto({
+        messages: [{ role: 'user', content: 'ping' }],
+        env: {
+          AI_API_URL: 'https://api.example.com/v1',
+          AI_API_KEY: 'sk-test',
+          AI_MODELS: 'primary-model',
+          AI_REQUEST_SIGNAL: controller.signal,
+        },
+      })
+    ).rejects.toMatchObject({
+      name: 'AbortError',
+      code: 'AI_REQUEST_ABORTED',
+      reason: 'client_disconnect',
+    });
+  });
 });

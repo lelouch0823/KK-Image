@@ -6,6 +6,7 @@ import {
     resetModelHealthStatsForTests,
 } from '../ai/model-policy.js';
 import { executeAIRequest } from '../ai/request-executor.js';
+import { createStructuredAbortError } from '../ai/request-context.js';
 
 export { getModelHealthSnapshot, parseModels, resetModelHealthStatsForTests };
 
@@ -179,7 +180,7 @@ export async function callAIAuto({ messages, tools = [], env, preferStream = tru
             // Check abort during streaming
             if (signal?.aborted) {
                 reader.cancel();
-                throw new Error(`AI request aborted: ${signal.reason || 'aborted'}`);
+                throw createStructuredAbortError(signal.reason || 'aborted');
             }
 
             const { done, value } = await reader.read();
@@ -256,7 +257,7 @@ export async function callAIAuto({ messages, tools = [], env, preferStream = tru
         if (err.message?.includes('400') || err.message?.includes('invalid_parameter')) {
             // Check abort before fallback
             if (signal?.aborted) {
-                throw new Error(`AI request aborted: ${signal.reason || 'aborted'}`);
+                throw createStructuredAbortError(signal.reason || 'aborted');
             }
             console.log('[AI Auto] Primary mode failed, switching to fallback mode...');
             try {

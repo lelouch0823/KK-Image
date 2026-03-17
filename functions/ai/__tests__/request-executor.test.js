@@ -165,6 +165,48 @@ describe('request-executor', () => {
       expect(result.retryCount).toBe(1);
       expect(attempts).toBe(2);
     });
+
+    it('does not retry 429 on the same model before switching', async () => {
+      const requestFn = vi.fn()
+        .mockResolvedValueOnce(createErrorResponse(429))
+        .mockResolvedValueOnce(createOkResponse({ choices: [] }));
+
+      const result = await executeAIRequest({
+        env: createMockEnv({
+          AI_RETRY_ATTEMPTS: '3',
+          AI_RETRY_BASE_DELAY_MS: '10',
+        }),
+        modelIndex: 0,
+        requestFn,
+      });
+
+      expect(requestFn).toHaveBeenCalledTimes(2);
+      expect(requestFn.mock.calls[0][0].model).toBe('model-a');
+      expect(requestFn.mock.calls[1][0].model).toBe('model-b');
+      expect(result.model).toBe('model-b');
+    });
+
+    it('keeps 429 backoff retries when no fallback model is available', async () => {
+      const requestFn = vi.fn()
+        .mockResolvedValueOnce(createErrorResponse(429))
+        .mockResolvedValueOnce(createOkResponse({ choices: [] }));
+
+      const result = await executeAIRequest({
+        env: createMockEnv({
+          AI_MODELS: 'model-a',
+          AI_RETRY_ATTEMPTS: '1',
+          AI_RETRY_BASE_DELAY_MS: '1',
+        }),
+        modelIndex: 0,
+        requestFn,
+      });
+
+      expect(requestFn).toHaveBeenCalledTimes(2);
+      expect(requestFn.mock.calls[0][0].model).toBe('model-a');
+      expect(requestFn.mock.calls[1][0].model).toBe('model-a');
+      expect(result.model).toBe('model-a');
+      expect(result.retryCount).toBe(1);
+    });
   });
 
   describe('result metadata', () => {
@@ -183,6 +225,16 @@ describe('request-executor', () => {
       expect(result.switched).toBe(false);
       expect(result.retryCount).toBe(0);
       expect(result.rateLimit).toBeDefined();
+    });
+
+    it('preserves the existing configuration missing message contract', async () => {
+      await expect(
+        executeAIRequest({
+          env: createMockEnv({ AI_API_KEY: '', AI_API_URL: '', AI_MODELS: '' }),
+          modelIndex: 0,
+          requestFn: vi.fn(),
+        })
+      ).rejects.toThrow('AI 配置缺失');
     });
   });
 });

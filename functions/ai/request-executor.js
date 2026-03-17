@@ -16,6 +16,7 @@ import {
   recordModelHealth,
   resolveModelOrder,
 } from './model-policy.js';
+import { MSG } from '../api/utils/messages.js';
 import { classifyAIError } from './retry-manager.js';
 import { createStructuredAbortError } from './request-context.js';
 
@@ -105,7 +106,7 @@ export async function executeAIRequest({
   const orderedModels = resolveModelOrder(models, env);
 
   if (!AI_API_KEY || !AI_API_URL || orderedModels.length === 0) {
-    throw new Error('AI configuration missing');
+    throw new Error(MSG.AI.CONFIG_MISSING);
   }
 
   // Smart model selection
@@ -143,7 +144,20 @@ export async function executeAIRequest({
         // Check if response is retryable error (5xx, 429)
         if (!response.ok) {
           const status = response.status;
-          const retryableStatuses = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
+          const retryableStatuses = new Set([408, 409, 425, 500, 502, 503, 504]);
+
+          // Keep immediate model switch behavior for 429 only when a fallback model exists.
+          // Otherwise preserve the configured backoff retry behavior on the current model.
+          if (status === 429) {
+            const nextIndex = getNextAvailableModelIndex(orderedModels, activeIndex);
+            if (nextIndex === -1 && attempt < retryAttempts) {
+              const delay = retryBaseDelayMs * (2 ** attempt) + retryJitterMs;
+              retryCount += 1;
+              await sleep(delay, signal);
+              attempt += 1;
+              continue;
+            }
+          }
 
           if (retryableStatuses.has(status) && attempt < retryAttempts) {
             const delay = retryBaseDelayMs * (2 ** attempt) + retryJitterMs;
