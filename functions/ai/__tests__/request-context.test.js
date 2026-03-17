@@ -20,4 +20,30 @@ describe('request-context', () => {
     expect(context.getAbortReason()).toBe('client_disconnect');
     expect(() => throwIfAborted(context.signal, () => context.getAbortReason())).toThrow(/client_disconnect/);
   });
+
+  it('adopts an external abort signal and preserves its reason', () => {
+    const inbound = new AbortController();
+    const ctx = createAIRequestContext({ routeType: 'stream', signal: inbound.signal });
+    inbound.abort('client_disconnect');
+
+    expect(ctx.signal.aborted).toBe(true);
+    expect(ctx.getAbortReason()).toBe('client_disconnect');
+  });
+
+  it('keeps the first abort reason sticky', () => {
+    const ctx = createAIRequestContext({});
+    ctx.abort('deadline');
+    ctx.abort('client_disconnect');
+
+    expect(ctx.getAbortReason()).toBe('deadline');
+  });
+
+  it('preserves external signal reason when already aborted on adoption', () => {
+    const inbound = new AbortController();
+    inbound.abort('already_aborted');
+
+    const ctx = createAIRequestContext({ signal: inbound.signal });
+    expect(ctx.signal.aborted).toBe(true);
+    expect(ctx.getAbortReason()).toBe('already_aborted');
+  });
 });

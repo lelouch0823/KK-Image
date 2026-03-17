@@ -20,6 +20,34 @@ export function createAIRequestContext(input = {}) {
   const requestId = input.requestId || createId('req');
   const traceId = input.traceId || createId('trace');
 
+  // Helper to set abort reason only if not already set (sticky behavior)
+  const setAbortReason = (reason) => {
+    if (abortReason === null) {
+      abortReason = reason;
+    }
+  };
+
+  // Adopt external signal if provided
+  const externalSignal = input.signal;
+  if (externalSignal instanceof AbortSignal) {
+    // If already aborted, capture the reason and abort our controller immediately
+    if (externalSignal.aborted) {
+      const reason = externalSignal.reason || 'external_abort';
+      setAbortReason(reason);
+      if (!controller.signal.aborted) {
+        controller.abort(reason);
+      }
+    } else {
+      // Forward external aborts to our controller
+      externalSignal.addEventListener('abort', () => {
+        setAbortReason(externalSignal.reason || 'external_abort');
+        if (!controller.signal.aborted) {
+          controller.abort(externalSignal.reason);
+        }
+      });
+    }
+  }
+
   return {
     requestId,
     traceId,
@@ -28,7 +56,7 @@ export function createAIRequestContext(input = {}) {
     deadline: input.deadline || null,
     signal: controller.signal,
     abort(reason = 'aborted') {
-      abortReason = reason;
+      setAbortReason(reason);
       controller.abort(reason);
     },
     getAbortReason() {
