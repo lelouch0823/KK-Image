@@ -14,7 +14,12 @@
       "Bash(git -C \"O:\\\\Code\\\\KK-Image\" diff --stat)",
       "Bash(git -C \"O:\\\\Code\\\\KK-Image\" rev-parse HEAD)",
       "Bash(git -C \"O:\\\\Code\\\\KK-Image\" log --oneline -6)",
-      "Bash(git -C \"O:\\\\Code\\\\KK-Image\" rev-parse HEAD~1)"
+      "Bash(git -C \"O:\\\\Code\\\\KK-Image\" rev-parse HEAD~1)",
+      "Bash(pnpm test:unit -- --run functions/utils/__tests__/ai-utils-health.test.js functions/utils/__tests__/ai-stream-helpers.test.js functions/ai/__tests__/stream-engine.test.js 2>&1 | tail -30)",
+      "Bash(pnpm vitest:*)",
+      "Bash(git checkout:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)"
     ]
   }
 }
