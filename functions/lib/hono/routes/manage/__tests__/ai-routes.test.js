@@ -534,6 +534,34 @@ describe('manage ai routes - variant tool integration', () => {
     expect(capturedSignal).toBeInstanceOf(AbortSignal);
   });
 
+  it('passes request context signal into callAI runtime env for /chat', async () => {
+    let capturedSignal = null;
+    callAI.mockImplementation(async (_messages, _tools, runtimeEnv) => {
+      capturedSignal = runtimeEnv?.AI_REQUEST_SIGNAL || null;
+      return {
+        choices: [{ message: { role: 'assistant', content: 'ok' } }],
+        _meta: { model: 'model-a', switched: false },
+      };
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/ai/chat',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: 'ping' }],
+          context: {},
+        }),
+      },
+      { DB: createDbWithSettingsRows([]) }
+    );
+
+    expect(res.status).toBe(200);
+    expect(capturedSignal).toBeInstanceOf(AbortSignal);
+  });
+
   it('records retry count in request telemetry for stream requests', async () => {
     const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
     parseSSEChunk.mockImplementation((raw) => {

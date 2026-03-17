@@ -181,6 +181,7 @@ app.post('/chat', async (c) => {
     const requestContext = createAIRequestContext({
         userId: c.get('user')?.id || null,
         routeType: 'chat',
+        signal: c.req.raw.signal,
     });
     const telemetryWriter = createTelemetryWriter(env);
     const runtimeEnv = {
@@ -428,6 +429,7 @@ app.post('/stream', async (c) => {
     const requestContext = createAIRequestContext({
         userId: c.get('user')?.id || null,
         routeType: 'stream',
+        signal: c.req.raw.signal,
     });
     const telemetryWriter = createTelemetryWriter(env);
     const runtimeEnv = {
