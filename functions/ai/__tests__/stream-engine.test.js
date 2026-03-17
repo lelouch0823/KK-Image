@@ -186,4 +186,65 @@ describe('runAIStreamEngine', () => {
     }));
     expect(result.roundTelemetry.executedTools).toBe(2);
   });
+
+  it('does not emit tool_result for aborted tool execution', async () => {
+    const requestContext = createAIRequestContext({});
+    const emit = vi.fn();
+    const callAIStream = vi.fn().mockResolvedValue({
+      body: createReadable(['data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"toolA","arguments":"{}"}}]}}]}\n\n']),
+      model: 'model-a',
+      switched: false,
+    });
+
+    const executeTool = vi.fn(async () => {
+      requestContext.abort('client_disconnect');
+      const error = new Error('aborted');
+      error.name = 'AbortError';
+      throw error;
+    });
+
+    await expect(runAIStreamEngine({
+      initialMessages: [],
+      runtimeEnv: {},
+      callAIStream,
+      emit,
+      executeTool,
+      requestContext,
+    })).rejects.toThrow(/client_disconnect|aborted/);
+
+    // Should not emit tool_result for aborted tool
+    expect(emit).not.toHaveBeenCalledWith(expect.objectContaining({
+      type: 'tool_result',
+    }));
+  });
+
+  it('does not request the next stream round after abort', async () => {
+    const requestContext = createAIRequestContext({});
+    const emit = vi.fn();
+    const callAIStream = vi.fn().mockResolvedValue({
+      body: createReadable(['data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"toolA","arguments":"{}"}}]}}]}\n\n']),
+      model: 'model-a',
+      switched: false,
+    });
+
+    const executeTool = vi.fn(async () => {
+      requestContext.abort('client_disconnect');
+      const error = new Error('aborted');
+      error.name = 'AbortError';
+      throw error;
+    });
+
+    await expect(runAIStreamEngine({
+      initialMessages: [],
+      runtimeEnv: {},
+      callAIStream,
+      emit,
+      executeTool,
+      requestContext,
+      maxToolRounds: 3,
+    })).rejects.toThrow(/client_disconnect|aborted/);
+
+    // Should only call callAIStream once (initial), not for follow-up
+    expect(callAIStream).toHaveBeenCalledTimes(1);
+  });
 });

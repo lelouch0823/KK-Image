@@ -211,6 +211,17 @@ export async function runAIStreamEngine({
         continue;
       }
 
+      if (result.status === 'aborted') {
+        // Tool was interrupted by abort - do not emit tool_result
+        // The abort will be caught by throwIfAborted on next iteration
+        continue;
+      }
+
+      if (result.status === 'skipped') {
+        // Tool was never started due to prior abort - do not emit tool_result
+        continue;
+      }
+
       if (result.status === 'timeout') {
         await emit({ type: 'tool_timeout', data: { name: result.name, status: 'timeout', error: result.error } });
         messages.push({
