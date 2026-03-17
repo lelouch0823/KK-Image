@@ -85,13 +85,14 @@ export async function runToolOrchestration({
           continue;
         }
 
+        // Check if this was an abort - return 'aborted' status, not 'success'
         if (requestContext?.signal?.aborted || error?.name === 'AbortError') {
           results[currentIndex] = {
             toolCallId: toolCall.id,
             name: toolCall.name,
-            status: 'success',
-            output: { ok: true },
-            error: null,
+            status: 'aborted',
+            output: null,
+            error: getAbortReason(requestContext),
           };
           break;
         }

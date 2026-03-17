@@ -68,4 +68,46 @@ describe('tool-orchestrator', () => {
       name: 'toolB',
     }));
   });
+
+  it('marks an in-flight tool as aborted instead of success when the request aborts', async () => {
+    const requestContext = createAIRequestContext({});
+    const executeTool = vi.fn(async () => {
+      requestContext.abort('client_disconnect');
+      const error = new Error('aborted');
+      error.name = 'AbortError';
+      throw error;
+    });
+
+    const result = await runToolOrchestration({
+      toolCalls: [{ id: '1', name: 'toolA', arguments: '{}' }],
+      requestContext,
+      executeTool,
+    });
+
+    expect(result.results[0]).toEqual(expect.objectContaining({
+      status: 'aborted',
+      toolCallId: '1',
+      name: 'toolA',
+    }));
+  });
+
+  it('returns skipped status when signal is already aborted before tool starts', async () => {
+    const requestContext = createAIRequestContext({});
+    requestContext.abort('client_disconnect');
+
+    const executeTool = vi.fn(async () => ({ ok: true }));
+
+    const result = await runToolOrchestration({
+      toolCalls: [{ id: '1', name: 'toolA', arguments: '{}' }],
+      requestContext,
+      executeTool,
+    });
+
+    // Tool never started because signal was already aborted
+    expect(result.results[0]).toEqual(expect.objectContaining({
+      status: 'skipped',
+      toolCallId: '1',
+    }));
+    expect(executeTool).not.toHaveBeenCalled();
+  });
 });
