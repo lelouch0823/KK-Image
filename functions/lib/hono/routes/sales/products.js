@@ -104,8 +104,15 @@ app.get('/:id', withCache(30), async (c) => {
 
   const variants = (await variantRepo.findByProductId(id)).filter((variant) => variant.status === 'active');
   const replenishmentMap = await loadVariantReplenishmentMap(env.DB, variants.map((variant) => variant.id));
-  const dimensions = await dimensionRepo.listByProduct(id);
-  const dimensionMap = await dimensionRepo.getDimensionMap(id);
+  const dimensions = (await dimensionRepo.listByProduct(id))
+    .filter((dimension) => dimension?.status !== 'archived')
+    .map((dimension) => ({
+      ...dimension,
+      values: (dimension.values || []).filter((value) => value?.status !== 'archived'),
+    }));
+  const dimensionMap = Object.fromEntries(
+    dimensions.map((dimension) => [dimension.id, dimension.name])
+  );
 
   product.variants = await Promise.all(
     variants.map(async (variant) => {
@@ -135,4 +142,3 @@ app.get('/:id', withCache(30), async (c) => {
 });
 
 export default app;
-

@@ -46,7 +46,7 @@ describe('ProductCreateModal dimension archive mode', () => {
             success: true,
             data: { affectedVariantsCount: 3 },
         });
-        mocks.archiveDimension.mockResolvedValue({ success: true });
+        mocks.archiveDimension.mockResolvedValue({ success: true, data: { effect: { archivedVariants: 1 } } });
     });
 
     const createWrapper = () => mount(ProductCreateModal, {
@@ -102,6 +102,31 @@ describe('ProductCreateModal dimension archive mode', () => {
         await wrapper.find('[data-testid="dimension-archive-confirm"]').trigger('click');
 
         expect(mocks.archiveDimension).toHaveBeenCalledWith('prod-1', 'dim-color', { mode: 'archive_variants' });
+    });
+
+    it('removes locally affected variants after archiving a dimension', async () => {
+        const wrapper = createWrapper();
+        wrapper.vm.form.options = [{ id: 'dim-color', name: 'Color', values: ['Red'], inputValue: '' }];
+        wrapper.vm.form.variants = [
+            {
+                id: 'variant-red',
+                sku: 'SKU-RED',
+                price: 10,
+                cost_price: 6,
+                stock_quantity: 5,
+                alert_threshold: 1,
+                status: 'active',
+                options_values: { 'dim-color': 'Red' },
+                images: [],
+            },
+        ];
+
+        await wrapper.vm.removeOption(0);
+        await wrapper.find('[data-testid="dimension-archive-next"]').trigger('click');
+        await wrapper.find('[data-testid="dimension-archive-confirm"]').trigger('click');
+
+        expect(wrapper.vm.form.variants).toEqual([]);
+        expect(wrapper.vm.incompleteVariantCount).toBe(0);
     });
 
     it('ignores archived dimensions when hydrating edit form', () => {

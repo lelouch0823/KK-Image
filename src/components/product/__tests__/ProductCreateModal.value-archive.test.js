@@ -51,6 +51,10 @@ describe('ProductCreateModal value archive wizard', () => {
                 sampleVariants: [{ id: 'v1', sku: 'SKU-1', options_values: { Color: 'Red' } }],
             },
         });
+        mocks.addDimensionValue.mockResolvedValue({
+            success: true,
+            data: { id: 'val-blue', value: 'Blue', status: 'active' },
+        });
         mocks.archiveDimensionValue.mockResolvedValue({ success: true });
         mocks.restoreDimensionValue.mockResolvedValue({ success: true });
     });
@@ -116,5 +120,20 @@ describe('ProductCreateModal value archive wizard', () => {
         expect(mocks.restoreDimensionValue).toHaveBeenCalledWith('prod-1', 'val-red');
         expect(wrapper.vm.form.options[0].values).toContain('Red');
         expect(wrapper.vm.form.options[0].archivedValues).toEqual([]);
+    });
+
+    it('tracks server-assigned ids for values added during edit mode', async () => {
+        const wrapper = createWrapper();
+        const opt = { id: 'dim-color', name: 'Color', values: [], inputValue: 'Blue', inputMeta: '' };
+        wrapper.vm.form.options = [opt];
+        wrapper.vm.form.variants = [];
+
+        await wrapper.vm.addOptionValue(opt);
+        await wrapper.vm.removeOptionValue(opt, 0);
+
+        expect(mocks.previewDimensionImpact).toHaveBeenCalledWith('prod-1', {
+            action: 'archive_value',
+            valueId: 'val-blue',
+        });
     });
 });

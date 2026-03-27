@@ -105,6 +105,15 @@ const createProductsTestApp = () => {
   return app;
 };
 
+const createDbMock = () => ({
+  prepare: vi.fn(() => ({
+    bind: vi.fn(() => ({
+      all: vi.fn(async () => ({ results: [] })),
+      first: vi.fn(async () => null),
+    })),
+  })),
+});
+
 describe('sales routes resilience', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -253,6 +262,58 @@ describe('sales routes resilience', () => {
         code: 'INTERNAL_ERROR',
       })
     );
+  });
+
+  it('filters archived dimensions and values from sales product detail', async () => {
+    mocks.productFindById.mockResolvedValue({
+      id: 'p-1',
+      status: 'active',
+      images: '[]',
+    });
+    mocks.variantFindByProductId.mockResolvedValue([
+      { id: 'v-1', product_id: 'p-1', status: 'active', options_values: { 'dim-color': 'Red' } },
+    ]);
+    mocks.dimensionListByProduct.mockResolvedValue([
+      {
+        id: 'dim-color',
+        name: 'Color',
+        status: 'active',
+        values: [
+          { id: 'val-red', value: 'Red', status: 'active' },
+          { id: 'val-blue', value: 'Blue', status: 'archived' },
+        ],
+      },
+      {
+        id: 'dim-size',
+        name: 'Size',
+        status: 'archived',
+        values: [{ id: 'val-m', value: 'M', status: 'active' }],
+      },
+    ]);
+    mocks.dimensionGetMap.mockResolvedValue({
+      'dim-color': 'Color',
+      'dim-size': 'Size',
+    });
+
+    const app = createProductsTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/products/p-1',
+      {},
+      { DB: createDbMock() },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    const payload = await res.json();
+    expect(payload.data.dimensions).toEqual([
+      {
+        id: 'dim-color',
+        name: 'Color',
+        status: 'active',
+        values: [{ id: 'val-red', value: 'Red', status: 'active' }],
+      },
+    ]);
+    expect(payload.data.dimension_map).toEqual({ 'dim-color': 'Color' });
   });
 
   it('invalidates sales order list cache after GET /:id marks order as read', async () => {

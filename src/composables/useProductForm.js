@@ -184,6 +184,15 @@ function buildOptionsFromDimensions(data) {
   return (parseJson(data?.options) || []).map((option) => toOptionModel(option));
 }
 
+function cloneDimensions(dimensions = []) {
+  return (dimensions || []).map((dimension) => ({
+    ...dimension,
+    values: Array.isArray(dimension?.values)
+      ? dimension.values.map((value) => ({ ...value }))
+      : [],
+  }));
+}
+
 /**
  * useProductForm — 商品创建/编辑表单的 composable
  *
@@ -241,6 +250,7 @@ export function useProductForm({ editMode, initialData, emit }) {
   // ——— 图片与变体 key 种子 ———
   const imageObjects = ref([]);
   const variantLocalKeySeed = ref(0);
+  const trackedDimensions = ref([]);
 
   // ——— 表单状态 ———
   const form = reactive({
@@ -318,6 +328,7 @@ export function useProductForm({ editMode, initialData, emit }) {
     const nextDimensionNames = nextOptions
       .map((option) => String(option?.name || '').trim())
       .filter(Boolean);
+    trackedDimensions.value = cloneDimensions(data?.dimensions || []);
 
     Object.assign(form, {
       name: data.name || '',
@@ -351,6 +362,7 @@ export function useProductForm({ editMode, initialData, emit }) {
   }
 
   function resetForm() {
+    trackedDimensions.value = [];
     Object.assign(form, {
       name: '',
       description: '',
@@ -431,6 +443,55 @@ export function useProductForm({ editMode, initialData, emit }) {
     form.variants = [...preservedExistingVariants, ...generatedVariants].map((variant) => markVariantCompleteness(variant, dimensionNames));
   };
 
+  const getNextDimensionNames = () =>
+    form.options
+      .map((option) => String(option?.name || '').trim())
+      .filter(Boolean);
+
+  const updateTrackedDimensionValue = (dimensionId, valueLabel, updater) => {
+    const trackedDimension = trackedDimensions.value.find((dimension) => dimension.id === dimensionId);
+    if (!trackedDimension) return;
+
+    if (!Array.isArray(trackedDimension.values)) trackedDimension.values = [];
+    const existingIndex = trackedDimension.values.findIndex((entry) => entry?.value === valueLabel);
+    const currentValue = existingIndex >= 0 ? trackedDimension.values[existingIndex] : null;
+    const nextValue = updater(currentValue);
+    if (!nextValue) return;
+
+    if (existingIndex >= 0) {
+      trackedDimension.values.splice(existingIndex, 1, nextValue);
+      return;
+    }
+
+    trackedDimension.values.push(nextValue);
+  };
+
+  const findTrackedValueMeta = (dimensionId, valueLabel) =>
+    trackedDimensions.value
+      .find((dimension) => dimension.id === dimensionId)
+      ?.values?.find((entry) => entry?.value === valueLabel);
+
+  const getVariantOptionValue = (variant, option) => {
+    const optionsValues = variant?.options_values || {};
+    if (option?.id && Object.prototype.hasOwnProperty.call(optionsValues, option.id)) {
+      return optionsValues[option.id];
+    }
+    if (option?.name && Object.prototype.hasOwnProperty.call(optionsValues, option.name)) {
+      return optionsValues[option.name];
+    }
+    return undefined;
+  };
+
+  const removeDimensionFromVariant = (variant, option) => {
+    const nextOptionsValues = { ...(variant?.options_values || {}) };
+    if (option?.id) delete nextOptionsValues[option.id];
+    if (option?.name) delete nextOptionsValues[option.name];
+    return {
+      ...variant,
+      options_values: nextOptionsValues,
+    };
+  };
+
   // ——— 选项 CRUD ———
   const addOption = () => {
     if (form.options.length >= 3) {
@@ -484,6 +545,13 @@ export function useProductForm({ editMode, initialData, emit }) {
         const response = await addDimensionValue(initialData.value.id, opt.id, payload);
         if (!response?.success) {
           addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
+        } else if (response?.data?.id) {
+          updateTrackedDimensionValue(opt.id, v, (currentValue) => ({
+            ...(currentValue || {}),
+            ...response.data,
+            value: response.data?.value || v,
+            status: response.data?.status || 'active',
+          }));
         }
       }
     }
@@ -494,9 +562,7 @@ export function useProductForm({ editMode, initialData, emit }) {
   const removeOptionValue = async (opt, vIdx) => {
     const value = opt.values[vIdx];
     if (editMode.value && opt.id && initialData.value?.id && value) {
-      const valueMeta = (initialData.value?.dimensions || [])
-        .find((dimension) => dimension.id === opt.id)
-        ?.values?.find((entry) => entry.value === value);
+      const valueMeta = findTrackedValueMeta(opt.id, value);
       if (valueMeta?.id) {
         const impact = await previewDimensionImpact(initialData.value.id, {
           action: 'archive_value',
@@ -529,6 +595,12 @@ export function useProductForm({ editMode, initialData, emit }) {
         addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
         return;
       }
+      updateTrackedDimensionValue(opt.id, value, (currentValue) => ({
+        ...(currentValue || archived || {}),
+        id: valueId,
+        value,
+        status: 'active',
+      }));
     }
 
     if (!opt.values.includes(value)) opt.values.push(value);
@@ -562,8 +634,31 @@ export function useProductForm({ editMode, initialData, emit }) {
         return;
       }
       if (dimensionArchiveWizard.optionIndex >= 0) {
+        const archivedOption = form.options[dimensionArchiveWizard.optionIndex];
         form.options.splice(dimensionArchiveWizard.optionIndex, 1);
-        generateVariants();
+        if (archivedOption?.id) {
+          const trackedDimension = trackedDimensions.value.find((dimension) => dimension.id === archivedOption.id);
+          if (trackedDimension) trackedDimension.status = 'archived';
+        }
+
+        if (dimensionArchiveWizard.mode === 'merge_keep') {
+          const dedupedVariants = [];
+          const seenKeys = new Set();
+          for (const variant of form.variants) {
+            const nextVariant = removeDimensionFromVariant(variant, archivedOption);
+            const key = variantOptionsKey(nextVariant.options_values);
+            if (seenKeys.has(key)) continue;
+            seenKeys.add(key);
+            dedupedVariants.push(nextVariant);
+          }
+          form.variants = dedupedVariants.map((variant) =>
+            markVariantCompleteness(variant, getNextDimensionNames())
+          );
+        } else {
+          form.variants = form.variants
+            .filter((variant) => getVariantOptionValue(variant, archivedOption) === undefined)
+            .map((variant) => markVariantCompleteness(variant, getNextDimensionNames()));
+        }
       }
       closeDimensionArchiveWizard(true);
     } finally {
@@ -602,8 +697,16 @@ export function useProductForm({ editMode, initialData, emit }) {
             value: valueArchiveWizard.valueLabel,
             status: 'archived',
           });
+          updateTrackedDimensionValue(option.id, valueArchiveWizard.valueLabel, (currentValue) => ({
+            ...(currentValue || {}),
+            id: valueArchiveWizard.valueId,
+            value: valueArchiveWizard.valueLabel,
+            status: 'archived',
+          }));
         }
-        generateVariants();
+        form.variants = form.variants
+          .filter((variant) => getVariantOptionValue(variant, option) !== valueArchiveWizard.valueLabel)
+          .map((variant) => markVariantCompleteness(variant, getNextDimensionNames()));
       }
       closeValueArchiveWizard(true);
     } finally {
