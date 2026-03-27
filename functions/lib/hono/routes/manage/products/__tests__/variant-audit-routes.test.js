@@ -15,6 +15,7 @@ const mockAuditRepo = {
 };
 const mockVariantImageRepo = {
   syncImages: vi.fn(),
+  listByVariant: vi.fn(),
 };
 const mockDimensionRepo = {
   listByProduct: vi.fn(),
@@ -22,6 +23,7 @@ const mockDimensionRepo = {
   updateDimension: vi.fn(),
   addValue: vi.fn(),
   updateValueMeta: vi.fn(),
+  restoreSnapshot: vi.fn(),
 };
 const mockFolderUtils = {
   ensureVariantFolder: vi.fn(),
@@ -57,6 +59,7 @@ vi.mock('../../../../../../repositories/VariantAuditRepository.js', () => ({
 vi.mock('../../../../../../repositories/VariantImageRepository.js', () => ({
   VariantImageRepository: class {
     syncImages(...args) { return mockVariantImageRepo.syncImages(...args); }
+    listByVariant(...args) { return mockVariantImageRepo.listByVariant(...args); }
   },
 }));
 
@@ -67,6 +70,7 @@ vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
     updateDimension(...args) { return mockDimensionRepo.updateDimension(...args); }
     addValue(...args) { return mockDimensionRepo.addValue(...args); }
     updateValueMeta(...args) { return mockDimensionRepo.updateValueMeta(...args); }
+    restoreSnapshot(...args) { return mockDimensionRepo.restoreSnapshot(...args); }
   },
 }));
 
@@ -112,6 +116,9 @@ describe('product variant audit routes', () => {
     mockDimensionRepo.updateDimension.mockResolvedValue({ id: 'dim-color', name: 'Color' });
     mockDimensionRepo.addValue.mockResolvedValue({ id: 'val-red', value: 'Red' });
     mockDimensionRepo.updateValueMeta.mockResolvedValue();
+    mockDimensionRepo.restoreSnapshot.mockResolvedValue(undefined);
+    mockVariantImageRepo.listByVariant.mockResolvedValue([]);
+    mockVariantImageRepo.syncImages.mockResolvedValue(undefined);
     mockFolderUtils.ensureVariantFolder.mockResolvedValue('folder-variant');
     mockFolderUtils.moveFilesToFolder.mockResolvedValue(undefined);
     mockScheduleAuditEvent.mockReset();

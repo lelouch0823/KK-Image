@@ -63,6 +63,8 @@ function buildProductRollbackPayload(product = {}) {
     return rollback;
 }
 
+const cloneVariantImages = (images = []) => (images || []).map((image) => ({ ...image }));
+
 function assignGeneratedSkuForPatchVariants(variants = [], variantRepo) {
     return (variants || []).map((variant) => {
         if (String(variant?.sku || '').trim() || String(variant?.id || '').trim()) {
@@ -410,6 +412,58 @@ export class ProductCatalogService {
         }
     }
 
+    async loadVariantImageSnapshot(productId, variants = [], variantImageRepo = new VariantImageRepository(this.db, this.variantRepo)) {
+        const snapshot = new Map();
+        for (const variant of variants || []) {
+            const variantId = String(variant?.id || '').trim();
+            if (!variantId) continue;
+            const images = await variantImageRepo.listByVariant({ productId, variantId });
+            snapshot.set(variantId, cloneVariantImages(images));
+        }
+        return snapshot;
+    }
+
+    async rollbackPatchedProduct({
+        productId,
+        existingProductSnapshot = null,
+        existingDimensionsSnapshot = null,
+        shouldRollbackProduct = false,
+        shouldRollbackDimensions = false,
+        didSyncVariants = false,
+        beforeVariants = [],
+        beforeVariantImages = new Map(),
+        afterVariants = [],
+    } = {}) {
+        if (shouldRollbackProduct && existingProductSnapshot) {
+            const rollbackProductData = buildProductRollbackPayload(existingProductSnapshot);
+            if (Object.keys(rollbackProductData).length > 0) {
+                await this.productRepo.updateWithMeta(productId, rollbackProductData);
+            }
+        }
+
+        if (shouldRollbackDimensions && existingDimensionsSnapshot && typeof this.dimensionRepo.restoreSnapshot === 'function') {
+            await this.dimensionRepo.restoreSnapshot(productId, existingDimensionsSnapshot);
+        }
+
+        if (!didSyncVariants || !beforeVariants) return;
+
+        await this.variantRepo.syncVariants(productId, buildCatalogRollbackPayload(beforeVariants));
+
+        const variantImageRepo = new VariantImageRepository(this.db, this.variantRepo);
+        const beforeVariantIds = new Set((beforeVariants || []).map((variant) => String(variant?.id || '').trim()).filter(Boolean));
+        const rollbackVariantIds = new Set([
+            ...Array.from(beforeVariantIds),
+            ...((afterVariants || []).map((variant) => String(variant?.id || '').trim()).filter(Boolean)),
+        ]);
+
+        for (const variantId of rollbackVariantIds) {
+            const images = beforeVariantIds.has(variantId)
+                ? cloneVariantImages(beforeVariantImages.get(variantId) || [])
+                : [];
+            await variantImageRepo.syncImages(productId, variantId, images);
+        }
+    }
+
     async createProduct(c, body) {
         if (!body.name) {
             throw new BadRequestError('Name is required');
@@ -502,7 +556,7 @@ export class ProductCatalogService {
     }
 
     async patchProduct(c, productId, body) {
-        await this.ensureProductExists(productId);
+        const existingProductSnapshot = await this.ensureProductExists(productId);
 
         const incomingDimensions = Array.isArray(body.dimensions) ? body.dimensions : null;
         const nextBody = { ...body };
@@ -513,31 +567,45 @@ export class ProductCatalogService {
             allowGeneratedVariantSku: true,
         }));
 
-        if (nextBody.variants !== undefined) {
-            const dimensions = incomingDimensions
-                ? await this.syncDimensionsFromPayload(productId, incomingDimensions)
-                : await this.dimensionRepo.listByProduct(productId);
-            nextBody.variants = normalizeVariantDimensionKeys(
-                assignGeneratedSkuForPatchVariants(
-                    normalizeVariantExternalCodes(nextBody.variants),
-                    this.variantRepo
-                ),
-                dimensions
-            );
-        }
-
         const hasProductFieldUpdates = Object.keys(nextBody).some((key) => PRODUCT_MUTABLE_FIELDS.has(key));
-        const result = hasProductFieldUpdates
-            ? await this.productRepo.updateWithMeta(productId, nextBody)
-            : { success: true, changes: 0 };
+        const shouldRollbackDimensions = Boolean(incomingDimensions && nextBody.variants !== undefined);
+        const existingDimensionsSnapshot = shouldRollbackDimensions
+            ? await this.dimensionRepo.listByProduct(productId)
+            : null;
+
+        let result = { success: true, changes: 0 };
+        let beforeVariants = null;
+        let beforeVariantImages = new Map();
+        let afterVariants = null;
+        let productUpdated = false;
 
         let variantsUpdated = false;
         let variantSync = null;
-        if (result.success && nextBody.variants !== undefined) {
-            const beforeVariants = await this.variantRepo.findByProductId(productId);
-            let didSyncVariants = false;
+        let didSyncVariants = false;
 
-            try {
+        try {
+            if (nextBody.variants !== undefined) {
+                beforeVariants = await this.variantRepo.findByProductId(productId);
+                beforeVariantImages = await this.loadVariantImageSnapshot(productId, beforeVariants);
+
+                const dimensions = incomingDimensions
+                    ? await this.syncDimensionsFromPayload(productId, incomingDimensions)
+                    : await this.dimensionRepo.listByProduct(productId);
+                nextBody.variants = normalizeVariantDimensionKeys(
+                    assignGeneratedSkuForPatchVariants(
+                        normalizeVariantExternalCodes(nextBody.variants),
+                        this.variantRepo
+                    ),
+                    dimensions
+                );
+            }
+
+            result = hasProductFieldUpdates
+                ? await this.productRepo.updateWithMeta(productId, nextBody)
+                : { success: true, changes: 0 };
+            productUpdated = Boolean(hasProductFieldUpdates && result.success && result.changes > 0);
+
+            if (result.success && nextBody.variants !== undefined) {
                 try {
                     const syncResult = await this.variantRepo.syncVariants(productId, nextBody.variants);
                     didSyncVariants = true;
@@ -554,7 +622,7 @@ export class ProductCatalogService {
                     throw error;
                 }
 
-                const afterVariants = await this.variantRepo.findByProductId(productId);
+                afterVariants = await this.variantRepo.findByProductId(productId);
                 const variantImageRepo = new VariantImageRepository(this.db, this.variantRepo);
                 const imageSyncPlan = resolveVariantImageSyncPlan({
                     inputVariants: nextBody.variants,
@@ -579,16 +647,26 @@ export class ProductCatalogService {
                 const events = this.variantRepo.buildAuditEvents(productId, beforeVariants, afterVariants);
                 await this.auditRepo.createBatch(events);
                 variantsUpdated = true;
-            } catch (error) {
-                if (didSyncVariants) {
-                    try {
-                        await this.variantRepo.syncVariants(productId, buildCatalogRollbackPayload(beforeVariants));
-                    } catch (rollbackError) {
-                        console.error('Variant rollback failed (product patch):', rollbackError);
-                    }
-                }
-                throw error;
             }
+        } catch (error) {
+            if (productUpdated || shouldRollbackDimensions || didSyncVariants) {
+                try {
+                    await this.rollbackPatchedProduct({
+                        productId,
+                        existingProductSnapshot,
+                        existingDimensionsSnapshot,
+                        shouldRollbackProduct: productUpdated,
+                        shouldRollbackDimensions,
+                        didSyncVariants,
+                        beforeVariants,
+                        beforeVariantImages,
+                        afterVariants,
+                    });
+                } catch (rollbackError) {
+                    console.error('Patch rollback failed:', rollbackError);
+                }
+            }
+            throw error;
         }
 
         if ((result.success && result.changes > 0) || variantsUpdated) {
