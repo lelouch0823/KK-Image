@@ -101,6 +101,8 @@ describe('VariantImageRepository', () => {
             const stmt = createPreparedStatement(sql);
             if (sql.includes('FROM product_variants')) {
                 stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('MAX(sort_order)')) {
+                stmt.first.mockResolvedValue({ max_sort_order: 2 });
             } else if (sql.includes('UPDATE variant_images')) {
                 stmt.run.mockResolvedValue({ meta: { changes: 1 } });
             }
@@ -115,8 +117,13 @@ describe('VariantImageRepository', () => {
 
         expect(db.batch).toHaveBeenCalledTimes(1);
         const updates = db.batch.mock.calls[0][0];
-        expect(updates).toHaveLength(3);
-        expect(updates[0].params.slice(0, 2)).toEqual([0, expect.any(Number)]);
+        expect(updates).toHaveLength(6);
+        expect(updates[0].params.slice(0, 2)).toEqual([6, expect.any(Number)]);
+        expect(updates[1].params.slice(0, 2)).toEqual([7, expect.any(Number)]);
+        expect(updates[2].params.slice(0, 2)).toEqual([8, expect.any(Number)]);
+        expect(updates[3].params.slice(0, 2)).toEqual([0, expect.any(Number)]);
+        expect(updates[4].params.slice(0, 2)).toEqual([1, expect.any(Number)]);
+        expect(updates[5].params.slice(0, 2)).toEqual([2, expect.any(Number)]);
     });
 
     it('deletes an image link and preserves valid operation scope', async () => {

@@ -13,13 +13,28 @@ export function useProducts() {
         });
     };
 
-    const listProductsForExport = async ({ search = '', status = '', page = 1, limit = 100 } = {}) => {
+    const listProductsForExport = async ({
+        search = '',
+        status = '',
+        brand = '',
+        category = '',
+        hasStock = '',
+        sortBy = '',
+        sortOrder = '',
+        page = 1,
+        limit = 100
+    } = {}) => {
         const params = new URLSearchParams({
             page: String(page || 1),
             limit: String(limit || 100),
         });
         if (search) params.set('search', String(search));
         if (status) params.set('status', String(status));
+        if (brand) params.set('brand', String(brand));
+        if (category) params.set('category', String(category));
+        if (hasStock) params.set('hasStock', String(hasStock));
+        if (sortBy) params.set('sortBy', String(sortBy));
+        if (sortOrder) params.set('sortOrder', String(sortOrder));
         return resource.rawRequest(`?${params.toString()}`);
     };
 
@@ -168,4 +183,3 @@ export function useProducts() {
         updateProductWithMeta,
     };
 }
-

@@ -57,4 +57,25 @@ describe('useProducts cache invalidation', () => {
     expect(result.success).toBe(false);
     expect(mocks.resource.clearCache).not.toHaveBeenCalled();
   });
+
+  it('forwards full export filters when listing products for export', async () => {
+    mocks.resource.rawRequest.mockResolvedValueOnce({ success: true, data: [] });
+
+    const { listProductsForExport } = useProducts();
+    await listProductsForExport({
+      search: 'desk',
+      status: 'active',
+      brand: 'ACME',
+      category: 'Furniture',
+      hasStock: 'in_stock',
+      sortBy: 'stock',
+      sortOrder: 'asc',
+      page: 2,
+      limit: 50,
+    });
+
+    expect(mocks.resource.rawRequest).toHaveBeenCalledWith(
+      '?page=2&limit=50&search=desk&status=active&brand=ACME&category=Furniture&hasStock=in_stock&sortBy=stock&sortOrder=asc'
+    );
+  });
 });

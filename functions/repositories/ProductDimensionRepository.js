@@ -29,6 +29,41 @@ export class ProductDimensionRepository {
         this.db = db;
     }
 
+    async findValueRowsByProductAndValueId(productId, valueId) {
+        const result = await this.db
+            .prepare(`SELECT v.id, v.value, v.dimension_id, v.status
+                FROM product_dimension_values v
+                JOIN product_dimensions d ON d.id = v.dimension_id
+                WHERE d.product_id = ?
+                  AND v.dimension_id = (
+                    SELECT v2.dimension_id
+                    FROM product_dimension_values v2
+                    JOIN product_dimensions d2 ON d2.id = v2.dimension_id
+                    WHERE v2.id = ? AND d2.product_id = ?
+                  )
+                  AND v.value = (
+                    SELECT v3.value
+                    FROM product_dimension_values v3
+                    JOIN product_dimensions d3 ON d3.id = v3.dimension_id
+                    WHERE v3.id = ? AND d3.product_id = ?
+                  )`)
+            .bind(productId, valueId, productId, valueId, productId)
+            .all();
+        return result.results || [];
+    }
+
+    async getScopedValueRow(productId, valueId, { rejectAmbiguous = false } = {}) {
+        const rows = await this.findValueRowsByProductAndValueId(productId, valueId);
+        const target = rows.find((row) => row.id === valueId) || null;
+        if (!target) {
+            throw new Error('value not found');
+        }
+        if (rejectAmbiguous && rows.length > 1) {
+            throw new Error('duplicate dimension values with same label are not supported');
+        }
+        return target;
+    }
+
     async listByProduct(productId) {
         const dimensionsResult = await this.db
             .prepare('SELECT * FROM product_dimensions WHERE product_id = ? ORDER BY sort_order ASC, created_at ASC')
@@ -150,7 +185,15 @@ export class ProductDimensionRepository {
             throw new Error('value is required');
         }
 
-        let metaStr = formatMeta(payload.meta);
+        const duplicateRow = await this.db
+            .prepare('SELECT id FROM product_dimension_values WHERE dimension_id = ? AND value = ? LIMIT 1')
+            .bind(dimensionId, value)
+            .first();
+        if (duplicateRow) {
+            throw new Error('duplicate dimension values with same label are not supported');
+        }
+
+        const metaStr = formatMeta(payload.meta);
 
         const countRow = await this.db
             .prepare("SELECT COUNT(*) AS total FROM product_dimension_values WHERE dimension_id = ? AND status = 'active'")
@@ -324,6 +367,17 @@ export class ProductDimensionRepository {
         if (!row) {
             throw new Error('value not found');
         }
+        const duplicateActiveRow = await this.db
+            .prepare(`SELECT v.id
+                FROM product_dimension_values v
+                JOIN product_dimensions d ON d.id = v.dimension_id
+                WHERE d.product_id = ? AND v.dimension_id = ? AND v.value = ? AND v.status = 'active' AND v.id <> ?
+                LIMIT 1`)
+            .bind(productId, row.dimension_id, row.value, valueId)
+            .first();
+        if (duplicateActiveRow) {
+            throw new Error('duplicate dimension values with same label are not supported');
+        }
         const timestamp = now();
         await this.db
             .prepare("UPDATE product_dimension_values SET status = 'active', updated_at = ? WHERE id = ?")
@@ -349,16 +403,7 @@ export class ProductDimensionRepository {
             affected = variants.filter((item) => Object.prototype.hasOwnProperty.call(item.options_values || {}, dimensionId));
         } else if (action === 'archive_value') {
             const valueId = String(payload.valueId || '').trim();
-            const valueRow = await this.db
-                .prepare(`SELECT v.value, v.dimension_id
-                    FROM product_dimension_values v
-                    JOIN product_dimensions d ON d.id = v.dimension_id
-                    WHERE v.id = ? AND d.product_id = ?`)
-                .bind(valueId, productId)
-                .first();
-            if (!valueRow) {
-                throw new Error('value not found');
-            }
+            const valueRow = await this.getScopedValueRow(productId, valueId, { rejectAmbiguous: true });
             affected = variants.filter((item) => (item.options_values || {})[valueRow.dimension_id] === valueRow.value);
         } else {
             throw new Error('unsupported impact action');
@@ -381,16 +426,7 @@ export class ProductDimensionRepository {
     }
 
     async archiveVariantsByValue(productId, valueId) {
-        const valueRow = await this.db
-            .prepare(`SELECT v.value, v.dimension_id
-                FROM product_dimension_values v
-                JOIN product_dimensions d ON d.id = v.dimension_id
-                WHERE v.id = ? AND d.product_id = ?`)
-            .bind(valueId, productId)
-            .first();
-        if (!valueRow) {
-            throw new Error('value not found');
-        }
+        const valueRow = await this.getScopedValueRow(productId, valueId, { rejectAmbiguous: true });
         const result = await this.db
             .prepare(`UPDATE product_variants
                 SET status = 'archived', updated_at = ?

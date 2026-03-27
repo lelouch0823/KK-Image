@@ -118,6 +118,12 @@ export class VariantImageRepository {
     async sortImages({ productId, variantId, imageIds }) {
         await this.productVariantRepository.assertBelongsToProduct(variantId, productId);
         const timestamp = now();
+        const sortRow = await this.db
+            .prepare('SELECT MAX(sort_order) as max_sort_order FROM variant_images WHERE variant_id = ?')
+            .bind(variantId)
+            .first();
+        const tempBase = Number(sortRow?.max_sort_order ?? -1) + imageIds.length + 1;
+
         const statements = imageIds.map((imageId, index) =>
             this.db
                 .prepare(
@@ -125,8 +131,18 @@ export class VariantImageRepository {
                      SET sort_order = ?, updated_at = ?
                      WHERE variant_id = ? AND image_id = ?`
                 )
-                .bind(index, timestamp, variantId, imageId)
+                .bind(tempBase + index, timestamp, variantId, imageId)
         );
+
+        statements.push(...imageIds.map((imageId, index) =>
+            this.db
+                .prepare(
+                    `UPDATE variant_images
+                     SET sort_order = ?, updated_at = ?
+                     WHERE variant_id = ? AND image_id = ?`
+                )
+                .bind(index, timestamp, variantId, imageId)
+        ));
         await this.db.batch(statements);
     }
 

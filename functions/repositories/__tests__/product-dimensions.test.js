@@ -151,4 +151,23 @@ describe('ProductDimensionRepository', () => {
         expect(statements.some((stmt) => stmt.sql.includes('INSERT INTO product_dimension_values'))).toBe(true);
         expect(statements.some((stmt) => stmt.sql.includes("UPDATE product_dimensions SET status = 'archived'"))).toBe(true);
     });
+
+    it('archiveVariantsByValue should reject ambiguous duplicate labels', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes('SELECT v.id, v.value, v.dimension_id')) {
+                stmt.all.mockResolvedValue({
+                    results: [
+                        { id: 'val-red-1', value: 'Red', dimension_id: 'dim-color' },
+                        { id: 'val-red-2', value: 'Red', dimension_id: 'dim-color' },
+                    ],
+                });
+            }
+            return stmt;
+        });
+
+        await expect(repo.archiveVariantsByValue('prod-1', 'val-red-1')).rejects.toThrow(
+            'duplicate dimension values with same label are not supported'
+        );
+    });
 });

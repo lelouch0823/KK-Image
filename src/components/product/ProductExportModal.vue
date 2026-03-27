@@ -146,8 +146,24 @@ const stepClass = (index) => {
 
 const fetchAllProducts = async () => {
   const filterParams = form.scope === 'filtered'
-    ? { search: props.filters?.search || '', status: props.filters?.status || '' }
-    : { search: '', status: '' };
+    ? {
+        search: props.filters?.search || '',
+        status: props.filters?.status || '',
+        brand: props.filters?.brand || '',
+        category: props.filters?.category || '',
+        hasStock: props.filters?.hasStock || '',
+        sortBy: props.filters?.sortBy || '',
+        sortOrder: props.filters?.sortOrder || '',
+      }
+    : {
+        search: '',
+        status: '',
+        brand: '',
+        category: '',
+        hasStock: '',
+        sortBy: '',
+        sortOrder: '',
+      };
 
   const all = [];
   let page = 1;
@@ -195,7 +211,7 @@ const createBlobFromRows = async (rows) => {
       ? t('product.exportModal.scope_filtered', '当前筛选结果')
       : t('product.exportModal.scope_all', '全部商品'),
     filtersLabel: form.scope === 'filtered'
-      ? `search=${props.filters?.search || '-'}, status=${props.filters?.status || '-'}`
+      ? `search=${props.filters?.search || '-'}, status=${props.filters?.status || '-'}, brand=${props.filters?.brand || '-'}, category=${props.filters?.category || '-'}, hasStock=${props.filters?.hasStock || '-'}`
       : '-',
   });
   const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
