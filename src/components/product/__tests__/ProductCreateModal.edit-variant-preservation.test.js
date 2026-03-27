@@ -198,4 +198,64 @@ describe('ProductCreateModal edit variant preservation', () => {
       })
     );
   });
+
+  it('hydrates persisted dimension-id variants without marking them incomplete', async () => {
+    const wrapper = mount(ProductCreateModal, {
+      props: {
+        modelValue: true,
+        editMode: true,
+        initialData: {
+          id: 'prod-1',
+          name: 'Demo',
+          currency: 'CNY',
+          dimensions: [
+            {
+              id: 'dim-color',
+              name: 'Color',
+              values: [{ id: 'val-black', value: 'Black', status: 'active' }],
+            },
+          ],
+          variants: [
+            {
+              id: 'variant-black',
+              sku: 'BLACK-ONLY',
+              price: 100,
+              cost_price: 60,
+              stock_quantity: 5,
+              alert_threshold: 1,
+              status: 'active',
+              options_values: { 'dim-color': 'Black' },
+              images: [],
+            },
+          ],
+        },
+      },
+      global: {
+        stubs: {
+          Teleport: true,
+          ImageUploader: true,
+          AppInput: true,
+          AppButton: true,
+          Select: true,
+          VariantImageManagerModal: true,
+          VariantBatchBuilderModal: true,
+        },
+      },
+    });
+
+    expect(wrapper.vm.incompleteVariantCount).toBe(0);
+    expect(wrapper.text()).not.toContain('legacy variants');
+
+    wrapper.vm.generateVariants();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.form.variants).toHaveLength(1);
+    expect(wrapper.vm.form.variants[0]).toEqual(
+      expect.objectContaining({
+        id: 'variant-black',
+        status: 'active',
+        options_values: { Color: 'Black' },
+      })
+    );
+  });
 });

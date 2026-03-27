@@ -193,6 +193,37 @@ function cloneDimensions(dimensions = []) {
   }));
 }
 
+function buildDimensionNameLookup(data) {
+  const fromMap = Object.entries(data?.dimension_map || {}).reduce((acc, [id, name]) => {
+    const cleanId = String(id || '').trim();
+    const cleanName = String(name || '').trim();
+    if (cleanId && cleanName) acc[cleanId] = cleanName;
+    return acc;
+  }, {});
+
+  return (data?.dimensions || []).reduce((acc, dimension) => {
+    const cleanId = String(dimension?.id || '').trim();
+    const cleanName = String(dimension?.name || '').trim();
+    if (cleanId && cleanName) acc[cleanId] = cleanName;
+    return acc;
+  }, fromMap);
+}
+
+function normalizeVariantOptionKeysToNames(variant, dimensionNameLookup = {}) {
+  const normalizedOptions = Object.entries(variant?.options_values || {}).reduce((acc, [key, value]) => {
+    const cleanKey = String(key || '').trim();
+    const nextKey = dimensionNameLookup[cleanKey] || cleanKey;
+    if (!nextKey) return acc;
+    acc[nextKey] = value;
+    return acc;
+  }, {});
+
+  return {
+    ...variant,
+    options_values: normalizedOptions,
+  };
+}
+
 /**
  * useProductForm — 商品创建/编辑表单的 composable
  *
@@ -328,6 +359,7 @@ export function useProductForm({ editMode, initialData, emit }) {
     const nextDimensionNames = nextOptions
       .map((option) => String(option?.name || '').trim())
       .filter(Boolean);
+    const dimensionNameLookup = buildDimensionNameLookup(data);
     trackedDimensions.value = cloneDimensions(data?.dimensions || []);
 
     Object.assign(form, {
@@ -343,7 +375,7 @@ export function useProductForm({ editMode, initialData, emit }) {
       options: nextOptions,
       variants: (data.variants || []).map((variant) =>
         markVariantCompleteness({
-          ...variant,
+          ...normalizeVariantOptionKeysToNames(variant, dimensionNameLookup),
           cost_price: variant.cost_price ?? 0,
           alert_threshold: variant.alert_threshold ?? 10,
           status: variant.status || 'active',
