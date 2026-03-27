@@ -105,6 +105,7 @@ function createApp() {
 describe('product variant audit routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockProductRepo.findById.mockResolvedValue({ id: 'p1', name: 'Tee' });
     mockAuditRepo.createBatch.mockResolvedValue();
     mockDimensionRepo.listByProduct.mockResolvedValue([]);
     mockDimensionRepo.createDimension.mockResolvedValue({ id: 'dim-color', name: 'Color' });
@@ -357,6 +358,46 @@ describe('product variant audit routes', () => {
     );
 
     expect(res.status).toBe(200);
+  });
+
+  it('PATCH /:id returns 404 when product field updates target a missing product', async () => {
+    mockProductRepo.findById.mockResolvedValue(null);
+    mockProductRepo.updateWithMeta.mockResolvedValue({ success: true, changes: 0 });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/missing-product',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Ghost Tee' }),
+      },
+      { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(404);
+    expect(mockProductRepo.findById).toHaveBeenCalledWith('missing-product');
+  });
+
+  it('PUT /:id returns 404 when product is missing', async () => {
+    mockProductRepo.findById.mockResolvedValue(null);
+    mockProductRepo.updateWithMeta.mockResolvedValue({ success: true, changes: 0 });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/missing-product',
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Ghost Tee' }),
+      },
+      { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(404);
+    expect(mockProductRepo.findById).toHaveBeenCalledWith('missing-product');
   });
 
   it('PATCH /:id does not clear existing dimension value meta when payload omits meta', async () => {

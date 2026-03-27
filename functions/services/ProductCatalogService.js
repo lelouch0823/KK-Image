@@ -244,7 +244,7 @@ export const buildVariantMatchKey = (variant) => {
     return `sig:${sig}`;
 };
 
-export const mergeIncomingWithExisting = (existingVariants, incomingVariants) => {
+export const mergeIncomingWithExisting = (existingVariants, incomingVariants, { includeUnmatchedExisting = true } = {}) => {
     const existingByCode = new Map();
     const existingBySku = new Map();
     const existingBySignature = new Map();
@@ -300,11 +300,13 @@ export const mergeIncomingWithExisting = (existingVariants, incomingVariants) =>
         }
     });
 
-    existingVariants.forEach((variant) => {
-        if (!matchedExistingIds.has(variant.id)) {
-            merged.push(variant);
-        }
-    });
+    if (includeUnmatchedExisting) {
+        existingVariants.forEach((variant) => {
+            if (!matchedExistingIds.has(variant.id)) {
+                merged.push(variant);
+            }
+        });
+    }
 
     return merged;
 };
@@ -500,6 +502,8 @@ export class ProductCatalogService {
     }
 
     async patchProduct(c, productId, body) {
+        await this.ensureProductExists(productId);
+
         const incomingDimensions = Array.isArray(body.dimensions) ? body.dimensions : null;
         const nextBody = { ...body };
         if (nextBody.dimensions !== undefined) delete nextBody.dimensions;
@@ -523,10 +527,6 @@ export class ProductCatalogService {
         }
 
         const hasProductFieldUpdates = Object.keys(nextBody).some((key) => PRODUCT_MUTABLE_FIELDS.has(key));
-        if (!hasProductFieldUpdates) {
-            await this.ensureProductExists(productId);
-        }
-
         const result = hasProductFieldUpdates
             ? await this.productRepo.updateWithMeta(productId, nextBody)
             : { success: true, changes: 0 };
@@ -701,7 +701,11 @@ export class ProductCatalogService {
                         const dimensions = await this.syncDimensionsFromPayload(productId, normalizedItem.dimensions);
                         normalizedVariants = normalizeVariantDimensionKeys(normalizedVariants, dimensions);
                     }
-                    const variantsToSync = mergeIncomingWithExisting(existingVariants, normalizedVariants);
+                    const variantsToSync = mergeIncomingWithExisting(
+                        existingVariants,
+                        normalizedVariants,
+                        { includeUnmatchedExisting: importMode !== IMPORT_MODE.REPLACE }
+                    );
                     const nextVariantsToSync = importMode === IMPORT_MODE.SAFE_MERGE
                         ? buildSafeVariantSyncPayload(existingVariants, variantsToSync, conflicts, normalizedItem)
                         : variantsToSync;

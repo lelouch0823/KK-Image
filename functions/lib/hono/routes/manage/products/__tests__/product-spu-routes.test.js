@@ -824,8 +824,14 @@ describe('Product Routes — variant-first contract', () => {
                     price: 100,
                     options_values: { Color: 'Red' },
                 },
+                {
+                    id: 'var-stale-2',
+                    sku: 'SKU-STALE-2',
+                    price: 90,
+                    options_values: { Color: 'Blue' },
+                },
             ]);
-            mockVariantRepo.syncVariants.mockResolvedValue({ createdCount: 0, updatedCount: 1, deletedCount: 0 });
+            mockVariantRepo.syncVariants.mockResolvedValue({ createdCount: 0, updatedCount: 1, archivedCount: 1, deletedCount: 1 });
 
             const app = createApp();
             const res = await app.request(
@@ -860,13 +866,14 @@ describe('Product Routes — variant-first contract', () => {
             );
             expect(mockVariantRepo.syncVariants).toHaveBeenCalledWith(
                 'existing-id',
-                expect.arrayContaining([
+                [
                     expect.objectContaining({
                         id: 'var-replace-1',
                         price: 120,
                     }),
-                ])
+                ]
             );
+            expect(data.summary.archivedVariants).toBe(1);
         });
 
         it('should mark item as failed when updateWithMeta returns unsuccessful result', async () => {

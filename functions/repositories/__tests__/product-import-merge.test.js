@@ -80,6 +80,21 @@ describe('Product Import Variant Merge Logic', () => {
             expect(vKeep.price).toBe(200);
         });
 
+        it('can omit unmatched existing variants for replace mode', () => {
+            const existing = [
+                { id: 'id-1', variant_code: 'V-001', price: 100 },
+                { id: 'id-2', variant_code: 'V-KEEP', price: 200 },
+            ];
+            const incoming = [
+                { variant_code: 'V-001', price: 150 },
+            ];
+
+            const merged = mergeIncomingWithExisting(existing, incoming, { includeUnmatchedExisting: false });
+            expect(merged).toHaveLength(1);
+            expect(merged[0].id).toBe('id-1');
+            expect(merged.find((v) => v.id === 'id-2')).toBeUndefined();
+        });
+
         it('matches by signature correctly', () => {
             const existing = [
                 { id: 'id-sig', options_values: { Size: 'M', Color: 'Blue' }, price: 100 }

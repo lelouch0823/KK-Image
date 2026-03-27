@@ -408,6 +408,7 @@ export class ProductVariantRepository {
                         sku = excluded.sku,
                         price = excluded.price,
                         cost_price = excluded.cost_price,
+                        stock_quantity = excluded.stock_quantity,
                         alert_threshold = excluded.alert_threshold,
                         options_values = excluded.options_values,
                         variant_signature = excluded.variant_signature,
@@ -434,23 +435,21 @@ export class ProductVariantRepository {
                     timestamp
                 )
             );
-            if (!targetExisting) {
-                statements.push(
-                    this.db.prepare(
-                        `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
-                         VALUES (?, ?, 0, ?, ?)
-                         ON CONFLICT(variant_id) DO UPDATE SET
-                            on_hand = excluded.on_hand,
-                            available = excluded.available,
-                            updated_at = excluded.updated_at`
-                    ).bind(
-                        id,
-                        Number(v.stock_quantity) || 0,
-                        Number(v.stock_quantity) || 0,
-                        timestamp
-                    )
-                );
-            }
+            statements.push(
+                this.db.prepare(
+                    `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
+                     VALUES (?, ?, 0, ?, ?)
+                     ON CONFLICT(variant_id) DO UPDATE SET
+                        on_hand = excluded.on_hand,
+                        available = MAX(0, excluded.on_hand - inventory_balances.reserved),
+                        updated_at = excluded.updated_at`
+                ).bind(
+                    id,
+                    Number(v.stock_quantity) || 0,
+                    Number(v.stock_quantity) || 0,
+                    timestamp
+                )
+            );
             results.push({ ...v, id, sku, product_id: productId });
         }
 

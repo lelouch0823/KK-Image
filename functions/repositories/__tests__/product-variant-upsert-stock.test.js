@@ -23,6 +23,19 @@ function createMockDb() {
   };
 }
 
+function createMockDbWithExistingVariant(existingRows = []) {
+  return {
+    prepare: vi.fn((sql) => {
+      const stmt = createPreparedStatement(sql);
+      if (sql.includes('SELECT id, variant_signature, status FROM product_variants WHERE product_id = ?')) {
+        stmt.all.mockResolvedValue({ results: existingRows });
+      }
+      return stmt;
+    }),
+    batch: vi.fn(async () => []),
+  };
+}
+
 describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
   let db;
   let repo;
@@ -32,7 +45,12 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
     repo = new ProductVariantRepository(db);
   });
 
-  it('does not overwrite stock_quantity in upsert update clause for existing variants', async () => {
+  it('updates stock_quantity in upsert update clause for existing variants', async () => {
+    db = createMockDbWithExistingVariant([
+      { id: 'v-1', variant_signature: '{"color":"black"}', status: 'active' },
+    ]);
+    repo = new ProductVariantRepository(db);
+
     await repo.syncVariants('p-1', [
       {
         id: 'v-1',
@@ -47,7 +65,11 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
 
     const statements = db.batch.mock.calls[0][0];
     const upsertStmt = statements.find((stmt) => stmt.sql.includes('ON CONFLICT(id) DO UPDATE SET'));
-    expect(upsertStmt.sql).not.toContain('stock_quantity = excluded.stock_quantity');
+    expect(upsertStmt.sql).toContain('stock_quantity = excluded.stock_quantity');
+    const balanceStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO inventory_balances'));
+    expect(balanceStmt).toBeDefined();
+    expect(balanceStmt.params).toContain('v-1');
+    expect(balanceStmt.params).toContain(5);
   });
 
   it('keeps stock_quantity on insert bindings for new variants', async () => {
