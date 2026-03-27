@@ -125,6 +125,7 @@ export async function executeAIRequest({
   // Execute request
   const requestStartedAt = Date.now();
   let response;
+  let encounteredRateLimit = false;
 
   try {
     // Retry loop with abort support
@@ -151,6 +152,10 @@ export async function executeAIRequest({
           if (status === 429) {
             const nextIndex = getNextAvailableModelIndex(orderedModels, activeIndex);
             if (nextIndex === -1 && attempt < retryAttempts) {
+              if (!encounteredRateLimit) {
+                markModelRateLimited(currentModel);
+                encounteredRateLimit = true;
+              }
               const delay = retryBaseDelayMs * (2 ** attempt) + retryJitterMs;
               retryCount += 1;
               await sleep(delay, signal);
@@ -227,7 +232,10 @@ export async function executeAIRequest({
 
   // 429 rate limit switch
   if (!response.ok && response.status === 429) {
-    markModelRateLimited(currentModel);
+    if (!encounteredRateLimit) {
+      markModelRateLimited(currentModel);
+      encounteredRateLimit = true;
+    }
     const nextIndex = getNextAvailableModelIndex(orderedModels, activeIndex);
     if (nextIndex !== -1) {
       // Check abort before model switch

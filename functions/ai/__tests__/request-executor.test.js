@@ -187,6 +187,9 @@ describe('request-executor', () => {
     });
 
     it('keeps 429 backoff retries when no fallback model is available', async () => {
+      const { getNextAvailableModelIndex } = await import('../model-policy.js');
+      getNextAvailableModelIndex.mockReturnValue(-1);
+
       const requestFn = vi.fn()
         .mockResolvedValueOnce(createErrorResponse(429))
         .mockResolvedValueOnce(createOkResponse({ choices: [] }));
@@ -206,6 +209,30 @@ describe('request-executor', () => {
       expect(requestFn.mock.calls[1][0].model).toBe('model-a');
       expect(result.model).toBe('model-a');
       expect(result.retryCount).toBe(1);
+    });
+
+    it('marks the current model rate limited when a same-model 429 retry later succeeds', async () => {
+      const { getNextAvailableModelIndex, markModelRateLimited } = await import('../model-policy.js');
+      getNextAvailableModelIndex.mockReturnValue(-1);
+
+      const requestFn = vi.fn()
+        .mockResolvedValueOnce(createErrorResponse(429))
+        .mockResolvedValueOnce(createOkResponse({ choices: [] }));
+
+      const result = await executeAIRequest({
+        env: createMockEnv({
+          AI_MODELS: 'model-a',
+          AI_RETRY_ATTEMPTS: '1',
+          AI_RETRY_BASE_DELAY_MS: '1',
+        }),
+        modelIndex: 0,
+        requestFn,
+      });
+
+      expect(result.model).toBe('model-a');
+      expect(result.retryCount).toBe(1);
+      expect(markModelRateLimited).toHaveBeenCalledWith('model-a');
+      expect(markModelRateLimited).toHaveBeenCalledTimes(1);
     });
   });
 
