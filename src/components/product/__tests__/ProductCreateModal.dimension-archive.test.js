@@ -103,4 +103,53 @@ describe('ProductCreateModal dimension archive mode', () => {
 
         expect(mocks.archiveDimension).toHaveBeenCalledWith('prod-1', 'dim-color', { mode: 'archive_variants' });
     });
+
+    it('ignores archived dimensions when hydrating edit form', () => {
+        const wrapper = mount(ProductCreateModal, {
+            props: {
+                modelValue: true,
+                editMode: true,
+                initialData: {
+                    id: 'prod-1',
+                    dimensions: [
+                        {
+                            id: 'dim-color',
+                            name: 'Color',
+                            status: 'active',
+                            values: [
+                                { id: 'val-red', value: 'Red', status: 'active' },
+                                { id: 'val-blue', value: 'Blue', status: 'archived' },
+                            ],
+                        },
+                        {
+                            id: 'dim-size',
+                            name: 'Size',
+                            status: 'archived',
+                            values: [{ id: 'val-m', value: 'M', status: 'archived' }],
+                        },
+                    ],
+                },
+            },
+            global: {
+                stubs: {
+                    Teleport: true,
+                    ImageUploader: true,
+                    AppInput: true,
+                    AppButton: true,
+                    Select: true,
+                    VariantImageManagerModal: true,
+                    VariantBatchBuilderModal: true,
+                },
+            },
+        });
+
+        expect(wrapper.vm.form.options).toEqual([
+            expect.objectContaining({
+                id: 'dim-color',
+                name: 'Color',
+                values: ['Red'],
+                archivedValues: [{ id: 'val-blue', value: 'Blue', status: 'archived' }],
+            }),
+        ]);
+    });
 });

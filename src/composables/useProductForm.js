@@ -171,11 +171,12 @@ function toOptionModel(raw = {}) {
 function buildOptionsFromDimensions(data) {
   if (Array.isArray(data?.dimensions) && data.dimensions.length > 0) {
     return data.dimensions
+      .filter((dimension) => dimension?.status !== 'archived')
       .map((dimension) =>
         toOptionModel({
           id: dimension.id,
           name: dimension.name,
-          values: (dimension.values || []).filter((value) => value.status !== 'archived'),
+          values: dimension.values || [],
         })
       )
       .filter((dimension) => dimension.name);

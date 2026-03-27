@@ -330,13 +330,14 @@ export class ProductCatalogService {
         return product;
     }
 
-    async syncDimensionsFromPayload(productId, incomingDimensions = []) {
+    async syncDimensionsFromPayload(productId, incomingDimensions = [], { replaceMissing = false } = {}) {
         if (!Array.isArray(incomingDimensions)) {
             return this.dimensionRepo.listByProduct(productId);
         }
 
         const existing = await this.dimensionRepo.listByProduct(productId);
         const existingById = new Map(existing.map((item) => [item.id, item]));
+        const syncedDimensionIds = new Set();
 
         for (let index = 0; index < incomingDimensions.length; index++) {
             const incoming = incomingDimensions[index] || {};
@@ -356,16 +357,19 @@ export class ProductCatalogService {
                     sort_order: index,
                 });
             }
+            syncedDimensionIds.add(dimension.id);
 
             const current = existingById.get(dimension.id) || { values: [] };
             const existingValuesMap = new Map((current.values || []).map((item) => [item.value, item]));
             const incomingVals = (incoming.values || [])
                 .map((value) => (typeof value === 'string' ? { value } : value))
                 .filter((value) => value.value);
+            const incomingValueLabels = new Set();
 
             for (const item of incomingVals) {
                 const valStr = String(item.value).trim();
                 if (!valStr) continue;
+                incomingValueLabels.add(valStr);
                 const shouldSyncMeta = hasOwnMeta(item);
 
                 if (!existingValuesMap.has(valStr)) {
@@ -387,6 +391,31 @@ export class ProductCatalogService {
                         existingRec.meta = newMetaStr;
                     }
                 }
+            }
+
+            if (replaceMissing) {
+                for (const existingValue of current.values || []) {
+                    const valueId = String(existingValue?.id || '').trim();
+                    const valueLabel = String(existingValue?.value || '').trim();
+                    if (!valueId || !valueLabel || existingValue?.status === 'archived') continue;
+                    if (incomingValueLabels.has(valueLabel)) continue;
+                    await this.dimensionRepo.archiveValue(productId, valueId);
+                }
+            }
+        }
+
+        if (replaceMissing) {
+            for (const dimension of existing) {
+                const dimensionId = String(dimension?.id || '').trim();
+                if (!dimensionId || syncedDimensionIds.has(dimensionId) || dimension?.status === 'archived') continue;
+
+                for (const value of dimension.values || []) {
+                    const valueId = String(value?.id || '').trim();
+                    if (!valueId || value?.status === 'archived') continue;
+                    await this.dimensionRepo.archiveValue(productId, valueId);
+                }
+
+                await this.dimensionRepo.archiveDimension(productId, dimensionId);
             }
         }
 
@@ -555,7 +584,7 @@ export class ProductCatalogService {
         return product;
     }
 
-    async patchProduct(c, productId, body) {
+    async patchProduct(c, productId, body, { fullReplace = false } = {}) {
         const existingProductSnapshot = await this.ensureProductExists(productId);
 
         const incomingDimensions = Array.isArray(body.dimensions) ? body.dimensions : null;
@@ -589,7 +618,7 @@ export class ProductCatalogService {
                 beforeVariantImages = await this.loadVariantImageSnapshot(productId, beforeVariants);
 
                 const dimensions = incomingDimensions
-                    ? await this.syncDimensionsFromPayload(productId, incomingDimensions)
+                    ? await this.syncDimensionsFromPayload(productId, incomingDimensions, { replaceMissing: fullReplace })
                     : await this.dimensionRepo.listByProduct(productId);
                 nextBody.variants = normalizeVariantDimensionKeys(
                     assignGeneratedSkuForPatchVariants(
@@ -690,7 +719,7 @@ export class ProductCatalogService {
     }
 
     async putProduct(c, productId, body) {
-        return this.patchProduct(c, productId, body);
+        return this.patchProduct(c, productId, body, { fullReplace: true });
     }
 
     async batchImport(c, body = {}) {

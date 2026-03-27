@@ -24,6 +24,8 @@ const mockDimensionRepo = {
   addValue: vi.fn(),
   updateValueMeta: vi.fn(),
   restoreSnapshot: vi.fn(),
+  archiveDimension: vi.fn(),
+  archiveValue: vi.fn(),
 };
 const mockFolderUtils = {
   ensureVariantFolder: vi.fn(),
@@ -71,6 +73,8 @@ vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
     addValue(...args) { return mockDimensionRepo.addValue(...args); }
     updateValueMeta(...args) { return mockDimensionRepo.updateValueMeta(...args); }
     restoreSnapshot(...args) { return mockDimensionRepo.restoreSnapshot(...args); }
+    archiveDimension(...args) { return mockDimensionRepo.archiveDimension(...args); }
+    archiveValue(...args) { return mockDimensionRepo.archiveValue(...args); }
   },
 }));
 
@@ -117,6 +121,8 @@ describe('product variant audit routes', () => {
     mockDimensionRepo.addValue.mockResolvedValue({ id: 'val-red', value: 'Red' });
     mockDimensionRepo.updateValueMeta.mockResolvedValue();
     mockDimensionRepo.restoreSnapshot.mockResolvedValue(undefined);
+    mockDimensionRepo.archiveDimension.mockResolvedValue(undefined);
+    mockDimensionRepo.archiveValue.mockResolvedValue(undefined);
     mockVariantImageRepo.listByVariant.mockResolvedValue([]);
     mockVariantImageRepo.syncImages.mockResolvedValue(undefined);
     mockFolderUtils.ensureVariantFolder.mockResolvedValue('folder-variant');
@@ -405,6 +411,70 @@ describe('product variant audit routes', () => {
 
     expect(res.status).toBe(404);
     expect(mockProductRepo.findById).toHaveBeenCalledWith('missing-product');
+  });
+
+  it('PUT /:id archives missing dimensions and values in full replace mode', async () => {
+    mockProductRepo.findById.mockResolvedValue({
+      id: 'p1',
+      name: 'Tee',
+      currency: 'CNY',
+      images: [],
+      specifications: {},
+      options: [],
+    });
+    mockProductRepo.updateWithMeta.mockResolvedValue({ success: true, changes: 1 });
+    mockVariantRepo.findByProductId
+      .mockResolvedValueOnce([{ id: 'v1', product_id: 'p1', price: 10 }])
+      .mockResolvedValueOnce([{ id: 'v1', product_id: 'p1', price: 10 }]);
+    mockVariantRepo.syncVariants.mockResolvedValue({
+      createdCount: 0,
+      updatedCount: 1,
+      archivedCount: 0,
+      reactivatedCount: 0,
+    });
+    mockDimensionRepo.listByProduct.mockResolvedValue([
+      {
+        id: 'dim-color',
+        name: 'Color',
+        status: 'active',
+        values: [
+          { id: 'val-red', value: 'Red', status: 'active' },
+          { id: 'val-blue', value: 'Blue', status: 'active' },
+        ],
+      },
+      {
+        id: 'dim-size',
+        name: 'Size',
+        status: 'active',
+        values: [{ id: 'val-m', value: 'M', status: 'active' }],
+      },
+    ]);
+    mockDimensionRepo.updateDimension.mockResolvedValue({ id: 'dim-color', name: 'Color' });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/p1',
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Tee',
+          dimensions: [
+            { id: 'dim-color', name: 'Color', values: ['Red'] },
+          ],
+          variants: [
+            { id: 'v1', sku: 'SKU-1', price: 10, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active', options_values: { 'dim-color': 'Red' } },
+          ],
+        }),
+      },
+      { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockDimensionRepo.archiveValue).toHaveBeenCalledWith('p1', 'val-blue');
+    expect(mockDimensionRepo.archiveValue).toHaveBeenCalledWith('p1', 'val-m');
+    expect(mockDimensionRepo.archiveDimension).toHaveBeenCalledWith('p1', 'dim-size');
   });
 
   it('PATCH /:id does not clear existing dimension value meta when payload omits meta', async () => {
