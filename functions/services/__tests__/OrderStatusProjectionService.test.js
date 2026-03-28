@@ -52,4 +52,22 @@ describe('OrderStatusProjectionService', () => {
       cancelled_qty: 0,
     })).toBe('ready');
   });
+
+  it('uses remaining non-cancelled quantity when projecting ready and completed states', () => {
+    expect(projectOrderLineStatus({
+      ordered_qty: 10,
+      procured_qty: 10,
+      received_qty: 6,
+      shipped_qty: 0,
+      cancelled_qty: 4,
+    })).toBe('ready');
+
+    expect(projectOrderLineStatus({
+      ordered_qty: 10,
+      procured_qty: 10,
+      received_qty: 6,
+      shipped_qty: 6,
+      cancelled_qty: 4,
+    })).toBe('completed');
+  });
 });

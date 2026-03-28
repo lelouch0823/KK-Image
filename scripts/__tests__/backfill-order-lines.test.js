@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapLegacyOrderToOrderLine } from '../migrations/backfill-order-lines.mjs';
+import { buildInsertOrderLineSql, mapLegacyOrderToOrderLine } from '../migrations/backfill-order-lines.mjs';
 
 describe('backfill-order-lines mapping', () => {
   it('prefers top-level orders.variant_id over current_data.variant_id', () => {
@@ -26,5 +26,76 @@ describe('backfill-order-lines mapping', () => {
     expect(row.snapshot_name).toBe('Bag A');
     expect(row.snapshot_sku).toBe('SKU-A');
     expect(row.ordered_qty).toBe(2);
+  });
+
+  it('maps delivered and void legacy orders to terminal line quantities and statuses', () => {
+    const delivered = mapLegacyOrderToOrderLine({
+      id: 'ord_delivered',
+      product_id: 'prod_1',
+      variant_id: 'variant_1',
+      quantity: 3,
+      status: 'delivered',
+      procurement_status: 'arrived',
+      current_data: JSON.stringify({ name: 'Bag B' }),
+      created_at: 1700000000000,
+      updated_at: 1700000100000,
+    });
+
+    expect(delivered.received_qty).toBe(3);
+    expect(delivered.shipped_qty).toBe(3);
+    expect(delivered.display_status).toBe('completed');
+
+    const voided = mapLegacyOrderToOrderLine({
+      id: 'ord_void',
+      product_id: 'prod_2',
+      variant_id: 'variant_2',
+      quantity: 2,
+      status: 'void',
+      procurement_status: 'none',
+      current_data: JSON.stringify({ name: 'Bag C' }),
+      created_at: 1700000000000,
+      updated_at: 1700000100000,
+    });
+
+    expect(voided.cancelled_qty).toBe(2);
+    expect(voided.display_status).toBe('cancelled');
+  });
+
+  it('maps arrived procurement to ready line state for legacy orders', () => {
+    const row = mapLegacyOrderToOrderLine({
+      id: 'ord_ready',
+      product_id: 'prod_3',
+      variant_id: 'variant_3',
+      quantity: 4,
+      status: 'arrived',
+      procurement_status: 'arrived',
+      current_data: JSON.stringify({ name: 'Bag D' }),
+      created_at: 1700000000000,
+      updated_at: 1700000100000,
+    });
+
+    expect(row.procured_qty).toBe(4);
+    expect(row.received_qty).toBe(4);
+    expect(row.display_status).toBe('ready');
+  });
+
+  it('includes projected qty and display fields in generated insert SQL', () => {
+    const sql = buildInsertOrderLineSql({
+      id: 'ord_sql',
+      product_id: 'prod_sql',
+      variant_id: 'variant_sql',
+      quantity: 2,
+      status: 'delivered',
+      procurement_status: 'arrived',
+      current_data: JSON.stringify({ name: 'Bag SQL' }),
+      created_at: 1700000000000,
+      updated_at: 1700000100000,
+    }, 1700000200000);
+
+    expect(sql).toContain('procured_qty');
+    expect(sql).toContain('received_qty');
+    expect(sql).toContain('shipped_qty');
+    expect(sql).toContain('display_status');
+    expect(sql).toContain("'completed'");
   });
 });

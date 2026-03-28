@@ -85,6 +85,58 @@ export function pickSnapshotSpec(currentData) {
   return null;
 }
 
+function inferLegacyLineProgress(legacyOrder, orderedQty) {
+  const status = String(legacyOrder.status || '').trim().toLowerCase();
+  const procurementStatus = String(legacyOrder.procurement_status || '').trim().toLowerCase();
+  const ordered = Number.isFinite(orderedQty) && orderedQty > 0 ? Math.trunc(orderedQty) : 1;
+
+  const progress = {
+    procured_qty: 0,
+    received_qty: 0,
+    reserved_qty: 0,
+    shipped_qty: 0,
+    cancelled_qty: 0,
+    display_status: 'unprocured',
+  };
+
+  if (['void', 'rejected', 'cancelled'].includes(status)) {
+    progress.cancelled_qty = ordered;
+    progress.display_status = 'cancelled';
+    return progress;
+  }
+
+  if (['production', 'shipping', 'arrived', 'delivered'].includes(status) || ['planned', 'ordered', 'partially_arrived', 'arrived'].includes(procurementStatus)) {
+    progress.procured_qty = ordered;
+  }
+
+  if (status === 'delivered') {
+    progress.received_qty = ordered;
+    progress.shipped_qty = ordered;
+    progress.display_status = 'completed';
+    return progress;
+  }
+
+  if (status === 'arrived' || procurementStatus === 'arrived') {
+    progress.received_qty = ordered;
+    progress.display_status = 'ready';
+    return progress;
+  }
+
+  if (procurementStatus === 'partially_arrived' && ordered > 1) {
+    progress.received_qty = ordered - 1;
+    progress.display_status = 'partially_received';
+    return progress;
+  }
+
+  if (progress.procured_qty >= ordered) {
+    progress.display_status = 'fully_procured';
+  } else if (progress.procured_qty > 0) {
+    progress.display_status = 'partially_procured';
+  }
+
+  return progress;
+}
+
 function hasOrdersVariantIdColumn(options) {
   const tableInfoRows = runD1Json(options, "PRAGMA table_info('orders');");
   return tableInfoRows.some((row) => String(row?.name || '').trim() === 'variant_id');
@@ -93,7 +145,7 @@ function hasOrdersVariantIdColumn(options) {
 export function selectLegacyOrders(options) {
   const hasVariantId = hasOrdersVariantIdColumn(options);
   const clauses = [
-    `SELECT id, product_id, ${hasVariantId ? 'variant_id' : 'NULL AS variant_id'}, quantity, current_data, main_image_id, created_at, updated_at`,
+    `SELECT id, product_id, ${hasVariantId ? 'variant_id' : 'NULL AS variant_id'}, quantity, status, procurement_status, current_data, main_image_id, created_at, updated_at`,
     'FROM orders o',
     'WHERE NOT EXISTS (SELECT 1 FROM order_lines ol WHERE ol.order_id = o.id)',
     'ORDER BY o.created_at ASC',
@@ -116,6 +168,8 @@ export function mapLegacyOrderToOrderLine(legacyOrder, timestamp = Date.now()) {
   const snapshotName = currentData.name || currentData.productName || '';
   const snapshotSku = currentData.sku || currentData.variantSku || '';
   const orderedQty = Number(legacyOrder.quantity || 1);
+  const normalizedOrderedQty = Number.isFinite(orderedQty) && orderedQty > 0 ? Math.trunc(orderedQty) : 1;
+  const progress = inferLegacyLineProgress(legacyOrder, normalizedOrderedQty);
 
   return {
     id: randomUUID(),
@@ -126,7 +180,13 @@ export function mapLegacyOrderToOrderLine(legacyOrder, timestamp = Date.now()) {
     snapshot_sku: snapshotSku || null,
     snapshot_specs: snapshotSpec ? JSON.stringify(snapshotSpec) : null,
     snapshot_image: snapshotImage,
-    ordered_qty: Number.isFinite(orderedQty) && orderedQty > 0 ? Math.trunc(orderedQty) : 1,
+    ordered_qty: normalizedOrderedQty,
+    procured_qty: progress.procured_qty,
+    received_qty: progress.received_qty,
+    reserved_qty: progress.reserved_qty,
+    shipped_qty: progress.shipped_qty,
+    cancelled_qty: progress.cancelled_qty,
+    display_status: progress.display_status,
     created_at: createdAt,
     updated_at: updatedAt,
   };
@@ -146,6 +206,12 @@ INSERT INTO order_lines (
   snapshot_specs,
   snapshot_image,
   ordered_qty,
+  procured_qty,
+  received_qty,
+  reserved_qty,
+  shipped_qty,
+  cancelled_qty,
+  display_status,
   created_at,
   updated_at
 ) VALUES (
@@ -158,6 +224,12 @@ INSERT INTO order_lines (
   ${sqlNullableString(row.snapshot_specs)},
   ${sqlNullableString(row.snapshot_image)},
   ${sqlNumber(row.ordered_qty, 1)},
+  ${sqlNumber(row.procured_qty, 0)},
+  ${sqlNumber(row.received_qty, 0)},
+  ${sqlNumber(row.reserved_qty, 0)},
+  ${sqlNumber(row.shipped_qty, 0)},
+  ${sqlNumber(row.cancelled_qty, 0)},
+  ${sqlString(row.display_status || 'unprocured')},
   ${sqlNumber(row.created_at, timestamp)},
   ${sqlNumber(row.updated_at, row.created_at)}
 );`.trim();

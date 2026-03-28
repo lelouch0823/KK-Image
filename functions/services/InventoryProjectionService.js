@@ -3,6 +3,7 @@ const STOCK_EVENT_TYPES = new Set([
   'purchase_arrival',
   'manual_adjustment',
   'order_shipment',
+  'inventory_adjusted_reversal',
   'inventory_correction',
 ]);
 

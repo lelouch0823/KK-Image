@@ -54,4 +54,17 @@ describe('InventoryProjectionService', () => {
       available: 1,
     });
   });
+
+  it('applies reversal-style stock events when replaying balances', () => {
+    const projection = projectInventoryBalances([
+      { event_type: 'purchase_received', quantity_delta: 5 },
+      { event_type: 'inventory_adjusted_reversal', quantity_delta: -2 },
+    ]);
+
+    expect(projection).toEqual({
+      on_hand: 3,
+      reserved: 0,
+      available: 3,
+    });
+  });
 });

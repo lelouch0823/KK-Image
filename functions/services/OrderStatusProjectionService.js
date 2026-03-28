@@ -18,13 +18,14 @@ export function projectOrderLineStatus(line = {}) {
   const cancelled = toNonNegativeNumber(
     line.cancelledQuantity ?? line.cancelled_quantity ?? line.cancelled_qty
   );
+  const remaining = Math.max(ordered - cancelled, 0);
 
   if (ordered > 0 && cancelled >= ordered) return 'cancelled';
-  if (ordered > 0 && shipped >= ordered) return 'completed';
+  if (remaining > 0 && shipped >= remaining) return 'completed';
   if (shipped > 0) return 'partially_shipped';
-  if (ordered > 0 && received >= ordered) return 'ready';
+  if (remaining > 0 && received >= remaining) return 'ready';
   if (received > 0) return 'partially_received';
-  if (ordered > 0 && procured >= ordered) return 'fully_procured';
+  if (remaining > 0 && procured >= remaining) return 'fully_procured';
   if (procured > 0) return 'partially_procured';
   return 'unprocured';
 }
