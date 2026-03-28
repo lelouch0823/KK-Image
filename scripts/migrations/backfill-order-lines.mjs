@@ -2,10 +2,12 @@
 
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const DEFAULT_DB = 'DB';
 
-function parseArgs(argv = []) {
+export function parseArgs(argv = []) {
   const options = {
     database: DEFAULT_DB,
     remote: false,
@@ -55,7 +57,7 @@ function sqlNumber(value, fallback = 0) {
   return String(Math.trunc(numeric));
 }
 
-function runD1Json(options, command) {
+export function runD1Json(options, command) {
   const args = ['wrangler', 'd1', 'execute', options.database, options.remote ? '--remote' : '--local', '--command', command, '--json'];
   const output = execFileSync('npx', args, { encoding: 'utf8' });
   const parsed = JSON.parse(output);
@@ -65,7 +67,7 @@ function runD1Json(options, command) {
   return firstWithResults?.results || [];
 }
 
-function parseJsonLoose(raw, fallback = {}) {
+export function parseJsonLoose(raw, fallback = {}) {
   if (!raw || typeof raw !== 'string') return fallback;
   try {
     const parsed = JSON.parse(raw);
@@ -75,7 +77,7 @@ function parseJsonLoose(raw, fallback = {}) {
   }
 }
 
-function pickSnapshotSpec(currentData) {
+export function pickSnapshotSpec(currentData) {
   if (currentData.specifications) return currentData.specifications;
   if (currentData.specs) return currentData.specs;
   if (currentData.options_values) return currentData.options_values;
@@ -83,9 +85,15 @@ function pickSnapshotSpec(currentData) {
   return null;
 }
 
-function selectLegacyOrders(options) {
+function hasOrdersVariantIdColumn(options) {
+  const tableInfoRows = runD1Json(options, "PRAGMA table_info('orders');");
+  return tableInfoRows.some((row) => String(row?.name || '').trim() === 'variant_id');
+}
+
+export function selectLegacyOrders(options) {
+  const hasVariantId = hasOrdersVariantIdColumn(options);
   const clauses = [
-    'SELECT id, product_id, quantity, current_data, main_image_id, created_at, updated_at',
+    `SELECT id, product_id, ${hasVariantId ? 'variant_id' : 'NULL AS variant_id'}, quantity, current_data, main_image_id, created_at, updated_at`,
     'FROM orders o',
     'WHERE NOT EXISTS (SELECT 1 FROM order_lines ol WHERE ol.order_id = o.id)',
     'ORDER BY o.created_at ASC',
@@ -94,16 +102,38 @@ function selectLegacyOrders(options) {
   return runD1Json(options, clauses.join(' '));
 }
 
-function buildInsertOrderLineSql(legacyOrder, timestamp = Date.now()) {
+export function mapLegacyOrderToOrderLine(legacyOrder, timestamp = Date.now()) {
   const currentData = parseJsonLoose(legacyOrder.current_data, {});
   const snapshotSpec = pickSnapshotSpec(currentData);
   const createdAt = Number(legacyOrder.created_at) || timestamp;
   const updatedAt = Number(legacyOrder.updated_at) || createdAt;
   const snapshotImage = currentData.image || currentData.image_url || legacyOrder.main_image_id || null;
-  const variantId = currentData.variant_id || currentData.variantId || null;
+  const variantId =
+    legacyOrder.variant_id ||
+    currentData.variant_id ||
+    currentData.variantId ||
+    null;
   const snapshotName = currentData.name || currentData.productName || '';
   const snapshotSku = currentData.sku || currentData.variantSku || '';
   const orderedQty = Number(legacyOrder.quantity || 1);
+
+  return {
+    id: randomUUID(),
+    order_id: legacyOrder.id,
+    product_id: legacyOrder.product_id || null,
+    variant_id: variantId,
+    snapshot_name: snapshotName,
+    snapshot_sku: snapshotSku || null,
+    snapshot_specs: snapshotSpec ? JSON.stringify(snapshotSpec) : null,
+    snapshot_image: snapshotImage,
+    ordered_qty: Number.isFinite(orderedQty) && orderedQty > 0 ? Math.trunc(orderedQty) : 1,
+    created_at: createdAt,
+    updated_at: updatedAt,
+  };
+}
+
+export function buildInsertOrderLineSql(legacyOrder, timestamp = Date.now()) {
+  const row = mapLegacyOrderToOrderLine(legacyOrder, timestamp);
 
   return `
 INSERT INTO order_lines (
@@ -119,21 +149,21 @@ INSERT INTO order_lines (
   created_at,
   updated_at
 ) VALUES (
-  ${sqlString(randomUUID())},
-  ${sqlString(legacyOrder.id)},
-  ${sqlNullableString(legacyOrder.product_id)},
-  ${sqlNullableString(variantId)},
-  ${sqlString(snapshotName)},
-  ${sqlNullableString(snapshotSku)},
-  ${sqlNullableString(snapshotSpec ? JSON.stringify(snapshotSpec) : null)},
-  ${sqlNullableString(snapshotImage)},
-  ${sqlNumber(orderedQty, 1)},
-  ${sqlNumber(createdAt, timestamp)},
-  ${sqlNumber(updatedAt, createdAt)}
+  ${sqlString(row.id)},
+  ${sqlString(row.order_id)},
+  ${sqlNullableString(row.product_id)},
+  ${sqlNullableString(row.variant_id)},
+  ${sqlString(row.snapshot_name)},
+  ${sqlNullableString(row.snapshot_sku)},
+  ${sqlNullableString(row.snapshot_specs)},
+  ${sqlNullableString(row.snapshot_image)},
+  ${sqlNumber(row.ordered_qty, 1)},
+  ${sqlNumber(row.created_at, timestamp)},
+  ${sqlNumber(row.updated_at, row.created_at)}
 );`.trim();
 }
 
-function main() {
+export function main() {
   const options = parseArgs(process.argv.slice(2));
   const legacyOrders = selectLegacyOrders(options);
 
@@ -157,9 +187,12 @@ function main() {
   console.log(`[backfill-order-lines] inserted ${inserted} order_lines row(s)`);
 }
 
-try {
-  main();
-} catch (error) {
-  console.error(`[backfill-order-lines] failed: ${error.message}`);
-  process.exit(1);
+const isMain = fileURLToPath(import.meta.url) === path.resolve(process.argv[1] || '');
+if (isMain) {
+  try {
+    main();
+  } catch (error) {
+    console.error(`[backfill-order-lines] failed: ${error.message}`);
+    process.exit(1);
+  }
 }

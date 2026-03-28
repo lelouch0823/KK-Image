@@ -78,12 +78,17 @@ CREATE TABLE IF NOT EXISTS inventory_events (
   event_type TEXT NOT NULL CHECK(event_type IN (
     'purchase_ordered',
     'purchase_received',
+    'purchase_arrival',
     'inventory_allocated_to_order_line',
     'inventory_deallocated_from_order_line',
     'inventory_reserved',
+    'reservation_hold',
     'inventory_released',
+    'reservation_release',
+    'order_shipment',
     'order_line_cancelled',
-    'inventory_adjusted_reversal'
+    'inventory_adjusted_reversal',
+    'manual_adjustment'
   )),
   quantity_delta INTEGER NOT NULL,
   source_type TEXT,
