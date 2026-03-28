@@ -97,6 +97,23 @@ export class InventoryService {
         JSON.stringify(payload.metadata || {}),
         timestamp
       ).run();
+
+      await this.db.prepare(
+        `INSERT INTO inventory_events (
+          id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta,
+          source_type, source_id, metadata, occurred_at, created_at
+        ) VALUES (?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        generateId(),
+        mutation.variantId,
+        mutation.type,
+        mutation.quantityDelta,
+        payload.referenceType || 'inventory_service',
+        payload.referenceId || mutation.variantId,
+        JSON.stringify(payload.metadata || {}),
+        timestamp,
+        timestamp
+      ).run();
     } else if (typeof this.variantRepo?.adjustStock === 'function') {
       await this.variantRepo.adjustStock(mutation.variantId, mutation.quantityDelta);
     } else {

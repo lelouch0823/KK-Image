@@ -100,5 +100,6 @@ describe('DemandService', () => {
 
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_balances'));
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_ledger'));
+    expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_events'));
   });
 });

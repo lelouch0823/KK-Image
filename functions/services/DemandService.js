@@ -86,6 +86,26 @@ export class DemandService {
         }),
         timestamp
       ).run();
+
+      await this.db.prepare(
+        `INSERT INTO inventory_events (
+          id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta,
+          source_type, source_id, metadata, occurred_at, created_at
+        ) VALUES (?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        generateId(),
+        payload.variantId,
+        reservationDelta > 0 ? 'reservation_hold' : 'reservation_release',
+        reservationDelta,
+        'order',
+        payload.orderId || payload.variantId,
+        JSON.stringify({
+          fromStatus: payload.fromStatus || null,
+          toStatus: payload.toStatus || null,
+        }),
+        timestamp,
+        timestamp
+      ).run();
     }
 
     return result;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildInsertOrderLineSql, mapLegacyOrderToOrderLine } from '../migrations/backfill-order-lines.mjs';
+import { buildInsertOrderLineSql, buildSelectLegacyOrdersSql, mapLegacyOrderToOrderLine } from '../migrations/backfill-order-lines.mjs';
 
 describe('backfill-order-lines mapping', () => {
   it('prefers top-level orders.variant_id over current_data.variant_id', () => {
@@ -97,5 +97,31 @@ describe('backfill-order-lines mapping', () => {
     expect(sql).toContain('shipped_qty');
     expect(sql).toContain('display_status');
     expect(sql).toContain("'completed'");
+  });
+
+  it('falls back to NULL procurement_status when legacy orders table lacks the column', () => {
+    const sql = buildSelectLegacyOrdersSql({ hasVariantId: true, hasProcurementStatus: false, limit: 10 });
+
+    expect(sql).toContain('variant_id');
+    expect(sql).toContain('NULL AS procurement_status');
+    expect(sql).toContain('LIMIT 10');
+  });
+
+  it('does not fabricate received quantity for partially arrived legacy orders', () => {
+    const row = mapLegacyOrderToOrderLine({
+      id: 'ord_partial',
+      product_id: 'prod_partial',
+      variant_id: 'variant_partial',
+      quantity: 5,
+      status: 'confirmed',
+      procurement_status: 'partially_arrived',
+      current_data: JSON.stringify({ name: 'Bag Partial' }),
+      created_at: 1700000000000,
+      updated_at: 1700000100000,
+    });
+
+    expect(row.procured_qty).toBe(5);
+    expect(row.received_qty).toBe(0);
+    expect(row.display_status).toBe('fully_procured');
   });
 });

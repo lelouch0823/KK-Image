@@ -105,7 +105,7 @@ function inferLegacyLineProgress(legacyOrder, orderedQty) {
     return progress;
   }
 
-  if (['production', 'shipping', 'arrived', 'delivered'].includes(status) || ['planned', 'ordered', 'partially_arrived', 'arrived'].includes(procurementStatus)) {
+  if (['production', 'shipping', 'arrived', 'delivered'].includes(status) || ['ordered', 'partially_arrived', 'arrived'].includes(procurementStatus)) {
     progress.procured_qty = ordered;
   }
 
@@ -123,8 +123,7 @@ function inferLegacyLineProgress(legacyOrder, orderedQty) {
   }
 
   if (procurementStatus === 'partially_arrived' && ordered > 1) {
-    progress.received_qty = ordered - 1;
-    progress.display_status = 'partially_received';
+    progress.display_status = 'fully_procured';
     return progress;
   }
 
@@ -137,21 +136,39 @@ function inferLegacyLineProgress(legacyOrder, orderedQty) {
   return progress;
 }
 
-function hasOrdersVariantIdColumn(options) {
+function hasOrdersColumn(options, columnName) {
   const tableInfoRows = runD1Json(options, "PRAGMA table_info('orders');");
-  return tableInfoRows.some((row) => String(row?.name || '').trim() === 'variant_id');
+  return tableInfoRows.some((row) => String(row?.name || '').trim() === columnName);
 }
 
-export function selectLegacyOrders(options) {
-  const hasVariantId = hasOrdersVariantIdColumn(options);
+function hasOrdersVariantIdColumn(options) {
+  return hasOrdersColumn(options, 'variant_id');
+}
+
+function hasOrdersProcurementStatusColumn(options) {
+  return hasOrdersColumn(options, 'procurement_status');
+}
+
+export function buildSelectLegacyOrdersSql({ hasVariantId, hasProcurementStatus, limit = null }) {
   const clauses = [
-    `SELECT id, product_id, ${hasVariantId ? 'variant_id' : 'NULL AS variant_id'}, quantity, status, procurement_status, current_data, main_image_id, created_at, updated_at`,
+    `SELECT id, product_id, ${hasVariantId ? 'variant_id' : 'NULL AS variant_id'}, quantity, status, ${hasProcurementStatus ? 'procurement_status' : 'NULL AS procurement_status'}, current_data, main_image_id, created_at, updated_at`,
     'FROM orders o',
     'WHERE NOT EXISTS (SELECT 1 FROM order_lines ol WHERE ol.order_id = o.id)',
     'ORDER BY o.created_at ASC',
   ];
-  if (options.limit) clauses.push(`LIMIT ${options.limit}`);
-  return runD1Json(options, clauses.join(' '));
+  if (limit) clauses.push(`LIMIT ${limit}`);
+  return clauses.join(' ');
+}
+
+export function selectLegacyOrders(options) {
+  const hasVariantId = hasOrdersVariantIdColumn(options);
+  const hasProcurementStatus = hasOrdersProcurementStatusColumn(options);
+  const sql = buildSelectLegacyOrdersSql({
+    hasVariantId,
+    hasProcurementStatus,
+    limit: options.limit,
+  });
+  return runD1Json(options, sql);
 }
 
 export function mapLegacyOrderToOrderLine(legacyOrder, timestamp = Date.now()) {
