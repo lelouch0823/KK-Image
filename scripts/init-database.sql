@@ -472,7 +472,7 @@ CREATE TABLE IF NOT EXISTS purchase_order_items (
     po_id TEXT NOT NULL,
     product_id TEXT NOT NULL,
     variant_id TEXT,
-    customer_order_id TEXT,
+    pre_order_id TEXT,
     quantity INTEGER DEFAULT 1,
     unit_cost REAL DEFAULT 0,
     allocated_freight REAL DEFAULT 0,
@@ -481,13 +481,44 @@ CREATE TABLE IF NOT EXISTS purchase_order_items (
     FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
     FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE SET NULL,
-    FOREIGN KEY (customer_order_id) REFERENCES orders(id) ON DELETE SET NULL
+    FOREIGN KEY (pre_order_id) REFERENCES orders(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_po_items_po ON purchase_order_items(po_id);
 CREATE INDEX IF NOT EXISTS idx_po_items_product ON purchase_order_items(product_id);
-CREATE INDEX IF NOT EXISTS idx_po_items_order ON purchase_order_items(customer_order_id);
+CREATE INDEX IF NOT EXISTS idx_po_items_pre_order ON purchase_order_items(pre_order_id);
 CREATE INDEX IF NOT EXISTS idx_po_items_variant ON purchase_order_items(variant_id);
+
+-- 7.6.1 库存分类账与余额投影 (Inventory Ledger & Balances)
+CREATE TABLE IF NOT EXISTS inventory_ledger (
+    id TEXT PRIMARY KEY,
+    variant_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    quantity_delta INTEGER NOT NULL,
+    reference_type TEXT,
+    reference_id TEXT,
+    occurred_at INTEGER NOT NULL,
+    metadata TEXT,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_ledger_variant_occurred_at
+    ON inventory_ledger(variant_id, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_inventory_ledger_reference
+    ON inventory_ledger(reference_type, reference_id);
+
+CREATE TABLE IF NOT EXISTS inventory_balances (
+    variant_id TEXT PRIMARY KEY,
+    on_hand INTEGER NOT NULL DEFAULT 0,
+    reserved INTEGER NOT NULL DEFAULT 0,
+    available INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_balances_available
+    ON inventory_balances(available DESC);
 
 -- 7.7 订单行与采购履约基础表
 CREATE TABLE IF NOT EXISTS order_lines (
@@ -709,7 +740,7 @@ INSERT OR IGNORE INTO folders (id, parent_id, name, description, share_token, is
 VALUES ('root', NULL, '根目录', '默认根目录', NULL, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000);
 
 -- ===========================================================================
--- Schema Version: 2.6.0 (2026-03-28)
--- Tables: 29 (Added product_variants and purchase order tables for bootstrap consistency)
+-- Schema Version: 2.7.0 (2026-03-28)
+-- Tables: 31 (Aligned purchase_order_items.pre_order_id and added inventory ledger/balances)
 -- SOTA: Inventory, Cost, SEO included in products
 -- ===========================================================================
