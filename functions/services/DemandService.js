@@ -1,5 +1,6 @@
 import { generateId } from '../api/utils/id.js';
 import { BadRequestError } from '../lib/hono/errors.js';
+import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 
 const DEMAND_ACTIVE_STATUS = 'confirmed';
 const DEMAND_RELEASE_STATUSES = new Set(['void', 'rejected', 'cancelled']);
@@ -10,6 +11,10 @@ const SHIPMENT_CONSUME_STATUSES = new Set(['delivered']);
 export class DemandService {
   constructor(db) {
     this.db = db;
+  }
+
+  projectOrderLineStatus(payload = {}) {
+    return projectOrderLineStatus(payload);
   }
 
   getTransitionEffect({ fromStatus = null, toStatus }) {

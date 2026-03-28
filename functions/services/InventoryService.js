@@ -1,54 +1,22 @@
 import { generateId } from '../api/utils/id.js';
 import { ProductVariantRepository } from '../repositories/ProductVariantRepository.js';
 import { BadRequestError } from '../lib/hono/errors.js';
+import {
+  appendInventoryLedgerEvent,
+  projectInventoryBalances,
+} from './InventoryProjectionService.js';
 
 const VALID_MUTATION_TYPES = new Set([
+  'purchase_received',
   'purchase_arrival',
   'manual_adjustment',
   'order_shipment',
+  'inventory_reserved',
   'reservation_hold',
+  'inventory_released',
   'reservation_release',
 ]);
-
-const STOCK_EVENT_TYPES = new Set([
-  'purchase_arrival',
-  'manual_adjustment',
-  'order_shipment',
-  'inventory_correction',
-]);
-
-const RESERVATION_EVENT_TYPES = new Set([
-  'reservation_hold',
-  'reservation_release',
-]);
-
-export function appendInventoryLedgerEvent(ledger = [], event = {}) {
-  return [...ledger, { ...event }];
-}
-
-export function projectInventoryBalances(ledger = []) {
-  const projection = ledger.reduce((acc, event) => {
-    const eventType = String(event?.event_type || event?.type || '').trim();
-    const quantityDelta = Number(event?.quantity_delta ?? event?.quantityDelta ?? 0) || 0;
-
-    if (STOCK_EVENT_TYPES.has(eventType)) {
-      acc.on_hand += quantityDelta;
-    } else if (RESERVATION_EVENT_TYPES.has(eventType)) {
-      acc.reserved += quantityDelta;
-    }
-
-    return acc;
-  }, { on_hand: 0, reserved: 0 });
-
-  const onHand = Math.max(0, projection.on_hand);
-  const reserved = Math.max(0, projection.reserved);
-
-  return {
-    on_hand: onHand,
-    reserved,
-    available: Math.max(onHand - reserved, 0),
-  };
-}
+export { appendInventoryLedgerEvent, projectInventoryBalances };
 
 export class InventoryService {
   constructor(db, variantRepo = new ProductVariantRepository(db)) {
