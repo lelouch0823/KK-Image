@@ -40,20 +40,17 @@ export function projectInventoryBalances(ledger = []) {
     const eventType = getEventType(event);
 
     if (STOCK_EVENT_TYPES.has(eventType)) {
-      acc.on_hand += getQuantityDelta(event);
+      acc.on_hand = Math.max(acc.on_hand + getQuantityDelta(event), 0);
     } else if (RESERVATION_EVENT_TYPES.has(eventType)) {
-      acc.reserved += getReservedDelta(event);
+      acc.reserved = Math.max(acc.reserved + getReservedDelta(event), 0);
     }
 
     return acc;
   }, { on_hand: 0, reserved: 0 });
 
-  const onHand = Math.max(0, projection.on_hand);
-  const reserved = Math.max(0, projection.reserved);
-
   return {
-    on_hand: onHand,
-    reserved,
-    available: Math.max(onHand - reserved, 0),
+    on_hand: projection.on_hand,
+    reserved: projection.reserved,
+    available: Math.max(projection.on_hand - projection.reserved, 0),
   };
 }

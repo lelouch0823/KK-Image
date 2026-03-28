@@ -37,4 +37,19 @@ describe('OrderStatusProjectionService', () => {
 
     expect(status).toBe('cancelled');
   });
+
+  it('supports repository-shaped qty fields from order_lines rows', () => {
+    expect(projectOrderLineStatus({
+      ordered_qty: 5,
+      cancelled_qty: 5,
+    })).toBe('cancelled');
+
+    expect(projectOrderLineStatus({
+      ordered_qty: 4,
+      procured_qty: 4,
+      received_qty: 4,
+      shipped_qty: 0,
+      cancelled_qty: 0,
+    })).toBe('ready');
+  });
 });

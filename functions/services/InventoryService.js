@@ -11,10 +11,6 @@ const VALID_MUTATION_TYPES = new Set([
   'purchase_arrival',
   'manual_adjustment',
   'order_shipment',
-  'inventory_reserved',
-  'reservation_hold',
-  'inventory_released',
-  'reservation_release',
 ]);
 export { appendInventoryLedgerEvent, projectInventoryBalances };
 

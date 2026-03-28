@@ -35,4 +35,18 @@ describe('Demand reservation projection', () => {
       consumesReservation: true,
     });
   });
+
+  it('treats production-to-void as releasing active demand and reservation', async () => {
+    const service = new DemandService({});
+
+    await expect(
+      service.syncOrderTransition({ fromStatus: 'production', toStatus: 'void', quantity: 2, variantId: 'v-1' })
+    ).resolves.toMatchObject({
+      reservationDelta: -2,
+      shipmentDelta: 0,
+      createsDemand: false,
+      releasesDemand: true,
+      consumesReservation: false,
+    });
+  });
 });

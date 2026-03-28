@@ -39,4 +39,19 @@ describe('InventoryProjectionService', () => {
       available: 3,
     });
   });
+
+  it('clamps stock and reservation floors after each event, not only at the end', () => {
+    const projection = projectInventoryBalances([
+      { event_type: 'order_shipment', quantity_delta: -5 },
+      { event_type: 'purchase_arrival', quantity_delta: 2 },
+      { event_type: 'reservation_release', quantity_delta: -4 },
+      { event_type: 'reservation_hold', quantity_delta: 1 },
+    ]);
+
+    expect(projection).toEqual({
+      on_hand: 2,
+      reserved: 1,
+      available: 1,
+    });
+  });
 });

@@ -43,6 +43,16 @@ describe('InventoryService', () => {
     expect(variantRepo.adjustStock).not.toHaveBeenCalled();
   });
 
+  it('rejects reservation mutations that belong to demand-side reservation flows', async () => {
+    await expect(service.applyMutation({
+      type: 'inventory_reserved',
+      variantId: 'variant-1',
+      quantityDelta: 3,
+    })).rejects.toBeInstanceOf(BadRequestError);
+
+    expect(variantRepo.adjustStock).not.toHaveBeenCalled();
+  });
+
   it('preserves the non-negative stock floor through repository-level atomic updates', async () => {
     await service.applyMutation({
       type: 'manual_adjustment',

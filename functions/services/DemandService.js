@@ -2,7 +2,7 @@ import { generateId } from '../api/utils/id.js';
 import { BadRequestError } from '../lib/hono/errors.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 
-const DEMAND_ACTIVE_STATUS = 'confirmed';
+const DEMAND_ACTIVE_STATUSES = new Set(['confirmed', 'production', 'shipping', 'arrived']);
 const DEMAND_RELEASE_STATUSES = new Set(['void', 'rejected', 'cancelled']);
 const RESERVATION_ACTIVE_STATUSES = new Set(['confirmed', 'production', 'shipping', 'arrived']);
 const SHIPMENT_PREP_STATUSES = new Set(['shipping', 'delivered']);
@@ -29,8 +29,8 @@ export class DemandService {
     const consumesReservation = RESERVATION_ACTIVE_STATUSES.has(normalizedFrom) && SHIPMENT_CONSUME_STATUSES.has(normalizedTo);
 
     return {
-      createsDemand: normalizedTo === DEMAND_ACTIVE_STATUS && normalizedFrom !== DEMAND_ACTIVE_STATUS,
-      releasesDemand: normalizedFrom === DEMAND_ACTIVE_STATUS && DEMAND_RELEASE_STATUSES.has(normalizedTo),
+      createsDemand: !DEMAND_ACTIVE_STATUSES.has(normalizedFrom) && DEMAND_ACTIVE_STATUSES.has(normalizedTo),
+      releasesDemand: DEMAND_ACTIVE_STATUSES.has(normalizedFrom) && DEMAND_RELEASE_STATUSES.has(normalizedTo),
       stockDeductionPending: SHIPMENT_PREP_STATUSES.has(normalizedTo),
       entersReservation,
       releasesReservation,
