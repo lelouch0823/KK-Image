@@ -283,6 +283,25 @@ CREATE INDEX IF NOT EXISTS idx_products_brand ON products(brand);
 CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
 CREATE INDEX IF NOT EXISTS idx_products_created_at ON products(created_at DESC);
 
+-- 6.2 商品变体表 (Product Variants)
+CREATE TABLE IF NOT EXISTS product_variants (
+    id TEXT PRIMARY KEY,
+    product_id TEXT NOT NULL,
+    sku TEXT UNIQUE NOT NULL,
+    price REAL DEFAULT 0,
+    cost_price REAL,
+    stock_quantity INTEGER DEFAULT 0,
+    options_values TEXT DEFAULT '{}',       -- JSON: {"Color":"Red","Size":"S"}
+    image_id TEXT,                          -- 变体专属图片 (可选)
+    status TEXT DEFAULT 'active' CHECK(status IN ('active', 'archived')),
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_variants_product ON product_variants(product_id);
+CREATE INDEX IF NOT EXISTS idx_variants_sku ON product_variants(sku);
+
 -- ===========================================================================
 -- 7. 客户关系管理 (CRM)
 -- ===========================================================================
@@ -419,7 +438,58 @@ CREATE INDEX IF NOT EXISTS idx_timeline_order ON order_timeline(order_id);
 CREATE INDEX IF NOT EXISTS idx_timeline_created ON order_timeline(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_timeline_action ON order_timeline(action_type);
 
--- 7.5 订单行与采购履约基础表
+-- 7.5 采购单主表 (Purchase Orders)
+CREATE TABLE IF NOT EXISTS purchase_orders (
+    id TEXT PRIMARY KEY,
+    po_no TEXT UNIQUE NOT NULL,
+    status TEXT DEFAULT 'draft' CHECK(status IN (
+        'draft',
+        'ordered',
+        'shipping',
+        'arrived',
+        'completed',
+        'cancelled'
+    )),
+    estimated_shipping_cost REAL DEFAULT 0,
+    estimated_tariff_cost REAL DEFAULT 0,
+    actual_shipping_cost REAL,
+    actual_tariff_cost REAL,
+    currency TEXT DEFAULT 'CNY',
+    allocation_method TEXT DEFAULT 'by_quantity' CHECK(allocation_method IN ('by_quantity', 'by_value')),
+    remark TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    completed_at INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_no ON purchase_orders(po_no);
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_status ON purchase_orders(status);
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_created ON purchase_orders(created_at DESC);
+
+-- 7.6 采购单明细表 (Purchase Order Items)
+CREATE TABLE IF NOT EXISTS purchase_order_items (
+    id TEXT PRIMARY KEY,
+    po_id TEXT NOT NULL,
+    product_id TEXT NOT NULL,
+    variant_id TEXT,
+    customer_order_id TEXT,
+    quantity INTEGER DEFAULT 1,
+    unit_cost REAL DEFAULT 0,
+    allocated_freight REAL DEFAULT 0,
+    allocated_tariff REAL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+    FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE SET NULL,
+    FOREIGN KEY (customer_order_id) REFERENCES orders(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_po_items_po ON purchase_order_items(po_id);
+CREATE INDEX IF NOT EXISTS idx_po_items_product ON purchase_order_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_po_items_order ON purchase_order_items(customer_order_id);
+CREATE INDEX IF NOT EXISTS idx_po_items_variant ON purchase_order_items(variant_id);
+
+-- 7.7 订单行与采购履约基础表
 CREATE TABLE IF NOT EXISTS order_lines (
     id TEXT PRIMARY KEY,
     order_id TEXT NOT NULL,
@@ -639,7 +709,7 @@ INSERT OR IGNORE INTO folders (id, parent_id, name, description, share_token, is
 VALUES ('root', NULL, '根目录', '默认根目录', NULL, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000);
 
 -- ===========================================================================
--- Schema Version: 2.5.0 (2026-03-28)
--- Tables: 26 (Added order line/procurement foundation tables)
+-- Schema Version: 2.6.0 (2026-03-28)
+-- Tables: 29 (Added product_variants and purchase order tables for bootstrap consistency)
 -- SOTA: Inventory, Cost, SEO included in products
 -- ===========================================================================
