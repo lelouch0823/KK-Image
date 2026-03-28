@@ -1,0 +1,165 @@
+#!/usr/bin/env node
+
+import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+
+const DEFAULT_DB = 'DB';
+
+function parseArgs(argv = []) {
+  const options = {
+    database: DEFAULT_DB,
+    remote: false,
+    dryRun: false,
+    limit: null,
+  };
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === '--database' || arg === '-d') {
+      options.database = argv[i + 1] || DEFAULT_DB;
+      i += 1;
+      continue;
+    }
+    if (arg === '--remote' || arg === '-r') {
+      options.remote = true;
+      continue;
+    }
+    if (arg === '--dry-run') {
+      options.dryRun = true;
+      continue;
+    }
+    if (arg === '--limit') {
+      const parsed = Number(argv[i + 1]);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        options.limit = Math.floor(parsed);
+      }
+      i += 1;
+    }
+  }
+
+  return options;
+}
+
+function sqlString(value) {
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+function sqlNullableString(value) {
+  if (value === null || value === undefined || value === '') return 'NULL';
+  return sqlString(value);
+}
+
+function sqlNumber(value, fallback = 0) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return String(fallback);
+  return String(Math.trunc(numeric));
+}
+
+function runD1Json(options, command) {
+  const args = ['wrangler', 'd1', 'execute', options.database, options.remote ? '--remote' : '--local', '--command', command, '--json'];
+  const output = execFileSync('npx', args, { encoding: 'utf8' });
+  const parsed = JSON.parse(output);
+
+  if (!Array.isArray(parsed)) return [];
+  const firstWithResults = parsed.find((entry) => Array.isArray(entry?.results));
+  return firstWithResults?.results || [];
+}
+
+function parseJsonLoose(raw, fallback = {}) {
+  if (!raw || typeof raw !== 'string') return fallback;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function pickSnapshotSpec(currentData) {
+  if (currentData.specifications) return currentData.specifications;
+  if (currentData.specs) return currentData.specs;
+  if (currentData.options_values) return currentData.options_values;
+  if (currentData.optionsValues) return currentData.optionsValues;
+  return null;
+}
+
+function selectLegacyOrders(options) {
+  const clauses = [
+    'SELECT id, product_id, quantity, current_data, main_image_id, created_at, updated_at',
+    'FROM orders o',
+    'WHERE NOT EXISTS (SELECT 1 FROM order_lines ol WHERE ol.order_id = o.id)',
+    'ORDER BY o.created_at ASC',
+  ];
+  if (options.limit) clauses.push(`LIMIT ${options.limit}`);
+  return runD1Json(options, clauses.join(' '));
+}
+
+function buildInsertOrderLineSql(legacyOrder, timestamp = Date.now()) {
+  const currentData = parseJsonLoose(legacyOrder.current_data, {});
+  const snapshotSpec = pickSnapshotSpec(currentData);
+  const createdAt = Number(legacyOrder.created_at) || timestamp;
+  const updatedAt = Number(legacyOrder.updated_at) || createdAt;
+  const snapshotImage = currentData.image || currentData.image_url || legacyOrder.main_image_id || null;
+  const variantId = currentData.variant_id || currentData.variantId || null;
+  const snapshotName = currentData.name || currentData.productName || '';
+  const snapshotSku = currentData.sku || currentData.variantSku || '';
+  const orderedQty = Number(legacyOrder.quantity || 1);
+
+  return `
+INSERT INTO order_lines (
+  id,
+  order_id,
+  product_id,
+  variant_id,
+  snapshot_name,
+  snapshot_sku,
+  snapshot_specs,
+  snapshot_image,
+  ordered_qty,
+  created_at,
+  updated_at
+) VALUES (
+  ${sqlString(randomUUID())},
+  ${sqlString(legacyOrder.id)},
+  ${sqlNullableString(legacyOrder.product_id)},
+  ${sqlNullableString(variantId)},
+  ${sqlString(snapshotName)},
+  ${sqlNullableString(snapshotSku)},
+  ${sqlNullableString(snapshotSpec ? JSON.stringify(snapshotSpec) : null)},
+  ${sqlNullableString(snapshotImage)},
+  ${sqlNumber(orderedQty, 1)},
+  ${sqlNumber(createdAt, timestamp)},
+  ${sqlNumber(updatedAt, createdAt)}
+);`.trim();
+}
+
+function main() {
+  const options = parseArgs(process.argv.slice(2));
+  const legacyOrders = selectLegacyOrders(options);
+
+  if (!legacyOrders.length) {
+    console.log('[backfill-order-lines] no legacy orders to backfill');
+    return;
+  }
+
+  if (options.dryRun) {
+    console.log(`[backfill-order-lines] dry-run matched ${legacyOrders.length} order(s)`);
+    return;
+  }
+
+  let inserted = 0;
+  for (const legacyOrder of legacyOrders) {
+    const sql = buildInsertOrderLineSql(legacyOrder);
+    runD1Json(options, sql);
+    inserted += 1;
+  }
+
+  console.log(`[backfill-order-lines] inserted ${inserted} order_lines row(s)`);
+}
+
+try {
+  main();
+} catch (error) {
+  console.error(`[backfill-order-lines] failed: ${error.message}`);
+  process.exit(1);
+}

@@ -1,6 +1,6 @@
 # Database Schema (SOTA)
 
-> **Last Updated**: 2026-01-27
+> **Last Updated**: 2026-03-28
 > **Database Engine**: Cloudflare D1 (SQLite)
 
 本文档描述 **kk-life** 的核心数据库结构。所有表结构定义源自 `scripts/init-database.sql`。
@@ -140,6 +140,17 @@
 | `actor_type` | TEXT | `salesperson` / `admin` |
 | `old_value` / `new_value` | TEXT | 变更前后的值 |
 
+### `order_lines` (订单行)
+订单履约与采购的核心粒度表。一个历史单行 `orders` 记录会被回填为一条 `order_lines` 记录。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `order_id` | TEXT | FK -> orders.id |
+| `product_id` / `variant_id` | TEXT | 当前目录关联（可空） |
+| `snapshot_name` / `snapshot_sku` / `snapshot_specs` / `snapshot_image` | TEXT | 下单时快照字段 |
+| `ordered_qty` / `procured_qty` / `received_qty` / `reserved_qty` / `shipped_qty` / `cancelled_qty` | INTEGER | 数量驱动字段 |
+| `display_status` | TEXT | `unprocured` 等派生展示状态 |
+
 ---
 
 ## 4. 商品与库存系统 (Product & Inventory) - [SOTA]
@@ -194,6 +205,38 @@
 | `status` | TEXT | `draft`, `ordered`, `shipping`, `arrived`, `completed`, `cancelled` |
 | `actual_shipping_cost` | REAL | 运费 |
 | `allocation_method` | TEXT | 分摊方式 (`by_quantity`, `by_value`) |
+
+### `purchase_receipts` (采购收货记录)
+采购收货事件表。用于记录同一采购项的多次部分收货，不再依赖单字段累加。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `purchase_order_id` | TEXT | FK -> purchase_orders.id |
+| `purchase_order_item_id` | TEXT | FK -> purchase_order_items.id |
+| `variant_id` | TEXT | FK -> product_variants.id |
+| `received_qty` | INTEGER | 本次收货数量 |
+| `received_at` | INTEGER | 收货时间 |
+
+### `inventory_events` (库存事件源)
+库存来源事实表，记录采购、分配、预留、释放、冲销等事件；`inventory_balances` 作为投影读模型继续保留。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `variant_id` | TEXT | FK -> product_variants.id |
+| `order_line_id` | TEXT | FK -> order_lines.id |
+| `purchase_receipt_id` | TEXT | FK -> purchase_receipts.id |
+| `event_type` | TEXT | `purchase_received`, `inventory_reserved` 等 |
+| `quantity_delta` | INTEGER | 库存变动值 (+/-) |
+
+### `order_line_allocations` (订单行分配)
+记录公共库存到订单行的分配/释放关系，支持后续重分配与回滚。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `order_line_id` | TEXT | FK -> order_lines.id |
+| `variant_id` | TEXT | FK -> product_variants.id |
+| `allocated_qty` / `released_qty` | INTEGER | 分配和释放数量 |
+| `status` | TEXT | `active`, `released`, `cancelled` |
 
 ---
 

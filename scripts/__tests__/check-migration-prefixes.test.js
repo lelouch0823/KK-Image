@@ -60,4 +60,9 @@ describe('check-migration-prefixes', () => {
       )
     ).toThrow(/allowlist mismatch/i);
   });
+
+  it('accepts the order procurement domain redesign migration name', async () => {
+    const files = ['0053_order_procurement_domain_redesign.sql'];
+    expect(files.every((file) => /^\d+_.+\.sql$/.test(file))).toBe(true);
+  });
 });
