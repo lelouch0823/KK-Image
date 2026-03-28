@@ -39,6 +39,7 @@ describe('OrderLineRepository', () => {
     });
 
     expect(db.prepare).toHaveBeenCalledTimes(1);
+    expect(db.prepare.mock.results[0].value.run).toHaveBeenCalledTimes(1);
     const bindArgs = db.prepare.mock.results[0].value.bind.mock.calls[0];
     expect(db.prepare.mock.calls[0][0]).toContain('INSERT INTO order_lines');
     expect(bindArgs[0]).toBe('line-123');

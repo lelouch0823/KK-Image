@@ -4,6 +4,10 @@ export class PurchaseReceiptRepository {
   }
 
   async create(payload) {
+    if (payload.received_qty == null) {
+      throw new Error('received_qty is required');
+    }
+
     const id = payload.id || crypto.randomUUID();
     const receivedAt = payload.received_at ?? Date.now();
     const now = payload.created_at ?? Date.now();
@@ -32,7 +36,7 @@ export class PurchaseReceiptRepository {
         payload.product_id || null,
         payload.variant_id || null,
         payload.receipt_no || null,
-        payload.received_qty ?? 0,
+        payload.received_qty,
         payload.note || null,
         receivedAt,
         now,

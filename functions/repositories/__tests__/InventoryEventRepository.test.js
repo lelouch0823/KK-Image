@@ -26,7 +26,7 @@ describe('InventoryEventRepository', () => {
     const db = createMockDb();
     const repo = new InventoryEventRepository(db);
 
-    await repo.create({
+    const created = await repo.create({
       id: 'event-1',
       variant_id: 'var-1',
       order_line_id: 'line-1',
@@ -40,8 +40,12 @@ describe('InventoryEventRepository', () => {
     });
 
     expect(db.prepare).toHaveBeenCalled();
-    expect(db.prepare.mock.calls[0][0]).toContain('INSERT INTO inventory_events');
+    expect(db.prepare.mock.results[0].value.run).toHaveBeenCalledTimes(1);
+    const insertSql = db.prepare.mock.calls[0][0];
+    expect(insertSql).toContain('INSERT INTO inventory_events');
+    expect(insertSql).not.toContain('updated_at');
     const params = db.prepare.mock.results[0].value.bind.mock.calls[0];
+    expect(params).toHaveLength(11);
     expect(params[0]).toBe('event-1');
     expect(params[1]).toBe('var-1');
     expect(params[2]).toBe('line-1');
@@ -52,5 +56,22 @@ describe('InventoryEventRepository', () => {
     expect(params[7]).toBe('po-1');
     expect(params[8]).toBe(JSON.stringify({ carrier: 'Breeze Logistics' }));
     expect(params[9]).toBe(1690000000000);
+    expect(params[10]).toBeDefined();
+    expect(created).toEqual({
+      id: 'event-1',
+      occurred_at: 1690000000000,
+      created_at: params[10],
+    });
+  });
+
+  it('rejects event creation when quantity_delta is missing', async () => {
+    const db = createMockDb();
+    const repo = new InventoryEventRepository(db);
+
+    await expect(repo.create({
+      event_type: 'purchase_received',
+    })).rejects.toThrow(/quantity_delta/i);
+
+    expect(db.prepare).not.toHaveBeenCalled();
   });
 });

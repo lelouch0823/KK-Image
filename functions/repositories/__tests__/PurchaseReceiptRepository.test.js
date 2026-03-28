@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PurchaseReceiptRepository } from '../PurchaseReceiptRepository.js';
 
 function createDbMock() {
@@ -18,7 +18,13 @@ function createDbMock() {
 }
 
 describe('PurchaseReceiptRepository', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('persists receipt rows independently from purchase item totals', async () => {
+    const now = 1700000000000;
+    vi.spyOn(Date, 'now').mockReturnValue(now);
     const db = createDbMock();
     const repo = new PurchaseReceiptRepository(db);
 
@@ -35,6 +41,7 @@ describe('PurchaseReceiptRepository', () => {
     });
 
     expect(db.prepare).toHaveBeenCalled();
+    expect(db.prepare.mock.results[0].value.run).toHaveBeenCalledTimes(1);
     const insertSql = db.prepare.mock.calls[0][0];
     expect(insertSql).toContain('INSERT INTO purchase_receipts');
     const params = db.prepare.mock.results[0].value.bind.mock.calls[0];
@@ -47,5 +54,18 @@ describe('PurchaseReceiptRepository', () => {
     expect(params[6]).toBe(7);
     expect(params[7]).toBe('Split reception');
     expect(params[8]).toBe(1680000000000);
+    expect(params[9]).toBe(now);
+    expect(params[10]).toBe(now);
+  });
+
+  it('rejects receipt creation when received_qty is missing', async () => {
+    const db = createDbMock();
+    const repo = new PurchaseReceiptRepository(db);
+
+    await expect(repo.create({
+      purchase_order_id: 'po-1',
+    })).rejects.toThrow(/received_qty/i);
+
+    expect(db.prepare).not.toHaveBeenCalled();
   });
 });

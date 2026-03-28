@@ -4,10 +4,13 @@ export class InventoryEventRepository {
   }
 
   async create(payload) {
+    if (payload.quantity_delta == null) {
+      throw new Error('quantity_delta is required');
+    }
+
     const id = payload.id || crypto.randomUUID();
     const occurredAt = payload.occurred_at ?? Date.now();
     const now = payload.created_at ?? Date.now();
-    const updatedAt = payload.updated_at ?? now;
     const metadata = payload.metadata;
     const metadataJson =
       metadata && typeof metadata !== 'string' ? JSON.stringify(metadata) : metadata || null;
@@ -25,9 +28,8 @@ export class InventoryEventRepository {
           source_id,
           metadata,
           occurred_at,
-          created_at,
-          updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         id,
@@ -35,16 +37,15 @@ export class InventoryEventRepository {
         payload.order_line_id || null,
         payload.purchase_receipt_id || null,
         payload.event_type,
-        payload.quantity_delta ?? 0,
+        payload.quantity_delta,
         payload.source_type || null,
         payload.source_id || null,
         metadataJson,
         occurredAt,
-        now,
-        updatedAt
+        now
       )
       .run();
 
-    return { id, occurred_at: occurredAt, created_at: now, updated_at: updatedAt };
+    return { id, occurred_at: occurredAt, created_at: now };
   }
 }
