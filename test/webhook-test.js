@@ -1,12 +1,13 @@
 // Webhook 功能测试脚本
 import fetch from 'node-fetch';
+import assert from 'assert';
 
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:8080';
 const API_BASE = `${BASE_URL}/api/v1`;
+const WEBHOOK_PORT = Number(process.env.WEBHOOK_TEST_PORT || 3001);
 
 // 测试用的 Webhook 接收服务器
 import http from 'http';
-import { URL } from 'url';
 
 let webhookServer;
 let receivedWebhooks = [];
@@ -164,11 +165,12 @@ async function deleteWebhook(token, webhookId) {
 // 主测试函数
 async function runWebhookTests() {
   console.log('🚀 Starting Webhook functionality tests...\n');
-  
+  let createdWebhookId = null;
+
   try {
     // 1. 启动测试服务器
     console.log('1️⃣ Starting webhook test server...');
-    const webhookUrl = await startWebhookServer();
+    const webhookUrl = await startWebhookServer(WEBHOOK_PORT);
     console.log(`✅ Webhook server ready at: ${webhookUrl}\n`);
     
     // 2. 获取认证 Token
@@ -179,6 +181,7 @@ async function runWebhookTests() {
     // 3. 创建 Webhook
     console.log('3️⃣ Creating webhook...');
     const webhook = await createWebhook(token, webhookUrl);
+    createdWebhookId = webhook.id;
     console.log(`✅ Webhook created: ${webhook.id}\n`);
     
     // 4. 获取 Webhook 列表
@@ -189,7 +192,8 @@ async function runWebhookTests() {
     // 5. 测试 Webhook
     console.log('5️⃣ Testing webhook delivery...');
     const testResult = await testWebhook(token, webhook.id);
-    console.log(`✅ Webhook test result: ${testResult.test.success ? 'SUCCESS' : 'FAILED'}\n`);
+    assert.strictEqual(testResult.ok, true, `Webhook test endpoint returned non-ok result: ${JSON.stringify(testResult)}`);
+    console.log(`✅ Webhook test result: SUCCESS (${testResult.status} ${testResult.statusText})\n`);
     
     // 6. 等待接收 Webhook
     console.log('6️⃣ Waiting for webhook delivery...');
@@ -200,14 +204,16 @@ async function runWebhookTests() {
       receivedWebhooks.forEach((wh, index) => {
         console.log(`   ${index + 1}. Event: ${wh.body.event}, ID: ${wh.body.id}`);
       });
+      assert(receivedWebhooks.some((wh) => wh.body?.event === 'webhook.test'), 'Expected webhook.test event was not delivered');
     } else {
-      console.log('⚠️ No webhooks received');
+      throw new Error('No webhooks received');
     }
     console.log();
     
     // 7. 清理 - 删除测试 Webhook
     console.log('7️⃣ Cleaning up - deleting test webhook...');
     await deleteWebhook(token, webhook.id);
+    createdWebhookId = null;
     console.log('✅ Test webhook deleted\n');
     
     console.log('🎉 All webhook tests completed successfully!');
@@ -216,6 +222,14 @@ async function runWebhookTests() {
     console.error('❌ Test failed:', error.message);
     process.exit(1);
   } finally {
+    if (createdWebhookId) {
+      try {
+        const token = await getAuthToken();
+        await deleteWebhook(token, createdWebhookId);
+      } catch (cleanupError) {
+        console.error('⚠️ Cleanup failed:', cleanupError.message);
+      }
+    }
     // 停止测试服务器
     stopWebhookServer();
   }
