@@ -46,7 +46,13 @@ export {
 } from '../api/utils/auth.js';
 
 // 后端常量
-export { CORS_MAX_AGE, ORDER_STATUSES, ORDER_PROCUREMENT_STATUSES } from '../api/utils/constants.js';
+export {
+  CORS_MAX_AGE,
+  ORDER_STATUSES,
+  ORDER_PROCUREMENT_STATUSES,
+  normalizeOrderProcurementStatus,
+  expandOrderProcurementStatusFilter,
+} from '../api/utils/constants.js';
 
 // 文件夹工具
 export { ensureFolder, moveFilesToFolder } from '../api/utils/folder-utils.js';

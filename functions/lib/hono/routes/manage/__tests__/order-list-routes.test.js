@@ -97,6 +97,21 @@ describe('manage order list routes', () => {
     );
   });
 
+  it('normalizes legacy procurementStatus aliases to canonical progress filters', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders?procurementStatus=none',
+      {},
+      { DB: createDb() },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.listForAdmin).toHaveBeenCalledWith(
+      expect.objectContaining({ procurementStatus: 'unprocured' })
+    );
+  });
+
   it('normalizes invalid procurementStatus to null', async () => {
     const app = createApp();
     const res = await app.request(
@@ -108,5 +123,22 @@ describe('manage order list routes', () => {
 
     expect(res.status).toBe(200);
     expect(mocks.listForAdmin).toHaveBeenCalledWith(expect.objectContaining({ procurementStatus: null }));
+  });
+
+  it('returns canonical progress filter options without legacy duplicate aliases', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders',
+      {},
+      { DB: createDb() },
+      { waitUntil: vi.fn() }
+    );
+
+    const payload = await res.json();
+
+    expect(payload.data.procurementStatuses).toContain('unprocured');
+    expect(payload.data.procurementStatuses).toContain('partially_received');
+    expect(payload.data.procurementStatuses).not.toContain('none');
+    expect(payload.data.procurementStatuses).not.toContain('partially_arrived');
   });
 });

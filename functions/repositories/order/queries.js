@@ -8,6 +8,7 @@
  */
 
 import { parseRepoPagination } from '../../api/utils/pagination.js';
+import { expandOrderProcurementStatusFilter } from '../../api/utils/constants.js';
 import { mapOrderDetail, mapOrderListItem } from './helpers.js';
 
 const ORDER_LINE_STATUS_AGGREGATE_JOIN = `
@@ -47,6 +48,21 @@ const ORDER_LINE_STATUS_AGGREGATE_JOIN = `
           ) aggregate_lines
       ) order_line_agg ON order_line_agg.order_id = o.id
 `;
+
+const ORDER_PROGRESS_STATUS_SQL = "COALESCE(order_line_agg.display_status, o.procurement_status, 'none')";
+
+function appendProgressStatusFilter(whereClause, bindParams, procurementStatus) {
+    const statusValues = expandOrderProcurementStatusFilter(procurementStatus);
+    if (statusValues.length === 0) return whereClause;
+
+    if (statusValues.length === 1) {
+        bindParams.push(statusValues[0]);
+        return `${whereClause} AND ${ORDER_PROGRESS_STATUS_SQL} = ?`;
+    }
+
+    bindParams.push(...statusValues);
+    return `${whereClause} AND ${ORDER_PROGRESS_STATUS_SQL} IN (${statusValues.map(() => '?').join(', ')})`;
+}
 
 async function findOrderLines(db, orderId) {
     const { results } = await db
@@ -251,8 +267,7 @@ export async function listForAdmin(
         bindParams.push(status);
     }
     if (procurementStatus) {
-        whereClause += " AND COALESCE(order_line_agg.display_status, o.procurement_status, 'none') = ?";
-        bindParams.push(procurementStatus);
+        whereClause = appendProgressStatusFilter(whereClause, bindParams, procurementStatus);
     }
     if (startTime > 0) {
         whereClause += ' AND o.created_at >= ?';

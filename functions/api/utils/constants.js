@@ -30,17 +30,37 @@ export const ORDER_STATUSES = [
 
 // 订单列表进度状态选项
 export const ORDER_PROCUREMENT_STATUSES = [
-  'none',
+  'unprocured',
   'planned',
   'ordered',
-  'partially_arrived',
-  'arrived',
-  'unprocured',
   'partially_procured',
   'fully_procured',
   'partially_received',
+  'arrived',
   'ready',
   'partially_shipped',
   'completed',
   'cancelled',
 ];
+
+const ORDER_PROCUREMENT_STATUS_ALIASES = Object.freeze({
+  none: 'unprocured',
+  partially_arrived: 'partially_received',
+});
+
+const ORDER_PROCUREMENT_STATUS_EXPANSIONS = Object.freeze({
+  unprocured: ['unprocured', 'none'],
+  partially_received: ['partially_received', 'partially_arrived'],
+});
+
+export function normalizeOrderProcurementStatus(status) {
+  if (!status) return null;
+  const normalized = ORDER_PROCUREMENT_STATUS_ALIASES[status] || status;
+  return ORDER_PROCUREMENT_STATUSES.includes(normalized) ? normalized : null;
+}
+
+export function expandOrderProcurementStatusFilter(status) {
+  const normalized = normalizeOrderProcurementStatus(status);
+  if (!normalized) return [];
+  return ORDER_PROCUREMENT_STATUS_EXPANSIONS[normalized] || [normalized];
+}

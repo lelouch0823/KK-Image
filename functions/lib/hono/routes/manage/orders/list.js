@@ -2,11 +2,33 @@ import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { OrderStatsRepository } from '../../../../../repositories/OrderStatsRepository.js';
 import { parseJsonObject } from '../../../../../api/utils/json.js';
-import { MSG, ORDER_STATUSES, ORDER_PROCUREMENT_STATUSES, getChinaDayStart, getChinaDateStr } from '../../../_shared/utils.js';
+import {
+    MSG,
+    ORDER_STATUSES,
+    ORDER_PROCUREMENT_STATUSES,
+    normalizeOrderProcurementStatus,
+    expandOrderProcurementStatusFilter,
+    getChinaDayStart,
+    getChinaDateStr,
+} from '../../../_shared/utils.js';
 import { parsePagination } from '../../../_shared/route-helpers.js';
 import { withCache } from '../../../middleware/cache.js';
 
 const app = new Hono();
+const ORDER_PROGRESS_STATUS_SQL = "COALESCE(order_line_agg.display_status, o.procurement_status, 'none')";
+
+function appendProgressStatusFilter(whereClause, bindParams, procurementStatus) {
+    const statusValues = expandOrderProcurementStatusFilter(procurementStatus);
+    if (statusValues.length === 0) return whereClause;
+
+    if (statusValues.length === 1) {
+        bindParams.push(statusValues[0]);
+        return `${whereClause} AND ${ORDER_PROGRESS_STATUS_SQL} = ?`;
+    }
+
+    bindParams.push(...statusValues);
+    return `${whereClause} AND ${ORDER_PROGRESS_STATUS_SQL} IN (${statusValues.map(() => '?').join(', ')})`;
+}
 
 /**
  * GET / - 获取订单列表
@@ -26,9 +48,7 @@ app.get('/', withCache(20), async (c) => {
         orderRepo.listForAdmin({
             salespersonId,
             status: status && ORDER_STATUSES.includes(status) ? status : null,
-            procurementStatus: procurementStatus && ORDER_PROCUREMENT_STATUSES.includes(procurementStatus)
-                ? procurementStatus
-                : null,
+            procurementStatus: normalizeOrderProcurementStatus(procurementStatus),
             search,
             startTime,
             endTime,
@@ -121,10 +141,11 @@ app.get('/export', async (c) => {
         whereClause += ' AND o.status = ?';
         bindParams.push(status);
     }
-    if (procurementStatus && ORDER_PROCUREMENT_STATUSES.includes(procurementStatus)) {
-        whereClause += " AND COALESCE(order_line_agg.display_status, o.procurement_status, 'none') = ?";
-        bindParams.push(procurementStatus);
-    }
+    whereClause = appendProgressStatusFilter(
+        whereClause,
+        bindParams,
+        normalizeOrderProcurementStatus(procurementStatus)
+    );
     if (search) {
         whereClause += ' AND (o.order_no LIKE ? OR o.current_data LIKE ?)';
         const searchPattern = `%${search}%`;
