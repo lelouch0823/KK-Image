@@ -17,6 +17,11 @@ function createDbHarness({
     received_qty: 5,
     cancelled_qty: 0,
   },
+  orderLineRow = {
+    id: 'line-1',
+    order_id: 'o-1',
+    received_qty: 5,
+  },
   inventoryBalanceRow = {
     variant_id: 'var-1',
     on_hand: 5,
@@ -64,6 +69,9 @@ function createDbHarness({
       if (sql.includes('SUM(ordered_qty)')) {
         statement.first = vi.fn(async () => orderLineAggregateRow);
       }
+      if (sql.includes('FROM order_lines') && sql.includes('WHERE id = ?')) {
+        statement.first = vi.fn(async () => orderLineRow);
+      }
       if (sql.includes('FROM inventory_balances')) {
         statement.first = vi.fn(async () => inventoryBalanceRow);
       }
@@ -78,6 +86,10 @@ function createDbHarness({
 
   const purchaseReceiptRepo = {
     findReceiptWithLineage: vi.fn(async () => originalReceipt),
+    getReversalSummary: vi.fn(async () => ({
+      reversed_qty: 0,
+      reversal_count: 0,
+    })),
     createReversalInsertStatement: vi.fn((payload) => {
       calls.reversalPayloads.push(payload);
       return db.prepare(
@@ -253,5 +265,84 @@ describe('OrderProcurementReceiptReversalService', () => {
       reversal_qty: 5,
     });
     expect(harness.db.batch).not.toHaveBeenCalled();
+  });
+
+  it('rejects reversing the same receipt twice even with a different command idempotency key', async () => {
+    harness.purchaseReceiptRepo.getReversalSummary.mockResolvedValueOnce({
+      reversed_qty: 5,
+      reversal_count: 1,
+    });
+
+    await expect(service.reverseReceipt('po-1', 'receipt-1', {
+      reason: 'rollback',
+    }, {
+      idempotencyKey: 'idem-2',
+    })).rejects.toBeInstanceOf(BadRequestError);
+
+    expect(harness.db.batch).not.toHaveBeenCalled();
+    expect(harness.inventoryService.buildMutationStatements).not.toHaveBeenCalled();
+  });
+
+  it('reduces order line received quantity from its current aggregate instead of replacing sibling receipts', async () => {
+    const aggregateHarness = createDbHarness({
+      purchaseOrderItemRow: {
+        id: 'poi-1',
+        po_id: 'po-1',
+        quantity: 10,
+        received_qty: 8,
+        cancelled_qty: 0,
+      },
+      orderLineAggregateRow: {
+        ordered_qty: 10,
+        procured_qty: 10,
+        received_qty: 8,
+        cancelled_qty: 0,
+      },
+      orderLineRow: {
+        id: 'line-1',
+        order_id: 'o-1',
+        received_qty: 8,
+      },
+      inventoryBalanceRow: {
+        variant_id: 'var-1',
+        on_hand: 8,
+        reserved: 0,
+        available: 8,
+      },
+      originalReceipt: {
+        receipt_id: 'receipt-1',
+        purchase_order_id: 'po-1',
+        purchase_order_item_id: 'poi-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        received_qty: 3,
+        pre_order_id: 'o-1',
+        order_line_id: 'line-1',
+        inventory_event_id: 'ie-1',
+      },
+    });
+    const aggregateService = new OrderProcurementReceiptReversalService(aggregateHarness.db, {
+      purchaseReceiptRepo: aggregateHarness.purchaseReceiptRepo,
+      inventoryService: aggregateHarness.inventoryService,
+      commandIdempotencyRepo: aggregateHarness.commandIdempotencyRepo,
+      domainOutboxRepo: aggregateHarness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await aggregateService.reverseReceipt('po-1', 'receipt-1', {
+      reason: 'rollback',
+    }, {
+      idempotencyKey: 'idem-1',
+    });
+
+    const orderLineUpdate = aggregateHarness.calls.batchedStatements.find((statement) =>
+      statement.sql.includes('UPDATE order_lines')
+    );
+    const poItemUpdate = aggregateHarness.calls.batchedStatements.find((statement) =>
+      statement.sql.includes('UPDATE purchase_order_items')
+    );
+
+    expect(orderLineUpdate?.params).toEqual([5, 1710000000000, 'line-1', 'o-1']);
+    expect(poItemUpdate?.params.slice(0, 2)).toEqual([5, 'partially_received']);
   });
 });

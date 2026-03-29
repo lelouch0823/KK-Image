@@ -134,6 +134,24 @@ export class PurchaseReceiptRepository {
       .first();
   }
 
+  async getReversalSummary(originalReceiptId) {
+    const row = await this.db
+      .prepare(
+        `SELECT
+            COALESCE(SUM(reversal_qty), 0) AS reversed_qty,
+            COUNT(*) AS reversal_count
+         FROM purchase_receipt_reversals
+         WHERE original_receipt_id = ?`
+      )
+      .bind(originalReceiptId)
+      .first();
+
+    return {
+      reversed_qty: row?.reversed_qty ?? 0,
+      reversal_count: row?.reversal_count ?? 0,
+    };
+  }
+
   async create(payload) {
     const normalized = this.normalizePayload(payload);
     const statement = this.createInsertStatement(normalized);

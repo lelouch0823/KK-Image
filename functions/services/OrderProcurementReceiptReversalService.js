@@ -85,6 +85,20 @@ export class OrderProcurementReceiptReversalService {
     return row;
   }
 
+  async requireOrderLine(orderId, orderLineId) {
+    const row = await this.db
+      .prepare(
+        `SELECT id, order_id, received_qty
+         FROM order_lines
+         WHERE id = ? AND order_id = ?`
+      )
+      .bind(orderLineId, orderId)
+      .first();
+
+    if (!row) throw new NotFoundError('关联订单行不存在');
+    return row;
+  }
+
   async queryCompatibilityProcurementAggregate(orderId) {
     const progress = await this.db
       .prepare(
@@ -160,6 +174,15 @@ export class OrderProcurementReceiptReversalService {
       throw new BadRequestError('原始收货数量无效，无法冲销');
     }
 
+    const reversalSummary = await this.purchaseReceiptRepo.getReversalSummary(receiptId);
+    const reversedQty = toNonNegativeInt(reversalSummary?.reversed_qty);
+    if (reversedQty > 0 || toNonNegativeInt(reversalSummary?.reversal_count) > 0) {
+      throw new BadRequestError('原始收货记录已冲销，不能重复冲销');
+    }
+    if (reversedQty + reversalQty > toNonNegativeInt(originalReceipt.received_qty)) {
+      throw new BadRequestError('冲销数量超过原始收货数量');
+    }
+
     const inventoryBalance = originalReceipt.variant_id
       ? await this.queryInventoryBalance(originalReceipt.variant_id)
       : null;
@@ -206,7 +229,8 @@ export class OrderProcurementReceiptReversalService {
 
     let nextProcurementStatus = null;
     if (originalReceipt.order_line_id && originalReceipt.pre_order_id) {
-      const nextOrderLineReceivedQty = Math.max(toNonNegativeInt(originalReceipt.received_qty) - reversalQty, 0);
+      const orderLine = await this.requireOrderLine(originalReceipt.pre_order_id, originalReceipt.order_line_id);
+      const nextOrderLineReceivedQty = Math.max(toNonNegativeInt(orderLine.received_qty) - reversalQty, 0);
       statements.push(
         this.db.prepare(
           `UPDATE order_lines
