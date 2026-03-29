@@ -1,22 +1,20 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { CreateOrderSchema, AddCommentSchema } from '../../schemas/sales.js';
-import { MSG, generateId, generateOrderNo, triggerWebhook } from '../../_shared/utils.js';
+import { MSG, generateId, generateOrderNo } from '../../_shared/utils.js';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 import { validateProductVariantBinding } from '../../../../api/utils/validation.js';
 import { parsePagination, requireEntity } from '../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors.js';
 import { withCache } from '../../middleware/cache.js';
 import {
-    invalidateOrderNotificationCaches,
     scheduleSalesOrderListCacheInvalidation,
-    scheduleSalesOrderMutationCachesInvalidation,
-    scheduleSalesCommentCachesInvalidation,
-    scheduleOrderAndSalespersonCacheInvalidation,
 } from './orders-cache-helpers.js';
 import { DemandService } from '../../../../services/DemandService.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { DomainOutboxPublisher } from '../../../../services/DomainOutboxPublisher.js';
+import { runOutboxPoller } from '../../../../api/cron/outbox.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -39,6 +37,14 @@ async function requireSalesOrder(orderRepo, orderId, salespersonId) {
         orderRepo.findByIdAndSalesperson(orderId, salespersonId),
         () => new NotFoundError(MSG.ORDER.NOT_FOUND)
     );
+}
+
+function scheduleOutboxProcessing(c, workerId) {
+    c.executionCtx.waitUntil(runOutboxPoller({
+        env: c.env,
+        requestUrl: c.req.url,
+        workerId,
+    }));
 }
 
 /**
@@ -76,7 +82,6 @@ app.get('/', withCache(20), async (c) => {
  */
 app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
     const salesperson = c.get('salesperson');
-    const token = c.req.param('token');
     const data = c.req.valid('json');
     const { env } = c;
     const orderRepo = new OrderRepository(env.DB);
@@ -88,7 +93,7 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
     await validateProductVariantBinding(env.DB, data.productId || null, variantId, { checkActive: true });
 
     // 1. 创建订单（事务）
-    await orderRepo.create({
+    const createdOrder = await orderRepo.create({
         id: orderId,
         orderNo,
         salespersonId: salesperson.id,
@@ -115,10 +120,12 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
             actorName: salesperson.name,
         },
     });
+    const persistedOrderId = createdOrder?.id || orderId;
+    const persistedOrderNo = createdOrder?.orderNo || orderNo;
 
     const demandService = new DemandService(env.DB);
     await demandService.syncOrderTransition({
-        orderId,
+        orderId: persistedOrderId,
         fromStatus: null,
         toStatus: 'pending',
         quantity: data.quantity,
@@ -130,48 +137,41 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
     if (fileIds.length > 0) {
         try {
             const { ensureOrderFolder, moveFilesToFolder } = await import('../../../../api/utils/folder-utils.js');
-            const orderFolderId = await ensureOrderFolder(env, orderNo);
+            const orderFolderId = await ensureOrderFolder(env, persistedOrderNo);
             await moveFilesToFolder(env, fileIds, orderFolderId);
         } catch (error) {
             console.error('Order file archiving error (sales create):', error);
         }
     }
 
-    // 2. 发送 WEBHOOK & 通知 (后台任务)
-    c.executionCtx.waitUntil((async () => {
-        try {
-            const { createOrderNotification } = await import('../../../../api/utils/order-utils.js');
-            await createOrderNotification(env.DB, {
-                event: 'ORDER_CREATED',
-                orderId,
-                orderNo,
-                receiver: 'admin',
-                actorName: salesperson.name,
-                salespersonId: salesperson.id,
-            });
-
-            await invalidateOrderNotificationCaches(c);
-
-            await triggerWebhook(env, 'order.created', { orderId, orderNo, salesperson: salesperson.name });
-        } catch (e) {
-            console.error('Async notify/webhook failed:', e);
-        }
-    })());
-
-    scheduleOrderAndSalespersonCacheInvalidation(c, { salesToken: token });
+    const publisher = new DomainOutboxPublisher(env.DB);
+    await publisher.publish([
+        {
+            event_type: 'order_created_by_sales',
+            aggregate_type: 'order',
+            aggregate_id: persistedOrderId,
+            payload: {
+                order_id: persistedOrderId,
+                order_no: persistedOrderNo,
+                salesperson_id: salesperson.id,
+                actor_name: salesperson.name,
+            },
+        },
+    ]);
+    scheduleOutboxProcessing(c, `sales-order-create:${persistedOrderId}`);
     scheduleAuditEvent(c, {
         domain: 'sales-orders',
         action: 'sales.order.create',
         result: 'success',
         severity: 'high',
         targetType: 'order',
-        targetId: orderId,
-        target_label: orderNo,
-        summary: `${salesperson.name} created order ${orderNo}`,
+        targetId: persistedOrderId,
+        target_label: persistedOrderNo,
+        summary: `${salesperson.name} created order ${persistedOrderNo}`,
         metadata: { salespersonId: salesperson.id, productId: data.productId || null, variantId },
     });
 
-    return c.json({ success: true, data: { id: orderId, orderNo } }, 201);
+    return c.json({ success: true, data: { id: persistedOrderId, orderNo: persistedOrderNo } }, 201);
 });
 
 /**
@@ -240,7 +240,6 @@ app.patch('/:id/read', async (c) => {
  */
 app.patch('/:id', async (c) => {
     const salesperson = c.get('salesperson');
-    const token = c.req.param('token');
     const orderId = c.req.param('id');
     const body = await c.req.json();
     const { env } = c;
@@ -284,7 +283,7 @@ app.patch('/:id', async (c) => {
     // SOTA: productId 是顶级表列，通过 options.productId 单独传递处理，不应加入 JSON data 字段列表
     const SALES_EDITABLE_FIELDS = ['name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
 
-    const _result = await processOrderUpdate({
+    const updateResult = await processOrderUpdate({
         env,
         orderId,
         orderNo: order.orderNo,
@@ -298,8 +297,16 @@ app.patch('/:id', async (c) => {
         currentVariantId: order.variantId,
         allowedFields: SALES_EDITABLE_FIELDS,
         actor: { type: 'salesperson', id: salesperson.id, name: salesperson.name },
+        salespersonId: salesperson.id,
         reason: reason.trim(),
+        deferNotifications: true,
     });
+
+    if (updateResult?.outboxEvents?.length) {
+        const publisher = new DomainOutboxPublisher(env.DB);
+        await publisher.publish(updateResult.outboxEvents);
+        scheduleOutboxProcessing(c, `sales-order-update:${orderId}`);
+    }
 
     const nextStatus = ['rejected', 'void'].includes(order.status)
         ? 'pending'
@@ -317,7 +324,6 @@ app.patch('/:id', async (c) => {
         await orderRepo.updateStatus(orderId, 'pending', 'sales');
     }
 
-    scheduleSalesOrderMutationCachesInvalidation(c, { salesToken: token });
     scheduleAuditEvent(c, {
         domain: 'sales-orders',
         action: 'sales.order.update',
@@ -338,7 +344,6 @@ app.patch('/:id', async (c) => {
  */
 app.delete('/:id', async (c) => {
     const salesperson = c.get('salesperson');
-    const token = c.req.param('token');
     const orderId = c.req.param('id');
     const { env } = c;
 
@@ -370,18 +375,22 @@ app.delete('/:id', async (c) => {
         reason: 'Salesperson voided the order',
     });
 
-    // SOTA: 通知管理员
-    const { createOrderNotification } = await import('../../../../api/utils/order-utils.js');
-    await createOrderNotification(env.DB, {
-        event: 'ORDER_UPDATED_BY_SALES',
-        orderId: orderId,
-        orderNo: order.orderNo,
-        receiver: 'admin',
-        actorName: salesperson.name,
-        extra: { status: 'void' }
-    });
-
-    scheduleSalesOrderMutationCachesInvalidation(c, { salesToken: token });
+    const publisher = new DomainOutboxPublisher(env.DB);
+    await publisher.publish([
+        {
+            event_type: 'order_status_changed_by_sales',
+            aggregate_type: 'order',
+            aggregate_id: orderId,
+            payload: {
+                order_id: orderId,
+                order_no: order.orderNo,
+                salesperson_id: salesperson.id,
+                actor_name: salesperson.name,
+                status: 'void',
+            },
+        },
+    ]);
+    scheduleOutboxProcessing(c, `sales-order-status:${orderId}:void`);
     scheduleAuditEvent(c, {
         domain: 'sales-orders',
         action: 'sales.order.void',
@@ -422,18 +431,22 @@ app.post('/:id/comment', zValidator('json', AddCommentSchema), async (c) => {
 
     await orderRepo.setUnread(orderId, 'sales');
 
-    // SOTA: Send notification to admin
-    const { createOrderNotification } = await import('../../../../api/utils/order-utils.js');
-    await createOrderNotification(env.DB, {
-        event: 'ORDER_COMMENTED_BY_SALES',
-        orderId,
-        orderNo: order.orderNo,
-        receiver: 'admin',
-        actorName: salesperson.name,
-        extra: { comment: comment.trim() }
-    });
-
-    scheduleSalesCommentCachesInvalidation(c);
+    const publisher = new DomainOutboxPublisher(env.DB);
+    await publisher.publish([
+        {
+            event_type: 'order_comment_created_by_sales',
+            aggregate_type: 'order',
+            aggregate_id: orderId,
+            payload: {
+                order_id: orderId,
+                order_no: order.orderNo,
+                salesperson_id: salesperson.id,
+                actor_name: salesperson.name,
+                comment: comment.trim(),
+            },
+        },
+    ]);
+    scheduleOutboxProcessing(c, `sales-order-comment:${orderId}`);
     scheduleAuditEvent(c, {
         domain: 'sales-orders',
         action: 'sales.order.comment.create',

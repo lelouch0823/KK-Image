@@ -11,16 +11,12 @@ import { NotFoundError, BadRequestError } from '../../../errors.js';
 import { getManageOrderCacheUrls } from '../../_shared/cache-urls.js';
 import { assertAdminFull, assertForceStatusTransitionAllowed } from './authz-helpers.js';
 import { requireEntity, scheduleCacheInvalidation } from '../../../_shared/route-helpers.js';
-import {
-    resolveSalesTokens,
-    scheduleOrderAndSalespersonCacheInvalidation,
-    scheduleOrderNotificationCacheInvalidation,
-    scheduleOrderMutationCachesInvalidation,
-} from './cache-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
 import { DemandService } from '../../../../../services/DemandService.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
+import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
+import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -49,6 +45,14 @@ async function assertStatusTransitionAllowed({ c, user, fromStatus, toStatus, fo
         throw new BadRequestError(`Invalid status transition: ${fromStatus} -> ${toStatus}`);
     }
     await assertForceStatusTransitionAllowed(c, user, reason);
+}
+
+function scheduleOutboxProcessing(c, workerId) {
+    c.executionCtx.waitUntil(runOutboxPoller({
+        env: c.env,
+        requestUrl: c.req.url,
+        workerId,
+    }));
 }
 
 /**
@@ -155,7 +159,7 @@ app.patch('/:id', async (c) => {
         reason,
     });
 
-    await processOrderUpdate({
+    const updateResult = await processOrderUpdate({
         env,
         orderId: id,
         orderNo: order.orderNo,
@@ -172,7 +176,14 @@ app.patch('/:id', async (c) => {
         reason: reason || 'Admin Update',
         salespersonId: order.salespersonId, // 传入销售员ID以发送通知
         forceStatusTransition,
+        deferNotifications: true,
     });
+
+    if (updateResult?.outboxEvents?.length) {
+        const publisher = new DomainOutboxPublisher(env.DB);
+        await publisher.publish(updateResult.outboxEvents);
+        scheduleOutboxProcessing(c, `order-update:${id}`);
+    }
 
     const nextStatus = finalUpdates?.status ?? order.status;
     const demandService = new DemandService(env.DB);
@@ -183,9 +194,6 @@ app.patch('/:id', async (c) => {
         quantity: finalUpdates?.quantity ?? order.quantity,
         variantId: normalizedVariantId ?? order.variantId,
     });
-
-    const notificationSalesTokens = await resolveSalesTokens(env.DB, [order.salespersonId]);
-    scheduleOrderMutationCachesInvalidation(c, { salesTokens: notificationSalesTokens });
 
     const updatedOrder = await orderRepo.findById(id);
     scheduleAuditEvent(c, {
@@ -264,25 +272,26 @@ app.patch('/:id/status', async (c) => {
             reason: note || '',
         });
 
-        // SOTA: 发送状态变更通知给销售
-        if (order.salespersonId) {
-            const { createOrderNotification } = await import('../../../../../api/utils/order-utils.js');
-            await createOrderNotification(env.DB, {
-                event: 'ORDER_STATUS_CHANGED',
-                orderId: id,
-                orderNo: order.orderNo,
-                receiver: 'sales',
-                salespersonId: order.salespersonId,
-                actorName: actor.name,
-                extra: { status }
-            });
-        }
+        const publisher = new DomainOutboxPublisher(env.DB);
+        await publisher.publish([
+            {
+                event_type: 'order_status_changed_by_admin',
+                aggregate_type: 'order',
+                aggregate_id: id,
+                payload: {
+                    order_id: id,
+                    order_no: order.orderNo,
+                    salesperson_id: order.salespersonId || null,
+                    actor_name: actor.name,
+                    status,
+                    force: forceStatusTransition,
+                },
+            },
+        ]);
+        scheduleOutboxProcessing(c, `order-status:${id}:${status}`);
     } else {
         throw new BadRequestError(MSG.COMMON.OP_FAILED);
     }
-
-    const notificationSalesTokens = await resolveSalesTokens(env.DB, [order.salespersonId]);
-    scheduleOrderMutationCachesInvalidation(c, { salesTokens: notificationSalesTokens });
 
     scheduleAuditEvent(c, {
         domain: 'orders',
@@ -325,23 +334,23 @@ app.post('/:id/comment', async (c) => {
     });
     await repo.setUnread(id, 'admin');
 
-    // SOTA: Send notification to salesperson if assigned
     const order = await repo.findById(id);
-    if (order && order.salespersonId) {
-        const { createOrderNotification } = await import('../../../../../api/utils/order-utils.js');
-        await createOrderNotification(env.DB, {
-            event: 'ORDER_COMMENTED_BY_ADMIN',
-            orderId: id,
-            orderNo: order.orderNo,
-            receiver: 'sales',
-            salespersonId: order.salespersonId,
-            actorName: actor.name,
-            extra: { comment }
-        });
-    }
-
-    const notificationSalesTokens = await resolveSalesTokens(env.DB, [order?.salespersonId]);
-    scheduleOrderNotificationCacheInvalidation(c, { salesTokens: notificationSalesTokens });
+    const publisher = new DomainOutboxPublisher(env.DB);
+    await publisher.publish([
+        {
+            event_type: 'order_comment_created_by_admin',
+            aggregate_type: 'order',
+            aggregate_id: id,
+            payload: {
+                order_id: id,
+                order_no: order?.orderNo || id,
+                salesperson_id: order?.salespersonId || null,
+                actor_name: actor.name,
+                comment,
+            },
+        },
+    ]);
+    scheduleOutboxProcessing(c, `order-comment:${id}`);
     scheduleAuditEvent(c, {
         domain: 'orders',
         action: 'order.comment.create',
@@ -367,11 +376,22 @@ app.delete('/:id', async (c) => {
     const id = c.req.param('id');
     const orderRepo = new OrderRepository(env.DB);
     const order = await orderRepo.findById(id);
-    const notificationSalesTokens = await resolveSalesTokens(env.DB, [order?.salespersonId]);
-
     await orderRepo.deleteOrderCascading(id);
-
-    scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens: notificationSalesTokens });
+    const publisher = new DomainOutboxPublisher(env.DB);
+    await publisher.publish([
+        {
+            event_type: 'order_deleted_by_admin',
+            aggregate_type: 'order',
+            aggregate_id: id,
+            payload: {
+                order_id: id,
+                order_no: order?.orderNo || id,
+                salesperson_id: order?.salespersonId || null,
+                actor_name: user?.name || 'Admin',
+            },
+        },
+    ]);
+    scheduleOutboxProcessing(c, `order-delete:${id}`);
     scheduleAuditEvent(c, {
         domain: 'orders',
         action: 'order.delete',

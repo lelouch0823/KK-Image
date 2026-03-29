@@ -7,14 +7,12 @@ import {
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { BadRequestError } from '../../../errors.js';
 import { assertForceStatusTransitionAllowed } from './authz-helpers.js';
-import {
-    resolveSalesTokens,
-    scheduleOrderMutationCachesInvalidation,
-} from './cache-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
 import { createManagedOrder } from './create-order.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
+import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
+import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -89,7 +87,6 @@ app.post('/batch', async (c) => {
         const { results: orders } = await env.DB.prepare(
             `SELECT id, order_no, salesperson_id, status FROM orders WHERE id IN (${normalizedIds.map(() => '?').join(',')})`
         ).bind(...normalizedIds).all();
-        const notificationSalesTokens = await resolveSalesTokens(env.DB, (orders || []).map((o) => o.salesperson_id));
         const outOfFlowOrder = (orders || []).find((o) => !canTransitionOrderStatus(o.status, normalizedStatus));
         if (outOfFlowOrder) {
             if (!forceStatusTransition) {
@@ -115,25 +112,30 @@ app.post('/batch', async (c) => {
             throw error;
         }
 
-        // 3. SOTA: 发送批量通知给销售
         if (orders && orders.length > 0) {
-            const notifications = orders.filter(o => o.salesperson_id).map(order => ({
-                event: 'ORDER_BATCH_STATUS_CHANGED',
-                orderId: order.id,
-                orderNo: order.order_no,
-                receiver: 'sales',
-                salespersonId: order.salesperson_id,
-                actorName: actorName,
-                extra: { status: normalizedStatus, force: forceStatusTransition }
+            const publisher = new DomainOutboxPublisher(env.DB);
+            await publisher.publish(
+                orders.map((order) => ({
+                    event_type: 'order_status_changed_by_admin',
+                    aggregate_type: 'order',
+                    aggregate_id: order.id,
+                    payload: {
+                        order_id: order.id,
+                        order_no: order.order_no,
+                        salesperson_id: order.salesperson_id || null,
+                        actor_name: actorName,
+                        status: normalizedStatus,
+                        force: forceStatusTransition,
+                        batch: true,
+                    },
+                }))
+            );
+            c.executionCtx.waitUntil(runOutboxPoller({
+                env,
+                requestUrl: c.req.url,
+                workerId: `order-batch:${normalizedIds.join(',')}:${normalizedStatus}`,
             }));
-
-            if (notifications.length > 0) {
-                const { createBatchOrderNotifications } = await import('../../../../../api/utils/order-utils.js');
-                await createBatchOrderNotifications(env.DB, notifications);
-            }
         }
-
-        scheduleOrderMutationCachesInvalidation(c, { salesTokens: notificationSalesTokens });
     }
     scheduleAuditEvent(c, {
         domain: 'orders',

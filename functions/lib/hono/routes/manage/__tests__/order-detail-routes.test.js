@@ -20,6 +20,8 @@ const mocks = vi.hoisted(() => ({
   ]),
   getSalespersonAccessTokens: vi.fn(async () => []),
   scheduleAuditEvent: vi.fn(),
+  publish: vi.fn(async () => []),
+  runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
 
 vi.mock('../../../../../repositories/OrderRepository.js', () => ({
@@ -80,6 +82,16 @@ vi.mock('../../../_shared/audit-helpers.js', async () => {
     scheduleAuditEvent: mocks.scheduleAuditEvent,
   };
 });
+
+vi.mock('../../../../../services/DomainOutboxPublisher.js', () => ({
+  DomainOutboxPublisher: vi.fn(() => ({
+    publish: mocks.publish,
+  })),
+}));
+
+vi.mock('../../../../../api/cron/outbox.js', () => ({
+  runOutboxPoller: mocks.runOutboxPoller,
+}));
 
 vi.mock('../../../../../api/utils/order-utils.js', () => ({
   createOrderNotification: vi.fn(async () => {}),
@@ -178,17 +190,104 @@ describe('manage order detail routes', () => {
     );
   });
 
+  it('enqueues deferred order-update side effects via outbox after PATCH /:id', async () => {
+    mocks.processOrderUpdate.mockResolvedValue({
+      success: true,
+      hasChanges: true,
+      outboxEvents: [
+        {
+          event_type: 'order_updated_by_admin',
+          aggregate_type: 'order',
+          aggregate_id: 'order-1',
+          payload: {
+            order_id: 'order-1',
+            order_no: 'SO-1',
+            salesperson_id: 'sp-1',
+            actor_name: 'Admin',
+          },
+        },
+      ],
+    });
+    const waitUntil = vi.fn();
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates: { remark: 'next' }, reason: 'ops' }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'order_updated_by_admin',
+        aggregate_id: 'order-1',
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('enqueues order status change side effects via outbox after PATCH /:id/status', async () => {
+    const waitUntil = vi.fn();
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/status',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'confirmed' }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'order_status_changed_by_admin',
+        aggregate_id: 'order-1',
+        payload: expect.objectContaining({
+          order_id: 'order-1',
+          order_no: 'SO-1',
+          salesperson_id: 'sp-1',
+          status: 'confirmed',
+        }),
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
+  });
+
   it('allows privileged admin user to delete order', async () => {
+    const waitUntil = vi.fn();
     const app = createApp();
     const res = await app.request(
       'http://localhost/api/manage/orders/order-1',
       { method: 'DELETE' },
       { DB: { prepare: vi.fn() } },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
     expect(res.status).toBe(200);
     expect(mocks.deleteOrderCascading).toHaveBeenCalledWith('order-1');
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'order_deleted_by_admin',
+        aggregate_id: 'order-1',
+        payload: expect.objectContaining({
+          order_id: 'order-1',
+          order_no: 'SO-1',
+          salesperson_id: 'sp-1',
+        }),
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ action: 'order.delete', severity: 'critical' })

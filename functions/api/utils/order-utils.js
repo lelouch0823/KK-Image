@@ -53,6 +53,21 @@ const NOTIFICATION_EVENTS = {
   },
 };
 
+function buildOrderDomainEvent({ eventType, orderId, orderNo, salespersonId = null, actorName = '', extra = {} }) {
+  return {
+    event_type: eventType,
+    aggregate_type: 'order',
+    aggregate_id: orderId,
+    payload: {
+      order_id: orderId,
+      order_no: orderNo,
+      salesperson_id: salespersonId || null,
+      actor_name: actorName || '',
+      ...extra,
+    },
+  };
+}
+
 /**
  * 创建订单相关通知
  * @param {D1Database} db - 数据库实例
@@ -307,6 +322,7 @@ export async function processOrderUpdate(options) {
     options;
   const currentStatus = options.currentStatus ?? currentData?.status;
   const baselineData = { ...currentData, status: currentStatus };
+  const deferNotifications = Boolean(options.deferNotifications);
 
   // 1. 检测字段变更
   const { newData, hasChanges: dataChanged, fieldChanges } = await detectAndLogFieldChanges(
@@ -381,31 +397,50 @@ export async function processOrderUpdate(options) {
     // SOTA: 自动发送通知
     // 如果是管理员修改，通知销售员
     if (actor.type === 'admin' && salespersonId) {
-      await createOrderNotification(env.DB, {
-        event: 'ORDER_UPDATED_BY_ADMIN',
-        orderId,
-        orderNo,
-        receiver: 'sales',
-        salespersonId,
-        actorName: actor.name,
-        extra: {
-          count: Object.keys(updates || {}).length + (filesChanged ? 1 : 0)
-        }
-      });
+      if (!deferNotifications) {
+        await createOrderNotification(env.DB, {
+          event: 'ORDER_UPDATED_BY_ADMIN',
+          orderId,
+          orderNo,
+          receiver: 'sales',
+          salespersonId,
+          actorName: actor.name,
+          extra: {
+            count: Object.keys(updates || {}).length + (filesChanged ? 1 : 0)
+          }
+        });
+      }
     }
     // 如果是销售员修改，通知管理员
     else if (actor.type !== 'admin') {
-      await createOrderNotification(env.DB, {
-        event: 'ORDER_UPDATED_BY_SALES',
-        orderId,
-        orderNo,
-        receiver: 'admin',
-        actorName: actor.name
-      });
+      if (!deferNotifications) {
+        await createOrderNotification(env.DB, {
+          event: 'ORDER_UPDATED_BY_SALES',
+          orderId,
+          orderNo,
+          receiver: 'admin',
+          actorName: actor.name
+        });
+      }
     }
 
-    return { success: true, hasChanges: true, newData };
+    const outboxEvents = deferNotifications
+      ? [
+          buildOrderDomainEvent({
+            eventType: actor.type === 'admin' ? 'order_updated_by_admin' : 'order_updated_by_sales',
+            orderId,
+            orderNo,
+            salespersonId,
+            actorName: actor.name,
+            extra: {
+              change_count: Object.keys(updates || {}).length + (filesChanged ? 1 : 0),
+            },
+          }),
+        ]
+      : [];
+
+    return { success: true, hasChanges: true, newData, outboxEvents };
   }
 
-  return { success: true, hasChanges: false, newData };
+  return { success: true, hasChanges: false, newData, outboxEvents: [] };
 }

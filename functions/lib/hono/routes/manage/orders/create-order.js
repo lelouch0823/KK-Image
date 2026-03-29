@@ -1,16 +1,12 @@
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
-import { NotificationRepository } from '../../../../../repositories/NotificationRepository.js';
 import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
 import { ensureOrderFolder, moveFilesToFolder } from '../../../../../api/utils/folder-utils.js';
-import { generateId, generateOrderNo, triggerWebhook } from '../../../_shared/utils.js';
+import { generateId, generateOrderNo } from '../../../_shared/utils.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { BadRequestError } from '../../../errors.js';
 import { DemandService } from '../../../../../services/DemandService.js';
-import {
-  resolveSalesTokens,
-  invalidateOrderNotificationCaches,
-  scheduleOrderAndSalespersonCacheInvalidation,
-} from './cache-helpers.js';
+import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
+import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 
 export async function createManagedOrder(c, body, user = c.get('user')) {
   const { env } = c;
@@ -23,15 +19,13 @@ export async function createManagedOrder(c, body, user = c.get('user')) {
   const orderId = generateId();
   const orderNo = generateOrderNo();
   const variantId = body.variantId ?? null;
-  const notificationSalesTokens = await resolveSalesTokens(env.DB, [body.salespersonId]);
-
   await validateProductVariantBinding(env.DB, body.productId || null, variantId, { checkActive: true });
 
   if (body.status && !ORDER_STATUSES.includes(body.status)) {
     throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
   }
 
-  await orderRepo.create({
+  const createdOrder = await orderRepo.create({
     id: orderId,
     orderNo,
     salespersonId: body.salespersonId,
@@ -60,10 +54,12 @@ export async function createManagedOrder(c, body, user = c.get('user')) {
       comment: 'Admin created order',
     },
   });
+  const persistedOrderId = createdOrder?.id || orderId;
+  const persistedOrderNo = createdOrder?.orderNo || orderNo;
 
   const demandService = new DemandService(env.DB);
   await demandService.syncOrderTransition({
-    orderId,
+    orderId: persistedOrderId,
     fromStatus: null,
     toStatus: body.status || 'pending',
     quantity: body.quantity || 1,
@@ -73,34 +69,32 @@ export async function createManagedOrder(c, body, user = c.get('user')) {
   const fileIds = Array.isArray(body.fileIds) ? body.fileIds.filter(Boolean) : [];
   if (fileIds.length > 0) {
     try {
-      const orderFolderId = await ensureOrderFolder(env, orderNo);
+      const orderFolderId = await ensureOrderFolder(env, persistedOrderNo);
       await moveFilesToFolder(env, fileIds, orderFolderId);
     } catch (error) {
       console.error('Order file archiving error (manage create):', error);
     }
   }
 
-  c.executionCtx.waitUntil((async () => {
-    try {
-      const notifyRepo = new NotificationRepository(env.DB);
-      await notifyRepo.create({
-        type: 'order',
-        title: JSON.stringify({ key: 'notification.orderAssigned', params: { orderNo } }),
-        content: `Order ${orderNo} has been assigned to you`,
-        receiver: 'sales',
-        salespersonId: body.salespersonId,
-        orderId,
-        metadata: { actorName: user?.name || 'Admin' },
-      });
+  const publisher = new DomainOutboxPublisher(env.DB);
+  await publisher.publish([
+    {
+      event_type: 'order_created_by_admin',
+      aggregate_type: 'order',
+      aggregate_id: persistedOrderId,
+      payload: {
+        order_id: persistedOrderId,
+        order_no: persistedOrderNo,
+        salesperson_id: body.salespersonId,
+        actor_name: user?.name || 'Admin',
+      },
+    },
+  ]);
+  c.executionCtx.waitUntil(runOutboxPoller({
+    env,
+    requestUrl: c.req.url,
+    workerId: `order-create:${persistedOrderId}`,
+  }));
 
-      await invalidateOrderNotificationCaches(c, { salesTokens: notificationSalesTokens });
-      await triggerWebhook(env, 'order.created_by_admin', { orderId, orderNo, admin: user?.name });
-    } catch (error) {
-      console.error('Async notify failed:', error);
-    }
-  })());
-
-  scheduleOrderAndSalespersonCacheInvalidation(c, { salesTokens: notificationSalesTokens });
-
-  return { id: orderId, orderNo };
+  return { id: persistedOrderId, orderNo: persistedOrderNo };
 }

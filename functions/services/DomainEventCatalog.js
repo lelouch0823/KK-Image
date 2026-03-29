@@ -1,4 +1,48 @@
 export const DOMAIN_EVENT_CATALOG = {
+  order_created_by_admin: {
+    version: 1,
+    consumers: ['cache', 'notification', 'webhook'],
+  },
+  order_created_by_sales: {
+    version: 1,
+    consumers: ['cache', 'notification', 'webhook'],
+  },
+  order_updated_by_admin: {
+    version: 1,
+    consumers: ['cache', 'notification'],
+  },
+  order_updated_by_sales: {
+    version: 1,
+    consumers: ['cache', 'notification'],
+  },
+  order_status_changed_by_admin: {
+    version: 1,
+    consumers: ['cache', 'notification'],
+  },
+  order_status_changed_by_sales: {
+    version: 1,
+    consumers: ['cache', 'notification'],
+  },
+  order_comment_created_by_admin: {
+    version: 1,
+    consumers: ['cache', 'notification'],
+  },
+  order_comment_created_by_sales: {
+    version: 1,
+    consumers: ['cache', 'notification'],
+  },
+  order_deleted_by_admin: {
+    version: 1,
+    consumers: ['cache'],
+  },
+  order_pending_reminder_due: {
+    version: 1,
+    consumers: ['notification'],
+  },
+  order_deadline_reminder_due: {
+    version: 1,
+    consumers: ['notification'],
+  },
   purchase_receipt_recorded: {
     version: 1,
     consumers: ['audit', 'cache', 'notification', 'webhook'],

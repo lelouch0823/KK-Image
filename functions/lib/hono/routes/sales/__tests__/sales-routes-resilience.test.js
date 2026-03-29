@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   orderSetUnread: vi.fn(),
   orderTimelineGetTimeline: vi.fn(),
   orderTimelineAddTimelineEntry: vi.fn(),
-  createOrderNotification: vi.fn(),
+  processOrderUpdate: vi.fn(),
   invalidateCache: vi.fn(async () => {}),
   productVariantFindByIdAndProductId: vi.fn(),
   productSearch: vi.fn(),
@@ -21,6 +21,8 @@ const mocks = vi.hoisted(() => ({
   dimensionGetMap: vi.fn(),
   variantImageListByVariant: vi.fn(),
   scheduleAuditEvent: vi.fn(),
+  publish: vi.fn(async () => []),
+  runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
 
 vi.mock('../../../middleware/cache.js', () => ({
@@ -75,7 +77,17 @@ vi.mock('../../../../../repositories/OrderTimelineRepository.js', () => ({
 }));
 
 vi.mock('../../../../../api/utils/order-utils.js', () => ({
-  createOrderNotification: mocks.createOrderNotification,
+  processOrderUpdate: mocks.processOrderUpdate,
+}));
+
+vi.mock('../../../../../services/DomainOutboxPublisher.js', () => ({
+  DomainOutboxPublisher: vi.fn(() => ({
+    publish: mocks.publish,
+  })),
+}));
+
+vi.mock('../../../../../api/cron/outbox.js', () => ({
+  runOutboxPoller: mocks.runOutboxPoller,
 }));
 
 vi.mock('../../../_shared/audit-helpers.js', async () => {
@@ -127,7 +139,23 @@ describe('sales routes resilience', () => {
     mocks.orderTimelineGetTimeline.mockResolvedValue([]);
     mocks.orderMarkAsRead.mockResolvedValue(true);
     mocks.orderSetUnread.mockResolvedValue(true);
-    mocks.createOrderNotification.mockResolvedValue(undefined);
+    mocks.processOrderUpdate.mockResolvedValue({
+      success: true,
+      hasChanges: true,
+      outboxEvents: [
+        {
+          event_type: 'order_updated_by_sales',
+          aggregate_type: 'order',
+          aggregate_id: 'o-1',
+          payload: {
+            order_id: 'o-1',
+            order_no: 'SO-1',
+            salesperson_id: 'sp-1',
+            actor_name: 'Alice',
+          },
+        },
+      ],
+    });
   });
 
   it('returns consistent error payload for variant validation failure', async () => {
@@ -403,14 +431,129 @@ describe('sales routes resilience', () => {
 
     expect(res.status).toBe(200);
     expect(mocks.orderSetUnread).toHaveBeenCalledWith('o-1', 'sales');
-
-    const invalidatedUrls = mocks.invalidateCache.mock.calls
-      .map(([urls]) => (Array.isArray(urls) ? urls : [urls]))
-      .flat();
-    expect(invalidatedUrls).toContain('http://localhost/api/manage/orders');
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'order_comment_created_by_sales',
+        aggregate_id: 'o-1',
+        payload: expect.objectContaining({
+          order_id: 'o-1',
+          order_no: 'SO-1',
+          actor_name: 'Alice',
+          comment: 'need review',
+        }),
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ action: 'sales.order.comment.create', domain: 'sales-orders' })
     );
+  });
+
+  it('enqueues order-created side effects through outbox for salesperson create', async () => {
+    const waitUntil = vi.fn();
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Shoes',
+          quantity: 1,
+          fileIds: [],
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'order_created_by_sales',
+        aggregate_type: 'order',
+        payload: expect.objectContaining({
+          salesperson_id: 'sp-1',
+          actor_name: 'Alice',
+        }),
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('enqueues deferred order-update side effects through outbox for salesperson patch', async () => {
+    mocks.orderFindByIdAndSalesperson.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      quantity: 1,
+      variantId: 'v-1',
+      productId: 'p-1',
+      currentData: { name: 'A' },
+    });
+
+    const waitUntil = vi.fn();
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders/o-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates: { remark: 'next' }, reason: 'customer changed' }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.processOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      deferNotifications: true,
+    }));
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'order_updated_by_sales',
+        aggregate_id: 'o-1',
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('enqueues order status change through outbox for salesperson void', async () => {
+    mocks.orderFindByIdAndSalesperson.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      quantity: 2,
+      variantId: 'v-1',
+      currentData: {},
+    });
+
+    const waitUntil = vi.fn();
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders/o-1',
+      { method: 'DELETE' },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'order_status_changed_by_sales',
+        aggregate_id: 'o-1',
+        payload: expect.objectContaining({
+          order_id: 'o-1',
+          order_no: 'SO-1',
+          salesperson_id: 'sp-1',
+          status: 'void',
+        }),
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
   });
 });

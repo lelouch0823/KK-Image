@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   resolveSalesTokens: vi.fn(),
   scheduleOrderMutationCachesInvalidation: vi.fn(),
   scheduleAuditEvent: vi.fn(),
+  publish: vi.fn(async () => []),
+  runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
 
 vi.mock('../create-order.js', () => ({
@@ -60,6 +62,16 @@ vi.mock('../../../../_shared/audit-helpers.js', async () => {
   };
 });
 
+vi.mock('../../../../../../services/DomainOutboxPublisher.js', () => ({
+  DomainOutboxPublisher: vi.fn(() => ({
+    publish: mocks.publish,
+  })),
+}));
+
+vi.mock('../../../../../../api/cron/outbox.js', () => ({
+  runOutboxPoller: mocks.runOutboxPoller,
+}));
+
 import createRoutesApp from '../create.js';
 
 function createApp() {
@@ -109,6 +121,7 @@ describe('manage order create routes', () => {
   });
 
   it('audits batch order status updates', async () => {
+    const waitUntil = vi.fn();
     const app = createApp();
     const db = {
       prepare: vi.fn(() => ({
@@ -126,7 +139,7 @@ describe('manage order create routes', () => {
         body: JSON.stringify({ ids: ['order-1'], action: 'status', value: 'confirmed' }),
       },
       { DB: db },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
     expect(res.status).toBe(200);
@@ -136,6 +149,14 @@ describe('manage order create routes', () => {
       expect.anything(),
       { forceStatusTransition: false }
     );
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'order_status_changed_by_admin',
+        aggregate_id: 'order-1',
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({

@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   invalidateCache: vi.fn(async () => {}),
   ensureOrderFolder: vi.fn(),
   moveFilesToFolder: vi.fn(),
+  publish: vi.fn(async () => []),
+  runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
 
 vi.mock('../../../../../repositories/OrderRepository.js', () => ({
@@ -40,6 +42,16 @@ vi.mock('../../_shared/cache-urls.js', () => ({
 vi.mock('../../../../../api/utils/folder-utils.js', () => ({
   ensureOrderFolder: mocks.ensureOrderFolder,
   moveFilesToFolder: mocks.moveFilesToFolder,
+}));
+
+vi.mock('../../../../../services/DomainOutboxPublisher.js', () => ({
+  DomainOutboxPublisher: vi.fn(() => ({
+    publish: mocks.publish,
+  })),
+}));
+
+vi.mock('../../../../../api/cron/outbox.js', () => ({
+  runOutboxPoller: mocks.runOutboxPoller,
 }));
 
 import createAppRoutes from '../orders/create.js';
@@ -93,5 +105,40 @@ describe('manage order create route', () => {
       ['file-1', 'file-2'],
       'folder-order-1'
     );
+  });
+
+  it('enqueues order-created side effects through outbox instead of inline notifications', async () => {
+    const waitUntil = vi.fn();
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: 'Sample Product',
+          salespersonId: 'sales-1',
+          quantity: 1,
+        }),
+      },
+      { DB: {} },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'order_created_by_admin',
+        aggregate_type: 'order',
+        aggregate_id: 'order-1',
+        payload: expect.objectContaining({
+          order_id: 'order-1',
+          order_no: 'SO-1001',
+          salesperson_id: 'sales-1',
+        }),
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
   });
 });

@@ -33,6 +33,7 @@ describe('DomainOutboxRepository event catalog fan-out', () => {
         .mockReturnValueOnce('job-audit-1')
         .mockReturnValueOnce('job-cache-1')
         .mockReturnValueOnce('job-notification-1')
+        .mockReturnValueOnce('job-webhook-1')
         .mockReturnValueOnce('job-audit-2')
         .mockReturnValueOnce('job-cache-2'),
     });
@@ -70,11 +71,12 @@ describe('DomainOutboxRepository event catalog fan-out', () => {
     );
 
     const jobStatements = statements.filter((statement) => statement.sql.includes('INSERT INTO outbox_consumer_jobs'));
-    expect(jobStatements).toHaveLength(5);
+    expect(jobStatements).toHaveLength(6);
     expect(jobStatements.map((statement) => statement.params[1])).toEqual([
       'audit',
       'cache',
       'notification',
+      'webhook',
       'audit',
       'cache',
     ]);

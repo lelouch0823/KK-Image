@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   ensureOrderFolder: vi.fn(),
   moveFilesToFolder: vi.fn(),
   scheduleAuditEvent: vi.fn(),
+  publish: vi.fn(async () => []),
+  runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
 
 vi.mock('../../../middleware/cache.js', () => ({
@@ -49,6 +51,16 @@ vi.mock('../../../_shared/audit-helpers.js', async () => {
     scheduleAuditEvent: mocks.scheduleAuditEvent,
   };
 });
+
+vi.mock('../../../../../services/DomainOutboxPublisher.js', () => ({
+  DomainOutboxPublisher: vi.fn(() => ({
+    publish: mocks.publish,
+  })),
+}));
+
+vi.mock('../../../../../api/cron/outbox.js', () => ({
+  runOutboxPoller: mocks.runOutboxPoller,
+}));
 
 import ordersApp from '../orders.js';
 

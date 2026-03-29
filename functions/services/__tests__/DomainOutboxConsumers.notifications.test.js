@@ -125,6 +125,151 @@ describe('DomainOutboxConsumers notifications', () => {
     }));
   });
 
+  it('creates one sales notification from order_created_by_admin', async () => {
+    const result = await DOMAIN_OUTBOX_CONSUMERS.notification({
+      db: {},
+      baseUrl: 'https://kk.example.com',
+      event: {
+        id: 'job-notification-4',
+        event_id: 'evt-4',
+        event_type: 'order_created_by_admin',
+        aggregate_type: 'order',
+        aggregate_id: 'o-4',
+        payload_json: JSON.stringify({
+          order_id: 'o-4',
+          order_no: 'SO-4',
+          salesperson_id: 'sp-4',
+          actor_name: 'Admin',
+        }),
+      },
+    });
+
+    expect(result).toEqual({
+      id: 'notification-1',
+      created: true,
+    });
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
+      receiver: 'sales',
+      salespersonId: 'sp-4',
+      orderId: 'o-4',
+      sourceConsumer: 'notification',
+      sourceEventId: 'evt-4',
+      dedupeKey: 'order_created_by_admin:evt-4:sales:sp-4',
+      metadata: expect.objectContaining({
+        eventType: 'order_created_by_admin',
+      }),
+    }));
+  });
+
+  it('creates one admin notification from order_updated_by_sales', async () => {
+    const result = await DOMAIN_OUTBOX_CONSUMERS.notification({
+      db: {},
+      baseUrl: 'https://kk.example.com',
+      event: {
+        id: 'job-notification-5',
+        event_id: 'evt-5',
+        event_type: 'order_updated_by_sales',
+        aggregate_type: 'order',
+        aggregate_id: 'o-5',
+        payload_json: JSON.stringify({
+          order_id: 'o-5',
+          order_no: 'SO-5',
+          salesperson_id: 'sp-5',
+          actor_name: 'Alice',
+          change_count: 2,
+        }),
+      },
+    });
+
+    expect(result).toEqual({
+      id: 'notification-1',
+      created: true,
+    });
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
+      receiver: 'admin',
+      salespersonId: null,
+      orderId: 'o-5',
+      sourceConsumer: 'notification',
+      sourceEventId: 'evt-5',
+      dedupeKey: 'order_updated_by_sales:evt-5:admin',
+      metadata: expect.objectContaining({
+        eventType: 'order_updated_by_sales',
+      }),
+    }));
+  });
+
+  it('creates one admin reminder notification from order_pending_reminder_due', async () => {
+    const result = await DOMAIN_OUTBOX_CONSUMERS.notification({
+      db: {},
+      baseUrl: 'https://kk.example.com',
+      event: {
+        id: 'job-notification-6',
+        event_id: 'evt-6',
+        event_type: 'order_pending_reminder_due',
+        aggregate_type: 'order',
+        aggregate_id: 'o-6',
+        payload_json: JSON.stringify({
+          order_id: 'o-6',
+          order_no: 'SO-6',
+          receiver: 'admin',
+          sub_type: 'pending_timeout',
+        }),
+      },
+    });
+
+    expect(result).toEqual({
+      id: 'notification-1',
+      created: true,
+    });
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'order',
+      receiver: 'admin',
+      orderId: 'o-6',
+      sourceEventId: 'evt-6',
+      dedupeKey: 'order_pending_reminder_due:evt-6:admin',
+      metadata: expect.objectContaining({
+        eventType: 'order_pending_reminder_due',
+      }),
+    }));
+  });
+
+  it('creates one sales deadline reminder notification from order_deadline_reminder_due', async () => {
+    const result = await DOMAIN_OUTBOX_CONSUMERS.notification({
+      db: {},
+      baseUrl: 'https://kk.example.com',
+      event: {
+        id: 'job-notification-7',
+        event_id: 'evt-7',
+        event_type: 'order_deadline_reminder_due',
+        aggregate_type: 'order',
+        aggregate_id: 'o-7',
+        payload_json: JSON.stringify({
+          order_id: 'o-7',
+          order_no: 'SO-7',
+          deadline: '2026-04-01',
+          receiver: 'sales',
+          salesperson_id: 'sp-7',
+        }),
+      },
+    });
+
+    expect(result).toEqual({
+      id: 'notification-1',
+      created: true,
+    });
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'deadline',
+      receiver: 'sales',
+      salespersonId: 'sp-7',
+      orderId: 'o-7',
+      sourceEventId: 'evt-7',
+      dedupeKey: 'order_deadline_reminder_due:evt-7:sales:sp-7',
+      metadata: expect.objectContaining({
+        eventType: 'order_deadline_reminder_due',
+      }),
+    }));
+  });
+
   it('does not duplicate notifications when the same event is retried or replayed', async () => {
     const event = {
       id: 'job-notification-3',

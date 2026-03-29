@@ -192,6 +192,43 @@ describe('Order Utils Full Coverage Final', () => {
         notificationSpy.mockRestore();
       }
     });
+
+    it('should defer notifications into outbox event descriptors when requested', async () => {
+      expect(typeof OrderRepository.prototype.updateComposite).toBe('function');
+      const updateCompositeSpy = vi.spyOn(OrderRepository.prototype, 'updateComposite').mockResolvedValue({ success: true });
+      const notificationSpy = vi.spyOn(NotificationRepository.prototype, 'create').mockResolvedValue({ success: true });
+      try {
+        const options = {
+          env,
+          orderId: 'o1',
+          orderNo: 'n1',
+          currentData: { status: 'pending', name: 'A' },
+          updates: { status: 'confirmed', name: 'B' },
+          allowedFields: ['status', 'name'],
+          actor: { id: 'a1', type: 'admin', name: 'Admin' },
+          salespersonId: 'sp-1',
+          deferNotifications: true,
+        };
+
+        const result = await processOrderUpdate(options);
+        expect(result.hasChanges).toBe(true);
+        expect(result.outboxEvents).toEqual([
+          expect.objectContaining({
+            event_type: 'order_updated_by_admin',
+            payload: expect.objectContaining({
+              order_id: 'o1',
+              order_no: 'n1',
+              salesperson_id: 'sp-1',
+              actor_name: 'Admin',
+            }),
+          }),
+        ]);
+        expect(notificationSpy).not.toHaveBeenCalled();
+      } finally {
+        updateCompositeSpy.mockRestore();
+        notificationSpy.mockRestore();
+      }
+    });
   });
 
   describe('updateOrderFiles', () => {

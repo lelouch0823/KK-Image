@@ -8,6 +8,35 @@ import { success, error } from '../utils/response.js';
 import { OrderRepository } from '../../repositories/OrderRepository.js';
 import { parseJsonObject } from '../utils/json.js';
 import { isCronAuthorized } from '../utils/cron-auth.js';
+import { DomainOutboxPublisher } from '../../services/DomainOutboxPublisher.js';
+import { runOutboxPoller } from './outbox.js';
+
+async function reminderAlreadyEnqueued(db, idempotencyKey) {
+  const existing = await db.prepare(
+    'SELECT 1 FROM domain_outbox WHERE idempotency_key = ? LIMIT 1'
+  )
+    .bind(idempotencyKey)
+    .first();
+
+  return Boolean(existing);
+}
+
+function buildReminderEvent({ eventType, orderId, orderNo, receiver, salespersonId = null, deadline = null, subType = null, idempotencyKey }) {
+  return {
+    event_type: eventType,
+    aggregate_type: 'order',
+    aggregate_id: orderId,
+    idempotency_key: idempotencyKey,
+    payload: {
+      order_id: orderId,
+      order_no: orderNo,
+      receiver,
+      salesperson_id: salespersonId,
+      deadline,
+      sub_type: subType,
+    },
+  };
+}
 
 export async function onRequest(context) {
   const { env, request } = context;
@@ -23,7 +52,7 @@ export async function onRequest(context) {
     const ONE_DAY = 24 * 60 * 60 * 1000;
     const THREE_DAYS = 3 * ONE_DAY;
 
-    const notifications = [];
+    const outboxEvents = [];
 
     // 2. 检查超时未处理订单 (Pending > 24h) - 使用 Repository
     const pendingThreshold = now - ONE_DAY;
@@ -43,25 +72,19 @@ export async function onRequest(context) {
         .first();
 
       if (!exists) {
-        const id = crypto.randomUUID();
-        notifications.push(
-          env.DB.prepare(
-            `
-                    INSERT INTO notifications (id, type, title, content, link, is_read, receiver, salesperson_id, metadata, created_at)
-                    VALUES (?, 'order', ?, ?, ?, 0, 'admin', null, ?, ?)
-                `
-          ).bind(
-            id,
-            'notification.reminder.pending_order_title',
-            JSON.stringify({
-              key: 'notification.reminder.pending_order_desc',
+        const idempotencyKey = `order_pending_reminder_due:${order.id}:${new Date(now).toISOString().split('T')[0]}`;
+        if (!(await reminderAlreadyEnqueued(env.DB, idempotencyKey))) {
+          outboxEvents.push(
+            buildReminderEvent({
+              eventType: 'order_pending_reminder_due',
+              orderId: order.id,
               orderNo: order.order_no,
-            }),
-            `/manage/orders?id=${order.id}`,
-            JSON.stringify({ orderId: order.id, subType: 'pending_timeout' }),
-            now
-          )
-        );
+              receiver: 'admin',
+              subType: 'pending_timeout',
+              idempotencyKey,
+            })
+          );
+        }
       }
     }
 
@@ -99,62 +122,52 @@ export async function onRequest(context) {
         .first();
 
       if (!exists) {
-        const id = crypto.randomUUID();
-        notifications.push(
-          env.DB.prepare(
-            `
-                    INSERT INTO notifications (id, type, title, content, link, is_read, receiver, salesperson_id, metadata, created_at)
-                    VALUES (?, 'deadline', ?, ?, ?, 0, 'sales', ?, ?, ?)
-                `
-          ).bind(
-            id,
-            'notification.reminder.deadline_title',
-            JSON.stringify({
-              key: 'notification.reminder.deadline_desc',
+        const salesIdempotencyKey = `order_deadline_reminder_due:sales:${order.salesperson_id || ''}:${order.id}:${deadline}`;
+        if (!(await reminderAlreadyEnqueued(env.DB, salesIdempotencyKey))) {
+          outboxEvents.push(
+            buildReminderEvent({
+              eventType: 'order_deadline_reminder_due',
+              orderId: order.id,
               orderNo: order.order_no,
+              receiver: 'sales',
+              salespersonId: order.salesperson_id,
               deadline,
-            }),
-            `/orders/${order.id}`,
-            order.salesperson_id,
-            JSON.stringify({ orderId: order.id, deadline }),
-            now
-          )
-        );
-        
-        // SOTA: Also notify admin
-        const adminId = crypto.randomUUID();
-        notifications.push(
-          env.DB.prepare(
-            `
-                    INSERT INTO notifications (id, type, title, content, link, is_read, receiver, salesperson_id, metadata, created_at)
-                    VALUES (?, 'deadline', ?, ?, ?, 0, 'admin', null, ?, ?)
-                `
-          ).bind(
-            adminId,
-            'notification.reminder.deadline_title',
-            JSON.stringify({
-              key: 'notification.reminder.deadline_desc',
+              idempotencyKey: salesIdempotencyKey,
+            })
+          );
+        }
+
+        const adminIdempotencyKey = `order_deadline_reminder_due:admin:${order.id}:${deadline}`;
+        if (!(await reminderAlreadyEnqueued(env.DB, adminIdempotencyKey))) {
+          outboxEvents.push(
+            buildReminderEvent({
+              eventType: 'order_deadline_reminder_due',
+              orderId: order.id,
               orderNo: order.order_no,
+              receiver: 'admin',
               deadline,
-            }),
-            `/manage/orders?id=${order.id}`,
-            JSON.stringify({ orderId: order.id, deadline }),
-            now
-          )
-        );
+              idempotencyKey: adminIdempotencyKey,
+            })
+          );
+        }
       }
     }
 
-    // 批量执行插入
-    if (notifications.length > 0) {
-      await env.DB.batch(notifications);
+    if (outboxEvents.length > 0) {
+      const publisher = new DomainOutboxPublisher(env.DB);
+      await publisher.publish(outboxEvents);
+      await runOutboxPoller({
+        env,
+        requestUrl: request.url,
+        workerId: `reminders:${new Date(now).toISOString().split('T')[0]}`,
+      });
     }
 
     return success({
       processed: {
         pending: pendingOrders.length,
         approaching: deadlineOrders.length,
-        notificationsSent: notifications.length,
+        notificationsSent: outboxEvents.length,
       },
     });
   } catch (err) {
