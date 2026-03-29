@@ -1,4 +1,6 @@
 import assert from 'assert';
+import FormData from 'form-data';
+import fetchMultipart from 'node-fetch';
 import { describe, vi } from 'vitest';
 
 export const RUN_REAL_API_TESTS = process.env.RUN_REAL_API_TESTS === '1';
@@ -167,5 +169,93 @@ export async function apiRequest(path, {
       `Unexpected status for ${method} ${path}: ${response.status}, body=${JSON.stringify(json)}`
     );
   }
+  return { response, json };
+}
+
+function appendMultipartField(formData, key, value) {
+  if (value === undefined || value === null) return;
+
+  if (
+    typeof value === 'object'
+    && value !== null
+    && Object.prototype.hasOwnProperty.call(value, 'value')
+  ) {
+    formData.append(key, value.value, {
+      filename: value.filename || undefined,
+      contentType: value.contentType || 'application/octet-stream',
+    });
+    return;
+  }
+
+  formData.append(key, String(value));
+}
+
+function buildMultipartPayload(fields, headers = {}) {
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(fields || {})) {
+    appendMultipartField(formData, key, value);
+  }
+
+  return {
+    formData,
+    headers: {
+      ...headers,
+      ...formData.getHeaders(),
+    },
+  };
+}
+
+export async function multipartRequest(path, {
+  method = 'POST',
+  fields = {},
+  expectedStatus,
+  bearerToken,
+  authHeader,
+  headers: extraHeaders,
+} = {}) {
+  let attempts = 0;
+  const finalAuth = authHeader || (bearerToken ? `Bearer ${bearerToken}` : '');
+  const baseHeaders = {
+    ...(extraHeaders || {}),
+  };
+  if (finalAuth) baseHeaders.Authorization = finalAuth;
+
+  let response = null;
+  let json = null;
+
+  do {
+    const { formData, headers } = buildMultipartPayload(fields, baseHeaders);
+    response = await fetchMultipart(`${getBaseUrl()}${path}`, {
+      method,
+      headers,
+      body: formData,
+    });
+
+    try {
+      json = await response.json();
+    } catch {
+      json = null;
+    }
+
+    if (response.status !== 429) {
+      break;
+    }
+
+    attempts += 1;
+    if (attempts >= 4) {
+      break;
+    }
+
+    await sleep(getRetryDelayMs(response, json, attempts - 1));
+  } while (true);
+
+  if (expectedStatus !== undefined) {
+    assert.strictEqual(
+      response.status,
+      expectedStatus,
+      `Unexpected status for ${method} ${path}: ${response.status}, body=${JSON.stringify(json)}`
+    );
+  }
+
   return { response, json };
 }
