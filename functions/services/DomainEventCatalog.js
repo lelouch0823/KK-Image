@@ -1,7 +1,7 @@
 export const DOMAIN_EVENT_CATALOG = {
   purchase_receipt_recorded: {
     version: 1,
-    consumers: ['audit', 'cache', 'notification'],
+    consumers: ['audit', 'cache', 'notification', 'webhook'],
   },
   inventory_received: {
     version: 1,
@@ -9,7 +9,7 @@ export const DOMAIN_EVENT_CATALOG = {
   },
   order_procurement_progressed: {
     version: 1,
-    consumers: ['audit', 'cache', 'notification'],
+    consumers: ['audit', 'cache', 'notification', 'webhook'],
   },
 };
 

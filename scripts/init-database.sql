@@ -785,12 +785,19 @@ CREATE TABLE IF NOT EXISTS webhook_logs (
     response TEXT,                          -- 响应内容
     duration_ms INTEGER,                    -- 耗时 (ms)
     success INTEGER DEFAULT 0,              -- 是否成功
+    event_id TEXT,                          -- 对应领域事件 ID
+    delivery_key TEXT,                      -- endpoint 级幂等投递键
+    attempt_number INTEGER,                 -- 同一 delivery_key 的第几次尝试
+    classification TEXT,                    -- delivered / retryable / terminal
+    next_retry_at INTEGER,                  -- 下次建议重试时间
     created_at INTEGER NOT NULL,
     FOREIGN KEY (webhook_id) REFERENCES webhooks(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_webhook ON webhook_logs(webhook_id);
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_created ON webhook_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_webhook_logs_delivery_key
+    ON webhook_logs(delivery_key, webhook_id, success, created_at DESC);
 
 -- ===========================================================================
 -- 11. 存储镜像/同步 (Storage Mirrors)

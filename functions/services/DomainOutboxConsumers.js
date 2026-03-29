@@ -1,5 +1,6 @@
 import { recordAuditEvent } from '../lib/hono/_shared/audit-helpers.js';
 import { NotificationRepository } from '../repositories/NotificationRepository.js';
+import { WebhookDeliveryService } from './WebhookDeliveryService.js';
 import {
   getManageNotificationCacheUrls,
   getOrderAnalyticsCacheUrls,
@@ -124,8 +125,20 @@ async function notifyOutboxEvent({ db, event, baseUrl }) {
   return result;
 }
 
+async function webhookOutboxEvent({ db, event }) {
+  const service = new WebhookDeliveryService(db);
+  const result = await service.deliverDomainEvent(event);
+
+  if (result?.shouldRetry) {
+    throw new Error('retryable webhook delivery failures remain');
+  }
+
+  return result;
+}
+
 export const DOMAIN_OUTBOX_CONSUMERS = {
   audit: auditOutboxEvent,
   cache: invalidateReceiptCaches,
   notification: notifyOutboxEvent,
+  webhook: webhookOutboxEvent,
 };

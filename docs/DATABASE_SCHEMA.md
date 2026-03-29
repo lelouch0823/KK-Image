@@ -309,6 +309,26 @@
 
 ### `webhooks` & `webhook_logs`
 外部系统集成回调配置及日志。
+| Column | Type | Description |
+|--------|------|-------------|
+| `webhooks.id` | TEXT | PK |
+| `webhooks.url` | TEXT | 目标 URL |
+| `webhooks.events` | TEXT | JSON 数组，订阅事件类型 |
+| `webhooks.secret` / `webhooks.headers` | TEXT | 签名密钥与自定义请求头 |
+| `webhooks.enabled` | INTEGER | 0/1 |
+| `webhook_logs.event_id` | TEXT | 对应领域事件 ID |
+| `webhook_logs.delivery_key` | TEXT | 某 endpoint 对某事件版本的幂等投递键 |
+| `webhook_logs.attempt_number` | INTEGER | 同一投递键的尝试序号 |
+| `webhook_logs.classification` | TEXT | `delivered` / `retryable` / `terminal` |
+| `webhook_logs.next_retry_at` | INTEGER | 下次建议重试时间 |
+
+Webhook envelope v1:
+- `event_id`
+- `event_type`
+- `event_version`
+- `occurred_at`
+- `aggregate`
+- `payload`
 
 ### `ai_action_sessions` (AI 动作会话)
 AI 创建事务的短期状态存储，用于在多轮追问、预览和确认之间恢复上下文。

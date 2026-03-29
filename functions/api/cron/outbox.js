@@ -3,7 +3,7 @@ import { isCronAuthorized } from '../utils/cron-auth.js';
 import { DomainOutboxDispatchService } from '../../services/DomainOutboxDispatchService.js';
 import { DOMAIN_OUTBOX_CONSUMERS } from '../../services/DomainOutboxConsumers.js';
 
-const ACTIVE_CONSUMERS = ['audit', 'cache', 'notification'];
+const ACTIVE_CONSUMERS = ['audit', 'cache', 'notification', 'webhook'];
 
 export async function runOutboxPoller({ env, requestUrl, workerId = null, nowTs = Date.now() }) {
   const dispatchService = new DomainOutboxDispatchService(env.DB);
