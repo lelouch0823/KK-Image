@@ -123,10 +123,14 @@ export async function apiRequest(path, {
   expectedStatus,
   bearerToken,
   authHeader,
+  headers: extraHeaders,
 } = {}) {
   let attempts = 0;
   const finalAuth = authHeader || (bearerToken ? `Bearer ${bearerToken}` : '');
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(extraHeaders || {}),
+  };
   if (finalAuth) headers.Authorization = finalAuth;
   let response = null;
   let json = null;

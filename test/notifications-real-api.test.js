@@ -30,6 +30,13 @@ describeIfRealApi('Notifications Real API Workflow', function () {
     const title = `Real API Notification ${seed}`;
     const content = `content-${seed}`;
 
+    const resetUnread = await apiRequest('/api/manage/notifications/all/read', {
+      bearerToken: token,
+      method: 'POST',
+      expectedStatus: 200,
+    });
+    assert.strictEqual(resetUnread.json?.success, true);
+
     const created = await apiRequest('/api/manage/notifications', {
       bearerToken: token,
       method: 'POST',
@@ -71,9 +78,16 @@ describeIfRealApi('Notifications Real API Workflow', function () {
       onTimeoutMessage: 'admin notification was not removed from unread list after read',
     });
 
-    const finalList = await findAdminNotification(token, (item) => item.id === createdNotification.id);
-    assert.ok(finalList.match, 'notification missing from full list after read');
-    assert.strictEqual(Number(finalList.match.is_read), 1);
+    const finalList = await waitFor(async () => {
+      const result = await findAdminNotification(token, (item) => item.id === createdNotification.id);
+      assert.ok(result.match, 'notification missing from full list after read');
+      assert.strictEqual(Number(result.match.is_read), 1);
+      return result;
+    }, {
+      timeoutMs: 20000,
+      intervalMs: 500,
+      onTimeoutMessage: 'admin notification did not reappear as read in full list',
+    });
     assert.strictEqual(finalList.match.title, title);
     assert.strictEqual(finalList.match.content, content);
   });
