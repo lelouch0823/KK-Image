@@ -22,6 +22,11 @@ function isMissingColumnError(error, columns = []) {
     return columns.some((column) => message.includes(String(column).toLowerCase()));
 }
 
+function isUniqueConstraintError(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return message.includes('unique constraint failed') || message.includes('constraint failed');
+}
+
 function parseMetadata(metadata) {
     return parseJsonObject(metadata, null);
 }
@@ -87,6 +92,117 @@ export class NotificationRepository {
         }
 
         return { id };
+    }
+
+    /**
+     * 创建或复用来自领域事件的通知。
+     * 在支持 source_* / dedupe_key 字段的 schema 上持久化去重元数据；
+     * 旧 schema 则回退到普通 create，保持兼容性。
+     *
+     * @param {Object} params
+     * @returns {Promise<{id: string, created: boolean}>}
+     */
+    async createFromDomainEvent({
+        type,
+        title,
+        content = '',
+        link = '',
+        receiver,
+        salespersonId = null,
+        orderId = null,
+        metadata = null,
+        sourceConsumer,
+        sourceEventId,
+        dedupeKey,
+    }) {
+        try {
+            const existing = await this.findBySourceDedupe({
+                sourceConsumer,
+                dedupeKey,
+                receiver,
+                salespersonId,
+            });
+            if (existing) {
+                return { id: existing.id, created: false };
+            }
+
+            const id = generateId();
+            const timestamp = now();
+            const metadataJson = metadata ? JSON.stringify(metadata) : null;
+
+            await this.db
+                .prepare(
+                    `
+        INSERT INTO notifications
+          (
+            id,
+            type,
+            title,
+            content,
+            link,
+            is_read,
+            receiver,
+            salesperson_id,
+            order_id,
+            metadata,
+            source_consumer,
+            source_event_id,
+            dedupe_key,
+            created_at
+          )
+        VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?)
+        `
+                )
+                .bind(
+                    id,
+                    type,
+                    title,
+                    content,
+                    link,
+                    receiver,
+                    salespersonId,
+                    orderId,
+                    metadataJson,
+                    sourceConsumer,
+                    sourceEventId,
+                    dedupeKey,
+                    timestamp
+                )
+                .run();
+
+            return { id, created: true };
+        } catch (error) {
+            if (isUniqueConstraintError(error)) {
+                const existing = await this.findBySourceDedupe({
+                    sourceConsumer,
+                    dedupeKey,
+                    receiver,
+                    salespersonId,
+                });
+                if (existing) {
+                    return { id: existing.id, created: false };
+                }
+            }
+
+            if (!isMissingColumnError(error, ['source_consumer', 'source_event_id', 'dedupe_key'])) {
+                throw error;
+            }
+
+            const legacyResult = await this.create({
+                type,
+                title,
+                content,
+                link,
+                receiver,
+                salespersonId,
+                orderId,
+                metadata,
+            });
+            return {
+                id: legacyResult.id,
+                created: true,
+            };
+        }
     }
 
     /**
@@ -330,6 +446,29 @@ export class NotificationRepository {
                 throw error;
             }
         }
+    }
+
+    /**
+     * 通过 outbox source + dedupe key 查询已存在通知。
+     * @param {Object} params
+     * @returns {Promise<Object|null>}
+     */
+    async findBySourceDedupe({ sourceConsumer, dedupeKey, receiver, salespersonId = null }) {
+        return this.db
+            .prepare(
+                `
+        SELECT *
+        FROM notifications
+        WHERE source_consumer = ?
+          AND dedupe_key = ?
+          AND receiver = ?
+          AND COALESCE(salesperson_id, '') = ?
+        ORDER BY created_at DESC
+        LIMIT 1
+        `
+            )
+            .bind(sourceConsumer, dedupeKey, receiver, salespersonId || '')
+            .first();
     }
 
     // ========================================

@@ -1,5 +1,10 @@
 import { recordAuditEvent } from '../lib/hono/_shared/audit-helpers.js';
-import { getOrderAnalyticsCacheUrls, getPurchaseOrderCacheUrls } from '../lib/hono/routes/_shared/cache-urls.js';
+import { NotificationRepository } from '../repositories/NotificationRepository.js';
+import {
+  getManageNotificationCacheUrls,
+  getOrderAnalyticsCacheUrls,
+  getPurchaseOrderCacheUrls,
+} from '../lib/hono/routes/_shared/cache-urls.js';
 import { invalidateCache } from '../lib/hono/middleware/cache.js';
 
 function parsePayload(event = {}) {
@@ -65,7 +70,62 @@ async function invalidateReceiptCaches({ event, baseUrl }) {
   await invalidateCache([...new Set(urls)]);
 }
 
+function resolveNotificationTitle(eventType) {
+  switch (eventType) {
+    case 'purchase_receipt_recorded':
+      return JSON.stringify({ key: 'notification.purchase_receipt_recorded' });
+    case 'order_procurement_progressed':
+      return JSON.stringify({ key: 'notification.order_procurement_progressed' });
+    default:
+      return JSON.stringify({ key: `notification.${eventType}` });
+  }
+}
+
+function resolveNotificationOrderId(event, payload) {
+  if (payload.order_id) return payload.order_id;
+  if (event?.aggregate_type === 'order' && event?.aggregate_id) return event.aggregate_id;
+  return null;
+}
+
+function resolveNotificationLink(event, payload) {
+  if (payload.purchase_order_id) {
+    return `/manage/purchase-orders/${payload.purchase_order_id}`;
+  }
+
+  const orderId = resolveNotificationOrderId(event, payload);
+  return orderId ? `/manage/orders/${orderId}` : '';
+}
+
+async function notifyOutboxEvent({ db, event, baseUrl }) {
+  const payload = parsePayload(event);
+  const repo = new NotificationRepository(db);
+
+  const result = await repo.createFromDomainEvent({
+    type: 'order',
+    title: resolveNotificationTitle(event.event_type),
+    content: '',
+    link: resolveNotificationLink(event, payload),
+    receiver: 'admin',
+    orderId: resolveNotificationOrderId(event, payload),
+    metadata: {
+      eventType: event.event_type,
+      payload,
+    },
+    sourceConsumer: 'notification',
+    sourceEventId: event.event_id || event.id,
+    dedupeKey: `${event.event_type}:${event.event_id || event.id}:admin`,
+  });
+
+  if (baseUrl) {
+    const urls = getManageNotificationCacheUrls(createCacheContext(baseUrl));
+    await invalidateCache([...new Set(urls)]);
+  }
+
+  return result;
+}
+
 export const DOMAIN_OUTBOX_CONSUMERS = {
   audit: auditOutboxEvent,
   cache: invalidateReceiptCaches,
+  notification: notifyOutboxEvent,
 };

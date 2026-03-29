@@ -45,14 +45,24 @@ function createLegacySchemaDbStub() {
             if (normalizedSql.includes("WHERE receiver = 'sales'")) {
               throw noSuchColumn('receiver');
             }
+            if (normalizedSql.includes('source_consumer') || normalizedSql.includes('dedupe_key')) {
+              throw noSuchColumn('source_consumer');
+            }
             return { count: 1 };
           },
           async run() {
             if (
               normalizedSql.includes('INSERT INTO notifications') &&
-              normalizedSql.includes('salesperson_id')
+              (
+                normalizedSql.includes('salesperson_id')
+                || normalizedSql.includes('source_consumer')
+                || normalizedSql.includes('source_event_id')
+                || normalizedSql.includes('dedupe_key')
+              )
             ) {
-              throw noSuchColumn('salesperson_id');
+              throw noSuchColumn(
+                normalizedSql.includes('source_consumer') ? 'source_consumer' : 'salesperson_id'
+              );
             }
             return { success: true };
           },
@@ -132,5 +142,35 @@ describe('NotificationRepository legacy schema compatibility', () => {
 
     expect(result).toEqual({ list: [], unreadCount: 0 });
   });
-});
 
+  it('falls back safely on legacy schemas without source columns', async () => {
+    const db = createLegacySchemaDbStub();
+    const repo = new NotificationRepository(db);
+
+    const result = await repo.createFromDomainEvent({
+      type: 'order',
+      title: '{"key":"notification.purchase_receipt_recorded"}',
+      receiver: 'admin',
+      orderId: 'o-1',
+      metadata: { eventType: 'purchase_receipt_recorded' },
+      sourceConsumer: 'notification',
+      sourceEventId: 'evt-1',
+      dedupeKey: 'purchase_receipt_recorded:evt-1:admin',
+    });
+
+    expect(result).toEqual({
+      id: expect.any(String),
+      created: true,
+    });
+    expect(db.calls.some((sql) => sql.includes('source_consumer'))).toBe(true);
+    expect(
+      db.calls.some(
+        (sql) =>
+          sql.includes('INSERT INTO notifications')
+          && !sql.includes('source_consumer')
+          && !sql.includes('source_event_id')
+          && !sql.includes('dedupe_key')
+      )
+    ).toBe(true);
+  });
+});

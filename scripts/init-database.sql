@@ -745,6 +745,9 @@ CREATE TABLE IF NOT EXISTS notifications (
     salesperson_id TEXT,                    -- 销售员 ID (receiver='sales' 时关联)
     order_id TEXT,                          -- 关联订单 ID
     metadata TEXT,                          -- 元数据 (JSON)
+    source_consumer TEXT,                   -- 领域事件消费者名（用于回放/重试去重）
+    source_event_id TEXT,                   -- 来源领域事件 ID
+    dedupe_key TEXT,                        -- 通知级幂等键
     created_at INTEGER NOT NULL
 );
 
@@ -753,6 +756,8 @@ CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
 -- [SOTA] 复合索引：销售端通知查询优化
 CREATE INDEX IF NOT EXISTS idx_notifications_receiver_sales ON notifications(receiver, salesperson_id, is_read, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_order ON notifications(order_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_source_dedupe
+    ON notifications(source_consumer, dedupe_key, receiver, COALESCE(salesperson_id, ''));
 
 -- ===========================================================================
 -- 10. Webhooks

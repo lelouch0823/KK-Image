@@ -60,6 +60,7 @@ function createDbHarness({
     inventoryMutations: [],
     outboxEvents: [],
     outboxConsumers: [],
+    outboxConsumerMatrix: [],
     batchedStatements: [],
   };
 
@@ -181,10 +182,21 @@ function createDbHarness({
   };
 
   const domainOutboxRepo = {
-    buildInsertStatements: vi.fn((events, consumerNames) => {
+    buildInsertStatements: vi.fn((events, resolveConsumers) => {
       calls.outboxEvents.push(...events);
-      calls.outboxConsumers.push(...consumerNames);
-      return events.flatMap((event, index) => [
+      const resolve = typeof resolveConsumers === 'function'
+        ? resolveConsumers
+        : () => resolveConsumers || [];
+
+      return events.flatMap((event, index) => {
+        const consumerNames = resolve(event);
+        calls.outboxConsumerMatrix.push({
+          eventType: event.event_type,
+          consumers: [...consumerNames],
+        });
+        calls.outboxConsumers.push(...consumerNames);
+
+        return [
         db.prepare(
           `INSERT INTO domain_outbox (
             id, command_id, sequence_in_command, event_type, event_version, aggregate_type,
@@ -210,8 +222,9 @@ function createDbHarness({
             id, consumer_name, event_id, status, attempt_count, available_at,
             leased_by, leased_until, last_error, processed_at, created_at, updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(`job-${index}`, 'audit', event.id, 'pending', 0, 1710000000000, null, null, null, null, 1710000000000, 1710000000000),
-      ]);
+        ).bind(`job-${index}`, consumerNames[0] || 'audit', event.id, 'pending', 0, 1710000000000, null, null, null, null, 1710000000000, 1710000000000),
+      ];
+      });
     }),
   };
 
@@ -262,6 +275,31 @@ describe('OrderProcurementDomainService', () => {
       'purchase_receipt_recorded',
       'inventory_received',
       'order_procurement_progressed',
+    ]);
+  });
+
+  it('keeps audit/cache on existing receipt events and adds notification only where declared', async () => {
+    await service.recordPurchaseOrderReceipts('po-1', {
+      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
+    }, {
+      idempotencyKey: 'idem-1',
+    });
+
+    const [, resolveConsumers] = harness.domainOutboxRepo.buildInsertStatements.mock.calls[0];
+    expect(typeof resolveConsumers).toBe('function');
+    expect(harness.calls.outboxConsumerMatrix).toEqual([
+      {
+        eventType: 'purchase_receipt_recorded',
+        consumers: ['audit', 'cache', 'notification'],
+      },
+      {
+        eventType: 'inventory_received',
+        consumers: ['audit', 'cache'],
+      },
+      {
+        eventType: 'order_procurement_progressed',
+        consumers: ['audit', 'cache', 'notification'],
+      },
     ]);
   });
 

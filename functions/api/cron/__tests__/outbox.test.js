@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   markFailed: vi.fn(async () => ({})),
   auditConsumer: vi.fn(async () => {}),
   cacheConsumer: vi.fn(async () => {}),
+  notificationConsumer: vi.fn(async () => {}),
 }));
 
 vi.mock('../../utils/cron-auth.js', async () => {
@@ -29,6 +30,7 @@ vi.mock('../../../services/DomainOutboxConsumers.js', () => ({
   DOMAIN_OUTBOX_CONSUMERS: {
     audit: mocks.auditConsumer,
     cache: mocks.cacheConsumer,
+    notification: mocks.notificationConsumer,
   },
 }));
 
@@ -52,6 +54,13 @@ describe('cron outbox poller', () => {
         event_id: 'evt-2',
         event_type: 'order_procurement_progressed',
         payload_json: '{"purchase_order_id":"po-1","order_id":"o-1"}',
+      }])
+      .mockResolvedValueOnce([{
+        id: 'job-notification-1',
+        consumer_name: 'notification',
+        event_id: 'evt-3',
+        event_type: 'purchase_receipt_recorded',
+        payload_json: '{"purchase_order_id":"po-1","order_id":"o-1","receipt_id":"receipt-1"}',
       }]);
   });
 
@@ -70,8 +79,8 @@ describe('cron outbox poller', () => {
     expect(json).toEqual(expect.objectContaining({
       success: true,
       data: expect.objectContaining({
-        claimed: 2,
-        published: 2,
+        claimed: 3,
+        published: 3,
         failed: 0,
       }),
     }));
@@ -83,7 +92,11 @@ describe('cron outbox poller', () => {
       event: expect.objectContaining({ id: 'job-cache-1' }),
       baseUrl: 'https://kk.example.com',
     }));
-    expect(mocks.markPublished).toHaveBeenCalledTimes(2);
+    expect(mocks.notificationConsumer).toHaveBeenCalledWith(expect.objectContaining({
+      event: expect.objectContaining({ id: 'job-notification-1', event_id: 'evt-3' }),
+      baseUrl: 'https://kk.example.com',
+    }));
+    expect(mocks.markPublished).toHaveBeenCalledTimes(3);
     expect(mocks.markFailed).not.toHaveBeenCalled();
   });
 });

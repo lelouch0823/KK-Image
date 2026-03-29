@@ -1,6 +1,6 @@
 # Database Schema (SOTA)
 
-> **Last Updated**: 2026-03-28
+> **Last Updated**: 2026-03-29
 > **Database Engine**: Cloudflare D1 (SQLite)
 
 本文档描述 **kk-life** 的核心数据库结构。所有表结构定义源自 `scripts/init-database.sql`。
@@ -294,8 +294,18 @@
 站内消息通知。
 | Column | Type | Description |
 |--------|------|-------------|
+| `id` | TEXT | PK |
 | `type` | TEXT | `system`, `order`, `deadline` |
+| `title` / `content` / `link` | TEXT | 展示文案与跳转链接 |
 | `is_read` | INTEGER | 0/1 |
+| `receiver` | TEXT | `admin` / `sales` |
+| `salesperson_id` | TEXT | 销售端通知归属 |
+| `order_id` | TEXT | 关联订单 |
+| `metadata` | TEXT | JSON 扩展数据 |
+| `source_consumer` | TEXT | 生成该通知的 outbox consumer 名称 |
+| `source_event_id` | TEXT | 来源领域事件 ID |
+| `dedupe_key` | TEXT | 跨重试/回放复用的通知幂等键 |
+| `created_at` | INTEGER | 创建时间 |
 
 ### `webhooks` & `webhook_logs`
 外部系统集成回调配置及日志。

@@ -79,12 +79,16 @@ export class DomainOutboxRepository {
       );
   }
 
-  buildInsertStatements(events = [], consumerNames = []) {
+  buildInsertStatements(events = [], resolveConsumers = () => []) {
     const statements = [];
+    const resolveConsumerNames = typeof resolveConsumers === 'function'
+      ? resolveConsumers
+      : () => resolveConsumers || [];
 
     for (const event of events) {
       statements.push(this.createEventInsertStatement(event));
 
+      const consumerNames = resolveConsumerNames(event);
       for (const consumerName of consumerNames) {
         statements.push(this.createConsumerJobInsertStatement(consumerName, event.id));
       }

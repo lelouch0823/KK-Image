@@ -3,6 +3,7 @@ import { CommandIdempotencyRepository } from '../repositories/CommandIdempotency
 import { DomainOutboxRepository } from '../repositories/DomainOutboxRepository.js';
 import { PurchaseReceiptRepository } from '../repositories/PurchaseReceiptRepository.js';
 import { InventoryService } from './InventoryService.js';
+import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 
 function toNonNegativeInt(value) {
@@ -612,7 +613,10 @@ export class OrderProcurementDomainService {
     };
 
     statements.push(
-      ...this.domainOutboxRepo.buildInsertStatements(outboxEvents, ['audit', 'cache'])
+      ...this.domainOutboxRepo.buildInsertStatements(
+        outboxEvents,
+        (event) => getDomainEventDefinition(event.event_type).consumers
+      )
     );
     statements.push(
       this.db.prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
