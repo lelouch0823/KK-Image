@@ -82,7 +82,7 @@
                         <div class="min-w-0">
                             <h4 class="group-hover:text-primary truncate text-sm font-medium text-(--text-main) transition-colors">{{ space.name }}</h4>
                             <div class="mt-0.5 flex items-center gap-2 text-xs text-(--text-secondary)">
-                                <span>{{ new Date(space.createdAt || space.created_at).toLocaleDateString() }}</span>
+                                <span>{{ new Date(space.createdAt).toLocaleDateString() }}</span>
                                 <span v-if="space.view_count !== undefined">&bull; {{ space.view_count }} views</span>
                                 <StatusBadge v-if="space.is_public" variant="success" class="px-1.5! py-0!">Public</StatusBadge>
                             </div>

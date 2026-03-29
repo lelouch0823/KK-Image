@@ -58,6 +58,7 @@ export function transformSpaceListItem(space) {
       : null,
     viewCount: space.view_count || 0,
     productId: space.product_id || null,
+    variantId: space.variant_id || null,
     createdAt: space.created_at,
     updatedAt: space.updated_at,
   };
@@ -88,6 +89,7 @@ export function transformSpaceDetail(space, files = []) {
       : null,
     viewCount: space.view_count,
     productId: space.product_id || null,
+    variantId: space.variant_id || null,
     createdAt: space.created_at,
     updatedAt: space.updated_at,
     files: files.map(transformFile),

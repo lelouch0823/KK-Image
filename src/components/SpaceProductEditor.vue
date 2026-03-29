@@ -453,7 +453,7 @@ const initData = async () => {
     if (data.productId) {
       const product = await loadProduct(data.productId);
       if (product) {
-        const selectedVariant = (product.variants || []).find(v => v.id === (data.variantId || data.variant_id)) || null;
+        const selectedVariant = (product.variants || []).find(v => v.id === data.variantId) || null;
         const mainImage = resolveBoundProductMainImageSrc({
           ...product,
           selectedVariant,
@@ -481,7 +481,7 @@ const initData = async () => {
       coverFileId: data.coverFileId || null,
       password: data.password || '',
       productId: data.productId || null,
-      variantId: data.variantId || data.variant_id || null,
+      variantId: data.variantId || null,
       templateData: {
         brand: data.templateData?.brand || '',
         series: data.templateData?.series || '',

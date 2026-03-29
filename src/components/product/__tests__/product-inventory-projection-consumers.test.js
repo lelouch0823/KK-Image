@@ -16,4 +16,12 @@ describe('product inventory projection consumers', () => {
 
     expect(source).toContain('available_quantity');
   });
+
+  it('ProductDetail reads associated spaces with camelCase createdAt only', () => {
+    const filePath = path.resolve(process.cwd(), 'src/components/product/ProductDetail.vue');
+    const source = fs.readFileSync(filePath, 'utf8');
+
+    expect(source).toContain('space.createdAt');
+    expect(source).not.toContain('space.created_at');
+  });
 });
