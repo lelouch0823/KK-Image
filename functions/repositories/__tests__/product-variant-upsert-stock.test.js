@@ -110,4 +110,28 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
     expect(balanceStmt.params).toContain('v-3');
     expect(balanceStmt.params).toContain(10);
   });
+
+  it('keeps the same row id when an existing variant changes signature', async () => {
+    db = createMockDbWithExistingVariant([
+      { id: 'v-1', variant_signature: JSON.stringify({ 'dim-color': 'Red', 'dim-size': 'S' }), status: 'active' },
+    ]);
+    repo = new ProductVariantRepository(db);
+
+    await repo.syncVariants('p-1', [
+      {
+        id: 'v-1',
+        sku: 'SKU-1',
+        price: 100,
+        cost_price: 60,
+        stock_quantity: 5,
+        alert_threshold: 2,
+        options_values: { 'dim-color': 'Red' },
+      },
+    ]);
+
+    const statements = db.batch.mock.calls[0][0];
+    const upsertStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO product_variants'));
+    expect(upsertStmt.params[0]).toBe('v-1');
+    expect(upsertStmt.params[8]).toBe(JSON.stringify({ 'dim-color': 'Red' }));
+  });
 });

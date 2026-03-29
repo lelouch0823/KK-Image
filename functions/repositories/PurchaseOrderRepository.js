@@ -58,6 +58,18 @@ function summarizePurchaseOrderItems(items = []) {
   }));
 }
 
+const D1_MAX_IN_CLAUSE_SIZE = 100;
+
+function chunkArray(items = [], chunkSize = D1_MAX_IN_CLAUSE_SIZE) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  const chunks = [];
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+  return chunks;
+}
+
 /**
  * 采购单仓储 (Purchase Order Repository)
  * ========================================
@@ -470,28 +482,30 @@ export class PurchaseOrderRepository {
   async getLastPurchasePricesByVariant(variantIds = []) {
     if (!variantIds || variantIds.length === 0) return {};
 
-    const placeholders = variantIds.map(() => '?').join(',');
-    const { results } = await this.db.prepare(`
-      SELECT latest.variant_id, poi.unit_cost AS last_purchase_price
-      FROM (
-        SELECT poi2.variant_id,
-               MAX(COALESCE(po2.completed_at, po2.updated_at, po2.created_at, 0)) AS latest_ts
-        FROM purchase_order_items poi2
-        JOIN purchase_orders po2 ON po2.id = poi2.po_id
-        WHERE po2.status = 'completed'
-          AND poi2.variant_id IN (${placeholders})
-        GROUP BY poi2.variant_id
-      ) latest
-      JOIN purchase_order_items poi ON poi.variant_id = latest.variant_id
-      JOIN purchase_orders po ON po.id = poi.po_id
-      WHERE po.status = 'completed'
-        AND COALESCE(po.completed_at, po.updated_at, po.created_at, 0) = latest.latest_ts
-    `).bind(...variantIds).all();
-
     const map = {};
-    for (const row of results) {
-      if (map[row.variant_id] == null) {
-        map[row.variant_id] = Number(row.last_purchase_price) || 0;
+    for (const variantIdChunk of chunkArray(variantIds)) {
+      const placeholders = variantIdChunk.map(() => '?').join(',');
+      const { results } = await this.db.prepare(`
+        SELECT latest.variant_id, poi.unit_cost AS last_purchase_price
+        FROM (
+          SELECT poi2.variant_id,
+                 MAX(COALESCE(po2.completed_at, po2.updated_at, po2.created_at, 0)) AS latest_ts
+          FROM purchase_order_items poi2
+          JOIN purchase_orders po2 ON po2.id = poi2.po_id
+          WHERE po2.status = 'completed'
+            AND poi2.variant_id IN (${placeholders})
+          GROUP BY poi2.variant_id
+        ) latest
+        JOIN purchase_order_items poi ON poi.variant_id = latest.variant_id
+        JOIN purchase_orders po ON po.id = poi.po_id
+        WHERE po.status = 'completed'
+          AND COALESCE(po.completed_at, po.updated_at, po.created_at, 0) = latest.latest_ts
+      `).bind(...variantIdChunk).all();
+
+      for (const row of results || []) {
+        if (map[row.variant_id] == null) {
+          map[row.variant_id] = Number(row.last_purchase_price) || 0;
+        }
       }
     }
     return map;

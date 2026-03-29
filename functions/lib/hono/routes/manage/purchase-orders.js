@@ -24,6 +24,7 @@ import { runOutboxPoller } from '../../../../api/cron/outbox.js';
 import { DomainOutboxPublisher } from '../../../../services/DomainOutboxPublisher.js';
 
 const app = new Hono();
+const D1_MAX_IN_CLAUSE_SIZE = 100;
 export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'POST', path: '/', domain: 'purchase-orders', action: 'purchase_order.create', severity: 'high', targetType: 'purchase_order' },
   { method: 'POST', path: '/from-orders', domain: 'purchase-orders', action: 'purchase_order.create_from_orders', severity: 'high', targetType: 'purchase_order' },
@@ -37,6 +38,16 @@ export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'POST', path: '/:id/allocate', domain: 'purchase-orders', action: 'purchase_order.allocate', severity: 'high', targetType: 'purchase_order' },
 ]);
 app.use('*', requirePermission('products:manage'));
+
+function chunkArray(items = [], chunkSize = D1_MAX_IN_CLAUSE_SIZE) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  const chunks = [];
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+  return chunks;
+}
 
 async function publishPurchaseOrderCacheEvent(c, { eventType, poId, payload = {} }) {
   const publisher = new DomainOutboxPublisher(c.env.DB);
@@ -86,16 +97,21 @@ async function validateVariantItems(db, items = []) {
     throw new BadRequestError('采购单明细必须包含 product_id 与 variant_id');
   }
 
-  const placeholders = variantIds.map(() => '?').join(',');
-  const { results } = await db.prepare(`
-    SELECT id, product_id, status,
-           COALESCE(moq, 1) AS moq,
-           COALESCE(pack_size, 1) AS pack_size,
-           COALESCE(order_step, 1) AS order_step
-    FROM product_variants
-    WHERE id IN (${placeholders})
-  `).bind(...variantIds).all();
-  const variantMap = new Map(results.map((row) => [row.id, row]));
+  const variantMap = new Map();
+  for (const variantIdChunk of chunkArray(variantIds)) {
+    const placeholders = variantIdChunk.map(() => '?').join(',');
+    const { results } = await db.prepare(`
+      SELECT id, product_id, status,
+             COALESCE(moq, 1) AS moq,
+             COALESCE(pack_size, 1) AS pack_size,
+             COALESCE(order_step, 1) AS order_step
+      FROM product_variants
+      WHERE id IN (${placeholders})
+    `).bind(...variantIdChunk).all();
+    for (const row of results || []) {
+      variantMap.set(row.id, row);
+    }
+  }
 
   for (const item of items) {
     const variant = variantMap.get(item.variant_id);
@@ -125,13 +141,18 @@ async function validatePreOrderBinding(db, items = []) {
   if (linkedItems.length === 0) return;
 
   const orderIds = [...new Set(linkedItems.map((item) => item.pre_order_id))];
-  const placeholders = orderIds.map(() => '?').join(',');
-  const { results } = await db.prepare(`
-    SELECT id, status, product_id, variant_id
-    FROM orders
-    WHERE id IN (${placeholders})
-  `).bind(...orderIds).all();
-  const orderMap = new Map(results.map((row) => [row.id, row]));
+  const orderMap = new Map();
+  for (const orderIdChunk of chunkArray(orderIds)) {
+    const placeholders = orderIdChunk.map(() => '?').join(',');
+    const { results } = await db.prepare(`
+      SELECT id, status, product_id, variant_id
+      FROM orders
+      WHERE id IN (${placeholders})
+    `).bind(...orderIdChunk).all();
+    for (const row of results || []) {
+      orderMap.set(row.id, row);
+    }
+  }
 
   for (const item of linkedItems) {
     const order = orderMap.get(item.pre_order_id);

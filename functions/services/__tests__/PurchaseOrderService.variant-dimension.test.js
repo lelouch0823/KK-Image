@@ -77,6 +77,54 @@ describe('PurchaseOrderService variant dimension', () => {
     ]);
   });
 
+  it('createFromOrders chunks order lookups beyond the D1 variable limit', async () => {
+    const queryBinds = [];
+    const db = {
+      prepare: vi.fn((sql) => ({
+        bind: (...args) => {
+          if (sql.includes('FROM orders o')) {
+            queryBinds.push(args);
+          }
+          return {
+            all: vi.fn(async () => ({
+              results: sql.includes('FROM orders o')
+                ? args.map((orderId) => ({
+                    id: orderId,
+                    order_no: `SO-${orderId}`,
+                    product_id: `prod-${orderId}`,
+                    variant_id: `var-${orderId}`,
+                    quantity: 2,
+                    name: `Product ${orderId}`,
+                    sku: `SKU-${orderId}`,
+                    cost_price: 11,
+                  }))
+                : [],
+            })),
+          };
+        },
+      })),
+    };
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      create: vi.fn(async () => ({ id: 'po-1' })),
+      addItems: vi.fn(async () => []),
+      findById: vi.fn(async () => ({ id: 'po-1', items: [] })),
+    };
+    const orderIds = Array.from({ length: 105 }, (_, index) => `order-${index + 1}`);
+
+    await service.createFromOrders(orderIds);
+
+    expect(queryBinds.length).toBeGreaterThan(1);
+    expect(Math.max(...queryBinds.map((args) => args.length))).toBeLessThanOrEqual(100);
+    expect(service.repo.addItems).toHaveBeenCalledWith(
+      'po-1',
+      expect.arrayContaining([
+        expect.objectContaining({ pre_order_id: 'order-1', variant_id: 'var-order-1' }),
+        expect.objectContaining({ pre_order_id: 'order-105', variant_id: 'var-order-105' }),
+      ])
+    );
+  });
+
   it('_updateInventory should reject items without variant_id', async () => {
     const db = {
       prepare: vi.fn(() => ({ bind: vi.fn() })),

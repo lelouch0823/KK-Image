@@ -19,6 +19,8 @@ import { PO_TO_PROCUREMENT_STATUS_MAP } from '../api/utils/order-procurement-sta
 import { InventoryService } from './InventoryService.js';
 import { DemandService } from './DemandService.js';
 
+const D1_MAX_IN_CLAUSE_SIZE = 100;
+
 function resolveInventorySnapshot(row = {}) {
   const onHand = Number(row.on_hand ?? row.stock_quantity ?? 0) || 0;
   const reserved = Number(row.reserved ?? 0) || 0;
@@ -43,6 +45,16 @@ function buildSuggestionPricing(row, lastPurchasePriceMap) {
     last_purchase_price: lastPurchasePrice,
     price_delta: priceDelta,
   };
+}
+
+function chunkArray(items = [], chunkSize = D1_MAX_IN_CLAUSE_SIZE) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  const chunks = [];
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+  return chunks;
 }
 
 export class PurchaseOrderService {
@@ -230,35 +242,39 @@ export class PurchaseOrderService {
     if (variantIds.length === 0) {
       return [];
     }
+    const rows = [];
 
-    const placeholders = variantIds.map(() => '?').join(',');
-    const { results } = await this.db.prepare(`
-      SELECT
-        pv.id AS variant_id,
-        p.id AS product_id,
-        p.product_code AS product_code,
-        pv.variant_code AS variant_code,
-        p.name AS product_name,
-        pv.sku AS sku,
-        p.brand,
-        COALESCE(pv.cost_price, 0) AS cost_price,
-        COALESCE(pv.suggested_purchase_price, 0) AS suggested_purchase_price,
-        COALESCE(ib.on_hand, pv.stock_quantity, 0) AS on_hand,
-        COALESCE(ib.reserved, 0) AS reserved,
-        COALESCE(ib.available, COALESCE(pv.stock_quantity, 0)) AS available,
-        p.images,
-        pv.options_values AS variant_options
-      FROM product_variants pv
-      JOIN products p ON pv.product_id = p.id
-      LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
-      WHERE pv.id IN (${placeholders})
-        AND pv.status = 'active'
-    `).bind(...variantIds).all();
+    for (const variantIdChunk of chunkArray(variantIds)) {
+      const placeholders = variantIdChunk.map(() => '?').join(',');
+      const { results } = await this.db.prepare(`
+        SELECT
+          pv.id AS variant_id,
+          p.id AS product_id,
+          p.product_code AS product_code,
+          pv.variant_code AS variant_code,
+          p.name AS product_name,
+          pv.sku AS sku,
+          p.brand,
+          COALESCE(pv.cost_price, 0) AS cost_price,
+          COALESCE(pv.suggested_purchase_price, 0) AS suggested_purchase_price,
+          COALESCE(ib.on_hand, pv.stock_quantity, 0) AS on_hand,
+          COALESCE(ib.reserved, 0) AS reserved,
+          COALESCE(ib.available, COALESCE(pv.stock_quantity, 0)) AS available,
+          p.images,
+          pv.options_values AS variant_options
+        FROM product_variants pv
+        JOIN products p ON pv.product_id = p.id
+        LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
+        WHERE pv.id IN (${placeholders})
+          AND pv.status = 'active'
+      `).bind(...variantIdChunk).all();
+      rows.push(...(results || []));
+    }
 
     const demandByVariant = new Map(demandRows.map((row) => [row.variant_id, row]));
     const lastPurchasePriceMap = await this.repo.getLastPurchasePricesByVariant(variantIds);
 
-    return results
+    return rows
       .map((row) => {
         const demand = demandByVariant.get(row.variant_id) || {
           total_demand: 0,
@@ -305,20 +321,24 @@ export class PurchaseOrderService {
       throw new BadRequestError('请至少选择一个预订单');
     }
 
-    const placeholders = orderIds.map(() => '?').join(',');
-    const { results: orders } = await this.db.prepare(`
-      SELECT o.id, o.order_no, o.product_id, o.variant_id, o.quantity,
-             p.name, pv.sku AS sku,
-             COALESCE(pv.cost_price, 0) AS cost_price
-      FROM orders o
-      LEFT JOIN products p ON o.product_id = p.id
-      LEFT JOIN product_variants pv ON pv.id = o.variant_id
-      WHERE o.id IN (${placeholders})
-        AND o.status = 'confirmed'
-        AND o.product_id IS NOT NULL
-        AND o.variant_id IS NOT NULL
-        AND pv.status = 'active'
-    `).bind(...orderIds).all();
+    const orders = [];
+    for (const orderIdChunk of chunkArray(orderIds)) {
+      const placeholders = orderIdChunk.map(() => '?').join(',');
+      const { results } = await this.db.prepare(`
+        SELECT o.id, o.order_no, o.product_id, o.variant_id, o.quantity,
+               p.name, pv.sku AS sku,
+               COALESCE(pv.cost_price, 0) AS cost_price
+        FROM orders o
+        LEFT JOIN products p ON o.product_id = p.id
+        LEFT JOIN product_variants pv ON pv.id = o.variant_id
+        WHERE o.id IN (${placeholders})
+          AND o.status = 'confirmed'
+          AND o.product_id IS NOT NULL
+          AND o.variant_id IS NOT NULL
+          AND pv.status = 'active'
+      `).bind(...orderIdChunk).all();
+      orders.push(...(results || []));
+    }
 
     if (orders.length === 0) {
       throw new NotFoundError('未找到符合条件的已确认订单 (需为已确认状态且已绑定变体)');

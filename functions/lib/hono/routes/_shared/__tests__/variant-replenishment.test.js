@@ -41,4 +41,35 @@ describe('loadVariantReplenishmentMap', () => {
     expect(map.size).toBe(0);
     expect(db.prepare).not.toHaveBeenCalled();
   });
+
+  it('chunks replenishment reads when variant ids exceed the D1 variable limit', async () => {
+    const queryBinds = [];
+    const db = {
+      prepare: vi.fn(() => ({
+        bind: (...args) => {
+          queryBinds.push(args);
+          return {
+            all: vi.fn(async () => ({
+              results: args.map((variantId) => ({
+                variant_id: variantId,
+                replenishment_quantity: 2,
+                replenishment_po_count: 1,
+              })),
+            })),
+          };
+        },
+      })),
+    };
+
+    const variantIds = Array.from({ length: 105 }, (_, index) => `var-${index + 1}`);
+    const map = await loadVariantReplenishmentMap(db, variantIds);
+
+    expect(queryBinds.length).toBeGreaterThan(1);
+    expect(Math.max(...queryBinds.map((args) => args.length))).toBeLessThanOrEqual(100);
+    expect(map.size).toBe(105);
+    expect(map.get('var-1')).toEqual({
+      replenishment_quantity: 2,
+      replenishment_po_count: 1,
+    });
+  });
 });

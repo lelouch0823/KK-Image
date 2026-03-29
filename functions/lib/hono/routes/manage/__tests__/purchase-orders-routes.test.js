@@ -613,4 +613,134 @@ describe('manage purchase-orders routes', () => {
     const json = await res.json();
     expect(json?.error).toBe('当前库存不足，无法执行收货冲销');
   });
+
+  it('accepts add-items validation when variant lookups must be chunked', async () => {
+    const variantBinds = [];
+    const items = Array.from({ length: 105 }, (_, index) => ({
+      product_id: `prod-${index + 1}`,
+      variant_id: `var-${index + 1}`,
+      quantity: 1,
+      unit_cost: 10,
+    }));
+    const db = {
+      prepare: vi.fn((sql) => ({
+        bind: (...args) => {
+          if (sql.includes('FROM product_variants')) {
+            variantBinds.push(args);
+          }
+          return {
+            all: vi.fn(async () => {
+              if (sql.includes('FROM product_variants')) {
+                return {
+                  results: args.map((variantId) => {
+                    const suffix = String(variantId).replace('var-', '');
+                    return {
+                      id: variantId,
+                      product_id: `prod-${suffix}`,
+                      status: 'active',
+                      moq: 1,
+                      pack_size: 1,
+                      order_step: 1,
+                    };
+                  }),
+                };
+              }
+              if (sql.includes('FROM orders')) {
+                return { results: [] };
+              }
+              return { results: [] };
+            }),
+            first: vi.fn(async () => null),
+            run: vi.fn(async () => ({ meta: { changes: 1 } })),
+          };
+        },
+      })),
+    };
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(variantBinds.length).toBeGreaterThan(1);
+    expect(Math.max(...variantBinds.map((args) => args.length))).toBeLessThanOrEqual(100);
+    expect(mocks.repoAddItems).toHaveBeenCalledWith('po-1', items);
+  });
+
+  it('accepts add-items validation when linked preorder lookups must be chunked', async () => {
+    const orderBinds = [];
+    const items = Array.from({ length: 105 }, (_, index) => ({
+      product_id: `prod-${index + 1}`,
+      variant_id: `var-${index + 1}`,
+      pre_order_id: `order-${index + 1}`,
+      quantity: 1,
+      unit_cost: 10,
+    }));
+    const db = {
+      prepare: vi.fn((sql) => ({
+        bind: (...args) => {
+          if (sql.includes('FROM orders')) {
+            orderBinds.push(args);
+          }
+          return {
+            all: vi.fn(async () => {
+              if (sql.includes('FROM product_variants')) {
+                return {
+                  results: items.map((item) => ({
+                    id: item.variant_id,
+                    product_id: item.product_id,
+                    status: 'active',
+                    moq: 1,
+                    pack_size: 1,
+                    order_step: 1,
+                  })),
+                };
+              }
+              if (sql.includes('FROM orders')) {
+                return {
+                  results: args.map((orderId) => {
+                    const suffix = String(orderId).replace('order-', '');
+                    return {
+                      id: orderId,
+                      status: 'confirmed',
+                      product_id: `prod-${suffix}`,
+                      variant_id: `var-${suffix}`,
+                    };
+                  }),
+                };
+              }
+              return { results: [] };
+            }),
+            first: vi.fn(async () => null),
+            run: vi.fn(async () => ({ meta: { changes: 1 } })),
+          };
+        },
+      })),
+    };
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(orderBinds.length).toBeGreaterThan(1);
+    expect(Math.max(...orderBinds.map((args) => args.length))).toBeLessThanOrEqual(100);
+    expect(mocks.repoAddItems).toHaveBeenCalledWith('po-1', items);
+  });
 });

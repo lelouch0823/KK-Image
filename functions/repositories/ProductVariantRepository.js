@@ -379,7 +379,6 @@ export class ProductVariantRepository {
             const existingByIncomingId = v.id ? existingById.get(v.id) : null;
             if (
                 existingByIncomingId &&
-                (existingByIncomingId.variant_signature || '') === variantSignature &&
                 !retainedIds.has(existingByIncomingId.id)
             ) {
                 targetExisting = existingByIncomingId;
