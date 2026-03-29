@@ -290,7 +290,7 @@ describe('OrderProcurementDomainService', () => {
     expect(harness.calls.outboxConsumerMatrix).toEqual([
       {
         eventType: 'purchase_receipt_recorded',
-        consumers: ['audit', 'cache', 'notification'],
+        consumers: ['audit', 'cache', 'notification', 'webhook'],
       },
       {
         eventType: 'inventory_received',
@@ -298,7 +298,7 @@ describe('OrderProcurementDomainService', () => {
       },
       {
         eventType: 'order_procurement_progressed',
-        consumers: ['audit', 'cache', 'notification'],
+        consumers: ['audit', 'cache', 'notification', 'webhook'],
       },
     ]);
   });

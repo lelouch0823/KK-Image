@@ -12,6 +12,7 @@ import { Hono } from 'hono';
 import { PurchaseOrderRepository } from '../../../../repositories/PurchaseOrderRepository.js';
 import { PurchaseOrderService } from '../../../../services/PurchaseOrderService.js';
 import { OrderProcurementDomainService } from '../../../../services/OrderProcurementDomainService.js';
+import { OrderProcurementReceiptReversalService } from '../../../../services/OrderProcurementReceiptReversalService.js';
 import { validateOrderQuantity } from '../../../../services/purchase-order-constraints.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { withCache } from '../../middleware/cache.js';
@@ -29,6 +30,7 @@ export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'PUT', path: '/:id', domain: 'purchase-orders', action: 'purchase_order.update', severity: 'high', targetType: 'purchase_order' },
   { method: 'PATCH', path: '/:id/status', domain: 'purchase-orders', action: 'purchase_order.status.change', severity: 'high', targetType: 'purchase_order' },
   { method: 'POST', path: '/:id/receipts', domain: 'purchase-orders', action: 'purchase_order.receipt.create', severity: 'high', targetType: 'purchase_order' },
+  { method: 'POST', path: '/:id/receipts/:receiptId/reversal', domain: 'purchase-orders', action: 'purchase_order.receipt.reverse', severity: 'critical', targetType: 'purchase_order' },
   { method: 'POST', path: '/:id/items', domain: 'purchase-orders', action: 'purchase_order.item.create', severity: 'high', targetType: 'purchase_order' },
   { method: 'PATCH', path: '/:id/items/:itemId', domain: 'purchase-orders', action: 'purchase_order.item.update', severity: 'high', targetType: 'purchase_order' },
   { method: 'DELETE', path: '/:id/items/:itemId', domain: 'purchase-orders', action: 'purchase_order.item.delete', severity: 'high', targetType: 'purchase_order' },
@@ -203,6 +205,43 @@ app.post('/:id/receipts', async (c) => {
     env: c.env,
     requestUrl: c.req.url,
     workerId: `request:${poId}:${idempotencyKey}`,
+  }));
+
+  return c.json({ success: true, data: result }, 201);
+});
+
+app.post('/:id/receipts/:receiptId/reversal', async (c) => {
+  const poId = c.req.param('id');
+  const receiptId = c.req.param('receiptId');
+  const body = await c.req.json();
+  const idempotencyKey = String(c.req.header('Idempotency-Key') || crypto.randomUUID()).trim();
+
+  const repo = new PurchaseOrderRepository(c.env.DB);
+  await requirePurchaseOrder(repo, poId);
+
+  const reversalService = new OrderProcurementReceiptReversalService(c.env.DB);
+  const result = await reversalService.reverseReceipt(poId, receiptId, body, {
+    idempotencyKey,
+  });
+  scheduleAuditEvent(c, {
+    domain: 'purchase-orders',
+    action: 'purchase_order.receipt.reverse',
+    result: 'success',
+    severity: 'critical',
+    targetType: 'purchase_order',
+    targetId: poId,
+    target_label: poId,
+    summary: `Reversed receipt ${receiptId} for purchase order ${poId}`,
+    metadata: {
+      receiptId,
+      reversalId: result?.reversal_id || null,
+      reversalQty: result?.reversal_qty || null,
+    },
+  });
+  c.executionCtx.waitUntil(runOutboxPoller({
+    env: c.env,
+    requestUrl: c.req.url,
+    workerId: `reversal:${poId}:${receiptId}:${idempotencyKey}`,
   }));
 
   return c.json({ success: true, data: result }, 201);

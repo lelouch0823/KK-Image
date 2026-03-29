@@ -221,6 +221,23 @@
 | `received_qty` | INTEGER | 本次收货数量 |
 | `received_at` | INTEGER | 收货时间 |
 
+### `purchase_receipt_reversals` (采购收货冲销事实)
+记录对既有收货事实的不可变冲销。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `original_receipt_id` | TEXT | 原始收货记录 ID |
+| `purchase_order_id` / `purchase_order_item_id` | TEXT | 关联采购单及明细 |
+| `reversal_qty` | INTEGER | 本次冲销量 |
+| `reason` | TEXT | 冲销原因 |
+| `command_id` / `correlation_id` | TEXT | 命令和链路血缘 |
+| `created_at` | INTEGER | 创建时间 |
+
+Reversal rules:
+- full reversal only in this phase
+- no historical delete/update-in-place
+- reversal facts must link to original receipt, command, and resulting compensation events
+
 ### `inventory_events` (库存事件源)
 库存来源事实表，记录采购、分配、预留、释放、冲销等事件；`inventory_balances` 作为投影读模型继续保留。
 | Column | Type | Description |

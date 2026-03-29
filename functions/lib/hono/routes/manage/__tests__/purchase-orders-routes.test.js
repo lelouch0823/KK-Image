@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   repoRemoveItem: vi.fn(),
   serviceUpdateStatus: vi.fn(),
   domainRecordReceipts: vi.fn(),
+  reversalReverseReceipt: vi.fn(),
   scheduleAuditEvent: vi.fn(),
   scheduleCacheInvalidation: vi.fn(),
   randomUUID: vi.fn(),
@@ -39,6 +40,12 @@ vi.mock('../../../../../services/PurchaseOrderService.js', () => ({
 vi.mock('../../../../../services/OrderProcurementDomainService.js', () => ({
   OrderProcurementDomainService: vi.fn(() => ({
     recordPurchaseOrderReceipts: mocks.domainRecordReceipts,
+  })),
+}));
+
+vi.mock('../../../../../services/OrderProcurementReceiptReversalService.js', () => ({
+  OrderProcurementReceiptReversalService: vi.fn(() => ({
+    reverseReceipt: mocks.reversalReverseReceipt,
   })),
 }));
 
@@ -114,6 +121,7 @@ describe('manage purchase-orders routes', () => {
     mocks.repoRemoveItem.mockResolvedValue(true);
     mocks.serviceUpdateStatus.mockResolvedValue({ success: true, cascadedOrders: 2 });
     mocks.domainRecordReceipts.mockResolvedValue({ purchase_order_id: 'po-1', receipt_count: 1 });
+    mocks.reversalReverseReceipt.mockResolvedValue({ purchase_order_id: 'po-1', receipt_id: 'receipt-1', reversal_qty: 2 });
   });
 
   it('rejects adding item when pre_order_id product/variant mismatch', async () => {
@@ -304,5 +312,81 @@ describe('manage purchase-orders routes', () => {
     expect(res.status).toBe(400);
     const json = await res.json();
     expect(json?.error).toBe('超出剩余收货数量');
+  });
+
+  it('reverses a receipt through POST /:id/receipts/:receiptId/reversal and returns 201', async () => {
+    const app = createApp();
+    const db = createDb();
+    const waitUntil = vi.fn();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/receipts/receipt-1/reversal',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'reversal-key-1',
+        },
+        body: JSON.stringify({ reason: 'rollback' }),
+      },
+      { DB: db },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.reversalReverseReceipt).toHaveBeenCalledWith('po-1', 'receipt-1', {
+      reason: 'rollback',
+    }, {
+      idempotencyKey: 'reversal-key-1',
+    });
+    expect(waitUntil).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes Idempotency-Key through to the reversal service', async () => {
+    const app = createApp();
+    const db = createDb();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/receipts/receipt-1/reversal',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'reversal-key-2',
+        },
+        body: JSON.stringify({ reason: 'rollback' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.reversalReverseReceipt).toHaveBeenCalledWith(
+      'po-1',
+      'receipt-1',
+      { reason: 'rollback' },
+      { idempotencyKey: 'reversal-key-2' }
+    );
+  });
+
+  it('returns 400 when the reversal command is rejected by domain invariants', async () => {
+    const app = createApp();
+    const db = createDb();
+    mocks.reversalReverseReceipt.mockRejectedValueOnce(new BadRequestError('当前库存不足，无法执行收货冲销'));
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/receipts/receipt-1/reversal',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'rollback' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json?.error).toBe('当前库存不足，无法执行收货冲销');
   });
 });

@@ -9,6 +9,7 @@ import {
 const VALID_MUTATION_TYPES = new Set([
   'purchase_received',
   'purchase_arrival',
+  'inventory_adjusted_reversal',
   'manual_adjustment',
   'order_shipment',
 ]);

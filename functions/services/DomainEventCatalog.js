@@ -11,6 +11,18 @@ export const DOMAIN_EVENT_CATALOG = {
     version: 1,
     consumers: ['audit', 'cache', 'notification', 'webhook'],
   },
+  purchase_receipt_reversed: {
+    version: 1,
+    consumers: ['audit', 'cache', 'notification', 'webhook'],
+  },
+  inventory_receipt_reversed: {
+    version: 1,
+    consumers: ['audit', 'cache', 'webhook'],
+  },
+  order_procurement_reversed: {
+    version: 1,
+    consumers: ['audit', 'cache', 'notification', 'webhook'],
+  },
 };
 
 export function getDomainEventDefinition(eventType) {

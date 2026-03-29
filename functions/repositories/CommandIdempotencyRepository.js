@@ -1,4 +1,5 @@
 const RECEIPT_COMMAND_TYPE = 'purchase_receipt_record';
+const RECEIPT_REVERSAL_COMMAND_TYPE = 'purchase_receipt_reversal';
 
 export class CommandIdempotencyRepository {
   constructor(db, deps = {}) {
@@ -8,12 +9,20 @@ export class CommandIdempotencyRepository {
   }
 
   async reserveReceiptCommand(scopeKey, idempotencyKey, requestFingerprint) {
+    return this.reserveCommand(RECEIPT_COMMAND_TYPE, scopeKey, idempotencyKey, requestFingerprint);
+  }
+
+  async reserveReversalCommand(scopeKey, idempotencyKey, requestFingerprint) {
+    return this.reserveCommand(RECEIPT_REVERSAL_COMMAND_TYPE, scopeKey, idempotencyKey, requestFingerprint);
+  }
+
+  async reserveCommand(commandType, scopeKey, idempotencyKey, requestFingerprint) {
     const existing = await this.db
       .prepare(
         `SELECT * FROM command_idempotency
          WHERE command_type = ? AND scope_key = ? AND idempotency_key = ?`
       )
-      .bind(RECEIPT_COMMAND_TYPE, scopeKey, idempotencyKey)
+      .bind(commandType, scopeKey, idempotencyKey)
       .first();
 
     if (existing) {
@@ -27,7 +36,7 @@ export class CommandIdempotencyRepository {
     const timestamp = this.now();
     const record = {
       id: this.uuid(),
-      command_type: RECEIPT_COMMAND_TYPE,
+      command_type: commandType,
       scope_key: scopeKey,
       idempotency_key: idempotencyKey,
       command_id: this.uuid(),

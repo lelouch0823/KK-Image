@@ -299,6 +299,81 @@ describe('audit runtime alignment', () => {
     expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), { result: 'success' });
   });
 
+  it('matches purchase order receipt reversal runtime event to its declaration', async () => {
+    vi.doMock('../../middleware/auth.js', () => ({
+      requirePermission: () => async (c, next) => {
+        c.set('user', { id: 'admin-1', name: 'Admin', type: 'admin', role: 'admin' });
+        await next();
+      },
+    }));
+    vi.doMock('../../../../services/OrderProcurementReceiptReversalService.js', () => ({
+      OrderProcurementReceiptReversalService: vi.fn(() => ({
+        reverseReceipt: vi.fn(async () => ({ purchase_order_id: 'po-1', receipt_id: 'receipt-1', reversal_qty: 2 })),
+      })),
+    }));
+    vi.doMock('../../../../repositories/PurchaseOrderRepository.js', () => ({
+      PurchaseOrderRepository: vi.fn(() => ({
+        findById: vi.fn(async () => ({ id: 'po-1', status: 'ordered', items: [] })),
+        addItems: vi.fn(),
+        updateItem: vi.fn(),
+        removeItem: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        list: vi.fn(async () => ({ items: [], total: 0 })),
+        getStats: vi.fn(async () => ({})),
+      })),
+    }));
+    vi.doMock('../../../../services/PurchaseOrderService.js', () => ({
+      PurchaseOrderService: vi.fn(() => ({
+        updateStatus: vi.fn(async () => ({ success: true })),
+        getSuggestions: vi.fn(async () => []),
+        createFromOrders: vi.fn(),
+        allocateCosts: vi.fn(),
+      })),
+    }));
+    vi.doMock('../../../../services/OrderProcurementDomainService.js', () => ({
+      OrderProcurementDomainService: vi.fn(() => ({
+        recordPurchaseOrderReceipts: vi.fn(async () => ({ purchase_order_id: 'po-1', receipt_count: 1 })),
+      })),
+    }));
+    vi.doMock('../../middleware/cache.js', () => ({
+      withCache: () => async (_c, next) => next(),
+    }));
+    vi.doMock('../../routes/manage/_shared/cache-urls.js', async () => {
+      const actual = await vi.importActual('../../routes/manage/_shared/cache-urls.js');
+      return {
+        ...actual,
+        getPurchaseOrderCacheUrls: vi.fn(() => []),
+        getOrderAnalyticsCacheUrls: vi.fn(() => []),
+      };
+    });
+
+    const mod = await import('../../routes/manage/purchase-orders.js');
+    const declaration = mod.auditRouteDeclarations.find((item) => item.method === 'POST' && item.path === '/:id/receipts/:receiptId/reversal');
+    const harness = createAuditRuntimeHarness();
+    const app = new Hono();
+    app.use('/api/manage/purchase-orders/*', async (c, next) => {
+      c.set('user', { id: 'admin-1', name: 'Admin', type: 'admin', role: 'admin' });
+      await next();
+    });
+    app.route('/api/manage/purchase-orders', mod.default);
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/receipts/receipt-1/reversal',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'rollback' }),
+      },
+      harness.env,
+      harness.executionCtx
+    );
+
+    expect(res.status).toBe(201);
+    await harness.flush();
+    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), { result: 'success' });
+  });
+
   it('matches v1 webhook delete runtime event to its declaration', async () => {
     vi.doMock('../../middleware/auth.js', () => ({
       requirePermission: () => async (c, next) => {
