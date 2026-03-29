@@ -48,6 +48,8 @@ function createDbHarness({
   },
   purchaseOrderItemUpdateResult = { meta: { changes: 1 } },
   purchaseOrderItemUpdateError = null,
+  batchError = null,
+  batchErrorMatcher = null,
   inventoryBalanceRow = {
     variant_id: 'var-1',
     on_hand: 4,
@@ -62,6 +64,8 @@ function createDbHarness({
     outboxConsumers: [],
     outboxConsumerMatrix: [],
     batchedStatements: [],
+    batchCalls: [],
+    runStatements: [],
   };
 
   const db = {
@@ -77,6 +81,15 @@ function createDbHarness({
         all: vi.fn(async () => ({ results: [] })),
         run: vi.fn(async () => ({ meta: { changes: 1 } })),
       };
+
+      statement.run = vi.fn(async () => {
+        calls.runStatements.push(statement);
+        if (statement.sql?.includes('UPDATE purchase_order_items')) {
+          if (purchaseOrderItemUpdateError) throw purchaseOrderItemUpdateError;
+          return purchaseOrderItemUpdateResult;
+        }
+        return { meta: { changes: 1 } };
+      });
 
       if (sql.includes('FROM purchase_order_items')) {
         statement.first = vi.fn(async () => purchaseOrderItemRow);
@@ -105,7 +118,11 @@ function createDbHarness({
       return statement;
     }),
     batch: vi.fn(async (statements = []) => {
-      calls.batchedStatements = statements;
+      calls.batchCalls.push(statements);
+      calls.batchedStatements.push(...statements);
+      if (batchError && typeof batchErrorMatcher === 'function' && statements.some((statement) => batchErrorMatcher(statement))) {
+        throw batchError;
+      }
       return statements.map((statement) => {
         if (statement.sql?.includes('UPDATE purchase_order_items')) {
           if (purchaseOrderItemUpdateError) throw purchaseOrderItemUpdateError;
@@ -259,7 +276,7 @@ describe('OrderProcurementDomainService', () => {
       receipt_count: 1,
     }));
 
-    expect(harness.db.batch).toHaveBeenCalledTimes(1);
+    expect(harness.db.batch).toHaveBeenCalledTimes(2);
     const sqlBatch = harness.calls.batchedStatements.map((statement) => statement.sql).join('\n');
     expect(sqlBatch).toContain('INSERT INTO command_idempotency');
     expect(sqlBatch).toContain('UPDATE purchase_order_items');
@@ -557,13 +574,16 @@ describe('OrderProcurementDomainService', () => {
       idempotencyKey: 'idem-1',
     })).rejects.toBeInstanceOf(BadRequestError);
 
-    expect(concurrentHarness.purchaseReceiptRepo.createInsertStatement).toHaveBeenCalled();
-    expect(concurrentHarness.inventoryService.buildMutationStatements).toHaveBeenCalled();
+    expect(concurrentHarness.purchaseReceiptRepo.createInsertStatement).not.toHaveBeenCalled();
+    expect(concurrentHarness.inventoryService.buildMutationStatements).not.toHaveBeenCalled();
+    expect(concurrentHarness.calls.batchedStatements.some((statement) => statement.sql.includes('UPDATE purchase_order_items'))).toBe(true);
+    expect(concurrentHarness.calls.runStatements.some((statement) => statement.sql.includes('DELETE FROM command_idempotency'))).toBe(true);
   });
 
   it('fails without partial persistence when downstream write errors', async () => {
     const writeFailureHarness = createDbHarness({
-      purchaseOrderItemUpdateError: new Error('write failed'),
+      batchError: new Error('write failed'),
+      batchErrorMatcher: (statement) => statement.sql.includes('INSERT INTO purchase_receipts'),
     });
     const writeFailureService = new OrderProcurementDomainService(writeFailureHarness.db, {
       purchaseReceiptRepo: writeFailureHarness.purchaseReceiptRepo,

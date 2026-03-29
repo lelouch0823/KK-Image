@@ -76,6 +76,10 @@ function parseStoredResponse(responseJson) {
   }
 }
 
+function buildDeleteCommandStatement(db, commandId) {
+  return db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId);
+}
+
 export class OrderProcurementDomainService {
   /**
    * @param {D1Database} db
@@ -390,13 +394,15 @@ export class OrderProcurementDomainService {
     const orderAggregateStates = new Map();
     const inventoryStates = new Map();
     const statements = [];
-    const purchaseItemStatementIndexes = [];
     const results = [];
     const outboxEvents = [];
+    const preflightStatements = [];
+    const preflightReverts = [];
+    const preparedReceipts = [];
     let sequenceInCommand = 1;
 
     if (commandReservation.insertStatement) {
-      statements.push(commandReservation.insertStatement);
+      preflightStatements.push(commandReservation.insertStatement);
     }
 
     for (const entry of items) {
@@ -426,214 +432,273 @@ export class OrderProcurementDomainService {
         displayStatus,
         receivedQty
       );
-      purchaseItemStatementIndexes.push(statements.length);
-      statements.push(purchaseItemStatement);
+      preflightReverts.push(
+        this.db.prepare(
+          `UPDATE purchase_order_items
+           SET received_qty = ?, display_status = ?
+           WHERE id = ? AND po_id = ?`
+        ).bind(
+          toNonNegativeInt(poItem.received_qty),
+          projectPurchaseOrderItemStatus(poItem),
+          poItem.id,
+          poId
+        )
+      );
+      preflightStatements.push(purchaseItemStatement);
+      preparedReceipts.push({
+        normalizedEntry,
+        purchaseOrderItemId,
+        receivedQty,
+        poItem,
+        nextReceived,
+        displayStatus,
+      });
+    }
 
-      const compatibilityOrderLine = poItem.pre_order_id
-        ? await this.resolveCompatibilityOrderLine(poItem.pre_order_id, {
-            productId: poItem.product_id || null,
-            variantId: poItem.variant_id || null,
-          })
-        : null;
+    const preflightResults = preflightStatements.length > 0
+      ? await this.db.batch(preflightStatements)
+      : [];
+    const preflightOffset = commandReservation.insertStatement ? 1 : 0;
+    const failedPreflightIndexes = [];
+    for (let index = 0; index < preflightReverts.length; index += 1) {
+      if ((preflightResults?.[index + preflightOffset]?.meta?.changes || 0) !== 1) {
+        failedPreflightIndexes.push(index);
+      }
+    }
 
-      const receiptId = crypto.randomUUID();
-      const receiptPayload = {
-        id: receiptId,
-        purchase_order_id: poId,
-        purchase_order_item_id: purchaseOrderItemId,
-        product_id: poItem.product_id || null,
-        variant_id: poItem.variant_id || null,
-        received_qty: receivedQty,
-        note: normalizedEntry.note,
-        received_at: timestamp,
-        created_at: timestamp,
-        updated_at: timestamp,
-      };
-      statements.push(this.purchaseReceiptRepo.createInsertStatement(receiptPayload));
+    if (failedPreflightIndexes.length > 0) {
+      const successfulReverts = preflightReverts.filter((_statement, index) =>
+        !failedPreflightIndexes.includes(index)
+      );
+      if (successfulReverts.length > 0) {
+        await this.db.batch(successfulReverts);
+      }
+      if (commandReservation.insertStatement) {
+        await buildDeleteCommandStatement(this.db, commandRecord.command_id).run();
+      }
+      throw new BadRequestError('采购单明细收货进度已变化，请刷新后重试');
+    }
 
-      outboxEvents.push({
-        id: crypto.randomUUID(),
-        command_id: commandRecord.command_id,
-        sequence_in_command: sequenceInCommand++,
-        event_type: 'purchase_receipt_recorded',
-        event_version: 1,
-        aggregate_type: 'purchase_receipt',
-        aggregate_id: receiptId,
-        correlation_id: commandRecord.command_id,
-        causation_id: options.causationId || commandRecord.command_id,
-        idempotency_key: `${commandRecord.command_id}:${purchaseOrderItemId}:purchase_receipt_recorded:${sequenceInCommand - 1}`,
-        payload_json: JSON.stringify({
+    try {
+      for (const prepared of preparedReceipts) {
+        const {
+          normalizedEntry,
+          purchaseOrderItemId,
+          receivedQty,
+          poItem,
+          nextReceived,
+          displayStatus,
+        } = prepared;
+
+        const compatibilityOrderLine = poItem.pre_order_id
+          ? await this.resolveCompatibilityOrderLine(poItem.pre_order_id, {
+              productId: poItem.product_id || null,
+              variantId: poItem.variant_id || null,
+            })
+          : null;
+        if (!compatibilityOrderLine && poItem.pre_order_id) {
+          throw new BadRequestError('关联订单缺少唯一可投影的订单行');
+        }
+
+        const receiptId = crypto.randomUUID();
+        const receiptPayload = {
+          id: receiptId,
           purchase_order_id: poId,
           purchase_order_item_id: purchaseOrderItemId,
           product_id: poItem.product_id || null,
           variant_id: poItem.variant_id || null,
-          order_id: poItem.pre_order_id || null,
-          order_line_id: compatibilityOrderLine?.id || null,
-          receipt_id: receiptId,
           received_qty: receivedQty,
-          purchase_item_received_qty_after: nextReceived,
-          purchase_item_display_status_after: displayStatus,
-        }),
-        occurred_at: timestamp,
-      });
-
-      if (compatibilityOrderLine) {
-        const currentLineState = orderLineStates.get(compatibilityOrderLine.id) || {
-          ...compatibilityOrderLine,
-          ordered_qty: toNonNegativeInt(compatibilityOrderLine.ordered_qty),
-          procured_qty: toNonNegativeInt(compatibilityOrderLine.procured_qty),
-          received_qty: toNonNegativeInt(compatibilityOrderLine.received_qty),
-          reserved_qty: toNonNegativeInt(compatibilityOrderLine.reserved_qty),
-          shipped_qty: toNonNegativeInt(compatibilityOrderLine.shipped_qty),
-          cancelled_qty: toNonNegativeInt(compatibilityOrderLine.cancelled_qty),
+          note: normalizedEntry.note,
+          received_at: timestamp,
+          created_at: timestamp,
+          updated_at: timestamp,
         };
-        const nextLineState = {
-          ...currentLineState,
-          procured_qty: Math.max(currentLineState.procured_qty, currentLineState.ordered_qty),
-          received_qty: Math.min(currentLineState.received_qty + receivedQty, currentLineState.ordered_qty),
-        };
-        nextLineState.display_status = projectOrderLineStatus(nextLineState);
-        orderLineStates.set(nextLineState.id, nextLineState);
-        statements.push(this.buildOrderLineProgressStatement(nextLineState, timestamp));
-
-        const currentAggregate = orderAggregateStates.get(poItem.pre_order_id)
-          || await this.queryCompatibilityProcurementAggregate(poItem.pre_order_id);
-        const nextAggregate = {
-          ...currentAggregate,
-          procured_qty:
-            toNonNegativeInt(currentAggregate.procured_qty)
-            + Math.max(nextLineState.procured_qty - currentLineState.procured_qty, 0),
-          received_qty:
-            toNonNegativeInt(currentAggregate.received_qty)
-            + Math.max(nextLineState.received_qty - currentLineState.received_qty, 0),
-        };
-        orderAggregateStates.set(poItem.pre_order_id, nextAggregate);
-
-        const nextProcurementStatus = projectCompatibilityProcurementStatus(nextAggregate);
-        statements.push(this.buildCompatibilityOrderStatusStatement(
-          poItem.pre_order_id,
-          nextProcurementStatus,
-          timestamp
-        ));
-
-        orderLineStates.set(`${nextLineState.id}:outbox`, {
-          nextProcurementStatus,
-          nextLineState,
-        });
-      } else if (poItem.pre_order_id) {
-        throw new BadRequestError('关联订单缺少唯一可投影的订单行');
-      }
-
-      if (poItem.variant_id) {
-        const currentInventory = inventoryStates.get(poItem.variant_id)
-          || await this.queryInventoryBalance(poItem.variant_id);
-        const nextInventory = {
-          ...currentInventory,
-          on_hand: toNonNegativeInt(currentInventory?.on_hand) + receivedQty,
-          available: toNonNegativeInt(currentInventory?.available) + receivedQty,
-        };
-        inventoryStates.set(poItem.variant_id, nextInventory);
-
-        const inventoryMutation = await this.inventoryService.buildMutationStatements({
-          type: 'purchase_received',
-          variantId: poItem.variant_id,
-          quantityDelta: receivedQty,
-          orderId: poItem.pre_order_id || null,
-          orderLineId: compatibilityOrderLine?.id || null,
-          purchaseReceiptId: receiptId,
-          referenceType: 'purchase_receipt',
-          referenceId: receiptId,
-          metadata: {
-            purchaseOrderId: poId,
-            purchaseOrderItemId,
-          },
-        });
-        statements.push(...(inventoryMutation?.statements || []));
+        statements.push(this.purchaseReceiptRepo.createInsertStatement(receiptPayload));
 
         outboxEvents.push({
           id: crypto.randomUUID(),
           command_id: commandRecord.command_id,
           sequence_in_command: sequenceInCommand++,
-          event_type: 'inventory_received',
+          event_type: 'purchase_receipt_recorded',
           event_version: 1,
-          aggregate_type: 'inventory_event',
-          aggregate_id: inventoryMutation.inventoryEventId || receiptId,
+          aggregate_type: 'purchase_receipt',
+          aggregate_id: receiptId,
           correlation_id: commandRecord.command_id,
           causation_id: options.causationId || commandRecord.command_id,
-          idempotency_key: `${commandRecord.command_id}:${inventoryMutation.inventoryEventId || receiptId}:inventory_received`,
-          payload_json: JSON.stringify({
-            variant_id: poItem.variant_id,
-            quantity_delta: receivedQty,
-            purchase_receipt_id: receiptId,
-            on_hand_after: nextInventory.on_hand,
-            available_after: nextInventory.available,
-          }),
-          occurred_at: timestamp,
-        });
-      }
-
-      const orderProjection = compatibilityOrderLine
-        ? orderLineStates.get(`${compatibilityOrderLine.id}:outbox`)
-        : null;
-      if (orderProjection) {
-        outboxEvents.push({
-          id: crypto.randomUUID(),
-          command_id: commandRecord.command_id,
-          sequence_in_command: sequenceInCommand++,
-          event_type: 'order_procurement_progressed',
-          event_version: 1,
-          aggregate_type: 'order',
-          aggregate_id: poItem.pre_order_id,
-          correlation_id: commandRecord.command_id,
-          causation_id: options.causationId || commandRecord.command_id,
-          idempotency_key: `${commandRecord.command_id}:${orderProjection.nextLineState.id}:order_procurement_progressed:${sequenceInCommand - 1}`,
+          idempotency_key: `${commandRecord.command_id}:${purchaseOrderItemId}:purchase_receipt_recorded:${sequenceInCommand - 1}`,
           payload_json: JSON.stringify({
             purchase_order_id: poId,
-            order_line_id: orderProjection.nextLineState.id,
-            received_qty_delta: receivedQty,
-            order_line_received_qty_after: orderProjection.nextLineState.received_qty,
-            order_line_display_status_after: orderProjection.nextLineState.display_status,
-            order_procurement_status_after: orderProjection.nextProcurementStatus,
+            purchase_order_item_id: purchaseOrderItemId,
+            product_id: poItem.product_id || null,
+            variant_id: poItem.variant_id || null,
+            order_id: poItem.pre_order_id || null,
+            order_line_id: compatibilityOrderLine?.id || null,
+            receipt_id: receiptId,
+            received_qty: receivedQty,
+            purchase_item_received_qty_after: nextReceived,
+            purchase_item_display_status_after: displayStatus,
           }),
           occurred_at: timestamp,
         });
-        orderLineStates.delete(`${compatibilityOrderLine.id}:outbox`);
+
+        if (compatibilityOrderLine) {
+          const currentLineState = orderLineStates.get(compatibilityOrderLine.id) || {
+            ...compatibilityOrderLine,
+            ordered_qty: toNonNegativeInt(compatibilityOrderLine.ordered_qty),
+            procured_qty: toNonNegativeInt(compatibilityOrderLine.procured_qty),
+            received_qty: toNonNegativeInt(compatibilityOrderLine.received_qty),
+            reserved_qty: toNonNegativeInt(compatibilityOrderLine.reserved_qty),
+            shipped_qty: toNonNegativeInt(compatibilityOrderLine.shipped_qty),
+            cancelled_qty: toNonNegativeInt(compatibilityOrderLine.cancelled_qty),
+          };
+          const nextLineState = {
+            ...currentLineState,
+            procured_qty: Math.max(currentLineState.procured_qty, currentLineState.ordered_qty),
+            received_qty: Math.min(currentLineState.received_qty + receivedQty, currentLineState.ordered_qty),
+          };
+          nextLineState.display_status = projectOrderLineStatus(nextLineState);
+          orderLineStates.set(nextLineState.id, nextLineState);
+          statements.push(this.buildOrderLineProgressStatement(nextLineState, timestamp));
+
+          const currentAggregate = orderAggregateStates.get(poItem.pre_order_id)
+            || await this.queryCompatibilityProcurementAggregate(poItem.pre_order_id);
+          const nextAggregate = {
+            ...currentAggregate,
+            procured_qty:
+              toNonNegativeInt(currentAggregate.procured_qty)
+              + Math.max(nextLineState.procured_qty - currentLineState.procured_qty, 0),
+            received_qty:
+              toNonNegativeInt(currentAggregate.received_qty)
+              + Math.max(nextLineState.received_qty - currentLineState.received_qty, 0),
+          };
+          orderAggregateStates.set(poItem.pre_order_id, nextAggregate);
+
+          const nextProcurementStatus = projectCompatibilityProcurementStatus(nextAggregate);
+          statements.push(this.buildCompatibilityOrderStatusStatement(
+            poItem.pre_order_id,
+            nextProcurementStatus,
+            timestamp
+          ));
+
+          orderLineStates.set(`${nextLineState.id}:outbox`, {
+            nextProcurementStatus,
+            nextLineState,
+          });
+        }
+
+        if (poItem.variant_id) {
+          const currentInventory = inventoryStates.get(poItem.variant_id)
+            || await this.queryInventoryBalance(poItem.variant_id);
+          const nextInventory = {
+            ...currentInventory,
+            on_hand: toNonNegativeInt(currentInventory?.on_hand) + receivedQty,
+            available: toNonNegativeInt(currentInventory?.available) + receivedQty,
+          };
+          inventoryStates.set(poItem.variant_id, nextInventory);
+
+          const inventoryMutation = await this.inventoryService.buildMutationStatements({
+            type: 'purchase_received',
+            variantId: poItem.variant_id,
+            quantityDelta: receivedQty,
+            orderId: poItem.pre_order_id || null,
+            orderLineId: compatibilityOrderLine?.id || null,
+            purchaseReceiptId: receiptId,
+            referenceType: 'purchase_receipt',
+            referenceId: receiptId,
+            metadata: {
+              purchaseOrderId: poId,
+              purchaseOrderItemId,
+            },
+          });
+          statements.push(...(inventoryMutation?.statements || []));
+
+          outboxEvents.push({
+            id: crypto.randomUUID(),
+            command_id: commandRecord.command_id,
+            sequence_in_command: sequenceInCommand++,
+            event_type: 'inventory_received',
+            event_version: 1,
+            aggregate_type: 'inventory_event',
+            aggregate_id: inventoryMutation.inventoryEventId || receiptId,
+            correlation_id: commandRecord.command_id,
+            causation_id: options.causationId || commandRecord.command_id,
+            idempotency_key: `${commandRecord.command_id}:${inventoryMutation.inventoryEventId || receiptId}:inventory_received`,
+            payload_json: JSON.stringify({
+              variant_id: poItem.variant_id,
+              quantity_delta: receivedQty,
+              purchase_receipt_id: receiptId,
+              on_hand_after: nextInventory.on_hand,
+              available_after: nextInventory.available,
+            }),
+            occurred_at: timestamp,
+          });
+        }
+
+        const orderProjection = compatibilityOrderLine
+          ? orderLineStates.get(`${compatibilityOrderLine.id}:outbox`)
+          : null;
+        if (orderProjection) {
+          outboxEvents.push({
+            id: crypto.randomUUID(),
+            command_id: commandRecord.command_id,
+            sequence_in_command: sequenceInCommand++,
+            event_type: 'order_procurement_progressed',
+            event_version: 1,
+            aggregate_type: 'order',
+            aggregate_id: poItem.pre_order_id,
+            correlation_id: commandRecord.command_id,
+            causation_id: options.causationId || commandRecord.command_id,
+            idempotency_key: `${commandRecord.command_id}:${orderProjection.nextLineState.id}:order_procurement_progressed:${sequenceInCommand - 1}`,
+            payload_json: JSON.stringify({
+              purchase_order_id: poId,
+              order_line_id: orderProjection.nextLineState.id,
+              received_qty_delta: receivedQty,
+              order_line_received_qty_after: orderProjection.nextLineState.received_qty,
+              order_line_display_status_after: orderProjection.nextLineState.display_status,
+              order_procurement_status_after: orderProjection.nextProcurementStatus,
+            }),
+            occurred_at: timestamp,
+          });
+          orderLineStates.delete(`${compatibilityOrderLine.id}:outbox`);
+        }
+
+        results.push({
+          id: receiptId,
+          purchase_order_item_id: purchaseOrderItemId,
+          received_qty: receivedQty,
+        });
       }
 
-      results.push({
-        id: receiptId,
-        purchase_order_item_id: purchaseOrderItemId,
-        received_qty: receivedQty,
-      });
-    }
+      const response = {
+        purchase_order_id: poId,
+        receipt_count: results.length,
+        receipts: results,
+      };
 
-    const response = {
-      purchase_order_id: poId,
-      receipt_count: results.length,
-      receipts: results,
-    };
+      statements.push(
+        ...this.domainOutboxRepo.buildInsertStatements(
+          outboxEvents,
+          (event) => getDomainEventDefinition(event.event_type).consumers
+        )
+      );
+      statements.push(
+        this.db.prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
+          .bind(timestamp, poId)
+      );
+      statements.push(
+        this.commandIdempotencyRepo.buildFinalizeStatement(commandRecord.command_id, response, 'committed')
+      );
 
-    statements.push(
-      ...this.domainOutboxRepo.buildInsertStatements(
-        outboxEvents,
-        (event) => getDomainEventDefinition(event.event_type).consumers
-      )
-    );
-    statements.push(
-      this.db.prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
-        .bind(timestamp, poId)
-    );
-    statements.push(
-      this.commandIdempotencyRepo.buildFinalizeStatement(commandRecord.command_id, response, 'committed')
-    );
-
-    const batchResults = await this.db.batch(statements);
-    for (const index of purchaseItemStatementIndexes) {
-      if ((batchResults?.[index]?.meta?.changes || 0) !== 1) {
-        throw new BadRequestError('采购单明细收货进度已变化，请刷新后重试');
+      await this.db.batch(statements);
+      return response;
+    } catch (error) {
+      if (preflightReverts.length > 0) {
+        await this.db.batch(preflightReverts);
       }
+      if (commandReservation.insertStatement) {
+        await buildDeleteCommandStatement(this.db, commandRecord.command_id).run();
+      }
+      throw error;
     }
-
-    return response;
   }
 }
