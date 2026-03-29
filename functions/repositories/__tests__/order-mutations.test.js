@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { updateData, create } from '../order/mutations.js';
+import { updateComposite, updateData, updateStatus, create } from '../order/mutations.js';
 
 describe('Order Mutations SQL Binding', () => {
     let db;
@@ -12,6 +12,7 @@ describe('Order Mutations SQL Binding', () => {
         db = {
             prepare: vi.fn().mockReturnThis(),
             bind: vi.fn().mockReturnThis(),
+            first: vi.fn().mockResolvedValue(null),
             run: vi.fn().mockResolvedValue({ success: true }),
             batch: vi.fn().mockResolvedValue([]),
         };
@@ -30,13 +31,13 @@ describe('Order Mutations SQL Binding', () => {
             await updateData(db, orderId, newData, actorType, productId);
 
             // Verify parepare was called with product_id in SET clause
-            expect(db.prepare).toHaveBeenCalledTimes(1);
+            expect(db.prepare.mock.calls.length).toBeGreaterThanOrEqual(2);
             const sql = db.prepare.mock.calls[0][0];
             expect(sql).toContain('product_id = ?');
 
             // Verify bind parameters include the productId
             // Bind params order: [JSON.stringify(newData), timestamp, productId, orderId]
-            expect(db.bind).toHaveBeenCalledTimes(1);
+            expect(db.bind.mock.calls.length).toBeGreaterThanOrEqual(2);
             const bindArgs = db.bind.mock.calls[0];
             expect(bindArgs).toContain(productId);
             expect(bindArgs[bindArgs.length - 1]).toBe(orderId);
@@ -49,11 +50,11 @@ describe('Order Mutations SQL Binding', () => {
 
             await updateData(db, orderId, newData, actorType, undefined);
 
-            expect(db.prepare).toHaveBeenCalledTimes(1);
+            expect(db.prepare.mock.calls.length).toBeGreaterThanOrEqual(2);
             const sql = db.prepare.mock.calls[0][0];
             expect(sql).not.toContain('product_id = ?');
 
-            expect(db.bind).toHaveBeenCalledTimes(1);
+            expect(db.bind.mock.calls.length).toBeGreaterThanOrEqual(2);
             const bindArgs = db.bind.mock.calls[0];
             expect(bindArgs).not.toContain(undefined);
         });
@@ -115,6 +116,177 @@ describe('Order Mutations SQL Binding', () => {
 
             const bindArgs = db.bind.mock.calls[0];
             expect(bindArgs).toContain('v_001');
+        });
+
+        it('should create an order_lines row with the display snapshot when a single-line order is created', async () => {
+            const params = {
+                id: 'o_line',
+                orderNo: 'no_line',
+                salespersonId: 's_sales',
+                data: {
+                    name: 'Snapshot Item',
+                    sku: 'SKU-987',
+                    size: 'L',
+                    color: 'Blue',
+                    brand: 'Acme',
+                    material: 'Metal',
+                    series: 'Alpha',
+                    remark: '',
+                    deadline: '2026-07-01'
+                },
+                status: 'pending',
+                quantity: 3,
+                productId: 'p_line',
+                variantId: 'v_line',
+                mainImageId: 'img-main'
+            };
+
+            await create(db, timelineRepo, params);
+
+            // The second prepared statement should insert into order_lines
+            const orderLineSql = db.prepare.mock.calls[1][0];
+            expect(orderLineSql).toContain('INSERT INTO order_lines');
+
+            const bindArgs = db.bind.mock.calls[1];
+            expect(bindArgs[1]).toBe(params.id); // order_id
+            expect(bindArgs[2]).toBe(params.productId);
+            expect(bindArgs[3]).toBe(params.variantId);
+            expect(bindArgs[4]).toBe(params.data.name);
+            expect(bindArgs[5]).toBe(params.data.sku);
+            expect(bindArgs[7]).toBe(params.mainImageId);
+            expect(bindArgs[8]).toBe(3);
+            expect(bindArgs[9]).toBe(0);
+            expect(bindArgs[14]).toBe('unprocured');
+
+            const snapshotSpecs = JSON.parse(bindArgs[6]);
+            expect(snapshotSpecs).toEqual({
+                size: 'L',
+                color: 'Blue',
+                brand: 'Acme',
+                material: 'Metal',
+                series: 'Alpha',
+                deadline: '2026-07-01'
+            });
+        });
+
+        it('normalizes quantity consistently for the order row and order_lines row', async () => {
+            const params = {
+                id: 'o_qty',
+                orderNo: 'no_qty',
+                salespersonId: 's_1',
+                data: { name: 'Qty Item' },
+                status: 'pending',
+                quantity: 1.9,
+            };
+
+            await create(db, timelineRepo, params);
+
+            const orderBindArgs = db.bind.mock.calls[0];
+            const orderLineBindArgs = db.bind.mock.calls[1];
+
+            expect(orderBindArgs[7]).toBe(1);
+            expect(orderLineBindArgs[8]).toBe(1);
+        });
+
+        it('seeds arrived orders with ready line progress instead of unprocured defaults', async () => {
+            const params = {
+                id: 'o_arrived',
+                orderNo: 'no_arrived',
+                salespersonId: 's_1',
+                data: { name: 'Arrived Item' },
+                status: 'arrived',
+                quantity: 2,
+            };
+
+            await create(db, timelineRepo, params);
+
+            const orderLineBindArgs = db.bind.mock.calls[1];
+            expect(orderLineBindArgs[8]).toBe(2);
+            expect(orderLineBindArgs[9]).toBe(2);
+            expect(orderLineBindArgs[10]).toBe(2);
+            expect(orderLineBindArgs[11]).toBe(0);
+            expect(orderLineBindArgs[12]).toBe(0);
+            expect(orderLineBindArgs[13]).toBe(0);
+            expect(orderLineBindArgs[14]).toBe('ready');
+        });
+    });
+
+    describe('compatibility line sync', () => {
+        it('updateComposite keeps the compatibility order_line snapshot in sync with edited order data', async () => {
+            const inventoryService = {
+                assertSufficient: vi.fn(),
+                applyMutation: vi.fn(),
+            };
+            db.first.mockResolvedValueOnce({ id: 'line-1', line_count: 1 });
+
+            await updateComposite(db, {
+                id: 'o-sync',
+                actorType: 'admin',
+                newData: {
+                    name: 'Updated Item',
+                    sku: 'SKU-2',
+                    quantity: 4,
+                    size: 'XL',
+                    color: 'Black',
+                    material: 'Leather',
+                },
+                productId: 'prod-2',
+                variantId: 'var-2',
+                fileIds: ['img-2'],
+                inventoryService,
+            });
+
+            const lineUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) => sql.includes('UPDATE order_lines'));
+            expect(lineUpdateIndex).toBeGreaterThanOrEqual(0);
+
+            const bindArgs = db.bind.mock.calls[lineUpdateIndex];
+            expect(bindArgs).toContain('prod-2');
+            expect(bindArgs).toContain('var-2');
+            expect(bindArgs).toContain('Updated Item');
+            expect(bindArgs).toContain('SKU-2');
+            expect(bindArgs).toContain('img-2');
+            expect(bindArgs).toContain(4);
+            expect(bindArgs[bindArgs.length - 1]).toBe('o-sync');
+
+            const snapshotSpecsArg = bindArgs.find((value) => typeof value === 'string' && value.includes('"size":"XL"'));
+            expect(JSON.parse(snapshotSpecsArg)).toEqual({
+                size: 'XL',
+                color: 'Black',
+                material: 'Leather',
+            });
+        });
+
+        it('updateStatus also persists compatibility progress back into order_lines', async () => {
+            const inventoryService = {
+                assertSufficient: vi.fn(async () => true),
+                applyMutation: vi.fn(async () => true),
+            };
+            db.first
+                .mockResolvedValueOnce({ status: 'arrived', variant_id: 'v-1', quantity: 3 })
+                .mockResolvedValueOnce({ id: 'line-1', line_count: 1 })
+                .mockResolvedValueOnce({ line_count: 1 })
+                .mockResolvedValueOnce({
+                    id: 'line-1',
+                    line_count: 1,
+                    ordered_qty: 3,
+                    procured_qty: 3,
+                    received_qty: 3,
+                    reserved_qty: 0,
+                    shipped_qty: 0,
+                    cancelled_qty: 0,
+                });
+
+            await updateStatus(db, 'o-1', 'delivered', 'admin', { inventoryService });
+
+            const lineUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) => sql.includes('UPDATE order_lines'));
+            expect(lineUpdateIndex).toBeGreaterThanOrEqual(0);
+
+            const bindArgs = db.bind.mock.calls[lineUpdateIndex];
+            expect(bindArgs).toContain(3);
+            expect(bindArgs).toContain('completed');
+            expect(db.prepare.mock.calls[lineUpdateIndex][0]).toContain('WHERE id = ? AND order_id = ?');
+            expect(bindArgs[bindArgs.length - 2]).toBe('line-1');
+            expect(bindArgs[bindArgs.length - 1]).toBe('o-1');
         });
     });
 

@@ -3,7 +3,7 @@ export class PurchaseReceiptRepository {
     this.db = db;
   }
 
-  async create(payload) {
+  normalizePayload(payload = {}) {
     if (payload.received_qty == null) {
       throw new Error('received_qty is required');
     }
@@ -13,7 +13,19 @@ export class PurchaseReceiptRepository {
     const now = payload.created_at ?? Date.now();
     const updatedAt = payload.updated_at ?? now;
 
-    await this.db
+    return {
+      ...payload,
+      id,
+      received_at: receivedAt,
+      created_at: now,
+      updated_at: updatedAt,
+    };
+  }
+
+  createInsertStatement(payload) {
+    const normalized = this.normalizePayload(payload);
+
+    return this.db
       .prepare(
         `INSERT INTO purchase_receipts (
           id,
@@ -30,20 +42,30 @@ export class PurchaseReceiptRepository {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
-        id,
-        payload.purchase_order_id,
-        payload.purchase_order_item_id || null,
-        payload.product_id || null,
-        payload.variant_id || null,
-        payload.receipt_no || null,
-        payload.received_qty,
-        payload.note || null,
-        receivedAt,
-        now,
-        updatedAt
-      )
-      .run();
+        normalized.id,
+        normalized.purchase_order_id,
+        normalized.purchase_order_item_id || null,
+        normalized.product_id || null,
+        normalized.variant_id || null,
+        normalized.receipt_no || null,
+        normalized.received_qty,
+        normalized.note || null,
+        normalized.received_at,
+        normalized.created_at,
+        normalized.updated_at
+      );
+  }
 
-    return { id, received_at: receivedAt, created_at: now, updated_at: updatedAt };
+  async create(payload) {
+    const normalized = this.normalizePayload(payload);
+    const statement = this.createInsertStatement(normalized);
+    await statement.run();
+
+    return {
+      id: normalized.id,
+      received_at: normalized.received_at,
+      created_at: normalized.created_at,
+      updated_at: normalized.updated_at,
+    };
   }
 }

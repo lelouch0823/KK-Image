@@ -11,6 +11,7 @@
 import { Hono } from 'hono';
 import { PurchaseOrderRepository } from '../../../../repositories/PurchaseOrderRepository.js';
 import { PurchaseOrderService } from '../../../../services/PurchaseOrderService.js';
+import { OrderProcurementDomainService } from '../../../../services/OrderProcurementDomainService.js';
 import { validateOrderQuantity } from '../../../../services/purchase-order-constraints.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { withCache } from '../../middleware/cache.js';
@@ -19,6 +20,7 @@ import { getPurchaseOrderCacheUrls, getOrderAnalyticsCacheUrls } from '../_share
 import { requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { runOutboxPoller } from '../../../../api/cron/outbox.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -26,6 +28,7 @@ export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'POST', path: '/from-orders', domain: 'purchase-orders', action: 'purchase_order.create_from_orders', severity: 'high', targetType: 'purchase_order' },
   { method: 'PUT', path: '/:id', domain: 'purchase-orders', action: 'purchase_order.update', severity: 'high', targetType: 'purchase_order' },
   { method: 'PATCH', path: '/:id/status', domain: 'purchase-orders', action: 'purchase_order.status.change', severity: 'high', targetType: 'purchase_order' },
+  { method: 'POST', path: '/:id/receipts', domain: 'purchase-orders', action: 'purchase_order.receipt.create', severity: 'high', targetType: 'purchase_order' },
   { method: 'POST', path: '/:id/items', domain: 'purchase-orders', action: 'purchase_order.item.create', severity: 'high', targetType: 'purchase_order' },
   { method: 'PATCH', path: '/:id/items/:itemId', domain: 'purchase-orders', action: 'purchase_order.item.update', severity: 'high', targetType: 'purchase_order' },
   { method: 'DELETE', path: '/:id/items/:itemId', domain: 'purchase-orders', action: 'purchase_order.item.delete', severity: 'high', targetType: 'purchase_order' },
@@ -178,6 +181,31 @@ app.get('/:id', withCache(20), async (c) => {
   const po = await requirePurchaseOrder(repo, c.req.param('id'));
 
   return c.json({ success: true, data: po });
+});
+
+/**
+ * POST /:id/receipts — 采购收货 (partial receipts)
+ * Body: { items: [{ purchase_order_item_id, received_qty, note? }] }
+ */
+app.post('/:id/receipts', async (c) => {
+  const poId = c.req.param('id');
+  const body = await c.req.json();
+  const idempotencyKey = String(c.req.header('Idempotency-Key') || crypto.randomUUID()).trim();
+
+  const repo = new PurchaseOrderRepository(c.env.DB);
+  await requirePurchaseOrder(repo, poId);
+
+  const domain = new OrderProcurementDomainService(c.env.DB);
+  const result = await domain.recordPurchaseOrderReceipts(poId, body, {
+    idempotencyKey,
+  });
+  c.executionCtx.waitUntil(runOutboxPoller({
+    env: c.env,
+    requestUrl: c.req.url,
+    workerId: `request:${poId}:${idempotencyKey}`,
+  }));
+
+  return c.json({ success: true, data: result }, 201);
 });
 
 // ─── 创建 ──────────────────────────────────────────────

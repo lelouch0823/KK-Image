@@ -13,6 +13,8 @@ function projectInventoryGap(totalDemand, stockQuantity) {
   return (Number(totalDemand) || 0) - (Number(stockQuantity) || 0);
 }
 
+const REMAINING_DEMAND_EXPR = 'MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)';
+
 export class GoodsOverviewRepository {
   constructor(db) {
     this.db = db;
@@ -72,7 +74,7 @@ export class GoodsOverviewRepository {
     const { category, brand, shortageOnly, sort = 'shortage' } = filters;
 
     // 构建 WHERE 子句
-    let whereClause = `o.status IN (${this.STATUS_IN_CLAUSE}) AND o.product_id IS NOT NULL AND o.variant_id IS NOT NULL AND pv.status = 'active'`;
+    let whereClause = `o.status IN (${this.STATUS_IN_CLAUSE}) AND ol.product_id IS NOT NULL AND ol.variant_id IS NOT NULL AND pv.status = 'active'`;
     const bindParams = [...this.ACTIVE_STATUSES]; // 用于 IN 子句
 
     if (category) {
@@ -107,8 +109,8 @@ export class GoodsOverviewRepository {
 
     const sql = `
         SELECT 
-            o.variant_id as id,
-            o.product_id as product_id,
+            ol.variant_id as id,
+            ol.product_id as product_id,
             p.product_code as product_code,
             pv.variant_code as variant_code,
             COALESCE(p.name, json_extract(o.current_data, '$.name')) as name,
@@ -125,20 +127,21 @@ export class GoodsOverviewRepository {
               WHEN fv.storage_key IS NOT NULL THEN json_array(fv.storage_key)
               ELSE p.images
             END as images,
-            COALESCE(SUM(CASE WHEN o.status = 'confirmed' THEN o.quantity ELSE 0 END), 0) as confirmed_qty,
-            COALESCE(SUM(CASE WHEN o.status = 'production' THEN o.quantity ELSE 0 END), 0) as production_qty,
-            COALESCE(SUM(CASE WHEN o.status = 'shipping' THEN o.quantity ELSE 0 END), 0) as shipping_qty,
-            COALESCE(SUM(CASE WHEN o.status = 'arrived' THEN o.quantity ELSE 0 END), 0) as arrived_qty,
-            COALESCE(SUM(o.quantity), 0) as total_demand,
-            COUNT(o.id) as order_count,
-            COALESCE(SUM(o.quantity), 0) - COALESCE(MAX(COALESCE(ib.available, pv.stock_quantity, 0)), 0) as shortage,
+            COALESCE(SUM(CASE WHEN o.status = 'confirmed' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as confirmed_qty,
+            COALESCE(SUM(CASE WHEN o.status = 'production' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as production_qty,
+            COALESCE(SUM(CASE WHEN o.status = 'shipping' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as shipping_qty,
+            COALESCE(SUM(CASE WHEN o.status = 'arrived' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as arrived_qty,
+            COALESCE(SUM(${REMAINING_DEMAND_EXPR}), 0) as total_demand,
+            COUNT(DISTINCT o.id) as order_count,
+            COALESCE(SUM(${REMAINING_DEMAND_EXPR}), 0) - COALESCE(MAX(COALESCE(ib.available, pv.stock_quantity, 0)), 0) as shortage,
             COALESCE(pc.avg_unit_cost, 0) as avg_unit_cost,
             COALESCE(pc.avg_freight, 0) as avg_freight,
             COALESCE(pc.avg_tariff, 0) as avg_tariff
-        FROM orders o
-        LEFT JOIN products p ON o.product_id = p.id
-        LEFT JOIN product_variants pv ON pv.id = o.variant_id
-        LEFT JOIN inventory_balances ib ON ib.variant_id = o.variant_id
+        FROM order_lines ol
+        JOIN orders o ON o.id = ol.order_id
+        LEFT JOIN products p ON ol.product_id = p.id
+        LEFT JOIN product_variants pv ON pv.id = ol.variant_id
+        LEFT JOIN inventory_balances ib ON ib.variant_id = ol.variant_id
         LEFT JOIN files fv ON fv.id = pv.image_id
         LEFT JOIN (
           SELECT variant_id,
@@ -148,9 +151,9 @@ export class GoodsOverviewRepository {
           FROM purchase_order_items
           WHERE variant_id IS NOT NULL
           GROUP BY variant_id
-        ) pc ON pc.variant_id = o.variant_id
+        ) pc ON pc.variant_id = ol.variant_id
         WHERE ${whereClause}
-        GROUP BY o.variant_id
+        GROUP BY ol.variant_id
         ${havingClause}
         ORDER BY ${orderBy}
     `;
@@ -165,13 +168,15 @@ export class GoodsOverviewRepository {
   async getAvailableFilters() {
     const filterSql = `
         SELECT DISTINCT p.category
-        FROM orders o
-        JOIN products p ON o.product_id = p.id
-        JOIN product_variants pv ON pv.id = o.variant_id
+        FROM order_lines ol
+        JOIN orders o ON o.id = ol.order_id
+        JOIN products p ON ol.product_id = p.id
+        JOIN product_variants pv ON pv.id = ol.variant_id
         WHERE o.status IN (${this.STATUS_IN_CLAUSE}) 
-          AND o.product_id IS NOT NULL 
-          AND o.variant_id IS NOT NULL
+          AND ol.product_id IS NOT NULL 
+          AND ol.variant_id IS NOT NULL
           AND pv.status = 'active'
+          AND ${REMAINING_DEMAND_EXPR} > 0
           AND p.category IS NOT NULL 
           AND p.category != ''
         ORDER BY p.category
@@ -180,13 +185,15 @@ export class GoodsOverviewRepository {
 
     const brandSql = `
         SELECT DISTINCT COALESCE(p.brand, json_extract(o.current_data, '$.brand')) as brand
-        FROM orders o
-        LEFT JOIN products p ON o.product_id = p.id
-        JOIN product_variants pv ON pv.id = o.variant_id
+        FROM order_lines ol
+        JOIN orders o ON o.id = ol.order_id
+        LEFT JOIN products p ON ol.product_id = p.id
+        JOIN product_variants pv ON pv.id = ol.variant_id
         WHERE o.status IN (${this.STATUS_IN_CLAUSE}) 
-          AND o.product_id IS NOT NULL 
-          AND o.variant_id IS NOT NULL
+          AND ol.product_id IS NOT NULL 
+          AND ol.variant_id IS NOT NULL
           AND pv.status = 'active'
+          AND ${REMAINING_DEMAND_EXPR} > 0
         ORDER BY brand
     `;
     const { results: rawBrands } = await this.db.prepare(brandSql).bind(...this.ACTIVE_STATUSES).all();
@@ -207,41 +214,43 @@ export class GoodsOverviewRepository {
     const [mainResult, shortageResult] = await Promise.all([
       this.db.prepare(`
         SELECT 
-            COUNT(DISTINCT o.variant_id) as total_products,
-            COALESCE(SUM(o.quantity), 0) as total_demand,
+            COUNT(DISTINCT CASE WHEN ${REMAINING_DEMAND_EXPR} > 0 THEN ol.variant_id END) as total_products,
+            COALESCE(SUM(${REMAINING_DEMAND_EXPR}), 0) as total_demand,
             -- 不同商品数
-            COUNT(DISTINCT CASE WHEN o.status = 'confirmed' THEN o.variant_id END) as confirmed_products,
-            COUNT(DISTINCT CASE WHEN o.status = 'production' THEN o.variant_id END) as production_products,
-            COUNT(DISTINCT CASE WHEN o.status = 'shipping'  THEN o.variant_id END) as shipping_products,
-            COUNT(DISTINCT CASE WHEN o.status = 'arrived'   THEN o.variant_id END) as arrived_products,
+            COUNT(DISTINCT CASE WHEN o.status = 'confirmed' AND ${REMAINING_DEMAND_EXPR} > 0 THEN ol.variant_id END) as confirmed_products,
+            COUNT(DISTINCT CASE WHEN o.status = 'production' AND ${REMAINING_DEMAND_EXPR} > 0 THEN ol.variant_id END) as production_products,
+            COUNT(DISTINCT CASE WHEN o.status = 'shipping'  AND ${REMAINING_DEMAND_EXPR} > 0 THEN ol.variant_id END) as shipping_products,
+            COUNT(DISTINCT CASE WHEN o.status = 'arrived'   AND ${REMAINING_DEMAND_EXPR} > 0 THEN ol.variant_id END) as arrived_products,
             -- 件数
-            COALESCE(SUM(CASE WHEN o.status = 'confirmed' THEN o.quantity ELSE 0 END), 0) as confirmed_qty,
-            COALESCE(SUM(CASE WHEN o.status = 'production' THEN o.quantity ELSE 0 END), 0) as production_qty,
-            COALESCE(SUM(CASE WHEN o.status = 'shipping' THEN o.quantity ELSE 0 END), 0) as shipping_qty,
-            COALESCE(SUM(CASE WHEN o.status = 'arrived' THEN o.quantity ELSE 0 END), 0) as arrived_qty,
+            COALESCE(SUM(CASE WHEN o.status = 'confirmed' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as confirmed_qty,
+            COALESCE(SUM(CASE WHEN o.status = 'production' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as production_qty,
+            COALESCE(SUM(CASE WHEN o.status = 'shipping' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as shipping_qty,
+            COALESCE(SUM(CASE WHEN o.status = 'arrived' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as arrived_qty,
             -- 订单条数
-            COUNT(CASE WHEN o.status = 'confirmed' THEN 1 END) as confirmed_orders,
-            COUNT(CASE WHEN o.status = 'production' THEN 1 END) as production_orders,
-            COUNT(CASE WHEN o.status = 'shipping' THEN 1 END) as shipping_orders,
-            COUNT(CASE WHEN o.status = 'arrived' THEN 1 END) as arrived_orders
-        FROM orders o
-        LEFT JOIN product_variants pv ON pv.id = o.variant_id
-        WHERE o.status IN (${this.STATUS_IN_CLAUSE}) AND o.product_id IS NOT NULL
-          AND o.variant_id IS NOT NULL
+            COUNT(DISTINCT CASE WHEN o.status = 'confirmed' AND ${REMAINING_DEMAND_EXPR} > 0 THEN o.id END) as confirmed_orders,
+            COUNT(DISTINCT CASE WHEN o.status = 'production' AND ${REMAINING_DEMAND_EXPR} > 0 THEN o.id END) as production_orders,
+            COUNT(DISTINCT CASE WHEN o.status = 'shipping' AND ${REMAINING_DEMAND_EXPR} > 0 THEN o.id END) as shipping_orders,
+            COUNT(DISTINCT CASE WHEN o.status = 'arrived' AND ${REMAINING_DEMAND_EXPR} > 0 THEN o.id END) as arrived_orders
+        FROM order_lines ol
+        JOIN orders o ON o.id = ol.order_id
+        LEFT JOIN product_variants pv ON pv.id = ol.variant_id
+        WHERE o.status IN (${this.STATUS_IN_CLAUSE}) AND ol.product_id IS NOT NULL
+          AND ol.variant_id IS NOT NULL
           AND pv.status = 'active'
       `).bind(...this.ACTIVE_STATUSES).all(),
 
       this.db.prepare(`
         SELECT COUNT(*) as count FROM (
-            SELECT o.variant_id as id,
-                COALESCE(SUM(o.quantity), 0) - COALESCE(MAX(COALESCE(ib.available, pv.stock_quantity, 0)), 0) as shortage
-            FROM orders o
-            LEFT JOIN product_variants pv ON pv.id = o.variant_id
-            LEFT JOIN inventory_balances ib ON ib.variant_id = o.variant_id
-            WHERE o.status IN (${this.STATUS_IN_CLAUSE}) AND o.product_id IS NOT NULL
-              AND o.variant_id IS NOT NULL
+            SELECT ol.variant_id as id,
+                COALESCE(SUM(${REMAINING_DEMAND_EXPR}), 0) - COALESCE(MAX(COALESCE(ib.available, pv.stock_quantity, 0)), 0) as shortage
+            FROM order_lines ol
+            JOIN orders o ON o.id = ol.order_id
+            LEFT JOIN product_variants pv ON pv.id = ol.variant_id
+            LEFT JOIN inventory_balances ib ON ib.variant_id = ol.variant_id
+            WHERE o.status IN (${this.STATUS_IN_CLAUSE}) AND ol.product_id IS NOT NULL
+              AND ol.variant_id IS NOT NULL
               AND pv.status = 'active'
-            GROUP BY o.variant_id
+            GROUP BY ol.variant_id
             HAVING shortage > 0
         )
       `).bind(...this.ACTIVE_STATUSES).all(),

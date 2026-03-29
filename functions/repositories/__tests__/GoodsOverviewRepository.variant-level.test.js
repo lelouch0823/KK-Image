@@ -46,8 +46,11 @@ describe('GoodsOverviewRepository variant-level', () => {
     const list = await repo.getList({ sort: 'shortage' });
 
     const sql = db.prepare.mock.calls[0][0];
-    expect(sql).toContain('o.variant_id');
-    expect(sql).toContain('GROUP BY o.variant_id');
+    expect(sql).toContain('ol.variant_id');
+    expect(sql).toContain('FROM order_lines ol');
+    expect(sql).toContain('JOIN orders o ON o.id = ol.order_id');
+    expect(sql).toContain('GROUP BY ol.variant_id');
+    expect(sql).toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)');
     expect(sql).toContain('inventory_balances');
     expect(list[0].id).toBe('var-1');
     expect(list[0].productId).toBe('prod-1');
@@ -55,5 +58,80 @@ describe('GoodsOverviewRepository variant-level', () => {
     expect(list[0].variantCode).toBe('V0001');
     expect(list[0].stockQuantity).toBe(7);
     expect(list[0].shortage).toBe(-1);
+  });
+
+  it('builds summary from order_lines remaining demand instead of order headers', async () => {
+    const summaryStmt = {
+      bind: vi.fn(() => summaryStmt),
+      all: vi.fn(async () => ({
+        results: [{
+          total_products: 1,
+          total_demand: 2,
+          confirmed_products: 1,
+          production_products: 0,
+          shipping_products: 0,
+          arrived_products: 0,
+          confirmed_qty: 2,
+          production_qty: 0,
+          shipping_qty: 0,
+          arrived_qty: 0,
+          confirmed_orders: 1,
+          production_orders: 0,
+          shipping_orders: 0,
+          arrived_orders: 0,
+        }],
+      })),
+    };
+    const shortageStmt = {
+      bind: vi.fn(() => shortageStmt),
+      all: vi.fn(async () => ({ results: [{ count: 1 }] })),
+    };
+    const db = {
+      prepare: vi
+        .fn()
+        .mockReturnValueOnce(summaryStmt)
+        .mockReturnValueOnce(shortageStmt),
+    };
+
+    const repo = new GoodsOverviewRepository(db);
+    const summary = await repo.getSummary();
+
+    expect(db.prepare.mock.calls[0][0]).toContain('FROM order_lines ol');
+    expect(db.prepare.mock.calls[0][0]).toContain('JOIN orders o ON o.id = ol.order_id');
+    expect(db.prepare.mock.calls[0][0]).toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)');
+    expect(db.prepare.mock.calls[0][0]).toContain("COUNT(DISTINCT CASE WHEN MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0) > 0 THEN ol.variant_id END)");
+    expect(summary.totalDemand).toBe(2);
+    expect(summary.shortageCount).toBe(1);
+  });
+
+  it('builds available filters from order_lines-backed active demand', async () => {
+    const categoryStmt = {
+      bind: vi.fn(() => categoryStmt),
+      all: vi.fn(async () => ({ results: [{ category: 'Top' }] })),
+    };
+    const brandStmt = {
+      bind: vi.fn(() => brandStmt),
+      all: vi.fn(async () => ({ results: [{ brand: 'KK' }] })),
+    };
+    const db = {
+      prepare: vi
+        .fn()
+        .mockReturnValueOnce(categoryStmt)
+        .mockReturnValueOnce(brandStmt),
+    };
+
+    const repo = new GoodsOverviewRepository(db);
+    const filters = await repo.getAvailableFilters();
+
+    expect(db.prepare.mock.calls[0][0]).toContain('FROM order_lines ol');
+    expect(db.prepare.mock.calls[0][0]).toContain('JOIN orders o ON o.id = ol.order_id');
+    expect(db.prepare.mock.calls[0][0]).toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0) > 0');
+    expect(db.prepare.mock.calls[1][0]).toContain('FROM order_lines ol');
+    expect(db.prepare.mock.calls[1][0]).toContain('JOIN orders o ON o.id = ol.order_id');
+    expect(db.prepare.mock.calls[1][0]).toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0) > 0');
+    expect(filters).toEqual({
+      categories: ['Top'],
+      brands: ['KK'],
+    });
   });
 });

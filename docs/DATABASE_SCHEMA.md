@@ -205,6 +205,10 @@
 | `status` | TEXT | `draft`, `ordered`, `shipping`, `arrived`, `completed`, `cancelled` |
 | `actual_shipping_cost` | REAL | 运费 |
 | `allocation_method` | TEXT | 分摊方式 (`by_quantity`, `by_value`) |
+| `quantity` | INTEGER | 采购数量（当前作为 ordered quantity） |
+| `received_qty` | INTEGER | 已收货数量 |
+| `cancelled_qty` | INTEGER | 已取消数量 |
+| `display_status` | TEXT | 收货展示状态：`open`, `partially_received`, `received`, `cancelled` |
 
 ### `purchase_receipts` (采购收货记录)
 采购收货事件表。用于记录同一采购项的多次部分收货，不再依赖单字段累加。
@@ -237,6 +241,47 @@
 | `variant_id` | TEXT | FK -> product_variants.id |
 | `allocated_qty` / `released_qty` | INTEGER | 分配和释放数量 |
 | `status` | TEXT | `active`, `released`, `cancelled` |
+
+### `command_idempotency` (命令幂等记录)
+采购收货命令去重与响应回放表，按命令类型 + 作用域 + 幂等键保证同一请求只落库一次。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `command_type` | TEXT | 命令类型，如 `purchase_receipt_record` |
+| `scope_key` | TEXT | 命令作用域，本阶段为 `purchase_order_id` |
+| `idempotency_key` | TEXT | 客户端幂等键 |
+| `command_id` | TEXT | 服务端接受后的稳定命令 ID |
+| `request_fingerprint` | TEXT | 请求语义指纹，用于拦截同 key 不同 payload |
+| `response_json` | TEXT | 已提交命令的原始响应缓存 |
+| `status` | TEXT | `in_flight`, `committed` |
+
+### `domain_outbox` (领域事件发件箱)
+与业务事实同事务提交的领域事件表，异步消费者只读取这里，不直接改核心真相表。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `command_id` | TEXT | 来源命令 ID |
+| `sequence_in_command` | INTEGER | 同一命令内的因果顺序 |
+| `event_type` | TEXT | 领域事件类型 |
+| `aggregate_type` / `aggregate_id` | TEXT | 事件归属聚合 |
+| `correlation_id` / `causation_id` | TEXT | 关联链路追踪字段 |
+| `idempotency_key` | TEXT | 事件级幂等键，需唯一 |
+| `payload_json` | TEXT | 事件 payload JSON |
+| `occurred_at` | INTEGER | 业务发生时间 |
+
+### `outbox_consumer_jobs` (Outbox 消费任务)
+按消费者维度展开的投递/重试状态表，负责 lease、失败重试和最终处理结果。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `consumer_name` | TEXT | 消费者名称，如 `audit`, `cache` |
+| `event_id` | TEXT | FK -> domain_outbox.id |
+| `status` | TEXT | `pending`, `processing`, `published`, `failed` |
+| `attempt_count` | INTEGER | 已尝试次数 |
+| `available_at` | INTEGER | 下次可调度时间 |
+| `leased_by` / `leased_until` | TEXT / INTEGER | 当前 worker 租约 |
+| `last_error` | TEXT | 最近一次失败原因 |
+| `processed_at` | INTEGER | 成功处理时间 |
 
 ---
 

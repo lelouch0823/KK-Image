@@ -23,6 +23,9 @@ function createMockDb({ singleOrder = null, batchOrders = [], variantStockById =
       if (sql.includes('SELECT status, variant_id, quantity FROM orders WHERE id = ?')) {
         return createStatement(sql, { firstResult: singleOrder });
       }
+      if (sql.includes('SELECT id FROM order_lines WHERE order_id = ?')) {
+        return createStatement(sql, { firstResult: { id: `line-for-${singleOrder?.id || 'order'}` } });
+      }
       if (sql.includes('SELECT id, status, variant_id, quantity FROM orders WHERE id IN')) {
         return createStatement(sql, { allResult: { results: batchOrders } });
       }
@@ -65,6 +68,10 @@ describe('order inventory flow on status transitions', () => {
       type: 'order_shipment',
       variantId: 'v-1',
       quantityDelta: -3,
+      orderId: 'o-1',
+      orderLineId: 'line-for-order',
+      referenceType: 'order',
+      referenceId: 'o-1',
     });
   });
 
@@ -85,6 +92,10 @@ describe('order inventory flow on status transitions', () => {
       type: 'order_shipment',
       variantId: 'v-1',
       quantityDelta: 2,
+      orderId: 'o-1',
+      orderLineId: 'line-for-order',
+      referenceType: 'order',
+      referenceId: 'o-1',
     });
   });
 
@@ -95,7 +106,7 @@ describe('order inventory flow on status transitions', () => {
 
     await updateStatus(db, 'o-1', 'confirmed', 'admin');
 
-    expect(db.batch).not.toHaveBeenCalled();
+    expect(db.batch).toHaveBeenCalledTimes(1);
     const stockUpdateCalls = db.prepare.mock.calls.filter(([sql]) => sql.includes('UPDATE product_variants'));
     expect(stockUpdateCalls).toHaveLength(0);
   });
@@ -120,7 +131,7 @@ describe('order inventory flow on status transitions', () => {
     expect(db.batch).toHaveBeenCalledTimes(1);
     expect(inventoryService.assertSufficient).not.toHaveBeenCalled();
     expect(inventoryService.applyBatch).toHaveBeenCalledWith([
-      { type: 'order_shipment', variantId: 'v-1', quantityDelta: 4 },
+      { type: 'order_shipment', variantId: 'v-1', quantityDelta: 4, orderId: 'o-1', referenceType: 'order', referenceId: 'o-1' },
     ]);
   });
 
@@ -179,6 +190,10 @@ describe('order inventory flow on status transitions', () => {
       type: 'order_shipment',
       variantId: 'v-1',
       quantityDelta: -2,
+      orderId: 'o-1',
+      orderLineId: 'line-for-order',
+      referenceType: 'order',
+      referenceId: 'o-1',
     });
   });
 
@@ -198,6 +213,10 @@ describe('order inventory flow on status transitions', () => {
       type: 'order_shipment',
       variantId: 'v-1',
       quantityDelta: -3,
+      orderId: 'o-1',
+      orderLineId: 'line-for-order',
+      referenceType: 'order',
+      referenceId: 'o-1',
     });
     const stockUpdateCalls = db.prepare.mock.calls.filter(([sql]) => sql.includes('UPDATE product_variants'));
     expect(stockUpdateCalls).toHaveLength(0);
@@ -223,8 +242,8 @@ describe('order inventory flow on status transitions', () => {
     expect(inventoryService.assertSufficient).toHaveBeenNthCalledWith(1, 'v-1', 2);
     expect(inventoryService.assertSufficient).toHaveBeenNthCalledWith(2, 'v-2', 4);
     expect(inventoryService.applyBatch).toHaveBeenCalledWith([
-      { type: 'order_shipment', variantId: 'v-1', quantityDelta: -2 },
-      { type: 'order_shipment', variantId: 'v-2', quantityDelta: -4 },
+      { type: 'order_shipment', variantId: 'v-1', quantityDelta: -2, orderId: 'o-1', referenceType: 'order', referenceId: 'o-1' },
+      { type: 'order_shipment', variantId: 'v-2', quantityDelta: -4, orderId: 'o-2', referenceType: 'order', referenceId: 'o-2' },
     ]);
     const stockUpdateCalls = db.prepare.mock.calls.filter(([sql]) => sql.includes('UPDATE product_variants'));
     expect(stockUpdateCalls).toHaveLength(0);
@@ -237,12 +256,16 @@ describe('order inventory flow on status transitions', () => {
       assertSufficient: vi.fn(async () => true),
       applyMutation: vi.fn(async () => true),
     };
-    vi.spyOn(db, 'prepare').mockReturnValue({
+    vi.spyOn(db, 'prepare').mockImplementation((sql) => ({
       bind: vi.fn(() => ({
-        first: vi.fn(async () => ({ status: 'arrived', variant_id: 'v-1', quantity: 1 })),
+        first: vi.fn(async () => (
+          sql.includes('SELECT id FROM order_lines WHERE order_id = ?')
+            ? { id: 'line-for-order' }
+            : { status: 'arrived', variant_id: 'v-1', quantity: 1 }
+        )),
         run: vi.fn(async () => ({ success: true })),
       })),
-    });
+    }));
     db.batch.mockResolvedValue([]);
 
     await repo.updateStatus('o-1', 'delivered', 'admin', { forceStatusTransition: true });
@@ -251,6 +274,10 @@ describe('order inventory flow on status transitions', () => {
       type: 'order_shipment',
       variantId: 'v-1',
       quantityDelta: -1,
+      orderId: 'o-1',
+      orderLineId: 'line-for-order',
+      referenceType: 'order',
+      referenceId: 'o-1',
     });
   });
 });

@@ -474,6 +474,14 @@ CREATE TABLE IF NOT EXISTS purchase_order_items (
     variant_id TEXT,
     pre_order_id TEXT,
     quantity INTEGER DEFAULT 1,
+    received_qty INTEGER NOT NULL DEFAULT 0,
+    cancelled_qty INTEGER NOT NULL DEFAULT 0,
+    display_status TEXT NOT NULL DEFAULT 'open' CHECK(display_status IN (
+        'open',
+        'partially_received',
+        'received',
+        'cancelled'
+    )),
     unit_cost REAL DEFAULT 0,
     allocated_freight REAL DEFAULT 0,
     allocated_tariff REAL DEFAULT 0,
@@ -646,6 +654,82 @@ CREATE INDEX IF NOT EXISTS idx_order_line_allocations_variant_id
 CREATE INDEX IF NOT EXISTS idx_order_line_allocations_status
     ON order_line_allocations(status);
 
+CREATE TABLE IF NOT EXISTS command_idempotency (
+    id TEXT PRIMARY KEY,
+    command_type TEXT NOT NULL,
+    scope_key TEXT NOT NULL,
+    idempotency_key TEXT NOT NULL,
+    command_id TEXT NOT NULL,
+    request_fingerprint TEXT NOT NULL,
+    response_json TEXT,
+    status TEXT NOT NULL CHECK(status IN (
+        'in_flight',
+        'committed'
+    )),
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_command_idempotency_scope_key
+    ON command_idempotency(command_type, scope_key, idempotency_key);
+CREATE INDEX IF NOT EXISTS idx_command_idempotency_command_id
+    ON command_idempotency(command_id);
+CREATE INDEX IF NOT EXISTS idx_command_idempotency_status_updated_at
+    ON command_idempotency(status, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS domain_outbox (
+    id TEXT PRIMARY KEY,
+    command_id TEXT NOT NULL,
+    sequence_in_command INTEGER NOT NULL,
+    event_type TEXT NOT NULL,
+    event_version INTEGER NOT NULL DEFAULT 1,
+    aggregate_type TEXT NOT NULL,
+    aggregate_id TEXT NOT NULL,
+    correlation_id TEXT NOT NULL,
+    causation_id TEXT,
+    idempotency_key TEXT NOT NULL,
+    payload_json TEXT NOT NULL,
+    occurred_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_domain_outbox_idempotency_key
+    ON domain_outbox(idempotency_key);
+CREATE INDEX IF NOT EXISTS idx_domain_outbox_command_sequence
+    ON domain_outbox(command_id, sequence_in_command);
+CREATE INDEX IF NOT EXISTS idx_domain_outbox_created_sequence
+    ON domain_outbox(created_at, sequence_in_command, id);
+CREATE INDEX IF NOT EXISTS idx_domain_outbox_aggregate_created
+    ON domain_outbox(aggregate_type, aggregate_id, created_at);
+
+CREATE TABLE IF NOT EXISTS outbox_consumer_jobs (
+    id TEXT PRIMARY KEY,
+    consumer_name TEXT NOT NULL,
+    event_id TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN (
+        'pending',
+        'processing',
+        'published',
+        'failed'
+    )),
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    available_at INTEGER NOT NULL,
+    leased_by TEXT,
+    leased_until INTEGER,
+    last_error TEXT,
+    processed_at INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (event_id) REFERENCES domain_outbox(id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_outbox_consumer_jobs_consumer_event
+    ON outbox_consumer_jobs(consumer_name, event_id);
+CREATE INDEX IF NOT EXISTS idx_outbox_consumer_jobs_claim
+    ON outbox_consumer_jobs(consumer_name, status, available_at);
+CREATE INDEX IF NOT EXISTS idx_outbox_consumer_jobs_lease
+    ON outbox_consumer_jobs(consumer_name, leased_until);
+
 -- ===========================================================================
 -- 9. 通知系统 (Notifications)
 -- ===========================================================================
@@ -740,7 +824,7 @@ INSERT OR IGNORE INTO folders (id, parent_id, name, description, share_token, is
 VALUES ('root', NULL, '根目录', '默认根目录', NULL, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000);
 
 -- ===========================================================================
--- Schema Version: 2.7.0 (2026-03-28)
--- Tables: 31 (Aligned purchase_order_items.pre_order_id and added inventory ledger/balances)
+-- Schema Version: 2.7.1 (2026-03-28)
+-- Tables: 31 (Aligned purchase_order_items progress fields with partial receipt redesign)
 -- SOTA: Inventory, Cost, SEO included in products
 -- ===========================================================================

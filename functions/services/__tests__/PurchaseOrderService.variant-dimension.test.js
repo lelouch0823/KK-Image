@@ -32,10 +32,11 @@ describe('PurchaseOrderService variant dimension', () => {
     const service = new PurchaseOrderService(db);
 
     const suggestions = await service.getSuggestions();
-    const sql = db.prepare.mock.calls[0][0];
+    const sqlCalls = db.prepare.mock.calls.map(call => call[0]);
 
-    expect(sql).toContain('o.variant_id');
-    expect(sql).toContain('GROUP BY o.variant_id');
+    expect(sqlCalls.some(sql => sql.includes('FROM product_variants pv'))).toBe(true);
+    expect(sqlCalls.some(sql => sql.includes('JOIN products p ON pv.product_id = p.id'))).toBe(true);
+    expect(sqlCalls.some(sql => sql.includes('WHERE pv.id IN'))).toBe(true);
     expect(suggestions[0].variant_id).toBe('var-1');
     expect(suggestions[0].product_code).toBe('P0001');
     expect(suggestions[0].variant_code).toBe('V0001');
@@ -86,5 +87,105 @@ describe('PurchaseOrderService variant dimension', () => {
     await expect(service._updateInventory([
       { product_id: 'prod-1', quantity: 3 },
     ], 'increment')).rejects.toThrow(/variant_id/i);
+  });
+
+  it('_updateInventory should pass purchase order source refs into inventory mutations', async () => {
+    const db = {
+      prepare: vi.fn(() => ({ bind: vi.fn() })),
+      batch: vi.fn(),
+    };
+    const service = new PurchaseOrderService(db);
+    service.inventoryService = {
+      applyBatch: vi.fn(async () => ({ productCount: 1, totalQty: 3 })),
+    };
+
+    await service._updateInventory(
+      [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 3 }],
+      'increment',
+      { referenceType: 'purchase_order', referenceId: 'po-1' }
+    );
+
+    expect(service.inventoryService.applyBatch).toHaveBeenCalledWith([
+      {
+        type: 'purchase_arrival',
+        variantId: 'var-1',
+        quantityDelta: 3,
+        referenceType: 'purchase_order',
+        referenceId: 'po-1',
+      },
+    ]);
+  });
+
+  it('does not increment inventory when a purchase order transitions to arrived', async () => {
+    const stmt = { bind: vi.fn(() => stmt) };
+    const db = { prepare: vi.fn(() => stmt), batch: vi.fn() };
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      findById: vi.fn(async () => ({
+        id: 'po-1',
+        status: 'shipping',
+        items: [{ variant_id: 'v-1', quantity: 4 }],
+      })),
+      updateStatus: vi.fn(async () => true),
+      updateStatusIfCurrent: vi.fn(async () => true),
+      getLinkedOrderIds: vi.fn(async () => []),
+    };
+    service._updateInventory = vi.fn(async () => ({ productCount: 1, totalQty: 4 }));
+
+    await service.updateStatus('po-1', 'arrived');
+
+    expect(service._updateInventory).not.toHaveBeenCalled();
+  });
+
+  it('continues cascading procurement_status when arriving without direct inventory mutations', async () => {
+    const stmt = { bind: vi.fn(() => stmt) };
+    const sqlCalls = [];
+    const db = {
+      prepare: vi.fn((sql) => {
+        sqlCalls.push(sql);
+        return stmt;
+      }),
+      batch: vi.fn(async () => [{ meta: { changes: 1 } }]),
+    };
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      findById: vi.fn(async () => ({
+        id: 'po-1',
+        status: 'shipping',
+        items: [],
+      })),
+      updateStatus: vi.fn(async () => true),
+      updateStatusIfCurrent: vi.fn(async () => true),
+      getLinkedOrderIds: vi.fn(async () => ['o-1']),
+    };
+
+    const result = await service.updateStatus('po-1', 'arrived');
+
+    expect(result.cascadedOrders).toBe(1);
+    expect(result.stockUpdated).toBe(0);
+    expect(result.totalStockAdded).toBe(0);
+    expect(sqlCalls.some(sql => sql.includes('procurement_status'))).toBe(true);
+  });
+
+  it('rejects cancelling an arrived purchase order without touching inventory', async () => {
+    const db = {
+      prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run: vi.fn() })) })),
+      batch: vi.fn(),
+    };
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      findById: vi.fn(async () => ({
+        id: 'po-1',
+        status: 'arrived',
+        items: [{ variant_id: 'v-1', quantity: 5 }],
+      })),
+      updateStatus: vi.fn(async () => true),
+      updateStatusIfCurrent: vi.fn(async () => true),
+      getLinkedOrderIds: vi.fn(async () => []),
+    };
+    service._updateInventory = vi.fn();
+
+    await expect(service.updateStatus('po-1', 'cancelled')).rejects.toThrow(/arrived/);
+    expect(service._updateInventory).not.toHaveBeenCalled();
   });
 });

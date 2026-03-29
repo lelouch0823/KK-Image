@@ -13,6 +13,57 @@ export class DemandService {
     this.db = db;
   }
 
+  async queryOrderLineCandidates(payload = {}, includeScopedFilters = true) {
+    if (!payload.orderId || typeof this.db?.prepare !== 'function') return [];
+
+    const filters = ['order_id = ?'];
+    const params = [payload.orderId];
+
+    if (includeScopedFilters && payload.variantId) {
+      filters.push('variant_id = ?');
+      params.push(payload.variantId);
+    }
+    if (includeScopedFilters && payload.productId) {
+      filters.push('product_id = ?');
+      params.push(payload.productId);
+    }
+
+    const statement = this.db
+      .prepare(`SELECT id FROM order_lines WHERE ${filters.join(' AND ')} ORDER BY created_at ASC LIMIT 2`)
+      .bind(...params);
+
+    if (typeof statement?.all === 'function') {
+      const { results } = await statement.all();
+      return results || [];
+    }
+    if (typeof statement?.first === 'function') {
+      const row = await statement.first();
+      return row ? [row] : [];
+    }
+    return [];
+  }
+
+  async resolveOrderLineId(payload = {}) {
+    if (payload.orderLineId) return payload.orderLineId;
+    if (!payload.orderId || typeof this.db?.prepare !== 'function') return null;
+
+    const candidates = await this.queryOrderLineCandidates(payload, true);
+    if (candidates.length === 1) return candidates[0]?.id || null;
+    if (candidates.length > 1) {
+      throw new BadRequestError('orderLineId is required for multi-line orders');
+    }
+
+    if (payload.variantId || payload.productId) {
+      const fallback = await this.queryOrderLineCandidates(payload, false);
+      if (fallback.length === 1) return fallback[0]?.id || null;
+      if (fallback.length > 1) {
+        throw new BadRequestError('orderLineId is required for multi-line orders');
+      }
+    }
+
+    return null;
+  }
+
   projectOrderLineStatus(payload = {}) {
     return projectOrderLineStatus(payload);
   }
@@ -54,6 +105,8 @@ export class DemandService {
 
     if (typeof this.db?.prepare === 'function' && payload?.variantId && reservationDelta !== 0) {
       const timestamp = Date.now();
+      const orderLineId = await this.resolveOrderLineId(payload);
+      const sourceId = payload.orderId || payload.variantId;
       await this.db.prepare(
         `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
          VALUES (?, 0, ?, 0, ?)
@@ -78,7 +131,7 @@ export class DemandService {
         reservationDelta > 0 ? 'reservation_hold' : 'reservation_release',
         reservationDelta,
         'order',
-        payload.orderId || payload.variantId,
+        sourceId,
         timestamp,
         JSON.stringify({
           fromStatus: payload.fromStatus || null,
@@ -91,14 +144,15 @@ export class DemandService {
         `INSERT INTO inventory_events (
           id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta,
           source_type, source_id, metadata, occurred_at, created_at
-        ) VALUES (?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?)`
+        ) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         generateId(),
         payload.variantId,
+        orderLineId,
         reservationDelta > 0 ? 'reservation_hold' : 'reservation_release',
         reservationDelta,
         'order',
-        payload.orderId || payload.variantId,
+        sourceId,
         JSON.stringify({
           fromStatus: payload.fromStatus || null,
           toStatus: payload.toStatus || null,
@@ -114,14 +168,15 @@ export class DemandService {
   async getDemandSummaryByVariant() {
     const { results } = await this.db.prepare(`
       SELECT
-        o.variant_id AS variant_id,
-        COALESCE(SUM(o.quantity), 0) AS total_demand,
-        COUNT(o.id) AS order_count,
+        ol.variant_id AS variant_id,
+        COALESCE(SUM(MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)), 0) AS total_demand,
+        COUNT(DISTINCT o.id) AS order_count,
         GROUP_CONCAT(DISTINCT o.id) AS order_ids
-      FROM orders o
+      FROM order_lines ol
+      JOIN orders o ON o.id = ol.order_id
       WHERE o.status IN ('confirmed', 'production', 'shipping', 'arrived')
-        AND o.variant_id IS NOT NULL
-      GROUP BY o.variant_id
+        AND ol.variant_id IS NOT NULL
+      GROUP BY ol.variant_id
     `).all();
 
     return (results || []).map((row) => ({

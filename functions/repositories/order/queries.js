@@ -10,6 +10,65 @@
 import { parseRepoPagination } from '../../api/utils/pagination.js';
 import { mapOrderDetail, mapOrderListItem } from './helpers.js';
 
+const ORDER_LINE_STATUS_AGGREGATE_JOIN = `
+      LEFT JOIN (
+          SELECT
+              aggregate_lines.order_id,
+              CASE
+                  WHEN aggregate_lines.ordered_qty > 0 AND aggregate_lines.cancelled_qty >= aggregate_lines.ordered_qty THEN 'cancelled'
+                  WHEN aggregate_lines.remaining_qty > 0 AND aggregate_lines.shipped_qty >= aggregate_lines.remaining_qty THEN 'completed'
+                  WHEN aggregate_lines.shipped_qty > 0 THEN 'partially_shipped'
+                  WHEN aggregate_lines.remaining_qty > 0 AND aggregate_lines.received_qty >= aggregate_lines.remaining_qty THEN 'ready'
+                  WHEN aggregate_lines.received_qty > 0 THEN 'partially_received'
+                  WHEN aggregate_lines.remaining_qty > 0 AND aggregate_lines.procured_qty >= aggregate_lines.remaining_qty THEN 'fully_procured'
+                  WHEN aggregate_lines.procured_qty > 0 THEN 'partially_procured'
+                  ELSE 'unprocured'
+              END AS display_status
+          FROM (
+              SELECT
+                  summarized.order_id,
+                  summarized.ordered_qty,
+                  summarized.procured_qty,
+                  summarized.received_qty,
+                  summarized.shipped_qty,
+                  summarized.cancelled_qty,
+                  MAX(summarized.ordered_qty - summarized.cancelled_qty, 0) AS remaining_qty
+              FROM (
+                  SELECT
+                      order_id,
+                      COALESCE(SUM(ordered_qty), 0) AS ordered_qty,
+                      COALESCE(SUM(procured_qty), 0) AS procured_qty,
+                      COALESCE(SUM(received_qty), 0) AS received_qty,
+                      COALESCE(SUM(shipped_qty), 0) AS shipped_qty,
+                      COALESCE(SUM(cancelled_qty), 0) AS cancelled_qty
+                  FROM order_lines
+                  GROUP BY order_id
+              ) summarized
+          ) aggregate_lines
+      ) order_line_agg ON order_line_agg.order_id = o.id
+`;
+
+async function findOrderLines(db, orderId) {
+    const { results } = await db
+        .prepare(
+            `
+      SELECT
+          id, order_id, product_id, variant_id,
+          snapshot_name, snapshot_image,
+          ordered_qty, procured_qty, received_qty, reserved_qty,
+          shipped_qty, cancelled_qty, display_status,
+          created_at, updated_at
+      FROM order_lines
+      WHERE order_id = ?
+      ORDER BY created_at ASC
+      `
+        )
+        .bind(orderId)
+        .all();
+
+    return results || [];
+}
+
 /**
  * 根据 ID 获取订单详情
  * @param {D1Database} db
@@ -31,7 +90,13 @@ export async function findById(db, id) {
         .bind(id)
         .first();
 
-    return order ? mapOrderDetail(order) : null;
+    if (!order) return null;
+
+    const lines = await findOrderLines(db, id);
+    return mapOrderDetail({
+        ...order,
+        lines,
+    });
 }
 
 /**
@@ -56,7 +121,13 @@ export async function findByIdAndSalesperson(db, id, salespersonId) {
         .bind(id, salespersonId)
         .first();
 
-    return order ? mapOrderDetail(order) : null;
+    if (!order) return null;
+
+    const lines = await findOrderLines(db, id);
+    return mapOrderDetail({
+        ...order,
+        lines,
+    });
 }
 
 /**
@@ -106,11 +177,10 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
         .bind(...params)
         .first();
 
-    const { results } = await db
-        .prepare(
-            `
+    const listSql = `
       SELECT
           o.id, o.order_no, o.current_data, o.status, o.procurement_status,
+          order_line_agg.display_status as display_status,
           o.unread_by_sales as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
           f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
@@ -126,6 +196,7 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
               ELSE 50
           END as status_priority
       FROM orders o
+      ${ORDER_LINE_STATUS_AGGREGATE_JOIN}
       LEFT JOIN files f ON o.main_image_id = f.id
       ${where}
       ORDER BY
@@ -133,8 +204,10 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
           status_priority ASC,
           o.created_at DESC
       LIMIT ? OFFSET ?
-      `
-        )
+      `;
+
+    const { results } = await db
+        .prepare(listSql)
         .bind(...params, safeLimit, offset)
         .all();
 
@@ -200,11 +273,10 @@ export async function listForAdmin(
         .bind(...bindParams)
         .first();
 
-    const { results } = await db
-        .prepare(
-            `
+    const listSql = `
       SELECT
           o.id, o.order_no, o.salesperson_id, o.current_data, o.status, o.procurement_status, o.product_id, o.variant_id, o.quantity,
+          order_line_agg.display_status as display_status,
           o.unread_by_admin as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
           s.name as salesperson_name, s.store as salesperson_store,
@@ -221,6 +293,7 @@ export async function listForAdmin(
               ELSE 50
           END as status_priority
       FROM orders o
+      ${ORDER_LINE_STATUS_AGGREGATE_JOIN}
       LEFT JOIN salespersons s ON o.salesperson_id = s.id
       LEFT JOIN files f ON o.main_image_id = f.id
       WHERE ${whereClause}
@@ -229,8 +302,10 @@ export async function listForAdmin(
           status_priority ASC,
           o.created_at DESC
       LIMIT ? OFFSET ?
-      `
-        )
+      `;
+
+    const { results } = await db
+        .prepare(listSql)
         .bind(...bindParams, safeLimit, offset)
         .all();
 

@@ -3,6 +3,61 @@ import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { buildSetClause } from '../api/utils/sql.js';
 import { hasChanges } from '../api/utils/result.js';
 
+function toNumber(value) {
+  return Number(value || 0);
+}
+
+function projectPurchaseOrderDisplayStatus(progress = {}) {
+  const ordered = toNumber(progress.ordered_qty);
+  const received = toNumber(progress.received_qty);
+  const cancelled = toNumber(progress.cancelled_qty);
+  const outstanding = progress.outstanding_qty != null
+    ? toNumber(progress.outstanding_qty)
+    : Math.max(ordered - received - cancelled, 0);
+
+  if (ordered > 0 && cancelled >= ordered) return 'cancelled';
+  if (ordered > 0 && outstanding <= 0) return 'received';
+  if (received > 0) return 'partially_received';
+  return 'open';
+}
+
+function normalizePurchaseOrderProgress(row = {}) {
+  return {
+    ...row,
+    item_count: toNumber(row.item_count),
+    ordered_qty: toNumber(row.ordered_qty),
+    received_qty: toNumber(row.received_qty),
+    cancelled_qty: toNumber(row.cancelled_qty),
+    outstanding_qty: toNumber(row.outstanding_qty),
+    total_goods_cost: toNumber(row.total_goods_cost),
+    receipt_count: toNumber(row.receipt_count),
+    display_status: row.display_status || projectPurchaseOrderDisplayStatus(row),
+  };
+}
+
+function summarizePurchaseOrderItems(items = []) {
+  return normalizePurchaseOrderProgress(items.reduce((acc, item) => ({
+    item_count: acc.item_count + 1,
+    ordered_qty: acc.ordered_qty + toNumber(item.quantity),
+    received_qty: acc.received_qty + toNumber(item.received_qty),
+    cancelled_qty: acc.cancelled_qty + toNumber(item.cancelled_qty),
+    outstanding_qty:
+      acc.outstanding_qty + Math.max(toNumber(item.quantity) - toNumber(item.received_qty) - toNumber(item.cancelled_qty), 0),
+    total_goods_cost: acc.total_goods_cost + (toNumber(item.quantity) * toNumber(item.unit_cost)),
+    receipt_count: acc.receipt_count + toNumber(item.receipt_count),
+    last_received_at: Math.max(acc.last_received_at, toNumber(item.last_received_at)),
+  }), {
+    item_count: 0,
+    ordered_qty: 0,
+    received_qty: 0,
+    cancelled_qty: 0,
+    outstanding_qty: 0,
+    total_goods_cost: 0,
+    receipt_count: 0,
+    last_received_at: 0,
+  }));
+}
+
 /**
  * 采购单仓储 (Purchase Order Repository)
  * ========================================
@@ -92,25 +147,41 @@ export class PurchaseOrderRepository {
         p.specifications AS product_specifications,
         v.sku AS variant_sku,
         v.options_values AS variant_options,
-        o.order_no AS customer_order_no
+        o.order_no AS customer_order_no,
+        COALESCE(pr.receipt_count, 0) AS receipt_count,
+        pr.last_received_at AS last_received_at
       FROM purchase_order_items poi
       LEFT JOIN products p ON poi.product_id = p.id
       LEFT JOIN product_variants v ON poi.variant_id = v.id
       LEFT JOIN orders o ON poi.pre_order_id = o.id
+      LEFT JOIN (
+        SELECT
+          purchase_order_item_id,
+          COUNT(*) AS receipt_count,
+          MAX(received_at) AS last_received_at
+        FROM purchase_receipts
+        GROUP BY purchase_order_item_id
+      ) pr ON pr.purchase_order_item_id = poi.id
+      WHERE poi.po_id = ?
       ORDER BY poi.created_at ASC
-    `).bind().all();
+    `).bind(id).all();
 
-    // 过滤当前采购单的明细
-    const poItems = items.filter(item => item.po_id === id);
+    const poItems = (items || []).map(item => ({
+      ...item,
+      quantity: toNumber(item.quantity),
+      received_qty: toNumber(item.received_qty),
+      cancelled_qty: toNumber(item.cancelled_qty),
+      receipt_count: toNumber(item.receipt_count),
+      product_images: parseJsonArray(item.product_images, []),
+      product_specifications: parseJsonObject(item.product_specifications, {}),
+      variant_options: parseJsonObject(item.variant_options, {}),
+    }));
+    const progress = summarizePurchaseOrderItems(poItems);
 
     return {
       ...po,
-      items: poItems.map(item => ({
-        ...item,
-        product_images: parseJsonArray(item.product_images, []),
-        product_specifications: parseJsonObject(item.product_specifications, {}),
-        variant_options: parseJsonObject(item.variant_options, {}),
-      })),
+      ...progress,
+      items: poItems,
     };
   }
 
@@ -147,9 +218,31 @@ export class PurchaseOrderRepository {
     const { results } = await this.db
       .prepare(`
         SELECT po.*,
-          (SELECT COALESCE(SUM(quantity), 0) FROM purchase_order_items WHERE po_id = po.id) AS item_count,
-          (SELECT COALESCE(SUM(quantity * unit_cost), 0) FROM purchase_order_items WHERE po_id = po.id) AS total_goods_cost
+          COALESCE(agg.item_count, 0) AS item_count,
+          COALESCE(agg.ordered_qty, 0) AS ordered_qty,
+          COALESCE(agg.received_qty, 0) AS received_qty,
+          COALESCE(agg.cancelled_qty, 0) AS cancelled_qty,
+          COALESCE(agg.outstanding_qty, 0) AS outstanding_qty,
+          COALESCE(agg.total_goods_cost, 0) AS total_goods_cost,
+          CASE
+            WHEN COALESCE(agg.ordered_qty, 0) > 0 AND COALESCE(agg.cancelled_qty, 0) >= COALESCE(agg.ordered_qty, 0) THEN 'cancelled'
+            WHEN COALESCE(agg.ordered_qty, 0) > 0 AND COALESCE(agg.outstanding_qty, 0) <= 0 THEN 'received'
+            WHEN COALESCE(agg.received_qty, 0) > 0 THEN 'partially_received'
+            ELSE 'open'
+          END AS display_status
         FROM purchase_orders po
+        LEFT JOIN (
+          SELECT
+            po_id,
+            COUNT(*) AS item_count,
+            COALESCE(SUM(quantity), 0) AS ordered_qty,
+            COALESCE(SUM(received_qty), 0) AS received_qty,
+            COALESCE(SUM(cancelled_qty), 0) AS cancelled_qty,
+            COALESCE(SUM(MAX(quantity - received_qty - cancelled_qty, 0)), 0) AS outstanding_qty,
+            COALESCE(SUM(quantity * unit_cost), 0) AS total_goods_cost
+          FROM purchase_order_items
+          GROUP BY po_id
+        ) agg ON agg.po_id = po.id
         WHERE ${where}
         ORDER BY po.created_at DESC
         LIMIT ? OFFSET ?
@@ -158,7 +251,7 @@ export class PurchaseOrderRepository {
       .all();
 
     return {
-      items: results,
+      items: results.map((row) => normalizePurchaseOrderProgress(row)),
       total: countResult?.total || 0,
       page: safePage,
       limit: safeLimit,
@@ -433,10 +526,14 @@ export class PurchaseOrderRepository {
         COUNT(CASE WHEN status = 'ordered' THEN 1 END) AS ordered_count,
         COUNT(CASE WHEN status = 'shipping' THEN 1 END) AS shipping_count,
         COUNT(CASE WHEN status = 'arrived' THEN 1 END) AS arrived_count,
-        COUNT(CASE WHEN status = 'completed' THEN 1 END) AS completed_count
+        COUNT(CASE WHEN status = 'completed' THEN 1 END) AS completed_count,
+        COALESCE((SELECT SUM(quantity) FROM purchase_order_items), 0) AS ordered_qty,
+        COALESCE((SELECT SUM(received_qty) FROM purchase_order_items), 0) AS received_qty,
+        COALESCE((SELECT SUM(cancelled_qty) FROM purchase_order_items), 0) AS cancelled_qty,
+        COALESCE((SELECT SUM(MAX(quantity - received_qty - cancelled_qty, 0)) FROM purchase_order_items), 0) AS outstanding_qty
       FROM purchase_orders
     `).first();
-    return result;
+    return normalizePurchaseOrderProgress(result || {});
   }
 
   // ─── 内部工具 ──────────────────────────────────────────

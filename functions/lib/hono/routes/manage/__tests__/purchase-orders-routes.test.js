@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
+import { BadRequestError } from '../../../errors.js';
 
 const mocks = vi.hoisted(() => ({
   repoFindById: vi.fn(),
@@ -7,7 +8,10 @@ const mocks = vi.hoisted(() => ({
   repoUpdateItem: vi.fn(),
   repoRemoveItem: vi.fn(),
   serviceUpdateStatus: vi.fn(),
+  domainRecordReceipts: vi.fn(),
   scheduleAuditEvent: vi.fn(),
+  scheduleCacheInvalidation: vi.fn(),
+  randomUUID: vi.fn(),
 }));
 
 vi.mock('../../../../../repositories/PurchaseOrderRepository.js', () => ({
@@ -32,6 +36,12 @@ vi.mock('../../../../../services/PurchaseOrderService.js', () => ({
   })),
 }));
 
+vi.mock('../../../../../services/OrderProcurementDomainService.js', () => ({
+  OrderProcurementDomainService: vi.fn(() => ({
+    recordPurchaseOrderReceipts: mocks.domainRecordReceipts,
+  })),
+}));
+
 vi.mock('../../../middleware/auth.js', () => ({
   requirePermission: () => async (_c, next) => next(),
 }));
@@ -51,7 +61,7 @@ vi.mock('../../../_shared/route-helpers.js', () => ({
     if (!entity) throw onNotFound();
     return entity;
   },
-  scheduleCacheInvalidation: vi.fn(),
+  scheduleCacheInvalidation: mocks.scheduleCacheInvalidation,
 }));
 
 vi.mock('../../../_shared/audit-helpers.js', async () => {
@@ -96,11 +106,14 @@ function createApp() {
 describe('manage purchase-orders routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => mocks.randomUUID());
+    mocks.randomUUID.mockReturnValue('generated-idempotency-key');
     mocks.repoFindById.mockResolvedValue({ id: 'po-1', status: 'draft', items: [] });
     mocks.repoAddItems.mockResolvedValue(['poi-1']);
     mocks.repoUpdateItem.mockResolvedValue(true);
     mocks.repoRemoveItem.mockResolvedValue(true);
     mocks.serviceUpdateStatus.mockResolvedValue({ success: true, cascadedOrders: 2 });
+    mocks.domainRecordReceipts.mockResolvedValue({ purchase_order_id: 'po-1', receipt_count: 1 });
   });
 
   it('rejects adding item when pre_order_id product/variant mismatch', async () => {
@@ -188,5 +201,108 @@ describe('manage purchase-orders routes', () => {
       expect.anything(),
       expect.objectContaining({ action: 'purchase_order.status.change', domain: 'purchase-orders' })
     );
+  });
+
+  it('creates receipts via domain service and returns 201', async () => {
+    const app = createApp();
+    const db = createDb();
+    const waitUntil = vi.fn();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/receipts',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'receipt-key-1',
+        },
+        body: JSON.stringify({
+          items: [{ purchase_order_item_id: 'poi-1', received_qty: 2, note: 'ok' }],
+        }),
+      },
+      { DB: db },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.domainRecordReceipts).toHaveBeenCalledWith('po-1', {
+      items: [{ purchase_order_item_id: 'poi-1', received_qty: 2, note: 'ok' }],
+    }, {
+      idempotencyKey: 'receipt-key-1',
+    });
+    expect(mocks.scheduleAuditEvent).not.toHaveBeenCalled();
+    expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
+    expect(waitUntil).toHaveBeenCalledTimes(1);
+  });
+
+  it('derives an idempotency key when the header is absent', async () => {
+    const app = createApp();
+    const db = createDb();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/receipts',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{ purchase_order_item_id: 'poi-1', received_qty: 1 }],
+        }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.domainRecordReceipts).toHaveBeenCalledWith('po-1', {
+      items: [{ purchase_order_item_id: 'poi-1', received_qty: 1 }],
+    }, {
+      idempotencyKey: 'generated-idempotency-key',
+    });
+  });
+
+  it('returns 400 when the domain rejects receipts because of invalid status', async () => {
+    const app = createApp();
+    const db = createDb();
+    mocks.domainRecordReceipts.mockRejectedValueOnce(new BadRequestError('采购单状态不允许收货'));
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/receipts',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{ purchase_order_item_id: 'poi-1', received_qty: 1 }],
+        }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json?.error).toBe('采购单状态不允许收货');
+  });
+
+  it('returns 400 when the domain rejects receipts because quantity exceeds remaining', async () => {
+    const app = createApp();
+    const db = createDb();
+    mocks.domainRecordReceipts.mockRejectedValueOnce(new BadRequestError('超出剩余收货数量'));
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/receipts',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{ purchase_order_item_id: 'poi-1', received_qty: 5 }],
+        }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json?.error).toBe('超出剩余收货数量');
   });
 });

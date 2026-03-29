@@ -63,7 +63,7 @@ export class PurchaseOrderService {
    * 变更采购单状态，并级联更新关联预订单
    * @param {string} poId - 采购单 ID
    * @param {string} newStatus - 目标状态
-   * @returns {Promise<{success: boolean, cascadedOrders: number}>}
+   * @returns {Promise<{success: boolean, cascadedOrders: number, stockUpdated: number, totalStockAdded: number}>}
    */
   async updateStatus(poId, newStatus) {
     // 1. 校验当前状态是否允许跳转
@@ -113,27 +113,13 @@ export class PurchaseOrderService {
       }
     }
 
-    // 3.5 库存联动 — 采购单到货时自动入库
-    let stockUpdated = 0;
-    let totalStockAdded = 0;
-
-    if (newStatus === 'arrived') {
-      // 入库：按明细批量增加商品库存
-      const result = await this._updateInventory(po.items, 'increment');
-      stockUpdated = result.productCount;
-      totalStockAdded = result.totalQty;
-    }
-
-    // 如果从 arrived 状态取消（极端回滚场景）
-    if (newStatus === 'cancelled' && po.status === 'arrived') {
-      await this._updateInventory(po.items, 'decrement');
-    }
-
     // 4. 如果是结算完成，触发成本分摊
     if (newStatus === 'completed') {
       await this.allocateCosts(poId);
     }
 
+    const stockUpdated = 0;
+    const totalStockAdded = 0;
     return { success: true, cascadedOrders, stockUpdated, totalStockAdded };
   }
 
@@ -364,9 +350,11 @@ export class PurchaseOrderService {
    *
    * @param {Array} items - 采购单明细 (含 product_id, quantity)
    * @param {'increment'|'decrement'} direction - 增 or 减
+   *   - `increment` maps to `type === 'purchase_arrival'`
+   *   - `decrement` maps to `type === 'manual_adjustment'` for corrections
    * @returns {Promise<{productCount: number, totalQty: number}>}
    */
-  async _updateInventory(items, direction = 'increment') {
+  async _updateInventory(items, direction = 'increment', context = {}) {
     if (!items || items.length === 0) return { productCount: 0, totalQty: 0 };
 
     // 强制按 variant_id 聚合，禁止 product 级回退
@@ -385,6 +373,8 @@ export class PurchaseOrderService {
       type,
       variantId,
       quantityDelta: qty * multiplier,
+      referenceType: context.referenceType,
+      referenceId: context.referenceId,
     }));
     return this.inventoryService.applyBatch(mutations);
   }

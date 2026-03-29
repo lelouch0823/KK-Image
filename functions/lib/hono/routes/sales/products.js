@@ -7,6 +7,7 @@ import { parseJsonArray } from '../../../../api/utils/json.js';
 import { NotFoundError } from '../../errors.js';
 import { withCache } from '../../middleware/cache.js';
 import { parsePagination } from '../../_shared/route-helpers.js';
+import { loadVariantReplenishmentMap } from '../_shared/variant-replenishment.js';
 
 const app = new Hono();
 
@@ -16,34 +17,6 @@ app.onError((err, c) => {
   const error = err?.message || 'Internal Server Error';
   return c.json({ success: false, error, code }, statusCode);
 });
-
-const loadVariantReplenishmentMap = async (db, variantIds = []) => {
-  const normalizedIds = [...new Set((variantIds || []).filter(Boolean))];
-  if (normalizedIds.length === 0) return new Map();
-
-  const placeholders = normalizedIds.map(() => '?').join(',');
-  const sql = `
-    SELECT
-      poi.variant_id,
-      SUM(COALESCE(poi.quantity, 0)) AS replenishment_quantity,
-      COUNT(DISTINCT poi.po_id) AS replenishment_po_count
-    FROM purchase_order_items poi
-    JOIN purchase_orders po ON po.id = poi.po_id
-    WHERE poi.variant_id IN (${placeholders})
-      AND po.status IN ('ordered', 'shipping')
-    GROUP BY poi.variant_id
-  `;
-
-  const result = await db.prepare(sql).bind(...normalizedIds).all();
-  const map = new Map();
-  for (const row of result?.results || []) {
-    map.set(row.variant_id, {
-      replenishment_quantity: Number(row.replenishment_quantity || 0),
-      replenishment_po_count: Number(row.replenishment_po_count || 0),
-    });
-  }
-  return map;
-};
 
 /**
  * GET / - 销售端商品列表（只返回可售商品）

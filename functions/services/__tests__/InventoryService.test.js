@@ -95,4 +95,76 @@ describe('InventoryService', () => {
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_ledger'));
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_events'));
   });
+
+  it('resolves order_line_id and preserves source refs in inventory_events when order context is supplied', async () => {
+    const run = vi.fn(async () => ({ meta: { changes: 1 } }));
+    let inventoryEventBindArgs = null;
+    const db = {
+      prepare: vi.fn((sql) => {
+        if (sql.includes('SELECT id FROM order_lines WHERE order_id = ?')) {
+          const statement = {
+            bind: vi.fn(() => statement),
+            all: vi.fn(async () => ({ results: [{ id: 'line-1' }] })),
+            first: vi.fn(async () => ({ id: 'line-1' })),
+          };
+          return statement;
+        }
+
+        const statement = {
+          bind: vi.fn((...params) => {
+            if (sql.includes('INSERT INTO inventory_events')) {
+              inventoryEventBindArgs = params;
+            }
+            return { run };
+          }),
+        };
+        return statement;
+      }),
+    };
+    service = new InventoryService(db, variantRepo);
+
+    await service.applyMutation({
+      type: 'order_shipment',
+      variantId: 'variant-1',
+      quantityDelta: -3,
+      orderId: 'o-1',
+      referenceType: 'order',
+      referenceId: 'o-1',
+    });
+
+    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('SELECT id FROM order_lines WHERE order_id = ?'));
+    expect(inventoryEventBindArgs[2]).toBe('line-1');
+    expect(inventoryEventBindArgs[6]).toBe('order');
+    expect(inventoryEventBindArgs[7]).toBe('o-1');
+  });
+
+  it('rejects ambiguous multi-line order context without an explicit orderLineId', async () => {
+    const db = {
+      prepare: vi.fn((sql) => {
+        if (sql.includes('SELECT id FROM order_lines WHERE order_id = ?')) {
+          const statement = {
+            bind: vi.fn(() => statement),
+            all: vi.fn(async () => ({ results: [{ id: 'line-1' }, { id: 'line-2' }] })),
+            first: vi.fn(async () => ({ id: 'line-1' })),
+          };
+          return statement;
+        }
+
+        const statement = {
+          bind: vi.fn(() => ({ run: vi.fn(async () => ({ meta: { changes: 1 } })) })),
+        };
+        return statement;
+      }),
+    };
+    service = new InventoryService(db, variantRepo);
+
+    await expect(service.applyMutation({
+      type: 'order_shipment',
+      variantId: 'variant-1',
+      quantityDelta: -3,
+      orderId: 'o-1',
+      referenceType: 'order',
+      referenceId: 'o-1',
+    })).rejects.toBeInstanceOf(BadRequestError);
+  });
 });

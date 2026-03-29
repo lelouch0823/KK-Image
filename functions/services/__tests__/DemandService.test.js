@@ -84,6 +84,25 @@ describe('DemandService', () => {
     });
   });
 
+  it('bases demand summary on order_lines remaining quantity rather than raw order headers', async () => {
+    const stmt = {
+      all: vi.fn(async () => ({
+        results: [
+          { variant_id: 'variant-1', total_demand: 5, order_count: 1, order_ids: 'o-1' },
+        ],
+      })),
+    };
+    const db = { prepare: vi.fn(() => stmt) };
+    const service = new DemandService(db);
+
+    await service.getDemandSummaryByVariant();
+
+    const sql = db.prepare.mock.calls[0][0];
+    expect(sql).toContain('FROM order_lines ol');
+    expect(sql).toContain('JOIN orders o ON o.id = ol.order_id');
+    expect(sql).toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)');
+  });
+
   it('persists reservation projection and ledger rows when syncing transitions', async () => {
     const run = vi.fn(async () => ({ meta: { changes: 1 } }));
     const bind = vi.fn(() => ({ run }));
@@ -101,5 +120,75 @@ describe('DemandService', () => {
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_balances'));
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_ledger'));
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_events'));
+  });
+
+  it('resolves order_line_id for reservation events when order context is supplied', async () => {
+    const run = vi.fn(async () => ({ meta: { changes: 1 } }));
+    let inventoryEventBindArgs = null;
+    const db = {
+      prepare: vi.fn((sql) => {
+        if (sql.includes('SELECT id FROM order_lines WHERE order_id = ?')) {
+          const statement = {
+            bind: vi.fn(() => statement),
+            all: vi.fn(async () => ({ results: [{ id: 'line-1' }] })),
+            first: vi.fn(async () => ({ id: 'line-1' })),
+          };
+          return statement;
+        }
+
+        const statement = {
+          bind: vi.fn((...params) => {
+            if (sql.includes('INSERT INTO inventory_events')) {
+              inventoryEventBindArgs = params;
+            }
+            return { run };
+          }),
+        };
+        return statement;
+      }),
+    };
+    const service = new DemandService(db);
+
+    await service.syncOrderTransition({
+      orderId: 'o-1',
+      variantId: 'variant-1',
+      quantity: 4,
+      fromStatus: 'confirmed',
+      toStatus: 'delivered',
+    });
+
+    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('SELECT id FROM order_lines WHERE order_id = ?'));
+    expect(inventoryEventBindArgs[2]).toBe('line-1');
+    expect(inventoryEventBindArgs[5]).toBe('order');
+    expect(inventoryEventBindArgs[6]).toBe('o-1');
+  });
+
+  it('rejects ambiguous multi-line demand events without an explicit orderLineId', async () => {
+    const db = {
+      prepare: vi.fn((sql) => {
+        if (sql.includes('SELECT id FROM order_lines WHERE order_id = ?')) {
+          const statement = {
+            bind: vi.fn(() => statement),
+            all: vi.fn(async () => ({ results: [{ id: 'line-1' }, { id: 'line-2' }] })),
+            first: vi.fn(async () => ({ id: 'line-1' })),
+          };
+          return statement;
+        }
+
+        const statement = {
+          bind: vi.fn(() => ({ run: vi.fn(async () => ({ meta: { changes: 1 } })) })),
+        };
+        return statement;
+      }),
+    };
+    const service = new DemandService(db);
+
+    await expect(service.syncOrderTransition({
+      orderId: 'o-1',
+      variantId: 'variant-1',
+      quantity: 4,
+      fromStatus: 'confirmed',
+      toStatus: 'delivered',
+    })).rejects.toThrow();
   });
 });
