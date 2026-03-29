@@ -4,6 +4,14 @@ export const PROCUREMENT_STATUS_OPTIONS = [
   'ordered',
   'partially_arrived',
   'arrived',
+  'unprocured',
+  'partially_procured',
+  'fully_procured',
+  'partially_received',
+  'ready',
+  'partially_shipped',
+  'completed',
+  'cancelled',
 ];
 
 export const normalizeProcurementStatus = (status) => {
@@ -19,6 +27,14 @@ export const getProcurementStatusVariant = (status) => {
     ordered: 'info',
     partially_arrived: 'primary',
     arrived: 'success',
+    unprocured: 'default',
+    partially_procured: 'warning',
+    fully_procured: 'info',
+    partially_received: 'primary',
+    ready: 'success',
+    partially_shipped: 'purple',
+    completed: 'success',
+    cancelled: 'danger',
   };
   return map[normalized] || 'default';
 };

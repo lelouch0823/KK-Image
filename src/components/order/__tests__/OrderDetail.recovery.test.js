@@ -56,6 +56,7 @@ const mountOrderDetail = (props = {}) =>
         OrderInfoCard: true,
         OrderPersonCard: true,
         OrderStatusHeader: true,
+        OrderLinesCard: true,
         OrderPrintView: true,
         OrderEditModal: true,
         Modal: true,

@@ -46,6 +46,7 @@ import { ref, onMounted, computed, inject } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
 import { useI18n } from '@/composables/useI18n'; // Assuming simple t function or similar
+import { resolveOrderQuantity } from '@/utils/order-display';
 import OrderDetail from '@/components/order/OrderDetail.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import AsyncStatePanel from '@/components/common/AsyncStatePanel.vue';
@@ -143,7 +144,7 @@ const handleDuplicate = (sourceOrder) => {
         size: currentData.size || '',
         color: currentData.color || '',
         material: currentData.material || '',
-        quantity: currentData.quantity || 1,
+        quantity: resolveOrderQuantity(sourceOrder),
         remark: currentData.remark || '',
         deadline: '', 
         files: prefillFiles,

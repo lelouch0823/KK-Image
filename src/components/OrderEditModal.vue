@@ -137,6 +137,7 @@ import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import { getStatusBadgeClass } from '@/utils/status';
 import { generateRandomId } from '@/utils/common';
+import { resolveOrderQuantity } from '@/utils/order-display';
 import { resolveSelectedVariantMainImageSrc } from '@/utils/product-image.js';
 import { useSalesToken } from '@/composables/useSalesToken';
 import Modal from '@/components/ui/Modal.vue';
@@ -339,7 +340,7 @@ watch(
       form.size = current.size || '';
       form.color = current.color || '';
       form.material = current.material || '';
-      form.quantity = current.quantity || 1;
+      form.quantity = resolveOrderQuantity(newOrder);
       form.remark = current.remark || '';
       form.deadline = current.deadline || '';
 
@@ -373,7 +374,7 @@ watch(
         size: current.size || '',
         color: current.color || '',
         material: current.material || '',
-        quantity: current.quantity || 1,
+        quantity: resolveOrderQuantity(newOrder),
         remark: current.remark || '',
         deadline: current.deadline || '',
         fileIds: (newOrder.files || []).map((f) => f.id).sort().join(','),

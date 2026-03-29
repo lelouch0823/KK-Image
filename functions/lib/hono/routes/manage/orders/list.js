@@ -122,7 +122,7 @@ app.get('/export', async (c) => {
         bindParams.push(status);
     }
     if (procurementStatus && ORDER_PROCUREMENT_STATUSES.includes(procurementStatus)) {
-        whereClause += " AND COALESCE(o.procurement_status, 'none') = ?";
+        whereClause += " AND COALESCE(order_line_agg.display_status, o.procurement_status, 'none') = ?";
         bindParams.push(procurementStatus);
     }
     if (search) {
@@ -144,6 +144,41 @@ app.get('/export', async (c) => {
     const { results: orders } = await env.DB.prepare(`
     SELECT o.*, s.name as salesperson_name, s.store as salesperson_store
     FROM orders o
+    LEFT JOIN (
+      SELECT
+        aggregate_lines.order_id,
+        CASE
+          WHEN aggregate_lines.ordered_qty > 0 AND aggregate_lines.cancelled_qty >= aggregate_lines.ordered_qty THEN 'cancelled'
+          WHEN aggregate_lines.remaining_qty > 0 AND aggregate_lines.shipped_qty >= aggregate_lines.remaining_qty THEN 'completed'
+          WHEN aggregate_lines.shipped_qty > 0 THEN 'partially_shipped'
+          WHEN aggregate_lines.remaining_qty > 0 AND aggregate_lines.received_qty >= aggregate_lines.remaining_qty THEN 'ready'
+          WHEN aggregate_lines.received_qty > 0 THEN 'partially_received'
+          WHEN aggregate_lines.remaining_qty > 0 AND aggregate_lines.procured_qty >= aggregate_lines.remaining_qty THEN 'fully_procured'
+          WHEN aggregate_lines.procured_qty > 0 THEN 'partially_procured'
+          ELSE 'unprocured'
+        END AS display_status
+      FROM (
+        SELECT
+          summarized.order_id,
+          summarized.ordered_qty,
+          summarized.procured_qty,
+          summarized.received_qty,
+          summarized.shipped_qty,
+          summarized.cancelled_qty,
+          MAX(summarized.ordered_qty - summarized.cancelled_qty, 0) AS remaining_qty
+        FROM (
+          SELECT
+            order_id,
+            COALESCE(SUM(ordered_qty), 0) AS ordered_qty,
+            COALESCE(SUM(procured_qty), 0) AS procured_qty,
+            COALESCE(SUM(received_qty), 0) AS received_qty,
+            COALESCE(SUM(shipped_qty), 0) AS shipped_qty,
+            COALESCE(SUM(cancelled_qty), 0) AS cancelled_qty
+          FROM order_lines
+          GROUP BY order_id
+        ) summarized
+      ) aggregate_lines
+    ) order_line_agg ON order_line_agg.order_id = o.id
     LEFT JOIN salespersons s ON o.salesperson_id = s.id
     WHERE ${whereClause}
     ORDER BY o.created_at DESC

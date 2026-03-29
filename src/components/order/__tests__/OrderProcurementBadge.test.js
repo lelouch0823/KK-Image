@@ -23,4 +23,12 @@ describe('OrderProcurementBadge', () => {
     expect(wrapper.text()).toContain('order.procurementStatus');
     expect(wrapper.text()).toContain('order.procurementStatuses.ordered');
   });
+
+  it('renders line-level display statuses without falling back to none', () => {
+    const wrapper = mount(OrderProcurementBadge, {
+      props: { status: 'partially_received' },
+    });
+
+    expect(wrapper.text()).toContain('order.procurementStatuses.partially_received');
+  });
 });

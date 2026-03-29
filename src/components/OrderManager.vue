@@ -57,7 +57,7 @@
                 :on-status-change="(e) => handleStatusChange(order, e)"
               />
               <OrderProcurementBadge
-                :status="order.procurementStatus"
+                :status="resolveOrderProgressStatus(order)"
                 :show-label="false"
                 compact
               />
@@ -112,7 +112,7 @@
                 :on-status-change="(e) => handleStatusChange(order, e)"
               />
               <OrderProcurementBadge
-                :status="order.procurementStatus"
+                :status="resolveOrderProgressStatus(order)"
                 :show-label="false"
                 compact
               />
@@ -235,6 +235,7 @@ import ManagementListShell from '@/design-system/patterns/ManagementListShell.vu
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
+import { resolveOrderProgressStatus } from '@/utils/order-display';
 
 const {
   orders,

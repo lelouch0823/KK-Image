@@ -13,11 +13,13 @@
 
           <!-- 商品信息 (PC端显示在左侧下方，放大显示) -->
           <OrderInfoCard
-            :data="currentData"
-            :quantity="order.quantity || 1"
+            :data="displayData"
+            :quantity="orderQuantity"
             :has-correction="hasCorrection"
             @view-correction="showCorrectionModal = true"
           />
+
+          <OrderLinesCard :lines="orderLines" />
         </div>
 
         <!-- 右侧：信息区域 (PC端占 4列) -->
@@ -45,10 +47,10 @@
           <!-- 订单头部 -->
           <OrderStatusHeader
             :order-no="order.orderNo"
-            :product-name="currentData.name"
+            :product-name="productName"
             :status="order.status"
-            :procurement-status="order.procurementStatus"
-            :quantity="order.quantity || 1"
+            :procurement-status="progressStatus"
+            :quantity="orderQuantity"
           />
 
           <!-- 时间轴 (PC端窄栏显示，移动端通用) -->
@@ -174,10 +176,16 @@ import OrderCommentInput from './OrderCommentInput.vue';
 import OrderPersonCard from './OrderPersonCard.vue';
 import OrderStatusHeader from './OrderStatusHeader.vue';
 import OrderPrintView from './OrderPrintView.vue';
+import OrderLinesCard from './OrderLinesCard.vue';
 import OrderEditModal from '../OrderEditModal.vue';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import Lightbox from '@/components/ui/Lightbox.vue';
+import {
+  resolveOrderProductName,
+  resolveOrderProgressStatus,
+  resolveOrderQuantity,
+} from '@/utils/order-display';
 
 const props = defineProps({
   order: { type: Object, required: true },
@@ -245,6 +253,14 @@ const hasCustomerInfo = computed(() => {
 
 // 当前数据
 const currentData = computed(() => props.order.currentData || {});
+const orderLines = computed(() => (Array.isArray(props.order.lines) ? props.order.lines : []));
+const orderQuantity = computed(() => resolveOrderQuantity(props.order));
+const progressStatus = computed(() => resolveOrderProgressStatus(props.order));
+const productName = computed(() => resolveOrderProductName(props.order));
+const displayData = computed(() => ({
+  ...currentData.value,
+  name: currentData.value.name || productName.value,
+}));
 
 // 是否有修正
 const hasCorrection = computed(() => {

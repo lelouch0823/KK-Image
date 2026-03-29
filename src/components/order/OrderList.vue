@@ -43,7 +43,7 @@
               <StatusBadge :variant="getStatusVariant(order.status)" size="sm" class="!px-2 !py-0.5 !text-[10px]">
                   {{ t(`order.statuses.${order.status}`) }}
               </StatusBadge>
-              <OrderProcurementBadge :status="order.procurementStatus" compact />
+              <OrderProcurementBadge :status="resolveOrderProgressStatus(order)" compact />
           </div>
 
           <div class="flex h-full gap-3">
@@ -114,6 +114,7 @@
 import { ref, computed, toRef, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { formatRelativeTime } from '@/utils/formatters';
+import { resolveOrderProgressStatus } from '@/utils/order-display';
 import { getStatusVariant } from '@/utils/status';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import OrderProcurementBadge from '@/components/order/OrderProcurementBadge.vue';

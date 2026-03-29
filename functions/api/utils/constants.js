@@ -28,11 +28,19 @@ export const ORDER_STATUSES = [
   'void',
 ];
 
-// 订单采购状态列表（与 migrations/0048_add_orders_procurement_status.sql 对齐）
+// 订单列表进度状态选项
 export const ORDER_PROCUREMENT_STATUSES = [
   'none',
   'planned',
   'ordered',
   'partially_arrived',
   'arrived',
+  'unprocured',
+  'partially_procured',
+  'fully_procured',
+  'partially_received',
+  'ready',
+  'partially_shipped',
+  'completed',
+  'cancelled',
 ];

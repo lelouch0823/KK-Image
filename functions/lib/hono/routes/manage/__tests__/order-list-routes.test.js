@@ -82,6 +82,21 @@ describe('manage order list routes', () => {
     expect(mocks.listForAdmin).toHaveBeenCalledWith(expect.objectContaining({ procurementStatus: 'ordered' }));
   });
 
+  it('accepts line-level displayStatus vocabulary in procurementStatus query', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders?procurementStatus=partially_received',
+      {},
+      { DB: createDb() },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.listForAdmin).toHaveBeenCalledWith(
+      expect.objectContaining({ procurementStatus: 'partially_received' })
+    );
+  });
+
   it('normalizes invalid procurementStatus to null', async () => {
     const app = createApp();
     const res = await app.request(

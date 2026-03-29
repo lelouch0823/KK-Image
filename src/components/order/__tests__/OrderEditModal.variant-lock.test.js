@@ -14,6 +14,7 @@ const baseOrder = {
   id: 'order-1',
   orderNo: 'SO-1001',
   status: 'pending',
+  quantity: 7,
   productId: 'product-1',
   variantId: 'variant-1',
   salespersonId: 'sp-1',
@@ -51,8 +52,13 @@ const buildStubs = (overrides = {}) => ({
   ConfirmDialog: true,
   AppIcon: true,
   OrderFormFields: {
-    props: ['boundProductVariant'],
-    template: '<div data-testid="bound-variant">{{ JSON.stringify(boundProductVariant) }}</div>',
+    props: ['boundProductVariant', 'modelValue'],
+    template: `
+      <div>
+        <div data-testid="bound-variant">{{ JSON.stringify(boundProductVariant) }}</div>
+        <div data-testid="form-quantity">{{ modelValue.quantity }}</div>
+      </div>
+    `,
   },
   ...overrides,
 });
@@ -116,5 +122,10 @@ describe('OrderEditModal variant locking on edit', () => {
       productId: null,
       variantId: null,
     });
+  });
+
+  it('prefers top-level order quantity over stale currentData quantity', () => {
+    const wrapper = mountModal(baseOrder);
+    expect(wrapper.get('[data-testid="form-quantity"]').text()).toBe('7');
   });
 });

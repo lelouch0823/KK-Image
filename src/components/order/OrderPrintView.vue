@@ -34,7 +34,11 @@
       <dl class="grid grid-cols-2 gap-x-12 gap-y-4 text-sm">
         <div class="grid grid-cols-[80px_1fr]">
           <dt class="text-(--text-secondary)">{{ t('order.form.productName') }}</dt>
-          <dd class="font-medium text-black">{{ currentData.name || '-' }}</dd>
+          <dd class="font-medium text-black">{{ displayData.name || '-' }}</dd>
+        </div>
+        <div class="grid grid-cols-[80px_1fr]">
+          <dt class="text-(--text-secondary)">{{ t('order.form.quantity') }}</dt>
+          <dd class="font-medium text-black">{{ orderQuantity }}</dd>
         </div>
         <div class="grid grid-cols-[80px_1fr]">
           <dt class="text-(--text-secondary)">{{ t('order.form.brand') }}</dt>
@@ -65,6 +69,51 @@
           </dd>
         </div>
       </dl>
+    </div>
+
+    <div v-if="orderLines.length > 0" class="mb-8 break-inside-avoid">
+      <h2
+        class="mb-3 border-b border-(--border-color) pb-1 text-sm font-bold tracking-wide text-(--text-muted) uppercase"
+      >
+        {{ t('order.detail.lineItems', '订单行') }}
+      </h2>
+      <div class="space-y-3">
+        <div
+          v-for="line in orderLines"
+          :key="line.id"
+          class="rounded border border-(--border-color) p-3"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="font-semibold text-black">{{ line.snapshotName || '-' }}</p>
+              <p class="mt-1 text-xs text-(--text-secondary)">#{{ line.id }}</p>
+            </div>
+            <OrderProcurementBadge :status="line.displayStatus" compact />
+          </div>
+          <div class="mt-3 grid grid-cols-5 gap-3 text-xs">
+            <div>
+              <p class="text-(--text-secondary)">{{ t('order.detail.orderedQty', '下单') }}</p>
+              <p class="mt-1 font-semibold text-black">{{ line.orderedQuantity }}</p>
+            </div>
+            <div>
+              <p class="text-(--text-secondary)">{{ t('order.detail.procuredQty', '已采') }}</p>
+              <p class="mt-1 font-semibold text-black">{{ line.procuredQuantity }}</p>
+            </div>
+            <div>
+              <p class="text-(--text-secondary)">{{ t('order.detail.receivedQty', '到货') }}</p>
+              <p class="mt-1 font-semibold text-black">{{ line.receivedQuantity }}</p>
+            </div>
+            <div>
+              <p class="text-(--text-secondary)">{{ t('order.detail.shippedQty', '出货') }}</p>
+              <p class="mt-1 font-semibold text-black">{{ line.shippedQuantity }}</p>
+            </div>
+            <div>
+              <p class="text-(--text-secondary)">{{ t('order.detail.cancelledQty', '取消') }}</p>
+              <p class="mt-1 font-semibold text-black">{{ line.cancelledQuantity }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 图片区域 -->
@@ -107,6 +156,8 @@ import { computed } from 'vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import { useI18n } from '@/composables/useI18n';
 import { formatTimelineTime } from '@/utils/formatters';
+import { resolveOrderProductName, resolveOrderQuantity } from '@/utils/order-display';
+import OrderProcurementBadge from './OrderProcurementBadge.vue';
 import OrderTimeline from './OrderTimeline.vue';
 
 const props = defineProps({
@@ -119,6 +170,12 @@ const props = defineProps({
 const { t } = useI18n();
 
 const currentData = computed(() => props.order.currentData || {});
+const orderLines = computed(() => (Array.isArray(props.order.lines) ? props.order.lines : []));
+const orderQuantity = computed(() => resolveOrderQuantity(props.order));
+const displayData = computed(() => ({
+  ...currentData.value,
+  name: currentData.value.name || resolveOrderProductName(props.order),
+}));
 
 const formatTime = (timestamp) => formatTimelineTime(timestamp);
 </script>

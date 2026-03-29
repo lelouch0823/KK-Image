@@ -251,7 +251,7 @@ export async function listForAdmin(
         bindParams.push(status);
     }
     if (procurementStatus) {
-        whereClause += " AND COALESCE(o.procurement_status, 'none') = ?";
+        whereClause += " AND COALESCE(order_line_agg.display_status, o.procurement_status, 'none') = ?";
         bindParams.push(procurementStatus);
     }
     if (startTime > 0) {
@@ -269,7 +269,7 @@ export async function listForAdmin(
     }
 
     const countResult = await db
-        .prepare(`SELECT COUNT(*) as total FROM orders o WHERE ${whereClause}`)
+        .prepare(`SELECT COUNT(*) as total FROM orders o ${ORDER_LINE_STATUS_AGGREGATE_JOIN} WHERE ${whereClause}`)
         .bind(...bindParams)
         .first();
 
