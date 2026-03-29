@@ -259,6 +259,46 @@ describe('audit runtime alignment', () => {
     expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), { result: 'success' });
   });
 
+  it('matches audit replay dry-run runtime event to its declaration', async () => {
+    vi.doMock('../../middleware/auth.js', () => ({
+      requirePermission: () => async (c, next) => {
+        c.set('user', { id: 'admin-1', name: 'Admin', type: 'admin', role: 'admin' });
+        await next();
+      },
+    }));
+    vi.doMock('../../../../services/OutboxReplayService.js', () => ({
+      OutboxReplayService: vi.fn(() => ({
+        dryRun: vi.fn(async () => ({ runId: 'replay-1', dryRun: true })),
+        executeReplay: vi.fn(async () => ({ runId: 'replay-2', dryRun: false })),
+      })),
+    }));
+
+    const mod = await import('../../routes/manage/audit-replay.js');
+    const declaration = mod.auditRouteDeclarations.find((item) => item.method === 'POST' && item.path === '/dry-run');
+    const harness = createAuditRuntimeHarness();
+    const app = new Hono();
+    app.use('/api/manage/audit-replay/*', async (c, next) => {
+      c.set('user', { id: 'admin-1', name: 'Admin', type: 'admin', role: 'admin' });
+      await next();
+    });
+    app.route('/api/manage/audit-replay', mod.default);
+
+    const res = await app.request(
+      'http://localhost/api/manage/audit-replay/dry-run',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scopeType: 'event', scopeId: 'evt-1', consumerName: 'notification' }),
+      },
+      harness.env,
+      harness.executionCtx
+    );
+
+    expect(res.status).toBe(200);
+    await harness.flush();
+    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), { result: 'success' });
+  });
+
   it('matches v1 webhook delete runtime event to its declaration', async () => {
     vi.doMock('../../middleware/auth.js', () => ({
       requirePermission: () => async (c, next) => {

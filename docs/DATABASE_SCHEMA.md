@@ -283,6 +283,24 @@
 | `last_error` | TEXT | 最近一次失败原因 |
 | `processed_at` | INTEGER | 成功处理时间 |
 
+### `outbox_replay_runs`
+记录 dry-run / live replay 的操作轨迹与结果摘要。
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT | PK |
+| `scope_type` / `scope_id` | TEXT | replay 目标范围，如 `event` / `command` |
+| `consumer_name` | TEXT | 可选，限定单个 consumer |
+| `dry_run` | INTEGER | 1 = 演练，0 = 实际重放 |
+| `status` | TEXT | `pending`, `completed`, `failed` |
+| `requested_by` | TEXT | 发起人 |
+| `summary_json` | TEXT | JSON 结果摘要 |
+| `created_at` / `updated_at` / `completed_at` | INTEGER | 生命周期时间戳 |
+
+Replay rules:
+- allowed: `audit`, `cache`, `notification`, `webhook`
+- forbidden: receipt command truth mutation
+- all replay actions must create `outbox_replay_runs` rows and audit events
+
 ---
 
 ## 5. 系统模块

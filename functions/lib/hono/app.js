@@ -45,6 +45,8 @@ import manageAuditLogsRoutes from './routes/manage/audit-logs.js'; // NEW
 import manageGoodsOverviewRoutes from './routes/manage/goods-overview.js'; // NEW: 订货总览
 import managePurchaseOrdersRoutes from './routes/manage/purchase-orders.js'; // NEW: 采购单管理
 import manageWebhooksRoutes from './routes/manage/webhooks.js';
+import manageOutboxRoutes from './routes/manage/outbox.js';
+import manageAuditReplayRoutes from './routes/manage/audit-replay.js';
 
 export const app = new Hono();
 
@@ -125,6 +127,8 @@ app.route('/api/manage/audit-logs', manageAuditLogsRoutes); // NEW: Audit Logs
 app.route('/api/manage/goods-overview', manageGoodsOverviewRoutes); // NEW: 订货总览
 app.route('/api/manage/purchase-orders', managePurchaseOrdersRoutes); // NEW: 采购单管理
 app.route('/api/manage/webhooks', manageWebhooksRoutes);
+app.route('/api/manage/outbox', manageOutboxRoutes);
+app.route('/api/manage/audit-replay', manageAuditReplayRoutes);
 app.route('/api/sales', salesRoutes);
 
 // ============================================
