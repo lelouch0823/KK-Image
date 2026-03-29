@@ -5,6 +5,7 @@ import { Hono } from 'hono';
 const mocks = vi.hoisted(() => ({
   findById: vi.fn(),
   softDelete: vi.fn(),
+  updateFolder: vi.fn(),
   scheduleAuditEvent: vi.fn(),
   storeFile: vi.fn(),
   scheduleCacheInvalidation: vi.fn(),
@@ -23,7 +24,7 @@ vi.mock('../../../../../repositories/FolderRepository.js', () => ({
     checkNameConflict: vi.fn(async () => false),
     create: vi.fn(),
     isDescendantOrSelf: vi.fn(async () => false),
-    update: vi.fn(async () => ({ id: 'folder-1', name: 'Folder One', is_public: 0, share_token: null })),
+    update: mocks.updateFolder,
   })),
 }));
 
@@ -124,6 +125,7 @@ describe('manage folders routes', () => {
       is_public: 0,
     });
     mocks.softDelete.mockResolvedValue(undefined);
+    mocks.updateFolder.mockResolvedValue({ id: 'folder-1', name: 'Updated Folder', is_public: 0, share_token: null });
     mocks.storeFile.mockResolvedValue({
       id: 'file-1',
       name: 'asset.png',
@@ -215,4 +217,76 @@ describe('manage folders routes', () => {
       })
     );
   }, 15000);
+
+  it('passes repository update values without duplicating folder id binding', async () => {
+    const app = createApp();
+    const waitUntil = vi.fn();
+
+    const res = await app.request(
+      'http://localhost/api/manage/folders/folder-1',
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Updated Folder' }),
+      },
+      { DB: {} },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.updateFolder).toHaveBeenCalledWith(
+      'folder-1',
+      ['name = ?', 'updated_at = ?'],
+      ['Updated Folder', expect.any(Number)]
+    );
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'folder_updated',
+        aggregate_id: 'folder-1',
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('returns updated folder payload even when repository update itself does not return a row', async () => {
+    mocks.updateFolder.mockResolvedValueOnce(undefined);
+    mocks.findById
+      .mockResolvedValueOnce({
+        id: 'folder-1',
+        name: 'Folder One',
+        is_system: 0,
+        parent_id: 'root',
+        share_token: null,
+        is_public: 0,
+      })
+      .mockResolvedValueOnce({
+        id: 'folder-1',
+        name: 'Folder Renamed',
+        is_system: 0,
+        parent_id: 'root',
+        share_token: null,
+        is_public: 0,
+      });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/folders/folder-1',
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Folder Renamed' }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data).toEqual(expect.objectContaining({
+      id: 'folder-1',
+      name: 'Folder Renamed',
+      isPublic: false,
+    }));
+  });
 });

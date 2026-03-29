@@ -264,9 +264,9 @@ app.put(
 
     updates.push('updated_at = ?');
     values.push(Date.now());
-    values.push(folderId);
 
-    const updated = await folderRepo.update(folderId, updates, values);
+    await folderRepo.update(folderId, updates, values);
+    const updated = await requireFolder(folderRepo, folderId);
 
     await publishSingleDomainEventAndPoll(c, {
       event_type: 'folder_updated',
