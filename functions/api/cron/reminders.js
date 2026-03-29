@@ -59,32 +59,18 @@ export async function onRequest(context) {
     const pendingOrders = await orderRepo.findStalePending(pendingThreshold);
 
     for (const order of pendingOrders) {
-      // 检查是否已发送过提醒 (避免重复)
-      const exists = await env.DB.prepare(
-        `
-                SELECT 1 FROM notifications 
-                WHERE type = 'order' 
-                AND json_extract(metadata, '$.orderId') = ?
-                AND created_at > ?
-            `
-      )
-        .bind(order.id, now - ONE_DAY)
-        .first();
-
-      if (!exists) {
-        const idempotencyKey = `order_pending_reminder_due:${order.id}:${new Date(now).toISOString().split('T')[0]}`;
-        if (!(await reminderAlreadyEnqueued(env.DB, idempotencyKey))) {
-          outboxEvents.push(
-            buildReminderEvent({
-              eventType: 'order_pending_reminder_due',
-              orderId: order.id,
-              orderNo: order.order_no,
-              receiver: 'admin',
-              subType: 'pending_timeout',
-              idempotencyKey,
-            })
-          );
-        }
+      const idempotencyKey = `order_pending_reminder_due:${order.id}:${new Date(now).toISOString().split('T')[0]}`;
+      if (!(await reminderAlreadyEnqueued(env.DB, idempotencyKey))) {
+        outboxEvents.push(
+          buildReminderEvent({
+            eventType: 'order_pending_reminder_due',
+            orderId: order.id,
+            orderNo: order.order_no,
+            receiver: 'admin',
+            subType: 'pending_timeout',
+            idempotencyKey,
+          })
+        );
       }
     }
 
@@ -110,46 +96,33 @@ export async function onRequest(context) {
       const data = parseJsonObject(order.current_data, {});
       const deadline = data.deadline;
 
-      const exists = await env.DB.prepare(
-        `
-                SELECT 1 FROM notifications 
-                WHERE type = 'deadline' 
-                AND json_extract(metadata, '$.orderId') = ?
-                AND created_at > ?
-            `
-      )
-        .bind(order.id, now - ONE_DAY)
-        .first();
+      const salesIdempotencyKey = `order_deadline_reminder_due:sales:${order.salesperson_id || ''}:${order.id}:${deadline}`;
+      if (!(await reminderAlreadyEnqueued(env.DB, salesIdempotencyKey))) {
+        outboxEvents.push(
+          buildReminderEvent({
+            eventType: 'order_deadline_reminder_due',
+            orderId: order.id,
+            orderNo: order.order_no,
+            receiver: 'sales',
+            salespersonId: order.salesperson_id,
+            deadline,
+            idempotencyKey: salesIdempotencyKey,
+          })
+        );
+      }
 
-      if (!exists) {
-        const salesIdempotencyKey = `order_deadline_reminder_due:sales:${order.salesperson_id || ''}:${order.id}:${deadline}`;
-        if (!(await reminderAlreadyEnqueued(env.DB, salesIdempotencyKey))) {
-          outboxEvents.push(
-            buildReminderEvent({
-              eventType: 'order_deadline_reminder_due',
-              orderId: order.id,
-              orderNo: order.order_no,
-              receiver: 'sales',
-              salespersonId: order.salesperson_id,
-              deadline,
-              idempotencyKey: salesIdempotencyKey,
-            })
-          );
-        }
-
-        const adminIdempotencyKey = `order_deadline_reminder_due:admin:${order.id}:${deadline}`;
-        if (!(await reminderAlreadyEnqueued(env.DB, adminIdempotencyKey))) {
-          outboxEvents.push(
-            buildReminderEvent({
-              eventType: 'order_deadline_reminder_due',
-              orderId: order.id,
-              orderNo: order.order_no,
-              receiver: 'admin',
-              deadline,
-              idempotencyKey: adminIdempotencyKey,
-            })
-          );
-        }
+      const adminIdempotencyKey = `order_deadline_reminder_due:admin:${order.id}:${deadline}`;
+      if (!(await reminderAlreadyEnqueued(env.DB, adminIdempotencyKey))) {
+        outboxEvents.push(
+          buildReminderEvent({
+            eventType: 'order_deadline_reminder_due',
+            orderId: order.id,
+            orderNo: order.order_no,
+            receiver: 'admin',
+            deadline,
+            idempotencyKey: adminIdempotencyKey,
+          })
+        );
       }
     }
 
