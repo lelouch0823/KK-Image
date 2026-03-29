@@ -1,11 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   processOrderUpdate,
-  createOrderNotification,
   updateOrderFiles
 } from '../order-utils';
 import { OrderRepository } from '../../../repositories/OrderRepository.js';
-import { NotificationRepository } from '../../../repositories/NotificationRepository.js';
 
 describe('Order Utils Full Coverage Final', () => {
   let db;
@@ -24,14 +22,6 @@ describe('Order Utils Full Coverage Final', () => {
     env = { DB: db };
   });
 
-  describe('createOrderNotification', () => {
-    it('should cover all branch paths', async () => {
-      await createOrderNotification(db, { event: 'ORDER_CREATED', orderId: 'o1', orderNo: 'n1', receiver: 'admin' });
-      await createOrderNotification(db, { event: 'ORDER_STATUS_CHANGED', orderId: 'o1', orderNo: 'n1', receiver: 'admin', extra: { status: 'shipped' } });
-      expect(db.prepare).toHaveBeenCalled();
-    });
-  });
-
   describe('processOrderUpdate', () => {
     // ==== 现有基础测试 ====
 
@@ -41,7 +31,8 @@ describe('Order Utils Full Coverage Final', () => {
         currentData: { status: 'pending' }, updates: { status: 'confirmed' },
         allowedFields: ['status'],
         actor: { id: 'a1', type: 'admin' },
-        salespersonId: null
+        salespersonId: null,
+        deferNotifications: true,
       };
       const res = await processOrderUpdate(options);
       expect(res.hasChanges).toBe(true);
@@ -52,7 +43,8 @@ describe('Order Utils Full Coverage Final', () => {
         env, orderId: 'o1', orderNo: 'n1',
         currentData: { status: 'pending' }, updates: { status: 'confirmed' },
         allowedFields: ['status'],
-        actor: { id: 's1', type: 'salesperson', name: 'S1' }
+        actor: { id: 's1', type: 'salesperson', name: 'S1' },
+        deferNotifications: true,
       };
       const res = await processOrderUpdate(options);
       expect(res.hasChanges).toBe(true);
@@ -85,7 +77,8 @@ describe('Order Utils Full Coverage Final', () => {
         fileIds: undefined, // 文件未变更
         allowedFields: ['name'],
         actor: { id: 'a1', type: 'admin' },
-        productId: 'pid_123' // 只有 productId 发生了变更（前端传入新的绑定）
+        productId: 'pid_123', // 只有 productId 发生了变更（前端传入新的绑定）
+        deferNotifications: true,
       };
       const result = await processOrderUpdate(options);
       expect(result.hasChanges).toBe(true);
@@ -100,7 +93,8 @@ describe('Order Utils Full Coverage Final', () => {
         updates: { quantity: 5 }, // 数量变更
         allowedFields: ['name', 'quantity'],
         actor: { id: 's1', type: 'salesperson', name: 'S1' },
-        productId: 'pid_456' // 产品关联变更
+        productId: 'pid_456', // 产品关联变更
+        deferNotifications: true,
       };
       const result = await processOrderUpdate(options);
       expect(result.hasChanges).toBe(true);
@@ -123,7 +117,8 @@ describe('Order Utils Full Coverage Final', () => {
           actor: { id: 'a1', type: 'admin', name: 'Admin' },
           productId: undefined,
           variantId: 'variant_1',
-          currentProductId: 'product_1'
+          currentProductId: 'product_1',
+          deferNotifications: true,
         };
 
         const result = await processOrderUpdate(options);
@@ -157,6 +152,7 @@ describe('Order Utils Full Coverage Final', () => {
           allowedFields: ['status', 'name'],
           actor: { id: 'a1', type: 'admin', name: 'Admin' },
           salespersonId: 'sp-1',
+          deferNotifications: true,
         };
         const result = await processOrderUpdate(options);
         expect(result.hasChanges).toBe(true);
@@ -173,7 +169,6 @@ describe('Order Utils Full Coverage Final', () => {
     it('should not create notification when composite write fails', async () => {
       expect(typeof OrderRepository.prototype.updateComposite).toBe('function');
       const updateCompositeSpy = vi.spyOn(OrderRepository.prototype, 'updateComposite').mockRejectedValue(new Error('db failed'));
-      const notificationSpy = vi.spyOn(NotificationRepository.prototype, 'create').mockResolvedValue({ success: true });
       try {
         const options = {
           env,
@@ -184,19 +179,17 @@ describe('Order Utils Full Coverage Final', () => {
           allowedFields: ['status', 'name'],
           actor: { id: 'a1', type: 'admin', name: 'Admin' },
           salespersonId: 'sp-1',
+          deferNotifications: true,
         };
         await expect(processOrderUpdate(options)).rejects.toThrow('db failed');
-        expect(notificationSpy).not.toHaveBeenCalled();
       } finally {
         updateCompositeSpy.mockRestore();
-        notificationSpy.mockRestore();
       }
     });
 
     it('should defer notifications into outbox event descriptors when requested', async () => {
       expect(typeof OrderRepository.prototype.updateComposite).toBe('function');
       const updateCompositeSpy = vi.spyOn(OrderRepository.prototype, 'updateComposite').mockResolvedValue({ success: true });
-      const notificationSpy = vi.spyOn(NotificationRepository.prototype, 'create').mockResolvedValue({ success: true });
       try {
         const options = {
           env,
@@ -223,10 +216,29 @@ describe('Order Utils Full Coverage Final', () => {
             }),
           }),
         ]);
-        expect(notificationSpy).not.toHaveBeenCalled();
       } finally {
         updateCompositeSpy.mockRestore();
-        notificationSpy.mockRestore();
+      }
+    });
+
+    it('should reject changed updates unless notification handling is explicitly deferred to outbox', async () => {
+      expect(typeof OrderRepository.prototype.updateComposite).toBe('function');
+      const updateCompositeSpy = vi.spyOn(OrderRepository.prototype, 'updateComposite').mockResolvedValue({ success: true });
+      try {
+        await expect(
+          processOrderUpdate({
+            env,
+            orderId: 'o1',
+            orderNo: 'n1',
+            currentData: { status: 'pending', name: 'A' },
+            updates: { status: 'confirmed', name: 'B' },
+            allowedFields: ['status', 'name'],
+            actor: { id: 'a1', type: 'admin', name: 'Admin' },
+            salespersonId: 'sp-1',
+          })
+        ).rejects.toThrow(/deferNotifications: true/i);
+      } finally {
+        updateCompositeSpy.mockRestore();
       }
     });
   });

@@ -283,9 +283,9 @@ Body: { "ids": ["id1", "id2"], "targetFolderId": "folder123" }
 ### 6.3 异步后台任务
 
 ```javascript
-// Webhook 触发 (非阻塞)
+// 领域事件发布后触发 outbox poller (非阻塞)
 c.executionCtx.waitUntil(
-  triggerWebhook(env, 'file.uploaded', { file, user })
+  runOutboxPoller({ env, requestUrl: c.req.url, workerId: 'file-upload:file-1' })
 );
 
 // 审计日志记录 (非阻塞)

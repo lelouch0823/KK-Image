@@ -48,9 +48,6 @@ export {
 // 后端常量
 export { CORS_MAX_AGE, ORDER_STATUSES, ORDER_PROCUREMENT_STATUSES } from '../api/utils/constants.js';
 
-// Webhook 工具
-export { triggerWebhook } from '../api/utils/webhook.js';
-
 // 文件夹工具
 export { ensureFolder, moveFilesToFolder } from '../api/utils/folder-utils.js';
 

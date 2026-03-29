@@ -94,7 +94,6 @@ vi.mock('../../../../../api/cron/outbox.js', () => ({
 }));
 
 vi.mock('../../../../../api/utils/order-utils.js', () => ({
-  createOrderNotification: vi.fn(async () => {}),
   processOrderUpdate: mocks.processOrderUpdate,
 }));
 

@@ -146,10 +146,6 @@ describe('audit runtime alignment', () => {
     vi.doMock('../../routes/manage/orders/authz-helpers.js', () => ({
       assertForceStatusTransitionAllowed: vi.fn(async () => {}),
     }));
-    vi.doMock('../../routes/manage/orders/cache-helpers.js', () => ({
-      resolveSalesTokens: vi.fn(async () => []),
-      scheduleOrderMutationCachesInvalidation: vi.fn(),
-    }));
     vi.doMock('../../../../../repositories/OrderRepository.js', () => ({
       OrderRepository: vi.fn(() => ({
         batchUpdateStatus: vi.fn(async () => undefined),
@@ -469,19 +465,9 @@ describe('audit runtime alignment', () => {
         syncOrderTransition: vi.fn(async () => undefined),
       })),
     }));
-    vi.doMock('../../routes/sales/orders-cache-helpers.js', () => ({
-      invalidateOrderNotificationCaches: vi.fn(async () => undefined),
-      scheduleSalesOrderListCacheInvalidation: vi.fn(),
-      scheduleSalesOrderMutationCachesInvalidation: vi.fn(),
-      scheduleSalesCommentCachesInvalidation: vi.fn(),
-      scheduleOrderAndSalespersonCacheInvalidation: vi.fn(),
-    }));
     vi.doMock('../../../../../api/utils/folder-utils.js', () => ({
       ensureOrderFolder: vi.fn(async () => 'folder-order-1'),
       moveFilesToFolder: vi.fn(async () => undefined),
-    }));
-    vi.doMock('../../../../../api/utils/order-utils.js', () => ({
-      createOrderNotification: vi.fn(async () => undefined),
     }));
     vi.doMock('../../_shared/utils.js', async () => {
       const actual = await vi.importActual('../../_shared/utils.js');
@@ -489,7 +475,6 @@ describe('audit runtime alignment', () => {
         ...actual,
         generateId: vi.fn(() => 'order-1'),
         generateOrderNo: vi.fn(() => 'SO-1'),
-        triggerWebhook: vi.fn(async () => undefined),
       };
     });
 

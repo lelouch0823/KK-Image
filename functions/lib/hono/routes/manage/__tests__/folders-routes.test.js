@@ -6,7 +6,6 @@ const mocks = vi.hoisted(() => ({
   findById: vi.fn(),
   softDelete: vi.fn(),
   scheduleAuditEvent: vi.fn(),
-  triggerWebhook: vi.fn(),
   storeFile: vi.fn(),
   scheduleCacheInvalidation: vi.fn(),
   publish: vi.fn(async () => []),
@@ -83,7 +82,6 @@ vi.mock('../../../_shared/utils.js', async () => {
         INSTANT_UPLOAD: 'INSTANT_UPLOAD',
       },
     },
-    triggerWebhook: mocks.triggerWebhook,
     getFileUrl: vi.fn((key) => `/file/${key}`),
     getShareUrl: vi.fn(() => null),
   };
@@ -134,7 +132,6 @@ describe('manage folders routes', () => {
       storageKey: 'storage-1',
       instantUpload: false,
     });
-    mocks.triggerWebhook.mockResolvedValue(undefined);
     mocks.scheduleCacheInvalidation.mockImplementation(() => {});
   });
 
@@ -207,7 +204,6 @@ describe('manage folders routes', () => {
     ]);
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
     expect(waitUntil).toHaveBeenCalled();
-    expect(mocks.triggerWebhook).not.toHaveBeenCalled();
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({

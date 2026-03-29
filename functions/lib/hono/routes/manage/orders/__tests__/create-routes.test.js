@@ -4,8 +4,6 @@ import { Hono } from 'hono';
 const mocks = vi.hoisted(() => ({
   createManagedOrder: vi.fn(),
   repoBatchUpdateStatus: vi.fn(),
-  resolveSalesTokens: vi.fn(),
-  scheduleOrderMutationCachesInvalidation: vi.fn(),
   scheduleAuditEvent: vi.fn(),
   publish: vi.fn(async () => []),
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
@@ -19,11 +17,6 @@ vi.mock('../../../../../../repositories/OrderRepository.js', () => ({
   OrderRepository: vi.fn(() => ({
     batchUpdateStatus: mocks.repoBatchUpdateStatus,
   })),
-}));
-
-vi.mock('../cache-helpers.js', () => ({
-  resolveSalesTokens: mocks.resolveSalesTokens,
-  scheduleOrderMutationCachesInvalidation: mocks.scheduleOrderMutationCachesInvalidation,
 }));
 
 vi.mock('../authz-helpers.js', () => ({
@@ -92,8 +85,6 @@ describe('manage order create routes', () => {
     vi.clearAllMocks();
     mocks.createManagedOrder.mockResolvedValue({ id: 'order-1', orderNo: 'SO-1' });
     mocks.repoBatchUpdateStatus.mockResolvedValue(undefined);
-    mocks.resolveSalesTokens.mockResolvedValue([]);
-    mocks.scheduleOrderMutationCachesInvalidation.mockImplementation(() => {});
   });
 
   it('audits managed order creation', async () => {

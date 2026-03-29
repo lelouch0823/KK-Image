@@ -8,7 +8,8 @@ const mocks = vi.hoisted(() => ({
   variantFindByIdAndProductId: vi.fn(),
   invalidateCache: vi.fn(async () => {}),
   getSalespersonAccessTokens: vi.fn(async () => []),
-  createBatchOrderNotifications: vi.fn(async () => {}),
+  publish: vi.fn(async () => []),
+  runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
 
 vi.mock('../../../../../repositories/OrderRepository.js', () => ({
@@ -42,13 +43,19 @@ vi.mock('../../../_shared/route-helpers.js', async (importOriginal) => {
   };
 });
 
-vi.mock('../../../../../api/utils/order-utils.js', () => ({
-  createBatchOrderNotifications: mocks.createBatchOrderNotifications,
-}));
-
 vi.mock('../../_shared/cache-urls.js', () => ({
   getOrderAndSalespersonCacheUrls: vi.fn(() => ['http://localhost/api/manage/orders']),
   getOrderNotificationCacheUrls: vi.fn(() => ['http://localhost/api/manage/notifications']),
+}));
+
+vi.mock('../../../../../services/DomainOutboxPublisher.js', () => ({
+  DomainOutboxPublisher: vi.fn(() => ({
+    publish: mocks.publish,
+  })),
+}));
+
+vi.mock('../../../../../api/cron/outbox.js', () => ({
+  runOutboxPoller: mocks.runOutboxPoller,
 }));
 
 import createAppRoutes from '../orders/create.js';
@@ -76,6 +83,8 @@ describe('manage order batch route', () => {
     mocks.batchUpdateStatus.mockResolvedValue(true);
     mocks.productFindById.mockResolvedValue({ id: 'p-1', status: 'active' });
     mocks.variantFindByIdAndProductId.mockResolvedValue({ id: 'v-1', product_id: 'p-1', status: 'active' });
+    mocks.publish.mockResolvedValue([]);
+    mocks.runOutboxPoller.mockResolvedValue({ claimed: 0, published: 0, failed: 0 });
   });
 
   it('maps frontend confirm action to status=confirmed', async () => {
