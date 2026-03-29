@@ -344,7 +344,7 @@ describe('sales routes resilience', () => {
     expect(payload.data.dimension_map).toEqual({ 'dim-color': 'Color' });
   });
 
-  it('invalidates sales order list cache after GET /:id marks order as read', async () => {
+  it('enqueues sales read cache invalidation through outbox after GET /:id', async () => {
     mocks.orderFindByIdAndSalesperson.mockResolvedValue({
       id: 'o-1',
       orderNo: 'SO-1',
@@ -352,24 +352,33 @@ describe('sales routes resilience', () => {
       currentData: {},
     });
 
+    const waitUntil = vi.fn();
     const app = createOrdersTestApp();
     const res = await app.request(
       'http://localhost/api/sales/token-1/orders/o-1',
       { method: 'GET' },
       { DB: { prepare: vi.fn() } },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
     expect(res.status).toBe(200);
     expect(mocks.orderMarkAsRead).toHaveBeenCalledWith('o-1', 'sales');
-
-    const invalidatedUrls = mocks.invalidateCache.mock.calls
-      .map(([urls]) => (Array.isArray(urls) ? urls : [urls]))
-      .flat();
-    expect(invalidatedUrls).toContain('http://localhost/api/sales/token-1/orders?limit=20&page=1');
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'order_read_by_sales',
+        aggregate_id: 'o-1',
+        payload: expect.objectContaining({
+          order_id: 'o-1',
+          salesperson_id: 'sp-1',
+        }),
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
+    expect(mocks.invalidateCache).not.toHaveBeenCalled();
   });
 
-  it('invalidates sales order list cache after PATCH /:id/read', async () => {
+  it('enqueues sales read cache invalidation through outbox after PATCH /:id/read', async () => {
     mocks.orderFindByIdAndSalesperson.mockResolvedValue({
       id: 'o-1',
       orderNo: 'SO-1',
@@ -377,21 +386,30 @@ describe('sales routes resilience', () => {
       currentData: {},
     });
 
+    const waitUntil = vi.fn();
     const app = createOrdersTestApp();
     const res = await app.request(
       'http://localhost/api/sales/token-1/orders/o-1/read',
       { method: 'PATCH' },
       { DB: { prepare: vi.fn() } },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
     expect(res.status).toBe(200);
     expect(mocks.orderMarkAsRead).toHaveBeenCalledWith('o-1', 'sales');
-
-    const invalidatedUrls = mocks.invalidateCache.mock.calls
-      .map(([urls]) => (Array.isArray(urls) ? urls : [urls]))
-      .flat();
-    expect(invalidatedUrls).toContain('http://localhost/api/sales/token-1/orders?limit=20&page=1');
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'order_read_by_sales',
+        aggregate_id: 'o-1',
+        payload: expect.objectContaining({
+          order_id: 'o-1',
+          salesperson_id: 'sp-1',
+        }),
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
+    expect(mocks.invalidateCache).not.toHaveBeenCalled();
   });
 
   it('rejects PATCH /:id/read when order does not belong to current salesperson', async () => {

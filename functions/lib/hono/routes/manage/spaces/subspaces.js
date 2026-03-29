@@ -94,7 +94,10 @@ subspaces.post(
     };
 
     await repo.createSubspace(newSubspace);
-    invalidateSpaceCaches(c, buildSpaceInvalidatePayload({ spaceId: parentId, parentId, productIds: [parent.product_id] }));
+    await invalidateSpaceCaches(c, {
+      ...buildSpaceInvalidatePayload({ spaceId: parentId, parentId, productIds: [parent.product_id] }),
+      eventType: 'space_subspace_created',
+    });
     scheduleAuditEvent(c, {
       domain: 'spaces',
       action: 'space.subspace.create',

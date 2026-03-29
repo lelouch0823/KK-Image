@@ -1,9 +1,15 @@
-import { getManageSpaceCacheUrls, getSalesSpaceCacheUrls } from '../../_shared/cache-urls.js';
-import { scheduleSalesTokenAwareCacheInvalidation } from '../../_shared/sales-token-cache-helpers.js';
+import { publishSingleDomainEventAndPoll } from '../../../_shared/domain-outbox.js';
 
-export function invalidateSpaceCaches(c, options = {}) {
-  scheduleSalesTokenAwareCacheInvalidation(c, c.env.DB, (salesTokens) => [
-      ...getManageSpaceCacheUrls(c, options),
-      ...getSalesSpaceCacheUrls(c, { salesTokens, spaceId: options.spaceId }),
-    ]);
+export async function invalidateSpaceCaches(c, options = {}) {
+  const aggregateId = options.spaceId || options.parentId || 'spaces';
+  await publishSingleDomainEventAndPoll(c, {
+    event_type: options.eventType || 'space_updated',
+    aggregate_type: 'space',
+    aggregate_id: aggregateId,
+    payload: {
+      space_id: options.spaceId || null,
+      parent_id: options.parentId || null,
+      product_ids: [...new Set((options.productIds || []).filter(Boolean))],
+    },
+  }, `${options.eventType || 'space_updated'}:${aggregateId}`);
 }

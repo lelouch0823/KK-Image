@@ -5,10 +5,11 @@ import { CustomerRepository } from '../../../../repositories/CustomerRepository.
 import { MSG } from '../../_shared/utils.js';
 import { withCache } from '../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
-import { parsePagination, createListCacheInvalidator, scheduleCacheInvalidation, requireEntity } from '../../_shared/route-helpers.js';
+import { parsePagination, requireEntity } from '../../_shared/route-helpers.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -17,16 +18,6 @@ export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'DELETE', path: '/:id', domain: 'customers', action: 'customer.delete', severity: 'high', targetType: 'customer' },
 ]);
 app.use('*', requirePermission('orders:manage'));
-
-const getCacheUrls = createListCacheInvalidator('/api/manage/customers', {
-    allowedKeys: ['page', 'limit', 'search'],
-    defaults: { page: 1, limit: 20 },
-    maxLimit: 100,
-});
-
-function scheduleCustomerCacheInvalidation(c) {
-    scheduleCacheInvalidation(c, getCacheUrls(c));
-}
 
 // 验证 Schema
 const CreateCustomerSchema = z.object({
@@ -93,7 +84,14 @@ app.post('/', zValidator('json', CreateCustomerSchema), async (c) => {
         createdBy: user.name,
     });
 
-    scheduleCustomerCacheInvalidation(c);
+    await publishSingleDomainEventAndPoll(c, {
+        event_type: 'customer_created',
+        aggregate_type: 'customer',
+        aggregate_id: customer.id,
+        payload: {
+            customer_id: customer.id,
+        },
+    }, `customer-create:${customer.id}`);
     scheduleAuditEvent(c, {
         domain: 'customers',
         action: 'customer.create',
@@ -160,7 +158,14 @@ app.put('/:id', zValidator('json', UpdateCustomerSchema), async (c) => {
         throw new NotFoundError(MSG.COMMON.NOT_FOUND);
     }
 
-    scheduleCustomerCacheInvalidation(c);
+    await publishSingleDomainEventAndPoll(c, {
+        event_type: 'customer_updated',
+        aggregate_type: 'customer',
+        aggregate_id: id,
+        payload: {
+            customer_id: id,
+        },
+    }, `customer-update:${id}`);
     scheduleAuditEvent(c, {
         domain: 'customers',
         action: 'customer.update',
@@ -199,7 +204,14 @@ app.delete('/:id', async (c) => {
         throw new NotFoundError(MSG.CUSTOMER.NOT_FOUND);
     }
 
-    scheduleCustomerCacheInvalidation(c);
+    await publishSingleDomainEventAndPoll(c, {
+        event_type: 'customer_deleted',
+        aggregate_type: 'customer',
+        aggregate_id: id,
+        payload: {
+            customer_id: id,
+        },
+    }, `customer-delete:${id}`);
     scheduleAuditEvent(c, {
         domain: 'customers',
         action: 'customer.delete',

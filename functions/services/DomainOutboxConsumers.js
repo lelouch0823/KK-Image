@@ -2,14 +2,25 @@ import { recordAuditEvent } from '../lib/hono/_shared/audit-helpers.js';
 import { NotificationRepository } from '../repositories/NotificationRepository.js';
 import { WebhookDeliveryService } from './WebhookDeliveryService.js';
 import {
+  getManageCustomerCacheUrls,
   getManageNotificationCacheUrls,
+  getManageOrderCacheUrls,
+  getManageSalespersonCacheUrls,
+  getManageShareCacheUrls,
+  getManageSpaceCacheUrls,
+  getManageTagCacheUrls,
   getOrderAndSalespersonCacheUrls,
   getOrderNotificationCacheUrls,
   getOrderAnalyticsCacheUrls,
   getPurchaseOrderCacheUrls,
+  getSalesNotificationCacheUrls,
+  getSalesOrderCacheUrls,
+  getSalesProductCacheUrls,
+  getSalesSpaceCacheUrls,
 } from '../lib/hono/routes/_shared/cache-urls.js';
-import { invalidateCache } from '../lib/hono/middleware/cache.js';
-import { getSalespersonAccessTokens } from '../lib/hono/_shared/route-helpers.js';
+import { invalidateCache, getProductCacheUrls } from '../lib/hono/middleware/cache.js';
+import { getAllSalespersonAccessTokens, getSalespersonAccessTokens } from '../lib/hono/_shared/route-helpers.js';
+import { getV1FileAndFolderCacheUrls, getV1FolderAndShareCacheUrls } from '../lib/hono/routes/v1/cache-urls.js';
 
 function parsePayload(event = {}) {
   if (!event?.payload_json) return {};
@@ -32,6 +43,19 @@ function createCacheContext(baseUrl, purchaseOrderId = null) {
   };
 }
 
+function createBaseContext(baseUrl, path = '/api/manage/orders') {
+  return {
+    req: {
+      url: `${baseUrl}${path}`,
+    },
+  };
+}
+
+function asArray(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return value ? [value] : [];
+}
+
 function resolvePurchaseOrderId(event, payload) {
   return payload.purchase_order_id
     || payload.purchaseOrderId
@@ -46,7 +70,10 @@ function isOrderDomainEvent(eventType) {
 
 function isOrderMutationEvent(eventType) {
   const normalized = String(eventType || '');
-  return normalized.startsWith('order_') && !normalized.startsWith('order_procurement_');
+  return normalized.startsWith('order_')
+    && !normalized.startsWith('order_procurement_')
+    && normalized !== 'order_read_by_admin'
+    && normalized !== 'order_read_by_sales';
 }
 
 function isReminderDomainEvent(eventType) {
@@ -91,6 +118,155 @@ function resolveAuditEventConfig(event, payload) {
     severity: isReversal ? 'critical' : 'high',
     purchaseOrderId,
   };
+}
+
+function isSalespersonCacheEvent(eventType) {
+  return [
+    'salesperson_created',
+    'salesperson_updated',
+    'salesperson_deleted',
+    'salesperson_token_reset',
+  ].includes(eventType);
+}
+
+function isTagCacheEvent(eventType) {
+  return ['tag_created', 'tag_assigned_to_file', 'tag_unassigned_from_file'].includes(eventType);
+}
+
+function isManageFolderCacheEvent(eventType) {
+  return ['folder_created', 'folder_updated', 'folder_deleted'].includes(eventType);
+}
+
+function isV1FolderCacheEvent(eventType) {
+  return ['v1_folder_created', 'v1_folder_updated', 'v1_folder_deleted', 'v1_folder_share_updated'].includes(eventType);
+}
+
+function isV1FileCacheEvent(eventType) {
+  return ['v1_file_created', 'v1_file_updated', 'v1_file_deleted', 'v1_file_batch_deleted', 'v1_file_batch_moved'].includes(eventType);
+}
+
+function isSpaceCacheEvent(eventType) {
+  return [
+    'space_created',
+    'space_updated',
+    'space_deleted',
+    'space_file_added',
+    'space_file_removed',
+    'space_file_reordered',
+    'space_subspace_created',
+  ].includes(eventType);
+}
+
+function isProductCacheEvent(eventType) {
+  return [
+    'product_created',
+    'product_updated',
+    'product_replaced',
+    'product_archived',
+    'product_batch_imported',
+    'product_dimension_created',
+    'product_dimension_updated',
+    'product_dimension_archived',
+    'product_dimension_value_created',
+    'product_dimension_value_archived',
+    'product_dimension_value_restored',
+    'product_variant_image_created',
+    'product_variant_image_sorted',
+    'product_variant_image_primary_changed',
+    'product_variant_image_deleted',
+  ].includes(eventType);
+}
+
+async function resolveExpandedCacheUrls({ db, event, baseUrl, payload }) {
+  const ctx = createBaseContext(baseUrl);
+
+  if (['customer_created', 'customer_updated', 'customer_deleted'].includes(event.event_type)) {
+    return getManageCustomerCacheUrls(ctx);
+  }
+
+  if (isSalespersonCacheEvent(event.event_type)) {
+    return [
+      ...getManageSalespersonCacheUrls(ctx),
+      ...getManageOrderCacheUrls(ctx),
+    ];
+  }
+
+  if (event.event_type === 'notification_read_by_admin') {
+    return getManageNotificationCacheUrls(ctx);
+  }
+
+  if (event.event_type === 'notification_read_by_sales') {
+    const salesTokens = await getSalespersonAccessTokens(db, [resolveSalespersonId(payload)].filter(Boolean));
+    return getSalesNotificationCacheUrls(ctx, salesTokens[0]);
+  }
+
+  if (isTagCacheEvent(event.event_type)) {
+    return getManageTagCacheUrls(ctx);
+  }
+
+  if (isManageFolderCacheEvent(event.event_type)) {
+    return getManageShareCacheUrls(ctx);
+  }
+
+  if (event.event_type === 'order_read_by_admin') {
+    return getManageOrderCacheUrls(ctx);
+  }
+
+  if (event.event_type === 'order_read_by_sales') {
+    const salesTokens = await getSalespersonAccessTokens(db, [resolveSalespersonId(payload)].filter(Boolean));
+    return getSalesOrderCacheUrls(ctx, { salesTokens });
+  }
+
+  if (isV1FolderCacheEvent(event.event_type)) {
+    return getV1FolderAndShareCacheUrls(
+      ctx,
+      asArray(payload.parent_ids || payload.folder_ids || payload.folder_id)
+    );
+  }
+
+  if (isV1FileCacheEvent(event.event_type)) {
+    const urls = new Set(
+      getV1FileAndFolderCacheUrls(ctx, {
+        folderIds: asArray(payload.folder_ids || payload.folder_id),
+      })
+    );
+    if (payload.file_id) {
+      urls.add(`${baseUrl}/api/v1/files/${payload.file_id}`);
+    }
+    return [...urls];
+  }
+
+  if (isSpaceCacheEvent(event.event_type)) {
+    const salesTokens = await getAllSalespersonAccessTokens(db);
+    const spaceId = payload.space_id || event.aggregate_id || null;
+    return [
+      ...new Set([
+        ...getManageSpaceCacheUrls(ctx, {
+          spaceId,
+          parentId: payload.parent_id || null,
+          productIds: asArray(payload.product_ids || payload.product_id),
+        }),
+        ...getSalesSpaceCacheUrls(ctx, { salesTokens, spaceId }),
+      ]),
+    ];
+  }
+
+  if (isProductCacheEvent(event.event_type)) {
+    const salesTokens = await getAllSalespersonAccessTokens(db);
+    const productId = payload.product_id || event.aggregate_id || null;
+    const urls = new Set([
+      ...getProductCacheUrls(ctx),
+      ...getSalesProductCacheUrls(ctx, { salesTokens }),
+    ]);
+    if (productId) {
+      for (const url of getSalesProductCacheUrls(ctx, { salesTokens, productId })) {
+        urls.add(url);
+      }
+    }
+    return [...urls];
+  }
+
+  return [];
 }
 
 async function auditOutboxEvent({ db, event }) {
@@ -140,6 +316,12 @@ async function invalidateReceiptCaches({ db, event, baseUrl }) {
     return;
   }
 
+  const expandedUrls = await resolveExpandedCacheUrls({ db, event, baseUrl, payload });
+  if (expandedUrls.length > 0) {
+    await invalidateCache([...new Set(expandedUrls)]);
+    return;
+  }
+
   const purchaseOrderId = resolvePurchaseOrderId(event, payload);
   const ctx = createCacheContext(baseUrl, purchaseOrderId);
   const urls = [
@@ -152,6 +334,8 @@ async function invalidateReceiptCaches({ db, event, baseUrl }) {
 
 function resolveNotificationTitle(eventType) {
   switch (eventType) {
+    case 'admin_notification_created':
+      return '';
     case 'order_created_by_admin':
       return JSON.stringify({ key: 'notification.orderAssigned', params: { orderNo: '' } });
     case 'order_pending_reminder_due':
@@ -240,6 +424,10 @@ function resolveNotificationRecipient(event, payload) {
 }
 
 function resolveNotificationContent(event, payload) {
+  if (event?.event_type === 'admin_notification_created') {
+    return payload.content || '';
+  }
+
   if (event?.event_type === 'order_pending_reminder_due') {
     return JSON.stringify({
       key: 'notification.reminder.pending_order_desc',
@@ -263,6 +451,10 @@ function resolveNotificationContent(event, payload) {
 }
 
 function resolveNotificationType(eventType) {
+  if (eventType === 'admin_notification_created') {
+    return 'system';
+  }
+
   if (eventType === 'order_deadline_reminder_due') {
     return 'deadline';
   }
@@ -273,16 +465,17 @@ function resolveNotificationType(eventType) {
 async function notifyOutboxEvent({ db, event, baseUrl }) {
   const payload = parsePayload(event);
   const repo = new NotificationRepository(db);
+  const isManualAdminNotification = event.event_type === 'admin_notification_created';
   const recipient = resolveNotificationRecipient(event, payload);
   const dedupeSuffix = recipient.receiver === 'sales'
     ? `sales:${recipient.salespersonId || ''}`
     : 'admin';
 
   const result = await repo.createFromDomainEvent({
-    type: resolveNotificationType(event.event_type),
-    title: resolveNotificationTitle(event.event_type),
+    type: isManualAdminNotification ? (payload.type || 'system') : resolveNotificationType(event.event_type),
+    title: isManualAdminNotification ? (payload.title || '') : resolveNotificationTitle(event.event_type),
     content: resolveNotificationContent(event, payload),
-    link: resolveNotificationLink(event, payload, recipient),
+    link: isManualAdminNotification ? (payload.link || '') : resolveNotificationLink(event, payload, recipient),
     receiver: recipient.receiver,
     salespersonId: recipient.salespersonId,
     orderId: resolveNotificationOrderId(event, payload),

@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   recordAuditEvent: vi.fn(async () => ({})),
   invalidateCache: vi.fn(async () => {}),
+  getSalespersonAccessTokens: vi.fn(async () => []),
+  getAllSalespersonAccessTokens: vi.fn(async () => []),
 }));
 
 vi.mock('../../lib/hono/_shared/audit-helpers.js', async () => {
@@ -21,11 +23,22 @@ vi.mock('../../lib/hono/middleware/cache.js', async () => {
   };
 });
 
+vi.mock('../../lib/hono/_shared/route-helpers.js', async () => {
+  const actual = await vi.importActual('../../lib/hono/_shared/route-helpers.js');
+  return {
+    ...actual,
+    getSalespersonAccessTokens: mocks.getSalespersonAccessTokens,
+    getAllSalespersonAccessTokens: mocks.getAllSalespersonAccessTokens,
+  };
+});
+
 import { DOMAIN_OUTBOX_CONSUMERS } from '../DomainOutboxConsumers.js';
 
 describe('DomainOutboxConsumers audit and cache', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getSalespersonAccessTokens.mockResolvedValue([]);
+    mocks.getAllSalespersonAccessTokens.mockResolvedValue([]);
   });
 
   it('writes audit logs from purchase receipt domain events', async () => {
@@ -147,6 +160,127 @@ describe('DomainOutboxConsumers audit and cache', () => {
     const urls = mocks.invalidateCache.mock.calls.at(-1)[0];
     expect(urls).toEqual(expect.arrayContaining([
       'https://kk.example.com/api/manage/purchase-orders/po-3',
+    ]));
+  });
+
+  it('invalidates manage customer list caches for customer domain events', async () => {
+    await DOMAIN_OUTBOX_CONSUMERS.cache({
+      db: {},
+      event: {
+        id: 'evt-customer-1',
+        event_type: 'customer_created',
+        aggregate_type: 'customer',
+        aggregate_id: 'customer-1',
+        payload_json: JSON.stringify({
+          customer_id: 'customer-1',
+        }),
+      },
+      baseUrl: 'https://kk.example.com',
+    });
+
+    expect(mocks.invalidateCache).toHaveBeenCalledWith(expect.arrayContaining([
+      'https://kk.example.com/api/manage/customers',
+      'https://kk.example.com/api/manage/customers?limit=20&page=1',
+    ]));
+  });
+
+  it('invalidates salesperson order list caches for order read events using salesperson tokens', async () => {
+    mocks.getSalespersonAccessTokens.mockResolvedValue(['sales-token-1']);
+
+    await DOMAIN_OUTBOX_CONSUMERS.cache({
+      db: {},
+      event: {
+        id: 'evt-order-read-1',
+        event_type: 'order_read_by_sales',
+        aggregate_type: 'order',
+        aggregate_id: 'order-1',
+        payload_json: JSON.stringify({
+          order_id: 'order-1',
+          salesperson_id: 'sales-1',
+        }),
+      },
+      baseUrl: 'https://kk.example.com',
+    });
+
+    expect(mocks.invalidateCache).toHaveBeenCalledWith(expect.arrayContaining([
+      'https://kk.example.com/api/sales/sales-token-1/orders',
+      'https://kk.example.com/api/sales/sales-token-1/orders?limit=20&page=1',
+    ]));
+  });
+
+  it('invalidates v1 file detail and folder caches for v1 file update events', async () => {
+    await DOMAIN_OUTBOX_CONSUMERS.cache({
+      db: {},
+      event: {
+        id: 'evt-v1-file-1',
+        event_type: 'v1_file_updated',
+        aggregate_type: 'file',
+        aggregate_id: 'file-1',
+        payload_json: JSON.stringify({
+          file_id: 'file-1',
+          folder_ids: ['folder-1', 'folder-2'],
+        }),
+      },
+      baseUrl: 'https://kk.example.com',
+    });
+
+    expect(mocks.invalidateCache).toHaveBeenCalledWith(expect.arrayContaining([
+      'https://kk.example.com/api/v1/files',
+      'https://kk.example.com/api/v1/folders/folder-1',
+      'https://kk.example.com/api/v1/folders/folder-2',
+      'https://kk.example.com/api/v1/files/file-1',
+    ]));
+  });
+
+  it('invalidates manage and sales space caches for space file reorder events', async () => {
+    mocks.getAllSalespersonAccessTokens.mockResolvedValue(['sales-token-2']);
+
+    await DOMAIN_OUTBOX_CONSUMERS.cache({
+      db: {},
+      event: {
+        id: 'evt-space-1',
+        event_type: 'space_file_reordered',
+        aggregate_type: 'space',
+        aggregate_id: 'space-1',
+        payload_json: JSON.stringify({
+          space_id: 'space-1',
+          product_ids: ['product-1'],
+        }),
+      },
+      baseUrl: 'https://kk.example.com',
+    });
+
+    expect(mocks.invalidateCache).toHaveBeenCalledWith(expect.arrayContaining([
+      'https://kk.example.com/api/manage/spaces',
+      'https://kk.example.com/api/manage/spaces/space-1',
+      'https://kk.example.com/api/manage/spaces/product/product-1',
+      'https://kk.example.com/api/sales/sales-token-2/spaces',
+      'https://kk.example.com/api/sales/sales-token-2/spaces/space-1',
+    ]));
+  });
+
+  it('invalidates manage and sales product caches for product events', async () => {
+    mocks.getAllSalespersonAccessTokens.mockResolvedValue(['sales-token-3']);
+
+    await DOMAIN_OUTBOX_CONSUMERS.cache({
+      db: {},
+      event: {
+        id: 'evt-product-1',
+        event_type: 'product_updated',
+        aggregate_type: 'product',
+        aggregate_id: 'product-1',
+        payload_json: JSON.stringify({
+          product_id: 'product-1',
+        }),
+      },
+      baseUrl: 'https://kk.example.com',
+    });
+
+    expect(mocks.invalidateCache).toHaveBeenCalledWith(expect.arrayContaining([
+      'https://kk.example.com/api/manage/products',
+      'https://kk.example.com/api/manage/products/variants',
+      'https://kk.example.com/api/sales/sales-token-3/products',
+      'https://kk.example.com/api/sales/sales-token-3/products/product-1',
     ]));
   });
 });

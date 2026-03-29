@@ -11,10 +11,10 @@ import { withCache } from '../../middleware/cache.js';
 import { generateId, generateShareToken, now, MSG } from '../../_shared/utils.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
-import { appendOptionalUpdate, requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
-import { getV1FolderAndShareCacheUrls } from './cache-urls.js';
+import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -23,10 +23,6 @@ export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'DELETE', path: '/:id', domain: 'v1-folders', action: 'v1.folder.delete', severity: 'critical', targetType: 'folder' },
   { method: 'PUT', path: '/:id/share', domain: 'v1-folders', action: 'v1.folder.share_update', severity: 'high', targetType: 'folder' },
 ]);
-
-function scheduleFolderAndShareCacheInvalidation(c, parentIds = []) {
-  scheduleCacheInvalidation(c, getV1FolderAndShareCacheUrls(c, parentIds));
-}
 
 async function requireFolder(repo, folderId, message = MSG.FOLDER.NOT_FOUND) {
   return requireEntity(repo.findById(folderId), () => new NotFoundError(message));
@@ -111,7 +107,15 @@ app.post(
       updatedAt: timestamp,
     });
 
-    scheduleFolderAndShareCacheInvalidation(c, [data.parentId]);
+    await publishSingleDomainEventAndPoll(c, {
+      event_type: 'v1_folder_created',
+      aggregate_type: 'folder',
+      aggregate_id: id,
+      payload: {
+        folder_id: id,
+        parent_ids: [data.parentId || null],
+      },
+    }, `v1-folder-create:${id}`);
     scheduleAuditEvent(c, {
       domain: 'v1-folders',
       action: 'v1.folder.create',
@@ -179,7 +183,15 @@ app.put(
 
     await repo.update(id, updates, values);
 
-    scheduleFolderAndShareCacheInvalidation(c, [folder.parent_id, checkParentId, id]);
+    await publishSingleDomainEventAndPoll(c, {
+      event_type: 'v1_folder_updated',
+      aggregate_type: 'folder',
+      aggregate_id: id,
+      payload: {
+        folder_id: id,
+        parent_ids: [folder.parent_id, checkParentId, id].filter((value) => value !== undefined),
+      },
+    }, `v1-folder-update:${id}`);
     scheduleAuditEvent(c, {
       domain: 'v1-folders',
       action: 'v1.folder.update',
@@ -211,7 +223,15 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
   }
 
   await repo.softDelete(id);
-  scheduleFolderAndShareCacheInvalidation(c, [folder.parent_id, id]);
+  await publishSingleDomainEventAndPoll(c, {
+    event_type: 'v1_folder_deleted',
+    aggregate_type: 'folder',
+    aggregate_id: id,
+    payload: {
+      folder_id: id,
+      parent_ids: [folder.parent_id, id].filter((value) => value !== undefined),
+    },
+  }, `v1-folder-delete:${id}`);
   scheduleAuditEvent(c, {
     domain: 'v1-folders',
     action: 'v1.folder.delete',
@@ -241,7 +261,15 @@ app.put(
     // SOTA: 使用 Repository 封装的分享设置更新
     const shareInfo = await repo.updateShareSettings(id, { isPublic, password, expiresAt });
 
-    scheduleFolderAndShareCacheInvalidation(c, [id]);
+    await publishSingleDomainEventAndPoll(c, {
+      event_type: 'v1_folder_share_updated',
+      aggregate_type: 'folder',
+      aggregate_id: id,
+      payload: {
+        folder_id: id,
+        parent_ids: [id],
+      },
+    }, `v1-folder-share:${id}`);
     scheduleAuditEvent(c, {
       domain: 'v1-folders',
       action: 'v1.folder.share_update',

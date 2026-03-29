@@ -1,22 +1,16 @@
-import { getProductCacheUrls } from '../../../middleware/cache.js';
-import { getSalesProductCacheUrls } from '../../_shared/cache-urls.js';
-import { scheduleSalesTokenAwareCacheInvalidation } from '../../_shared/sales-token-cache-helpers.js';
+import { publishSingleDomainEventAndPoll } from '../../../_shared/domain-outbox.js';
 
-export function scheduleProductCacheInvalidation(c, db, { productIds = [] } = {}) {
+export async function scheduleProductCacheInvalidation(c, { eventType = 'product_updated', productIds = [] } = {}) {
   const normalizedProductIds = [...new Set((productIds || []).filter(Boolean))];
+  const primaryProductId = normalizedProductIds.length === 1 ? normalizedProductIds[0] : null;
 
-  scheduleSalesTokenAwareCacheInvalidation(c, db, (salesTokens) => {
-    const urls = new Set([
-      ...getProductCacheUrls(c),
-      ...getSalesProductCacheUrls(c, { salesTokens }),
-    ]);
-
-    for (const productId of normalizedProductIds) {
-      for (const url of getSalesProductCacheUrls(c, { salesTokens, productId })) {
-        urls.add(url);
-      }
-    }
-
-    return [...urls];
-  });
+  await publishSingleDomainEventAndPoll(c, {
+    event_type: eventType,
+    aggregate_type: 'product',
+    aggregate_id: primaryProductId || normalizedProductIds[0] || 'products',
+    payload: {
+      product_id: primaryProductId,
+      product_ids: normalizedProductIds,
+    },
+  }, `${eventType}:${primaryProductId || normalizedProductIds[0] || 'products'}`);
 }

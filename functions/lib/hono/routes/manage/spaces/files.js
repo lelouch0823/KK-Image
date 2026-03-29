@@ -40,7 +40,10 @@ files.post('/', requirePermission('spaces:manage'), async (c) => {
   const space = await requireSpace(repo, spaceId);
 
   await repo.addFiles(spaceId, normalizedFileIds);
-  invalidateSpaceCaches(c, buildSpaceInvalidatePayload({ spaceId, space }));
+  await invalidateSpaceCaches(c, {
+    ...buildSpaceInvalidatePayload({ spaceId, space }),
+    eventType: 'space_file_added',
+  });
   scheduleAuditEvent(c, {
     domain: 'spaces',
     action: 'space.file.add',
@@ -72,7 +75,10 @@ files.delete('/', requirePermission('spaces:manage'), async (c) => {
 
   await repo.removeFiles(spaceId, normalizedFileIds);
   const space = await repo.findById(spaceId);
-  invalidateSpaceCaches(c, buildSpaceInvalidatePayload({ spaceId, space }));
+  await invalidateSpaceCaches(c, {
+    ...buildSpaceInvalidatePayload({ spaceId, space }),
+    eventType: 'space_file_removed',
+  });
   scheduleAuditEvent(c, {
     domain: 'spaces',
     action: 'space.file.remove',
@@ -104,7 +110,10 @@ files.put('/order', requirePermission('spaces:manage'), async (c) => {
 
   await repo.reorderFiles(spaceId, normalizedFileIds);
   const space = await repo.findById(spaceId);
-  invalidateSpaceCaches(c, buildSpaceInvalidatePayload({ spaceId, space }));
+  await invalidateSpaceCaches(c, {
+    ...buildSpaceInvalidatePayload({ spaceId, space }),
+    eventType: 'space_file_reordered',
+  });
   scheduleAuditEvent(c, {
     domain: 'spaces',
     action: 'space.file.reorder',

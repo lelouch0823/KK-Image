@@ -5,11 +5,11 @@ import { SalespersonRepository } from '../../../../repositories/SalespersonRepos
 import { MSG } from '../../_shared/utils.js';
 import { withCache } from '../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
-import { parsePagination, createListCacheInvalidator, scheduleCacheInvalidation, requireEntity } from '../../_shared/route-helpers.js';
-import { getManageOrderCacheUrls } from '../_shared/cache-urls.js';
+import { parsePagination, requireEntity } from '../../_shared/route-helpers.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -20,20 +20,6 @@ export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'POST', path: '/:id/reset-token', domain: 'salespersons', action: 'salesperson.reset_token', severity: 'critical', targetType: 'salesperson' },
 ]);
 app.use('*', requirePermission('users:read'));
-
-const getCacheUrls = createListCacheInvalidator('/api/manage/salespersons', {
-    allowedKeys: ['page', 'limit', 'search'],
-    defaults: { page: 1, limit: 50 },
-    maxLimit: 100,
-    queryVariants: [{ limit: 20 }],
-});
-const getSalespersonAndOrderCacheUrls = (c) => [
-    ...new Set([...getCacheUrls(c), ...getManageOrderCacheUrls(c)]),
-];
-
-function scheduleSalespersonAndOrderCacheInvalidation(c) {
-    scheduleCacheInvalidation(c, getSalespersonAndOrderCacheUrls(c));
-}
 
 // 验证 Schema
 const CreateSalespersonSchema = z.object({
@@ -101,7 +87,14 @@ app.post('/', requirePermission('users:write'), zValidator('json', CreateSalespe
         password: body.password,
     });
 
-    scheduleSalespersonAndOrderCacheInvalidation(c);
+    await publishSingleDomainEventAndPoll(c, {
+        event_type: 'salesperson_created',
+        aggregate_type: 'salesperson',
+        aggregate_id: salesperson.id,
+        payload: {
+            salesperson_id: salesperson.id,
+        },
+    }, `salesperson-create:${salesperson.id}`);
     scheduleAuditEvent(c, {
         domain: 'salespersons',
         action: 'salesperson.create',
@@ -172,7 +165,14 @@ const updateHandler = async (c) => {
         throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
     }
 
-    scheduleSalespersonAndOrderCacheInvalidation(c);
+    await publishSingleDomainEventAndPoll(c, {
+        event_type: 'salesperson_updated',
+        aggregate_type: 'salesperson',
+        aggregate_id: id,
+        payload: {
+            salesperson_id: id,
+        },
+    }, `salesperson-update:${id}`);
     scheduleAuditEvent(c, {
         domain: 'salespersons',
         action: 'salesperson.update',
@@ -222,7 +222,14 @@ app.delete('/:id', requirePermission('users:write'), async (c) => {
         throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
     }
 
-    scheduleSalespersonAndOrderCacheInvalidation(c);
+    await publishSingleDomainEventAndPoll(c, {
+        event_type: 'salesperson_deleted',
+        aggregate_type: 'salesperson',
+        aggregate_id: id,
+        payload: {
+            salesperson_id: id,
+        },
+    }, `salesperson-delete:${id}`);
     scheduleAuditEvent(c, {
         domain: 'salespersons',
         action: 'salesperson.delete',
@@ -251,7 +258,14 @@ app.post('/:id/reset-token', requirePermission('users:write'), async (c) => {
         throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
     }
 
-    scheduleSalespersonAndOrderCacheInvalidation(c);
+    await publishSingleDomainEventAndPoll(c, {
+        event_type: 'salesperson_token_reset',
+        aggregate_type: 'salesperson',
+        aggregate_id: id,
+        payload: {
+            salesperson_id: id,
+        },
+    }, `salesperson-token-reset:${id}`);
     scheduleAuditEvent(c, {
         domain: 'salespersons',
         action: 'salesperson.reset_token',

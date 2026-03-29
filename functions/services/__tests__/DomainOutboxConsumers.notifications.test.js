@@ -312,4 +312,45 @@ describe('DomainOutboxConsumers notifications', () => {
       dedupeKey: 'purchase_receipt_recorded:evt-3:admin',
     }));
   });
+
+  it('creates manual admin notifications from admin_notification_created events', async () => {
+    const result = await DOMAIN_OUTBOX_CONSUMERS.notification({
+      db: {},
+      baseUrl: 'https://kk.example.com',
+      event: {
+        id: 'job-notification-8',
+        event_id: 'evt-8',
+        event_type: 'admin_notification_created',
+        aggregate_type: 'notification',
+        aggregate_id: 'manual-1',
+        payload_json: JSON.stringify({
+          type: 'system',
+          title: 'System maintenance',
+          content: 'Window tonight',
+          link: '/admin/ops',
+          order_id: 'o-8',
+          metadata: { level: 'info' },
+        }),
+      },
+    });
+
+    expect(result).toEqual({
+      id: 'notification-1',
+      created: true,
+    });
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'system',
+      title: 'System maintenance',
+      content: 'Window tonight',
+      link: '/admin/ops',
+      receiver: 'admin',
+      orderId: 'o-8',
+      dedupeKey: 'admin_notification_created:evt-8:admin',
+      metadata: expect.objectContaining({
+        payload: expect.objectContaining({
+          metadata: { level: 'info' },
+        }),
+      }),
+    }));
+  });
 });

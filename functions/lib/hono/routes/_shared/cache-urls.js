@@ -15,6 +15,15 @@ export function getManageNotificationCacheUrls(c) {
   ];
 }
 
+export function getManageCustomerCacheUrls(c) {
+  const origin = getOrigin(c);
+  return buildListCacheUrls(origin, '/api/manage/customers', {
+    allowedKeys: ['page', 'limit', 'search'],
+    defaults: { page: 1, limit: 20 },
+    maxLimit: 100,
+  });
+}
+
 export function getManageShareCacheUrls(c) {
   const origin = getOrigin(c);
   return buildListCacheUrls(origin, '/api/manage/shares', {

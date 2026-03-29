@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   triggerWebhook: vi.fn(),
   storeFile: vi.fn(),
   scheduleCacheInvalidation: vi.fn(),
+  publish: vi.fn(async () => []),
+  runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
 
 vi.mock('../../../../../repositories/FolderRepository.js', () => ({
@@ -91,6 +93,16 @@ vi.mock('../../../../../api/utils/file-utils.js', () => ({
   storeFile: mocks.storeFile,
 }));
 
+vi.mock('../../../../../services/DomainOutboxPublisher.js', () => ({
+  DomainOutboxPublisher: vi.fn(() => ({
+    publish: mocks.publish,
+  })),
+}));
+
+vi.mock('../../../../../api/cron/outbox.js', () => ({
+  runOutboxPoller: mocks.runOutboxPoller,
+}));
+
 import foldersApp from '../folders.js';
 
 function createApp() {
@@ -128,15 +140,25 @@ describe('manage folders routes', () => {
 
   it('audits folder deletion with folder name', async () => {
     const app = createApp();
+    const waitUntil = vi.fn();
     const res = await app.request(
       'http://localhost/api/manage/folders/folder-1',
       { method: 'DELETE' },
       { DB: {} },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
     expect(res.status).toBe(200);
     expect(mocks.softDelete).toHaveBeenCalledWith('folder-1');
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'folder_deleted',
+        aggregate_type: 'folder',
+        aggregate_id: 'folder-1',
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -161,14 +183,31 @@ describe('manage folders routes', () => {
       })),
     };
 
+    const waitUntil = vi.fn();
     const res = await app.request(
       'http://localhost/api/manage/folders/folder-1/upload',
       { method: 'POST', body: formData },
       { DB: db },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
     expect(res.status).toBe(200);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'file_uploaded',
+        aggregate_type: 'file',
+        aggregate_id: 'file-1',
+        payload: expect.objectContaining({
+          file: expect.objectContaining({
+            id: 'file-1',
+            filename: 'asset.png',
+          }),
+        }),
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
+    expect(mocks.triggerWebhook).not.toHaveBeenCalled();
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({

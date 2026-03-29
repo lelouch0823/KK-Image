@@ -1,10 +1,9 @@
 import { Hono } from 'hono';
 import { NotificationRepository } from '../../../../repositories/NotificationRepository.js';
 import { withCache } from '../../middleware/cache.js';
-import { getSalesNotificationCacheUrls } from '../_shared/cache-urls.js';
-import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -32,7 +31,6 @@ app.get('/', withCache(15), async (c) => {
 app.post('/:id/read', async (c) => {
     const salesperson = c.get('salesperson');
     const notificationId = c.req.param('id');
-    const token = c.req.param('token');
     const { env } = c;
 
     const notifyRepo = new NotificationRepository(env.DB);
@@ -42,7 +40,15 @@ app.post('/:id/read', async (c) => {
         await notifyRepo.markAsReadForSalesperson(notificationId, salesperson.id);
     }
 
-    scheduleCacheInvalidation(c, getSalesNotificationCacheUrls(c, token));
+    await publishSingleDomainEventAndPoll(c, {
+        event_type: 'notification_read_by_sales',
+        aggregate_type: 'notification',
+        aggregate_id: notificationId,
+        payload: {
+            notification_id: notificationId,
+            salesperson_id: salesperson.id,
+        },
+    }, `notification-read-sales:${notificationId}`);
     scheduleAuditEvent(c, {
         domain: 'sales-notifications',
         action: 'sales.notification.read',

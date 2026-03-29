@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   updateWechatOpenid: vi.fn(),
   scheduleAuditEvent: vi.fn(),
   scheduleCacheInvalidation: vi.fn(),
+  publish: vi.fn(async () => []),
+  runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
 
 vi.mock('../../../../../repositories/NotificationRepository.js', () => ({
@@ -47,6 +49,16 @@ vi.mock('../../../_shared/audit-helpers.js', async () => {
   };
 });
 
+vi.mock('../../../../../services/DomainOutboxPublisher.js', () => ({
+  DomainOutboxPublisher: vi.fn(() => ({
+    publish: mocks.publish,
+  })),
+}));
+
+vi.mock('../../../../../api/cron/outbox.js', () => ({
+  runOutboxPoller: mocks.runOutboxPoller,
+}));
+
 import notificationsApp from '../notifications.js';
 import profileApp from '../profile.js';
 
@@ -74,15 +86,28 @@ describe('sales audit routes', () => {
 
   it('audits marking all sales notifications as read', async () => {
     const app = createApp('/api/sales/:token/notifications', notificationsApp);
+    const waitUntil = vi.fn();
     const res = await app.request(
       'http://localhost/api/sales/token-1/notifications/all/read',
       { method: 'POST' },
       { DB: {} },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
     expect(res.status).toBe(200);
     expect(mocks.markAllAsReadForSalesperson).toHaveBeenCalledWith('sales-1');
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'notification_read_by_sales',
+        aggregate_type: 'notification',
+        aggregate_id: 'all',
+        payload: expect.objectContaining({
+          salesperson_id: 'sales-1',
+        }),
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({

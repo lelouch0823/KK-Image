@@ -192,7 +192,10 @@ crud.post(
     await validateProductVariantBinding(env.DB, newSpace.productId, newSpace.variantId, { checkExistence: false });
 
     await repo.create(newSpace);
-    invalidateSpaceCaches(c, buildSpaceInvalidatePayload({ spaceId, productIds: [newSpace.productId] }));
+    await invalidateSpaceCaches(c, {
+      ...buildSpaceInvalidatePayload({ spaceId, productIds: [newSpace.productId] }),
+      eventType: 'space_created',
+    });
     scheduleAuditEvent(c, {
       domain: 'spaces',
       action: 'space.create',
@@ -271,14 +274,14 @@ crud.on(
       await repo.updateSharedSalespersons(spaceId, data.sharedSalespersonIds);
     }
 
-    invalidateSpaceCaches(
-      c,
-      buildSpaceInvalidatePayload({
+    await invalidateSpaceCaches(c, {
+      ...buildSpaceInvalidatePayload({
         spaceId,
         space,
         productIds: [space.product_id, nextProductId],
-      })
-    );
+      }),
+      eventType: 'space_updated',
+    });
     scheduleAuditEvent(c, {
       domain: 'spaces',
       action: 'space.update',
@@ -315,7 +318,10 @@ crud.delete('/:id', requirePermission('spaces:manage'), async (c) => {
   const space = await requireSpace(repo, spaceId);
 
   await repo.delete(spaceId);
-  invalidateSpaceCaches(c, buildSpaceInvalidatePayload({ spaceId, space, productIds: [space.product_id] }));
+  await invalidateSpaceCaches(c, {
+    ...buildSpaceInvalidatePayload({ spaceId, space, productIds: [space.product_id] }),
+    eventType: 'space_deleted',
+  });
   scheduleAuditEvent(c, {
     domain: 'spaces',
     action: 'space.delete',

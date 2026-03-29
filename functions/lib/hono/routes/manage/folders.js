@@ -15,10 +15,10 @@ import {
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { NotFoundError, BadRequestError, ForbiddenError, ConflictError } from '../../errors.js';
-import { getManageShareCacheUrls } from '../_shared/cache-urls.js';
-import { appendOptionalUpdate, requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -28,10 +28,6 @@ export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'POST', path: '/:id/upload', domain: 'folders', action: 'folder.upload', severity: 'normal', targetType: 'folder' },
 ]);
 app.use('*', requirePermission('folders:read'));
-
-function scheduleManageShareCacheInvalidation(c) {
-  scheduleCacheInvalidation(c, getManageShareCacheUrls(c));
-}
 
 function toFolderListItem(folder) {
   return {
@@ -175,7 +171,14 @@ app.post(
       updatedAt: nowMs
     });
 
-    scheduleManageShareCacheInvalidation(c);
+    await publishSingleDomainEventAndPoll(c, {
+      event_type: 'folder_created',
+      aggregate_type: 'folder',
+      aggregate_id: folderId,
+      payload: {
+        folder_id: folderId,
+      },
+    }, `folder-create:${folderId}`);
     scheduleAuditEvent(c, {
       domain: 'folders',
       action: 'folder.create',
@@ -265,7 +268,14 @@ app.put(
 
     const updated = await folderRepo.update(folderId, updates, values);
 
-    scheduleManageShareCacheInvalidation(c);
+    await publishSingleDomainEventAndPoll(c, {
+      event_type: 'folder_updated',
+      aggregate_type: 'folder',
+      aggregate_id: folderId,
+      payload: {
+        folder_id: folderId,
+      },
+    }, `folder-update:${folderId}`);
     scheduleAuditEvent(c, {
       domain: 'folders',
       action: 'folder.update',
@@ -305,7 +315,14 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
   // 软删除
   await folderRepo.softDelete(folderId);
 
-  scheduleManageShareCacheInvalidation(c);
+  await publishSingleDomainEventAndPoll(c, {
+    event_type: 'folder_deleted',
+    aggregate_type: 'folder',
+    aggregate_id: folderId,
+    payload: {
+      folder_id: folderId,
+    },
+  }, `folder-delete:${folderId}`);
   scheduleAuditEvent(c, {
     domain: 'folders',
     action: 'folder.delete',
@@ -319,8 +336,6 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
 
   return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
 });
-
-import { triggerWebhook } from '../../_shared/utils.js';
 
 import { storeFile } from '../../../../api/utils/file-utils.js';
 
@@ -366,27 +381,23 @@ app.post('/:id/upload', requirePermission('files:write'), async (c) => {
     metadata: { fileId: result?.id || null },
   });
 
-  // 5. 触发 Webhook（后台执行，保留 try-catch 因为是非阻塞后台任务）
-  c.executionCtx.waitUntil(
-    (async () => {
-      try {
-        await triggerWebhook(env, 'file.uploaded', {
-          file: {
-            id: result.id,
-            filename: result.name,
-            size: result.size,
-            type: result.type,
-            uploadTime: timestampToIso(Date.now()),
-            url: getFileUrl(result.storageKey),
-            uploader: user.name || user.username || user.id,
-          },
-          user,
-        });
-      } catch (e) {
-        console.error('Webhook trigger failed:', e);
-      }
-    })()
-  );
+  await publishSingleDomainEventAndPoll(c, {
+    event_type: 'file_uploaded',
+    aggregate_type: 'file',
+    aggregate_id: result.id,
+    payload: {
+      file: {
+        id: result.id,
+        filename: result.name,
+        size: result.size,
+        type: result.type,
+        uploadTime: timestampToIso(Date.now()),
+        url: getFileUrl(result.storageKey),
+        uploader: user.name || user.username || user.id,
+      },
+      user,
+    },
+  }, `file-uploaded:${result.id}`);
 
   return c.json({
     success: true,

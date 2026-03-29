@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   fileUpdate: vi.fn(),
   fileCheckNameConflict: vi.fn(),
   scheduleAuditEvent: vi.fn(),
+  publish: vi.fn(async () => []),
+  runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
 
 vi.mock('../../../../../repositories/CustomerRepository.js', () => ({
@@ -49,6 +51,16 @@ vi.mock('../../../_shared/audit-helpers.js', async () => {
     scheduleAuditEvent: mocks.scheduleAuditEvent,
   };
 });
+
+vi.mock('../../../../../services/DomainOutboxPublisher.js', () => ({
+  DomainOutboxPublisher: vi.fn(() => ({
+    publish: mocks.publish,
+  })),
+}));
+
+vi.mock('../../../../../api/cron/outbox.js', () => ({
+  runOutboxPoller: mocks.runOutboxPoller,
+}));
 
 import customersApp from '../customers.js';
 import salespersonsApp from '../salespersons.js';
@@ -98,6 +110,7 @@ describe('manage no-op update routes', () => {
 
   it('returns 200 for customer no-op update', async () => {
     const { app, env } = createApp('/api/manage/customers', customersApp);
+    const waitUntil = vi.fn();
 
     const res = await app.request(
       'http://localhost/api/manage/customers/customer-1',
@@ -107,11 +120,20 @@ describe('manage no-op update routes', () => {
         body: JSON.stringify({ name: 'Alice' }),
       },
       env,
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
     expect(res.status).toBe(200);
     expect(mocks.customerUpdate).toHaveBeenCalledWith('customer-1', expect.objectContaining({ name: 'Alice' }));
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'customer_updated',
+        aggregate_type: 'customer',
+        aggregate_id: 'customer-1',
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ action: 'customer.update', domain: 'customers' })
@@ -120,6 +142,7 @@ describe('manage no-op update routes', () => {
 
   it('returns 200 for salesperson no-op update', async () => {
     const { app, env } = createApp('/api/manage/salespersons', salespersonsApp);
+    const waitUntil = vi.fn();
 
     const res = await app.request(
       'http://localhost/api/manage/salespersons/sales-1',
@@ -129,11 +152,20 @@ describe('manage no-op update routes', () => {
         body: JSON.stringify({ name: 'Bob' }),
       },
       env,
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
     expect(res.status).toBe(200);
     expect(mocks.salespersonUpdate).toHaveBeenCalledWith('sales-1', expect.objectContaining({ name: 'Bob' }));
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'salesperson_updated',
+        aggregate_type: 'salesperson',
+        aggregate_id: 'sales-1',
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
   });
 
   it('returns 200 for file rename no-op and skips conflict check', async () => {

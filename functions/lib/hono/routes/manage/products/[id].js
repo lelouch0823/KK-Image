@@ -10,7 +10,7 @@ import { NotFoundError, BadRequestError } from '../../../errors.js';
 import { requirePermission } from '../../../middleware/auth.js';
 import { scheduleProductCacheInvalidation } from './cache-helpers.js';
 import { ProductCatalogService } from '../../../../../services/ProductCatalogService.js';
-import { loadVariantReplenishmentMap } from '../../../_shared/variant-replenishment.js';
+import { loadVariantReplenishmentMap } from '../../_shared/variant-replenishment.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -93,7 +93,7 @@ app.post('/:id/dimensions', async (c) => {
     const dimensionRepo = new ProductDimensionRepository(env.DB);
     try {
         const created = await dimensionRepo.createDimension(productId, body);
-        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        await scheduleProductCacheInvalidation(c, { eventType: 'product_dimension_created', productIds: [productId] });
         scheduleAuditEvent(c, {
             domain: 'products',
             action: 'product.dimension.create',
@@ -121,7 +121,7 @@ app.patch('/:id/dimensions/:dimensionId', async (c) => {
     const dimensionRepo = new ProductDimensionRepository(env.DB);
     try {
         const updated = await dimensionRepo.updateDimension(productId, dimensionId, body);
-        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        await scheduleProductCacheInvalidation(c, { eventType: 'product_dimension_updated', productIds: [productId] });
         scheduleAuditEvent(c, {
             domain: 'products',
             action: 'product.dimension.update',
@@ -157,7 +157,7 @@ app.patch('/:id/dimensions/:dimensionId/archive', async (c) => {
             effect = { archivedVariants: await dimensionRepo.archiveVariantsByDimension(productId, dimensionId) };
         }
         const archivedDimension = await dimensionRepo.archiveDimension(productId, dimensionId);
-        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        await scheduleProductCacheInvalidation(c, { eventType: 'product_dimension_archived', productIds: [productId] });
         scheduleAuditEvent(c, {
             domain: 'products',
             action: 'product.dimension.archive',
@@ -185,7 +185,7 @@ app.post('/:id/dimensions/:dimensionId/values', async (c) => {
     const dimensionRepo = new ProductDimensionRepository(env.DB);
     try {
         const created = await dimensionRepo.addValue(productId, dimensionId, body);
-        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        await scheduleProductCacheInvalidation(c, { eventType: 'product_dimension_value_created', productIds: [productId] });
         scheduleAuditEvent(c, {
             domain: 'products',
             action: 'product.dimension_value.create',
@@ -213,7 +213,7 @@ app.patch('/:id/values/:valueId/archive', async (c) => {
     try {
         const effect = await dimensionRepo.archiveVariantsByValue(productId, valueId);
         const value = await dimensionRepo.archiveValue(productId, valueId);
-        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        await scheduleProductCacheInvalidation(c, { eventType: 'product_dimension_value_archived', productIds: [productId] });
         scheduleAuditEvent(c, {
             domain: 'products',
             action: 'product.dimension_value.archive',
@@ -240,7 +240,7 @@ app.patch('/:id/values/:valueId/restore', async (c) => {
     const dimensionRepo = new ProductDimensionRepository(env.DB);
     try {
         const value = await dimensionRepo.restoreValue(productId, valueId);
-        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        await scheduleProductCacheInvalidation(c, { eventType: 'product_dimension_value_restored', productIds: [productId] });
         scheduleAuditEvent(c, {
             domain: 'products',
             action: 'product.dimension_value.restore',
@@ -294,7 +294,7 @@ app.post('/:id/variants/:variantId/images', async (c) => {
             imageId: body.imageId,
             isPrimary: Boolean(body.isPrimary),
         });
-        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        await scheduleProductCacheInvalidation(c, { eventType: 'product_variant_image_created', productIds: [productId] });
         scheduleAuditEvent(c, {
             domain: 'products',
             action: 'product.variant_image.create',
@@ -331,7 +331,7 @@ app.patch('/:id/variants/:variantId/images/sort', async (c) => {
             variantId,
             imageIds: body.imageIds,
         });
-        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        await scheduleProductCacheInvalidation(c, { eventType: 'product_variant_image_sorted', productIds: [productId] });
         scheduleAuditEvent(c, {
             domain: 'products',
             action: 'product.variant_image.sort',
@@ -364,7 +364,7 @@ app.patch('/:id/variants/:variantId/images/:imageId/primary', async (c) => {
             variantId,
             imageId,
         });
-        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        await scheduleProductCacheInvalidation(c, { eventType: 'product_variant_image_primary_changed', productIds: [productId] });
         scheduleAuditEvent(c, {
             domain: 'products',
             action: 'product.variant_image.primary',
@@ -400,7 +400,7 @@ app.delete('/:id/variants/:variantId/images/:imageId', async (c) => {
         if (!removed) {
             throw new NotFoundError('Variant image not found');
         }
-        scheduleProductCacheInvalidation(c, env.DB, { productIds: [productId] });
+        await scheduleProductCacheInvalidation(c, { eventType: 'product_variant_image_deleted', productIds: [productId] });
         scheduleAuditEvent(c, {
             domain: 'products',
             action: 'product.variant_image.delete',
@@ -516,7 +516,7 @@ app.delete('/:id', async (c) => {
             metadata: { variantCount: events.length },
         });
         // 使缓存失效
-        scheduleProductCacheInvalidation(c, env.DB, { productIds: [id] });
+        await scheduleProductCacheInvalidation(c, { eventType: 'product_archived', productIds: [id] });
         return c.json({ success: true, message: 'Product variants archived' });
     } else {
         throw new BadRequestError('Delete failed');

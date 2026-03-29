@@ -7,14 +7,12 @@ import { validateProductVariantBinding } from '../../../../api/utils/validation.
 import { parsePagination, requireEntity } from '../../_shared/route-helpers.js';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors.js';
 import { withCache } from '../../middleware/cache.js';
-import {
-    scheduleSalesOrderListCacheInvalidation,
-} from './orders-cache-helpers.js';
 import { DemandService } from '../../../../services/DemandService.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { DomainOutboxPublisher } from '../../../../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../../../../api/cron/outbox.js';
+import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -179,7 +177,6 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
  */
 app.get('/:id', async (c) => {
     const salesperson = c.get('salesperson');
-    const token = c.req.param('token');
     const orderId = c.req.param('id');
     const { env } = c;
 
@@ -196,7 +193,15 @@ app.get('/:id', async (c) => {
 
     // Mark as read
     await orderRepo.markAsRead(orderId, 'sales');
-    scheduleSalesOrderListCacheInvalidation(c, { salesToken: token });
+    await publishSingleDomainEventAndPoll(c, {
+        event_type: 'order_read_by_sales',
+        aggregate_type: 'order',
+        aggregate_id: orderId,
+        payload: {
+            order_id: orderId,
+            salesperson_id: salesperson.id,
+        },
+    }, `order-read-sales:${orderId}`);
 
     return c.json({
         success: true,
@@ -213,14 +218,21 @@ app.get('/:id', async (c) => {
  */
 app.patch('/:id/read', async (c) => {
     const salesperson = c.get('salesperson');
-    const token = c.req.param('token');
     const orderId = c.req.param('id');
     const { env } = c;
 
     const orderRepo = new OrderRepository(env.DB);
     await requireSalesOrder(orderRepo, orderId, salesperson.id);
     await orderRepo.markAsRead(orderId, 'sales');
-    scheduleSalesOrderListCacheInvalidation(c, { salesToken: token });
+    await publishSingleDomainEventAndPoll(c, {
+        event_type: 'order_read_by_sales',
+        aggregate_type: 'order',
+        aggregate_id: orderId,
+        payload: {
+            order_id: orderId,
+            salesperson_id: salesperson.id,
+        },
+    }, `order-read-sales:${orderId}`);
     scheduleAuditEvent(c, {
         domain: 'sales-orders',
         action: 'sales.order.read',

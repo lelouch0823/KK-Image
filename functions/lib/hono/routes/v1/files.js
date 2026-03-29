@@ -12,10 +12,10 @@ import { getFileUrl, generateId, MSG } from '../../_shared/utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
-import { requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
-import { getV1FileAndFolderCacheUrls } from './cache-urls.js';
+import { requireEntity } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -33,14 +33,6 @@ const ALLOWED_SORT_COLUMNS = {
   size: 'size',
   updated_at: 'updated_at',
 };
-
-function scheduleFileCacheInvalidation(c, { folderIds = [], extraUrls = [] } = {}) {
-  const mergedExtraUrls = Array.isArray(extraUrls) ? extraUrls : [extraUrls];
-  scheduleCacheInvalidation(
-    c,
-    [...getV1FileAndFolderCacheUrls(c, { folderIds }), ...mergedExtraUrls.filter(Boolean)]
-  );
-}
 
 async function requireFile(repo, fileId) {
   return requireEntity(repo.findById(fileId), () => new NotFoundError(MSG.FILE.NOT_FOUND));
@@ -188,8 +180,15 @@ app.post('/', requirePermission('files:write'), zValidator('json', CreateFileSch
     updatedAt: nowMs
   });
 
-  // 使缓存失效
-  scheduleFileCacheInvalidation(c, { folderIds: [data.folderId] });
+  await publishSingleDomainEventAndPoll(c, {
+    event_type: 'v1_file_created',
+    aggregate_type: 'file',
+    aggregate_id: id,
+    payload: {
+      file_id: id,
+      folder_ids: [data.folderId || null],
+    },
+  }, `v1-file-create:${id}`);
   scheduleAuditEvent(c, {
     domain: 'v1-files',
     action: 'v1.file.create',
@@ -242,11 +241,15 @@ app.put('/:id', requirePermission('files:write'), async (c) => {
   }
 
   await repo.update(id, updates);
-  // 使详情缓存和列表缓存失效
-  scheduleFileCacheInvalidation(c, {
-    folderIds: [file.folder_id, checkFolderId],
-    extraUrls: [c.req.url],
-  });
+  await publishSingleDomainEventAndPoll(c, {
+    event_type: 'v1_file_updated',
+    aggregate_type: 'file',
+    aggregate_id: id,
+    payload: {
+      file_id: id,
+      folder_ids: [file.folder_id, checkFolderId].filter((value) => value !== undefined),
+    },
+  }, `v1-file-update:${id}`);
   scheduleAuditEvent(c, {
     domain: 'v1-files',
     action: 'v1.file.update',
@@ -274,8 +277,15 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   // 软删除 (Recycle Bin)
   await repo.softDelete(id);
 
-  // 使缓存失效
-  scheduleFileCacheInvalidation(c, { folderIds: [file.folder_id] });
+  await publishSingleDomainEventAndPoll(c, {
+    event_type: 'v1_file_deleted',
+    aggregate_type: 'file',
+    aggregate_id: id,
+    payload: {
+      file_id: id,
+      folder_ids: [file.folder_id],
+    },
+  }, `v1-file-delete:${id}`);
   scheduleAuditEvent(c, {
     domain: 'v1-files',
     action: 'v1.file.delete',
@@ -309,10 +319,15 @@ app.post(
     // 软删除
     await repo.softDeleteBatch(ids);
 
-    // 使缓存失效
-    scheduleFileCacheInvalidation(c, {
-      folderIds: targetFiles.map((item) => item.folder_id),
-    });
+    await publishSingleDomainEventAndPoll(c, {
+      event_type: 'v1_file_batch_deleted',
+      aggregate_type: 'file',
+      aggregate_id: ids[0] || 'batch',
+      payload: {
+        file_ids: ids,
+        folder_ids: targetFiles.map((item) => item.folder_id),
+      },
+    }, `v1-file-batch-delete:${ids.length}`);
     scheduleAuditEvent(c, {
       domain: 'v1-files',
       action: 'v1.file.batch_delete',
@@ -361,10 +376,15 @@ app.post(
     const sourceFolderIds = targetFiles.map((item) => item.folder_id);
 
     await fileRepo.moveBatch(ids, targetFolderId || 'root');
-    // 使缓存失效（源目录 + 目标目录 + 根列表）
-    scheduleFileCacheInvalidation(c, {
-      folderIds: [...sourceFolderIds, targetFolderId],
-    });
+    await publishSingleDomainEventAndPoll(c, {
+      event_type: 'v1_file_batch_moved',
+      aggregate_type: 'file',
+      aggregate_id: ids[0] || 'batch',
+      payload: {
+        file_ids: ids,
+        folder_ids: [...sourceFolderIds, targetFolderId],
+      },
+    }, `v1-file-batch-move:${ids.length}`);
     scheduleAuditEvent(c, {
       domain: 'v1-files',
       action: 'v1.file.batch_move',

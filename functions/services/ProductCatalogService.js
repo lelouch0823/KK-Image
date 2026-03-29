@@ -580,7 +580,10 @@ export class ProductCatalogService {
             throw error;
         }
 
-        scheduleProductCacheInvalidation(c, this.db, { productIds: [product?.id || null] });
+        await scheduleProductCacheInvalidation(c, {
+            eventType: 'product_created',
+            productIds: [product?.id || null],
+        });
         return product;
     }
 
@@ -699,7 +702,10 @@ export class ProductCatalogService {
         }
 
         if ((result.success && result.changes > 0) || variantsUpdated) {
-            scheduleProductCacheInvalidation(c, this.db, { productIds: [productId] });
+            await scheduleProductCacheInvalidation(c, {
+                eventType: fullReplace ? 'product_replaced' : 'product_updated',
+                productIds: [productId],
+            });
             return {
                 changes: result.changes,
                 variantSync: variantSync || undefined,
@@ -885,7 +891,8 @@ export class ProductCatalogService {
         };
 
         if (success) {
-            scheduleProductCacheInvalidation(c, this.db, {
+            await scheduleProductCacheInvalidation(c, {
+                eventType: 'product_batch_imported',
                 productIds: [...updatedProductIds],
             });
         }

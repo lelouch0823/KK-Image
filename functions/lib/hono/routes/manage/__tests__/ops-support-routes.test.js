@@ -20,6 +20,8 @@ const mocks = vi.hoisted(() => ({
   decrementRefCount: vi.fn(),
   scheduleAuditEvent: vi.fn(),
   scheduleCacheInvalidation: vi.fn(),
+  publish: vi.fn(async () => []),
+  runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
 
 vi.mock('../../../../../repositories/NotificationRepository.js', () => ({
@@ -111,6 +113,16 @@ vi.mock('../../../_shared/audit-helpers.js', async () => {
   };
 });
 
+vi.mock('../../../../../services/DomainOutboxPublisher.js', () => ({
+  DomainOutboxPublisher: vi.fn(() => ({
+    publish: mocks.publish,
+  })),
+}));
+
+vi.mock('../../../../../api/cron/outbox.js', () => ({
+  runOutboxPoller: mocks.runOutboxPoller,
+}));
+
 import notificationsApp from '../notifications.js';
 import tagsApp from '../tags.js';
 import trashApp from '../trash.js';
@@ -148,6 +160,7 @@ describe('manage ops support audit routes', () => {
 
   it('audits admin notification creation', async () => {
     const app = createApp('/api/manage/notifications', notificationsApp);
+    const waitUntil = vi.fn();
     const res = await app.request(
       'http://localhost/api/manage/notifications',
       {
@@ -156,15 +169,28 @@ describe('manage ops support audit routes', () => {
         body: JSON.stringify({ title: 'Alert', type: 'system', orderId: 'order-1' }),
       },
       { DB: {} },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
     expect(res.status).toBe(200);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'admin_notification_created',
+        aggregate_type: 'notification',
+        payload: expect.objectContaining({
+          title: 'Alert',
+          type: 'system',
+          order_id: 'order-1',
+        }),
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         action: 'notification.create',
-        targetId: 'notification-1',
+        targetId: null,
         target_label: 'Alert',
         metadata: { type: 'system', orderId: 'order-1' },
       })
@@ -173,15 +199,25 @@ describe('manage ops support audit routes', () => {
 
   it('audits marking all admin notifications as read', async () => {
     const app = createApp('/api/manage/notifications', notificationsApp);
+    const waitUntil = vi.fn();
     const res = await app.request(
       'http://localhost/api/manage/notifications/all/read',
       { method: 'POST' },
       { DB: {} },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
     expect(res.status).toBe(200);
     expect(mocks.notificationMarkAllAsReadForAdmin).toHaveBeenCalledTimes(1);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'notification_read_by_admin',
+        aggregate_type: 'notification',
+        aggregate_id: 'all',
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -194,6 +230,7 @@ describe('manage ops support audit routes', () => {
 
   it('audits tag creation', async () => {
     const app = createApp('/api/manage/tags', tagsApp);
+    const waitUntil = vi.fn();
     const res = await app.request(
       'http://localhost/api/manage/tags',
       {
@@ -202,10 +239,19 @@ describe('manage ops support audit routes', () => {
         body: JSON.stringify({ name: 'Important', color: '#f00' }),
       },
       { DB: {} },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
     expect(res.status).toBe(200);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'tag_created',
+        aggregate_type: 'tag',
+        aggregate_id: 'tag-1',
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({

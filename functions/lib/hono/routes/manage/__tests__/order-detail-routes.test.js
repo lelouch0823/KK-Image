@@ -149,24 +149,32 @@ describe('manage order detail routes', () => {
     });
   });
 
-  it('invalidates manage order list caches after admin read via GET /:id', async () => {
+  it('enqueues admin read cache invalidation through outbox after GET /:id', async () => {
+    const waitUntil = vi.fn();
     const app = createApp();
     const res = await app.request(
       'http://localhost/api/manage/orders/order-1',
       { method: 'GET' },
       { DB: { prepare: vi.fn() } },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
     expect(res.status).toBe(200);
     expect(mocks.markAsRead).toHaveBeenCalledWith('order-1', 'admin');
-    expect(mocks.getManageOrderCacheUrls).toHaveBeenCalled();
-    expect(mocks.invalidateCache).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        'http://localhost/api/manage/orders',
-        'http://localhost/api/manage/orders?page=1&limit=20',
-      ])
-    );
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'order_read_by_admin',
+        aggregate_type: 'order',
+        aggregate_id: 'order-1',
+        payload: expect.objectContaining({
+          order_id: 'order-1',
+          salesperson_id: 'sp-1',
+        }),
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
+    expect(mocks.invalidateCache).not.toHaveBeenCalled();
   });
 
   it('marks sales side unread when admin adds comment', async () => {

@@ -84,4 +84,25 @@ describe('DomainOutboxConsumers webhooks', () => {
       },
     })).rejects.toThrow(/retryable webhook delivery/i);
   });
+
+  it('delivers file.uploaded events through the same outbox webhook pipeline', async () => {
+    await DOMAIN_OUTBOX_CONSUMERS.webhook({
+      db: {},
+      env: {},
+      event: {
+        id: 'job-webhook-4',
+        event_id: 'evt-4',
+        event_type: 'file_uploaded',
+        aggregate_type: 'file',
+        aggregate_id: 'file-1',
+        payload_json: '{"file":{"id":"file-1","filename":"asset.png"},"user":{"id":"admin-1"}}',
+      },
+    });
+
+    expect(mocks.deliverDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
+      event_type: 'file_uploaded',
+      aggregate_type: 'file',
+      aggregate_id: 'file-1',
+    }));
+  });
 });

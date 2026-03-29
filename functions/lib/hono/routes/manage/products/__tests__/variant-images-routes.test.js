@@ -47,6 +47,10 @@ vi.mock('../../../../middleware/cache.js', () => ({
     getProductCacheUrls: vi.fn(() => []),
 }));
 
+vi.mock('../../../../_shared/domain-outbox.js', () => ({
+    publishSingleDomainEventAndPoll: vi.fn(async () => []),
+}));
+
 function createApp() {
     const app = new Hono();
     app.onError((err, c) => {

@@ -12,6 +12,8 @@ const fileMocks = vi.hoisted(() => ({
   folderSoftDelete: vi.fn(),
   scheduleAuditEvent: vi.fn(),
   scheduleCacheInvalidation: vi.fn(),
+  publish: vi.fn(async () => []),
+  runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
 
 vi.mock('../../../../../repositories/FileRepository.js', () => ({
@@ -81,6 +83,16 @@ vi.mock('../../../_shared/audit-helpers.js', async () => {
   };
 });
 
+vi.mock('../../../../../services/DomainOutboxPublisher.js', () => ({
+  DomainOutboxPublisher: vi.fn(() => ({
+    publish: fileMocks.publish,
+  })),
+}));
+
+vi.mock('../../../../../api/cron/outbox.js', () => ({
+  runOutboxPoller: fileMocks.runOutboxPoller,
+}));
+
 vi.mock('../../../_shared/utils.js', () => ({
   getFileUrl: vi.fn((key) => `/file/${key}`),
   generateId: vi.fn(() => 'generated-id'),
@@ -131,11 +143,12 @@ describe('v1 file and folder audit routes', () => {
     );
     app.route('/api/v1/files', v1FilesApp);
 
+    const waitUntil = vi.fn();
     const deleteRes = await app.request(
       'http://localhost/api/v1/files/file-1',
       { method: 'DELETE' },
       { DB: {} },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
     expect(deleteRes.status).toBe(200);
 
@@ -147,9 +160,24 @@ describe('v1 file and folder audit routes', () => {
         body: JSON.stringify({ ids: ['file-1'] }),
       },
       { DB: {} },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
     expect(batchRes.status).toBe(200);
+    expect(fileMocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'v1_file_deleted',
+        aggregate_type: 'file',
+        aggregate_id: 'file-1',
+      }),
+    ]);
+    expect(fileMocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'v1_file_batch_deleted',
+        aggregate_type: 'file',
+      }),
+    ]);
+    expect(fileMocks.runOutboxPoller).toHaveBeenCalledTimes(2);
+    expect(waitUntil).toHaveBeenCalled();
 
     expect(fileMocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
@@ -175,14 +203,24 @@ describe('v1 file and folder audit routes', () => {
     );
     app.route('/api/v1/folders', v1FoldersApp);
 
+    const waitUntil = vi.fn();
     const res = await app.request(
       'http://localhost/api/v1/folders/folder-1',
       { method: 'DELETE' },
       { DB: {} },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
     expect(res.status).toBe(200);
+    expect(fileMocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'v1_folder_deleted',
+        aggregate_type: 'folder',
+        aggregate_id: 'folder-1',
+      }),
+    ]);
+    expect(fileMocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
     expect(fileMocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({

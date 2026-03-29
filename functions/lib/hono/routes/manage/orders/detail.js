@@ -8,15 +8,15 @@ import {
 } from '../../../../../api/utils/order-state-machine.js';
 import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
-import { getManageOrderCacheUrls } from '../../_shared/cache-urls.js';
 import { assertAdminFull, assertForceStatusTransitionAllowed } from './authz-helpers.js';
-import { requireEntity, scheduleCacheInvalidation } from '../../../_shared/route-helpers.js';
+import { requireEntity } from '../../../_shared/route-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
 import { DemandService } from '../../../../../services/DemandService.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
+import { publishSingleDomainEventAndPoll } from '../../../_shared/domain-outbox.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -75,7 +75,15 @@ app.get('/:id', async (c) => {
 
     // 标记管理员已读
     await repo.markAsRead(id, 'admin');
-    scheduleCacheInvalidation(c, getManageOrderCacheUrls(c));
+    await publishSingleDomainEventAndPoll(c, {
+        event_type: 'order_read_by_admin',
+        aggregate_type: 'order',
+        aggregate_id: id,
+        payload: {
+            order_id: id,
+            salesperson_id: order.salespersonId || null,
+        },
+    }, `order-read-admin:${id}`);
 
     return c.json({
         success: true,

@@ -4,10 +4,9 @@ import { generateId, now } from '../../_shared/utils.js';
 import { BadRequestError, ConflictError } from '../../errors.js';
 import { TagRepository } from '../../../../repositories/TagRepository.js';
 import { withCache } from '../../middleware/cache.js';
-import { getManageTagCacheUrls } from '../_shared/cache-urls.js';
-import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
 
 const tagsRoute = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -15,10 +14,6 @@ export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'POST', path: '/assign', domain: 'tags', action: 'tag.assign', severity: 'normal', targetType: 'tag' },
     { method: 'DELETE', path: '/assign', domain: 'tags', action: 'tag.unassign', severity: 'normal', targetType: 'tag' },
 ]);
-
-function scheduleManageTagCacheInvalidation(c) {
-    scheduleCacheInvalidation(c, getManageTagCacheUrls(c));
-}
 
 // GET 获取所有标签
 tagsRoute.get('/', requirePermission('files:read'), withCache(30), async (c) => {
@@ -47,7 +42,14 @@ tagsRoute.post('/', requirePermission('files:write'), async (c) => {
         throw error;
     }
 
-    scheduleManageTagCacheInvalidation(c);
+    await publishSingleDomainEventAndPoll(c, {
+        event_type: 'tag_created',
+        aggregate_type: 'tag',
+        aggregate_id: id,
+        payload: {
+            tag_id: id,
+        },
+    }, `tag-create:${id}`);
     scheduleAuditEvent(c, {
         domain: 'tags',
         action: 'tag.create',
@@ -69,7 +71,15 @@ tagsRoute.post('/assign', requirePermission('files:write'), async (c) => {
 
     const repo = new TagRepository(c.env.DB);
     await repo.assignToFile({ fileId: file_id, tagId: tag_id, createdAt: now() });
-    scheduleManageTagCacheInvalidation(c);
+    await publishSingleDomainEventAndPoll(c, {
+        event_type: 'tag_assigned_to_file',
+        aggregate_type: 'tag',
+        aggregate_id: tag_id,
+        payload: {
+            tag_id,
+            file_id,
+        },
+    }, `tag-assign:${tag_id}:${file_id}`);
     scheduleAuditEvent(c, {
         domain: 'tags',
         action: 'tag.assign',
@@ -89,7 +99,15 @@ tagsRoute.delete('/assign', requirePermission('files:write'), async (c) => {
 
     const repo = new TagRepository(c.env.DB);
     await repo.removeFromFile(file_id, tag_id);
-    scheduleManageTagCacheInvalidation(c);
+    await publishSingleDomainEventAndPoll(c, {
+        event_type: 'tag_unassigned_from_file',
+        aggregate_type: 'tag',
+        aggregate_id: tag_id,
+        payload: {
+            tag_id,
+            file_id,
+        },
+    }, `tag-unassign:${tag_id}:${file_id}`);
     scheduleAuditEvent(c, {
         domain: 'tags',
         action: 'tag.unassign',
