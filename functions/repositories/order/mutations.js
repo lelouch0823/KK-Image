@@ -13,6 +13,7 @@ import { InventoryService } from '../../services/InventoryService.js';
 import { projectOrderLineStatus } from '../../services/OrderStatusProjectionService.js';
 
 export const INSUFFICIENT_VARIANT_STOCK_ERROR = 'insufficient variant stock for delivery';
+const D1_MAX_BATCH_SIZE = 100;
 
 function getDeliveryStockDelta(oldStatus, newStatus, quantity) {
     const safeQty = Math.max(0, Number(quantity) || 0);
@@ -24,6 +25,29 @@ function getDeliveryStockDelta(oldStatus, newStatus, quantity) {
 
 function resolveInventoryService(db, options = {}) {
     return options.inventoryService || new InventoryService(db);
+}
+
+function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
+    if (!Array.isArray(items) || items.length === 0) return [];
+
+    const chunks = [];
+    for (let index = 0; index < items.length; index += chunkSize) {
+        chunks.push(items.slice(index, index + chunkSize));
+    }
+    return chunks;
+}
+
+async function executeBatchChunks(db, statements = []) {
+    const results = [];
+
+    for (const chunk of chunkArray(statements)) {
+        const chunkResults = await db.batch(chunk);
+        if (Array.isArray(chunkResults)) {
+            results.push(...chunkResults);
+        }
+    }
+
+    return results;
 }
 
 async function assertBatchDeliveryStockSufficient(inventoryService, requirementsByVariant) {
@@ -372,7 +396,7 @@ export async function create(
         if (stmt) batchStatements.push(stmt);
     }
 
-    await db.batch(batchStatements);
+    await executeBatchChunks(db, batchStatements);
     return { id, orderNo };
 }
 
@@ -552,7 +576,7 @@ export async function updateComposite(db, {
         });
     }
 
-    await db.batch(statements);
+    await executeBatchChunks(db, statements);
     return { success: true };
 }
 
@@ -612,7 +636,7 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
                 .bind(newStatus, timestamp, id),
             lineProgressStatement,
         ];
-        await db.batch(statements);
+        await executeBatchChunks(db, statements);
         return { success: true, meta: { changes: 1 } };
     }
 
@@ -623,7 +647,7 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
         currentOrder?.quantity,
         timestamp
     );
-    await db.batch([
+    await executeBatchChunks(db, [
         db
             .prepare(
                 `
@@ -661,7 +685,7 @@ export async function updateFiles(db, orderId, fileIds) {
         });
     }
 
-    await db.batch(statements);
+    await executeBatchChunks(db, statements);
 }
 
 /**
@@ -677,11 +701,15 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
     const timestamp = now();
     const batchStatements = [];
     const inventoryService = resolveInventoryService(db, options);
-    const placeholders = ids.map(() => '?').join(',');
-    const { results: existingOrders = [] } = await db
-        .prepare(`SELECT id, status, variant_id, quantity FROM orders WHERE id IN (${placeholders})`)
-        .bind(...ids)
-        .all();
+    const existingOrders = [];
+    for (const idChunk of chunkArray(ids)) {
+        const placeholders = idChunk.map(() => '?').join(',');
+        const { results = [] } = await db
+            .prepare(`SELECT id, status, variant_id, quantity FROM orders WHERE id IN (${placeholders})`)
+            .bind(...idChunk)
+            .all();
+        existingOrders.push(...results);
+    }
     const orderMap = new Map((existingOrders || []).map((row) => [row.id, row]));
     const deliveryRequirementsByVariant = new Map();
 
@@ -741,7 +769,7 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
     if (inventoryMutations.length > 0) {
         await inventoryService.applyBatch(inventoryMutations);
     }
-    await db.batch(batchStatements);
+    await executeBatchChunks(db, batchStatements);
 }
 
 /**
@@ -782,5 +810,5 @@ export async function deleteWithRelations(db, id) {
         db.prepare('DELETE FROM orders WHERE id = ?').bind(id)
     ];
 
-    await db.batch(statements);
+    await executeBatchChunks(db, statements);
 }

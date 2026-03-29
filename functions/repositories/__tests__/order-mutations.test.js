@@ -1,7 +1,44 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { updateComposite, updateData, updateStatus, create } from '../order/mutations.js';
+import { updateComposite, updateData, updateStatus, create, batchUpdateStatus } from '../order/mutations.js';
+
+function createBatchAwareDb({
+    allHandler = async () => ({ results: [] }),
+    firstHandler = async () => null,
+} = {}) {
+    const sqlCalls = [];
+    const batchCalls = [];
+    const allCalls = [];
+
+    return {
+        sqlCalls,
+        batchCalls,
+        allCalls,
+        prepare: vi.fn((sql) => {
+            sqlCalls.push(String(sql || ''));
+            const statement = {
+                sql: String(sql || ''),
+                params: [],
+                bind: vi.fn((...params) => {
+                    statement.params = params;
+                    return statement;
+                }),
+                first: vi.fn(async () => firstHandler(statement)),
+                all: vi.fn(async () => {
+                    allCalls.push({ sql: statement.sql, params: statement.params });
+                    return allHandler(statement);
+                }),
+                run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
+            };
+            return statement;
+        }),
+        batch: vi.fn(async (statements = []) => {
+            batchCalls.push(statements);
+            return statements.map(() => ({ success: true, meta: { changes: 1 } }));
+        }),
+    };
+}
 
 describe('Order Mutations SQL Binding', () => {
     let db;
@@ -209,6 +246,24 @@ describe('Order Mutations SQL Binding', () => {
             expect(orderLineBindArgs[13]).toBe(0);
             expect(orderLineBindArgs[14]).toBe('ready');
         });
+
+        it('chunks large order create batches into D1-safe sizes when many files are attached', async () => {
+            const batchDb = createBatchAwareDb();
+            const fileIds = Array.from({ length: 205 }, (_, index) => `file-${index + 1}`);
+
+            await create(batchDb, timelineRepo, {
+                id: 'o-many-files',
+                orderNo: 'no-many-files',
+                salespersonId: 's-1',
+                data: { name: 'Many Files' },
+                status: 'pending',
+                quantity: 1,
+                fileIds,
+            });
+
+            expect(batchDb.batch).toHaveBeenCalledTimes(3);
+            expect(Math.max(...batchDb.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(100);
+        });
     });
 
     describe('compatibility line sync', () => {
@@ -291,6 +346,39 @@ describe('Order Mutations SQL Binding', () => {
     });
 
     describe('cutover guardrails', () => {
+        it('chunks large batch status updates and order lookups into D1-safe sizes', async () => {
+            const ids = Array.from({ length: 205 }, (_, index) => `o-${index + 1}`);
+            const batchDb = createBatchAwareDb({
+                allHandler: async (statement) => ({
+                    results: statement.params.map((id) => ({
+                        id,
+                        status: 'pending',
+                        variant_id: null,
+                        quantity: 1,
+                    })),
+                }),
+                firstHandler: async (statement) => {
+                    if (statement.sql.includes('SELECT id,') && statement.sql.includes('line_count')) {
+                        return { id: `line-${statement.params[0]}`, line_count: 1 };
+                    }
+                    if (statement.sql.includes('SELECT COUNT(*) AS line_count')) {
+                        return { line_count: 1 };
+                    }
+                    if (statement.sql.includes('SELECT id FROM order_lines')) {
+                        return { id: `line-${statement.params[0]}` };
+                    }
+                    return null;
+                },
+            });
+
+            await batchUpdateStatus(batchDb, timelineRepo, ids, 'confirmed', null);
+
+            expect(batchDb.allCalls).toHaveLength(3);
+            expect(Math.max(...batchDb.allCalls.map((call) => call.params.length))).toBeLessThanOrEqual(100);
+            expect(batchDb.batch).toHaveBeenCalledTimes(5);
+            expect(Math.max(...batchDb.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(100);
+        });
+
         it('does not keep direct product_variants stock update SQL in order mutations', () => {
             const filePath = path.resolve(process.cwd(), 'functions/repositories/order/mutations.js');
             const source = fs.readFileSync(filePath, 'utf8');
