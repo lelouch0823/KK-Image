@@ -19,7 +19,11 @@ function createPreparedStatement(sql) {
 function createMockDb() {
   return {
     prepare: vi.fn((sql) => createPreparedStatement(sql)),
-    batch: vi.fn(async () => []),
+    batchCalls: [],
+    batch: vi.fn(async function batch(statements = []) {
+      this.batchCalls.push(statements);
+      return [];
+    }),
   };
 }
 
@@ -32,7 +36,11 @@ function createMockDbWithExistingVariant(existingRows = []) {
       }
       return stmt;
     }),
-    batch: vi.fn(async () => []),
+    batchCalls: [],
+    batch: vi.fn(async function batch(statements = []) {
+      this.batchCalls.push(statements);
+      return [];
+    }),
   };
 }
 
@@ -133,5 +141,45 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
     const upsertStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO product_variants'));
     expect(upsertStmt.params[0]).toBe('v-1');
     expect(upsertStmt.params[8]).toBe(JSON.stringify({ 'dim-color': 'Red' }));
+  });
+
+  it('chunks large createBatch writes into D1-safe batch sizes', async () => {
+    await repo.createBatch('p-1', Array.from({ length: 51 }, (_, index) => ({
+      id: `v-batch-${index + 1}`,
+      sku: `SKU-BATCH-${index + 1}`,
+      price: 88,
+      cost_price: 44,
+      stock_quantity: 10,
+      alert_threshold: 2,
+      status: 'active',
+      options_values: { color: `color-${index + 1}` },
+    })));
+
+    expect(db.batch).toHaveBeenCalledTimes(2);
+    expect(Math.max(...db.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(100);
+  });
+
+  it('chunks large syncVariants writes and avoids oversized archive bindings', async () => {
+    db = createMockDbWithExistingVariant(Array.from({ length: 120 }, (_, index) => ({
+      id: `v-existing-${index + 1}`,
+      variant_signature: JSON.stringify({ color: `color-${index + 1}` }),
+      status: 'active',
+    })));
+    repo = new ProductVariantRepository(db);
+
+    await repo.syncVariants('p-1', Array.from({ length: 120 }, (_, index) => ({
+      id: `v-existing-${index + 1}`,
+      sku: `SKU-${index + 1}`,
+      price: 100,
+      cost_price: 60,
+      stock_quantity: 5,
+      alert_threshold: 2,
+      options_values: { color: `color-${index + 1}` },
+    })));
+
+    expect(db.batch.mock.calls.length).toBeGreaterThan(1);
+    expect(Math.max(...db.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(100);
+    const maxBindings = Math.max(...db.batchCalls.flatMap((statements) => statements.map((statement) => statement.params.length)));
+    expect(maxBindings).toBeLessThanOrEqual(100);
   });
 });

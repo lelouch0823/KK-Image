@@ -4,6 +4,25 @@ import { parseRepoPagination } from '../api/utils/pagination.js';
 import { hasChanges } from '../api/utils/result.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 
+const D1_MAX_BATCH_SIZE = 100;
+const D1_MAX_IN_CLAUSE_SIZE = 98;
+
+function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
+    if (!Array.isArray(items) || items.length === 0) return [];
+
+    const chunks = [];
+    for (let index = 0; index < items.length; index += chunkSize) {
+        chunks.push(items.slice(index, index + chunkSize));
+    }
+    return chunks;
+}
+
+async function executeBatchChunks(db, statements = []) {
+    for (const chunk of chunkArray(statements)) {
+        await db.batch(chunk);
+    }
+}
+
 export class ProductVariantRepository {
     constructor(db) {
         this.db = db;
@@ -105,7 +124,7 @@ export class ProductVariantRepository {
             results.push({ ...v, id, sku, product_id: productId });
         }
         try {
-            await this.db.batch(statements);
+            await executeBatchChunks(this.db, statements);
         } catch (error) {
             this.wrapConstraintError(error);
         }
@@ -452,31 +471,28 @@ export class ProductVariantRepository {
             results.push({ ...v, id, sku, product_id: productId });
         }
 
-        archivedCount = existingRows.filter(
-            (row) => row.status !== 'archived' && !retainedIds.has(row.id)
-        ).length;
+        const idsToArchive = existingRows
+            .filter((row) => row.status !== 'archived' && !retainedIds.has(row.id))
+            .map((row) => row.id);
+        archivedCount = idsToArchive.length;
 
-        if (retainedIds.size > 0) {
-            const placeholders = Array.from(retainedIds).map(() => '?').join(',');
-            statements.unshift(
-                this.db.prepare(
-                    `UPDATE product_variants
-                     SET status = 'archived', updated_at = ?
-                     WHERE product_id = ? AND status <> 'archived' AND id NOT IN (${placeholders})`
-                ).bind(timestamp, productId, ...Array.from(retainedIds))
-            );
-        } else {
-            statements.unshift(
-                this.db.prepare(
-                    `UPDATE product_variants
-                     SET status = 'archived', updated_at = ?
-                     WHERE product_id = ? AND status <> 'archived'`
-                ).bind(timestamp, productId)
-            );
+        if (idsToArchive.length > 0) {
+            const archiveStatements = [];
+            for (const archiveIdChunk of chunkArray(idsToArchive, D1_MAX_IN_CLAUSE_SIZE)) {
+                const placeholders = archiveIdChunk.map(() => '?').join(',');
+                archiveStatements.push(
+                    this.db.prepare(
+                        `UPDATE product_variants
+                         SET status = 'archived', updated_at = ?
+                         WHERE product_id = ? AND status <> 'archived' AND id IN (${placeholders})`
+                    ).bind(timestamp, productId, ...archiveIdChunk)
+                );
+            }
+            statements.unshift(...archiveStatements);
         }
 
         try {
-            await this.db.batch(statements);
+            await executeBatchChunks(this.db, statements);
         } catch (error) {
             this.wrapConstraintError(error);
         }
