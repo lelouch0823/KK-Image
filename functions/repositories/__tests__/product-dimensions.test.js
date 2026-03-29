@@ -18,8 +18,12 @@ function createPreparedStatement(sql) {
 
 function createMockDb() {
     const db = {
+        batchCalls: [],
         prepare: vi.fn((sql) => createPreparedStatement(sql)),
-        batch: vi.fn(async () => []),
+        batch: vi.fn(async function batch(statements = []) {
+            this.batchCalls.push(statements);
+            return [];
+        }),
     };
     return { db };
 }
@@ -169,5 +173,67 @@ describe('ProductDimensionRepository', () => {
         await expect(repo.archiveVariantsByValue('prod-1', 'val-red-1')).rejects.toThrow(
             'duplicate dimension values with same label are not supported'
         );
+    });
+
+    it('restoreSnapshot chunks large snapshot writes into D1-safe sizes', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes('SELECT * FROM product_dimensions WHERE product_id = ?')) {
+                stmt.all.mockResolvedValue({ results: [] });
+            }
+            if (sql.includes('SELECT * FROM product_dimension_values WHERE dimension_id IN')) {
+                stmt.all.mockResolvedValue({ results: [] });
+            }
+            if (sql.includes('SELECT * FROM product_dimension_aliases WHERE dimension_id IN')) {
+                stmt.all.mockResolvedValue({ results: [] });
+            }
+            return stmt;
+        });
+
+        await repo.restoreSnapshot('prod-1', Array.from({ length: 60 }, (_, index) => ({
+            id: `dim-${index + 1}`,
+            product_id: 'prod-1',
+            name: `Dimension ${index + 1}`,
+            status: 'active',
+            sort_order: index,
+            created_at: 1,
+            values: [
+                {
+                    id: `val-${index + 1}`,
+                    dimension_id: `dim-${index + 1}`,
+                    value: `Value ${index + 1}`,
+                    status: 'active',
+                    sort_order: 0,
+                    created_at: 1,
+                    meta: null,
+                },
+            ],
+        })));
+
+        expect(db.batch.mock.calls.length).toBeGreaterThan(1);
+        expect(Math.max(...db.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(100);
+    });
+
+    it('mergeKeepByDimensionRemoval chunks large variant rewrites into D1-safe sizes', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes("SELECT * FROM product_variants WHERE product_id = ? AND status = 'active'")) {
+                stmt.all.mockResolvedValue({
+                    results: Array.from({ length: 120 }, (_, index) => ({
+                        id: `v${index + 1}`,
+                        options_values: JSON.stringify({
+                            'dim-color': `Color ${index + 1}`,
+                            'dim-size': `Size ${index + 1}`,
+                        }),
+                    })),
+                });
+            }
+            return stmt;
+        });
+
+        await repo.mergeKeepByDimensionRemoval('prod-1', 'dim-color');
+
+        expect(db.batch.mock.calls.length).toBeGreaterThan(1);
+        expect(Math.max(...db.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(100);
     });
 });
