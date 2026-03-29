@@ -345,4 +345,40 @@ describe('OrderProcurementReceiptReversalService', () => {
     expect(orderLineUpdate?.params).toEqual([5, 1710000000000, 'line-1', 'o-1']);
     expect(poItemUpdate?.params.slice(0, 2)).toEqual([5, 'partially_received']);
   });
+
+  it('still emits reversal outbox events when the original receipt has no variant inventory mutation', async () => {
+    const nonInventoryHarness = createDbHarness({
+      inventoryBalanceRow: null,
+      originalReceipt: {
+        receipt_id: 'receipt-1',
+        purchase_order_id: 'po-1',
+        purchase_order_item_id: 'poi-1',
+        product_id: 'prod-1',
+        variant_id: null,
+        received_qty: 2,
+        pre_order_id: 'o-1',
+        order_line_id: 'line-1',
+        inventory_event_id: null,
+      },
+    });
+    const nonInventoryService = new OrderProcurementReceiptReversalService(nonInventoryHarness.db, {
+      purchaseReceiptRepo: nonInventoryHarness.purchaseReceiptRepo,
+      inventoryService: nonInventoryHarness.inventoryService,
+      commandIdempotencyRepo: nonInventoryHarness.commandIdempotencyRepo,
+      domainOutboxRepo: nonInventoryHarness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await nonInventoryService.reverseReceipt('po-1', 'receipt-1', {
+      reason: 'rollback',
+    }, {
+      idempotencyKey: 'idem-1',
+    });
+
+    expect(nonInventoryHarness.inventoryService.buildMutationStatements).not.toHaveBeenCalled();
+    expect(nonInventoryHarness.calls.outboxEvents.map((event) => event.event_type)).toEqual([
+      'purchase_receipt_reversed',
+      'order_procurement_reversed',
+    ]);
+  });
 });

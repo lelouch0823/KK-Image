@@ -29,19 +29,38 @@ function createCacheContext(baseUrl, purchaseOrderId = null) {
   };
 }
 
+function resolvePurchaseOrderId(event, payload) {
+  return payload.purchase_order_id || payload.purchaseOrderId || payload.po_id || null;
+}
+
+function resolveAuditEventConfig(event, payload) {
+  const purchaseOrderId = resolvePurchaseOrderId(event, payload)
+    || payload.order_id
+    || payload.orderId
+    || event.aggregate_id
+    || null;
+  const isReversal = String(event?.event_type || '').includes('reversed');
+
+  return {
+    action: isReversal ? 'purchase_order.receipt.reverse' : 'purchase_order.receipt.create',
+    severity: isReversal ? 'critical' : 'high',
+    purchaseOrderId,
+  };
+}
+
 async function auditOutboxEvent({ db, event }) {
   const payload = parsePayload(event);
-  const purchaseOrderId = payload.purchase_order_id || payload.purchaseOrderId || payload.order_id || event.aggregate_id;
+  const auditConfig = resolveAuditEventConfig(event, payload);
 
   await recordAuditEvent(db, {
     domain: 'purchase-orders',
-    action: 'purchase_order.receipt.create',
+    action: auditConfig.action,
     result: 'success',
-    severity: 'high',
+    severity: auditConfig.severity,
     targetType: 'purchase_order',
-    targetId: purchaseOrderId,
-    target_label: purchaseOrderId,
-    summary: `Processed ${event.event_type} for purchase order ${purchaseOrderId}`,
+    targetId: auditConfig.purchaseOrderId,
+    target_label: auditConfig.purchaseOrderId,
+    summary: `Processed ${event.event_type} for purchase order ${auditConfig.purchaseOrderId}`,
     metadata: {
       eventId: event.id,
       eventType: event.event_type,
@@ -50,8 +69,11 @@ async function auditOutboxEvent({ db, event }) {
       purchaseOrderItemId: payload.purchase_order_item_id || null,
       orderId: payload.order_id || null,
       orderLineId: payload.order_line_id || null,
-      receiptId: payload.receipt_id || null,
+      receiptId: payload.receipt_id || payload.purchase_receipt_id || null,
+      originalReceiptId: payload.original_receipt_id || null,
+      reversalId: payload.reversal_id || null,
       receivedQty: payload.received_qty ?? payload.received_qty_delta ?? null,
+      reversalQty: payload.reversal_qty ?? null,
       correlationId: event.correlation_id || null,
     },
   });
@@ -61,7 +83,7 @@ async function invalidateReceiptCaches({ event, baseUrl }) {
   if (!baseUrl) return;
 
   const payload = parsePayload(event);
-  const purchaseOrderId = payload.purchase_order_id || payload.purchaseOrderId || null;
+  const purchaseOrderId = resolvePurchaseOrderId(event, payload);
   const ctx = createCacheContext(baseUrl, purchaseOrderId);
   const urls = [
     ...getPurchaseOrderCacheUrls(ctx, purchaseOrderId),

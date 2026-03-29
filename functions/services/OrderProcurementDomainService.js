@@ -588,6 +588,7 @@ export class OrderProcurementDomainService {
           causation_id: options.causationId || commandRecord.command_id,
           idempotency_key: `${commandRecord.command_id}:${orderProjection.nextLineState.id}:order_procurement_progressed:${sequenceInCommand - 1}`,
           payload_json: JSON.stringify({
+            purchase_order_id: poId,
             order_line_id: orderProjection.nextLineState.id,
             received_qty_delta: receivedQty,
             order_line_received_qty_after: orderProjection.nextLineState.received_qty,

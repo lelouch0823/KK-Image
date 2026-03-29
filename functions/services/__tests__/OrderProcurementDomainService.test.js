@@ -303,6 +303,22 @@ describe('OrderProcurementDomainService', () => {
     ]);
   });
 
+  it('stores purchase_order_id in order procurement outbox payloads for downstream cache replay', async () => {
+    await service.recordPurchaseOrderReceipts('po-1', {
+      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
+    }, {
+      idempotencyKey: 'idem-1',
+    });
+
+    const orderProgressEvent = harness.calls.outboxEvents.find((event) => event.event_type === 'order_procurement_progressed');
+    expect(orderProgressEvent).toBeTruthy();
+    expect(JSON.parse(orderProgressEvent.payload_json)).toEqual(expect.objectContaining({
+      purchase_order_id: 'po-1',
+      order_line_id: 'line-1',
+      order_procurement_status_after: 'partially_arrived',
+    }));
+  });
+
   it('stores and replays the original response for the same purchase_order_id + idempotency_key', async () => {
     harness.commandIdempotencyRepo.reserveReceiptCommand.mockResolvedValueOnce({
       existing: true,

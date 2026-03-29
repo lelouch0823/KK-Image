@@ -253,6 +253,30 @@ export class OrderProcurementReceiptReversalService {
       );
     }
 
+    const outboxEvents = [
+      {
+        id: crypto.randomUUID(),
+        command_id: commandRecord.command_id,
+        sequence_in_command: sequenceInCommand++,
+        event_type: 'purchase_receipt_reversed',
+        event_version: 1,
+        aggregate_type: 'purchase_receipt_reversal',
+        aggregate_id: reversalId,
+        correlation_id: commandRecord.command_id,
+        causation_id: commandRecord.command_id,
+        idempotency_key: `${commandRecord.command_id}:${receiptId}:purchase_receipt_reversed`,
+        payload_json: JSON.stringify({
+          purchase_order_id: poId,
+          purchase_order_item_id: originalReceipt.purchase_order_item_id,
+          original_receipt_id: receiptId,
+          reversal_id: reversalId,
+          reversal_qty: reversalQty,
+          order_id: originalReceipt.pre_order_id || null,
+        }),
+        occurred_at: timestamp,
+      },
+    ];
+
     if (originalReceipt.variant_id) {
       const mutation = await this.inventoryService.buildMutationStatements({
         type: 'inventory_adjusted_reversal',
@@ -270,79 +294,58 @@ export class OrderProcurementReceiptReversalService {
       });
       statements.push(...(mutation?.statements || []));
 
-      const outboxEvents = [
-        {
-          id: crypto.randomUUID(),
-          command_id: commandRecord.command_id,
-          sequence_in_command: sequenceInCommand++,
-          event_type: 'purchase_receipt_reversed',
-          event_version: 1,
-          aggregate_type: 'purchase_receipt_reversal',
-          aggregate_id: reversalId,
-          correlation_id: commandRecord.command_id,
-          causation_id: commandRecord.command_id,
-          idempotency_key: `${commandRecord.command_id}:${receiptId}:purchase_receipt_reversed`,
-          payload_json: JSON.stringify({
-            purchase_order_id: poId,
-            purchase_order_item_id: originalReceipt.purchase_order_item_id,
-            original_receipt_id: receiptId,
-            reversal_id: reversalId,
-            reversal_qty: reversalQty,
-            order_id: originalReceipt.pre_order_id || null,
-          }),
-          occurred_at: timestamp,
-        },
-        {
-          id: crypto.randomUUID(),
-          command_id: commandRecord.command_id,
-          sequence_in_command: sequenceInCommand++,
-          event_type: 'inventory_receipt_reversed',
-          event_version: 1,
-          aggregate_type: 'inventory_event',
-          aggregate_id: mutation.inventoryEventId || reversalId,
-          correlation_id: commandRecord.command_id,
-          causation_id: commandRecord.command_id,
-          idempotency_key: `${commandRecord.command_id}:${receiptId}:inventory_receipt_reversed`,
-          payload_json: JSON.stringify({
-            variant_id: originalReceipt.variant_id,
-            quantity_delta: -reversalQty,
-            original_receipt_id: receiptId,
-            reversal_id: reversalId,
-          }),
-          occurred_at: timestamp,
-        },
-      ];
-
-      if (originalReceipt.order_line_id && originalReceipt.pre_order_id) {
-        outboxEvents.push({
-          id: crypto.randomUUID(),
-          command_id: commandRecord.command_id,
-          sequence_in_command: sequenceInCommand++,
-          event_type: 'order_procurement_reversed',
-          event_version: 1,
-          aggregate_type: 'order',
-          aggregate_id: originalReceipt.pre_order_id,
-          correlation_id: commandRecord.command_id,
-          causation_id: commandRecord.command_id,
-          idempotency_key: `${commandRecord.command_id}:${receiptId}:order_procurement_reversed`,
-          payload_json: JSON.stringify({
-            order_line_id: originalReceipt.order_line_id,
-            received_qty_delta: -reversalQty,
-            order_procurement_status_after: nextProcurementStatus,
-            original_receipt_id: receiptId,
-            reversal_id: reversalId,
-          }),
-          occurred_at: timestamp,
-        });
-      }
-
-      statements.push(
-        ...this.domainOutboxRepo.buildInsertStatements(
-          outboxEvents,
-          (event) => getDomainEventDefinition(event.event_type).consumers
-        )
-      );
+      outboxEvents.push({
+        id: crypto.randomUUID(),
+        command_id: commandRecord.command_id,
+        sequence_in_command: sequenceInCommand++,
+        event_type: 'inventory_receipt_reversed',
+        event_version: 1,
+        aggregate_type: 'inventory_event',
+        aggregate_id: mutation.inventoryEventId || reversalId,
+        correlation_id: commandRecord.command_id,
+        causation_id: commandRecord.command_id,
+        idempotency_key: `${commandRecord.command_id}:${receiptId}:inventory_receipt_reversed`,
+        payload_json: JSON.stringify({
+          variant_id: originalReceipt.variant_id,
+          quantity_delta: -reversalQty,
+          original_receipt_id: receiptId,
+          reversal_id: reversalId,
+        }),
+        occurred_at: timestamp,
+      });
     }
+
+    if (originalReceipt.order_line_id && originalReceipt.pre_order_id) {
+      outboxEvents.push({
+        id: crypto.randomUUID(),
+        command_id: commandRecord.command_id,
+        sequence_in_command: sequenceInCommand++,
+        event_type: 'order_procurement_reversed',
+        event_version: 1,
+        aggregate_type: 'order',
+        aggregate_id: originalReceipt.pre_order_id,
+        correlation_id: commandRecord.command_id,
+        causation_id: commandRecord.command_id,
+        idempotency_key: `${commandRecord.command_id}:${receiptId}:order_procurement_reversed`,
+        payload_json: JSON.stringify({
+          purchase_order_id: poId,
+          order_line_id: originalReceipt.order_line_id,
+          received_qty_delta: -reversalQty,
+          order_procurement_status_after: nextProcurementStatus,
+          original_receipt_id: receiptId,
+          reversal_id: reversalId,
+          reversal_qty: reversalQty,
+        }),
+        occurred_at: timestamp,
+      });
+    }
+
+    statements.push(
+      ...this.domainOutboxRepo.buildInsertStatements(
+        outboxEvents,
+        (event) => getDomainEventDefinition(event.event_type).consumers
+      )
+    );
 
     const response = {
       purchase_order_id: poId,
