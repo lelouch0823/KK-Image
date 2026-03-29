@@ -267,6 +267,32 @@ describe('OrderProcurementReceiptReversalService', () => {
     expect(harness.db.batch).not.toHaveBeenCalled();
   });
 
+  it('rejects the same reversal idempotency key when the request fingerprint changes', async () => {
+    harness.commandIdempotencyRepo.reserveReversalCommand.mockResolvedValueOnce({
+      existing: true,
+      record: {
+        id: 'cmd-row-1',
+        command_id: 'cmd-reversal-1',
+        request_fingerprint: JSON.stringify({
+          purchase_order_id: 'po-1',
+          receipt_id: 'receipt-1',
+          reason: 'old reason',
+        }),
+        status: 'committed',
+        response_json: JSON.stringify({ ok: true }),
+      },
+      insertStatement: null,
+    });
+
+    await expect(service.reverseReceipt('po-1', 'receipt-1', {
+      reason: 'new reason',
+    }, {
+      idempotencyKey: 'idem-1',
+    })).rejects.toBeInstanceOf(BadRequestError);
+
+    expect(harness.db.batch).not.toHaveBeenCalled();
+  });
+
   it('rejects reversing the same receipt twice even with a different command idempotency key', async () => {
     harness.purchaseReceiptRepo.getReversalSummary.mockResolvedValueOnce({
       reversed_qty: 5,

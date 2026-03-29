@@ -647,6 +647,91 @@ describeIfRealApi('Purchase Receipts Real API Workflow', function () {
     });
   });
 
+  it('rejects a mixed-validity batch receipt atomically and leaves all sibling items unchanged', async () => {
+    const token = await getBearerToken();
+    const seed = uniqueSeed('batch-atomic-guard');
+    const productA = await createWorkflowProduct(token, `${seed}-a`, { stockQuantity: 0 });
+    const productB = await createWorkflowProduct(token, `${seed}-b`, { stockQuantity: 0 });
+    const poId = await createDraftPurchaseOrder(token, seed);
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/items`, {
+      bearerToken: token,
+      method: 'POST',
+      body: {
+        items: [
+          {
+            product_id: productA.productId,
+            variant_id: productA.variantId,
+            quantity: 2,
+            unit_cost: 55,
+          },
+          {
+            product_id: productB.productId,
+            variant_id: productB.variantId,
+            quantity: 4,
+            unit_cost: 66,
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'ordered' },
+      expectedStatus: 200,
+    });
+    await apiRequest(`/api/manage/purchase-orders/${poId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'shipping' },
+      expectedStatus: 200,
+    });
+
+    const poBeforeReceipt = await getPurchaseOrderDetail(token, poId);
+    const itemA = (poBeforeReceipt?.items || []).find((item) => item.variant_id === productA.variantId);
+    const itemB = (poBeforeReceipt?.items || []).find((item) => item.variant_id === productB.variantId);
+    assert.ok(itemA?.id, 'first variant purchase item missing');
+    assert.ok(itemB?.id, 'second variant purchase item missing');
+
+    const rejected = await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-invalid-batch`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: itemA.id,
+            received_qty: 2,
+            note: 'valid sibling item',
+          },
+          {
+            purchase_order_item_id: itemB.id,
+            received_qty: 5,
+            note: 'invalid sibling item',
+          },
+        ],
+      },
+      expectedStatus: 400,
+    });
+    assert.match(String(rejected.json?.error || ''), /剩余可收数量|超过/i);
+
+    const poAfterReject = await getPurchaseOrderDetail(token, poId);
+    const poItemA = (poAfterReject?.items || []).find((item) => item.id === itemA.id);
+    const poItemB = (poAfterReject?.items || []).find((item) => item.id === itemB.id);
+    const variantA = await getVariantDetail(token, productA.productId, productA.variantId);
+    const variantB = await getVariantDetail(token, productB.productId, productB.variantId);
+    assert.strictEqual(Number(poItemA?.received_qty || 0), 0);
+    assert.strictEqual(poItemA?.display_status, 'open');
+    assert.strictEqual(Number(poItemB?.received_qty || 0), 0);
+    assert.strictEqual(poItemB?.display_status, 'open');
+    assert.strictEqual(Number(variantA.stock_quantity || 0), 0);
+    assert.strictEqual(Number(variantB.stock_quantity || 0), 0);
+  });
+
   it('rejects a second reversal under a different idempotency key and preserves the rolled-back state', async () => {
     const token = await getBearerToken();
     const seed = uniqueSeed('reversal-guard');
@@ -1099,6 +1184,230 @@ describeIfRealApi('Purchase Receipts Real API Workflow', function () {
       timeoutMs: 15000,
       intervalMs: 500,
       onTimeoutMessage: 'targeted reversal should leave sibling receipt state intact',
+    });
+  });
+
+  it('deduplicates concurrent duplicate reversal commands and replays one rollback result', async () => {
+    const token = await getBearerToken();
+    const seed = uniqueSeed('concurrent-reversal-idem');
+    const salespersonId = await ensureSalespersonId(token, seed);
+    const { productId, variantId } = await createWorkflowProduct(token, seed, { stockQuantity: 0 });
+    const orderId = await createConfirmedOrder(token, {
+      seed,
+      salespersonId,
+      productId,
+      variantId,
+      quantity: 2,
+    });
+    const poId = await createPurchaseOrderFromOrders(token, [orderId], seed);
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'ordered' },
+      expectedStatus: 200,
+    });
+    await apiRequest(`/api/manage/purchase-orders/${poId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'shipping' },
+      expectedStatus: 200,
+    });
+
+    const poBeforeReceipt = await getPurchaseOrderDetail(token, poId);
+    const poItemId = poBeforeReceipt?.items?.[0]?.id;
+    assert.ok(poItemId, 'purchase order item id missing');
+
+    const receipt = await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-receipt`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: poItemId,
+            received_qty: 2,
+            note: 'receipt before concurrent reversal',
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+    const receiptId = receipt.json?.data?.receipts?.[0]?.id;
+    assert.ok(receiptId, 'receipt id missing');
+
+    await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const po = await getPurchaseOrderDetail(token, poId);
+      const variant = await getVariantDetail(token, productId, variantId);
+      assert.strictEqual(order?.procurementStatus, 'arrived');
+      assert.strictEqual(Number(po?.items?.[0]?.received_qty || 0), 2);
+      assert.strictEqual(Number(variant.stock_quantity || 0), 2);
+      return { order, po, variant };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'receipt baseline did not converge before concurrent reversal replay',
+    });
+
+    const reversalBody = { reason: 'concurrent duplicate reversal' };
+    const idemKey = `${seed}-reversal-key`;
+    const [first, second] = await Promise.all([
+      rawJsonRequest(`/api/manage/purchase-orders/${poId}/receipts/${receiptId}/reversal`, {
+        bearerToken: token,
+        method: 'POST',
+        headers: { 'Idempotency-Key': idemKey },
+        body: reversalBody,
+      }),
+      rawJsonRequest(`/api/manage/purchase-orders/${poId}/receipts/${receiptId}/reversal`, {
+        bearerToken: token,
+        method: 'POST',
+        headers: { 'Idempotency-Key': idemKey },
+        body: reversalBody,
+      }),
+    ]);
+
+    const statuses = [first.status, second.status].sort((a, b) => a - b);
+    assert.ok(
+      JSON.stringify(statuses) === JSON.stringify([201, 201]) || JSON.stringify(statuses) === JSON.stringify([201, 400]),
+      `unexpected concurrent idempotent reversal statuses: ${JSON.stringify(statuses)}`
+    );
+
+    const reversalIds = [first, second]
+      .filter((result) => result.status === 201)
+      .map((result) => result.json?.data?.reversal_id)
+      .filter(Boolean);
+    assert.ok(reversalIds.length >= 1, 'at least one concurrent idempotent reversal should succeed');
+    assert.strictEqual(new Set(reversalIds).size, 1, 'concurrent duplicate reversals should resolve to one reversal id');
+    const reversalId = reversalIds[0];
+
+    const replay = await apiRequest(`/api/manage/purchase-orders/${poId}/receipts/${receiptId}/reversal`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': idemKey,
+      },
+      body: reversalBody,
+      expectedStatus: 201,
+    });
+    assert.strictEqual(replay.json?.data?.reversal_id, reversalId);
+
+    await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const po = await getPurchaseOrderDetail(token, poId);
+      const variant = await getVariantDetail(token, productId, variantId);
+      assert.strictEqual(order?.procurementStatus, 'ordered');
+      assert.strictEqual(order?.lines?.[0]?.receivedQuantity, 0);
+      assert.strictEqual(Number(po?.items?.[0]?.received_qty || 0), 0);
+      assert.strictEqual(po?.items?.[0]?.display_status, 'open');
+      assert.strictEqual(Number(variant.stock_quantity || 0), 0);
+      return { order, po, variant };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'concurrent idempotent reversal replay did not converge',
+    });
+  });
+
+  it('does not over-apply concurrent reversal commands against the same receipt under different idempotency keys', async () => {
+    const token = await getBearerToken();
+    const seed = uniqueSeed('concurrent-reversal-race');
+    const salespersonId = await ensureSalespersonId(token, seed);
+    const { productId, variantId } = await createWorkflowProduct(token, seed, { stockQuantity: 0 });
+    const orderId = await createConfirmedOrder(token, {
+      seed,
+      salespersonId,
+      productId,
+      variantId,
+      quantity: 2,
+    });
+    const poId = await createPurchaseOrderFromOrders(token, [orderId], seed);
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'ordered' },
+      expectedStatus: 200,
+    });
+    await apiRequest(`/api/manage/purchase-orders/${poId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'shipping' },
+      expectedStatus: 200,
+    });
+
+    const poBeforeReceipt = await getPurchaseOrderDetail(token, poId);
+    const poItemId = poBeforeReceipt?.items?.[0]?.id;
+    assert.ok(poItemId, 'purchase order item id missing');
+
+    const receipt = await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-receipt`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: poItemId,
+            received_qty: 2,
+            note: 'receipt before concurrent reversal race',
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+    const receiptId = receipt.json?.data?.receipts?.[0]?.id;
+    assert.ok(receiptId, 'receipt id missing');
+
+    await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const po = await getPurchaseOrderDetail(token, poId);
+      const variant = await getVariantDetail(token, productId, variantId);
+      assert.strictEqual(order?.procurementStatus, 'arrived');
+      assert.strictEqual(Number(po?.items?.[0]?.received_qty || 0), 2);
+      assert.strictEqual(Number(variant.stock_quantity || 0), 2);
+      return { order, po, variant };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'receipt baseline did not converge before concurrent reversal race guard',
+    });
+
+    const [first, second] = await Promise.all([
+      rawJsonRequest(`/api/manage/purchase-orders/${poId}/receipts/${receiptId}/reversal`, {
+        bearerToken: token,
+        method: 'POST',
+        headers: { 'Idempotency-Key': `${seed}-reversal-a` },
+        body: { reason: 'concurrent reversal race a' },
+      }),
+      rawJsonRequest(`/api/manage/purchase-orders/${poId}/receipts/${receiptId}/reversal`, {
+        bearerToken: token,
+        method: 'POST',
+        headers: { 'Idempotency-Key': `${seed}-reversal-b` },
+        body: { reason: 'concurrent reversal race b' },
+      }),
+    ]);
+
+    const statuses = [first.status, second.status].sort((a, b) => a - b);
+    assert.deepStrictEqual(statuses, [201, 400]);
+
+    await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const po = await getPurchaseOrderDetail(token, poId);
+      const variant = await getVariantDetail(token, productId, variantId);
+      assert.strictEqual(order?.procurementStatus, 'ordered');
+      assert.strictEqual(order?.lines?.[0]?.receivedQuantity, 0);
+      assert.strictEqual(Number(po?.items?.[0]?.received_qty || 0), 0);
+      assert.strictEqual(po?.items?.[0]?.display_status, 'open');
+      assert.strictEqual(Number(variant.stock_quantity || 0), 0);
+      return { order, po, variant };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'concurrent reversal guard did not converge',
     });
   });
 
