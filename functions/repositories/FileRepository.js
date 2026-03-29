@@ -343,17 +343,6 @@ export class FileRepository {
     async findConflictingNames(folderId, names) {
         if (!names || names.length === 0) return [];
 
-        const bindings = [...names];
-
-        let sql = `SELECT name FROM files WHERE name IN ${inClause(names)} AND (is_deleted IS NULL OR is_deleted = 0)`;
-        
-        if (folderId && folderId !== 'root') {
-            sql += " AND folder_id = ?";
-            bindings.push(folderId);
-        } else {
-            sql += " AND (folder_id = 'root' OR folder_id IS NULL)";
-        }
-
         const matches = [];
         for (const nameChunk of chunkArray(names, 98)) {
             const chunkBindings = [...nameChunk];
