@@ -3,6 +3,7 @@ import { NotificationRepository } from '../NotificationRepository.js';
 
 function createLegacySchemaDbStub() {
   const calls = [];
+  const batchCalls = [];
 
   function noSuchColumn(column) {
     const err = new Error(`no such column: ${column}`);
@@ -82,11 +83,13 @@ function createLegacySchemaDbStub() {
 
   return {
     calls,
+    batchCalls,
     prepare(sql) {
       calls.push(String(sql || ''));
       return createStatement(sql);
     },
     async batch(statements) {
+      batchCalls.push(statements);
       for (const statement of statements) {
         await statement.run();
       }
@@ -172,5 +175,22 @@ describe('NotificationRepository legacy schema compatibility', () => {
           && !sql.includes('dedupe_key')
       )
     ).toBe(true);
+  });
+
+  it('chunks large legacy batch inserts into D1-safe sizes', async () => {
+    const db = createLegacySchemaDbStub();
+    const repo = new NotificationRepository(db);
+
+    await repo.createBatch(Array.from({ length: 205 }, (_, index) => ({
+      type: 'order',
+      title: `legacy-${index + 1}`,
+      receiver: 'sales',
+      salespersonId: `sp-${index + 1}`,
+      orderId: `o-${index + 1}`,
+      metadata: { index: index + 1 },
+    })));
+
+    expect(db.batchCalls).toHaveLength(4);
+    expect(Math.max(...db.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(100);
   });
 });

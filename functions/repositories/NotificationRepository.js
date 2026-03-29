@@ -15,6 +15,8 @@
 import { generateId, now } from '../api/utils/id.js';
 import { parseJsonObject } from '../api/utils/json.js';
 
+const D1_MAX_BATCH_SIZE = 100;
+
 function isMissingColumnError(error, columns = []) {
     const message = String(error?.message || error || '').toLowerCase();
     if (!message.includes('no such column')) return false;
@@ -29,6 +31,22 @@ function isUniqueConstraintError(error) {
 
 function parseMetadata(metadata) {
     return parseJsonObject(metadata, null);
+}
+
+function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
+    if (!Array.isArray(items) || items.length === 0) return [];
+
+    const chunks = [];
+    for (let index = 0; index < items.length; index += chunkSize) {
+        chunks.push(items.slice(index, index + chunkSize));
+    }
+    return chunks;
+}
+
+async function executeBatchChunks(db, statements = []) {
+    for (const chunk of chunkArray(statements)) {
+        await db.batch(chunk);
+    }
 }
 
 export class NotificationRepository {
@@ -250,7 +268,7 @@ export class NotificationRepository {
                     )
             );
 
-            await this.db.batch(statements);
+            await executeBatchChunks(this.db, statements);
         } catch (error) {
             if (!isMissingColumnError(error, ['receiver', 'salesperson_id', 'order_id'])) {
                 throw error;
@@ -268,7 +286,7 @@ export class NotificationRepository {
                     )
                     .bind(n.id, n.type, n.title, n.content, n.link, n.metadataJson, timestamp)
             );
-            await this.db.batch(legacyStatements);
+            await executeBatchChunks(this.db, legacyStatements);
         }
     }
 

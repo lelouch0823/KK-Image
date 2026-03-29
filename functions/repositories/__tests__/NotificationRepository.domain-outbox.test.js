@@ -3,6 +3,7 @@ import { NotificationRepository } from '../NotificationRepository.js';
 
 function createNotificationDbStub() {
   const notifications = [];
+  const batchCalls = [];
   let nextId = 1;
 
   function createStatement(sql) {
@@ -85,7 +86,16 @@ function createNotificationDbStub() {
 
   return {
     notifications,
+    batchCalls,
     prepare: vi.fn((sql) => createStatement(sql)),
+    batch: vi.fn(async (statements = []) => {
+      batchCalls.push(statements);
+      const results = [];
+      for (const statement of statements) {
+        results.push(await statement.run());
+      }
+      return results;
+    }),
   };
 }
 
@@ -157,5 +167,21 @@ describe('NotificationRepository domain outbox dedupe', () => {
       created: false,
     });
     expect(db.notifications).toHaveLength(1);
+  });
+
+  it('chunks large modern batch inserts into D1-safe sizes', async () => {
+    const db = createNotificationDbStub();
+    const repo = new NotificationRepository(db);
+
+    await repo.createBatch(Array.from({ length: 205 }, (_, index) => ({
+      type: 'order',
+      title: `modern-${index + 1}`,
+      receiver: 'admin',
+      orderId: `o-${index + 1}`,
+      metadata: { index: index + 1 },
+    })));
+
+    expect(db.batch).toHaveBeenCalledTimes(3);
+    expect(Math.max(...db.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(100);
   });
 });
