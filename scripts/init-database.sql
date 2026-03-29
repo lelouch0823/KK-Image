@@ -605,6 +605,8 @@ CREATE TABLE IF NOT EXISTS purchase_receipt_reversals (
 
 CREATE INDEX IF NOT EXISTS idx_purchase_receipt_reversals_original_receipt
     ON purchase_receipt_reversals(original_receipt_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_purchase_receipt_reversals_original_receipt_unique
+    ON purchase_receipt_reversals(original_receipt_id);
 
 CREATE TABLE IF NOT EXISTS inventory_events (
     id TEXT PRIMARY KEY,

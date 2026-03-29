@@ -419,15 +419,40 @@ app.patch('/:id/status', async (c) => {
   const service = new PurchaseOrderService(c.env.DB);
   // Service 内部会校验合法性并抛出 BadRequestError / NotFoundError
   const result = await service.updateStatus(c.req.param('id'), body.status);
-
-  await publishPurchaseOrderCacheEvent(c, {
-    eventType: 'purchase_order_status_changed',
-    poId: c.req.param('id'),
-    payload: {
-      status: body.status,
-      cascaded_orders: result.cascadedOrders || 0,
+  const publisher = new DomainOutboxPublisher(c.env.DB);
+  const events = [
+    {
+      event_type: 'purchase_order_status_changed',
+      aggregate_type: 'purchase_order',
+      aggregate_id: c.req.param('id'),
+      payload: {
+        purchase_order_id: c.req.param('id'),
+        status: body.status,
+        cascaded_orders: result.cascadedOrders || 0,
+      },
     },
-  });
+  ];
+
+  if (result?.targetProcurementStatus && Array.isArray(result?.changedOrderIds) && result.changedOrderIds.length > 0) {
+    events.push(...result.changedOrderIds.map((orderId) => ({
+      event_type: 'order_procurement_progressed',
+      aggregate_type: 'order',
+      aggregate_id: orderId,
+      payload: {
+        purchase_order_id: c.req.param('id'),
+        order_id: orderId,
+        procurement_status_after: result.targetProcurementStatus,
+        trigger: 'purchase_order_status_changed',
+      },
+    })));
+  }
+
+  await publisher.publish(events);
+  c.executionCtx.waitUntil(runOutboxPoller({
+    env: c.env,
+    requestUrl: c.req.url,
+    workerId: `purchase_order_status_changed:${c.req.param('id')}`,
+  }));
   scheduleAuditEvent(c, {
     domain: 'purchase-orders',
     action: 'purchase_order.status.change',

@@ -57,6 +57,19 @@ function chunkArray(items = [], chunkSize = D1_MAX_IN_CLAUSE_SIZE) {
   return chunks;
 }
 
+async function executeBatchChunks(db, statements = []) {
+  const results = [];
+
+  for (const chunk of chunkArray(statements)) {
+    const chunkResults = await db.batch(chunk);
+    if (Array.isArray(chunkResults)) {
+      results.push(...chunkResults);
+    }
+  }
+
+  return results;
+}
+
 export class PurchaseOrderService {
   /**
    * @param {D1Database} db
@@ -105,6 +118,7 @@ export class PurchaseOrderService {
 
     // 3. 级联更新预订单采购状态（不再修改订单主状态）
     let cascadedOrders = 0;
+    let changedOrderIds = [];
     const targetProcurementStatus = PO_TO_PROCUREMENT_STATUS_MAP[newStatus];
 
     if (targetProcurementStatus) {
@@ -120,8 +134,9 @@ export class PurchaseOrderService {
                AND COALESCE(procurement_status, 'none') != ?`
           ).bind(targetProcurementStatus, now, orderId, targetProcurementStatus)
         );
-        const results = await this.db.batch(stmts);
+        const results = await executeBatchChunks(this.db, stmts);
         cascadedOrders = results.filter(r => r.meta?.changes > 0).length;
+        changedOrderIds = linkedOrderIds.filter((_orderId, index) => (results[index]?.meta?.changes || 0) > 0);
       }
     }
 
@@ -132,7 +147,14 @@ export class PurchaseOrderService {
 
     const stockUpdated = 0;
     const totalStockAdded = 0;
-    return { success: true, cascadedOrders, stockUpdated, totalStockAdded };
+    return {
+      success: true,
+      cascadedOrders,
+      changedOrderIds,
+      targetProcurementStatus: targetProcurementStatus || null,
+      stockUpdated,
+      totalStockAdded,
+    };
   }
 
   // ─── 动态成本分摊 (Cost Allocation) ─────────────────

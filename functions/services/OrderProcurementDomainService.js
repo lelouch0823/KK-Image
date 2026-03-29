@@ -6,6 +6,8 @@ import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 
+const D1_MAX_BATCH_SIZE = 100;
+
 function toNonNegativeInt(value) {
   return Math.max(0, Math.trunc(Number(value) || 0));
 }
@@ -78,6 +80,29 @@ function parseStoredResponse(responseJson) {
 
 function buildDeleteCommandStatement(db, commandId) {
   return db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId);
+}
+
+function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  const chunks = [];
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+  return chunks;
+}
+
+async function executeBatchChunks(db, statements = []) {
+  const results = [];
+
+  for (const chunk of chunkArray(statements)) {
+    const chunkResults = await db.batch(chunk);
+    if (Array.isArray(chunkResults)) {
+      results.push(...chunkResults);
+    }
+  }
+
+  return results;
 }
 
 export class OrderProcurementDomainService {
@@ -456,7 +481,7 @@ export class OrderProcurementDomainService {
     }
 
     const preflightResults = preflightStatements.length > 0
-      ? await this.db.batch(preflightStatements)
+      ? await executeBatchChunks(this.db, preflightStatements)
       : [];
     const preflightOffset = commandReservation.insertStatement ? 1 : 0;
     const failedPreflightIndexes = [];
@@ -471,7 +496,7 @@ export class OrderProcurementDomainService {
         !failedPreflightIndexes.includes(index)
       );
       if (successfulReverts.length > 0) {
-        await this.db.batch(successfulReverts);
+        await executeBatchChunks(this.db, successfulReverts);
       }
       if (commandReservation.insertStatement) {
         await buildDeleteCommandStatement(this.db, commandRecord.command_id).run();
@@ -689,11 +714,11 @@ export class OrderProcurementDomainService {
         this.commandIdempotencyRepo.buildFinalizeStatement(commandRecord.command_id, response, 'committed')
       );
 
-      await this.db.batch(statements);
+      await executeBatchChunks(this.db, statements);
       return response;
     } catch (error) {
       if (preflightReverts.length > 0) {
-        await this.db.batch(preflightReverts);
+        await executeBatchChunks(this.db, preflightReverts);
       }
       if (commandReservation.insertStatement) {
         await buildDeleteCommandStatement(this.db, commandRecord.command_id).run();

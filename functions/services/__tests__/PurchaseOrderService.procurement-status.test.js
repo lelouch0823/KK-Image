@@ -3,14 +3,19 @@ import { PurchaseOrderService } from '../PurchaseOrderService.js';
 
 function createDb() {
   const sqls = [];
+  const batchCalls = [];
   const db = {
     __sqls: sqls,
+    __batchCalls: batchCalls,
     prepare: vi.fn((sql) => {
       sqls.push(sql);
       const stmt = { bind: vi.fn(() => stmt) };
       return stmt;
     }),
-    batch: vi.fn(async (stmts) => stmts.map(() => ({ meta: { changes: 1 } }))),
+    batch: vi.fn(async (stmts) => {
+      batchCalls.push(stmts);
+      return stmts.map(() => ({ meta: { changes: 1 } }));
+    }),
   };
   return db;
 }
@@ -94,5 +99,25 @@ describe('PurchaseOrderService procurement status cascade', () => {
 
     await expect(service.updateStatus('po-1', 'cancelled')).rejects.toThrow(/无法从 "arrived" 转换到 "cancelled"/);
     expect(service.inventoryService.applyBatch).not.toHaveBeenCalled();
+  });
+
+  it('chunks large linked-order procurement cascades into D1-safe batches and reports changed order ids', async () => {
+    const db = createDb();
+    const service = new PurchaseOrderService(db);
+    const linkedOrderIds = Array.from({ length: 205 }, (_, index) => `o-${index + 1}`);
+    service.repo = {
+      findById: vi.fn(async () => ({ id: 'po-1', status: 'draft', items: [] })),
+      updateStatus: vi.fn(async () => true),
+      updateStatusIfCurrent: vi.fn(async () => true),
+      getLinkedOrderIds: vi.fn(async () => linkedOrderIds),
+    };
+
+    const result = await service.updateStatus('po-1', 'ordered');
+
+    expect(db.batch).toHaveBeenCalledTimes(3);
+    expect(Math.max(...db.__batchCalls.map((stmts) => stmts.length))).toBeLessThanOrEqual(100);
+    expect(result.cascadedOrders).toBe(205);
+    expect(result.changedOrderIds).toEqual(linkedOrderIds);
+    expect(result.targetProcurementStatus).toBe('ordered');
   });
 });

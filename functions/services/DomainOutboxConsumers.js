@@ -200,6 +200,18 @@ async function resolveExpandedCacheUrls({ db, event, baseUrl, payload }) {
     return getSalesNotificationCacheUrls(ctx, salesTokens[0]);
   }
 
+  if (String(event.event_type || '').startsWith('order_procurement_')) {
+    const salesTokens = await getAllSalespersonAccessTokens(db);
+    const purchaseOrderId = resolvePurchaseOrderId(event, payload);
+    return [
+      ...new Set([
+        ...getPurchaseOrderCacheUrls(ctx, purchaseOrderId),
+        ...getOrderAndSalespersonCacheUrls(ctx, { salesTokens }),
+        ...getOrderNotificationCacheUrls(ctx, { salesTokens }),
+      ]),
+    ];
+  }
+
   if (isTagCacheEvent(event.event_type)) {
     return getManageTagCacheUrls(ctx);
   }

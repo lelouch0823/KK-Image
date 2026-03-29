@@ -1,6 +1,24 @@
 import { DomainOutboxRepository } from '../repositories/DomainOutboxRepository.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 
+const D1_MAX_BATCH_SIZE = 100;
+
+function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  const chunks = [];
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+  return chunks;
+}
+
+async function executeBatchChunks(db, statements = []) {
+  for (const chunk of chunkArray(statements)) {
+    await db.batch(chunk);
+  }
+}
+
 export class DomainOutboxPublisher {
   constructor(db, deps = {}) {
     this.db = db;
@@ -42,7 +60,7 @@ export class DomainOutboxPublisher {
       normalizedEvents,
       (event) => getDomainEventDefinition(event.event_type).consumers
     );
-    await this.db.batch(statements);
+    await executeBatchChunks(this.db, statements);
     return normalizedEvents;
   }
 }

@@ -163,6 +163,33 @@ describe('DomainOutboxConsumers audit and cache', () => {
     ]));
   });
 
+  it('invalidates sales order caches for procurement events using all salesperson tokens', async () => {
+    mocks.getAllSalespersonAccessTokens.mockResolvedValue(['sales-token-3']);
+
+    await DOMAIN_OUTBOX_CONSUMERS.cache({
+      db: {},
+      event: {
+        id: 'evt-4',
+        event_type: 'order_procurement_progressed',
+        aggregate_type: 'order',
+        aggregate_id: 'o-4',
+        payload_json: JSON.stringify({
+          purchase_order_id: 'po-4',
+          order_id: 'o-4',
+          procurement_status_after: 'ordered',
+        }),
+      },
+      baseUrl: 'https://kk.example.com',
+    });
+
+    const urls = mocks.invalidateCache.mock.calls.at(-1)[0];
+    expect(urls).toEqual(expect.arrayContaining([
+      'https://kk.example.com/api/sales/sales-token-3/orders',
+      'https://kk.example.com/api/sales/sales-token-3/orders?limit=20&page=1',
+      'https://kk.example.com/api/manage/notifications',
+    ]));
+  });
+
   it('invalidates manage customer list caches for customer domain events', async () => {
     await DOMAIN_OUTBOX_CONSUMERS.cache({
       db: {},

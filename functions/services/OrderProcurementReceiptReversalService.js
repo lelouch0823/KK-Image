@@ -51,6 +51,15 @@ function projectCompatibilityProcurementStatus(progress = {}) {
   return 'none';
 }
 
+function isDuplicateReceiptReversalError(error) {
+  const message = String(error?.message || error || '').toLowerCase();
+  return message.includes('unique constraint failed')
+    && (
+      message.includes('purchase_receipt_reversals.original_receipt_id')
+      || message.includes('idx_purchase_receipt_reversals_original_receipt_unique')
+    );
+}
+
 export class OrderProcurementReceiptReversalService {
   constructor(db, deps = {}) {
     this.db = db;
@@ -362,7 +371,14 @@ export class OrderProcurementReceiptReversalService {
       this.commandIdempotencyRepo.buildFinalizeStatement(commandRecord.command_id, response, 'committed')
     );
 
-    await this.db.batch(statements);
-    return response;
+    try {
+      await this.db.batch(statements);
+      return response;
+    } catch (error) {
+      if (isDuplicateReceiptReversalError(error)) {
+        throw new BadRequestError('原始收货记录已冲销，不能重复冲销');
+      }
+      throw error;
+    }
   }
 }

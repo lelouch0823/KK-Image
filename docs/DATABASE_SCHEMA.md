@@ -237,6 +237,7 @@ Reversal rules:
 - full reversal only in this phase
 - no historical delete/update-in-place
 - reversal facts must link to original receipt, command, and resulting compensation events
+- each `original_receipt_id` may appear at most once
 
 ### `inventory_events` (库存事件源)
 库存来源事实表，记录采购、分配、预留、释放、冲销等事件；`inventory_balances` 作为投影读模型继续保留。

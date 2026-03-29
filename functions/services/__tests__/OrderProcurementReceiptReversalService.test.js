@@ -39,6 +39,8 @@ function createDbHarness({
     order_line_id: 'line-1',
     inventory_event_id: 'ie-1',
   },
+  batchError = null,
+  batchErrorMatcher = null,
 } = {}) {
   const calls = {
     reversalPayloads: [],
@@ -80,6 +82,9 @@ function createDbHarness({
     }),
     batch: vi.fn(async (statements = []) => {
       calls.batchedStatements = statements;
+      if (batchError && typeof batchErrorMatcher === 'function' && statements.some((statement) => batchErrorMatcher(statement))) {
+        throw batchError;
+      }
       return statements.map(() => ({ meta: { changes: 1 } }));
     }),
   };
@@ -406,5 +411,25 @@ describe('OrderProcurementReceiptReversalService', () => {
       'purchase_receipt_reversed',
       'order_procurement_reversed',
     ]);
+  });
+
+  it('rejects concurrent duplicate reversal writes when the original receipt unique guard trips', async () => {
+    const duplicateHarness = createDbHarness({
+      batchError: new Error('UNIQUE constraint failed: purchase_receipt_reversals.original_receipt_id'),
+      batchErrorMatcher: (statement) => statement.sql.includes('INSERT INTO purchase_receipt_reversals'),
+    });
+    const duplicateService = new OrderProcurementReceiptReversalService(duplicateHarness.db, {
+      purchaseReceiptRepo: duplicateHarness.purchaseReceiptRepo,
+      inventoryService: duplicateHarness.inventoryService,
+      commandIdempotencyRepo: duplicateHarness.commandIdempotencyRepo,
+      domainOutboxRepo: duplicateHarness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await expect(duplicateService.reverseReceipt('po-1', 'receipt-1', {
+      reason: 'race',
+    }, {
+      idempotencyKey: 'idem-1',
+    })).rejects.toBeInstanceOf(BadRequestError);
   });
 });

@@ -137,7 +137,12 @@ describe('manage purchase-orders routes', () => {
     mocks.repoAddItems.mockResolvedValue(['poi-1']);
     mocks.repoUpdateItem.mockResolvedValue(true);
     mocks.repoRemoveItem.mockResolvedValue(true);
-    mocks.serviceUpdateStatus.mockResolvedValue({ success: true, cascadedOrders: 2 });
+    mocks.serviceUpdateStatus.mockResolvedValue({
+      success: true,
+      cascadedOrders: 2,
+      changedOrderIds: ['o-1', 'o-2'],
+      targetProcurementStatus: 'ordered',
+    });
     mocks.serviceCreateFromOrders.mockResolvedValue({ id: 'po-2', po_no: 'PO-2', status: 'draft' });
     mocks.serviceAllocateCosts.mockResolvedValue(undefined);
     mocks.domainRecordReceipts.mockResolvedValue({ purchase_order_id: 'po-1', receipt_count: 1 });
@@ -316,6 +321,22 @@ describe('manage purchase-orders routes', () => {
       expect.objectContaining({
         event_type: 'purchase_order_status_changed',
         aggregate_id: 'po-1',
+      }),
+      expect.objectContaining({
+        event_type: 'order_procurement_progressed',
+        aggregate_type: 'order',
+        aggregate_id: 'o-1',
+        payload: expect.objectContaining({
+          purchase_order_id: 'po-1',
+          order_id: 'o-1',
+          procurement_status_after: 'ordered',
+          trigger: 'purchase_order_status_changed',
+        }),
+      }),
+      expect.objectContaining({
+        event_type: 'order_procurement_progressed',
+        aggregate_type: 'order',
+        aggregate_id: 'o-2',
       }),
     ]);
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();

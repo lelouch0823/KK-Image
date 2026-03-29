@@ -600,4 +600,24 @@ describe('OrderProcurementDomainService', () => {
     expect(writeFailureHarness.purchaseReceiptRepo.createInsertStatement).toHaveBeenCalled();
     expect(writeFailureHarness.inventoryService.buildMutationStatements).toHaveBeenCalled();
   });
+
+  it('chunks large receipt command batches into D1-safe sizes', async () => {
+    const manyItemsHarness = createDbHarness();
+    const manyItemsService = new OrderProcurementDomainService(manyItemsHarness.db, {
+      purchaseReceiptRepo: manyItemsHarness.purchaseReceiptRepo,
+      inventoryService: manyItemsHarness.inventoryService,
+      commandIdempotencyRepo: manyItemsHarness.commandIdempotencyRepo,
+      domainOutboxRepo: manyItemsHarness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await manyItemsService.recordPurchaseOrderReceipts('po-1', {
+      items: Array.from({ length: 11 }, () => ({ purchase_order_item_id: 'poi-1', received_qty: 1 })),
+    }, {
+      idempotencyKey: 'idem-1',
+    });
+
+    expect(manyItemsHarness.db.batch.mock.calls.length).toBeGreaterThan(2);
+    expect(Math.max(...manyItemsHarness.db.batch.mock.calls.map(([statements]) => statements.length))).toBeLessThanOrEqual(100);
+  });
 });

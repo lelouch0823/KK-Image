@@ -70,6 +70,12 @@ function chunkArray(items = [], chunkSize = D1_MAX_IN_CLAUSE_SIZE) {
   return chunks;
 }
 
+async function executeBatchChunks(db, statements = []) {
+  for (const chunk of chunkArray(statements)) {
+    await db.batch(chunk);
+  }
+}
+
 /**
  * 采购单仓储 (Purchase Order Repository)
  * ========================================
@@ -377,8 +383,7 @@ export class PurchaseOrderRepository {
       );
     }
 
-    // SOTA: 使用 D1 batch 批量插入
-    await this.db.batch(stmts);
+    await executeBatchChunks(this.db, stmts);
 
     // 同步更新采购单的 updated_at
     await this.db
@@ -524,7 +529,7 @@ export class PurchaseOrderRepository {
       `).bind(a.allocated_freight, a.allocated_tariff, a.id)
     );
 
-    await this.db.batch(stmts);
+    await executeBatchChunks(this.db, stmts);
   }
 
   // ─── 统计查询 ──────────────────────────────────────────
