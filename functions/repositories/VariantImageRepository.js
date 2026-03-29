@@ -1,4 +1,5 @@
 import { generateId, now } from '../api/utils/id.js';
+import { executeBatchChunks } from '../lib/db/batch.js';
 import { ProductVariantRepository } from './ProductVariantRepository.js';
 
 export class VariantImageRepository {
@@ -91,7 +92,7 @@ export class VariantImageRepository {
         });
 
         if (statements.length > 0) {
-            await this.db.batch(statements);
+            await executeBatchChunks(this.db, statements);
         }
     }
 
@@ -112,7 +113,7 @@ export class VariantImageRepository {
                 .bind(timestamp, variantId, imageId),
         ];
 
-        await this.db.batch(statements);
+        await executeBatchChunks(this.db, statements);
     }
 
     async sortImages({ productId, variantId, imageIds }) {
@@ -143,7 +144,7 @@ export class VariantImageRepository {
                 )
                 .bind(index, timestamp, variantId, imageId)
         ));
-        await this.db.batch(statements);
+        await executeBatchChunks(this.db, statements);
     }
 
     async deleteImage({ productId, variantId, imageId }) {

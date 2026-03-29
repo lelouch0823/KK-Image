@@ -124,4 +124,32 @@ describe('DomainOutboxDispatchService', () => {
     expect(failedStatement.params[0]).toBe(1710000003000);
     expect(failedStatement.params[1]).toContain('consumer failed');
   });
+
+  it('chunks large job claims into D1-safe batches', async () => {
+    const db = createMockDb({
+      pendingJobs: Array.from({ length: 205 }, (_, index) => ({
+        id: `job-${index}`,
+        consumer_name: 'cache',
+        event_id: `evt-${index}`,
+        status: 'pending',
+        attempt_count: 0,
+        available_at: 1700000000000,
+        leased_until: null,
+        event_type: 'order_procurement_progressed',
+        aggregate_type: 'order',
+        aggregate_id: `order-${index}`,
+        payload_json: JSON.stringify({ order_id: `order-${index}` }),
+      })),
+    });
+    const service = new DomainOutboxDispatchService(db, {
+      leaseMs: 30000,
+      now: () => 1710000000000,
+    });
+
+    const claimed = await service.claimJobs('cache', 'worker-3', 1710000000000, 205);
+
+    expect(claimed).toHaveLength(205);
+    expect(db.batch).toHaveBeenCalledTimes(3);
+    expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([100, 100, 5]);
+  });
 });

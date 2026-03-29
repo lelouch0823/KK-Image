@@ -5,6 +5,8 @@
  * 注意：SystemSettings 表的 key 是保留字，查询时需用双引号包裹。
  */
 
+import { executeBatchChunks } from '../lib/db/batch.js';
+
 export class SettingsRepository {
     constructor(db) {
         this.db = db;
@@ -48,7 +50,7 @@ export class SettingsRepository {
             stmt.bind(s.key, s.value, s.category || 'general', s.description || null)
         );
 
-        await this.db.batch(batch);
+        await executeBatchChunks(this.db, batch);
         return settings.length;
     }
 

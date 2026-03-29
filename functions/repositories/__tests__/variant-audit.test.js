@@ -56,4 +56,25 @@ describe('variant audit repositories', () => {
     expect(stmt.sql).toContain('INSERT INTO variant_audit_logs');
     expect(typeof stmt.params[5]).toBe('string');
   });
+
+  it('VariantAuditRepository.createBatch should chunk large event sets', async () => {
+    const db = {
+      prepare: vi.fn((sql) => createPreparedStatement(sql)),
+      batch: vi.fn(async (statements = []) => statements.map(() => ({ meta: { changes: 1 } }))),
+    };
+    const repo = new VariantAuditRepository(db);
+
+    const events = Array.from({ length: 205 }, (_, index) => ({
+      variant_id: `v${index}`,
+      product_id: 'p1',
+      action: 'variant_updated',
+      changes: { index },
+    }));
+
+    const rows = await repo.createBatch(events);
+
+    expect(rows).toHaveLength(205);
+    expect(db.batch).toHaveBeenCalledTimes(3);
+    expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([100, 100, 5]);
+  });
 });

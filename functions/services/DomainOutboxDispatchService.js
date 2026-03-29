@@ -1,3 +1,5 @@
+import { executeBatchChunks } from '../lib/db/batch.js';
+
 export class DomainOutboxDispatchService {
   constructor(db, deps = {}) {
     this.db = db;
@@ -51,7 +53,7 @@ export class DomainOutboxDispatchService {
       )
       .bind(workerId, leasedUntil, nowTs, job.id, consumerName, nowTs, nowTs));
 
-    const claimResults = await this.db.batch(statements);
+    const claimResults = await executeBatchChunks(this.db, statements);
 
     return candidates
       .filter((_, index) => (claimResults?.[index]?.meta?.changes || 0) === 1)

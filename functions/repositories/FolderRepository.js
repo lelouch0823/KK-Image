@@ -6,6 +6,7 @@
  */
 import { inClause } from '../api/utils/sql.js';
 import { parseRepoPagination } from '../api/utils/pagination.js';
+import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 
 export class FolderRepository {
     constructor(db) {
@@ -237,10 +238,15 @@ export class FolderRepository {
         if (ids.length === 0) return;
 
         // 构建批量删除语句
-        await this.db.batch([
-            this.db.prepare(`DELETE FROM files WHERE folder_id IN ${inClause(ids)}`).bind(...ids),
-            this.db.prepare(`DELETE FROM folders WHERE id IN ${inClause(ids)}`).bind(...ids)
-        ]);
+        const statements = [];
+        for (const idChunk of chunkArray(ids, 98)) {
+            statements.push(
+                this.db.prepare(`DELETE FROM files WHERE folder_id IN ${inClause(idChunk)}`).bind(...idChunk),
+                this.db.prepare(`DELETE FROM folders WHERE id IN ${inClause(idChunk)}`).bind(...idChunk)
+            );
+        }
+
+        await executeBatchChunks(this.db, statements, 2);
     }
 
     /**

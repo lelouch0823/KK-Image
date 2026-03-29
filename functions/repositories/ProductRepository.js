@@ -3,6 +3,7 @@ import { parseRepoPagination } from '../api/utils/pagination.js';
 import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { buildSetClause } from '../api/utils/sql.js';
 import { hasChanges } from '../api/utils/result.js';
+import { executeBatchChunks } from '../lib/db/batch.js';
 
 export class ProductRepository {
     static PRODUCT_SORT_FIELDS = Object.freeze({
@@ -238,7 +239,7 @@ export class ProductRepository {
 
         try {
             // 2. Execute batch
-            const results = await this.db.batch(stmts);
+            const results = await executeBatchChunks(this.db, stmts);
 
             // 3. Count successes (check changes)
             let successCount = 0;

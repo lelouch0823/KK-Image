@@ -211,4 +211,48 @@ describe('VariantImageRepository', () => {
         expect(batched[2].params.slice(1, 5)).toEqual(['variant_1', 'img-2', 1, 1]);
         expect(batched[3].params.slice(1, 5)).toEqual(['variant_1', 'img-3', 2, 0]);
     });
+
+    it('chunks large syncImages writes into D1-safe batches', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes('FROM product_variants')) {
+                stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('DELETE FROM variant_images') || sql.includes('INSERT INTO variant_images')) {
+                stmt.run.mockResolvedValue({ meta: { changes: 1 } });
+            }
+            return stmt;
+        });
+
+        await repo.syncImages(
+            'product_1',
+            'variant_1',
+            Array.from({ length: 205 }, (_, index) => ({ image_id: `img-${index}` }))
+        );
+
+        expect(db.batch).toHaveBeenCalledTimes(3);
+        expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([100, 100, 6]);
+    });
+
+    it('chunks large sortImages reorder writes into D1-safe batches', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes('FROM product_variants')) {
+                stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('MAX(sort_order)')) {
+                stmt.first.mockResolvedValue({ max_sort_order: 2 });
+            } else if (sql.includes('UPDATE variant_images')) {
+                stmt.run.mockResolvedValue({ meta: { changes: 1 } });
+            }
+            return stmt;
+        });
+
+        await repo.sortImages({
+            productId: 'product_1',
+            variantId: 'variant_1',
+            imageIds: Array.from({ length: 60 }, (_, index) => `file_${index}`),
+        });
+
+        expect(db.batch).toHaveBeenCalledTimes(2);
+        expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([100, 20]);
+    });
 });

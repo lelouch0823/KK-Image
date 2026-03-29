@@ -402,5 +402,25 @@ describe('ProductRepository — SPU 重构', () => {
                 ])
             );
         });
+
+        it('批量创建超大商品集时应分块执行 D1 batch', async () => {
+            db.prepare.mockImplementation((sql) => {
+                const stmt = createPreparedStatement(sql);
+                stmt.run.mockResolvedValue({ meta: { changes: 1 } });
+                return stmt;
+            });
+            db.batch.mockImplementation(async (batchStatements) => (
+                batchStatements.map(() => ({ success: true, meta: { changes: 1 } }))
+            ));
+
+            const result = await repo.createBatch(
+                Array.from({ length: 205 }, (_, index) => ({ name: `Product ${index}` }))
+            );
+
+            expect(result.success).toBe(true);
+            expect(result.count).toBe(205);
+            expect(db.batch).toHaveBeenCalledTimes(3);
+            expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([100, 100, 5]);
+        });
     });
 });

@@ -1,3 +1,5 @@
+import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
+
 /**
  * 相册仓库 (Album Repository)
  * ===================================
@@ -91,7 +93,7 @@ export class AlbumRepository {
                 'INSERT OR IGNORE INTO album_files (album_id, file_id, sort_order) VALUES (?, ?, ?)'
             ).bind(albumId, fileId, index)
         );
-        await this.db.batch(statements);
+        await executeBatchChunks(this.db, statements);
         await this.db.prepare('UPDATE albums SET updated_at = ? WHERE id = ?')
             .bind(Date.now(), albumId).run();
     }
@@ -100,8 +102,10 @@ export class AlbumRepository {
      * 从相册移除文件
      */
     async removeFiles(albumId, fileIds) {
-        const placeholders = fileIds.map(() => '?').join(',');
-        await this.db.prepare(`DELETE FROM album_files WHERE album_id = ? AND file_id IN (${placeholders})`)
-            .bind(albumId, ...fileIds).run();
+        for (const fileIdChunk of chunkArray(fileIds, 98)) {
+            const placeholders = fileIdChunk.map(() => '?').join(',');
+            await this.db.prepare(`DELETE FROM album_files WHERE album_id = ? AND file_id IN (${placeholders})`)
+                .bind(albumId, ...fileIdChunk).run();
+        }
     }
 }

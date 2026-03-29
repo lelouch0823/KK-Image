@@ -3,7 +3,17 @@
  * 提供事务性批量插入、更新、删除操作
  */
 
-const MAX_BINDINGS_PER_QUERY = 100;
+export const D1_MAX_BATCH_SIZE = 100;
+
+export function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  const chunks = [];
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+  return chunks;
+}
 
 /**
  * 批量插入记录
@@ -100,13 +110,17 @@ export async function batchUpsert(db, table, columns, rows, conflictColumns, upd
  * @param {D1Database} db - D1 数据库实例
  * @param {D1PreparedStatement[]} statements - 预编译语句数组
  */
-async function executeBatchChunks(db, statements) {
-  const chunkSize = MAX_BINDINGS_PER_QUERY;
+export async function executeBatchChunks(db, statements = [], chunkSize = D1_MAX_BATCH_SIZE) {
+  const results = [];
 
-  for (let i = 0; i < statements.length; i += chunkSize) {
-    const chunk = statements.slice(i, i + chunkSize);
-    await db.batch(chunk);
+  for (const chunk of chunkArray(statements, chunkSize)) {
+    const chunkResults = await db.batch(chunk);
+    if (Array.isArray(chunkResults)) {
+      results.push(...chunkResults);
+    }
   }
+
+  return results;
 }
 
 /**

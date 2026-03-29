@@ -1,4 +1,5 @@
 import { generateId, now } from '../api/utils/id.js';
+import { executeBatchChunks } from '../lib/db/batch.js';
 
 export class VariantAuditRepository {
   constructor(db) {
@@ -26,7 +27,7 @@ export class VariantAuditRepository {
       )
     );
 
-    await this.db.batch(statements);
+    await executeBatchChunks(this.db, statements);
     return events;
   }
 }

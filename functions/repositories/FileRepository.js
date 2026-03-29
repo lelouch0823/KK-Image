@@ -7,6 +7,7 @@
 import { inClause } from '../api/utils/sql.js';
 import { parseRepoPagination } from '../api/utils/pagination.js';
 import { buildSetClause } from '../api/utils/sql.js';
+import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 
 /** 允许更新的列名白名单 */
 const ALLOWED_UPDATE_COLUMNS = new Set([
@@ -91,7 +92,7 @@ export class FileRepository {
             )
         );
 
-        await this.db.batch(stmts);
+        await executeBatchChunks(this.db, stmts);
     }
 
     /**
@@ -183,9 +184,11 @@ export class FileRepository {
      * @param {string} targetFolderId
      */
     async moveBatch(ids, targetFolderId) {
-        await this.db.prepare(`UPDATE files SET folder_id = ?, updated_at = ? WHERE id IN ${inClause(ids)}`)
-            .bind(targetFolderId, Date.now(), ...ids)
-            .run();
+        for (const idChunk of chunkArray(ids, 98)) {
+            await this.db.prepare(`UPDATE files SET folder_id = ?, updated_at = ? WHERE id IN ${inClause(idChunk)}`)
+                .bind(targetFolderId, Date.now(), ...idChunk)
+                .run();
+        }
     }
 
     /**
@@ -202,9 +205,11 @@ export class FileRepository {
      */
     async deleteBatch(ids) {
         if (!ids.length) return;
-        await this.db.prepare(`DELETE FROM files WHERE id IN ${inClause(ids)}`)
-            .bind(...ids)
-            .run();
+        for (const idChunk of chunkArray(ids, 98)) {
+            await this.db.prepare(`DELETE FROM files WHERE id IN ${inClause(idChunk)}`)
+                .bind(...idChunk)
+                .run();
+        }
     }
 
     // --- 回收站相关 ---
@@ -225,9 +230,11 @@ export class FileRepository {
      */
     async softDeleteBatch(ids) {
         if (!ids.length) return;
-        await this.db.prepare(`UPDATE files SET is_deleted = 1, deleted_at = ? WHERE id IN ${inClause(ids)}`)
-            .bind(Date.now(), ...ids)
-            .run();
+        for (const idChunk of chunkArray(ids, 98)) {
+            await this.db.prepare(`UPDATE files SET is_deleted = 1, deleted_at = ? WHERE id IN ${inClause(idChunk)}`)
+                .bind(Date.now(), ...idChunk)
+                .run();
+        }
     }
 
     /**
@@ -236,9 +243,11 @@ export class FileRepository {
      */
     async restoreBatch(ids) {
         if (!ids.length) return;
-        await this.db.prepare(`UPDATE files SET is_deleted = 0, deleted_at = NULL WHERE id IN ${inClause(ids)}`)
-            .bind(...ids)
-            .run();
+        for (const idChunk of chunkArray(ids, 98)) {
+            await this.db.prepare(`UPDATE files SET is_deleted = 0, deleted_at = NULL WHERE id IN ${inClause(idChunk)}`)
+                .bind(...idChunk)
+                .run();
+        }
     }
 
     /**
@@ -345,8 +354,22 @@ export class FileRepository {
             sql += " AND (folder_id = 'root' OR folder_id IS NULL)";
         }
 
-        const { results } = await this.db.prepare(sql).bind(...bindings).all();
-        return results.map(r => r.name);
+        const matches = [];
+        for (const nameChunk of chunkArray(names, 98)) {
+            const chunkBindings = [...nameChunk];
+            let chunkSql = `SELECT name FROM files WHERE name IN ${inClause(nameChunk)} AND (is_deleted IS NULL OR is_deleted = 0)`;
+
+            if (folderId && folderId !== 'root') {
+                chunkSql += " AND folder_id = ?";
+                chunkBindings.push(folderId);
+            } else {
+                chunkSql += " AND (folder_id = 'root' OR folder_id IS NULL)";
+            }
+
+            const { results } = await this.db.prepare(chunkSql).bind(...chunkBindings).all();
+            matches.push(...(results || []).map(r => r.name));
+        }
+        return matches;
     }
     
     /**
@@ -356,7 +379,11 @@ export class FileRepository {
      */
     async findByIds(ids) {
         if (!ids || ids.length === 0) return [];
-        const { results } = await this.db.prepare(`SELECT * FROM files WHERE id IN ${inClause(ids)}`).bind(...ids).all();
-        return results;
+        const rows = [];
+        for (const idChunk of chunkArray(ids, 98)) {
+            const { results } = await this.db.prepare(`SELECT * FROM files WHERE id IN ${inClause(idChunk)}`).bind(...idChunk).all();
+            rows.push(...(results || []));
+        }
+        return rows;
     }
 }

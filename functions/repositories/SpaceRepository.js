@@ -1,3 +1,5 @@
+import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
+
 /**
  * 共享空间仓库 (Space Repository)
  * ===================================
@@ -276,7 +278,7 @@ export class SpaceRepository {
                 .bind(spaceId, fileId, index, Date.now())
         );
 
-        await this.db.batch(statements);
+        await executeBatchChunks(this.db, statements);
 
         // Update space updated_at
         await this.db
@@ -292,11 +294,13 @@ export class SpaceRepository {
      * @returns {Promise<void>}
      */
     async removeFiles(spaceId, fileIds) {
-        const placeholders = fileIds.map(() => '?').join(',');
-        await this.db
-            .prepare(`DELETE FROM space_files WHERE space_id = ? AND file_id IN (${placeholders})`)
-            .bind(spaceId, ...fileIds)
-            .run();
+        for (const fileIdChunk of chunkArray(fileIds, 98)) {
+            const placeholders = fileIdChunk.map(() => '?').join(',');
+            await this.db
+                .prepare(`DELETE FROM space_files WHERE space_id = ? AND file_id IN (${placeholders})`)
+                .bind(spaceId, ...fileIdChunk)
+                .run();
+        }
     }
 
     /**
@@ -320,7 +324,7 @@ export class SpaceRepository {
                 .bind(Date.now(), spaceId)
         );
 
-        await this.db.batch(statements);
+        await executeBatchChunks(this.db, statements);
     }
 
     /**
@@ -418,7 +422,7 @@ export class SpaceRepository {
             });
         }
 
-        await this.db.batch(batch);
+        await executeBatchChunks(this.db, batch);
     }
 
     /**

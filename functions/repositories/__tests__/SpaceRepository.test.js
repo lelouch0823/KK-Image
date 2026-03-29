@@ -104,4 +104,45 @@ describe('SpaceRepository', () => {
             expect(result.display_image_id).toBe('product_img_1');
         });
     });
+
+    describe('batch safety', () => {
+        function createStatement(sql) {
+            const statement = {
+                sql,
+                params: [],
+                bind: vi.fn((...params) => {
+                    statement.params = params;
+                    return statement;
+                }),
+                run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
+            };
+            return statement;
+        }
+
+        it('chunks addFiles when linking many files to one space', async () => {
+            const db = {
+                prepare: vi.fn((sql) => createStatement(sql)),
+                batch: vi.fn(async (statements = []) => statements.map(() => ({ meta: { changes: 1 } }))),
+            };
+            const repo = new SpaceRepository(db);
+
+            await repo.addFiles('space-1', Array.from({ length: 205 }, (_, index) => `file-${index}`));
+
+            expect(db.batch).toHaveBeenCalledTimes(3);
+            expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([100, 100, 5]);
+        });
+
+        it('chunks reorderFiles when sorting many files in one space', async () => {
+            const db = {
+                prepare: vi.fn((sql) => createStatement(sql)),
+                batch: vi.fn(async (statements = []) => statements.map(() => ({ meta: { changes: 1 } }))),
+            };
+            const repo = new SpaceRepository(db);
+
+            await repo.reorderFiles('space-1', Array.from({ length: 205 }, (_, index) => `file-${index}`));
+
+            expect(db.batch).toHaveBeenCalledTimes(3);
+            expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([100, 100, 6]);
+        });
+    });
 });
