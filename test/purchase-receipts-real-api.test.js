@@ -116,6 +116,21 @@ async function createPurchaseOrderFromOrders(token, orderIds, seed) {
   return poId;
 }
 
+async function createDraftPurchaseOrder(token, seed) {
+  const created = await apiRequest('/api/manage/purchase-orders', {
+    bearerToken: token,
+    method: 'POST',
+    body: {
+      remark: `Draft receipt workflow ${seed}`,
+      allocation_method: 'by_quantity',
+    },
+    expectedStatus: 201,
+  });
+  const poId = created.json?.data?.id;
+  assert.ok(poId, 'purchase order id missing');
+  return poId;
+}
+
 async function getOrderDetail(token, orderId) {
   const detail = await apiRequest(`/api/manage/orders/${orderId}`, {
     bearerToken: token,
@@ -573,5 +588,247 @@ describeIfRealApi('Purchase Receipts Real API Workflow', function () {
     assert.strictEqual(Number(poAfterReject?.items?.[0]?.received_qty || 0), 0);
     assert.strictEqual(poAfterReject?.items?.[0]?.display_status, 'open');
     assert.strictEqual(Number(variantAfterReject.stock_quantity || 0), 0);
+  });
+
+  it('updates only the targeted linked order when one purchase order contains multiple order-backed items for the same variant', async () => {
+    const token = await getBearerToken();
+    const seed = uniqueSeed('multi-order');
+    const salespersonId = await ensureSalespersonId(token, seed);
+    const { productId, variantId } = await createWorkflowProduct(token, seed, { stockQuantity: 0 });
+    const orderId1 = await createConfirmedOrder(token, {
+      seed,
+      salespersonId,
+      productId,
+      variantId,
+      quantity: 2,
+    });
+    const orderId2 = await createConfirmedOrder(token, {
+      seed,
+      salespersonId,
+      productId,
+      variantId,
+      quantity: 3,
+    });
+    const poId = await createPurchaseOrderFromOrders(token, [orderId1, orderId2], seed);
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'ordered' },
+      expectedStatus: 200,
+    });
+    await apiRequest(`/api/manage/purchase-orders/${poId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'shipping' },
+      expectedStatus: 200,
+    });
+
+    const poBeforeReceipt = await getPurchaseOrderDetail(token, poId);
+    const firstItem = (poBeforeReceipt?.items || []).find((item) => item.pre_order_id === orderId1);
+    const secondItem = (poBeforeReceipt?.items || []).find((item) => item.pre_order_id === orderId2);
+    assert.ok(firstItem?.id, 'first linked purchase order item missing');
+    assert.ok(secondItem?.id, 'second linked purchase order item missing');
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-first-order-receipt`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: firstItem.id,
+            received_qty: 2,
+            note: 'first linked order receipt',
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+
+    await waitFor(async () => {
+      const order1 = await getOrderDetail(token, orderId1);
+      const order2 = await getOrderDetail(token, orderId2);
+      const po = await getPurchaseOrderDetail(token, poId);
+      const variant = await getVariantDetail(token, productId, variantId);
+      const poItem1 = (po?.items || []).find((item) => item.id === firstItem.id);
+      const poItem2 = (po?.items || []).find((item) => item.id === secondItem.id);
+
+      assert.strictEqual(order1?.procurementStatus, 'arrived');
+      assert.strictEqual(order1?.lines?.[0]?.receivedQuantity, 2);
+      assert.strictEqual(order2?.procurementStatus, 'ordered');
+      assert.strictEqual(order2?.lines?.[0]?.receivedQuantity, 0);
+      assert.strictEqual(Number(poItem1?.received_qty || 0), 2);
+      assert.strictEqual(poItem1?.display_status, 'received');
+      assert.strictEqual(Number(poItem2?.received_qty || 0), 0);
+      assert.strictEqual(poItem2?.display_status, 'open');
+      assert.strictEqual(Number(variant.stock_quantity || 0), 2);
+      return { order1, order2, po, variant };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'first linked order receipt did not converge independently',
+    });
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-second-order-receipt`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: secondItem.id,
+            received_qty: 3,
+            note: 'second linked order receipt',
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+
+    await waitFor(async () => {
+      const order1 = await getOrderDetail(token, orderId1);
+      const order2 = await getOrderDetail(token, orderId2);
+      const po = await getPurchaseOrderDetail(token, poId);
+      const variant = await getVariantDetail(token, productId, variantId);
+      const poItem1 = (po?.items || []).find((item) => item.id === firstItem.id);
+      const poItem2 = (po?.items || []).find((item) => item.id === secondItem.id);
+
+      assert.strictEqual(order1?.procurementStatus, 'arrived');
+      assert.strictEqual(order2?.procurementStatus, 'arrived');
+      assert.strictEqual(order2?.lines?.[0]?.receivedQuantity, 3);
+      assert.strictEqual(Number(poItem1?.received_qty || 0), 2);
+      assert.strictEqual(Number(poItem2?.received_qty || 0), 3);
+      assert.strictEqual(poItem2?.display_status, 'received');
+      assert.strictEqual(Number(variant.stock_quantity || 0), 5);
+      return { order1, order2, po, variant };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'second linked order receipt did not converge independently',
+    });
+  });
+
+  it('applies one batch receipt command across multiple variants in the same purchase order', async () => {
+    const token = await getBearerToken();
+    const seed = uniqueSeed('multi-item');
+    const productA = await createWorkflowProduct(token, `${seed}-a`, { stockQuantity: 0 });
+    const productB = await createWorkflowProduct(token, `${seed}-b`, { stockQuantity: 0 });
+    const poId = await createDraftPurchaseOrder(token, seed);
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/items`, {
+      bearerToken: token,
+      method: 'POST',
+      body: {
+        items: [
+          {
+            product_id: productA.productId,
+            variant_id: productA.variantId,
+            quantity: 2,
+            unit_cost: 55,
+          },
+          {
+            product_id: productB.productId,
+            variant_id: productB.variantId,
+            quantity: 4,
+            unit_cost: 66,
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'ordered' },
+      expectedStatus: 200,
+    });
+    await apiRequest(`/api/manage/purchase-orders/${poId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'shipping' },
+      expectedStatus: 200,
+    });
+
+    const poBeforeReceipt = await getPurchaseOrderDetail(token, poId);
+    const itemA = (poBeforeReceipt?.items || []).find((item) => item.variant_id === productA.variantId);
+    const itemB = (poBeforeReceipt?.items || []).find((item) => item.variant_id === productB.variantId);
+    assert.ok(itemA?.id, 'first variant purchase item missing');
+    assert.ok(itemB?.id, 'second variant purchase item missing');
+
+    const batchReceipt = await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-batch-receipt`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: itemA.id,
+            received_qty: 2,
+            note: 'batch receipt item a',
+          },
+          {
+            purchase_order_item_id: itemB.id,
+            received_qty: 4,
+            note: 'batch receipt item b',
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+    const receiptIds = (batchReceipt.json?.data?.receipts || []).map((item) => item.id).filter(Boolean);
+    assert.strictEqual(receiptIds.length, 2, 'batch receipt should create two receipt rows');
+
+    const replayedBatch = await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-batch-receipt`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: itemA.id,
+            received_qty: 2,
+            note: 'batch receipt item a',
+          },
+          {
+            purchase_order_item_id: itemB.id,
+            received_qty: 4,
+            note: 'batch receipt item b',
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+    const replayedReceiptIds = (replayedBatch.json?.data?.receipts || []).map((item) => item.id).filter(Boolean);
+    assert.deepStrictEqual(replayedReceiptIds, receiptIds, 'batch receipt replay should return the same receipt ids');
+
+    await waitFor(async () => {
+      const po = await getPurchaseOrderDetail(token, poId);
+      const poItemA = (po?.items || []).find((item) => item.id === itemA.id);
+      const poItemB = (po?.items || []).find((item) => item.id === itemB.id);
+      const variantA = await getVariantDetail(token, productA.productId, productA.variantId);
+      const variantB = await getVariantDetail(token, productB.productId, productB.variantId);
+
+      assert.strictEqual(Number(poItemA?.received_qty || 0), 2);
+      assert.strictEqual(poItemA?.display_status, 'received');
+      assert.strictEqual(Number(poItemB?.received_qty || 0), 4);
+      assert.strictEqual(poItemB?.display_status, 'received');
+      assert.strictEqual(Number(variantA.stock_quantity || 0), 2);
+      assert.strictEqual(Number(variantB.stock_quantity || 0), 4);
+      return { po, variantA, variantB };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'batch receipt across multiple variants did not converge',
+    });
   });
 });
