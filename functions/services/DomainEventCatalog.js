@@ -43,6 +43,38 @@ export const DOMAIN_EVENT_CATALOG = {
     version: 1,
     consumers: ['notification'],
   },
+  purchase_order_created: {
+    version: 1,
+    consumers: ['cache'],
+  },
+  purchase_order_created_from_orders: {
+    version: 1,
+    consumers: ['cache'],
+  },
+  purchase_order_updated: {
+    version: 1,
+    consumers: ['cache'],
+  },
+  purchase_order_status_changed: {
+    version: 1,
+    consumers: ['cache'],
+  },
+  purchase_order_item_created: {
+    version: 1,
+    consumers: ['cache'],
+  },
+  purchase_order_item_updated: {
+    version: 1,
+    consumers: ['cache'],
+  },
+  purchase_order_item_deleted: {
+    version: 1,
+    consumers: ['cache'],
+  },
+  purchase_order_cost_allocated: {
+    version: 1,
+    consumers: ['cache'],
+  },
   purchase_receipt_recorded: {
     version: 1,
     consumers: ['audit', 'cache', 'notification', 'webhook'],

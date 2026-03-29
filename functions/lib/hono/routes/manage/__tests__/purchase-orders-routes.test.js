@@ -4,25 +4,31 @@ import { BadRequestError } from '../../../errors.js';
 
 const mocks = vi.hoisted(() => ({
   repoFindById: vi.fn(),
+  repoCreate: vi.fn(),
+  repoUpdate: vi.fn(),
   repoAddItems: vi.fn(),
   repoUpdateItem: vi.fn(),
   repoRemoveItem: vi.fn(),
   serviceUpdateStatus: vi.fn(),
+  serviceCreateFromOrders: vi.fn(),
+  serviceAllocateCosts: vi.fn(),
   domainRecordReceipts: vi.fn(),
   reversalReverseReceipt: vi.fn(),
   scheduleAuditEvent: vi.fn(),
   scheduleCacheInvalidation: vi.fn(),
   randomUUID: vi.fn(),
+  publish: vi.fn(async () => []),
+  runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
 
 vi.mock('../../../../../repositories/PurchaseOrderRepository.js', () => ({
   PurchaseOrderRepository: vi.fn(() => ({
     findById: mocks.repoFindById,
+    create: mocks.repoCreate,
+    update: mocks.repoUpdate,
     addItems: mocks.repoAddItems,
     updateItem: mocks.repoUpdateItem,
     removeItem: mocks.repoRemoveItem,
-    create: vi.fn(),
-    update: vi.fn(),
     list: vi.fn(async () => ({ items: [], total: 0, page: 1, limit: 20 })),
     getStats: vi.fn(async () => ({})),
   })),
@@ -32,8 +38,8 @@ vi.mock('../../../../../services/PurchaseOrderService.js', () => ({
   PurchaseOrderService: vi.fn(() => ({
     updateStatus: mocks.serviceUpdateStatus,
     getSuggestions: vi.fn(async () => []),
-    createFromOrders: vi.fn(),
-    allocateCosts: vi.fn(),
+    createFromOrders: mocks.serviceCreateFromOrders,
+    allocateCosts: mocks.serviceAllocateCosts,
   })),
 }));
 
@@ -79,6 +85,16 @@ vi.mock('../../../_shared/audit-helpers.js', async () => {
   };
 });
 
+vi.mock('../../../../../services/DomainOutboxPublisher.js', () => ({
+  DomainOutboxPublisher: vi.fn(() => ({
+    publish: mocks.publish,
+  })),
+}));
+
+vi.mock('../../../../../api/cron/outbox.js', () => ({
+  runOutboxPoller: mocks.runOutboxPoller,
+}));
+
 import purchaseOrdersApp from '../purchase-orders.js';
 
 function createDb({ variantRows = [], orderRows = [] } = {}) {
@@ -116,12 +132,102 @@ describe('manage purchase-orders routes', () => {
     vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => mocks.randomUUID());
     mocks.randomUUID.mockReturnValue('generated-idempotency-key');
     mocks.repoFindById.mockResolvedValue({ id: 'po-1', status: 'draft', items: [] });
+    mocks.repoCreate.mockResolvedValue({ id: 'po-1', po_no: 'PO-1', status: 'draft' });
+    mocks.repoUpdate.mockResolvedValue(true);
     mocks.repoAddItems.mockResolvedValue(['poi-1']);
     mocks.repoUpdateItem.mockResolvedValue(true);
     mocks.repoRemoveItem.mockResolvedValue(true);
     mocks.serviceUpdateStatus.mockResolvedValue({ success: true, cascadedOrders: 2 });
+    mocks.serviceCreateFromOrders.mockResolvedValue({ id: 'po-2', po_no: 'PO-2', status: 'draft' });
+    mocks.serviceAllocateCosts.mockResolvedValue(undefined);
     mocks.domainRecordReceipts.mockResolvedValue({ purchase_order_id: 'po-1', receipt_count: 1 });
     mocks.reversalReverseReceipt.mockResolvedValue({ purchase_order_id: 'po-1', receipt_id: 'receipt-1', reversal_qty: 2 });
+  });
+
+  it('enqueues purchase-order create cache side effects through outbox', async () => {
+    const app = createApp();
+    const db = createDb();
+    const waitUntil = vi.fn();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ remark: 'draft' }),
+      },
+      { DB: db },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'purchase_order_created',
+        aggregate_type: 'purchase_order',
+        aggregate_id: 'po-1',
+        payload: expect.objectContaining({
+          purchase_order_id: 'po-1',
+        }),
+      }),
+    ]);
+    expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('enqueues purchase-order create-from-orders cache side effects through outbox', async () => {
+    const app = createApp();
+    const db = createDb();
+    const waitUntil = vi.fn();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/from-orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_ids: ['o-1'] }),
+      },
+      { DB: db },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'purchase_order_created_from_orders',
+        aggregate_id: 'po-2',
+      }),
+    ]);
+    expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
+    expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('enqueues purchase-order update cache side effects through outbox', async () => {
+    const app = createApp();
+    const db = createDb();
+    const waitUntil = vi.fn();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1',
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ remark: 'updated' }),
+      },
+      { DB: db },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'purchase_order_updated',
+        aggregate_id: 'po-1',
+      }),
+    ]);
+    expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
+    expect(waitUntil).toHaveBeenCalled();
   });
 
   it('rejects adding item when pre_order_id product/variant mismatch', async () => {
@@ -190,6 +296,7 @@ describe('manage purchase-orders routes', () => {
   it('returns procurement-specific cascade message on status update', async () => {
     const app = createApp();
     const db = createDb();
+    const waitUntil = vi.fn();
 
     const res = await app.request(
       'http://localhost/api/manage/purchase-orders/po-1/status',
@@ -199,16 +306,133 @@ describe('manage purchase-orders routes', () => {
         body: JSON.stringify({ status: 'ordered' }),
       },
       { DB: db },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json?.data?.message || '').toContain('预订单采购状态');
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'purchase_order_status_changed',
+        aggregate_id: 'po-1',
+      }),
+    ]);
+    expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
+    expect(waitUntil).toHaveBeenCalled();
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ action: 'purchase_order.status.change', domain: 'purchase-orders' })
     );
+  });
+
+  it('enqueues purchase-order item create cache side effects through outbox', async () => {
+    const app = createApp();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+    });
+    const waitUntil = vi.fn();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            quantity: 1,
+            unit_cost: 10,
+          }],
+        }),
+      },
+      { DB: db },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'purchase_order_item_created',
+        aggregate_id: 'po-1',
+      }),
+    ]);
+    expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
+    expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('enqueues purchase-order item update cache side effects through outbox', async () => {
+    const app = createApp();
+    const db = createDb();
+    const waitUntil = vi.fn();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items/item-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 2 }),
+      },
+      { DB: db },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'purchase_order_item_updated',
+        aggregate_id: 'po-1',
+      }),
+    ]);
+    expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
+    expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('enqueues purchase-order item delete cache side effects through outbox', async () => {
+    const app = createApp();
+    const db = createDb();
+    const waitUntil = vi.fn();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items/item-1',
+      { method: 'DELETE' },
+      { DB: db },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'purchase_order_item_deleted',
+        aggregate_id: 'po-1',
+      }),
+    ]);
+    expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
+    expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('enqueues purchase-order allocation cache side effects through outbox', async () => {
+    const app = createApp();
+    const db = createDb();
+    const waitUntil = vi.fn();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/allocate',
+      { method: 'POST' },
+      { DB: db },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'purchase_order_cost_allocated',
+        aggregate_id: 'po-1',
+      }),
+    ]);
+    expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
+    expect(waitUntil).toHaveBeenCalled();
   });
 
   it('creates receipts via domain service and returns 201', async () => {

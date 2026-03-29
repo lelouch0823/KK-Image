@@ -33,7 +33,11 @@ function createCacheContext(baseUrl, purchaseOrderId = null) {
 }
 
 function resolvePurchaseOrderId(event, payload) {
-  return payload.purchase_order_id || payload.purchaseOrderId || payload.po_id || null;
+  return payload.purchase_order_id
+    || payload.purchaseOrderId
+    || payload.po_id
+    || (event?.aggregate_type === 'purchase_order' ? event.aggregate_id : null)
+    || null;
 }
 
 function isOrderDomainEvent(eventType) {

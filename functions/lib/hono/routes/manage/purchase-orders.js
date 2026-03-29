@@ -17,11 +17,11 @@ import { validateOrderQuantity } from '../../../../services/purchase-order-const
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { withCache } from '../../middleware/cache.js';
 import { requirePermission } from '../../middleware/auth.js';
-import { getPurchaseOrderCacheUrls, getOrderAnalyticsCacheUrls } from '../_shared/cache-urls.js';
-import { requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { requireEntity } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { runOutboxPoller } from '../../../../api/cron/outbox.js';
+import { DomainOutboxPublisher } from '../../../../services/DomainOutboxPublisher.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -38,13 +38,26 @@ export const auditRouteDeclarations = declareAuditRoutes([
 ]);
 app.use('*', requirePermission('products:manage'));
 
-const invalidatePoRelatedCaches = (c, poId = null) => {
-  const urls = [
-    ...getPurchaseOrderCacheUrls(c, poId),
-    ...getOrderAnalyticsCacheUrls(c),
-  ];
-  scheduleCacheInvalidation(c, [...new Set(urls)]);
-};
+async function publishPurchaseOrderCacheEvent(c, { eventType, poId, payload = {} }) {
+  const publisher = new DomainOutboxPublisher(c.env.DB);
+  await publisher.publish([
+    {
+      event_type: eventType,
+      aggregate_type: 'purchase_order',
+      aggregate_id: poId,
+      payload: {
+        purchase_order_id: poId,
+        ...payload,
+      },
+    },
+  ]);
+
+  c.executionCtx.waitUntil(runOutboxPoller({
+    env: c.env,
+    requestUrl: c.req.url,
+    workerId: `${eventType}:${poId}`,
+  }));
+}
 
 async function requirePurchaseOrder(repo, poId) {
   return requireEntity(repo.findById(poId), () => new NotFoundError('采购单不存在'));
@@ -272,7 +285,13 @@ app.post('/', async (c) => {
     await repo.addItems(po.id, body.items);
   }
 
-  invalidatePoRelatedCaches(c, po.id);
+  await publishPurchaseOrderCacheEvent(c, {
+    eventType: 'purchase_order_created',
+    poId: po.id,
+    payload: {
+      item_count: Array.isArray(body.items) ? body.items.length : 0,
+    },
+  });
 
   // 返回完整的采购单
   const fullPo = await repo.findById(po.id);
@@ -309,7 +328,13 @@ app.post('/from-orders', async (c) => {
     estimated_tariff_cost: body.estimated_tariff_cost,
   });
 
-  invalidatePoRelatedCaches(c, po?.id);
+  await publishPurchaseOrderCacheEvent(c, {
+    eventType: 'purchase_order_created_from_orders',
+    poId: po.id,
+    payload: {
+      order_ids: body.order_ids,
+    },
+  });
   scheduleAuditEvent(c, {
     domain: 'purchase-orders',
     action: 'purchase_order.create_from_orders',
@@ -338,7 +363,13 @@ app.put('/:id', async (c) => {
   const updated = await repo.update(c.req.param('id'), body);
   requireMutationSuccess(updated, '未找到采购单或无有效字段更新');
 
-  invalidatePoRelatedCaches(c, c.req.param('id'));
+  await publishPurchaseOrderCacheEvent(c, {
+    eventType: 'purchase_order_updated',
+    poId: c.req.param('id'),
+    payload: {
+      fields: Object.keys(body || {}),
+    },
+  });
 
   const po = await repo.findById(c.req.param('id'));
   scheduleAuditEvent(c, {
@@ -368,7 +399,14 @@ app.patch('/:id/status', async (c) => {
   // Service 内部会校验合法性并抛出 BadRequestError / NotFoundError
   const result = await service.updateStatus(c.req.param('id'), body.status);
 
-  invalidatePoRelatedCaches(c, c.req.param('id'));
+  await publishPurchaseOrderCacheEvent(c, {
+    eventType: 'purchase_order_status_changed',
+    poId: c.req.param('id'),
+    payload: {
+      status: body.status,
+      cascaded_orders: result.cascadedOrders || 0,
+    },
+  });
   scheduleAuditEvent(c, {
     domain: 'purchase-orders',
     action: 'purchase_order.status.change',
@@ -414,7 +452,13 @@ app.post('/:id/items', async (c) => {
 
   const ids = await repo.addItems(poId, body.items);
 
-  invalidatePoRelatedCaches(c, poId);
+  await publishPurchaseOrderCacheEvent(c, {
+    eventType: 'purchase_order_item_created',
+    poId,
+    payload: {
+      item_count: ids.length,
+    },
+  });
   scheduleAuditEvent(c, {
     domain: 'purchase-orders',
     action: 'purchase_order.item.create',
@@ -445,7 +489,14 @@ app.patch('/:id/items/:itemId', async (c) => {
   const updated = await repo.updateItem(poId, c.req.param('itemId'), body);
   requireMutationSuccess(updated, '明细不存在');
 
-  invalidatePoRelatedCaches(c, poId);
+  await publishPurchaseOrderCacheEvent(c, {
+    eventType: 'purchase_order_item_updated',
+    poId,
+    payload: {
+      item_id: c.req.param('itemId'),
+      fields: Object.keys(body || {}),
+    },
+  });
   scheduleAuditEvent(c, {
     domain: 'purchase-orders',
     action: 'purchase_order.item.update',
@@ -474,7 +525,13 @@ app.delete('/:id/items/:itemId', async (c) => {
   const removed = await repo.removeItem(poId, c.req.param('itemId'));
   requireMutationSuccess(removed, '明细不存在');
 
-  invalidatePoRelatedCaches(c, poId);
+  await publishPurchaseOrderCacheEvent(c, {
+    eventType: 'purchase_order_item_deleted',
+    poId,
+    payload: {
+      item_id: c.req.param('itemId'),
+    },
+  });
   scheduleAuditEvent(c, {
     domain: 'purchase-orders',
     action: 'purchase_order.item.delete',
@@ -499,7 +556,10 @@ app.post('/:id/allocate', async (c) => {
   const service = new PurchaseOrderService(c.env.DB);
   await service.allocateCosts(poId);
 
-  invalidatePoRelatedCaches(c, poId);
+  await publishPurchaseOrderCacheEvent(c, {
+    eventType: 'purchase_order_cost_allocated',
+    poId,
+  });
 
   const repo = new PurchaseOrderRepository(c.env.DB);
   const po = await requirePurchaseOrder(repo, poId);
