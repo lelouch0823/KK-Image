@@ -228,4 +228,73 @@ describe('PurchaseOrders detail shell', () => {
     expect(wrapper.find('[data-testid="purchase-order-detail-status-chip"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="purchase-order-detail-item-card"]').exists()).toBe(true);
   });
+
+  it('accepts selected orders from the current camelCase contract and ignores legacy snake_case-only payloads', async () => {
+    mocks.detailState.detailLoading = false;
+
+    const wrapper = mount(PurchaseOrders, {
+      global: {
+        stubs: {
+          Teleport: true,
+          Transition: false,
+          OrderPickerModal: { template: '<div />' },
+          ProductPickerModal: { template: '<div />' },
+          ProductDetailModal: { template: '<div />' },
+          AppImage: { template: '<div />' },
+          AppIcon: { template: '<i />' },
+          AppFilterBar: { template: '<div />' },
+          AppButton: { template: '<button><slot /></button>' },
+          AppInput: { template: '<input />' },
+          AppCheckbox: { template: '<input type="checkbox" />' },
+          AppSelect: { template: '<select />' },
+          AppTable: { template: '<div />' },
+          StatusBadge: { template: '<div><slot /></div>' },
+          PermissionDeniedState: { template: '<div />' },
+          MetricTile: { template: '<div />' },
+          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+        },
+      },
+    });
+
+    await wrapper.vm.handleOrdersSelected([
+      {
+        id: 'order-camel',
+        productId: 'prod-camel',
+        variantId: 'var-camel',
+        orderNo: 'SO-CAMEL',
+        productName: 'Camel Product',
+        quantity: 3,
+        currentData: {
+          name: 'Camel Product',
+          variant_sku: 'SKU-CAMEL',
+          brand: 'KK',
+          cost_price: 18,
+          images: ['https://example.com/camel.png'],
+        },
+      },
+      {
+        id: 'order-snake',
+        product_id: 'prod-snake',
+        variant_id: 'var-snake',
+        order_no: 'SO-SNAKE',
+        quantity: 2,
+        current_data: JSON.stringify({
+          name: 'Snake Product',
+          variant_sku: 'SKU-SNAKE',
+          brand: 'Legacy',
+          cost_price: 9,
+        }),
+      },
+    ]);
+
+    expect(wrapper.vm.poItems).toHaveLength(1);
+    expect(wrapper.vm.poItems[0]).toMatchObject({
+      product_id: 'prod-camel',
+      variant_id: 'var-camel',
+      product_name: 'Camel Product',
+      order_no: 'SO-CAMEL',
+      quantity: 3,
+      unit_cost: 18,
+    });
+  });
 });

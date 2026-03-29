@@ -1009,19 +1009,13 @@ const handleOrdersSelected = async (orders) => {
       : detail.value?.items?.some(i => i.pre_order_id === order.id);
     if (isDuplicate) continue;
 
-    // 解析 current_data 获取商品详情
-    let data = {};
-    try {
-      data = order.currentData || order.current_data
-        ? (typeof (order.currentData || order.current_data) === 'string'
-          ? JSON.parse(order.currentData || order.current_data)
-          : (order.currentData || order.current_data))
-        : {};
-    } catch { /* 忽略 */ }
+    const data = order.currentData && typeof order.currentData === 'object'
+      ? order.currentData
+      : {};
 
     itemsToAdd.push({
-      product_id: order.productId || order.product_id || null,
-      variant_id: order.variantId || order.variant_id || null,
+      product_id: order.productId || null,
+      variant_id: order.variantId || null,
       product_name: order.productName || data.name || '—',
       sku: data.variant_sku || data.spu || '—',
       brand: data.brand || order.brand || '',
@@ -1032,7 +1026,7 @@ const handleOrdersSelected = async (orders) => {
       pack_size: order.pack_size || null,
       order_step: order.order_step || null,
       pre_order_id: order.id,
-      order_no: order.orderNo || order.order_no || '',
+      order_no: order.orderNo || '',
       required_quantity: order.quantity || 1, // 预定需求量
     });
   }
