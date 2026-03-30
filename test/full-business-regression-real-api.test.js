@@ -11,6 +11,7 @@ import {
   createManageWebhook,
   deleteManageWebhook,
   startWebhookReceiver,
+  cleanupTestManageWebhooks,
 } from './utils/webhook-real-api.js';
 
 async function ensureSalespersonId(token, seed) {
@@ -49,6 +50,7 @@ describeIfRealApi('Full Business Regression Real API', function () {
 
   it('runs file -> product -> order -> procurement -> notification in one workflow', async () => {
     const token = await getBearerToken();
+    await cleanupTestManageWebhooks(token);
     const seed = uniqueSeed('full-chain');
     const salespersonId = await ensureSalespersonId(token, seed);
     const webhookReceiver = await startWebhookReceiver({ port: 3003 });

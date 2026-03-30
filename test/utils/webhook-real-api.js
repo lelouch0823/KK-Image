@@ -6,9 +6,48 @@ function normalizePort(port) {
   return Number(port || process.env.WEBHOOK_TEST_PORT || 3001);
 }
 
-export async function startWebhookReceiver({ port, path = '/webhook' } = {}) {
+const TEST_WEBHOOK_HEADER_KEYS = new Set([
+  'x-test-seed',
+  'x-line-seed',
+  'x-retry-seed',
+  'x-terminal-seed',
+  'x-full-chain-seed',
+]);
+
+function normalizeResponseConfig(value) {
+  if (typeof value === 'number') {
+    return {
+      status: value,
+      body: value >= 200 && value < 300 ? { success: true } : { success: false, status: value },
+    };
+  }
+
+  if (value && typeof value === 'object') {
+    return {
+      status: Number(value.status || 200),
+      body: value.body ?? (Number(value.status || 200) >= 200 && Number(value.status || 200) < 300
+        ? { success: true }
+        : { success: false, status: Number(value.status || 200) }),
+      headers: value.headers || {},
+    };
+  }
+
+  return {
+    status: 200,
+    body: { success: true },
+    headers: {},
+  };
+}
+
+export async function startWebhookReceiver({
+  port,
+  path = '/webhook',
+  responseSequence = [],
+  responseResolver = null,
+} = {}) {
   const received = [];
   const targetPort = normalizePort(port);
+  let requestCount = 0;
 
   const server = await new Promise((resolve) => {
     const instance = http.createServer((req, res) => {
@@ -24,13 +63,29 @@ export async function startWebhookReceiver({ port, path = '/webhook' } = {}) {
       });
       req.on('end', () => {
         try {
+          const parsedBody = JSON.parse(body);
+          const responseConfig = normalizeResponseConfig(
+            typeof responseResolver === 'function'
+              ? responseResolver({
+                  headers: req.headers,
+                  body: parsedBody,
+                  requestCount,
+                })
+              : responseSequence[requestCount]
+          );
+          requestCount += 1;
+
           received.push({
             headers: req.headers,
-            body: JSON.parse(body),
+            body: parsedBody,
             timestamp: new Date().toISOString(),
+            responseStatus: responseConfig.status,
           });
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true }));
+          res.writeHead(responseConfig.status, {
+            'Content-Type': 'application/json',
+            ...(responseConfig.headers || {}),
+          });
+          res.end(JSON.stringify(responseConfig.body));
         } catch (error) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: String(error?.message || error) }));
@@ -46,6 +101,7 @@ export async function startWebhookReceiver({ port, path = '/webhook' } = {}) {
     received,
     reset() {
       received.length = 0;
+      requestCount = 0;
     },
     async waitForDelivery(predicate, options = {}) {
       return waitFor(() => {
@@ -97,6 +153,24 @@ export async function listManageWebhooks(token) {
   return result.json?.data || [];
 }
 
+export async function cleanupTestManageWebhooks(token, { eventTypes = [] } = {}) {
+  const hooks = await listManageWebhooks(token);
+  const eventFilter = new Set((eventTypes || []).filter(Boolean));
+  const removable = hooks.filter((hook) => {
+    const headerKeys = Object.keys(hook?.headers || {}).map((key) => String(key).toLowerCase());
+    const isTestHook = headerKeys.some((key) => TEST_WEBHOOK_HEADER_KEYS.has(key));
+    if (!isTestHook) return false;
+    if (eventFilter.size === 0) return true;
+    return (hook?.events || []).some((eventType) => eventFilter.has(eventType));
+  });
+
+  for (const hook of removable) {
+    await deleteManageWebhook(token, hook.id);
+  }
+
+  return removable;
+}
+
 export async function testManageWebhook(token, webhookId) {
   const result = await apiRequest(`/api/manage/webhooks/${webhookId}/test`, {
     bearerToken: token,
@@ -130,6 +204,7 @@ export async function runWebhookSmokeFlow({
   events = ['purchase_receipt_recorded'],
 } = {}) {
   const bearerToken = token || (await getBearerToken());
+  await cleanupTestManageWebhooks(bearerToken);
   const receiver = await startWebhookReceiver({ port });
   let webhookId = null;
 

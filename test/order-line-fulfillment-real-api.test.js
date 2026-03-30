@@ -463,4 +463,98 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
     assert.strictEqual(finalPo?.items?.[0]?.display_status, 'received');
     assert.strictEqual(Number(finalVariant.stock_quantity || 0), 2);
   });
+
+  it('keeps receipt and ship workflows usable after the source product has been archived', async () => {
+    const token = await getBearerToken();
+    const seed = uniqueSeed('archived-master-data');
+    const salespersonId = await ensureSalespersonId(token, seed);
+    const { productId, variantId, productName } = await createWorkflowProduct(token, seed, {
+      stockQuantity: 0,
+    });
+    const orderId = await createConfirmedOrder(token, {
+      seed,
+      salespersonId,
+      productId,
+      variantId,
+      productName,
+      quantity: 3,
+    });
+    const poId = await createPurchaseOrderFromOrders(token, [orderId], seed);
+
+    await transitionPurchaseOrderToShipping(token, poId);
+
+    const poBeforeArchive = await getPurchaseOrderDetail(token, poId);
+    const poItemId = poBeforeArchive?.items?.[0]?.id;
+    assert.ok(poItemId, 'purchase order item missing before archive');
+
+    await apiRequest(`/api/manage/products/${productId}`, {
+      bearerToken: token,
+      method: 'DELETE',
+      expectedStatus: 200,
+    });
+
+    const archivedProduct = await apiRequest(`/api/manage/products/${productId}`, {
+      bearerToken: token,
+      expectedStatus: 200,
+    });
+    const archivedVariant = (archivedProduct.json?.data?.variants || []).find((item) => item.id === variantId);
+    assert.ok(archivedVariant, 'archived variant missing from product detail');
+    assert.strictEqual(archivedVariant.status, 'archived');
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-receipt`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: poItemId,
+            received_qty: 3,
+            note: 'receipt after product archive',
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+
+    const orderAfterReceipt = await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const line = order?.lines?.[0];
+      assert.ok(line?.id, 'archived-product order line missing');
+      assert.strictEqual(order?.procurementStatus, 'arrived');
+      assert.strictEqual(line?.receivedQuantity, 3);
+      return { order, line };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'receipt did not converge after source product archive',
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { quantity: 1 },
+      expectedStatus: 200,
+    });
+
+    await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const po = await getPurchaseOrderDetail(token, poId);
+      const variant = await getVariantDetail(token, productId, variantId);
+
+      assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 1);
+      assert.strictEqual(order?.lines?.[0]?.displayStatus, 'partially_shipped');
+      assert.strictEqual(Number(po?.items?.[0]?.received_qty || 0), 3);
+      assert.strictEqual(po?.items?.[0]?.display_status, 'received');
+      assert.strictEqual(variant.status, 'archived');
+      assert.strictEqual(Number(variant.stock_quantity || 0), 2);
+      return { order, po, variant };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'ship flow did not remain usable after source product archive',
+    });
+  });
 });
