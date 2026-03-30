@@ -21,7 +21,7 @@
 ### [📊 系统概览](system-overview.md)
 - 整体架构图和组件关系
 - D1 + R2 存储架构
-- 数据流程和处理逻辑
+- 订单行级模型、采购事实层与 outbox 副作用链路
 
 ### [🛡️ 安全架构](security.md)
 - JWT/Basic Auth 认证机制
@@ -50,7 +50,7 @@
 | [API路由](modules/api-routes.md) | Hono路由、中间件系统、RESTful设计 |
 | [数据访问层](modules/repository-layer.md) | Repository模式、D1操作封装 |
 | [存储层](modules/storage-layer.md) | R2/S3/Telegram存储、CAS去重 |
-| [预订单创建链路](modules/preorder-creation-flow.md) | 销售端/管理端创建、校验、落库、通知与采购联动 |
+| [预订单创建链路](modules/preorder-creation-flow.md) | 销售端/管理端创建、`orders + order_lines` 落库、outbox 联动与采购进度投影 |
 
 ---
 
@@ -74,6 +74,12 @@ graph TD
 - **全球加速** - 边缘计算 + Smart Placement
 - **低成本** - 按需付费，免费额度慷慨
 - **高可用** - Cloudflare 全球网络
+
+### 订单与副作用架构
+
+- 订单模块以 `orders` 头信息和 `order_lines` 行级进度共同建模
+- 采购到货、部分到货、冲销优先写不可变事实，再投影回订单读模型
+- 通知、缓存失效、Webhook、Replay 均由 durable outbox 驱动
 
 ### 技术栈 (SOTA 2026)
 

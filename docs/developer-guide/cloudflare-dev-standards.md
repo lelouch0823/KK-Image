@@ -7,16 +7,17 @@
 
 ## 1. 架构与目录结构
 
-### 1.1 Pages Functions 路由
-*   **文件路由**: 使用 `/functions` 目录进行基于文件的路由。
-    *   `functions/api/v1/users.js` -> `/api/v1/users`
-*   **中间件**: 使用 `_middleware.js` 处理通用逻辑（鉴权、日志、CORS）。
-    *   层级化中间件：根目录的 `_middleware.js` 全局生效，子目录的 `_middleware.js` 仅对该子目录生效。
+### 1.1 Hono 路由挂载
+*   **当前项目默认模式**: 统一通过 `functions/lib/hono/app.js` 挂载路由，不再使用 `functions/api/*` 的文件式业务路由作为主结构。
+    *   `functions/lib/hono/routes/v1/users.js` 由 `app.route('/api/v1/users', usersRoutes)` 挂载
+    *   `functions/lib/hono/routes/manage/purchase-orders.js` 由 `app.route('/api/manage/purchase-orders', managePurchaseOrdersRoutes)` 挂载
+*   **中间件**: 统一放在 `functions/lib/hono/middleware/`，并在 `app.js` 或子路由内显式注册。
 
-### 1.2 上下文传递 (`context`)
-*   **禁止**: 避免直接挂载属性到 `context` 根对象上（如 `context.user`），这在某些运行时不可靠。
-*   **强制**: 使用 `context.data` 传递请求生命周期内的数据。
-    *   Example: `context.data.user = userPayload;`
+### 1.2 上下文传递（Hono Context）
+*   **禁止**: 避免给 Hono `Context` 直接挂载自定义属性（如 `c.user = ...`）。
+*   **强制**: 使用 `c.set(key, value)` / `c.get(key)` 传递请求生命周期内的数据。
+    *   Example: `c.set('user', userPayload);`
+*   **补充**: 只有在少数裸 Pages Function 处理器中，才考虑 `context.data`；本项目业务路由默认不使用该模式。
 
 ## 2. 数据库规范 (D1)
 
@@ -58,7 +59,7 @@
 *   **强制**: 使用环境变量 (`env`)。本地开发使用 `.dev.vars`，生产环境在 Dashboard 设置。
 
 ### 4.2 响应头 (Headers)
-*   **CORS**: API 必须配置正确的 CORS 头。建议在 `functions/_middleware.js` 中统一处理 `OPTIONS` 请求。
+*   **CORS**: API 必须配置正确的 CORS 头。当前项目在 `functions/lib/hono/app.js` 中统一处理。
 *   **Security Headers**: 生产环境应包含 `Strict-Transport-Security`, `X-Content-Type-Options` 等安全头。
 
 ## 5. 开发流程 (Workflow)

@@ -12,21 +12,22 @@
 
 - **[管理端 API 文档](management.md)**
   - 文件上传 (`/upload`, `/check-hash`)
-  - 订单管理 (`/orders`)
+  - 订单管理 (`/orders`，详情含 `lines`)
   - 客户与销售人员管理
-  - 商品与库存管理 (`/products`, `/inventory`)
-  - 采购单管理 (`/purchase-orders`)
+  - 商品、订货总览与库存管理 (`/products`, `/goods-overview`, `/inventory`)
+  - 采购单管理 (`/purchase-orders`，详情含 `items` / `receipts`)
+  - Outbox / Replay 运维接口 (`/outbox`, `/audit-replay`)
 
 ## 2. Sales API (销售端)
 > **Base URL**: `/api/sales/:token`  
-> **Auth**: Bearer Token (in Path) + JWT
+> **Auth**: Path Token + Bearer JWT
 
 专为移动端销售工具设计，通过 `access_token` 进行鉴权。
 
 - **[销售端 API 文档](sales.md)**
   - 创建订单
   - 查看个人业绩
-  - 更新订单状态
+  - 查看订单详情 (`lines` / `files` / `timeline`)
   - **微信小程序登录** (NEW)
 
 ---
@@ -63,6 +64,8 @@
   "error": "Error Message" // 失败时返回错误信息
 }
 ```
+
+关键业务写接口的通知、缓存和 webhook 已切换为 durable outbox 异步处理；客户端应以主请求返回值和后续读模型刷新为准。
 
 ### 错误处理
 HTTP 状态码用于指示请求状态：

@@ -12,14 +12,11 @@
 
 ### 💾 数据库与 API
 - **[数据库架构 (Schema)](DATABASE_SCHEMA.md)**
-  - 完整的 D1 数据库表结构定义 (Orders, Files, Blobs, CRM)。
+  - 完整的 D1 数据库表结构定义，包含 `order_lines`、采购事实表和 durable outbox。
 - **[API 文档](api/README.md)**
   - 了解如何与 kk-life 后端交互。
 - **[授权策略系统（OPA/Rego）](developer-guide/authz-policy-system.md)**
   - 权限策略设计、开发流程、测试门禁与工程标准。
-
-### 📖 用户手册
-- [用户手册](user-manual/README.md)
 
 ### 📖 用户手册
 - [用户手册](user-manual/README.md)
@@ -34,9 +31,11 @@
 - **共享空间 (Shared Spaces)**
 - **文件管理 (File Manager)**
 - **订单系统 (Order Management)**
+- **订单行级履约与采购投影 (`orders + order_lines`)**
 - **客户管理 (CRM)**
 - **商品与库存管理 (Product & Inventory)**
 - **采购单管理 (Purchase Orders)**
+- **Durable Outbox / Replay 运维**
 - **Webhooks & Integrations**
 
 ---

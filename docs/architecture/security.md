@@ -163,7 +163,7 @@ SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
 ## 📚 相关文档
 
 - **[环境变量配置](../deployment/environment-variables.md)** - 安全配置说明
-- **[API 文档](../api-docs/README.md)** - 接口认证说明
+- **[API 文档](../api/README.md)** - 接口认证说明
 - **[部署指南](../deployment/README.md)** - 安全部署最佳实践
 
 ---

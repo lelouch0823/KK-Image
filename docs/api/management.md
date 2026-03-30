@@ -1,134 +1,150 @@
-# Management API (管理端)
+# Management API
 
-> **Base URL**: `/api/manage`
-> **Auth**: Bearer Token (JWT) 或 Basic Auth
-> **External**: 支持通过 `X-API-Key` 请求头进行外部调用
+> Base URL: `/api/manage`
+> Auth: Bearer Token / Basic Auth / `X-API-Key`
 
-## 1. 仪表盘 (Dashboard)
+本文档聚焦当前管理端真实可用的核心接口，并特别标记订单行级模型与 outbox 运维相关入口。
+
+## 1. 仪表盘
 
 ### 获取概览数据
 `GET /api/manage/dashboard/overview`
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "todayCount": 5,
-    "pendingCount": 12,
-    "weekCount": 35,
-    "lastWeekCount": 28,
-    "activeSharesCount": 3,
-    "recentPendingOrders": [ ... ]
-  }
-}
-```
+### 获取订单统计
+`GET /api/manage/orders/stats`
 
----
+返回值通常包含：
 
-## 2. 订单管理 (Orders)
+- 今日新增
+- 待处理数量
+- 状态分布
+- 最近 30 天趋势
+
+## 2. 订单管理
 
 ### 获取订单列表
 `GET /api/manage/orders`
 
-**Query Params:**
+Query Params:
+
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| `page` | int | 页码 (default: 1) |
-| `limit` | int | 每页条数 (default: 20) |
-| `status` | string | 状态筛选 (`pending`, `confirmed`, `rejected`, `production`, `shipping`, `arrived`, `delivered`, `void`) |
-| `search` | string | 搜索关键词 (订单号/客户名) |
-| `salesperson_id` | string | 筛选指定销售的订单 |
+| `page` | int | 页码，默认 `1` |
+| `limit` | int | 每页条数，默认 `20` |
+| `salesperson` | string | 销售员 ID |
+| `status` | string | 订单主状态，如 `pending`、`confirmed`、`delivered` |
+| `procurementStatus` | string | 采购/履约进度筛选，实际会映射到订单行聚合状态 |
+| `search` | string | 订单号/内容搜索 |
+| `startTime` | timestamp | 起始时间 |
+| `endTime` | timestamp | 结束时间 |
+
+说明：
+
+- 列表侧优先使用 `order_lines` 聚合得到的展示状态
+- `orders.procurement_status` 仅保留为兼容性聚合字段
+
+### 导出订单
+`GET /api/manage/orders/export`
+
+Query Params:
+
+- `salesperson`
+- `status`
+- `procurementStatus`
+- `search`
+- `from`
+- `to`
 
 ### 获取订单详情
 `GET /api/manage/orders/:id`
 
-### 更新订单 (字段修改)
-`PATCH /api/manage/orders/:id`
+返回值除了订单头字段外，还会包含：
 
-**Body:**
+- `lines`
+- `files`
+- `timeline`
+
+### 创建订单
+`POST /api/manage/orders`
+
+常用 Body 字段：
+
 ```json
 {
-  "current_data": { "name": "新名称", "color": "调整后的颜色" },
+  "productName": "定制海报",
+  "salespersonId": "sp_xxx",
+  "status": "pending",
+  "quantity": 2,
+  "productId": "prod_xxx",
+  "variantId": "var_xxx",
+  "fileIds": ["file_1", "file_2"]
+}
+```
+
+说明：
+
+- 创建时会写入 `orders + order_lines + order_files + order_timeline`
+- 后续通知/缓存/Webhook 由 durable outbox 异步驱动
+
+### 更新订单字段
+`PATCH /api/manage/orders/:id`
+
+Body 示例：
+
+```json
+{
+  "updates": {
+    "name": "新名称",
+    "quantity": 3
+  },
   "reason": "客户要求修改"
 }
 ```
-> 必须提供 `reason`，用于时间轴记录。
 
-### 变更订单状态
-`POST /api/manage/orders/:id/status`
+### 更新订单状态
+`PATCH /api/manage/orders/:id/status`
 
-**Body:**
+Body 示例：
+
 ```json
 {
-  "status": "production",
-  "comment": "开始生产，预计3天完成"
+  "status": "confirmed",
+  "note": "审核通过"
 }
 ```
 
 ### 添加留言
 `POST /api/manage/orders/:id/comment`
 
-**Body:**
+Body:
+
 ```json
 {
   "comment": "已联系客户确认尺寸"
 }
 ```
 
-### 批量更新状态
+### 批量更新
 `POST /api/manage/orders/batch`
 
-**Body:**
+Body 示例：
+
 ```json
 {
   "ids": ["order_1", "order_2"],
-  "action": "status_change",
-  "status": "confirmed"
+  "action": "status",
+  "value": "confirmed",
+  "reason": "批量审核通过"
 }
 ```
 
-### 导出订单
-`GET /api/manage/orders/export`
-
-**Query Params:**
-- `format`: `xlsx` | `csv`
-- `status`, `start_date`, `end_date` 等筛选条件
-
----
-
-## 3. 销售人员管理 (Salespersons)
+## 3. 销售人员管理
 
 ### 获取销售列表
 `GET /api/manage/salespersons`
 
-**Query Params:**
-- `page`, `limit`, `search`, `is_active`
-
 ### 创建销售员
 `POST /api/manage/salespersons`
-
-**Body:**
-```json
-{
-  "name": "张三",
-  "store": "旗舰店",
-  "phone": "13800000000",
-  "password": "initial_password"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "sp_xxx",
-    "accessToken": "tk_sales_abc123",
-    "accessUrl": "/order/tk_sales_abc123"
-  }
-}
-```
 
 ### 获取销售详情
 `GET /api/manage/salespersons/:id`
@@ -136,26 +152,13 @@
 ### 更新销售
 `PATCH /api/manage/salespersons/:id`
 
-**Body:**
-```json
-{
-  "name": "新姓名",
-  "store": "新门店",
-  "isActive": false,
-  "password": "new_password"
-}
-```
-
 ### 删除销售
 `DELETE /api/manage/salespersons/:id`
-> 如果该销售有关联订单，将返回 400 错误。
 
 ### 重置访问 Token
 `POST /api/manage/salespersons/:id/reset-token`
 
----
-
-## 4. 客户管理 (Customers)
+## 4. 客户管理
 
 ### 获取客户列表
 `GET /api/manage/customers`
@@ -169,96 +172,155 @@
 ### 创建客户
 `POST /api/manage/customers`
 
-**Body:**
-```json
-{
-  "name": "李四",
-  "phone": "13900000000",
-  "company": "ABC公司",
-  "tags": ["VIP", "老客户"],
-  "remark": "重要客户"
-}
-```
-
 ### 更新客户
 `PUT /api/manage/customers/:id`
 
 ### 删除客户
 `DELETE /api/manage/customers/:id`
-> 如果该客户有关联订单，将返回 400 错误。
 
----
+## 5. 文件上传
 
-## 5. 文件上传 (Files)
-
-### 检查文件哈希 (秒传)
+### 检查文件哈希
 `POST /api/manage/check-hash`
-
-**Body:**
-```json
-{
-  "hash": "sha256_hash_string"
-}
-```
-**Response:**
-- `exists`: true/false
-- `url`: 如果存在，返回现有 URL
 
 ### 上传文件
 `POST /api/manage/upload`
 
-> 支持使用 `X-API-Key` 进行外部调用。
+Form Data:
 
-**Form Data:**
-- `file`: 文件二进制
-- `folder_id`: 目标文件夹 ID (可选)
+- `file`
+- `folder_id`（可选）
 
----
+## 6. 商品、订货总览与库存
 
-## 6. 统计 (Stats)
-
-### 销售业绩统计
-`GET /api/manage/stats`
-
-**Query Params:**
-- `period`: `week`, `month`, `quarter`
-- `salesperson_id`: 可选，筛选指定销售
-
----
-
----
-
-## 7. 商品与库存系统 (Product & Inventory)
-
-### 获取商品列表 (SPU)
+### 商品管理
 `GET /api/manage/products`
-
-### 创建商品 SPU
 `POST /api/manage/products`
 
-### 获取/管理变体 (SKU)
+### 变体管理
 `GET /api/manage/products/:id/variants`
 `POST /api/manage/products/:id/variants`
 
-### 查询库存分类账
+### 订货总览
+`GET /api/manage/goods-overview`
+
+说明：
+
+- 订货总览和采购建议已经基于 `order_lines` 剩余需求计算，不再只看订单头数量
+
+### 库存分类账
 `GET /api/manage/inventory/ledger`
 
----
-
-## 8. 采购单管理 (Purchase Orders)
+## 7. 采购单管理
 
 ### 获取采购单列表
 `GET /api/manage/purchase-orders`
 
+### 获取采购统计
+`GET /api/manage/purchase-orders/stats`
+
+### 获取采购建议
+`GET /api/manage/purchase-orders/suggestions`
+
+### 获取采购单详情
+`GET /api/manage/purchase-orders/:id`
+
+返回值默认包含：
+
+- `items`
+- `receipts`
+- 聚合后的进度字段，如 `ordered_qty`、`received_qty`、`display_status`
+
 ### 创建采购单
 `POST /api/manage/purchase-orders`
 
+### 从预订单生成采购单
+`POST /api/manage/purchase-orders/from-orders`
+
+Body 示例：
+
+```json
+{
+  "order_ids": ["ord_1", "ord_2"],
+  "remark": "按本周已确认需求汇总"
+}
+```
+
+### 更新采购单基础信息
+`PUT /api/manage/purchase-orders/:id`
+
 ### 更新采购单状态
-`POST /api/manage/purchase-orders/:id/status`
+`PATCH /api/manage/purchase-orders/:id/status`
 
----
+### 添加采购单明细
+`POST /api/manage/purchase-orders/:id/items`
 
-## 9. 备份 (Backups)
+### 更新采购单明细
+`PATCH /api/manage/purchase-orders/:id/items/:itemId`
+
+### 删除采购单明细
+`DELETE /api/manage/purchase-orders/:id/items/:itemId`
+
+### 记录收货
+`POST /api/manage/purchase-orders/:id/receipts`
+
+Body 示例：
+
+```json
+{
+  "items": [
+    {
+      "purchase_order_item_id": "poi_1",
+      "received_qty": 5,
+      "note": "首批到货"
+    }
+  ]
+}
+```
+
+说明：
+
+- 该命令会写入 `purchase_receipts`
+- 同步更新 `inventory_ledger`
+- 关联更新 `order_lines`
+- 再聚合投影 `orders.procurement_status`
+- 通知 / 缓存 / Webhook 通过 outbox 异步处理
+
+### 冲销收货
+`POST /api/manage/purchase-orders/:id/receipts/:receiptId/reversal`
+
+### 重新分摊成本
+`POST /api/manage/purchase-orders/:id/allocate`
+
+## 8. 通知与运维
+
+### 管理端通知
+`GET /api/manage/notifications`
+
+### 查询 outbox 事件
+`GET /api/manage/outbox`
+
+Query Params:
+
+- `eventType`
+- `consumerName`
+- `status`
+
+### 查询 outbox 事件详情
+`GET /api/manage/outbox/:eventId`
+
+### 重放预演
+`POST /api/manage/audit-replay/dry-run`
+
+### 执行重放
+`POST /api/manage/audit-replay/execute`
+
+说明：
+
+- `audit-replay/execute` 属于高风险运维操作
+- 适用于修复通知/Webhook/缓存消费者历史缺失，而不是重写业务事实
+
+## 9. 备份
 
 ### 触发数据库备份
 `POST /api/manage/backups`

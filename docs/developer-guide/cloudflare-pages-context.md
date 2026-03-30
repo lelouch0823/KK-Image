@@ -1,66 +1,72 @@
-# Cloudflare Pages Functions - Context Propagation Best Practices
+# Cloudflare + Hono Context 传递最佳实践
 
-> **Critical**: Always use `context.data` to pass data between Middleware and Route Handlers.
+> 当前项目默认使用 Hono Context，不再以裸 Pages Functions `context.data` 作为主业务模式。
 
-## The Problem
-In Cloudflare Pages Functions, attaching custom properties directly to the `context` object (e.g., `context.user = ...`) is **unreliable**. While it might work in some local dev environments (like `wrangler pages dev`), these properties often fail to propagate to downstream handlers in the actual deployed environment or specific runtime conditions.
+## 1. 当前项目的正确做法
 
-This can lead to severe bugs where authentication middleware successfully verifies a user, but the API endpoint receives `undefined` or `null` when trying to access that user, resulting in 403 Forbidden errors.
+在 kk-life 里，请优先使用 Hono 的上下文传值接口：
 
-## The Solution: `context.data`
-Cloudflare Pages provides a dedicated `context.data` object specifically designed for passing data through the request chain.
+- `c.set('user', user)`
+- `c.get('user')`
 
-### Anti-Pattern (Do NOT do this)
+这是当前路由、中间件和权限链的标准写法。
+
+## 2. 常见错误
+
+### 2.1 不要直接给 Hono Context 挂属性
+
 ```javascript
 // Middleware
-context.user = user; // ❌ Unreliable
+c.user = user; // ❌ 不推荐
 
 // Handler
-const user = context.user; // ❌ Might be undefined
+const user = c.user; // ❌ 不稳定，也不符合当前项目约定
 ```
 
-### Best Practice (DO this)
-```javascript
-// Middleware
-context.data.user = user; // ✅ Recommended
+### 2.2 不要把旧 Pages Functions 示例当成默认模式
 
-// Handler
-const user = context.data.user; // ✅ Reliable
+旧文档中常见的：
+
+- `context.data.user = user`
+- `functions/_middleware.js`
+- `functions/api/endpoint.js`
+
+这些写法属于裸 Pages Functions 时代的参考，不是当前项目主路径。
+
+## 3. 当前推荐模式
+
+### 中间件
+
+```javascript
+app.use('/api/manage/*', async (c, next) => {
+  const user = await authenticate(c);
+  c.set('user', user);
+  await next();
+});
 ```
 
-## Implementation Example
+### 路由处理器
 
-### Middleware (`functions/_middleware.js`)
 ```javascript
-export async function onRequest(context) {
-  const user = await verifyToken(context.request);
-  
-  // Initialize context.data if it doesn't exist
-  context.data = context.data || {};
-  
-  // Attach user to context.data
-  context.data.user = user;
-  
-  // Backward compatibility (optional but harmless)
-  context.user = user;
-  
-  return context.next();
-}
-```
+app.get('/api/manage/orders', async (c) => {
+  const user = c.get('user');
 
-### Route Handler (`functions/api/endpoint.js`)
-```javascript
-export async function onRequest(context) {
-  // Retrieve from context.data, fallback to context.user only if necessary
-  const user = context.data?.user || context.user;
-  
   if (!user) {
-    return new Response("Unauthorized", { status: 401 });
+    return c.json({ success: false, error: 'Unauthorized' }, 401);
   }
-  
-  return new Response(`Hello ${user.name}`);
-}
+
+  return c.json({ success: true, data: [] });
+});
 ```
 
-## Related Incidents
-- **2025-12-27**: Fixed 403 Forbidden errors on `/api/v1/files` and `/api/v1/webhooks` by migrating from `context.user` to `context.data.user`.
+## 4. 如果真的在写裸 Pages Function
+
+只有在极少数未接入 Hono 的处理器里，才考虑使用 `context.data` 传递链路内数据。
+
+但在当前代码库里，订单、采购、商品、通知、审计等核心业务都应默认走 Hono 上下文，不要再新开一套 `context.data` 风格。
+
+## 5. 相关说明
+
+- Hono 总入口：`functions/lib/hono/app.js`
+- 中间件目录：`functions/lib/hono/middleware/`
+- 路由目录：`functions/lib/hono/routes/`

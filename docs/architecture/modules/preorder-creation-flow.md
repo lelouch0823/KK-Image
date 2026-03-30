@@ -1,242 +1,278 @@
-# 预订单创建全链路详解
+# 预订单创建与采购联动全链路
 
 ## 1. 文档目标
 
-本文档说明项目中“预订单”的创建流程、核心校验、落库行为和后续联动逻辑，便于开发、排查和后续重构时快速定位。
+本文档说明当前“预订单”从创建、落库、读模型投影到采购联动的真实链路。
 
-在当前代码里，“预订单”对应数据库 `orders` 表中的订单记录。
+需要先明确一个架构变化：
+
+- 过去可以把预订单理解为一条 `orders` 记录
+- 现在订单模块的真实语义是 `orders` 头记录 + `order_lines` 行级履约/采购模型
+
+现有销售端和管理端创建入口仍默认创建单行兼容订单，但采购、部分到货、冲销和展示状态都已经基于 `order_lines` 推进。
 
 ## 2. 术语与边界
 
-- 预订单: `orders` 表记录，初始通常为 `pending`。
-- 销售端创建: 从 `/sales/:token/create` 提交。
-- 管理端创建: 从 `/admin/orders` 的创建弹窗提交。
-- 本文仅覆盖“创建”与创建后直接联动，不展开编辑、删除、批量操作细节。
+- 预订单
+  - 业务口径上的客户需求单
+  - 后端表现为 `orders` + 至少 1 条 `order_lines`
+- 订单头
+  - `orders` 表记录
+  - 负责客户、销售、审批主状态、兼容性采购状态
+- 订单行
+  - `order_lines` 表记录
+  - 负责商品/变体、数量与履约进度
+- 本文只覆盖创建和创建后的订单/采购联动，不展开前端 UI 细节
 
-## 3. 整体架构入口
+## 3. 入口与主文件
 
-### 3.1 前端路由入口
+### 3.1 前端入口
 
-- 销售端创建页路由: `src/router/index.js`
-  - `path: '/sales/:token'`
-  - 子路由 `path: 'create'` -> `SalesFormView.vue`
-- 管理端订单页路由: `src/router/index.js`
-  - `/admin/orders` -> `OrderManager.vue`
+- 销售端创建页：`src/views/sales/SalesFormView.vue`
+- 销售端表单：`src/components/order/OrderForm.vue`
+- 管理端创建弹窗：`src/components/OrderCreateModal.vue`
 
-### 3.2 后端 API 入口
+### 3.2 后端入口
 
-- 总挂载: `functions/lib/hono/app.js`
-  - `app.route('/api/sales', salesRoutes)`
-  - `app.route('/api/manage/orders', manageOrdersRoutes)`
-- 销售端分组路由: `functions/lib/hono/routes/sales.js`
-  - 受保护业务路由挂在 `/:token/*` 下
-  - 订单路由: `protectedSales.route('/orders', ordersRoutes)`
+- Hono 总入口：`functions/lib/hono/app.js`
+- 销售端创建：`functions/lib/hono/routes/sales/orders.js`
+- 管理端创建：`functions/lib/hono/routes/manage/orders/create.js`
+- 订单写模型：`functions/repositories/order/mutations.js`
 
-## 4. 销售端创建流程（主流程）
+## 4. 销售端创建流程
 
-### 4.1 页面到提交
+### 4.1 提交流程
 
-1. 用户进入 `/sales/:token/create`，渲染 `src/views/sales/SalesFormView.vue`。
-2. 表单组件 `src/components/order/OrderForm.vue` 负责收集字段与图片。
-3. 提交时先调用 `ImageUploader.uploadPendingFiles()` 上传本地待传图片，再组装 `fileIds`。
-4. `SalesFormView` 调 `useOrders.createSalesOrder(token, formData)`。
+1. 用户进入 `/sales/:token/create`
+2. `OrderForm` 收集基础字段、商品/变体、数量和图片
+3. 待上传图片先通过 `POST /api/sales/:token/upload` 获取 `fileIds`
+4. `POST /api/sales/:token/orders` 调用创建接口
 
-相关前端关键点:
-- API 常量:
-  - `SALES_ORDER_CREATE: /api/sales/{token}/orders`
-  - `SALES_UPLOAD: /api/sales/{token}/upload`
-- 表单有效性最小要求:
-  - `name` 非空
-  - 至少 1 张图片（`uploadedFiles.length > 0`）
+关键业务校验：
 
-### 4.2 文件上传与去重
+- `productId` 与 `variantId` 必须成对出现
+- `variantId` 必须真实属于该 `productId`
+- 创建默认需要至少 1 张图片
 
-销售端上传接口: `functions/lib/hono/routes/sales/files.js`
+### 4.2 路由处理
 
-- 路径: `POST /api/sales/:token/upload`
-- 支持参数:
-  - `contentHash`
-  - `originalHash`
-  - `orderId`（可选，用于归档到订单目录）
-- 调用 `storeFile(...)`，实现内容寻址与秒传能力（CAS 体系）。
+销售创建路由会：
 
-前端 `ImageUploader` 使用 `deferred=true` 模式时，图片先留在本地列表，提交订单前统一上传并换成服务端文件 ID。
+1. 解析 `CreateOrderSchema`
+2. 校验商品/变体绑定
+3. 调用 `OrderRepository.create(...)`
+4. 调用 `DemandService.syncOrderTransition(...)`
+5. 将上传文件归档到订单目录
+6. 发布 `order_created_by_sales` outbox 事件
+7. `waitUntil(runOutboxPoller(...))`
 
-### 4.3 鉴权链路
+返回值仍然很轻量：
 
-请求进入后会经过两层校验:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "ord_xxx",
+    "orderNo": "SO-20260330-001"
+  }
+}
+```
 
-1. `authMiddleware`（全局 `/api/sales/*`）
-2. `salesAuthMiddleware`（`/:token` 保护组）
+## 5. 管理端创建流程
 
-`salesAuthMiddleware` 要求同时满足:
-- JWT 有效且 `payload.type === 'salesperson'`
-- 路径 token 与销售员 `access_token` 一致
-- 销售员处于启用状态
+管理端 `POST /api/manage/orders` 和销售端共用相同的订单持久化思路：
 
-通过后，`salesperson` 对象会挂到 `context`，供创建接口使用。
+1. 参数清洗与权限校验
+2. 商品/变体绑定校验
+3. 调用 `createManagedOrder(...)`
+4. 最终进入 `OrderRepository.create(...)`
+5. 发布 `order_created_by_admin`
+6. 调度 outbox poller
 
-### 4.4 创建接口与参数校验
+区别主要在：
 
-销售创建接口: `functions/lib/hono/routes/sales/orders.js` 的 `POST /`
+- 可以指定销售员
+- 可以设置初始状态
+- 通知目标通常是对应销售，而不是管理员
 
-基础 JSON 校验（zod）来自 `functions/lib/hono/schemas/sales.js` 的 `CreateOrderSchema`。
+## 6. 落库行为
 
-关键业务校验:
-- 当传 `productId` 时，必须同时传 `variantId`
-- 当传 `variantId` 时，必须同时传 `productId`
-- `variantId` 必须真实归属于该 `productId`（查 `ProductVariantRepository`）
+### 6.1 创建时真实写入
 
-### 4.5 落库行为（Repository）
+当前创建一张兼容性单行订单时，会写入：
 
-创建调用 `OrderRepository.create(...)`，最终进入 `functions/repositories/order/mutations.js#create`，一次 batch 完成三类写入:
+1. `orders`
+   - 订单号、销售归属、主状态、兼容性采购状态
+   - `current_data` / `original_data`
+   - `product_id` / `variant_id` / `quantity`
+2. `order_lines`
+   - 1 条默认订单行
+   - 记录商品/变体、快照、`ordered_qty`
+   - 初始化 `procured_qty` / `received_qty` / `shipped_qty` / `cancelled_qty`
+   - 计算初始 `display_status`
+3. `order_files`
+   - 订单附件映射
+4. `order_timeline`
+   - 创建时间轴
 
-1. `orders` 主表
-  - 写入: `id`, `order_no`, `salesperson_id`
-  - `original_data` 与 `current_data` 初始化一致
-  - `status` 默认 `pending`
-  - `main_image_id` 取首图
-  - `quantity`, `product_id`, `variant_id`
-  - 未读标记: `unread_by_admin = 1`, `unread_by_sales = 0`
-2. `order_files`
-  - 按顺序写入关联图片（`section='product'`）
-3. `order_timeline`
-  - 写入 `created` 时间轴记录（操作者为销售）
+旧文档里“创建只写 `orders + order_files + order_timeline`”已经不成立。
 
-接口成功返回:
-- `201`
-- `{ id, orderNo }`
+### 6.2 为什么要有 `order_lines`
 
-### 4.6 创建后异步联动
+原因不是为了当前 UI 多行展示，而是为了让下面这些行为有准确事实来源：
 
-接口返回前不会阻塞通知/回调，使用 `waitUntil` 异步执行:
-- 创建管理员通知（`ORDER_CREATED`）
-- 触发 webhook: `order.created`
+- 采购单关联订单后按行推进 `procured_qty`
+- 部分到货推进 `received_qty`
+- 冲销回滚行级到货事实
+- 管理端列表按行级聚合状态展示 `display_status`
 
-## 5. 管理端创建流程（次流程）
+## 7. 读模型
 
-管理端入口:
-- 视图组件 `src/components/OrderManager.vue`
-- 弹窗 `src/components/OrderCreateModal.vue`
-- 提交逻辑 `src/composables/order/useOrderModals.js#handleCreateOrder`
+### 7.1 订单详情
 
-请求:
-- `POST /api/manage/orders`
-- 前端会把 `name` 映射成 `productName`（兼容后端当前接口字段）
+订单详情查询已经默认返回：
 
-后端接口:
-- `functions/lib/hono/routes/manage/orders/create.js`
+- 订单头字段
+- `files`
+- `timeline`
+- `lines`
 
-管理端创建特点:
-- 必填 `productName` + `salespersonId`
-- 可设置初始 `status`
-- 同样支持 `productId/variantId` 绑定校验
-- 创建后异步通知对应销售员
+其中 `lines` 才是后续采购/履约进度的核心展示来源。
 
-## 6. 数据模型与状态基础
+### 7.2 采购兼容状态
 
-核心表（创建直接相关）:
-- `orders`
-- `order_files`
-- `order_timeline`
+`orders.procurement_status` 仍然保留，但它现在是兼容性聚合投影，不再是唯一事实源。
 
-历史迁移可参考:
-- `migrations/0009_order_system.sql`（订单系统初始结构）
-- `migrations/0010_add_void_status.sql`（新增 `void` 状态）
-- 后续迁移补充了 `product_id`、`variant_id`、`quantity`、unread 字段等能力
+管理端列表和筛选会优先读取：
 
-## 7. 与采购链路的关系
+```sql
+COALESCE(order_line_agg.display_status, o.procurement_status, 'none')
+```
 
-创建后的预订单并不会自动进入采购建议，前置条件是状态变为 `confirmed`。
+## 8. 创建后的副作用
 
-采购服务 `functions/services/PurchaseOrderService.js` 中:
-- `getSuggestions()` 仅统计 `o.status = 'confirmed'` 的订单
-- `createFromOrders()` 仅允许从 `confirmed` 且已绑定变体的订单生成采购单
-- 采购单状态会级联回写预订单状态（`ordered/shipping/arrived` -> `production/shipping/arrived`）
+### 8.1 当前模式
 
-## 8. 时序图（销售端创建）
+订单创建后的通知、缓存、Webhook 已经不是“接口里同步调用”。
+
+当前真实模式：
+
+1. 创建接口写完主数据
+2. `DomainOutboxPublisher` 写入 `domain_outbox` 和 `outbox_consumer_jobs`
+3. `runOutboxPoller` 在 `waitUntil` 中异步执行消费者
+
+### 8.2 订单创建事件
+
+常见事件：
+
+- `order_created_by_sales`
+- `order_created_by_admin`
+
+主要消费者：
+
+- `cache`
+- `notification`
+- `webhook`
+
+因此如果创建成功，通知或 webhook 稍后才完成是正常的，业务一致性由 outbox 保证。
+
+## 9. 与采购链路的关系
+
+### 9.1 哪些订单会进入采购
+
+- 只有 `orders.status = confirmed` 的订单会进入采购建议
+- 创建采购单时仍要求订单绑定了有效商品/变体
+
+### 9.2 采购单创建后的联动
+
+采购单创建或状态推进时：
+
+- 采购单与 `pre_order_id` 建立关联
+- 采购单状态推进可发布 `order_procurement_progressed`
+- 采购单到货通过 `purchase_receipts` 更新 `order_lines`
+- 聚合结果再回写 `orders.procurement_status`
+
+### 9.3 部分到货与冲销
+
+这部分是当前架构最重要的变化之一：
+
+- 部分到货不会直接把整个订单粗暴改成“已到货”
+- 系统先记录收货事实，再更新具体 `order_lines`
+- 冲销不会删历史，而是写 `purchase_receipt_reversals`
+- 然后重新投影订单行与兼容性采购状态
+
+## 10. 时序图
+
+### 10.1 创建
 
 ```mermaid
 sequenceDiagram
-  participant U as 销售用户
-  participant V as SalesFormView/OrderForm
-  participant F as /api/sales/:token/upload
-  participant O as /api/sales/:token/orders
-  participant R as OrderRepository
-  participant DB as D1
-  participant N as 通知/Webhook
+    participant U as 用户
+    participant V as 前端表单
+    participant API as Hono Route
+    participant R as OrderRepository
+    participant D as DemandService
+    participant O as DomainOutboxPublisher
+    participant DB as D1
+    participant P as Outbox Poller
 
-  U->>V: 填写表单并提交
-  V->>F: 上传待传图片(可多次)
-  F->>DB: 写 files/blob 元数据
-  F-->>V: 返回 fileIds
-  V->>O: POST 创建订单(name,fileIds,quantity,...)
-  O->>R: create(...)
-  R->>DB: INSERT orders + order_files + order_timeline (batch)
-  O-->>V: 201 {id, orderNo}
-  O->>N: waitUntil 异步通知管理员 + webhook
+    U->>V: 填写商品/规格/数量/图片
+    V->>API: POST 创建订单
+    API->>R: create(...)
+    R->>DB: INSERT orders + order_lines + order_files + order_timeline
+    API->>D: syncOrderTransition(...)
+    API->>O: publish(order_created_*)
+    O->>DB: INSERT domain_outbox + consumer_jobs
+    API-->>V: 201 { id, orderNo }
+    API-.->>P: waitUntil(runOutboxPoller)
 ```
 
-## 9. 常见问题与排查要点
+### 10.2 收货
 
-1. 创建时报 `variantId is required when productId is provided`
-- 提交了 `productId` 但未提交 `variantId`。
+```mermaid
+sequenceDiagram
+    participant Admin as 管理端
+    participant API as Purchase Orders Route
+    participant Domain as OrderProcurementDomainService
+    participant DB as D1
+    participant Poller as Outbox Poller
 
-2. 创建时报 `variantId does not belong to productId`
-- 变体不属于该商品，或前端绑定态脏数据。
+    Admin->>API: POST /purchase-orders/:id/receipts
+    API->>Domain: recordPurchaseOrderReceipts(...)
+    Domain->>DB: INSERT purchase_receipts
+    Domain->>DB: INSERT inventory_ledger
+    Domain->>DB: UPDATE order_lines
+    Domain->>DB: UPDATE orders.procurement_status
+    Domain->>DB: INSERT domain_outbox + consumer_jobs
+    API-->>Admin: 201 receipt result
+    API-.->>Poller: waitUntil(runOutboxPoller)
+```
 
-3. 提交按钮不可用
-- `name` 为空，或图片列表为空（前端校验未通过）。
+## 11. 排查要点
 
-4. 创建成功但采购建议看不到
-- 订单还在 `pending`，采购建议只看 `confirmed`。
+1. 创建成功但没有消息提醒
+- 先查 `domain_outbox` / `outbox_consumer_jobs`，不要再假设是同步通知失败。
 
-5. 销售端 401/404
-- JWT 失效，或 URL token 与销售员 `access_token` 不匹配，或账号被禁用。
+2. 采购建议里看不到订单
+- 先确认订单是否 `confirmed`
+- 再确认是否绑定商品/变体
 
-## 10. 关键源码索引
+3. 部分到货后订单状态看起来不对
+- 先查 `order_lines` 的 `received_qty` / `display_status`
+- 再看 `orders.procurement_status` 是否只是兼容性聚合结果
 
-- 前端销售创建页: `src/views/sales/SalesFormView.vue`
-- 前端表单逻辑: `src/components/order/OrderForm.vue`
-- 前端订单 API 封装: `src/composables/useOrders.js`
-- API 常量: `src/utils/constants.js`
-- 销售端订单路由: `functions/lib/hono/routes/sales/orders.js`
-- 销售端上传路由: `functions/lib/hono/routes/sales/files.js`
-- 销售端鉴权中间件: `functions/lib/hono/middleware/sales-auth.js`
-- 管理端创建路由: `functions/lib/hono/routes/manage/orders/create.js`
-- Repository Facade: `functions/repositories/OrderRepository.js`
-- 创建落库实现: `functions/repositories/order/mutations.js`
-- 采购联动服务: `functions/services/PurchaseOrderService.js`
+4. 冲销后进度没有回退
+- 先查 `purchase_receipt_reversals`
+- 再查是否发布了 `order_procurement_reversed`
 
-## 11. V2 重构补充 (2026-03-01)
+## 12. 关键源码索引
 
-销售端订单模块已切换到 V2 默认路径，架构由原来的“页面直连 API”升级为：
-
-- API 层: `src/composables/sales/useSalesOrderApi.js`
-  - 统一返回 `{ ok, data, error, status }`
-  - 覆盖 list/detail/create/comment/stats/products
-- 状态机层: `src/composables/sales/useSalesOrderStateMachine.js`
-  - 状态: `idle/loading/ready/empty/error/recovering`
-  - 动作: `loadOrders/createOrder/loadDetail/comment/retry`
-- 视图层:
-  - `src/views/Sales.vue`
-  - `src/views/sales/SalesListView.vue`
-  - `src/views/sales/SalesFormView.vue`
-  - `src/views/sales/SalesDetailView.vue`
-
-同时新增页面级错误边界与异步状态面板：
-
-- `src/components/common/AppErrorBoundary.vue`
-- `src/components/common/AsyncStatePanel.vue`
-
-后端销售路由也已统一错误契约：
-
-- 错误返回: `{ success: false, error, code }`
-- 关键文件:
-  - `functions/lib/hono/routes/sales/orders.js`
-  - `functions/lib/hono/routes/sales/products.js`
-
-完整切换策略、监控阈值和 5 分钟回滚步骤见：
-
-- `docs/architecture/modules/sales-order-module-v2.md`
-- `docs/plans/2026-03-01-sales-order-module-rollout-checklist.md`
+- `functions/lib/hono/routes/sales/orders.js`
+- `functions/lib/hono/routes/manage/orders/create.js`
+- `functions/repositories/order/mutations.js`
+- `functions/repositories/order/queries.js`
+- `functions/services/DemandService.js`
+- `functions/services/OrderProcurementDomainService.js`
+- `functions/services/OrderProcurementReceiptReversalService.js`
+- `functions/services/DomainOutboxPublisher.js`
+- `functions/services/DomainOutboxConsumers.js`

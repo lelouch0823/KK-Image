@@ -1,103 +1,117 @@
 # KK-Image API Reference
 
-本文档供移动端 App、小程序或其他第三方客户端接入使用。
+本文档提供第三方客户端、自动化脚本和内部联调时最常用的接口总览。
 
-## 1. 鉴权机制 (Authentication)
+## 1. 鉴权机制
 
-### 1.1 管理员 (Admin)
-管理员接口通常位于 `/api/manage/*`。
-支持两种鉴权方式（推荐使用 Bearer Token）：
+### 1.1 管理端
 
-- **HTTP Header**:
-  ```http
-  Authorization: Bearer <Admin_JWT_Token>
-  ```
-- **Cookie** (浏览器默认):
-  `ADMIN_AUTH=<Admin_JWT_Token>`
+管理端接口位于 `/api/manage/*`，支持：
 
-> **注意**: 管理员 Token 可通过登录接口 POST `/api/auth/login` 获取。
+- `Authorization: Bearer <admin-jwt>`
+- Cookie 会话
+- `X-API-Key`
 
-### 1.2 销售端 (Salesperson)
-销售端接口位于 `/api/sales/:accessToken/*`。
-**必须**同时满足以下两个条件：
+### 1.2 销售端
 
-1.  **URL Path Token**: 接口路径中必须包含销售员的 Access Token (由管理员分配)。
-    - 例: `/api/sales/tk_12345/orders`
-2.  **Session Token (JWT)**: 用于验证当前会话有效性。
-    - **Header**: `Authorization: Bearer <Sales_JWT_Token>`
-    - 或 **Cookie**: `sales_token=<Sales_JWT_Token>`
+销售端业务接口位于 `/api/sales/:accessToken/*`，需要：
 
-> **注意**: 销售员首次访问（或 Token 过期）时，需调用登录接口 POST `/api/sales/:accessToken/login` 获取 Session JWT。
+1. 路径中的 `accessToken`
+2. `Authorization: Bearer <sales-jwt>`
 
----
-
-## 2. 核心接口 (Endpoints)
+## 2. 核心接口总览
 
 ### 2.1 公共接口
-无需鉴权。
 
 | Method | Endpoint | 描述 |
 | :--- | :--- | :--- |
 | GET | `/api/common/config` | 获取系统公开配置 |
+| POST | `/api/sales/wechat-login` | 微信小程序登录 |
 
-### 2.2 销售端接口 (Sales API)
-
-**2.2.1 认证接口**
-Base URL: `/api/sales`
+### 2.2 销售端接口
 
 | Method | Endpoint | 描述 |
 | :--- | :--- | :--- |
-| POST | `/wechat-login` | 微信小程序一键登录 (Code 换 Token) |
-
-**2.2.2 业务接口**
-Base URL: `/api/sales/:accessToken`
-
-| Method | Endpoint | 描述 |
-| :--- | :--- | :--- |
-| POST | `/auth` | 销售员密码登录 (换取 Session JWT) |
-| GET | `/auth` | 获取当前销售员信息 (Session Check) |
-| POST | `/bind-wechat` | 绑定微信账号 (需 JWT) |
-| GET | `/orders` | 获取订单列表 |
-| POST | `/orders` | 创建新订单 (支持 `quantity`) |
-| GET | `/orders/:id` | 获取订单详情 |
-| POST | `/upload` | 上传文件 (图片/视频) |
-
-**示例: 获取订单列表**
-```http
-GET /api/sales/tk_sales_abc123/orders?page=1&status=pending
-Authorization: Bearer eyJhbGciOiJIUz...
-```
+| POST | `/api/sales/login` | 用户名/手机号登录 |
+| POST | `/api/sales/:accessToken/auth` | access token 登录 |
+| GET | `/api/sales/:accessToken/auth` | 获取当前销售员信息 |
+| POST | `/api/sales/:accessToken/bind-wechat` | 绑定微信 |
+| GET | `/api/sales/:accessToken/orders` | 获取订单列表 |
+| POST | `/api/sales/:accessToken/orders` | 创建订单，默认会生成 1 条兼容性 `order_lines` |
+| GET | `/api/sales/:accessToken/orders/:id` | 获取订单详情，包含 `lines` / `files` / `timeline` |
+| POST | `/api/sales/:accessToken/upload` | 上传文件 |
 
 ### 2.3 管理端接口
-Base URL: `/api/manage`
 
 | Method | Endpoint | 描述 |
 | :--- | :--- | :--- |
-| GET | `/dashboard/overview` | 仪表盘统计数据 |
-| GET | `/orders` | 订单管理列表 |
-| PATCH | `/orders/:id` | 修改订单 (支持 `productId` 绑定) |
-| POST | `/salespersons` | 创建销售员 |
-| GET/POST | `/products` | 商品 SPU 管理 |
-| GET/POST | `/products/:id/variants` | 商品变体 SKU 及附加规格管理 |
-| GET/POST | `/purchase-orders` | 采购单及入库明细管理 |
-| GET | `/inventory/ledger` | 库存分类账与结存查询 |
+| GET | `/api/manage/dashboard/overview` | 仪表盘概览 |
+| GET | `/api/manage/orders` | 订单列表，支持 `procurementStatus` |
+| GET | `/api/manage/orders/:id` | 订单详情，包含 `lines` |
+| POST | `/api/manage/orders` | 创建订单 |
+| PATCH | `/api/manage/orders/:id` | 修改订单字段 |
+| PATCH | `/api/manage/orders/:id/status` | 修改订单状态 |
+| POST | `/api/manage/orders/:id/comment` | 添加订单评论 |
+| GET/POST | `/api/manage/products` | 商品 SPU 管理 |
+| GET/POST | `/api/manage/products/:id/variants` | 商品变体管理 |
+| GET | `/api/manage/goods-overview` | 基于 `order_lines` 的订货总览 |
+| GET | `/api/manage/inventory/ledger` | 库存分类账 |
+| GET/POST | `/api/manage/purchase-orders` | 采购单列表 / 创建 |
+| GET | `/api/manage/purchase-orders/:id` | 采购单详情，包含 `items` / `receipts` |
+| POST | `/api/manage/purchase-orders/from-orders` | 从已确认订单生成采购单 |
+| PUT | `/api/manage/purchase-orders/:id` | 修改采购单基础信息 |
+| PATCH | `/api/manage/purchase-orders/:id/status` | 修改采购单状态 |
+| POST | `/api/manage/purchase-orders/:id/receipts` | 记录收货 |
+| POST | `/api/manage/purchase-orders/:id/receipts/:receiptId/reversal` | 冲销收货 |
+| POST | `/api/manage/purchase-orders/:id/allocate` | 重新分摊成本 |
+| GET | `/api/manage/outbox` | outbox 事件列表 |
+| GET | `/api/manage/outbox/:eventId` | outbox 事件详情 |
+| POST | `/api/manage/audit-replay/dry-run` | replay 预演 |
+| POST | `/api/manage/audit-replay/execute` | replay 执行 |
 
----
+## 3. 架构约定
 
-## 3. 错误码 (Error Codes)
+### 3.1 订单模型
 
-API 统一返回 JSON 格式：
+订单模块当前采用：
+
+- `orders` 作为头信息和兼容读模型
+- `order_lines` 作为采购/履约核心粒度
+
+因此：
+
+- 订单详情接口会返回 `lines`
+- 采购进度筛选优先使用订单行聚合后的展示状态
+
+### 3.2 副作用处理
+
+订单创建、订单状态变化、采购收货、采购冲销等关键写操作会发布 durable outbox 事件，再由消费者异步处理：
+
+- 通知
+- 缓存失效
+- Webhook
+- Replay / 审计补充
+
+客户端不应依赖这些副作用在主请求返回前同步完成。
+
+## 4. 错误响应
+
+统一错误响应形态：
+
 ```json
 {
   "success": false,
-  "message": "错误描述",
-  "data": null
+  "error": "错误描述",
+  "code": "ERROR_CODE"
 }
 ```
 
 常见状态码：
-- `401 Unauthorized`: 未登录或 Token 过期
-- `403 Forbidden`: 权限不足
-- `404 Not Found`: 资源不存在
-- `429 Too Many Requests`: 请求过于频繁
-- `500 Internal Server Error`: 服务器内部错误
+
+- `400 Bad Request`
+- `401 Unauthorized`
+- `403 Forbidden`
+- `404 Not Found`
+- `409 Conflict`
+- `429 Too Many Requests`
+- `500 Internal Server Error`

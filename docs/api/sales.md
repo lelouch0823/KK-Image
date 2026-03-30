@@ -1,117 +1,112 @@
-# Sales API (销售端)
+# Sales API
 
-> **Base URL**: `/api/sales`
+> Base URL: `/api/sales`
 
-销售端 API 分为两类：
-1. **Public**: 初始认证接口，无需 Path Token。
-2. **Protected**: 业务接口，路径需包含 `access_token` (`/api/sales/:token/...`)。
+销售端接口分为两组：
 
-## 1. 认证 (Authentication)
+1. Public Auth Routes
+2. Protected Business Routes（挂在 `/api/sales/:token/*`）
 
-### 1.1 微信小程序登录 (Public)
+## 1. 认证
+
+### 用户名/手机号登录
+`POST /api/sales/login`
+
+### 微信登录
 `POST /api/sales/wechat-login`
 
-通过微信 `wx.login` 获取的 code 换取登录凭证。
-
-**Body:**
-```json
-{
-  "code": "091xxxxxx"
-}
-```
-
-**Response (已绑定):**
-```json
-{
-  "success": true,
-  "data": {
-    "token": "eyJhbGciOiJIUz...", // Session JWT
-    "user": { "name": "张三", "store": "旗舰店" }
-  }
-}
-```
-
-**Response (未绑定):**
-```json
-{
-  "success": true,
-  "data": {
-    "needBind": true,
-    "openid": "oOpenId..." // 暂存用于后续绑定
-  }
-}
-```
-
-### 1.2 密码登录 (Protected)
+### access token 登录
 `POST /api/sales/:token/auth`
 
-使用管理员分配的 `access_token` 和密码进行登录。
-
-**Body:**
-```json
-{
-  "password": "your_password"
-}
-```
-
-**Response:**
-与微信登录成功响应一致，返回 JWT。
-
-### 1.3 检查会话 (Protected)
+### 获取当前销售员信息
 `GET /api/sales/:token/auth`
 
-验证 JWT 是否有效，并获取当前销售员信息。
-**Headers:** `Authorization: Bearer <JWT>`
-
-### 1.4 绑定微信 (Protected)
+### 绑定微信
 `POST /api/sales/:token/bind-wechat`
 
-将当前登录账号绑定到微信 OpenID。
+## 2. 订单
 
-**Body:**
-```json
-{
-  "code": "091xxxxxx" // 微信 code
-}
-```
+> 所有业务接口都需要 `Authorization: Bearer <JWT>`
 
----
+### 获取订单列表
+`GET /api/sales/:token/orders`
 
-## 2. 订单管理 (Orders)
+Query Params:
 
-> **注意**: 所有业务接口需在 Header 中携带 `Authorization: Bearer <JWT>`。
+- `page`
+- `limit`
+- `status`
 
-### 2.1 创建订单
+### 创建订单
 `POST /api/sales/:token/orders`
 
-**Body:**
+Body 示例：
+
 ```json
 {
   "name": "定制海报",
+  "brand": "KK",
+  "series": "2026 春季",
+  "sku": "SKU-001",
   "size": "50x70cm",
-  "data": {
-    "customer_name": "李四",
-    "customer_phone": "13800138000"
-  },
-  "fileIds": ["file_id_1", "file_id_2"], // 关联上传的文件
-  "remark": "加急"
+  "color": "黑色",
+  "material": "相纸",
+  "remark": "加急",
+  "deadline": "2026-04-10",
+  "quantity": 2,
+  "fileIds": ["file_1", "file_2"],
+  "productId": "prod_xxx",
+  "variantId": "var_xxx"
 }
 ```
 
-### 2.2 获取订单列表
-`GET /api/sales/:token/orders`
+说明：
 
-**Query Params:**
-- `page`: 页码 (default 1)
-- `limit`: 每页数量 (default 20)
-- `status`: 筛选状态 (e.g., `pending`, `confirmed`)
+- 创建时默认会生成 1 条兼容性 `order_lines`
+- 后续采购/部分到货/冲销进度都基于订单行推进
+- 管理员通知、缓存失效、Webhook 通过 outbox 异步处理
 
-### 2.3 获取订单详情
-`GET /api/sales/:token/orders/:orderId`
+### 获取订单详情
+`GET /api/sales/:token/orders/:id`
 
----
+返回值包含：
+
+- 订单头字段
+- `lines`
+- `files`
+- `timeline`
+
+### 标记已读
+`PATCH /api/sales/:token/orders/:id/read`
+
+### 更新订单
+`PATCH /api/sales/:token/orders/:id`
+
+### 删除/作废订单
+`DELETE /api/sales/:token/orders/:id`
+
+### 添加评论
+`POST /api/sales/:token/orders/:id/comment`
 
 ## 3. 文件上传
-`POST /api/upload` (或 `/api/sales/:token/upload`)
 
-支持 `FormData` 上传文件。
+### 上传文件
+`POST /api/sales/:token/upload`
+
+支持 `FormData` 上传。
+
+常见用途：
+
+- 先上传图片
+- 再把返回的 `fileIds` 带入订单创建请求
+
+## 4. 其他业务接口
+
+### 获取个人统计
+`GET /api/sales/:token/stats`
+
+### 获取销售端商品数据
+`GET /api/sales/:token/products`
+
+### 获取销售端通知
+`GET /api/sales/:token/notifications`

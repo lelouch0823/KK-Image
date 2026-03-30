@@ -177,13 +177,13 @@ bucket_name = "kk-life-storage"
 
 **Sentry 集成**:
 ```javascript
-// functions/_middleware.js
-import { Sentry } from '@cloudflare/pages-plugin-sentry';
+// functions/lib/hono/app.js
+import * as Sentry from '@sentry/cloudflare';
 
-export const onRequest = Sentry({
+Sentry.init({
   dsn: 'your-sentry-dsn',
   environment: 'production',
-  tracesSampleRate: 1.0
+  tracesSampleRate: 1.0,
 });
 ```
 
