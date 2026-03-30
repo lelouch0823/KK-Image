@@ -11,17 +11,26 @@
           </span>
         </div>
         <p class="mt-1 text-xs text-(--text-secondary)">
-          {{ t('order.detail.lineActionHint', '按单行执行预留、释放和出货，成功后会自动刷新当前订单详情。') }}
+          {{
+            t(
+              'order.detail.lineActionHint',
+              '按单行执行预留、释放和出货，成功后会自动刷新当前订单详情。'
+            )
+          }}
         </p>
 
         <div class="mt-3 flex flex-wrap gap-2">
           <span class="rounded-full bg-primary/8 px-2.5 py-1 text-[11px] font-medium text-primary">
             {{ t('order.detail.reservableQty', '可预留') }} {{ limits.reserve }}
           </span>
-          <span class="rounded-full bg-slate-500/10 px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)">
+          <span
+            class="rounded-full bg-slate-500/10 px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)"
+          >
             {{ t('order.detail.reservedQty', '已预留') }} {{ limits.release }}
           </span>
-          <span class="rounded-full bg-orange-500/10 px-2.5 py-1 text-[11px] font-medium text-orange-600">
+          <span
+            class="rounded-full bg-orange-500/10 px-2.5 py-1 text-[11px] font-medium text-orange-600"
+          >
             {{ t('order.detail.shippableQty', '可出货') }} {{ limits.ship }}
           </span>
         </div>
@@ -105,15 +114,20 @@ const localError = ref('');
 
 const limits = computed(() => {
   const ordered = Math.max(0, Number(props.line?.orderedQuantity) || 0);
+  const received = Math.max(0, Number(props.line?.receivedQuantity) || 0);
   const reserved = Math.max(0, Number(props.line?.reservedQuantity) || 0);
   const shipped = Math.max(0, Number(props.line?.shippedQuantity) || 0);
   const cancelled = Math.max(0, Number(props.line?.cancelledQuantity) || 0);
   const remaining = Math.max(ordered - cancelled - shipped, 0);
+  const ready = Math.max(received - shipped, 0);
+  const reserveCap =
+    received > 0 ? Math.max(ready - reserved, 0) : Math.max(remaining - reserved, 0);
+  const shipCap = received > 0 ? Math.max(Math.min(remaining, ready), 0) : remaining;
 
   return {
-    reserve: Math.max(remaining - reserved, 0),
+    reserve: reserveCap,
     release: reserved,
-    ship: remaining,
+    ship: shipCap,
   };
 });
 

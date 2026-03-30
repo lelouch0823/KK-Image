@@ -49,4 +49,26 @@ describe('OrderLineCommandPanel', () => {
     expect(wrapper.emitted('command')).toBeFalsy();
     expect(wrapper.text()).toContain('超过当前动作允许数量');
   });
+
+  it('uses received quantity as the reserve and ship cap when procurement has only partially arrived', async () => {
+    const wrapper = mount(OrderLineCommandPanel, {
+      props: {
+        line: {
+          id: 'line-2',
+          orderedQuantity: 8,
+          receivedQuantity: 3,
+          reservedQuantity: 1,
+          shippedQuantity: 0,
+          cancelledQuantity: 0,
+        },
+      },
+    });
+
+    const input = wrapper.get('input[type="number"]');
+    await input.setValue('4');
+    await wrapper.get('[data-testid="line-command-reserve"]').trigger('click');
+
+    expect(wrapper.emitted('command')).toBeFalsy();
+    expect(wrapper.text()).toContain('超过当前动作允许数量');
+  });
 });

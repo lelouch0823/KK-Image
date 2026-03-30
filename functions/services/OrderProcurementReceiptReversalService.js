@@ -53,11 +53,15 @@ function projectCompatibilityProcurementStatus(progress = {}) {
 
 function isDuplicateReceiptReversalError(error) {
   const message = String(error?.message || error || '').toLowerCase();
-  return message.includes('unique constraint failed')
-    && (
-      message.includes('purchase_receipt_reversals.original_receipt_id')
-      || message.includes('idx_purchase_receipt_reversals_original_receipt_unique')
-    );
+  return (
+    message.includes('unique constraint failed') &&
+    (message.includes('purchase_receipt_reversals.original_receipt_id') ||
+      message.includes('idx_purchase_receipt_reversals_original_receipt_unique'))
+  );
+}
+
+function buildDeleteCommandStatement(db, commandId) {
+  return db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId);
 }
 
 export class OrderProcurementReceiptReversalService {
@@ -65,8 +69,10 @@ export class OrderProcurementReceiptReversalService {
     this.db = db;
     this.purchaseReceiptRepo = deps.purchaseReceiptRepo || new PurchaseReceiptRepository(db);
     this.inventoryService = deps.inventoryService || new InventoryService(db);
-    this.commandIdempotencyRepo = deps.commandIdempotencyRepo || new CommandIdempotencyRepository(db, { now: deps.now });
-    this.domainOutboxRepo = deps.domainOutboxRepo || new DomainOutboxRepository(db, { now: deps.now });
+    this.commandIdempotencyRepo =
+      deps.commandIdempotencyRepo || new CommandIdempotencyRepository(db, { now: deps.now });
+    this.domainOutboxRepo =
+      deps.domainOutboxRepo || new DomainOutboxRepository(db, { now: deps.now });
     this.now = deps.now || (() => Date.now());
   }
 
@@ -158,6 +164,7 @@ export class OrderProcurementReceiptReversalService {
       idempotencyKey,
       requestFingerprint
     );
+    const ownsReservation = reservation?.ownsReservation ?? Boolean(reservation?.insertStatement);
 
     if (reservation?.existing) {
       if (reservation.record?.request_fingerprint !== requestFingerprint) {
@@ -210,17 +217,19 @@ export class OrderProcurementReceiptReversalService {
       statements.push(reservation.insertStatement);
     }
 
-    statements.push(this.purchaseReceiptRepo.createReversalInsertStatement({
-      id: reversalId,
-      original_receipt_id: receiptId,
-      purchase_order_id: poId,
-      purchase_order_item_id: originalReceipt.purchase_order_item_id,
-      reversal_qty: reversalQty,
-      reason: payload.reason || null,
-      command_id: commandRecord.command_id,
-      correlation_id: commandRecord.command_id,
-      created_at: timestamp,
-    }));
+    statements.push(
+      this.purchaseReceiptRepo.createReversalInsertStatement({
+        id: reversalId,
+        original_receipt_id: receiptId,
+        purchase_order_id: poId,
+        purchase_order_item_id: originalReceipt.purchase_order_item_id,
+        reversal_qty: reversalQty,
+        reason: payload.reason || null,
+        command_id: commandRecord.command_id,
+        correlation_id: commandRecord.command_id,
+        created_at: timestamp,
+      })
+    );
 
     const nextReceivedQty = Math.max(toNonNegativeInt(poItem.received_qty) - reversalQty, 0);
     const nextDisplayStatus = projectPurchaseOrderItemStatus({
@@ -229,36 +238,55 @@ export class OrderProcurementReceiptReversalService {
       cancelled_qty: poItem.cancelled_qty,
     });
     statements.push(
-      this.db.prepare(
-        `UPDATE purchase_order_items
+      this.db
+        .prepare(
+          `UPDATE purchase_order_items
          SET received_qty = ?, display_status = ?
          WHERE id = ? AND po_id = ?`
-      ).bind(nextReceivedQty, nextDisplayStatus, poItem.id, poId)
+        )
+        .bind(nextReceivedQty, nextDisplayStatus, poItem.id, poId)
     );
 
     let nextProcurementStatus = null;
     if (originalReceipt.order_line_id && originalReceipt.pre_order_id) {
-      const orderLine = await this.requireOrderLine(originalReceipt.pre_order_id, originalReceipt.order_line_id);
-      const nextOrderLineReceivedQty = Math.max(toNonNegativeInt(orderLine.received_qty) - reversalQty, 0);
+      const orderLine = await this.requireOrderLine(
+        originalReceipt.pre_order_id,
+        originalReceipt.order_line_id
+      );
+      const nextOrderLineReceivedQty = Math.max(
+        toNonNegativeInt(orderLine.received_qty) - reversalQty,
+        0
+      );
       statements.push(
-        this.db.prepare(
-          `UPDATE order_lines
+        this.db
+          .prepare(
+            `UPDATE order_lines
            SET received_qty = ?, updated_at = ?
            WHERE id = ? AND order_id = ?`
-        ).bind(nextOrderLineReceivedQty, timestamp, originalReceipt.order_line_id, originalReceipt.pre_order_id)
+          )
+          .bind(
+            nextOrderLineReceivedQty,
+            timestamp,
+            originalReceipt.order_line_id,
+            originalReceipt.pre_order_id
+          )
       );
 
-      const aggregate = await this.queryCompatibilityProcurementAggregate(originalReceipt.pre_order_id);
+      const aggregate = await this.queryCompatibilityProcurementAggregate(
+        originalReceipt.pre_order_id
+      );
       nextProcurementStatus = projectCompatibilityProcurementStatus({
         ...aggregate,
         received_qty: Math.max(toNonNegativeInt(aggregate.received_qty) - reversalQty, 0),
       });
       statements.push(
-        this.db.prepare(
-          `UPDATE orders
+        this.db
+          .prepare(
+            `UPDATE orders
            SET procurement_status = ?, updated_at = ?
            WHERE id = ?`
-        ).bind(nextProcurementStatus, timestamp, originalReceipt.pre_order_id)
+          )
+          .bind(nextProcurementStatus, timestamp, originalReceipt.pre_order_id)
       );
     }
 
@@ -364,17 +392,28 @@ export class OrderProcurementReceiptReversalService {
     };
 
     statements.push(
-      this.db.prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
+      this.db
+        .prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
         .bind(timestamp, poId)
     );
     statements.push(
-      this.commandIdempotencyRepo.buildFinalizeStatement(commandRecord.command_id, response, 'committed')
+      this.commandIdempotencyRepo.buildFinalizeStatement(
+        commandRecord.command_id,
+        response,
+        'committed'
+      )
     );
 
     try {
       await this.db.batch(statements);
       return response;
     } catch (error) {
+      if (ownsReservation) {
+        const deleteStatement =
+          this.commandIdempotencyRepo.buildDeleteStatement?.(commandRecord.command_id) ||
+          buildDeleteCommandStatement(this.db, commandRecord.command_id);
+        await deleteStatement.run();
+      }
       if (isDuplicateReceiptReversalError(error)) {
         throw new BadRequestError('原始收货记录已冲销，不能重复冲销');
       }

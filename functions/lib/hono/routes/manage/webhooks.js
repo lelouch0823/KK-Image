@@ -10,9 +10,45 @@ import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 const app = new Hono();
 
 export const auditRouteDeclarations = declareAuditRoutes([
-  { method: 'POST', path: '/', domain: 'webhooks', action: 'webhook.create', severity: 'critical', targetType: 'webhook', runtimeAssertionLevel: 'runtime', highRisk: true },
-  { method: 'PUT', path: '/:id', domain: 'webhooks', action: 'webhook.update', severity: 'critical', targetType: 'webhook', runtimeAssertionLevel: 'runtime', highRisk: true },
-  { method: 'POST', path: '/:id/test', domain: 'webhooks', action: 'webhook.test', severity: 'high', targetType: 'webhook', runtimeAssertionLevel: 'runtime' },
+  {
+    method: 'POST',
+    path: '/',
+    domain: 'webhooks',
+    action: 'webhook.create',
+    severity: 'critical',
+    targetType: 'webhook',
+    runtimeAssertionLevel: 'runtime',
+    highRisk: true,
+  },
+  {
+    method: 'PUT',
+    path: '/:id',
+    domain: 'webhooks',
+    action: 'webhook.update',
+    severity: 'critical',
+    targetType: 'webhook',
+    runtimeAssertionLevel: 'runtime',
+    highRisk: true,
+  },
+  {
+    method: 'DELETE',
+    path: '/:id',
+    domain: 'webhooks',
+    action: 'webhook.delete',
+    severity: 'critical',
+    targetType: 'webhook',
+    runtimeAssertionLevel: 'runtime',
+    highRisk: true,
+  },
+  {
+    method: 'POST',
+    path: '/:id/test',
+    domain: 'webhooks',
+    action: 'webhook.test',
+    severity: 'high',
+    targetType: 'webhook',
+    runtimeAssertionLevel: 'runtime',
+  },
 ]);
 
 function getSupportedEvents() {
@@ -131,6 +167,29 @@ app.put('/:id', requirePermission('webhooks:write'), async (c) => {
   return c.json({ success: true, data: updated });
 });
 
+app.delete('/:id', requirePermission('webhooks:write'), async (c) => {
+  const repo = new WebhookRepository(c.env.DB);
+  const webhook = await requireWebhook(repo, c.req.param('id'));
+
+  await repo.delete(webhook.id);
+
+  scheduleAuditEvent(c, {
+    domain: 'webhooks',
+    action: 'webhook.delete',
+    result: 'success',
+    severity: 'critical',
+    targetType: 'webhook',
+    targetId: webhook.id,
+    target_label: webhook.url,
+    summary: `Deleted webhook ${webhook.url}`,
+  });
+
+  return c.json({
+    success: true,
+    message: MSG.WEBHOOK.DELETE_SUCCESS,
+  });
+});
+
 app.post('/:id/test', requirePermission('webhooks:write'), async (c) => {
   const repo = new WebhookRepository(c.env.DB);
   const user = c.get('user') || {};
@@ -174,13 +233,16 @@ app.post('/:id/test', requirePermission('webhooks:write'), async (c) => {
     },
   });
 
-  return c.json({
-    success: response.ok,
-    data: {
-      status: response.status,
-      duration,
+  return c.json(
+    {
+      success: response.ok,
+      data: {
+        status: response.status,
+        duration,
+      },
     },
-  }, response.ok ? 200 : 502);
+    response.ok ? 200 : 502
+  );
 });
 
 export default app;

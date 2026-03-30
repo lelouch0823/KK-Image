@@ -47,6 +47,7 @@ function createDbHarness({
     inventoryMutations: [],
     outboxEvents: [],
     batchedStatements: [],
+    runStatements: [],
   };
 
   const db = {
@@ -59,7 +60,10 @@ function createDbHarness({
         }),
         first: vi.fn(async () => null),
         all: vi.fn(async () => ({ results: [] })),
-        run: vi.fn(async () => ({ meta: { changes: 1 } })),
+        run: vi.fn(async () => {
+          calls.runStatements.push(statement);
+          return { meta: { changes: 1 } };
+        }),
       };
 
       if (sql.includes('FROM purchase_orders')) {
@@ -82,7 +86,11 @@ function createDbHarness({
     }),
     batch: vi.fn(async (statements = []) => {
       calls.batchedStatements = statements;
-      if (batchError && typeof batchErrorMatcher === 'function' && statements.some((statement) => batchErrorMatcher(statement))) {
+      if (
+        batchError &&
+        typeof batchErrorMatcher === 'function' &&
+        statements.some((statement) => batchErrorMatcher(statement))
+      ) {
         throw batchError;
       }
       return statements.map(() => ({ meta: { changes: 1 } }));
@@ -97,21 +105,23 @@ function createDbHarness({
     })),
     createReversalInsertStatement: vi.fn((payload) => {
       calls.reversalPayloads.push(payload);
-      return db.prepare(
-        `INSERT INTO purchase_receipt_reversals (
+      return db
+        .prepare(
+          `INSERT INTO purchase_receipt_reversals (
           id, original_receipt_id, purchase_order_id, purchase_order_item_id, reversal_qty, reason, command_id, correlation_id, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        payload.id,
-        payload.original_receipt_id,
-        payload.purchase_order_id,
-        payload.purchase_order_item_id,
-        payload.reversal_qty,
-        payload.reason || null,
-        payload.command_id,
-        payload.correlation_id,
-        payload.created_at
-      );
+        )
+        .bind(
+          payload.id,
+          payload.original_receipt_id,
+          payload.purchase_order_id,
+          payload.purchase_order_item_id,
+          payload.reversal_qty,
+          payload.reason || null,
+          payload.command_id,
+          payload.correlation_id,
+          payload.created_at
+        );
     }),
   };
 
@@ -121,10 +131,28 @@ function createDbHarness({
       return {
         inventoryEventId: 'ie-reversal-1',
         statements: [
-          db.prepare('UPDATE product_variants SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ? WHERE id = ?')
+          db
+            .prepare(
+              'UPDATE product_variants SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ? WHERE id = ?'
+            )
             .bind(payload.quantityDelta, 1710000000000, payload.variantId),
-          db.prepare('INSERT INTO inventory_events (id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta, source_type, source_id, metadata, occurred_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-            .bind('ie-reversal-1', payload.variantId, payload.orderLineId || null, payload.purchaseReceiptId || null, payload.type, payload.quantityDelta, payload.referenceType, payload.referenceId, JSON.stringify(payload.metadata || {}), 1710000000000, 1710000000000),
+          db
+            .prepare(
+              'INSERT INTO inventory_events (id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta, source_type, source_id, metadata, occurred_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            )
+            .bind(
+              'ie-reversal-1',
+              payload.variantId,
+              payload.orderLineId || null,
+              payload.purchaseReceiptId || null,
+              payload.type,
+              payload.quantityDelta,
+              payload.referenceType,
+              payload.referenceId,
+              JSON.stringify(payload.metadata || {}),
+              1710000000000,
+              1710000000000
+            ),
         ],
       };
     }),
@@ -139,16 +167,32 @@ function createDbHarness({
         request_fingerprint: requestFingerprint,
         status: 'in_flight',
       },
-      insertStatement: db.prepare(
-        `INSERT INTO command_idempotency (
+      insertStatement: db
+        .prepare(
+          `INSERT INTO command_idempotency (
           id, command_type, scope_key, idempotency_key, command_id, request_fingerprint, response_json, status, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind('cmd-row-1', 'purchase_receipt_reversal', 'po-1:receipt-1', 'idem-1', 'cmd-reversal-1', requestFingerprint, null, 'in_flight', 1710000000000, 1710000000000),
+        )
+        .bind(
+          'cmd-row-1',
+          'purchase_receipt_reversal',
+          'po-1:receipt-1',
+          'idem-1',
+          'cmd-reversal-1',
+          requestFingerprint,
+          null,
+          'in_flight',
+          1710000000000,
+          1710000000000
+        ),
     })),
-    buildFinalizeStatement: vi.fn((commandId, responseJson, status) => (
-      db.prepare('UPDATE command_idempotency SET response_json = ?, status = ?, updated_at = ? WHERE command_id = ?')
+    buildFinalizeStatement: vi.fn((commandId, responseJson, status) =>
+      db
+        .prepare(
+          'UPDATE command_idempotency SET response_json = ?, status = ?, updated_at = ? WHERE command_id = ?'
+        )
         .bind(JSON.stringify(responseJson), status, 1710000000000, commandId)
-    )),
+    ),
   };
 
   const domainOutboxRepo = {
@@ -157,16 +201,56 @@ function createDbHarness({
       return events.flatMap((event, index) => {
         const consumers = resolveConsumers(event);
         return [
-          db.prepare('INSERT INTO domain_outbox (id, command_id, sequence_in_command, event_type, event_version, aggregate_type, aggregate_id, correlation_id, causation_id, idempotency_key, payload_json, occurred_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-            .bind(event.id, event.command_id, event.sequence_in_command, event.event_type, event.event_version, event.aggregate_type, event.aggregate_id, event.correlation_id, event.causation_id, event.idempotency_key, event.payload_json, event.occurred_at, 1710000000000),
-          db.prepare('INSERT INTO outbox_consumer_jobs (id, consumer_name, event_id, status, attempt_count, available_at, leased_by, leased_until, last_error, processed_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-            .bind(`job-${index}`, consumers[0] || 'audit', event.id, 'pending', 0, 1710000000000, null, null, null, null, 1710000000000, 1710000000000),
+          db
+            .prepare(
+              'INSERT INTO domain_outbox (id, command_id, sequence_in_command, event_type, event_version, aggregate_type, aggregate_id, correlation_id, causation_id, idempotency_key, payload_json, occurred_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            )
+            .bind(
+              event.id,
+              event.command_id,
+              event.sequence_in_command,
+              event.event_type,
+              event.event_version,
+              event.aggregate_type,
+              event.aggregate_id,
+              event.correlation_id,
+              event.causation_id,
+              event.idempotency_key,
+              event.payload_json,
+              event.occurred_at,
+              1710000000000
+            ),
+          db
+            .prepare(
+              'INSERT INTO outbox_consumer_jobs (id, consumer_name, event_id, status, attempt_count, available_at, leased_by, leased_until, last_error, processed_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            )
+            .bind(
+              `job-${index}`,
+              consumers[0] || 'audit',
+              event.id,
+              'pending',
+              0,
+              1710000000000,
+              null,
+              null,
+              null,
+              null,
+              1710000000000,
+              1710000000000
+            ),
         ];
       });
     }),
   };
 
-  return { db, calls, purchaseReceiptRepo, inventoryService, commandIdempotencyRepo, domainOutboxRepo };
+  return {
+    db,
+    calls,
+    purchaseReceiptRepo,
+    inventoryService,
+    commandIdempotencyRepo,
+    domainOutboxRepo,
+  };
 }
 
 describe('OrderProcurementReceiptReversalService', () => {
@@ -186,29 +270,40 @@ describe('OrderProcurementReceiptReversalService', () => {
   });
 
   it('writes reversal receipt facts, inventory compensation, order projection correction, and outbox events in one transaction', async () => {
-    const result = await service.reverseReceipt('po-1', 'receipt-1', {
-      reason: 'rollback',
-    }, {
-      idempotencyKey: 'idem-1',
-    });
+    const result = await service.reverseReceipt(
+      'po-1',
+      'receipt-1',
+      {
+        reason: 'rollback',
+      },
+      {
+        idempotencyKey: 'idem-1',
+      }
+    );
 
-    expect(result).toEqual(expect.objectContaining({
-      purchase_order_id: 'po-1',
-      receipt_id: 'receipt-1',
-      reversal_qty: 5,
-    }));
-    expect(harness.calls.reversalPayloads[0]).toEqual(expect.objectContaining({
-      original_receipt_id: 'receipt-1',
-      purchase_order_id: 'po-1',
-      reversal_qty: 5,
-      command_id: 'cmd-reversal-1',
-    }));
-    expect(harness.inventoryService.buildMutationStatements).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'inventory_adjusted_reversal',
-      quantityDelta: -5,
-      purchaseReceiptId: 'receipt-1',
-      referenceType: 'purchase_receipt_reversal',
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        purchase_order_id: 'po-1',
+        receipt_id: 'receipt-1',
+        reversal_qty: 5,
+      })
+    );
+    expect(harness.calls.reversalPayloads[0]).toEqual(
+      expect.objectContaining({
+        original_receipt_id: 'receipt-1',
+        purchase_order_id: 'po-1',
+        reversal_qty: 5,
+        command_id: 'cmd-reversal-1',
+      })
+    );
+    expect(harness.inventoryService.buildMutationStatements).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'inventory_adjusted_reversal',
+        quantityDelta: -5,
+        purchaseReceiptId: 'receipt-1',
+        referenceType: 'purchase_receipt_reversal',
+      })
+    );
     expect(harness.calls.outboxEvents.map((event) => event.event_type)).toEqual([
       'purchase_receipt_reversed',
       'inventory_receipt_reversed',
@@ -234,11 +329,18 @@ describe('OrderProcurementReceiptReversalService', () => {
       now: () => 1710000000000,
     });
 
-    await expect(invalidService.reverseReceipt('po-1', 'receipt-1', {
-      reason: 'rollback',
-    }, {
-      idempotencyKey: 'idem-1',
-    })).rejects.toBeInstanceOf(BadRequestError);
+    await expect(
+      invalidService.reverseReceipt(
+        'po-1',
+        'receipt-1',
+        {
+          reason: 'rollback',
+        },
+        {
+          idempotencyKey: 'idem-1',
+        }
+      )
+    ).rejects.toBeInstanceOf(BadRequestError);
   });
 
   it('replays the original reversal response for the same reversal idempotency key', async () => {
@@ -247,7 +349,11 @@ describe('OrderProcurementReceiptReversalService', () => {
       record: {
         id: 'cmd-row-1',
         command_id: 'cmd-reversal-1',
-        request_fingerprint: JSON.stringify({ purchase_order_id: 'po-1', receipt_id: 'receipt-1', reason: 'rollback' }),
+        request_fingerprint: JSON.stringify({
+          purchase_order_id: 'po-1',
+          receipt_id: 'receipt-1',
+          reason: 'rollback',
+        }),
         status: 'committed',
         response_json: JSON.stringify({
           purchase_order_id: 'po-1',
@@ -258,11 +364,16 @@ describe('OrderProcurementReceiptReversalService', () => {
       insertStatement: null,
     });
 
-    const result = await service.reverseReceipt('po-1', 'receipt-1', {
-      reason: 'rollback',
-    }, {
-      idempotencyKey: 'idem-1',
-    });
+    const result = await service.reverseReceipt(
+      'po-1',
+      'receipt-1',
+      {
+        reason: 'rollback',
+      },
+      {
+        idempotencyKey: 'idem-1',
+      }
+    );
 
     expect(result).toEqual({
       purchase_order_id: 'po-1',
@@ -289,11 +400,18 @@ describe('OrderProcurementReceiptReversalService', () => {
       insertStatement: null,
     });
 
-    await expect(service.reverseReceipt('po-1', 'receipt-1', {
-      reason: 'new reason',
-    }, {
-      idempotencyKey: 'idem-1',
-    })).rejects.toBeInstanceOf(BadRequestError);
+    await expect(
+      service.reverseReceipt(
+        'po-1',
+        'receipt-1',
+        {
+          reason: 'new reason',
+        },
+        {
+          idempotencyKey: 'idem-1',
+        }
+      )
+    ).rejects.toBeInstanceOf(BadRequestError);
 
     expect(harness.db.batch).not.toHaveBeenCalled();
   });
@@ -304,11 +422,18 @@ describe('OrderProcurementReceiptReversalService', () => {
       reversal_count: 1,
     });
 
-    await expect(service.reverseReceipt('po-1', 'receipt-1', {
-      reason: 'rollback',
-    }, {
-      idempotencyKey: 'idem-2',
-    })).rejects.toBeInstanceOf(BadRequestError);
+    await expect(
+      service.reverseReceipt(
+        'po-1',
+        'receipt-1',
+        {
+          reason: 'rollback',
+        },
+        {
+          idempotencyKey: 'idem-2',
+        }
+      )
+    ).rejects.toBeInstanceOf(BadRequestError);
 
     expect(harness.db.batch).not.toHaveBeenCalled();
     expect(harness.inventoryService.buildMutationStatements).not.toHaveBeenCalled();
@@ -360,11 +485,16 @@ describe('OrderProcurementReceiptReversalService', () => {
       now: () => 1710000000000,
     });
 
-    await aggregateService.reverseReceipt('po-1', 'receipt-1', {
-      reason: 'rollback',
-    }, {
-      idempotencyKey: 'idem-1',
-    });
+    await aggregateService.reverseReceipt(
+      'po-1',
+      'receipt-1',
+      {
+        reason: 'rollback',
+      },
+      {
+        idempotencyKey: 'idem-1',
+      }
+    );
 
     const orderLineUpdate = aggregateHarness.calls.batchedStatements.find((statement) =>
       statement.sql.includes('UPDATE order_lines')
@@ -400,11 +530,16 @@ describe('OrderProcurementReceiptReversalService', () => {
       now: () => 1710000000000,
     });
 
-    await nonInventoryService.reverseReceipt('po-1', 'receipt-1', {
-      reason: 'rollback',
-    }, {
-      idempotencyKey: 'idem-1',
-    });
+    await nonInventoryService.reverseReceipt(
+      'po-1',
+      'receipt-1',
+      {
+        reason: 'rollback',
+      },
+      {
+        idempotencyKey: 'idem-1',
+      }
+    );
 
     expect(nonInventoryHarness.inventoryService.buildMutationStatements).not.toHaveBeenCalled();
     expect(nonInventoryHarness.calls.outboxEvents.map((event) => event.event_type)).toEqual([
@@ -415,8 +550,11 @@ describe('OrderProcurementReceiptReversalService', () => {
 
   it('rejects concurrent duplicate reversal writes when the original receipt unique guard trips', async () => {
     const duplicateHarness = createDbHarness({
-      batchError: new Error('UNIQUE constraint failed: purchase_receipt_reversals.original_receipt_id'),
-      batchErrorMatcher: (statement) => statement.sql.includes('INSERT INTO purchase_receipt_reversals'),
+      batchError: new Error(
+        'UNIQUE constraint failed: purchase_receipt_reversals.original_receipt_id'
+      ),
+      batchErrorMatcher: (statement) =>
+        statement.sql.includes('INSERT INTO purchase_receipt_reversals'),
     });
     const duplicateService = new OrderProcurementReceiptReversalService(duplicateHarness.db, {
       purchaseReceiptRepo: duplicateHarness.purchaseReceiptRepo,
@@ -426,10 +564,23 @@ describe('OrderProcurementReceiptReversalService', () => {
       now: () => 1710000000000,
     });
 
-    await expect(duplicateService.reverseReceipt('po-1', 'receipt-1', {
-      reason: 'race',
-    }, {
-      idempotencyKey: 'idem-1',
-    })).rejects.toBeInstanceOf(BadRequestError);
+    await expect(
+      duplicateService.reverseReceipt(
+        'po-1',
+        'receipt-1',
+        {
+          reason: 'race',
+        },
+        {
+          idempotencyKey: 'idem-1',
+        }
+      )
+    ).rejects.toBeInstanceOf(BadRequestError);
+
+    expect(
+      duplicateHarness.calls.runStatements.some((statement) =>
+        statement.sql.includes('DELETE FROM command_idempotency')
+      )
+    ).toBe(true);
   });
 });

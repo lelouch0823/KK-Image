@@ -19,13 +19,27 @@ function normalizeQuantity(payload = {}) {
 
 function getRemainingLineQuantity(line) {
   return Math.max(
-    toNonNegativeInt(line.ordered_qty) - toNonNegativeInt(line.cancelled_qty) - toNonNegativeInt(line.shipped_qty),
+    toNonNegativeInt(line.ordered_qty) -
+      toNonNegativeInt(line.cancelled_qty) -
+      toNonNegativeInt(line.shipped_qty),
+    0
+  );
+}
+
+function getReadyLineQuantity(line) {
+  return Math.max(
+    toNonNegativeInt(line.received_qty) -
+      toNonNegativeInt(line.shipped_qty) -
+      toNonNegativeInt(line.reserved_qty),
     0
   );
 }
 
 function getAllocationRemaining(allocation = {}) {
-  return Math.max(toNonNegativeInt(allocation.allocated_qty) - toNonNegativeInt(allocation.released_qty), 0);
+  return Math.max(
+    toNonNegativeInt(allocation.allocated_qty) - toNonNegativeInt(allocation.released_qty),
+    0
+  );
 }
 
 export class OrderLineFulfillmentService {
@@ -35,10 +49,12 @@ export class OrderLineFulfillmentService {
     this.uuid = deps.uuid || (() => crypto.randomUUID());
     this.allocationRepo = deps.allocationRepo || new OrderLineAllocationRepository(db);
     this.inventoryService = deps.inventoryService || new InventoryService(db);
-    this.domainOutboxRepo = deps.domainOutboxRepo || new DomainOutboxRepository(db, {
-      now: this.now,
-      uuid: this.uuid,
-    });
+    this.domainOutboxRepo =
+      deps.domainOutboxRepo ||
+      new DomainOutboxRepository(db, {
+        now: this.now,
+        uuid: this.uuid,
+      });
   }
 
   async reserveLine(orderId, lineId, payload = {}, options = {}) {
@@ -50,39 +66,30 @@ export class OrderLineFulfillmentService {
     const currentReserved = toNonNegativeInt(line.reserved_qty);
     const reservable = Math.max(remaining - currentReserved, 0);
     if (quantity > reservable) {
-      throw new BadRequestError(`reserve quantity exceeds remaining reservable quantity: ${reservable}`);
+      throw new BadRequestError(
+        `reserve quantity exceeds remaining reservable quantity: ${reservable}`
+      );
     }
 
     const inventory = await this.queryInventoryBalance(line.variant_id);
-    if (quantity > inventory.available) {
-      throw new BadRequestError(`reserve quantity exceeds available stock: ${inventory.available}`);
+    const readyQuantity = getReadyLineQuantity(line);
+    const reserveCapacity = Math.max(readyQuantity, toNonNegativeInt(inventory.available));
+    if (quantity > reserveCapacity) {
+      throw new BadRequestError(`reserve quantity exceeds available stock: ${reserveCapacity}`);
     }
 
     const timestamp = this.now();
     const nextLineState = this.buildNextLineState(line, {
       reserved_qty: currentReserved + quantity,
     });
-    const reserveMovement = this.buildReservationMovementStatements({
-      variantId: line.variant_id,
-      orderId,
-      lineId,
-      quantityDelta: quantity,
-      eventType: 'inventory_reserved',
-      timestamp,
-      metadata: {
-        action: 'reserve',
-        actorName: options.actorName || null,
-      },
-    });
 
     const statements = [
-      ...reserveMovement.statements,
       this.buildOrderLineUpdateStatement(line, nextLineState, timestamp),
       this.allocationRepo.createInsertStatement({
         id: this.uuid(),
         order_line_id: lineId,
         variant_id: line.variant_id,
-        inventory_event_id: reserveMovement.inventoryEventId,
+        inventory_event_id: null,
         allocated_qty: quantity,
         allocated_at: timestamp,
         created_at: timestamp,
@@ -123,28 +130,21 @@ export class OrderLineFulfillmentService {
     }
 
     const activeAllocations = await this.allocationRepo.listActiveByOrderLine(lineId);
-    const totalAllocated = activeAllocations.reduce((sum, allocation) => sum + getAllocationRemaining(allocation), 0);
+    const totalAllocated = activeAllocations.reduce(
+      (sum, allocation) => sum + getAllocationRemaining(allocation),
+      0
+    );
     if (quantity > totalAllocated) {
-      throw new BadRequestError(`release quantity exceeds active allocation quantity: ${totalAllocated}`);
+      throw new BadRequestError(
+        `release quantity exceeds active allocation quantity: ${totalAllocated}`
+      );
     }
 
     const timestamp = this.now();
     const nextLineState = this.buildNextLineState(line, {
       reserved_qty: Math.max(currentReserved - quantity, 0),
     });
-    const releaseMovement = this.buildReservationMovementStatements({
-      variantId: line.variant_id,
-      orderId,
-      lineId,
-      quantityDelta: -quantity,
-      eventType: 'inventory_released',
-      timestamp,
-      metadata: {
-        action: 'release',
-        actorName: options.actorName || null,
-      },
-    });
-    const statements = [...releaseMovement.statements];
+    const statements = [];
     let remainingToRelease = quantity;
 
     for (const allocation of activeAllocations) {
@@ -230,22 +230,22 @@ export class OrderLineFulfillmentService {
         );
         remainingToRelease -= releaseQty;
       }
-
-      const releaseMovement = this.buildReservationMovementStatements({
-        variantId: line.variant_id,
-        orderId,
-        lineId,
-        quantityDelta: -reservedConsumed,
-        eventType: 'inventory_released',
-        timestamp,
-        metadata: {
-          action: 'ship',
-          actorName: options.actorName || null,
-          reservedConsumed,
-        },
-      });
-      statements.push(...releaseMovement.statements);
     }
+
+    const releaseMovement = this.buildReservationMovementStatements({
+      variantId: line.variant_id,
+      orderId,
+      lineId,
+      quantityDelta: -quantity,
+      eventType: 'inventory_released',
+      timestamp,
+      metadata: {
+        action: 'ship',
+        actorName: options.actorName || null,
+        reservedConsumed,
+      },
+    });
+    statements.push(...releaseMovement.statements);
 
     const shipment = await this.inventoryService.buildMutationStatements({
       type: 'order_shipment',
@@ -419,13 +419,7 @@ export class OrderLineFulfillmentService {
                available = MAX(0, inventory_balances.on_hand - MAX(0, inventory_balances.reserved + ?)),
                updated_at = excluded.updated_at`
           )
-          .bind(
-            variantId,
-            Math.max(quantityDelta, 0),
-            timestamp,
-            quantityDelta,
-            quantityDelta
-          ),
+          .bind(variantId, Math.max(quantityDelta, 0), timestamp, quantityDelta, quantityDelta),
         this.db
           .prepare(
             `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)

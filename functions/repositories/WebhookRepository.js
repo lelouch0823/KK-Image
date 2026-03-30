@@ -38,9 +38,7 @@ export class WebhookRepository {
       .bind(`%"${eventType}"%`)
       .all();
 
-    return (results || [])
-      .map(rowToWebhook)
-      .filter((row) => row.events.includes(eventType));
+    return (results || []).map(rowToWebhook).filter((row) => row.events.includes(eventType));
   }
 
   async listAll() {
@@ -52,10 +50,7 @@ export class WebhookRepository {
   }
 
   async getById(id) {
-    const row = await this.db
-      .prepare('SELECT * FROM webhooks WHERE id = ?')
-      .bind(id)
-      .first();
+    const row = await this.db.prepare('SELECT * FROM webhooks WHERE id = ?').bind(id).first();
 
     return rowToWebhook(row);
   }
@@ -112,6 +107,12 @@ export class WebhookRepository {
       .run();
 
     return this.getById(id);
+  }
+
+  async delete(id) {
+    await this.db.prepare('DELETE FROM webhooks WHERE id = ?').bind(id).run();
+
+    return true;
   }
 
   async logAttempt(input) {

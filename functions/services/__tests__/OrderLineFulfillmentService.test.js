@@ -114,17 +114,55 @@ function createDbHarness({
       return {
         inventoryEventId: 'ship-event-1',
         statements: [
-          db.prepare('UPDATE product_variants SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ? WHERE id = ?')
+          db
+            .prepare(
+              'UPDATE product_variants SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ? WHERE id = ?'
+            )
             .bind(payload.quantityDelta, 1710000000000, payload.variantId),
-          db.prepare(
-            'INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at) VALUES (?, ?, 0, ?, ?) ON CONFLICT(variant_id) DO UPDATE SET on_hand = MAX(0, inventory_balances.on_hand + ?), available = MAX(0, MAX(0, inventory_balances.on_hand + ?) - inventory_balances.reserved), updated_at = excluded.updated_at'
-          ).bind(payload.variantId, 0, 0, 1710000000000, payload.quantityDelta, payload.quantityDelta),
-          db.prepare(
-            'INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-          ).bind('ledger-ship-1', payload.variantId, payload.type, payload.quantityDelta, payload.referenceType, payload.referenceId, 1710000000000, JSON.stringify(payload.metadata || {}), 1710000000000),
-          db.prepare(
-            'INSERT INTO inventory_events (id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta, source_type, source_id, metadata, occurred_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-          ).bind('ship-event-1', payload.variantId, payload.orderLineId, null, payload.type, payload.quantityDelta, payload.referenceType, payload.referenceId, JSON.stringify(payload.metadata || {}), 1710000000000, 1710000000000),
+          db
+            .prepare(
+              'INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at) VALUES (?, ?, 0, ?, ?) ON CONFLICT(variant_id) DO UPDATE SET on_hand = MAX(0, inventory_balances.on_hand + ?), available = MAX(0, MAX(0, inventory_balances.on_hand + ?) - inventory_balances.reserved), updated_at = excluded.updated_at'
+            )
+            .bind(
+              payload.variantId,
+              0,
+              0,
+              1710000000000,
+              payload.quantityDelta,
+              payload.quantityDelta
+            ),
+          db
+            .prepare(
+              'INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            )
+            .bind(
+              'ledger-ship-1',
+              payload.variantId,
+              payload.type,
+              payload.quantityDelta,
+              payload.referenceType,
+              payload.referenceId,
+              1710000000000,
+              JSON.stringify(payload.metadata || {}),
+              1710000000000
+            ),
+          db
+            .prepare(
+              'INSERT INTO inventory_events (id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta, source_type, source_id, metadata, occurred_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            )
+            .bind(
+              'ship-event-1',
+              payload.variantId,
+              payload.orderLineId,
+              null,
+              payload.type,
+              payload.quantityDelta,
+              payload.referenceType,
+              payload.referenceId,
+              JSON.stringify(payload.metadata || {}),
+              1710000000000,
+              1710000000000
+            ),
         ],
       };
     }),
@@ -142,26 +180,43 @@ function createDbHarness({
         });
 
         return [
-          db.prepare(
-            'INSERT INTO domain_outbox (id, command_id, sequence_in_command, event_type, event_version, aggregate_type, aggregate_id, correlation_id, causation_id, idempotency_key, payload_json, occurred_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-          ).bind(
-            event.id,
-            event.command_id,
-            event.sequence_in_command,
-            event.event_type,
-            event.event_version,
-            event.aggregate_type,
-            event.aggregate_id,
-            event.correlation_id,
-            event.causation_id,
-            event.idempotency_key,
-            event.payload_json,
-            event.occurred_at,
-            1710000000000
-          ),
-          db.prepare(
-            'INSERT INTO outbox_consumer_jobs (id, consumer_name, event_id, status, attempt_count, available_at, leased_by, leased_until, last_error, processed_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-          ).bind(`job-${index}`, consumers[0] || 'cache', event.id, 'pending', 0, 1710000000000, null, null, null, null, 1710000000000, 1710000000000),
+          db
+            .prepare(
+              'INSERT INTO domain_outbox (id, command_id, sequence_in_command, event_type, event_version, aggregate_type, aggregate_id, correlation_id, causation_id, idempotency_key, payload_json, occurred_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            )
+            .bind(
+              event.id,
+              event.command_id,
+              event.sequence_in_command,
+              event.event_type,
+              event.event_version,
+              event.aggregate_type,
+              event.aggregate_id,
+              event.correlation_id,
+              event.causation_id,
+              event.idempotency_key,
+              event.payload_json,
+              event.occurred_at,
+              1710000000000
+            ),
+          db
+            .prepare(
+              'INSERT INTO outbox_consumer_jobs (id, consumer_name, event_id, status, attempt_count, available_at, leased_by, leased_until, last_error, processed_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            )
+            .bind(
+              `job-${index}`,
+              consumers[0] || 'cache',
+              event.id,
+              'pending',
+              0,
+              1710000000000,
+              null,
+              null,
+              null,
+              null,
+              1710000000000,
+              1710000000000
+            ),
         ];
       });
     }),
@@ -187,14 +242,53 @@ describe('OrderLineFulfillmentService', () => {
   });
 
   it('reserves line quantity against on-hand stock and records active allocations', async () => {
-    const result = await service.reserveLine('order-1', 'line-1', { quantity: 4 }, { actorName: 'Admin' });
+    harness = createDbHarness({
+      orderLineRow: {
+        order_id: 'order-1',
+        order_no: 'SO-1',
+        salesperson_id: 'sales-1',
+        order_status: 'shipping',
+        line_id: 'line-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 8,
+        procured_qty: 8,
+        received_qty: 8,
+        reserved_qty: 1,
+        shipped_qty: 2,
+        cancelled_qty: 0,
+        display_status: 'ready',
+      },
+      inventoryBalanceRow: {
+        variant_id: 'var-1',
+        on_hand: 8,
+        reserved: 8,
+        available: 0,
+      },
+    });
+    service = new OrderLineFulfillmentService(harness.db, {
+      allocationRepo: harness.allocationRepo,
+      inventoryService: harness.inventoryService,
+      domainOutboxRepo: harness.domainOutboxRepo,
+      now: () => 1710000000000,
+      uuid: vi.fn(() => crypto.randomUUID()),
+    });
 
-    expect(result).toEqual(expect.objectContaining({
-      order_id: 'order-1',
-      order_line_id: 'line-1',
-      action: 'reserve',
-      quantity: 4,
-    }));
+    const result = await service.reserveLine(
+      'order-1',
+      'line-1',
+      { quantity: 4 },
+      { actorName: 'Admin' }
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        order_id: 'order-1',
+        order_line_id: 'line-1',
+        action: 'reserve',
+        quantity: 4,
+      })
+    );
     expect(harness.allocationRepo.createInsertStatement).toHaveBeenCalledWith(
       expect.objectContaining({
         order_line_id: 'line-1',
@@ -204,9 +298,9 @@ describe('OrderLineFulfillmentService', () => {
     );
     const sqlBatch = harness.calls.batchedStatements.map((statement) => statement.sql).join('\n');
     expect(sqlBatch).toContain('UPDATE order_lines');
-    expect(sqlBatch).toContain('INSERT INTO inventory_balances');
-    expect(sqlBatch).toContain('INSERT INTO inventory_ledger');
-    expect(sqlBatch).toContain('INSERT INTO inventory_events');
+    expect(sqlBatch).not.toContain('INSERT INTO inventory_balances');
+    expect(sqlBatch).not.toContain('INSERT INTO inventory_ledger');
+    expect(sqlBatch).not.toContain('INSERT INTO inventory_events');
     expect(sqlBatch).toContain('INSERT INTO order_line_allocations');
     expect(sqlBatch).toContain('INSERT INTO domain_outbox');
     expect(harness.calls.outboxConsumerMatrix).toEqual([
@@ -253,12 +347,19 @@ describe('OrderLineFulfillmentService', () => {
       now: () => 1710000000000,
     });
 
-    const result = await service.releaseLine('order-1', 'line-1', { quantity: 4 }, { actorName: 'Admin' });
+    const result = await service.releaseLine(
+      'order-1',
+      'line-1',
+      { quantity: 4 },
+      { actorName: 'Admin' }
+    );
 
-    expect(result).toEqual(expect.objectContaining({
-      action: 'release',
-      quantity: 4,
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        action: 'release',
+        quantity: 4,
+      })
+    );
     expect(harness.allocationRepo.listActiveByOrderLine).toHaveBeenCalledWith('line-1');
     expect(harness.calls.allocationReleases).toEqual([
       expect.objectContaining({ allocationId: 'alloc-1', quantity: 3 }),
@@ -291,9 +392,7 @@ describe('OrderLineFulfillmentService', () => {
         reserved: 2,
         available: 6,
       },
-      activeAllocations: [
-        { id: 'alloc-1', allocated_qty: 2, released_qty: 0, status: 'active' },
-      ],
+      activeAllocations: [{ id: 'alloc-1', allocated_qty: 2, released_qty: 0, status: 'active' }],
     });
     service = new OrderLineFulfillmentService(harness.db, {
       allocationRepo: harness.allocationRepo,
@@ -302,12 +401,19 @@ describe('OrderLineFulfillmentService', () => {
       now: () => 1710000000000,
     });
 
-    const result = await service.shipLine('order-1', 'line-1', { quantity: 3 }, { actorName: 'Admin' });
+    const result = await service.shipLine(
+      'order-1',
+      'line-1',
+      { quantity: 3 },
+      { actorName: 'Admin' }
+    );
 
-    expect(result).toEqual(expect.objectContaining({
-      action: 'ship',
-      quantity: 3,
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        action: 'ship',
+        quantity: 3,
+      })
+    );
     expect(harness.inventoryService.buildMutationStatements).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'order_shipment',
@@ -320,6 +426,65 @@ describe('OrderLineFulfillmentService', () => {
     expect(harness.calls.outboxEvents).toHaveLength(1);
     expect(harness.calls.outboxEvents[0].event_type).toBe('order_line_fulfillment_updated');
     expect(harness.calls.outboxConsumerMatrix[0].consumers).toEqual(['cache']);
+  });
+
+  it('ships a line and releases demand-held inventory even without explicit line reservations', async () => {
+    harness = createDbHarness({
+      orderLineRow: {
+        order_id: 'order-1',
+        order_no: 'SO-1',
+        salesperson_id: 'sales-1',
+        order_status: 'shipping',
+        line_id: 'line-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 5,
+        procured_qty: 5,
+        received_qty: 5,
+        reserved_qty: 0,
+        shipped_qty: 0,
+        cancelled_qty: 0,
+        display_status: 'ready',
+      },
+      inventoryBalanceRow: {
+        variant_id: 'var-1',
+        on_hand: 5,
+        reserved: 5,
+        available: 0,
+      },
+      activeAllocations: [],
+    });
+    service = new OrderLineFulfillmentService(harness.db, {
+      allocationRepo: harness.allocationRepo,
+      inventoryService: harness.inventoryService,
+      domainOutboxRepo: harness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    const result = await service.shipLine(
+      'order-1',
+      'line-1',
+      { quantity: 2 },
+      { actorName: 'Admin' }
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        action: 'ship',
+        quantity: 2,
+      })
+    );
+    const sqlBatch = harness.calls.batchedStatements.map((statement) => statement.sql).join('\n');
+    expect(sqlBatch).toContain('INSERT INTO inventory_balances');
+    expect(sqlBatch).toContain('INSERT INTO inventory_ledger');
+    expect(sqlBatch).toContain('INSERT INTO inventory_events');
+    expect(harness.calls.allocationReleases).toEqual([]);
+    expect(harness.inventoryService.buildMutationStatements).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'order_shipment',
+        quantityDelta: -2,
+      })
+    );
   });
 
   it('rejects line commands that exceed remaining, reserved, or available quantities', async () => {
@@ -350,9 +515,7 @@ describe('OrderLineFulfillmentService', () => {
         reserved: 2,
         available: 6,
       },
-      activeAllocations: [
-        { id: 'alloc-1', allocated_qty: 2, released_qty: 0, status: 'active' },
-      ],
+      activeAllocations: [{ id: 'alloc-1', allocated_qty: 2, released_qty: 0, status: 'active' }],
     });
     service = new OrderLineFulfillmentService(harness.db, {
       allocationRepo: harness.allocationRepo,

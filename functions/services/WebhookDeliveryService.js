@@ -20,7 +20,7 @@ export class WebhookDeliveryService {
   constructor(db, deps = {}) {
     this.db = db;
     this.webhookRepo = deps.webhookRepo || new WebhookRepository(db);
-    this.fetch = deps.fetch || globalThis.fetch;
+    this.fetch = deps.fetch || globalThis.fetch?.bind(globalThis);
     this.signPayload = deps.signPayload || generateHmacSignature;
     this.now = deps.now || (() => Date.now());
   }

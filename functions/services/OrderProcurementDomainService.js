@@ -14,7 +14,9 @@ function toNonNegativeInt(value) {
 
 function computeRemainingReceivable(item = {}) {
   return Math.max(
-    toNonNegativeInt(item.quantity) - toNonNegativeInt(item.received_qty) - toNonNegativeInt(item.cancelled_qty),
+    toNonNegativeInt(item.quantity) -
+      toNonNegativeInt(item.received_qty) -
+      toNonNegativeInt(item.cancelled_qty),
     0
   );
 }
@@ -119,8 +121,10 @@ export class OrderProcurementDomainService {
     this.db = db;
     this.purchaseReceiptRepo = deps.purchaseReceiptRepo || new PurchaseReceiptRepository(db);
     this.inventoryService = deps.inventoryService || new InventoryService(db);
-    this.commandIdempotencyRepo = deps.commandIdempotencyRepo || new CommandIdempotencyRepository(db, { now: deps.now });
-    this.domainOutboxRepo = deps.domainOutboxRepo || new DomainOutboxRepository(db, { now: deps.now });
+    this.commandIdempotencyRepo =
+      deps.commandIdempotencyRepo || new CommandIdempotencyRepository(db, { now: deps.now });
+    this.domainOutboxRepo =
+      deps.domainOutboxRepo || new DomainOutboxRepository(db, { now: deps.now });
     this.now = deps.now || (() => Date.now());
   }
 
@@ -157,7 +161,11 @@ export class OrderProcurementDomainService {
     return row;
   }
 
-  async queryCompatibilityOrderLines(orderId, { productId = null, variantId = null } = {}, includeScopedFilters = true) {
+  async queryCompatibilityOrderLines(
+    orderId,
+    { productId = null, variantId = null } = {},
+    includeScopedFilters = true
+  ) {
     if (!orderId) return [];
 
     const filters = ['order_id = ?'];
@@ -397,8 +405,13 @@ export class OrderProcurementDomainService {
 
     const idempotencyKey = String(options.idempotencyKey || crypto.randomUUID()).trim();
     const requestFingerprint = buildReceiptRequestFingerprint(poId, payload);
-    const commandReservation = await this.commandIdempotencyRepo
-      .reserveReceiptCommand(poId, idempotencyKey, requestFingerprint);
+    const commandReservation = await this.commandIdempotencyRepo.reserveReceiptCommand(
+      poId,
+      idempotencyKey,
+      requestFingerprint
+    );
+    const ownsReservation =
+      commandReservation?.ownsReservation ?? Boolean(commandReservation?.insertStatement);
 
     if (commandReservation?.existing) {
       if (commandReservation.record?.request_fingerprint !== requestFingerprint) {
@@ -458,16 +471,18 @@ export class OrderProcurementDomainService {
         receivedQty
       );
       preflightReverts.push(
-        this.db.prepare(
-          `UPDATE purchase_order_items
+        this.db
+          .prepare(
+            `UPDATE purchase_order_items
            SET received_qty = ?, display_status = ?
            WHERE id = ? AND po_id = ?`
-        ).bind(
-          toNonNegativeInt(poItem.received_qty),
-          projectPurchaseOrderItemStatus(poItem),
-          poItem.id,
-          poId
-        )
+          )
+          .bind(
+            toNonNegativeInt(poItem.received_qty),
+            projectPurchaseOrderItemStatus(poItem),
+            poItem.id,
+            poId
+          )
       );
       preflightStatements.push(purchaseItemStatement);
       preparedReceipts.push({
@@ -480,9 +495,8 @@ export class OrderProcurementDomainService {
       });
     }
 
-    const preflightResults = preflightStatements.length > 0
-      ? await executeBatchChunks(this.db, preflightStatements)
-      : [];
+    const preflightResults =
+      preflightStatements.length > 0 ? await executeBatchChunks(this.db, preflightStatements) : [];
     const preflightOffset = commandReservation.insertStatement ? 1 : 0;
     const failedPreflightIndexes = [];
     for (let index = 0; index < preflightReverts.length; index += 1) {
@@ -492,14 +506,17 @@ export class OrderProcurementDomainService {
     }
 
     if (failedPreflightIndexes.length > 0) {
-      const successfulReverts = preflightReverts.filter((_statement, index) =>
-        !failedPreflightIndexes.includes(index)
+      const successfulReverts = preflightReverts.filter(
+        (_statement, index) => !failedPreflightIndexes.includes(index)
       );
       if (successfulReverts.length > 0) {
         await executeBatchChunks(this.db, successfulReverts);
       }
-      if (commandReservation.insertStatement) {
-        await buildDeleteCommandStatement(this.db, commandRecord.command_id).run();
+      if (ownsReservation) {
+        const deleteStatement =
+          this.commandIdempotencyRepo.buildDeleteStatement?.(commandRecord.command_id) ||
+          buildDeleteCommandStatement(this.db, commandRecord.command_id);
+        await deleteStatement.run();
       }
       throw new BadRequestError('采购单明细收货进度已变化，请刷新后重试');
     }
@@ -579,31 +596,37 @@ export class OrderProcurementDomainService {
           const nextLineState = {
             ...currentLineState,
             procured_qty: Math.max(currentLineState.procured_qty, currentLineState.ordered_qty),
-            received_qty: Math.min(currentLineState.received_qty + receivedQty, currentLineState.ordered_qty),
+            received_qty: Math.min(
+              currentLineState.received_qty + receivedQty,
+              currentLineState.ordered_qty
+            ),
           };
           nextLineState.display_status = projectOrderLineStatus(nextLineState);
           orderLineStates.set(nextLineState.id, nextLineState);
           statements.push(this.buildOrderLineProgressStatement(nextLineState, timestamp));
 
-          const currentAggregate = orderAggregateStates.get(poItem.pre_order_id)
-            || await this.queryCompatibilityProcurementAggregate(poItem.pre_order_id);
+          const currentAggregate =
+            orderAggregateStates.get(poItem.pre_order_id) ||
+            (await this.queryCompatibilityProcurementAggregate(poItem.pre_order_id));
           const nextAggregate = {
             ...currentAggregate,
             procured_qty:
-              toNonNegativeInt(currentAggregate.procured_qty)
-              + Math.max(nextLineState.procured_qty - currentLineState.procured_qty, 0),
+              toNonNegativeInt(currentAggregate.procured_qty) +
+              Math.max(nextLineState.procured_qty - currentLineState.procured_qty, 0),
             received_qty:
-              toNonNegativeInt(currentAggregate.received_qty)
-              + Math.max(nextLineState.received_qty - currentLineState.received_qty, 0),
+              toNonNegativeInt(currentAggregate.received_qty) +
+              Math.max(nextLineState.received_qty - currentLineState.received_qty, 0),
           };
           orderAggregateStates.set(poItem.pre_order_id, nextAggregate);
 
           const nextProcurementStatus = projectCompatibilityProcurementStatus(nextAggregate);
-          statements.push(this.buildCompatibilityOrderStatusStatement(
-            poItem.pre_order_id,
-            nextProcurementStatus,
-            timestamp
-          ));
+          statements.push(
+            this.buildCompatibilityOrderStatusStatement(
+              poItem.pre_order_id,
+              nextProcurementStatus,
+              timestamp
+            )
+          );
 
           orderLineStates.set(`${nextLineState.id}:outbox`, {
             nextProcurementStatus,
@@ -612,8 +635,9 @@ export class OrderProcurementDomainService {
         }
 
         if (poItem.variant_id) {
-          const currentInventory = inventoryStates.get(poItem.variant_id)
-            || await this.queryInventoryBalance(poItem.variant_id);
+          const currentInventory =
+            inventoryStates.get(poItem.variant_id) ||
+            (await this.queryInventoryBalance(poItem.variant_id));
           const nextInventory = {
             ...currentInventory,
             on_hand: toNonNegativeInt(currentInventory?.on_hand) + receivedQty,
@@ -707,11 +731,16 @@ export class OrderProcurementDomainService {
         )
       );
       statements.push(
-        this.db.prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
+        this.db
+          .prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
           .bind(timestamp, poId)
       );
       statements.push(
-        this.commandIdempotencyRepo.buildFinalizeStatement(commandRecord.command_id, response, 'committed')
+        this.commandIdempotencyRepo.buildFinalizeStatement(
+          commandRecord.command_id,
+          response,
+          'committed'
+        )
       );
 
       await executeBatchChunks(this.db, statements);
@@ -720,8 +749,11 @@ export class OrderProcurementDomainService {
       if (preflightReverts.length > 0) {
         await executeBatchChunks(this.db, preflightReverts);
       }
-      if (commandReservation.insertStatement) {
-        await buildDeleteCommandStatement(this.db, commandRecord.command_id).run();
+      if (ownsReservation) {
+        const deleteStatement =
+          this.commandIdempotencyRepo.buildDeleteStatement?.(commandRecord.command_id) ||
+          buildDeleteCommandStatement(this.db, commandRecord.command_id);
+        await deleteStatement.run();
       }
       throw error;
     }

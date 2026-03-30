@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   listActiveByEvent: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
+  remove: vi.fn(),
   getById: vi.fn(),
   testById: vi.fn(),
   scheduleAuditEvent: vi.fn(),
@@ -15,6 +16,7 @@ vi.mock('../../../../../repositories/WebhookRepository.js', () => ({
     listActiveByEvent: mocks.listActiveByEvent,
     create: mocks.create,
     update: mocks.update,
+    delete: mocks.remove,
     getById: mocks.getById,
     testById: mocks.testById,
   })),
@@ -37,7 +39,10 @@ import webhooksApp from '../webhooks.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.use('/api/manage/webhooks/*', async (c, next) => {
     c.set('user', { id: 'admin-1', name: 'Admin', role: 'admin', type: 'admin' });
@@ -65,6 +70,7 @@ describe('manage webhooks routes', () => {
       headers: { 'X-KK': '2' },
       enabled: false,
     });
+    mocks.remove.mockResolvedValue(true);
     mocks.getById.mockResolvedValue({
       id: 'wh-1',
       url: 'https://example.com/hook',
@@ -93,11 +99,13 @@ describe('manage webhooks routes', () => {
     );
 
     expect(createRes.status).toBe(201);
-    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({
-      url: 'https://example.com/hook',
-      events: ['purchase_receipt_recorded'],
-      actorId: 'admin-1',
-    }));
+    expect(mocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://example.com/hook',
+        events: ['purchase_receipt_recorded'],
+        actorId: 'admin-1',
+      })
+    );
 
     const updateRes = await app.request(
       'http://localhost/api/manage/webhooks/wh-1',
@@ -124,5 +132,21 @@ describe('manage webhooks routes', () => {
         actorId: 'admin-1',
       })
     );
+  });
+
+  it('deletes manage webhook configs under /api/manage/webhooks/:id', async () => {
+    const app = createApp();
+
+    const deleteRes = await app.request(
+      'http://localhost/api/manage/webhooks/wh-1',
+      {
+        method: 'DELETE',
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(deleteRes.status).toBe(200);
+    expect(mocks.remove).toHaveBeenCalledWith('wh-1');
   });
 });
