@@ -23,6 +23,70 @@ function createBatchDb() {
 }
 
 describe('PurchaseOrderRepository safety guards', () => {
+  it('generatePoNo increments from the highest daily suffix instead of row count', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-03-30T04:00:00.000Z'));
+
+      const first = vi.fn(async () => ({ po_no: 'PO-20260330-009' }));
+      const db = {
+        prepare: vi.fn(() => ({
+          bind: vi.fn(() => ({ first })),
+        })),
+      };
+      const repo = new PurchaseOrderRepository(db);
+
+      await expect(repo.generatePoNo()).resolves.toBe('PO-20260330-010');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('retries purchase-order number allocation when a concurrent insert wins the same po_no', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-03-30T04:00:00.000Z'));
+
+      const first = vi.fn()
+        .mockResolvedValueOnce({ po_no: 'PO-20260330-001' })
+        .mockResolvedValueOnce({ po_no: 'PO-20260330-002' });
+      const run = vi.fn()
+        .mockRejectedValueOnce(new Error('D1_ERROR: UNIQUE constraint failed: purchase_orders.po_no: SQLITE_CONSTRAINT'))
+        .mockResolvedValueOnce({ meta: { changes: 1 } });
+      const insertParams = [];
+      const db = {
+        prepare: vi.fn((sql) => {
+          if (sql.includes('SELECT po_no')) {
+            return {
+              bind: vi.fn(() => ({ first })),
+            };
+          }
+
+          if (sql.includes('INSERT INTO purchase_orders')) {
+            return {
+              bind: vi.fn((...params) => {
+                insertParams.push(params);
+                return { run };
+              }),
+            };
+          }
+
+          throw new Error(`Unexpected SQL: ${sql}`);
+        }),
+      };
+      const repo = new PurchaseOrderRepository(db);
+
+      const created = await repo.create({ remark: 'concurrency retry' });
+
+      expect(insertParams).toHaveLength(2);
+      expect(insertParams[0][1]).toBe('PO-20260330-002');
+      expect(insertParams[1][1]).toBe('PO-20260330-003');
+      expect(created.po_no).toBe('PO-20260330-003');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('updateStatusIfCurrent only updates when current status matches', async () => {
     const dbFail = createDb(0);
     const repoFail = new PurchaseOrderRepository(dbFail);

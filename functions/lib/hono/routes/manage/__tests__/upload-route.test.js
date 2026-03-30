@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   ensureSpaceFolder: vi.fn(),
   storeFile: vi.fn(),
   scheduleAuditEvent: vi.fn(),
+  publishDomainEventsAndPoll: vi.fn(async () => []),
 }));
 
 vi.mock('../../../middleware/auth.js', () => ({
@@ -20,8 +21,11 @@ vi.mock('../../../_shared/utils.js', () => ({
   MSG: {
     COMMON: { UPLOAD_NO_FILE: 'NO_FILE' },
     FILE: { UPLOAD_SUCCESS: 'UPLOAD_SUCCESS', INSTANT_UPLOAD: 'INSTANT_UPLOAD' },
+    SPACE: { NOT_FOUND: 'SPACE_NOT_FOUND' },
   },
   storeFile: mocks.storeFile,
+  getFileUrl: vi.fn((key) => `/file/${key}`),
+  timestampToIso: vi.fn(() => '2026-03-30T00:00:00.000Z'),
 }));
 
 vi.mock('../../../_shared/audit-helpers.js', async () => {
@@ -31,6 +35,10 @@ vi.mock('../../../_shared/audit-helpers.js', async () => {
     scheduleAuditEvent: mocks.scheduleAuditEvent,
   };
 });
+
+vi.mock('../../../_shared/domain-outbox.js', () => ({
+  publishDomainEventsAndPoll: mocks.publishDomainEventsAndPoll,
+}));
 
 vi.mock('../../../../../api/utils/folder-utils.js', () => ({
   ensureProductFolder: mocks.ensureProductFolder,
@@ -68,8 +76,8 @@ describe('manage upload route', () => {
       prepare: vi.fn((sql) => ({
         bind: vi.fn((...args) => ({
           first: vi.fn(async () => {
-            if (sql.includes('SELECT name FROM spaces')) {
-              return { name: 'Space A' };
+            if (sql.includes('FROM spaces WHERE id = ?')) {
+              return { name: 'Space A', parent_id: 'parent-1', product_id: 'prod-1' };
             }
             if (sql.includes('SELECT MAX(sort_order) as max_order FROM space_files')) {
               expect(args[0]).toBe('space-1');
@@ -102,6 +110,23 @@ describe('manage upload route', () => {
       expect.any(File),
       expect.objectContaining({ folderId: 'folder-products' })
     );
+    expect(mocks.publishDomainEventsAndPoll).toHaveBeenCalledWith(
+      expect.anything(),
+      [
+        expect.objectContaining({
+          event_type: 'file_uploaded',
+          aggregate_type: 'file',
+          aggregate_id: 'file-1',
+          payload: expect.objectContaining({
+            file: expect.objectContaining({
+              id: 'file-1',
+              filename: 'variant.png',
+            }),
+          }),
+        }),
+      ],
+      'manage-upload:file-1'
+    );
   }, 15000);
 
   it('associates uploaded file with the target space and audits it', async () => {
@@ -126,6 +151,28 @@ describe('manage upload route', () => {
       expect.any(File),
       expect.objectContaining({ folderId: 'folder-space-1' })
     );
+    expect(mocks.publishDomainEventsAndPoll).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.arrayContaining([
+        expect.objectContaining({
+          event_type: 'file_uploaded',
+          aggregate_type: 'file',
+          aggregate_id: 'file-1',
+        }),
+        expect.objectContaining({
+          event_type: 'space_file_added',
+          aggregate_type: 'space',
+          aggregate_id: 'space-1',
+          payload: {
+            space_id: 'space-1',
+            parent_id: 'parent-1',
+            product_ids: ['prod-1'],
+            file_ids: ['file-1'],
+          },
+        }),
+      ]),
+      'manage-upload:file-1'
+    );
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -135,5 +182,32 @@ describe('manage upload route', () => {
         metadata: expect.objectContaining({ spaceId: 'space-1' }),
       })
     );
+  }, 15000);
+
+  it('rejects uploads for unknown spaces before persisting files', async () => {
+    const app = createApp();
+    const db = {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({
+          first: vi.fn(async () => null),
+          run: vi.fn(async () => ({ success: true })),
+        })),
+      })),
+    };
+    const formData = new FormData();
+    formData.append('file', new Blob(['mock-image'], { type: 'image/png' }), 'missing-space.png');
+
+    const res = await app.request(
+      'http://localhost/api/manage/upload?spaceId=space-missing',
+      { method: 'POST', body: formData },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+    const json = await res.json();
+
+    expect(res.status).toBe(404);
+    expect(json.error).toBe('SPACE_NOT_FOUND');
+    expect(mocks.storeFile).not.toHaveBeenCalled();
+    expect(mocks.publishDomainEventsAndPoll).not.toHaveBeenCalled();
   }, 15000);
 });

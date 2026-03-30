@@ -76,6 +76,12 @@ async function executeBatchChunks(db, statements = []) {
   }
 }
 
+function isPurchaseOrderNoConflictError(error) {
+  const message = String(error?.message || error || '').toLowerCase();
+  return message.includes('unique constraint failed')
+    && message.includes('purchase_orders.po_no');
+}
+
 /**
  * 采购单仓储 (Purchase Order Repository)
  * ========================================
@@ -98,23 +104,23 @@ export class PurchaseOrderRepository {
    */
   async generatePoNo() {
     const now = new Date();
-    // 使用中国时区
-    now.toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' })
-      .replace(/\//g, '')
-      .replace(/(\d{4})(\d{1,2})(\d{1,2})/, (_, y, m, d) => `${y}${m.padStart(2, '0')}${d.padStart(2, '0')}`);
-
-    // 简化：直接用 YYYYMMDD 格式
     const year = now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai', year: 'numeric' });
     const month = now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai', month: '2-digit' });
     const day = now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai', day: '2-digit' });
     const prefix = `PO-${year}${month}${day}`;
 
-    const result = await this.db
-      .prepare(`SELECT COUNT(*) as count FROM purchase_orders WHERE po_no LIKE ?`)
-      .bind(`${prefix}%`)
+    const latest = await this.db
+      .prepare(
+        `SELECT po_no
+         FROM purchase_orders
+         WHERE po_no LIKE ?
+         ORDER BY po_no DESC
+         LIMIT 1`
+      )
+      .bind(`${prefix}-%`)
       .first();
 
-    const seq = (result?.count || 0) + 1;
+    const seq = Number(String(latest?.po_no || '').split('-').at(-1) || 0) + 1;
     return `${prefix}-${String(seq).padStart(3, '0')}`;
   }
 
@@ -128,24 +134,35 @@ export class PurchaseOrderRepository {
   async create(data) {
     const id = crypto.randomUUID();
     const now = Date.now();
-    const poNo = await this.generatePoNo();
 
-    await this.db.prepare(`
-      INSERT INTO purchase_orders (id, po_no, status, estimated_shipping_cost, estimated_tariff_cost, currency, allocation_method, remark, created_at, updated_at)
-      VALUES (?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      id,
-      poNo,
-      data.estimated_shipping_cost || 0,
-      data.estimated_tariff_cost || 0,
-      data.currency || 'CNY',
-      data.allocation_method || 'by_quantity',
-      data.remark || null,
-      now,
-      now
-    ).run();
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const poNo = await this.generatePoNo();
 
-    return { id, po_no: poNo, status: 'draft', created_at: now };
+      try {
+        await this.db.prepare(`
+          INSERT INTO purchase_orders (id, po_no, status, estimated_shipping_cost, estimated_tariff_cost, currency, allocation_method, remark, created_at, updated_at)
+          VALUES (?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          id,
+          poNo,
+          data.estimated_shipping_cost || 0,
+          data.estimated_tariff_cost || 0,
+          data.currency || 'CNY',
+          data.allocation_method || 'by_quantity',
+          data.remark || null,
+          now,
+          now
+        ).run();
+
+        return { id, po_no: poNo, status: 'draft', created_at: now };
+      } catch (error) {
+        if (!isPurchaseOrderNoConflictError(error) || attempt === 4) {
+          throw error;
+        }
+      }
+    }
+
+    throw new Error('failed to create purchase order');
   }
 
   /**

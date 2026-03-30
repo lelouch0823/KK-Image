@@ -1411,6 +1411,71 @@ describeIfRealApi('Purchase Receipts Real API Workflow', function () {
     });
   });
 
+  it('allocates distinct purchase-order numbers for concurrent create-from-orders requests', async () => {
+    const token = await getBearerToken();
+    const seed = uniqueSeed('concurrent-po-create');
+    const salespersonId = await ensureSalespersonId(token, seed);
+    const { productId, variantId } = await createWorkflowProduct(token, seed, { stockQuantity: 0 });
+    const orderA = await createConfirmedOrder(token, {
+      seed: `${seed}-a`,
+      salespersonId,
+      productId,
+      variantId,
+      quantity: 1,
+    });
+    const orderB = await createConfirmedOrder(token, {
+      seed: `${seed}-b`,
+      salespersonId,
+      productId,
+      variantId,
+      quantity: 2,
+    });
+
+    const [first, second] = await Promise.all([
+      rawJsonRequest('/api/manage/purchase-orders/from-orders', {
+        bearerToken: token,
+        method: 'POST',
+        body: {
+          order_ids: [orderA],
+          remark: `Concurrent PO create A ${seed}`,
+          allocation_method: 'by_quantity',
+        },
+      }),
+      rawJsonRequest('/api/manage/purchase-orders/from-orders', {
+        bearerToken: token,
+        method: 'POST',
+        body: {
+          order_ids: [orderB],
+          remark: `Concurrent PO create B ${seed}`,
+          allocation_method: 'by_quantity',
+        },
+      }),
+    ]);
+
+    const statuses = [first.status, second.status].sort((a, b) => a - b);
+    assert.deepStrictEqual(
+      statuses,
+      [201, 201],
+      `unexpected concurrent purchase-order create statuses: ${JSON.stringify(statuses)}`
+    );
+
+    const firstPo = first.json?.data;
+    const secondPo = second.json?.data;
+    assert.ok(firstPo?.id, 'first concurrent purchase order id missing');
+    assert.ok(secondPo?.id, 'second concurrent purchase order id missing');
+    assert.notStrictEqual(firstPo.id, secondPo.id);
+    assert.ok(firstPo.po_no, 'first concurrent purchase order number missing');
+    assert.ok(secondPo.po_no, 'second concurrent purchase order number missing');
+    assert.notStrictEqual(firstPo.po_no, secondPo.po_no, 'concurrent purchase orders should not share the same po_no');
+
+    const firstDetail = await getPurchaseOrderDetail(token, firstPo.id);
+    const secondDetail = await getPurchaseOrderDetail(token, secondPo.id);
+    assert.strictEqual(firstDetail?.items?.[0]?.pre_order_id, orderA);
+    assert.strictEqual(secondDetail?.items?.[0]?.pre_order_id, orderB);
+    assert.strictEqual(Number(firstDetail?.items?.[0]?.quantity || 0), 1);
+    assert.strictEqual(Number(secondDetail?.items?.[0]?.quantity || 0), 2);
+  });
+
   it('does not over-apply concurrent receipt commands against the same purchase item', async () => {
     const token = await getBearerToken();
     const seed = uniqueSeed('concurrent-receipt');

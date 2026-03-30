@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
-import { MSG } from '../../_shared/utils.js';
+import { MSG, getFileUrl, timestampToIso } from '../../_shared/utils.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -47,6 +48,24 @@ app.post('/upload', async (c) => {
         summary: `${salesperson.name} uploaded ${file?.name || 'a file'}`,
         metadata: { orderId: orderId || null, instantUpload: Boolean(result?.instantUpload) },
     });
+
+    await publishSingleDomainEventAndPoll(c, {
+        event_type: 'file_uploaded',
+        aggregate_type: 'file',
+        aggregate_id: result.id,
+        payload: {
+            file: {
+                id: result.id,
+                filename: result.name || file?.name || '',
+                size: result.size ?? file?.size ?? 0,
+                type: result.type || file?.type || 'application/octet-stream',
+                uploadTime: timestampToIso(Date.now()),
+                url: getFileUrl(result.storageKey || result.storage_key || ''),
+                uploader: salesperson.name || salesperson.id,
+            },
+            user: salesperson,
+        },
+    }, `file-uploaded:${result.id}`);
 
     return c.json({
         success: true,

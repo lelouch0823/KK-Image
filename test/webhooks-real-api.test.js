@@ -508,6 +508,160 @@ describeIfRealApi('Webhook Real API', function () {
       await receiver.close();
     }
   });
+
+  it('delivers reversal events through webhook subscriptions and persists published outbox detail for each delivery', async () => {
+    const token = await getBearerToken();
+    await cleanupTestManageWebhooks(token);
+    const seed = uniqueSeed('webhook-reversal');
+    const salespersonId = await ensureSalespersonId(token, seed);
+    const { productId, variantId, productName } = await createWorkflowProduct(token, seed, {
+      stockQuantity: 0,
+    });
+    const receiver = await startWebhookReceiver({ port: 3008 });
+    let webhookId = null;
+
+    try {
+      const listBefore = await apiRequest('/api/manage/webhooks', {
+        bearerToken: token,
+        expectedStatus: 200,
+      });
+      const supportedEvents = listBefore.json?.supportedEvents || [];
+      assert.ok(supportedEvents.includes('purchase_receipt_reversed'), 'purchase_receipt_reversed missing from supported events');
+      assert.ok(supportedEvents.includes('inventory_receipt_reversed'), 'inventory_receipt_reversed missing from supported events');
+      assert.ok(supportedEvents.includes('order_procurement_reversed'), 'order_procurement_reversed missing from supported events');
+
+      const webhook = await createManageWebhook(token, {
+        url: receiver.url,
+        events: [
+          'purchase_receipt_reversed',
+          'inventory_receipt_reversed',
+          'order_procurement_reversed',
+        ],
+        secret: `whsec-reversal-${seed}`,
+        headers: {
+          'X-Reversal-Seed': seed,
+        },
+      });
+      webhookId = webhook?.id;
+      assert.ok(webhookId, 'reversal webhook id missing');
+
+      const orderId = await createConfirmedOrder(token, {
+        seed,
+        salespersonId,
+        productId,
+        variantId,
+        productName,
+        quantity: 2,
+      });
+      const poId = await createPurchaseOrderFromOrders(token, [orderId], seed);
+
+      await transitionPurchaseOrderToShipping(token, poId);
+
+      const poDetail = await getPurchaseOrderDetail(token, poId);
+      const poItemId = poDetail?.items?.[0]?.id;
+      assert.ok(poItemId, 'purchase order item missing for reversal webhook flow');
+
+      const receipt = await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+        bearerToken: token,
+        method: 'POST',
+        headers: {
+          'Idempotency-Key': `${seed}-receipt`,
+        },
+        body: {
+          items: [
+            {
+              purchase_order_item_id: poItemId,
+              received_qty: 2,
+              note: 'webhook reversal baseline receipt',
+            },
+          ],
+        },
+        expectedStatus: 201,
+      });
+      const receiptId = receipt.json?.data?.receipts?.[0]?.id;
+      assert.ok(receiptId, 'receipt id missing for reversal webhook flow');
+
+      const reversal = await apiRequest(`/api/manage/purchase-orders/${poId}/receipts/${receiptId}/reversal`, {
+        bearerToken: token,
+        method: 'POST',
+        headers: {
+          'Idempotency-Key': `${seed}-reversal`,
+        },
+        body: {
+          reason: 'webhook reversal regression',
+        },
+        expectedStatus: 201,
+      });
+      const reversalId = reversal.json?.data?.reversal_id;
+      assert.ok(reversalId, 'reversal id missing for webhook reversal flow');
+
+      const purchaseReceiptReversed = await receiver.waitForDelivery(
+        (item) =>
+          item.body?.event_type === 'purchase_receipt_reversed'
+          && item.body?.payload?.purchase_order_id === poId
+          && item.body?.payload?.original_receipt_id === receiptId
+          && item.body?.payload?.reversal_id === reversalId,
+        {
+          timeoutMs: 15000,
+          intervalMs: 500,
+          onTimeoutMessage: 'purchase_receipt_reversed webhook did not arrive',
+        }
+      );
+      const inventoryReceiptReversed = await receiver.waitForDelivery(
+        (item) =>
+          item.body?.event_type === 'inventory_receipt_reversed'
+          && item.body?.payload?.original_receipt_id === receiptId
+          && item.body?.payload?.reversal_id === reversalId,
+        {
+          timeoutMs: 15000,
+          intervalMs: 500,
+          onTimeoutMessage: 'inventory_receipt_reversed webhook did not arrive',
+        }
+      );
+      const orderProcurementReversed = await receiver.waitForDelivery(
+        (item) =>
+          item.body?.event_type === 'order_procurement_reversed'
+          && item.body?.payload?.purchase_order_id === poId
+          && item.body?.payload?.original_receipt_id === receiptId
+          && item.body?.payload?.reversal_id === reversalId,
+        {
+          timeoutMs: 15000,
+          intervalMs: 500,
+          onTimeoutMessage: 'order_procurement_reversed webhook did not arrive',
+        }
+      );
+
+      for (const delivered of [
+        purchaseReceiptReversed,
+        inventoryReceiptReversed,
+        orderProcurementReversed,
+      ]) {
+        assert.strictEqual(delivered.headers['x-reversal-seed'], seed);
+        assert.ok(delivered.headers['x-webhook-signature'], `${delivered.body?.event_type} webhook signature missing`);
+      }
+
+      assert.strictEqual(purchaseReceiptReversed.body?.payload?.reversal_qty, 2);
+      assert.strictEqual(inventoryReceiptReversed.body?.payload?.quantity_delta, -2);
+      assert.strictEqual(orderProcurementReversed.body?.payload?.reversal_qty, 2);
+      assert.strictEqual(orderProcurementReversed.body?.payload?.order_procurement_status_after, 'ordered');
+
+      const publishedDetails = await Promise.all([
+        waitForPublishedWebhookOutboxEvent(token, purchaseReceiptReversed, 'purchase_receipt_reversed'),
+        waitForPublishedWebhookOutboxEvent(token, inventoryReceiptReversed, 'inventory_receipt_reversed'),
+        waitForPublishedWebhookOutboxEvent(token, orderProcurementReversed, 'order_procurement_reversed'),
+      ]);
+      assert.strictEqual(new Set(publishedDetails.map((item) => item.id)).size, 3);
+    } finally {
+      if (webhookId) {
+        try {
+          await deleteManageWebhook(token, webhookId);
+        } catch {
+          // best-effort cleanup
+        }
+      }
+      await receiver.close();
+    }
+  });
 });
 
 async function createReceiptAndShipLine({ token, poId, poItemId, orderId, seed }) {
@@ -546,5 +700,32 @@ async function createReceiptAndShipLine({ token, poId, poItemId, orderId, seed }
     method: 'POST',
     body: { quantity: 1 },
     expectedStatus: 200,
+  });
+}
+
+async function waitForPublishedWebhookOutboxEvent(token, delivery, expectedEventType) {
+  const deliveryKey = String(delivery?.headers?.['x-webhook-delivery-key'] || '');
+  const outboxEventId = deliveryKey.split(':')[0];
+  assert.ok(outboxEventId, `${expectedEventType} delivery key did not expose outbox event id`);
+
+  return waitFor(async () => {
+    const detail = await apiRequest(`/api/manage/outbox/${outboxEventId}`, {
+      bearerToken: token,
+      expectedStatus: 200,
+    });
+    const data = detail.json?.data;
+    const webhookJob = (data?.consumerJobs || []).find((job) => job.consumer_name === 'webhook');
+    const webhookAttempt = (data?.webhookAttempts || []).find(
+      (attempt) => attempt.delivery_key === deliveryKey
+    );
+
+    assert.strictEqual(data?.event_type, expectedEventType);
+    assert.strictEqual(webhookJob?.status, 'published');
+    assert.strictEqual(webhookAttempt?.classification, 'delivered');
+    return data;
+  }, {
+    timeoutMs: 15000,
+    intervalMs: 500,
+    onTimeoutMessage: `${expectedEventType} outbox detail did not settle as published`,
   });
 }
