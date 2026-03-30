@@ -370,6 +370,10 @@ function resolveNotificationTitle(eventType) {
       return JSON.stringify({ key: 'notification.purchase_receipt_recorded' });
     case 'order_procurement_progressed':
       return JSON.stringify({ key: 'notification.order_procurement_progressed' });
+    case 'purchase_receipt_reversed':
+      return JSON.stringify({ key: 'notification.purchase_receipt_reversed' });
+    case 'order_procurement_reversed':
+      return JSON.stringify({ key: 'notification.order_procurement_reversed' });
     default:
       return JSON.stringify({ key: `notification.${eventType}` });
   }
@@ -457,6 +461,40 @@ function resolveNotificationContent(event, payload) {
 
   if (event?.event_type === 'order_created_by_admin') {
     return `Order ${payload.order_no || payload.order_id || ''} has been assigned to you`.trim();
+  }
+
+  if (event?.event_type === 'purchase_receipt_recorded') {
+    return JSON.stringify({
+      key: 'notification.purchase_receipt_recorded_desc',
+      qty: payload.received_qty ?? '',
+      purchaseOrderId: payload.purchase_order_id || '',
+    });
+  }
+
+  if (event?.event_type === 'order_procurement_progressed') {
+    return JSON.stringify({
+      key: 'notification.order_procurement_progressed_desc',
+      qty: payload.received_qty_delta ?? '',
+      status: payload.order_procurement_status_after || '',
+      purchaseOrderId: payload.purchase_order_id || '',
+    });
+  }
+
+  if (event?.event_type === 'purchase_receipt_reversed') {
+    return JSON.stringify({
+      key: 'notification.purchase_receipt_reversed_desc',
+      qty: payload.reversal_qty ?? '',
+      purchaseOrderId: payload.purchase_order_id || '',
+    });
+  }
+
+  if (event?.event_type === 'order_procurement_reversed') {
+    return JSON.stringify({
+      key: 'notification.order_procurement_reversed_desc',
+      qty: payload.reversal_qty ?? '',
+      status: payload.order_procurement_status_after || '',
+      purchaseOrderId: payload.purchase_order_id || '',
+    });
   }
 
   return '';

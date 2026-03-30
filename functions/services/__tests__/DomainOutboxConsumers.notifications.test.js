@@ -73,6 +73,7 @@ describe('DomainOutboxConsumers notifications', () => {
     expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
       type: 'order',
       title: '{"key":"notification.purchase_receipt_recorded"}',
+      content: '{"key":"notification.purchase_receipt_recorded_desc","qty":3,"purchaseOrderId":"po-1"}',
       receiver: 'admin',
       orderId: 'o-1',
       sourceConsumer: 'notification',
@@ -104,6 +105,7 @@ describe('DomainOutboxConsumers notifications', () => {
         aggregate_type: 'order',
         aggregate_id: 'o-2',
         payload_json: JSON.stringify({
+          purchase_order_id: 'po-2',
           order_line_id: 'line-2',
           order_procurement_status_after: 'partially_arrived',
           received_qty_delta: 2,
@@ -117,11 +119,43 @@ describe('DomainOutboxConsumers notifications', () => {
     });
     expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
       title: '{"key":"notification.order_procurement_progressed"}',
+      content: '{"key":"notification.order_procurement_progressed_desc","qty":2,"status":"partially_arrived","purchaseOrderId":"po-2"}',
       receiver: 'admin',
       orderId: 'o-2',
       sourceConsumer: 'notification',
       sourceEventId: 'evt-2',
       dedupeKey: 'order_procurement_progressed:evt-2:admin',
+    }));
+  });
+
+  it('creates reversal notifications with localized procurement rollback content', async () => {
+    const result = await DOMAIN_OUTBOX_CONSUMERS.notification({
+      db: {},
+      baseUrl: 'https://kk.example.com',
+      event: {
+        id: 'job-notification-rollback',
+        event_id: 'evt-rollback',
+        event_type: 'order_procurement_reversed',
+        aggregate_type: 'order',
+        aggregate_id: 'o-rollback',
+        payload_json: JSON.stringify({
+          purchase_order_id: 'po-rollback',
+          reversal_qty: 2,
+          order_procurement_status_after: 'ordered',
+        }),
+      },
+    });
+
+    expect(result).toEqual({
+      id: 'notification-1',
+      created: true,
+    });
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
+      title: '{"key":"notification.order_procurement_reversed"}',
+      content: '{"key":"notification.order_procurement_reversed_desc","qty":2,"status":"ordered","purchaseOrderId":"po-rollback"}',
+      receiver: 'admin',
+      orderId: 'o-rollback',
+      dedupeKey: 'order_procurement_reversed:evt-rollback:admin',
     }));
   });
 
