@@ -2,6 +2,7 @@
 import { Hono } from 'hono';
 import listRoutes from './list.js';
 import createRoutes from './create.js';
+import lineRoutes from './lines.js';
 import detailRoutes from './detail.js';
 import { requirePermission } from '../../../middleware/auth.js';
 
@@ -16,6 +17,9 @@ app.route('/', listRoutes);
 
 // Create, Batch
 app.route('/', createRoutes);
+
+// Line commands (/:id/lines/...)
+app.route('/', lineRoutes);
 
 // Detailed operations (/:id...)
 app.route('/', detailRoutes);

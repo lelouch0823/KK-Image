@@ -235,6 +235,36 @@ describe('DomainOutboxConsumers audit and cache', () => {
     ]));
   });
 
+  it('invalidates order, notification, and analytics caches for line fulfillment updates through the generic order mutation path', async () => {
+    mocks.getSalespersonAccessTokens.mockResolvedValue(['sales-token-line']);
+
+    await DOMAIN_OUTBOX_CONSUMERS.cache({
+      db: {},
+      event: {
+        id: 'evt-line-1',
+        event_type: 'order_line_fulfillment_updated',
+        aggregate_type: 'order',
+        aggregate_id: 'order-1',
+        payload_json: JSON.stringify({
+          order_id: 'order-1',
+          order_line_id: 'line-1',
+          salesperson_id: 'sales-1',
+          action: 'ship',
+        }),
+      },
+      baseUrl: 'https://kk.example.com',
+    });
+
+    expect(mocks.invalidateCache).toHaveBeenCalledWith(expect.arrayContaining([
+      'https://kk.example.com/api/manage/orders',
+      'https://kk.example.com/api/manage/orders/stats',
+      'https://kk.example.com/api/manage/goods-overview',
+      'https://kk.example.com/api/manage/notifications',
+      'https://kk.example.com/api/sales/sales-token-line/orders',
+      'https://kk.example.com/api/sales/sales-token-line/notifications',
+    ]));
+  });
+
   it('invalidates v1 file detail and folder caches for v1 file update events', async () => {
     await DOMAIN_OUTBOX_CONSUMERS.cache({
       db: {},

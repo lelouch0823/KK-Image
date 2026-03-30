@@ -1,0 +1,117 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Hono } from 'hono';
+
+const mocks = vi.hoisted(() => ({
+  reserveLine: vi.fn(),
+  releaseLine: vi.fn(),
+  shipLine: vi.fn(),
+  scheduleAuditEvent: vi.fn(),
+  runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
+}));
+
+vi.mock('../../../../../../services/OrderLineFulfillmentService.js', () => ({
+  OrderLineFulfillmentService: vi.fn(() => ({
+    reserveLine: mocks.reserveLine,
+    releaseLine: mocks.releaseLine,
+    shipLine: mocks.shipLine,
+  })),
+}));
+
+vi.mock('../../../../_shared/audit-helpers.js', async () => {
+  const actual = await vi.importActual('../../../../_shared/audit-helpers.js');
+  return {
+    ...actual,
+    scheduleAuditEvent: mocks.scheduleAuditEvent,
+  };
+});
+
+vi.mock('../../../../../../api/cron/outbox.js', () => ({
+  runOutboxPoller: mocks.runOutboxPoller,
+}));
+
+import lineRoutesApp from '../lines.js';
+
+function createApp() {
+  const app = new Hono();
+  app.onError((err, c) =>
+    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+  );
+  app.use('/api/manage/orders/*', async (c, next) => {
+    c.set('user', { id: 'admin-1', name: 'Admin' });
+    await next();
+  });
+  app.route('/api/manage/orders', lineRoutesApp);
+  return app;
+}
+
+describe('manage order line command routes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.reserveLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'reserve', quantity: 2 });
+    mocks.releaseLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'release', quantity: 1 });
+    mocks.shipLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'ship', quantity: 1 });
+  });
+
+  it('routes reserve, release, and ship commands through the fulfillment service and schedules outbox polling', async () => {
+    const app = createApp();
+    const waitUntil = vi.fn();
+
+    const reserveRes = await app.request(
+      'http://localhost/api/manage/orders/order-1/lines/line-1/reserve',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 2 }),
+      },
+      { DB: {} },
+      { waitUntil }
+    );
+    const releaseRes = await app.request(
+      'http://localhost/api/manage/orders/order-1/lines/line-1/release',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 1 }),
+      },
+      { DB: {} },
+      { waitUntil }
+    );
+    const shipRes = await app.request(
+      'http://localhost/api/manage/orders/order-1/lines/line-1/ship',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 1 }),
+      },
+      { DB: {} },
+      { waitUntil }
+    );
+
+    expect(reserveRes.status).toBe(200);
+    expect(releaseRes.status).toBe(200);
+    expect(shipRes.status).toBe(200);
+    expect(mocks.reserveLine).toHaveBeenCalledWith('order-1', 'line-1', { quantity: 2 }, expect.any(Object));
+    expect(mocks.releaseLine).toHaveBeenCalledWith('order-1', 'line-1', { quantity: 1 }, expect.any(Object));
+    expect(mocks.shipLine).toHaveBeenCalledWith('order-1', 'line-1', { quantity: 1 }, expect.any(Object));
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(3);
+    expect(waitUntil).toHaveBeenCalledTimes(3);
+  });
+
+  it('rejects missing positive quantity payloads for line commands', async () => {
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/lines/line-1/reserve',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 0 }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.reserveLine).not.toHaveBeenCalled();
+  });
+});
