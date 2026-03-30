@@ -8,16 +8,22 @@
     <!-- 弹窗主体 -->
     <transition name="modal-slide">
       <div v-if="visible" class="fixed inset-0 z-[61] flex items-center justify-center p-4 sm:p-6">
-        <div class="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-(--color-modal-bg) shadow-2xl" style="max-height: calc(100vh - 3rem)">
+        <div
+          data-testid="purchase-order-order-picker-shell"
+          class="relative flex w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] border border-(--border-color)/70 bg-(--color-modal-bg) shadow-[0_32px_90px_-45px_rgba(15,23,42,0.4)]"
+          style="max-height: calc(100vh - 3rem)"
+        >
           <!-- 头部 -->
-          <div class="flex items-center justify-between border-b border-(--border-color) px-6 py-4">
-            <div>
-              <h2 class="text-main text-lg font-bold">{{ t('purchaseOrder.selection.orderTitle') }}</h2>
-              <p class="text-secondary mt-0.5 text-sm">{{ t('purchaseOrder.selection.orderSubtitle') }}</p>
+          <div class="relative flex items-start justify-between border-b border-(--border-color) bg-linear-to-r from-sky-50/75 via-(--bg-card) to-emerald-50/45 px-6 py-5">
+            <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.1),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.1),transparent_24%)]"></div>
+            <div class="relative">
+              <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">Order Intake</p>
+              <h2 class="text-main mt-1 text-xl font-bold">{{ t('purchaseOrder.selection.orderTitle') }}</h2>
+              <p class="text-secondary mt-1 text-sm">{{ t('purchaseOrder.selection.orderSubtitle') }}</p>
             </div>
             <button
               type="button"
-              class="text-secondary cursor-pointer rounded-lg p-2 transition-colors hover:bg-(--bg-hover)"
+              class="text-secondary relative cursor-pointer rounded-xl p-2 transition-colors hover:bg-(--bg-hover)"
               @click="$emit('close')"
             >
               <AppIcon name="x-mark" class="size-5" />
@@ -25,13 +31,24 @@
           </div>
 
           <!-- 搜索栏 -->
-          <div class="border-b border-(--border-subtle) px-6 py-3">
+          <div data-testid="purchase-order-order-picker-toolbar" class="border-b border-(--border-subtle) bg-(--bg-card)/65 px-6 py-4">
             <SearchInput
               v-model="searchQuery"
               :placeholder="t('purchaseOrder.selection.searchOrder')"
               input-class="!rounded-xl !bg-(--bg-page)"
               :debounce="0"
             />
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center rounded-full border border-sky-500/20 bg-sky-500/8 px-2.5 py-1 text-[10px] font-semibold text-sky-700">
+                {{ t('purchaseOrder.ui.availableOrders', '可选订单') }} {{ filteredOrders.length }}
+              </span>
+              <span class="inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/8 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">
+                {{ t('purchaseOrder.ui.selectedOrders', '已选订单') }} {{ selected.length }}
+              </span>
+              <span v-if="excludeIds.length > 0" class="inline-flex items-center rounded-full border border-(--border-color) bg-(--bg-page) px-2.5 py-1 text-[10px] font-semibold text-(--text-secondary)">
+                {{ t('purchaseOrder.ui.excludedOrders', '已排除') }} {{ excludeIds.length }}
+              </span>
+            </div>
           </div>
 
           <!-- 列表区域 -->
@@ -58,9 +75,7 @@
             <!-- 订单列表 -->
             <div v-else class="space-y-2">
               <!-- 全选 -->
-              <label
-                class="text-secondary flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-(--border-color) px-4 py-2.5 text-sm font-medium transition-colors hover:bg-(--bg-hover)"
-              >
+              <label class="text-secondary flex cursor-pointer items-center gap-3 rounded-[1.2rem] border border-dashed border-(--border-color) bg-(--bg-card)/70 px-4 py-3 text-sm font-medium transition-colors hover:bg-(--bg-hover)">
                 <input
                   type="checkbox"
                   :checked="isAllSelected"
@@ -76,10 +91,10 @@
               <div
                 v-for="order in filteredOrders"
                 :key="order.id"
-                class="group flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-all duration-200"
+                class="group flex cursor-pointer items-start gap-3 rounded-[1.3rem] border p-4 transition-all duration-200"
                 :class="isSelected(order.id)
                   ? 'border-primary bg-primary/5 shadow-sm'
-                  : 'border-(--border-subtle) hover:border-(--border-color) hover:bg-(--bg-hover)'"
+                  : 'border-(--border-subtle) bg-(--bg-card)/86 hover:border-(--border-color) hover:bg-(--bg-hover)'"
                 @click="viewOrder(order)"
               >
                 <div class="pt-0.5" @click.stop>
@@ -92,8 +107,8 @@
                 </div>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-2">
-                    <code class="bg-muted text-secondary max-w-[11rem] truncate rounded px-1.5 py-0.5 font-mono text-xs sm:max-w-[15rem]" :title="order.orderNo">{{ order.orderNo }}</code>
-                    <span class="text-main shrink-0 font-[Outfit] text-sm font-medium">×{{ order.quantity || 1 }}</span>
+                    <code class="bg-muted text-secondary max-w-[11rem] truncate rounded-lg px-2 py-0.5 font-mono text-xs sm:max-w-[15rem]" :title="order.orderNo">{{ order.orderNo }}</code>
+                    <span class="text-main shrink-0 rounded-full bg-(--bg-page) px-2 py-0.5 font-[Outfit] text-xs font-semibold">×{{ order.quantity || 1 }}</span>
                   </div>
                   <div class="text-main mt-1.5 line-clamp-2 text-sm font-medium break-all" :title="order.productName || '—'">{{ order.productName || '—' }}</div>
                   <div class="text-secondary mt-1 flex items-center gap-2 text-xs">
@@ -109,7 +124,7 @@
           </div>
 
           <!-- 底部操作栏 -->
-          <div class="flex items-center justify-between border-t border-(--border-color) bg-(--bg-card) px-6 py-4">
+          <div class="flex flex-col gap-3 border-t border-(--border-color) bg-linear-to-r from-(--bg-card) to-(--bg-muted)/35 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
             <span v-if="selected.length > 0" class="text-secondary text-sm">
               {{ t('purchaseOrder.selection.selectedCount', { count: selected.length }) }}
             </span>

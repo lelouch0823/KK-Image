@@ -6,18 +6,24 @@
 
     <transition name="modal-slide">
       <div v-if="visible" class="fixed inset-0 z-[61] flex items-center justify-center p-4 sm:p-6">
-        <div class="relative flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-(--color-modal-bg) shadow-2xl" style="max-height: calc(100vh - 3rem)">
-          <div class="flex items-center justify-between border-b border-(--border-color) px-6 py-4">
-            <div>
-              <h2 class="text-main text-lg font-bold">{{ t('purchaseOrder.selection.variantTitle', '选择变体') }}</h2>
-              <p class="text-secondary mt-0.5 text-sm">{{ t('purchaseOrder.selection.variantSubtitle', '仅显示 active 变体，可多选') }}</p>
+        <div
+          data-testid="purchase-order-product-picker-shell"
+          class="relative flex w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-(--border-color)/70 bg-(--color-modal-bg) shadow-[0_32px_90px_-45px_rgba(15,23,42,0.4)]"
+          style="max-height: calc(100vh - 3rem)"
+        >
+          <div class="relative flex items-start justify-between border-b border-(--border-color) bg-linear-to-r from-sky-50/75 via-(--bg-card) to-violet-50/45 px-6 py-5">
+            <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.1),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.1),transparent_24%)]"></div>
+            <div class="relative">
+              <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">Variant Selector</p>
+              <h2 class="text-main mt-1 text-xl font-bold">{{ t('purchaseOrder.selection.variantTitle', '选择变体') }}</h2>
+              <p class="text-secondary mt-1 text-sm">{{ t('purchaseOrder.selection.variantSubtitle', '仅显示 active 变体，可多选') }}</p>
             </div>
-            <button type="button" class="text-secondary cursor-pointer rounded-lg p-2 transition-colors hover:bg-(--bg-hover)" @click="$emit('close')">
+            <button type="button" class="text-secondary relative cursor-pointer rounded-xl p-2 transition-colors hover:bg-(--bg-hover)" @click="$emit('close')">
               <AppIcon name="x-mark" class="size-5" />
             </button>
           </div>
 
-          <div class="border-b border-(--border-subtle) px-6 py-3">
+          <div data-testid="purchase-order-product-picker-toolbar" class="border-b border-(--border-subtle) bg-(--bg-card)/65 px-6 py-4">
             <SearchInput
               v-model="searchQuery"
               :placeholder="t('purchaseOrder.selection.searchVariant', '搜索商品名 / SKU / 变体')"
@@ -25,17 +31,28 @@
               :debounce="0"
               @search="debouncedSearch"
             />
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center rounded-full border border-sky-500/20 bg-sky-500/8 px-2.5 py-1 text-[10px] font-semibold text-sky-700">
+                {{ t('purchaseOrder.ui.activeVariants', '可选变体') }} {{ sortedVariants.length }}
+              </span>
+              <span class="inline-flex items-center rounded-full border border-violet-500/20 bg-violet-500/8 px-2.5 py-1 text-[10px] font-semibold text-violet-700">
+                {{ t('purchaseOrder.ui.selectedVariants', '已选变体') }} {{ selectedCount }}
+              </span>
+              <span v-if="existingBrands.length > 0" class="inline-flex items-center rounded-full border border-(--border-color) bg-(--bg-page) px-2.5 py-1 text-[10px] font-semibold text-(--text-secondary)">
+                {{ t('purchaseOrder.selection.recommendedBrand', '同品牌推荐') }} {{ existingBrands.length }}
+              </span>
+            </div>
           </div>
 
           <div class="min-h-0 flex-1 overflow-y-auto px-6 py-3">
             <div
               v-if="unavailableCount > 0"
-              class="border-warning/30 bg-warning/10 mb-3 rounded-xl border px-3 py-2 text-xs text-(--text-main)"
+              class="border-warning/30 bg-warning/10 mb-3 rounded-[1.15rem] border px-3 py-2 text-xs text-(--text-main)"
             >
               {{ t('purchaseOrder.selection.unavailableHint', '找不到的变体可能已被下架或归档') }} ({{ unavailableCount }})
             </div>
 
-            <div v-if="errorMessage" role="alert" class="border-danger/30 bg-danger/10 mb-3 rounded-xl border px-3 py-2 text-sm text-(--text-main)">
+            <div v-if="errorMessage" role="alert" class="border-danger/30 bg-danger/10 mb-3 rounded-[1.15rem] border px-3 py-2 text-sm text-(--text-main)">
               <div class="flex items-center justify-between gap-3">
                 <span>{{ errorMessage }}</span>
                 <button type="button" class="cursor-pointer rounded-lg border border-(--border-color) px-2 py-1 text-xs font-medium hover:bg-(--bg-hover)" @click="loadVariants">
@@ -66,10 +83,10 @@
               <label
                 v-for="variant in sortedVariants"
                 :key="variant.variant_id"
-                class="group flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all duration-200"
+                class="group flex cursor-pointer items-center gap-3 rounded-[1.3rem] border p-3.5 transition-all duration-200"
                 :class="isSelected(variant.variant_id)
                   ? 'border-primary bg-primary/5 shadow-sm'
-                  : 'border-(--border-subtle) hover:border-(--border-color) hover:bg-(--bg-hover)'"
+                  : 'border-(--border-subtle) bg-(--bg-card)/86 hover:border-(--border-color) hover:bg-(--bg-hover)'"
               >
                 <input
                   type="checkbox"
@@ -77,7 +94,7 @@
                   class="text-primary size-4 cursor-pointer rounded border-(--border-color) focus:ring-primary"
                   @change="toggleSelect(variant)"
                 />
-                <div class="size-10 shrink-0 overflow-hidden rounded-lg border border-(--border-subtle) bg-(--bg-muted)">
+                <div class="size-11 shrink-0 overflow-hidden rounded-xl border border-(--border-subtle) bg-(--bg-muted)">
                   <AppImage v-if="variant.image" :src="getFileUrl(variant.image)" fit="cover" class="size-full" />
                   <div v-else class="text-muted flex size-full items-center justify-center">
                     <AppIcon name="photo" class="size-5" />
@@ -86,11 +103,11 @@
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-2">
                     <span class="text-main truncate text-sm font-medium" :title="variant.product_name || '—'">{{ variant.product_name || '—' }}</span>
-                    <span class="text-secondary shrink-0 font-[Outfit] text-xs">¥{{ Number(variant.unit_cost || 0).toFixed(2) }}</span>
+                    <span class="text-secondary shrink-0 rounded-full bg-(--bg-page) px-2 py-0.5 font-[Outfit] text-xs font-semibold">¥{{ Number(variant.unit_cost || 0).toFixed(2) }}</span>
                   </div>
                   <div class="text-secondary mt-0.5 flex flex-wrap items-center gap-2 text-xs">
-                    <span class="max-w-[12rem] truncate rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono" :title="variant.sku || '—'">{{ variant.sku || '—' }}</span>
-                    <span v-if="variant.brand" class="max-w-[8rem] truncate" :title="variant.brand">{{ variant.brand }}</span>
+                    <span class="max-w-[12rem] truncate rounded-lg bg-(--bg-muted) px-1.5 py-0.5 font-mono" :title="variant.sku || '—'">{{ variant.sku || '—' }}</span>
+                    <span v-if="variant.brand" class="max-w-[8rem] truncate rounded-full bg-(--bg-page) px-2 py-0.5" :title="variant.brand">{{ variant.brand }}</span>
                     <span
                       v-if="variant.variant_options && Object.keys(variant.variant_options).length > 0"
                       class="min-w-0 flex-1 truncate"
@@ -110,7 +127,7 @@
             </div>
           </div>
 
-          <div class="flex items-center justify-between border-t border-(--border-color) bg-(--bg-card) px-6 py-4">
+          <div class="flex flex-col gap-3 border-t border-(--border-color) bg-linear-to-r from-(--bg-card) to-(--bg-muted)/35 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
             <span class="text-secondary text-sm">{{ t('purchaseOrder.selection.selectedCount', { count: selectedCount }) }}</span>
             <div class="flex items-center gap-3">
               <button type="button" class="text-secondary cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium transition-colors hover:bg-(--bg-hover)" @click="$emit('close')">

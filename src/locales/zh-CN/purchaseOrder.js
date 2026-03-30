@@ -146,6 +146,18 @@ export default {
     perUnit: '/件',
   },
 
+  progress: {
+    open: '待到货',
+    partiallyReceived: '部分到货',
+    received: '已全部到货',
+    cancelled: '已取消',
+    receivedPrefix: '已到',
+    cancelledPrefix: '取消',
+    outstandingPrefix: '待收',
+    receiptCountSuffix: '次入库',
+    lastReceivedPrefix: '最近到货',
+  },
+
   // 筛选
   filter: {
     all: '全部',

@@ -34,4 +34,12 @@ describe('PurchaseOrders design-system migration', () => {
     expect(source).toContain('data-testid="purchase-order-status-badge"');
     expect(source).toContain('data-testid="purchase-order-total-cost"');
   });
+
+  it('adds dedicated control-deck anchors for banner and modal shells', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/views/PurchaseOrders.vue'), 'utf8');
+
+    expect(source).toContain('data-testid="purchase-order-console-banner"');
+    expect(source).toContain('data-testid="purchase-order-create-shell"');
+    expect(source).toContain('data-testid="purchase-order-suggestions-shell"');
+  });
 });

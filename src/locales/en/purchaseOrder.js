@@ -136,6 +136,18 @@ export default {
     perUnit: '/unit',
   },
 
+  progress: {
+    open: 'Awaiting Receipt',
+    partiallyReceived: 'Partially Received',
+    received: 'Fully Received',
+    cancelled: 'Cancelled',
+    receivedPrefix: 'Received',
+    cancelledPrefix: 'Cancelled',
+    outstandingPrefix: 'Outstanding',
+    receiptCountSuffix: 'receipts',
+    lastReceivedPrefix: 'Last receipt',
+  },
+
   filter: {
     all: 'All',
     active: 'Active',

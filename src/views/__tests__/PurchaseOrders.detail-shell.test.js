@@ -11,6 +11,12 @@ const mocks = vi.hoisted(() => ({
   loadStats: vi.fn(),
   loadDetail: vi.fn(),
   loadSuggestions: vi.fn(),
+  listState: {
+    items: [],
+    total: 0,
+    loading: false,
+    stats: null,
+  },
   detailState: {
     detail: null,
     detailLoading: true,
@@ -23,16 +29,16 @@ vi.mock('@/composables/useI18n', () => ({
 
 vi.mock('@/composables/usePurchaseOrders', () => ({
   usePurchaseOrders: () => ({
-    list: ref([]),
-    total: ref(0),
-    loading: ref(false),
+    list: computed(() => mocks.listState.items),
+    total: computed(() => mocks.listState.total),
+    loading: computed(() => mocks.listState.loading),
     error: ref(''),
     errorCode: ref(''),
     detail: computed(() => mocks.detailState.detail),
     detailLoading: computed(() => mocks.detailState.detailLoading),
     suggestions: ref([]),
     suggestionsLoading: ref(false),
-    stats: ref(null),
+    stats: computed(() => mocks.listState.stats),
     filters: reactive({ status: '', page: 1, limit: 20 }),
     statusConfig: computed(() => ({})),
     loadList: mocks.loadList,
@@ -89,6 +95,10 @@ describe('PurchaseOrders detail shell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.routeQuery = {};
+    mocks.listState.items = [];
+    mocks.listState.total = 0;
+    mocks.listState.loading = false;
+    mocks.listState.stats = null;
     mocks.detailState.detail = null;
     mocks.detailState.detailLoading = true;
     mocks.loadList.mockResolvedValue();
@@ -227,6 +237,136 @@ describe('PurchaseOrders detail shell', () => {
     expect(wrapper.find('[data-testid="purchase-order-detail-footer"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="purchase-order-detail-status-chip"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="purchase-order-detail-item-card"]').exists()).toBe(true);
+  });
+
+  it('renders receipt progress and variant options for loaded purchase-order items', () => {
+    mocks.detailState.detailLoading = false;
+    mocks.detailState.detail = {
+      id: 'po-1',
+      po_no: 'PO-20260312-001',
+      status: 'ordered',
+      display_status: 'partially_received',
+      ordered_qty: 12,
+      received_qty: 4,
+      cancelled_qty: 1,
+      outstanding_qty: 7,
+      receipt_count: 2,
+      allocation_method: 'by_quantity',
+      estimated_shipping_cost: 120,
+      estimated_tariff_cost: 60,
+      items: [
+        {
+          id: 'item-1',
+          product_id: 'prod-1',
+          product_name: 'Premium Canvas Bag',
+          product_brand: 'KK',
+          product_sku: 'KK-BAG-01',
+          product_images: [],
+          quantity: 12,
+          unit_cost: 25.5,
+          received_qty: 4,
+          cancelled_qty: 1,
+          receipt_count: 2,
+          last_received_at: Date.UTC(2026, 2, 29),
+          variant_options: { Color: 'Black', Size: 'Large' },
+          product_specifications: { Material: 'Canvas' },
+        },
+      ],
+    };
+
+    const wrapper = mount(PurchaseOrders, {
+      global: {
+        stubs: {
+          Teleport: true,
+          Transition: false,
+          OrderPickerModal: { template: '<div />' },
+          ProductPickerModal: { template: '<div />' },
+          ProductDetailModal: { template: '<div />' },
+          AppImage: { template: '<div />' },
+          AppIcon: { template: '<i />' },
+          AppFilterBar: { template: '<div />' },
+          AppButton: { template: '<button><slot /></button>' },
+          AppInput: { template: '<input />' },
+          AppCheckbox: { template: '<input type="checkbox" />' },
+          AppSelect: { template: '<select />' },
+          AppTable: { template: '<div />' },
+          StatusBadge: { template: '<div><slot /></div>' },
+          PermissionDeniedState: { template: '<div />' },
+          MetricTile: { template: '<div />' },
+          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+        },
+      },
+    });
+
+    expect(wrapper.get('[data-testid="purchase-order-detail-progress-badge"]').text()).toContain('部分到货');
+    expect(wrapper.get('[data-testid="purchase-order-detail-progress-summary"]').text()).toContain('4 / 12');
+    expect(wrapper.get('[data-testid="purchase-order-detail-progress-summary"]').text()).toContain('待收 7');
+    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain('已到 4 / 12');
+    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain('取消 1');
+    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain('2 次入库');
+    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain('最近到货');
+    expect(wrapper.get('[data-testid="purchase-order-detail-item-variant-options"]').text()).toContain('Color: Black');
+    expect(wrapper.get('[data-testid="purchase-order-detail-item-variant-options"]').text()).toContain('Size: Large');
+  });
+
+  it('renders aggregated receipt progress in the purchase-order list status cell', () => {
+    mocks.listState.items = [
+      {
+        id: 'po-1',
+        po_no: 'PO-20260312-001',
+        status: 'ordered',
+        display_status: 'partially_received',
+        ordered_qty: 10,
+        received_qty: 4,
+        cancelled_qty: 1,
+        outstanding_qty: 5,
+        item_count: 2,
+        total_goods_cost: 255,
+        remark: '',
+        created_at: Date.UTC(2026, 2, 28),
+      },
+    ];
+    mocks.listState.total = 1;
+
+    const wrapper = mount(PurchaseOrders, {
+      global: {
+        stubs: {
+          Teleport: true,
+          Transition: false,
+          OrderPickerModal: { template: '<div />' },
+          ProductPickerModal: { template: '<div />' },
+          ProductDetailModal: { template: '<div />' },
+          AppImage: { template: '<div />' },
+          AppIcon: { template: '<i />' },
+          AppFilterBar: { template: '<div />' },
+          AppButton: { template: '<button><slot /></button>' },
+          AppInput: { template: '<input />' },
+          AppCheckbox: { template: '<input type="checkbox" />' },
+          AppSelect: { template: '<select />' },
+          AppTable: {
+            props: ['columns', 'data'],
+            template: `
+              <div>
+                <slot name="toolbar" />
+                <div v-for="row in data" :key="row.id">
+                  <div v-for="column in columns" :key="column.key">
+                    <slot :name="'cell-' + column.key" :row="row">{{ row[column.key] }}</slot>
+                  </div>
+                </div>
+              </div>
+            `,
+          },
+          StatusBadge: { template: '<div><slot /></div>' },
+          PermissionDeniedState: { template: '<div />' },
+          MetricTile: { template: '<div />' },
+          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+        },
+      },
+    });
+
+    expect(wrapper.get('[data-testid="purchase-order-progress-badge"]').text()).toContain('部分到货');
+    expect(wrapper.get('[data-testid="purchase-order-progress-summary"]').text()).toContain('4 / 10');
+    expect(wrapper.get('[data-testid="purchase-order-progress-summary"]').text()).toContain('待收 5');
   });
 
   it('accepts selected orders from the current camelCase contract and ignores legacy snake_case-only payloads', async () => {
