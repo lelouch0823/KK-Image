@@ -1,382 +1,213 @@
-# KK-Image Repository 层设计文档
+# Repository 层设计文档
 
-## 1. 模块概述
+本文档说明当前仓储层的职责边界，以及订单、采购和 outbox 相关仓储已经演进到什么程度。
 
-### 1.1 整体架构
+## 1. 整体结构
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        API Layer (Hono Routes)                  │
-└─────────────────────────────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      Service Layer                              │
-└─────────────────────────────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Repository Layer                             │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐            │
-│  │FileRepository│ │OrderRepository│ │ProductRepo  │ ...        │
-│  └──────────────┘ └──────────────┘ └──────────────┘            │
-└─────────────────────────────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    D1 Database (SQLite)                         │
-└─────────────────────────────────────────────────────────────────┘
+```text
+Hono Routes
+    ↓
+Domain Services
+    ↓
+Repositories
+    ↓
+D1 / R2
 ```
 
-### 1.2 设计理念
+仓储层只做两件事：
 
-**Repository Pattern (仓储模式)**:
-- 将数据访问逻辑与业务逻辑分离
-- 封装所有数据库操作，提供清晰的 API
-- 支持单元测试和依赖注入
+- 组织数据访问
+- 返回稳定读模型或写模型结果
 
-**核心设计原则**:
-1. **单一职责**: 每个 Repository 只负责一个数据实体
-2. **依赖注入**: 通过构造函数注入 `D1Database` 实例
-3. **SQL 注入防护**: 使用参数化查询 (`prepare().bind()`)
-4. **批量优化**: 使用 `D1 batch` 进行批量操作
-5. **软删除支持**: 关键实体支持回收站功能
+它不负责：
 
----
+- 权限判断
+- 路由级参数解析
+- 通知 / Webhook / 缓存副作用执行
 
-## 2. Repository 清单
+这些职责分别属于中间件、路由层和 outbox 消费者。
 
-| Repository | 文件 | 职责描述 | 对应数据表 |
-|------------|------|----------|-----------|
-| FileRepository | `FileRepository.js` | 文件记录的 CRUD、回收站 | `files` |
-| FolderRepository | `FolderRepository.js` | 文件夹层级管理 | `folders` |
-| OrderRepository | `OrderRepository.js` | 订单操作门面 | `orders`, `order_files`, `order_timeline` |
-| OrderStatsRepository | `OrderStatsRepository.js` | 订单统计查询 | `orders` |
-| ProductRepository | `ProductRepository.js` | 商品主表 CRUD | `products` |
-| ProductVariantRepository | `ProductVariantRepository.js` | 商品变体管理 | `product_variants` |
-| CustomerRepository | `CustomerRepository.js` | 客户信息管理 | `customers` |
-| SalespersonRepository | `SalespersonRepository.js` | 销售人员管理 | `salespersons` |
-| SpaceRepository | `SpaceRepository.js` | 共享空间 | `spaces`, `space_files` |
-| PurchaseOrderRepository | `PurchaseOrderRepository.js` | 采购单管理 | `purchase_orders` |
-| ProductDimensionRepository | `ProductDimensionRepository.js` | 商品自定义维度与变体规格管理 | `product_dimensions`, `product_dimension_values` |
-| GoodsOverviewRepository | `GoodsOverviewRepository.js` | 订货总览视图查询 | 与产品及订单宽表相关 |
-| VariantImageRepository | `VariantImageRepository.js` | 变体图集管理 | 关联表 |
-| NotificationRepository | `NotificationRepository.js` | 通知系统 | `notifications` |
-| StatsRepository | `StatsRepository.js` | 系统统计 | 多表聚合 |
+## 2. 当前核心设计原则
 
----
+1. 单一职责
+   - 每个 Repository 聚焦一个实体或一组紧密相关的读模型
+2. Facade + 拆分子模块
+   - 复杂模块如订单，使用 facade 暴露统一入口，内部再拆 `queries` / `mutations` / `helpers`
+3. 参数化 SQL
+   - 全部使用 `prepare().bind()`
+4. 批量写保护
+   - Cloudflare D1 批量写超过上限时，必须走 chunked batch helper
+5. 事实层与读模型分离
+   - 收货、冲销、库存等行为优先写事实，再由读模型映射消费
 
-## 3. 核心 Repository 详解
+## 3. Repository 清单
 
-### 3.1 FileRepository
+| Repository | 文件 | 职责描述 | 主要表 |
+|-----------|------|----------|--------|
+| `FileRepository` | `functions/repositories/FileRepository.js` | 文件 CRUD、回收站、哈希复用 | `files`, `blobs` |
+| `FolderRepository` | `functions/repositories/FolderRepository.js` | 文件夹层级 | `folders` |
+| `OrderRepository` | `functions/repositories/OrderRepository.js` | 订单门面，统一暴露读写 | `orders`, `order_lines`, `order_files`, `order_timeline` |
+| `OrderStatsRepository` | `functions/repositories/OrderStatsRepository.js` | 订单统计 | `orders` 及聚合 |
+| `PurchaseOrderRepository` | `functions/repositories/PurchaseOrderRepository.js` | 采购单主读写、采购单详情读模型 | `purchase_orders`, `purchase_order_items`, `purchase_receipts`, `purchase_receipt_reversals` |
+| `PurchaseReceiptRepository` | `functions/repositories/PurchaseReceiptRepository.js` | 收货事实写入与查询辅助 | `purchase_receipts` |
+| `GoodsOverviewRepository` | `functions/repositories/GoodsOverviewRepository.js` | 订货总览缺口、在途、筛选项 | `order_lines`, `orders`, `product_variants`, `inventory_balances` |
+| `NotificationRepository` | `functions/repositories/NotificationRepository.js` | 站内通知读写 | `notifications` |
+| `OutboxReplayRepository` | `functions/repositories/OutboxReplayRepository.js` | outbox 查询、事件详情、replay run 管理 | `domain_outbox`, `outbox_consumer_jobs`, `outbox_replay_runs`, `webhook_logs` |
+| `SalespersonRepository` | `functions/repositories/SalespersonRepository.js` | 销售员、登录、token 重置 | `salespersons` |
 
-**文件路径**: `functions/repositories/FileRepository.js`
+## 4. 订单仓储
 
-#### 核心功能
+### 4.1 Facade 结构
 
-| 方法 | 功能描述 |
-|------|---------|
-| `findByFolder(folderId)` | 获取文件夹下文件列表 |
-| `create(data)` | 创建单条文件记录 |
-| `createBatch(items)` | 批量创建文件记录 |
-| `findById(id)` | 根据 ID 获取文件详情 |
-| `findByOriginalHash(hash)` | 根据哈希查询（秒传） |
-| `update(id, updates)` | 更新文件信息 |
-| `softDelete(id)` | 软删除（移入回收站） |
-| `restoreBatch(ids)` | 批量还原 |
-| `findTrashWithPaths()` | 获取回收站文件（带路径） |
+`OrderRepository` 当前是 facade：
 
-#### 关键实现
+```text
+OrderRepository
+├── order/queries.js
+├── order/mutations.js
+└── order/helpers.js
+```
+
+### 4.2 当前真实模型
+
+订单仓储不再只围绕 `orders` 表工作。
+
+当前创建一笔兼容性单行订单时，写入包括：
+
+- `orders`
+- `order_lines`
+- `order_files`
+- `order_timeline`
+
+当前查询订单详情时，读模型会包含：
+
+- 订单头字段
+- `lines`
+- 文件
+- 时间轴
+
+### 4.3 状态与进度
+
+当前订单列表和详情已经区分：
+
+- `orders.status`
+  - 审批 / 交付主状态
+- `orders.procurement_status`
+  - 兼容性采购聚合字段
+- `order_lines.display_status`
+  - 行级真实展示状态
+
+管理端筛选优先使用订单行聚合表达式，而不是只看头字段。
+
+## 5. 采购仓储
+
+### 5.1 PurchaseOrderRepository
+
+`PurchaseOrderRepository` 负责：
+
+- 创建采购单头
+- 维护采购单明细
+- 查询采购单列表
+- 查询采购单详情读模型
+
+当前采购单详情读模型默认返回：
+
+- `items`
+- `receipts`
+- 聚合数量字段，如 `ordered_qty`、`received_qty`
+- `display_status`
+
+### 5.2 收货与冲销不是简单状态修改
+
+采购链路已经演进为：
+
+- 采购单头和明细由 `PurchaseOrderRepository` 管理
+- 收货事实由 `PurchaseReceiptRepository` / 领域服务写入
+- 冲销事实通过 `purchase_receipt_reversals` 保留历史
+
+因此：
+
+- “收货”不是单纯 `PATCH purchase order status`
+- “冲销”不是删掉历史记录
+
+## 6. 订货总览仓储
+
+`GoodsOverviewRepository` 当前已经按订单行剩余需求建模。
+
+核心特点：
+
+- 基于 `order_lines` 计算缺口
+- 结合 `orders.status` 判断活跃需求
+- 结合 `inventory_balances` 计算现货、预留和可用量
+- 可输出筛选项、概览和列表
+
+这意味着订货总览不再依赖订单头数量做粗粒度统计。
+
+## 7. Outbox / Replay 仓储
+
+### 7.1 Outbox 数据
+
+当前 outbox 相关仓储主要围绕三张表：
+
+- `domain_outbox`
+- `outbox_consumer_jobs`
+- `outbox_replay_runs`
+
+### 7.2 OutboxReplayRepository
+
+`OutboxReplayRepository` 当前负责：
+
+- 列出 outbox 事件
+- 查看单个事件详情
+- 附加 consumer job 和 webhook attempt 状态
+- 按 `scopeType=event|command` 查找可 replay 事件
+- 创建 / 完成 replay run 记录
+
+它是运维排障的重要支撑，而不是仅供测试使用的内部仓储。
+
+## 8. 与 Service 层的边界
+
+以下逻辑应该放在 Service 层，而不是 Repository：
+
+- 收货命令幂等
+- 订单行与订单头的采购进度投影
+- 库存断言
+- outbox 事件编排
+- replay 消费者执行
+
+典型示例：
+
+- `OrderProcurementDomainService`
+- `OrderProcurementReceiptReversalService`
+- `PurchaseOrderService`
+- `OutboxReplayService`
+
+## 9. 常见读写模式
+
+### 9.1 单条查询
 
 ```javascript
-// 白名单防护 - 防止 SQL 注入
-const ALLOWED_UPDATE_COLUMNS = new Set([
-    'name', 'original_name', 'folder_id', 'storage_key',
-    'size', 'mime_type', 'content_hash', 'original_hash'
-]);
-
-// 回收站路径查询 - 使用 CTE
-async findTrashWithPaths() {
-    const { results } = await this.db.prepare(`
-        WITH RECURSIVE folder_paths(id, path) AS (
-            SELECT id, name FROM folders WHERE parent_id IS NULL
-            UNION ALL
-            SELECT f.id, fp.path || '/' || f.name
-            FROM folders f JOIN folder_paths fp ON f.parent_id = fp.id
-        )
-        SELECT f.*, COALESCE('/' || fp.path, '/') as original_path
-        FROM files f
-        LEFT JOIN folder_paths fp ON f.folder_id = fp.id
-        WHERE f.is_deleted = 1
-    `).all();
-}
+await db.prepare('SELECT * FROM table WHERE id = ?').bind(id).first();
 ```
 
----
-
-### 3.2 OrderRepository
-
-**文件路径**: `functions/repositories/OrderRepository.js`
-
-#### 架构设计 - Facade Pattern
-
-```
-OrderRepository (Facade)
-    │
-    ├── queries.js (查询操作)
-    │      ├── findById()
-    │      ├── listBySalesperson()
-    │      └── listForAdmin()
-    │
-    ├── mutations.js (变更操作)
-    │      ├── create()
-    │      ├── updateStatus()
-    │      └── batchUpdateStatus()
-    │
-    └── helpers.js (数据映射)
-           ├── parseJson()
-           └── mapOrderDetail()
-```
-
-#### 订单状态排序
+### 9.2 列表查询
 
 ```javascript
-// 智能排序 - 待处理优先
-ORDER BY
-    o.unread_by_admin DESC,    -- 未读优先
-    CASE o.status
-        WHEN 'pending' THEN 1
-        WHEN 'production' THEN 2
-        WHEN 'shipping' THEN 3
-        ELSE 50
-    END ASC,
-    o.created_at DESC
+await db.prepare('SELECT * FROM table WHERE status = ? ORDER BY created_at DESC').bind(status).all();
 ```
 
----
-
-### 3.3 ProductRepository
-
-**文件路径**: `functions/repositories/ProductRepository.js`
-
-#### CTE 聚合查询
+### 9.3 批量写入
 
 ```javascript
-_variantAggregateCTE() {
-    return `
-        WITH variant_agg AS (
-            SELECT product_id,
-                   MIN(price) AS min_price,
-                   SUM(stock_quantity) AS total_stock_quantity
-            FROM product_variants
-            GROUP BY product_id
-        )
-    `;
-}
+const statements = rows.map((row) => db.prepare('INSERT ...').bind(...row));
+await executeBatchChunks(db, statements);
 ```
 
-#### 货币验证
+当前项目中，大量订单、采购或 outbox 写入时应优先使用 chunked batch helper，而不是默认一次性 `db.batch(...)`。
 
-```javascript
-static PRODUCT_CURRENCY_SET = new Set(['CNY', 'USD', 'EUR', 'GBP', 'JPY']);
+## 10. 对开发者的要求
 
-normalizeCurrency(value) {
-    const normalized = String(value ?? '').trim().toUpperCase();
-    return PRODUCT_CURRENCY_SET.has(normalized) ? normalized : 'CNY';
-}
-```
-
----
-
-### 3.4 SpaceRepository
-
-**文件路径**: `functions/repositories/SpaceRepository.js`
-
-#### 复杂关联查询
-
-```javascript
-async findAll() {
-    // 关联 files, products, product_variants
-    // 计算文件数量、封面图、产品信息
-    SELECT s.*,
-        COALESCE(sf_count.file_count, 0) as file_count,
-        f.storage_key as cover_storage_key,
-        p.spu as p_sku, p.brand as p_brand
-    FROM spaces s
-    LEFT JOIN (...) sf_count ON sf_count.space_id = s.id
-    LEFT JOIN files f ON s.cover_file_id = f.id
-    LEFT JOIN products p ON s.product_id = p.id
-}
-```
-
-#### 销售员权限控制
-
-```javascript
-async findByIdForSalesperson(spaceId, salespersonId) {
-    // 检查 share_mode = 'all' 或 销售员在分享列表中
-    WHERE s.id = ?
-      AND (s.share_mode = 'all'
-           OR EXISTS (SELECT 1 FROM space_salesperson_shares 
-                      WHERE space_id = s.id AND salesperson_id = ?))
-}
-```
-
----
-
-### 3.5 SalespersonRepository
-
-**文件路径**: `functions/repositories/SalespersonRepository.js`
-
-#### 核心功能
-
-```javascript
-// 创建销售人员（带重试机制）
-async create({ name, store, phone, password }) {
-    const accessToken = generateShareToken(12);
-    const passwordHash = await hashPassword(password, this.jwtSecret);
-    // 重试机制处理 token 冲突
-}
-
-// 微信 OpenID 绑定
-async findByWechatOpenid(openid) { ... }
-
-// 登录记录
-async recordLogin(id, ip, device) { ... }
-```
-
----
-
-## 4. 数据访问模式
-
-### 4.1 CRUD 操作实现
-
-| 操作 | 模式 |
-|------|------|
-| 单条创建 | `prepare(INSERT).bind(...).run()` |
-| 批量创建 | `db.batch([stmt1, stmt2, ...])` |
-| UPSERT | `INSERT ... ON CONFLICT(id) DO UPDATE SET ...` |
-| 单条查询 | `prepare(SELECT).bind(...).first()` |
-| 列表查询 | `prepare(SELECT).bind(...).all()` |
-| 分页查询 | `LIMIT ? OFFSET ?` 配合 `COUNT(*)` |
-| 软删除 | `UPDATE SET is_deleted = 1, deleted_at = ?` |
-
-### 4.2 分页模式
-
-```javascript
-async findAll(filter = {}, { page = 1, limit = 50 } = {}) {
-    // 1. 参数验证
-    const safePage = Math.max(1, Math.floor(Number(page) || 1));
-    const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 50)));
-    
-    // 2. 并行查询总数和列表
-    const [countResult, listResult] = await Promise.all([
-        this.db.prepare(countSql).bind(...bindings).first(),
-        this.db.prepare(listSql).bind(...bindings, limit, offset).all(),
-    ]);
-
-    // 3. 返回分页结果
-    return { items, total, page, limit, totalPages };
-}
-```
-
----
-
-## 5. 事务处理
-
-### 5.1 D1 Batch 事务
-
-```javascript
-// 批量操作 - 原子性保证
-async deleteRecursive(folderId) {
-    // 获取所有后代文件夹 ID (CTE)
-    const ids = await getDescendantIds(folderId);
-    
-    // 批量删除 - 同一事务
-    await this.db.batch([
-        this.db.prepare(`DELETE FROM files WHERE folder_id IN (...)`).bind(...ids),
-        this.db.prepare(`DELETE FROM folders WHERE id IN (...)`).bind(...ids)
-    ]);
-}
-```
-
-### 5.2 订单创建事务
-
-```javascript
-export async function create(db, timelineRepo, data) {
-    const batchStatements = [];
-
-    // 1. 插入订单
-    batchStatements.push(db.prepare(`INSERT INTO orders ...`).bind(...));
-
-    // 2. 关联文件
-    fileIds.forEach(fileId => {
-        batchStatements.push(db.prepare(`INSERT INTO order_files ...`).bind(...));
-    });
-
-    // 3. 记录时间轴
-    batchStatements.push(timelineRepo.createInsertStatement(...));
-
-    // 原子执行
-    await db.batch(batchStatements);
-}
-```
-
----
-
-## 6. Repository 与数据库表映射
-
-```
-FileRepository          → files, blobs
-FolderRepository        → folders
-OrderRepository         → orders, order_files, order_timeline
-ProductRepository       → products
-ProductVariantRepository → product_variants
-CustomerRepository      → customers
-SalespersonRepository   → salespersons
-SpaceRepository         → spaces, space_files, space_salesperson_shares
-PurchaseOrderRepository → purchase_orders, purchase_order_items
-ProductDimensionRepository → product_dimensions, product_dimension_values
-NotificationsRepository → notifications
-```
-
----
-
-## 7. 最佳实践
-
-### 7.1 安全性
-
-```javascript
-// 始终使用参数化查询
-this.db.prepare('SELECT * FROM files WHERE id = ?').bind(id).first();
-
-// 白名单列名防护
-const ALLOWED_COLUMNS = new Set(['name', 'status', 'tags']);
-const safeKeys = Object.keys(updates).filter(k => ALLOWED_COLUMNS.has(k));
-```
-
-### 7.2 性能优化
-
-```javascript
-// 并行查询
-const [count, list] = await Promise.all([countQuery, listQuery]);
-
-// 批量操作替代循环
-const statements = items.map(item => this.db.prepare(INSERT).bind(...item));
-await this.db.batch(statements);
-
-// 使用 CTE 替代多次查询
-WITH RECURSIVE descendants AS (...) SELECT * FROM descendants;
-```
-
-### 7.3 命名规范
-
-| 场景 | 命名模式 | 示例 |
-|------|---------|------|
-| 单条查询 | `findById`, `findByXxx` | `findById`, `findByToken` |
-| 列表查询 | `list`, `listByXxx` | `listBySalesperson` |
-| 分页查询 | `findAll` | `findAll(filter, pagination)` |
-| 创建 | `create`, `createBatch` | `createBatch` |
-| 更新 | `update`, `updateXxx` | `updateStatus` |
-| 删除 | `delete`, `softDelete` | `softDelete` |
-| 统计 | `getStats` | `getAdminStats` |
-| 检查 | `hasXxx`, `checkXxx` | `hasOrders` |
+- 订单相关需求先确认是否应该读写 `order_lines`
+- 采购详情相关需求先确认是否需要读 `receipts`
+- 新的运维观测能力优先复用 `OutboxReplayRepository`
+- 不要在 Repository 里直接做通知、Webhook、缓存失效等副作用

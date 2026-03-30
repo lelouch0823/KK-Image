@@ -1,26 +1,37 @@
-# 审计运维手册
+# 审计与 Outbox 运维手册
 
-本文档说明如何在 kk-life 中使用、导出和排查统一操作审计日志。
+本文档说明如何在 kk-life 中查看审计日志、检查 outbox 事件，以及在必要时执行 replay 排障。
 
-## 适用范围
+## 1. 适用范围
 
 - 管理端审计中心
 - `audit:read` / `audit:export` 权限持有者
 - 运维、合规、事故响应人员
 
-## 入口与权限
+## 2. 审计入口与权限
 
-- 审计列表接口：`GET /api/manage/audit-logs`
-- 审计导出接口：`GET /api/manage/audit-logs/export`
+- 审计列表：`GET /api/manage/audit-logs`
+- 审计导出：`GET /api/manage/audit-logs/export`
 
 权限要求：
 
 - 查看日志：`audit:read`
 - 导出日志：`audit:export`
 
-## 常用筛选项
+## 3. Outbox 运维入口
 
-支持的主要筛选参数：
+除了审计日志，当前还提供两组 outbox 运维接口：
+
+- outbox 事件列表：`GET /api/manage/outbox`
+- outbox 事件详情：`GET /api/manage/outbox/:eventId`
+- replay 预演：`POST /api/manage/audit-replay/dry-run`
+- replay 执行：`POST /api/manage/audit-replay/execute`
+
+这些接口用于排查“主业务成功，但通知 / Webhook / 缓存等副作用缺失”的问题。
+
+## 4. 审计筛选建议
+
+常用筛选项：
 
 - `actorId`
 - `actorType`
@@ -33,13 +44,13 @@
 - `start`
 - `end`
 
-排查建议：
+排查顺序：
 
-- 先按 `domain` 缩小业务域
-- 再按 `result=denied|failed` 看高风险异常
-- 最后结合 `actorId` / `targetId` 追溯具体操作者或目标实体
+1. 先按 `domain` 缩小业务域
+2. 再按 `result=denied|failed` 看异常
+3. 最后结合 `actorId` / `targetId` 追溯具体操作和实体
 
-## 导出流程
+## 5. 审计导出
 
 JSON 导出：
 
@@ -55,70 +66,169 @@ GET /api/manage/audit-logs/export?format=csv&domain=orders&severity=high
 
 说明：
 
-- 导出始终是过滤后导出，不提供整表裸导出
-- 单次导出上限由服务端限制
-- 导出操作本身会写入审计事件 `audit.export`
-- CSV 导出会对以 `=`, `+`, `-`, `@` 开头的危险单元格做安全转义，避免表格公式注入
+- 导出始终是过滤后导出
+- 不提供整表裸导出
+- 导出动作本身会写入审计事件 `audit.export`
+- CSV 导出会对危险公式前缀做安全转义
 
-## 事故排查建议
+## 6. Outbox 列表与详情
+
+### 6.1 列表接口
+
+`GET /api/manage/outbox`
+
+常用筛选：
+
+- `eventType`
+- `consumerName`
+- `status`
+
+适用场景：
+
+- 查某类事件是否已经成功写入 outbox
+- 查某个 consumer 是否有挂起或失败任务
+- 查收货、冲销、通知、Webhook 是否真的发过事件
+
+### 6.2 详情接口
+
+`GET /api/manage/outbox/:eventId`
+
+详情一般用于查看：
+
+- outbox 原始事件
+- `outbox_consumer_jobs`
+- Webhook 投递尝试记录
+
+对排查很有用的字段：
+
+- `event_type`
+- `aggregate_type`
+- `aggregate_id`
+- `command_id`
+- `consumerJobs`
+- `webhookAttempts`
+
+## 7. Replay 使用方式
+
+### 7.1 Dry Run
+
+`POST /api/manage/audit-replay/dry-run`
+
+Body：
+
+```json
+{
+  "scopeType": "event",
+  "scopeId": "evt_xxx",
+  "consumerName": "notification"
+}
+```
+
+或：
+
+```json
+{
+  "scopeType": "command",
+  "scopeId": "cmd_xxx"
+}
+```
+
+作用：
+
+- 只预演本次会命中哪些事件
+- 返回会重放哪些 consumer
+- 不真正执行 consumer
+
+推荐在所有正式 replay 前先执行一次。
+
+### 7.2 Execute
+
+`POST /api/manage/audit-replay/execute`
+
+和 dry-run 使用同样的 `scopeType` / `scopeId` / `consumerName` 参数。
+
+当前支持的 replay consumer：
+
+- `audit`
+- `cache`
+- `notification`
+- `webhook`
+
+限制：
+
+- `execute` 属于高风险操作
+- 仅管理员可执行
+- 它用于重驱动副作用，不用于重写主业务事实
+
+## 8. 典型排障场景
+
+### 8.1 订单创建成功，但管理员没有收到通知
+
+排查顺序：
+
+1. 查审计里是否有 `order.create`
+2. 查 `/api/manage/outbox` 是否存在 `order_created_by_sales` 或 `order_created_by_admin`
+3. 查该事件详情里的 `notification` consumer job 状态
+4. 如事件存在但消费者未成功，先做 dry-run，再按需 replay `notification`
+
+### 8.2 采购收货成功，但前端列表没刷新
+
+排查顺序：
+
+1. 查是否存在 `purchase_receipt_recorded`
+2. 查是否存在 `order_procurement_progressed`
+3. 查对应 `cache` consumer job
+4. 必要时 replay `cache`
+
+### 8.3 Webhook 漏发
+
+排查顺序：
+
+1. 查 outbox 事件详情
+2. 查 `webhookAttempts`
+3. 判断是未入队、未消费还是消费失败
+4. 先 dry-run，再 replay `webhook`
+
+## 9. 失败写操作与权限拒绝
 
 ### 权限拒绝
 
-关注：
+重点关注：
 
 - `result=denied`
 - `severity=high`
 - 高频重复的 `actorId`
 
-排查顺序：
-
-1. 确认操作者权限是否变更
-2. 对照对应资源的授权策略
-3. 检查是否存在脚本或自动化误调用
-
 ### 失败写操作
 
-关注：
+重点关注：
 
 - `result=failed`
-- 同一 `action` 在短时间内重复出现
-- `metadata_json` / `changes_json` 中的上下文线索
+- 同一 `action` 短时间内重复出现
+- `metadata_json` / `changes_json` 的状态或约束线索
 
-排查顺序：
+常见根因：
 
-1. 结合应用错误日志与请求 ID
-2. 核对目标实体当时状态
-3. 判断是否为输入问题、状态机冲突或库存/约束错误
+- 权限问题
+- 状态机冲突
+- 库存不足
+- 幂等键重复
+- 外部副作用消费者失败
 
-## 审计来源可信度
+## 10. 来源可信度与访问留痕
 
-- `source_app` 仅从服务端可确认的认证上下文推断，不再信任客户端自报来源头
-- `ip_address` 默认使用服务端提供的 `CF-Connecting-IP`
-- `request_id` 默认使用服务端提供的 `CF-Ray`
-- 如业务需要额外链路 ID，应由服务端内部代码显式写入审计事件或元数据
+- `source_app` 仅从服务端认证上下文推断
+- `ip_address` 默认使用 `CF-Connecting-IP`
+- `request_id` 默认使用 `CF-Ray`
 
-## 审计访问留痕
+访问留痕：
 
-- 查看审计列表：`GET /api/manage/audit-logs` 会写入 `audit.read`
-- 查看动作枚举：`GET /api/manage/audit-logs/actions` 会写入 `audit.actions.read`
-- 导出审计：`GET /api/manage/audit-logs/export` 会写入 `audit.export`
+- `GET /api/manage/audit-logs` 会写 `audit.read`
+- `GET /api/manage/audit-logs/actions` 会写 `audit.actions.read`
+- `GET /api/manage/audit-logs/export` 会写 `audit.export`
+- replay 动作会写 `outbox.replay.dry_run` / `outbox.replay.execute`
 
-这三类事件用于追踪谁在查看、枚举或导出审计数据。
-
-### 高风险删除或归档
-
-关注：
-
-- `severity=critical`
-- `action` 包含 `delete` / `archive` / `empty`
-
-排查顺序：
-
-1. 确认操作者身份
-2. 确认目标范围是否超预期
-3. 评估是否需要回滚、恢复或冻结账号
-
-## 与排除路由的关系
+## 11. 与排除路由的关系
 
 部分非变更型 POST 接口不进入主操作审计台账，例如：
 
@@ -126,8 +236,6 @@ GET /api/manage/audit-logs/export?format=csv&domain=orders&severity=high
 - hash 预检查
 - 影响预览类接口
 
-这些排除项统一登记在：
+排除项统一登记在：
 
 - `functions/lib/hono/_shared/audit-route-exclusions.js`
-
-审查排除项时，应优先确认它们是否仍然属于“非变更请求”。

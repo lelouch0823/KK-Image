@@ -107,6 +107,7 @@ sequenceDiagram
 
 ### 4.3 订单详情 (`pages/detail`)
 - 查看完整订单数据
+- 读取订单详情中的 `lines`，展示更细的采购/履约进度
 - 添加留言/评论
 - 查看时间轴 (状态变更历史)
 
@@ -124,10 +125,16 @@ sequenceDiagram
 | 绑定微信 | `POST /api/sales/:token/bind-wechat` |
 | 订单列表 | `GET /api/sales/:token/orders` |
 | 创建订单 | `POST /api/sales/:token/orders` (Body: `{..., quantity}`) |
-| 订单详情 | `GET /api/sales/:token/orders/:id` |
+| 订单详情 | `GET /api/sales/:token/orders/:id` (返回 `lines` / `files` / `timeline`) |
 | 添加留言 | `POST /api/sales/:token/orders/:id/comment` |
 | 上传文件 | `POST /api/sales/:token/upload` |
 | 业绩统计 | `GET /api/sales/:token/stats` |
+
+补充说明：
+
+- 创建订单时，后端会生成兼容性单行 `order_lines`
+- 订单创建后的通知、缓存刷新、Webhook 由 outbox 异步处理
+- 小程序侧应以主请求返回值和后续读模型刷新为准，不应假设副作用已同步完成
 
 ## 6. 后端配置
 
@@ -169,4 +176,4 @@ A: 检查 Skyline 渲染是否兼容，可尝试在 `app.json` 中禁用 Skyline
 
 ---
 
-📱 如有问题，请参考 [API 文档](api/sales.md) 或联系管理员。
+📱 如有问题，请参考 [API 文档](../api/sales.md) 或联系管理员。
