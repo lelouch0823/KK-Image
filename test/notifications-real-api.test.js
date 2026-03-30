@@ -6,6 +6,14 @@ import {
   uniqueSeed,
   waitFor,
 } from './utils/manage-products-real-api.js';
+import {
+  ensureSalespersonId,
+  createWorkflowProduct,
+  createConfirmedOrder,
+  createPurchaseOrderFromOrders,
+  transitionPurchaseOrderToShipping,
+  getPurchaseOrderDetail,
+} from './utils/order-procurement-real-api.js';
 
 async function findAdminNotification(token, predicate, { unreadOnly = false } = {}) {
   const query = unreadOnly ? '?limit=20&unread_only=true' : '?limit=20';
@@ -90,5 +98,105 @@ describeIfRealApi('Notifications Real API Workflow', function () {
     });
     assert.strictEqual(finalList.match.title, title);
     assert.strictEqual(finalList.match.content, content);
+  });
+
+  it('materializes procurement notifications from business events and supports clearing unread state afterwards', async () => {
+    const token = await getBearerToken();
+    const seed = uniqueSeed('notify-procurement');
+    const salespersonId = await ensureSalespersonId(token, seed);
+    const { productId, variantId, productName } = await createWorkflowProduct(token, seed, {
+      stockQuantity: 0,
+    });
+
+    const resetUnread = await apiRequest('/api/manage/notifications/all/read', {
+      bearerToken: token,
+      method: 'POST',
+      expectedStatus: 200,
+    });
+    assert.strictEqual(resetUnread.json?.success, true);
+
+    const orderId = await createConfirmedOrder(token, {
+      seed,
+      salespersonId,
+      productId,
+      variantId,
+      productName,
+      quantity: 2,
+    });
+    const poId = await createPurchaseOrderFromOrders(token, [orderId], seed);
+
+    await transitionPurchaseOrderToShipping(token, poId);
+
+    const poDetail = await getPurchaseOrderDetail(token, poId);
+    const poItemId = poDetail?.items?.[0]?.id;
+    assert.ok(poItemId, 'purchase order item missing for procurement notification flow');
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-receipt`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: poItemId,
+            received_qty: 2,
+            note: 'notification business event receipt',
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+
+    const businessNotification = await waitFor(async () => {
+      const result = await findAdminNotification(
+        token,
+        (item) =>
+          String(item?.title || '').includes('notification.purchase_receipt_recorded') ||
+          String(item?.title || '').includes('notification.order_procurement_progressed'),
+        { unreadOnly: true }
+      );
+      assert.ok(result.match, 'business notification has not been materialized yet');
+      assert.ok(result.unreadCount >= 1, 'unread count did not increase for business notification');
+      return result.match;
+    }, {
+      timeoutMs: 20000,
+      intervalMs: 500,
+      onTimeoutMessage: 'procurement notification did not appear in unread list',
+    });
+
+    const clearUnread = await apiRequest('/api/manage/notifications/all/read', {
+      bearerToken: token,
+      method: 'POST',
+      expectedStatus: 200,
+    });
+    assert.strictEqual(clearUnread.json?.success, true);
+
+    await waitFor(async () => {
+      const unreadResult = await findAdminNotification(token, () => true, { unreadOnly: true });
+      assert.strictEqual(unreadResult.unreadCount, 0);
+      return unreadResult;
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'unread notifications were not cleared after mark-all-read',
+    });
+
+    const finalList = await waitFor(async () => {
+      const result = await findAdminNotification(token, (item) => item.id === businessNotification.id);
+      assert.ok(result.match, 'business notification missing from full list');
+      assert.strictEqual(Number(result.match.is_read), 1);
+      return result;
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'business notification did not remain in full list as read',
+    });
+
+    assert.ok(
+      String(finalList.match.title || '').includes('notification.purchase_receipt_recorded') ||
+        String(finalList.match.title || '').includes('notification.order_procurement_progressed')
+    );
   });
 });
