@@ -39,6 +39,7 @@ export default {
     basicInfo: 'Basic Info',
     costInfo: 'Cost Info',
     items: 'Items',
+    receipts: 'Receipt Ledger',
     linkedOrder: 'Linked Order',
     publicStock: 'Public Stock',
     orderLocked: 'Items linked to customer orders must be changed via order management.',
@@ -60,9 +61,12 @@ export default {
     actualTariff: 'Actual Tariff (fill on arrival)',
     unitCost: 'Unit Cost',
     quantity: 'Qty',
+    receivedQty: 'Received Qty',
     itemList: 'Purchase Items',
     linkOrders: 'Link Orders',
     addProducts: 'Add Products',
+    note: 'Note',
+    reason: 'Reason',
     noItems: 'No items added. Use the buttons above to add.',
     source: 'Source',
     sourceOrder: 'Order',
@@ -88,6 +92,8 @@ export default {
     allocate: 'Allocate Costs',
     viewSuggestions: 'View Suggestions',
     settle: 'Enter Actual Costs',
+    recordReceipt: 'Record Receipt',
+    reverseReceipt: 'Reverse Receipt',
   },
 
   toast: {
@@ -99,6 +105,9 @@ export default {
     itemsAdded: 'Items added',
     itemRemoved: 'Item removed',
     allocated: 'Cost allocation complete',
+    receiptsRecorded: 'Receipt recorded',
+    receiptReversed: 'Receipt reversal submitted',
+    receiptQtyRequired: 'Enter at least one receipt quantity',
   },
 
   error: {

@@ -31,8 +31,33 @@ describe('PurchaseOrderRepository read model', () => {
         }],
       })),
     };
+    const receiptsStmt = {
+      bind: vi.fn(() => receiptsStmt),
+      all: vi.fn(async () => ({
+        results: [{
+          id: 'receipt-1',
+          purchase_order_item_id: 'poi-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          received_qty: 4,
+          note: 'split receipt',
+          received_at: 123460,
+          created_at: 123461,
+          product_name: 'Premium Canvas Bag',
+          product_brand: 'KK',
+          product_sku: 'BAG-001',
+          variant_sku: 'BAG-001-BLK',
+          variant_options: '{"Color":"Black"}',
+          reversed_qty: 0,
+          reversal_count: 0,
+        }],
+      })),
+    };
     const db = {
-      prepare: vi.fn().mockReturnValueOnce(poStmt).mockReturnValueOnce(itemsStmt),
+      prepare: vi.fn()
+        .mockReturnValueOnce(poStmt)
+        .mockReturnValueOnce(itemsStmt)
+        .mockReturnValueOnce(receiptsStmt),
     };
 
     const repo = new PurchaseOrderRepository(db);
@@ -41,12 +66,24 @@ describe('PurchaseOrderRepository read model', () => {
     expect(db.prepare.mock.calls[1][0]).toContain('FROM purchase_order_items poi');
     expect(db.prepare.mock.calls[1][0]).toContain('WHERE poi.po_id = ?');
     expect(db.prepare.mock.calls[1][0]).toContain('FROM purchase_receipts');
+    expect(db.prepare.mock.calls[2][0]).toContain('FROM purchase_receipts pr');
+    expect(db.prepare.mock.calls[2][0]).toContain('purchase_receipt_reversals');
     expect(po.items).toEqual([
       expect.objectContaining({
         id: 'poi-1',
         receipt_count: 2,
         last_received_at: 123456,
         display_status: 'partially_received',
+      }),
+    ]);
+    expect(po.receipts).toEqual([
+      expect.objectContaining({
+        id: 'receipt-1',
+        product_name: 'Premium Canvas Bag',
+        variant_sku: 'BAG-001-BLK',
+        received_qty: 4,
+        available_reversal_qty: 4,
+        is_reversed: false,
       }),
     ]);
     expect(po.item_count).toBe(1);

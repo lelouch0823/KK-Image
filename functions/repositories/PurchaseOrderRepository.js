@@ -194,12 +194,58 @@ export class PurchaseOrderRepository {
       product_specifications: parseJsonObject(item.product_specifications, {}),
       variant_options: parseJsonObject(item.variant_options, {}),
     }));
+    const { results: receipts } = await this.db.prepare(`
+      SELECT
+        pr.*,
+        p.name AS product_name,
+        p.brand AS product_brand,
+        p.spu AS product_sku,
+        v.sku AS variant_sku,
+        v.options_values AS variant_options,
+        COALESCE(rr.reversed_qty, 0) AS reversed_qty,
+        COALESCE(rr.reversal_count, 0) AS reversal_count,
+        rr.last_reversed_at AS last_reversed_at
+      FROM purchase_receipts pr
+      LEFT JOIN products p ON p.id = pr.product_id
+      LEFT JOIN product_variants v ON v.id = pr.variant_id
+      LEFT JOIN (
+        SELECT
+          original_receipt_id,
+          COALESCE(SUM(reversal_qty), 0) AS reversed_qty,
+          COUNT(*) AS reversal_count,
+          MAX(created_at) AS last_reversed_at
+        FROM purchase_receipt_reversals
+        GROUP BY original_receipt_id
+      ) rr ON rr.original_receipt_id = pr.id
+      WHERE pr.purchase_order_id = ?
+      ORDER BY pr.received_at DESC, pr.created_at DESC
+    `).bind(id).all();
+    const receiptRows = (receipts || []).map((receipt) => {
+      const normalizedReceipt = normalizePurchaseOrderProgress({
+        ...receipt,
+        received_qty: toNumber(receipt.received_qty),
+      });
+      const reversedQty = toNumber(receipt.reversed_qty);
+      const receivedQty = toNumber(receipt.received_qty);
+      const availableReversalQty = Math.max(receivedQty - reversedQty, 0);
+      return {
+        ...normalizedReceipt,
+        reversed_qty: reversedQty,
+        reversal_count: toNumber(receipt.reversal_count),
+        last_reversed_at: toNumber(receipt.last_reversed_at),
+        available_reversal_qty: availableReversalQty,
+        is_reversed: reversedQty > 0 || toNumber(receipt.reversal_count) > 0,
+        product_images: parseJsonArray(receipt.product_images, []),
+        variant_options: parseJsonObject(receipt.variant_options, {}),
+      };
+    });
     const progress = summarizePurchaseOrderItems(poItems);
 
     return {
       ...po,
       ...progress,
       items: poItems,
+      receipts: receiptRows,
     };
   }
 

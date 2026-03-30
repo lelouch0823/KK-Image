@@ -14,6 +14,8 @@ vi.mock('@/utils/constants', () => ({
     MANAGE_PURCHASE_ORDER_STATUS: (id) => `/api/manage/purchase-orders/${id}/status`,
     MANAGE_PURCHASE_ORDER_ITEMS: (id) => `/api/manage/purchase-orders/${id}/items`,
     MANAGE_PURCHASE_ORDER_ITEM: (poId, itemId) => `/api/manage/purchase-orders/${poId}/items/${itemId}`,
+    MANAGE_PURCHASE_ORDER_RECEIPTS: (id) => `/api/manage/purchase-orders/${id}/receipts`,
+    MANAGE_PURCHASE_ORDER_RECEIPT_REVERSAL: (poId, receiptId) => `/api/manage/purchase-orders/${poId}/receipts/${receiptId}/reversal`,
     MANAGE_PURCHASE_ORDER_ALLOCATE: (id) => `/api/manage/purchase-orders/${id}/allocate`,
     MANAGE_PURCHASE_ORDER_SUGGESTIONS: '/api/manage/purchase-orders/suggestions',
     MANAGE_PURCHASE_ORDER_STATS: '/api/manage/purchase-orders/stats',
@@ -107,5 +109,91 @@ describe('usePurchaseOrders authz handling', () => {
       message: '状态已更新，同步更新了 2 个预订单采购状态',
       type: 'success',
     });
+  });
+
+  it('updates purchase-order settlement fields through the managed auth client', async () => {
+    const updatedDetail = {
+      id: 'po-1',
+      currency: 'USD',
+      actual_shipping_cost: 12.5,
+      actual_tariff_cost: 3.2,
+    };
+    mockAuthFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        success: true,
+        data: updatedDetail,
+      }),
+    });
+
+    const { updatePO, detail } = usePurchaseOrders();
+    const ok = await updatePO('po-1', {
+      currency: 'USD',
+      actual_shipping_cost: 12.5,
+      actual_tariff_cost: 3.2,
+    });
+
+    expect(ok).toBe(true);
+    expect(detail.value).toEqual(updatedDetail);
+    expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/purchase-orders/po-1', expect.objectContaining({
+      method: 'PUT',
+    }));
+  });
+
+  it('allocates purchase-order costs through the managed auth client', async () => {
+    const allocatedDetail = {
+      id: 'po-1',
+      items: [{ id: 'poi-1', allocated_freight: 1.5, allocated_tariff: 0.4 }],
+    };
+    mockAuthFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        success: true,
+        data: allocatedDetail,
+      }),
+    });
+
+    const { allocateCosts, detail } = usePurchaseOrders();
+    const ok = await allocateCosts('po-1');
+
+    expect(ok).toBe(true);
+    expect(detail.value).toEqual(allocatedDetail);
+    expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/purchase-orders/po-1/allocate', expect.objectContaining({
+      method: 'POST',
+    }));
+  });
+
+  it('submits purchase receipts through the managed auth client', async () => {
+    mockAuthFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        success: true,
+        data: { receipts: [{ id: 'receipt-1' }] },
+      }),
+    });
+
+    const { recordReceipts } = usePurchaseOrders();
+    const result = await recordReceipts('po-1', {
+      items: [{ purchase_order_item_id: 'poi-1', received_qty: 2 }],
+    });
+
+    expect(result).toEqual({ receipts: [{ id: 'receipt-1' }] });
+    expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/purchase-orders/po-1/receipts', expect.objectContaining({
+      method: 'POST',
+    }));
+  });
+
+  it('submits receipt reversals through the managed auth client', async () => {
+    mockAuthFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        success: true,
+        data: { reversal_id: 'reversal-1' },
+      }),
+    });
+
+    const { reverseReceipt } = usePurchaseOrders();
+    const result = await reverseReceipt('po-1', 'receipt-1', { reason: 'rollback' });
+
+    expect(result).toEqual({ reversal_id: 'reversal-1' });
+    expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/purchase-orders/po-1/receipts/receipt-1/reversal', expect.objectContaining({
+      method: 'POST',
+    }));
   });
 });

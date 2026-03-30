@@ -195,7 +195,7 @@
             data-testid="purchase-order-total-cost"
             class="inline-flex min-w-[7.5rem] justify-end rounded-lg bg-(--bg-muted)/65 px-2.5 py-1 font-[Outfit] text-sm font-semibold text-(--text-main)"
           >
-            ¥{{ (po.total_goods_cost || 0).toFixed(2) }}
+            {{ formatPurchaseCurrency(po.total_goods_cost, po.currency) }}
           </span>
         </template>
 
@@ -401,32 +401,49 @@
                         <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">Cost Summary</p>
                         <h3 class="text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.detail.costInfo') }}</h3>
                       </div>
-                      <span class="rounded-full border border-(--border-color) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)">
-                        {{ detail.allocation_method === 'by_value' ? t('purchaseOrder.form.byValue') : t('purchaseOrder.form.byQuantity') }}
-                      </span>
+                      <div class="flex flex-wrap items-center justify-end gap-2">
+                        <span class="rounded-full border border-(--border-color) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)">
+                          {{ detail.currency || 'CNY' }}
+                        </span>
+                        <span class="rounded-full border border-(--border-color) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)">
+                          {{ detail.allocation_method === 'by_value' ? t('purchaseOrder.form.byValue') : t('purchaseOrder.form.byQuantity') }}
+                        </span>
+                        <button
+                          type="button"
+                          data-testid="purchase-order-open-cost-modal"
+                          class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-(--border-color) bg-(--bg-card)/85 px-3 py-1.5 text-xs font-medium text-(--text-main) transition-colors hover:bg-(--bg-hover)"
+                          @click="openCostModal"
+                        >
+                          <AppIcon name="pencil-square" class="size-3.5" />
+                          {{ t('purchaseOrder.action.settle', '填写实际费用') }}
+                        </button>
+                      </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                       <div class="rounded-xl bg-(--bg-muted)/55 p-3">
                         <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedShipping') }}</div>
-                        <div class="mt-1 font-[Outfit] text-base font-semibold text-(--text-main)">¥{{ (detail.estimated_shipping_cost || 0).toFixed(2) }}</div>
+                        <div class="mt-1 font-[Outfit] text-base font-semibold text-(--text-main)">{{ formatPurchaseCurrency(detail.estimated_shipping_cost, detail.currency) }}</div>
                       </div>
                       <div class="rounded-xl bg-(--bg-muted)/55 p-3">
                         <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedTariff') }}</div>
-                        <div class="mt-1 font-[Outfit] text-base font-semibold text-(--text-main)">¥{{ (detail.estimated_tariff_cost || 0).toFixed(2) }}</div>
+                        <div class="mt-1 font-[Outfit] text-base font-semibold text-(--text-main)">{{ formatPurchaseCurrency(detail.estimated_tariff_cost, detail.currency) }}</div>
                       </div>
                       <div class="rounded-xl bg-(--bg-muted)/40 p-3">
                         <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.table.actualShipping') }}</div>
                         <div class="mt-1 font-[Outfit] text-base font-semibold text-(--text-main)">
-                          {{ detail.actual_shipping_cost != null ? `¥${detail.actual_shipping_cost.toFixed(2)}` : '—' }}
+                          {{ formatPurchaseCurrency(detail.actual_shipping_cost, detail.currency) }}
                         </div>
                       </div>
                       <div class="rounded-xl bg-(--bg-muted)/40 p-3">
                         <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.table.actualTariff') }}</div>
                         <div class="mt-1 font-[Outfit] text-base font-semibold text-(--text-main)">
-                          {{ detail.actual_tariff_cost != null ? `¥${detail.actual_tariff_cost.toFixed(2)}` : '—' }}
+                          {{ formatPurchaseCurrency(detail.actual_tariff_cost, detail.currency) }}
                         </div>
                       </div>
                     </div>
+                    <p class="mt-3 text-xs leading-5 text-(--text-secondary)">
+                      {{ t('purchaseOrder.ui.costFallbackHint', '未填写实际费用时，成本分摊会回退使用预估运费与预估关税。') }}
+                    </p>
                   </div>
                 </div>
 
@@ -551,21 +568,151 @@
                         </div>
                         <div class="flex items-center justify-between gap-3">
                           <span class="text-[11px] font-medium text-(--text-secondary)">{{ t('purchaseOrder.table.unitCost') }}</span>
-                          <span class="font-[Outfit] text-sm font-semibold text-(--text-main)">¥{{ (item.unit_cost || 0).toFixed(2) }}</span>
+                          <span class="font-[Outfit] text-sm font-semibold text-(--text-main)">{{ formatPurchaseCurrency(item.unit_cost, detail.currency) }}</span>
                         </div>
                         <div class="flex items-center justify-between gap-3 border-t border-(--border-subtle) pt-2">
                           <span class="text-[11px] font-medium text-(--text-secondary)">{{ t('purchaseOrder.table.totalGoodsCost') }}</span>
-                          <span class="font-[Outfit] text-base font-semibold text-(--text-main)">¥{{ ((item.quantity || 0) * (item.unit_cost || 0)).toFixed(2) }}</span>
+                          <span class="font-[Outfit] text-base font-semibold text-(--text-main)">{{ formatPurchaseCurrency((item.quantity || 0) * (item.unit_cost || 0), detail.currency) }}</span>
                         </div>
                       </div>
                       <div v-if="item.allocated_freight > 0 || item.allocated_tariff > 0" class="text-xs text-(--text-secondary)">
-                        {{ t('purchaseOrder.allocation.freight') }} ¥{{ (item.allocated_freight || 0).toFixed(2) }}
-                        + {{ t('purchaseOrder.allocation.tariff') }} ¥{{ (item.allocated_tariff || 0).toFixed(2) }}
+                        {{ t('purchaseOrder.allocation.freight') }} {{ formatPurchaseCurrency(item.allocated_freight, detail.currency) }}
+                        + {{ t('purchaseOrder.allocation.tariff') }} {{ formatPurchaseCurrency(item.allocated_tariff, detail.currency) }}
                       </div>
                     </div>
                   </div>
                 </div>
                 <p v-else class="py-4 text-center text-sm text-(--text-secondary)">{{ t('purchaseOrder.emptyItems') }}</p>
+              </div>
+
+              <div
+                data-testid="purchase-order-detail-receipts"
+                class="rounded-[1.6rem] border border-(--border-color)/70 bg-(--bg-card) p-4 shadow-sm"
+              >
+                <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">Receipt Ledger</p>
+                    <h3 class="mt-1 text-sm font-semibold text-(--text-main)">
+                      {{ t('purchaseOrder.detail.receipts', '收货台账') }}
+                      <span class="ml-1 font-[Outfit] text-xs font-normal text-(--text-secondary)">({{ receiptTimeline.length }})</span>
+                    </h3>
+                    <p class="mt-1 text-xs text-(--text-secondary)">
+                      {{ t('purchaseOrder.ui.receiptLedgerHint', '登记每次到货与冲销记录，确保采购、订单、库存三条投影保持一致。') }}
+                    </p>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-2 lg:justify-end">
+                    <StatusBadge variant="default" class="text-[10px]">
+                      {{ t('purchaseOrder.ui.receiptLedgerMeta', '支持部分到货与整笔冲销') }}
+                    </StatusBadge>
+                    <StatusBadge v-if="receiptReceivableCount > 0" variant="info" class="text-[10px]">
+                      {{ t('purchaseOrder.ui.receiptReceivableLines', '待收行') }} {{ receiptReceivableCount }}
+                    </StatusBadge>
+                    <button
+                      v-if="canRecordReceipts"
+                      type="button"
+                      data-testid="purchase-order-open-receipt-modal"
+                      class="bg-primary flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-(--text-inverse) shadow-sm transition-colors hover:bg-primary/90"
+                      @click="openReceiptModal"
+                    >
+                      <AppIcon name="archive-box-arrow-down" class="size-3.5" />
+                      {{ t('purchaseOrder.action.recordReceipt', '登记收货') }}
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="receiptTimeline.length > 0" class="space-y-3">
+                  <article
+                    v-for="receipt in receiptTimeline"
+                    :key="receipt.id"
+                    data-testid="purchase-order-receipt-card"
+                    class="grid gap-3 rounded-[1.35rem] border border-(--border-subtle) bg-linear-to-r from-(--bg-card) via-(--bg-card) to-emerald-50/28 p-3.5 sm:grid-cols-[minmax(0,1.3fr)_minmax(14rem,16rem)]"
+                  >
+                    <div class="min-w-0">
+                      <div class="flex min-w-0 flex-wrap items-center gap-2">
+                        <span class="line-clamp-1 min-w-0 text-sm font-medium break-all text-(--text-main)" :title="receipt.product_name">
+                          {{ receipt.product_name || '—' }}
+                        </span>
+                        <code class="rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-[10px] text-(--text-secondary)">
+                          {{ receipt.variant_sku || receipt.product_sku || '—' }}
+                        </code>
+                        <StatusBadge :variant="receipt.is_reversed ? 'default' : 'success'" class="text-[10px]">
+                          {{ receipt.is_reversed
+                            ? t('purchaseOrder.ui.receiptReversedTag', '已冲销')
+                            : t('purchaseOrder.ui.receiptRecordedTag', '已入账') }}
+                        </StatusBadge>
+                        <StatusBadge
+                          v-if="canReverseReceipt(receipt)"
+                          variant="warning"
+                          class="text-[10px]"
+                        >
+                          {{ t('purchaseOrder.ui.receiptReversibleTag', '可冲销') }}
+                        </StatusBadge>
+                      </div>
+                      <div class="mt-2 flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)">
+                        <span>{{ t('purchaseOrder.form.receivedQty', '本次到货') }} {{ formatInteger(receipt.received_qty) }}</span>
+                        <span v-if="receipt.available_reversal_qty > 0">· {{ t('purchaseOrder.ui.availableReversalQty', '可冲销量') }} {{ formatInteger(receipt.available_reversal_qty) }}</span>
+                        <span v-if="receipt.reversed_qty > 0">· {{ t('purchaseOrder.ui.reversedQty', '已冲销') }} {{ formatInteger(receipt.reversed_qty) }}</span>
+                        <span>· {{ formatDateTime(receipt.received_at) }}</span>
+                      </div>
+                      <div
+                        v-if="receipt.variant_options && Object.keys(receipt.variant_options).length > 0"
+                        class="mt-2 flex min-w-0 flex-wrap gap-1"
+                      >
+                        <span
+                          v-for="(val, key) in receipt.variant_options"
+                          :key="`receipt-variant-${receipt.id}-${key}`"
+                          class="border-primary/20 bg-primary/8 text-primary rounded-full border px-2 py-0.5 text-[10px] font-medium break-all"
+                        >
+                          {{ key }}: {{ val }}
+                        </span>
+                      </div>
+                      <p
+                        v-if="receipt.note"
+                        class="mt-2 rounded-xl bg-(--bg-muted)/55 px-3 py-2 text-xs leading-5 break-all whitespace-pre-wrap text-(--text-secondary)"
+                      >
+                        {{ receipt.note }}
+                      </p>
+                    </div>
+
+                    <div class="flex flex-col justify-between rounded-2xl border border-(--border-subtle) bg-(--bg-page)/80 p-3">
+                      <div class="space-y-2 text-xs text-(--text-secondary)">
+                        <div class="flex items-center justify-between gap-3">
+                          <span>{{ t('purchaseOrder.ui.receiptRecordId', '收货记录') }}</span>
+                          <code class="font-mono text-[11px] text-(--text-main)">{{ receipt.id }}</code>
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                          <span>{{ t('purchaseOrder.ui.receiptReversalCount', '冲销次数') }}</span>
+                          <span class="font-[Outfit] text-sm font-semibold text-(--text-main)">{{ formatInteger(receipt.reversal_count) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                          <span>{{ t('purchaseOrder.ui.receiptLastReversedAt', '最近冲销') }}</span>
+                          <span class="text-right text-(--text-main)">{{ receipt.last_reversed_at ? formatDateTime(receipt.last_reversed_at) : '—' }}</span>
+                        </div>
+                      </div>
+                      <button
+                        v-if="canReverseReceipt(receipt)"
+                        type="button"
+                        data-testid="purchase-order-open-reversal-modal"
+                        class="mt-3 flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100"
+                        @click="openReceiptReversalModal(receipt)"
+                      >
+                        <AppIcon name="arrow-uturn-left" class="size-3.5" />
+                        {{ t('purchaseOrder.action.reverseReceipt', '冲销收货') }}
+                      </button>
+                    </div>
+                  </article>
+                </div>
+                <div v-else class="rounded-[1.35rem] border border-dashed border-(--border-subtle) bg-(--bg-page)/60 px-4 py-10 text-center">
+                  <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-(--bg-muted)">
+                    <AppIcon name="archive-box" class="size-5 text-(--text-muted)" />
+                  </div>
+                  <p class="mt-3 text-sm font-medium text-(--text-main)">{{ t('purchaseOrder.ui.receiptLedgerEmptyTitle', '还没有收货记录') }}</p>
+                  <p class="mt-1 text-sm text-(--text-secondary)">
+                    {{ canRecordReceipts
+                      ? t('purchaseOrder.ui.receiptLedgerEmptyBody', '当前采购单还有待收货明细，可以登记本次到货。')
+                      : t('purchaseOrder.ui.receiptLedgerLockedBody', '当前状态下没有可登记的收货明细。') }}
+                  </p>
+                </div>
               </div>
 
               <!-- 备注 -->
@@ -661,6 +808,16 @@
 
                     <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                       <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-card)/85 p-4">
+                        <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.currency') }}</label>
+                        <AppSelect
+                          v-model="createForm.currency"
+                          :options="currencyOptions"
+                          :placeholder="t('purchaseOrder.form.currency')"
+                          size="sm"
+                          class="mt-2"
+                        />
+                      </div>
+                      <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-card)/85 p-4">
                         <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedShipping') }}</label>
                         <AppInput v-model="createForm.estimated_shipping_cost" type="number" step="0.01" class="mt-2" />
                       </div>
@@ -668,7 +825,7 @@
                         <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedTariff') }}</label>
                         <AppInput v-model="createForm.estimated_tariff_cost" type="number" step="0.01" class="mt-2" />
                       </div>
-                      <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-card)/85 p-4 sm:col-span-2 xl:col-span-1">
+                      <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-card)/85 p-4 sm:col-span-2 xl:col-span-3">
                         <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.allocationMethod') }}</label>
                         <AppSelect
                           v-model="createForm.allocation_method"
@@ -844,6 +1001,311 @@
       </transition>
     </Teleport>
 
+    <Teleport to="body">
+      <transition name="fade">
+        <div
+          v-if="showReceiptModal"
+          data-testid="purchase-order-receipt-modal"
+          class="fixed inset-0 z-[60] flex items-center justify-center p-4"
+        >
+          <div class="absolute inset-0 bg-(--color-overlay-dim) backdrop-blur-sm" @click="closeReceiptModal"></div>
+          <div class="relative flex w-full max-w-4xl flex-col overflow-hidden rounded-[1.8rem] border border-(--border-color)/70 bg-(--color-modal-bg) shadow-[0_32px_90px_-45px_rgba(15,23,42,0.38)]" style="max-height: calc(100vh - 3rem)">
+            <div class="relative flex items-start justify-between border-b border-(--border-color) bg-linear-to-r from-emerald-50/75 via-(--bg-card) to-sky-50/35 px-6 py-5">
+              <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.14),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.1),transparent_24%)]"></div>
+              <div class="relative">
+                <p class="text-xs font-semibold tracking-[0.18em] text-(--text-muted) uppercase">Receipt Capture</p>
+                <h2 class="mt-1 text-xl font-bold text-(--text-main)">{{ t('purchaseOrder.action.recordReceipt', '登记收货') }}</h2>
+                <p class="mt-1 text-sm text-(--text-secondary)">
+                  {{ t('purchaseOrder.ui.receiptModalHint', '只提交本次实际到货数量，系统会自动推进采购、订单和库存投影。') }}
+                </p>
+              </div>
+              <button type="button" class="cursor-pointer rounded-lg p-2 text-(--text-secondary) hover:bg-(--bg-hover)" @click="closeReceiptModal">
+                <AppIcon name="x-mark" class="size-5" />
+              </button>
+            </div>
+
+            <div class="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+              <div class="space-y-3">
+                <article
+                  v-for="entry in receiptDrafts"
+                  :key="entry.purchase_order_item_id"
+                  class="rounded-[1.35rem] border border-(--border-subtle) bg-linear-to-r from-(--bg-card) via-(--bg-card) to-emerald-50/20 p-4"
+                >
+                  <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div class="min-w-0">
+                      <div class="flex min-w-0 flex-wrap items-center gap-2">
+                        <span class="line-clamp-1 min-w-0 text-sm font-medium break-all text-(--text-main)" :title="entry.product_name">
+                          {{ entry.product_name || '—' }}
+                        </span>
+                        <code class="rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-[10px] text-(--text-secondary)">
+                          {{ entry.variant_sku || '—' }}
+                        </code>
+                        <span v-if="entry.customer_order_no" class="bg-info/10 text-info inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium">
+                          {{ entry.customer_order_no }}
+                        </span>
+                      </div>
+                      <p class="mt-2 text-xs text-(--text-secondary)">
+                        {{ t('purchaseOrder.progress.receivedPrefix', '已到') }} {{ formatInteger(entry.received_qty_before) }}
+                        / {{ formatInteger(entry.ordered_qty) }}
+                        · {{ t('purchaseOrder.progress.outstandingPrefix', '待收') }} {{ formatInteger(entry.max_receivable) }}
+                      </p>
+                      <div
+                        v-if="entry.variant_options && Object.keys(entry.variant_options).length > 0"
+                        class="mt-2 flex min-w-0 flex-wrap gap-1"
+                      >
+                        <span
+                          v-for="(val, key) in entry.variant_options"
+                          :key="`receipt-draft-${entry.purchase_order_item_id}-${key}`"
+                          class="border-primary/20 bg-primary/8 text-primary rounded-full border px-2 py-0.5 text-[10px] font-medium break-all"
+                        >
+                          {{ key }}: {{ val }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="grid gap-3 lg:w-[19rem]">
+                      <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-page)/80 p-3">
+                        <label class="text-[11px] font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.receivedQty', '本次到货数量') }}</label>
+                        <AppInput
+                          v-model="entry.received_qty"
+                          type="number"
+                          min="0"
+                          step="1"
+                          class="mt-2 text-center"
+                          size="sm"
+                        />
+                        <p
+                          v-if="isReceiptDraftInvalid(entry)"
+                          class="text-danger mt-2 text-[11px] font-medium"
+                        >
+                          {{ t('purchaseOrder.ui.receiptQtyOverflow', '不能超过当前剩余可收数量。') }}
+                        </p>
+                      </div>
+                      <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-page)/80 p-3">
+                        <label class="text-[11px] font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.note', '备注') }}</label>
+                        <AppInput
+                          v-model="entry.note"
+                          type="text"
+                          class="mt-2"
+                          size="sm"
+                          :placeholder="t('purchaseOrder.ui.receiptNotePlaceholder', '例如：第一批到货、箱损复核完成')"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-3 border-t border-(--border-color) bg-linear-to-r from-(--bg-card) to-(--bg-muted)/30 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
+              <div class="flex flex-wrap items-center gap-2 text-sm text-(--text-secondary)">
+                <span>{{ t('purchaseOrder.ui.receiptSelectedLines', '已填收货行') }} <strong class="font-[Outfit] text-(--text-main)">{{ receiptDraftSelectedCount }}</strong></span>
+                <span>·</span>
+                <span>{{ t('purchaseOrder.ui.receiptSelectedQty', '已填数量') }} <strong class="font-[Outfit] text-(--text-main)">{{ formatInteger(receiptDraftSelectedQty) }}</strong></span>
+              </div>
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
+                  @click="closeReceiptModal"
+                >
+                  {{ t('common.cancel') }}
+                </button>
+                <button
+                  type="button"
+                  :disabled="receiptSubmitDisabled || receiptSubmitting"
+                  class="bg-primary cursor-pointer rounded-xl px-5 py-2.5 text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  @click="submitReceipts"
+                >
+                  {{ receiptSubmitting
+                    ? t('purchaseOrder.ui.receiptSubmitting', '提交中...')
+                    : t('purchaseOrder.action.recordReceipt', '登记收货') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
+    <Teleport to="body">
+      <transition name="fade">
+        <div
+          v-if="showCostModal"
+          data-testid="purchase-order-cost-modal"
+          class="fixed inset-0 z-[62] flex items-center justify-center p-4"
+        >
+          <div class="absolute inset-0 bg-(--color-overlay-dim) backdrop-blur-sm" @click="closeCostModal"></div>
+          <div class="relative flex w-full max-w-3xl flex-col overflow-hidden rounded-[1.8rem] border border-(--border-color)/70 bg-(--color-modal-bg) shadow-[0_32px_90px_-45px_rgba(15,23,42,0.38)]" style="max-height: calc(100vh - 3rem)">
+            <div class="relative flex items-start justify-between border-b border-(--border-color) bg-linear-to-r from-amber-50/75 via-(--bg-card) to-sky-50/35 px-6 py-5">
+              <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.14),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.1),transparent_24%)]"></div>
+              <div class="relative">
+                <p class="text-xs font-semibold tracking-[0.18em] text-(--text-muted) uppercase">Settlement Config</p>
+                <h2 class="mt-1 text-xl font-bold text-(--text-main)">{{ t('purchaseOrder.action.settle', '填写实际费用') }}</h2>
+                <p class="mt-1 text-sm text-(--text-secondary)">
+                  {{ t('purchaseOrder.ui.costModalHint', '同步币种、分摊方式、预估费用与实际费用，必要时立即重算每条采购明细的落地成本。') }}
+                </p>
+              </div>
+              <button type="button" class="cursor-pointer rounded-lg p-2 text-(--text-secondary) hover:bg-(--bg-hover)" @click="closeCostModal">
+                <AppIcon name="x-mark" class="size-5" />
+              </button>
+            </div>
+
+            <div class="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+              <div class="grid gap-4 md:grid-cols-2">
+                <div class="rounded-[1.35rem] border border-(--border-subtle) bg-(--bg-card)/90 p-4">
+                  <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.remark') }}</label>
+                  <AppInput v-model="costDraft.remark" type="text" class="mt-2" :placeholder="t('purchaseOrder.form.remarkPlaceholder')" />
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <div class="rounded-[1.35rem] border border-(--border-subtle) bg-(--bg-card)/90 p-4">
+                    <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.currency') }}</label>
+                    <AppSelect
+                      v-model="costDraft.currency"
+                      :options="currencyOptions"
+                      :placeholder="t('purchaseOrder.form.currency')"
+                      size="sm"
+                      class="mt-2"
+                    />
+                  </div>
+                  <div class="rounded-[1.35rem] border border-(--border-subtle) bg-(--bg-card)/90 p-4">
+                    <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.allocationMethod') }}</label>
+                    <AppSelect
+                      v-model="costDraft.allocation_method"
+                      :options="allocationMethodOptions"
+                      :placeholder="t('purchaseOrder.form.byQuantity')"
+                      size="sm"
+                      class="mt-2"
+                    />
+                  </div>
+                </div>
+                <div class="rounded-[1.35rem] border border-(--border-subtle) bg-(--bg-card)/90 p-4">
+                  <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedShipping') }}</label>
+                  <AppInput v-model="costDraft.estimated_shipping_cost" type="number" step="0.01" class="mt-2" />
+                </div>
+                <div class="rounded-[1.35rem] border border-(--border-subtle) bg-(--bg-card)/90 p-4">
+                  <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedTariff') }}</label>
+                  <AppInput v-model="costDraft.estimated_tariff_cost" type="number" step="0.01" class="mt-2" />
+                </div>
+                <div class="rounded-[1.35rem] border border-(--border-subtle) bg-(--bg-card)/90 p-4">
+                  <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.actualShipping') }}</label>
+                  <AppInput v-model="costDraft.actual_shipping_cost" type="number" step="0.01" class="mt-2" />
+                </div>
+                <div class="rounded-[1.35rem] border border-(--border-subtle) bg-(--bg-card)/90 p-4">
+                  <label class="text-xs font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.actualTariff') }}</label>
+                  <AppInput v-model="costDraft.actual_tariff_cost" type="number" step="0.01" class="mt-2" />
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-3 border-t border-(--border-color) bg-linear-to-r from-(--bg-card) to-(--bg-muted)/30 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
+              <p class="text-sm text-(--text-secondary)">
+                {{ t('purchaseOrder.ui.costModalFooterHint', '保存配置后可选择立即重算分摊，当前明细的运费/关税将按新的规则刷新。') }}
+              </p>
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
+                  @click="closeCostModal"
+                >
+                  {{ t('common.cancel') }}
+                </button>
+                <button
+                  type="button"
+                  :disabled="costSubmitting"
+                  class="flex cursor-pointer items-center gap-1.5 rounded-xl border border-(--border-color) px-4 py-2.5 text-sm font-medium text-(--text-main) transition-colors hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-50"
+                  @click="saveCostSettings()"
+                >
+                  {{ costSubmitting
+                    ? t('purchaseOrder.ui.costSaving', '保存中...')
+                    : t('common.save', '保存') }}
+                </button>
+                <button
+                  v-if="canAllocateCurrentPurchaseOrder"
+                  type="button"
+                  :disabled="costSubmitting"
+                  class="bg-primary flex cursor-pointer items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-medium text-(--text-inverse) shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  @click="saveCostSettings({ allocateAfterSave: true })"
+                >
+                  <AppIcon name="calculator" class="size-4" />
+                  {{ costSubmitting
+                    ? t('purchaseOrder.ui.costAllocating', '处理中...')
+                    : t('purchaseOrder.action.allocate', '执行成本分摊') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
+    <Teleport to="body">
+      <transition name="fade">
+        <div
+          v-if="showReceiptReversalModal && activeReceiptForReversal"
+          data-testid="purchase-order-reversal-modal"
+          class="fixed inset-0 z-[65] flex items-center justify-center p-4"
+        >
+          <div class="absolute inset-0 bg-(--color-overlay-dim) backdrop-blur-sm" @click="closeReceiptReversalModal"></div>
+          <div class="relative w-full max-w-lg overflow-hidden rounded-[1.8rem] border border-amber-300/50 bg-(--color-modal-bg) shadow-[0_28px_80px_-42px_rgba(15,23,42,0.42)]">
+            <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.16),transparent_30%)]"></div>
+            <div class="relative border-b border-(--border-color) px-6 py-5">
+              <p class="text-xs font-semibold tracking-[0.18em] text-(--text-muted) uppercase">Receipt Reversal</p>
+              <h2 class="mt-1 text-xl font-bold text-(--text-main)">{{ t('purchaseOrder.action.reverseReceipt', '冲销收货') }}</h2>
+              <p class="mt-1 text-sm text-(--text-secondary)">
+                {{ t('purchaseOrder.ui.reversalModalHint', '当前接口会整笔回滚该次收货记录，请确认库存和订单投影都允许撤回。') }}
+              </p>
+            </div>
+
+            <div class="relative space-y-4 px-6 py-5">
+              <div class="rounded-[1.35rem] border border-(--border-subtle) bg-(--bg-page)/80 p-4">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-sm font-medium text-(--text-main)">{{ activeReceiptForReversal.product_name || '—' }}</span>
+                  <code class="rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-[10px] text-(--text-secondary)">
+                    {{ activeReceiptForReversal.variant_sku || activeReceiptForReversal.product_sku || '—' }}
+                  </code>
+                </div>
+                <p class="mt-2 text-xs text-(--text-secondary)">
+                  {{ t('purchaseOrder.form.receivedQty', '本次到货') }} {{ formatInteger(activeReceiptForReversal.received_qty) }}
+                  · {{ formatDateTime(activeReceiptForReversal.received_at) }}
+                </p>
+              </div>
+
+              <div class="rounded-[1.35rem] border border-(--border-subtle) bg-(--bg-page)/80 p-4">
+                <label class="text-[11px] font-medium text-(--text-secondary)">{{ t('purchaseOrder.form.reason', '原因') }}</label>
+                <AppInput
+                  v-model="receiptReversalReason"
+                  type="text"
+                  class="mt-2"
+                  :placeholder="t('purchaseOrder.ui.reversalReasonPlaceholder', '例如：误登记、异常入库、库存校正')"
+                />
+              </div>
+            </div>
+
+            <div class="relative flex justify-end gap-3 border-t border-(--border-color) px-6 py-4">
+              <button
+                type="button"
+                class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
+                @click="closeReceiptReversalModal"
+              >
+                {{ t('common.cancel') }}
+              </button>
+              <button
+                type="button"
+                :disabled="receiptReversalSubmitting"
+                class="cursor-pointer rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
+                @click="submitReceiptReversal"
+              >
+                {{ receiptReversalSubmitting
+                  ? t('purchaseOrder.ui.reversalSubmitting', '提交中...')
+                  : t('purchaseOrder.action.reverseReceipt', '冲销收货') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
     <!-- 商品详情弹窗 -->
     <ProductDetailModal
       v-if="viewProductId"
@@ -1008,8 +1470,10 @@ import { usePurchaseOrderModals } from '@/composables/usePurchaseOrderModals';
 import { useToast } from '@/composables/useToast';
 import { useAI } from '@/composables/useAI';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
+import { CURRENCY_OPTIONS } from '@/composables/useProductForm';
 import { validateOrderQuantity } from '@/utils/purchase-order-constraints';
 import { reconcileVariantSelection } from '@/utils/purchase-order-variant-selection';
+import { formatCurrency as formatMoney } from '@/utils/formatters';
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
 import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
@@ -1031,8 +1495,9 @@ const {
   suggestions, suggestionsLoading, stats,
   filters, statusConfig,
   loadList, loadStats, loadDetail,
-  createPO, createFromOrders, updateStatus,
-  loadSuggestions, addItems, removeItem, updateItem,
+  createPO, createFromOrders, updatePO, updateStatus,
+  loadSuggestions, addItems, removeItem, updateItem, recordReceipts, reverseReceipt,
+  allocateCosts,
 } = usePurchaseOrders();
 
 const route = useRoute();
@@ -1065,6 +1530,7 @@ const handleViewProductDetail = (id) => {
 // 复用常量与逻辑
 const createForm = reactive({
   remark: '',
+  currency: 'CNY',
   estimated_shipping_cost: 0,
   estimated_tariff_cost: 0,
   allocation_method: 'by_quantity',
@@ -1073,6 +1539,24 @@ const createForm = reactive({
 const poItems = reactive([]);
 const selectedSuggestions = ref([]);
 const detailRequestId = ref('');
+const showCostModal = ref(false);
+const costSubmitting = ref(false);
+const costDraft = reactive({
+  remark: '',
+  currency: 'CNY',
+  allocation_method: 'by_quantity',
+  estimated_shipping_cost: 0,
+  estimated_tariff_cost: 0,
+  actual_shipping_cost: '',
+  actual_tariff_cost: '',
+});
+const showReceiptModal = ref(false);
+const receiptSubmitting = ref(false);
+const receiptDrafts = ref([]);
+const showReceiptReversalModal = ref(false);
+const receiptReversalSubmitting = ref(false);
+const receiptReversalReason = ref('');
+const activeReceiptForReversal = ref(null);
 let stopPurchaseOrdersRefreshSubscription = null;
 
 // ─── 计算属性 ────────────────────────────────────────
@@ -1164,6 +1648,11 @@ const allocationMethodOptions = computed(() => [
   { value: 'by_value', label: t('purchaseOrder.form.byValue') },
 ]);
 
+const currencyOptions = computed(() => CURRENCY_OPTIONS.map((currency) => ({
+  value: currency.code,
+  label: `${currency.code} · ${currency.label}`,
+})));
+
 // ─── 方法 ────────────────────────────────────────────
 
 const formatDate = (ts) => {
@@ -1173,9 +1662,23 @@ const formatDate = (ts) => {
   });
 };
 
+const formatDateTime = (ts) => {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 const formatInteger = (value) => Number(value || 0).toLocaleString('zh-CN');
 
-const formatCurrencyValue = (value) => `¥${Number(value || 0).toFixed(2)}`;
+const formatPurchaseCurrency = (value, currency = 'CNY') => {
+  if (value === undefined || value === null || value === '') return '—';
+  return formatMoney(value, currency || 'CNY');
+};
 
 const buildSuggestionVariantLabel = (variantOptions = {}) =>
   Object.values(variantOptions || {})
@@ -1312,11 +1815,52 @@ const detailSummaryCards = computed(() => {
     {
       key: 'goods',
       label: t('purchaseOrder.ui.goodsTotal', '商品总额'),
-      value: formatCurrencyValue(detail.value.total_goods_cost),
+      value: formatPurchaseCurrency(detail.value.total_goods_cost, detail.value.currency),
       hint: buildReceiptMeta(detail.value) || t('purchaseOrder.ui.awaitingReceiptMeta', '尚未产生入库记录'),
     },
   ];
 });
+
+const receiptTimeline = computed(() => Array.isArray(detail.value?.receipts) ? detail.value.receipts : []);
+
+const receiptCandidates = computed(() => {
+  if (!detail.value || !Array.isArray(detail.value.items)) return [];
+
+  return detail.value.items
+    .map((item) => ({
+      purchase_order_item_id: item.id,
+      product_name: item.product_name || '—',
+      variant_sku: item.variant_sku || item.product_sku || '—',
+      ordered_qty: getOrderedQty(item),
+      received_qty_before: toProgressNumber(item.received_qty),
+      max_receivable: getOutstandingQty(item),
+      customer_order_no: item.customer_order_no || '',
+      variant_options: item.variant_options || {},
+      note: '',
+      received_qty: 0,
+    }))
+    .filter((item) => item.max_receivable > 0);
+});
+
+const receiptReceivableCount = computed(() => receiptCandidates.value.length);
+
+const canRecordReceipts = computed(() => (
+  Boolean(detail.value?.id)
+  && ['ordered', 'shipping'].includes(String(detail.value?.status || ''))
+  && receiptCandidates.value.length > 0
+));
+
+const receiptDraftSelectedCount = computed(() => receiptDrafts.value
+  .filter((entry) => normalizeReceiptQty(entry.received_qty) > 0)
+  .length);
+
+const receiptDraftSelectedQty = computed(() => receiptDrafts.value
+  .reduce((sum, entry) => sum + normalizeReceiptQty(entry.received_qty), 0));
+
+const receiptSubmitDisabled = computed(() => (
+  receiptDraftSelectedCount.value === 0
+  || receiptDrafts.value.some((entry) => isReceiptDraftInvalid(entry))
+));
 
 const suggestionSummaryCards = computed(() => {
   const suggestionList = suggestions.value || [];
@@ -1359,6 +1903,196 @@ const retryDetail = async () => {
   const id = detailRequestId.value || String(route.query.id || '').trim();
   if (!id) return;
   await openDetail(id);
+};
+
+function normalizeReceiptQty(value) {
+  const numeric = Number(value || 0);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.max(0, Math.trunc(numeric));
+}
+
+function normalizeDecimal(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function normalizeNullableDecimal(value) {
+  if (value === '' || value === null || value === undefined) return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function isReceiptDraftInvalid(entry = {}) {
+  return normalizeReceiptQty(entry.received_qty) > Number(entry.max_receivable || 0);
+}
+
+const resetReceiptModalState = () => {
+  showReceiptModal.value = false;
+  receiptDrafts.value = [];
+};
+
+const canAllocateCurrentPurchaseOrder = computed(() => Boolean(detail.value?.id) && (detail.value?.items?.length || 0) > 0);
+
+const resetCostModalState = () => {
+  showCostModal.value = false;
+  costDraft.remark = '';
+  costDraft.currency = 'CNY';
+  costDraft.allocation_method = 'by_quantity';
+  costDraft.estimated_shipping_cost = 0;
+  costDraft.estimated_tariff_cost = 0;
+  costDraft.actual_shipping_cost = '';
+  costDraft.actual_tariff_cost = '';
+};
+
+const openCostModal = () => {
+  if (!detail.value) return;
+  costDraft.remark = detail.value.remark || '';
+  costDraft.currency = detail.value.currency || 'CNY';
+  costDraft.allocation_method = detail.value.allocation_method || 'by_quantity';
+  costDraft.estimated_shipping_cost = detail.value.estimated_shipping_cost ?? 0;
+  costDraft.estimated_tariff_cost = detail.value.estimated_tariff_cost ?? 0;
+  costDraft.actual_shipping_cost = detail.value.actual_shipping_cost ?? '';
+  costDraft.actual_tariff_cost = detail.value.actual_tariff_cost ?? '';
+  showCostModal.value = true;
+};
+
+const closeCostModal = () => {
+  if (costSubmitting.value) return;
+  resetCostModalState();
+};
+
+const saveCostSettings = async ({ allocateAfterSave = false } = {}) => {
+  if (!detail.value || costSubmitting.value) return;
+
+  costSubmitting.value = true;
+  try {
+    const saved = await updatePO(detail.value.id, {
+      remark: String(costDraft.remark || '').trim() || null,
+      currency: String(costDraft.currency || 'CNY').trim().toUpperCase() || 'CNY',
+      allocation_method: costDraft.allocation_method || 'by_quantity',
+      estimated_shipping_cost: normalizeDecimal(costDraft.estimated_shipping_cost, 0),
+      estimated_tariff_cost: normalizeDecimal(costDraft.estimated_tariff_cost, 0),
+      actual_shipping_cost: normalizeNullableDecimal(costDraft.actual_shipping_cost),
+      actual_tariff_cost: normalizeNullableDecimal(costDraft.actual_tariff_cost),
+    });
+    if (!saved) return;
+
+    if (allocateAfterSave && canAllocateCurrentPurchaseOrder.value) {
+      const allocated = await allocateCosts(detail.value.id);
+      if (!allocated) return;
+    }
+
+    resetCostModalState();
+    await loadDetail(detail.value.id);
+    loadList();
+    loadStats();
+  } finally {
+    costSubmitting.value = false;
+  }
+};
+
+const openReceiptModal = () => {
+  if (!canRecordReceipts.value) return;
+  receiptDrafts.value = receiptCandidates.value.map((entry) => ({ ...entry }));
+  showReceiptModal.value = true;
+};
+
+const closeReceiptModal = () => {
+  if (receiptSubmitting.value) return;
+  resetReceiptModalState();
+};
+
+const submitReceipts = async () => {
+  if (!detail.value || receiptSubmitting.value) return;
+
+  const items = receiptDrafts.value
+    .map((entry) => ({
+      purchase_order_item_id: entry.purchase_order_item_id,
+      received_qty: normalizeReceiptQty(entry.received_qty),
+      note: String(entry.note || '').trim() || undefined,
+      max_receivable: Number(entry.max_receivable || 0),
+    }))
+    .filter((entry) => entry.received_qty > 0);
+
+  if (items.length === 0) {
+    addToast({
+      type: 'warning',
+      message: t('purchaseOrder.toast.receiptQtyRequired', '请至少填写一条收货数量'),
+    });
+    return;
+  }
+
+  if (items.some((entry) => entry.received_qty > entry.max_receivable)) {
+    addToast({
+      type: 'warning',
+      message: t('purchaseOrder.ui.receiptQtyOverflow', '不能超过当前剩余可收数量。'),
+    });
+    return;
+  }
+
+  receiptSubmitting.value = true;
+  try {
+    const result = await recordReceipts(detail.value.id, {
+      items: items.map(({ purchase_order_item_id, received_qty, note }) => ({
+        purchase_order_item_id,
+        received_qty,
+        ...(note ? { note } : {}),
+      })),
+    });
+
+    if (!result) return;
+
+    resetReceiptModalState();
+    await loadDetail(detail.value.id);
+    loadList();
+    loadStats();
+  } finally {
+    receiptSubmitting.value = false;
+  }
+};
+
+const canReverseReceipt = (receipt = {}) => normalizeReceiptQty(receipt.available_reversal_qty) > 0;
+
+const resetReceiptReversalState = () => {
+  showReceiptReversalModal.value = false;
+  activeReceiptForReversal.value = null;
+  receiptReversalReason.value = '';
+};
+
+const openReceiptReversalModal = (receipt) => {
+  if (!receipt || !canReverseReceipt(receipt)) return;
+  activeReceiptForReversal.value = receipt;
+  receiptReversalReason.value = '';
+  showReceiptReversalModal.value = true;
+};
+
+const closeReceiptReversalModal = () => {
+  if (receiptReversalSubmitting.value) return;
+  resetReceiptReversalState();
+};
+
+const submitReceiptReversal = async () => {
+  if (!detail.value || !activeReceiptForReversal.value || receiptReversalSubmitting.value) return;
+
+  receiptReversalSubmitting.value = true;
+  try {
+    const result = await reverseReceipt(
+      detail.value.id,
+      activeReceiptForReversal.value.id,
+      {
+        reason: String(receiptReversalReason.value || '').trim() || undefined,
+      }
+    );
+
+    if (!result) return;
+
+    resetReceiptReversalState();
+    await loadDetail(detail.value.id);
+    loadList();
+    loadStats();
+  } finally {
+    receiptReversalSubmitting.value = false;
+  }
 };
 
 // ─── 新建/编辑采购单 - 选择器打开 ──────────────────────
@@ -1565,6 +2299,7 @@ const executeCreate = async () => {
   // Reset
   showCreateModal.value = false;
   createForm.remark = '';
+  createForm.currency = 'CNY';
   createForm.estimated_shipping_cost = 0;
   createForm.estimated_tariff_cost = 0;
   createForm.allocation_method = 'by_quantity';
@@ -1618,6 +2353,11 @@ watch(showDetail, (isOpen) => {
     const newQuery = { ...route.query };
     delete newQuery.id;
     router.replace({ path: route.path, query: newQuery });
+  }
+  if (!isOpen) {
+    resetCostModalState();
+    resetReceiptModalState();
+    resetReceiptReversalState();
   }
 });
 

@@ -280,6 +280,50 @@ export function usePurchaseOrders() {
     }
   };
 
+  const recordReceipts = async (poId, payload) => {
+    try {
+      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_RECEIPTS(poId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        addToast({ message: t('purchaseOrder.toast.receiptsRecorded') || '收货已登记', type: 'success' });
+        return json.data;
+      }
+      addToast({ message: json.error, type: 'error' });
+      return null;
+    } catch (e) {
+      console.error('recordReceipts failed:', e);
+      addToast({ message: e.message, type: 'error' });
+      return null;
+    }
+  };
+
+  const reverseReceipt = async (poId, receiptId, payload = {}) => {
+    try {
+      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_RECEIPT_REVERSAL(poId, receiptId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        addToast({ message: t('purchaseOrder.toast.receiptReversed') || '收货冲销已提交', type: 'success' });
+        return json.data;
+      }
+      addToast({ message: json.error, type: 'error' });
+      return null;
+    } catch (e) {
+      console.error('reverseReceipt failed:', e);
+      addToast({ message: e.message, type: 'error' });
+      return null;
+    }
+  };
+
   // ─── 成本分摊 ────────────────────────────────────────
 
   const allocateCosts = async (poId) => {
@@ -358,7 +402,7 @@ export function usePurchaseOrders() {
     // 状态
     updateStatus,
     // 明细
-    addItems, removeItem, updateItem,
+    addItems, removeItem, updateItem, recordReceipts, reverseReceipt,
     // 成本
     allocateCosts,
     // 建议

@@ -52,6 +52,8 @@ vi.mock('@/composables/usePurchaseOrders', () => ({
     addItems: vi.fn(),
     removeItem: vi.fn(),
     updateItem: vi.fn(),
+    recordReceipts: vi.fn(),
+    reverseReceipt: vi.fn(),
     allocateCosts: vi.fn(),
   }),
 }));
@@ -307,6 +309,85 @@ describe('PurchaseOrders detail shell', () => {
     expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain('最近到货');
     expect(wrapper.get('[data-testid="purchase-order-detail-item-variant-options"]').text()).toContain('Color: Black');
     expect(wrapper.get('[data-testid="purchase-order-detail-item-variant-options"]').text()).toContain('Size: Large');
+  });
+
+  it('renders receipt ledger history and reversal affordance from purchase-order detail payload', () => {
+    mocks.detailState.detailLoading = false;
+    mocks.detailState.detail = {
+      id: 'po-1',
+      po_no: 'PO-20260312-001',
+      status: 'shipping',
+      display_status: 'partially_received',
+      ordered_qty: 12,
+      received_qty: 4,
+      cancelled_qty: 0,
+      outstanding_qty: 8,
+      allocation_method: 'by_quantity',
+      estimated_shipping_cost: 120,
+      estimated_tariff_cost: 60,
+      items: [
+        {
+          id: 'item-1',
+          product_id: 'prod-1',
+          product_name: 'Premium Canvas Bag',
+          product_brand: 'KK',
+          product_sku: 'KK-BAG-01',
+          product_images: [],
+          quantity: 12,
+          unit_cost: 25.5,
+          received_qty: 4,
+          cancelled_qty: 0,
+          variant_options: { Color: 'Black' },
+          product_specifications: { Material: 'Canvas' },
+        },
+      ],
+      receipts: [
+        {
+          id: 'receipt-1',
+          product_name: 'Premium Canvas Bag',
+          product_sku: 'KK-BAG-01',
+          variant_sku: 'KK-BAG-01-BLK',
+          received_qty: 4,
+          available_reversal_qty: 4,
+          reversed_qty: 0,
+          reversal_count: 0,
+          received_at: Date.UTC(2026, 2, 29, 8, 30),
+          note: 'first truck arrived',
+          variant_options: { Color: 'Black' },
+        },
+      ],
+    };
+
+    const wrapper = mount(PurchaseOrders, {
+      global: {
+        stubs: {
+          Teleport: true,
+          Transition: false,
+          OrderPickerModal: { template: '<div />' },
+          ProductPickerModal: { template: '<div />' },
+          ProductDetailModal: { template: '<div />' },
+          AppImage: { template: '<div />' },
+          AppIcon: { template: '<i />' },
+          AppFilterBar: { template: '<div />' },
+          AppButton: { template: '<button><slot /></button>' },
+          AppInput: { template: '<input />' },
+          AppCheckbox: { template: '<input type="checkbox" />' },
+          AppSelect: { template: '<select />' },
+          AppTable: { template: '<div />' },
+          StatusBadge: { template: '<div><slot /></div>' },
+          PermissionDeniedState: { template: '<div />' },
+          MetricTile: { template: '<div />' },
+          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+        },
+      },
+    });
+
+    expect(wrapper.find('[data-testid="purchase-order-detail-receipts"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain('Premium Canvas Bag');
+    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain('本次到货 4');
+    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain('可冲销量 4');
+    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain('first truck arrived');
+    expect(wrapper.get('[data-testid="purchase-order-open-reversal-modal"]').text()).toContain('冲销收货');
   });
 
   it('renders aggregated receipt progress in the purchase-order list status cell', () => {

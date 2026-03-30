@@ -125,6 +125,8 @@ export const API = {
   MANAGE_PURCHASE_ORDER_STATUS: (id) => `${API_PREFIX}/purchase-orders/${id}/status`,
   MANAGE_PURCHASE_ORDER_ITEMS: (id) => `${API_PREFIX}/purchase-orders/${id}/items`,
   MANAGE_PURCHASE_ORDER_ITEM: (id, itemId) => `${API_PREFIX}/purchase-orders/${id}/items/${itemId}`,
+  MANAGE_PURCHASE_ORDER_RECEIPTS: (id) => `${API_PREFIX}/purchase-orders/${id}/receipts`,
+  MANAGE_PURCHASE_ORDER_RECEIPT_REVERSAL: (id, receiptId) => `${API_PREFIX}/purchase-orders/${id}/receipts/${receiptId}/reversal`,
   MANAGE_PURCHASE_ORDER_ALLOCATE: (id) => `${API_PREFIX}/purchase-orders/${id}/allocate`,
   MANAGE_PURCHASE_ORDER_FROM_ORDERS: `${API_PREFIX}/purchase-orders/from-orders`,
   MANAGE_PURCHASE_ORDER_SUGGESTIONS: `${API_PREFIX}/purchase-orders/suggestions`,

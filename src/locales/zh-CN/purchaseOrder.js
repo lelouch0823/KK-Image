@@ -43,6 +43,7 @@ export default {
     basicInfo: '基本信息',
     costInfo: '费用信息',
     items: '采购明细',
+    receipts: '收货台账',
     linkedOrder: '关联订单',
     publicStock: '补公共库存',
     orderLocked: '与预定单关联的商品请通过管理关联订单来变更',
@@ -65,9 +66,12 @@ export default {
     actualTariff: '实际关税 (结算时填写)',
     unitCost: '单件入货成本',
     quantity: '数量',
+    receivedQty: '本次到货',
     itemList: '采购商品',
     linkOrders: '关联预定单',
     addProducts: '增加商品',
+    note: '备注',
+    reason: '原因',
     noItems: '暂未添加采购商品，请通过上方按钮引入',
     source: '来源',
     sourceOrder: '预定单',
@@ -94,6 +98,8 @@ export default {
     allocate: '执行成本分摊',
     viewSuggestions: '查看智能建议',
     settle: '填写实际费用',
+    recordReceipt: '登记收货',
+    reverseReceipt: '冲销收货',
   },
 
   // 提示
@@ -106,6 +112,9 @@ export default {
     itemsAdded: '商品已添加',
     itemRemoved: '商品已移除',
     allocated: '成本分摊完成',
+    receiptsRecorded: '收货已登记',
+    receiptReversed: '收货冲销已提交',
+    receiptQtyRequired: '请至少填写一条收货数量',
   },
 
   // 错误
