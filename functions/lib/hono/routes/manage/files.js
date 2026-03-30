@@ -9,6 +9,7 @@ import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { NotFoundError, ConflictError } from '../../errors.js';
 import { parsePagination, requireEntity } from '../../_shared/route-helpers.js';
+import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -132,6 +133,15 @@ app.put(
     }
 
     await repo.update(fileId, { name: name.trim() });
+    await publishSingleDomainEventAndPoll(c, {
+      event_type: 'v1_file_updated',
+      aggregate_type: 'file',
+      aggregate_id: fileId,
+      payload: {
+        file_id: fileId,
+        folder_ids: [file.folder_id],
+      },
+    }, `manage-file-update:${fileId}`);
     scheduleAuditEvent(c, {
       domain: 'files',
       action: 'file.rename',
@@ -159,6 +169,15 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
 
   // 软删除
   await repo.softDelete(fileId);
+  await publishSingleDomainEventAndPoll(c, {
+    event_type: 'v1_file_deleted',
+    aggregate_type: 'file',
+    aggregate_id: fileId,
+    payload: {
+      file_id: fileId,
+      folder_ids: [file.folder_id],
+    },
+  }, `manage-file-delete:${fileId}`);
   scheduleAuditEvent(c, {
     domain: 'files',
     action: 'file.delete',
@@ -186,8 +205,18 @@ app.post(
     const { ids } = c.req.valid('json');
 
     const repo = new FileRepository(env.DB);
+    const targetFiles = await repo.findByIds(ids);
     // SOTA: 软删除
     await repo.softDeleteBatch(ids);
+    await publishSingleDomainEventAndPoll(c, {
+      event_type: 'v1_file_batch_deleted',
+      aggregate_type: 'file',
+      aggregate_id: ids[0] || 'batch',
+      payload: {
+        file_ids: ids,
+        folder_ids: targetFiles.map((item) => item.folder_id),
+      },
+    }, `manage-file-batch-delete:${ids.length}`);
     scheduleAuditEvent(c, {
       domain: 'files',
       action: 'file.batch_delete',
@@ -227,7 +256,17 @@ app.post(
       }
     }
 
+    const sourceFolderIds = targetFiles.map((file) => file.folder_id);
     await repo.moveBatch(ids, targetFolderId || 'root');
+    await publishSingleDomainEventAndPoll(c, {
+      event_type: 'v1_file_batch_moved',
+      aggregate_type: 'file',
+      aggregate_id: ids[0] || 'batch',
+      payload: {
+        file_ids: ids,
+        folder_ids: [...sourceFolderIds, targetFolderId || 'root'],
+      },
+    }, `manage-file-batch-move:${ids.length}`);
     scheduleAuditEvent(c, {
       domain: 'files',
       action: 'file.batch_move',

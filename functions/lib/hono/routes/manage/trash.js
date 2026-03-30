@@ -8,6 +8,7 @@ import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { decrementRefCount } from '../../../../api/utils/blob-utils.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { publishDomainEventsAndPoll } from '../../_shared/domain-outbox.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -74,6 +75,10 @@ app.post('/restore', requirePermission('files:write'), zValidator('json', Restor
 
     const fileRepo = new FileRepository(env.DB);
     const folderRepo = new FolderRepository(env.DB);
+    const [filesToRestore, foldersToRestore] = await Promise.all([
+        fileIds.length > 0 ? fileRepo.findByIds(fileIds) : [],
+        folderIds.length > 0 ? Promise.all(folderIds.map((id) => folderRepo.findById(id))) : [],
+    ]);
 
     if (fileIds.length > 0) {
         await fileRepo.restoreBatch(fileIds);
@@ -82,6 +87,30 @@ app.post('/restore', requirePermission('files:write'), zValidator('json', Restor
     if (folderIds.length > 0) {
         await Promise.all(folderIds.map(id => folderRepo.restore(id)));
     }
+
+    const outboxEvents = [
+        ...filesToRestore.map((file) => ({
+            event_type: 'v1_file_updated',
+            aggregate_type: 'file',
+            aggregate_id: file.id,
+            payload: {
+                file_id: file.id,
+                folder_ids: [file.folder_id],
+            },
+        })),
+        ...foldersToRestore
+            .filter(Boolean)
+            .map((folder) => ({
+                event_type: 'v1_folder_updated',
+                aggregate_type: 'folder',
+                aggregate_id: folder.id,
+                payload: {
+                    folder_id: folder.id,
+                    parent_ids: [folder.parent_id, folder.id].filter((value) => value !== undefined),
+                },
+            })),
+    ];
+    await publishDomainEventsAndPoll(c, outboxEvents, `manage-trash-restore:${fileIds.length}:${folderIds.length}`);
     scheduleAuditEvent(c, {
         domain: 'trash',
         action: 'trash.restore',
