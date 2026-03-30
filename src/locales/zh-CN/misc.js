@@ -193,6 +193,7 @@ export default {
     system_settings: '系统设置',
     trash: '回收站',
     audit_logs: '操作审计',
+    outbox_ops: 'Outbox 运维',
     sales_spaces: '共享空间',
     goods_overview: '订货总览',
     purchase_orders: '采购管理',

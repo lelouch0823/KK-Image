@@ -296,6 +296,12 @@ const menuItems = computed(() => [
     label: t('router.audit_logs'),
     icon: 'document-text',
     permission: 'audit:read'
+  },
+  {
+    key: 'outbox-ops',
+    label: t('router.outbox_ops'),
+    icon: 'arrow-path',
+    permission: 'audit:read'
   }
 ]);
 

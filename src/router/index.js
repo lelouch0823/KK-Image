@@ -162,6 +162,12 @@ const routes = [
                 meta: { titleKey: 'router.audit_logs', permission: 'audit:read' },
             },
             {
+                path: 'outbox-ops',
+                name: 'OutboxOps',
+                component: () => import('@/views/OutboxOps.vue'),
+                meta: { titleKey: 'router.outbox_ops', permission: 'audit:read' },
+            },
+            {
                 path: 'forbidden',
                 name: 'Forbidden',
                 component: () => import('@/views/Forbidden.vue'),

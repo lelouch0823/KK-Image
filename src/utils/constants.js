@@ -132,6 +132,11 @@ export const API = {
   MANAGE_PURCHASE_ORDER_SUGGESTIONS: `${API_PREFIX}/purchase-orders/suggestions`,
   MANAGE_PURCHASE_ORDER_STATS: `${API_PREFIX}/purchase-orders/stats`,
 
+  MANAGE_OUTBOX: `${API_PREFIX}/outbox`,
+  MANAGE_OUTBOX_BY_ID: (id) => `${API_PREFIX}/outbox/${id}`,
+  MANAGE_AUDIT_REPLAY_DRY_RUN: `${API_PREFIX}/audit-replay/dry-run`,
+  MANAGE_AUDIT_REPLAY_EXECUTE: `${API_PREFIX}/audit-replay/execute`,
+
   NOTIFICATIONS: '/api/manage/notifications',
   NOTIFICATIONS_READ: (id) => `/api/manage/notifications/${id}/read`,
   AI: {

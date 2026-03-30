@@ -193,6 +193,7 @@ export default {
     system_settings: 'Settings',
     trash: 'Recycle Bin',
     audit_logs: 'Audit Logs',
+    outbox_ops: 'Outbox Ops',
     sales_spaces: 'Shared Spaces',
     goods_overview: 'Goods Overview',
     purchase_orders: 'Procurement',
