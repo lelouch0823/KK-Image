@@ -7,6 +7,9 @@ const mocks = vi.hoisted(() => ({
   loadOrders: vi.fn(),
   getOrder: vi.fn(),
   updateOrder: vi.fn(),
+  reserveOrderLine: vi.fn(),
+  releaseOrderLine: vi.fn(),
+  shipOrderLine: vi.fn(),
   changeStatus: vi.fn(),
   addComment: vi.fn(),
   batchAction: vi.fn(),
@@ -28,6 +31,9 @@ vi.mock('@/composables/useOrders', () => ({
     loadOrders: mocks.loadOrders,
     getOrder: mocks.getOrder,
     updateOrder: mocks.updateOrder,
+    reserveOrderLine: mocks.reserveOrderLine,
+    releaseOrderLine: mocks.releaseOrderLine,
+    shipOrderLine: mocks.shipOrderLine,
     changeStatus: mocks.changeStatus,
     addComment: mocks.addComment,
     batchAction: mocks.batchAction,
@@ -83,6 +89,9 @@ describe('OrderManager network workflow', () => {
     mocks.loadOrders.mockResolvedValue();
     mocks.getOrder.mockResolvedValue(null);
     mocks.updateOrder.mockResolvedValue(true);
+    mocks.reserveOrderLine.mockResolvedValue(true);
+    mocks.releaseOrderLine.mockResolvedValue(true);
+    mocks.shipOrderLine.mockResolvedValue(true);
     mocks.changeStatus.mockResolvedValue(true);
     mocks.addComment.mockResolvedValue(true);
     mocks.batchAction.mockResolvedValue(true);
@@ -192,5 +201,62 @@ describe('OrderManager network workflow', () => {
     await wrapper.vm.$nextTick();
 
     expect(wrapper.find('[data-testid="order-create-modal"]').exists()).toBe(true);
+  });
+
+  it('submits line commands through useOrders and refreshes hydrated order detail', async () => {
+    mocks.getOrder
+      .mockResolvedValueOnce({
+        id: 'o-1',
+        orderNo: 'SO-1',
+        lines: [{ id: 'line-1', shippedQuantity: 0 }],
+      })
+      .mockResolvedValueOnce({
+        id: 'o-1',
+        orderNo: 'SO-1',
+        lines: [{ id: 'line-1', shippedQuantity: 2 }],
+      });
+
+    const wrapper = createWrapper();
+    await wrapper.vm.openDetailModal({ id: 'o-1', orderNo: 'SO-1' });
+
+    await wrapper.vm.handleOrderLineCommand({ lineId: 'line-1', action: 'ship', quantity: 2 });
+
+    expect(mocks.shipOrderLine).toHaveBeenCalledWith('o-1', 'line-1', 2);
+    expect(mocks.getOrder).toHaveBeenLastCalledWith('o-1');
+    expect(wrapper.vm.viewingOrder.lines[0].shippedQuantity).toBe(2);
+  });
+
+  it('keeps the workflow modal open while line command retries are in flight', async () => {
+    let resolveFirstAttempt;
+    mocks.getOrder.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      lines: [{ id: 'line-1', reservedQuantity: 0 }],
+    });
+    mocks.reserveOrderLine.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFirstAttempt = resolve;
+        })
+    );
+
+    const wrapper = createWrapper();
+    await wrapper.vm.openDetailModal({ id: 'o-1', orderNo: 'SO-1' });
+
+    const firstAttempt = wrapper.vm.handleOrderLineCommand({ lineId: 'line-1', action: 'reserve', quantity: 1 });
+
+    expect(wrapper.vm.showDetailModal).toBe(true);
+    expect(wrapper.vm.lineCommandState.pending).toBe(true);
+
+    resolveFirstAttempt(false);
+    await firstAttempt;
+
+    expect(wrapper.vm.showDetailModal).toBe(true);
+
+    mocks.reserveOrderLine.mockResolvedValue(true);
+    await wrapper.vm.handleOrderLineCommand({ lineId: 'line-1', action: 'reserve', quantity: 1 });
+
+    expect(wrapper.vm.showDetailModal).toBe(true);
+    expect(mocks.reserveOrderLine).toHaveBeenCalledTimes(2);
   });
 });

@@ -25,7 +25,7 @@
           <OrderProcurementBadge :status="line.displayStatus" compact />
         </div>
 
-        <div class="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-5">
+        <div class="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3 xl:grid-cols-6">
           <div class="rounded-lg bg-(--bg-card) px-2.5 py-2">
             <p class="text-(--text-secondary)">{{ t('order.detail.orderedQty', '下单') }}</p>
             <p class="mt-1 font-semibold text-(--text-main)">{{ line.orderedQuantity }}</p>
@@ -46,7 +46,19 @@
             <p class="text-(--text-secondary)">{{ t('order.detail.cancelledQty', '取消') }}</p>
             <p class="mt-1 font-semibold text-(--text-main)">{{ line.cancelledQuantity }}</p>
           </div>
+          <div class="rounded-lg bg-(--bg-card) px-2.5 py-2">
+            <p class="text-(--text-secondary)">{{ t('order.detail.reservedQty', '已预留') }}</p>
+            <p class="mt-1 font-semibold text-(--text-main)">{{ line.reservedQuantity || 0 }}</p>
+          </div>
         </div>
+
+        <OrderLineCommandPanel
+          v-if="mode === 'admin'"
+          :line="line"
+          :loading="lineCommandState.pending && lineCommandState.lineId === line.id"
+          :error="lineCommandState.lineId === line.id ? lineCommandState.error : ''"
+          @command="$emit('line-command', $event)"
+        />
       </div>
     </div>
   </div>
@@ -56,13 +68,29 @@
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import OrderProcurementBadge from './OrderProcurementBadge.vue';
+import OrderLineCommandPanel from './OrderLineCommandPanel.vue';
 
 const props = defineProps({
   lines: {
     type: Array,
     default: () => [],
   },
+  mode: {
+    type: String,
+    default: 'sales',
+  },
+  lineCommandState: {
+    type: Object,
+    default: () => ({
+      pending: false,
+      lineId: null,
+      action: '',
+      error: '',
+    }),
+  },
 });
+
+defineEmits(['line-command']);
 
 const { t } = useI18n();
 

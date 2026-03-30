@@ -230,6 +230,45 @@ export function useOrders() {
     }
   };
 
+  const runOrderLineCommand = async (path, quantity, successMessage) => {
+    try {
+      const res = await authFetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity }),
+      }).then(r => r.json());
+
+      if (res.success) {
+        addToast({ message: res.message || successMessage, type: 'success' });
+        return true;
+      }
+
+      addToast({ message: res.error || res.message || t('common.operationFailed'), type: 'error' });
+      return false;
+    } catch (_e) {
+      addToast({ message: t('common.networkError'), type: 'error' });
+      return false;
+    }
+  };
+
+  const reserveOrderLine = async (orderId, lineId, quantity) => runOrderLineCommand(
+    API.MANAGE_ORDER_LINE_RESERVE(orderId, lineId),
+    quantity,
+    t('order.detail.reserveSuccess', '预留成功')
+  );
+
+  const releaseOrderLine = async (orderId, lineId, quantity) => runOrderLineCommand(
+    API.MANAGE_ORDER_LINE_RELEASE(orderId, lineId),
+    quantity,
+    t('order.detail.releaseSuccess', '释放成功')
+  );
+
+  const shipOrderLine = async (orderId, lineId, quantity) => runOrderLineCommand(
+    API.MANAGE_ORDER_LINE_SHIP(orderId, lineId),
+    quantity,
+    t('order.detail.shipSuccess', '出货成功')
+  );
+
   /**
    * 添加管理员留言
    */
@@ -399,6 +438,9 @@ export function useOrders() {
     loadOrders,
     getOrder,
     updateOrder,
+    reserveOrderLine,
+    releaseOrderLine,
+    shipOrderLine,
     changeStatus,
     addComment,
     batchAction,

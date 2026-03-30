@@ -19,7 +19,12 @@
             @view-correction="showCorrectionModal = true"
           />
 
-          <OrderLinesCard :lines="orderLines" />
+          <OrderLinesCard
+            :lines="orderLines"
+            :mode="mode"
+            :line-command-state="lineCommandState"
+            @line-command="$emit('line-command', $event)"
+          />
         </div>
 
         <!-- 右侧：信息区域 (PC端占 4列) -->
@@ -194,9 +199,18 @@ const props = defineProps({
   pendingComment: { type: String, default: '' },
   commentClearKey: { type: Number, default: 0 },
   commenting: { type: Boolean, default: false },
+  lineCommandState: {
+    type: Object,
+    default: () => ({
+      pending: false,
+      lineId: null,
+      action: '',
+      error: '',
+    }),
+  },
 });
 
-const emit = defineEmits(['back', 'comment', 'refresh', 'duplicate', 'edit', 'delete-order']);
+const emit = defineEmits(['back', 'comment', 'refresh', 'duplicate', 'edit', 'delete-order', 'line-command']);
 
 const { t } = useI18n();
 const { addToast } = useToast();

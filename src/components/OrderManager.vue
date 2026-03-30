@@ -158,6 +158,7 @@
       :hydrating="detailHydrating"
       :hydration-error="detailHydrationError"
       :commenting="commenting"
+      :line-command-state="lineCommandState"
       :edit-pending="detailEditLoading"
       @close="closeDetailModal"
       @retry="() => viewingOrder?.id && openDetailModal(viewingOrder)"
@@ -165,6 +166,7 @@
       @refresh="refreshAfterComment"
       @edit="handleEditFromDetail"
       @delete-order="() => showDeleteModal = true"
+      @line-command="handleOrderLineCommand"
     />
 
     <!-- 订单编辑弹窗 -->
@@ -249,6 +251,9 @@ const {
   loadOrders,
   getOrder,
   updateOrder,
+  reserveOrderLine,
+  releaseOrderLine,
+  shipOrderLine,
   changeStatus,
   addComment,
   batchAction,
@@ -309,6 +314,56 @@ const {
 const statusChanging = reactive({});
 const showDeleteModal = ref(false);
 const isDeleting = ref(false);
+const lineCommandState = reactive({
+  pending: false,
+  lineId: null,
+  action: '',
+  error: '',
+});
+
+const refreshViewingOrder = async () => {
+  if (!viewingOrder.value?.id) return null;
+  const fullOrder = await getOrder(viewingOrder.value.id);
+  if (fullOrder) {
+    viewingOrder.value = fullOrder;
+  }
+  return fullOrder;
+};
+
+const lineCommandExecutors = {
+  reserve: reserveOrderLine,
+  release: releaseOrderLine,
+  ship: shipOrderLine,
+};
+
+const handleOrderLineCommand = async ({ lineId, action, quantity }) => {
+  if (!viewingOrder.value?.id || lineCommandState.pending) return false;
+
+  const executor = lineCommandExecutors[action];
+  if (typeof executor !== 'function') return false;
+
+  lineCommandState.pending = true;
+  lineCommandState.lineId = lineId;
+  lineCommandState.action = action;
+  lineCommandState.error = '';
+
+  let success = false;
+  try {
+    success = await executor(viewingOrder.value.id, lineId, quantity);
+    if (!success) {
+      lineCommandState.error = t('order.detail.lineCommandFailed', '订单行操作未完成，请重试。');
+      return false;
+    }
+
+    await refreshViewingOrder();
+    lineCommandState.lineId = null;
+    lineCommandState.action = '';
+    lineCommandState.error = '';
+    return true;
+  } finally {
+    lineCommandState.pending = false;
+  }
+};
 
 const executeOrderDeletion = async (order) => {
   if (!order || isDeleting.value) return;

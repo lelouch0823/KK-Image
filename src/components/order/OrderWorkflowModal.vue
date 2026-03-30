@@ -33,6 +33,25 @@
 
     <div class="relative min-h-[320px] p-6">
       <div
+        v-if="lineCommandState.pending"
+        data-testid="order-line-command-loading"
+        class="mb-5 rounded-2xl border border-primary/20 bg-primary/6 px-4 py-3 text-sm text-(--text-main)"
+      >
+        <div class="flex items-center gap-2">
+          <AppIcon name="spinner" class="size-4 animate-spin text-primary" />
+          <span>{{ t('order.detail.lineCommandSyncing', '正在执行行级履约动作，订单详情会在完成后自动刷新。') }}</span>
+        </div>
+      </div>
+
+      <div
+        v-else-if="lineCommandState.error"
+        data-testid="order-line-command-error"
+        class="mb-5 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger"
+      >
+        {{ lineCommandState.error }}
+      </div>
+
+      <div
         v-if="hydrationError"
         data-testid="order-detail-error"
         role="alert"
@@ -82,11 +101,13 @@
         :order="order"
         mode="admin"
         :commenting="commenting"
+        :line-command-state="lineCommandState"
         @back="$emit('close')"
         @comment="$emit('comment', $event)"
         @refresh="$emit('refresh')"
         @edit="$emit('edit', $event)"
         @delete-order="$emit('delete-order')"
+        @line-command="$emit('line-command', $event)"
       />
     </div>
   </Modal>
@@ -123,9 +144,18 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  lineCommandState: {
+    type: Object,
+    default: () => ({
+      pending: false,
+      lineId: null,
+      action: '',
+      error: '',
+    }),
+  },
 });
 
-defineEmits(['close', 'retry', 'comment', 'refresh', 'edit', 'delete-order']);
+defineEmits(['close', 'retry', 'comment', 'refresh', 'edit', 'delete-order', 'line-command']);
 
 const { t } = useI18n();
 const detailRef = ref(null);

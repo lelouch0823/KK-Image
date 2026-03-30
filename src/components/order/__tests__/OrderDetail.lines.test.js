@@ -74,8 +74,8 @@ describe('OrderDetail line-level rendering', () => {
             template: '<div data-testid="status-header">{{ procurementStatus }}</div>',
           },
           OrderLinesCard: {
-            props: ['lines'],
-            template: '<div data-testid="order-lines-card">{{ lines.length }}-{{ lines[0].snapshotName }}</div>',
+            props: ['lines', 'mode'],
+            template: '<div data-testid="order-lines-card">{{ mode }}-{{ lines.length }}-{{ lines[0].snapshotName }}</div>',
           },
           OrderCommentInput: true,
           OrderPrintView: true,
@@ -89,6 +89,6 @@ describe('OrderDetail line-level rendering', () => {
     });
 
     expect(wrapper.get('[data-testid="status-header"]').text()).toBe('partially_received');
-    expect(wrapper.get('[data-testid="order-lines-card"]').text()).toBe('1-Line A');
+    expect(wrapper.get('[data-testid="order-lines-card"]').text()).toBe('admin-1-Line A');
   });
 });
