@@ -106,7 +106,7 @@ functions/
   - 订单头信息、客户/销售归属、兼容性状态字段、主要读模型入口
 - `order_lines`
   - 采购/履约的核心粒度
-  - 持有商品/变体、快照、订购量、已采购量、已到货量、已发货量、取消量、展示状态
+  - 持有商品/变体、快照、订购量、已采购量、已到货量、行级预留量、已发货量、取消量、展示状态
 - `orders.procurement_status`
   - 兼容性聚合字段
   - 由 `order_lines` 聚合结果投影而来，用于旧筛选器和轻量读模型
@@ -186,6 +186,22 @@ sequenceDiagram
 
 冲销时对称写入 `purchase_receipt_reversals`，并发布 `purchase_receipt_reversed`、`inventory_receipt_reversed`、`order_procurement_reversed`。
 
+### 4.3 订单行履约命令
+
+管理端订单详情中的“预留 / 释放 / 出货”不再通过整单状态 PATCH 表达，而是走专用命令路由：
+
+- `POST /api/manage/orders/:id/lines/:lineId/reserve`
+- `POST /api/manage/orders/:id/lines/:lineId/release`
+- `POST /api/manage/orders/:id/lines/:lineId/ship`
+
+命令链路：
+
+1. 路由调用 `OrderLineFulfillmentService`
+2. 更新 `order_lines` 与 `order_line_allocations`
+3. `ship` 时同步写入库存扣减与需求侧预留释放
+4. 发布 `order_line_fulfillment_updated`
+5. outbox `cache` consumer 刷新订单/通知/统计相关读模型
+
 ## 5. Outbox 架构
 
 ### 5.1 为什么引入 outbox
@@ -204,12 +220,20 @@ sequenceDiagram
 
 副作用由消费者从 `outbox_consumer_jobs` 读取并幂等执行。
 
+在本地开发里，`pnpm dev:all` / `pnpm start` 会先执行 `pnpm db:migrate:local`，确保 Worker 使用的 D1 schema 已经跟上最新迁移。
+
 ### 5.2 当前主要消费者
 
 - `cache`：失效订单、采购单、通知、商品、销售端读模型缓存
 - `notification`：生成管理员或销售端站内通知
 - `webhook`：向外部订阅端投递领域事件
 - `audit`：为收货/冲销等高风险动作补充审计与重放能力
+
+当前和订单履约直接相关的关键事件包括：
+
+- `purchase_receipt_recorded`
+- `order_procurement_progressed`
+- `order_line_fulfillment_updated`
 
 ## 6. 安全与一致性约束
 

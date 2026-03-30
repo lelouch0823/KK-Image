@@ -54,6 +54,11 @@ graph LR
 
 不要在路由里重新引入“主事务后同步发通知/同步打 webhook”的旧做法。
 
+订单行履约是一个明确的例外说明案例：
+
+- 不要把 `reserve` / `release` / `ship` 塞回 `PATCH /api/manage/orders/:id/status`
+- 应保持在 `/api/manage/orders/:id/lines/:lineId/*` 的专用命令路由里
+
 ## 3. 订单与采购的当前建模
 
 ### 3.1 订单不是单表模型
@@ -67,6 +72,12 @@ graph LR
   - 管理商品/变体、快照、数量和进度
 
 虽然现有销售端/管理端创建 UI 仍默认创建“单行兼容订单”，但后续采购、到货、部分到货、冲销、展示状态都以 `order_lines` 为准。
+
+新增的行级履约命令同样以 `order_lines` 为核心：
+
+- `reserved_qty`：订单行内部的履约预留
+- `shipped_qty`：订单行内部的已发货量
+- `order_line_allocations`：履约预留事实
 
 ### 3.2 采购进度
 
@@ -118,6 +129,7 @@ COALESCE(order_line_agg.display_status, o.procurement_status, 'none')
 - `order_status_changed_by_admin`
 - `purchase_receipt_recorded`
 - `order_procurement_progressed`
+- `order_line_fulfillment_updated`
 - `purchase_receipt_reversed`
 - `order_procurement_reversed`
 
@@ -174,4 +186,6 @@ src/
 - 订单/采购相关需求优先检查 `order_lines` 是否已经是正确事实来源
 - 新副作用优先接入 outbox，而不是在路由中直接调用
 - 大批量 D1 写入优先使用 chunked batch helper
+- 收货 / 冲销命令幂等优先使用 `CommandIdempotencyRepository` 的原子占位逻辑，不要回退到“先查再插”的竞争窗口实现
+- 本地真实链路联调优先跑 `pnpm dev:all` 和 `pnpm test:real-api:full-chain`
 - 文档、测试、API 示例必须与 Hono 当前真实路由保持一致

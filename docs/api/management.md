@@ -124,6 +124,30 @@ Body:
 }
 ```
 
+### 订单行履约命令
+
+这些命令是行级履约的一等入口，不复用整单状态 PATCH：
+
+- `POST /api/manage/orders/:id/lines/:lineId/reserve`
+- `POST /api/manage/orders/:id/lines/:lineId/release`
+- `POST /api/manage/orders/:id/lines/:lineId/ship`
+
+Body 示例：
+
+```json
+{
+  "quantity": 2
+}
+```
+
+说明：
+
+- `reserve` / `release` / `ship` 都通过 `OrderLineFulfillmentService` 执行
+- 行级命令会刷新 `order_lines.reserved_qty` / `shipped_qty` 与分配记录 `order_line_allocations`
+- `ship` 会同时扣减实际库存并消耗需求侧预留
+- 命令成功后发布 `order_line_fulfillment_updated` outbox 事件，由 `cache` consumer 异步刷新读模型
+- 路由层不直接调用 `invalidateCache()`
+
 ### 批量更新
 `POST /api/manage/orders/batch`
 
@@ -297,6 +321,21 @@ Body 示例：
 ### 管理端通知
 `GET /api/manage/notifications`
 
+### Webhook 配置与测试
+
+- `GET /api/manage/webhooks`
+- `GET /api/manage/webhooks/:id`
+- `POST /api/manage/webhooks`
+- `PUT /api/manage/webhooks/:id`
+- `DELETE /api/manage/webhooks/:id`
+- `POST /api/manage/webhooks/:id/test`
+
+说明：
+
+- `GET /api/manage/webhooks` 会返回当前 `supportedEvents`
+- `/test` 不依赖订阅事件命中，会直接发送 `webhook.test` 载荷用于联通性检查
+- 真实业务链路中的 Webhook 投递仍然来自 durable outbox 的 `webhook` consumer
+
 ### 查询 outbox 事件
 `GET /api/manage/outbox`
 
@@ -320,7 +359,30 @@ Query Params:
 - `audit-replay/execute` 属于高风险运维操作
 - 适用于修复通知/Webhook/缓存消费者历史缺失，而不是重写业务事实
 
-## 9. 备份
+补充说明：
+
+- 管理端 UI 对应页面为 `/admin/outbox-ops`
+
+## 9. 标准真实 API 回归
+
+推荐的本地运维检查：
+
+```bash
+pnpm dev:all
+pnpm test:real-api:full-chain
+```
+
+这组回归会覆盖：
+
+- 文件上传与移动
+- 商品创建与变体读取
+- 订单创建、确认与订单行读取
+- 从订单生成采购单、部分收货、最终收货、冲销幂等
+- 订单行预留 / 出货
+- 管理端通知物化
+- Webhook 测试投递与全链业务事件投递
+
+## 10. 备份
 
 ### 触发数据库备份
 `POST /api/manage/backups`

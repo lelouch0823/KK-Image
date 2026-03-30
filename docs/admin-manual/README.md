@@ -67,6 +67,7 @@
 统一操作审计、outbox 查询与 replay 排障：
 - 审计筛选策略
 - 导出接口使用
+- `/admin/outbox-ops` 运维控制台
 - outbox 事件查询
 - replay dry-run / execute
 - 权限拒绝与失败写排查
@@ -76,6 +77,7 @@
 管理系统中的商品目录与库存流转：
 - 商品 SPU 与 SKU 变体管理
 - 采购单创建、状态流转、收货、冲销及成本分摊
+- 订单详情中的行级预留、释放、出货动作
 - 实时库存账本查询
 - 订货总览视图与缺货预警
 
@@ -168,6 +170,7 @@ disable_telemetry=false
 - 确认订单、采购、通知链路可正常访问
 - 确认 outbox poller 正常工作
 - 确认审计与 replay 接口权限配置正确
+- 本地标准回归使用 `pnpm dev:all` + `pnpm test:real-api:full-chain`
 
 ## 📊 管理界面概览
 
@@ -196,6 +199,7 @@ disable_telemetry=false
 **商品与库存管理**:
 - 商品及变体维护
 - 采购订单跟踪与结算
+- 订单行级履约命令（预留 / 释放 / 出货）
 - 库存日记账及实时数量
 - 订货预警监控
 

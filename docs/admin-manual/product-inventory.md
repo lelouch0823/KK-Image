@@ -90,6 +90,29 @@
 - 错把 A SKU 记到 B SKU
 - 供应商退货或内部撤销收货确认
 
+### 3.4 订单行级履约动作
+
+当采购到货开始覆盖订单行后，管理员可以在订单详情中按单行执行：
+
+- 预留 `reserve`
+- 释放 `release`
+- 出货 `ship`
+
+这些动作对应的后端接口是：
+
+- `POST /api/manage/orders/:id/lines/:lineId/reserve`
+- `POST /api/manage/orders/:id/lines/:lineId/release`
+- `POST /api/manage/orders/:id/lines/:lineId/ship`
+
+关键语义：
+
+- `order_lines.reserved_qty` 表示“该订单行已经明确分配给履约动作的数量”
+- 它和 `inventory_balances.reserved` 的需求侧预留不是一回事
+- `reserve` / `release` 主要影响订单行分配与展示
+- `ship` 才会真正扣减实物库存，并同步消耗需求侧预留
+
+因此，看到“订单已确认、库存需求已预留”并不等于“订单行已经完成履约预留”。
+
 ## 4. 成本分摊
 
 采购单支持在填写实际运费、关税后重新分摊成本。
@@ -132,6 +155,7 @@
 
 - 查库存异常先看账本，不要先看结果值
 - 查订单采购进度异常，先对照最近收货/冲销流水
+- 查订单行出货异常，先对照 `order_shipment` 与 `inventory_released`
 - 对账时优先确认“事实流水是否正确”，再判断是否是展示投影问题
 
 ## 7. 常见排查
@@ -154,5 +178,8 @@
 - 记录收货：`POST /api/manage/purchase-orders/:id/receipts`
 - 收货冲销：`POST /api/manage/purchase-orders/:id/receipts/:receiptId/reversal`
 - 重新分摊成本：`POST /api/manage/purchase-orders/:id/allocate`
+- 订单行预留：`POST /api/manage/orders/:id/lines/:lineId/reserve`
+- 订单行释放：`POST /api/manage/orders/:id/lines/:lineId/release`
+- 订单行出货：`POST /api/manage/orders/:id/lines/:lineId/ship`
 - 订货总览：`GET /api/manage/goods-overview`
 - 库存分类账：`GET /api/manage/inventory/ledger`

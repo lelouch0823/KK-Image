@@ -36,9 +36,21 @@
 - **商品与库存管理 (Product & Inventory)**
 - **采购单管理 (Purchase Orders)**
 - **Durable Outbox / Replay 运维**
+- **管理端 Outbox 运维页 (`/admin/outbox-ops`)**
 - **Webhooks & Integrations**
 
 ---
+
+## 🔍 本地全链验证
+
+推荐的本地真实 API 验证命令：
+
+```bash
+pnpm dev:all
+pnpm test:real-api:full-chain
+```
+
+`pnpm dev:all` 会先同步本地 D1 迁移，再启动 Vite 和 Pages Worker。
 
 ## 📞 获取帮助
 

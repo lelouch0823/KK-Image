@@ -52,6 +52,9 @@
 | PATCH | `/api/manage/orders/:id` | 修改订单字段 |
 | PATCH | `/api/manage/orders/:id/status` | 修改订单状态 |
 | POST | `/api/manage/orders/:id/comment` | 添加订单评论 |
+| POST | `/api/manage/orders/:id/lines/:lineId/reserve` | 订单行预留 |
+| POST | `/api/manage/orders/:id/lines/:lineId/release` | 订单行释放 |
+| POST | `/api/manage/orders/:id/lines/:lineId/ship` | 订单行出货 |
 | GET/POST | `/api/manage/products` | 商品 SPU 管理 |
 | GET/POST | `/api/manage/products/:id/variants` | 商品变体管理 |
 | GET | `/api/manage/goods-overview` | 基于 `order_lines` 的订货总览 |
@@ -68,6 +71,12 @@
 | GET | `/api/manage/outbox/:eventId` | outbox 事件详情 |
 | POST | `/api/manage/audit-replay/dry-run` | replay 预演 |
 | POST | `/api/manage/audit-replay/execute` | replay 执行 |
+| GET | `/api/manage/webhooks` | Webhook 列表与支持事件 |
+| GET | `/api/manage/webhooks/:id` | Webhook 详情 |
+| POST | `/api/manage/webhooks` | 创建 Webhook |
+| PUT | `/api/manage/webhooks/:id` | 更新 Webhook |
+| DELETE | `/api/manage/webhooks/:id` | 删除 Webhook |
+| POST | `/api/manage/webhooks/:id/test` | 发送 `webhook.test` 测试投递 |
 
 ## 3. 架构约定
 
@@ -81,6 +90,7 @@
 因此：
 
 - 订单详情接口会返回 `lines`
+- 行级履约命令通过独立路由执行，而不是复用整单状态 PATCH
 - 采购进度筛选优先使用订单行聚合后的展示状态
 
 ### 3.2 副作用处理
@@ -92,7 +102,23 @@
 - Webhook
 - Replay / 审计补充
 
+订单行级履约命令会发布独立事件 `order_line_fulfillment_updated`，用于失效订单相关缓存，而不会复用销售侧通知事件。
+
 客户端不应依赖这些副作用在主请求返回前同步完成。
+
+### 3.3 本地全链验证
+
+推荐的本地真实链路验证命令：
+
+```bash
+pnpm dev:all
+pnpm test:real-api:full-chain
+```
+
+说明：
+
+- `pnpm dev:all` 会先应用本地 D1 迁移，再启动 Vite + Pages Worker
+- `pnpm test:real-api:full-chain` 会串跑文件、商品、订单、采购、通知、Webhook 的真实接口回归
 
 ## 4. 错误响应
 

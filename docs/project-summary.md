@@ -24,8 +24,9 @@
   - SPU/SKU、规格、图片、库存分类账
 - 采购链路
   - 采购单、部分到货、收货冲销、成本分摊
+  - 订单详情中的行级预留 / 释放 / 出货命令
 - 通知与集成
-  - 站内通知、Webhook、Replay/Outbox 运维
+  - 站内通知、Webhook、Replay/Outbox 运维、`/admin/outbox-ops`
 
 ### 架构状态
 
@@ -48,6 +49,7 @@
 - 订单详情默认包含 `lines`
 - 采购建议、订货总览、部分到货、冲销等流程优先依赖 `order_lines`
 - `orders.procurement_status` 保留为兼容性聚合字段
+- 管理端行级履约通过 `/api/manage/orders/:id/lines/:lineId/*` 专用命令接口执行
 
 ### 3.2 采购与库存架构
 
@@ -79,6 +81,15 @@
 - webhook
 - audit
 
+当前标准本地验证路径：
+
+```bash
+pnpm dev:all
+pnpm test:real-api:full-chain
+```
+
+这套链路会一起验证文件、商品、订单、采购、通知、Webhook 和订单行履约动作。
+
 ## 4. 目录结构
 
 ```text
@@ -108,3 +119,4 @@ kk-life/
 2. 微信登录需要配置 `WECHAT_APPID` 和 `WECHAT_SECRET`。
 3. 订单、采购、通知等链路需要关注 outbox poller 是否正常运行。
 4. 若副作用缺失，优先检查 `/api/manage/outbox` 与 `/api/manage/audit-replay` 对应的数据和工具链。
+5. 本地开发前建议直接用 `pnpm dev:all`，它会先应用本地 D1 迁移，避免真实 API 测试跑在旧 schema 上。

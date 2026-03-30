@@ -20,7 +20,9 @@
 
 ## 3. Outbox 运维入口
 
-除了审计日志，当前还提供两组 outbox 运维接口：
+除了审计日志，当前还提供管理端页面和接口两组 outbox 运维入口：
+
+- 页面：`/admin/outbox-ops`
 
 - outbox 事件列表：`GET /api/manage/outbox`
 - outbox 事件详情：`GET /api/manage/outbox/:eventId`
@@ -28,6 +30,21 @@
 - replay 执行：`POST /api/manage/audit-replay/execute`
 
 这些接口用于排查“主业务成功，但通知 / Webhook / 缓存等副作用缺失”的问题。
+
+### 3.1 `/admin/outbox-ops` 页面能力
+
+页面当前提供：
+
+- 事件列表筛选：`eventType` / `consumerName` / `status`
+- 事件详情查看：原始 outbox 事件、consumer jobs、Webhook 尝试记录
+- replay 预演：先看命中范围，不真正执行
+- replay 执行：确认后按事件或 command 重驱动副作用
+
+推荐做法：
+
+1. 先在页面里筛到具体事件
+2. 打开详情确认失败 consumer
+3. 先 dry-run，再 execute
 
 ## 4. 审计筛选建议
 
@@ -189,6 +206,12 @@ Body：
 3. 判断是未入队、未消费还是消费失败
 4. 先 dry-run，再 replay `webhook`
 
+如果只是验证订阅地址是否可达，可先用：
+
+- `POST /api/manage/webhooks/:id/test`
+
+它会直接发送 `webhook.test`，不依赖业务事件触发。
+
 ## 9. 失败写操作与权限拒绝
 
 ### 权限拒绝
@@ -228,7 +251,23 @@ Body：
 - `GET /api/manage/audit-logs/export` 会写 `audit.export`
 - replay 动作会写 `outbox.replay.dry_run` / `outbox.replay.execute`
 
-## 11. 与排除路由的关系
+## 11. 标准本地回归
+
+对 outbox / Webhook / 通知整体链路做本地验收时，推荐直接跑：
+
+```bash
+pnpm dev:all
+pnpm test:real-api:full-chain
+```
+
+这套命令会覆盖：
+
+- outbox 驱动的通知物化
+- 采购收货与冲销后的 Webhook 投递
+- 订单行履约命令触发的缓存刷新链路
+- 文件、商品、订单、采购、通知、Webhook 的真实串联
+
+## 12. 与排除路由的关系
 
 部分非变更型 POST 接口不进入主操作审计台账，例如：
 
