@@ -62,7 +62,6 @@ describeIfRealApi('Full Business Regression Real API', function () {
         events: [
           'purchase_receipt_recorded',
           'order_procurement_progressed',
-          'order_line_fulfillment_updated',
         ],
         headers: {
           'X-Full-Chain-Seed': seed,

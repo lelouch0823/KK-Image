@@ -1,5 +1,12 @@
 import assert from 'assert';
-import { describeIfRealApi, getBearerToken, uniqueSeed, apiRequest, waitFor } from './utils/manage-products-real-api.js';
+import {
+  describeIfRealApi,
+  getBearerToken,
+  uniqueSeed,
+  apiRequest,
+  multipartRequest,
+  waitFor,
+} from './utils/manage-products-real-api.js';
 import {
   runWebhookSmokeFlow,
   createManageWebhook,
@@ -52,7 +59,7 @@ describeIfRealApi('Webhook Real API', function () {
     );
   });
 
-  it('delivers supported procurement events with configured headers/signatures and ignores cache-only line events', async () => {
+  it('delivers supported procurement events with configured headers/signatures', async () => {
     const token = await getBearerToken();
     await cleanupTestManageWebhooks(token);
     const seed = uniqueSeed('webhook-business');
@@ -66,7 +73,7 @@ describeIfRealApi('Webhook Real API', function () {
     try {
       const webhook = await createManageWebhook(token, {
         url: receiver.url,
-        events: ['purchase_receipt_recorded', 'order_line_fulfillment_updated'],
+        events: ['purchase_receipt_recorded'],
         secret: `whsec-${seed}`,
         headers: {
           'X-Line-Seed': seed,
@@ -113,12 +120,103 @@ describeIfRealApi('Webhook Real API', function () {
       assert.strictEqual(delivered.headers['x-line-seed'], seed);
       assert.ok(delivered.headers['x-webhook-signature'], 'webhook signature missing');
       assert.strictEqual(delivered.body?.event_type, 'purchase_receipt_recorded');
+    } finally {
+      if (webhookId) {
+        try {
+          await deleteManageWebhook(token, webhookId);
+        } catch {
+          // best-effort cleanup
+        }
+      }
+      await receiver.close();
+    }
+  });
 
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      assert.ok(
-        !receiver.received.some((item) => item.body?.event_type === 'order_line_fulfillment_updated'),
-        'cache-only line fulfillment event should not be delivered to webhook subscribers'
+  it('exposes only webhook-capable supported events and delivers file_uploaded events through the same outbox pipeline', async () => {
+    const token = await getBearerToken();
+    await cleanupTestManageWebhooks(token);
+    const seed = uniqueSeed('webhook-file');
+    const receiver = await startWebhookReceiver({ port: 3005 });
+    let webhookId = null;
+
+    try {
+      const listBefore = await apiRequest('/api/manage/webhooks', {
+        bearerToken: token,
+        expectedStatus: 200,
+      });
+      const supportedEvents = listBefore.json?.supportedEvents || [];
+      assert.ok(supportedEvents.includes('file_uploaded'), 'file_uploaded should be advertised as webhook-capable');
+      assert.ok(supportedEvents.includes('purchase_receipt_recorded'), 'purchase_receipt_recorded missing from supported events');
+      assert.ok(!supportedEvents.includes('product_archived'), 'cache-only product_archived should not be advertised');
+      assert.ok(!supportedEvents.includes('order_line_fulfillment_updated'), 'cache-only line event should not be advertised');
+
+      const rejected = await apiRequest('/api/manage/webhooks', {
+        bearerToken: token,
+        method: 'POST',
+        body: {
+          url: receiver.url,
+          events: ['product_archived'],
+          secret: `whsec-invalid-${seed}`,
+        },
+        expectedStatus: 400,
+      });
+      assert.match(String(rejected.json?.error || ''), /invalid webhook events: product_archived/i);
+
+      const webhook = await createManageWebhook(token, {
+        url: receiver.url,
+        events: ['file_uploaded'],
+        secret: `whsec-file-${seed}`,
+        headers: {
+          'X-Test-Seed': seed,
+        },
+      });
+      webhookId = webhook?.id;
+      assert.ok(webhookId, 'file upload webhook id missing');
+
+      const folder = await apiRequest('/api/manage/folders', {
+        bearerToken: token,
+        method: 'POST',
+        body: {
+          name: `Webhook File ${seed}`,
+          description: 'file upload webhook regression',
+        },
+        expectedStatus: 201,
+      });
+      const folderId = folder.json?.data?.id;
+      assert.ok(folderId, 'folder id missing for file upload webhook flow');
+
+      const uploaded = await multipartRequest(`/api/manage/folders/${folderId}/upload`, {
+        bearerToken: token,
+        fields: {
+          file: {
+            value: 'webhook-file-payload',
+            filename: `webhook-file-${seed}.txt`,
+            contentType: 'text/plain',
+          },
+        },
+        expectedStatus: 200,
+      });
+      const uploadedFileId = uploaded.json?.data?.id;
+      assert.ok(uploadedFileId, 'uploaded file id missing for webhook file flow');
+
+      const delivered = await receiver.waitForDelivery(
+        (item) =>
+          item.body?.event_type === 'file_uploaded'
+          && item.body?.aggregate?.id === uploadedFileId,
+        {
+          timeoutMs: 15000,
+          intervalMs: 500,
+          onTimeoutMessage: 'file_uploaded webhook did not arrive',
+        }
       );
+
+      assert.strictEqual(delivered.headers['x-test-seed'], seed);
+      assert.ok(delivered.headers['x-webhook-signature'], 'file_uploaded webhook signature missing');
+      assert.strictEqual(delivered.body?.event_type, 'file_uploaded');
+      assert.strictEqual(delivered.body?.aggregate?.type, 'file');
+      assert.strictEqual(delivered.body?.aggregate?.id, uploadedFileId);
+      assert.strictEqual(delivered.body?.payload?.file?.id, uploadedFileId);
+      assert.strictEqual(delivered.body?.payload?.file?.filename, `webhook-file-${seed}.txt`);
     } finally {
       if (webhookId) {
         try {

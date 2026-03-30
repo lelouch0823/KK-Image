@@ -52,7 +52,9 @@ export const auditRouteDeclarations = declareAuditRoutes([
 ]);
 
 function getSupportedEvents() {
-  return Object.keys(DOMAIN_EVENT_CATALOG);
+  return Object.entries(DOMAIN_EVENT_CATALOG)
+    .filter(([, definition]) => Array.isArray(definition?.consumers) && definition.consumers.includes('webhook'))
+    .map(([eventType]) => eventType);
 }
 
 function validateEvents(events = []) {

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
 
 const mocks = vi.hoisted(() => ({
+  listAll: vi.fn(),
   listActiveByEvent: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../../../../../repositories/WebhookRepository.js', () => ({
   WebhookRepository: vi.fn(() => ({
+    listAll: mocks.listAll,
     listActiveByEvent: mocks.listActiveByEvent,
     create: mocks.create,
     update: mocks.update,
@@ -55,6 +57,7 @@ function createApp() {
 describe('manage webhooks routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.listAll.mockResolvedValue([]);
     mocks.listActiveByEvent.mockResolvedValue([]);
     mocks.create.mockResolvedValue({
       id: 'wh-1',
@@ -132,6 +135,45 @@ describe('manage webhooks routes', () => {
         actorId: 'admin-1',
       })
     );
+  });
+
+  it('lists only webhook-capable supported events and rejects cache-only event subscriptions', async () => {
+    const app = createApp();
+
+    const listRes = await app.request(
+      'http://localhost/api/manage/webhooks',
+      { method: 'GET' },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(listRes.status).toBe(200);
+    const listJson = await listRes.json();
+    expect(listJson.supportedEvents).toContain('purchase_receipt_recorded');
+    expect(listJson.supportedEvents).toContain('file_uploaded');
+    expect(listJson.supportedEvents).not.toContain('product_archived');
+    expect(listJson.supportedEvents).not.toContain('order_line_fulfillment_updated');
+
+    const rejectRes = await app.request(
+      'http://localhost/api/manage/webhooks',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: 'https://example.com/hook',
+          events: ['product_archived'],
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(rejectRes.status).toBe(400);
+    await expect(rejectRes.json()).resolves.toMatchObject({
+      success: false,
+      error: expect.stringContaining('invalid webhook events: product_archived'),
+    });
+    expect(mocks.create).not.toHaveBeenCalled();
   });
 
   it('deletes manage webhook configs under /api/manage/webhooks/:id', async () => {
