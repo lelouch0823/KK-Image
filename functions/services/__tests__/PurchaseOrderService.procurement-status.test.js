@@ -71,7 +71,15 @@ describe('PurchaseOrderService procurement status cascade', () => {
     const db = createDb();
     const service = new PurchaseOrderService(db);
     service.repo = {
-      findById: vi.fn(async () => ({ id: 'po-1', status: 'shipping', items: [{ variant_id: 'v-1', quantity: 5 }] })),
+      findById: vi.fn(async () => ({
+        id: 'po-1',
+        status: 'shipping',
+        ordered_qty: 5,
+        received_qty: 5,
+        cancelled_qty: 0,
+        outstanding_qty: 0,
+        items: [{ variant_id: 'v-1', quantity: 5 }],
+      })),
       updateStatus: vi.fn(async () => true),
       updateStatusIfCurrent: vi.fn(async () => false),
       getLinkedOrderIds: vi.fn(async () => []),
@@ -82,6 +90,51 @@ describe('PurchaseOrderService procurement status cascade', () => {
 
     await expect(service.updateStatus('po-1', 'arrived')).rejects.toThrow(/状态已变化|refresh/i);
     expect(service.inventoryService.applyBatch).not.toHaveBeenCalled();
+  });
+
+  it('rejects shipping -> arrived when outstanding quantity remains unreceived', async () => {
+    const db = createDb();
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      findById: vi.fn(async () => ({
+        id: 'po-1',
+        status: 'shipping',
+        ordered_qty: 10,
+        received_qty: 0,
+        cancelled_qty: 0,
+        outstanding_qty: 10,
+        items: [],
+      })),
+      updateStatus: vi.fn(async () => true),
+      updateStatusIfCurrent: vi.fn(async () => true),
+      getLinkedOrderIds: vi.fn(async () => []),
+    };
+
+    await expect(service.updateStatus('po-1', 'arrived')).rejects.toThrow(/待收|未收|已入库/);
+  });
+
+  it('allows shipping -> arrived when all quantity is closed by receipts and cancellations', async () => {
+    const db = createDb();
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      findById: vi.fn(async () => ({
+        id: 'po-1',
+        status: 'shipping',
+        ordered_qty: 10,
+        received_qty: 8,
+        cancelled_qty: 2,
+        outstanding_qty: 0,
+        items: [],
+      })),
+      updateStatus: vi.fn(async () => true),
+      updateStatusIfCurrent: vi.fn(async () => true),
+      getLinkedOrderIds: vi.fn(async () => []),
+    };
+
+    await expect(service.updateStatus('po-1', 'arrived')).resolves.toMatchObject({
+      success: true,
+      targetProcurementStatus: 'arrived',
+    });
   });
 
   it('rejects cancelling an arrived purchase order and does not touch inventory', async () => {

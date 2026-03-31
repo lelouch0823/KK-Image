@@ -70,6 +70,25 @@ async function executeBatchChunks(db, statements = []) {
   return results;
 }
 
+function toNumber(value) {
+  return Number(value || 0);
+}
+
+function resolvePurchaseOrderOutstandingQty(po = {}) {
+  if (po.outstanding_qty != null) return Math.max(toNumber(po.outstanding_qty), 0);
+
+  if (Array.isArray(po.items) && po.items.length > 0) {
+    return po.items.reduce((sum, item) => (
+      sum + Math.max(toNumber(item.quantity) - toNumber(item.received_qty) - toNumber(item.cancelled_qty), 0)
+    ), 0);
+  }
+
+  return Math.max(
+    toNumber(po.ordered_qty) - toNumber(po.received_qty) - toNumber(po.cancelled_qty),
+    0
+  );
+}
+
 export class PurchaseOrderService {
   /**
    * @param {D1Database} db
@@ -106,6 +125,13 @@ export class PurchaseOrderService {
     const allowed = validTransitions[po.status] || [];
     if (!allowed.includes(newStatus)) {
       throw new BadRequestError(`无法从 "${po.status}" 转换到 "${newStatus}"。允许的目标状态: ${allowed.join(', ')}`);
+    }
+
+    if (po.status === 'shipping' && newStatus === 'arrived') {
+      const outstandingQty = resolvePurchaseOrderOutstandingQty(po);
+      if (outstandingQty > 0) {
+        throw new BadRequestError(`采购单仍有待收数量 ${outstandingQty}，不能标记为已入库`);
+      }
     }
 
     // 2. CAS 更新采购单状态（防并发重复流转）
