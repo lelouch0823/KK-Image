@@ -93,6 +93,32 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ replace: mocks.routerReplace, push: mocks.routerPush }),
 }));
 
+function mountPurchaseOrdersShell() {
+  return mount(PurchaseOrders, {
+    global: {
+      stubs: {
+        Teleport: true,
+        Transition: false,
+        OrderPickerModal: { template: '<div />' },
+        ProductPickerModal: { template: '<div />' },
+        ProductDetailModal: { template: '<div />' },
+        AppImage: { template: '<div />' },
+        AppIcon: { template: '<i />' },
+        AppFilterBar: { template: '<div />' },
+        AppButton: { template: '<button><slot /></button>' },
+        AppInput: { template: '<input />' },
+        AppCheckbox: { template: '<input type="checkbox" />' },
+        AppSelect: { template: '<select />' },
+        AppTable: { template: '<div />' },
+        StatusBadge: { template: '<div><slot /></div>' },
+        PermissionDeniedState: { template: '<div />' },
+        MetricTile: { template: '<div />' },
+        ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+      },
+    },
+  });
+}
+
 describe('PurchaseOrders detail shell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -448,6 +474,50 @@ describe('PurchaseOrders detail shell', () => {
     expect(wrapper.get('[data-testid="purchase-order-progress-badge"]').text()).toContain('部分到货');
     expect(wrapper.get('[data-testid="purchase-order-progress-summary"]').text()).toContain('4 / 10');
     expect(wrapper.get('[data-testid="purchase-order-progress-summary"]').text()).toContain('待收 5');
+  });
+
+  it('does not offer arrived transition while outstanding quantity remains', () => {
+    mocks.detailState.detailLoading = false;
+    mocks.detailState.detail = {
+      id: 'po-1',
+      po_no: 'PO-20260312-001',
+      status: 'shipping',
+      outstanding_qty: 5,
+      ordered_qty: 10,
+      received_qty: 4,
+      cancelled_qty: 1,
+      allocation_method: 'by_quantity',
+      estimated_shipping_cost: 0,
+      estimated_tariff_cost: 0,
+      items: [],
+      receipts: [],
+    };
+
+    const wrapper = mountPurchaseOrdersShell();
+
+    expect(wrapper.get('[data-testid="purchase-order-detail-footer"]').text()).not.toContain('arrived');
+  });
+
+  it('offers arrived transition once outstanding quantity is zero', () => {
+    mocks.detailState.detailLoading = false;
+    mocks.detailState.detail = {
+      id: 'po-1',
+      po_no: 'PO-20260312-001',
+      status: 'shipping',
+      outstanding_qty: 0,
+      ordered_qty: 10,
+      received_qty: 8,
+      cancelled_qty: 2,
+      allocation_method: 'by_quantity',
+      estimated_shipping_cost: 0,
+      estimated_tariff_cost: 0,
+      items: [],
+      receipts: [],
+    };
+
+    const wrapper = mountPurchaseOrdersShell();
+
+    expect(wrapper.get('[data-testid="purchase-order-detail-footer"]').text()).toContain('arrived');
   });
 
   it('accepts selected orders from the current camelCase contract and ignores legacy snake_case-only payloads', async () => {

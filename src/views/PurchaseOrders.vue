@@ -1621,13 +1621,24 @@ const handleStatusUpdate = async (newStatus) => {
     loadStats();
   }
 };
+
+const getOutstandingQtyForStatusGate = (po = {}) => {
+  if (po?.outstanding_qty != null) return Math.max(Number(po.outstanding_qty || 0), 0);
+  return Math.max(
+    Number(po?.ordered_qty || 0) - Number(po?.received_qty || 0) - Number(po?.cancelled_qty || 0),
+    0
+  );
+};
+
 // 当前采购单可跳转的下一个状态
 const nextStatuses = computed(() => {
   if (!detail.value) return [];
+  if (detail.value.status === 'shipping') {
+    return getOutstandingQtyForStatusGate(detail.value) <= 0 ? ['arrived'] : [];
+  }
   const map = {
     draft: ['ordered', 'cancelled'],
     ordered: ['shipping', 'cancelled'],
-    shipping: ['arrived'],
     arrived: ['completed'],
   };
   return map[detail.value.status] || [];
