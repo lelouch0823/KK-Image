@@ -68,7 +68,14 @@ vi.mock('@/composables/usePurchaseOrderModals', () => ({
     showProductPicker: ref(false),
     pickerTarget: ref('create'),
     showShortageConfirm: ref(false),
-    confirmData: reactive({ show: false, title: '', message: '', type: 'primary', loading: false, onConfirm: vi.fn() }),
+    confirmData: reactive({
+      show: false,
+      title: '',
+      message: '',
+      type: 'primary',
+      loading: false,
+      onConfirm: vi.fn(),
+    }),
     viewProductId: ref(null),
     detailFocusedVariantId: vi.fn(() => null),
     openOrderPicker: vi.fn(),
@@ -114,7 +121,9 @@ function mountPurchaseOrdersShell() {
         StatusBadge: { template: '<div><slot /></div>' },
         PermissionDeniedState: { template: '<div />' },
         MetricTile: { template: '<div />' },
-        ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+        ManagementListShell: {
+          template: '<div><slot name="actions" /><slot name="content" /></div>',
+        },
       },
     },
   });
@@ -254,7 +263,9 @@ describe('PurchaseOrders detail shell', () => {
           StatusBadge: { template: '<div><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
           MetricTile: { template: '<div />' },
-          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+          ManagementListShell: {
+            template: '<div><slot name="actions" /><slot name="content" /></div>',
+          },
         },
       },
     });
@@ -321,20 +332,40 @@ describe('PurchaseOrders detail shell', () => {
           StatusBadge: { template: '<div><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
           MetricTile: { template: '<div />' },
-          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+          ManagementListShell: {
+            template: '<div><slot name="actions" /><slot name="content" /></div>',
+          },
         },
       },
     });
 
-    expect(wrapper.get('[data-testid="purchase-order-detail-progress-badge"]').text()).toContain('部分到货');
-    expect(wrapper.get('[data-testid="purchase-order-detail-progress-summary"]').text()).toContain('4 / 12');
-    expect(wrapper.get('[data-testid="purchase-order-detail-progress-summary"]').text()).toContain('待收 7');
-    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain('已到 4 / 12');
-    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain('取消 1');
-    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain('2 次入库');
-    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain('最近到货');
-    expect(wrapper.get('[data-testid="purchase-order-detail-item-variant-options"]').text()).toContain('Color: Black');
-    expect(wrapper.get('[data-testid="purchase-order-detail-item-variant-options"]').text()).toContain('Size: Large');
+    expect(wrapper.get('[data-testid="purchase-order-detail-progress-badge"]').text()).toContain(
+      '部分到货'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-detail-progress-summary"]').text()).toContain(
+      '4 / 12'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-detail-progress-summary"]').text()).toContain(
+      '待收 7'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain(
+      '已到 4 / 12'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain(
+      '取消 1'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain(
+      '2 次入库'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain(
+      '最近到货'
+    );
+    expect(
+      wrapper.get('[data-testid="purchase-order-detail-item-variant-options"]').text()
+    ).toContain('Color: Black');
+    expect(
+      wrapper.get('[data-testid="purchase-order-detail-item-variant-options"]').text()
+    ).toContain('Size: Large');
   });
 
   it('renders receipt ledger history and reversal affordance from purchase-order detail payload', () => {
@@ -403,17 +434,29 @@ describe('PurchaseOrders detail shell', () => {
           StatusBadge: { template: '<div><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
           MetricTile: { template: '<div />' },
-          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+          ManagementListShell: {
+            template: '<div><slot name="actions" /><slot name="content" /></div>',
+          },
         },
       },
     });
 
     expect(wrapper.find('[data-testid="purchase-order-detail-receipts"]').exists()).toBe(true);
-    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain('Premium Canvas Bag');
-    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain('本次到货 4');
-    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain('可冲销量 4');
-    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain('first truck arrived');
-    expect(wrapper.get('[data-testid="purchase-order-open-reversal-modal"]').text()).toContain('冲销收货');
+    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain(
+      'Premium Canvas Bag'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain(
+      '本次到货 4'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain(
+      '可冲销量 4'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain(
+      'first truck arrived'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-open-reversal-modal"]').text()).toContain(
+      '冲销收货'
+    );
   });
 
   it('renders aggregated receipt progress in the purchase-order list status cell', () => {
@@ -466,14 +509,22 @@ describe('PurchaseOrders detail shell', () => {
           StatusBadge: { template: '<div><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
           MetricTile: { template: '<div />' },
-          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+          ManagementListShell: {
+            template: '<div><slot name="actions" /><slot name="content" /></div>',
+          },
         },
       },
     });
 
-    expect(wrapper.get('[data-testid="purchase-order-progress-badge"]').text()).toContain('部分到货');
-    expect(wrapper.get('[data-testid="purchase-order-progress-summary"]').text()).toContain('4 / 10');
-    expect(wrapper.get('[data-testid="purchase-order-progress-summary"]').text()).toContain('待收 5');
+    expect(wrapper.get('[data-testid="purchase-order-progress-badge"]').text()).toContain(
+      '部分到货'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-progress-summary"]').text()).toContain(
+      '4 / 10'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-progress-summary"]').text()).toContain(
+      '待收 5'
+    );
   });
 
   it('does not offer arrived transition while outstanding quantity remains', () => {
@@ -495,7 +546,9 @@ describe('PurchaseOrders detail shell', () => {
 
     const wrapper = mountPurchaseOrdersShell();
 
-    expect(wrapper.get('[data-testid="purchase-order-detail-footer"]').text()).not.toContain('arrived');
+    expect(wrapper.get('[data-testid="purchase-order-detail-footer"]').text()).not.toContain(
+      'arrived'
+    );
   });
 
   it('offers arrived transition once outstanding quantity is zero', () => {
@@ -606,7 +659,9 @@ describe('PurchaseOrders detail shell', () => {
           StatusBadge: { template: '<div><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
           MetricTile: { template: '<div />' },
-          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+          ManagementListShell: {
+            template: '<div><slot name="actions" /><slot name="content" /></div>',
+          },
         },
       },
     });
