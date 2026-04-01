@@ -98,7 +98,7 @@
                     :active="filters.status === card.key"
                     flat
                     clickable
-                    @click="filters.status = filters.status === card.key ? '' : card.key"
+                    @click="toggleStatusFilter(card.key)"
                   />
                 </template>
               </div>
@@ -249,20 +249,14 @@
               <button
                 :disabled="filters.page <= 1"
                 class="cursor-pointer rounded-lg border border-(--border-color) px-3 py-1.5 text-sm transition-colors hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-50"
-                @click="
-                  filters.page--;
-                  loadList();
-                "
+                @click="changePage(-1)"
               >
                 ← {{ t('purchaseOrder.pagination.prev') }}
               </button>
               <button
                 :disabled="filters.page * filters.limit >= total"
                 class="cursor-pointer rounded-lg border border-(--border-color) px-3 py-1.5 text-sm transition-colors hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-50"
-                @click="
-                  filters.page++;
-                  loadList();
-                "
+                @click="changePage(1)"
               >
                 {{ t('purchaseOrder.pagination.next') }} →
               </button>
@@ -2538,6 +2532,11 @@ import { useAI } from '@/composables/useAI';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import { CURRENCY_OPTIONS } from '@/composables/useProductForm';
 import { validateOrderQuantity } from '@/utils/purchase-order-constraints';
+import {
+  getPurchaseOrderOrderedQty,
+  getPurchaseOrderOutstandingQty,
+  getPurchaseOrderReceivedQty,
+} from '@/utils/purchase-order-progress';
 import { reconcileVariantSelection } from '@/utils/purchase-order-variant-selection';
 import { formatCurrency as formatMoney } from '@/utils/formatters';
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
@@ -2570,8 +2569,9 @@ const {
   filters,
   statusConfig,
   loadList,
-  loadStats,
   loadDetail,
+  loadPurchaseOrderOverview,
+  refreshPurchaseOrderViews,
   createPO,
   createFromOrders,
   updatePO,
@@ -2741,29 +2741,21 @@ const handleStatusUpdate = async (newStatus) => {
   if (!detail.value) return;
   const success = await updateStatus(detail.value.id, newStatus);
   if (success) {
-    await loadDetail(detail.value.id);
-    loadList();
-    loadStats();
+    await refreshPurchaseOrderViews(detail.value.id);
   }
-};
-
-const getOutstandingQtyForStatusGate = (po = {}) => {
-  if (po?.outstanding_qty != null) return Math.max(Number(po.outstanding_qty || 0), 0);
-  return Math.max(
-    Number(po?.ordered_qty || 0) - Number(po?.received_qty || 0) - Number(po?.cancelled_qty || 0),
-    0
-  );
 };
 
 // 当前采购单可跳转的下一个状态
 const nextStatuses = computed(() => {
   if (!detail.value) return [];
   if (detail.value.status === 'shipping') {
-    return getOutstandingQtyForStatusGate(detail.value) <= 0 ? ['arrived'] : [];
+    return getPurchaseOrderOutstandingQty(detail.value) <= 0 ? ['arrived'] : [];
+  }
+  if (detail.value.status === 'ordered') {
+    return getPurchaseOrderReceivedQty(detail.value) > 0 ? ['shipping'] : ['shipping', 'cancelled'];
   }
   const map = {
     draft: ['ordered', 'cancelled'],
-    ordered: ['shipping', 'cancelled'],
     arrived: ['completed'],
   };
   return map[detail.value.status] || [];
@@ -2850,25 +2842,11 @@ const getProgressStatusLabel = (status) => getProgressStatusMeta(status).label;
 
 const getProgressStatusVariant = (status) => getProgressStatusMeta(status).variant;
 
-const getOrderedQty = (record = {}) => toProgressNumber(record.quantity ?? record.ordered_qty);
-
-const getOutstandingQty = (record = {}) => {
-  if (record.outstanding_qty != null) {
-    return Math.max(toProgressNumber(record.outstanding_qty), 0);
-  }
-  return Math.max(
-    getOrderedQty(record) -
-      toProgressNumber(record.received_qty) -
-      toProgressNumber(record.cancelled_qty),
-    0
-  );
-};
-
 const buildReceiptProgressSummary = (record = {}) => {
-  const ordered = getOrderedQty(record);
+  const ordered = getPurchaseOrderOrderedQty(record);
   const received = toProgressNumber(record.received_qty);
   const cancelled = toProgressNumber(record.cancelled_qty);
-  const outstanding = getOutstandingQty(record);
+  const outstanding = getPurchaseOrderOutstandingQty(record);
 
   const parts = [`${t('purchaseOrder.progress.receivedPrefix', '已到')} ${received} / ${ordered}`];
   if (cancelled > 0) {
@@ -2972,9 +2950,9 @@ const receiptCandidates = computed(() => {
       purchase_order_item_id: item.id,
       product_name: item.product_name || '—',
       variant_sku: item.variant_sku || item.product_sku || '—',
-      ordered_qty: getOrderedQty(item),
+      ordered_qty: getPurchaseOrderOrderedQty(item),
       received_qty_before: toProgressNumber(item.received_qty),
-      max_receivable: getOutstandingQty(item),
+      max_receivable: getPurchaseOrderOutstandingQty(item),
       customer_order_no: item.customer_order_no || '',
       variant_options: item.variant_options || {},
       note: '',
@@ -3000,10 +2978,10 @@ const shortageCandidates = computed(() => {
       purchase_order_item_id: item.id,
       product_name: item.product_name || '—',
       variant_sku: item.variant_sku || item.product_sku || '—',
-      ordered_qty: getOrderedQty(item),
+      ordered_qty: getPurchaseOrderOrderedQty(item),
       received_qty_before: toProgressNumber(item.received_qty),
       cancelled_qty_before: toProgressNumber(item.cancelled_qty),
-      max_closable: getOutstandingQty(item),
+      max_closable: getPurchaseOrderOutstandingQty(item),
       customer_order_no: item.customer_order_no || '',
       variant_options: item.variant_options || {},
       close_qty: 0,
@@ -3086,6 +3064,19 @@ const openDetail = async (id) => {
   await loadDetail(id);
 };
 
+const changePage = async (delta) => {
+  const nextPage = Math.max(1, Number(filters.page || 1) + Number(delta || 0));
+  if (nextPage === filters.page) return;
+  filters.page = nextPage;
+  await loadList();
+};
+
+const toggleStatusFilter = async (status) => {
+  filters.status = filters.status === status ? '' : status;
+  filters.page = 1;
+  await loadList();
+};
+
 const retryDetail = async () => {
   const id = detailRequestId.value || String(route.query.id || '').trim();
   if (!id) return;
@@ -3128,7 +3119,10 @@ const resetShortageModalState = () => {
 };
 
 const canAllocateCurrentPurchaseOrder = computed(
-  () => Boolean(detail.value?.id) && (detail.value?.items?.length || 0) > 0
+  () =>
+    detail.value?.status === 'completed'
+    && Boolean(detail.value?.id)
+    && (detail.value?.items?.length || 0) > 0
 );
 
 const resetCostModalState = () => {
@@ -3184,9 +3178,7 @@ const saveCostSettings = async ({ allocateAfterSave = false } = {}) => {
     }
 
     resetCostModalState();
-    await loadDetail(detail.value.id);
-    loadList();
-    loadStats();
+    await refreshPurchaseOrderViews(detail.value.id);
   } finally {
     costSubmitting.value = false;
   }
@@ -3255,9 +3247,7 @@ const submitReceipts = async () => {
     if (!result) return;
 
     resetReceiptModalState();
-    await loadDetail(detail.value.id);
-    loadList();
-    loadStats();
+    await refreshPurchaseOrderViews(detail.value.id);
   } finally {
     receiptSubmitting.value = false;
   }
@@ -3302,15 +3292,15 @@ const submitShortageClosures = async () => {
     if (!result) return;
 
     resetShortageModalState();
-    await loadDetail(detail.value.id);
-    loadList();
-    loadStats();
+    await refreshPurchaseOrderViews(detail.value.id);
   } finally {
     shortageSubmitting.value = false;
   }
 };
 
-const canReverseReceipt = (receipt = {}) => normalizeReceiptQty(receipt.available_reversal_qty) > 0;
+const canReverseReceipt = (receipt = {}) =>
+  ['ordered', 'shipping', 'arrived'].includes(String(detail.value?.status || '')) &&
+  normalizeReceiptQty(receipt.available_reversal_qty) > 0;
 
 const resetReceiptReversalState = () => {
   showReceiptReversalModal.value = false;
@@ -3342,9 +3332,7 @@ const submitReceiptReversal = async () => {
     if (!result) return;
 
     resetReceiptReversalState();
-    await loadDetail(detail.value.id);
-    loadList();
-    loadStats();
+    await refreshPurchaseOrderViews(detail.value.id);
   } finally {
     receiptReversalSubmitting.value = false;
   }
@@ -3402,9 +3390,7 @@ const handleOrdersSelected = async (orders) => {
     }));
     const success = await addItems(detail.value.id, newItems);
     if (success) {
-      await loadDetail(detail.value.id);
-      loadList();
-      loadStats();
+      await refreshPurchaseOrderViews(detail.value.id);
     }
   }
 };
@@ -3456,9 +3442,7 @@ const handleProductsSelected = async ({ selectedVariantIds = [], selectedVariant
     }
 
     if (toRemoveItemIds.length > 0 || toAdd.length > 0) {
-      await loadDetail(detail.value.id);
-      loadList();
-      loadStats();
+      await refreshPurchaseOrderViews(detail.value.id);
     }
   }
 };
@@ -3496,9 +3480,7 @@ const handleDetailUpdateItem = async (itemId, field, value) => {
   if (!detail.value || detail.value.status !== 'draft') return;
   const success = await updateItem(detail.value.id, itemId, { [field]: value });
   if (success) {
-    await loadDetail(detail.value.id);
-    loadList();
-    loadStats();
+    await refreshPurchaseOrderViews(detail.value.id);
   }
 };
 
@@ -3506,9 +3488,7 @@ const handleDetailRemoveItem = async (itemId) => {
   if (!detail.value || detail.value.status !== 'draft') return;
   const success = await removeItem(detail.value.id, itemId);
   if (success) {
-    await loadDetail(detail.value.id);
-    loadList();
-    loadStats();
+    await refreshPurchaseOrderViews(detail.value.id);
   }
 };
 
@@ -3568,8 +3548,7 @@ const executeCreate = async () => {
   createForm.estimated_tariff_cost = 0;
   createForm.allocation_method = 'by_quantity';
   poItems.splice(0, poItems.length); // 清空
-  loadList();
-  loadStats();
+  await refreshPurchaseOrderViews();
 };
 
 const handleCreateFromSuggestions = async () => {
@@ -3583,8 +3562,7 @@ const handleCreateFromSuggestions = async () => {
   if (result) {
     showSuggestions.value = false;
     selectedSuggestions.value = [];
-    loadList();
-    loadStats();
+    await refreshPurchaseOrderViews();
   }
 };
 
@@ -3593,7 +3571,7 @@ const handleCreateFromSuggestions = async () => {
 onMounted(() => {
   stopPurchaseOrdersRefreshSubscription = subscribeModule('purchaseOrders', async () => {
     if (!showCreateModal.value && !showDetail.value) {
-      await Promise.all([loadList(), loadStats()]);
+      await loadPurchaseOrderOverview();
     }
   });
 });
@@ -3601,7 +3579,7 @@ onMounted(() => {
 // 使用 onActivated 代替 onMounted，确保在 keep-alive 环境下
 // 每次导航进入该页面时都会重新拉取最新数据
 onActivated(async () => {
-  await Promise.all([loadList(), loadStats()]);
+  await loadPurchaseOrderOverview();
 
   if (route.query.id) {
     const targetId = route.query.id;
@@ -3622,15 +3600,6 @@ watch(showDetail, (isOpen) => {
     resetReceiptReversalState();
   }
 });
-
-// 筛选变化时自动重新加载列表
-watch(
-  () => filters.status,
-  () => {
-    filters.page = 1;
-    loadList();
-  }
-);
 
 // 打开建议弹窗时自动加载
 watch(showSuggestions, (v) => {

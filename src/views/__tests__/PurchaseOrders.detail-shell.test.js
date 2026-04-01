@@ -10,7 +10,21 @@ const mocks = vi.hoisted(() => ({
   loadList: vi.fn(),
   loadStats: vi.fn(),
   loadDetail: vi.fn(),
+  loadPurchaseOrderOverview: vi.fn(),
+  refreshPurchaseOrderViews: vi.fn(),
   loadSuggestions: vi.fn(),
+  reverseReceipt: vi.fn(),
+  refreshBusCallback: null,
+  subscribeModule: vi.fn(),
+  modalState: {
+    showDetail: true,
+    showCreateModal: false,
+    showSuggestions: false,
+    showOrderPicker: false,
+    showProductPicker: false,
+    pickerTarget: 'create',
+    showShortageConfirm: false,
+  },
   listState: {
     items: [],
     total: 0,
@@ -44,6 +58,8 @@ vi.mock('@/composables/usePurchaseOrders', () => ({
     loadList: mocks.loadList,
     loadStats: mocks.loadStats,
     loadDetail: mocks.loadDetail,
+    loadPurchaseOrderOverview: mocks.loadPurchaseOrderOverview,
+    refreshPurchaseOrderViews: mocks.refreshPurchaseOrderViews,
     createPO: vi.fn(),
     createFromOrders: vi.fn(),
     updatePO: vi.fn(),
@@ -53,7 +69,7 @@ vi.mock('@/composables/usePurchaseOrders', () => ({
     removeItem: vi.fn(),
     updateItem: vi.fn(),
     recordReceipts: vi.fn(),
-    reverseReceipt: vi.fn(),
+    reverseReceipt: mocks.reverseReceipt,
     closeShortages: vi.fn(),
     allocateCosts: vi.fn(),
   }),
@@ -61,13 +77,13 @@ vi.mock('@/composables/usePurchaseOrders', () => ({
 
 vi.mock('@/composables/usePurchaseOrderModals', () => ({
   usePurchaseOrderModals: () => ({
-    showDetail: ref(true),
-    showCreateModal: ref(false),
-    showSuggestions: ref(false),
-    showOrderPicker: ref(false),
-    showProductPicker: ref(false),
-    pickerTarget: ref('create'),
-    showShortageConfirm: ref(false),
+    showDetail: ref(mocks.modalState.showDetail),
+    showCreateModal: ref(mocks.modalState.showCreateModal),
+    showSuggestions: ref(mocks.modalState.showSuggestions),
+    showOrderPicker: ref(mocks.modalState.showOrderPicker),
+    showProductPicker: ref(mocks.modalState.showProductPicker),
+    pickerTarget: ref(mocks.modalState.pickerTarget),
+    showShortageConfirm: ref(mocks.modalState.showShortageConfirm),
     confirmData: reactive({ show: false, title: '', message: '', type: 'primary', loading: false, onConfirm: vi.fn() }),
     viewProductId: ref(null),
     detailFocusedVariantId: vi.fn(() => null),
@@ -86,7 +102,7 @@ vi.mock('@/composables/useAI', () => ({
 }));
 
 vi.mock('@/composables/useAppRefreshBus', () => ({
-  useAppRefreshBus: () => ({ subscribeModule: vi.fn(() => vi.fn()) }),
+  useAppRefreshBus: () => ({ subscribeModule: mocks.subscribeModule }),
 }));
 
 vi.mock('vue-router', () => ({
@@ -109,7 +125,20 @@ function mountPurchaseOrdersShell() {
         AppButton: { template: '<button><slot /></button>' },
         AppInput: { template: '<input />' },
         AppCheckbox: { template: '<input type="checkbox" />' },
-        AppSelect: { template: '<select />' },
+        AppSelect: {
+          props: ['modelValue', 'options', 'placeholder', 'size'],
+          template: `
+            <select>
+              <option
+                v-for="option in options || []"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          `,
+        },
         AppTable: { template: '<div />' },
         StatusBadge: { template: '<div><slot /></div>' },
         PermissionDeniedState: { template: '<div />' },
@@ -130,10 +159,32 @@ describe('PurchaseOrders detail shell', () => {
     mocks.listState.stats = null;
     mocks.detailState.detail = null;
     mocks.detailState.detailLoading = true;
+    mocks.modalState.showDetail = true;
+    mocks.modalState.showCreateModal = false;
+    mocks.modalState.showSuggestions = false;
+    mocks.modalState.showOrderPicker = false;
+    mocks.modalState.showProductPicker = false;
+    mocks.modalState.pickerTarget = 'create';
+    mocks.modalState.showShortageConfirm = false;
+    mocks.refreshBusCallback = null;
+    mocks.subscribeModule.mockImplementation((_module, callback) => {
+      mocks.refreshBusCallback = callback;
+      return vi.fn();
+    });
     mocks.loadList.mockResolvedValue();
     mocks.loadStats.mockResolvedValue();
     mocks.loadDetail.mockResolvedValue();
+    mocks.loadPurchaseOrderOverview.mockResolvedValue({
+      listLoaded: true,
+      statsLoaded: true,
+    });
+    mocks.refreshPurchaseOrderViews.mockResolvedValue({
+      detailLoaded: true,
+      listLoaded: true,
+      statsLoaded: true,
+    });
     mocks.loadSuggestions.mockResolvedValue();
+    mocks.reverseReceipt.mockResolvedValue({ reversal_id: 'reversal-1' });
   });
 
   it('renders detail shell while purchase-order detail is still loading', () => {
@@ -207,6 +258,17 @@ describe('PurchaseOrders detail shell', () => {
     });
 
     expect(wrapper.find('[data-testid="purchase-order-detail-retry"]').exists()).toBe(true);
+  });
+
+  it('reloads purchase-order overview through the shared helper when the refresh bus fires without an open modal', async () => {
+    mocks.modalState.showDetail = false;
+    mocks.modalState.showCreateModal = false;
+
+    mountPurchaseOrdersShell();
+
+    await mocks.refreshBusCallback?.();
+
+    expect(mocks.loadPurchaseOrderOverview).toHaveBeenCalledTimes(1);
   });
 
   it('keeps summary, progress, cost, and items regions visible once detail loads', () => {
@@ -550,6 +612,153 @@ describe('PurchaseOrders detail shell', () => {
     const wrapper = mountPurchaseOrdersShell();
 
     expect(wrapper.find('[data-testid="purchase-order-open-shortage-modal"]').exists()).toBe(true);
+  });
+
+  it('hides receipt reversal entry on completed purchase orders even when a receipt still has reversal quantity', () => {
+    mocks.detailState.detailLoading = false;
+    mocks.detailState.detail = {
+      id: 'po-1',
+      po_no: 'PO-20260312-001',
+      status: 'completed',
+      outstanding_qty: 0,
+      ordered_qty: 10,
+      received_qty: 10,
+      cancelled_qty: 0,
+      allocation_method: 'by_quantity',
+      estimated_shipping_cost: 0,
+      estimated_tariff_cost: 0,
+      items: [],
+      receipts: [
+        {
+          id: 'receipt-1',
+          product_name: 'Premium Canvas Bag',
+          variant_sku: 'BAG-001',
+          received_qty: 10,
+          available_reversal_qty: 10,
+          reversed_qty: 0,
+          reversal_count: 0,
+          received_at: Date.now(),
+        },
+      ],
+    };
+
+    const wrapper = mountPurchaseOrdersShell();
+
+    expect(wrapper.find('[data-testid="purchase-order-open-reversal-modal"]').exists()).toBe(false);
+  });
+
+  it('hides cancel action once an ordered purchase order already has received quantity', () => {
+    mocks.detailState.detailLoading = false;
+    mocks.detailState.detail = {
+      id: 'po-1',
+      po_no: 'PO-20260312-001',
+      status: 'ordered',
+      outstanding_qty: 8,
+      ordered_qty: 10,
+      received_qty: 2,
+      cancelled_qty: 0,
+      allocation_method: 'by_quantity',
+      estimated_shipping_cost: 0,
+      estimated_tariff_cost: 0,
+      items: [
+        {
+          id: 'item-1',
+          quantity: 10,
+          received_qty: 2,
+          cancelled_qty: 0,
+          product_name: 'Premium Canvas Bag',
+          product_specifications: {},
+          variant_options: {},
+        },
+      ],
+      receipts: [],
+    };
+
+    const wrapper = mountPurchaseOrdersShell();
+
+    expect(wrapper.get('[data-testid="purchase-order-detail-footer"]').findAll('button')).toHaveLength(1);
+  });
+
+  it('hides cost-allocation action in the cost modal until the purchase order is completed', async () => {
+    mocks.detailState.detailLoading = false;
+    mocks.detailState.detail = {
+      id: 'po-1',
+      po_no: 'PO-20260312-001',
+      status: 'arrived',
+      outstanding_qty: 0,
+      ordered_qty: 10,
+      received_qty: 10,
+      cancelled_qty: 0,
+      allocation_method: 'by_quantity',
+      estimated_shipping_cost: 20,
+      estimated_tariff_cost: 10,
+      actual_shipping_cost: 24,
+      actual_tariff_cost: 12,
+      items: [
+        {
+          id: 'item-1',
+          quantity: 10,
+          received_qty: 10,
+          cancelled_qty: 0,
+          product_name: 'Premium Canvas Bag',
+          product_specifications: {},
+          variant_options: {},
+        },
+      ],
+      receipts: [],
+    };
+
+    const wrapper = mountPurchaseOrdersShell();
+    await wrapper.get('[data-testid="purchase-order-open-cost-modal"]').trigger('click');
+
+    expect(wrapper.get('[data-testid="purchase-order-cost-modal"]').exists()).toBe(true);
+    expect(wrapper.text()).not.toContain('执行成本分摊');
+  });
+
+  it('refreshes purchase-order detail context through the shared write-refresh helper after receipt reversal succeeds', async () => {
+    mocks.detailState.detailLoading = false;
+    mocks.detailState.detail = {
+      id: 'po-1',
+      po_no: 'PO-20260312-001',
+      status: 'arrived',
+      outstanding_qty: 0,
+      ordered_qty: 10,
+      received_qty: 10,
+      cancelled_qty: 0,
+      allocation_method: 'by_quantity',
+      estimated_shipping_cost: 0,
+      estimated_tariff_cost: 0,
+      items: [
+        {
+          id: 'item-1',
+          quantity: 10,
+          received_qty: 10,
+          cancelled_qty: 0,
+          product_name: 'Premium Canvas Bag',
+          product_specifications: {},
+          variant_options: {},
+        },
+      ],
+      receipts: [
+        {
+          id: 'receipt-1',
+          product_name: 'Premium Canvas Bag',
+          variant_sku: 'BAG-001',
+          received_qty: 10,
+          available_reversal_qty: 10,
+          reversed_qty: 0,
+          reversal_count: 0,
+          received_at: Date.now(),
+        },
+      ],
+    };
+
+    const wrapper = mountPurchaseOrdersShell();
+    await wrapper.get('[data-testid="purchase-order-open-reversal-modal"]').trigger('click');
+    await wrapper.get('[data-testid="purchase-order-reversal-modal"]').findAll('button')[1].trigger('click');
+
+    expect(mocks.reverseReceipt).toHaveBeenCalledWith('po-1', 'receipt-1', { reason: undefined });
+    expect(mocks.refreshPurchaseOrderViews).toHaveBeenCalledWith('po-1');
   });
 
   it('hides shortage-closure entry when no receivable lines remain', () => {
