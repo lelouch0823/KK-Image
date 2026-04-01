@@ -4,6 +4,7 @@ import { BadRequestError } from '../../../errors.js';
 
 const mocks = vi.hoisted(() => ({
   repoFindById: vi.fn(),
+  repoFindItemById: vi.fn(),
   repoCreate: vi.fn(),
   repoUpdate: vi.fn(),
   repoAddItems: vi.fn(),
@@ -24,6 +25,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../../../../repositories/PurchaseOrderRepository.js', () => ({
   PurchaseOrderRepository: vi.fn(() => ({
     findById: mocks.repoFindById,
+    findItemById: mocks.repoFindItemById,
     create: mocks.repoCreate,
     update: mocks.repoUpdate,
     addItems: mocks.repoAddItems,
@@ -132,6 +134,15 @@ describe('manage purchase-orders routes', () => {
     vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => mocks.randomUUID());
     mocks.randomUUID.mockReturnValue('generated-idempotency-key');
     mocks.repoFindById.mockResolvedValue({ id: 'po-1', status: 'draft', items: [] });
+    mocks.repoFindItemById.mockResolvedValue({
+      id: 'item-1',
+      po_id: 'po-1',
+      product_id: 'prod-1',
+      variant_id: 'var-1',
+      pre_order_id: null,
+      quantity: 10,
+      unit_cost: 5,
+    });
     mocks.repoCreate.mockResolvedValue({ id: 'po-1', po_no: 'PO-1', status: 'draft' });
     mocks.repoUpdate.mockResolvedValue(true);
     mocks.repoAddItems.mockResolvedValue(['poi-1']);
@@ -266,7 +277,9 @@ describe('manage purchase-orders routes', () => {
 
   it('rejects updating item outside current po scope', async () => {
     const app = createApp();
-    const db = createDb();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+    });
     mocks.repoUpdateItem.mockImplementation(async (poId, itemId) => !(poId === 'po-1' && itemId === 'item-foreign'));
 
     const res = await app.request(
@@ -281,6 +294,47 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(404);
+  });
+
+  it('rejects purchase-order item patch when variant_id is supplied', async () => {
+    const app = createApp();
+    const db = createDb();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items/item-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variant_id: 'var-2' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.repoUpdateItem).not.toHaveBeenCalled();
+  });
+
+  it('re-validates quantity rules when patching a draft purchase-order item', async () => {
+    const app = createApp();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 5, pack_size: 1, order_step: 5 }],
+      orderRows: [{ id: 'o-1', product_id: 'prod-1', variant_id: 'var-1', status: 'confirmed' }],
+    });
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items/item-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 3 }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.repoUpdateItem).not.toHaveBeenCalled();
   });
 
   it('rejects deleting item outside current po scope', async () => {
@@ -385,7 +439,9 @@ describe('manage purchase-orders routes', () => {
 
   it('enqueues purchase-order item update cache side effects through outbox', async () => {
     const app = createApp();
-    const db = createDb();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+    });
     const waitUntil = vi.fn();
 
     const res = await app.request(

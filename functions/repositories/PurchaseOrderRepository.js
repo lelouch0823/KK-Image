@@ -477,6 +477,23 @@ export class PurchaseOrderRepository {
   }
 
   /**
+   * 获取单条采购单明细
+   * @param {string} poId
+   * @param {string} itemId
+   * @returns {Promise<Object|null>}
+   */
+  async findItemById(poId, itemId) {
+    return this.db
+      .prepare(
+        `SELECT id, po_id, product_id, variant_id, pre_order_id, quantity, unit_cost
+         FROM purchase_order_items
+         WHERE id = ? AND po_id = ?`
+      )
+      .bind(itemId, poId)
+      .first();
+  }
+
+  /**
    * 更新单条明细项（数量/单价）
    * @param {string} itemId - 明细 ID
    * @param {Object} updates - { quantity?, unit_cost? }
@@ -493,7 +510,6 @@ export class PurchaseOrderRepository {
 
     if (updates.quantity !== undefined) { fields.push('quantity = ?'); values.push(updates.quantity); }
     if (updates.unit_cost !== undefined) { fields.push('unit_cost = ?'); values.push(updates.unit_cost); }
-    if (updates.variant_id !== undefined) { fields.push('variant_id = ?'); values.push(updates.variant_id === '' ? null : updates.variant_id); }
 
     if (fields.length === 0) return false;
 

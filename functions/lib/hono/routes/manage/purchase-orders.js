@@ -532,6 +532,23 @@ app.patch('/:id/items/:itemId', async (c) => {
   // 校验采购单存在且为草稿状态
   await requireDraftPurchaseOrder(repo, poId, '修改明细');
 
+  if (body.variant_id !== undefined) {
+    throw new BadRequestError('现有采购明细不允许修改规格，请删除后重新添加');
+  }
+
+  const existingItem = await repo.findItemById(poId, c.req.param('itemId'));
+  if (!existingItem) {
+    throw new NotFoundError('明细不存在');
+  }
+
+  const mergedItem = {
+    ...existingItem,
+    quantity: body.quantity ?? existingItem.quantity,
+    unit_cost: body.unit_cost ?? existingItem.unit_cost,
+  };
+  await validateVariantItems(c.env.DB, [mergedItem]);
+  await validatePreOrderBinding(c.env.DB, [mergedItem]);
+
   const updated = await repo.updateItem(poId, c.req.param('itemId'), body);
   requireMutationSuccess(updated, '明细不存在');
 
