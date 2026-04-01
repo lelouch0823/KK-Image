@@ -349,6 +349,37 @@ describe('manage purchase-orders routes', () => {
     expect(mocks.repoUpdateItem).not.toHaveBeenCalled();
   });
 
+  it('allows updating quantity when immutable linked records changed state after the line was created', async () => {
+    const app = createApp();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'archived', moq: 5, pack_size: 1, order_step: 5 }],
+      orderRows: [{ id: 'o-1', product_id: 'prod-1', variant_id: 'var-1', status: 'cancelled' }],
+    });
+    mocks.repoFindItemById.mockResolvedValueOnce({
+      id: 'item-1',
+      po_id: 'po-1',
+      product_id: 'prod-1',
+      variant_id: 'var-1',
+      pre_order_id: 'o-1',
+      quantity: 5,
+      unit_cost: 5,
+    });
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items/item-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 10 }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.repoUpdateItem).toHaveBeenCalledWith('po-1', 'item-1', { quantity: 10 });
+  });
+
   it('rejects deleting item outside current po scope', async () => {
     const app = createApp();
     const db = createDb();
@@ -722,7 +753,10 @@ describe('manage purchase-orders routes', () => {
       'http://localhost/api/manage/purchase-orders/po-1/shortage-closures',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'shortage-key-1',
+        },
         body: JSON.stringify({
           items: [{ purchase_order_item_id: 'poi-1', close_qty: 2 }],
         }),
@@ -734,6 +768,8 @@ describe('manage purchase-orders routes', () => {
     expect(res.status).toBe(201);
     expect(mocks.shortageCloseShortages).toHaveBeenCalledWith('po-1', {
       items: [{ purchase_order_item_id: 'poi-1', close_qty: 2 }],
+    }, {
+      idempotencyKey: 'shortage-key-1',
     });
     expect(mocks.publish).toHaveBeenCalledWith([
       expect.objectContaining({
@@ -750,6 +786,31 @@ describe('manage purchase-orders routes', () => {
       targetId: 'po-1',
     }));
     expect(waitUntil).toHaveBeenCalledTimes(1);
+  });
+
+  it('derives an idempotency key for shortage closure when the header is absent', async () => {
+    const app = createApp();
+    const db = createDb();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/shortage-closures',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{ purchase_order_item_id: 'poi-1', close_qty: 1 }],
+        }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.shortageCloseShortages).toHaveBeenCalledWith('po-1', {
+      items: [{ purchase_order_item_id: 'poi-1', close_qty: 1 }],
+    }, {
+      idempotencyKey: 'generated-idempotency-key',
+    });
   });
 
   it('returns 400 when shortage closure is rejected by domain invariants', async () => {
