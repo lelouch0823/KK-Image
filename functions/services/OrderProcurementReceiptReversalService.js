@@ -6,11 +6,15 @@ import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 import {
+  buildPurchaseOrderItemReceivedQtyStatement,
   buildFinalizeCommandStatements,
   cleanupReservedCommand,
+  queryInventoryBalance,
   queryCompatibilityProcurementAggregate,
   replayReservedCommand,
   resolveReservationOwnership,
+  requirePurchaseOrder,
+  requirePurchaseOrderItemForPo,
   requireOrderLine,
 } from './order-procurement-shared.js';
 import {
@@ -49,53 +53,26 @@ export class OrderProcurementReceiptReversalService {
   }
 
   async requirePurchaseOrder(poId) {
-    const row = await this.db
-      .prepare('SELECT id, status FROM purchase_orders WHERE id = ?')
-      .bind(poId)
-      .first();
-
-    if (!row) throw new NotFoundError('采购单不存在');
-    return row;
+    return requirePurchaseOrder(this.db, poId, {
+      notFoundMessage: '采购单不存在',
+    });
   }
 
   async requireReversiblePurchaseOrder(poId) {
-    const row = await this.requirePurchaseOrder(poId);
-    if (!['ordered', 'shipping', 'arrived'].includes(String(row.status || '').trim())) {
-      throw new BadRequestError('仅 ordered、shipping 或 arrived 状态的采购单允许冲销收货');
-    }
-    return row;
+    return requirePurchaseOrder(this.db, poId, {
+      allowedStatuses: ['ordered', 'shipping', 'arrived'],
+      invalidStatusMessage: '仅 ordered、shipping 或 arrived 状态的采购单允许冲销收货',
+    });
   }
 
-  async requirePurchaseOrderItem(poItemId) {
-    const row = await this.db
-      .prepare(
-        `SELECT id, po_id, quantity, received_qty, cancelled_qty
-         FROM purchase_order_items
-         WHERE id = ?`
-      )
-      .bind(poItemId)
-      .first();
-
-    if (!row) throw new NotFoundError('采购单明细不存在');
-    return row;
+  async requirePurchaseOrderItem(poId, poItemId) {
+    return requirePurchaseOrderItemForPo(this.db, poId, poItemId, {
+      select: 'id, po_id, quantity, received_qty, cancelled_qty',
+    });
   }
 
   async queryInventoryBalance(variantId) {
-    const balance = await this.db
-      .prepare(
-        `SELECT variant_id, on_hand, reserved, available
-         FROM inventory_balances
-         WHERE variant_id = ?`
-      )
-      .bind(variantId)
-      .first();
-
-    return {
-      variant_id: variantId,
-      on_hand: toNonNegativeInt(balance?.on_hand),
-      reserved: toNonNegativeInt(balance?.reserved),
-      available: toNonNegativeInt(balance?.available),
-    };
+    return queryInventoryBalance(this.db, variantId);
   }
 
   async queryPurchaseOrderAggregate(poId) {
@@ -141,43 +118,20 @@ export class OrderProcurementReceiptReversalService {
   }
 
   buildPurchaseOrderItemReversalStatement(poId, poItem, nextReceivedQty, nextDisplayStatus) {
-    return this.db
-      .prepare(
-        `UPDATE purchase_order_items
-         SET received_qty = ?, display_status = ?
-         WHERE id = ? AND po_id = ?
-           AND received_qty = ?
-           AND cancelled_qty = ?`
-      )
-      .bind(
-        nextReceivedQty,
-        nextDisplayStatus,
-        poItem.id,
-        poId,
-        toNonNegativeInt(poItem.received_qty),
-        toNonNegativeInt(poItem.cancelled_qty)
-      );
+    return buildPurchaseOrderItemReceivedQtyStatement(this.db, poId, poItem, {
+      nextReceivedQty,
+      nextDisplayStatus,
+    });
   }
 
   buildPurchaseOrderItemRevertStatement(poId, poItem, nextReceivedQty, nextDisplayStatus) {
-    return this.db
-      .prepare(
-        `UPDATE purchase_order_items
-         SET received_qty = ?, display_status = ?
-         WHERE id = ? AND po_id = ?
-           AND received_qty = ?
-           AND cancelled_qty = ?
-           AND display_status = ?`
-      )
-      .bind(
-        toNonNegativeInt(poItem.received_qty),
-        projectPurchaseOrderItemStatus(poItem),
-        poItem.id,
-        poId,
-        nextReceivedQty,
-        toNonNegativeInt(poItem.cancelled_qty),
-        nextDisplayStatus
-      );
+    return buildPurchaseOrderItemReceivedQtyStatement(this.db, poId, poItem, {
+      nextReceivedQty: toNonNegativeInt(poItem.received_qty),
+      nextDisplayStatus: projectPurchaseOrderItemStatus(poItem),
+      expectedReceivedQty: nextReceivedQty,
+      expectedCancelledQty: poItem.cancelled_qty,
+      expectedDisplayStatus: nextDisplayStatus,
+    });
   }
 
   buildOrderLineReversalStatement(orderLine, nextOrderLine, timestamp) {
@@ -284,7 +238,10 @@ export class OrderProcurementReceiptReversalService {
       throw new BadRequestError('当前库存不足，无法执行收货冲销');
     }
 
-    const poItem = await this.requirePurchaseOrderItem(originalReceipt.purchase_order_item_id);
+    const poItem = await this.requirePurchaseOrderItem(
+      poId,
+      originalReceipt.purchase_order_item_id
+    );
     const purchaseOrderAggregate = await this.queryPurchaseOrderAggregate(poId);
     const timestamp = this.now();
     const reversalId = crypto.randomUUID();

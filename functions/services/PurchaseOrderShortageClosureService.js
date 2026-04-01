@@ -1,4 +1,4 @@
-import { BadRequestError, NotFoundError } from '../lib/hono/errors.js';
+import { BadRequestError } from '../lib/hono/errors.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { CommandIdempotencyRepository } from '../repositories/CommandIdempotencyRepository.js';
 import {
@@ -7,10 +7,13 @@ import {
   toNonNegativeInt,
 } from './purchase-order-projection.js';
 import {
+  buildPurchaseOrderItemCancelledQtyStatement,
   buildFinalizeCommandStatements,
   cleanupReservedCommand,
   replayReservedCommand,
   resolveReservationOwnership,
+  requirePurchaseOrder,
+  requirePurchaseOrderItemForPo,
 } from './order-procurement-shared.js';
 
 function normalizeClosureEntry(entry = {}) {
@@ -44,78 +47,32 @@ export class PurchaseOrderShortageClosureService {
   }
 
   async requireClosablePurchaseOrder(poId) {
-    if (!poId) throw new BadRequestError('purchase_order_id is required');
-
-    const row = await this.db
-      .prepare('SELECT id, status FROM purchase_orders WHERE id = ?')
-      .bind(poId)
-      .first();
-
-    if (!row) throw new NotFoundError('采购单不存在');
-    if (!['ordered', 'shipping'].includes(String(row.status || '').trim())) {
-      throw new BadRequestError('仅 ordered 或 shipping 状态的采购单允许关闭待收');
-    }
-
-    return row;
+    return requirePurchaseOrder(this.db, poId, {
+      allowedStatuses: ['ordered', 'shipping'],
+      invalidStatusMessage: '仅 ordered 或 shipping 状态的采购单允许关闭待收',
+    });
   }
 
   async requirePurchaseOrderItemForPo(poId, purchaseOrderItemId) {
-    if (!purchaseOrderItemId) throw new BadRequestError('purchase_order_item_id is required');
-
-    const row = await this.db
-      .prepare(
-        `SELECT id, po_id, product_id, variant_id, pre_order_id, quantity, received_qty, cancelled_qty
-         FROM purchase_order_items
-         WHERE id = ?`
-      )
-      .bind(purchaseOrderItemId)
-      .first();
-
-    if (!row) throw new NotFoundError('采购单明细不存在');
-    if (row.po_id !== poId) throw new BadRequestError('采购单明细不属于当前采购单');
-    return row;
+    return requirePurchaseOrderItemForPo(this.db, poId, purchaseOrderItemId);
   }
 
   buildShortageClosureStatement(poId, poItem, nextCancelledQty, displayStatus, closeQty) {
-    return this.db
-      .prepare(
-        `UPDATE purchase_order_items
-         SET cancelled_qty = ?, display_status = ?
-         WHERE id = ? AND po_id = ?
-           AND received_qty = ?
-           AND cancelled_qty = ?
-           AND COALESCE(quantity, 0) - COALESCE(received_qty, 0) - COALESCE(cancelled_qty, 0) >= ?`
-      )
-      .bind(
-        nextCancelledQty,
-        displayStatus,
-        poItem.id,
-        poId,
-        toNonNegativeInt(poItem.received_qty),
-        toNonNegativeInt(poItem.cancelled_qty),
-        closeQty
-      );
+    return buildPurchaseOrderItemCancelledQtyStatement(this.db, poId, poItem, {
+      nextCancelledQty,
+      nextDisplayStatus: displayStatus,
+      requiredRemainingQty: closeQty,
+    });
   }
 
   buildShortageClosureRevertStatement(poId, poItem, nextCancelledQty, displayStatus) {
-    return this.db
-      .prepare(
-        `UPDATE purchase_order_items
-         SET cancelled_qty = ?, display_status = ?
-         WHERE id = ? AND po_id = ?
-           AND received_qty = ?
-           AND cancelled_qty = ?
-           AND display_status = ?`
-      )
-      .bind(
-        toNonNegativeInt(poItem.cancelled_qty),
-        projectPurchaseOrderItemStatus(poItem),
-        poItem.id,
-        poId,
-        toNonNegativeInt(poItem.received_qty),
-        nextCancelledQty,
-        displayStatus
-      );
+    return buildPurchaseOrderItemCancelledQtyStatement(this.db, poId, poItem, {
+      nextCancelledQty: toNonNegativeInt(poItem.cancelled_qty),
+      nextDisplayStatus: projectPurchaseOrderItemStatus(poItem),
+      expectedReceivedQty: poItem.received_qty,
+      expectedCancelledQty: nextCancelledQty,
+      expectedDisplayStatus: displayStatus,
+    });
   }
 
   async closeShortages(poId, payload = {}, options = {}) {

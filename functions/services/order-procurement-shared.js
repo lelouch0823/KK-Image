@@ -1,6 +1,9 @@
 import { BadRequestError, NotFoundError } from '../lib/hono/errors.js';
 import { toNonNegativeInt } from './purchase-order-projection.js';
 
+const DEFAULT_PURCHASE_ORDER_ITEM_SELECT =
+  'id, po_id, product_id, variant_id, pre_order_id, quantity, received_qty, cancelled_qty';
+
 export function parseStoredResponse(responseJson) {
   if (!responseJson) return null;
   try {
@@ -72,6 +75,180 @@ export function buildFinalizeCommandStatements({
 
   statements.push(commandIdempotencyRepo.buildFinalizeStatement(commandId, response, status));
   return statements;
+}
+
+export async function requirePurchaseOrder(
+  db,
+  poId,
+  {
+    requiredMessage = 'purchase_order_id is required',
+    notFoundMessage = '采购单不存在',
+    allowedStatuses = null,
+    invalidStatusMessage = '采购单状态不允许当前操作',
+  } = {}
+) {
+  if (!poId) throw new BadRequestError(requiredMessage);
+
+  const row = await db
+    .prepare('SELECT id, status FROM purchase_orders WHERE id = ?')
+    .bind(poId)
+    .first();
+
+  if (!row) throw new NotFoundError(notFoundMessage);
+
+  if (Array.isArray(allowedStatuses) && allowedStatuses.length > 0) {
+    const normalizedStatus = String(row.status || '').trim();
+    if (!allowedStatuses.includes(normalizedStatus)) {
+      throw new BadRequestError(invalidStatusMessage);
+    }
+  }
+
+  return row;
+}
+
+export async function requirePurchaseOrderItemForPo(
+  db,
+  poId,
+  purchaseOrderItemId,
+  {
+    select = DEFAULT_PURCHASE_ORDER_ITEM_SELECT,
+    requiredMessage = 'purchase_order_item_id is required',
+    notFoundMessage = '采购单明细不存在',
+    ownershipMessage = '采购单明细不属于当前采购单',
+  } = {}
+) {
+  if (!purchaseOrderItemId) throw new BadRequestError(requiredMessage);
+
+  const row = await db
+    .prepare(
+      `SELECT ${select}
+       FROM purchase_order_items
+       WHERE id = ?`
+    )
+    .bind(purchaseOrderItemId)
+    .first();
+
+  if (!row) throw new NotFoundError(notFoundMessage);
+  if (poId && row.po_id !== poId) throw new BadRequestError(ownershipMessage);
+  return row;
+}
+
+export async function queryInventoryBalance(db, variantId) {
+  if (!variantId) return null;
+
+  const balance = await db
+    .prepare(
+      `SELECT variant_id, on_hand, reserved, available
+       FROM inventory_balances
+       WHERE variant_id = ?`
+    )
+    .bind(variantId)
+    .first();
+
+  return {
+    variant_id: variantId,
+    on_hand: toNonNegativeInt(balance?.on_hand),
+    reserved: toNonNegativeInt(balance?.reserved),
+    available: toNonNegativeInt(balance?.available),
+  };
+}
+
+function buildPurchaseOrderItemQuantityStatement(
+  db,
+  poId,
+  poItem,
+  {
+    quantityColumn,
+    nextQuantity,
+    nextDisplayStatus,
+    expectedReceivedQty,
+    expectedCancelledQty,
+    expectedDisplayStatus = null,
+    requiredRemainingQty = null,
+  }
+) {
+  const whereClauses = [
+    'id = ?',
+    'AND po_id = ?',
+    'AND received_qty = ?',
+    'AND cancelled_qty = ?',
+  ];
+  const params = [
+    toNonNegativeInt(nextQuantity),
+    nextDisplayStatus,
+    poItem.id,
+    poId,
+    toNonNegativeInt(expectedReceivedQty),
+    toNonNegativeInt(expectedCancelledQty),
+  ];
+
+  if (requiredRemainingQty != null) {
+    whereClauses.push(
+      'AND COALESCE(quantity, 0) - COALESCE(received_qty, 0) - COALESCE(cancelled_qty, 0) >= ?'
+    );
+    params.push(toNonNegativeInt(requiredRemainingQty));
+  }
+
+  if (expectedDisplayStatus != null) {
+    whereClauses.push('AND display_status = ?');
+    params.push(expectedDisplayStatus);
+  }
+
+  return db
+    .prepare(
+      `UPDATE purchase_order_items
+       SET ${quantityColumn} = ?, display_status = ?
+       WHERE ${whereClauses.join('\n         ')}`
+    )
+    .bind(...params);
+}
+
+export function buildPurchaseOrderItemReceivedQtyStatement(
+  db,
+  poId,
+  poItem,
+  {
+    nextReceivedQty,
+    nextDisplayStatus,
+    expectedReceivedQty = poItem?.received_qty,
+    expectedCancelledQty = poItem?.cancelled_qty,
+    expectedDisplayStatus = null,
+    requiredRemainingQty = null,
+  }
+) {
+  return buildPurchaseOrderItemQuantityStatement(db, poId, poItem, {
+    quantityColumn: 'received_qty',
+    nextQuantity: nextReceivedQty,
+    nextDisplayStatus,
+    expectedReceivedQty,
+    expectedCancelledQty,
+    expectedDisplayStatus,
+    requiredRemainingQty,
+  });
+}
+
+export function buildPurchaseOrderItemCancelledQtyStatement(
+  db,
+  poId,
+  poItem,
+  {
+    nextCancelledQty,
+    nextDisplayStatus,
+    expectedReceivedQty = poItem?.received_qty,
+    expectedCancelledQty = poItem?.cancelled_qty,
+    expectedDisplayStatus = null,
+    requiredRemainingQty = null,
+  }
+) {
+  return buildPurchaseOrderItemQuantityStatement(db, poId, poItem, {
+    quantityColumn: 'cancelled_qty',
+    nextQuantity: nextCancelledQty,
+    nextDisplayStatus,
+    expectedReceivedQty,
+    expectedCancelledQty,
+    expectedDisplayStatus,
+    requiredRemainingQty,
+  });
 }
 
 export async function requireOrderLine(db, orderId, orderLineId) {
