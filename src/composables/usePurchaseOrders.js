@@ -324,6 +324,28 @@ export function usePurchaseOrders() {
     }
   };
 
+  const closeShortages = async (poId, payload) => {
+    try {
+      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_SHORTAGE_CLOSURES(poId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        addToast({ message: t('purchaseOrder.toast.shortageClosed') || '待收数量已关闭', type: 'success' });
+        return json.data;
+      }
+      addToast({ message: json.error, type: 'error' });
+      return null;
+    } catch (e) {
+      console.error('closeShortages failed:', e);
+      addToast({ message: e.message, type: 'error' });
+      return null;
+    }
+  };
+
   // ─── 成本分摊 ────────────────────────────────────────
 
   const allocateCosts = async (poId) => {
@@ -402,7 +424,7 @@ export function usePurchaseOrders() {
     // 状态
     updateStatus,
     // 明细
-    addItems, removeItem, updateItem, recordReceipts, reverseReceipt,
+    addItems, removeItem, updateItem, recordReceipts, reverseReceipt, closeShortages,
     // 成本
     allocateCosts,
     // 建议

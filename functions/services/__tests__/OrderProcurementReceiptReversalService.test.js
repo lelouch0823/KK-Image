@@ -457,7 +457,12 @@ describe('OrderProcurementReceiptReversalService', () => {
       orderLineRow: {
         id: 'line-1',
         order_id: 'o-1',
+        ordered_qty: 10,
+        procured_qty: 10,
         received_qty: 8,
+        reserved_qty: 0,
+        shipped_qty: 0,
+        cancelled_qty: 0,
       },
       inventoryBalanceRow: {
         variant_id: 'var-1',
@@ -503,7 +508,7 @@ describe('OrderProcurementReceiptReversalService', () => {
       statement.sql.includes('UPDATE purchase_order_items')
     );
 
-    expect(orderLineUpdate?.params).toEqual([5, 1710000000000, 'line-1', 'o-1']);
+    expect(orderLineUpdate?.params).toEqual([5, 'partially_received', 1710000000000, 'line-1', 'o-1']);
     expect(poItemUpdate?.params.slice(0, 2)).toEqual([5, 'partially_received']);
   });
 

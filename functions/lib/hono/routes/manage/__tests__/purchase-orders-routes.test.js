@@ -4,6 +4,7 @@ import { BadRequestError } from '../../../errors.js';
 
 const mocks = vi.hoisted(() => ({
   repoFindById: vi.fn(),
+  repoFindItemById: vi.fn(),
   repoCreate: vi.fn(),
   repoUpdate: vi.fn(),
   repoAddItems: vi.fn(),
@@ -14,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   serviceAllocateCosts: vi.fn(),
   domainRecordReceipts: vi.fn(),
   reversalReverseReceipt: vi.fn(),
+  shortageCloseShortages: vi.fn(),
   scheduleAuditEvent: vi.fn(),
   scheduleCacheInvalidation: vi.fn(),
   randomUUID: vi.fn(),
@@ -24,6 +26,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../../../../repositories/PurchaseOrderRepository.js', () => ({
   PurchaseOrderRepository: vi.fn(() => ({
     findById: mocks.repoFindById,
+    findItemById: mocks.repoFindItemById,
     create: mocks.repoCreate,
     update: mocks.repoUpdate,
     addItems: mocks.repoAddItems,
@@ -52,6 +55,12 @@ vi.mock('../../../../../services/OrderProcurementDomainService.js', () => ({
 vi.mock('../../../../../services/OrderProcurementReceiptReversalService.js', () => ({
   OrderProcurementReceiptReversalService: vi.fn(() => ({
     reverseReceipt: mocks.reversalReverseReceipt,
+  })),
+}));
+
+vi.mock('../../../../../services/PurchaseOrderShortageClosureService.js', () => ({
+  PurchaseOrderShortageClosureService: vi.fn(() => ({
+    closeShortages: mocks.shortageCloseShortages,
   })),
 }));
 
@@ -132,6 +141,15 @@ describe('manage purchase-orders routes', () => {
     vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => mocks.randomUUID());
     mocks.randomUUID.mockReturnValue('generated-idempotency-key');
     mocks.repoFindById.mockResolvedValue({ id: 'po-1', status: 'draft', items: [] });
+    mocks.repoFindItemById.mockResolvedValue({
+      id: 'item-1',
+      po_id: 'po-1',
+      product_id: 'prod-1',
+      variant_id: 'var-1',
+      pre_order_id: null,
+      quantity: 10,
+      unit_cost: 5,
+    });
     mocks.repoCreate.mockResolvedValue({ id: 'po-1', po_no: 'PO-1', status: 'draft' });
     mocks.repoUpdate.mockResolvedValue(true);
     mocks.repoAddItems.mockResolvedValue(['poi-1']);
@@ -147,6 +165,11 @@ describe('manage purchase-orders routes', () => {
     mocks.serviceAllocateCosts.mockResolvedValue(undefined);
     mocks.domainRecordReceipts.mockResolvedValue({ purchase_order_id: 'po-1', receipt_count: 1 });
     mocks.reversalReverseReceipt.mockResolvedValue({ purchase_order_id: 'po-1', receipt_id: 'receipt-1', reversal_qty: 2 });
+    mocks.shortageCloseShortages.mockResolvedValue({
+      purchase_order_id: 'po-1',
+      closed_count: 1,
+      items: [{ purchase_order_item_id: 'poi-1', close_qty: 2 }],
+    });
   });
 
   it('enqueues purchase-order create cache side effects through outbox', async () => {
@@ -266,7 +289,9 @@ describe('manage purchase-orders routes', () => {
 
   it('rejects updating item outside current po scope', async () => {
     const app = createApp();
-    const db = createDb();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+    });
     mocks.repoUpdateItem.mockImplementation(async (poId, itemId) => !(poId === 'po-1' && itemId === 'item-foreign'));
 
     const res = await app.request(
@@ -281,6 +306,47 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(404);
+  });
+
+  it('rejects purchase-order item patch when variant_id is supplied', async () => {
+    const app = createApp();
+    const db = createDb();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items/item-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variant_id: 'var-2' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.repoUpdateItem).not.toHaveBeenCalled();
+  });
+
+  it('re-validates quantity rules when patching a draft purchase-order item', async () => {
+    const app = createApp();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 5, pack_size: 1, order_step: 5 }],
+      orderRows: [{ id: 'o-1', product_id: 'prod-1', variant_id: 'var-1', status: 'confirmed' }],
+    });
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items/item-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 3 }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.repoUpdateItem).not.toHaveBeenCalled();
   });
 
   it('rejects deleting item outside current po scope', async () => {
@@ -302,6 +368,16 @@ describe('manage purchase-orders routes', () => {
     const app = createApp();
     const db = createDb();
     const waitUntil = vi.fn();
+    mocks.serviceUpdateStatus.mockResolvedValueOnce({
+      success: true,
+      cascadedOrders: 2,
+      changedOrderIds: ['o-1', 'o-2'],
+      changedOrderStatuses: [
+        { orderId: 'o-1', procurementStatus: 'ordered' },
+        { orderId: 'o-2', procurementStatus: 'ordered' },
+      ],
+      targetProcurementStatus: null,
+    });
 
     const res = await app.request(
       'http://localhost/api/manage/purchase-orders/po-1/status',
@@ -385,7 +461,9 @@ describe('manage purchase-orders routes', () => {
 
   it('enqueues purchase-order item update cache side effects through outbox', async () => {
     const app = createApp();
-    const db = createDb();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+    });
     const waitUntil = vi.fn();
 
     const res = await app.request(
@@ -633,6 +711,68 @@ describe('manage purchase-orders routes', () => {
     expect(res.status).toBe(400);
     const json = await res.json();
     expect(json?.error).toBe('当前库存不足，无法执行收货冲销');
+  });
+
+  it('closes purchase-order shortages through POST /:id/shortage-closures and returns 201', async () => {
+    const app = createApp();
+    const db = createDb();
+    const waitUntil = vi.fn();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/shortage-closures',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{ purchase_order_item_id: 'poi-1', close_qty: 2 }],
+        }),
+      },
+      { DB: db },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.shortageCloseShortages).toHaveBeenCalledWith('po-1', {
+      items: [{ purchase_order_item_id: 'poi-1', close_qty: 2 }],
+    });
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'purchase_order_updated',
+        aggregate_id: 'po-1',
+        payload: expect.objectContaining({
+          purchase_order_id: 'po-1',
+          shortage_closed_count: 1,
+        }),
+      }),
+    ]);
+    expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      action: 'purchase_order.shortage.close',
+      targetId: 'po-1',
+    }));
+    expect(waitUntil).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns 400 when shortage closure is rejected by domain invariants', async () => {
+    const app = createApp();
+    const db = createDb();
+    mocks.shortageCloseShortages.mockRejectedValueOnce(new BadRequestError('关闭数量超过剩余待收数量'));
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/shortage-closures',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{ purchase_order_item_id: 'poi-1', close_qty: 5 }],
+        }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json?.error).toBe('关闭数量超过剩余待收数量');
   });
 
   it('accepts add-items validation when variant lookups must be chunked', async () => {
