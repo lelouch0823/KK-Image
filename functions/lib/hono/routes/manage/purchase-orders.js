@@ -433,7 +433,19 @@ app.patch('/:id/status', async (c) => {
     },
   ];
 
-  if (result?.targetProcurementStatus && Array.isArray(result?.changedOrderIds) && result.changedOrderIds.length > 0) {
+  if (Array.isArray(result?.changedOrderStatuses) && result.changedOrderStatuses.length > 0) {
+    events.push(...result.changedOrderStatuses.map(({ orderId, procurementStatus }) => ({
+      event_type: 'order_procurement_progressed',
+      aggregate_type: 'order',
+      aggregate_id: orderId,
+      payload: {
+        purchase_order_id: c.req.param('id'),
+        order_id: orderId,
+        procurement_status_after: procurementStatus,
+        trigger: 'purchase_order_status_changed',
+      },
+    })));
+  } else if (result?.targetProcurementStatus && Array.isArray(result?.changedOrderIds) && result.changedOrderIds.length > 0) {
     events.push(...result.changedOrderIds.map((orderId) => ({
       event_type: 'order_procurement_progressed',
       aggregate_type: 'order',

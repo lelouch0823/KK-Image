@@ -21,7 +21,7 @@ function createDb() {
 }
 
 describe('PurchaseOrderService procurement status cascade', () => {
-  it('updates linked orders procurement_status without changing orders.status', async () => {
+  it('only seeds linked orders to ordered without changing orders.status', async () => {
     const db = createDb();
     const service = new PurchaseOrderService(db);
     service.repo = {
@@ -36,9 +36,10 @@ describe('PurchaseOrderService procurement status cascade', () => {
     const joinedSql = db.__sqls.join('\n');
     expect(joinedSql).toContain('SET procurement_status = ?');
     expect(joinedSql).not.toContain('UPDATE orders SET status = ?');
+    expect(joinedSql).toContain(`COALESCE(procurement_status, 'none') = 'none'`);
   });
 
-  it('skips delivered/void linked orders during auto cascade', async () => {
+  it('seeds shipping orders only when linked orders are still untouched', async () => {
     const db = createDb();
     const service = new PurchaseOrderService(db);
     service.repo = {
@@ -52,6 +53,8 @@ describe('PurchaseOrderService procurement status cascade', () => {
 
     const joinedSql = db.__sqls.join('\n');
     expect(joinedSql).toContain(`status NOT IN ('delivered', 'void')`);
+    expect(joinedSql).toContain(`COALESCE(procurement_status, 'none') = 'none'`);
+    expect(joinedSql).not.toContain(`COALESCE(procurement_status, 'none') != ?`);
   });
 
   it('throws conflict when po status CAS fails (concurrent transition)', async () => {
@@ -133,8 +136,38 @@ describe('PurchaseOrderService procurement status cascade', () => {
 
     await expect(service.updateStatus('po-1', 'arrived')).resolves.toMatchObject({
       success: true,
-      targetProcurementStatus: 'arrived',
+      targetProcurementStatus: null,
+      cascadedOrders: 0,
+      changedOrderStatuses: [],
     });
+  });
+
+  it('does not force linked orders to arrived when a purchase order header enters arrived', async () => {
+    const db = createDb();
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      findById: vi.fn(async () => ({
+        id: 'po-1',
+        status: 'shipping',
+        ordered_qty: 5,
+        received_qty: 5,
+        cancelled_qty: 0,
+        outstanding_qty: 0,
+        items: [],
+      })),
+      updateStatus: vi.fn(async () => true),
+      updateStatusIfCurrent: vi.fn(async () => true),
+      getLinkedOrderIds: vi.fn(async () => ['o-1']),
+    };
+
+    const result = await service.updateStatus('po-1', 'arrived');
+
+    expect(result).toMatchObject({
+      targetProcurementStatus: null,
+      cascadedOrders: 0,
+      changedOrderStatuses: [],
+    });
+    expect(db.batch).not.toHaveBeenCalled();
   });
 
   it('rejects cancelling an arrived purchase order and does not touch inventory', async () => {
@@ -172,5 +205,8 @@ describe('PurchaseOrderService procurement status cascade', () => {
     expect(result.cascadedOrders).toBe(205);
     expect(result.changedOrderIds).toEqual(linkedOrderIds);
     expect(result.targetProcurementStatus).toBe('ordered');
+    expect(result.changedOrderStatuses).toEqual(
+      linkedOrderIds.map((orderId) => ({ orderId, procurementStatus: 'ordered' }))
+    );
   });
 });

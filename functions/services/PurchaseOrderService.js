@@ -15,7 +15,6 @@ import { ProductVariantRepository } from '../repositories/ProductVariantReposito
 import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { NotFoundError, BadRequestError } from '../lib/hono/errors.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
-import { PO_TO_PROCUREMENT_STATUS_MAP } from '../api/utils/order-procurement-state-machine.js';
 import { InventoryService } from './InventoryService.js';
 import { DemandService } from './DemandService.js';
 
@@ -145,7 +144,8 @@ export class PurchaseOrderService {
     // 3. 级联更新预订单采购状态（不再修改订单主状态）
     let cascadedOrders = 0;
     let changedOrderIds = [];
-    const targetProcurementStatus = PO_TO_PROCUREMENT_STATUS_MAP[newStatus];
+    let changedOrderStatuses = [];
+    const targetProcurementStatus = ['ordered', 'shipping'].includes(newStatus) ? 'ordered' : null;
 
     if (targetProcurementStatus) {
       const linkedOrderIds = await this.repo.getLinkedOrderIds(poId);
@@ -157,12 +157,16 @@ export class PurchaseOrderService {
              SET procurement_status = ?, updated_at = ?
              WHERE id = ?
                AND status NOT IN ('delivered', 'void')
-               AND COALESCE(procurement_status, 'none') != ?`
-          ).bind(targetProcurementStatus, now, orderId, targetProcurementStatus)
+               AND COALESCE(procurement_status, 'none') = 'none'`
+          ).bind(targetProcurementStatus, now, orderId)
         );
         const results = await executeBatchChunks(this.db, stmts);
         cascadedOrders = results.filter(r => r.meta?.changes > 0).length;
         changedOrderIds = linkedOrderIds.filter((_orderId, index) => (results[index]?.meta?.changes || 0) > 0);
+        changedOrderStatuses = changedOrderIds.map((orderId) => ({
+          orderId,
+          procurementStatus: targetProcurementStatus,
+        }));
       }
     }
 
@@ -177,6 +181,7 @@ export class PurchaseOrderService {
       success: true,
       cascadedOrders,
       changedOrderIds,
+      changedOrderStatuses,
       targetProcurementStatus: targetProcurementStatus || null,
       stockUpdated,
       totalStockAdded,

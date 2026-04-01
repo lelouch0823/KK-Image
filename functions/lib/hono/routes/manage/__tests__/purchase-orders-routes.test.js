@@ -356,6 +356,16 @@ describe('manage purchase-orders routes', () => {
     const app = createApp();
     const db = createDb();
     const waitUntil = vi.fn();
+    mocks.serviceUpdateStatus.mockResolvedValueOnce({
+      success: true,
+      cascadedOrders: 2,
+      changedOrderIds: ['o-1', 'o-2'],
+      changedOrderStatuses: [
+        { orderId: 'o-1', procurementStatus: 'ordered' },
+        { orderId: 'o-2', procurementStatus: 'ordered' },
+      ],
+      targetProcurementStatus: null,
+    });
 
     const res = await app.request(
       'http://localhost/api/manage/purchase-orders/po-1/status',
