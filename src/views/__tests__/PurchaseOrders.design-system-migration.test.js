@@ -42,4 +42,19 @@ describe('PurchaseOrders design-system migration', () => {
     expect(source).toContain('data-testid="purchase-order-create-shell"');
     expect(source).toContain('data-testid="purchase-order-suggestions-shell"');
   });
+
+  it('replaces the heavy overview hero gradient with quieter panel framing', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/views/PurchaseOrders.vue'), 'utf8');
+
+    expect(source).not.toContain('bg-linear-to-br from-sky-50/75 via-(--bg-card) to-amber-50/45');
+    expect(source).toContain('data-testid="purchase-order-console-banner"');
+    expect(source).toContain('data-testid="purchase-order-overview-strip"');
+  });
+
+  it('drops the table-row cost pill so money reads as calmer ledger data', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/views/PurchaseOrders.vue'), 'utf8');
+
+    expect(source).not.toContain('inline-flex min-w-[7.5rem] justify-end rounded-lg bg-(--bg-muted)/65');
+    expect(source).toContain('data-testid="purchase-order-total-cost"');
+  });
 });

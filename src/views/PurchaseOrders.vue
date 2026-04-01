@@ -36,25 +36,19 @@
     <!-- ===== 统计卡片：骨架屏 or 真实数据 ===== -->
     <section
       data-testid="purchase-order-console-banner"
-      class="relative overflow-hidden rounded-[2rem] border border-(--border-color)/70 bg-linear-to-br from-sky-50/75 via-(--bg-card) to-amber-50/45 p-4 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.34)] sm:p-5"
+      class="relative overflow-hidden rounded-[1.75rem] border border-(--border-color)/60 bg-(--bg-card) px-4 py-4 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.28)] sm:px-5 sm:py-5"
     >
-      <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.12),transparent_30%)]"></div>
+      <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.06),transparent_24%)]"></div>
       <div class="relative space-y-4">
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div class="space-y-2">
-            <span class="inline-flex items-center rounded-full border border-sky-500/20 bg-sky-500/8 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-sky-700 uppercase">
-              Procurement Control Deck
-            </span>
+        <div class="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+          <div>
             <div>
               <h2 class="text-lg font-semibold text-(--text-main)">{{ t('purchaseOrder.title') }}</h2>
               <p class="mt-1 max-w-2xl text-sm leading-6 text-(--text-secondary)">{{ t('purchaseOrder.subtitle') }}</p>
             </div>
           </div>
-          <div class="flex flex-wrap items-center gap-2 lg:justify-end">
-            <StatusBadge variant="info" class="px-3! py-1! text-[11px]!">
-              {{ t('purchaseOrder.filter.all') }} · {{ activeFilterLabel }}
-            </StatusBadge>
-            <span class="inline-flex items-center rounded-full border border-(--border-color)/70 bg-(--bg-card)/85 px-3 py-1 text-[11px] font-medium text-(--text-secondary)">
+          <div class="flex items-center lg:justify-end">
+            <span class="inline-flex items-center rounded-full border border-(--border-color)/70 bg-(--bg-card)/80 px-3 py-1 text-[11px] font-medium text-(--text-secondary)">
               {{ t('purchaseOrder.pagination.total', { count: total }) }}
             </span>
           </div>
@@ -100,17 +94,14 @@
           <article
             v-for="signal in consoleSignals"
             :key="signal.key"
-            class="rounded-[1.4rem] border border-(--border-color)/55 bg-(--bg-card)/86 p-4 backdrop-blur"
+            class="rounded-[1.1rem] border border-(--border-color)/55 bg-(--bg-card)/92 p-4"
           >
             <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">{{ signal.label }}</p>
-            <div class="mt-2 flex items-end justify-between gap-3">
+            <div class="mt-2">
               <div>
-                <div class="font-[Outfit] text-2xl font-semibold text-(--text-main)">{{ signal.value }}</div>
+                <div class="font-mono text-2xl font-semibold tabular-nums text-(--text-main)">{{ signal.value }}</div>
                 <p class="mt-1 text-xs leading-5 text-(--text-secondary)">{{ signal.hint }}</p>
               </div>
-              <StatusBadge :variant="signal.variant" class="text-[10px]">
-                {{ signal.badge }}
-              </StatusBadge>
             </div>
           </article>
         </div>
@@ -127,21 +118,15 @@
         @row-click="(row) => openDetail(row.id)"
       >
         <template #toolbar>
-          <div class="mb-3 flex flex-col gap-3 border-b border-(--border-color)/35 px-1 pb-3 lg:flex-row lg:items-center lg:justify-between">
+          <div class="mb-3 flex flex-col gap-2 border-b border-(--border-color)/35 px-1 pb-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">Order Ledger</p>
-              <h3 class="text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.title') }}</h3>
+              <h3 class="text-sm font-semibold text-(--text-main)">Order Ledger</h3>
               <p class="mt-1 text-xs text-(--text-secondary)">
                 {{ t('purchaseOrder.ui.tableHint', '主状态和到货进度在同一列聚合展示，便于快速扫读链路卡点。') }}
               </p>
             </div>
-            <div class="flex flex-wrap items-center gap-2 lg:justify-end">
-              <StatusBadge variant="default" class="text-[10px]">
-                {{ t('purchaseOrder.ui.liveHint', '点击行可查看采购链路详情') }}
-              </StatusBadge>
-              <span class="rounded-full bg-(--bg-muted) px-2.5 py-1 text-xs font-medium text-(--text-secondary)">
-                {{ t('purchaseOrder.pagination.total', { count: total }) }}
-              </span>
+            <div class="text-xs text-(--text-secondary) lg:text-right">
+              {{ t('purchaseOrder.ui.liveHint', '点击行可查看采购链路详情') }}
             </div>
           </div>
         </template>
@@ -193,7 +178,7 @@
         <template #cell-total_goods_cost="{ row: po }">
           <span
             data-testid="purchase-order-total-cost"
-            class="inline-flex min-w-[7.5rem] justify-end rounded-lg bg-(--bg-muted)/65 px-2.5 py-1 font-[Outfit] text-sm font-semibold text-(--text-main)"
+            class="inline-flex min-w-[7.5rem] justify-end font-mono text-sm font-semibold tabular-nums text-(--text-main)"
           >
             {{ formatPurchaseCurrency(po.total_goods_cost, po.currency) }}
           </span>
