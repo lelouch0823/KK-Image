@@ -170,6 +170,30 @@ async function validatePreOrderBinding(db, items = []) {
   }
 }
 
+async function validateExistingItemQuantityUpdate(db, item, nextQuantity) {
+  if (!item?.variant_id || nextQuantity === undefined || nextQuantity === null) return;
+
+  const { results } = await db.prepare(`
+    SELECT id,
+           COALESCE(moq, 1) AS moq,
+           COALESCE(pack_size, 1) AS pack_size,
+           COALESCE(order_step, 1) AS order_step
+    FROM product_variants
+    WHERE id = ?
+  `).bind(item.variant_id).all();
+  const variant = (results || [])[0];
+  if (!variant) return;
+
+  const result = validateOrderQuantity(nextQuantity || 1, {
+    moq: variant.moq,
+    orderStep: variant.order_step,
+    packSize: variant.pack_size,
+  });
+  if (!result.valid) {
+    throw new BadRequestError(`${result.reason}（建议数量: ${result.suggestedQuantity}）`);
+  }
+}
+
 // ─── 列表 & 统计 ───────────────────────────────────────
 
 /**
@@ -286,12 +310,15 @@ app.post('/:id/receipts/:receiptId/reversal', async (c) => {
 app.post('/:id/shortage-closures', async (c) => {
   const poId = c.req.param('id');
   const body = await c.req.json();
+  const idempotencyKey = String(c.req.header('Idempotency-Key') || crypto.randomUUID()).trim();
 
   const repo = new PurchaseOrderRepository(c.env.DB);
   await requirePurchaseOrder(repo, poId);
 
   const shortageClosureService = new PurchaseOrderShortageClosureService(c.env.DB);
-  const result = await shortageClosureService.closeShortages(poId, body);
+  const result = await shortageClosureService.closeShortages(poId, body, {
+    idempotencyKey,
+  });
 
   await publishPurchaseOrderCacheEvent(c, {
     eventType: 'purchase_order_updated',
@@ -591,13 +618,7 @@ app.patch('/:id/items/:itemId', async (c) => {
     throw new NotFoundError('明细不存在');
   }
 
-  const mergedItem = {
-    ...existingItem,
-    quantity: body.quantity ?? existingItem.quantity,
-    unit_cost: body.unit_cost ?? existingItem.unit_cost,
-  };
-  await validateVariantItems(c.env.DB, [mergedItem]);
-  await validatePreOrderBinding(c.env.DB, [mergedItem]);
+  await validateExistingItemQuantityUpdate(c.env.DB, existingItem, body.quantity);
 
   const updated = await repo.updateItem(poId, c.req.param('itemId'), body);
   requireMutationSuccess(updated, '明细不存在');

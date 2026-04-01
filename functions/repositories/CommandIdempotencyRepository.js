@@ -1,5 +1,6 @@
 const RECEIPT_COMMAND_TYPE = 'purchase_receipt_record';
 const RECEIPT_REVERSAL_COMMAND_TYPE = 'purchase_receipt_reversal';
+const SHORTAGE_CLOSURE_COMMAND_TYPE = 'purchase_shortage_closure';
 
 export class CommandIdempotencyRepository {
   constructor(db, deps = {}) {
@@ -15,6 +16,15 @@ export class CommandIdempotencyRepository {
   async reserveReversalCommand(scopeKey, idempotencyKey, requestFingerprint) {
     return this.reserveCommand(
       RECEIPT_REVERSAL_COMMAND_TYPE,
+      scopeKey,
+      idempotencyKey,
+      requestFingerprint
+    );
+  }
+
+  async reserveShortageClosureCommand(scopeKey, idempotencyKey, requestFingerprint) {
+    return this.reserveCommand(
+      SHORTAGE_CLOSURE_COMMAND_TYPE,
       scopeKey,
       idempotencyKey,
       requestFingerprint

@@ -1,4 +1,5 @@
 import { BadRequestError, NotFoundError } from '../lib/hono/errors.js';
+import { CommandIdempotencyRepository } from '../repositories/CommandIdempotencyRepository.js';
 import {
   computePurchaseOrderRemainingReceivable,
   projectPurchaseOrderItemStatus,
@@ -37,9 +38,39 @@ function normalizeClosureEntry(entry = {}) {
   };
 }
 
+function buildClosureRequestFingerprint(poId, payload = {}) {
+  const normalizedItems = (Array.isArray(payload.items) ? payload.items : [])
+    .map(normalizeClosureEntry)
+    .sort((left, right) => {
+      const key = left.purchase_order_item_id.localeCompare(right.purchase_order_item_id);
+      if (key !== 0) return key;
+      return left.close_qty - right.close_qty;
+    });
+
+  return JSON.stringify({
+    purchase_order_id: poId,
+    items: normalizedItems,
+  });
+}
+
+function parseStoredResponse(responseJson) {
+  if (!responseJson) return null;
+  try {
+    return JSON.parse(responseJson);
+  } catch {
+    return null;
+  }
+}
+
+function buildDeleteCommandStatement(db, commandId) {
+  return db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId);
+}
+
 export class PurchaseOrderShortageClosureService {
   constructor(db, deps = {}) {
     this.db = db;
+    this.commandIdempotencyRepo =
+      deps.commandIdempotencyRepo || new CommandIdempotencyRepository(db, { now: deps.now });
     this.now = deps.now || (() => Date.now());
   }
 
@@ -97,11 +128,55 @@ export class PurchaseOrderShortageClosureService {
       );
   }
 
-  async closeShortages(poId, payload = {}) {
+  buildShortageClosureRevertStatement(poId, poItem, nextCancelledQty, displayStatus) {
+    return this.db
+      .prepare(
+        `UPDATE purchase_order_items
+         SET cancelled_qty = ?, display_status = ?
+         WHERE id = ? AND po_id = ?
+           AND received_qty = ?
+           AND cancelled_qty = ?
+           AND display_status = ?`
+      )
+      .bind(
+        toNonNegativeInt(poItem.cancelled_qty),
+        projectPurchaseOrderItemStatus(poItem),
+        poItem.id,
+        poId,
+        toNonNegativeInt(poItem.received_qty),
+        nextCancelledQty,
+        displayStatus
+      );
+  }
+
+  async closeShortages(poId, payload = {}, options = {}) {
     const items = Array.isArray(payload.items) ? payload.items : null;
     if (!items || items.length === 0) throw new BadRequestError('items is required');
 
     await this.requireClosablePurchaseOrder(poId);
+
+    const idempotencyKey = String(options.idempotencyKey || crypto.randomUUID()).trim();
+    const requestFingerprint = buildClosureRequestFingerprint(poId, payload);
+    const commandReservation = await this.commandIdempotencyRepo.reserveShortageClosureCommand(
+      poId,
+      idempotencyKey,
+      requestFingerprint
+    );
+    const ownsReservation =
+      commandReservation?.ownsReservation ?? Boolean(commandReservation?.insertStatement);
+
+    if (commandReservation?.existing) {
+      if (commandReservation.record?.request_fingerprint !== requestFingerprint) {
+        throw new BadRequestError('同一个幂等键不能提交不同的关闭待收请求');
+      }
+
+      const replay = parseStoredResponse(commandReservation.record?.response_json);
+      if (commandReservation.record?.status === 'committed' && replay) {
+        return replay;
+      }
+
+      throw new BadRequestError('当前幂等键对应的关闭待收命令仍在处理中');
+    }
 
     const statements = [];
     const revertStatements = [];
@@ -144,18 +219,12 @@ export class PurchaseOrderShortageClosureService {
         )
       );
       revertStatements.push(
-        this.db
-          .prepare(
-            `UPDATE purchase_order_items
-             SET cancelled_qty = ?, display_status = ?
-             WHERE id = ? AND po_id = ?`
-          )
-          .bind(
-            toNonNegativeInt(poItem.cancelled_qty),
-            projectPurchaseOrderItemStatus(poItem),
-            poItem.id,
-            poId
-          )
+        this.buildShortageClosureRevertStatement(
+          poId,
+          poItem,
+          nextCancelledQty,
+          displayStatus
+        )
       );
       results.push({
         purchase_order_item_id: purchaseOrderItemId,
@@ -181,18 +250,32 @@ export class PurchaseOrderShortageClosureService {
       if (successfulReverts.length > 0) {
         await executeBatchChunks(this.db, successfulReverts);
       }
+      if (ownsReservation) {
+        const deleteStatement =
+          this.commandIdempotencyRepo.buildDeleteStatement?.(commandReservation.record?.command_id) ||
+          buildDeleteCommandStatement(this.db, commandReservation.record?.command_id);
+        await deleteStatement.run();
+      }
       throw new BadRequestError('采购单明细待收进度已变化，请刷新后重试');
     }
 
-    await this.db
-      .prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
-      .bind(this.now(), poId)
-      .run();
-
-    return {
+    const response = {
       purchase_order_id: poId,
       closed_count: results.length,
       items: results,
     };
+
+    await executeBatchChunks(this.db, [
+      this.db
+        .prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
+        .bind(this.now(), poId),
+      this.commandIdempotencyRepo.buildFinalizeStatement(
+        commandReservation.record?.command_id,
+        response,
+        'committed'
+      ),
+    ]);
+
+    return response;
   }
 }
