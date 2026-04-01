@@ -66,9 +66,14 @@ describe('PurchaseOrders design-system migration', () => {
     expect(detailWorkspace).toContain('data-testid="purchase-order-detail-summary"');
     expect(detailWorkspace).toContain('data-testid="purchase-order-detail-progress"');
     expect(detailWorkspace).toContain('data-testid="purchase-order-detail-cost"');
+    expect(detailWorkspace).toContain('data-testid="purchase-order-detail-items"');
+    expect(detailWorkspace).toContain('data-testid="purchase-order-detail-receipts"');
     expect(detailWorkspace).not.toContain('bg-linear-to-r from-sky-50/75 via-(--bg-card) to-amber-50/40');
     expect(detailWorkspace).not.toContain('bg-linear-to-br from-(--bg-card) via-(--bg-card) to-sky-50/35');
     expect(detailWorkspace).not.toContain('bg-linear-to-br from-(--bg-card) via-(--bg-card) to-amber-50/45');
+    expect(detailWorkspace).not.toContain('bg-linear-to-r from-(--bg-card) via-(--bg-card) to-sky-50/30');
+    expect(detailWorkspace).not.toContain('bg-linear-to-r from-(--bg-card) via-(--bg-card) to-emerald-50/28');
+    expect(detailWorkspace).not.toContain('bg-linear-to-r from-(--bg-card) to-(--bg-muted)/35');
   });
 
   it('uses ledger-style toolbar structure and copy for the table context', () => {

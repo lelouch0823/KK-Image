@@ -260,6 +260,7 @@ describe('PurchaseOrders detail shell', () => {
     });
 
     expect(wrapper.find('[data-testid="purchase-order-detail-summary"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="purchase-order-detail-status-chip"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="purchase-order-detail-progress"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="purchase-order-detail-cost"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="purchase-order-detail-items"]').exists()).toBe(true);
