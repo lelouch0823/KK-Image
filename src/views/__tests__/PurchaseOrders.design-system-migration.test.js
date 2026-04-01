@@ -57,10 +57,18 @@ describe('PurchaseOrders design-system migration', () => {
 
   it('avoids feature-card gradients inside the detail workspace', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/views/PurchaseOrders.vue'), 'utf8');
+    const detailStart = source.indexOf('data-testid="purchase-order-detail-shell"');
+    const detailEnd = source.indexOf('data-testid="purchase-order-create-shell"');
+    const detailWorkspace = detailStart >= 0 && detailEnd > detailStart
+      ? source.slice(detailStart, detailEnd)
+      : '';
 
-    expect(source).not.toContain('bg-linear-to-r from-sky-50/75 via-(--bg-card) to-amber-50/40');
-    expect(source).not.toContain('bg-linear-to-br from-(--bg-card) via-(--bg-card) to-sky-50/35');
-    expect(source).not.toContain('bg-linear-to-br from-(--bg-card) via-(--bg-card) to-amber-50/45');
+    expect(detailWorkspace).toContain('data-testid="purchase-order-detail-summary"');
+    expect(detailWorkspace).toContain('data-testid="purchase-order-detail-progress"');
+    expect(detailWorkspace).toContain('data-testid="purchase-order-detail-cost"');
+    expect(detailWorkspace).not.toContain('bg-linear-to-r from-sky-50/75 via-(--bg-card) to-amber-50/40');
+    expect(detailWorkspace).not.toContain('bg-linear-to-br from-(--bg-card) via-(--bg-card) to-sky-50/35');
+    expect(detailWorkspace).not.toContain('bg-linear-to-br from-(--bg-card) via-(--bg-card) to-amber-50/45');
   });
 
   it('uses ledger-style toolbar structure and copy for the table context', () => {

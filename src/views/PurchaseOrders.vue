@@ -758,7 +758,7 @@
           <div class="absolute inset-0 bg-(--color-overlay-dim) backdrop-blur-sm" @click="showCreateModal = false"></div>
           <div class="relative flex w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-(--border-color)/70 bg-(--color-modal-bg) shadow-[0_32px_90px_-45px_rgba(15,23,42,0.38)]" style="max-height: calc(100vh - 3rem)">
             <!-- 头部 -->
-            <div class="relative flex items-start justify-between border-b border-(--border-color) bg-(--bg-card) px-6 py-5">
+            <div class="relative flex items-start justify-between border-b border-(--border-color) bg-linear-to-r from-sky-50/75 via-(--bg-card) to-amber-50/40 px-6 py-5">
               <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.1),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.1),transparent_24%)]"></div>
               <div class="relative">
                 <p class="text-xs font-semibold tracking-[0.18em] text-(--text-muted) uppercase">Draft Builder</p>
