@@ -16,6 +16,7 @@ vi.mock('@/utils/constants', () => ({
     MANAGE_PURCHASE_ORDER_ITEM: (poId, itemId) => `/api/manage/purchase-orders/${poId}/items/${itemId}`,
     MANAGE_PURCHASE_ORDER_RECEIPTS: (id) => `/api/manage/purchase-orders/${id}/receipts`,
     MANAGE_PURCHASE_ORDER_RECEIPT_REVERSAL: (poId, receiptId) => `/api/manage/purchase-orders/${poId}/receipts/${receiptId}/reversal`,
+    MANAGE_PURCHASE_ORDER_SHORTAGE_CLOSURES: (id) => `/api/manage/purchase-orders/${id}/shortage-closures`,
     MANAGE_PURCHASE_ORDER_ALLOCATE: (id) => `/api/manage/purchase-orders/${id}/allocate`,
     MANAGE_PURCHASE_ORDER_SUGGESTIONS: '/api/manage/purchase-orders/suggestions',
     MANAGE_PURCHASE_ORDER_STATS: '/api/manage/purchase-orders/stats',
@@ -193,6 +194,25 @@ describe('usePurchaseOrders authz handling', () => {
 
     expect(result).toEqual({ reversal_id: 'reversal-1' });
     expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/purchase-orders/po-1/receipts/receipt-1/reversal', expect.objectContaining({
+      method: 'POST',
+    }));
+  });
+
+  it('submits purchase-order shortage closures through the managed auth client', async () => {
+    mockAuthFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        success: true,
+        data: { purchase_order_id: 'po-1', closed_count: 1 },
+      }),
+    });
+
+    const { closeShortages } = usePurchaseOrders();
+    const result = await closeShortages('po-1', {
+      items: [{ purchase_order_item_id: 'poi-1', close_qty: 2 }],
+    });
+
+    expect(result).toEqual({ purchase_order_id: 'po-1', closed_count: 1 });
+    expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/purchase-orders/po-1/shortage-closures', expect.objectContaining({
       method: 'POST',
     }));
   });

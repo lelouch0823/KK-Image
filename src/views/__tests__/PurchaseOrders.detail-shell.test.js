@@ -54,6 +54,7 @@ vi.mock('@/composables/usePurchaseOrders', () => ({
     updateItem: vi.fn(),
     recordReceipts: vi.fn(),
     reverseReceipt: vi.fn(),
+    closeShortages: vi.fn(),
     allocateCosts: vi.fn(),
   }),
 }));
@@ -518,6 +519,70 @@ describe('PurchaseOrders detail shell', () => {
     const wrapper = mountPurchaseOrdersShell();
 
     expect(wrapper.get('[data-testid="purchase-order-detail-footer"]').text()).toContain('arrived');
+  });
+
+  it('shows shortage-closure entry when ordered or shipping purchase orders still have receivable lines', () => {
+    mocks.detailState.detailLoading = false;
+    mocks.detailState.detail = {
+      id: 'po-1',
+      po_no: 'PO-20260312-001',
+      status: 'shipping',
+      outstanding_qty: 2,
+      ordered_qty: 10,
+      received_qty: 8,
+      cancelled_qty: 0,
+      allocation_method: 'by_quantity',
+      estimated_shipping_cost: 0,
+      estimated_tariff_cost: 0,
+      items: [
+        {
+          id: 'item-1',
+          quantity: 10,
+          received_qty: 8,
+          cancelled_qty: 0,
+          product_name: 'Premium Canvas Bag',
+          product_specifications: {},
+          variant_options: {},
+        },
+      ],
+      receipts: [],
+    };
+
+    const wrapper = mountPurchaseOrdersShell();
+
+    expect(wrapper.find('[data-testid="purchase-order-open-shortage-modal"]').exists()).toBe(true);
+  });
+
+  it('hides shortage-closure entry when no receivable lines remain', () => {
+    mocks.detailState.detailLoading = false;
+    mocks.detailState.detail = {
+      id: 'po-1',
+      po_no: 'PO-20260312-001',
+      status: 'shipping',
+      outstanding_qty: 0,
+      ordered_qty: 10,
+      received_qty: 8,
+      cancelled_qty: 2,
+      allocation_method: 'by_quantity',
+      estimated_shipping_cost: 0,
+      estimated_tariff_cost: 0,
+      items: [
+        {
+          id: 'item-1',
+          quantity: 10,
+          received_qty: 8,
+          cancelled_qty: 2,
+          product_name: 'Premium Canvas Bag',
+          product_specifications: {},
+          variant_options: {},
+        },
+      ],
+      receipts: [],
+    };
+
+    const wrapper = mountPurchaseOrdersShell();
+
+    expect(wrapper.find('[data-testid="purchase-order-open-shortage-modal"]').exists()).toBe(false);
   });
 
   it('accepts selected orders from the current camelCase contract and ignores legacy snake_case-only payloads', async () => {

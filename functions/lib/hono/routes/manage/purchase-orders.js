@@ -13,6 +13,7 @@ import { PurchaseOrderRepository } from '../../../../repositories/PurchaseOrderR
 import { PurchaseOrderService } from '../../../../services/PurchaseOrderService.js';
 import { OrderProcurementDomainService } from '../../../../services/OrderProcurementDomainService.js';
 import { OrderProcurementReceiptReversalService } from '../../../../services/OrderProcurementReceiptReversalService.js';
+import { PurchaseOrderShortageClosureService } from '../../../../services/PurchaseOrderShortageClosureService.js';
 import { validateOrderQuantity } from '../../../../services/purchase-order-constraints.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { withCache } from '../../middleware/cache.js';
@@ -32,6 +33,7 @@ export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'PATCH', path: '/:id/status', domain: 'purchase-orders', action: 'purchase_order.status.change', severity: 'high', targetType: 'purchase_order' },
   { method: 'POST', path: '/:id/receipts', domain: 'purchase-orders', action: 'purchase_order.receipt.create', severity: 'high', targetType: 'purchase_order' },
   { method: 'POST', path: '/:id/receipts/:receiptId/reversal', domain: 'purchase-orders', action: 'purchase_order.receipt.reverse', severity: 'critical', targetType: 'purchase_order' },
+  { method: 'POST', path: '/:id/shortage-closures', domain: 'purchase-orders', action: 'purchase_order.shortage.close', severity: 'high', targetType: 'purchase_order' },
   { method: 'POST', path: '/:id/items', domain: 'purchase-orders', action: 'purchase_order.item.create', severity: 'high', targetType: 'purchase_order' },
   { method: 'PATCH', path: '/:id/items/:itemId', domain: 'purchase-orders', action: 'purchase_order.item.update', severity: 'high', targetType: 'purchase_order' },
   { method: 'DELETE', path: '/:id/items/:itemId', domain: 'purchase-orders', action: 'purchase_order.item.delete', severity: 'high', targetType: 'purchase_order' },
@@ -277,6 +279,42 @@ app.post('/:id/receipts/:receiptId/reversal', async (c) => {
     requestUrl: c.req.url,
     workerId: `reversal:${poId}:${receiptId}:${idempotencyKey}`,
   }));
+
+  return c.json({ success: true, data: result }, 201);
+});
+
+app.post('/:id/shortage-closures', async (c) => {
+  const poId = c.req.param('id');
+  const body = await c.req.json();
+
+  const repo = new PurchaseOrderRepository(c.env.DB);
+  await requirePurchaseOrder(repo, poId);
+
+  const shortageClosureService = new PurchaseOrderShortageClosureService(c.env.DB);
+  const result = await shortageClosureService.closeShortages(poId, body);
+
+  await publishPurchaseOrderCacheEvent(c, {
+    eventType: 'purchase_order_updated',
+    poId,
+    payload: {
+      shortage_closed_count: result?.closed_count || 0,
+      shortage_closed_items: Array.isArray(result?.items) ? result.items.length : 0,
+    },
+  });
+  scheduleAuditEvent(c, {
+    domain: 'purchase-orders',
+    action: 'purchase_order.shortage.close',
+    result: 'success',
+    severity: 'high',
+    targetType: 'purchase_order',
+    targetId: poId,
+    target_label: poId,
+    summary: `Closed purchase order shortages for ${poId}`,
+    metadata: {
+      closedCount: result?.closed_count || 0,
+      items: result?.items || [],
+    },
+  });
 
   return c.json({ success: true, data: result }, 201);
 });

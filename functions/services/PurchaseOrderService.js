@@ -73,6 +73,10 @@ function toNumber(value) {
   return Number(value || 0);
 }
 
+function getReceivedAllocationQty(item = {}) {
+  return Math.max(toNumber(item.received_qty), 0);
+}
+
 function resolvePurchaseOrderOutstandingQty(po = {}) {
   if (po.outstanding_qty != null) return Math.max(toNumber(po.outstanding_qty), 0);
 
@@ -217,19 +221,30 @@ export class PurchaseOrderService {
     let allocations;
 
     if (po.allocation_method === 'by_value') {
-      // --- 按金额比例分摊 ---
-      const totalValue = items.reduce((sum, item) => sum + (item.unit_cost * item.quantity), 0);
+      // --- 按已收货金额比例分摊 ---
+      const totalValue = items.reduce((sum, item) => (
+        sum + ((Number(item.unit_cost) || 0) * getReceivedAllocationQty(item))
+      ), 0);
 
       if (totalValue === 0) {
         // 回退到按件数分摊
         allocations = this._allocateByQuantity(items, shippingCost, tariffCost);
       } else {
         allocations = items.map(item => {
-          const valueRatio = (item.unit_cost * item.quantity) / totalValue;
+          const receivedQty = getReceivedAllocationQty(item);
+          if (receivedQty <= 0) {
+            return {
+              id: item.id,
+              allocated_freight: 0,
+              allocated_tariff: 0,
+            };
+          }
+
+          const valueRatio = ((Number(item.unit_cost) || 0) * receivedQty) / totalValue;
           return {
             id: item.id,
-            allocated_freight: Math.round(shippingCost * valueRatio / item.quantity * 100) / 100,
-            allocated_tariff: Math.round(tariffCost * valueRatio / item.quantity * 100) / 100,
+            allocated_freight: Math.round(shippingCost * valueRatio / receivedQty * 100) / 100,
+            allocated_tariff: Math.round(tariffCost * valueRatio / receivedQty * 100) / 100,
           };
         });
       }
@@ -245,7 +260,7 @@ export class PurchaseOrderService {
     const macUpdates = [];
     for (const item of items) {
       if (!item.variant_id) continue;
-      const itemQty = Math.max(0, Number(item.quantity) || 0);
+      const itemQty = getReceivedAllocationQty(item);
       if (itemQty <= 0) continue;
 
       const allocation = allocationById.get(item.id) || {};
@@ -268,16 +283,22 @@ export class PurchaseOrderService {
    * 按件数平均分摊
    */
   _allocateByQuantity(items, shippingCost, tariffCost) {
-    const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
-    if (totalQty === 0) return [];
+    const totalQty = items.reduce((sum, item) => sum + getReceivedAllocationQty(item), 0);
+    if (totalQty === 0) {
+      return items.map((item) => ({
+        id: item.id,
+        allocated_freight: 0,
+        allocated_tariff: 0,
+      }));
+    }
 
     const freightPerUnit = Math.round(shippingCost / totalQty * 100) / 100;
     const tariffPerUnit = Math.round(tariffCost / totalQty * 100) / 100;
 
     return items.map(item => ({
       id: item.id,
-      allocated_freight: freightPerUnit,
-      allocated_tariff: tariffPerUnit,
+      allocated_freight: getReceivedAllocationQty(item) > 0 ? freightPerUnit : 0,
+      allocated_tariff: getReceivedAllocationQty(item) > 0 ? tariffPerUnit : 0,
     }));
   }
 

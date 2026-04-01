@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   serviceAllocateCosts: vi.fn(),
   domainRecordReceipts: vi.fn(),
   reversalReverseReceipt: vi.fn(),
+  shortageCloseShortages: vi.fn(),
   scheduleAuditEvent: vi.fn(),
   scheduleCacheInvalidation: vi.fn(),
   randomUUID: vi.fn(),
@@ -54,6 +55,12 @@ vi.mock('../../../../../services/OrderProcurementDomainService.js', () => ({
 vi.mock('../../../../../services/OrderProcurementReceiptReversalService.js', () => ({
   OrderProcurementReceiptReversalService: vi.fn(() => ({
     reverseReceipt: mocks.reversalReverseReceipt,
+  })),
+}));
+
+vi.mock('../../../../../services/PurchaseOrderShortageClosureService.js', () => ({
+  PurchaseOrderShortageClosureService: vi.fn(() => ({
+    closeShortages: mocks.shortageCloseShortages,
   })),
 }));
 
@@ -158,6 +165,11 @@ describe('manage purchase-orders routes', () => {
     mocks.serviceAllocateCosts.mockResolvedValue(undefined);
     mocks.domainRecordReceipts.mockResolvedValue({ purchase_order_id: 'po-1', receipt_count: 1 });
     mocks.reversalReverseReceipt.mockResolvedValue({ purchase_order_id: 'po-1', receipt_id: 'receipt-1', reversal_qty: 2 });
+    mocks.shortageCloseShortages.mockResolvedValue({
+      purchase_order_id: 'po-1',
+      closed_count: 1,
+      items: [{ purchase_order_item_id: 'poi-1', close_qty: 2 }],
+    });
   });
 
   it('enqueues purchase-order create cache side effects through outbox', async () => {
@@ -699,6 +711,68 @@ describe('manage purchase-orders routes', () => {
     expect(res.status).toBe(400);
     const json = await res.json();
     expect(json?.error).toBe('当前库存不足，无法执行收货冲销');
+  });
+
+  it('closes purchase-order shortages through POST /:id/shortage-closures and returns 201', async () => {
+    const app = createApp();
+    const db = createDb();
+    const waitUntil = vi.fn();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/shortage-closures',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{ purchase_order_item_id: 'poi-1', close_qty: 2 }],
+        }),
+      },
+      { DB: db },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.shortageCloseShortages).toHaveBeenCalledWith('po-1', {
+      items: [{ purchase_order_item_id: 'poi-1', close_qty: 2 }],
+    });
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'purchase_order_updated',
+        aggregate_id: 'po-1',
+        payload: expect.objectContaining({
+          purchase_order_id: 'po-1',
+          shortage_closed_count: 1,
+        }),
+      }),
+    ]);
+    expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      action: 'purchase_order.shortage.close',
+      targetId: 'po-1',
+    }));
+    expect(waitUntil).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns 400 when shortage closure is rejected by domain invariants', async () => {
+    const app = createApp();
+    const db = createDb();
+    mocks.shortageCloseShortages.mockRejectedValueOnce(new BadRequestError('关闭数量超过剩余待收数量'));
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/shortage-closures',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{ purchase_order_item_id: 'poi-1', close_qty: 5 }],
+        }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json?.error).toBe('关闭数量超过剩余待收数量');
   });
 
   it('accepts add-items validation when variant lookups must be chunked', async () => {
