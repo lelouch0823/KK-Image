@@ -6,6 +6,12 @@ import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 import {
+  buildDeleteCommandStatement,
+  parseStoredResponse,
+  queryCompatibilityProcurementAggregate,
+  requireOrderLine,
+} from './order-procurement-shared.js';
+import {
   computePurchaseOrderRemainingReceivable as computeRemainingReceivable,
   projectCompatibilityProcurementStatus,
   projectPurchaseOrderItemStatus,
@@ -13,6 +19,13 @@ import {
 } from './purchase-order-projection.js';
 
 const D1_MAX_BATCH_SIZE = 100;
+const RECEIPT_FINALIZE_STATEMENT_COUNT = 2;
+const RECEIPT_BASE_EVENT_WRITE_COUNT =
+  1 + getDomainEventDefinition('purchase_receipt_recorded').consumers.length;
+const RECEIPT_INVENTORY_EVENT_WRITE_COUNT =
+  1 + getDomainEventDefinition('inventory_received').consumers.length;
+const RECEIPT_ORDER_EVENT_WRITE_COUNT =
+  1 + getDomainEventDefinition('order_procurement_progressed').consumers.length;
 
 function normalizeReceiptEntry(entry = {}) {
   return {
@@ -39,19 +52,6 @@ function buildReceiptRequestFingerprint(poId, payload = {}) {
   });
 }
 
-function parseStoredResponse(responseJson) {
-  if (!responseJson) return null;
-  try {
-    return JSON.parse(responseJson);
-  } catch {
-    return null;
-  }
-}
-
-function buildDeleteCommandStatement(db, commandId) {
-  return db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId);
-}
-
 function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
   if (!Array.isArray(items) || items.length === 0) return [];
 
@@ -73,6 +73,25 @@ async function executeBatchChunks(db, statements = []) {
   }
 
   return results;
+}
+
+function countReceiptWriteStatements(preparedReceipts = []) {
+  return preparedReceipts.reduce(
+    (total, prepared) => {
+      let nextTotal = total + 1 + RECEIPT_BASE_EVENT_WRITE_COUNT;
+
+      if (prepared.compatibilityOrderLineId && prepared.poItem?.pre_order_id) {
+        nextTotal += 2 + RECEIPT_ORDER_EVENT_WRITE_COUNT;
+      }
+
+      if (prepared.poItem?.variant_id) {
+        nextTotal += 4 + RECEIPT_INVENTORY_EVENT_WRITE_COUNT;
+      }
+
+      return nextTotal;
+    },
+    RECEIPT_FINALIZE_STATEMENT_COUNT
+  );
 }
 
 export class OrderProcurementDomainService {
@@ -261,30 +280,6 @@ export class OrderProcurementDomainService {
     return nextStatus;
   }
 
-  async queryCompatibilityProcurementAggregate(orderId) {
-    if (!orderId) return null;
-
-    const progress = await this.db
-      .prepare(
-        `SELECT
-            COALESCE(SUM(ordered_qty), 0) AS ordered_qty,
-            COALESCE(SUM(procured_qty), 0) AS procured_qty,
-            COALESCE(SUM(received_qty), 0) AS received_qty,
-            COALESCE(SUM(cancelled_qty), 0) AS cancelled_qty
-         FROM order_lines
-         WHERE order_id = ?`
-      )
-      .bind(orderId)
-      .first();
-
-    return {
-      ordered_qty: toNonNegativeInt(progress?.ordered_qty),
-      procured_qty: toNonNegativeInt(progress?.procured_qty),
-      received_qty: toNonNegativeInt(progress?.received_qty),
-      cancelled_qty: toNonNegativeInt(progress?.cancelled_qty),
-    };
-  }
-
   async queryInventoryBalance(variantId) {
     if (!variantId) return null;
 
@@ -424,6 +419,16 @@ export class OrderProcurementDomainService {
         throw new BadRequestError(`收货数量超过剩余可收数量: ${remainingReceivable}`);
       }
 
+      const compatibilityOrderLine = poItem.pre_order_id
+        ? await this.resolveCompatibilityOrderLine(poItem.pre_order_id, {
+            productId: poItem.product_id || null,
+            variantId: poItem.variant_id || null,
+          })
+        : null;
+      if (!compatibilityOrderLine && poItem.pre_order_id) {
+        throw new BadRequestError('关联订单缺少唯一可投影的订单行');
+      }
+
       const nextReceived = toNonNegativeInt(poItem.received_qty) + receivedQty;
       const displayStatus = projectPurchaseOrderItemStatus({
         quantity: poItem.quantity,
@@ -458,9 +463,20 @@ export class OrderProcurementDomainService {
         purchaseOrderItemId,
         receivedQty,
         poItem,
+        compatibilityOrderLineId: compatibilityOrderLine?.id || null,
         nextReceived,
         displayStatus,
       });
+    }
+
+    if (countReceiptWriteStatements(preparedReceipts) > D1_MAX_BATCH_SIZE) {
+      if (ownsReservation) {
+        const deleteStatement =
+          this.commandIdempotencyRepo.buildDeleteStatement?.(commandRecord.command_id) ||
+          buildDeleteCommandStatement(this.db, commandRecord.command_id);
+        await deleteStatement.run();
+      }
+      throw new BadRequestError('本次收货包含的写入过多，请拆分后重试');
     }
 
     const preflightResults =
@@ -496,25 +512,22 @@ export class OrderProcurementDomainService {
           purchaseOrderItemId,
           receivedQty,
           poItem,
+          compatibilityOrderLineId,
           nextReceived,
           displayStatus,
         } = prepared;
 
-        const compatibilityOrderLine = poItem.pre_order_id
-          ? await this.resolveCompatibilityOrderLine(poItem.pre_order_id, {
-              productId: poItem.product_id || null,
-              variantId: poItem.variant_id || null,
-            })
-          : null;
-        if (!compatibilityOrderLine && poItem.pre_order_id) {
-          throw new BadRequestError('关联订单缺少唯一可投影的订单行');
-        }
+        const compatibilityOrderLine =
+          compatibilityOrderLineId && poItem.pre_order_id
+            ? await requireOrderLine(this.db, poItem.pre_order_id, compatibilityOrderLineId)
+            : null;
 
         const receiptId = crypto.randomUUID();
         const receiptPayload = {
           id: receiptId,
           purchase_order_id: poId,
           purchase_order_item_id: purchaseOrderItemId,
+          order_line_id: compatibilityOrderLine?.id || null,
           product_id: poItem.product_id || null,
           variant_id: poItem.variant_id || null,
           received_qty: receivedQty,
@@ -575,7 +588,7 @@ export class OrderProcurementDomainService {
 
           const currentAggregate =
             orderAggregateStates.get(poItem.pre_order_id) ||
-            (await this.queryCompatibilityProcurementAggregate(poItem.pre_order_id));
+            (await queryCompatibilityProcurementAggregate(this.db, poItem.pre_order_id));
           const nextAggregate = {
             ...currentAggregate,
             procured_qty:
