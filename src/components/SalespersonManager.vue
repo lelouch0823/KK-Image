@@ -2,6 +2,7 @@
   <ManagementListShell :title="t('salesperson.title')" :description="t('salesperson.subtitle')">
     <template #actions>
       <button
+        v-if="canManageSalespersons"
         class="bg-primary shadow-primary/10 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) shadow-lg transition-all hover:bg-(--color-primary-hover) active:scale-95"
         @click="openModal()"
       >
@@ -36,6 +37,7 @@
           :data="salespersons"
           :loading="loading"
           :row-class="getRowClass"
+          :can-manage="canManageSalespersons"
           @edit="openModal"
           @delete="confirmDelete"
           @copy="copyAccessLink"
@@ -50,6 +52,7 @@
           :data="salespersons"
           :loading="loading"
           :card-class="getRowClass"
+          :can-manage="canManageSalespersons"
           @edit="openModal"
           @delete="confirmDelete"
           @copy="copyAccessLink"
@@ -107,6 +110,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import { useManagedListSelection } from '@/composables/useManagedListSelection';
+import { useAccessControl } from '@/composables/useAccessControl';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -136,6 +140,7 @@ const { t } = useI18n();
 const { addToast } = useToast();
 const router = useRouter();
 const { subscribeModule } = useAppRefreshBus();
+const { hasPermission, loadPermissions } = useAccessControl();
 
 const searchQuery = ref('');
 const showModal = ref(false);
@@ -145,6 +150,7 @@ const showDetailModal = ref(false);
 const detailPerson = ref(null);
 let stopSalespersonsRefreshSubscription = null;
 const { clearSelection, getRowClass, handleCreated, selectItem } = useManagedListSelection();
+const canManageSalespersons = ref(false);
 
 // 确认弹窗状态
 const confirmData = ref({
@@ -173,6 +179,10 @@ const refreshCurrentList = (forceRefresh = false) => {
 
 // 初始化
 onMounted(() => {
+  loadPermissions().then(() => {
+    canManageSalespersons.value = hasPermission('users:write');
+  });
+
   stopSalespersonsRefreshSubscription = subscribeModule('salespersons', () => {
     if (!showModal.value && !showDetailModal.value) {
       refreshCurrentList(true);
@@ -203,6 +213,7 @@ const changePage = (page) => {
 
 // 打开弹窗
 const openModal = (person = null) => {
+  if (!canManageSalespersons.value) return;
   editingSalesperson.value = person;
   showModal.value = true;
 };

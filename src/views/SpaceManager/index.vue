@@ -1,7 +1,7 @@
 <template>
   <ManagementListShell :title="t('spaceManager.title')" :description="t('spaceManager.subtitle')">
     <template #actions>
-      <div v-if="spaces.length > 0" class="flex gap-2">
+      <div v-if="spaces.length > 0 && canManageSpaces" class="flex gap-2">
         <Tooltip :content="t('spaceManager.create')">
           <button
             class="bg-primary flex size-9 items-center justify-center rounded-lg text-(--text-inverse) shadow-sm transition-colors hover:bg-primary-hover dark:text-gray-900"
@@ -169,7 +169,7 @@
               variant="ghost"
               block
               size="sm"
-              :text="t('space.manage')"
+              :text="canManageSpaces ? t('space.manage') : t('common.view')"
               @click.stop="manageSpace(space)"
             >
               <template #icon-left>
@@ -180,6 +180,7 @@
               </template>
             </AppButton>
             <AppButton
+              v-if="canManageSpaces"
               variant="ghost"
               block
               size="sm"
@@ -206,6 +207,7 @@
       >
         <template #action>
           <AppButton
+            v-if="canManageSpaces"
             :text="t('space.create')"
             @click="openCreateModal"
           >
@@ -228,7 +230,7 @@
 
     <!-- 空间详情/编辑器弹窗 -->
     <SpaceProductEditor
-      v-if="selectedSpace && selectedSpace.template === 'product'"
+      v-if="selectedSpace && selectedSpace.template === 'product' && canManageSpaces"
       :space="selectedSpace"
       @close="selectedSpace = null"
       @updated="loadSpaces"
@@ -237,6 +239,7 @@
     <SpaceDetailModal
       v-else-if="selectedSpace"
       :space="selectedSpace"
+      :can-manage="canManageSpaces"
       @close="selectedSpace = null"
       @updated="loadSpaces"
       @open-subspace="onOpenSubspace"
@@ -257,9 +260,8 @@
 <script setup>
 import { ref, onMounted, onActivated } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
-import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
-import { useClipboard } from '@/composables/useClipboard';
+import { useAccessControl } from '@/composables/useAccessControl';
 import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
 import SpaceDetailModal from '@/components/SpaceDetailModal.vue';
 import SpaceProductEditor from '@/components/SpaceProductEditor.vue';
@@ -272,12 +274,13 @@ import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
 const { spaces, loading, error, errorCode, loadSpaces, deleteSpace } = useSpaces();
-const { addToast } = useToast();
 const { t } = useI18n();
+const { hasPermission, loadPermissions } = useAccessControl();
 
 
 const showCreateModal = ref(false);
 const selectedSpace = ref(null);
+const canManageSpaces = ref(false);
 
 // 确认弹窗状态
 const confirmData = ref({
@@ -290,6 +293,7 @@ const confirmData = ref({
 });
 
 const openCreateModal = () => {
+  if (!canManageSpaces.value) return;
   showCreateModal.value = true;
 };
 
@@ -300,7 +304,12 @@ const openSpaceDetail = (space) => {
   selectedSpace.value = space;
 };
 
+const manageSpace = (space) => {
+  openSpaceDetail(space);
+};
+
 const confirmDelete = (space) => {
+  if (!canManageSpaces.value) return;
   confirmData.value = {
     show: true,
     title: t('common.delete'),
@@ -331,10 +340,16 @@ const onOpenSubspace = (subspace) => {
 };
 
 onMounted(() => {
+  loadPermissions().then(() => {
+    canManageSpaces.value = hasPermission('spaces:manage');
+  });
   loadSpaces();
 });
 
 onActivated(() => {
+  loadPermissions().then(() => {
+    canManageSpaces.value = hasPermission('spaces:manage');
+  });
   loadSpaces();
 });
 </script>

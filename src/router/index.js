@@ -13,6 +13,9 @@ const Gallery = () => import('@/views/Gallery.vue');
 const Space = () => import('@/views/Space.vue');
 const Sales = () => import('@/views/Sales.vue');
 
+const DASHBOARD_ROUTE_NAME = 'Dashboard';
+const FORBIDDEN_ROUTE_NAME = 'Forbidden';
+
 // 路由定义
 const routes = [
     {
@@ -93,7 +96,7 @@ const routes = [
                 path: 'dashboard',
                 name: 'Dashboard',
                 component: () => import('@/views/Dashboard.vue'),
-                meta: { titleKey: 'router.dashboard' },
+                meta: { titleKey: 'router.dashboard', permission: 'stats:read' },
             },
             {
                 path: 'files',
@@ -196,6 +199,24 @@ const routes = [
     },
 ];
 
+const adminChildRoutes = routes.find((route) => route.path === '/admin')?.children || [];
+
+const adminFallbackCandidates = adminChildRoutes.filter((route) => {
+    if (!route?.name || route.redirect) return false;
+    return route.name !== DASHBOARD_ROUTE_NAME && route.name !== FORBIDDEN_ROUTE_NAME && route.name !== 'AdminNotFound';
+});
+
+async function resolveFirstAllowedAdminRoute(can) {
+    for (const route of adminFallbackCandidates) {
+        const requiredPermission = route.meta?.permission;
+        if (!requiredPermission || await can(requiredPermission)) {
+            return { name: route.name };
+        }
+    }
+
+    return null;
+}
+
 const router = createRouter({
     history: createWebHistory(),
     routes,
@@ -246,7 +267,13 @@ router.beforeEach(async (to, from, next) => {
             const requiredPermission = to.meta.permission;
             if (requiredPermission) {
                 const allowed = await can(requiredPermission);
-                if (!allowed) return next({ name: 'Forbidden', query: { permission: requiredPermission } });
+                if (!allowed) {
+                    if (to.name === DASHBOARD_ROUTE_NAME) {
+                        const fallbackRoute = await resolveFirstAllowedAdminRoute(can);
+                        if (fallbackRoute) return next(fallbackRoute);
+                    }
+                    return next({ name: FORBIDDEN_ROUTE_NAME, query: { permission: requiredPermission } });
+                }
             }
             next();
         }

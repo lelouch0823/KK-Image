@@ -9,7 +9,7 @@
       <h3 class="text-primary font-medium">{{ t('notification.title') }}</h3>
       <div class="flex items-center gap-2">
         <button
-          v-if="unreadCount > 0"
+          v-if="unreadCount > 0 && canWriteNotifications"
           class="text-primary text-xs font-medium transition-colors hover:text-primary-hover"
           @click="markAllAsRead"
         >
@@ -75,7 +75,8 @@
 
             <!-- Unread indicator dot & Mark Read Action -->
             <div v-if="item.is_read === 0" class="flex shrink-0 items-center gap-2 self-center">
-              <button 
+              <button
+                v-if="canWriteNotifications"
                 class="text-primary hidden size-6 items-center justify-center rounded-full transition-colors group-hover:flex hover:bg-black/5 dark:hover:bg-white/10"
                 title="标记为已读"
                 @click.stop="markAsRead(item.id)"
@@ -92,9 +93,10 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useNotifications } from '@/composables/useNotifications';
 import { useI18n } from '@/composables/useI18n';
+import { useAccessControl } from '@/composables/useAccessControl';
 import { formatDate } from '@/utils/formatters';
 import { useRouter } from 'vue-router';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -106,13 +108,17 @@ const props = defineProps({
 const { notifications, unreadCount, loading, markAsRead, markAllAsRead, fetchNotifications } =
   useNotifications();
 const { t } = useI18n();
+const { hasPermission, loadPermissions } = useAccessControl();
 const router = useRouter();
+const canWriteNotifications = ref(false);
 
 const fetchList = () => {
   fetchNotifications();
 };
 
-onMounted(() => {
+onMounted(async () => {
+  await loadPermissions();
+  canWriteNotifications.value = hasPermission('notifications:write');
   fetchList();
 });
 
@@ -135,7 +141,7 @@ const renderText = (val) => {
 };
 
 const handleClick = async (item) => {
-  if (item.is_read === 0) {
+  if (item.is_read === 0 && canWriteNotifications.value) {
     await markAsRead(item.id);
   }
 

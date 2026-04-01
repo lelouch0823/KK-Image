@@ -63,4 +63,14 @@ describe('forbidden flow', () => {
 
     expect(router.currentRoute.value.name).toBe('Files')
   })
+
+  it('falls back to the first allowed admin route when dashboard is not permitted', async () => {
+    canMock.mockImplementation(async (permission) => permission !== 'stats:read')
+    const { default: router } = await import('@/router/index.js')
+
+    await router.push('/admin/dashboard')
+    await router.isReady()
+
+    expect(router.currentRoute.value.name).toBe('Files')
+  })
 })

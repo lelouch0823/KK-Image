@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   registerFolderRefresh: vi.fn(),
   unregisterFolderRefresh: vi.fn(),
   addToast: vi.fn(),
+  can: vi.fn(),
 }));
 
 vi.mock('@/composables/useSpaces', () => ({
@@ -37,6 +38,12 @@ vi.mock('@/composables/useToast', () => ({
   }),
 }));
 
+vi.mock('@/composables/useAccessControl', () => ({
+  useAccessControl: () => ({
+    can: mocks.can,
+  }),
+}));
+
 vi.mock('@/composables/useI18n', () => ({
   useI18n: () => ({
     t: (_key, fallback) => fallback || '',
@@ -54,6 +61,7 @@ vi.mock('@/composables/useUploadQueue', () => ({
 describe('SpaceProductEditor contract', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.can.mockResolvedValue(true);
     mocks.loadSpace.mockResolvedValue({
       id: 'space-1',
       name: 'Space Name',
@@ -151,5 +159,33 @@ describe('SpaceProductEditor contract', () => {
 
     expect(wrapper.vm.form.variantId).toBe(null);
     expect(wrapper.vm.boundProduct.sku).toBe('');
+  });
+
+  it('does not load product details when product manage permission is missing', async () => {
+    mocks.can.mockResolvedValueOnce(false);
+
+    const wrapper = mount(SpaceProductEditor, {
+      props: {
+        space: { id: 'space-1', shareToken: 'share-token' },
+      },
+      global: {
+        stubs: {
+          FileSelector: { template: '<div />' },
+          Tooltip: { template: '<div><slot /></div>' },
+          SpaceAnalytics: { template: '<div />' },
+          SpaceShareCard: { template: '<div />' },
+          SpaceVisibilitySelector: { template: '<div />' },
+          SpaceMediaGrid: { template: '<div />' },
+          ConfirmDialog: { template: '<div />' },
+          ProductBindingSection: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(mocks.loadSpace).toHaveBeenCalledWith('space-1');
+    expect(mocks.loadProduct).not.toHaveBeenCalled();
+    expect(wrapper.vm.form.productId).toBe('prod-1');
   });
 });

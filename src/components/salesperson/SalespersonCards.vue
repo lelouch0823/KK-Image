@@ -75,6 +75,7 @@
             </button>
             <!-- 编辑 -->
             <button
+              v-if="canManage"
               class="rounded-xl p-2 text-(--text-secondary) transition-all hover:bg-(--color-info-bg) hover:text-(--color-info-text) active:scale-90"
               :title="t('salesperson.edit')"
               @click.stop="$emit('edit', person)"
@@ -83,6 +84,7 @@
             </button>
             <!-- 删除 -->
             <button
+              v-if="canManage"
               class="rounded-xl p-2 text-(--text-secondary) transition-all hover:bg-(--color-danger-bg) hover:text-(--color-danger-text) active:scale-90 disabled:cursor-not-allowed disabled:opacity-30"
               :title="t('common.delete')"
               :disabled="person.orderCount > 0"
@@ -118,6 +120,10 @@ defineProps({
   cardClass: {
     type: Function,
     default: () => '',
+  },
+  canManage: {
+    type: Boolean,
+    default: false,
   },
 });
 

@@ -4,10 +4,12 @@
     <SpaceVisibilitySelector
       v-model="currentShareMode"
       v-model:selected-salespersons="selectedSalespersonIds"
+      :class="{ 'pointer-events-none opacity-70': !canManage }"
     >
       <template #footer>
         <!-- 保存按钮 -->
         <button
+          v-if="canManage"
           :disabled="publishing || !hasChanges"
           class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
           :class="hasChanges
@@ -51,6 +53,7 @@
           </button>
         </div>
         <button
+          v-if="canManage"
           :disabled="publishing"
           class="w-full rounded-xl border border-(--border-color) py-2.5 text-sm text-(--text-secondary) transition-colors hover:border-(--color-danger-text) hover:text-(--color-danger-text)"
           @click="$emit('unpublish')"
@@ -76,6 +79,7 @@ const props = defineProps({
   publishing: { type: Boolean, default: false },
   shareMode: { type: String, default: 'none' },
   sharedSalespersons: { type: Array, default: () => [] },
+  canManage: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['publish', 'unpublish', 'update-share-settings']);

@@ -230,6 +230,7 @@ const menuItems = computed(() => [
     key: 'dashboard',
     label: t('sidebar.dashboard'),
     icon: 'squares-2x2',
+    permission: 'stats:read'
   },
   {
     key: 'files',

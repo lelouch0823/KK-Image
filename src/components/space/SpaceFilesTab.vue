@@ -6,7 +6,7 @@
     >
       <div class="flex items-center gap-3">
         <!-- Add existing file -->
-        <Tooltip :content="t('spaceManager.addFile')">
+        <Tooltip v-if="canManage" :content="t('spaceManager.addFile')">
           <button
             class="group flex h-9 items-center justify-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 text-sm font-medium text-(--text-secondary) shadow-sm transition-all hover:border-(--color-primary-light) hover:bg-(--bg-hover) hover:text-(--text-primary) hover:shadow-md active:scale-95"
             @click="$emit('addFiles')"
@@ -17,7 +17,7 @@
         </Tooltip>
 
         <!-- Upload new file -->
-        <Tooltip :content="t('common.upload')">
+        <Tooltip v-if="canManage" :content="t('common.upload')">
           <button
             class="group bg-primary shadow-primary/20 flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium text-(--text-inverse) shadow-lg transition-all hover:-translate-y-0.5 hover:bg-(--color-primary-hover) active:scale-95"
             @click="$emit('upload')"
@@ -86,7 +86,7 @@
           >
             <!-- Set as Cover Button -->
             <button
-              v-if="file.mimeType?.startsWith('image/') && coverFileId !== file.id"
+              v-if="canManage && file.mimeType?.startsWith('image/') && coverFileId !== file.id"
               class="bg-primary rounded-full p-1.5 text-(--text-inverse) transition-colors hover:bg-(--color-primary-hover)"
               :title="t('spaceManager.setCover')"
               @click.stop="$emit('setCover', file.id)"
@@ -95,6 +95,7 @@
             </button>
             <!-- Remove Button -->
             <button
+              v-if="canManage"
               class="bg-danger rounded-full p-1.5 text-(--text-inverse) transition-colors hover:bg-red-600"
               @click.stop="$emit('remove', file.id)"
             >
@@ -122,6 +123,10 @@ const props = defineProps({
   coverFileId: {
     type: [String, null],
     default: null,
+  },
+  canManage: {
+    type: Boolean,
+    default: false,
   },
 });
 

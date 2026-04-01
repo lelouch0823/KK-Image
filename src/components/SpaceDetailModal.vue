@@ -75,6 +75,7 @@
       <SubspaceList
         v-if="activeTab === 'files' && isCollectionTemplate"
         :space-id="props.space.id"
+        :can-manage="props.canManage"
         @open-subspace="openSubspaceDetail"
         @updated="onSubspaceUpdated"
       />
@@ -84,6 +85,7 @@
         v-else-if="activeTab === 'files'"
         :files="spaceData?.files"
         :cover-file-id="spaceData?.coverFileId"
+        :can-manage="props.canManage"
         @add-files="showFileSelector = true"
         @set-cover="setCover"
         @remove="removeFile"
@@ -98,6 +100,7 @@
         :publishing="publishing"
         :share-mode="spaceData?.shareMode || 'none'"
         :shared-salespersons="spaceData?.sharedSalespersons || []"
+        :can-manage="props.canManage"
         @publish="publishSpace"
         @unpublish="unpublishSpace"
         @update-share-settings="handleUpdateShareSettings"
@@ -126,7 +129,11 @@
     </template>
 
     <!-- 文件选择器 -->
-    <FileSelector v-if="showFileSelector" @close="showFileSelector = false" @select="addFiles" />
+    <FileSelector
+      v-if="showFileSelector && props.canManage"
+      @close="showFileSelector = false"
+      @select="addFiles"
+    />
   </Modal>
 </template>
 
@@ -147,6 +154,7 @@ import SpaceSettingsTab from './space/SpaceSettingsTab.vue';
 
 const props = defineProps({
   space: { type: Object, required: true },
+  canManage: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['close', 'updated', 'openSubspace']);
@@ -188,6 +196,7 @@ const onSubspaceUpdated = () => {
 };
 
 const setCover = async (fileId) => {
+  if (!props.canManage) return;
   await updateSpace(props.space.id, { coverFileId: fileId });
   await loadData();
   addToast({ message: t('spaceManager.coverSet'), type: 'success' });
@@ -202,6 +211,7 @@ const loadData = async () => {
 };
 
 const publishSpace = async () => {
+  if (!props.canManage) return;
   publishing.value = true;
   await updateSpace(props.space.id, { isPublic: true });
   await loadData();
@@ -211,6 +221,7 @@ const publishSpace = async () => {
 };
 
 const unpublishSpace = async () => {
+  if (!props.canManage) return;
   publishing.value = true;
   await updateSpace(props.space.id, { isPublic: false });
   await loadData();
@@ -220,6 +231,7 @@ const unpublishSpace = async () => {
 };
 
 const handleUpdateShareSettings = async (settings) => {
+  if (!props.canManage) return;
   publishing.value = true;
   await updateSpace(props.space.id, settings);
   await loadData();
@@ -229,6 +241,7 @@ const handleUpdateShareSettings = async (settings) => {
 };
 
 const addFiles = async (payload) => {
+  if (!props.canManage) return;
   showFileSelector.value = false;
   await addFilesToSpace(props.space.id, payload);
   await loadData();
@@ -236,6 +249,7 @@ const addFiles = async (payload) => {
 };
 
 const removeFile = async (fileId) => {
+  if (!props.canManage) return;
   await removeFilesFromSpace(props.space.id, [fileId]);
   await loadData();
   emit('updated');

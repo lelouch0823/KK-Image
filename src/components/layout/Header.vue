@@ -87,6 +87,7 @@
 
       <!-- AI 助手按钮 -->
       <button
+        v-if="canUseAI"
         :title="t('ai.assistant')"
         class="group relative flex size-9 items-center justify-center rounded-lg border border-(--border-color) transition-all hover:bg-primary/5 hover:border-primary/30"
         :class="{ 'bg-primary/10 border-primary/50 text-primary': isOpen }"
@@ -139,6 +140,7 @@ import { useNotifications } from '@/composables/useNotifications';
 import NotificationList from '@/components/common/NotificationList.vue';
 import { onClickOutside } from '@vueuse/core';
 import { useAI } from '@/composables/useAI';
+import { useAccessControl } from '@/composables/useAccessControl';
 import { useTheme } from '@/composables/useTheme';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import SearchInput from '@/components/ui/SearchInput.vue';
@@ -152,11 +154,13 @@ const { t } = useI18n();
 const { searchQuery } = useSearch();
 const { unreadCount, startPolling, stopPolling, permissionDenied, permissionDeniedReason } = useNotifications();
 const { isOpen, toggle: toggleAI } = useAI();
+const { hasPermission, loadPermissions } = useAccessControl();
 const { isDark, toggleTheme } = useTheme();
 
 const showNotifications = ref(false);
 const notificationRef = ref(null);
 const notificationsSupported = ref(true); // 可以根据路由判断是否显示，目前全显示
+const canUseAI = ref(false);
 
 // 移动端搜索状态
 const showMobileSearch = ref(false);
@@ -186,7 +190,9 @@ const handleRefresh = () => {
   window.location.reload();
 };
 
-onMounted(() => {
+onMounted(async () => {
+  await loadPermissions();
+  canUseAI.value = hasPermission('stats:read');
   startPolling();
 });
 

@@ -124,9 +124,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useI18n } from '@/composables/useI18n';
+import { useAccessControl } from '@/composables/useAccessControl';
 import AppInput from '@/components/ui/AppInput.vue';
 import SpaceVisibilitySelector from '@/components/space/SpaceVisibilitySelector.vue';
 import Modal from '@/components/ui/Modal.vue';
@@ -144,10 +145,12 @@ const emit = defineEmits(['close', 'created']);
 
 const { createSpace, createSubspace } = useSpaces();
 const { t } = useI18n();
+const { hasPermission, loadPermissions } = useAccessControl();
 
 const isSubspace = computed(() => !!props.parentId);
 
 const boundProduct = ref(null);
+const canManageProducts = ref(true);
 
 const form = ref({
   name: '',
@@ -199,7 +202,7 @@ const templates = computed(() => [
     desc: t('spaceManager.templates.portfolioDesc'),
     icon: 'squares-2x2',
   },
-]);
+].filter((template) => template.key !== 'product' || canManageProducts.value || !!props.initialProduct));
 
 const submitButtonText = computed(() => {
   if (submitting.value) return t('spaceManager.creating');
@@ -252,9 +255,14 @@ const handleSubmit = async () => {
   }
 };
 
-// Handle optional initialization for Pseudo-Merge quick-share flows
-import { onMounted } from 'vue';
 onMounted(() => {
+  loadPermissions().then(() => {
+    canManageProducts.value = hasPermission('products:manage');
+    if (!canManageProducts.value && !props.initialProduct && form.value.template === 'product') {
+      form.value.template = 'gallery';
+    }
+  });
+
   if (props.initialProduct) {
     handleProductSelect(props.initialProduct);
     

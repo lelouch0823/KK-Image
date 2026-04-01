@@ -5,7 +5,7 @@
       class="flex shrink-0 items-center justify-between border-b border-(--border-color) bg-(--bg-card) p-4"
     >
       <div class="flex items-center gap-3">
-        <Tooltip :content="t('spaceManager.createSubspace')">
+        <Tooltip v-if="props.canManage" :content="t('spaceManager.createSubspace')">
           <button
             class="bg-primary flex size-8 items-center justify-center rounded-lg text-sm font-medium text-(--text-inverse) transition-colors hover:bg-(--color-primary-hover)"
             @click="showCreateModal = true"
@@ -48,6 +48,7 @@
         </div>
         <p class="mb-5 text-sm">{{ t('spaceManager.emptySubspaces') }}</p>
         <AppButton
+          v-if="props.canManage"
           size="sm"
           :text="t('spaceManager.createFirst')"
           @click="showCreateModal = true"
@@ -158,7 +159,7 @@
                   </svg>
                 </button>
               </Tooltip>
-              <Tooltip :content="t('spaceManager.deleteSpace')">
+              <Tooltip v-if="props.canManage" :content="t('spaceManager.deleteSpace')">
                 <button
                   class="text-danger flex size-8 items-center justify-center rounded-lg bg-(--color-danger-bg) transition-colors hover:bg-red-100"
                   @click.stop="deleteSubspace(sub)"
@@ -181,7 +182,7 @@
 
     <!-- Create Subspace Modal (reuse SpaceCreateModal with parentId) -->
     <SpaceCreateModal
-      v-if="showCreateModal"
+      v-if="showCreateModal && props.canManage"
       :parent-id="spaceId"
       @close="showCreateModal = false"
       @created="onSubspaceCreated"
@@ -213,6 +214,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 
 const props = defineProps({
   spaceId: { type: String, required: true },
+  canManage: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['openSubspace', 'updated']);
@@ -258,6 +260,7 @@ const copyLink = async (sub) => {
 };
 
 const deleteSubspace = (sub) => {
+  if (!props.canManage) return;
   confirmData.value = {
     show: true,
     title: t('common.delete'),

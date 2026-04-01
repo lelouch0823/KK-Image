@@ -31,6 +31,7 @@
       <div class="flex shrink-0 items-center gap-2 lg:hidden">
         <input ref="fileInputMobile" type="file" multiple class="hidden" @change="handleFileSelect" />
         <button
+          v-if="canWriteFiles"
           class="bg-primary shadow-primary/20 flex size-9 items-center justify-center rounded-xl text-(--text-inverse) shadow-lg transition-all active:scale-95 dark:text-gray-900"
           @click="$refs.fileInputMobile.click()"
         >
@@ -61,6 +62,7 @@
           <div class="bg-primary/20 h-4 w-px"></div>
 
           <AppButton
+            v-if="canWriteFiles"
             variant="ghost"
             size="sm"
             class="text-success !px-1.5 hover:bg-success/10 hover:text-success"
@@ -73,6 +75,7 @@
           </AppButton>
 
           <AppButton
+            v-if="canMoveFiles"
             variant="ghost"
             size="sm"
             class="text-info !px-1.5 hover:bg-info/10 hover:text-info"
@@ -85,6 +88,7 @@
           </AppButton>
 
           <AppButton
+            v-if="canDeleteFiles"
             variant="ghost"
             size="sm"
             class="text-danger !px-1.5 hover:bg-danger/10 hover:text-danger"
@@ -113,7 +117,11 @@
       <div v-if="selectedCount > 0" class="hidden h-6 w-px bg-(--border-color) lg:block"></div>
 
       <!-- Regular Actions (桌面端显示完整, 移动端简化) -->
-      <Tooltip v-if="currentFolder" :content="t('fileManager.shareFolder')" class="hidden lg:block">
+      <Tooltip
+        v-if="currentFolder && canManageFolders"
+        :content="t('fileManager.shareFolder')"
+        class="hidden lg:block"
+      >
         <button
           class="text-secondary flex size-10 items-center justify-center rounded-xl border border-(--border-color) bg-(--bg-card) transition-all hover:text-primary hover:bg-(--bg-hover) active:scale-95"
           @click="$emit('share-folder')"
@@ -124,7 +132,7 @@
 
       <!-- 桌面端上传按钮 -->
       <input ref="fileInput" type="file" multiple class="hidden" @change="handleFileSelect" />
-      <div class="hidden lg:block">
+      <div v-if="canWriteFiles" class="hidden lg:block">
         <Tooltip :content="t('fileManager.upload')">
           <button
             class="bg-primary shadow-primary/20 flex size-10 items-center justify-center rounded-xl text-(--text-inverse) shadow-lg transition-all hover:bg-primary-hover hover:shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 dark:text-gray-900"
@@ -136,7 +144,7 @@
       </div>
 
       <!-- 新建文件夹 -->
-      <Tooltip :content="t('fileManager.newFolder')">
+      <Tooltip v-if="canManageFolders" :content="t('fileManager.newFolder')">
         <button
           class="text-secondary flex size-9 items-center justify-center rounded-xl border border-(--border-color) bg-(--bg-card) transition-all hover:text-primary hover:bg-(--bg-hover) active:scale-95 lg:size-10"
           @click="$emit('create-folder')"
@@ -212,6 +220,22 @@ defineProps({
   selectedCount: {
     type: Number,
     default: 0,
+  },
+  canWriteFiles: {
+    type: Boolean,
+    default: false,
+  },
+  canDeleteFiles: {
+    type: Boolean,
+    default: false,
+  },
+  canManageFolders: {
+    type: Boolean,
+    default: false,
+  },
+  canMoveFiles: {
+    type: Boolean,
+    default: false,
   },
 });
 

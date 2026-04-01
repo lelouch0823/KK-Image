@@ -33,6 +33,10 @@
       :breadcrumbs="breadcrumbs"
       :current-folder="currentFolder"
       :selected-count="selectedIds.size"
+      :can-write-files="canWriteFiles"
+      :can-delete-files="canDeleteFiles"
+      :can-manage-folders="canManageFolders"
+      :can-move-files="canMoveFiles"
       @navigate="navigateTo"
       @upload="handleFileSelect"
       @create-folder="openCreateFolderModal"
@@ -263,6 +267,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useSearch } from '@/composables/useSearch';
 import { useToast } from '@/composables/useToast';
 import { useUploadQueue } from '@/composables/useUploadQueue';
+import { useAccessControl } from '@/composables/useAccessControl';
 import { useFileDrag } from '@/composables/file-manager/useFileDrag';
 import { useFileSelection } from '@/composables/file-manager/useFileSelection';
 import { useFileNavigation } from '@/composables/file-manager/useFileNavigation';
@@ -270,6 +275,7 @@ import { useFileNavigation } from '@/composables/file-manager/useFileNavigation'
 const { addToast } = useToast();
 const { addFiles, registerFolderRefresh, unregisterFolderRefresh } = useUploadQueue();
 const { t } = useI18n();
+const { hasPermission, loadPermissions } = useAccessControl();
 
 // Setup FileManager Composable
 const {
@@ -342,6 +348,12 @@ const showTrashModal = ref(false); // NEW
 const itemsToMove = ref([]);
 const itemsToTag = ref([]);
 const currentShareFile = ref(null);
+const canWriteFiles = ref(false);
+const canDeleteFiles = ref(false);
+const canBrowseFolders = ref(false);
+const canManageFolders = ref(false);
+const canDeleteFolders = ref(false);
+const canMoveFiles = ref(false);
 
 // Confirm Dialog State
 const confirmData = ref({
@@ -363,27 +375,33 @@ const contextMenuData = ref({
 
 // Handlers
 const handleCreateFolder = async (name) => {
+  if (!canManageFolders.value) return;
   await createFolder({ name });
 };
 
 const openCreateFolderModal = () => {
+  if (!canManageFolders.value) return;
   modals.value?.openCreateFolder();
 };
 
 const openShareFolderModal = (folder = null) => {
+  if (!canManageFolders.value) return;
   modals.value?.openShareFolder(folder);
 };
 
 const handleRenameSubmit = async ({ id, type, newName }) => {
   if (type === 'file') {
+    if (!canWriteFiles.value) return;
     await renameFile(id, newName);
   } else {
+    if (!canManageFolders.value) return;
     await renameFolder(id, newName);
   }
 };
 
 // Batch Actions
 const handleBatchDelete = () => {
+  if (!canDeleteFiles.value) return;
   if (selectedIds.value.size === 0) return;
   
   confirmData.value = {
@@ -407,12 +425,14 @@ const handleBatchDelete = () => {
 };
 
 const handleBatchMove = () => {
+  if (!canMoveFiles.value) return;
   if (selectedIds.value.size === 0) return;
   itemsToMove.value = Array.from(selectedIds.value).map(id => ({ id, type: 'file' }));
   modals.value.openMove();
 };
 
 const handleBatchTag = () => {
+  if (!canWriteFiles.value) return;
   if (selectedIds.value.size === 0) return;
   // Tags only apply to files currently, but could check type if needed
   itemsToTag.value = Array.from(selectedIds.value).map(id => {
@@ -424,11 +444,13 @@ const handleBatchTag = () => {
 };
 
 const handleMoveFile = (file) => {
+  if (!canMoveFiles.value) return;
   itemsToMove.value = [{ id: file.id, type: 'file' }];
   modals.value.openMove();
 };
 
 const handleMoveFolder = (folder) => {
+  if (!canManageFolders.value) return;
   itemsToMove.value = [{ id: folder.id, type: 'folder' }];
   modals.value.openMove();
 };
@@ -445,6 +467,7 @@ const handleTagged = () => {
 
 // Delete Actions
 const handleDeleteFile = (file) => {
+  if (!canDeleteFiles.value) return;
   confirmData.value = {
     show: true,
     title: t('common.delete'),
@@ -465,6 +488,7 @@ const handleDeleteFile = (file) => {
 };
 
 const handleDeleteFolder = (folder) => {
+  if (!canDeleteFolders.value) return;
   confirmData.value = {
     show: true,
     title: t('common.delete'),
@@ -494,6 +518,7 @@ const handleShareUpdated = () => {
 };
 
 const handleFileSelect = (files) => {
+    if (!canWriteFiles.value) return;
     if (!currentFolder.value) {
       addToast({ message: t('fileManager.selectFolderFirst'), type: 'warning' });
       return;
@@ -521,11 +546,27 @@ watch(
 
 // Lifecycle
 onMounted(() => {
+  loadPermissions().then(() => {
+    canWriteFiles.value = hasPermission('files:write');
+    canDeleteFiles.value = hasPermission('files:delete');
+    canBrowseFolders.value = hasPermission('folders:read');
+    canManageFolders.value = hasPermission('folders:write');
+    canDeleteFolders.value = hasPermission('folders:delete');
+    canMoveFiles.value = canWriteFiles.value && canBrowseFolders.value;
+  });
   loadFolderData();
   window.addEventListener('click', () => contextMenuData.value.show = false);
 });
 
 onActivated(() => {
+  loadPermissions().then(() => {
+    canWriteFiles.value = hasPermission('files:write');
+    canDeleteFiles.value = hasPermission('files:delete');
+    canBrowseFolders.value = hasPermission('folders:read');
+    canManageFolders.value = hasPermission('folders:write');
+    canDeleteFolders.value = hasPermission('folders:delete');
+    canMoveFiles.value = canWriteFiles.value && canBrowseFolders.value;
+  });
   loadFolderData(currentFolder.value?.id);
 });
 
@@ -560,28 +601,36 @@ const Icons = {
 const openBackgroundContextMenu = (e) => {
   const menuItems = [
     { 
-      label: t('fileManager.upload'), 
-      icon: Icons.upload, 
-      action: () => document.querySelector('input[type=file]')?.click() 
-    },
-    { 
-      label: t('fileManager.newFolder'), 
-      icon: Icons.folderPlus, 
-      action: () => modals.value.openCreateFolder()
-    },
-    { type: 'separator' },
-    { 
       label: t('header.refresh'), 
       icon: Icons.refresh, 
       action: () => loadFolderData(currentFolder.value?.id) 
     },
-    { type: 'separator' },
     { 
       label: viewMode.value === 'list' ? t('fileManager.viewMode.grid') : t('fileManager.viewMode.list'), 
       icon: viewMode.value === 'list' ? Icons.grid : Icons.list, 
       action: () => viewMode.value = viewMode.value === 'list' ? 'grid' : 'list' 
     }
   ];
+
+  if (canWriteFiles.value) {
+    menuItems.unshift({
+      label: t('fileManager.upload'),
+      icon: Icons.upload,
+      action: () => document.querySelector('input[type=file]')?.click(),
+    });
+  }
+
+  if (canManageFolders.value) {
+    menuItems.splice(canWriteFiles.value ? 1 : 0, 0, {
+      label: t('fileManager.newFolder'),
+      icon: Icons.folderPlus,
+      action: () => modals.value.openCreateFolder(),
+    });
+  }
+
+  if (canWriteFiles.value || canManageFolders.value) {
+    menuItems.splice((canWriteFiles.value ? 1 : 0) + (canManageFolders.value ? 1 : 0), 0, { type: 'separator' });
+  }
 
   contextMenuData.value = {
     show: true,
@@ -594,25 +643,33 @@ const openBackgroundContextMenu = (e) => {
 const openContextMenu = (e, item, type) => {
   const menuItems = [
     { label: t('fileManager.contextMenu.open'), icon: Icons.open, action: () => type === 'folder' ? navigateTo(item.id) : window.open(item.url, '_blank') },
-    { label: t('fileManager.contextMenu.rename'), icon: Icons.rename, action: () => modals.value.openRename({ id: item.id, type, name: item.name }) },
-    { label: t('fileManager.contextMenu.move'), icon: Icons.move, action: () => type === 'folder' ? handleMoveFolder(item) : handleMoveFile(item) },
   ];
 
   if (type === 'file') {
+    if (canWriteFiles.value) {
+      menuItems.push({ label: t('fileManager.contextMenu.rename'), icon: Icons.rename, action: () => modals.value.openRename({ id: item.id, type, name: item.name }) });
+    }
+    if (canMoveFiles.value) {
+      menuItems.push({ label: t('fileManager.contextMenu.move'), icon: Icons.move, action: () => handleMoveFile(item) });
+    }
     menuItems.push({ label: t('fileManager.contextMenu.share'), icon: Icons.share, action: () => handleShareFile(item) });
     menuItems.push({ label: t('fileManager.contextMenu.download'), icon: Icons.download, action: () => window.open(item.url, '_blank') });
-  } else {
+  } else if (canManageFolders.value) {
     // Folder actions
+    menuItems.push({ label: t('fileManager.contextMenu.rename'), icon: Icons.rename, action: () => modals.value.openRename({ id: item.id, type, name: item.name }) });
+    menuItems.push({ label: t('fileManager.contextMenu.move'), icon: Icons.move, action: () => handleMoveFolder(item) });
     menuItems.push({ label: t('fileManager.contextMenu.share'), icon: Icons.share, action: () => openShareFolderModal(item) });
   }
-  
-  menuItems.push({ type: 'separator' });
-  menuItems.push({ 
-    label: t('fileManager.contextMenu.delete'), 
-    icon: Icons.delete, 
-    danger: true, 
-    action: () => type === 'folder' ? handleDeleteFolder(item) : handleDeleteFile(item) 
-  });
+
+  if ((type === 'file' && canDeleteFiles.value) || (type === 'folder' && canDeleteFolders.value)) {
+    menuItems.push({ type: 'separator' });
+    menuItems.push({ 
+      label: t('fileManager.contextMenu.delete'), 
+      icon: Icons.delete, 
+      danger: true, 
+      action: () => type === 'folder' ? handleDeleteFolder(item) : handleDeleteFile(item) 
+    });
+  }
 
   contextMenuData.value = {
     show: true,

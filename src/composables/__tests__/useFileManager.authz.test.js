@@ -55,4 +55,27 @@ describe('useFileManager authz behavior', () => {
     expect(store.errorCode.value).toBe('FORBIDDEN');
     expect(store.error.value).toContain('权限不足');
   });
+
+  it('loads root files when folders request is forbidden but files request succeeds', async () => {
+    const foldersForbidden = new Error('权限不足: folders:read');
+    foldersForbidden.status = 403;
+    foldersForbidden.data = { error: '权限不足: folders:read' };
+    mockAuthFetch
+      .mockRejectedValueOnce(foldersForbidden)
+      .mockResolvedValueOnce({
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: [{ id: 'file-1', name: 'root-file.jpg' }],
+          }),
+      });
+
+    const store = useFileManager();
+    await store.loadFolderData();
+
+    expect(store.errorCode.value).toBe(null);
+    expect(store.error.value).toBe(null);
+    expect(store.subfolders.value).toEqual([]);
+    expect(store.files.value).toEqual([{ id: 'file-1', name: 'root-file.jpg' }]);
+  });
 });

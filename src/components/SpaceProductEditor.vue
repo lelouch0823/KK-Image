@@ -76,7 +76,7 @@
         <!-- 表单区域 -->
         <div class="flex-1 space-y-4 overflow-y-auto p-6">
           <!-- 引入实际商品关联选块 (SOTA 独立组件) -->
-          <div class="mb-4">
+          <div v-if="canManageProducts" class="mb-4">
             <ProductBindingSection
               :bound-product="boundProduct"
               :variant-select-policy="'in_stock_only'"
@@ -368,6 +368,7 @@ import { useSpaces } from '@/composables/useSpaces';
 import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
+import { useAccessControl } from '@/composables/useAccessControl';
 import { ROUTES } from '@/utils/constants';
 
 import { useUploadQueue } from '@/composables/useUploadQueue';
@@ -397,6 +398,7 @@ const { updateSpace, addFilesToSpace, removeFilesFromSpace, reorderSpaceFiles, l
 const { loadProduct } = useProducts();
 const { addToast } = useToast();
 const { t } = useI18n();
+const { can } = useAccessControl();
 const { addFiles: enqueueFiles, registerFolderRefresh, unregisterFolderRefresh } = useUploadQueue();
 
 const showFileSelector = ref(false);
@@ -407,6 +409,7 @@ const passwordEnabled = ref(false);
 const mobileTab = ref('info');
 const isDesktop = ref(window.innerWidth >= 1024);
 const boundProduct = ref(null);
+const canManageProducts = ref(true);
 
 // 确认弹窗状态
 const confirmData = ref({
@@ -448,9 +451,10 @@ const productImages = computed(() => {
 });
 
 const initData = async () => {
+  canManageProducts.value = await can('products:manage');
   const data = await loadSpace(props.space.id);
   if (data) {
-    if (data.productId) {
+    if (data.productId && canManageProducts.value) {
       const product = await loadProduct(data.productId);
       if (product) {
         const selectedVariant = (product.variants || []).find(v => v.id === data.variantId) || null;
@@ -519,6 +523,7 @@ const openPreview = () => {
 };
 
 const handleProductSelect = (product) => {
+  if (!canManageProducts.value) return;
   const variant = product.selectedVariant;
   if (!variant) return;
   const mainImage = resolveSelectedVariantMainImageSrc(product);
@@ -555,6 +560,7 @@ const handleProductSelect = (product) => {
 };
 
 const unbindProduct = () => {
+  if (!canManageProducts.value) return;
   boundProduct.value = null;
   form.value.productId = null;
   form.value.variantId = null;

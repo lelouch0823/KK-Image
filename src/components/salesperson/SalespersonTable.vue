@@ -62,6 +62,7 @@
           <AppIcon name="clipboard" class="size-4" />
         </button>
         <button
+          v-if="canManage"
           class="hover:bg-info-bg hover:text-info rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90"
           :title="t('salesperson.edit')"
           @click.stop="$emit('edit', row)"
@@ -69,6 +70,7 @@
           <AppIcon name="pencil-alt" class="size-4" />
         </button>
         <button
+          v-if="canManage"
           class="hover:bg-danger/10 hover:text-danger rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90 disabled:cursor-not-allowed disabled:opacity-30"
           :title="row.orderCount > 0 ? t('salesperson.cannotDeleteHasOrders') : t('common.delete')"
           :disabled="row.orderCount > 0"
@@ -100,6 +102,10 @@ defineProps({
   rowClass: {
     type: Function,
     default: () => '',
+  },
+  canManage: {
+    type: Boolean,
+    default: false,
   },
 });
 

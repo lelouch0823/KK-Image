@@ -186,6 +186,7 @@ const loading = ref(false);
 const currentFolderId = ref(null);
 const breadcrumbs = ref([]);
 const selectedIds = ref([]);
+const folderAccessDenied = ref(false);
 
 // 计算当前目录下的子文件夹
 // 计算当前目录下的子文件夹
@@ -207,9 +208,16 @@ const loadFoldersStructure = async () => {
     const response = await authFetch(`${API.FOLDERS}?all=true`);
     const result = await response.json();
     if (result.success) {
+      folderAccessDenied.value = false;
       allFolders.value = result.data || [];
     }
   } catch (err) {
+    const message = err?.data?.error || err?.message || '';
+    if (Number(err?.status) === 403 || message.includes('权限不足')) {
+      folderAccessDenied.value = true;
+      allFolders.value = [];
+      return;
+    }
     console.error(t('common.loadFailed'), err);
   }
 };
@@ -242,18 +250,7 @@ const loadFiles = async () => {
   try {
     const url = currentFolderId.value
       ? API.FOLDER_BY_ID(currentFolderId.value)
-      : `${API.FOLDERS}?all_files=true`; // 根目录显示所有未分类文件或者配合后端逻辑
-
-    // 注意：后端 FOLDER_BY_ID 返回 { id, name, files: [] }
-    // 根目录逻辑可能需要调整，这里假设后端支持 ?root=true 或者是过滤
-    // 修正：复用现有逻辑，如果 currentFolderId 为 null，获取所有文件可能不太对，应该是获取“未分类文件”或“根目录文件”
-    // 暂时逻辑：根目录不显示文件，只显示一级文件夹？或者调用一个能获取所有文件的接口？
-    // 为了简化，根目录获取所有文件（all_files=true）是之前有的逻辑。
-
-    // 优化：如果 currentFolderId 是 null，我们可能只想显示根文件夹，而不显示所有文件（太多了）。
-    // 但用户希望能选文件。
-    // 让我们假设 API.FOLDERS 返回所有一级文件夹。
-    // 如果 API.FILES 能支持 parent_id=null 最好。目前复用 Folder logic.
+      : API.FILES;
 
     const response = await authFetch(url);
     const result = await response.json();
@@ -265,17 +262,18 @@ const loadFiles = async () => {
       if (currentFolderId.value) {
         files.value = result.data.files || [];
       } else {
-        // 根目录：all_files=true 返回的是所有文件，不分文件夹。
-        // 我们这里如果不传 all_files=true，FOLDERS 接口只返回文件夹列表。
-        // 需要一个接口获取“根目录下的文件”。目前系统好像没有专门存“根目录文件”的概念（所有文件都在某种folder里？或者parent_id为null）
-        // 暂且：根目录不显示文件，只引导用户进入文件夹。或者显示最近文件。
-        // 修正：使用 all_files=true 获取所有文件作为备选，或者让用户必须进文件夹选。
-        // 为了体验，根目录暂不显示文件，只显示文件夹。
-        files.value = [];
+        files.value = Array.isArray(result.data) ? result.data : (result.data?.data || []);
       }
+    } else {
+      files.value = [];
     }
   } catch (err) {
-    console.error(t('common.loadFailed'), err);
+    const message = err?.data?.error || err?.message || '';
+    if (!folderAccessDenied.value || currentFolderId.value) {
+      console.error(t('common.loadFailed'), err);
+    } else if (Number(err?.status) !== 403 && !message.includes('权限不足')) {
+      console.error(t('common.loadFailed'), err);
+    }
     files.value = [];
   } finally {
     loading.value = false;

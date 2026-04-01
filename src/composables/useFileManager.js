@@ -27,6 +27,15 @@ export function useFileManager() {
     return null;
   };
 
+  const getErrorMessage = (err) => err?.data?.error || err?.message || t('fileOps.loadFailed');
+  const isForbiddenError = (status, message = '') =>
+    resolveErrorCode(status, message) === 'FORBIDDEN';
+  const normalizeFileList = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    return [];
+  };
+
   const setErrorState = (message, status = 0, options = {}) => {
     const { silent = false, toastMessage = null, setGlobal = true } = options;
     const code = resolveErrorCode(status, message);
@@ -85,31 +94,61 @@ export function useFileManager() {
           setErrorState(res.message);
         }
       } else {
-        // 根目录：并行加载文件夹和文件
-        const [foldersRes, filesRes] = await Promise.all([
+        currentFolder.value = null;
+        breadcrumbs.value = [];
+
+        // 根目录：文件读取必须成功，文件夹列表按权限降级
+        const [foldersRes, filesRes] = await Promise.allSettled([
           authFetch(API.FOLDERS, { signal: abortController.signal }).then((r) => r.json()),
           authFetch(API.FILES, { signal: abortController.signal }).then((r) => r.json()),
         ]);
 
-        if (foldersRes.success) {
-          currentFolder.value = null;
-          subfolders.value = foldersRes.data;
-          breadcrumbs.value = [];
+        if (foldersRes.status === 'rejected' && foldersRes.reason?.name === 'AbortError') return;
+        if (filesRes.status === 'rejected' && filesRes.reason?.name === 'AbortError') return;
+
+        let folderError = null;
+
+        if (foldersRes.status === 'fulfilled' && foldersRes.value?.success) {
+          subfolders.value = foldersRes.value.data || [];
         } else {
-          setErrorState(foldersRes.message);
+          subfolders.value = [];
+          if (foldersRes.status === 'fulfilled') {
+            folderError = {
+              status: 0,
+              message: foldersRes.value?.message || t('fileOps.loadFailed'),
+            };
+          } else {
+            folderError = {
+              status: Number(foldersRes.reason?.status || 0),
+              message: getErrorMessage(foldersRes.reason),
+            };
+          }
         }
 
-        if (filesRes.success && filesRes.data) {
-          // /api/v1/files 返回 { data: [...], pagination: {...} }
-          files.value = Array.isArray(filesRes.data) ? filesRes.data : filesRes.data.data;
+        if (filesRes.status === 'fulfilled' && filesRes.value?.success) {
+          files.value = normalizeFileList(filesRes.value.data);
         } else {
+          const status = filesRes.status === 'fulfilled' ? 0 : Number(filesRes.reason?.status || 0);
+          const msg = filesRes.status === 'fulfilled'
+            ? filesRes.value?.message || t('fileOps.loadFailed')
+            : getErrorMessage(filesRes.reason);
           files.value = [];
+          setErrorState(msg, status, { silent, toastMessage: t('fileOps.loadFailed') });
+          return;
+        }
+
+        if (folderError && !isForbiddenError(folderError.status, folderError.message)) {
+          setErrorState(folderError.message, folderError.status, {
+            silent,
+            toastMessage: t('fileOps.loadFailed'),
+            setGlobal: false,
+          });
         }
       }
     } catch (_e) {
       if (_e.name === 'AbortError') return;
       const status = Number(_e?.status || 0);
-      const msg = _e?.data?.error || _e?.message || t('fileOps.loadFailed');
+      const msg = getErrorMessage(_e);
       setErrorState(msg, status, { silent, toastMessage: t('fileOps.loadFailed') });
     } finally {
       if (!silent) {
