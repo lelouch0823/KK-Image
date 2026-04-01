@@ -49,12 +49,44 @@ describe('PurchaseOrders design-system migration', () => {
     expect(source).not.toContain('bg-linear-to-br from-sky-50/75 via-(--bg-card) to-amber-50/45');
     expect(source).toContain('data-testid="purchase-order-console-banner"');
     expect(source).toContain('data-testid="purchase-order-overview-strip"');
+    expect(source).toContain('rounded-[1.75rem] border border-(--border-color)/60 bg-(--bg-card) p-4');
+    expect(source).toContain('shadow-[0_18px_50px_-42px_rgba(15,23,42,0.28)]');
+    expect(source).toContain('rgba(59,130,246,0.08),transparent_30%');
+    expect(source).toContain('rgba(249,115,22,0.06),transparent_24%');
+  });
+
+  it('uses ledger-style toolbar structure and copy for the table context', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/views/PurchaseOrders.vue'), 'utf8');
+    const toolbarBlock = source.match(/<template #toolbar>[\s\S]*?<\/template>/)?.[0] || '';
+
+    expect(source).toContain('<template #toolbar>');
+    expect(toolbarBlock).toContain('<h3 class="text-sm font-semibold text-(--text-main)">Order Ledger</h3>');
+    expect(toolbarBlock).toContain("t('purchaseOrder.ui.tableHint', '主状态和到货进度在同一列聚合展示，便于快速扫读链路卡点。')");
+    expect(toolbarBlock).toContain('<div class="text-xs text-(--text-secondary) lg:text-right">');
+    expect(toolbarBlock).toContain("t('purchaseOrder.ui.liveHint', '点击行可查看采购链路详情')");
+    expect(toolbarBlock).not.toContain('<StatusBadge');
   });
 
   it('drops the table-row cost pill so money reads as calmer ledger data', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/views/PurchaseOrders.vue'), 'utf8');
+    const totalCostCell = source.match(/<template #cell-total_goods_cost="\{ row: po \}">[\s\S]*?<\/template>/)?.[0] || '';
 
     expect(source).not.toContain('inline-flex min-w-[7.5rem] justify-end rounded-lg bg-(--bg-muted)/65');
     expect(source).toContain('data-testid="purchase-order-total-cost"');
+    expect(totalCostCell).toContain('inline-flex min-w-[7.5rem] justify-end font-mono text-sm font-semibold text-(--text-main) tabular-nums');
+    expect(totalCostCell).not.toContain('font-[Outfit]');
+    expect(totalCostCell).not.toContain('rounded-lg');
+    expect(totalCostCell).not.toContain('bg-(--bg-muted)');
+  });
+
+  it('removes dead top-level overview state from the script', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/views/PurchaseOrders.vue'), 'utf8');
+
+    expect(source).not.toContain('const activeFilterLabel = computed(() => {');
+
+    const consoleSignalsBlock = source.match(/const consoleSignals = computed\(\(\) => \{[\s\S]*?\n\}\);\n\nconst detailSummaryCards = computed/);
+    expect(consoleSignalsBlock?.[0]).toBeTruthy();
+    expect(consoleSignalsBlock?.[0]).not.toContain('badge:');
+    expect(consoleSignalsBlock?.[0]).not.toContain('variant:');
   });
 });

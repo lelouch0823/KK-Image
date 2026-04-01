@@ -36,7 +36,7 @@
     <!-- ===== 统计卡片：骨架屏 or 真实数据 ===== -->
     <section
       data-testid="purchase-order-console-banner"
-      class="relative overflow-hidden rounded-[1.75rem] border border-(--border-color)/60 bg-(--bg-card) px-4 py-4 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.28)] sm:px-5 sm:py-5"
+      class="relative overflow-hidden rounded-[1.75rem] border border-(--border-color)/60 bg-(--bg-card) p-4 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.28)] sm:p-5"
     >
       <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.06),transparent_24%)]"></div>
       <div class="relative space-y-4">
@@ -99,7 +99,7 @@
             <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">{{ signal.label }}</p>
             <div class="mt-2">
               <div>
-                <div class="font-mono text-2xl font-semibold tabular-nums text-(--text-main)">{{ signal.value }}</div>
+                <div class="font-mono text-2xl font-semibold text-(--text-main) tabular-nums">{{ signal.value }}</div>
                 <p class="mt-1 text-xs leading-5 text-(--text-secondary)">{{ signal.hint }}</p>
               </div>
             </div>
@@ -178,7 +178,7 @@
         <template #cell-total_goods_cost="{ row: po }">
           <span
             data-testid="purchase-order-total-cost"
-            class="inline-flex min-w-[7.5rem] justify-end font-mono text-sm font-semibold tabular-nums text-(--text-main)"
+            class="inline-flex min-w-[7.5rem] justify-end font-mono text-sm font-semibold text-(--text-main) tabular-nums"
           >
             {{ formatPurchaseCurrency(po.total_goods_cost, po.currency) }}
           </span>
@@ -1877,11 +1877,6 @@ const buildReceiptMeta = (record = {}) => {
 const hasReceiptMeta = (record = {}) =>
   toProgressNumber(record.receipt_count) > 0 || Boolean(record.last_received_at);
 
-const activeFilterLabel = computed(() => {
-  if (!filters.status) return t('purchaseOrder.ui.allFlows', '全链路');
-  return statusConfig.value[filters.status]?.label || filters.status;
-});
-
 const consoleSignals = computed(() => {
   if (!stats.value) return [];
 
@@ -1895,24 +1890,18 @@ const consoleSignals = computed(() => {
       label: t('purchaseOrder.ui.activeWork', '在途链路'),
       value: formatInteger(activeCount),
       hint: t('purchaseOrder.ui.activeWorkHint', '已下单、运输中、待结算采购单总和。'),
-      badge: t('purchaseOrder.ui.keepFlowing', '持续推进'),
-      variant: 'info',
     },
     {
       key: 'draft',
       label: t('purchaseOrder.ui.draftBacklog', '草稿堆积'),
       value: formatInteger(draftCount),
       hint: t('purchaseOrder.ui.draftBacklogHint', '等待补货明细、成本策略或关联订单的草稿。'),
-      badge: draftCount > 0 ? t('purchaseOrder.ui.needAttention', '待处理') : t('purchaseOrder.ui.stable', '稳定'),
-      variant: draftCount > 0 ? 'warning' : 'success',
     },
     {
       key: 'completed',
       label: t('purchaseOrder.ui.settlementClosed', '已结算'),
       value: formatInteger(completedCount),
       hint: t('purchaseOrder.ui.settlementClosedHint', '已完成入库与结算闭环的采购单。'),
-      badge: t('purchaseOrder.ui.closedLoop', '闭环完成'),
-      variant: 'success',
     },
   ];
 });
