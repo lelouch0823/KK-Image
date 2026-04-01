@@ -32,6 +32,7 @@ describe('PurchaseReceiptRepository', () => {
       id: 'receipt-1',
       purchase_order_id: 'po-1',
       purchase_order_item_id: 'poi-1',
+      order_line_id: 'line-1',
       product_id: 'prod-1',
       variant_id: 'var-1',
       receipt_no: 'RC-001',
@@ -44,18 +45,22 @@ describe('PurchaseReceiptRepository', () => {
     expect(db.prepare.mock.results[0].value.run).toHaveBeenCalledTimes(1);
     const insertSql = db.prepare.mock.calls[0][0];
     expect(insertSql).toContain('INSERT INTO purchase_receipts');
+    expect(insertSql).toContain('order_line_id');
+    expect(insertSql.match(/\?/g) || []).toHaveLength(12);
     const params = db.prepare.mock.results[0].value.bind.mock.calls[0];
+    expect(params).toHaveLength(12);
     expect(params[0]).toBe('receipt-1');
     expect(params[1]).toBe('po-1');
     expect(params[2]).toBe('poi-1');
-    expect(params[3]).toBe('prod-1');
-    expect(params[4]).toBe('var-1');
-    expect(params[5]).toBe('RC-001');
-    expect(params[6]).toBe(7);
-    expect(params[7]).toBe('Split reception');
-    expect(params[8]).toBe(1680000000000);
-    expect(params[9]).toBe(now);
+    expect(params[3]).toBe('line-1');
+    expect(params[4]).toBe('prod-1');
+    expect(params[5]).toBe('var-1');
+    expect(params[6]).toBe('RC-001');
+    expect(params[7]).toBe(7);
+    expect(params[8]).toBe('Split reception');
+    expect(params[9]).toBe(1680000000000);
     expect(params[10]).toBe(now);
+    expect(params[11]).toBe(now);
   });
 
   it('rejects receipt creation when received_qty is missing', async () => {

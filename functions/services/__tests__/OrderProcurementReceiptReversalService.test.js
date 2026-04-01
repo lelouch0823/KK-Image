@@ -4,6 +4,12 @@ import { OrderProcurementReceiptReversalService } from '../OrderProcurementRecei
 
 function createDbHarness({
   poRow = { id: 'po-1', status: 'ordered' },
+  purchaseOrderAggregateRow = {
+    ordered_qty: 5,
+    received_qty: 5,
+    cancelled_qty: 0,
+    outstanding_qty: 0,
+  },
   purchaseOrderItemRow = {
     id: 'poi-1',
     po_id: 'po-1',
@@ -20,7 +26,12 @@ function createDbHarness({
   orderLineRow = {
     id: 'line-1',
     order_id: 'o-1',
+    ordered_qty: 5,
+    procured_qty: 5,
     received_qty: 5,
+    reserved_qty: 0,
+    shipped_qty: 0,
+    cancelled_qty: 0,
   },
   inventoryBalanceRow = {
     variant_id: 'var-1',
@@ -47,6 +58,7 @@ function createDbHarness({
     inventoryMutations: [],
     outboxEvents: [],
     batchedStatements: [],
+    batchCalls: [],
     runStatements: [],
   };
 
@@ -69,7 +81,10 @@ function createDbHarness({
       if (sql.includes('FROM purchase_orders')) {
         statement.first = vi.fn(async () => poRow);
       }
-      if (sql.includes('FROM purchase_order_items')) {
+      if (sql.includes('SUM(quantity)') && sql.includes('FROM purchase_order_items')) {
+        statement.first = vi.fn(async () => purchaseOrderAggregateRow);
+      }
+      if (sql.includes('FROM purchase_order_items') && sql.includes('WHERE id = ?')) {
         statement.first = vi.fn(async () => purchaseOrderItemRow);
       }
       if (sql.includes('SUM(ordered_qty)')) {
@@ -85,7 +100,8 @@ function createDbHarness({
       return statement;
     }),
     batch: vi.fn(async (statements = []) => {
-      calls.batchedStatements = statements;
+      calls.batchCalls.push(statements);
+      calls.batchedStatements.push(...statements);
       if (
         batchError &&
         typeof batchErrorMatcher === 'function' &&
@@ -309,7 +325,119 @@ describe('OrderProcurementReceiptReversalService', () => {
       'inventory_receipt_reversed',
       'order_procurement_reversed',
     ]);
-    expect(harness.db.batch).toHaveBeenCalledTimes(1);
+    expect(harness.db.batch).toHaveBeenCalledTimes(2);
+  });
+
+  it('prewrites guarded purchase and order counters before persisting reversal facts', async () => {
+    await service.reverseReceipt(
+      'po-1',
+      'receipt-1',
+      {
+        reason: 'rollback',
+      },
+      {
+        idempotencyKey: 'idem-1',
+      }
+    );
+
+    const preflightStatements = harness.calls.batchCalls[0];
+    expect(preflightStatements).toHaveLength(3);
+
+    const purchaseItemUpdate = preflightStatements[1];
+    expect(purchaseItemUpdate.sql).toContain('UPDATE purchase_order_items');
+    expect(purchaseItemUpdate.sql).toContain('AND received_qty = ?');
+    expect(purchaseItemUpdate.sql).toContain('AND cancelled_qty = ?');
+    expect(purchaseItemUpdate.params).toEqual([0, 'open', 'poi-1', 'po-1', 5, 0]);
+
+    const orderLineUpdate = preflightStatements[2];
+    expect(orderLineUpdate.sql).toContain('UPDATE order_lines');
+    expect(orderLineUpdate.sql).toContain('AND received_qty = ?');
+    expect(orderLineUpdate.sql).toContain('AND cancelled_qty = ?');
+    expect(orderLineUpdate.params).toEqual([
+      0,
+      'fully_procured',
+      1710000000000,
+      'line-1',
+      'o-1',
+      5,
+      0,
+      5,
+      5,
+      0,
+      0,
+    ]);
+
+    const writeStatements = harness.calls.batchCalls[1];
+    expect(writeStatements.some((statement) =>
+      statement.sql.includes('INSERT INTO purchase_receipt_reversals')
+    )).toBe(true);
+  });
+
+  it('downgrades arrived purchase orders back to shipping when reversal reopens receivable quantity', async () => {
+    const arrivedHarness = createDbHarness({
+      poRow: { id: 'po-1', status: 'arrived' },
+      purchaseOrderAggregateRow: {
+        ordered_qty: 5,
+        received_qty: 5,
+        cancelled_qty: 0,
+        outstanding_qty: 0,
+      },
+    });
+    const arrivedService = new OrderProcurementReceiptReversalService(arrivedHarness.db, {
+      purchaseReceiptRepo: arrivedHarness.purchaseReceiptRepo,
+      inventoryService: arrivedHarness.inventoryService,
+      commandIdempotencyRepo: arrivedHarness.commandIdempotencyRepo,
+      domainOutboxRepo: arrivedHarness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await arrivedService.reverseReceipt(
+      'po-1',
+      'receipt-1',
+      {
+        reason: 'reopen receiving',
+      },
+      {
+        idempotencyKey: 'idem-arrived',
+      }
+    );
+
+    const purchaseOrderUpdate = arrivedHarness.calls.batchedStatements.find(
+      (statement) =>
+        statement.sql.includes('UPDATE purchase_orders')
+        && statement.sql.includes('SET status = ?')
+        && statement.sql.includes('AND status = ?')
+    );
+
+    expect(purchaseOrderUpdate?.params).toEqual(['shipping', 1710000000000, 'po-1', 'arrived']);
+  });
+
+  it('rejects reversing receipts on completed purchase orders', async () => {
+    const completedHarness = createDbHarness({
+      poRow: { id: 'po-1', status: 'completed' },
+    });
+    const completedService = new OrderProcurementReceiptReversalService(completedHarness.db, {
+      purchaseReceiptRepo: completedHarness.purchaseReceiptRepo,
+      inventoryService: completedHarness.inventoryService,
+      commandIdempotencyRepo: completedHarness.commandIdempotencyRepo,
+      domainOutboxRepo: completedHarness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await expect(
+      completedService.reverseReceipt(
+        'po-1',
+        'receipt-1',
+        {
+          reason: 'completed guard',
+        },
+        {
+          idempotencyKey: 'idem-completed',
+        }
+      )
+    ).rejects.toBeInstanceOf(BadRequestError);
+
+    expect(completedHarness.db.batch).not.toHaveBeenCalled();
   });
 
   it('rejects reversal when downstream invariants would be broken', async () => {
@@ -508,7 +636,19 @@ describe('OrderProcurementReceiptReversalService', () => {
       statement.sql.includes('UPDATE purchase_order_items')
     );
 
-    expect(orderLineUpdate?.params).toEqual([5, 'partially_received', 1710000000000, 'line-1', 'o-1']);
+    expect(orderLineUpdate?.params).toEqual([
+      5,
+      'partially_received',
+      1710000000000,
+      'line-1',
+      'o-1',
+      8,
+      0,
+      10,
+      10,
+      0,
+      0,
+    ]);
     expect(poItemUpdate?.params.slice(0, 2)).toEqual([5, 'partially_received']);
   });
 

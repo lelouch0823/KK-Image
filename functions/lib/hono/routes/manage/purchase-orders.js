@@ -82,8 +82,31 @@ async function requireDraftPurchaseOrder(repo, poId, actionLabel) {
   return po;
 }
 
+async function requireCompletedPurchaseOrder(repo, poId, actionLabel) {
+  const po = await requirePurchaseOrder(repo, poId);
+  if (po.status !== 'completed') throw new BadRequestError(`仅已结算采购单允许${actionLabel}`);
+  return po;
+}
+
+function getIdempotencyKey(c) {
+  const requestKey = String(c.req.header('Idempotency-Key') || '').trim();
+  return requestKey || crypto.randomUUID();
+}
+
 function requireMutationSuccess(success, message) {
   if (!success) throw new NotFoundError(message);
+}
+
+function hasAllocationImpact(body = {}) {
+  const allocationFields = [
+    'allocation_method',
+    'estimated_shipping_cost',
+    'estimated_tariff_cost',
+    'actual_shipping_cost',
+    'actual_tariff_cost',
+  ];
+
+  return allocationFields.some((field) => Object.prototype.hasOwnProperty.call(body, field));
 }
 
 async function validateVariantItems(db, items = []) {
@@ -252,7 +275,7 @@ app.get('/:id', withCache(20), async (c) => {
 app.post('/:id/receipts', async (c) => {
   const poId = c.req.param('id');
   const body = await c.req.json();
-  const idempotencyKey = String(c.req.header('Idempotency-Key') || crypto.randomUUID()).trim();
+  const idempotencyKey = getIdempotencyKey(c);
 
   const repo = new PurchaseOrderRepository(c.env.DB);
   await requirePurchaseOrder(repo, poId);
@@ -274,7 +297,7 @@ app.post('/:id/receipts/:receiptId/reversal', async (c) => {
   const poId = c.req.param('id');
   const receiptId = c.req.param('receiptId');
   const body = await c.req.json();
-  const idempotencyKey = String(c.req.header('Idempotency-Key') || crypto.randomUUID()).trim();
+  const idempotencyKey = getIdempotencyKey(c);
 
   const repo = new PurchaseOrderRepository(c.env.DB);
   await requirePurchaseOrder(repo, poId);
@@ -310,7 +333,7 @@ app.post('/:id/receipts/:receiptId/reversal', async (c) => {
 app.post('/:id/shortage-closures', async (c) => {
   const poId = c.req.param('id');
   const body = await c.req.json();
-  const idempotencyKey = String(c.req.header('Idempotency-Key') || crypto.randomUUID()).trim();
+  const idempotencyKey = getIdempotencyKey(c);
 
   const repo = new PurchaseOrderRepository(c.env.DB);
   await requirePurchaseOrder(repo, poId);
@@ -449,15 +472,23 @@ app.put('/:id', async (c) => {
   const updated = await repo.update(c.req.param('id'), body);
   requireMutationSuccess(updated, '未找到采购单或无有效字段更新');
 
+  let po = await requirePurchaseOrder(repo, c.req.param('id'));
+  const shouldReallocateCosts = po.status === 'completed' && hasAllocationImpact(body);
+  if (shouldReallocateCosts) {
+    const service = new PurchaseOrderService(c.env.DB);
+    await service.allocateCosts(c.req.param('id'));
+    po = await requirePurchaseOrder(repo, c.req.param('id'));
+  }
+
   await publishPurchaseOrderCacheEvent(c, {
     eventType: 'purchase_order_updated',
     poId: c.req.param('id'),
     payload: {
       fields: Object.keys(body || {}),
+      reallocated_costs: shouldReallocateCosts,
     },
   });
 
-  const po = await repo.findById(c.req.param('id'));
   scheduleAuditEvent(c, {
     domain: 'purchase-orders',
     action: 'purchase_order.update',
@@ -467,7 +498,10 @@ app.put('/:id', async (c) => {
     targetId: c.req.param('id'),
     target_label: c.req.param('id'),
     summary: `Updated purchase order ${c.req.param('id')}`,
-    metadata: body,
+    metadata: {
+      ...body,
+      reallocated_costs: shouldReallocateCosts,
+    },
   });
   return c.json({ success: true, data: po });
 });
@@ -687,6 +721,8 @@ app.delete('/:id/items/:itemId', async (c) => {
  */
 app.post('/:id/allocate', async (c) => {
   const poId = c.req.param('id');
+  const repo = new PurchaseOrderRepository(c.env.DB);
+  const po = await requireCompletedPurchaseOrder(repo, poId, '执行成本分摊');
   const service = new PurchaseOrderService(c.env.DB);
   await service.allocateCosts(poId);
 
@@ -695,8 +731,6 @@ app.post('/:id/allocate', async (c) => {
     poId,
   });
 
-  const repo = new PurchaseOrderRepository(c.env.DB);
-  const po = await requirePurchaseOrder(repo, poId);
   scheduleAuditEvent(c, {
     domain: 'purchase-orders',
     action: 'purchase_order.allocate',
