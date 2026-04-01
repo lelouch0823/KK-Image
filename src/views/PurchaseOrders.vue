@@ -232,16 +232,15 @@
           <div class="relative flex w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-(--border-color)/70 bg-(--color-modal-bg) shadow-[0_32px_90px_-45px_rgba(15,23,42,0.4)]" style="max-height: calc(100vh - 3rem)">
             <div
               data-testid="purchase-order-detail-summary"
-              class="relative flex shrink-0 items-center justify-between border-b border-(--border-color) bg-linear-to-r from-sky-50/75 via-(--bg-card) to-amber-50/40 px-6 py-5"
+              class="relative flex shrink-0 items-center justify-between border-b border-(--border-color)/70 bg-(--bg-card) px-6 py-5"
             >
-              <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.1),transparent_24%)]"></div>
               <div class="min-w-0">
-                <p class="relative text-xs font-semibold tracking-[0.18em] text-(--text-muted) uppercase">Purchase Order Chain</p>
-                <h2 class="relative truncate text-xl font-bold text-(--text-main)">{{ detail?.po_no || (t('purchaseOrder.detail.title') || '采购单详情') }}</h2>
+                <p class="text-xs font-semibold tracking-[0.18em] text-(--text-muted) uppercase">Purchase Order Chain</p>
+                <h2 class="truncate text-lg font-semibold text-(--text-main)">{{ detail?.po_no || (t('purchaseOrder.detail.title') || '采购单详情') }}</h2>
                 <span
                   v-if="detail?.status"
                   data-testid="purchase-order-detail-status-chip"
-                  class="relative mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold shadow-sm"
+                  class="mt-2 inline-flex items-center rounded-full border border-(--border-color)/65 px-2.5 py-0.5 text-xs font-semibold"
                   :style="{
                     color: statusConfig[detail.status]?.color || 'inherit',
                     backgroundColor: statusConfig[detail.status]?.bg || 'var(--bg-muted)',
@@ -315,10 +314,10 @@
                   <article
                     v-for="card in detailSummaryCards"
                     :key="card.key"
-                    class="rounded-[1.4rem] border border-(--border-color)/60 bg-linear-to-br from-(--bg-card) to-(--bg-muted)/35 p-4 shadow-sm"
+                    class="rounded-[1.25rem] border border-(--border-color)/60 bg-(--bg-card) p-4 shadow-none"
                   >
                     <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">{{ card.label }}</p>
-                    <div class="mt-2 font-[Outfit] text-2xl font-semibold text-(--text-main)">{{ card.value }}</div>
+                    <div class="mt-2 font-mono text-xl font-semibold text-(--text-main) tabular-nums">{{ card.value }}</div>
                     <p class="mt-1 text-xs leading-5 text-(--text-secondary)">{{ card.hint }}</p>
                   </article>
                 </section>
@@ -326,7 +325,7 @@
                   <!-- 状态可视化 (Stepper) -->
                   <div
                     data-testid="purchase-order-detail-progress"
-                    class="rounded-[1.6rem] border border-(--border-color)/70 bg-linear-to-br from-(--bg-card) via-(--bg-card) to-sky-50/35 p-5 shadow-sm"
+                    class="rounded-[1.5rem] border border-(--border-color)/65 bg-(--bg-card) p-5 shadow-none"
                   >
                     <div class="mb-4 flex items-start justify-between gap-3">
                       <div>
@@ -379,7 +378,7 @@
                   <!-- 费用信息 -->
                   <div
                     data-testid="purchase-order-detail-cost"
-                    class="rounded-[1.6rem] border border-(--border-color)/70 bg-linear-to-br from-(--bg-card) via-(--bg-card) to-amber-50/45 p-5 shadow-sm"
+                    class="rounded-[1.5rem] border border-(--border-color)/65 bg-(--bg-card) p-5 shadow-none"
                   >
                     <div class="mb-3 flex items-start justify-between gap-3">
                       <div>
@@ -407,21 +406,21 @@
                     <div class="grid grid-cols-2 gap-3">
                       <div class="rounded-xl bg-(--bg-muted)/55 p-3">
                         <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedShipping') }}</div>
-                        <div class="mt-1 font-[Outfit] text-base font-semibold text-(--text-main)">{{ formatPurchaseCurrency(detail.estimated_shipping_cost, detail.currency) }}</div>
+                        <div class="mt-1 font-mono text-base font-semibold text-(--text-main) tabular-nums">{{ formatPurchaseCurrency(detail.estimated_shipping_cost, detail.currency) }}</div>
                       </div>
                       <div class="rounded-xl bg-(--bg-muted)/55 p-3">
                         <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.form.estimatedTariff') }}</div>
-                        <div class="mt-1 font-[Outfit] text-base font-semibold text-(--text-main)">{{ formatPurchaseCurrency(detail.estimated_tariff_cost, detail.currency) }}</div>
+                        <div class="mt-1 font-mono text-base font-semibold text-(--text-main) tabular-nums">{{ formatPurchaseCurrency(detail.estimated_tariff_cost, detail.currency) }}</div>
                       </div>
                       <div class="rounded-xl bg-(--bg-muted)/40 p-3">
                         <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.table.actualShipping') }}</div>
-                        <div class="mt-1 font-[Outfit] text-base font-semibold text-(--text-main)">
+                        <div class="mt-1 font-mono text-base font-semibold text-(--text-main) tabular-nums">
                           {{ formatPurchaseCurrency(detail.actual_shipping_cost, detail.currency) }}
                         </div>
                       </div>
                       <div class="rounded-xl bg-(--bg-muted)/40 p-3">
                         <div class="text-xs text-(--text-secondary)">{{ t('purchaseOrder.table.actualTariff') }}</div>
-                        <div class="mt-1 font-[Outfit] text-base font-semibold text-(--text-main)">
+                        <div class="mt-1 font-mono text-base font-semibold text-(--text-main) tabular-nums">
                           {{ formatPurchaseCurrency(detail.actual_tariff_cost, detail.currency) }}
                         </div>
                       </div>
@@ -433,7 +432,7 @@
                 </div>
 
               <!-- 明细列表 -->
-              <div data-testid="purchase-order-detail-items" class="rounded-[1.6rem] border border-(--border-color)/70 bg-(--bg-card) p-4 shadow-sm">
+              <div data-testid="purchase-order-detail-items" class="rounded-[1.6rem] border border-(--border-color)/65 bg-(--bg-card) p-4 shadow-none">
                 <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">Line Items</p>
@@ -455,7 +454,7 @@
                     v-for="item in detail.items"
                     :key="item.id"
                     data-testid="purchase-order-detail-item-card"
-                    class="group grid gap-3 rounded-[1.35rem] border border-(--border-subtle) bg-linear-to-r from-(--bg-card) via-(--bg-card) to-sky-50/30 p-3.5 transition-colors duration-200 hover:border-primary/20 hover:bg-(--bg-hover) sm:grid-cols-[minmax(0,1.35fr)_minmax(12rem,14rem)] sm:items-stretch"
+                    class="group grid gap-3 rounded-[1.35rem] border border-(--border-subtle) bg-(--bg-card) p-3.5 transition-colors duration-200 hover:border-primary/20 hover:bg-(--bg-hover) sm:grid-cols-[minmax(0,1.35fr)_minmax(12rem,14rem)] sm:items-stretch"
                   >
                     <div class="flex min-w-0 items-start gap-3">
                       <!-- 商品主图 -->
@@ -549,15 +548,15 @@
                       <div class="space-y-2">
                         <div class="flex items-center justify-between gap-3">
                           <span class="text-[11px] font-medium text-(--text-secondary)">{{ t('purchaseOrder.table.quantity') }}</span>
-                          <span class="font-[Outfit] text-sm font-semibold text-(--text-main)">×{{ item.quantity }}</span>
+                          <span class="font-mono text-sm font-semibold text-(--text-main) tabular-nums">×{{ item.quantity }}</span>
                         </div>
                         <div class="flex items-center justify-between gap-3">
                           <span class="text-[11px] font-medium text-(--text-secondary)">{{ t('purchaseOrder.table.unitCost') }}</span>
-                          <span class="font-[Outfit] text-sm font-semibold text-(--text-main)">{{ formatPurchaseCurrency(item.unit_cost, detail.currency) }}</span>
+                          <span class="font-mono text-sm font-semibold text-(--text-main) tabular-nums">{{ formatPurchaseCurrency(item.unit_cost, detail.currency) }}</span>
                         </div>
                         <div class="flex items-center justify-between gap-3 border-t border-(--border-subtle) pt-2">
                           <span class="text-[11px] font-medium text-(--text-secondary)">{{ t('purchaseOrder.table.totalGoodsCost') }}</span>
-                          <span class="font-[Outfit] text-base font-semibold text-(--text-main)">{{ formatPurchaseCurrency((item.quantity || 0) * (item.unit_cost || 0), detail.currency) }}</span>
+                          <span class="font-mono text-base font-semibold text-(--text-main) tabular-nums">{{ formatPurchaseCurrency((item.quantity || 0) * (item.unit_cost || 0), detail.currency) }}</span>
                         </div>
                       </div>
                       <div v-if="item.allocated_freight > 0 || item.allocated_tariff > 0" class="text-xs text-(--text-secondary)">
@@ -572,14 +571,14 @@
 
               <div
                 data-testid="purchase-order-detail-receipts"
-                class="rounded-[1.6rem] border border-(--border-color)/70 bg-(--bg-card) p-4 shadow-sm"
+                class="rounded-[1.6rem] border border-(--border-color)/65 bg-(--bg-card) p-4 shadow-none"
               >
                 <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">Receipt Ledger</p>
                     <h3 class="mt-1 text-sm font-semibold text-(--text-main)">
                       {{ t('purchaseOrder.detail.receipts', '收货台账') }}
-                      <span class="ml-1 font-[Outfit] text-xs font-normal text-(--text-secondary)">({{ receiptTimeline.length }})</span>
+                      <span class="ml-1 font-mono text-xs font-normal text-(--text-secondary) tabular-nums">({{ receiptTimeline.length }})</span>
                     </h3>
                     <p class="mt-1 text-xs text-(--text-secondary)">
                       {{ t('purchaseOrder.ui.receiptLedgerHint', '登记每次到货与冲销记录，确保采购、订单、库存三条投影保持一致。') }}
@@ -620,7 +619,7 @@
                     v-for="receipt in receiptTimeline"
                     :key="receipt.id"
                     data-testid="purchase-order-receipt-card"
-                    class="grid gap-3 rounded-[1.35rem] border border-(--border-subtle) bg-linear-to-r from-(--bg-card) via-(--bg-card) to-emerald-50/28 p-3.5 sm:grid-cols-[minmax(0,1.3fr)_minmax(14rem,16rem)]"
+                    class="grid gap-3 rounded-[1.35rem] border border-(--border-subtle) bg-(--bg-card) p-3.5 sm:grid-cols-[minmax(0,1.3fr)_minmax(14rem,16rem)]"
                   >
                     <div class="min-w-0">
                       <div class="flex min-w-0 flex-wrap items-center gap-2">
@@ -677,7 +676,7 @@
                         </div>
                         <div class="flex items-center justify-between gap-3">
                           <span>{{ t('purchaseOrder.ui.receiptReversalCount', '冲销次数') }}</span>
-                          <span class="font-[Outfit] text-sm font-semibold text-(--text-main)">{{ formatInteger(receipt.reversal_count) }}</span>
+                          <span class="font-mono text-sm font-semibold text-(--text-main) tabular-nums">{{ formatInteger(receipt.reversal_count) }}</span>
                         </div>
                         <div class="flex items-center justify-between gap-3">
                           <span>{{ t('purchaseOrder.ui.receiptLastReversedAt', '最近冲销') }}</span>
@@ -721,7 +720,7 @@
               <div
                 v-if="detail"
                 data-testid="purchase-order-detail-footer"
-                class="flex flex-col gap-3 border-t border-(--border-color) bg-linear-to-r from-(--bg-card) to-(--bg-muted)/35 px-6 py-4 lg:flex-row lg:items-center lg:justify-between"
+                class="flex flex-col gap-3 border-t border-(--border-color) bg-(--bg-card) px-6 py-4 lg:flex-row lg:items-center lg:justify-between"
               >
               <div class="flex items-center gap-3">
                 <!-- 左侧：次要/辅助操作 -->
@@ -759,7 +758,7 @@
           <div class="absolute inset-0 bg-(--color-overlay-dim) backdrop-blur-sm" @click="showCreateModal = false"></div>
           <div class="relative flex w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-(--border-color)/70 bg-(--color-modal-bg) shadow-[0_32px_90px_-45px_rgba(15,23,42,0.38)]" style="max-height: calc(100vh - 3rem)">
             <!-- 头部 -->
-            <div class="relative flex items-start justify-between border-b border-(--border-color) bg-linear-to-r from-sky-50/75 via-(--bg-card) to-amber-50/40 px-6 py-5">
+            <div class="relative flex items-start justify-between border-b border-(--border-color) bg-(--bg-card) px-6 py-5">
               <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.1),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.1),transparent_24%)]"></div>
               <div class="relative">
                 <p class="text-xs font-semibold tracking-[0.18em] text-(--text-muted) uppercase">Draft Builder</p>

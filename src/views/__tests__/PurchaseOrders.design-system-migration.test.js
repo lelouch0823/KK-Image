@@ -55,6 +55,14 @@ describe('PurchaseOrders design-system migration', () => {
     expect(source).toContain('rgba(249,115,22,0.06),transparent_24%');
   });
 
+  it('avoids feature-card gradients inside the detail workspace', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/views/PurchaseOrders.vue'), 'utf8');
+
+    expect(source).not.toContain('bg-linear-to-r from-sky-50/75 via-(--bg-card) to-amber-50/40');
+    expect(source).not.toContain('bg-linear-to-br from-(--bg-card) via-(--bg-card) to-sky-50/35');
+    expect(source).not.toContain('bg-linear-to-br from-(--bg-card) via-(--bg-card) to-amber-50/45');
+  });
+
   it('uses ledger-style toolbar structure and copy for the table context', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/views/PurchaseOrders.vue'), 'utf8');
     const toolbarBlock = source.match(/<template #toolbar>[\s\S]*?<\/template>/)?.[0] || '';
