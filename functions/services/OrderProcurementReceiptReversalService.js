@@ -6,19 +6,16 @@ import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 import {
+  buildDeleteCommandStatement,
+  parseStoredResponse,
+  queryCompatibilityProcurementAggregate,
+  requireOrderLine,
+} from './order-procurement-shared.js';
+import {
   projectCompatibilityProcurementStatus,
   projectPurchaseOrderItemStatus,
   toNonNegativeInt,
 } from './purchase-order-projection.js';
-
-function parseStoredResponse(responseJson) {
-  if (!responseJson) return null;
-  try {
-    return JSON.parse(responseJson);
-  } catch {
-    return null;
-  }
-}
 
 function buildReversalFingerprint(poId, receiptId, payload = {}) {
   return JSON.stringify({
@@ -35,10 +32,6 @@ function isDuplicateReceiptReversalError(error) {
     (message.includes('purchase_receipt_reversals.original_receipt_id') ||
       message.includes('idx_purchase_receipt_reversals_original_receipt_unique'))
   );
-}
-
-function buildDeleteCommandStatement(db, commandId) {
-  return db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId);
 }
 
 export class OrderProcurementReceiptReversalService {
@@ -63,6 +56,14 @@ export class OrderProcurementReceiptReversalService {
     return row;
   }
 
+  async requireReversiblePurchaseOrder(poId) {
+    const row = await this.requirePurchaseOrder(poId);
+    if (!['ordered', 'shipping', 'arrived'].includes(String(row.status || '').trim())) {
+      throw new BadRequestError('仅 ordered、shipping 或 arrived 状态的采购单允许冲销收货');
+    }
+    return row;
+  }
+
   async requirePurchaseOrderItem(poItemId) {
     const row = await this.db
       .prepare(
@@ -75,42 +76,6 @@ export class OrderProcurementReceiptReversalService {
 
     if (!row) throw new NotFoundError('采购单明细不存在');
     return row;
-  }
-
-  async requireOrderLine(orderId, orderLineId) {
-    const row = await this.db
-      .prepare(
-        `SELECT id, order_id, ordered_qty, procured_qty, received_qty, reserved_qty, shipped_qty, cancelled_qty
-         FROM order_lines
-         WHERE id = ? AND order_id = ?`
-      )
-      .bind(orderLineId, orderId)
-      .first();
-
-    if (!row) throw new NotFoundError('关联订单行不存在');
-    return row;
-  }
-
-  async queryCompatibilityProcurementAggregate(orderId) {
-    const progress = await this.db
-      .prepare(
-        `SELECT
-            COALESCE(SUM(ordered_qty), 0) AS ordered_qty,
-            COALESCE(SUM(procured_qty), 0) AS procured_qty,
-            COALESCE(SUM(received_qty), 0) AS received_qty,
-            COALESCE(SUM(cancelled_qty), 0) AS cancelled_qty
-         FROM order_lines
-         WHERE order_id = ?`
-      )
-      .bind(orderId)
-      .first();
-
-    return {
-      ordered_qty: toNonNegativeInt(progress?.ordered_qty),
-      procured_qty: toNonNegativeInt(progress?.procured_qty),
-      received_qty: toNonNegativeInt(progress?.received_qty),
-      cancelled_qty: toNonNegativeInt(progress?.cancelled_qty),
-    };
   }
 
   async queryInventoryBalance(variantId) {
@@ -131,8 +96,148 @@ export class OrderProcurementReceiptReversalService {
     };
   }
 
+  async queryPurchaseOrderAggregate(poId) {
+    const progress = await this.db
+      .prepare(
+        `SELECT
+            COALESCE(SUM(quantity), 0) AS ordered_qty,
+            COALESCE(SUM(received_qty), 0) AS received_qty,
+            COALESCE(SUM(cancelled_qty), 0) AS cancelled_qty,
+            COALESCE(SUM(MAX(quantity - received_qty - cancelled_qty, 0)), 0) AS outstanding_qty
+         FROM purchase_order_items
+         WHERE po_id = ?`
+      )
+      .bind(poId)
+      .first();
+
+    return {
+      ordered_qty: toNonNegativeInt(progress?.ordered_qty),
+      received_qty: toNonNegativeInt(progress?.received_qty),
+      cancelled_qty: toNonNegativeInt(progress?.cancelled_qty),
+      outstanding_qty: toNonNegativeInt(progress?.outstanding_qty),
+    };
+  }
+
+  resolveNextPurchaseOrderStatus(currentStatus, nextOutstandingQty) {
+    const normalizedStatus = String(currentStatus || '').trim();
+
+    if (normalizedStatus === 'arrived' && toNonNegativeInt(nextOutstandingQty) > 0) {
+      return 'shipping';
+    }
+
+    return normalizedStatus;
+  }
+
+  buildPurchaseOrderStatusTransitionStatement(poId, currentStatus, nextStatus, timestamp) {
+    return this.db
+      .prepare(
+        `UPDATE purchase_orders
+         SET status = ?, updated_at = ?
+         WHERE id = ? AND status = ?`
+      )
+      .bind(nextStatus, timestamp, poId, currentStatus);
+  }
+
+  buildPurchaseOrderItemReversalStatement(poId, poItem, nextReceivedQty, nextDisplayStatus) {
+    return this.db
+      .prepare(
+        `UPDATE purchase_order_items
+         SET received_qty = ?, display_status = ?
+         WHERE id = ? AND po_id = ?
+           AND received_qty = ?
+           AND cancelled_qty = ?`
+      )
+      .bind(
+        nextReceivedQty,
+        nextDisplayStatus,
+        poItem.id,
+        poId,
+        toNonNegativeInt(poItem.received_qty),
+        toNonNegativeInt(poItem.cancelled_qty)
+      );
+  }
+
+  buildPurchaseOrderItemRevertStatement(poId, poItem, nextReceivedQty, nextDisplayStatus) {
+    return this.db
+      .prepare(
+        `UPDATE purchase_order_items
+         SET received_qty = ?, display_status = ?
+         WHERE id = ? AND po_id = ?
+           AND received_qty = ?
+           AND cancelled_qty = ?
+           AND display_status = ?`
+      )
+      .bind(
+        toNonNegativeInt(poItem.received_qty),
+        projectPurchaseOrderItemStatus(poItem),
+        poItem.id,
+        poId,
+        nextReceivedQty,
+        toNonNegativeInt(poItem.cancelled_qty),
+        nextDisplayStatus
+      );
+  }
+
+  buildOrderLineReversalStatement(orderLine, nextOrderLine, timestamp) {
+    return this.db
+      .prepare(
+        `UPDATE order_lines
+         SET received_qty = ?, display_status = ?, updated_at = ?
+         WHERE id = ? AND order_id = ?
+           AND received_qty = ?
+           AND cancelled_qty = ?
+           AND ordered_qty = ?
+           AND procured_qty = ?
+           AND reserved_qty = ?
+           AND shipped_qty = ?`
+      )
+      .bind(
+        nextOrderLine.received_qty,
+        nextOrderLine.display_status,
+        timestamp,
+        orderLine.id,
+        orderLine.order_id,
+        toNonNegativeInt(orderLine.received_qty),
+        toNonNegativeInt(orderLine.cancelled_qty),
+        toNonNegativeInt(orderLine.ordered_qty),
+        toNonNegativeInt(orderLine.procured_qty),
+        toNonNegativeInt(orderLine.reserved_qty),
+        toNonNegativeInt(orderLine.shipped_qty)
+      );
+  }
+
+  buildOrderLineRevertStatement(orderLine, nextOrderLine, timestamp) {
+    return this.db
+      .prepare(
+        `UPDATE order_lines
+         SET received_qty = ?, display_status = ?, updated_at = ?
+         WHERE id = ? AND order_id = ?
+           AND received_qty = ?
+           AND cancelled_qty = ?
+           AND ordered_qty = ?
+           AND procured_qty = ?
+           AND reserved_qty = ?
+           AND shipped_qty = ?
+           AND display_status = ?`
+      )
+      .bind(
+        toNonNegativeInt(orderLine.received_qty),
+        projectOrderLineStatus(orderLine),
+        timestamp,
+        orderLine.id,
+        orderLine.order_id,
+        toNonNegativeInt(nextOrderLine.received_qty),
+        toNonNegativeInt(orderLine.cancelled_qty),
+        toNonNegativeInt(orderLine.ordered_qty),
+        toNonNegativeInt(orderLine.procured_qty),
+        toNonNegativeInt(orderLine.reserved_qty),
+        toNonNegativeInt(orderLine.shipped_qty),
+        nextOrderLine.display_status
+      );
+  }
+
   async reverseReceipt(poId, receiptId, payload = {}, options = {}) {
-    await this.requirePurchaseOrder(poId);
+    const purchaseOrder = await this.requireReversiblePurchaseOrder(poId);
 
     const idempotencyKey = String(options.idempotencyKey || crypto.randomUUID()).trim();
     const requestFingerprint = buildReversalFingerprint(poId, receiptId, payload);
@@ -184,14 +289,121 @@ export class OrderProcurementReceiptReversalService {
     }
 
     const poItem = await this.requirePurchaseOrderItem(originalReceipt.purchase_order_item_id);
+    const purchaseOrderAggregate = await this.queryPurchaseOrderAggregate(poId);
     const timestamp = this.now();
     const reversalId = crypto.randomUUID();
     const commandRecord = reservation.record;
+    const preflightStatements = [];
+    const preflightReverts = [];
     const statements = [];
     let sequenceInCommand = 1;
+    const nextReceivedQty = Math.max(toNonNegativeInt(poItem.received_qty) - reversalQty, 0);
+    const nextDisplayStatus = projectPurchaseOrderItemStatus({
+      quantity: poItem.quantity,
+      received_qty: nextReceivedQty,
+      cancelled_qty: poItem.cancelled_qty,
+    });
+    const nextOutstandingQty =
+      toNonNegativeInt(purchaseOrderAggregate.outstanding_qty) + reversalQty;
+    const nextPurchaseOrderStatus = this.resolveNextPurchaseOrderStatus(
+      purchaseOrder.status,
+      nextOutstandingQty
+    );
+    const receiptOrderLineId =
+      originalReceipt.order_line_id ||
+      (originalReceipt.pre_order_id
+        ? await this.inventoryService.resolveOrderLineId({
+            orderId: originalReceipt.pre_order_id,
+            productId: originalReceipt.product_id || null,
+            variantId: originalReceipt.variant_id || null,
+          })
+        : null);
 
     if (reservation.insertStatement) {
-      statements.push(reservation.insertStatement);
+      preflightStatements.push(reservation.insertStatement);
+    }
+    preflightStatements.push(
+      this.buildPurchaseOrderItemReversalStatement(
+        poId,
+        poItem,
+        nextReceivedQty,
+        nextDisplayStatus
+      )
+    );
+    preflightReverts.push(
+      this.buildPurchaseOrderItemRevertStatement(
+        poId,
+        poItem,
+        nextReceivedQty,
+        nextDisplayStatus
+      )
+    );
+    if (nextPurchaseOrderStatus !== purchaseOrder.status) {
+      preflightStatements.push(
+        this.buildPurchaseOrderStatusTransitionStatement(
+          poId,
+          purchaseOrder.status,
+          nextPurchaseOrderStatus,
+          timestamp
+        )
+      );
+      preflightReverts.push(
+        this.buildPurchaseOrderStatusTransitionStatement(
+          poId,
+          nextPurchaseOrderStatus,
+          purchaseOrder.status,
+          timestamp
+        )
+      );
+    }
+
+    let nextProcurementStatus = null;
+    if (receiptOrderLineId && originalReceipt.pre_order_id) {
+      const orderLine = await requireOrderLine(
+        this.db,
+        originalReceipt.pre_order_id,
+        receiptOrderLineId
+      );
+      const nextOrderLineReceivedQty = Math.max(
+        toNonNegativeInt(orderLine.received_qty) - reversalQty,
+        0
+      );
+      const nextOrderLine = {
+        ...orderLine,
+        received_qty: nextOrderLineReceivedQty,
+      };
+      nextOrderLine.display_status = projectOrderLineStatus(nextOrderLine);
+      preflightStatements.push(
+        this.buildOrderLineReversalStatement(orderLine, nextOrderLine, timestamp)
+      );
+      preflightReverts.push(
+        this.buildOrderLineRevertStatement(orderLine, nextOrderLine, timestamp)
+      );
+    }
+
+    const preflightResults = await this.db.batch(preflightStatements);
+    const preflightOffset = reservation.insertStatement ? 1 : 0;
+    const failedPreflightIndexes = [];
+    for (let index = 0; index < preflightReverts.length; index += 1) {
+      if ((preflightResults?.[index + preflightOffset]?.meta?.changes || 0) !== 1) {
+        failedPreflightIndexes.push(index);
+      }
+    }
+
+    if (failedPreflightIndexes.length > 0) {
+      const successfulReverts = preflightReverts.filter(
+        (_statement, index) => !failedPreflightIndexes.includes(index)
+      );
+      if (successfulReverts.length > 0) {
+        await this.db.batch(successfulReverts);
+      }
+      if (ownsReservation) {
+        const deleteStatement =
+          this.commandIdempotencyRepo.buildDeleteStatement?.(commandRecord.command_id) ||
+          buildDeleteCommandStatement(this.db, commandRecord.command_id);
+        await deleteStatement.run();
+      }
+      throw new BadRequestError('采购单收货进度已变化，请刷新后重试');
     }
 
     statements.push(
@@ -208,60 +420,13 @@ export class OrderProcurementReceiptReversalService {
       })
     );
 
-    const nextReceivedQty = Math.max(toNonNegativeInt(poItem.received_qty) - reversalQty, 0);
-    const nextDisplayStatus = projectPurchaseOrderItemStatus({
-      quantity: poItem.quantity,
-      received_qty: nextReceivedQty,
-      cancelled_qty: poItem.cancelled_qty,
-    });
-    statements.push(
-      this.db
-        .prepare(
-          `UPDATE purchase_order_items
-         SET received_qty = ?, display_status = ?
-         WHERE id = ? AND po_id = ?`
-        )
-        .bind(nextReceivedQty, nextDisplayStatus, poItem.id, poId)
-    );
-
-    let nextProcurementStatus = null;
-    if (originalReceipt.order_line_id && originalReceipt.pre_order_id) {
-      const orderLine = await this.requireOrderLine(
-        originalReceipt.pre_order_id,
-        originalReceipt.order_line_id
-      );
-      const nextOrderLineReceivedQty = Math.max(
-        toNonNegativeInt(orderLine.received_qty) - reversalQty,
-        0
-      );
-      const nextOrderLine = {
-        ...orderLine,
-        received_qty: nextOrderLineReceivedQty,
-      };
-      nextOrderLine.display_status = projectOrderLineStatus(nextOrderLine);
-      statements.push(
-        this.db
-          .prepare(
-            `UPDATE order_lines
-           SET received_qty = ?, display_status = ?, updated_at = ?
-           WHERE id = ? AND order_id = ?`
-          )
-          .bind(
-            nextOrderLineReceivedQty,
-            nextOrderLine.display_status,
-            timestamp,
-            originalReceipt.order_line_id,
-            originalReceipt.pre_order_id
-          )
-      );
-
-      const aggregate = await this.queryCompatibilityProcurementAggregate(
+    if (receiptOrderLineId && originalReceipt.pre_order_id) {
+      const aggregate = await queryCompatibilityProcurementAggregate(
+        this.db,
         originalReceipt.pre_order_id
       );
-      nextProcurementStatus = projectCompatibilityProcurementStatus({
-        ...aggregate,
-        received_qty: Math.max(toNonNegativeInt(aggregate.received_qty) - reversalQty, 0),
-      });
+      nextProcurementStatus = projectCompatibilityProcurementStatus(aggregate);
+
       statements.push(
         this.db
           .prepare(
@@ -303,7 +468,7 @@ export class OrderProcurementReceiptReversalService {
         variantId: originalReceipt.variant_id,
         quantityDelta: -reversalQty,
         orderId: originalReceipt.pre_order_id || null,
-        orderLineId: originalReceipt.order_line_id || null,
+        orderLineId: receiptOrderLineId || null,
         purchaseReceiptId: receiptId,
         referenceType: 'purchase_receipt_reversal',
         referenceId: reversalId,
@@ -335,7 +500,7 @@ export class OrderProcurementReceiptReversalService {
       });
     }
 
-    if (originalReceipt.order_line_id && originalReceipt.pre_order_id) {
+    if (receiptOrderLineId && originalReceipt.pre_order_id) {
       outboxEvents.push({
         id: crypto.randomUUID(),
         command_id: commandRecord.command_id,
@@ -349,7 +514,7 @@ export class OrderProcurementReceiptReversalService {
         idempotency_key: `${commandRecord.command_id}:${receiptId}:order_procurement_reversed`,
         payload_json: JSON.stringify({
           purchase_order_id: poId,
-          order_line_id: originalReceipt.order_line_id,
+          order_line_id: receiptOrderLineId,
           received_qty_delta: -reversalQty,
           order_procurement_status_after: nextProcurementStatus,
           original_receipt_id: receiptId,
@@ -391,6 +556,9 @@ export class OrderProcurementReceiptReversalService {
       await this.db.batch(statements);
       return response;
     } catch (error) {
+      if (preflightReverts.length > 0) {
+        await this.db.batch(preflightReverts);
+      }
       if (ownsReservation) {
         const deleteStatement =
           this.commandIdempotencyRepo.buildDeleteStatement?.(commandRecord.command_id) ||

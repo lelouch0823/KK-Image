@@ -172,6 +172,10 @@ describe('PurchaseOrderService variant dimension', () => {
       findById: vi.fn(async () => ({
         id: 'po-1',
         status: 'shipping',
+        ordered_qty: 4,
+        received_qty: 4,
+        cancelled_qty: 0,
+        outstanding_qty: 0,
         items: [{ variant_id: 'v-1', quantity: 4 }],
       })),
       updateStatus: vi.fn(async () => true),
@@ -185,7 +189,7 @@ describe('PurchaseOrderService variant dimension', () => {
     expect(service._updateInventory).not.toHaveBeenCalled();
   });
 
-  it('continues cascading procurement_status when arriving without direct inventory mutations', async () => {
+  it('does not cascade procurement_status when arriving without direct inventory mutations', async () => {
     const stmt = { bind: vi.fn(() => stmt) };
     const sqlCalls = [];
     const db = {
@@ -200,6 +204,10 @@ describe('PurchaseOrderService variant dimension', () => {
       findById: vi.fn(async () => ({
         id: 'po-1',
         status: 'shipping',
+        ordered_qty: 0,
+        received_qty: 0,
+        cancelled_qty: 0,
+        outstanding_qty: 0,
         items: [],
       })),
       updateStatus: vi.fn(async () => true),
@@ -209,10 +217,10 @@ describe('PurchaseOrderService variant dimension', () => {
 
     const result = await service.updateStatus('po-1', 'arrived');
 
-    expect(result.cascadedOrders).toBe(1);
+    expect(result.cascadedOrders).toBe(0);
     expect(result.stockUpdated).toBe(0);
     expect(result.totalStockAdded).toBe(0);
-    expect(sqlCalls.some(sql => sql.includes('procurement_status'))).toBe(true);
+    expect(sqlCalls.some(sql => sql.includes('procurement_status'))).toBe(false);
   });
 
   it('rejects cancelling an arrived purchase order without touching inventory', async () => {

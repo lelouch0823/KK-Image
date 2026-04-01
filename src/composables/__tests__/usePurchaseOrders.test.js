@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockAuthFetch = vi.fn();
+const mockRandomUUID = vi.fn();
 globalThis.fetch = vi.fn(() => Promise.reject(new Error('direct fetch should not be used in manage composables')));
+vi.stubGlobal('crypto', { randomUUID: mockRandomUUID });
 
 const mocks = vi.hoisted(() => ({
   addToast: vi.fn(),
@@ -41,6 +43,8 @@ import { usePurchaseOrders } from '../usePurchaseOrders';
 describe('usePurchaseOrders authz handling', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRandomUUID.mockReset();
+    mockRandomUUID.mockReturnValue('idem-1');
   });
 
   it('marks FORBIDDEN when list API responds 403', async () => {
@@ -178,6 +182,9 @@ describe('usePurchaseOrders authz handling', () => {
     expect(result).toEqual({ receipts: [{ id: 'receipt-1' }] });
     expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/purchase-orders/po-1/receipts', expect.objectContaining({
       method: 'POST',
+      headers: expect.objectContaining({
+        'Idempotency-Key': 'idem-1',
+      }),
     }));
   });
 
@@ -195,7 +202,131 @@ describe('usePurchaseOrders authz handling', () => {
     expect(result).toEqual({ reversal_id: 'reversal-1' });
     expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/purchase-orders/po-1/receipts/receipt-1/reversal', expect.objectContaining({
       method: 'POST',
+      headers: expect.objectContaining({
+        'Idempotency-Key': 'idem-1',
+      }),
     }));
+  });
+
+  it('bypasses cached purchase-order detail reads when forceRefresh is requested', async () => {
+    mockAuthFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        success: true,
+        data: { id: 'po-1', status: 'shipping' },
+      }),
+    });
+
+    const { loadDetail, detail } = usePurchaseOrders();
+    await loadDetail('po-1', { forceRefresh: true });
+
+    expect(detail.value).toEqual({ id: 'po-1', status: 'shipping' });
+    expect(mockAuthFetch.mock.calls[0]?.[0]).toMatch(/^\/api\/manage\/purchase-orders\/po-1\?_ts=\d+$/);
+  });
+
+  it('bypasses cached purchase-order list reads when forceRefresh is requested', async () => {
+    mockAuthFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        success: true,
+        data: { items: [], total: 0 },
+      }),
+    });
+
+    const { loadList } = usePurchaseOrders();
+    await loadList({ forceRefresh: true });
+
+    expect(mockAuthFetch.mock.calls[0]?.[0]).toMatch(
+      /^\/api\/manage\/purchase-orders\?page=1&limit=20&_ts=\d+$/
+    );
+  });
+
+  it('bypasses cached purchase-order stats reads when forceRefresh is requested', async () => {
+    mockAuthFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        success: true,
+        data: { draft_count: 0 },
+      }),
+    });
+
+    const { loadStats, stats } = usePurchaseOrders();
+    await loadStats({ forceRefresh: true });
+
+    expect(stats.value).toEqual({ draft_count: 0 });
+    expect(mockAuthFetch.mock.calls[0]?.[0]).toMatch(
+      /^\/api\/manage\/purchase-orders\/stats\?_ts=\d+$/
+    );
+  });
+
+  it('loads purchase-order overview through the shared list-and-stats helper', async () => {
+    mockAuthFetch
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          success: true,
+          data: { items: [{ id: 'po-1' }], total: 1 },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          success: true,
+          data: { draft_count: 0, ordered_count: 1 },
+        }),
+      });
+
+    const { loadPurchaseOrderOverview, list, total, stats } = usePurchaseOrders();
+    const result = await loadPurchaseOrderOverview();
+
+    expect(result).toEqual({
+      listLoaded: true,
+      statsLoaded: true,
+    });
+    expect(list.value).toEqual([{ id: 'po-1' }]);
+    expect(total.value).toBe(1);
+    expect(stats.value).toEqual({ draft_count: 0, ordered_count: 1 });
+    expect(mockAuthFetch).toHaveBeenCalledTimes(2);
+    expect(mockAuthFetch.mock.calls[0]?.[0]).toBe('/api/manage/purchase-orders?page=1&limit=20');
+    expect(mockAuthFetch.mock.calls[1]?.[0]).toBe('/api/manage/purchase-orders/stats');
+  });
+
+  it('refreshes purchase-order detail, list, and stats together after a write', async () => {
+    mockAuthFetch
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          success: true,
+          data: { id: 'po-1', status: 'shipping' },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          success: true,
+          data: { items: [{ id: 'po-1' }], total: 1 },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          success: true,
+          data: { draft_count: 0, shipping_count: 1 },
+        }),
+      });
+
+    const { refreshPurchaseOrderViews, detail, list, total, stats } = usePurchaseOrders();
+    const result = await refreshPurchaseOrderViews('po-1');
+
+    expect(result).toEqual({
+      detailLoaded: true,
+      listLoaded: true,
+      statsLoaded: true,
+    });
+    expect(detail.value).toEqual({ id: 'po-1', status: 'shipping' });
+    expect(list.value).toEqual([{ id: 'po-1' }]);
+    expect(total.value).toBe(1);
+    expect(stats.value).toEqual({ draft_count: 0, shipping_count: 1 });
+    expect(mockAuthFetch).toHaveBeenCalledTimes(3);
+    expect(mockAuthFetch.mock.calls[0]?.[0]).toMatch(/^\/api\/manage\/purchase-orders\/po-1\?_ts=\d+$/);
+    expect(mockAuthFetch.mock.calls[1]?.[0]).toMatch(
+      /^\/api\/manage\/purchase-orders\?page=1&limit=20&_ts=\d+$/
+    );
+    expect(mockAuthFetch.mock.calls[2]?.[0]).toMatch(
+      /^\/api\/manage\/purchase-orders\/stats\?_ts=\d+$/
+    );
   });
 
   it('submits purchase-order shortage closures through the managed auth client', async () => {
@@ -214,6 +345,9 @@ describe('usePurchaseOrders authz handling', () => {
     expect(result).toEqual({ purchase_order_id: 'po-1', closed_count: 1 });
     expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/purchase-orders/po-1/shortage-closures', expect.objectContaining({
       method: 'POST',
+      headers: expect.objectContaining({
+        'Idempotency-Key': 'idem-1',
+      }),
     }));
   });
 });

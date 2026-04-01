@@ -9,6 +9,10 @@
 
 import { ref, reactive, computed } from 'vue';
 import { API } from '@/utils/constants';
+import {
+  appendPurchaseOrderCacheBust,
+  buildPurchaseOrderIdempotentJsonHeaders,
+} from '@/utils/purchase-order-request';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
@@ -49,7 +53,7 @@ export function usePurchaseOrders() {
 
   // ─── 列表 ────────────────────────────────────────────
 
-  const loadList = async () => {
+  const loadList = async ({ forceRefresh = false } = {}) => {
     loading.value = true;
     error.value = null;
     errorCode.value = null;
@@ -59,7 +63,9 @@ export function usePurchaseOrders() {
       params.set('page', String(filters.page));
       params.set('limit', String(filters.limit));
 
-      const res = await authFetch(`${API.MANAGE_PURCHASE_ORDERS}?${params}`);
+      const res = await authFetch(
+        appendPurchaseOrderCacheBust(`${API.MANAGE_PURCHASE_ORDERS}?${params}`, { forceRefresh })
+      );
       const json = await res.json();
 
       if (json.success) {
@@ -95,22 +101,48 @@ export function usePurchaseOrders() {
 
   // ─── 详情 ────────────────────────────────────────────
 
-  const loadDetail = async (id) => {
+  const loadDetail = async (id, { forceRefresh = false } = {}) => {
     detailLoading.value = true;
     try {
-      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_BY_ID(id));
+      const res = await authFetch(
+        appendPurchaseOrderCacheBust(API.MANAGE_PURCHASE_ORDER_BY_ID(id), { forceRefresh })
+      );
       const json = await res.json();
 
       if (json.success) {
         detail.value = json.data;
+        return true;
       } else {
         addToast({ message: json.error || t('purchaseOrder.error.notFound'), type: 'error' });
+        return false;
       }
     } catch (e) {
       console.error('loadPurchaseOrderDetail failed:', e);
+      return false;
     } finally {
       detailLoading.value = false;
     }
+  };
+
+  const loadPurchaseOrderOverview = async ({ forceRefresh = false } = {}) => {
+    const [listLoaded, statsLoaded] = await Promise.all([
+      loadList({ forceRefresh }),
+      loadStats({ forceRefresh }),
+    ]);
+    return { listLoaded, statsLoaded };
+  };
+
+  const refreshPurchaseOrderViews = async (purchaseOrderId = null) => {
+    if (purchaseOrderId) {
+      const [detailLoaded, overview] = await Promise.all([
+        loadDetail(purchaseOrderId, { forceRefresh: true }),
+        loadPurchaseOrderOverview({ forceRefresh: true }),
+      ]);
+      return { detailLoaded, ...overview };
+    }
+
+    const overview = await loadPurchaseOrderOverview({ forceRefresh: true });
+    return { detailLoaded: false, ...overview };
   };
 
   // ─── 创建 ────────────────────────────────────────────
@@ -284,7 +316,7 @@ export function usePurchaseOrders() {
     try {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDER_RECEIPTS(poId), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildPurchaseOrderIdempotentJsonHeaders(),
         body: JSON.stringify(payload),
       });
       const json = await res.json();
@@ -306,7 +338,7 @@ export function usePurchaseOrders() {
     try {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDER_RECEIPT_REVERSAL(poId, receiptId), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildPurchaseOrderIdempotentJsonHeaders(),
         body: JSON.stringify(payload),
       });
       const json = await res.json();
@@ -328,7 +360,7 @@ export function usePurchaseOrders() {
     try {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDER_SHORTAGE_CLOSURES(poId), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildPurchaseOrderIdempotentJsonHeaders(),
         body: JSON.stringify(payload),
       });
       const json = await res.json();
@@ -388,9 +420,11 @@ export function usePurchaseOrders() {
 
   // ─── 统计 ────────────────────────────────────────────
 
-  const loadStats = async () => {
+  const loadStats = async ({ forceRefresh = false } = {}) => {
     try {
-      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_STATS);
+      const res = await authFetch(
+        appendPurchaseOrderCacheBust(API.MANAGE_PURCHASE_ORDER_STATS, { forceRefresh })
+      );
       const json = await res.json();
       if (json.success) {
         stats.value = json.data;
@@ -416,9 +450,9 @@ export function usePurchaseOrders() {
     suggestions, suggestionsLoading, stats,
     filters, statusConfig,
     // 列表
-    loadList, loadStats,
+    loadList, loadStats, loadPurchaseOrderOverview,
     // 详情
-    loadDetail,
+    loadDetail, refreshPurchaseOrderViews,
     // CRUD
     createPO, createFromOrders, updatePO,
     // 状态

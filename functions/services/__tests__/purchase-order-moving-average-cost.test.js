@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ProductVariantRepository } from '../../repositories/ProductVariantRepository.js';
+import { BadRequestError } from '../../lib/hono/errors.js';
 import { PurchaseOrderService } from '../PurchaseOrderService.js';
 
 function createDbForVariantRow(variantRow) {
@@ -63,6 +64,7 @@ describe('moving average cost workflow', () => {
   it('allocates landed cost and calls MAC update per actually received quantity', async () => {
     const db = createDbForAllocateCosts({
       id: 'po-1',
+      status: 'completed',
       allocation_method: 'by_quantity',
       actual_shipping_cost: 20,
       actual_tariff_cost: 10,
@@ -98,6 +100,7 @@ describe('moving average cost workflow', () => {
   it('bases by-value allocation ratios on received quantity instead of ordered quantity', async () => {
     const db = createDbForAllocateCosts({
       id: 'po-1',
+      status: 'completed',
       allocation_method: 'by_value',
       actual_shipping_cost: 70,
       actual_tariff_cost: 0,
@@ -142,6 +145,7 @@ describe('moving average cost workflow', () => {
   it('skips MAC updates for items that have not been received yet', async () => {
     const db = createDbForAllocateCosts({
       id: 'po-1',
+      status: 'completed',
       allocation_method: 'by_quantity',
       actual_shipping_cost: 12,
       actual_tariff_cost: 8,
@@ -181,5 +185,41 @@ describe('moving average cost workflow', () => {
     ]);
     expect(service.variantRepo.updateMovingAverageCost).toHaveBeenCalledTimes(1);
     expect(service.variantRepo.updateMovingAverageCost).toHaveBeenCalledWith('v-2', 2, 32);
+  });
+
+  it('rejects manual cost allocation before the purchase order reaches completed', async () => {
+    const db = createDbForAllocateCosts({
+      id: 'po-1',
+      status: 'arrived',
+      allocation_method: 'by_quantity',
+      actual_shipping_cost: 20,
+      actual_tariff_cost: 10,
+      estimated_shipping_cost: 0,
+      estimated_tariff_cost: 0,
+    });
+
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      getItemsForAllocation: vi.fn(async () => [
+        {
+          id: 'i-1',
+          variant_id: 'v-1',
+          quantity: 5,
+          received_qty: 2,
+          unit_cost: 5,
+        },
+      ]),
+      updateAllocations: vi.fn(async () => undefined),
+    };
+    service.variantRepo = {
+      updateMovingAverageCost: vi.fn(async () => true),
+    };
+
+    const allocationAttempt = service.allocateCosts('po-1');
+    await expect(allocationAttempt).rejects.toThrow(BadRequestError);
+    await expect(allocationAttempt).rejects.toThrow('仅已结算采购单允许执行成本分摊');
+    expect(service.repo.getItemsForAllocation).not.toHaveBeenCalled();
+    expect(service.repo.updateAllocations).not.toHaveBeenCalled();
+    expect(service.variantRepo.updateMovingAverageCost).not.toHaveBeenCalled();
   });
 });

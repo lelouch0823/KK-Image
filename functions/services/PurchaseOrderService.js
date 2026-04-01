@@ -77,6 +77,12 @@ function getReceivedAllocationQty(item = {}) {
   return Math.max(toNumber(item.received_qty), 0);
 }
 
+function requireCompletedPurchaseOrderForAllocation(po) {
+  if (po?.status !== 'completed') {
+    throw new BadRequestError('仅已结算采购单允许执行成本分摊');
+  }
+}
+
 function resolvePurchaseOrderOutstandingQty(po = {}) {
   if (po.outstanding_qty != null) return Math.max(toNumber(po.outstanding_qty), 0);
 
@@ -90,6 +96,16 @@ function resolvePurchaseOrderOutstandingQty(po = {}) {
     toNumber(po.ordered_qty) - toNumber(po.received_qty) - toNumber(po.cancelled_qty),
     0
   );
+}
+
+function resolvePurchaseOrderReceivedQty(po = {}) {
+  if (po.received_qty != null) return Math.max(toNumber(po.received_qty), 0);
+
+  if (Array.isArray(po.items) && po.items.length > 0) {
+    return po.items.reduce((sum, item) => sum + Math.max(toNumber(item.received_qty), 0), 0);
+  }
+
+  return 0;
 }
 
 export class PurchaseOrderService {
@@ -134,6 +150,13 @@ export class PurchaseOrderService {
       const outstandingQty = resolvePurchaseOrderOutstandingQty(po);
       if (outstandingQty > 0) {
         throw new BadRequestError(`采购单仍有待收数量 ${outstandingQty}，不能标记为已入库`);
+      }
+    }
+
+    if (newStatus === 'cancelled') {
+      const receivedQty = resolvePurchaseOrderReceivedQty(po);
+      if (receivedQty > 0) {
+        throw new BadRequestError(`采购单已有收货数量 ${receivedQty}，不能直接取消`);
       }
     }
 
@@ -208,6 +231,7 @@ export class PurchaseOrderService {
       .bind(poId)
       .first();
     if (!po) return;
+    requireCompletedPurchaseOrderForAllocation(po);
 
     // 优先使用实际费用，未填则使用预估费用
     const shippingCost = po.actual_shipping_cost ?? po.estimated_shipping_cost ?? 0;

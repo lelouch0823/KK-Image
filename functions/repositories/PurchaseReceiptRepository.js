@@ -31,6 +31,7 @@ export class PurchaseReceiptRepository {
           id,
           purchase_order_id,
           purchase_order_item_id,
+          order_line_id,
           product_id,
           variant_id,
           receipt_no,
@@ -39,12 +40,13 @@ export class PurchaseReceiptRepository {
           received_at,
           created_at,
           updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         normalized.id,
         normalized.purchase_order_id,
         normalized.purchase_order_item_id || null,
+        normalized.order_line_id || null,
         normalized.product_id || null,
         normalized.variant_id || null,
         normalized.receipt_no || null,
@@ -121,12 +123,13 @@ export class PurchaseReceiptRepository {
             pr.variant_id,
             pr.received_qty,
             poi.pre_order_id,
-            ol.id AS order_line_id,
+            COALESCE(pr.order_line_id, ie.order_line_id) AS order_line_id,
             ie.id AS inventory_event_id
          FROM purchase_receipts pr
          LEFT JOIN purchase_order_items poi ON poi.id = pr.purchase_order_item_id
-         LEFT JOIN order_lines ol ON ol.order_id = poi.pre_order_id
-         LEFT JOIN inventory_events ie ON ie.purchase_receipt_id = pr.id
+         LEFT JOIN inventory_events ie
+           ON ie.purchase_receipt_id = pr.id
+          AND ie.event_type = 'purchase_received'
          WHERE pr.id = ?
          LIMIT 1`
       )

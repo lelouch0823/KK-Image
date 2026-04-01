@@ -258,6 +258,27 @@ describe('manage purchase-orders routes', () => {
     expect(waitUntil).toHaveBeenCalled();
   });
 
+  it('recomputes allocation when settlement fields change on a completed purchase order', async () => {
+    const app = createApp();
+    const db = createDb();
+    const waitUntil = vi.fn();
+    mocks.repoFindById.mockResolvedValue({ id: 'po-1', status: 'completed', items: [] });
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1',
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actual_shipping_cost: 18.5 }),
+      },
+      { DB: db },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.serviceAllocateCosts).toHaveBeenCalledWith('po-1');
+  });
+
   it('rejects adding item when pre_order_id product/variant mismatch', async () => {
     const app = createApp();
     const db = createDb({
@@ -546,6 +567,7 @@ describe('manage purchase-orders routes', () => {
     const app = createApp();
     const db = createDb();
     const waitUntil = vi.fn();
+    mocks.repoFindById.mockResolvedValue({ id: 'po-1', status: 'completed', items: [] });
 
     const res = await app.request(
       'http://localhost/api/manage/purchase-orders/po-1/allocate',
@@ -563,6 +585,29 @@ describe('manage purchase-orders routes', () => {
     ]);
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('rejects manual cost allocation before the purchase order reaches completed', async () => {
+    const app = createApp();
+    const db = createDb();
+    const waitUntil = vi.fn();
+    mocks.repoFindById.mockResolvedValue({ id: 'po-1', status: 'arrived', items: [] });
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/allocate',
+      { method: 'POST' },
+      { DB: db },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({
+      success: false,
+      error: '仅已结算采购单允许执行成本分摊',
+    });
+    expect(mocks.serviceAllocateCosts).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
+    expect(waitUntil).not.toHaveBeenCalled();
   });
 
   it('creates receipts via domain service and returns 201', async () => {
@@ -606,6 +651,34 @@ describe('manage purchase-orders routes', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{ purchase_order_item_id: 'poi-1', received_qty: 1 }],
+        }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.domainRecordReceipts).toHaveBeenCalledWith('po-1', {
+      items: [{ purchase_order_item_id: 'poi-1', received_qty: 1 }],
+    }, {
+      idempotencyKey: 'generated-idempotency-key',
+    });
+  });
+
+  it('derives an idempotency key when the receipt header is blank', async () => {
+    const app = createApp();
+    const db = createDb();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/receipts',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': '   ',
+        },
         body: JSON.stringify({
           items: [{ purchase_order_item_id: 'poi-1', received_qty: 1 }],
         }),
@@ -723,6 +796,33 @@ describe('manage purchase-orders routes', () => {
     );
   });
 
+  it('derives an idempotency key when the reversal header is blank', async () => {
+    const app = createApp();
+    const db = createDb();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/receipts/receipt-1/reversal',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': '   ',
+        },
+        body: JSON.stringify({ reason: 'rollback' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.reversalReverseReceipt).toHaveBeenCalledWith(
+      'po-1',
+      'receipt-1',
+      { reason: 'rollback' },
+      { idempotencyKey: 'generated-idempotency-key' }
+    );
+  });
+
   it('returns 400 when the reversal command is rejected by domain invariants', async () => {
     const app = createApp();
     const db = createDb();
@@ -797,6 +897,34 @@ describe('manage purchase-orders routes', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{ purchase_order_item_id: 'poi-1', close_qty: 1 }],
+        }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.shortageCloseShortages).toHaveBeenCalledWith('po-1', {
+      items: [{ purchase_order_item_id: 'poi-1', close_qty: 1 }],
+    }, {
+      idempotencyKey: 'generated-idempotency-key',
+    });
+  });
+
+  it('derives an idempotency key for shortage closure when the header is blank', async () => {
+    const app = createApp();
+    const db = createDb();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/shortage-closures',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': '   ',
+        },
         body: JSON.stringify({
           items: [{ purchase_order_item_id: 'poi-1', close_qty: 1 }],
         }),

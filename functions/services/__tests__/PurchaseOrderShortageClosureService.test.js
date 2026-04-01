@@ -6,6 +6,9 @@ function createDbHarness({
   poRow = { id: 'po-1', status: 'shipping' },
   purchaseOrderItems = {},
   batchResultsQueue = null,
+  batchError = null,
+  batchErrorMatcher = null,
+  batchErrorCallIndex = null,
 } = {}) {
   const defaultItems = {
     'poi-1': {
@@ -68,6 +71,15 @@ function createDbHarness({
     }),
     batch: vi.fn(async (statements = []) => {
       calls.batchCalls.push(statements);
+      const callIndex = calls.batchCalls.length;
+      if (
+        batchError &&
+        typeof batchErrorMatcher === 'function' &&
+        statements.some((statement) => batchErrorMatcher(statement)) &&
+        (batchErrorCallIndex == null || batchErrorCallIndex === callIndex)
+      ) {
+        throw batchError;
+      }
       if (Array.isArray(batchResultsQueue) && batchResultsQueue.length > 0) {
         return batchResultsQueue.shift();
       }
@@ -266,5 +278,38 @@ describe('PurchaseOrderShortageClosureService', () => {
     expect(revertStatements[0].sql).toContain('AND cancelled_qty = ?');
     expect(revertStatements[0].sql).toContain('AND display_status = ?');
     expect(revertStatements[0].params).toEqual([0, 'partially_received', 'poi-1', 'po-1', 7, 3, 'received']);
+  });
+
+  it('reverts shortage closures when finalize persistence fails after the guarded item updates', async () => {
+    const finalizeFailureHarness = createDbHarness({
+      batchError: new Error('finalize failed'),
+      batchErrorMatcher: (statement) => statement.sql.includes('UPDATE purchase_orders SET updated_at = ?'),
+      batchErrorCallIndex: 2,
+    });
+    const finalizeFailureService = new PurchaseOrderShortageClosureService(finalizeFailureHarness.db, {
+      commandIdempotencyRepo: finalizeFailureHarness.commandIdempotencyRepo,
+      now: () => 1710000000000,
+    });
+
+    await expect(
+      finalizeFailureService.closeShortages('po-1', {
+        items: [
+          { purchase_order_item_id: 'poi-1', close_qty: 3 },
+          { purchase_order_item_id: 'poi-2', close_qty: 4 },
+        ],
+      })
+    ).rejects.toThrow('finalize failed');
+
+    expect(finalizeFailureHarness.db.batch).toHaveBeenCalledTimes(3);
+    const revertStatements = finalizeFailureHarness.calls.batchCalls[2];
+    expect(revertStatements).toHaveLength(2);
+    expect(
+      finalizeFailureHarness.calls.runStatements.some((statement) =>
+        statement.sql.includes('DELETE FROM command_idempotency')
+      )
+    ).toBe(true);
+    expect(
+      revertStatements.every((statement) => statement.sql.includes('UPDATE purchase_order_items'))
+    ).toBe(true);
   });
 });

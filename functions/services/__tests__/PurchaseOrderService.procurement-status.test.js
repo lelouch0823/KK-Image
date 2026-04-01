@@ -187,6 +187,28 @@ describe('PurchaseOrderService procurement status cascade', () => {
     expect(service.inventoryService.applyBatch).not.toHaveBeenCalled();
   });
 
+  it('rejects cancelling an ordered purchase order once receipt facts already exist', async () => {
+    const db = createDb();
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      findById: vi.fn(async () => ({
+        id: 'po-1',
+        status: 'ordered',
+        ordered_qty: 10,
+        received_qty: 2,
+        cancelled_qty: 0,
+        outstanding_qty: 8,
+        items: [{ variant_id: 'v-1', quantity: 10, received_qty: 2 }],
+      })),
+      updateStatus: vi.fn(async () => true),
+      updateStatusIfCurrent: vi.fn(async () => true),
+      getLinkedOrderIds: vi.fn(async () => []),
+    };
+
+    await expect(service.updateStatus('po-1', 'cancelled')).rejects.toThrow(/收货|取消/);
+    expect(service.repo.updateStatusIfCurrent).not.toHaveBeenCalled();
+  });
+
   it('chunks large linked-order procurement cascades into D1-safe batches and reports changed order ids', async () => {
     const db = createDb();
     const service = new PurchaseOrderService(db);

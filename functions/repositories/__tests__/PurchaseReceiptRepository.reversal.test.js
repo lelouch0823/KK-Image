@@ -68,6 +68,18 @@ describe('PurchaseReceiptRepository reversals', () => {
     vi.restoreAllMocks();
   });
 
+  it('queries receipt lineage from persisted or inventory-derived order line ids', async () => {
+    const db = createDbMock();
+    const repo = new PurchaseReceiptRepository(db);
+
+    await repo.findReceiptWithLineage('receipt-1');
+
+    const sql = db.prepare.mock.calls[0][0];
+    expect(sql).toContain('pr.order_line_id');
+    expect(sql).toContain('COALESCE(pr.order_line_id, ie.order_line_id) AS order_line_id');
+    expect(sql).not.toContain('LEFT JOIN order_lines ol ON ol.order_id = poi.pre_order_id');
+  });
+
   it('stores a reversal fact linked to the original receipt and command lineage', async () => {
     const now = 1700000000000;
     vi.spyOn(Date, 'now').mockReturnValue(now);

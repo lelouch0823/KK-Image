@@ -5,6 +5,10 @@ import {
   projectPurchaseOrderItemStatus,
   toNonNegativeInt,
 } from './purchase-order-projection.js';
+import {
+  buildDeleteCommandStatement,
+  parseStoredResponse,
+} from './order-procurement-shared.js';
 
 const D1_MAX_BATCH_SIZE = 100;
 
@@ -51,19 +55,6 @@ function buildClosureRequestFingerprint(poId, payload = {}) {
     purchase_order_id: poId,
     items: normalizedItems,
   });
-}
-
-function parseStoredResponse(responseJson) {
-  if (!responseJson) return null;
-  try {
-    return JSON.parse(responseJson);
-  } catch {
-    return null;
-  }
-}
-
-function buildDeleteCommandStatement(db, commandId) {
-  return db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId);
 }
 
 export class PurchaseOrderShortageClosureService {
@@ -235,7 +226,30 @@ export class PurchaseOrderShortageClosureService {
       });
     }
 
-    const batchResults = statements.length > 0 ? await executeBatchChunks(this.db, statements) : [];
+    const batchResults = [];
+    let appliedStatementCount = 0;
+    try {
+      for (const chunk of chunkArray(statements)) {
+        const chunkResults = await this.db.batch(chunk);
+        if (Array.isArray(chunkResults)) {
+          batchResults.push(...chunkResults);
+        }
+        appliedStatementCount += chunk.length;
+      }
+    } catch (error) {
+      const successfulReverts = revertStatements.slice(0, appliedStatementCount);
+      if (successfulReverts.length > 0) {
+        await executeBatchChunks(this.db, successfulReverts);
+      }
+      if (ownsReservation) {
+        const deleteStatement =
+          this.commandIdempotencyRepo.buildDeleteStatement?.(commandReservation.record?.command_id) ||
+          buildDeleteCommandStatement(this.db, commandReservation.record?.command_id);
+        await deleteStatement.run();
+      }
+      throw error;
+    }
+
     const failedIndexes = [];
     for (let index = 0; index < statements.length; index += 1) {
       if ((batchResults[index]?.meta?.changes || 0) !== 1) {
@@ -265,16 +279,29 @@ export class PurchaseOrderShortageClosureService {
       items: results,
     };
 
-    await executeBatchChunks(this.db, [
-      this.db
-        .prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
-        .bind(this.now(), poId),
-      this.commandIdempotencyRepo.buildFinalizeStatement(
-        commandReservation.record?.command_id,
-        response,
-        'committed'
-      ),
-    ]);
+    try {
+      await executeBatchChunks(this.db, [
+        this.db
+          .prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
+          .bind(this.now(), poId),
+        this.commandIdempotencyRepo.buildFinalizeStatement(
+          commandReservation.record?.command_id,
+          response,
+          'committed'
+        ),
+      ]);
+    } catch (error) {
+      if (revertStatements.length > 0) {
+        await executeBatchChunks(this.db, revertStatements);
+      }
+      if (ownsReservation) {
+        const deleteStatement =
+          this.commandIdempotencyRepo.buildDeleteStatement?.(commandReservation.record?.command_id) ||
+          buildDeleteCommandStatement(this.db, commandReservation.record?.command_id);
+        await deleteStatement.run();
+      }
+      throw error;
+    }
 
     return response;
   }

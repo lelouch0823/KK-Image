@@ -50,6 +50,7 @@ function createDbHarness({
   purchaseOrderItemUpdateError = null,
   batchError = null,
   batchErrorMatcher = null,
+  commandInsertStatement = true,
   inventoryBalanceRow = {
     variant_id: 'var-1',
     on_hand: 4,
@@ -103,6 +104,10 @@ function createDbHarness({
         statement.first = vi.fn(async () => orderLineProgressRow);
       }
 
+      if (sql.includes('FROM order_lines') && sql.includes('WHERE id = ? AND order_id = ?')) {
+        statement.first = vi.fn(async () => orderLineProgressRow);
+      }
+
       if (sql.includes('FROM order_lines') && sql.includes('LIMIT 2')) {
         statement.all = vi.fn(async () => ({ results: matchingOrderLines }));
       }
@@ -124,6 +129,9 @@ function createDbHarness({
         throw batchError;
       }
       return statements.map((statement) => {
+        if (statement.sql?.includes('INSERT INTO command_idempotency')) {
+          return { meta: { changes: commandInsertStatement ? 1 : 0 } };
+        }
         if (statement.sql?.includes('UPDATE purchase_order_items')) {
           if (purchaseOrderItemUpdateError) throw purchaseOrderItemUpdateError;
           return purchaseOrderItemUpdateResult;
@@ -138,13 +146,14 @@ function createDbHarness({
       calls.receiptInsertPayloads.push(payload);
       return db.prepare(
         `INSERT INTO purchase_receipts (
-          id, purchase_order_id, purchase_order_item_id, product_id, variant_id, receipt_no,
+          id, purchase_order_id, purchase_order_item_id, order_line_id, product_id, variant_id, receipt_no,
           received_qty, note, received_at, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         payload.id,
         payload.purchase_order_id,
         payload.purchase_order_item_id,
+        payload.order_line_id || null,
         payload.product_id,
         payload.variant_id,
         payload.receipt_no || null,
@@ -414,6 +423,7 @@ describe('OrderProcurementDomainService', () => {
         id: expect.any(String),
         purchase_order_id: 'po-1',
         purchase_order_item_id: 'poi-1',
+        order_line_id: 'line-1',
         product_id: 'prod-1',
         variant_id: 'var-1',
         received_qty: 3,
@@ -601,7 +611,7 @@ describe('OrderProcurementDomainService', () => {
     expect(writeFailureHarness.inventoryService.buildMutationStatements).toHaveBeenCalled();
   });
 
-  it('chunks large receipt command batches into D1-safe sizes', async () => {
+  it('rejects receipt commands whose write plan would exceed a single D1 batch', async () => {
     const manyItemsHarness = createDbHarness();
     const manyItemsService = new OrderProcurementDomainService(manyItemsHarness.db, {
       purchaseReceiptRepo: manyItemsHarness.purchaseReceiptRepo,
@@ -611,13 +621,13 @@ describe('OrderProcurementDomainService', () => {
       now: () => 1710000000000,
     });
 
-    await manyItemsService.recordPurchaseOrderReceipts('po-1', {
-      items: Array.from({ length: 11 }, () => ({ purchase_order_item_id: 'poi-1', received_qty: 1 })),
+    await expect(manyItemsService.recordPurchaseOrderReceipts('po-1', {
+      items: Array.from({ length: 5 }, () => ({ purchase_order_item_id: 'poi-1', received_qty: 1 })),
     }, {
       idempotencyKey: 'idem-1',
-    });
+    })).rejects.toBeInstanceOf(BadRequestError);
 
-    expect(manyItemsHarness.db.batch.mock.calls.length).toBeGreaterThan(2);
-    expect(Math.max(...manyItemsHarness.db.batch.mock.calls.map(([statements]) => statements.length))).toBeLessThanOrEqual(100);
+    expect(manyItemsHarness.purchaseReceiptRepo.createInsertStatement).not.toHaveBeenCalled();
+    expect(manyItemsHarness.calls.runStatements.some((statement) => statement.sql.includes('DELETE FROM command_idempotency'))).toBe(true);
   });
 });
