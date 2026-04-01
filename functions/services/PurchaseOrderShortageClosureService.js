@@ -1,4 +1,5 @@
 import { BadRequestError, NotFoundError } from '../lib/hono/errors.js';
+import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { CommandIdempotencyRepository } from '../repositories/CommandIdempotencyRepository.js';
 import {
   computePurchaseOrderRemainingReceivable,
@@ -9,31 +10,6 @@ import {
   buildDeleteCommandStatement,
   parseStoredResponse,
 } from './order-procurement-shared.js';
-
-const D1_MAX_BATCH_SIZE = 100;
-
-function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
-  if (!Array.isArray(items) || items.length === 0) return [];
-
-  const chunks = [];
-  for (let index = 0; index < items.length; index += chunkSize) {
-    chunks.push(items.slice(index, index + chunkSize));
-  }
-  return chunks;
-}
-
-async function executeBatchChunks(db, statements = []) {
-  const results = [];
-
-  for (const chunk of chunkArray(statements)) {
-    const chunkResults = await db.batch(chunk);
-    if (Array.isArray(chunkResults)) {
-      results.push(...chunkResults);
-    }
-  }
-
-  return results;
-}
 
 function normalizeClosureEntry(entry = {}) {
   return {

@@ -1,9 +1,9 @@
 import { generateId, now } from '../api/utils/id.js';
 import { safeJsonParse } from '../api/utils/json.js';
+import { executeBatchChunks } from '../lib/db/batch.js';
 
 const ACTIVE_STATUS = 'active';
 const ARCHIVED_STATUS = 'archived';
-const D1_MAX_BATCH_SIZE = 100;
 
 const stableOptions = (optionsValues = {}) => {
     const entries = Object.entries(optionsValues || {})
@@ -24,22 +24,6 @@ const parseJSON = (value, fallback) => {
     if (typeof value !== 'string') return value;
     return safeJsonParse(value, fallback);
 };
-
-const chunkArray = (items = [], chunkSize = D1_MAX_BATCH_SIZE) => {
-    if (!Array.isArray(items) || items.length === 0) return [];
-
-    const chunks = [];
-    for (let index = 0; index < items.length; index += chunkSize) {
-        chunks.push(items.slice(index, index + chunkSize));
-    }
-    return chunks;
-};
-
-async function executeBatchChunks(db, statements = []) {
-    for (const chunk of chunkArray(statements)) {
-        await db.batch(chunk);
-    }
-}
 
 export class ProductDimensionRepository {
     constructor(db) {

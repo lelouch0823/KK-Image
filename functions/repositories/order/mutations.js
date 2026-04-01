@@ -9,11 +9,11 @@
 
 import { generateId, now } from '../../api/utils/id.js';
 import { assertOrderStatusTransition } from '../../api/utils/order-state-machine.js';
+import { chunkArray, executeBatchChunks } from '../../lib/db/batch.js';
 import { InventoryService } from '../../services/InventoryService.js';
 import { projectOrderLineStatus } from '../../services/OrderStatusProjectionService.js';
 
 export const INSUFFICIENT_VARIANT_STOCK_ERROR = 'insufficient variant stock for delivery';
-const D1_MAX_BATCH_SIZE = 100;
 
 function getDeliveryStockDelta(oldStatus, newStatus, quantity) {
     const safeQty = Math.max(0, Number(quantity) || 0);
@@ -25,29 +25,6 @@ function getDeliveryStockDelta(oldStatus, newStatus, quantity) {
 
 function resolveInventoryService(db, options = {}) {
     return options.inventoryService || new InventoryService(db);
-}
-
-function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
-    if (!Array.isArray(items) || items.length === 0) return [];
-
-    const chunks = [];
-    for (let index = 0; index < items.length; index += chunkSize) {
-        chunks.push(items.slice(index, index + chunkSize));
-    }
-    return chunks;
-}
-
-async function executeBatchChunks(db, statements = []) {
-    const results = [];
-
-    for (const chunk of chunkArray(statements)) {
-        const chunkResults = await db.batch(chunk);
-        if (Array.isArray(chunkResults)) {
-            results.push(...chunkResults);
-        }
-    }
-
-    return results;
 }
 
 async function assertBatchDeliveryStockSufficient(inventoryService, requirementsByVariant) {

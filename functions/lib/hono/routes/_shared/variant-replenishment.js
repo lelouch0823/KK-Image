@@ -1,21 +1,13 @@
+import { chunkArray } from '../../../db/batch.js';
+
 const D1_MAX_IN_CLAUSE_SIZE = 100;
-
-function chunkArray(items = [], chunkSize = D1_MAX_IN_CLAUSE_SIZE) {
-  if (!Array.isArray(items) || items.length === 0) return [];
-
-  const chunks = [];
-  for (let index = 0; index < items.length; index += chunkSize) {
-    chunks.push(items.slice(index, index + chunkSize));
-  }
-  return chunks;
-}
 
 export async function loadVariantReplenishmentMap(db, variantIds = []) {
   const normalizedIds = [...new Set((variantIds || []).filter(Boolean))];
   if (normalizedIds.length === 0) return new Map();
   const map = new Map();
 
-  for (const variantIdChunk of chunkArray(normalizedIds)) {
+  for (const variantIdChunk of chunkArray(normalizedIds, D1_MAX_IN_CLAUSE_SIZE)) {
     const placeholders = variantIdChunk.map(() => '?').join(',');
     const sql = `
       SELECT

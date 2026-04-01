@@ -2,6 +2,7 @@ import { BadRequestError, NotFoundError } from '../lib/hono/errors.js';
 import { CommandIdempotencyRepository } from '../repositories/CommandIdempotencyRepository.js';
 import { DomainOutboxRepository } from '../repositories/DomainOutboxRepository.js';
 import { PurchaseReceiptRepository } from '../repositories/PurchaseReceiptRepository.js';
+import { executeBatchChunks } from '../lib/db/batch.js';
 import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
@@ -50,29 +51,6 @@ function buildReceiptRequestFingerprint(poId, payload = {}) {
     purchase_order_id: poId,
     items: normalizedItems,
   });
-}
-
-function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
-  if (!Array.isArray(items) || items.length === 0) return [];
-
-  const chunks = [];
-  for (let index = 0; index < items.length; index += chunkSize) {
-    chunks.push(items.slice(index, index + chunkSize));
-  }
-  return chunks;
-}
-
-async function executeBatchChunks(db, statements = []) {
-  const results = [];
-
-  for (const chunk of chunkArray(statements)) {
-    const chunkResults = await db.batch(chunk);
-    if (Array.isArray(chunkResults)) {
-      results.push(...chunkResults);
-    }
-  }
-
-  return results;
 }
 
 function countReceiptWriteStatements(preparedReceipts = []) {

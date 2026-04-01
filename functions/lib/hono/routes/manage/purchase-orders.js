@@ -21,6 +21,7 @@ import { requirePermission } from '../../middleware/auth.js';
 import { requireEntity } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { chunkArray } from '../../../../lib/db/batch.js';
 import { runOutboxPoller } from '../../../../api/cron/outbox.js';
 import { DomainOutboxPublisher } from '../../../../services/DomainOutboxPublisher.js';
 
@@ -40,16 +41,6 @@ export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'POST', path: '/:id/allocate', domain: 'purchase-orders', action: 'purchase_order.allocate', severity: 'high', targetType: 'purchase_order' },
 ]);
 app.use('*', requirePermission('products:manage'));
-
-function chunkArray(items = [], chunkSize = D1_MAX_IN_CLAUSE_SIZE) {
-  if (!Array.isArray(items) || items.length === 0) return [];
-
-  const chunks = [];
-  for (let index = 0; index < items.length; index += chunkSize) {
-    chunks.push(items.slice(index, index + chunkSize));
-  }
-  return chunks;
-}
 
 async function publishPurchaseOrderCacheEvent(c, { eventType, poId, payload = {} }) {
   const publisher = new DomainOutboxPublisher(c.env.DB);
@@ -123,7 +114,7 @@ async function validateVariantItems(db, items = []) {
   }
 
   const variantMap = new Map();
-  for (const variantIdChunk of chunkArray(variantIds)) {
+  for (const variantIdChunk of chunkArray(variantIds, D1_MAX_IN_CLAUSE_SIZE)) {
     const placeholders = variantIdChunk.map(() => '?').join(',');
     const { results } = await db.prepare(`
       SELECT id, product_id, status,
@@ -167,7 +158,7 @@ async function validatePreOrderBinding(db, items = []) {
 
   const orderIds = [...new Set(linkedItems.map((item) => item.pre_order_id))];
   const orderMap = new Map();
-  for (const orderIdChunk of chunkArray(orderIds)) {
+  for (const orderIdChunk of chunkArray(orderIds, D1_MAX_IN_CLAUSE_SIZE)) {
     const placeholders = orderIdChunk.map(() => '?').join(',');
     const { results } = await db.prepare(`
       SELECT id, status, product_id, variant_id

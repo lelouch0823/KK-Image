@@ -2,6 +2,7 @@ import { parseRepoPagination } from '../api/utils/pagination.js';
 import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { buildSetClause } from '../api/utils/sql.js';
 import { hasChanges } from '../api/utils/result.js';
+import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 
 function toNumber(value) {
   return Number(value || 0);
@@ -59,22 +60,6 @@ function summarizePurchaseOrderItems(items = []) {
 }
 
 const D1_MAX_IN_CLAUSE_SIZE = 100;
-
-function chunkArray(items = [], chunkSize = D1_MAX_IN_CLAUSE_SIZE) {
-  if (!Array.isArray(items) || items.length === 0) return [];
-
-  const chunks = [];
-  for (let index = 0; index < items.length; index += chunkSize) {
-    chunks.push(items.slice(index, index + chunkSize));
-  }
-  return chunks;
-}
-
-async function executeBatchChunks(db, statements = []) {
-  for (const chunk of chunkArray(statements)) {
-    await db.batch(chunk);
-  }
-}
 
 function isPurchaseOrderNoConflictError(error) {
   const message = String(error?.message || error || '').toLowerCase();
@@ -567,7 +552,7 @@ export class PurchaseOrderRepository {
     if (!variantIds || variantIds.length === 0) return {};
 
     const map = {};
-    for (const variantIdChunk of chunkArray(variantIds)) {
+    for (const variantIdChunk of chunkArray(variantIds, D1_MAX_IN_CLAUSE_SIZE)) {
       const placeholders = variantIdChunk.map(() => '?').join(',');
       const { results } = await this.db.prepare(`
         SELECT latest.variant_id, poi.unit_cost AS last_purchase_price
