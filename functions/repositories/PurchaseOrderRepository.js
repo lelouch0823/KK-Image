@@ -3,33 +3,26 @@ import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { buildSetClause } from '../api/utils/sql.js';
 import { hasChanges } from '../api/utils/result.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
+import {
+  getPurchaseOrderCancelledQty,
+  getPurchaseOrderOrderedQty,
+  getPurchaseOrderOutstandingQty,
+  getPurchaseOrderReceivedQty,
+  projectPurchaseOrderDisplayStatus,
+} from '../services/purchase-order-projection.js';
 
 function toNumber(value) {
   return Number(value || 0);
-}
-
-function projectPurchaseOrderDisplayStatus(progress = {}) {
-  const ordered = toNumber(progress.ordered_qty);
-  const received = toNumber(progress.received_qty);
-  const cancelled = toNumber(progress.cancelled_qty);
-  const outstanding = progress.outstanding_qty != null
-    ? toNumber(progress.outstanding_qty)
-    : Math.max(ordered - received - cancelled, 0);
-
-  if (ordered > 0 && cancelled >= ordered) return 'cancelled';
-  if (ordered > 0 && outstanding <= 0) return 'received';
-  if (received > 0) return 'partially_received';
-  return 'open';
 }
 
 function normalizePurchaseOrderProgress(row = {}) {
   return {
     ...row,
     item_count: toNumber(row.item_count),
-    ordered_qty: toNumber(row.ordered_qty),
-    received_qty: toNumber(row.received_qty),
-    cancelled_qty: toNumber(row.cancelled_qty),
-    outstanding_qty: toNumber(row.outstanding_qty),
+    ordered_qty: getPurchaseOrderOrderedQty(row),
+    received_qty: getPurchaseOrderReceivedQty(row),
+    cancelled_qty: getPurchaseOrderCancelledQty(row),
+    outstanding_qty: getPurchaseOrderOutstandingQty(row),
     total_goods_cost: toNumber(row.total_goods_cost),
     receipt_count: toNumber(row.receipt_count),
     display_status: row.display_status || projectPurchaseOrderDisplayStatus(row),
@@ -39,11 +32,10 @@ function normalizePurchaseOrderProgress(row = {}) {
 function summarizePurchaseOrderItems(items = []) {
   return normalizePurchaseOrderProgress(items.reduce((acc, item) => ({
     item_count: acc.item_count + 1,
-    ordered_qty: acc.ordered_qty + toNumber(item.quantity),
-    received_qty: acc.received_qty + toNumber(item.received_qty),
-    cancelled_qty: acc.cancelled_qty + toNumber(item.cancelled_qty),
-    outstanding_qty:
-      acc.outstanding_qty + Math.max(toNumber(item.quantity) - toNumber(item.received_qty) - toNumber(item.cancelled_qty), 0),
+    ordered_qty: acc.ordered_qty + getPurchaseOrderOrderedQty(item),
+    received_qty: acc.received_qty + getPurchaseOrderReceivedQty(item),
+    cancelled_qty: acc.cancelled_qty + getPurchaseOrderCancelledQty(item),
+    outstanding_qty: acc.outstanding_qty + getPurchaseOrderOutstandingQty(item),
     total_goods_cost: acc.total_goods_cost + (toNumber(item.quantity) * toNumber(item.unit_cost)),
     receipt_count: acc.receipt_count + toNumber(item.receipt_count),
     last_received_at: Math.max(acc.last_received_at, toNumber(item.last_received_at)),

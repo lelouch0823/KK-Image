@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  getPurchaseOrderCancelledQty,
   getPurchaseOrderOrderedQty,
   getPurchaseOrderOutstandingQty,
   getPurchaseOrderReceivedQty,
@@ -28,6 +29,24 @@ describe('purchase-order-progress', () => {
     expect(getPurchaseOrderReceivedQty({
       items: [{ received_qty: 2 }, { received_qty: 3 }],
     })).toBe(5);
+  });
+
+  it('sums cancelled quantity from items when header data is absent', () => {
+    expect(getPurchaseOrderCancelledQty({
+      items: [{ cancelled_qty: 2 }, { cancelled_qty: 1 }],
+    })).toBe(3);
+  });
+
+  it('derives ordered and outstanding quantity from items when header aggregates are absent', () => {
+    const record = {
+      items: [
+        { quantity: 10, received_qty: 4, cancelled_qty: 1 },
+        { quantity: 2, received_qty: 2, cancelled_qty: 0 },
+      ],
+    };
+
+    expect(getPurchaseOrderOrderedQty(record)).toBe(12);
+    expect(getPurchaseOrderOutstandingQty(record)).toBe(5);
   });
 
   it('uses quantity for item rows and ordered_qty for header rows', () => {

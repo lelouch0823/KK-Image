@@ -18,6 +18,10 @@ import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 import { InventoryService } from './InventoryService.js';
 import { DemandService } from './DemandService.js';
+import {
+  getPurchaseOrderOutstandingQty,
+  getPurchaseOrderReceivedQty,
+} from './purchase-order-projection.js';
 
 const D1_MAX_IN_CLAUSE_SIZE = 100;
 
@@ -61,31 +65,6 @@ function requireCompletedPurchaseOrderForAllocation(po) {
   }
 }
 
-function resolvePurchaseOrderOutstandingQty(po = {}) {
-  if (po.outstanding_qty != null) return Math.max(toNumber(po.outstanding_qty), 0);
-
-  if (Array.isArray(po.items) && po.items.length > 0) {
-    return po.items.reduce((sum, item) => (
-      sum + Math.max(toNumber(item.quantity) - toNumber(item.received_qty) - toNumber(item.cancelled_qty), 0)
-    ), 0);
-  }
-
-  return Math.max(
-    toNumber(po.ordered_qty) - toNumber(po.received_qty) - toNumber(po.cancelled_qty),
-    0
-  );
-}
-
-function resolvePurchaseOrderReceivedQty(po = {}) {
-  if (po.received_qty != null) return Math.max(toNumber(po.received_qty), 0);
-
-  if (Array.isArray(po.items) && po.items.length > 0) {
-    return po.items.reduce((sum, item) => sum + Math.max(toNumber(item.received_qty), 0), 0);
-  }
-
-  return 0;
-}
-
 export class PurchaseOrderService {
   /**
    * @param {D1Database} db
@@ -125,14 +104,14 @@ export class PurchaseOrderService {
     }
 
     if (po.status === 'shipping' && newStatus === 'arrived') {
-      const outstandingQty = resolvePurchaseOrderOutstandingQty(po);
+      const outstandingQty = getPurchaseOrderOutstandingQty(po);
       if (outstandingQty > 0) {
         throw new BadRequestError(`采购单仍有待收数量 ${outstandingQty}，不能标记为已入库`);
       }
     }
 
     if (newStatus === 'cancelled') {
-      const receivedQty = resolvePurchaseOrderReceivedQty(po);
+      const receivedQty = getPurchaseOrderReceivedQty(po);
       if (receivedQty > 0) {
         throw new BadRequestError(`采购单已有收货数量 ${receivedQty}，不能直接取消`);
       }
