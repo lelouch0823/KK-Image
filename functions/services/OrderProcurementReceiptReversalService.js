@@ -4,10 +4,12 @@ import { DomainOutboxRepository } from '../repositories/DomainOutboxRepository.j
 import { PurchaseReceiptRepository } from '../repositories/PurchaseReceiptRepository.js';
 import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
-
-function toNonNegativeInt(value) {
-  return Math.max(0, Math.trunc(Number(value) || 0));
-}
+import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
+import {
+  projectCompatibilityProcurementStatus,
+  projectPurchaseOrderItemStatus,
+  toNonNegativeInt,
+} from './purchase-order-projection.js';
 
 function parseStoredResponse(responseJson) {
   if (!responseJson) return null;
@@ -24,31 +26,6 @@ function buildReversalFingerprint(poId, receiptId, payload = {}) {
     receipt_id: receiptId,
     reason: payload.reason || null,
   });
-}
-
-function projectPurchaseOrderItemStatus(item = {}) {
-  const ordered = toNonNegativeInt(item.quantity);
-  const received = toNonNegativeInt(item.received_qty);
-  const cancelled = toNonNegativeInt(item.cancelled_qty);
-
-  if (ordered > 0 && cancelled >= ordered) return 'cancelled';
-  if (ordered > 0 && received >= Math.max(ordered - cancelled, 0)) return 'received';
-  if (received > 0) return 'partially_received';
-  return 'open';
-}
-
-function projectCompatibilityProcurementStatus(progress = {}) {
-  const ordered = toNonNegativeInt(progress.ordered_qty);
-  const procured = toNonNegativeInt(progress.procured_qty);
-  const received = toNonNegativeInt(progress.received_qty);
-  const cancelled = toNonNegativeInt(progress.cancelled_qty);
-  const receivable = Math.max(ordered - cancelled, 0);
-
-  if (receivable <= 0) return 'none';
-  if (received >= receivable) return 'arrived';
-  if (received > 0) return 'partially_arrived';
-  if (procured > 0) return 'ordered';
-  return 'none';
 }
 
 function isDuplicateReceiptReversalError(error) {
@@ -103,7 +80,7 @@ export class OrderProcurementReceiptReversalService {
   async requireOrderLine(orderId, orderLineId) {
     const row = await this.db
       .prepare(
-        `SELECT id, order_id, received_qty
+        `SELECT id, order_id, ordered_qty, procured_qty, received_qty, reserved_qty, shipped_qty, cancelled_qty
          FROM order_lines
          WHERE id = ? AND order_id = ?`
       )
@@ -257,15 +234,21 @@ export class OrderProcurementReceiptReversalService {
         toNonNegativeInt(orderLine.received_qty) - reversalQty,
         0
       );
+      const nextOrderLine = {
+        ...orderLine,
+        received_qty: nextOrderLineReceivedQty,
+      };
+      nextOrderLine.display_status = projectOrderLineStatus(nextOrderLine);
       statements.push(
         this.db
           .prepare(
             `UPDATE order_lines
-           SET received_qty = ?, updated_at = ?
+           SET received_qty = ?, display_status = ?, updated_at = ?
            WHERE id = ? AND order_id = ?`
           )
           .bind(
             nextOrderLineReceivedQty,
+            nextOrderLine.display_status,
             timestamp,
             originalReceipt.order_line_id,
             originalReceipt.pre_order_id
