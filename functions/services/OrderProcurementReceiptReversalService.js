@@ -6,9 +6,11 @@ import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 import {
-  buildDeleteCommandStatement,
-  parseStoredResponse,
+  buildFinalizeCommandStatements,
+  cleanupReservedCommand,
   queryCompatibilityProcurementAggregate,
+  replayReservedCommand,
+  resolveReservationOwnership,
   requireOrderLine,
 } from './order-procurement-shared.js';
 import {
@@ -246,19 +248,13 @@ export class OrderProcurementReceiptReversalService {
       idempotencyKey,
       requestFingerprint
     );
-    const ownsReservation = reservation?.ownsReservation ?? Boolean(reservation?.insertStatement);
+    const ownsReservation = resolveReservationOwnership(reservation);
 
     if (reservation?.existing) {
-      if (reservation.record?.request_fingerprint !== requestFingerprint) {
-        throw new BadRequestError('同一个幂等键不能提交不同的冲销请求');
-      }
-
-      const replay = parseStoredResponse(reservation.record?.response_json);
-      if (reservation.record?.status === 'committed' && replay) {
-        return replay;
-      }
-
-      throw new BadRequestError('当前幂等键对应的冲销命令仍在处理中');
+      return replayReservedCommand(reservation, requestFingerprint, {
+        mismatchMessage: '同一个幂等键不能提交不同的冲销请求',
+        inFlightMessage: '当前幂等键对应的冲销命令仍在处理中',
+      });
     }
 
     const originalReceipt = await this.purchaseReceiptRepo.findReceiptWithLineage(receiptId);
@@ -397,12 +393,12 @@ export class OrderProcurementReceiptReversalService {
       if (successfulReverts.length > 0) {
         await this.db.batch(successfulReverts);
       }
-      if (ownsReservation) {
-        const deleteStatement =
-          this.commandIdempotencyRepo.buildDeleteStatement?.(commandRecord.command_id) ||
-          buildDeleteCommandStatement(this.db, commandRecord.command_id);
-        await deleteStatement.run();
-      }
+      await cleanupReservedCommand({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        db: this.db,
+        ownsReservation,
+        commandId: commandRecord.command_id,
+      });
       throw new BadRequestError('采购单收货进度已变化，请刷新后重试');
     }
 
@@ -525,13 +521,6 @@ export class OrderProcurementReceiptReversalService {
       });
     }
 
-    statements.push(
-      ...this.domainOutboxRepo.buildInsertStatements(
-        outboxEvents,
-        (event) => getDomainEventDefinition(event.event_type).consumers
-      )
-    );
-
     const response = {
       purchase_order_id: poId,
       receipt_id: receiptId,
@@ -540,16 +529,18 @@ export class OrderProcurementReceiptReversalService {
     };
 
     statements.push(
-      this.db
-        .prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
-        .bind(timestamp, poId)
-    );
-    statements.push(
-      this.commandIdempotencyRepo.buildFinalizeStatement(
-        commandRecord.command_id,
+      ...buildFinalizeCommandStatements({
+        db: this.db,
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        purchaseOrderId: poId,
+        timestamp,
+        commandId: commandRecord.command_id,
         response,
-        'committed'
-      )
+        leadingStatements: this.domainOutboxRepo.buildInsertStatements(
+          outboxEvents,
+          (event) => getDomainEventDefinition(event.event_type).consumers
+        ),
+      })
     );
 
     try {
@@ -559,12 +550,12 @@ export class OrderProcurementReceiptReversalService {
       if (preflightReverts.length > 0) {
         await this.db.batch(preflightReverts);
       }
-      if (ownsReservation) {
-        const deleteStatement =
-          this.commandIdempotencyRepo.buildDeleteStatement?.(commandRecord.command_id) ||
-          buildDeleteCommandStatement(this.db, commandRecord.command_id);
-        await deleteStatement.run();
-      }
+      await cleanupReservedCommand({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        db: this.db,
+        ownsReservation,
+        commandId: commandRecord.command_id,
+      });
       if (isDuplicateReceiptReversalError(error)) {
         throw new BadRequestError('原始收货记录已冲销，不能重复冲销');
       }

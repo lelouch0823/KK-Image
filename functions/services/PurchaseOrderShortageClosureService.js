@@ -7,8 +7,10 @@ import {
   toNonNegativeInt,
 } from './purchase-order-projection.js';
 import {
-  buildDeleteCommandStatement,
-  parseStoredResponse,
+  buildFinalizeCommandStatements,
+  cleanupReservedCommand,
+  replayReservedCommand,
+  resolveReservationOwnership,
 } from './order-procurement-shared.js';
 
 function normalizeClosureEntry(entry = {}) {
@@ -129,20 +131,13 @@ export class PurchaseOrderShortageClosureService {
       idempotencyKey,
       requestFingerprint
     );
-    const ownsReservation =
-      commandReservation?.ownsReservation ?? Boolean(commandReservation?.insertStatement);
+    const ownsReservation = resolveReservationOwnership(commandReservation);
 
     if (commandReservation?.existing) {
-      if (commandReservation.record?.request_fingerprint !== requestFingerprint) {
-        throw new BadRequestError('同一个幂等键不能提交不同的关闭待收请求');
-      }
-
-      const replay = parseStoredResponse(commandReservation.record?.response_json);
-      if (commandReservation.record?.status === 'committed' && replay) {
-        return replay;
-      }
-
-      throw new BadRequestError('当前幂等键对应的关闭待收命令仍在处理中');
+      return replayReservedCommand(commandReservation, requestFingerprint, {
+        mismatchMessage: '同一个幂等键不能提交不同的关闭待收请求',
+        inFlightMessage: '当前幂等键对应的关闭待收命令仍在处理中',
+      });
     }
 
     const statements = [];
@@ -217,12 +212,12 @@ export class PurchaseOrderShortageClosureService {
       if (successfulReverts.length > 0) {
         await executeBatchChunks(this.db, successfulReverts);
       }
-      if (ownsReservation) {
-        const deleteStatement =
-          this.commandIdempotencyRepo.buildDeleteStatement?.(commandReservation.record?.command_id) ||
-          buildDeleteCommandStatement(this.db, commandReservation.record?.command_id);
-        await deleteStatement.run();
-      }
+      await cleanupReservedCommand({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        db: this.db,
+        ownsReservation,
+        commandId: commandReservation.record?.command_id,
+      });
       throw error;
     }
 
@@ -240,12 +235,12 @@ export class PurchaseOrderShortageClosureService {
       if (successfulReverts.length > 0) {
         await executeBatchChunks(this.db, successfulReverts);
       }
-      if (ownsReservation) {
-        const deleteStatement =
-          this.commandIdempotencyRepo.buildDeleteStatement?.(commandReservation.record?.command_id) ||
-          buildDeleteCommandStatement(this.db, commandReservation.record?.command_id);
-        await deleteStatement.run();
-      }
+      await cleanupReservedCommand({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        db: this.db,
+        ownsReservation,
+        commandId: commandReservation.record?.command_id,
+      });
       throw new BadRequestError('采购单明细待收进度已变化，请刷新后重试');
     }
 
@@ -256,26 +251,27 @@ export class PurchaseOrderShortageClosureService {
     };
 
     try {
-      await executeBatchChunks(this.db, [
-        this.db
-          .prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
-          .bind(this.now(), poId),
-        this.commandIdempotencyRepo.buildFinalizeStatement(
-          commandReservation.record?.command_id,
+      await executeBatchChunks(
+        this.db,
+        buildFinalizeCommandStatements({
+          db: this.db,
+          commandIdempotencyRepo: this.commandIdempotencyRepo,
+          purchaseOrderId: poId,
+          timestamp: this.now(),
+          commandId: commandReservation.record?.command_id,
           response,
-          'committed'
-        ),
-      ]);
+        })
+      );
     } catch (error) {
       if (revertStatements.length > 0) {
         await executeBatchChunks(this.db, revertStatements);
       }
-      if (ownsReservation) {
-        const deleteStatement =
-          this.commandIdempotencyRepo.buildDeleteStatement?.(commandReservation.record?.command_id) ||
-          buildDeleteCommandStatement(this.db, commandReservation.record?.command_id);
-        await deleteStatement.run();
-      }
+      await cleanupReservedCommand({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        db: this.db,
+        ownsReservation,
+        commandId: commandReservation.record?.command_id,
+      });
       throw error;
     }
 

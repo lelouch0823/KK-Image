@@ -1,4 +1,4 @@
-import { NotFoundError } from '../lib/hono/errors.js';
+import { BadRequestError, NotFoundError } from '../lib/hono/errors.js';
 import { toNonNegativeInt } from './purchase-order-projection.js';
 
 export function parseStoredResponse(responseJson) {
@@ -12,6 +12,66 @@ export function parseStoredResponse(responseJson) {
 
 export function buildDeleteCommandStatement(db, commandId) {
   return db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId);
+}
+
+export function resolveReservationOwnership(reservation = {}) {
+  return reservation?.ownsReservation ?? Boolean(reservation?.insertStatement);
+}
+
+export function replayReservedCommand(
+  reservation,
+  requestFingerprint,
+  { mismatchMessage, inFlightMessage } = {}
+) {
+  if (!reservation?.existing) return null;
+
+  if (reservation.record?.request_fingerprint !== requestFingerprint) {
+    throw new BadRequestError(mismatchMessage || '同一个幂等键不能提交不同请求');
+  }
+
+  const replay = parseStoredResponse(reservation.record?.response_json);
+  if (reservation.record?.status === 'committed' && replay) {
+    return replay;
+  }
+
+  throw new BadRequestError(inFlightMessage || '当前幂等键对应的命令仍在处理中');
+}
+
+export async function cleanupReservedCommand({
+  commandIdempotencyRepo,
+  db,
+  ownsReservation,
+  commandId,
+}) {
+  if (!ownsReservation || !commandId) return false;
+
+  const deleteStatement =
+    commandIdempotencyRepo.buildDeleteStatement?.(commandId) ||
+    buildDeleteCommandStatement(db, commandId);
+  await deleteStatement.run();
+  return true;
+}
+
+export function buildFinalizeCommandStatements({
+  db,
+  commandIdempotencyRepo,
+  purchaseOrderId,
+  timestamp,
+  commandId,
+  response,
+  status = 'committed',
+  leadingStatements = [],
+}) {
+  const statements = [...leadingStatements];
+
+  if (purchaseOrderId) {
+    statements.push(
+      db.prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?').bind(timestamp, purchaseOrderId)
+    );
+  }
+
+  statements.push(commandIdempotencyRepo.buildFinalizeStatement(commandId, response, status));
+  return statements;
 }
 
 export async function requireOrderLine(db, orderId, orderLineId) {

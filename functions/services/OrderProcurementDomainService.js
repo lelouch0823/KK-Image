@@ -7,9 +7,11 @@ import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 import {
-  buildDeleteCommandStatement,
-  parseStoredResponse,
+  buildFinalizeCommandStatements,
+  cleanupReservedCommand,
   queryCompatibilityProcurementAggregate,
+  replayReservedCommand,
+  resolveReservationOwnership,
   requireOrderLine,
 } from './order-procurement-shared.js';
 import {
@@ -351,20 +353,13 @@ export class OrderProcurementDomainService {
       idempotencyKey,
       requestFingerprint
     );
-    const ownsReservation =
-      commandReservation?.ownsReservation ?? Boolean(commandReservation?.insertStatement);
+    const ownsReservation = resolveReservationOwnership(commandReservation);
 
     if (commandReservation?.existing) {
-      if (commandReservation.record?.request_fingerprint !== requestFingerprint) {
-        throw new BadRequestError('同一个幂等键不能提交不同的收货请求');
-      }
-
-      const replay = parseStoredResponse(commandReservation.record?.response_json);
-      if (commandReservation.record?.status === 'committed' && replay) {
-        return replay;
-      }
-
-      throw new BadRequestError('当前幂等键对应的收货命令仍在处理中');
+      return replayReservedCommand(commandReservation, requestFingerprint, {
+        mismatchMessage: '同一个幂等键不能提交不同的收货请求',
+        inFlightMessage: '当前幂等键对应的收货命令仍在处理中',
+      });
     }
 
     const timestamp = this.now();
@@ -448,12 +443,12 @@ export class OrderProcurementDomainService {
     }
 
     if (countReceiptWriteStatements(preparedReceipts) > D1_MAX_BATCH_SIZE) {
-      if (ownsReservation) {
-        const deleteStatement =
-          this.commandIdempotencyRepo.buildDeleteStatement?.(commandRecord.command_id) ||
-          buildDeleteCommandStatement(this.db, commandRecord.command_id);
-        await deleteStatement.run();
-      }
+      await cleanupReservedCommand({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        db: this.db,
+        ownsReservation,
+        commandId: commandRecord.command_id,
+      });
       throw new BadRequestError('本次收货包含的写入过多，请拆分后重试');
     }
 
@@ -474,12 +469,12 @@ export class OrderProcurementDomainService {
       if (successfulReverts.length > 0) {
         await executeBatchChunks(this.db, successfulReverts);
       }
-      if (ownsReservation) {
-        const deleteStatement =
-          this.commandIdempotencyRepo.buildDeleteStatement?.(commandRecord.command_id) ||
-          buildDeleteCommandStatement(this.db, commandRecord.command_id);
-        await deleteStatement.run();
-      }
+      await cleanupReservedCommand({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        db: this.db,
+        ownsReservation,
+        commandId: commandRecord.command_id,
+      });
       throw new BadRequestError('采购单明细收货进度已变化，请刷新后重试');
     }
 
@@ -684,22 +679,18 @@ export class OrderProcurementDomainService {
       };
 
       statements.push(
-        ...this.domainOutboxRepo.buildInsertStatements(
-          outboxEvents,
-          (event) => getDomainEventDefinition(event.event_type).consumers
-        )
-      );
-      statements.push(
-        this.db
-          .prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
-          .bind(timestamp, poId)
-      );
-      statements.push(
-        this.commandIdempotencyRepo.buildFinalizeStatement(
-          commandRecord.command_id,
+        ...buildFinalizeCommandStatements({
+          db: this.db,
+          commandIdempotencyRepo: this.commandIdempotencyRepo,
+          purchaseOrderId: poId,
+          timestamp,
+          commandId: commandRecord.command_id,
           response,
-          'committed'
-        )
+          leadingStatements: this.domainOutboxRepo.buildInsertStatements(
+            outboxEvents,
+            (event) => getDomainEventDefinition(event.event_type).consumers
+          ),
+        })
       );
 
       await executeBatchChunks(this.db, statements);
@@ -708,12 +699,12 @@ export class OrderProcurementDomainService {
       if (preflightReverts.length > 0) {
         await executeBatchChunks(this.db, preflightReverts);
       }
-      if (ownsReservation) {
-        const deleteStatement =
-          this.commandIdempotencyRepo.buildDeleteStatement?.(commandRecord.command_id) ||
-          buildDeleteCommandStatement(this.db, commandRecord.command_id);
-        await deleteStatement.run();
-      }
+      await cleanupReservedCommand({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        db: this.db,
+        ownsReservation,
+        commandId: commandRecord.command_id,
+      });
       throw error;
     }
   }

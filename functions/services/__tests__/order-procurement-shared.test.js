@@ -1,9 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
+import { BadRequestError } from '../../lib/hono/errors.js';
 
 import {
+  buildFinalizeCommandStatements,
   buildDeleteCommandStatement,
+  cleanupReservedCommand,
   parseStoredResponse,
   queryCompatibilityProcurementAggregate,
+  replayReservedCommand,
+  resolveReservationOwnership,
   requireOrderLine,
 } from '../order-procurement-shared.js';
 
@@ -26,6 +31,132 @@ describe('order-procurement-shared', () => {
     );
     expect(bind).toHaveBeenCalledWith('cmd-1');
     expect(result).toBe(boundStatement);
+  });
+
+  it('resolves reservation ownership from ownsReservation or insertStatement', () => {
+    expect(resolveReservationOwnership({ ownsReservation: true, insertStatement: null })).toBe(true);
+    expect(resolveReservationOwnership({ ownsReservation: false, insertStatement: { sql: 'insert' } })).toBe(false);
+    expect(resolveReservationOwnership({ insertStatement: { sql: 'insert' } })).toBe(true);
+    expect(resolveReservationOwnership({ insertStatement: null })).toBe(false);
+  });
+
+  it('replays committed command responses when reservation already exists', () => {
+    const replay = replayReservedCommand(
+      {
+        existing: true,
+        record: {
+          request_fingerprint: '{"k":"v"}',
+          status: 'committed',
+          response_json: '{"ok":true}',
+        },
+      },
+      '{"k":"v"}',
+      {
+        mismatchMessage: 'mismatch',
+        inFlightMessage: 'in-flight',
+      }
+    );
+
+    expect(replay).toEqual({ ok: true });
+  });
+
+  it('rejects mismatched fingerprints and in-flight reservations', () => {
+    expect(() =>
+      replayReservedCommand(
+        {
+          existing: true,
+          record: {
+            request_fingerprint: '{"old":true}',
+            status: 'committed',
+            response_json: '{"ok":true}',
+          },
+        },
+        '{"new":true}',
+        {
+          mismatchMessage: 'mismatch',
+          inFlightMessage: 'in-flight',
+        }
+      )
+    ).toThrow(BadRequestError);
+
+    expect(() =>
+      replayReservedCommand(
+        {
+          existing: true,
+          record: {
+            request_fingerprint: '{"k":"v"}',
+            status: 'in_flight',
+            response_json: null,
+          },
+        },
+        '{"k":"v"}',
+        {
+          mismatchMessage: 'mismatch',
+          inFlightMessage: 'in-flight',
+        }
+      )
+    ).toThrow(BadRequestError);
+  });
+
+  it('cleans up reserved commands only when the service owns the reservation', async () => {
+    const repoDeleteStatement = { run: vi.fn(async () => ({ success: true })) };
+    const fallbackDeleteStatement = { run: vi.fn(async () => ({ success: true })) };
+    const commandIdempotencyRepo = {
+      buildDeleteStatement: vi.fn(() => repoDeleteStatement),
+    };
+    const db = {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => fallbackDeleteStatement),
+      })),
+    };
+
+    await cleanupReservedCommand({
+      commandIdempotencyRepo,
+      db,
+      ownsReservation: true,
+      commandId: 'cmd-1',
+    });
+    await cleanupReservedCommand({
+      commandIdempotencyRepo,
+      db,
+      ownsReservation: false,
+      commandId: 'cmd-2',
+    });
+
+    expect(commandIdempotencyRepo.buildDeleteStatement).toHaveBeenCalledTimes(1);
+    expect(repoDeleteStatement.run).toHaveBeenCalledTimes(1);
+    expect(db.prepare).not.toHaveBeenCalled();
+  });
+
+  it('builds finalize statements by appending purchase-order touch and command finalize writes', () => {
+    const extraStatement = { sql: 'extra' };
+    const touchStatement = { sql: 'touch' };
+    const finalizeStatement = { sql: 'finalize' };
+    const db = {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => touchStatement),
+      })),
+    };
+    const commandIdempotencyRepo = {
+      buildFinalizeStatement: vi.fn(() => finalizeStatement),
+    };
+
+    const statements = buildFinalizeCommandStatements({
+      db,
+      commandIdempotencyRepo,
+      purchaseOrderId: 'po-1',
+      timestamp: 123,
+      commandId: 'cmd-1',
+      response: { ok: true },
+      leadingStatements: [extraStatement],
+    });
+
+    expect(statements).toEqual([extraStatement, touchStatement, finalizeStatement]);
+    expect(commandIdempotencyRepo.buildFinalizeStatement).toHaveBeenCalledWith(
+      'cmd-1',
+      { ok: true },
+      'committed'
+    );
   });
 
   it('loads one order line scoped by order id', async () => {
