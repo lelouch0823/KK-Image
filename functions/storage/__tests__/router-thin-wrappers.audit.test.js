@@ -14,6 +14,10 @@ describe('storage router thin wrappers audit', () => {
       offenders.push('functions/storage/router.js: still defines getFallbackTimeout');
     }
 
+    if (source.includes('export function isFallbackEnabled(')) {
+      offenders.push('functions/storage/router.js: still defines isFallbackEnabled');
+    }
+
     expect(
       offenders,
       `storage router thin-wrapper offenders:\n${offenders.join('\n')}`

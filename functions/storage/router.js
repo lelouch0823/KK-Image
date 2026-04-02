@@ -210,12 +210,3 @@ export function getFallbackChain(env, metadata) {
 
   return chain;
 }
-
-/**
- * 检查是否启用回退
- * @param {Object} env
- * @returns {boolean}
- */
-export function isFallbackEnabled(env) {
-  return env.STORAGE_FALLBACK_ENABLED !== 'false';
-}
