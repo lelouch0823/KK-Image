@@ -1,5 +1,6 @@
 import { get, getAccessToken, getFileUrl } from '../../utils/api';
 import { API } from '../../utils/constants';
+import { handleMissingAccessToken } from '../../services/auth/session';
 
 interface SpaceFile {
     id: string;
@@ -50,7 +51,7 @@ Page({
     async loadSpaceDetail(spaceId: string) {
         const accessToken = getAccessToken();
         if (!accessToken) {
-            wx.redirectTo({ url: '/pages/login/login' });
+            handleMissingAccessToken();
             return;
         }
 

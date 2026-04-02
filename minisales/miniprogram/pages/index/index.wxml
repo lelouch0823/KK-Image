@@ -4,11 +4,14 @@
 <view class="page">
   <!-- 顶部导航 (Auto-hide) -->
   <view class="custom-navbar {{navBarVisible ? '' : 'navbar-hidden'}}" style="height: {{headerHeight}}px;">
-    <t-navbar title="{{user.name ? user.name + '的订单' : '我的订单'}}" left-arrow="{{false}}" style="--td-navbar-bg-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
-      <view slot="left" class="header-icon-container">
-        <t-icon name="app" size="24px" />
-      </view>
-    </t-navbar>
+    <sales-app-shell
+      title="{{user.name ? user.name + '的订单' : '我的订单'}}"
+      subtitle="{{user.store || '销售工作台'}}"
+      activeTab="orders"
+      unreadCount="{{unreadCount}}"
+      bind:navigate="onShellNavigate"
+      bind:notifications="onShellNotifications"
+    />
   </view>
   <!-- 订单列表 -->
   <!-- Remove spacer, usage padding-top on scroll-view instead -->

@@ -1,6 +1,7 @@
 import { get, getAccessToken, getFileUrl } from '../../utils/api';
 import { API } from '../../utils/constants';
 import { calculateNavBarHeight, getNavbarVisibility, initTabBar } from '../../utils/ui-helpers';
+import { handleMissingAccessToken } from '../../services/auth/session';
 
 interface Space {
     id: string;
@@ -91,7 +92,7 @@ Page({
     async loadSpaces() {
         const accessToken = getAccessToken();
         if (!accessToken) {
-            wx.redirectTo({ url: '/pages/login/login' });
+            handleMissingAccessToken();
             return;
         }
 

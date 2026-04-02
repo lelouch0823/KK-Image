@@ -1,4 +1,3 @@
-import { clearToken } from '../../utils/api';
 import { STORAGE_KEYS } from '../../utils/constants';
 import { KEYS, store } from '../../utils/store';
 
@@ -39,7 +38,7 @@ export function persistLoginMethod(method: SalesLoginMethod): void {
 export function clearSalesSession(options: ClearSalesSessionOptions = {}): void {
   const { clearAccessToken = false, redirectToLogin = false } = options;
 
-  clearToken();
+  wx.removeStorageSync(STORAGE_KEYS.TOKEN);
   wx.removeStorageSync(STORAGE_KEYS.USER_INFO);
   wx.removeStorageSync(KEYS.LOGIN_METHOD);
   store.set(KEYS.USER, null);
@@ -53,6 +52,14 @@ export function clearSalesSession(options: ClearSalesSessionOptions = {}): void 
   if (redirectToLogin) {
     wx.reLaunch({ url: '/pages/login/login' });
   }
+}
+
+export function handleSalesSessionExpired(): void {
+  clearSalesSession({ redirectToLogin: true });
+}
+
+export function handleMissingAccessToken(): void {
+  clearSalesSession({ clearAccessToken: true, redirectToLogin: true });
 }
 
 export async function restoreSalesSession({

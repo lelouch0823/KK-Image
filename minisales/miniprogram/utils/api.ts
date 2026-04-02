@@ -5,6 +5,7 @@
 
 import { API_BASE_URL, STORAGE_KEYS } from './constants';
 import { salesRequest } from '../services/http/request';
+import { handleSalesSessionExpired } from '../services/auth/session';
 
 interface RequestOptions {
     method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -89,8 +90,7 @@ export function request<T = any>(url: string, options: RequestOptions = {}): Pro
         };
 
         if (result.status === 401) {
-            clearToken();
-            wx.redirectTo({ url: '/pages/login/login' });
+            handleSalesSessionExpired();
             throw new Error('登录已过期，请重新登录');
         }
 

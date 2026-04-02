@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { restoreSalesSession } from '../../../miniprogram/services/auth/session';
+import {
+  handleMissingAccessToken,
+  handleSalesSessionExpired,
+  restoreSalesSession,
+} from '../../../miniprogram/services/auth/session';
 
 describe('restoreSalesSession', () => {
   it('hydrates user state when access token and JWT are valid', async () => {
@@ -29,5 +33,42 @@ describe('restoreSalesSession', () => {
     });
 
     expect(result).toEqual({ ok: false, reason: 'expired' });
+  });
+});
+
+describe('session clear primitives', () => {
+  it('clears JWT/user state and redirects without clearing access token when session expires', () => {
+    const removeStorageSync = vi.fn();
+    const reLaunch = vi.fn();
+    const setStorageSync = vi.fn();
+    (globalThis as any).wx = {
+      removeStorageSync,
+      reLaunch,
+      setStorageSync,
+    };
+
+    handleSalesSessionExpired();
+
+    expect(removeStorageSync).toHaveBeenCalledWith('sales_token');
+    expect(removeStorageSync).toHaveBeenCalledWith('user_info');
+    expect(removeStorageSync).toHaveBeenCalledWith('sales_login_method');
+    expect(removeStorageSync).not.toHaveBeenCalledWith('access_token');
+    expect(reLaunch).toHaveBeenCalledWith({ url: '/pages/login/login' });
+  });
+
+  it('clears access token too when access token is missing or stale', () => {
+    const removeStorageSync = vi.fn();
+    const reLaunch = vi.fn();
+    const setStorageSync = vi.fn();
+    (globalThis as any).wx = {
+      removeStorageSync,
+      reLaunch,
+      setStorageSync,
+    };
+
+    handleMissingAccessToken();
+
+    expect(removeStorageSync).toHaveBeenCalledWith('access_token');
+    expect(reLaunch).toHaveBeenCalledWith({ url: '/pages/login/login' });
   });
 });

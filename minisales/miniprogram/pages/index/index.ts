@@ -3,6 +3,7 @@ import { calculateNavBarHeight, getNavbarVisibility, initTabBar } from '../../ut
 import { getCurrentUser, logout } from '../../utils/auth';
 import { API, STATUS_CONFIG, OrderStatus } from '../../utils/constants';
 import { store, KEYS } from '../../utils/store';
+import { handleMissingAccessToken, handleSalesSessionExpired } from '../../services/auth/session';
 
 // ... (Interface Order remain same)
 interface Order {
@@ -39,6 +40,7 @@ Page({
       [{ width: '60%', height: '32rpx', marginBottom: '16rpx' }],
       [{ width: '40%', height: '24rpx' }],
     ],
+    unreadCount: 0,
   },
 
   // 滚动状态记录
@@ -124,7 +126,7 @@ Page({
   checkAuth() {
     const user = getCurrentUser();
     if (!user) {
-      wx.redirectTo({ url: '/pages/login/login' });
+      handleSalesSessionExpired();
       return;
     }
     this.setData({ user });
@@ -137,7 +139,7 @@ Page({
   async loadOrders() {
     const accessToken = getAccessToken();
     if (!accessToken) {
-      wx.redirectTo({ url: '/pages/login/login' });
+      handleMissingAccessToken();
       return;
     }
 
@@ -191,5 +193,21 @@ Page({
         }
       },
     });
+  },
+
+  onShellNavigate(e: WechatMiniprogram.CustomEvent<{ target: string }>) {
+    const target = String(e.detail.target || '');
+    if (target === 'spaces') {
+      wx.switchTab({ url: '/pages/spaces/spaces' });
+      return;
+    }
+
+    if (target === 'stats') {
+      wx.navigateTo({ url: '/pages/stats/stats' });
+    }
+  },
+
+  onShellNotifications() {
+    wx.showToast({ title: '通知功能建设中', icon: 'none' });
   },
 });
