@@ -219,12 +219,3 @@ export function getFallbackChain(env, metadata) {
 export function isFallbackEnabled(env) {
   return env.STORAGE_FALLBACK_ENABLED !== 'false';
 }
-
-/**
- * 获取回退超时时间
- * @param {Object} env
- * @returns {number} 毫秒
- */
-export function getFallbackTimeout(env) {
-  return parseInt(env.STORAGE_FALLBACK_TIMEOUT || '3000', 10);
-}
