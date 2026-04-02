@@ -73,9 +73,3 @@ export function getStorageProvider(env, providerType = null) {
 
   return provider;
 }
-
-// 导出基类和提供者类以便扩展
-export { BaseStorageProvider } from './base-provider.js';
-export { TelegramStorageProvider } from './providers/telegram.js';
-export { R2StorageProvider } from './providers/r2.js';
-export { S3StorageProvider } from './providers/s3.js';
