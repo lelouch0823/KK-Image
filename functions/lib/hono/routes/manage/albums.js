@@ -62,10 +62,6 @@ function toAlbumDetail(album, files = []) {
   };
 }
 
-async function requireAlbum(repo, albumId) {
-  return requireEntity(repo.findById(albumId), () => new NotFoundError(MSG.ALBUM.NOT_FOUND));
-}
-
 // Schemas
 const CreateAlbumSchema = z.object({
   name: z.string().min(1).max(100),
@@ -102,7 +98,10 @@ app.get('/:id', async (c) => {
   const albumId = c.req.param('id');
 
   const repo = new AlbumRepository(env.DB);
-  const album = await requireAlbum(repo, albumId);
+  const album = await requireEntity(
+    repo.findById(albumId),
+    () => new NotFoundError(MSG.ALBUM.NOT_FOUND)
+  );
 
   const files = await repo.getFiles(albumId);
 
@@ -169,7 +168,10 @@ app.put(
     const data = c.req.valid('json');
 
     const repo = new AlbumRepository(env.DB);
-    const album = await requireAlbum(repo, albumId);
+    const album = await requireEntity(
+      repo.findById(albumId),
+      () => new NotFoundError(MSG.ALBUM.NOT_FOUND)
+    );
 
     const updates = [];
     const values = [];
@@ -217,7 +219,10 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   const albumId = c.req.param('id');
 
   const repo = new AlbumRepository(env.DB);
-  const album = await requireAlbum(repo, albumId);
+  const album = await requireEntity(
+    repo.findById(albumId),
+    () => new NotFoundError(MSG.ALBUM.NOT_FOUND)
+  );
 
   await repo.delete(albumId);
   scheduleAuditEvent(c, {
@@ -246,7 +251,10 @@ app.post(
     const { fileIds } = c.req.valid('json');
 
     const repo = new AlbumRepository(env.DB);
-    const album = await requireAlbum(repo, albumId);
+    const album = await requireEntity(
+      repo.findById(albumId),
+      () => new NotFoundError(MSG.ALBUM.NOT_FOUND)
+    );
 
     await repo.addFiles(albumId, fileIds);
     scheduleAuditEvent(c, {

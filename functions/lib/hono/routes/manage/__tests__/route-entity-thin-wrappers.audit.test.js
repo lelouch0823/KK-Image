@@ -10,6 +10,21 @@ const TARGETS = [
     label: 'functions/lib/hono/routes/manage/purchase-orders.js: still defines requirePurchaseOrder',
   },
   {
+    file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'manage', 'albums.js'),
+    signature: 'async function requireAlbum(',
+    label: 'functions/lib/hono/routes/manage/albums.js: still defines requireAlbum',
+  },
+  {
+    file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'manage', 'folders.js'),
+    signature: 'async function requireFolder(',
+    label: 'functions/lib/hono/routes/manage/folders.js: still defines requireFolder',
+  },
+  {
+    file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'manage', 'files.js'),
+    signature: 'async function requireFile(',
+    label: 'functions/lib/hono/routes/manage/files.js: still defines requireFile',
+  },
+  {
     file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'manage', 'orders', 'detail.js'),
     signature: 'async function requireOrder(',
     label: 'functions/lib/hono/routes/manage/orders/detail.js: still defines requireOrder',

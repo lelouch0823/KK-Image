@@ -40,10 +40,6 @@ function toFolderListItem(folder) {
   };
 }
 
-async function requireFolder(folderRepo, folderId) {
-  return requireEntity(folderRepo.findById(folderId), () => new NotFoundError(MSG.FOLDER.NOT_FOUND));
-}
-
 // Schemas
 const CreateFolderSchema = z.object({
   name: z.string().min(1).max(100),
@@ -91,7 +87,10 @@ app.get('/:id', async (c) => {
   const folderRepo = new FolderRepository(env.DB);
   const fileRepo = new FileRepository(env.DB);
 
-  const folder = await requireFolder(folderRepo, folderId);
+  const folder = await requireEntity(
+    folderRepo.findById(folderId),
+    () => new NotFoundError(MSG.FOLDER.NOT_FOUND)
+  );
 
   // 并行获取子文件夹和文件
   const [subfolders, files, breadcrumbs] = await Promise.all([
@@ -223,7 +222,10 @@ app.put(
     const data = c.req.valid('json');
     const folderRepo = new FolderRepository(env.DB);
 
-    const folder = await requireFolder(folderRepo, folderId);
+    const folder = await requireEntity(
+      folderRepo.findById(folderId),
+      () => new NotFoundError(MSG.FOLDER.NOT_FOUND)
+    );
 
     const updates = [];
     const values = [];
@@ -266,7 +268,10 @@ app.put(
     values.push(Date.now());
 
     await folderRepo.update(folderId, updates, values);
-    const updated = await requireFolder(folderRepo, folderId);
+    const updated = await requireEntity(
+      folderRepo.findById(folderId),
+      () => new NotFoundError(MSG.FOLDER.NOT_FOUND)
+    );
 
     await publishSingleDomainEventAndPoll(c, {
       event_type: 'folder_updated',
@@ -308,7 +313,10 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
 
   if (folderId === 'root') throw new BadRequestError(MSG.FOLDER.ROOT_CANNOT_DELETE);
 
-  const folder = await requireFolder(folderRepo, folderId);
+  const folder = await requireEntity(
+    folderRepo.findById(folderId),
+    () => new NotFoundError(MSG.FOLDER.NOT_FOUND)
+  );
 
   if (folder.is_system) throw new ForbiddenError(MSG.FOLDER.SYSTEM_FOLDER_DELETE);
 
@@ -349,7 +357,10 @@ app.post('/:id/upload', requirePermission('files:write'), async (c) => {
   const folderRepo = new FolderRepository(env.DB);
 
   // 1. 验证文件夹是否存在
-  const folder = await requireFolder(folderRepo, folderId);
+  const folder = await requireEntity(
+    folderRepo.findById(folderId),
+    () => new NotFoundError(MSG.FOLDER.NOT_FOUND)
+  );
 
   // 2. 获取上传文件
   const formData = await c.req.parseBody();
