@@ -75,7 +75,3 @@ export const ignoredAuditRoutes = [
     reason: 'non-mutating health or validation probe',
   }),
 ];
-
-export function getIgnoredAuditRouteKeys() {
-  return ignoredAuditRoutes.map((route) => route.key);
-}
