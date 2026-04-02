@@ -67,3 +67,8 @@ export function countUnreadNotifications(
     }
     return (payload.list || []).filter((item) => item.unread ?? !(item.isRead ?? item.is_read === 1)).length;
 }
+
+// Spec-named aliases used by later page tasks.
+export const list = loadSalesNotifications;
+export const markRead = markSalesNotificationRead;
+export const markAllRead = markAllSalesNotificationsRead;

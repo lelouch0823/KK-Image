@@ -78,3 +78,14 @@ export function initTabBar(pageCtx: any) {
         }
     }
 }
+
+/**
+ * 归一化布局测量值，避免后续页面直接消费异常高度
+ */
+export function coerceLayoutMetric(value: unknown, fallback: number = 0): number {
+    const next = Number(value);
+    if (!Number.isFinite(next) || next < 0) {
+        return fallback;
+    }
+    return next;
+}
