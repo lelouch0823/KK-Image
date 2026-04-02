@@ -22,15 +22,6 @@ export const SALES_TOKEN_COOKIE = 'sales_token';
 export const SALES_COOKIE_MAX_AGE = 7 * 24 * 3600; // 7 天
 
 /**
- * 生成锁定错误消息
- * @param {number} retryAfter - 秒数
- * @returns {string}
- */
-export function getLockedMessage(retryAfter) {
-  return MSG.AUTH.ACCOUNT_LOCKED.replace('{time}', formatRetryAfter(retryAfter));
-}
-
-/**
  * 获取请求的 IP 地址
  * @param {Object} c - Hono context
  * @returns {string}
@@ -74,7 +65,7 @@ export async function checkAndRespondLockout(c, identifier) {
     return c.json(
       {
         success: false,
-        error: getLockedMessage(lockoutStatus.retryAfter),
+        error: MSG.AUTH.ACCOUNT_LOCKED.replace('{time}', formatRetryAfter(lockoutStatus.retryAfter)),
         retryAfter: lockoutStatus.retryAfter,
       },
       429,
@@ -112,7 +103,7 @@ export async function handleLoginFailure(c, identifier, errorMsg = MSG.AUTH.INVA
     return c.json(
       {
         success: false,
-        error: getLockedMessage(failureResult.retryAfter),
+        error: MSG.AUTH.ACCOUNT_LOCKED.replace('{time}', formatRetryAfter(failureResult.retryAfter)),
         retryAfter: failureResult.retryAfter,
       },
       429,
