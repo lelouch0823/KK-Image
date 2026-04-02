@@ -1,11 +1,35 @@
 import { generatePrefixedId } from '../_shared/utils.js';
 import { safeJsonParse } from '../api/utils/json.js';
 
+const OUTBOX_EVENT_ID_BATCH_SIZE = 90;
+
 export class OutboxReplayRepository {
   constructor(db, deps = {}) {
     this.db = db;
     this.now = deps.now || (() => Date.now());
     this.idFactory = deps.idFactory || (() => generatePrefixedId('replay_'));
+  }
+
+  #buildConsumerFilterSql(filters = {}, { alias = '', prefix = '' } = {}) {
+    const conditions = [];
+    const bindings = [];
+    const consumerNameColumn = `${alias}consumer_name`;
+    const statusColumn = `${alias}status`;
+
+    if (filters.consumerName) {
+      conditions.push(`${consumerNameColumn} = ?`);
+      bindings.push(filters.consumerName);
+    }
+
+    if (filters.status) {
+      conditions.push(`${statusColumn} = ?`);
+      bindings.push(filters.status);
+    }
+
+    return {
+      conditions: conditions.map((condition) => (prefix ? `${prefix}${condition}` : condition)),
+      bindings,
+    };
   }
 
   async listConsumerJobs(eventId) {
@@ -20,6 +44,35 @@ export class OutboxReplayRepository {
       .all();
 
     return results || [];
+  }
+
+  async listConsumerJobsForEventIds(eventIds, filters = {}) {
+    if (!eventIds.length) return new Map();
+
+    const { conditions, bindings } = this.#buildConsumerFilterSql(filters);
+    const grouped = new Map();
+    for (let start = 0; start < eventIds.length; start += OUTBOX_EVENT_ID_BATCH_SIZE) {
+      const batchEventIds = eventIds.slice(start, start + OUTBOX_EVENT_ID_BATCH_SIZE);
+      const eventIdPlaceholders = batchEventIds.map(() => '?').join(', ');
+      const whereClause = [`event_id IN (${eventIdPlaceholders})`, ...conditions].join(' AND ');
+      const { results } = await this.db
+        .prepare(
+          `SELECT *
+           FROM outbox_consumer_jobs
+           WHERE ${whereClause}
+           ORDER BY created_at ASC`
+        )
+        .bind(...batchEventIds, ...bindings)
+        .all();
+
+      for (const row of results || []) {
+        const rows = grouped.get(row.event_id) || [];
+        rows.push(row);
+        grouped.set(row.event_id, rows);
+      }
+    }
+
+    return grouped;
   }
 
   async listWebhookAttempts(eventId) {
@@ -61,6 +114,22 @@ export class OutboxReplayRepository {
       bindings.push(filters.aggregateId);
     }
 
+    const { conditions: consumerConditions, bindings: consumerBindings } =
+      this.#buildConsumerFilterSql(filters, {
+        alias: 'jobs.',
+      });
+    if (consumerConditions.length) {
+      conditions.push(
+        `EXISTS (
+          SELECT 1
+          FROM outbox_consumer_jobs jobs
+          WHERE jobs.event_id = domain_outbox.id
+            AND ${consumerConditions.join(' AND ')}
+        )`
+      );
+      bindings.push(...consumerBindings);
+    }
+
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const { results } = await this.db
       .prepare(
@@ -73,7 +142,15 @@ export class OutboxReplayRepository {
       .all();
 
     const rows = results || [];
-    return Promise.all(rows.map((row) => this.attachReplayState(row)));
+    const consumerJobsByEventId = await this.listConsumerJobsForEventIds(
+      rows.map((row) => row.id),
+      filters
+    );
+
+    return rows.map((row) => ({
+      ...row,
+      consumerJobs: consumerJobsByEventId.get(row.id) || [],
+    }));
   }
 
   async getEventDetail(eventId) {
