@@ -1,5 +1,6 @@
 import { get, post, getAccessToken, getFileUrl } from '../../utils/api';
 import { API, STATUS_CONFIG, OrderStatus } from '../../utils/constants';
+import { handleMissingAccessToken } from '../../services/auth/session';
 
 interface OrderDetail {
     id: string;
@@ -66,7 +67,10 @@ Page({
      */
     async loadOrder(orderId: string) {
         const accessToken = getAccessToken();
-        if (!accessToken) return;
+        if (!accessToken) {
+            handleMissingAccessToken();
+            return;
+        }
 
         this.setData({ loading: true });
 
@@ -125,7 +129,11 @@ Page({
         const { comment, order } = this.data;
         const accessToken = getAccessToken();
 
-        if (!comment.trim() || !order || !accessToken) return;
+        if (!comment.trim() || !order) return;
+        if (!accessToken) {
+            handleMissingAccessToken();
+            return;
+        }
 
         this.setData({ submittingComment: true });
 

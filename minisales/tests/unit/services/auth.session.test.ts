@@ -75,6 +75,7 @@ describe('session clear primitives', () => {
     expect(removeStorageSync).toHaveBeenCalledWith('sales_token');
     expect(removeStorageSync).toHaveBeenCalledWith('user_info');
     expect(removeStorageSync).toHaveBeenCalledWith('sales_login_method');
+    expect(removeStorageSync).toHaveBeenCalledWith('sales_auth_config');
     expect(removeStorageSync).not.toHaveBeenCalledWith('access_token');
     expect(reLaunch).toHaveBeenCalledWith({ url: '/pages/login/login' });
   });
@@ -92,6 +93,7 @@ describe('session clear primitives', () => {
     handleMissingAccessToken();
 
     expect(removeStorageSync).toHaveBeenCalledWith('access_token');
+    expect(removeStorageSync).toHaveBeenCalledWith('sales_auth_config');
     expect(reLaunch).toHaveBeenCalledWith({ url: '/pages/login/login' });
   });
 
@@ -111,6 +113,7 @@ describe('session clear primitives', () => {
     expect(result).toEqual({ applied: true, changed: true });
     expect(removeStorageSync).toHaveBeenCalledWith('sales_token');
     expect(removeStorageSync).toHaveBeenCalledWith('user_info');
+    expect(removeStorageSync).toHaveBeenCalledWith('sales_auth_config');
     expect(setStorageSync).toHaveBeenCalledWith('access_token', 'new-token');
   });
 

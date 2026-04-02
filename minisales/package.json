@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "test:unit": "vitest run",
-    "typecheck": "tsc --noEmit --skipLibCheck --target ES2020 --module CommonJS --lib ES2020 typings/index.d.ts miniprogram/app.ts miniprogram/custom-tab-bar/index.ts miniprogram/pages/index/index.ts miniprogram/pages/login/login.ts miniprogram/pages/spaces/spaces.ts miniprogram/pages/spaces_detail/detail.ts miniprogram/pages/stats/stats.ts miniprogram/services/auth/session.ts miniprogram/services/http/request.ts miniprogram/components/sales/app-shell/index.ts miniprogram/components/sales/state-panel/index.ts miniprogram/utils/api.ts miniprogram/utils/auth.ts miniprogram/utils/constants.ts miniprogram/utils/store.ts tests/setup/wx.ts tests/unit/services/http.request.test.ts tests/unit/services/auth.session.test.ts tests/unit/utils/auth.contract.test.ts"
+    "typecheck": "tsc --noEmit --skipLibCheck --target ES2020 --module CommonJS --lib ES2020 typings/index.d.ts miniprogram/app.ts miniprogram/custom-tab-bar/index.ts miniprogram/pages/index/index.ts miniprogram/pages/login/login.ts miniprogram/pages/detail/detail.ts miniprogram/pages/form/form.ts miniprogram/pages/spaces/spaces.ts miniprogram/pages/spaces_detail/detail.ts miniprogram/pages/stats/stats.ts miniprogram/services/auth/session.ts miniprogram/services/http/request.ts miniprogram/components/sales/app-shell/index.ts miniprogram/components/sales/state-panel/index.ts miniprogram/utils/api.ts miniprogram/utils/auth.ts miniprogram/utils/constants.ts miniprogram/utils/store.ts tests/setup/wx.ts tests/unit/services/http.request.test.ts tests/unit/services/auth.session.test.ts tests/unit/pages/session-guard.test.ts tests/unit/utils/auth.contract.test.ts"
   },
   "keywords": [],
   "author": "",

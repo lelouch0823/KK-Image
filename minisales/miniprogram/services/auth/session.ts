@@ -42,9 +42,11 @@ export function clearSalesSession(options: ClearSalesSessionOptions = {}): void 
   wx.removeStorageSync(STORAGE_KEYS.TOKEN);
   wx.removeStorageSync(STORAGE_KEYS.USER_INFO);
   wx.removeStorageSync(KEYS.LOGIN_METHOD);
+  wx.removeStorageSync(KEYS.AUTH_CONFIG);
   store.set(KEYS.USER, null);
   store.set(KEYS.TOKEN, null);
   store.set(KEYS.LOGIN_METHOD, null);
+  store.set(KEYS.AUTH_CONFIG, null);
 
   if (clearAccessToken) {
     wx.removeStorageSync(STORAGE_KEYS.ACCESS_TOKEN);

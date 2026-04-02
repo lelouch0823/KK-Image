@@ -5,6 +5,7 @@
 // ... (Imports remain same)
 import { post, uploadFile, getAccessToken, getFileUrl } from '../../utils/api';
 import { API } from '../../utils/constants';
+import { handleMissingAccessToken } from '../../services/auth/session';
 
 interface FormData {
     name: string;
@@ -115,7 +116,10 @@ Page({
 
     async processUpload(files: any[]) {
         const accessToken = getAccessToken();
-        if (!accessToken) return;
+        if (!accessToken) {
+            handleMissingAccessToken();
+            return;
+        }
 
         // 开启退出提醒 (SOTA UX)
         if (wx.enableAlertBeforeUnload) {
@@ -184,7 +188,7 @@ Page({
         const Toast = this.selectComponent('#t-toast');
 
         if (!accessToken) {
-            Toast.show({ content: '请先登录', theme: 'warning' });
+            handleMissingAccessToken();
             return;
         }
 
