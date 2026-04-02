@@ -145,7 +145,7 @@ export async function clearFailures(c, identifier) {
  * @param {Object} c - Hono context
  * @param {string} token - JWT token
  */
-export function setSalesTokenCookie(c, token) {
+function setSalesTokenCookie(c, token) {
   const isSecure = c.req.url.startsWith('https://');
   setCookie(c, SALES_TOKEN_COOKIE, token, {
     httpOnly: true,
