@@ -24,10 +24,6 @@ export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'PUT', path: '/:id/share', domain: 'v1-folders', action: 'v1.folder.share_update', severity: 'high', targetType: 'folder' },
 ]);
 
-async function requireFolder(repo, folderId, message = MSG.FOLDER.NOT_FOUND) {
-  return requireEntity(repo.findById(folderId), () => new NotFoundError(message));
-}
-
 /**
  * GET /api/v1/folders - 获取文件夹列表
  * SOTA: 使用 Repository 的 list() 方法，通过 JOIN 消除 N+1 查询
@@ -85,7 +81,10 @@ app.post(
 
     // 验证父文件夹存在
     if (data.parentId) {
-      await requireFolder(repo, data.parentId, MSG.FOLDER.PARENT_NOT_FOUND);
+      await requireEntity(
+        repo.findById(data.parentId),
+        () => new NotFoundError(MSG.FOLDER.PARENT_NOT_FOUND)
+      );
     }
 
     const hasConflict = await repo.checkNameConflict(data.parentId || null, data.name.trim());
@@ -146,7 +145,10 @@ app.put(
     const data = c.req.valid('json');
     const repo = new FolderRepository(c.env.DB);
 
-    const folder = await requireFolder(repo, id);
+    const folder = await requireEntity(
+      repo.findById(id),
+      () => new NotFoundError(MSG.FOLDER.NOT_FOUND)
+    );
 
     // 判断是否需要进行重名校验
     let checkParentId = folder.parent_id;
@@ -214,7 +216,10 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
   const id = c.req.param('id');
   const repo = new FolderRepository(c.env.DB);
 
-  const folder = await requireFolder(repo, id);
+  const folder = await requireEntity(
+    repo.findById(id),
+    () => new NotFoundError(MSG.FOLDER.NOT_FOUND)
+  );
 
   // SOTA: 使用 Repository 封装的 canDelete 检查
   const { canDelete } = await repo.canDelete(id);

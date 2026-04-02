@@ -34,10 +34,6 @@ const ALLOWED_SORT_COLUMNS = {
   updated_at: 'updated_at',
 };
 
-async function requireFile(repo, fileId) {
-  return requireEntity(repo.findById(fileId), () => new NotFoundError(MSG.FILE.NOT_FOUND));
-}
-
 async function assertTargetFolderExists(folderRepo, targetFolderId) {
   if (!targetFolderId || targetFolderId === 'root') return;
   await requireEntity(folderRepo.findById(targetFolderId), () => new NotFoundError(MSG.FOLDER.NOT_FOUND));
@@ -140,7 +136,10 @@ app.get('/:id', withCache(60), async (c) => {
   const { env } = c;
 
   const repo = new FileRepository(env.DB);
-  const file = await requireFile(repo, id);
+  const file = await requireEntity(
+    repo.findById(id),
+    () => new NotFoundError(MSG.FILE.NOT_FOUND)
+  );
 
   return c.json({
     success: true,
@@ -215,7 +214,10 @@ app.put('/:id', requirePermission('files:write'), async (c) => {
   const { env } = c;
 
   const repo = new FileRepository(env.DB);
-  const file = await requireFile(repo, id);
+  const file = await requireEntity(
+    repo.findById(id),
+    () => new NotFoundError(MSG.FILE.NOT_FOUND)
+  );
 
   const updates = {};
   
@@ -272,7 +274,10 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   const { env } = c;
 
   const repo = new FileRepository(env.DB);
-  const file = await requireFile(repo, id);
+  const file = await requireEntity(
+    repo.findById(id),
+    () => new NotFoundError(MSG.FILE.NOT_FOUND)
+  );
 
   // 软删除 (Recycle Bin)
   await repo.softDelete(id);

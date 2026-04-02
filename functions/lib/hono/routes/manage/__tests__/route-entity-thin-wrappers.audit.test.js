@@ -29,6 +29,16 @@ const TARGETS = [
     signature: 'async function requireOrder(',
     label: 'functions/lib/hono/routes/manage/orders/detail.js: still defines requireOrder',
   },
+  {
+    file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'v1', 'files.js'),
+    signature: 'async function requireFile(',
+    label: 'functions/lib/hono/routes/v1/files.js: still defines requireFile',
+  },
+  {
+    file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'v1', 'folders.js'),
+    signature: 'async function requireFolder(',
+    label: 'functions/lib/hono/routes/v1/folders.js: still defines requireFolder',
+  },
 ];
 
 describe('manage route entity thin wrappers audit', () => {
