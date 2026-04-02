@@ -34,10 +34,6 @@ function getAdminActor(user) {
     };
 }
 
-async function requireOrder(repo, orderId) {
-    return requireEntity(repo.findById(orderId), () => new NotFoundError(MSG.ORDER.NOT_FOUND));
-}
-
 async function assertStatusTransitionAllowed({ c, user, fromStatus, toStatus, forceStatusTransition, reason }) {
     if (toStatus === undefined || toStatus === fromStatus) return;
     if (canTransitionOrderStatus(fromStatus, toStatus)) return;
@@ -62,7 +58,10 @@ app.get('/:id', async (c) => {
     const { env } = c;
     const id = c.req.param('id');
     const repo = new OrderRepository(env.DB);
-    const order = await requireOrder(repo, id);
+    const order = await requireEntity(
+        repo.findById(id),
+        () => new NotFoundError(MSG.ORDER.NOT_FOUND)
+    );
 
     // SOTA: 获取关联的文件和时间轴
     const { OrderTimelineRepository } = await import('../../../../../repositories/OrderTimelineRepository.js');
@@ -106,7 +105,10 @@ app.patch('/:id', async (c) => {
     const body = await c.req.json();
 
     const orderRepo = new OrderRepository(env.DB);
-    const order = await requireOrder(orderRepo, id);
+    const order = await requireEntity(
+        orderRepo.findById(id),
+        () => new NotFoundError(MSG.ORDER.NOT_FOUND)
+    );
 
     const { updates: updatesFromBody, reason, fileIds, productId, variantId } = body;
     const forceStatusTransition = Boolean(body?.force);
@@ -233,7 +235,10 @@ app.patch('/:id/status', async (c) => {
     }
 
     const repo = new OrderRepository(env.DB);
-    const order = await requireOrder(repo, id);
+    const order = await requireEntity(
+        repo.findById(id),
+        () => new NotFoundError(MSG.ORDER.NOT_FOUND)
+    );
 
     const oldStatus = order.status;
     const forceStatusTransition = Boolean(force);

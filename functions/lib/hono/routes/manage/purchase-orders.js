@@ -63,18 +63,20 @@ async function publishPurchaseOrderCacheEvent(c, { eventType, poId, payload = {}
   }));
 }
 
-async function requirePurchaseOrder(repo, poId) {
-  return requireEntity(repo.findById(poId), () => new NotFoundError('采购单不存在'));
-}
-
 async function requireDraftPurchaseOrder(repo, poId, actionLabel) {
-  const po = await requirePurchaseOrder(repo, poId);
+  const po = await requireEntity(
+    repo.findById(poId),
+    () => new NotFoundError('采购单不存在')
+  );
   if (po.status !== 'draft') throw new BadRequestError(`仅草稿状态允许${actionLabel}`);
   return po;
 }
 
 async function requireCompletedPurchaseOrder(repo, poId, actionLabel) {
-  const po = await requirePurchaseOrder(repo, poId);
+  const po = await requireEntity(
+    repo.findById(poId),
+    () => new NotFoundError('采购单不存在')
+  );
   if (po.status !== 'completed') throw new BadRequestError(`仅已结算采购单允许${actionLabel}`);
   return po;
 }
@@ -254,7 +256,10 @@ app.get('/suggestions', withCache(20), async (c) => {
  */
 app.get('/:id', withCache(20), async (c) => {
   const repo = new PurchaseOrderRepository(c.env.DB);
-  const po = await requirePurchaseOrder(repo, c.req.param('id'));
+  const po = await requireEntity(
+    repo.findById(c.req.param('id')),
+    () => new NotFoundError('采购单不存在')
+  );
 
   return c.json({ success: true, data: po });
 });
@@ -269,7 +274,7 @@ app.post('/:id/receipts', async (c) => {
   const idempotencyKey = getIdempotencyKey(c);
 
   const repo = new PurchaseOrderRepository(c.env.DB);
-  await requirePurchaseOrder(repo, poId);
+  await requireEntity(repo.findById(poId), () => new NotFoundError('采购单不存在'));
 
   const domain = new OrderProcurementDomainService(c.env.DB);
   const result = await domain.recordPurchaseOrderReceipts(poId, body, {
@@ -291,7 +296,7 @@ app.post('/:id/receipts/:receiptId/reversal', async (c) => {
   const idempotencyKey = getIdempotencyKey(c);
 
   const repo = new PurchaseOrderRepository(c.env.DB);
-  await requirePurchaseOrder(repo, poId);
+  await requireEntity(repo.findById(poId), () => new NotFoundError('采购单不存在'));
 
   const reversalService = new OrderProcurementReceiptReversalService(c.env.DB);
   const result = await reversalService.reverseReceipt(poId, receiptId, body, {
@@ -327,7 +332,7 @@ app.post('/:id/shortage-closures', async (c) => {
   const idempotencyKey = getIdempotencyKey(c);
 
   const repo = new PurchaseOrderRepository(c.env.DB);
-  await requirePurchaseOrder(repo, poId);
+  await requireEntity(repo.findById(poId), () => new NotFoundError('采购单不存在'));
 
   const shortageClosureService = new PurchaseOrderShortageClosureService(c.env.DB);
   const result = await shortageClosureService.closeShortages(poId, body, {
@@ -463,12 +468,18 @@ app.put('/:id', async (c) => {
   const updated = await repo.update(c.req.param('id'), body);
   requireMutationSuccess(updated, '未找到采购单或无有效字段更新');
 
-  let po = await requirePurchaseOrder(repo, c.req.param('id'));
+  let po = await requireEntity(
+    repo.findById(c.req.param('id')),
+    () => new NotFoundError('采购单不存在')
+  );
   const shouldReallocateCosts = po.status === 'completed' && hasAllocationImpact(body);
   if (shouldReallocateCosts) {
     const service = new PurchaseOrderService(c.env.DB);
     await service.allocateCosts(c.req.param('id'));
-    po = await requirePurchaseOrder(repo, c.req.param('id'));
+    po = await requireEntity(
+      repo.findById(c.req.param('id')),
+      () => new NotFoundError('采购单不存在')
+    );
   }
 
   await publishPurchaseOrderCacheEvent(c, {
