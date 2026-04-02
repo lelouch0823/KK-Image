@@ -12,7 +12,7 @@ export interface SalesRequestResult<T> {
 
 export interface SalesRequestOptions {
   path: string;
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   data?: unknown;
   header?: Record<string, string>;
 }
@@ -48,7 +48,7 @@ export async function salesRequest<T>({
   return new Promise((resolve) => {
     wx.request({
       url: `${API_BASE_URL}${path}`,
-      method,
+      method: method as any,
       data,
       header: requestHeader,
       success: (res) => {

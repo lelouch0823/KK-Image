@@ -8,7 +8,7 @@ import { salesRequest } from '../services/http/request';
 import { handleSalesSessionExpired } from '../services/auth/session';
 
 interface RequestOptions {
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     data?: unknown;
     header?: Record<string, string>;
     showLoading?: boolean;

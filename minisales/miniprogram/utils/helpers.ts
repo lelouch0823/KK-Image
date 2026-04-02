@@ -115,3 +115,90 @@ export function formatFriendlyTime(timestamp: number): string {
     const day = date.getDate();
     return `${month}/${day}`;
 }
+
+/**
+ * 将未知值转换为有限数字
+ */
+export function toFiniteNumber(value: unknown, fallback: number = 0): number {
+    const next = Number(value);
+    return Number.isFinite(next) ? next : fallback;
+}
+
+/**
+ * 从候选值中选取第一个非空字符串
+ */
+export function pickFirstString(values: unknown[], fallback: string = ''): string {
+    for (const value of values) {
+        if (typeof value === 'string' && value.trim()) {
+            return value.trim();
+        }
+    }
+    return fallback;
+}
+
+/**
+ * 安全解析对象 JSON，失败时回退到默认值
+ */
+export function safeParseObject<T extends Record<string, unknown>>(value: unknown, fallback: T): T {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+        return value as T;
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+        try {
+            const parsed = JSON.parse(value);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                return parsed as T;
+            }
+        } catch (_error) {
+            return fallback;
+        }
+    }
+
+    return fallback;
+}
+
+/**
+ * 安全解析数组 JSON，失败时回退到默认值
+ */
+export function safeParseArray<T>(value: unknown, fallback: T[] = []): T[] {
+    if (Array.isArray(value)) {
+        return value as T[];
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+        try {
+            const parsed = JSON.parse(value);
+            if (Array.isArray(parsed)) {
+                return parsed as T[];
+            }
+        } catch (_error) {
+            return fallback;
+        }
+    }
+
+    return fallback;
+}
+
+/**
+ * 构建查询字符串，忽略空值
+ */
+export function buildQueryString(params: Record<string, unknown>): string {
+    return Object.entries(params)
+        .filter(([, value]) => value !== undefined && value !== null && value !== '')
+        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+        .join('&');
+}
+
+/**
+ * 将后端文件字段解析为 mini 端可消费的路径
+ */
+export function resolveFilePath(path?: unknown, storageKey?: unknown): string {
+    const direct = pickFirstString([path]);
+    if (direct) {
+        return direct;
+    }
+
+    const key = pickFirstString([storageKey]);
+    return key ? `/file/${key}` : '';
+}
