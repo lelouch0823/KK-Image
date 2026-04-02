@@ -21,7 +21,11 @@ import {
 } from '../lib/hono/routes/_shared/cache-urls.js';
 import { invalidateCache, getProductCacheUrls } from '../lib/hono/middleware/cache.js';
 import { getAllSalespersonAccessTokens, getSalespersonAccessTokens } from '../lib/hono/_shared/route-helpers.js';
-import { getV1FileAndFolderCacheUrls, getV1FolderAndShareCacheUrls } from '../lib/hono/routes/v1/cache-urls.js';
+import {
+  getV1FileCacheUrls,
+  getV1FolderCacheUrls,
+  getV1FolderDetailCacheUrls,
+} from '../lib/hono/routes/v1/cache-urls.js';
 
 function createCacheContext(baseUrl, purchaseOrderId = null) {
   const url = purchaseOrderId
@@ -222,17 +226,19 @@ async function resolveExpandedCacheUrls({ db, event, baseUrl, payload }) {
   }
 
   if (isV1FolderCacheEvent(event.event_type)) {
-    return getV1FolderAndShareCacheUrls(
-      ctx,
-      asArray(payload.parent_ids || payload.folder_ids || payload.folder_id)
-    );
+    const parentIds = asArray(payload.parent_ids || payload.folder_ids || payload.folder_id);
+    return [...new Set([
+      ...getV1FolderCacheUrls(ctx, parentIds),
+      ...getManageShareCacheUrls(ctx),
+    ])];
   }
 
   if (isV1FileCacheEvent(event.event_type)) {
     const urls = new Set(
-      getV1FileAndFolderCacheUrls(ctx, {
-        folderIds: asArray(payload.folder_ids || payload.folder_id),
-      })
+      [
+        ...getV1FileCacheUrls(ctx),
+        ...getV1FolderDetailCacheUrls(ctx, asArray(payload.folder_ids || payload.folder_id)),
+      ]
     );
     if (payload.file_id) {
       urls.add(`${baseUrl}/api/v1/files/${payload.file_id}`);

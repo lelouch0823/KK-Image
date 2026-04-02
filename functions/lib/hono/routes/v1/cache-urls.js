@@ -1,5 +1,3 @@
-import { getManageShareCacheUrls } from '../_shared/cache-urls.js';
-
 const getOrigin = (c) => new URL(c.req.url).origin;
 const dedupe = (urls = []) => [...new Set((urls || []).filter(Boolean))];
 
@@ -23,18 +21,10 @@ export function getV1FolderCacheUrls(c, parentIds = []) {
   ]);
 }
 
-export function getV1FolderAndShareCacheUrls(c, parentIds = []) {
-  return dedupe([...getV1FolderCacheUrls(c, parentIds), ...getManageShareCacheUrls(c)]);
-}
-
 export function getV1FileCacheUrls(c) {
   const origin = getOrigin(c);
   return [
     `${origin}/api/v1/files`,
     `${origin}/api/v1/files?page=1&limit=20`,
   ];
-}
-
-export function getV1FileAndFolderCacheUrls(c, { folderIds = [] } = {}) {
-  return dedupe([...getV1FileCacheUrls(c), ...getV1FolderDetailCacheUrls(c, folderIds)]);
 }

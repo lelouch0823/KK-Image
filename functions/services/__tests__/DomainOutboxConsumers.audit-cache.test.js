@@ -320,6 +320,31 @@ describe('DomainOutboxConsumers audit and cache', () => {
     ]));
   });
 
+  it('invalidates v1 folder caches together with share caches for v1 folder events', async () => {
+    await DOMAIN_OUTBOX_CONSUMERS.cache({
+      db: {},
+      event: {
+        id: 'evt-v1-folder-1',
+        event_type: 'v1_folder_updated',
+        aggregate_type: 'folder',
+        aggregate_id: 'folder-1',
+        payload_json: JSON.stringify({
+          folder_id: 'folder-1',
+          parent_ids: ['folder-parent-1'],
+        }),
+      },
+      baseUrl: 'https://kk.example.com',
+    });
+
+    expect(mocks.invalidateCache).toHaveBeenCalledWith(expect.arrayContaining([
+      'https://kk.example.com/api/v1/folders',
+      'https://kk.example.com/api/v1/folders?parentId=null',
+      'https://kk.example.com/api/v1/folders/folder-parent-1',
+      'https://kk.example.com/api/manage/shares',
+      'https://kk.example.com/api/manage/shares?limit=20&page=1',
+    ]));
+  });
+
   it('invalidates manage and sales space caches for space file reorder events', async () => {
     mocks.getAllSalespersonAccessTokens.mockResolvedValue(['sales-token-2']);
 
