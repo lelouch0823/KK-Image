@@ -10,7 +10,7 @@
       </view>
       <view class="shell__action shell__action--notify" bind:tap="onTapNotifications">
         <t-icon name="notification" size="36rpx" />
-        <text wx:if="{{unreadCount > 0}}" class="shell__badge">{{unreadCount}}</text>
+        <text wx:if="{{unreadCount > 0}}" class="shell__badge">{{unreadCount > 99 ? '99+' : unreadCount}}</text>
       </view>
     </view>
   </view>
@@ -23,4 +23,16 @@
       资源
     </view>
   </view>
+
+  <sales-notification-drawer
+    visible="{{enableNotificationsDrawer && drawerVisible}}"
+    notifications="{{notifications}}"
+    loading="{{notificationsLoading}}"
+    error="{{notificationsError}}"
+    unreadCount="{{unreadCount}}"
+    bind:close="onDrawerClose"
+    bind:retry="onDrawerRetry"
+    bind:markall="onDrawerMarkAll"
+    bind:select="onDrawerSelect"
+  />
 </view>

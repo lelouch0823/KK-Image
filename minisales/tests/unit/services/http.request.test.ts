@@ -132,10 +132,10 @@ describe('utils/api request compatibility bridge', () => {
   });
 
   it('rejects 401 responses and redirects to login', async () => {
-    const redirectSpy = vi.fn();
+    const reLaunchSpy = vi.fn();
     const removeStorageSpy = vi.fn();
     installMockWx({
-      redirectTo: redirectSpy,
+      reLaunch: reLaunchSpy,
       removeStorageSync: removeStorageSpy,
       request: vi.fn(({ success }: { success?: (res: unknown) => void }) =>
         success?.({
@@ -147,7 +147,7 @@ describe('utils/api request compatibility bridge', () => {
 
     await expect(compatRequest('/api/sales/token-1/orders')).rejects.toThrow('登录已过期，请重新登录');
     expect(removeStorageSpy).toHaveBeenCalledWith('sales_token');
-    expect(redirectSpy).toHaveBeenCalledWith({ url: '/pages/login/login' });
+    expect(reLaunchSpy).toHaveBeenCalledWith({ url: '/pages/login/login' });
   });
 
   it('rejects network failure with legacy message', async () => {

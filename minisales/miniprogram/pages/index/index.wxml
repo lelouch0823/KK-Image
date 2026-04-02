@@ -1,80 +1,84 @@
-<!-- pages/index/index.wxml -->
-<!-- 引入 WXS 模块 -->
-<wxs src="../../utils/format.wxs" module="format" />
 <view class="page">
-  <!-- 顶部导航 (Auto-hide) -->
   <view class="custom-navbar {{navBarVisible ? '' : 'navbar-hidden'}}" style="height: {{headerHeight}}px;">
     <sales-app-shell
-      title="{{user.name ? user.name + '的订单' : '我的订单'}}"
-      subtitle="{{user.store || '销售工作台'}}"
+      title="{{user && user.name ? user.name + '的订单' : '我的订单'}}"
+      subtitle="{{user && user.store ? user.store : '销售工作台'}}"
       activeTab="orders"
       unreadCount="{{unreadCount}}"
       safeTop="{{statusBarHeight}}"
+      enableNotificationsDrawer="{{true}}"
+      notifications="{{notifications}}"
+      notificationsLoading="{{notificationsLoading}}"
+      notificationsError="{{notificationsError}}"
       bind:layout="onShellLayout"
       bind:navigate="onShellNavigate"
       bind:notifications="onShellNotifications"
+      bind:notificationretry="onShellNotificationRetry"
+      bind:notificationmarkall="onShellNotificationMarkAll"
+      bind:notificationselect="onShellNotificationSelect"
     />
   </view>
-  <!-- 订单列表 -->
-  <!-- Remove spacer, usage padding-top on scroll-view instead -->
-  <scroll-view class="order-list" scroll-y type="list" show-scrollbar="{{false}}" refresher-enabled refresher-triggered="{{refreshing}}" bindrefresherrefresh="onPullDownRefresh" bindscroll="onScroll">
-    <!-- Spacer for Navbar with extra buffer -->
-    <view style="height: {{headerHeight}}px; width: 100%; flex-shrink: 0;"></view>
-    <!-- 骨架屏加载 -->
-    <view wx:if="{{loading && orders.length === 0}}" class="skeleton-list">
-      <view wx:for="{{6}}" wx:key="index" class="skeleton-item-card">
-        <t-skeleton rowCol="{{rowCol}}" theme="paragraph" loading></t-skeleton>
-      </view>
+
+  <scroll-view
+    class="list-scroll"
+    scroll-y
+    type="list"
+    show-scrollbar="{{false}}"
+    refresher-enabled
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onPullDownRefresh"
+    bindscroll="onScroll"
+    bindscrolltolower="onLoadMore"
+    lower-threshold="120"
+  >
+    <view class="shell-spacer" style="height: {{headerHeight}}px;"></view>
+
+    <view class="search-anchor">
+      <t-input
+        value="{{searchQuery}}"
+        placeholder="搜索订单号或商品标题"
+        clearable
+        borderless
+        bind:change="onSearchChange"
+      />
     </view>
+
+    <sales-state-panel wx:if="{{state === 'loading'}}" loading="{{true}}" />
     <sales-state-panel
-      wx:elif="{{restoreError && !user}}"
-      loading="{{false}}"
-      error="{{restoreError}}"
-      bind:retry="onRetryRestore"
+      wx:elif="{{state === 'error'}}"
+      error="{{errorMessage || '加载失败'}}"
+      bind:retry="onRetryList"
     />
-    <!-- 空状态 -->
-    <view wx:elif="{{!loading && orders.length === 0}}" class="empty-state">
-      <t-empty icon="info-circle-filled" description="暂无订单" />
-      <view class="empty-hint">点击右下角"+"创建订单</view>
+    <sales-state-panel
+      wx:elif="{{state === 'empty'}}"
+      empty="{{true}}"
+      emptyText="暂无订单，点击右下角创建"
+    />
+    <sales-state-panel
+      wx:elif="{{visibleOrders.length === 0}}"
+      empty="{{true}}"
+      emptyText="未找到匹配订单"
+    />
+
+    <view wx:else class="orders-list">
+      <sales-order-card
+        wx:for="{{visibleOrders}}"
+        wx:key="id"
+        order="{{item}}"
+        bind:view="handleViewOrder"
+      />
     </view>
-    <!-- 订单卡片列表 -->
-    <block wx:else>
-      <view wx:for="{{orders}}" wx:for-item="item" wx:key="id" class="order-card list-item" data-id="{{item.id}}" bindtap="handleViewOrder">
-        <view class="card-inner">
-          <!-- 主图 (Left) -->
-          <view class="card-image">
-            <t-image wx:if="{{item.mainImage}}" src="{{item.mainImage}}" mode="aspectFill" width="128" height="128" lazy-load shape="round" class="t-image-rounded" />
-            <view wx:else class="image-placeholder">
-              <t-icon name="image" size="48rpx" color="#ccc" />
-            </view>
-            <!-- 新反馈红点 -->
-            <view wx:if="{{item.hasNewFeedback}}" class="feedback-dot"></view>
-          </view>
-          <!-- 信息 (Right) -->
-          <view class="card-content">
-            <!-- Top: Product Name + Arrow? (Arrow fits better in Web's absolute right or flex structure) -->
-            <view class="row-top">
-              <text class="product-name">{{item.name || '未命名商品'}}</text>
-            </view>
-            <!-- Middle: Order No -->
-            <view class="row-middle">
-              <text class="order-no">{{item.orderNo}}</text>
-            </view>
-            <!-- Bottom: Status + Time -->
-            <view class="row-bottom">
-              <t-tag size="small" variant="light" style="color: {{statusConfig[item.status].color}}; background-color: {{statusConfig[item.status].bgColor}};">
-                {{statusConfig[item.status].label}}
-              </t-tag>
-              <text class="order-time">{{format.formatRelativeTime(item.createdAt)}}</text>
-            </view>
-          </view>
-        </view>
-      </view>
-    </block>
-    <t-divider content="没有更多了" wx:if="{{!loading && orders.length > 0}}" />
+
+    <view wx:if="{{loadingMore}}" class="loading-more">加载更多中...</view>
+    <t-divider wx:if="{{!loadingMore && !canLoadMore && orders.length > 0 && !searchQuery}}" content="没有更多了" />
     <view class="footer-spacer"></view>
-    <!-- 底部安全区 -->
   </scroll-view>
-  <!-- 悬浮新建按钮 -->
-  <t-fab icon="add" bind:click="handleNewOrder" aria-label="新建订单" style="bottom: 200rpx; right: 40rpx; z-index: 9999;" class="{{fabVisible ? '' : 'fab-hidden'}}" />
+
+  <t-fab
+    icon="add"
+    aria-label="新建订单"
+    class="{{fabVisible ? '' : 'fab-hidden'}}"
+    style="bottom: 200rpx; right: 40rpx; z-index: 9999;"
+    bind:click="handleNewOrder"
+  />
 </view>

@@ -6,6 +6,13 @@ Component({
     unreadCount: { type: Number, value: 0 },
     activeTab: { type: String, value: 'orders' },
     safeTop: { type: Number, value: 0 },
+    enableNotificationsDrawer: { type: Boolean, value: false },
+    notifications: { type: Array, value: [] },
+    notificationsLoading: { type: Boolean, value: false },
+    notificationsError: { type: String, value: '' },
+  },
+  data: {
+    drawerVisible: false,
   },
   lifetimes: {
     ready() {
@@ -13,6 +20,12 @@ Component({
     },
   },
   methods: {
+    closeDrawer() {
+      if (!this.data.drawerVisible) {
+        return;
+      }
+      this.setData({ drawerVisible: false });
+    },
     emitLayout() {
       this.createSelectorQuery()
         .select('.shell')
@@ -25,16 +38,40 @@ Component({
         .exec();
     },
     onTapOrders() {
+      this.closeDrawer();
       this.triggerEvent('navigate', { target: 'orders' });
     },
     onTapSpaces() {
+      this.closeDrawer();
       this.triggerEvent('navigate', { target: 'spaces' });
     },
     onTapStats() {
+      this.closeDrawer();
       this.triggerEvent('navigate', { target: 'stats' });
     },
     onTapNotifications() {
-      this.triggerEvent('notifications');
+      if (!this.properties.enableNotificationsDrawer) {
+        this.triggerEvent('notifications');
+        return;
+      }
+
+      const nextVisible = !this.data.drawerVisible;
+      this.setData({ drawerVisible: nextVisible });
+      this.triggerEvent('notifications', { open: nextVisible });
+    },
+    onDrawerClose() {
+      this.closeDrawer();
+      this.triggerEvent('notifications', { open: false });
+    },
+    onDrawerRetry() {
+      this.triggerEvent('notificationretry');
+    },
+    onDrawerMarkAll() {
+      this.triggerEvent('notificationmarkall');
+    },
+    onDrawerSelect(e: WechatMiniprogram.CustomEvent<{ notification?: Record<string, unknown> }>) {
+      this.closeDrawer();
+      this.triggerEvent('notificationselect', e.detail || {});
     },
   },
 });

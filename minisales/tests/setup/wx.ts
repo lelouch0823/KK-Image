@@ -5,6 +5,7 @@ type MockWx = {
   request?: (options: Record<string, unknown>) => void;
   showToast?: (options: Record<string, unknown>) => void;
   redirectTo?: (options: Record<string, unknown>) => void;
+  reLaunch?: (options: Record<string, unknown>) => void;
   showLoading?: (options: Record<string, unknown>) => void;
   hideLoading?: () => void;
 };
@@ -18,6 +19,7 @@ const defaultWx: Required<MockWx> = {
   },
   showToast: () => {},
   redirectTo: () => {},
+  reLaunch: () => {},
   showLoading: () => {},
   hideLoading: () => {},
 };

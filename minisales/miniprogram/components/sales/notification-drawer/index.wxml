@@ -1,0 +1,48 @@
+<view wx:if="{{visible}}" class="drawer">
+  <view class="drawer__mask" bind:tap="onMaskTap"></view>
+
+  <view class="drawer__panel" catch:tap="noop">
+    <view class="drawer__header">
+      <text class="drawer__title">通知</text>
+      <view class="drawer__actions">
+        <text wx:if="{{unreadCount > 0}}" class="drawer__mark-all" bind:tap="onMarkAllTap">
+          全部已读
+        </text>
+        <view class="drawer__close" bind:tap="onCloseTap">
+          <t-icon name="close" size="30rpx" color="#475569" />
+        </view>
+      </view>
+    </view>
+
+    <view class="drawer__body">
+      <view wx:if="{{loading && renderList.length === 0}}" class="drawer__state">
+        <t-loading theme="circular" size="40rpx" text="加载中..." />
+      </view>
+
+      <view wx:elif="{{error}}" class="drawer__state drawer__state--error">
+        <text class="drawer__state-text">{{error}}</text>
+        <view class="drawer__retry" bind:tap="onRetryTap">重试</view>
+      </view>
+
+      <view wx:elif="{{renderList.length === 0}}" class="drawer__state">
+        <text class="drawer__state-text">暂无通知</text>
+      </view>
+
+      <scroll-view wx:else class="drawer__list" scroll-y>
+        <view
+          wx:for="{{renderList}}"
+          wx:key="id"
+          class="drawer__item {{item.isUnread ? 'drawer__item--unread' : ''}}"
+          data-id="{{item.id}}"
+          bind:tap="onTapItem"
+        >
+          <view class="drawer__item-main">
+            <text class="drawer__item-title">{{item.title || '订单动态'}}</text>
+            <text class="drawer__item-time">{{item.displayTime}}</text>
+          </view>
+          <text class="drawer__item-content">{{item.content || '点击查看详情'}}</text>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</view>

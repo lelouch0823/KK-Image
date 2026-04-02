@@ -1,7 +1,11 @@
 {
   "usingComponents": {
     "sales-app-shell": "/components/sales/app-shell/index",
-    "sales-state-panel": "/components/sales/state-panel/index"
+    "sales-state-panel": "/components/sales/state-panel/index",
+    "sales-order-card": "/components/sales/order-card/index",
+    "t-divider": "tdesign-miniprogram/divider/divider",
+    "t-fab": "tdesign-miniprogram/fab/fab",
+    "t-input": "tdesign-miniprogram/input/input"
   },
   "navigationStyle": "custom",
   "enablePullDownRefresh": true

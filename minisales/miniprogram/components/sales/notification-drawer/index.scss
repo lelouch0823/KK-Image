@@ -1,0 +1,140 @@
+@import '../../../styles/variables.scss';
+@import '../../../styles/mixins.scss';
+
+.drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+}
+
+.drawer__mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.drawer__panel {
+  position: absolute;
+  right: 24rpx;
+  top: 140rpx;
+  width: calc(100vw - 48rpx);
+  max-height: 70vh;
+  border-radius: 24rpx;
+  border: 1rpx solid $border-color;
+  background: #ffffff;
+  box-shadow: 0 20rpx 48rpx rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+}
+
+.drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 24rpx;
+  border-bottom: 1rpx solid $border-color;
+  background: #f8fafc;
+}
+
+.drawer__title {
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.drawer__actions {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.drawer__mark-all {
+  font-size: $font-size-xs;
+  color: #2563eb;
+}
+
+.drawer__close {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e2e8f0;
+}
+
+.drawer__body {
+  min-height: 160rpx;
+  max-height: calc(70vh - 84rpx);
+}
+
+.drawer__state {
+  min-height: 200rpx;
+  padding: 24rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.drawer__state--error {
+  color: #b91c1c;
+}
+
+.drawer__state-text {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.drawer__retry {
+  margin-top: 14rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  font-size: $font-size-xs;
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.drawer__list {
+  max-height: calc(70vh - 84rpx);
+}
+
+.drawer__item {
+  padding: 20rpx 24rpx;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.drawer__item--unread {
+  background: #eff6ff;
+}
+
+.drawer__item-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.drawer__item-title {
+  min-width: 0;
+  flex: 1;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: #0f172a;
+  @include text-ellipsis;
+}
+
+.drawer__item-time {
+  flex-shrink: 0;
+  font-size: 20rpx;
+  color: #94a3b8;
+}
+
+.drawer__item-content {
+  margin-top: 6rpx;
+  display: block;
+  font-size: $font-size-xs;
+  line-height: 1.5;
+  color: $text-secondary;
+  @include text-ellipsis-multi(2);
+}

@@ -3,6 +3,6 @@
   "styleIsolation": "apply-shared",
   "usingComponents": {
     "t-icon": "tdesign-miniprogram/icon/icon",
-    "sales-notification-drawer": "/components/sales/notification-drawer/index"
+    "t-loading": "tdesign-miniprogram/loading/loading"
   }
 }

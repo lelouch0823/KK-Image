@@ -1,93 +1,130 @@
-import { get, getAccessToken, getFileUrl, getToken } from '../../utils/api';
+import { getAccessToken } from '../../utils/api';
+import { getCurrentUser } from '../../utils/auth';
 import { calculateNavBarHeight, getNavbarVisibility, initTabBar } from '../../utils/ui-helpers';
-import { getCurrentUser, logout } from '../../utils/auth';
-import { API, STATUS_CONFIG, OrderStatus } from '../../utils/constants';
 import { store, KEYS } from '../../utils/store';
-import { handleMissingAccessToken, handleSalesSessionExpired } from '../../services/auth/session';
+import { handleMissingAccessToken } from '../../services/auth/session';
+import {
+  loadSalesOrders,
+  type SalesPagination,
+} from '../../services/sales/orders';
+import {
+  countUnreadNotifications,
+  loadSalesNotifications,
+  markAllSalesNotificationsRead,
+  markSalesNotificationRead,
+} from '../../services/sales/notifications';
+import type { NormalizedSalesOrderSummary } from '../../utils/normalize/order';
+import type { NormalizedSalesNotification } from '../../utils/normalize/notification';
+import { buildOrdersListState, filterOrdersBySearch } from './controller';
 
-// ... (Interface Order remain same)
-interface Order {
-  id: string;
-  orderNo: string;
-  name?: string; // Add name if missing from previous snippet
-  status: OrderStatus;
-  customerName?: string;
-  mainImage?: string;
-  hasNewFeedback?: boolean;
-  createdAt: number;
-  updatedAt: number;
+type PageState = 'loading' | 'ready' | 'empty' | 'error';
+
+interface SalesUserInfo {
+  name: string;
+  store?: string;
+}
+
+function defaultPagination(): SalesPagination {
+  return {
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 1,
+  };
+}
+
+function normalizeInputValue(event: WechatMiniprogram.CustomEvent<{ value?: string }> | any): string {
+  const detail = event?.detail;
+  if (typeof detail?.value === 'string') {
+    return detail.value;
+  }
+  if (typeof detail === 'string') {
+    return detail;
+  }
+  return '';
+}
+
+function resolveNotificationOrderId(notification: Partial<NormalizedSalesNotification>): string {
+  if (notification.orderId) {
+    return notification.orderId;
+  }
+
+  const metadata = notification.metadata as Record<string, unknown> | null;
+  const metadataOrderId = typeof metadata?.orderId === 'string' ? metadata.orderId : '';
+  if (metadataOrderId) {
+    return metadataOrderId;
+  }
+
+  const link = String(notification.link || '');
+  if (!link) {
+    return '';
+  }
+
+  const segments = link.split('/').filter(Boolean);
+  const detailIndex = segments.indexOf('detail');
+  if (detailIndex >= 0 && segments[detailIndex + 1]) {
+    return segments[detailIndex + 1];
+  }
+
+  const orderIndex = segments.indexOf('orders');
+  if (orderIndex >= 0 && segments[orderIndex + 1]) {
+    return segments[orderIndex + 1];
+  }
+
+  return '';
 }
 
 Page({
   data: {
-    orders: [] as Order[],
-    loading: true,
-    refreshing: false,
-    user: null as { name: string; store?: string } | null,
-    statusConfig: STATUS_CONFIG,
-    // 导航栏布局信息
-    statusBarHeight: 20,
-    navContentHeight: 44,
-    headerHeight: 64,
+    user: null as SalesUserInfo | null,
+    orders: [] as NormalizedSalesOrderSummary[],
+    visibleOrders: [] as NormalizedSalesOrderSummary[],
+    pagination: defaultPagination(),
+    canLoadMore: false,
+    searchQuery: '',
 
-    // FAB 按钮状态
-    fabVisible: true,
-    // Navbar auto-hide
-    navBarVisible: true,
-    // Skeleton 配置
-    rowCol: [
-      [{ size: '128rpx', borderRadius: '12rpx' }],
-      [{ width: '60%', height: '32rpx', marginBottom: '16rpx' }],
-      [{ width: '40%', height: '24rpx' }],
-    ],
+    notifications: [] as NormalizedSalesNotification[],
     unreadCount: 0,
-    restoreError: '',
+    notificationsLoading: false,
+    notificationsError: '',
+
+    state: 'loading' as PageState,
+    loading: false,
+    loadingMore: false,
+    refreshing: false,
+    errorMessage: '',
+
+    statusBarHeight: 20,
+    headerHeight: 64,
+    navBarVisible: true,
+    fabVisible: true,
   },
 
-  // 滚动状态记录
   lastScrollTop: 0,
-  // 监听器销毁函数
   unsubUser: null as null | (() => void),
-  unsubRestore: null as null | (() => void),
 
   onLoad() {
-    this.checkAuth();
-
-    // 订阅用户信息变化
-    this.unsubUser = store.on(KEYS.USER, (user) => {
-      this.setData({ user, restoreError: user ? '' : this.data.restoreError });
-      if (user) {
-        this.loadOrders();
-      }
-    });
-
-    this.unsubRestore = store.on(KEYS.SESSION_RESTORE, (status) => {
-      if (status === 'in_progress') {
-        this.setData({ loading: true, restoreError: '' });
-      }
-      if (status === 'transient_failed' && !this.data.user && this.data.loading) {
-        this.setData({
-          loading: false,
-          restoreError: '会话恢复失败，请重试',
-        });
-      }
-    });
-
-    // 计算自定义导航栏高度
-    const { totalHeight, statusBarHeight, navContentHeight } = calculateNavBarHeight();
+    const { totalHeight, statusBarHeight } = calculateNavBarHeight();
     this.setData({
       statusBarHeight,
-      navContentHeight,
       headerHeight: totalHeight,
+      user: getCurrentUser(),
+    });
+
+    this.unsubUser = store.on(KEYS.USER, (user) => {
+      this.setData({ user: (user as SalesUserInfo) || null });
     });
   },
 
-  onShow() {
+  async onShow() {
     initTabBar(this);
+    await this.loadInitialData();
+  },
 
-    const user = getCurrentUser();
-    if (user && this.data.orders.length === 0) {
-      this.loadOrders();
+  onUnload() {
+    if (this.unsubUser) {
+      this.unsubUser();
+      this.unsubUser = null;
     }
   },
 
@@ -98,140 +135,185 @@ Page({
     }
   },
 
-  onUnload() {
-    if (this.unsubUser) {
-      this.unsubUser();
-    }
-    if (this.unsubRestore) {
-      this.unsubRestore();
-    }
-  },
-
-  /**
-   * 监听滚动
-   */
   onScroll(e: WechatMiniprogram.ScrollViewScroll) {
     const currentScrollTop = e.detail.scrollTop;
-    if (currentScrollTop < 0) return;
-
-    const { navBarVisible, headerHeight } = this.data;
-    const lastScrollTop = this.lastScrollTop;
+    if (currentScrollTop < 0) {
+      return;
+    }
 
     const shouldShowNavbar = getNavbarVisibility(
       currentScrollTop,
-      lastScrollTop,
-      navBarVisible,
-      headerHeight
+      this.lastScrollTop,
+      this.data.navBarVisible,
+      this.data.headerHeight
     );
 
     if (shouldShowNavbar !== null) {
       this.setData({
         navBarVisible: shouldShowNavbar,
-        fabVisible: shouldShowNavbar
+        fabVisible: shouldShowNavbar,
       });
     }
 
     this.lastScrollTop = currentScrollTop;
   },
 
-  /**
-   * 下拉刷新
-   */
   async onPullDownRefresh() {
     this.setData({ refreshing: true });
-    if (this.data.restoreError) {
-      const app = getApp<{ restoreSession?: () => Promise<void> }>();
-      await app.restoreSession?.();
-    }
-    await this.loadOrders();
+    await this.loadInitialData();
     wx.stopPullDownRefresh();
     this.setData({ refreshing: false });
   },
 
-  /**
-   * 检查登录状态
-   */
-  checkAuth() {
-    const user = getCurrentUser();
-    if (!user) {
-      const token = getToken();
-      const accessToken = getAccessToken();
-      if (token && accessToken) {
-        return;
-      }
-
-      if (!accessToken) {
-        handleMissingAccessToken();
-        return;
-      }
-
-      handleSalesSessionExpired();
-      return;
-    }
-    this.setData({ user });
-    this.loadOrders();
-  },
-
-  /**
-   * 加载订单列表
-   */
-  async loadOrders() {
+  async loadInitialData() {
     const accessToken = getAccessToken();
     if (!accessToken) {
       handleMissingAccessToken();
       return;
     }
 
-    this.setData({ loading: true });
+    this.setData({
+      loading: true,
+      state: 'loading',
+      errorMessage: '',
+    });
 
     try {
-      const response = await get<{ orders: Order[] }>(API.SALES_ORDERS(accessToken));
+      const [ordersResult, notificationsResult] = await Promise.all([
+        loadSalesOrders({ accessToken, page: 1, limit: 20 }),
+        loadSalesNotifications({ accessToken, limit: 20 }),
+      ]);
 
-      if (response.success && response.data) {
-        const rawOrders = response.data.orders || (response.data as any);
-        const orders = Array.isArray(rawOrders) ? rawOrders.map(o => ({
-          ...o,
-          mainImage: getFileUrl(o.mainImage)
-        })) : [];
-
-        this.setData({ orders });
+      if (!ordersResult.success || !ordersResult.data) {
+        this.setData({
+          loading: false,
+          state: 'error',
+          errorMessage: ordersResult.error || '加载失败',
+          unreadCount: notificationsResult.success && notificationsResult.data
+            ? countUnreadNotifications(notificationsResult.data)
+            : 0,
+          notifications: notificationsResult.success && notificationsResult.data
+            ? notificationsResult.data.list
+            : [],
+          notificationsError: notificationsResult.success ? '' : (notificationsResult.error || ''),
+        });
+        return;
       }
-    } catch (error) {
-      console.error('Load orders failed:', error);
-      wx.showToast({ title: '加载失败', icon: 'none' });
-    } finally {
-      this.setData({ loading: false });
+
+      const nextState = buildOrdersListState([], ordersResult.data, false);
+      const visibleOrders = filterOrdersBySearch(nextState.orders, this.data.searchQuery);
+      this.setData({
+        ...nextState,
+        visibleOrders,
+        notifications: notificationsResult.success && notificationsResult.data
+          ? notificationsResult.data.list
+          : [],
+        unreadCount: notificationsResult.success && notificationsResult.data
+          ? countUnreadNotifications(notificationsResult.data)
+          : 0,
+        notificationsError: notificationsResult.success ? '' : (notificationsResult.error || ''),
+        loading: false,
+        state: nextState.orders.length ? 'ready' : 'empty',
+      });
+    } catch (_error) {
+      this.setData({
+        loading: false,
+        state: 'error',
+        errorMessage: '加载失败',
+      });
     }
   },
 
-  /**
-   * 新建订单
-   */
+  async refreshNotifications(withLoading = false) {
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      return;
+    }
+
+    if (withLoading) {
+      this.setData({ notificationsLoading: true });
+    }
+
+    try {
+      const result = await loadSalesNotifications({ accessToken, limit: 20 });
+      if (!result.success || !result.data) {
+        this.setData({
+          notificationsError: result.error || '通知加载失败',
+        });
+        return;
+      }
+
+      this.setData({
+        notifications: result.data.list,
+        unreadCount: countUnreadNotifications(result.data),
+        notificationsError: '',
+      });
+    } finally {
+      if (withLoading) {
+        this.setData({ notificationsLoading: false });
+      }
+    }
+  },
+
+  onSearchChange(e: WechatMiniprogram.CustomEvent<{ value?: string }>) {
+    const searchQuery = normalizeInputValue(e);
+    this.setData({
+      searchQuery,
+      visibleOrders: filterOrdersBySearch(this.data.orders, searchQuery),
+    });
+  },
+
+  async onLoadMore() {
+    if (
+      this.data.loading ||
+      this.data.loadingMore ||
+      !this.data.canLoadMore ||
+      this.data.searchQuery.trim()
+    ) {
+      return;
+    }
+
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      handleMissingAccessToken();
+      return;
+    }
+
+    this.setData({ loadingMore: true });
+    try {
+      const result = await loadSalesOrders({
+        accessToken,
+        page: this.data.pagination.page + 1,
+        limit: this.data.pagination.limit,
+      });
+
+      if (!result.success || !result.data) {
+        wx.showToast({ title: result.error || '加载失败', icon: 'none' });
+        return;
+      }
+
+      const nextState = buildOrdersListState(this.data.orders, result.data, true);
+      this.setData({
+        ...nextState,
+        visibleOrders: filterOrdersBySearch(nextState.orders, this.data.searchQuery),
+      });
+    } finally {
+      this.setData({ loadingMore: false });
+    }
+  },
+
   handleNewOrder() {
     wx.navigateTo({ url: '/pages/form/form' });
   },
 
-  /**
-   * 查看订单详情
-   */
-  handleViewOrder(e: WechatMiniprogram.TouchEvent) {
-    const { id } = e.currentTarget.dataset;
+  handleViewOrder(e: WechatMiniprogram.CustomEvent<{ id?: string }> | WechatMiniprogram.TouchEvent) {
+    const detail = (e as WechatMiniprogram.CustomEvent<{ id?: string }>).detail;
+    const dataset = (e as WechatMiniprogram.TouchEvent).currentTarget?.dataset;
+    const id = String(detail?.id || dataset?.id || '');
+    if (!id) {
+      return;
+    }
     wx.navigateTo({ url: `/pages/detail/detail?id=${id}` });
-  },
-
-  /**
-   * 退出登录
-   */
-  handleLogout() {
-    wx.showModal({
-      title: '确认退出',
-      content: '确定要退出登录吗？',
-      success: (res) => {
-        if (res.confirm) {
-          logout();
-        }
-      },
-    });
   },
 
   onShellNavigate(e: WechatMiniprogram.CustomEvent<{ target: string }>) {
@@ -246,11 +328,65 @@ Page({
     }
   },
 
-  onShellNotifications() {
-    wx.showToast({ title: '通知功能建设中', icon: 'none' });
+  onShellNotifications(e: WechatMiniprogram.CustomEvent<{ open?: boolean }>) {
+    if (e.detail?.open) {
+      void this.refreshNotifications(this.data.notifications.length === 0);
+    }
   },
 
-  onRetryRestore() {
-    void this.onPullDownRefresh();
+  onShellNotificationRetry() {
+    void this.refreshNotifications(true);
+  },
+
+  async onShellNotificationMarkAll() {
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      handleMissingAccessToken();
+      return;
+    }
+
+    const result = await markAllSalesNotificationsRead({ accessToken });
+    if (!result.success) {
+      wx.showToast({ title: result.error || '操作失败', icon: 'none' });
+      return;
+    }
+
+    this.setData({
+      notifications: this.data.notifications.map((item) => ({
+        ...item,
+        unread: false,
+        isRead: true,
+        is_read: 1,
+      })),
+      unreadCount: 0,
+    });
+  },
+
+  async onShellNotificationSelect(
+    e: WechatMiniprogram.CustomEvent<{ notification?: Partial<NormalizedSalesNotification> }>
+  ) {
+    const notification = e.detail?.notification;
+    if (!notification) {
+      return;
+    }
+
+    const accessToken = getAccessToken();
+    if (accessToken && notification.id && (notification.unread ?? notification.is_read !== 1)) {
+      await markSalesNotificationRead({
+        accessToken,
+        notificationId: notification.id,
+      });
+    }
+
+    const orderId = resolveNotificationOrderId(notification);
+    if (orderId) {
+      wx.navigateTo({ url: `/pages/detail/detail?id=${orderId}` });
+    }
+
+    void this.refreshNotifications(false);
+  },
+
+  onRetryList() {
+    void this.loadInitialData();
   },
 });

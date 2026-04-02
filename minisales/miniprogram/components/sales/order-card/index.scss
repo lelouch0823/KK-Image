@@ -1,0 +1,89 @@
+@import '../../../styles/variables.scss';
+@import '../../../styles/mixins.scss';
+
+.order-card {
+  display: flex;
+  gap: 20rpx;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  border: 1rpx solid $border-color;
+  background: $bg-card;
+  box-shadow: $shadow-sm;
+}
+
+.order-card__media {
+  position: relative;
+  width: 128rpx;
+  height: 128rpx;
+  flex-shrink: 0;
+}
+
+.order-card__image {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 18rpx;
+  overflow: hidden;
+  background: $bg-hover;
+}
+
+.order-card__image--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.order-card__dot {
+  position: absolute;
+  top: -4rpx;
+  right: -4rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  border: 2rpx solid #ffffff;
+  background: $color-danger;
+}
+
+.order-card__content {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.order-card__title {
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $text-main;
+  @include text-ellipsis-multi(2);
+}
+
+.order-card__order-no {
+  margin-top: 6rpx;
+  font-size: $font-size-xs;
+  color: $text-secondary;
+  @include text-ellipsis;
+}
+
+.order-card__meta {
+  margin-top: auto;
+  padding-top: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.order-card__status {
+  max-width: 66%;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  line-height: 1.2;
+  @include text-ellipsis;
+}
+
+.order-card__time {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: $text-muted;
+}

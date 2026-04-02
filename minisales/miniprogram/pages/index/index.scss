@@ -1,164 +1,51 @@
 @import '../../styles/variables.scss';
-@import '../../styles/mixins.scss';
 
 .page {
-  height: 100%; // Inherit strict 100vh from page
-  background-color: $bg-page;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden; // Ensure no double scroll
-}
-
-// 顶部导航
-// Header 样式被 t-navbar 替代
-// .custom-navbar 已提取至 app.scss
-
-.header-icon-container {
-  padding-left: 16rpx;
-}
-
-// 订单列表
-.order-list {
-  flex: 1;
-  height: 100%; // Fix: Force height constraint so scroll-view handles scrolling
-  padding: $spacing-lg; // 24rpx -> 32rpx (Restoring premium spacing)
-  box-sizing: border-box; // Fix: Ensure padding doesn't overflow width
-}
-
-// ...
-
-// 订单卡片
-.list-item {
-  margin-bottom: $spacing-lg;
-}
-
-.order-card {
-  background-color: $bg-card;
-  border-radius: $border-radius-lg; // rounded-xl
-  overflow: hidden;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); // hover:shadow-md
-  border: 1rpx solid $border-color; // border border-gray-200
-  padding: 24rpx; // p-4 (Web)
-  box-sizing: border-box; // Fix: Ensure padding is contained
-}
-
-.card-inner {
-  display: flex;
-  align-items: flex-start;
-  gap: 24rpx; // gap-3 (12px = 24rpx)
-}
-
-.card-image {
-  position: relative;
-  width: 128rpx; // size-16 (64px = 128rpx)
-  height: 128rpx;
-  flex-shrink: 0;
-  border-radius: 16rpx; // rounded-lg
-  overflow: hidden;
-  background-color: $bg-hover; // bg-muted
-}
-
-.image-placeholder {
-  width: 100%;
   height: 100%;
+  background: $bg-page;
   display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-// TDesign image styling hack if needed, but shape="round" should handle it
-.t-image-rounded {
-  border-radius: 16rpx !important;
+  flex-direction: column;
   overflow: hidden;
 }
 
-.feedback-dot {
-  position: absolute;
-  top: -6rpx;
-  right: -6rpx;
-  width: 16rpx;
-  height: 16rpx;
-  background-color: $color-danger;
-  border-radius: 50%;
-  border: 2rpx solid $bg-card;
+.list-scroll {
+  flex: 1;
+  height: 100%;
+  padding: 24rpx 24rpx 0;
 }
 
-.card-content {
-  flex: 1;
-  min-width: 0; // Fix truncate
+.shell-spacer {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.search-anchor {
+  margin-bottom: 20rpx;
+  padding: 10rpx 16rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid #dbe5f0;
+  background: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.06);
+}
+
+.orders-list {
   display: flex;
   flex-direction: column;
-  padding: 0; // Reset padding as parent handles it now
+  gap: 20rpx;
 }
 
-.row-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 4rpx;
-}
-
-.product-name {
-  font-size: $font-size-base; // text-base/sm
-  font-weight: 600; // font-medium
-  color: $text-main;
-  @include text-ellipsis;
-}
-
-.row-middle {
-  margin-bottom: 12rpx; // mt-1
-}
-
-.order-no {
+.loading-more {
+  padding: 20rpx 0 8rpx;
+  text-align: center;
   font-size: $font-size-xs;
   color: $text-secondary;
 }
 
-.row-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: auto;
-}
-
-.order-time {
-  font-size: $font-size-xs;
-  color: $text-muted;
-}
-
-.view-link {
-  font-size: $font-size-xs;
-  color: $color-primary;
-}
-
-// @keyframes spin: 使用全局样式 (app.scss)
-
-// 悬浮按钮 (FAB)
-// 悬浮按钮 (FAB)
-// t-fab handles styles, we just need the hidden state custom transition if t-fab doesn't match
 .fab-hidden {
   transform: translateY(200%) !important;
   opacity: 0;
 }
 
-// 空状态提示
-.empty-hint {
-  margin-top: 20rpx;
-  color: $text-muted;
-  font-size: $font-size-sm;
-}
-
-// 底部安全区占位
 .footer-spacer {
   height: 120rpx;
-}
-
-// 骨架屏
-.skeleton-item-card {
-  background-color: $bg-card;
-  border-radius: $border-radius-lg;
-  padding: 24rpx;
-  margin-bottom: $spacing-lg;
-  border: 1rpx solid $border-color;
-  box-sizing: border-box;
 }

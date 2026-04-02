@@ -1,4 +1,5 @@
 .shell {
+  position: relative;
   padding: 24rpx 32rpx 8rpx;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
 }
@@ -43,6 +44,11 @@
   align-items: center;
   justify-content: center;
   color: #334155;
+  transition: transform 0.16s ease;
+}
+
+.shell__action:active {
+  transform: scale(0.96);
 }
 
 .shell__action--notify {
@@ -76,6 +82,7 @@
   background: #e2e8f0;
   color: #334155;
   font-size: 24rpx;
+  transition: all 0.18s ease;
 }
 
 .shell__tab--active {

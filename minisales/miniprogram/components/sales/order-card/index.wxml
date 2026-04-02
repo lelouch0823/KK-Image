@@ -1,0 +1,24 @@
+<view class="order-card" bind:tap="onTap">
+  <view class="order-card__media">
+    <t-image
+      wx:if="{{order && order.imageUrl}}"
+      class="order-card__image"
+      src="{{order.imageUrl}}"
+      mode="aspectFill"
+      lazy-load
+    />
+    <view wx:else class="order-card__image order-card__image--placeholder">
+      <t-icon name="image" size="44rpx" color="#9ca3af" />
+    </view>
+    <view wx:if="{{order && order.hasNewFeedback}}" class="order-card__dot"></view>
+  </view>
+
+  <view class="order-card__content">
+    <text class="order-card__title">{{(order && order.title) || '未命名订单'}}</text>
+    <text class="order-card__order-no">{{order && order.orderNo}}</text>
+    <view class="order-card__meta">
+      <text class="order-card__status" style="{{statusStyle}}">{{statusLabel}}</text>
+      <text class="order-card__time">{{timeText}}</text>
+    </view>
+  </view>
+</view>
