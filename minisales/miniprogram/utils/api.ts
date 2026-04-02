@@ -71,26 +71,42 @@ export function request<T = any>(url: string, options: RequestOptions = {}): Pro
     return salesRequest<T>({
         path: url,
         method,
-        data: data as Record<string, unknown> | unknown[] | undefined,
+        data,
         header,
     }).then((result) => {
+        const payload = result.payload;
+        const payloadError = typeof payload.error === 'string' ? payload.error : undefined;
+        const payloadMessage = typeof payload.message === 'string' ? payload.message : undefined;
+        const payloadSuccess = typeof payload.success === 'boolean' ? payload.success : result.success;
+        const payloadData = (payload.data as T | undefined) ?? (result.data ?? undefined);
+
+        const response: ApiResponse<T> = {
+            ...payload,
+            success: payloadSuccess,
+            data: payloadData,
+            error: payloadError ?? (result.error ?? undefined),
+            message: payloadMessage ?? payloadError ?? (result.error ?? undefined),
+        };
+
         if (result.status === 401) {
             clearToken();
             wx.redirectTo({ url: '/pages/login/login' });
+            throw new Error('登录已过期，请重新登录');
         }
 
-        if (!result.success && result.error) {
-            wx.showToast({ title: result.error, icon: 'none' });
+        if (result.status >= 200 && result.status < 300) {
+            return response;
         }
 
-        return {
-            success: result.success,
-            data: result.data ?? undefined,
-            error: result.error ?? undefined,
-            message: result.error ?? undefined,
-            code: result.code ?? undefined,
-            status: result.status,
-        };
+        if (result.status === 0) {
+            console.error('Request failed:', result.detail ?? result.error);
+            wx.showToast({ title: '网络请求失败', icon: 'none' });
+            throw new Error('网络请求失败');
+        }
+
+        const errorMsg = response.error || response.message || result.error || '请求失败';
+        wx.showToast({ title: errorMsg, icon: 'none' });
+        throw new Error(errorMsg);
     }).finally(() => {
         if (showLoading) {
             wx.hideLoading();

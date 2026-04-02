@@ -3,6 +3,10 @@ type MockWx = {
   setStorageSync?: (key: string, value: unknown) => void;
   removeStorageSync?: (key: string) => void;
   request?: (options: Record<string, unknown>) => void;
+  showToast?: (options: Record<string, unknown>) => void;
+  redirectTo?: (options: Record<string, unknown>) => void;
+  showLoading?: (options: Record<string, unknown>) => void;
+  hideLoading?: () => void;
 };
 
 const defaultWx: Required<MockWx> = {
@@ -12,6 +16,10 @@ const defaultWx: Required<MockWx> = {
   request: () => {
     throw new Error('wx.request mock is not installed');
   },
+  showToast: () => {},
+  redirectTo: () => {},
+  showLoading: () => {},
+  hideLoading: () => {},
 };
 
 export function installMockWx(overrides: MockWx = {}): void {

@@ -6,17 +6,30 @@ export interface SalesRequestResult<T> {
   error: string | null;
   code: string | null;
   status: number;
+  detail: string | null;
+  payload: Record<string, unknown>;
 }
 
 export interface SalesRequestOptions {
   path: string;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-  data?: Record<string, unknown> | unknown[];
+  data?: unknown;
   header?: Record<string, string>;
 }
 
 function getToken(): string | null {
   return wx.getStorageSync(STORAGE_KEYS.TOKEN) || null;
+}
+
+function toRecord(value: unknown): Record<string, unknown> {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+}
+
+function toStringOrNull(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
 }
 
 export async function salesRequest<T>({
@@ -39,23 +52,36 @@ export async function salesRequest<T>({
       data,
       header: requestHeader,
       success: (res) => {
-        const payload = (res.data || {}) as Record<string, unknown>;
+        const payload = toRecord(res.data);
+        const status = Number(res.statusCode || 0);
+        const payloadSuccess = payload.success;
+        const isSuccess =
+          typeof payloadSuccess === 'boolean'
+            ? payloadSuccess
+            : status >= 200 && status < 300;
+
         resolve({
-          success: Boolean(payload.success),
+          success: isSuccess,
           data: (payload.data as T) ?? null,
-          error: (payload.error as string) || (payload.message as string) || null,
-          code: (payload.code as string) || null,
-          status: Number(res.statusCode || 0),
+          error: toStringOrNull(payload.error) || toStringOrNull(payload.message),
+          code: toStringOrNull(payload.code),
+          status,
+          detail: null,
+          payload,
         });
       },
-      fail: () =>
+      fail: (err) => {
+        const detail = toStringOrNull(toRecord(err).errMsg);
         resolve({
           success: false,
           data: null,
           error: '网络请求失败',
           code: 'NETWORK_ERROR',
           status: 0,
-        }),
+          detail,
+          payload: {},
+        });
+      },
     });
   });
 }
