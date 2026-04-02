@@ -84,10 +84,6 @@ function createRequestId() {
     return `req-${Date.now()}`;
 }
 
-function createTelemetryWriter(env) {
-    return createAITelemetryWriter({ db: env?.DB });
-}
-
 function estimateUsageTokens(history = []) {
     const raw = JSON.stringify(history || []);
     return Math.max(1, Math.ceil(raw.length / 4));
@@ -183,7 +179,7 @@ app.post('/chat', async (c) => {
         routeType: 'chat',
         signal: c.req.raw.signal,
     });
-    const telemetryWriter = createTelemetryWriter(env);
+    const telemetryWriter = createAITelemetryWriter({ db: env?.DB });
     const runtimeEnv = {
         ...(await resolveAIRuntimeEnv(env)),
         AI_REQUEST_SIGNAL: requestContext.signal,
@@ -431,7 +427,7 @@ app.post('/stream', async (c) => {
         routeType: 'stream',
         signal: c.req.raw.signal,
     });
-    const telemetryWriter = createTelemetryWriter(env);
+    const telemetryWriter = createAITelemetryWriter({ db: env?.DB });
     const runtimeEnv = {
         ...(await resolveAIRuntimeEnv(env)),
         AI_REQUEST_SIGNAL: requestContext.signal,
