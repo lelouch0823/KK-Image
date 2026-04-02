@@ -23,10 +23,6 @@ function getDeliveryStockDelta(oldStatus, newStatus, quantity) {
     return 0;
 }
 
-function resolveInventoryService(db, options = {}) {
-    return options.inventoryService || new InventoryService(db);
-}
-
 async function assertBatchDeliveryStockSufficient(inventoryService, requirementsByVariant) {
     for (const [variantId, requiredQty] of requirementsByVariant.entries()) {
         await inventoryService.assertSufficient(variantId, requiredQty);
@@ -568,7 +564,7 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
     const { forceStatusTransition = false } = options;
     const timestamp = now();
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
-    const inventoryService = resolveInventoryService(db, options);
+    const inventoryService = options.inventoryService || new InventoryService(db);
     const currentOrder = await db
         .prepare('SELECT status, variant_id, quantity FROM orders WHERE id = ?')
         .bind(id)
@@ -677,7 +673,7 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
     const { forceStatusTransition = false } = options;
     const timestamp = now();
     const batchStatements = [];
-    const inventoryService = resolveInventoryService(db, options);
+    const inventoryService = options.inventoryService || new InventoryService(db);
     const existingOrders = [];
     for (const idChunk of chunkArray(ids)) {
         const placeholders = idChunk.map(() => '?').join(',');
