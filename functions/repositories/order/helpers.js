@@ -10,7 +10,7 @@
 import { parseJsonObject } from '../../api/utils/json.js';
 import { projectOrderLineStatus } from '../../services/OrderStatusProjectionService.js';
 
-export function mapOrderLine(line) {
+function mapOrderLine(line) {
     return {
         id: line.id,
         orderId: line.order_id,
@@ -30,7 +30,7 @@ export function mapOrderLine(line) {
     };
 }
 
-export function aggregateOrderDisplayStatus(lines = []) {
+function aggregateOrderDisplayStatus(lines = []) {
     if (!Array.isArray(lines) || lines.length === 0) return null;
 
     return projectOrderLineStatus(lines.reduce((acc, line) => ({
