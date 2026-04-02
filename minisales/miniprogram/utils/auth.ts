@@ -3,7 +3,7 @@
  * 处理微信登录和密码登录
  */
 
-import { post, getAccessToken, setAccessToken, setToken } from './api';
+import { get, post, getAccessToken, setAccessToken, setToken } from './api';
 import { API, STORAGE_KEYS } from './constants';
 import { KEYS, store } from './store';
 import {
@@ -90,16 +90,17 @@ export async function wxLogin(): Promise<LoginResult> {
       };
     }
 
-    if (!data.token || !data.accessToken || !data.user) {
+    const activeAccessToken = data.accessToken || getAccessToken();
+    if (!data.token || !data.user || !activeAccessToken) {
       return {
         success: false,
-        message: '微信登录信息不完整，请改用账号密码登录',
+        message: '缺少访问凭证，请从销售链接重新进入后再使用微信登录',
       };
     }
 
     setToken(data.token);
     store.set(KEYS.TOKEN, data.token);
-    setAccessToken(data.accessToken);
+    setAccessToken(activeAccessToken);
     persistSalesUser(data.user);
     persistLoginMethod('wechat');
 
@@ -189,7 +190,7 @@ export async function fetchCurrentSalesUser(accessToken: string): Promise<{
   isAuthInvalid?: boolean;
 }> {
   try {
-    const response = await post<AuthUserResponse>(API.SALES_AUTH(accessToken), {});
+    const response = await get<AuthUserResponse>(API.SALES_AUTH(accessToken));
     if (response.success && response.data) {
       return {
         success: true,
