@@ -2,6 +2,7 @@ import { get, getAccessToken } from '../../utils/api';
 import { API } from '../../utils/constants';
 import { getCurrentUser } from '../../utils/auth';
 import { calculateNavBarHeight, initTabBar } from '../../utils/ui-helpers';
+import { handleMissingAccessToken } from '../../services/auth/session';
 
 interface Stats {
     totalOrders: number;
@@ -66,7 +67,10 @@ Page({
      */
     async loadStats() {
         const accessToken = getAccessToken();
-        if (!accessToken) return;
+        if (!accessToken) {
+            handleMissingAccessToken();
+            return;
+        }
 
         this.setData({ loading: true });
 

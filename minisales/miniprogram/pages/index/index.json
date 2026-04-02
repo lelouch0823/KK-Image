@@ -1,6 +1,7 @@
 {
   "usingComponents": {
-    "sales-app-shell": "/components/sales/app-shell/index"
+    "sales-app-shell": "/components/sales/app-shell/index",
+    "sales-state-panel": "/components/sales/state-panel/index"
   },
   "navigationStyle": "custom",
   "enablePullDownRefresh": true

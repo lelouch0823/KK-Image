@@ -26,7 +26,12 @@
         <t-skeleton rowCol="{{rowCol}}" theme="paragraph" loading></t-skeleton>
       </view>
     </view>
-    <!-- 空状态 -->
+    <sales-state-panel
+      wx:elif="{{restoreError && !user}}"
+      loading="{{false}}"
+      error="{{restoreError}}"
+      bind:retry="onRetryRestore"
+    />
     <!-- 空状态 -->
     <view wx:elif="{{!loading && orders.length === 0}}" class="empty-state">
       <t-empty icon="info-circle-filled" description="暂无订单" />

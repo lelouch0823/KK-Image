@@ -2,7 +2,7 @@
  * 登录页
  */
 
-import { getCurrentUser, getLoginMethod, usernameLogin, wxLogin } from '../../utils/auth';
+import { bindWechat, getCurrentUser, getLoginMethod, usernameLogin, wxLogin } from '../../utils/auth';
 import { getAccessToken } from '../../utils/api';
 import { KEYS, store } from '../../utils/store';
 
@@ -34,6 +34,7 @@ Page({
     error: '',
     activeMethod: 'password',
     canWechatLogin: true,
+    pendingWechatBind: false,
   },
 
   onLoad() {
@@ -80,6 +81,17 @@ Page({
     try {
       const result = await usernameLogin(username.trim(), password);
       if (result.success) {
+        if (this.data.pendingWechatBind) {
+          const accessToken = getAccessToken();
+          if (accessToken) {
+            const bindResult = await bindWechat(accessToken);
+            if (!bindResult.success) {
+              wx.showToast({ title: bindResult.message || '微信绑定失败，可稍后重试', icon: 'none' });
+            }
+          }
+        }
+
+        this.setData({ pendingWechatBind: false });
         this.enterApp();
         return;
       }
@@ -106,6 +118,7 @@ Page({
       }
 
       this.setData({
+        pendingWechatBind: !!result.needBind,
         activeMethod: result.needBind ? 'password' : this.data.activeMethod,
         error: result.message || '微信登录失败',
       });

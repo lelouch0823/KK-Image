@@ -41,6 +41,7 @@ Page({
       [{ width: '40%', height: '24rpx' }],
     ],
     unreadCount: 0,
+    restoreError: '',
   },
 
   // 滚动状态记录
@@ -54,15 +55,21 @@ Page({
 
     // 订阅用户信息变化
     this.unsubUser = store.on(KEYS.USER, (user) => {
-      this.setData({ user });
+      this.setData({ user, restoreError: user ? '' : this.data.restoreError });
       if (user) {
         this.loadOrders();
       }
     });
 
     this.unsubRestore = store.on(KEYS.SESSION_RESTORE, (status) => {
+      if (status === 'in_progress') {
+        this.setData({ loading: true, restoreError: '' });
+      }
       if (status === 'transient_failed' && !this.data.user && this.data.loading) {
-        this.setData({ loading: false });
+        this.setData({
+          loading: false,
+          restoreError: '会话恢复失败，请重试',
+        });
       }
     });
 
@@ -132,6 +139,10 @@ Page({
    */
   async onPullDownRefresh() {
     this.setData({ refreshing: true });
+    if (this.data.restoreError) {
+      const app = getApp<{ restoreSession?: () => Promise<void> }>();
+      await app.restoreSession?.();
+    }
     await this.loadOrders();
     wx.stopPullDownRefresh();
     this.setData({ refreshing: false });
@@ -237,5 +248,9 @@ Page({
 
   onShellNotifications() {
     wx.showToast({ title: '通知功能建设中', icon: 'none' });
+  },
+
+  onRetryRestore() {
+    void this.onPullDownRefresh();
   },
 });
