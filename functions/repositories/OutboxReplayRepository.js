@@ -1,14 +1,5 @@
 import { generatePrefixedId } from '../_shared/utils.js';
-
-function parseSummaryJson(value) {
-  if (!value) return null;
-  if (typeof value === 'object') return value;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return null;
-  }
-}
+import { safeJsonParse } from '../api/utils/json.js';
 
 export class OutboxReplayRepository {
   constructor(db, deps = {}) {
@@ -189,7 +180,7 @@ export class OutboxReplayRepository {
     return row
       ? {
           ...row,
-          summary_json: parseSummaryJson(row.summary_json),
+          summary_json: safeJsonParse(row.summary_json || null, null),
         }
       : null;
   }

@@ -113,6 +113,37 @@ describe('DomainOutboxConsumers audit and cache', () => {
     );
   });
 
+  it('falls back to an empty payload object when purchase receipt payload_json is invalid', async () => {
+    await DOMAIN_OUTBOX_CONSUMERS.audit({
+      db: { prepare: vi.fn() },
+      event: {
+        id: 'evt-invalid-1',
+        event_type: 'purchase_receipt_recorded',
+        aggregate_type: 'purchase_order',
+        aggregate_id: 'po-invalid-1',
+        correlation_id: 'cmd-invalid-1',
+        payload_json: '{',
+      },
+    });
+
+    expect(mocks.recordAuditEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        targetId: 'po-invalid-1',
+        metadata: expect.objectContaining({
+          purchaseOrderItemId: null,
+          orderId: null,
+          orderLineId: null,
+          receiptId: null,
+          originalReceiptId: null,
+          reversalId: null,
+          receivedQty: null,
+          reversalQty: null,
+        }),
+      })
+    );
+  });
+
   it('invalidates purchase-order, order, and goods-overview caches idempotently', async () => {
     await DOMAIN_OUTBOX_CONSUMERS.cache({
       event: {

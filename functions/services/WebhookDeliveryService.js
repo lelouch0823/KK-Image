@@ -1,14 +1,6 @@
 import { generateHmacSignature } from '../_shared/utils.js';
+import { safeJsonParse } from '../api/utils/json.js';
 import { WebhookRepository } from '../repositories/WebhookRepository.js';
-
-function parsePayload(event = {}) {
-  if (!event?.payload_json) return {};
-  try {
-    return JSON.parse(event.payload_json);
-  } catch {
-    return {};
-  }
-}
 
 function classifyStatusCode(statusCode) {
   if (statusCode >= 200 && statusCode < 300) return 'delivered';
@@ -35,7 +27,10 @@ export class WebhookDeliveryService {
         type: event.aggregate_type || null,
         id: event.aggregate_id || null,
       },
-      payload: parsePayload(event),
+      payload: safeJsonParse(
+        typeof event?.payload_json === 'string' ? event.payload_json || null : null,
+        {}
+      ),
     };
   }
 

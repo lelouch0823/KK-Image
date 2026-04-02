@@ -90,6 +90,28 @@ describe('WebhookDeliveryService', () => {
     );
   });
 
+  it('falls back to an empty payload object when payload_json is invalid', () => {
+    const service = new WebhookDeliveryService(
+      {},
+      {
+        webhookRepo: createWebhookRepoStub(),
+        fetch: vi.fn(),
+        signPayload: vi.fn(async () => 'sig-1'),
+        now: () => 1710000022222,
+      }
+    );
+
+    expect(service.buildEnvelope({
+      event_id: 'evt-invalid',
+      event_type: 'purchase_receipt_recorded',
+      aggregate_type: 'purchase_receipt',
+      aggregate_id: 'receipt-invalid',
+      payload_json: '{',
+    })).toEqual(expect.objectContaining({
+      payload: {},
+    }));
+  });
+
   it('skips endpoints that already succeeded for the same delivery key', async () => {
     const webhookRepo = createWebhookRepoStub({
       listActiveByEvent: vi.fn(async () => [

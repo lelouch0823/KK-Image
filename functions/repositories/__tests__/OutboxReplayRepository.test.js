@@ -206,6 +206,41 @@ describe('OutboxReplayRepository', () => {
     }));
   });
 
+  it('falls back to null when persisted replay summary json is invalid', async () => {
+    const db = {
+      prepare: vi.fn((sql) => ({
+        bind: vi.fn(() => ({
+          all: vi.fn(async () => ({ results: [] })),
+          first: vi.fn(async () => {
+            if (sql.includes('SELECT * FROM outbox_replay_runs WHERE id = ?')) {
+              return {
+                id: 'replay-1',
+                scope_type: 'event',
+                scope_id: 'evt-1',
+                status: 'completed',
+                summary_json: '{',
+              };
+            }
+
+            return null;
+          }),
+          run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
+        })),
+      })),
+    };
+    const repo = new OutboxReplayRepository(db, {
+      now: () => 1710000011111,
+      idFactory: () => 'replay-1',
+    });
+
+    const result = await repo.finalizeReplayRun('replay-1', { delivered: 1 });
+
+    expect(result).toEqual(expect.objectContaining({
+      id: 'replay-1',
+      summary_json: null,
+    }));
+  });
+
   it('finds all events emitted by a command_id or a specific event_id', async () => {
     const db = createReplayDbStub({
       events: [

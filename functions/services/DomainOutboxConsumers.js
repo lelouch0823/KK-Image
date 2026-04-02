@@ -1,4 +1,5 @@
 import { recordAuditEvent } from '../lib/hono/_shared/audit-helpers.js';
+import { safeJsonParse } from '../api/utils/json.js';
 import { NotificationRepository } from '../repositories/NotificationRepository.js';
 import { WebhookDeliveryService } from './WebhookDeliveryService.js';
 import {
@@ -21,15 +22,6 @@ import {
 import { invalidateCache, getProductCacheUrls } from '../lib/hono/middleware/cache.js';
 import { getAllSalespersonAccessTokens, getSalespersonAccessTokens } from '../lib/hono/_shared/route-helpers.js';
 import { getV1FileAndFolderCacheUrls, getV1FolderAndShareCacheUrls } from '../lib/hono/routes/v1/cache-urls.js';
-
-function parsePayload(event = {}) {
-  if (!event?.payload_json) return {};
-  try {
-    return JSON.parse(event.payload_json);
-  } catch {
-    return {};
-  }
-}
 
 function createCacheContext(baseUrl, purchaseOrderId = null) {
   const url = purchaseOrderId
@@ -282,7 +274,10 @@ async function resolveExpandedCacheUrls({ db, event, baseUrl, payload }) {
 }
 
 async function auditOutboxEvent({ db, event }) {
-  const payload = parsePayload(event);
+  const payload = safeJsonParse(
+    typeof event?.payload_json === 'string' ? event.payload_json || null : null,
+    {}
+  );
   const auditConfig = resolveAuditEventConfig(event, payload);
 
   await recordAuditEvent(db, {
@@ -315,7 +310,10 @@ async function auditOutboxEvent({ db, event }) {
 async function invalidateReceiptCaches({ db, event, baseUrl }) {
   if (!baseUrl) return;
 
-  const payload = parsePayload(event);
+  const payload = safeJsonParse(
+    typeof event?.payload_json === 'string' ? event.payload_json || null : null,
+    {}
+  );
   if (isOrderMutationEvent(event?.event_type)) {
     const ctx = createCacheContext(baseUrl);
     const salesTokens = await getSalespersonAccessTokens(db, [resolveSalespersonId(payload)].filter(Boolean));
@@ -513,7 +511,10 @@ function resolveNotificationType(eventType) {
 }
 
 async function notifyOutboxEvent({ db, event, baseUrl }) {
-  const payload = parsePayload(event);
+  const payload = safeJsonParse(
+    typeof event?.payload_json === 'string' ? event.payload_json || null : null,
+    {}
+  );
   const repo = new NotificationRepository(db);
   const isManualAdminNotification = event.event_type === 'admin_notification_created';
   const recipient = resolveNotificationRecipient(event, payload);
