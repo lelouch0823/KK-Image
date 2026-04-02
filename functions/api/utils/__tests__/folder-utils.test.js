@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { 
   ensureFolder, 
-  ensureSystemRoot, 
   ensureProductFolder, 
   moveFilesToFolder, 
   ensureOrderFolder 
@@ -45,11 +44,11 @@ describe('Folder Utils', () => {
   });
 
   describe('System Folders', () => {
-    it('ensureSystemRoot should call ensureFolder with correct params', async () => {
+    it('ensureProductFolder should create _System root before Products', async () => {
       statement.first.mockResolvedValue({ id: 'root-id' });
-      const id = await ensureSystemRoot(env);
-      expect(id).toBe('root-id');
-      expect(statement.bind).toHaveBeenCalledWith(
+      await ensureProductFolder(env);
+      expect(statement.bind).toHaveBeenNthCalledWith(
+        1,
         expect.any(String),
         null,
         '_System',
@@ -57,14 +56,10 @@ describe('Folder Utils', () => {
         expect.any(Number),
         1
       );
-    });
-
-    it('ensureProductFolder should create Products under SystemRoot', async () => {
-       statement.first.mockResolvedValue({ id: 'sys-product-id' });
-       await ensureProductFolder(env);
-       expect(statement.bind).toHaveBeenCalledWith(
-         expect.any(String),
-         'sys-product-id',
+      expect(statement.bind).toHaveBeenNthCalledWith(
+        3,
+        expect.any(String),
+        'root-id',
          'Products',
          expect.any(Number),
          expect.any(Number),

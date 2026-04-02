@@ -2,26 +2,10 @@ import { generateId, now } from '../api/utils/id.js';
 import { parseJsonObject } from '../api/utils/json.js';
 import { parseRepoPagination } from '../api/utils/pagination.js';
 import { hasChanges } from '../api/utils/result.js';
+import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 
-const D1_MAX_BATCH_SIZE = 100;
 const D1_MAX_IN_CLAUSE_SIZE = 98;
-
-function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
-    if (!Array.isArray(items) || items.length === 0) return [];
-
-    const chunks = [];
-    for (let index = 0; index < items.length; index += chunkSize) {
-        chunks.push(items.slice(index, index + chunkSize));
-    }
-    return chunks;
-}
-
-async function executeBatchChunks(db, statements = []) {
-    for (const chunk of chunkArray(statements)) {
-        await db.batch(chunk);
-    }
-}
 
 export class ProductVariantRepository {
     constructor(db) {

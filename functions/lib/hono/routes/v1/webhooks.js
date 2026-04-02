@@ -25,13 +25,6 @@ const WEBHOOK_EVENTS = [
   'webhook.test',
 ];
 
-async function requireWebhookById(db, id, columns = '*') {
-  return requireEntity(
-    db.prepare(`SELECT ${columns} FROM webhooks WHERE id = ?`).bind(id).first(),
-    () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND)
-  );
-}
-
 /**
  * 将数据库行转换为 Webhook 对象
  */
@@ -74,7 +67,10 @@ app.get('/:id', requirePermission('webhooks:read'), async (c) => {
   const id = c.req.param('id');
   const { env } = c;
 
-  const webhook = await requireWebhookById(env.DB, id);
+  const webhook = await requireEntity(
+    env.DB.prepare('SELECT * FROM webhooks WHERE id = ?').bind(id).first(),
+    () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND)
+  );
 
   return c.json({ success: true, data: rowToWebhook(webhook) });
 });
@@ -149,7 +145,10 @@ app.put('/:id', requirePermission('webhooks:write'), async (c) => {
   const user = c.get('user');
   const { env } = c;
 
-  await requireWebhookById(env.DB, id, 'id');
+  await requireEntity(
+    env.DB.prepare('SELECT id FROM webhooks WHERE id = ?').bind(id).first(),
+    () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND)
+  );
 
   const updates = [];
   const values = [];
@@ -192,7 +191,10 @@ app.delete('/:id', requirePermission('webhooks:write'), async (c) => {
   const id = c.req.param('id');
   const { env } = c;
 
-  await requireWebhookById(env.DB, id, 'id');
+  await requireEntity(
+    env.DB.prepare('SELECT id FROM webhooks WHERE id = ?').bind(id).first(),
+    () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND)
+  );
 
   await env.DB.prepare('DELETE FROM webhooks WHERE id = ?').bind(id).run();
   scheduleAuditEvent(c, {
@@ -217,7 +219,10 @@ app.post('/:id/test', requirePermission('webhooks:write'), async (c) => {
   const user = c.get('user');
   const { env } = c;
 
-  const row = await requireWebhookById(env.DB, id);
+  const row = await requireEntity(
+    env.DB.prepare('SELECT * FROM webhooks WHERE id = ?').bind(id).first(),
+    () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND)
+  );
 
   const webhook = rowToWebhook(row);
 

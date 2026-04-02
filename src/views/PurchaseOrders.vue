@@ -2533,6 +2533,7 @@ import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import { CURRENCY_OPTIONS } from '@/composables/useProductForm';
 import { validateOrderQuantity } from '@/utils/purchase-order-constraints';
 import {
+  getPurchaseOrderCancelledQty,
   getPurchaseOrderOrderedQty,
   getPurchaseOrderOutstandingQty,
   getPurchaseOrderReceivedQty,
@@ -2844,8 +2845,8 @@ const getProgressStatusVariant = (status) => getProgressStatusMeta(status).varia
 
 const buildReceiptProgressSummary = (record = {}) => {
   const ordered = getPurchaseOrderOrderedQty(record);
-  const received = toProgressNumber(record.received_qty);
-  const cancelled = toProgressNumber(record.cancelled_qty);
+  const received = getPurchaseOrderReceivedQty(record);
+  const cancelled = getPurchaseOrderCancelledQty(record);
   const outstanding = getPurchaseOrderOutstandingQty(record);
 
   const parts = [`${t('purchaseOrder.progress.receivedPrefix', '已到')} ${received} / ${ordered}`];
@@ -2951,7 +2952,7 @@ const receiptCandidates = computed(() => {
       product_name: item.product_name || '—',
       variant_sku: item.variant_sku || item.product_sku || '—',
       ordered_qty: getPurchaseOrderOrderedQty(item),
-      received_qty_before: toProgressNumber(item.received_qty),
+      received_qty_before: getPurchaseOrderReceivedQty(item),
       max_receivable: getPurchaseOrderOutstandingQty(item),
       customer_order_no: item.customer_order_no || '',
       variant_options: item.variant_options || {},
@@ -2979,8 +2980,8 @@ const shortageCandidates = computed(() => {
       product_name: item.product_name || '—',
       variant_sku: item.variant_sku || item.product_sku || '—',
       ordered_qty: getPurchaseOrderOrderedQty(item),
-      received_qty_before: toProgressNumber(item.received_qty),
-      cancelled_qty_before: toProgressNumber(item.cancelled_qty),
+      received_qty_before: getPurchaseOrderReceivedQty(item),
+      cancelled_qty_before: getPurchaseOrderCancelledQty(item),
       max_closable: getPurchaseOrderOutstandingQty(item),
       customer_order_no: item.customer_order_no || '',
       variant_options: item.variant_options || {},

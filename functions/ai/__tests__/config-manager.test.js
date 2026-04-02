@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AIConfigManager, createAIConfigManager } from '../config-manager.js';
+import { AIConfigManager } from '../config-manager.js';
 import {
   getDefaultValue,
   validateConfigValue,
@@ -314,16 +314,14 @@ describe('config-schema', () => {
   });
 });
 
-describe('createAIConfigManager', () => {
+describe('AIConfigManager direct construction', () => {
   it('should create instance with env', () => {
     const env = {
       DB: {},
       AI_MODEL: 'gpt-4',
     };
 
-    // 由于createAIConfigManager使用真实的SettingsRepository，
-    // 我们只需要测试它能正确传递参数
-    const manager = createAIConfigManager(env);
+    const manager = new AIConfigManager(env.DB, env);
 
     expect(manager).toBeInstanceOf(AIConfigManager);
     expect(manager.env.AI_MODEL).toBe('gpt-4');

@@ -1,37 +1,70 @@
 # Space API
 
-> **Base URL**: `/api/space/:token`
+> Base URL: `/api/space/:token`
+
+当前公开空间 API 只保留两个入口：
+
+- `GET /api/space/:token`
+- `POST /api/space/:token`
 
 ## 1. 获取空间详情
+
 `GET /api/space/:token`
 
-返回空间的基础信息（名称、描述、模板类型）和根目录文件列表。
+行为：
 
-**Headers (Optional):**
-- `x-space-password`: 如果空间设有密码，需提供此 Header。
+- 若空间不存在，返回 `404`
+- 若空间未公开且不是管理员预览，返回 `403`
+- 若空间已过期，返回 `410`
+- 若空间设置了密码，返回 `401`，并在响应中提示 `requiresPassword`
 
-**Response:**
+返回数据通常包含：
+
+- `name`
+- `description`
+- `template`
+- `templateData`
+- `coverImage`
+- `fileCount`
+- `viewCount`
+- `files`
+- `groupedFiles`
+- `subspaces`
+
+示例：
+
 ```json
 {
   "success": true,
   "data": {
-    "info": {
-      "name": "2024新品发布会",
-      "template": "gallery",
-      "is_public": true
-    },
-    "files": [ ... ],
-    "folders": [ ... ]
+    "name": "2026 春季样册",
+    "template": "portfolio",
+    "fileCount": 8,
+    "files": [],
+    "subspaces": []
   }
 }
 ```
 
-## 2. 获取文件夹内容
-`GET /api/space/:token/folder/:folderId`
+## 2. 密码校验并获取内容
 
-获取二级目录下内容。
+`POST /api/space/:token`
 
-## 3. 文件下载
-`GET /api/space/:token/download/:fileId`
+Body:
 
-获取文件的临时下载链接（R2 Signed URL）。
+```json
+{
+  "password": "your-space-password"
+}
+```
+
+说明：
+
+- 当前密码不是通过 `x-space-password` header 提交
+- 成功后直接返回完整空间数据
+
+## 3. 说明
+
+- 旧文档里出现过的 `/api/space/:token/folder/:folderId` 与 `/api/space/:token/download/:fileId` 在当前实现中不存在
+- 公开空间页面前端路由是 `/space/:token`
+- 如果管理员携带有效认证上下文，请求可进入未公开空间的预览模式

@@ -14,9 +14,14 @@ import { PurchaseOrderRepository } from '../repositories/PurchaseOrderRepository
 import { ProductVariantRepository } from '../repositories/ProductVariantRepository.js';
 import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { NotFoundError, BadRequestError } from '../lib/hono/errors.js';
+import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 import { InventoryService } from './InventoryService.js';
 import { DemandService } from './DemandService.js';
+import {
+  getPurchaseOrderOutstandingQty,
+  getPurchaseOrderReceivedQty,
+} from './purchase-order-projection.js';
 
 const D1_MAX_IN_CLAUSE_SIZE = 100;
 
@@ -46,29 +51,6 @@ function buildSuggestionPricing(row, lastPurchasePriceMap) {
   };
 }
 
-function chunkArray(items = [], chunkSize = D1_MAX_IN_CLAUSE_SIZE) {
-  if (!Array.isArray(items) || items.length === 0) return [];
-
-  const chunks = [];
-  for (let index = 0; index < items.length; index += chunkSize) {
-    chunks.push(items.slice(index, index + chunkSize));
-  }
-  return chunks;
-}
-
-async function executeBatchChunks(db, statements = []) {
-  const results = [];
-
-  for (const chunk of chunkArray(statements)) {
-    const chunkResults = await db.batch(chunk);
-    if (Array.isArray(chunkResults)) {
-      results.push(...chunkResults);
-    }
-  }
-
-  return results;
-}
-
 function toNumber(value) {
   return Number(value || 0);
 }
@@ -81,31 +63,6 @@ function requireCompletedPurchaseOrderForAllocation(po) {
   if (po?.status !== 'completed') {
     throw new BadRequestError('仅已结算采购单允许执行成本分摊');
   }
-}
-
-function resolvePurchaseOrderOutstandingQty(po = {}) {
-  if (po.outstanding_qty != null) return Math.max(toNumber(po.outstanding_qty), 0);
-
-  if (Array.isArray(po.items) && po.items.length > 0) {
-    return po.items.reduce((sum, item) => (
-      sum + Math.max(toNumber(item.quantity) - toNumber(item.received_qty) - toNumber(item.cancelled_qty), 0)
-    ), 0);
-  }
-
-  return Math.max(
-    toNumber(po.ordered_qty) - toNumber(po.received_qty) - toNumber(po.cancelled_qty),
-    0
-  );
-}
-
-function resolvePurchaseOrderReceivedQty(po = {}) {
-  if (po.received_qty != null) return Math.max(toNumber(po.received_qty), 0);
-
-  if (Array.isArray(po.items) && po.items.length > 0) {
-    return po.items.reduce((sum, item) => sum + Math.max(toNumber(item.received_qty), 0), 0);
-  }
-
-  return 0;
 }
 
 export class PurchaseOrderService {
@@ -147,14 +104,14 @@ export class PurchaseOrderService {
     }
 
     if (po.status === 'shipping' && newStatus === 'arrived') {
-      const outstandingQty = resolvePurchaseOrderOutstandingQty(po);
+      const outstandingQty = getPurchaseOrderOutstandingQty(po);
       if (outstandingQty > 0) {
         throw new BadRequestError(`采购单仍有待收数量 ${outstandingQty}，不能标记为已入库`);
       }
     }
 
     if (newStatus === 'cancelled') {
-      const receivedQty = resolvePurchaseOrderReceivedQty(po);
+      const receivedQty = getPurchaseOrderReceivedQty(po);
       if (receivedQty > 0) {
         throw new BadRequestError(`采购单已有收货数量 ${receivedQty}，不能直接取消`);
       }
@@ -342,7 +299,7 @@ export class PurchaseOrderService {
     }
     const rows = [];
 
-    for (const variantIdChunk of chunkArray(variantIds)) {
+    for (const variantIdChunk of chunkArray(variantIds, D1_MAX_IN_CLAUSE_SIZE)) {
       const placeholders = variantIdChunk.map(() => '?').join(',');
       const { results } = await this.db.prepare(`
         SELECT
@@ -420,7 +377,7 @@ export class PurchaseOrderService {
     }
 
     const orders = [];
-    for (const orderIdChunk of chunkArray(orderIds)) {
+    for (const orderIdChunk of chunkArray(orderIds, D1_MAX_IN_CLAUSE_SIZE)) {
       const placeholders = orderIdChunk.map(() => '?').join(',');
       const { results } = await this.db.prepare(`
         SELECT o.id, o.order_no, o.product_id, o.variant_id, o.quantity,

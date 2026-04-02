@@ -56,7 +56,7 @@ function createDb() {
 
       return {
         all,
-        bind: vi.fn((...args) => ({
+        bind: vi.fn(() => ({
           first: vi.fn(async () => {
             if (sql.includes('COUNT(*) as total')) return { total: 1 };
             return null;
@@ -173,6 +173,55 @@ describe('manage audit log routes', () => {
         }),
       })
     );
+  });
+
+  it('normalizes invalid changes_json and metadata_json fields to null', async () => {
+    const db = {
+      prepare: vi.fn((sql) => ({
+        bind: vi.fn(() => ({
+          first: vi.fn(async () => (sql.includes('COUNT(*) as total') ? { total: 1 } : null)),
+          all: vi.fn(async () => {
+            if (!sql.includes('SELECT id, user_id')) return { results: [] };
+            return {
+              results: [
+                {
+                  id: 'audit-invalid-1',
+                  actor_id: 'admin-3',
+                  actor_name: 'Admin 3',
+                  action: 'order.update',
+                  domain: 'orders',
+                  result: 'success',
+                  severity: 'normal',
+                  target_type: 'order',
+                  target_id: 'order-3',
+                  target_label: 'SO-3',
+                  summary: 'Updated order SO-3',
+                  changes_json: '{',
+                  metadata_json: '{',
+                  created_at: 789,
+                },
+              ],
+            };
+          }),
+        })),
+      })),
+    };
+    const app = new Hono();
+    app.route('/api/manage/audit-logs', auditLogsApp);
+
+    const res = await app.request(
+      'http://localhost/api/manage/audit-logs',
+      { method: 'GET' },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.data[0]).toEqual(expect.objectContaining({
+      changes_json: null,
+      metadata_json: null,
+    }));
   });
 
   it('records audit log action catalog reads', async () => {

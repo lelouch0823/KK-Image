@@ -3,7 +3,17 @@
 > 目录: `minisales/`
 > 目标: 对齐当前 web 销售端的接口契约、页面层级和核心业务流程
 
-## 1. 架构分层
+本文档说明当前仓库中 minisales 小程序端的实际结构、登录方式与开发方法。
+
+## 1. 当前技术栈
+
+- 微信小程序
+- TypeScript
+- SCSS
+- TDesign Mini Program
+- Skyline + glass-easel
+
+## 2. 架构分层
 
 `minisales/miniprogram/` 现在按下面的责任切分：
 
@@ -27,7 +37,7 @@
 - 调 controller 产出视图模型
 - 处理导航、留言、预览、绑定微信等交互
 
-## 2. 页面地图
+## 3. 页面地图
 
 ```text
 miniprogram/pages/
@@ -46,7 +56,7 @@ miniprogram/pages/
 - `spaces` 改成确定性卡片流，不再使用随机瀑布高宽比
 - `detail` 和 `form` 已经可以通过 duplicate prefill 共享商品、数量、附件和绑定信息
 
-## 3. 认证与会话
+## 4. 认证与会话
 
 支持两条登录链路：
 
@@ -64,7 +74,16 @@ miniprogram/pages/
 
 其中 `AUTH_CONFIG` 还保存了微信登录开关和本地 session 内的微信绑定完成态，`stats` 页面会据此隐藏已成功绑定后的按钮。
 
-## 4. 主要接口映射
+## 5. 本地开发
+
+```bash
+cd minisales
+npm install
+```
+
+然后用微信开发者工具打开 `minisales/` 目录。
+
+## 6. 主要接口映射
 
 | 场景 | 接口 |
 | --- | --- |
@@ -82,14 +101,7 @@ miniprogram/pages/
 | 共享空间列表 | `GET /api/sales/:token/spaces` |
 | 共享空间详情 | `GET /api/sales/:token/spaces/:id` |
 
-## 5. 测试与验证
-
-安装依赖：
-
-```bash
-cd minisales
-npm install
-```
+## 7. 测试与验证
 
 核心验证命令：
 
@@ -113,7 +125,7 @@ npm run test:unit -- tests/unit/pages/sales-stats-controller.test.ts tests/unit/
 - stats / spaces controller
 - session guard
 
-## 6. 手工回归建议
+## 8. 手工回归建议
 
 在微信开发者工具里至少验证以下链路：
 
@@ -124,7 +136,7 @@ npm run test:unit -- tests/unit/pages/sales-stats-controller.test.ts tests/unit/
 5. 订单详情留言、已读、复制到表单
 6. 共享空间列表进入详情并预览素材
 
-## 7. 配置说明
+## 9. 配置说明
 
 开发接口地址在 [miniprogram/utils/constants.ts](../../minisales/miniprogram/utils/constants.ts)：
 

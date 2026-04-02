@@ -48,22 +48,6 @@ export async function requireEntity(entityPromise, createError) {
   return entity;
 }
 
-/**
- * 缓存失效 URL 工厂
- * @param {string} basePath - API 路径，如 '/api/manage/customers'
- * @param {string[]} extraParams - 额外的查询参数变体
- * @returns {(c: Object) => string[]}
- */
-export function createCacheInvalidator(basePath, extraParams = []) {
-  return (c) => {
-    const origin = new URL(c.req.url).origin;
-    return [
-      `${origin}${basePath}`,
-      ...extraParams.map((p) => `${origin}${basePath}?${p}`),
-    ];
-  };
-}
-
 function serializeQuery(query = {}) {
   return Object.entries(query)
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)

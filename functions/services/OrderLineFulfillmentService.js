@@ -3,18 +3,15 @@ import { DomainOutboxRepository } from '../repositories/DomainOutboxRepository.j
 import { OrderLineAllocationRepository } from '../repositories/OrderLineAllocationRepository.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { InventoryService } from './InventoryService.js';
+import {
+  buildOrderLineProjectionStatement,
+  parsePositiveLineCommandQuantity,
+  queryInventoryBalance,
+} from './order-line-shared.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 
 function toNonNegativeInt(value) {
   return Math.max(0, Number(value) || 0);
-}
-
-function normalizeQuantity(payload = {}) {
-  const quantity = Number(payload.quantity ?? payload.qty ?? payload.amount);
-  if (!Number.isFinite(quantity) || quantity <= 0) {
-    throw new BadRequestError('quantity must be a positive number');
-  }
-  return Math.floor(quantity);
 }
 
 function getRemainingLineQuantity(line) {
@@ -59,7 +56,7 @@ export class OrderLineFulfillmentService {
 
   async reserveLine(orderId, lineId, payload = {}, options = {}) {
     const line = await this.requireOrderLine(orderId, lineId);
-    const quantity = normalizeQuantity(payload);
+    const quantity = parsePositiveLineCommandQuantity(payload);
     this.assertVariantBacked(line);
 
     const remaining = getRemainingLineQuantity(line);
@@ -71,7 +68,7 @@ export class OrderLineFulfillmentService {
       );
     }
 
-    const inventory = await this.queryInventoryBalance(line.variant_id);
+    const inventory = await queryInventoryBalance(this.db, line.variant_id);
     const readyQuantity = getReadyLineQuantity(line);
     const reserveCapacity = Math.max(readyQuantity, toNonNegativeInt(inventory.available));
     if (quantity > reserveCapacity) {
@@ -84,7 +81,19 @@ export class OrderLineFulfillmentService {
     });
 
     const statements = [
-      this.buildOrderLineUpdateStatement(line, nextLineState, timestamp),
+      buildOrderLineProjectionStatement(
+        this.db,
+        {
+          ...nextLineState,
+          id: line.line_id,
+          order_id: line.order_id,
+        },
+        {
+          id: line.line_id,
+          order_id: line.order_id,
+        },
+        timestamp
+      ),
       this.allocationRepo.createInsertStatement({
         id: this.uuid(),
         order_line_id: lineId,
@@ -121,7 +130,7 @@ export class OrderLineFulfillmentService {
 
   async releaseLine(orderId, lineId, payload = {}, options = {}) {
     const line = await this.requireOrderLine(orderId, lineId);
-    const quantity = normalizeQuantity(payload);
+    const quantity = parsePositiveLineCommandQuantity(payload);
     this.assertVariantBacked(line);
 
     const currentReserved = toNonNegativeInt(line.reserved_qty);
@@ -163,7 +172,19 @@ export class OrderLineFulfillmentService {
     }
 
     statements.push(
-      this.buildOrderLineUpdateStatement(line, nextLineState, timestamp),
+      buildOrderLineProjectionStatement(
+        this.db,
+        {
+          ...nextLineState,
+          id: line.line_id,
+          order_id: line.order_id,
+        },
+        {
+          id: line.line_id,
+          order_id: line.order_id,
+        },
+        timestamp
+      ),
       this.buildOrderTouchStatement(orderId, timestamp),
       ...this.buildOutboxStatements({
         order: line,
@@ -178,7 +199,7 @@ export class OrderLineFulfillmentService {
     );
 
     await this.db.batch(statements);
-    const inventory = await this.queryInventoryBalance(line.variant_id);
+    const inventory = await queryInventoryBalance(this.db, line.variant_id);
     return this.buildCommandResult({
       orderId,
       lineId,
@@ -191,7 +212,7 @@ export class OrderLineFulfillmentService {
 
   async shipLine(orderId, lineId, payload = {}, options = {}) {
     const line = await this.requireOrderLine(orderId, lineId);
-    const quantity = normalizeQuantity(payload);
+    const quantity = parsePositiveLineCommandQuantity(payload);
     this.assertVariantBacked(line);
 
     const remaining = getRemainingLineQuantity(line);
@@ -199,7 +220,7 @@ export class OrderLineFulfillmentService {
       throw new BadRequestError(`ship quantity exceeds remaining quantity: ${remaining}`);
     }
 
-    const inventory = await this.queryInventoryBalance(line.variant_id);
+    const inventory = await queryInventoryBalance(this.db, line.variant_id);
     if (quantity > inventory.on_hand) {
       throw new BadRequestError(`ship quantity exceeds on-hand stock: ${inventory.on_hand}`);
     }
@@ -263,7 +284,19 @@ export class OrderLineFulfillmentService {
 
     statements.push(
       ...(shipment?.statements || []),
-      this.buildOrderLineUpdateStatement(line, nextLineState, timestamp),
+      buildOrderLineProjectionStatement(
+        this.db,
+        {
+          ...nextLineState,
+          id: line.line_id,
+          order_id: line.order_id,
+        },
+        {
+          id: line.line_id,
+          order_id: line.order_id,
+        },
+        timestamp
+      ),
       this.buildOrderTouchStatement(orderId, timestamp),
       ...this.buildOutboxStatements({
         order: line,
@@ -328,24 +361,6 @@ export class OrderLineFulfillmentService {
     }
   }
 
-  async queryInventoryBalance(variantId) {
-    const row = await this.db
-      .prepare(
-        `SELECT variant_id, on_hand, reserved, available
-         FROM inventory_balances
-         WHERE variant_id = ?`
-      )
-      .bind(variantId)
-      .first();
-
-    return {
-      variant_id: variantId,
-      on_hand: toNonNegativeInt(row?.on_hand),
-      reserved: toNonNegativeInt(row?.reserved),
-      available: toNonNegativeInt(row?.available),
-    };
-  }
-
   buildNextLineState(line, overrides = {}) {
     const next = {
       ordered_qty: toNonNegativeInt(line.ordered_qty),
@@ -359,34 +374,6 @@ export class OrderLineFulfillmentService {
 
     next.display_status = projectOrderLineStatus(next);
     return next;
-  }
-
-  buildOrderLineUpdateStatement(line, nextLineState, timestamp) {
-    return this.db
-      .prepare(
-        `UPDATE order_lines
-         SET ordered_qty = ?,
-             procured_qty = ?,
-             received_qty = ?,
-             reserved_qty = ?,
-             shipped_qty = ?,
-             cancelled_qty = ?,
-             display_status = ?,
-             updated_at = ?
-         WHERE id = ? AND order_id = ?`
-      )
-      .bind(
-        nextLineState.ordered_qty,
-        nextLineState.procured_qty,
-        nextLineState.received_qty,
-        nextLineState.reserved_qty,
-        nextLineState.shipped_qty,
-        nextLineState.cancelled_qty,
-        nextLineState.display_status,
-        timestamp,
-        line.line_id,
-        line.order_id
-      );
   }
 
   buildOrderTouchStatement(orderId, timestamp) {

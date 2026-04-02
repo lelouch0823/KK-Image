@@ -39,9 +39,9 @@
 
 | 文档 | 说明 |
 |------|------|
-| [前端组件库](modules/frontend-components.md) | 128个Vue组件，三层架构设计 |
-| [页面视图](modules/frontend-views.md) | 路由结构、RBAC权限控制 |
-| [组合式函数](modules/frontend-composables.md) | 36个composables，状态管理 |
+| [前端组件库](modules/frontend-components.md) | 当前 Web 组件分层、业务组件与基础 UI 约定 |
+| [页面视图](modules/frontend-views.md) | 路由结构、权限控制与页面职责 |
+| [组合式函数](modules/frontend-composables.md) | 当前 composables 分层与状态管理约定 |
 
 ### 后端模块
 
@@ -91,7 +91,7 @@ graph TD
 | **Runtime** | Pages Functions | Node.js Compat Mode |
 | **Database** | D1 (SQLite) | 关系型，支持 JOIN/事务 |
 | **Storage** | R2 | S3 兼容，CAS 去重 |
-| **Auth** | JWT (jose) | 无状态认证 |
+| **Auth** | Basic Auth + 自定义 JWT | 无状态认证与后台登录保护 |
 
 ### 分布式存储架构
 

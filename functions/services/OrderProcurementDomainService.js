@@ -1,14 +1,24 @@
-import { BadRequestError, NotFoundError } from '../lib/hono/errors.js';
+import { BadRequestError } from '../lib/hono/errors.js';
 import { CommandIdempotencyRepository } from '../repositories/CommandIdempotencyRepository.js';
 import { DomainOutboxRepository } from '../repositories/DomainOutboxRepository.js';
 import { PurchaseReceiptRepository } from '../repositories/PurchaseReceiptRepository.js';
+import { executeBatchChunks } from '../lib/db/batch.js';
 import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 import {
-  buildDeleteCommandStatement,
-  parseStoredResponse,
+  buildReceiptRequestFingerprint,
+  buildCompatibilityOrderProcurementStatusStatement,
+  buildOrderLineProjectionStatement,
+  buildPurchaseOrderItemReceivedQtyStatement,
+  buildFinalizeCommandStatements,
+  cleanupReservedCommand,
+  queryInventoryBalance,
   queryCompatibilityProcurementAggregate,
+  replayReservedCommand,
+  resolveReservationOwnership,
+  requirePurchaseOrder,
+  requirePurchaseOrderItemForPo,
   requireOrderLine,
 } from './order-procurement-shared.js';
 import {
@@ -33,46 +43,6 @@ function normalizeReceiptEntry(entry = {}) {
     received_qty: toNonNegativeInt(entry.received_qty),
     note: entry.note == null ? null : String(entry.note),
   };
-}
-
-function buildReceiptRequestFingerprint(poId, payload = {}) {
-  const normalizedItems = (Array.isArray(payload.items) ? payload.items : [])
-    .map(normalizeReceiptEntry)
-    .sort((left, right) => {
-      const key = left.purchase_order_item_id.localeCompare(right.purchase_order_item_id);
-      if (key !== 0) return key;
-      const qty = left.received_qty - right.received_qty;
-      if (qty !== 0) return qty;
-      return String(left.note || '').localeCompare(String(right.note || ''));
-    });
-
-  return JSON.stringify({
-    purchase_order_id: poId,
-    items: normalizedItems,
-  });
-}
-
-function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
-  if (!Array.isArray(items) || items.length === 0) return [];
-
-  const chunks = [];
-  for (let index = 0; index < items.length; index += chunkSize) {
-    chunks.push(items.slice(index, index + chunkSize));
-  }
-  return chunks;
-}
-
-async function executeBatchChunks(db, statements = []) {
-  const results = [];
-
-  for (const chunk of chunkArray(statements)) {
-    const chunkResults = await db.batch(chunk);
-    if (Array.isArray(chunkResults)) {
-      results.push(...chunkResults);
-    }
-  }
-
-  return results;
 }
 
 function countReceiptWriteStatements(preparedReceipts = []) {
@@ -113,39 +83,6 @@ export class OrderProcurementDomainService {
     this.domainOutboxRepo =
       deps.domainOutboxRepo || new DomainOutboxRepository(db, { now: deps.now });
     this.now = deps.now || (() => Date.now());
-  }
-
-  async requireReceivablePurchaseOrder(poId) {
-    if (!poId) throw new BadRequestError('purchase_order_id is required');
-
-    const row = await this.db
-      .prepare('SELECT id, status FROM purchase_orders WHERE id = ?')
-      .bind(poId)
-      .first();
-
-    if (!row) throw new NotFoundError('采购单不存在');
-    if (!['ordered', 'shipping'].includes(String(row.status || '').trim())) {
-      throw new BadRequestError('仅 ordered 或 shipping 状态的采购单允许收货');
-    }
-
-    return row;
-  }
-
-  async requirePurchaseOrderItemForPo(poId, purchaseOrderItemId) {
-    if (!purchaseOrderItemId) throw new BadRequestError('purchase_order_item_id is required');
-
-    const row = await this.db
-      .prepare(
-        `SELECT id, po_id, product_id, variant_id, pre_order_id, quantity, received_qty, cancelled_qty
-         FROM purchase_order_items
-         WHERE id = ?`
-      )
-      .bind(purchaseOrderItemId)
-      .first();
-
-    if (!row) throw new NotFoundError('采购单明细不存在');
-    if (row.po_id !== poId) throw new BadRequestError('采购单明细不属于当前采购单');
-    return row;
   }
 
   async queryCompatibilityOrderLines(
@@ -218,32 +155,7 @@ export class OrderProcurementDomainService {
     next.display_status = projectOrderLineStatus(next);
 
     const timestamp = this.now();
-    await this.db
-      .prepare(
-        `UPDATE order_lines
-         SET ordered_qty = ?,
-             procured_qty = ?,
-             received_qty = ?,
-             reserved_qty = ?,
-             shipped_qty = ?,
-             cancelled_qty = ?,
-             display_status = ?,
-             updated_at = ?
-         WHERE id = ? AND order_id = ?`
-      )
-      .bind(
-        next.ordered_qty,
-        next.procured_qty,
-        next.received_qty,
-        next.reserved_qty,
-        next.shipped_qty,
-        next.cancelled_qty,
-        next.display_status,
-        timestamp,
-        orderLine.id,
-        orderLine.order_id
-      )
-      .run();
+    await buildOrderLineProjectionStatement(this.db, next, orderLine, timestamp).run();
 
     return next;
   }
@@ -266,105 +178,27 @@ export class OrderProcurementDomainService {
 
     const nextStatus = projectCompatibilityProcurementStatus(progress || {});
     const timestamp = this.now();
-    await this.db
-      .prepare(
-        `UPDATE orders
-         SET procurement_status = ?, updated_at = ?
-         WHERE id = ?
-           AND status NOT IN ('delivered', 'void')
-           AND COALESCE(procurement_status, 'none') != ?`
-      )
-      .bind(nextStatus, timestamp, orderId, nextStatus)
-      .run();
+    await buildCompatibilityOrderProcurementStatusStatement(
+      this.db,
+      orderId,
+      nextStatus,
+      timestamp,
+      {
+        excludeTerminalStatuses: true,
+        requireStatusChange: true,
+      }
+    ).run();
 
     return nextStatus;
-  }
-
-  async queryInventoryBalance(variantId) {
-    if (!variantId) return null;
-
-    const balance = await this.db
-      .prepare(
-        `SELECT variant_id, on_hand, reserved, available
-         FROM inventory_balances
-         WHERE variant_id = ?`
-      )
-      .bind(variantId)
-      .first();
-
-    return {
-      variant_id: variantId,
-      on_hand: toNonNegativeInt(balance?.on_hand),
-      reserved: toNonNegativeInt(balance?.reserved),
-      available: toNonNegativeInt(balance?.available),
-    };
-  }
-
-  buildPurchaseOrderItemReceiptStatement(poId, poItem, nextReceived, displayStatus, receivedQty) {
-    return this.db
-      .prepare(
-        `UPDATE purchase_order_items
-         SET received_qty = ?, display_status = ?
-         WHERE id = ? AND po_id = ?
-           AND received_qty = ?
-           AND cancelled_qty = ?
-           AND COALESCE(quantity, 0) - COALESCE(received_qty, 0) - COALESCE(cancelled_qty, 0) >= ?`
-      )
-      .bind(
-        nextReceived,
-        displayStatus,
-        poItem.id,
-        poId,
-        toNonNegativeInt(poItem.received_qty),
-        toNonNegativeInt(poItem.cancelled_qty),
-        receivedQty
-      );
-  }
-
-  buildOrderLineProgressStatement(orderLine, timestamp) {
-    return this.db
-      .prepare(
-        `UPDATE order_lines
-         SET ordered_qty = ?,
-             procured_qty = ?,
-             received_qty = ?,
-             reserved_qty = ?,
-             shipped_qty = ?,
-             cancelled_qty = ?,
-             display_status = ?,
-             updated_at = ?
-         WHERE id = ? AND order_id = ?`
-      )
-      .bind(
-        orderLine.ordered_qty,
-        orderLine.procured_qty,
-        orderLine.received_qty,
-        orderLine.reserved_qty,
-        orderLine.shipped_qty,
-        orderLine.cancelled_qty,
-        orderLine.display_status,
-        timestamp,
-        orderLine.id,
-        orderLine.order_id
-      );
-  }
-
-  buildCompatibilityOrderStatusStatement(orderId, procurementStatus, timestamp) {
-    return this.db
-      .prepare(
-        `UPDATE orders
-         SET procurement_status = ?, updated_at = ?
-         WHERE id = ?
-           AND status NOT IN ('delivered', 'void')
-           AND COALESCE(procurement_status, 'none') != ?`
-      )
-      .bind(procurementStatus, timestamp, orderId, procurementStatus);
   }
 
   async recordPurchaseOrderReceipts(poId, payload = {}, options = {}) {
     const items = Array.isArray(payload.items) ? payload.items : null;
     if (!items || items.length === 0) throw new BadRequestError('items is required');
-    await this.requireReceivablePurchaseOrder(poId);
+    await requirePurchaseOrder(this.db, poId, {
+      allowedStatuses: ['ordered', 'shipping'],
+      invalidStatusMessage: '仅 ordered 或 shipping 状态的采购单允许收货',
+    });
 
     const idempotencyKey = String(options.idempotencyKey || crypto.randomUUID()).trim();
     const requestFingerprint = buildReceiptRequestFingerprint(poId, payload);
@@ -373,20 +207,13 @@ export class OrderProcurementDomainService {
       idempotencyKey,
       requestFingerprint
     );
-    const ownsReservation =
-      commandReservation?.ownsReservation ?? Boolean(commandReservation?.insertStatement);
+    const ownsReservation = resolveReservationOwnership(commandReservation);
 
     if (commandReservation?.existing) {
-      if (commandReservation.record?.request_fingerprint !== requestFingerprint) {
-        throw new BadRequestError('同一个幂等键不能提交不同的收货请求');
-      }
-
-      const replay = parseStoredResponse(commandReservation.record?.response_json);
-      if (commandReservation.record?.status === 'committed' && replay) {
-        return replay;
-      }
-
-      throw new BadRequestError('当前幂等键对应的收货命令仍在处理中');
+      return replayReservedCommand(commandReservation, requestFingerprint, {
+        mismatchMessage: '同一个幂等键不能提交不同的收货请求',
+        inFlightMessage: '当前幂等键对应的收货命令仍在处理中',
+      });
     }
 
     const timestamp = this.now();
@@ -413,7 +240,7 @@ export class OrderProcurementDomainService {
       if (!purchaseOrderItemId) throw new BadRequestError('purchase_order_item_id is required');
       if (receivedQty <= 0) throw new BadRequestError('received_qty must be greater than 0');
 
-      const poItem = await this.requirePurchaseOrderItemForPo(poId, purchaseOrderItemId);
+      const poItem = await requirePurchaseOrderItemForPo(this.db, poId, purchaseOrderItemId);
       const remainingReceivable = computeRemainingReceivable(poItem);
       if (receivedQty > remainingReceivable) {
         throw new BadRequestError(`收货数量超过剩余可收数量: ${remainingReceivable}`);
@@ -436,12 +263,15 @@ export class OrderProcurementDomainService {
         cancelled_qty: poItem.cancelled_qty,
       });
 
-      const purchaseItemStatement = this.buildPurchaseOrderItemReceiptStatement(
+      const purchaseItemStatement = buildPurchaseOrderItemReceivedQtyStatement(
+        this.db,
         poId,
         poItem,
-        nextReceived,
-        displayStatus,
-        receivedQty
+        {
+          nextReceivedQty: nextReceived,
+          nextDisplayStatus: displayStatus,
+          requiredRemainingQty: receivedQty,
+        }
       );
       preflightReverts.push(
         this.db
@@ -470,12 +300,12 @@ export class OrderProcurementDomainService {
     }
 
     if (countReceiptWriteStatements(preparedReceipts) > D1_MAX_BATCH_SIZE) {
-      if (ownsReservation) {
-        const deleteStatement =
-          this.commandIdempotencyRepo.buildDeleteStatement?.(commandRecord.command_id) ||
-          buildDeleteCommandStatement(this.db, commandRecord.command_id);
-        await deleteStatement.run();
-      }
+      await cleanupReservedCommand({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        db: this.db,
+        ownsReservation,
+        commandId: commandRecord.command_id,
+      });
       throw new BadRequestError('本次收货包含的写入过多，请拆分后重试');
     }
 
@@ -496,12 +326,12 @@ export class OrderProcurementDomainService {
       if (successfulReverts.length > 0) {
         await executeBatchChunks(this.db, successfulReverts);
       }
-      if (ownsReservation) {
-        const deleteStatement =
-          this.commandIdempotencyRepo.buildDeleteStatement?.(commandRecord.command_id) ||
-          buildDeleteCommandStatement(this.db, commandRecord.command_id);
-        await deleteStatement.run();
-      }
+      await cleanupReservedCommand({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        db: this.db,
+        ownsReservation,
+        commandId: commandRecord.command_id,
+      });
       throw new BadRequestError('采购单明细收货进度已变化，请刷新后重试');
     }
 
@@ -584,7 +414,9 @@ export class OrderProcurementDomainService {
           };
           nextLineState.display_status = projectOrderLineStatus(nextLineState);
           orderLineStates.set(nextLineState.id, nextLineState);
-          statements.push(this.buildOrderLineProgressStatement(nextLineState, timestamp));
+          statements.push(
+            buildOrderLineProjectionStatement(this.db, nextLineState, nextLineState, timestamp)
+          );
 
           const currentAggregate =
             orderAggregateStates.get(poItem.pre_order_id) ||
@@ -602,10 +434,15 @@ export class OrderProcurementDomainService {
 
           const nextProcurementStatus = projectCompatibilityProcurementStatus(nextAggregate);
           statements.push(
-            this.buildCompatibilityOrderStatusStatement(
+            buildCompatibilityOrderProcurementStatusStatement(
+              this.db,
               poItem.pre_order_id,
               nextProcurementStatus,
-              timestamp
+              timestamp,
+              {
+                excludeTerminalStatuses: true,
+                requireStatusChange: true,
+              }
             )
           );
 
@@ -618,7 +455,7 @@ export class OrderProcurementDomainService {
         if (poItem.variant_id) {
           const currentInventory =
             inventoryStates.get(poItem.variant_id) ||
-            (await this.queryInventoryBalance(poItem.variant_id));
+            (await queryInventoryBalance(this.db, poItem.variant_id));
           const nextInventory = {
             ...currentInventory,
             on_hand: toNonNegativeInt(currentInventory?.on_hand) + receivedQty,
@@ -706,22 +543,18 @@ export class OrderProcurementDomainService {
       };
 
       statements.push(
-        ...this.domainOutboxRepo.buildInsertStatements(
-          outboxEvents,
-          (event) => getDomainEventDefinition(event.event_type).consumers
-        )
-      );
-      statements.push(
-        this.db
-          .prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
-          .bind(timestamp, poId)
-      );
-      statements.push(
-        this.commandIdempotencyRepo.buildFinalizeStatement(
-          commandRecord.command_id,
+        ...buildFinalizeCommandStatements({
+          db: this.db,
+          commandIdempotencyRepo: this.commandIdempotencyRepo,
+          purchaseOrderId: poId,
+          timestamp,
+          commandId: commandRecord.command_id,
           response,
-          'committed'
-        )
+          leadingStatements: this.domainOutboxRepo.buildInsertStatements(
+            outboxEvents,
+            (event) => getDomainEventDefinition(event.event_type).consumers
+          ),
+        })
       );
 
       await executeBatchChunks(this.db, statements);
@@ -730,12 +563,12 @@ export class OrderProcurementDomainService {
       if (preflightReverts.length > 0) {
         await executeBatchChunks(this.db, preflightReverts);
       }
-      if (ownsReservation) {
-        const deleteStatement =
-          this.commandIdempotencyRepo.buildDeleteStatement?.(commandRecord.command_id) ||
-          buildDeleteCommandStatement(this.db, commandRecord.command_id);
-        await deleteStatement.run();
-      }
+      await cleanupReservedCommand({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        db: this.db,
+        ownsReservation,
+        commandId: commandRecord.command_id,
+      });
       throw error;
     }
   }

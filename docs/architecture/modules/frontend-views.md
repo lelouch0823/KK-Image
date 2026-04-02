@@ -1,10 +1,10 @@
-# KK-Image 页面视图设计文档
+# kk-life 页面视图设计文档
 
 ## 1. 模块概述
 
 ### 1.1 整体架构
 
-`src/views` 目录包含 KK-Image 应用的所有页面视图组件，采用 Vue 3 Composition API 和 Vue Router 实现路由管理。
+`src/views` 目录包含 kk-life 应用的主要页面视图组件，采用 Vue 3 Composition API 和 Vue Router 实现路由管理。
 
 ```
 Router (src/router/index.js)
@@ -38,20 +38,23 @@ Router (src/router/index.js)
 
 ### 2.2 管理后台页面
 
-| 页面 | 路径 | 权限角色 | 功能描述 |
+当前后台页面主要通过路由 `meta.permission` 做权限控制，而不是旧文档中的固定角色表。
+
+| 页面 | 路径 | 主要权限 | 功能描述 |
 |------|------|----------|----------|
-| `Dashboard.vue` | `/admin/dashboard` | all | 管理仪表盘 |
-| `FileManager/` | `/admin/files` | admin, manager, sales, viewer | 文件管理 |
-| `SpaceManager/` | `/admin/spaces` | admin, manager, sales, viewer | 空间管理 |
-| `Products.vue` | `/admin/products` | admin, manager | 商品管理 |
-| `Orders.vue` | `/admin/orders` | admin, manager | 订单管理 |
-| `Salespersons.vue` | `/admin/salespersons` | admin | 销售人员管理 |
-| `GoodsOverview.vue` | `/admin/goods-overview` | admin, manager | 商品库存概览 |
-| `PurchaseOrders.vue` | `/admin/purchase-orders` | admin, manager | 采购单管理 |
-| `Customers.vue` | `/admin/customers` | admin, manager | 客户管理 |
-| `Stats.vue` | `/admin/stats` | admin, manager, viewer | 统计分析 |
-| `Settings.vue` | `/admin/settings` | admin | 系统设置 |
-| `AuditLogs.vue` | `/admin/audit-logs` | admin | 审计日志 |
+| `Dashboard.vue` | `/admin/dashboard` | `stats:read` | 管理仪表盘 |
+| `FileManager/` | `/admin/files` | `files:read` | 文件管理 |
+| `SpaceManager/` | `/admin/spaces` | `spaces:read` | 空间管理 |
+| `Products.vue` | `/admin/products` | `products:manage` | 商品管理 |
+| `Orders.vue` | `/admin/orders` | `orders:manage` | 订单管理 |
+| `Salespersons.vue` | `/admin/salespersons` | `users:read` | 销售人员管理 |
+| `GoodsOverview.vue` | `/admin/goods-overview` | `products:manage` | 缺口与订货总览 |
+| `PurchaseOrders.vue` | `/admin/purchase-orders` | `products:manage` | 采购单管理 |
+| `Customers.vue` | `/admin/customers` | `orders:manage` | 客户管理 |
+| `Stats.vue` | `/admin/stats` | `stats:read` | 统计分析 |
+| `Settings.vue` | `/admin/settings` | `admin:full` | 系统设置 |
+| `AuditLogs.vue` | `/admin/audit-logs` | `audit:read` | 审计日志 |
+| `OutboxOps.vue` | `/admin/outbox-ops` | `audit:read` | Outbox / Replay 运维 |
 
 ### 2.3 销售员门户子页面
 
@@ -150,16 +153,14 @@ provide('salesContext', {
 - 费用分摊计算
 - 关联订单和商品
 
-**状态配置**:
-```javascript
-const statusConfig = {
-  draft: { label: '草稿', color: 'var(--text-secondary)' },
-  ordered: { label: '已下单', color: 'var(--color-warning)' },
-  shipping: { label: '运输中', color: 'var(--color-info)' },
-  arrived: { label: '已到货', color: 'var(--color-success)' },
-  settled: { label: '已结算', color: 'var(--color-primary)' },
-};
-```
+**当前主要状态**:
+
+- `draft`
+- `ordered`
+- `shipping`
+- `arrived`
+- `completed`
+- `cancelled`
 
 ---
 
@@ -204,20 +205,17 @@ const routes = [
 
 ```javascript
 router.beforeEach(async (to, from, next) => {
-  // 1. 需要认证的页面
   if (to.matched.some(record => record.meta.requiresAuth)) {
     if (!isAuth) {
       next({ path: '/login', query: { redirect: to.fullPath } });
     } else {
-      // RBAC 角色验证
-      const requireRoles = to.meta.roles;
-      if (requireRoles && !requireRoles.includes(userRole)) {
-        return next({ name: 'Dashboard' });
+      const requiredPermission = to.meta.permission;
+      if (requiredPermission && !(await can(requiredPermission))) {
+        return next({ name: 'Forbidden' });
       }
       next();
     }
   }
-  // 2. 仅访客页面
   else if (to.matched.some(record => record.meta.guest)) {
     if (isAuth) next({ path: '/admin/dashboard' });
     else next();
@@ -229,14 +227,13 @@ router.beforeEach(async (to, from, next) => {
 
 ## 5. 权限控制
 
-### 5.1 RBAC 角色定义
+### 5.1 当前权限模型
 
-| 角色 | 权限范围 |
-|------|----------|
-| `admin` | 所有功能 |
-| `manager` | 文件、空间、产品、订单、商品、采购、客户、统计 |
-| `sales` | 文件、空间、产品、订单 |
-| `viewer` | 文件、空间、产品、统计（只读） |
+当前 Web 管理端不再推荐按固定角色表理解页面访问，而是：
+
+- 登录态由 `requiresAuth` 控制
+- 页面访问由 `meta.permission` 控制
+- 无权限时进入 `/admin/forbidden`
 
 ### 5.2 权限检查流程
 
@@ -246,10 +243,10 @@ flowchart TD
     B -->|否| C[直接访问]
     B -->|是| D{已认证?}
     D -->|否| E[重定向到登录页]
-    D -->|是| F{需要角色验证?}
+    D -->|是| F{需要 permission?}
     F -->|否| G[允许访问]
-    F -->|是| H{用户角色匹配?}
-    H -->|否| I[重定向到仪表盘]
+    F -->|是| H{权限满足?}
+    H -->|否| I[进入 Forbidden 页面]
     H -->|是| G
 ```
 
