@@ -102,6 +102,21 @@ class UploadManager {
         return Array.from(this.tasks.values());
     }
 
+    clearTasksByOrder(orderId?: string) {
+        if (!orderId) {
+            this.tasks.clear();
+            this.notify();
+            return;
+        }
+
+        for (const [id, task] of this.tasks.entries()) {
+            if (task.orderId === orderId) {
+                this.tasks.delete(id);
+            }
+        }
+        this.notify();
+    }
+
     /**
      * 监听任务变化
      */

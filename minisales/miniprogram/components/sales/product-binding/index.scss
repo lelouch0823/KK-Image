@@ -1,0 +1,242 @@
+@import '../../../styles/variables.scss';
+
+.binding-card {
+  position: relative;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  border: 1rpx solid $border-color;
+  background: #ffffff;
+  box-shadow: $shadow-sm;
+}
+
+.binding-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.binding-card__title {
+  display: block;
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $text-main;
+}
+
+.binding-card__subtitle {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-xs;
+  line-height: 1.6;
+  color: $text-secondary;
+}
+
+.binding-card__action,
+.binding-card__clear,
+.binding-picker__retry,
+.binding-picker__close {
+  flex-shrink: 0;
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  font-size: $font-size-xs;
+  color: #2563eb;
+  background: #dbeafe;
+}
+
+.binding-card__summary {
+  margin-top: 20rpx;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+}
+
+.binding-card__image {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 18rpx;
+  background: #e2e8f0;
+}
+
+.binding-card__image--empty {
+  display: block;
+}
+
+.binding-card__content {
+  min-width: 0;
+  flex: 1;
+}
+
+.binding-card__name {
+  display: block;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: $text-main;
+}
+
+.binding-card__meta {
+  display: block;
+  margin-top: 6rpx;
+  font-size: $font-size-xs;
+  color: $text-secondary;
+}
+
+.binding-card__empty {
+  margin-top: 20rpx;
+  padding: 20rpx;
+  border-radius: 18rpx;
+  background: #f8fafc;
+}
+
+.binding-card__empty-text,
+.binding-picker__empty-text {
+  font-size: $font-size-xs;
+  line-height: 1.6;
+  color: $text-secondary;
+}
+
+.binding-picker {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+}
+
+.binding-picker__mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.32);
+}
+
+.binding-picker__panel {
+  position: absolute;
+  left: 24rpx;
+  right: 24rpx;
+  top: 10vh;
+  bottom: 48rpx;
+  border-radius: 28rpx;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 24rpx 60rpx rgba(15, 23, 42, 0.2);
+}
+
+.binding-picker__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx;
+  border-bottom: 1rpx solid $border-color;
+  background: #f8fafc;
+}
+
+.binding-picker__title {
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $text-main;
+}
+
+.binding-picker__body {
+  height: calc(100% - 86rpx);
+}
+
+.binding-picker__section {
+  padding: 24rpx;
+}
+
+.binding-picker__section-title {
+  display: block;
+  margin-bottom: 14rpx;
+  font-size: $font-size-xs;
+  color: $text-secondary;
+}
+
+.binding-picker__state {
+  min-height: 220rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.binding-picker__state--compact {
+  min-height: 120rpx;
+}
+
+.binding-picker__error {
+  font-size: $font-size-sm;
+  color: $color-danger;
+}
+
+.binding-picker__product {
+  display: flex;
+  gap: 16rpx;
+  padding: 18rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid $border-color;
+  background: #ffffff;
+}
+
+.binding-picker__product + .binding-picker__product {
+  margin-top: 14rpx;
+}
+
+.binding-picker__product--active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.binding-picker__product-image {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 16rpx;
+  background: #e2e8f0;
+}
+
+.binding-picker__product-image--empty {
+  display: block;
+}
+
+.binding-picker__product-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.binding-picker__product-name {
+  display: block;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: $text-main;
+}
+
+.binding-picker__product-meta {
+  display: block;
+  margin-top: 6rpx;
+  font-size: $font-size-xs;
+  color: $text-secondary;
+}
+
+.binding-picker__variants {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.binding-picker__variant {
+  padding: 18rpx 20rpx;
+  border-radius: 20rpx;
+  background: #f8fafc;
+  border: 1rpx solid #dbe5f0;
+}
+
+.binding-picker__variant-title {
+  display: block;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: $text-main;
+}
+
+.binding-picker__variant-meta {
+  display: block;
+  margin-top: 6rpx;
+  font-size: $font-size-xs;
+  color: $text-secondary;
+}

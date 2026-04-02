@@ -1,0 +1,104 @@
+<view class="binding-card">
+  <view class="binding-card__header">
+    <view>
+      <text class="binding-card__title">商品绑定</text>
+      <text class="binding-card__subtitle">先绑定商品，可自动带出 SKU 与规格信息</text>
+    </view>
+    <view class="binding-card__action" bind:tap="openPicker">
+      {{value && value.productId ? '更换商品' : '选择商品'}}
+    </view>
+  </view>
+
+  <view wx:if="{{value && value.productId}}" class="binding-card__summary">
+    <t-image
+      wx:if="{{value.primaryImage}}"
+      class="binding-card__image"
+      src="{{value.primaryImage}}"
+      mode="aspectFill"
+      lazy-load
+    />
+    <view wx:else class="binding-card__image binding-card__image--empty"></view>
+    <view class="binding-card__content">
+      <text class="binding-card__name">{{value.name || '已绑定商品'}}</text>
+      <text wx:if="{{value.variantLabel}}" class="binding-card__meta">{{value.variantLabel}}</text>
+      <text wx:if="{{value.sku}}" class="binding-card__meta">SKU {{value.sku}}</text>
+    </view>
+    <view class="binding-card__clear" bind:tap="clearValue">解绑</view>
+  </view>
+
+  <view wx:else class="binding-card__empty">
+    <text class="binding-card__empty-text">未绑定商品时也可手动填写，但无法自动选择当前可售变体。</text>
+  </view>
+
+  <view wx:if="{{pickerVisible}}" class="binding-picker">
+    <view class="binding-picker__mask" bind:tap="closePicker"></view>
+    <view class="binding-picker__panel">
+      <view class="binding-picker__header">
+        <text class="binding-picker__title">选择商品</text>
+        <view class="binding-picker__close" bind:tap="closePicker">关闭</view>
+      </view>
+
+      <view wx:if="{{loading}}" class="binding-picker__state">
+        <t-loading theme="circular" size="40rpx" text="加载商品中..." />
+      </view>
+
+      <view wx:elif="{{errorMessage && products.length === 0}}" class="binding-picker__state">
+        <text class="binding-picker__error">{{errorMessage}}</text>
+        <view class="binding-picker__retry" bind:tap="retryLoad">重试</view>
+      </view>
+
+      <scroll-view wx:else class="binding-picker__body" scroll-y>
+        <view class="binding-picker__section">
+          <text class="binding-picker__section-title">商品列表</text>
+          <view
+            wx:for="{{products}}"
+            wx:key="id"
+            class="binding-picker__product {{selectedProductId === item.id ? 'binding-picker__product--active' : ''}}"
+            data-id="{{item.id}}"
+            bind:tap="selectProduct"
+          >
+            <t-image
+              wx:if="{{item.primaryImage}}"
+              class="binding-picker__product-image"
+              src="{{item.primaryImage}}"
+              mode="aspectFill"
+              lazy-load
+            />
+            <view wx:else class="binding-picker__product-image binding-picker__product-image--empty"></view>
+            <view class="binding-picker__product-content">
+              <text class="binding-picker__product-name">{{item.name}}</text>
+              <text wx:if="{{item.brand || item.series}}" class="binding-picker__product-meta">
+                {{item.brand}}{{item.brand && item.series ? ' / ' : ''}}{{item.series}}
+              </text>
+            </view>
+          </view>
+        </view>
+
+        <view wx:if="{{selectedProductId}}" class="binding-picker__section">
+          <text class="binding-picker__section-title">可售变体</text>
+          <view wx:if="{{detailLoading}}" class="binding-picker__state binding-picker__state--compact">
+            <t-loading theme="circular" size="32rpx" text="加载变体中..." />
+          </view>
+          <view wx:elif="{{errorMessage}}" class="binding-picker__state binding-picker__state--compact">
+            <text class="binding-picker__error">{{errorMessage}}</text>
+          </view>
+          <view wx:elif="{{variants.length === 0}}" class="binding-picker__state binding-picker__state--compact">
+            <text class="binding-picker__empty-text">暂无可售变体</text>
+          </view>
+          <view wx:else class="binding-picker__variants">
+            <view
+              wx:for="{{variants}}"
+              wx:key="id"
+              class="binding-picker__variant"
+              data-id="{{item.id}}"
+              bind:tap="selectVariant"
+            >
+              <text class="binding-picker__variant-title">{{item.displayName || item.sku}}</text>
+              <text wx:if="{{item.sku}}" class="binding-picker__variant-meta">SKU {{item.sku}}</text>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</view>

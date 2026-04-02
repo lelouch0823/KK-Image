@@ -1,10 +1,20 @@
-<!--pages/form/form.wxml-->
 <view class="page">
   <t-navbar title="新建订单" left-arrow bind:go-back="handleBack" fixed placeholder />
 
   <scroll-view class="form-container" scroll-y type="list">
+    <view class="guide-card">
+      <text class="guide-card__text">先绑定商品，可自动带出当前可售变体、SKU 和规格信息；不绑定也可以手动下单。</text>
+    </view>
+
+    <sales-product-binding
+      salesToken="{{salesToken}}"
+      value="{{boundProduct}}"
+      bind:change="onProductBound"
+      bind:clear="onProductClear"
+    />
+
     <view class="section">
-      <view class="section-title">产品图片</view>
+      <view class="section-title">上传素材</view>
       <t-upload
         media-type="{{['image']}}"
         max="9"
@@ -16,10 +26,12 @@
     </view>
 
     <view class="section">
-      <view class="section-title">基本信息</view>
+      <view class="section-title">订单信息</view>
       <t-input label="商品名称" placeholder="请输入商品名称" value="{{form.name}}" data-field="name" bind:change="onInput" required />
       <t-input label="品牌" placeholder="请输入品牌" value="{{form.brand}}" data-field="brand" bind:change="onInput" />
       <t-input label="系列" placeholder="请输入系列" value="{{form.series}}" data-field="series" bind:change="onInput" />
+      <t-input label="SKU" placeholder="请输入 SKU" value="{{form.sku}}" data-field="sku" bind:change="onInput" />
+      <t-input label="数量" type="number" placeholder="请输入数量" value="{{form.quantity}}" data-field="quantity" bind:change="onInput" />
     </view>
 
     <view class="section">
@@ -32,26 +44,24 @@
     <view class="section">
       <view class="section-title">其他信息</view>
       <t-cell title="期望到货日期" note="{{form.deadline || '选择日期'}}" arrow hover bind:click="showDatePicker" />
-      <t-textarea 
-        label="备注" 
-        placeholder="请输入备注信息" 
-        value="{{form.remark}}" 
-        data-field="remark" 
-        bind:change="onInput" 
-        maxlength="500" 
+      <t-textarea
+        label="备注"
+        placeholder="请输入备注信息"
+        value="{{form.remark}}"
+        data-field="remark"
+        bind:change="onInput"
+        maxlength="500"
         autosize
       />
     </view>
-    
+
     <view style="height: 48rpx;"></view>
   </scroll-view>
 
-  <!-- 底部按钮 -->
   <view class="bottom-bar safe-area-bottom">
     <t-button block theme="primary" size="large" bind:tap="handleSubmit" loading="{{submitting}}">提交订单</t-button>
   </view>
 
-  <!-- 日期选择器 -->
   <t-date-time-picker
     title="选择日期"
     visible="{{dateVisible}}"

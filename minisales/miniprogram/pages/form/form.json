@@ -1,4 +1,14 @@
 {
-    "usingComponents": {},
-    "navigationStyle": "custom"
+  "usingComponents": {
+    "sales-product-binding": "/components/sales/product-binding/index",
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-cell": "tdesign-miniprogram/cell/cell",
+    "t-date-time-picker": "tdesign-miniprogram/date-time-picker/date-time-picker",
+    "t-input": "tdesign-miniprogram/input/input",
+    "t-navbar": "tdesign-miniprogram/navbar/navbar",
+    "t-textarea": "tdesign-miniprogram/textarea/textarea",
+    "t-toast": "tdesign-miniprogram/toast/toast",
+    "t-upload": "tdesign-miniprogram/upload/upload"
+  },
+  "navigationStyle": "custom"
 }
