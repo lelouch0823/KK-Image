@@ -245,7 +245,7 @@ sequenceDiagram
 
 ## 7. 相关文档
 
-- [架构文档首页](/home/bjw/Code/KK-Image/docs/architecture/README.md)
-- [开发者架构指南](/home/bjw/Code/KK-Image/docs/developer-guide/architecture.md)
-- [预订单创建链路](/home/bjw/Code/KK-Image/docs/architecture/modules/preorder-creation-flow.md)
-- [管理端 API](/home/bjw/Code/KK-Image/docs/api/management.md)
+- [架构文档首页](README.md)
+- [开发者架构指南](../developer-guide/architecture.md)
+- [预订单创建链路](modules/preorder-creation-flow.md)
+- [管理端 API](../api/management.md)

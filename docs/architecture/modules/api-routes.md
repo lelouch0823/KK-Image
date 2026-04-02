@@ -67,7 +67,6 @@ functions/lib/hono/
 │   ├── /products
 │   ├── /goods-overview
 │   ├── /purchase-orders
-│   ├── /inventory/ledger
 │   ├── /notifications
 │   ├── /customers
 │   ├── /salespersons

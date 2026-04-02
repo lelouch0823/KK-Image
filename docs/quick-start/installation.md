@@ -1,97 +1,143 @@
 # 安装部署指南
 
-本指南将详细介绍如何部署 **kk-life** 到 Cloudflare Pages。
-本项目基于现代化全栈架构 (Vue 3 + Tailwind CSS v4 + Cloudflare D1/R2)，请务必完整阅读以下步骤。
+本指南说明如何把 kk-life 部署到 Cloudflare Pages，并让当前代码库的 Web 管理端、销售端和共享空间链路正常工作。
 
-## 📋 部署概览 (Cloudflare Components)
+## 1. 准备依赖
 
-- **Cloudflare Pages**: 托管前端静态资源和后端 Functions
-- **Cloudflare D1**: SQL 数据库 (核心元数据、订单、空间索引) **(必需)**
-- **Cloudflare R2**: 对象存储 (存放图片/视频文件) **(必需)**
+- Cloudflare Pages
+- Cloudflare D1
+- Cloudflare R2
+- Node.js 20+
+- `pnpm`
 
-## 🔧 详细部署步骤
+建议先启用 `corepack`：
 
-### 步骤 1: Fork 项目
-
-1. 访问 [kk-life GitHub 仓库](https://github.com/cf-pages/kk-life)
-2. 点击 **Fork** 按钮到您的账户
-
-### 步骤 2: Cloudflare 资源准备 (Dashboard 操作)
-
-建议在部署前创建好必要的数据库和存储桶。
-
-#### 2.1 创建 D1 数据库
-1. 登录 Cloudflare Dashboard -> **Workers & Pages** -> **D1 SQL Database**.
-2. 点击 **Create**，命名为 `kk-life-db`.
-3. 创建成功后，无需记录 ID，Pages 绑定时可直接选择名称。
-
-#### 2.2 创建 R2 存储桶
-1. 进入 **R2 Object Storage**.
-2. 点击 **Create bucket**，命名为 `kk-life-storage` (主存储).
-3. (可选) 创建另一个桶 `kk-life-backup` 用于异地备份。
-
-### 步骤 3: Cloudflare Pages 部署
-
-1. 进入 **Workers & Pages** -> **Create application** -> **Pages** -> **Connect to Git**.
-2. 选择您 Fork 的仓库。
-3. **构建配置 (Build settings)**:
-    - **Project name**: `kk-life`
-    - **Production branch**: `main`
-    - **Framework preset**: `Vue`
-    - **Build command**: `npm run build`
-    - **Build output directory**: `dist`
-
-4. **⚠️ 重要**: 不要立即点击部署！或者等待首次部署失败后再配置绑定。
-
-### 步骤 4: 绑定资源 (Bindings)
-
-进入 Pages 项目 -> **Settings** -> **Functions**:
-
-1. **D1 Database Bindings**:
-    - Variable name: `DB` (必须完全一致)
-    - D1 database: 选择 `kk-life-db`
-
-2. **R2 Bucket Bindings**:
-    - Variable name: `R2_BUCKET` (必须完全一致)
-    - R2 bucket: 选择 `kk-life-storage`
-    - (可选) Variable name: `R2_BACKUP_BUCKET` -> `kk-life-backup`
-
-3. **KV Namespace Bindings** (兼容旧版):
-    - 如果需要迁移旧数据，可绑定相关 KV，否则新版主要依赖 D1。
-
-### 步骤 5: 环境变量 (Environment Variables)
-
-进入 Pages 项目 -> **Settings** -> **Environment variables**:
-
-| 变量名 | 必填 | 说明 |
-|--------|-----|------|
-| `BASIC_USER` | 是 | 后台管理员用户名 (如 admin) |
-| `BASIC_PASS` | 是 | 后台管理员密码 |
-| `JWT_SECRET` | 是 | JWT 签名密钥 (生成一个随机长字符串) |
-| `STORAGE_PROVIDER`| 否 | 默认 `r2`，可选 `telegram`, `s3` |
-| `WECHAT_APPID` | 否 | 销售端小程序 AppID (可选) |
-| `WECHAT_SECRET` | 否 | 销售端小程序 Secret (可选) |
-
-### 步骤 6: 初始化数据库 (Schema Setup)
-
-部署完成后，必须初始化 D1 数据库表结构。
-
-**方法 A: 使用 Wrangler (推荐本地操作)**
 ```bash
-# 登录
-npx wrangler login
-
-# 执行初始化脚本 (替换 DATABASE_ID 为实际 ID)
-npx wrangler d1 execute kk-life-db --remote --file=./scripts/init-database.sql
+corepack enable
 ```
 
-**方法 B: Cloudflare Dashboard (手动)**
-1. 打开 D1 -> `kk-life-db` -> **Console**.
-2. 复制 `scripts/init-database.sql` 的内容并在控制台执行。
+## 2. 安装项目依赖
 
-### 步骤 7: 完成验证
+```bash
+pnpm install
+```
 
-访问您的 `*.pages.dev` 域名：
-1. **后台管理**: 访问 `/admin`，使用 BASIC Auth 登录。
-2. **销售端**: 需先在后台创建销售账号。
-3. **访客端**: 需先创建共享空间。
+## 3. 创建 Cloudflare 资源
+
+至少准备以下资源：
+
+- D1 数据库：用于业务数据与 outbox
+- R2 Bucket：主对象存储
+
+推荐绑定名称：
+
+- D1：`DB`
+- R2：`R2_BUCKET`
+
+可选资源：
+
+- `R2_BACKUP_BUCKET`
+- `KV`
+- `AI_KV`
+
+## 4. 配置 Pages 项目
+
+推荐构建设置：
+
+- Framework preset: `Vue`
+- Build command: `pnpm build`
+- Build output directory: `dist`
+
+函数绑定需与仓库保持一致：
+
+- D1 binding: `DB`
+- R2 binding: `R2_BUCKET`
+
+## 5. 配置环境变量
+
+最低必需：
+
+| 变量名 | 说明 |
+| --- | --- |
+| `BASIC_USER` | 管理员用户名 |
+| `BASIC_PASS` | 管理员密码 |
+| `JWT_SECRET` | JWT 签名密钥 |
+
+常见可选项：
+
+| 变量名 | 说明 |
+| --- | --- |
+| `WECHAT_APPID` / `WECHAT_SECRET` | 销售端微信登录 |
+| `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | 登录页验证 |
+| `SENTRY_DSN` | 错误监控 |
+| `ModerateContentApiKey` | 内容审查 |
+| `STORAGE_PROVIDER` | 默认 `r2`，也可用 `telegram` / `s3` |
+
+详见 [环境变量配置指南](../deployment/environment-variables.md)。
+
+## 6. 执行数据库迁移
+
+### 本地
+
+```bash
+pnpm db:migrate:local
+```
+
+### 预览环境
+
+```bash
+pnpm db:migrate:preview:raw
+```
+
+### 生产环境
+
+```bash
+pnpm db:migrate:prod:raw
+```
+
+## 7. 构建与部署
+
+### 预览部署
+
+```bash
+pnpm build
+pnpm deploy:preview
+```
+
+### 生产部署
+
+```bash
+pnpm build
+pnpm deploy:prod
+```
+
+## 8. 本地运行方式
+
+### Web + Worker 一起启动
+
+```bash
+pnpm dev:all
+```
+
+### 仅前端
+
+```bash
+pnpm dev
+```
+
+注意：`pnpm dev` 只启动 Vite，不包含 Pages Worker、本地 D1 迁移和 Functions 模拟。
+
+## 9. 部署后验证
+
+优先检查以下入口：
+
+- `/login`
+- `/admin`
+- `/admin/files`
+- `/sales/:token`
+- `/space/:token`
+
+推荐继续阅读：
+
+- [首次验证指南](first-upload.md)
+- [部署指南](../deployment/README.md)

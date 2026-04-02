@@ -1,62 +1,91 @@
 # 环境变量配置指南
 
-本文档详细说明了 **kk-life** 的环境变量配置。
+本文档汇总当前仓库仍在使用的主要环境变量。实际默认值与环境分层以仓库根目录的 `wrangler.toml` 为准。
 
-## 📋 基础配置 (必需)
+## 1. 基础认证
 
-| 变量名 | 示例值 | 说明 |
-|--------|--------|------|
-| `BASIC_USER` | `admin` | 后台管理员用户名 |
-| `BASIC_PASS` | `password123` | 后台管理员密码 |
-| `JWT_SECRET` | `ChangeMe!!!` | JWT 签名密钥 (建议 32+ 字符随机串) |
+| 变量名 | 必需 | 说明 |
+| --- | --- | --- |
+| `BASIC_USER` | 是 | 管理员用户名 |
+| `BASIC_PASS` | 是 | 管理员密码 |
+| `JWT_SECRET` | 是 | JWT 签名密钥 |
 
----
+## 2. 存储配置
 
-## 🔧 存储配置 (高级)
+| 变量名 | 必需 | 说明 |
+| --- | --- | --- |
+| `STORAGE_MODE` | 否 | `single` / `redundant` / `smart` |
+| `STORAGE_PROVIDER` | 否 | 默认存储提供者，通常为 `r2` |
+| `STORAGE_PRIMARY` | 否 | 主存储提供者 |
+| `STORAGE_MIRRORS` | 否 | 镜像提供者列表 |
+| `STORAGE_MIRROR_ASYNC` | 否 | 是否异步镜像 |
+| `STORAGE_FALLBACK_ENABLED` | 否 | 是否启用回退链 |
+| `STORAGE_FALLBACK_CHAIN` | 否 | 回退链，如 `r2,s3,telegram` |
+| `STORAGE_FALLBACK_TIMEOUT` | 否 | 单次回退超时毫秒数 |
+| `S3_REGION` | 否 | S3 兼容存储区域，默认 `auto` |
 
-kk-life 支持强大的多存储策略引擎，支持 R2, S3, Telegram 及其组合。
+### 默认推荐
 
-### 模式选择
-`STORAGE_MODE`
-- `single`: 单一存储 (默认)
-- `redundant`: 冗余备份 (同时上传到主存储和镜像)
-- `smart`: 智能路由 (根据文件大小/类型动态选择)
+- `STORAGE_PROVIDER=r2`
+- `STORAGE_PRIMARY=r2`
+- `STORAGE_MODE=single`
 
-### 存储提供商
-`STORAGE_PROVIDER` (或 `STORAGE_PRIMARY`)
-- `r2`: Cloudflare R2 (推荐)
-- `telegram`: Telegram Bot API (无限流量，单文件 <20MB)
-- `s3`: 任意 S3 兼容对象存储 (AWS, MinIO, OSS)
+## 3. Telegram 存储（可选）
 
----
+仅在使用 Telegram 作为存储提供者时需要：
 
-## 📦 提供商详细配置
+- `TG_Bot_Token`
+- `TG_Chat_ID`
 
-### 1. Telegram 存储
-仅当 `STORAGE_PROVIDER = telegram` 时需配置：
-- `TG_Bot_Token`: Bot Token (来自 @BotFather)
-- `TG_Chat_ID`: 频道 ID (如 -100xxxx)
+## 4. S3 兼容存储（可选）
 
-### 2. S3 兼容存储
-仅当 `STORAGE_PROVIDER = s3` 时需配置：
-- `S3_ENDPOINT`: API 端点 (https://s3.us-east-1.amazonaws.com)
-- `S3_BUCKET`: 存储桶名称
-- `S3_REGION`: 区域 (auto)
-- `S3_ACCESS_KEY_ID`: Access Key
-- `S3_SECRET_ACCESS_KEY`: Secret Key
+仅在使用 `s3` 提供者时需要：
 
----
+- `S3_ENDPOINT`
+- `S3_BUCKET`
+- `S3_REGION`
+- `S3_ACCESS_KEY_ID`
+- `S3_SECRET_ACCESS_KEY`
 
-## 🛡️ 安全与功能开关
+## 5. 登录与安全增强（可选）
 
-- `WhiteList_Mode`: `"true"`/`"false"` (开启后仅允许白名单图片访问)
-- `disable_telemetry`: `"true"` (禁用匿名 usage 统计)
-- `ModerateContentApiKey`: 内容审查 API Key
-- `SENTRY_DSN`: Sentry 错误追踪 DSN
-- `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`: Cloudflare Turnstile 验证配置
+| 变量名 | 说明 |
+| --- | --- |
+| `TURNSTILE_SITE_KEY` | 登录页 / 公开页面使用的 Turnstile site key |
+| `TURNSTILE_SECRET_KEY` | Turnstile secret key |
+| `SENTRY_DSN` | Sentry 错误监控 |
+| `ModerateContentApiKey` | 内容审查服务 |
+| `WhiteList_Mode` | 白名单模式开关 |
+| `disable_telemetry` | 关闭遥测 |
 
-## 📱 微信小程序集成
-仅当需要启用销售端小程序一键登录时配置：
+## 6. 微信销售端（可选）
 
-- `WECHAT_APPID`: 小程序 AppID
-- `WECHAT_SECRET`: 小程序 AppSecret
+若启用小程序一键登录：
+
+- `WECHAT_APPID`
+- `WECHAT_SECRET`
+
+## 7. AI 配置（可选）
+
+若启用 AI 设置页与 AI 路由：
+
+- `AI_API_URL`
+- `AI_API_KEY`
+- `AI_MODELS`
+- `AI_MODEL_SWITCH_THRESHOLD`
+
+## 8. 绑定不是环境变量
+
+以下内容需要在 Cloudflare 绑定，而不是写成普通字符串环境变量：
+
+- D1：`DB`
+- R2：`R2_BUCKET`
+- 可选 R2：`R2_BACKUP_BUCKET`
+- 可选 KV：`KV`
+- 可选 KV：`AI_KV`
+
+## 9. 推荐做法
+
+- 生产环境优先通过 Dashboard 或 secret 管理敏感值
+- 本地开发将敏感值放在 `.dev.vars`
+- 不要把真实密钥直接提交到仓库

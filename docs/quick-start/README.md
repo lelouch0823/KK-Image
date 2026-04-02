@@ -1,70 +1,49 @@
 # 快速开始
 
-欢迎使用 kk-life！本指南将帮助您在 15 分钟内完成部署并开始使用。
+本节用于帮助你最快把 kk-life 跑起来，并完成一轮基础业务验证。
 
-## 🎯 概览
+## 你将完成什么
 
-kk-life 是一个基于 Cloudflare 全栈架构 (Workers + Pages + D1 + R2) 的现代化图床与销售管理系统。
+1. 在 Cloudflare 上准备 D1 和 R2
+2. 部署 Pages 项目
+3. 配置基础环境变量
+4. 完成数据库迁移
+5. 验证 `/login`、`/admin`、文件上传和销售端链路
 
-**主要步骤：**
-1. **GitHub** - Fork 项目代码
-2. **Cloudflare** - 创建数据库 (D1) 和存储桶 (R2)
-3. **Pages** - 连接 Git 并部署
-4. **Init** - 初始化数据库表结构
+## 前置要求
 
-## ⏱️ 预计时间
+- Cloudflare 账户
+- Node.js 20+
+- `pnpm`（推荐通过 `corepack enable` 启用）
+- 可访问 Cloudflare Dashboard 与 Wrangler CLI
 
-- **首次部署**: 15-20 分钟
-- **配置优化**: 5-10 分钟
+## 最短路径
 
-## 📋 前置要求
+### 本地开发
 
-- ✅ [GitHub 账户](https://github.com)
-- ✅ [Cloudflare 账户](https://cloudflare.com)
-- ❌ **无需** 服务器或购买域名 (可以使用 `*.pages.dev`)
+```bash
+corepack enable
+pnpm install
+pnpm dev:all
+```
 
-## 🚀 快速部署流程
+### 生产部署
 
-### 第一步：项目准备
-1. 访问 [kk-life GitHub 仓库](https://github.com/cf-pages/kk-life)
-2. 点击右上角的 **Fork** 按钮
+1. 在 Cloudflare 创建 D1 数据库和 R2 Bucket
+2. 绑定 `DB` 与 `R2_BUCKET`
+3. 配置 `BASIC_USER`、`BASIC_PASS`、`JWT_SECRET`
+4. 构建并部署
+5. 远程执行 D1 迁移
 
-### 第二步：资源准备 (Cloudflare Dashboard)
-1. **R2 存储**: 创建一个 Bucket (推荐命名 `kk-life-storage`)
-2. **D1 数据库**: 创建一个 Database (推荐命名 `kk-life-db`)
+## 当前入口与验证重点
 
-### 第三步：Pages 部署
-1. 进入 Cloudflare Pages -> **Create application** -> **Connect to Git**
-2. 选择 Fork 的仓库，框架选择 **Vue**
-3. **重要**：在 **Settings** -> **Functions** 中绑定 D1 (`DB`) 和 R2 (`R2_BUCKET`)
-4. 在 **Settings** -> **Environment variables** 设置管理员账号 (`BASIC_USER`, `BASIC_PASS`, `JWT_SECRET`)
+- `/login`：系统登录页
+- `/admin`：管理端后台
+- `/sales/:token`：销售端门户
+- `/space/:token`：公开共享空间
 
-### 第四步：初始化数据库
-1. 部署完成后，在 D1 控制台 或使用 Wrangler 运行 `scripts/init-database.sql`
-2. 这将创建必要的表结构 (Orders, Files, etc.)
+## 下一步阅读
 
-## 📖 详细指南
-
-- **[📋 安装部署指南](installation.md)** - 包含图文的详细步骤及故障排除
-- **[🎯 首次上传教程](first-upload.md)** - 验证部署是否成功
-
-## ❓ 常见问题
-
-### Q: 必须绑定域名吗？
-A: 不需要，默认提供的 `*.pages.dev` 目前已支持 HTTPS 和 R2 访问。
-
-### Q: 为什么无法登录后台？
-A: 请检查环境变量 `JWT_SECRET` 是否设置，以及 `BASIC_USER` 密码是否正确。
-
-### Q: 上传提示 "Internal Server Error"？
-A: 通常是因为 R2 未正确绑定 (`R2_BUCKET`) 或数据库未初始化。
-
-## 🔗 相关链接
-
-- [用户手册](../user-manual/README.md)
-- [管理员手册](../admin-manual/README.md)
-- [部署故障排除](../deployment/README.md)
-
----
-
-🎉 **恭喜！** 完成部署后，您拥有了一个企业级的 Sales & File 系统！
+- [安装部署指南](installation.md)
+- [首次验证指南](first-upload.md)
+- [环境变量配置](../deployment/environment-variables.md)

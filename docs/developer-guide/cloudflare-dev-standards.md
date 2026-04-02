@@ -1,78 +1,33 @@
-# Cloudflare 平台开发规范 (Standards & Best Practices)
+# Cloudflare 平台开发规范
 
-**Last Updated**: 2025-12-28
-**Scope**: 适用于基于 Cloudflare Pages Functions, D1, R2 的应用开发。
+本文档记录当前仓库在 Cloudflare Pages Functions、D1、R2 侧的工程约束。
 
-本文档定义了在 kk-life 项目中遵循的 Cloudflare 开发标准。
+## 1. 路由组织
 
-## 1. 架构与目录结构
+- 业务主路由统一由 `functions/lib/hono/app.js` 挂载
+- 不再把 `functions/api/*` 的文件式业务路由视为主结构
+- 中间件统一放在 `functions/lib/hono/middleware/`
 
-### 1.1 Hono 路由挂载
-*   **当前项目默认模式**: 统一通过 `functions/lib/hono/app.js` 挂载路由，不再使用 `functions/api/*` 的文件式业务路由作为主结构。
-    *   `functions/lib/hono/routes/v1/users.js` 由 `app.route('/api/v1/users', usersRoutes)` 挂载
-    *   `functions/lib/hono/routes/manage/purchase-orders.js` 由 `app.route('/api/manage/purchase-orders', managePurchaseOrdersRoutes)` 挂载
-*   **中间件**: 统一放在 `functions/lib/hono/middleware/`，并在 `app.js` 或子路由内显式注册。
+## 2. D1 规范
 
-### 1.2 上下文传递（Hono Context）
-*   **禁止**: 避免给 Hono `Context` 直接挂载自定义属性（如 `c.user = ...`）。
-*   **强制**: 使用 `c.set(key, value)` / `c.get(key)` 传递请求生命周期内的数据。
-    *   Example: `c.set('user', userPayload);`
-*   **补充**: 只有在少数裸 Pages Function 处理器中，才考虑 `context.data`；本项目业务路由默认不使用该模式。
+- 必须使用参数绑定，禁止 SQL 字符串拼接
+- 批量写入优先使用 `env.DB.batch(...)`
+- 数据库结构变更统一走 `migrations/`
 
-## 2. 数据库规范 (D1)
+## 3. R2 与存储规范
 
-### 2.1 查询安全
-*   **禁止**: 严禁使用字符串拼接构建 SQL 语句。
-*   **强制**: 必须使用 Parameter Binding (参数绑定)。
-    ```javascript
-    // ❌ 错误
-    await env.DB.prepare(`SELECT * FROM users WHERE id = '${id}'`).run(); 
-    
-    // ✅ 正确
-    await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).run();
-    ```
+- 默认对象存储为 R2
+- Telegram / S3 兼容存储属于可选 provider
+- 对外公开访问能力由应用层路由、公开分享页和对象 URL 规则共同决定，不再把本项目简单描述为“公开图床”
 
-### 2.2 批量操作 (SOTA)
-*   **强制**: 在循环插入或更新数据时，**必须**使用 D1 Batch API。
-    ```javascript
-    // ✅ SOTA: 使用 Batch 减少网络往返
-    const statements = files.map(f => env.DB.prepare('INSERT...').bind(...));
-    await env.DB.batch(statements);
-    ```
+## 4. Secrets 与配置
 
-### 2.3 错误处理
-*   **UNIQUE 约束**: 对于可能重复插入的场景（如忽略重复文件），推荐使用 SQL 级的 `INSERT OR IGNORE`，而不是在代码中 `try-catch`，性能更高。
+- 本地敏感值放 `.dev.vars`
+- 生产敏感值放 Dashboard / secrets
+- 绑定和环境变量以根目录 `wrangler.toml` 为准
 
-## 3. 对象存储规范 (R2)
+## 5. 本地开发约定
 
-### 3.1 访问策略
-*   **私有读写**: 默认情况下，R2 Bucket 不应向公网公开。
-*   **公开访问**: 如果需要公开访问（如图床），应绑定 Custom Domain 或在 Cloudflare Settings 中开启 Public Access，并配置适当的 Cache Rules。
-
-### 3.2 性能优化
-*   **Cache API**: 在 Pages Functions 中读取 R2 对象时，可配合 Cache API 使用，减少对 R2 的 API 调用成本（Class B operations）。
-
-## 4. 安全规范 (Security)
-
-### 4.1 密钥管理
-*   **禁止**: 代码中出现任何 Secret (API Keys, Tokens, Passwords)。
-*   **强制**: 使用环境变量 (`env`)。本地开发使用 `.dev.vars`，生产环境在 Dashboard 设置。
-
-### 4.2 响应头 (Headers)
-*   **CORS**: API 必须配置正确的 CORS 头。当前项目在 `functions/lib/hono/app.js` 中统一处理。
-*   **Security Headers**: 生产环境应包含 `Strict-Transport-Security`, `X-Content-Type-Options` 等安全头。
-
-## 5. 开发流程 (Workflow)
-
-### 5.1 数据迁移
-*   所有数据库变更必须通过 `migrations/` 目录下的 `.sql` 文件管理。
-*   禁止手动修改生产数据库结构。
-
-### 5.2 依赖管理
-*   Pages Functions 运行在 Node.js 兼容模式下 (`compatibility_flags = ["nodejs_compat"]`)。
-*   尽量减少庞大的 npm 包依赖，优先使用 Web Standards API (`fetch`, `Request`, `Response`, `URL`).
-
-## 6. 参考资源
-*   [Cloudflare D1 Docs](https://developers.cloudflare.com/d1/)
-*   [Cloudflare Pages Functions Routing](https://developers.cloudflare.com/pages/functions/routing/)
-*   [Wrangler CLI Commands](https://developers.cloudflare.com/workers/wrangler/commands/)
+- 只调前端：`pnpm dev`
+- 联调 Pages Worker、D1、R2：`pnpm dev:all`
+- 真实链路回归：`pnpm test:real-api:full-chain`

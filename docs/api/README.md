@@ -1,77 +1,75 @@
 # kk-life API 文档
 
-**kk-life** 提供三套独立的 API 体系，分别面向不同的使用场景。
+当前仓库主要暴露四组 API：
 
-## 1. Management API (管理端)
-> **Base URL**: `/api/manage`  
-> **Auth**: Basic Auth / JWT / API Key (External)
+1. 管理端 API：`/api/manage/*`
+2. 销售端 API：`/api/sales/*`
+3. 公开空间 API：`/api/space/*`
+4. 标准资源 / 运维 API：`/api/v1/*`
 
-用于后台管理系统的核心 API，包含文件上传、订单管理、CRM、销售人员管理等所有特权操作。
+## 管理端 API
 
-> **External Access**: 支持通过 `X-API-Key` 请求头进行外部调用 (如自动化脚本)。
+- Base URL: `/api/manage`
+- 认证：Admin JWT、Basic Auth、`X-API-Key`
+- 主要能力：
+  - 仪表盘、订单、客户、销售员
+  - 文件上传、共享空间、商品与采购
+  - 审计日志、Webhook、Outbox、Replay
 
-- **[管理端 API 文档](management.md)**
-  - 文件上传 (`/upload`, `/check-hash`)
-  - 订单管理 (`/orders`，详情含 `lines`)
-  - 客户与销售人员管理
-  - 商品、订货总览与库存管理 (`/products`, `/goods-overview`, `/inventory`)
-  - 采购单管理 (`/purchase-orders`，详情含 `items` / `receipts`)
-  - Outbox / Replay 运维接口 (`/outbox`, `/audit-replay`)
+详见 [management.md](management.md)。
 
-## 2. Sales API (销售端)
-> **Base URL**: `/api/sales/:token`  
-> **Auth**: Path Token + Bearer JWT
+## 销售端 API
 
-专为移动端销售工具设计，通过 `access_token` 进行鉴权。
+- Base URL: `/api/sales`
+- 认证：
+  - 公共登录接口：无需 JWT
+  - 业务接口：`/api/sales/:token/*` + Sales JWT
 
-- **[销售端 API 文档](sales.md)**
-  - 创建订单
-  - 查看个人业绩
-  - 查看订单详情 (`lines` / `files` / `timeline`)
-  - **微信小程序登录** (NEW)
+详见 [sales.md](sales.md)。
 
----
+## 公开空间 API
 
-## 3. 微信小程序支持 (NEW)
-> **微信登录**: `POST /api/sales/wechat-login`  
-> **绑定微信**: `POST /api/sales/:token/bind-wechat`
+- Base URL: `/api/space/:token`
+- 认证：share token，必要时再通过 `POST` 提交密码
+- 当前实现只保留 `GET /api/space/:token` 与 `POST /api/space/:token`
 
-支持微信小程序原生登录 (`wx.login`)，启用前需配置环境变量：
-- `WECHAT_APPID`: 小程序 AppID
-- `WECHAT_SECRET`: 小程序 AppSecret
+详见 [space.md](space.md)。
 
-## 4. Space API (访客端)
-> **Base URL**: `/api/space/:token`  
-> **Auth**: Share Token + Password (Optional)
+## 标准资源 / 运维 API
 
-面向外部访客的只读/受限 API，用于展示共享空间内容。
+主要包括：
 
-- **[空间 API 文档](space.md)**
-  - 获取空间详情
-  - 文件列表与下载
+- `/api/v1/auth`
+- `/api/v1/files`
+- `/api/v1/folders`
+- `/api/v1/users`
+- `/api/v1/permissions`
+- `/api/v1/webhooks`
+- `/api/v1/health`
 
----
+## 响应约定
 
-## 通用规范
-
-### 响应格式
-所有 API 均返回标准 JSON 格式：
+常见成功响应：
 
 ```json
 {
-  "success": true, // false
-  "data": { ... }, // 成功时返回数据
-  "error": "Error Message" // 失败时返回错误信息
+  "success": true,
+  "data": {}
 }
 ```
 
-关键业务写接口的通知、缓存和 webhook 已切换为 durable outbox 异步处理；客户端应以主请求返回值和后续读模型刷新为准。
+常见失败响应：
 
-### 错误处理
-HTTP 状态码用于指示请求状态：
-- 200: 成功
-- 400: 请求参数错误
-- 401: 未认证 (Token 无效/缺失)
-- 403: 权限不足
-- 404: 资源不存在
-- 500: 服务器内部错误
+```json
+{
+  "success": false,
+  "error": "错误描述",
+  "code": "ERROR_CODE"
+}
+```
+
+## 说明
+
+- 关键业务写入后的通知、缓存失效、Webhook 与补充审计已切换到 durable outbox 异步处理。
+- 客户端应以主请求返回值和后续读模型刷新为准，不应依赖副作用同步完成。
+- 旧的 `docs/api-docs/*` 路径已废弃；当前有效入口就是本目录。

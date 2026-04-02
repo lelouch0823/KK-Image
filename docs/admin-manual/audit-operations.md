@@ -2,13 +2,24 @@
 
 本文档说明如何在 kk-life 中查看审计日志、检查 outbox 事件，以及在必要时执行 replay 排障。
 
+相关页面：
+
+- 审计日志：`/admin/audit-logs`
+- Outbox 运维：`/admin/outbox-ops`
+
+![审计日志](../assets/admin-manual/12-audit-logs.png)
+
+![Outbox 运维](../assets/admin-manual/13-outbox-ops.png)
+
 ## 1. 适用范围
 
 - 管理端审计中心
 - `audit:read` / `audit:export` 权限持有者
 - 运维、合规、事故响应人员
 
-## 2. 审计入口与权限
+## 2. 权限与入口
+
+审计能力：
 
 - 审计列表：`GET /api/manage/audit-logs`
 - 审计导出：`GET /api/manage/audit-logs/export`
@@ -18,35 +29,30 @@
 - 查看日志：`audit:read`
 - 导出日志：`audit:export`
 
-## 3. Outbox 运维入口
-
-除了审计日志，当前还提供管理端页面和接口两组 outbox 运维入口：
+Outbox 运维能力：
 
 - 页面：`/admin/outbox-ops`
-
 - outbox 事件列表：`GET /api/manage/outbox`
 - outbox 事件详情：`GET /api/manage/outbox/:eventId`
 - replay 预演：`POST /api/manage/audit-replay/dry-run`
 - replay 执行：`POST /api/manage/audit-replay/execute`
 
-这些接口用于排查“主业务成功，但通知 / Webhook / 缓存等副作用缺失”的问题。
+Replay 权限要求：
 
-### 3.1 `/admin/outbox-ops` 页面能力
+- `dry-run` 需要 `audit:read`
+- `execute` 也走 `audit:read` 入口，但当前额外要求管理员身份 `role=admin` 或 `type=admin`
 
-页面当前提供：
+## 3. 建议的排障顺序
 
-- 事件列表筛选：`eventType` / `consumerName` / `status`
-- 事件详情查看：原始 outbox 事件、consumer jobs、Webhook 尝试记录
-- replay 预演：先看命中范围，不真正执行
-- replay 执行：确认后按事件或 command 重驱动副作用
+1. 先查审计日志，确认主业务动作是否真的发生。
+2. 再看 Outbox 列表，确认副作用事件是否已经入队。
+3. 选中具体事件查看详情，确认失败 consumer 或 webhook 尝试记录。
+4. 先做 dry-run，确认命中范围。
+5. 需要时再执行 replay。
 
-推荐做法：
+这套顺序适合排查“主业务成功，但通知 / Webhook / 缓存等副作用缺失”的问题。
 
-1. 先在页面里筛到具体事件
-2. 打开详情确认失败 consumer
-3. 先 dry-run，再 execute
-
-## 4. 审计筛选建议
+## 4. 审计日志怎么用
 
 常用筛选项：
 
@@ -66,6 +72,12 @@
 1. 先按 `domain` 缩小业务域
 2. 再按 `result=denied|failed` 看异常
 3. 最后结合 `actorId` / `targetId` 追溯具体操作和实体
+
+适合场景：
+
+- 查谁修改了订单、商品、采购单
+- 查为什么某次写操作失败
+- 查权限拒绝、越权尝试和高风险操作
 
 ## 5. 审计导出
 
@@ -106,6 +118,15 @@ GET /api/manage/audit-logs/export?format=csv&domain=orders&severity=high
 - 查某个 consumer 是否有挂起或失败任务
 - 查收货、冲销、通知、Webhook 是否真的发过事件
 
+当前列表页会展示：
+
+- 事件类型
+- 聚合 ID
+- 消费者状态摘要
+- 创建时间
+
+也就是说，列表页主要用于“缩小范围”，不是一次性展示全部明细。
+
 ### 6.2 详情接口
 
 `GET /api/manage/outbox/:eventId`
@@ -124,6 +145,11 @@ GET /api/manage/audit-logs/export?format=csv&domain=orders&severity=high
 - `command_id`
 - `consumerJobs`
 - `webhookAttempts`
+
+说明：
+
+- `webhookAttempts` 只在详情阶段查看，不在列表页整批展开
+- 推荐先筛列表，再点开单个事件看详情
 
 ## 7. Replay 使用方式
 
@@ -174,7 +200,7 @@ Body：
 限制：
 
 - `execute` 属于高风险操作
-- 仅管理员可执行
+- 当前仅管理员身份可执行
 - 它用于重驱动副作用，不用于重写主业务事实
 
 ## 8. 典型排障场景
@@ -278,3 +304,5 @@ pnpm test:real-api:full-chain
 排除项统一登记在：
 
 - `functions/lib/hono/_shared/audit-route-exclusions.js`
+
+如需看后台整体导航和其它关联模块，请回到 [管理端使用手册（带截图）](admin-console-guide.md)。
