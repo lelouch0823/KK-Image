@@ -7,7 +7,6 @@ import {
   buildShortageClosureRequestFingerprint,
   buildCompatibilityOrderProcurementStatusStatement,
   buildFinalizeCommandStatements,
-  buildDeleteCommandStatement,
   buildOrderLineProjectionStatement,
   buildPurchaseOrderItemCancelledQtyStatement,
   buildPurchaseOrderItemReceivedQtyStatement,
@@ -83,20 +82,6 @@ describe('order-procurement-shared', () => {
     expect(parseStoredResponse('{"ok":true}')).toEqual({ ok: true });
     expect(parseStoredResponse('not-json')).toBeNull();
     expect(parseStoredResponse('')).toBeNull();
-  });
-
-  it('builds the command cleanup statement against command_idempotency', () => {
-    const boundStatement = { sql: 'bound-delete' };
-    const bind = vi.fn(() => boundStatement);
-    const prepare = vi.fn(() => ({ bind }));
-
-    const result = buildDeleteCommandStatement({ prepare }, 'cmd-1');
-
-    expect(prepare).toHaveBeenCalledWith(
-      'DELETE FROM command_idempotency WHERE command_id = ?'
-    );
-    expect(bind).toHaveBeenCalledWith('cmd-1');
-    expect(result).toBe(boundStatement);
   });
 
   it('resolves reservation ownership from ownsReservation or insertStatement', () => {
@@ -192,6 +177,30 @@ describe('order-procurement-shared', () => {
     expect(commandIdempotencyRepo.buildDeleteStatement).toHaveBeenCalledTimes(1);
     expect(repoDeleteStatement.run).toHaveBeenCalledTimes(1);
     expect(db.prepare).not.toHaveBeenCalled();
+  });
+
+  it('falls back to a direct command cleanup delete statement when the repo helper is unavailable', async () => {
+    const fallbackDeleteStatement = { run: vi.fn(async () => ({ success: true })) };
+    const bind = vi.fn(() => fallbackDeleteStatement);
+    const commandIdempotencyRepo = {};
+    const db = {
+      prepare: vi.fn(() => ({ bind })),
+    };
+
+    await expect(
+      cleanupReservedCommand({
+        commandIdempotencyRepo,
+        db,
+        ownsReservation: true,
+        commandId: 'cmd-1',
+      })
+    ).resolves.toBe(true);
+
+    expect(db.prepare).toHaveBeenCalledWith(
+      'DELETE FROM command_idempotency WHERE command_id = ?'
+    );
+    expect(bind).toHaveBeenCalledWith('cmd-1');
+    expect(fallbackDeleteStatement.run).toHaveBeenCalledTimes(1);
   });
 
   it('builds finalize statements by appending purchase-order touch and command finalize writes', () => {

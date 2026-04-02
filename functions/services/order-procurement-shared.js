@@ -72,10 +72,6 @@ export function buildShortageClosureRequestFingerprint(poId, payload = {}) {
   });
 }
 
-export function buildDeleteCommandStatement(db, commandId) {
-  return db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId);
-}
-
 export function resolveReservationOwnership(reservation = {}) {
   return reservation?.ownsReservation ?? Boolean(reservation?.insertStatement);
 }
@@ -109,7 +105,7 @@ export async function cleanupReservedCommand({
 
   const deleteStatement =
     commandIdempotencyRepo.buildDeleteStatement?.(commandId) ||
-    buildDeleteCommandStatement(db, commandId);
+    db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId);
   await deleteStatement.run();
   return true;
 }
