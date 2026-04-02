@@ -3,6 +3,10 @@ import { DomainOutboxRepository } from '../repositories/DomainOutboxRepository.j
 import { OrderLineAllocationRepository } from '../repositories/OrderLineAllocationRepository.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { InventoryService } from './InventoryService.js';
+import {
+  buildOrderLineProjectionStatement,
+  queryInventoryBalance,
+} from './order-line-shared.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 
 function toNonNegativeInt(value) {
@@ -329,21 +333,7 @@ export class OrderLineFulfillmentService {
   }
 
   async queryInventoryBalance(variantId) {
-    const row = await this.db
-      .prepare(
-        `SELECT variant_id, on_hand, reserved, available
-         FROM inventory_balances
-         WHERE variant_id = ?`
-      )
-      .bind(variantId)
-      .first();
-
-    return {
-      variant_id: variantId,
-      on_hand: toNonNegativeInt(row?.on_hand),
-      reserved: toNonNegativeInt(row?.reserved),
-      available: toNonNegativeInt(row?.available),
-    };
+    return queryInventoryBalance(this.db, variantId);
   }
 
   buildNextLineState(line, overrides = {}) {
@@ -362,31 +352,19 @@ export class OrderLineFulfillmentService {
   }
 
   buildOrderLineUpdateStatement(line, nextLineState, timestamp) {
-    return this.db
-      .prepare(
-        `UPDATE order_lines
-         SET ordered_qty = ?,
-             procured_qty = ?,
-             received_qty = ?,
-             reserved_qty = ?,
-             shipped_qty = ?,
-             cancelled_qty = ?,
-             display_status = ?,
-             updated_at = ?
-         WHERE id = ? AND order_id = ?`
-      )
-      .bind(
-        nextLineState.ordered_qty,
-        nextLineState.procured_qty,
-        nextLineState.received_qty,
-        nextLineState.reserved_qty,
-        nextLineState.shipped_qty,
-        nextLineState.cancelled_qty,
-        nextLineState.display_status,
-        timestamp,
-        line.line_id,
-        line.order_id
-      );
+    return buildOrderLineProjectionStatement(
+      this.db,
+      {
+        ...nextLineState,
+        id: line.line_id,
+        order_id: line.order_id,
+      },
+      {
+        id: line.line_id,
+        order_id: line.order_id,
+      },
+      timestamp
+    );
   }
 
   buildOrderTouchStatement(orderId, timestamp) {
