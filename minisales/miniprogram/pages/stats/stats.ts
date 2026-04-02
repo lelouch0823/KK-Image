@@ -1,211 +1,159 @@
-import { get, getAccessToken } from '../../utils/api';
-import { API } from '../../utils/constants';
-import { getCurrentUser } from '../../utils/auth';
-import { calculateNavBarHeight, initTabBar } from '../../utils/ui-helpers';
+import { getAccessToken } from '../../utils/api';
+import { getLoginMethod } from '../../utils/auth';
+import { KEYS, store } from '../../utils/store';
 import { handleMissingAccessToken } from '../../services/auth/session';
+import { bindSalesWechat } from '../../services/sales/profile';
+import { loadSalesStats, type SalesStatsPayload } from '../../services/sales/stats';
+import {
+  buildStatsViewModel,
+  createEmptyStatsPayload,
+  type StatsViewModel,
+} from './controller';
 
-interface Stats {
-    totalOrders: number;
-    completedOrders: number;
-    monthOrders: number;
-    monthlyTrend: Array<{ date: string; count: number }>;
+type PageState = 'loading' | 'ready' | 'empty' | 'error';
+type LoginMethod = 'password' | 'wechat' | null;
+type AuthConfig = {
+  wechatLoginEnabled?: boolean;
+  salesWechatBound?: boolean;
+};
+
+function readAuthConfig(): AuthConfig {
+  return (
+    (store.get(KEYS.AUTH_CONFIG) as AuthConfig | undefined)
+    || (wx.getStorageSync(KEYS.AUTH_CONFIG) as AuthConfig | undefined)
+    || {}
+  );
+}
+
+function persistAuthConfig(patch: Partial<AuthConfig>) {
+  const next = {
+    ...readAuthConfig(),
+    ...patch,
+  };
+  store.set(KEYS.AUTH_CONFIG, next);
+  wx.setStorageSync(KEYS.AUTH_CONFIG, next);
 }
 
 Page({
-    data: {
-        stats: {
-            totalOrders: 0,
-            completedOrders: 0,
-            monthOrders: 0,
-            monthlyTrend: [],
-        } as Stats,
-        loading: true,
-        user: null as { name: string; store?: string } | null,
-        maxCount: 1,
-        chartLabels: [] as string[], // X 轴标签
+  data: {
+    state: 'loading' as PageState,
+    errorMessage: '',
+    stats: createEmptyStatsPayload() as SalesStatsPayload,
+    viewModel: null as StatsViewModel | null,
+    bindingWechat: false,
+  },
 
-        // 导航栏布局信息
-        statusBarHeight: 20,
-        navContentHeight: 44,
-        headerHeight: 64,
-        // Skeleton 配置
-        statsRowCol: [
-            { width: '100%', height: '320rpx', borderRadius: '16rpx' },
-            { width: '100%', height: '480rpx', borderRadius: '16rpx', marginTop: '32rpx' },
-        ],
-    },
+  onLoad() {
+    const loginMethod = getLoginMethod();
+    const authConfig = readAuthConfig();
+    this.setData({
+      viewModel: buildStatsViewModel(createEmptyStatsPayload(), {
+        loginMethod,
+        hideBindWechatAction: Boolean(authConfig.salesWechatBound),
+      }),
+    });
+  },
 
-    onLoad() {
-        const user = getCurrentUser();
-        this.setData({ user });
+  onShow() {
+    void this.loadStats();
+  },
 
-        // 使用统一的 UI Helper 计算高度
-        const { statusBarHeight, navContentHeight, totalHeight } = calculateNavBarHeight();
+  async onPullDownRefresh() {
+    await this.loadStats();
+    wx.stopPullDownRefresh();
+  },
 
+  getStatsViewModel(stats: SalesStatsPayload, loginMethod: LoginMethod = getLoginMethod()) {
+    return buildStatsViewModel(stats, {
+      loginMethod,
+      hideBindWechatAction: Boolean(readAuthConfig().salesWechatBound),
+    });
+  },
+
+  async loadStats() {
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      handleMissingAccessToken();
+      return;
+    }
+
+    this.setData({
+      state: 'loading',
+      errorMessage: '',
+    });
+
+    try {
+      const result = await loadSalesStats({ accessToken });
+      if (!result.success || !result.data) {
         this.setData({
-            statusBarHeight,
-            navContentHeight,
-            headerHeight: totalHeight,
+          state: 'error',
+          errorMessage: result.error || '加载失败',
         });
-    },
+        return;
+      }
 
-    onShow() {
-        initTabBar(this);
-        this.loadStats();
-    },
+      const viewModel = this.getStatsViewModel(result.data);
+      this.setData({
+        stats: result.data,
+        viewModel,
+        state: viewModel.isEmpty ? 'empty' : 'ready',
+      });
+    } catch (_error) {
+      this.setData({
+        state: 'error',
+        errorMessage: '加载失败',
+      });
+    }
+  },
 
-    /**
-     * 下拉刷新
-     */
-    async onPullDownRefresh() {
-        await this.loadStats();
-        wx.stopPullDownRefresh();
-    },
+  async handleBindWechat() {
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      handleMissingAccessToken();
+      return;
+    }
 
-    /**
-     * 加载统计数据
-     */
-    async loadStats() {
-        const accessToken = getAccessToken();
-        if (!accessToken) {
-            handleMissingAccessToken();
-            return;
-        }
+    if (this.data.bindingWechat) {
+      return;
+    }
 
-        this.setData({ loading: true });
-
-        try {
-            const response = await get<Stats>(API.SALES_STATS(accessToken));
-
-            if (response.success && response.data) {
-                const stats = response.data;
-                const maxCount = Math.max(...stats.monthlyTrend.map((d) => d.count), 1);
-
-                // 生成 X 轴标签 (只显示部分日期)
-                const chartLabels = stats.monthlyTrend.map((d, i) => {
-                    // 只显示第一个、最后一个和中间位置
-                    if (i === 0 || i === stats.monthlyTrend.length - 1 || i === Math.floor(stats.monthlyTrend.length / 2)) {
-                        return d.date.substring(5); // MM-DD
-                    }
-                    return '';
-                });
-
-                this.setData({ stats, maxCount, chartLabels });
-
-                // 延迟绘制图表 (等待 Canvas 渲染)
-                setTimeout(() => this.drawChart(), 100);
-            }
-        } catch (error) {
-            console.error('Load stats failed:', error);
-        } finally {
-            this.setData({ loading: false });
-        }
-    },
-
-    /**
-     * 绘制折线图
-     */
-    drawChart() {
-        const query = wx.createSelectorQuery();
-        query.select('#trendChart')
-            .fields({ node: true, size: true })
-            .exec((res) => {
-                if (!res || !res[0] || !res[0].node) {
-                    console.error('Canvas not found');
-                    return;
-                }
-
-                const canvas = res[0].node;
-                const ctx = canvas.getContext('2d');
-                const dpr = wx.getSystemInfoSync().pixelRatio;
-                const width = res[0].width;
-                const height = res[0].height;
-
-                // 设置 Canvas 分辨率
-                canvas.width = width * dpr;
-                canvas.height = height * dpr;
-                ctx.scale(dpr, dpr);
-
-                // 清空画布
-                ctx.clearRect(0, 0, width, height);
-
-                const { stats, maxCount } = this.data;
-                const data = stats.monthlyTrend.map(d => d.count);
-                if (data.length === 0) return;
-
-                // 图表边距
-                const padding = { top: 20, right: 20, bottom: 30, left: 10 };
-                const chartWidth = width - padding.left - padding.right;
-                const chartHeight = height - padding.top - padding.bottom;
-
-                // 计算点坐标
-                const points: { x: number; y: number }[] = data.map((value, index) => ({
-                    x: padding.left + (index / (data.length - 1 || 1)) * chartWidth,
-                    y: padding.top + chartHeight - (value / maxCount) * chartHeight,
-                }));
-
-                // 绘制渐变填充
-                const gradient = ctx.createLinearGradient(0, padding.top, 0, height - padding.bottom);
-                gradient.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
-                gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
-
-                ctx.beginPath();
-                ctx.moveTo(points[0].x, height - padding.bottom);
-                points.forEach((p) => ctx.lineTo(p.x, p.y));
-                ctx.lineTo(points[points.length - 1].x, height - padding.bottom);
-                ctx.closePath();
-                ctx.fillStyle = gradient;
-                ctx.fill();
-
-                // 绘制折线
-                ctx.beginPath();
-                ctx.moveTo(points[0].x, points[0].y);
-                for (let i = 1; i < points.length; i++) {
-                    // 使用贝塞尔曲线平滑
-                    const xc = (points[i].x + points[i - 1].x) / 2;
-                    const yc = (points[i].y + points[i - 1].y) / 2;
-                    ctx.quadraticCurveTo(points[i - 1].x, points[i - 1].y, xc, yc);
-                }
-                // 最后一段
-                ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
-                ctx.strokeStyle = '#3b82f6';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                // 绘制数据点
-                points.forEach((p, i) => {
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fill();
-                    ctx.strokeStyle = '#3b82f6';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-
-                    // 在最后一个点上显示数值
-                    if (i === points.length - 1) {
-                        ctx.fillStyle = '#3b82f6';
-                        ctx.font = 'bold 12px sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.fillText(String(data[i]), p.x, p.y - 10);
-                    }
-                });
-            });
-    },
-
-    /**
-     * 计算柱形高度百分比 (保留兼容)
-     */
-    getBarHeight(count: number): string {
-        const { maxCount } = this.data;
-        return `${Math.max(10, (count / maxCount) * 100)}%`;
-    },
-
-    handleBack() {
-        wx.navigateBack({
-            fail: () => {
-                wx.switchTab({ url: '/pages/index/index' });
-            },
+    this.setData({ bindingWechat: true });
+    try {
+      const result = await bindSalesWechat({ accessToken });
+      if (!result.success) {
+        wx.showToast({
+          title: result.error || '绑定失败',
+          icon: 'none',
         });
-    },
+        return;
+      }
+
+      persistAuthConfig({
+        salesWechatBound: true,
+        wechatLoginEnabled: true,
+      });
+
+      this.setData({
+        viewModel: this.getStatsViewModel(this.data.stats, 'password'),
+      });
+      wx.showToast({
+        title: '绑定成功',
+        icon: 'success',
+      });
+    } finally {
+      this.setData({ bindingWechat: false });
+    }
+  },
+
+  handleRetry() {
+    void this.loadStats();
+  },
+
+  handleBack() {
+    wx.navigateBack({
+      fail: () => {
+        wx.switchTab({ url: '/pages/index/index' });
+      },
+    });
+  },
 });

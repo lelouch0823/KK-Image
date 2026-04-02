@@ -1,11 +1,8 @@
-<!-- pages/spaces/spaces.wxml -->
-<!-- 小红书风格瀑布流布局 -->
 <view class="page">
-  <!-- 导航栏 (Auto-hide) -->
   <view class="custom-navbar {{navBarVisible ? '' : 'navbar-hidden'}}" style="height: {{navBarHeight}}px;">
     <sales-app-shell
       title="共享资源"
-      subtitle="销售素材与陈列资源"
+      subtitle="销售素材、合集与陈列空间"
       activeTab="spaces"
       unreadCount="{{unreadCount}}"
       safeTop="{{statusBarHeight}}"
@@ -14,76 +11,62 @@
       bind:notifications="onShellNotifications"
     />
   </view>
-  <scroll-view class="content" scroll-y type="list" bindscroll="onScroll" scroll-with-animation="{{false}}" refresher-enabled refresher-triggered="{{loading}}" bindrefresherrefresh="onPullDownRefresh">
-    <!-- Spacer for Navbar with extra buffer -->
-    <view style="height: {{navBarHeight}}px; width: 100%; flex-shrink: 0;"></view>
-    <!-- 骨架屏加载 -->
-    <view wx:if="{{loading && spaces.length === 0}}" class="waterfall">
-      <view class="waterfall-column">
-        <view wx:for="{{3}}" wx:key="index" class="skeleton-card">
-          <t-skeleton rowCol="{{spacesRowCol}}" loading />
-        </view>
+
+  <scroll-view
+    class="content"
+    scroll-y
+    type="list"
+    bindscroll="onScroll"
+    refresher-enabled
+    refresher-triggered="{{state === 'loading'}}"
+    bindrefresherrefresh="onPullDownRefresh"
+  >
+    <view style="height: {{navBarHeight}}px;"></view>
+
+    <view class="page__content">
+      <view class="hero-card">
+        <text class="hero-card__title">共享空间</text>
+        <text class="hero-card__subtitle">按模板查看画廊、合集、产品空间和文档资料，不再使用随机瀑布流。</text>
       </view>
-      <view class="waterfall-column">
-        <view wx:for="{{3}}" wx:key="index" class="skeleton-card">
-          <t-skeleton rowCol="{{spacesRowCol}}" loading />
-        </view>
-      </view>
-    </view>
-    <!-- 空状态 -->
-    <view wx:elif="{{!loading && spaces.length === 0}}" class="empty-state">
-      <t-empty icon="folder" description="暂无共享资源" />
-    </view>
-    <!-- 小红书风格瀑布流 -->
-    <view wx:else class="waterfall">
-      <!-- 左列 -->
-      <view class="waterfall-column">
-        <view wx:for="{{leftColumn}}" wx:key="id" class="card" data-id="{{item.id}}" bindtap="handleViewSpace">
-          <view class="card-cover" style="aspect-ratio: {{item.aspectRatio || 1}};">
-            <t-image wx:if="{{item.coverUrl}}" src="{{item.coverUrl}}" mode="widthFix" width="100%" lazy-load shape="round" />
-            <view wx:else class="cover-placeholder">
-              <t-icon name="folder" size="80rpx" color="#d1d5db" />
+
+      <sales-state-panel wx:if="{{state === 'loading'}}" loading="{{true}}" />
+      <sales-state-panel wx:elif="{{state === 'error'}}" error="{{errorMessage}}" bind:retry="handleRetry" />
+      <sales-state-panel wx:elif="{{state === 'empty'}}" empty="{{true}}" emptyText="暂无共享资源" />
+
+      <view wx:else class="space-list">
+        <view
+          wx:for="{{spaces}}"
+          wx:key="id"
+          class="space-card"
+          data-id="{{item.id}}"
+          bind:tap="handleViewSpace"
+        >
+          <view class="space-card__cover">
+            <t-image
+              wx:if="{{item.coverUrl}}"
+              class="space-card__image"
+              src="{{item.coverUrl}}"
+              mode="aspectFill"
+              lazy-load
+            />
+            <view wx:else class="space-card__image space-card__image--placeholder">
+              <text class="space-card__placeholder">{{item.templateLabel}}</text>
             </view>
           </view>
-          <view class="card-body">
-            <text class="card-title">{{item.name}}</text>
-            <view class="card-footer">
-              <view class="author">
-                <view class="avatar">
-                  <t-icon name="image" size="24rpx" color="#9ca3af" />
-                </view>
-                <text class="count">{{item.fileCount}}个</text>
-              </view>
-              <view class="template-tag">{{item.templateName}}</view>
+
+          <view class="space-card__content">
+            <view class="space-card__head">
+              <text class="space-card__title">{{item.title}}</text>
+              <text class="space-card__tag">{{item.templateLabel}}</text>
             </view>
-          </view>
-        </view>
-      </view>
-      <!-- 右列 -->
-      <view class="waterfall-column">
-        <view wx:for="{{rightColumn}}" wx:key="id" class="card" data-id="{{item.id}}" bindtap="handleViewSpace">
-          <view class="card-cover" style="aspect-ratio: {{item.aspectRatio || 1}};">
-            <t-image wx:if="{{item.coverUrl}}" src="{{item.coverUrl}}" mode="widthFix" width="100%" lazy-load shape="round" />
-            <view wx:else class="cover-placeholder">
-              <t-icon name="folder" size="80rpx" color="#d1d5db" />
-            </view>
-          </view>
-          <view class="card-body">
-            <text class="card-title">{{item.name}}</text>
-            <view class="card-footer">
-              <view class="author">
-                <view class="avatar">
-                  <t-icon name="image" size="24rpx" color="#9ca3af" />
-                </view>
-                <text class="count">{{item.fileCount}}个</text>
-              </view>
-              <view class="template-tag">{{item.templateName}}</view>
+            <text wx:if="{{item.description}}" class="space-card__description">{{item.description}}</text>
+            <view class="space-card__footer">
+              <text class="space-card__meta">{{item.fileCount}} 个文件</text>
+              <text wx:if="{{item.updatedText}}" class="space-card__meta">{{item.updatedText}}</text>
             </view>
           </view>
         </view>
       </view>
     </view>
-    <t-divider content="没有更多了" wx:if="{{!loading && spaces.length > 0}}" />
-    <view class="footer-spacer"></view>
   </scroll-view>
 </view>

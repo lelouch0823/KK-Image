@@ -1,59 +1,64 @@
-# minisales - 销售端微信小程序
+# minisales
 
-kk-life 销售端微信小程序，用于销售人员在手机端创建和管理订单。
+销售端微信小程序，负责销售登录、订单列表、下单、详情跟进、业绩统计和共享空间浏览。
 
 ## 技术栈
-- **框架**: 微信小程序 (基础库 2.32+)
-- **语言**: TypeScript
-- **样式**: SCSS
-- **渲染**: Skyline + glass-easel
+
+- 微信小程序 + TypeScript
+- SCSS
+- TDesign Mini Program
+- Skyline + glass-easel
+- Vitest 单测
 
 ## 快速开始
 
-1. **安装依赖**
-   ```bash
-   npm install
-   ```
-
-2. **打开项目**
-   - 使用微信开发者工具导入本目录
-   - AppID 已在 `project.config.json` 配置
-
-3. **配置 API 地址**
-   编辑 `miniprogram/utils/constants.ts`:
-   ```typescript
-   export const API_BASE_URL = 'https://your-domain.pages.dev';
-   ```
-
-## 目录结构
-
-```
-miniprogram/
-├── pages/
-│   ├── index/      # 订单列表
-│   ├── form/       # 创建订单
-│   ├── detail/     # 订单详情
-│   ├── stats/      # 业绩统计
-│   └── login/      # 登录页
-├── components/     # 公共组件
-├── utils/
-│   ├── api.ts      # 网络请求
-│   ├── auth.ts     # 认证逻辑
-│   └── constants.ts # 常量
-└── assets/         # 图标
+```bash
+cd minisales
+npm install
 ```
 
-## 认证方式
+使用微信开发者工具导入 `minisales/` 目录。开发环境接口地址默认在 [miniprogram/utils/constants.ts](./miniprogram/utils/constants.ts) 中配置。
 
-1. **微信一键登录** - 已绑定微信的用户可直接登录
-2. **密码登录** - 使用管理员分配的 access_token + 密码登录
-3. **绑定微信** - 密码登录后可绑定微信，方便后续一键登录
+## 当前页面架构
 
-## 发布
+```text
+miniprogram/pages/
+├── login/         登录与微信绑定
+├── index/         销售订单列表 + 通知抽屉
+├── form/          新建订单 + 商品绑定 + 上传
+├── detail/        订单详情 + 留言 + 复制预填
+├── stats/         业绩统计 + 微信绑定入口
+├── spaces/        共享空间列表
+└── spaces_detail/ 共享空间详情
+```
 
-1. 在微信开发者工具点击 **上传**
-2. 登录 [微信公众平台](https://mp.weixin.qq.com) 提交审核
+页面实现遵循同一套分层：
 
-## 文档
+- `services/sales/*`: 新后端接口访问与响应归一化
+- `utils/normalize/*`: 纯数据整形
+- `pages/*/controller.ts`: 页面 view-model 和纯逻辑
+- `components/sales/*`: 页面级复用 UI 组件
 
-详细开发文档请参阅: [docs/developer-guide/minisales.md](../docs/developer-guide/minisales.md)
+## 常用命令
+
+```bash
+npm run test:unit
+npm run typecheck
+```
+
+常见定向验证：
+
+```bash
+npm run test:unit -- tests/unit/pages/order-detail-controller.test.ts
+npm run test:unit -- tests/unit/pages/sales-stats-controller.test.ts tests/unit/pages/spaces-controller.test.ts
+```
+
+## 认证说明
+
+- `wechat` 登录：已绑定微信的销售可直接登录
+- `password` 登录：通过销售链接或账号密码登录
+- 密码登录后，可在登录页或统计页触发微信绑定
+
+## 更多文档
+
+详见 [docs/developer-guide/minisales.md](../docs/developer-guide/minisales.md)。

@@ -1,281 +1,132 @@
 @import '../../styles/variables.scss';
 
 .page {
-    min-height: 100vh;
-    background-color: $bg-page;
-    display: flex;
-    flex-direction: column;
+  min-height: 100vh;
+  background: $bg-page;
 }
 
-.content {
-    flex: 1;
-    padding: 24rpx;
-    box-sizing: border-box;
+.page__scroll {
+  height: calc(100vh - 88rpx);
 }
 
-// Overview Cards Grid
-.stats-overview {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 24rpx;
-    margin-bottom: 32rpx;
+.page__content {
+  padding: 24rpx;
 }
 
-.stat-card {
-    background: $bg-card;
-    border-radius: 24rpx; // Rounded-2xl
-    padding: 32rpx;
-    width: calc(50% - 12rpx);
-    box-sizing: border-box;
-    box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.02);
-    border: 1rpx solid rgba(229, 231, 235, 0.5); // Very subtle border
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-
-    &.full-width {
-        width: 100%;
-        flex-direction: row;
-        align-items: center;
-        text-align: left;
-    }
+.header-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+  border: 1rpx solid #bfdbfe;
 }
 
-.stat-icon-bg {
-    width: 80rpx;
-    height: 80rpx;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 16rpx;
-
-    &.blue {
-        background-color: $card-blue-bg;
-    }
-
-    // blue-50
-    &.green {
-        background-color: $card-green-bg;
-    }
-
-    // green-50
-    &.purple {
-        background-color: $card-purple-bg;
-    }
-
-    // violet-50
+.header-card__title {
+  display: block;
+  font-size: $font-size-xl;
+  font-weight: 700;
+  color: #0f172a;
 }
 
-.stat-info {
-    display: flex;
-    flex-direction: column;
+.header-card__subtitle {
+  display: block;
+  margin-top: 10rpx;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  color: $text-secondary;
 }
 
-.stat-label {
-    font-size: 24rpx;
-    color: $text-secondary;
-    font-weight: 500;
-    margin-bottom: 8rpx;
+.metrics-grid {
+  margin-top: 24rpx;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
 }
 
-.stat-num {
-    font-size: 40rpx;
-    font-weight: 700;
-    color: $text-main;
-
-    &.blue {
-        color: $card-blue-text;
-    }
-
-    &.green {
-        color: $card-green-text;
-    }
-
-    &.purple {
-        color: $card-purple-text;
-    }
+.metrics-grid sales-stats-metric:last-child {
+  grid-column: span 2;
 }
 
-// Specific layout for the full-width card
-.row-between {
-    display: flex;
-    width: 100%;
-    justify-content: space-between;
-    align-items: center;
+.chart-card {
+  margin-top: 24rpx;
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: $bg-card;
+  box-shadow: $shadow-sm;
 }
 
-.flex-row {
-    display: flex;
-    align-items: center;
-    gap: 24rpx;
-
-    .stat-icon-bg {
-        margin-bottom: 0;
-    }
-
-    .stat-info {
-        text-align: left;
-        align-items: flex-start;
-    }
+.chart-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
 }
 
-.mini-chart {
-    display: flex;
-    align-items: flex-end;
-    gap: 6rpx;
-    height: 64rpx;
-    width: 160rpx;
-
-    .mini-bar {
-        flex: 1;
-        background-color: $card-purple-text; // Purple accent
-        border-radius: 4rpx 4rpx 0 0;
-    }
+.chart-card__title {
+  font-size: $font-size-lg;
+  font-weight: 600;
+  color: $text-main;
 }
 
-// Section Charts
-.section-card {
-    background: $bg-card;
-    border-radius: 24rpx;
-    padding: 32rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.02);
-    border: 1rpx solid rgba(229, 231, 235, 0.5);
+.chart-card__subtitle,
+.chart-card__empty {
+  font-size: $font-size-xs;
+  color: $text-secondary;
 }
 
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 32rpx;
+.chart-card__empty {
+  margin-top: 24rpx;
 }
 
-.title-with-mark {
-    display: flex;
-    align-items: center;
-    gap: 16rpx;
-
-    .mark-line {
-        width: 8rpx;
-        height: 32rpx;
-        background-color: $color-primary;
-        border-radius: 4rpx;
-    }
-
-    .title {
-        font-size: 32rpx;
-        font-weight: 600;
-        color: $text-main;
-    }
+.chart-card__body {
+  margin-top: 28rpx;
 }
 
-// Loading & Empty
-.loading-state,
-.empty-state {
-    padding: 64rpx 0;
-    display: flex;
-    justify-content: center;
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 12rpx;
+  min-height: 320rpx;
 }
 
-// Line Chart Container
-.chart-container {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
+.chart-bars__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.trend-chart-canvas {
-    width: 100%;
-    height: 400rpx;
+.chart-bars__track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 220rpx;
+  padding: 0 4rpx;
 }
 
-.chart-x-labels {
-    display: flex;
-    justify-content: space-between;
-    padding: 8rpx 10rpx 0;
-
-    .x-label {
-        font-size: 22rpx;
-        color: $text-muted;
-        font-family: monospace;
-    }
+.chart-bars__bar {
+  width: 100%;
+  min-height: 20rpx;
+  border-radius: 18rpx 18rpx 0 0;
+  background: linear-gradient(180deg, #93c5fd 0%, #3b82f6 100%);
 }
 
-// Clean Table Style
-.trend-table {
-    display: flex;
-    flex-direction: column;
+.chart-bars__bar--active {
+  background: linear-gradient(180deg, #c084fc 0%, #7c3aed 100%);
 }
 
-.tr {
-    display: flex;
-    align-items: center;
-    padding: 20rpx 0;
-    border-bottom: 1rpx solid $bg-hover;
-
-    &:last-child {
-        border-bottom: none;
-    }
-
-    &.header {
-        padding-top: 0;
-        padding-bottom: 16rpx;
-        border-bottom: 2rpx solid $bg-hover;
-
-        .th {
-            font-size: 24rpx;
-            color: $text-muted;
-            font-weight: 500;
-        }
-    }
+.chart-bars__count {
+  margin-top: 12rpx;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: $text-main;
 }
 
-.td {
-    font-size: 28rpx;
-    color: $text-main;
-}
-
-// Columns
-.date {
-    width: 140rpx;
-}
-
-.graph {
-    flex: 1;
-    padding: 0 24rpx;
-}
-
-.count {
-    width: 100rpx;
-    text-align: right;
-}
-
-.date-text {
-    color: $text-secondary;
-    font-family: monospace;
-}
-
-.progress-track {
-    width: 100%;
-    height: 12rpx;
-    background-color: $bg-hover;
-    border-radius: 6rpx;
-    overflow: hidden;
-}
-
-.progress-bar {
-    height: 100%;
-    border-radius: 6rpx;
-    transition: width 0.3s ease;
-}
-
-.count-text {
-    font-weight: 500;
-    color: $text-muted;
-
-    &.highlight {
-        color: $text-main;
-        font-weight: 700;
-    }
+.chart-bars__label {
+  margin-top: 6rpx;
+  font-size: $font-size-xs;
+  color: $text-muted;
 }

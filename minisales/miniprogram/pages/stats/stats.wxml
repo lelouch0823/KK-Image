@@ -1,84 +1,70 @@
-<!-- pages/stats/stats.wxml -->
-<t-navbar title="业绩统计" left-arrow fixed placeholder bind:go-back="handleBack" />
-<view class="page" style="padding-top: 20rpx">
-    <scroll-view class="content" scroll-y type="list" refresher-enabled refresher-triggered="{{loading}}" bindrefresherrefresh="onPullDownRefresh">
-        <!-- 骨架屏加载 -->
-        <view wx:if="{{loading && stats.totalOrders === 0}}" class="skeleton-stats" style="padding: 30rpx;">
-            <t-skeleton rowCol="{{statsRowCol}}" loading></t-skeleton>
+<view class="page">
+  <t-navbar title="业绩统计" left-arrow fixed placeholder bind:go-back="handleBack" />
+
+  <scroll-view
+    class="page__scroll"
+    scroll-y
+    type="list"
+    refresher-enabled
+    refresher-triggered="{{state === 'loading'}}"
+    bindrefresherrefresh="onPullDownRefresh"
+  >
+    <view class="page__content">
+      <view class="header-card">
+        <view>
+          <text class="header-card__title">销售概览</text>
+          <text class="header-card__subtitle">从订单规模、完结数量和近 30 天趋势观察当前销售节奏。</text>
         </view>
-        <!-- Web Style: Top Stats Cards (White bg, colored text/icon) -->
-        <view wx:else class="stats-overview">
-            <!-- Card 1: Total Orders (Blue) -->
-            <view class="stat-card">
-                <view class="stat-icon-bg blue">
-                    <t-icon name="shop" size="40rpx" color="#3b82f6" />
-                </view>
-                <view class="stat-info">
-                    <text class="stat-label">总订单数</text>
-                    <text class="stat-num blue">{{stats.totalOrders}}</text>
-                </view>
-            </view>
-            <!-- Card 2: Completed (Green) -->
-            <view class="stat-card">
-                <view class="stat-icon-bg green">
-                    <t-icon name="check-circle" size="40rpx" color="#10b981" />
-                </view>
-                <view class="stat-info">
-                    <text class="stat-label">已完成</text>
-                    <text class="stat-num green">{{stats.completedOrders}}</text>
-                </view>
-            </view>
-            <!-- Card 3: Month (Purple) -->
-            <view class="stat-card full-width">
-                <view class="row-between">
-                    <view class="flex-row">
-                        <view class="stat-icon-bg purple">
-                            <t-icon name="calendar" size="40rpx" color="#8b5cf6" />
-                        </view>
-                        <view class="stat-info">
-                            <text class="stat-label">本月订单</text>
-                            <text class="stat-num purple">{{stats.monthOrders}}</text>
-                        </view>
-                    </view>
-                    <!-- Mini Chart for Month -->
-                    <view wx:if="{{!loading && stats.monthlyTrend.length > 0}}" class="mini-chart">
-                        <view wx:for="{{stats.monthlyTrend}}" wx:key="date" class="mini-bar" style="height: {{item.count / maxCount * 100}}%; opacity: {{index === stats.monthlyTrend.length - 1 ? 1 : 0.4}}"></view>
-                    </view>
-                </view>
-            </view>
+        <t-button
+          wx:if="{{viewModel && viewModel.showBindWechatAction}}"
+          size="small"
+          variant="outline"
+          bind:tap="handleBindWechat"
+          loading="{{bindingWechat}}"
+        >
+          绑定微信
+        </t-button>
+      </view>
+
+      <sales-state-panel wx:if="{{state === 'loading'}}" loading="{{true}}" />
+      <sales-state-panel wx:elif="{{state === 'error'}}" error="{{errorMessage}}" bind:retry="handleRetry" />
+      <sales-state-panel wx:elif="{{state === 'empty'}}" empty="{{true}}" emptyText="暂无统计数据" />
+
+      <block wx:else>
+        <view class="metrics-grid">
+          <sales-stats-metric
+            wx:for="{{viewModel.metrics}}"
+            wx:key="key"
+            metric="{{item}}"
+          />
         </view>
-        <!-- Web Style: Layout for Charts/Lists -->
-        <view class="section-card">
-            <view class="card-header">
-                <view class="title-with-mark">
-                    <view class="mark-line"></view>
-                    <text class="title">近期趋势</text>
+
+        <view class="chart-card">
+          <view class="chart-card__header">
+            <text class="chart-card__title">近 30 天订单趋势</text>
+            <text class="chart-card__subtitle">{{viewModel.chartPoints.length}} 天采样</text>
+          </view>
+
+          <view wx:if="{{viewModel.chartPoints.length === 0}}" class="chart-card__empty">
+            近期暂无趋势数据
+          </view>
+
+          <view wx:else class="chart-card__body">
+            <view class="chart-bars">
+              <view wx:for="{{viewModel.chartPoints}}" wx:key="date" class="chart-bars__item">
+                <view class="chart-bars__track">
+                  <view
+                    class="chart-bars__bar {{item.active ? 'chart-bars__bar--active' : ''}}"
+                    style="height: {{item.percent}}%;"
+                  ></view>
                 </view>
-                <t-icon name="chart" size="32rpx" color="#9ca3af" />
+                <text class="chart-bars__count">{{item.count}}</text>
+                <text class="chart-bars__label">{{item.xLabel}}</text>
+              </view>
             </view>
-            <view wx:if="{{loading}}" class="loading-state">
-                <t-loading theme="spinner" size="40rpx" text="加载数据中..." />
-            </view>
-            <view wx:elif="{{stats.monthlyTrend.length === 0}}" class="empty-state">
-                <t-empty icon="info-circle" description="暂无近期数据" />
-            </view>
-            <!-- Line Chart Canvas -->
-            <view wx:else class="chart-container">
-                <canvas type="2d" id="trendChart" class="trend-chart-canvas" style="width: 100%; height: 400rpx;"></canvas>
-                <!-- X Axis Labels -->
-                <view class="chart-x-labels">
-                    <text wx:for="{{chartLabels}}" wx:key="*this" class="x-label">{{item}}</text>
-                </view>
-            </view>
+          </view>
         </view>
-    </scroll-view>
+      </block>
+    </view>
+  </scroll-view>
 </view>
-<wxs module="format">
-var getDate = function(str) {
-  if (!str) return '';
-  return str.substring(5); 
-}
-module.exports = {
-  getDate: getDate
-};
-</wxs>

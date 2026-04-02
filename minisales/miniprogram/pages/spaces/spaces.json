@@ -1,6 +1,7 @@
 {
-    "usingComponents": {
-        "sales-app-shell": "/components/sales/app-shell/index"
-    },
-    "navigationStyle": "custom"
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "sales-app-shell": "/components/sales/app-shell/index",
+    "sales-state-panel": "/components/sales/state-panel/index"
+  }
 }

@@ -1,89 +1,135 @@
 @import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
 
 .page {
-    min-height: 100vh;
-    background-color: $bg-page;
-    display: flex;
-    flex-direction: column;
+  min-height: 100vh;
+  background: $bg-page;
 }
 
-.content {
-    flex: 1;
+.page__state {
+  padding: 24rpx;
 }
 
-.loading-container {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-top: 40vh;
+.page__scroll {
+  height: calc(100vh - 88rpx);
 }
 
-// ============ Default 模板样式 ============
-.header-card {
-    background-color: $bg-card;
-    border-radius: $border-radius-lg;
-    padding: $spacing-lg;
-    margin: $spacing-lg;
-    box-shadow: $shadow-sm;
+.page__content {
+  padding: 24rpx;
 }
 
-.space-title {
-    display: block;
-    font-size: $font-size-xl;
-    font-weight: 700;
-    color: $text-main;
-    margin-bottom: 8rpx;
+.summary-card,
+.section,
+.template-shell {
+  border-radius: 28rpx;
+  background: $bg-card;
+  box-shadow: $shadow-sm;
 }
 
-.space-desc {
-    display: block;
-    font-size: $font-size-sm;
-    color: $text-secondary;
-    margin-bottom: 16rpx;
-    line-height: 1.5;
+.summary-card {
+  padding: 28rpx;
 }
 
-.space-stats {
-    display: flex;
-    align-items: center;
-    gap: 8rpx;
+.summary-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
 }
 
-.stat-text {
-    font-size: $font-size-xs;
-    color: $text-muted;
+.summary-card__title {
+  display: block;
+  font-size: $font-size-xl;
+  font-weight: 700;
+  color: $text-main;
 }
 
-.file-section {
-    padding: 0 $spacing-lg;
-    margin-bottom: $spacing-lg;
+.summary-card__description {
+  display: block;
+  margin-top: 10rpx;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  color: $text-secondary;
 }
 
-.section-title {
-    font-size: $font-size-sm;
-    font-weight: 600;
-    color: $text-main;
-    margin-bottom: $spacing-md;
+.summary-card__tag {
+  flex-shrink: 0;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #eff6ff;
+  font-size: $font-size-xs;
+  color: #2563eb;
+}
+
+.summary-card__meta {
+  margin-top: 18rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.summary-card__meta-item {
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #f8fafc;
+  font-size: $font-size-xs;
+  color: $text-secondary;
+}
+
+.template-shell,
+.section {
+  margin-top: 24rpx;
+  overflow: hidden;
+}
+
+.section {
+  padding: 28rpx;
+}
+
+.section__title {
+  font-size: $font-size-lg;
+  font-weight: 600;
+  color: $text-main;
 }
 
 .file-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12rpx;
+  margin-top: 20rpx;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
 }
 
 .file-item {
-    width: calc(33.333% - 8rpx);
-    aspect-ratio: 1;
-    border-radius: 16rpx;
-    overflow: hidden;
-    background-color: $bg-hover;
+  overflow: hidden;
+  border-radius: 22rpx;
+  background: #f8fafc;
 }
 
-.empty-state {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: $spacing-xl * 2;
+.file-item__image {
+  width: 100%;
+  height: 220rpx;
+  background: $bg-hover;
+}
+
+.file-item__image--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-item__placeholder {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.file-item__name {
+  display: block;
+  padding: 16rpx;
+  font-size: $font-size-sm;
+  color: $text-main;
+  @include text-ellipsis;
+}
+
+.page__footer-spacer {
+  height: 48rpx;
 }

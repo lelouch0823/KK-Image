@@ -1,5 +1,8 @@
 {
-    "usingComponents": {},
-    "navigationStyle": "custom",
-    "enablePullDownRefresh": true
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "sales-state-panel": "../../components/sales/state-panel/index",
+    "sales-stats-metric": "../../components/sales/stats-metric/index"
+  }
 }

@@ -1,167 +1,126 @@
-import { get, getAccessToken, getFileUrl } from '../../utils/api';
-import { API } from '../../utils/constants';
+import { getAccessToken } from '../../utils/api';
 import { calculateNavBarHeight, getNavbarVisibility, initTabBar } from '../../utils/ui-helpers';
 import { handleMissingAccessToken } from '../../services/auth/session';
+import { loadSalesSpaces } from '../../services/sales/spaces';
+import { buildSpacesGridModel, type SpaceCardViewModel } from './controller';
 
-interface Space {
-    id: string;
-    name: string;
-    description: string;
-    template: string;
-    fileCount: number;
-    coverUrl: string | null;
-    updatedAt: number;
-    // 计算属性
-    templateName?: string;
-    aspectRatio?: number;
-}
-
-// 模板名称映射
-const TEMPLATE_NAMES: Record<string, string> = {
-    gallery: '画廊',
-    product: '商品',
-    portfolio: '作品集',
-    document: '文档',
-    collection: '合集',
-    custom: '自定义',
-};
+type PageState = 'loading' | 'ready' | 'empty' | 'error';
 
 Page({
-    data: {
-        spaces: [] as Space[],
-        leftColumn: [] as Space[],
-        rightColumn: [] as Space[],
-        loading: true,
-        statusBarHeight: 20,
-        navBarHeight: 88,
-        navBarVisible: true,
-        unreadCount: 0,
-        // Skeleton 配置
-        spacesRowCol: [
-            { width: '100%', height: '300rpx', borderRadius: '16rpx' },
-            { width: '80%', height: '32rpx', marginTop: '16rpx' },
-        ],
-    },
+  data: {
+    state: 'loading' as PageState,
+    errorMessage: '',
+    spaces: [] as SpaceCardViewModel[],
+    statusBarHeight: 20,
+    navBarHeight: 88,
+    navBarVisible: true,
+    unreadCount: 0,
+  },
 
-    // 滚动状态记录
-    lastScrollTop: 0,
+  lastScrollTop: 0,
 
-    onLoad() {
-        const { totalHeight, statusBarHeight } = calculateNavBarHeight();
+  onLoad() {
+    const { totalHeight, statusBarHeight } = calculateNavBarHeight();
+    this.setData({
+      statusBarHeight,
+      navBarHeight: totalHeight,
+    });
+  },
+
+  onShow() {
+    initTabBar(this);
+    void this.loadSpaces();
+  },
+
+  onShellLayout(e: WechatMiniprogram.CustomEvent<{ height?: number }>) {
+    const height = Number(e.detail?.height || 0);
+    if (height > 0 && Math.abs(height - this.data.navBarHeight) > 1) {
+      this.setData({ navBarHeight: Math.ceil(height) });
+    }
+  },
+
+  async onPullDownRefresh() {
+    await this.loadSpaces();
+    wx.stopPullDownRefresh();
+  },
+
+  onScroll(e: WechatMiniprogram.ScrollViewScroll) {
+    const scrollTop = e.detail.scrollTop;
+    const shouldShow = getNavbarVisibility(
+      scrollTop,
+      this.lastScrollTop,
+      this.data.navBarVisible,
+      this.data.navBarHeight
+    );
+
+    if (shouldShow !== null) {
+      this.setData({ navBarVisible: shouldShow });
+    }
+
+    this.lastScrollTop = scrollTop;
+  },
+
+  async loadSpaces() {
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      handleMissingAccessToken();
+      return;
+    }
+
+    this.setData({
+      state: 'loading',
+      errorMessage: '',
+    });
+
+    try {
+      const result = await loadSalesSpaces({ accessToken });
+      if (!result.success || !result.data) {
         this.setData({
-            statusBarHeight,
-            navBarHeight: totalHeight,
+          state: 'error',
+          errorMessage: result.error || '加载失败',
         });
-    },
+        return;
+      }
 
-    onShow() {
-        initTabBar(this);
-        this.loadSpaces();
-    },
+      const spaces = buildSpacesGridModel(result.data);
+      this.setData({
+        spaces,
+        state: spaces.length ? 'ready' : 'empty',
+      });
+    } catch (_error) {
+      this.setData({
+        state: 'error',
+        errorMessage: '加载失败',
+      });
+    }
+  },
 
-    onShellLayout(e: WechatMiniprogram.CustomEvent<{ height?: number }>) {
-        const height = Number(e.detail?.height || 0);
-        if (height > 0 && Math.abs(height - this.data.navBarHeight) > 1) {
-            this.setData({ navBarHeight: Math.ceil(height) });
-        }
-    },
+  handleViewSpace(e: WechatMiniprogram.TouchEvent) {
+    const id = String(e.currentTarget.dataset.id || '');
+    if (!id) {
+      return;
+    }
 
-    /**
-     * 下拉刷新
-     */
-    async onPullDownRefresh() {
-        await this.loadSpaces();
-        wx.stopPullDownRefresh();
-    },
+    wx.navigateTo({ url: `/pages/spaces_detail/detail?id=${id}` });
+  },
 
-    /**
-     * Handle Scroll for Auto-hiding Navbar
-     */
-    onScroll(e: WechatMiniprogram.ScrollViewScroll) {
-        const scrollTop = e.detail.scrollTop;
-        const { navBarVisible, navBarHeight } = this.data;
-        const lastScrollTop = this.lastScrollTop;
+  handleRetry() {
+    void this.loadSpaces();
+  },
 
-        const shouldShow = getNavbarVisibility(
-            scrollTop,
-            lastScrollTop,
-            navBarVisible,
-            navBarHeight
-        );
+  onShellNavigate(e: WechatMiniprogram.CustomEvent<{ target: string }>) {
+    const target = String(e.detail.target || '');
+    if (target === 'orders') {
+      wx.switchTab({ url: '/pages/index/index' });
+      return;
+    }
 
-        if (shouldShow !== null) {
-            this.setData({ navBarVisible: shouldShow });
-        }
+    if (target === 'stats') {
+      wx.navigateTo({ url: '/pages/stats/stats' });
+    }
+  },
 
-        this.lastScrollTop = scrollTop;
-    },
-
-    /**
-     * 加载共享空间列表
-     */
-    async loadSpaces() {
-        const accessToken = getAccessToken();
-        if (!accessToken) {
-            handleMissingAccessToken();
-            return;
-        }
-
-        this.setData({ loading: true });
-
-        try {
-            const response = await get<Space[]>(API.SALES_SPACES(accessToken));
-
-            if (response.success && response.data) {
-                // 数据预处理
-                const spaces = response.data.map((space) => ({
-                    ...space,
-                    coverUrl: getFileUrl(space.coverUrl || undefined),
-                    templateName: TEMPLATE_NAMES[space.template] || space.template,
-                    aspectRatio: space.coverUrl ? (0.8 + Math.random() * 0.6) : 1,
-                }));
-
-                const leftColumn: Space[] = [];
-                const rightColumn: Space[] = [];
-
-                spaces.forEach((space, index) => {
-                    if (index % 2 === 0) {
-                        leftColumn.push(space);
-                    } else {
-                        rightColumn.push(space);
-                    }
-                });
-
-                this.setData({ spaces, leftColumn, rightColumn });
-            }
-        } catch (error) {
-            console.error('Load spaces failed:', error);
-            wx.showToast({ title: '加载失败', icon: 'none' });
-        } finally {
-            this.setData({ loading: false });
-        }
-    },
-
-    /**
-     * 查看空间详情
-     */
-    handleViewSpace(e: WechatMiniprogram.TouchEvent) {
-        const { id } = e.currentTarget.dataset;
-        wx.navigateTo({ url: `/pages/spaces_detail/detail?id=${id}` });
-    },
-
-    onShellNavigate(e: WechatMiniprogram.CustomEvent<{ target: string }>) {
-        const target = String(e.detail.target || '');
-        if (target === 'orders') {
-            wx.switchTab({ url: '/pages/index/index' });
-            return;
-        }
-
-        if (target === 'stats') {
-            wx.navigateTo({ url: '/pages/stats/stats' });
-        }
-    },
-
-    onShellNotifications() {
-        wx.showToast({ title: '通知功能建设中', icon: 'none' });
-    },
+  onShellNotifications() {
+    wx.showToast({ title: '通知功能建设中', icon: 'none' });
+  },
 });

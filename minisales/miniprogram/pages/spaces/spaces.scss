@@ -1,120 +1,132 @@
 @import '../../styles/variables.scss';
 @import '../../styles/mixins.scss';
 
-// 页面基础
 .page {
-    height: 100%; // Inherit strict 100vh from page
-    background-color: $bg-page;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; // Ensure no double scroll
+  height: 100%;
+  background: $bg-page;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.custom-navbar {
+  background: $bg-page;
 }
 
 .content {
-    flex: 1;
-    height: 100%; // Fix: Force height constraint so scroll-view handles scrolling
-    padding: $spacing-md;
-    box-sizing: border-box;
+  flex: 1;
+  height: 100%;
 }
 
-// 顶部导航栏动画容器
-// .custom-navbar 已提取至 app.scss
-// 覆盖背景色以防止列表透视 (Spaces页特定需求)
-.custom-navbar {
-    background-color: $bg-page;
+.page__content {
+  padding: 24rpx;
 }
 
-.loading-container,
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: $spacing-xl * 3;
+.hero-card {
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border: 1rpx solid $border-color;
 }
 
-// ===========================================
-// 小红书风格瀑布流
-// ===========================================
-.waterfall {
-    display: flex;
-    gap: $spacing-md;
+.hero-card__title {
+  display: block;
+  font-size: $font-size-xl;
+  font-weight: 700;
+  color: $text-main;
 }
 
-.waterfall-column {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-md;
+.hero-card__subtitle {
+  display: block;
+  margin-top: 10rpx;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  color: $text-secondary;
 }
 
-// 卡片样式
-.card {
-    background-color: $bg-card; // #fff
-    border-radius: 16rpx;
-    overflow: hidden;
-    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+.space-list {
+  margin-top: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
 }
 
-.card-cover {
-    width: 100%;
-    min-height: 200rpx;
-    background-color: $bg-hover; // #fafafa -> $bg-hover for consistency
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.space-card {
+  overflow: hidden;
+  border-radius: 28rpx;
+  background: $bg-card;
+  box-shadow: $shadow-sm;
 }
 
-.cover-placeholder {
-    width: 100%;
-    height: 200rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
+.space-card__cover {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #e2e8f0;
 }
 
-.card-body {
-    padding: $spacing-sm $spacing-md $spacing-md;
+.space-card__image {
+  width: 100%;
+  height: 100%;
 }
 
-.card-title {
-    display: block;
-    font-size: 28rpx;
-    font-weight: 600;
-    color: $text-main; // #1a1a1a -> $text-main
-    line-height: 1.4;
-    margin-bottom: 16rpx;
-    overflow: hidden;
-    @include text-ellipsis-multi(2);
+.space-card__image--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-// ...
-
-.avatar {
-    width: 36rpx;
-    height: 36rpx;
-    border-radius: 50%;
-    background-color: #f0f0f0; // Keep or change to $bg-hover? let's keep for now or $bg-hover
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.space-card__placeholder {
+  font-size: $font-size-sm;
+  color: $text-secondary;
 }
 
-.count {
-    font-size: 22rpx;
-    color: $text-muted; // #999 -> $text-muted
+.space-card__content {
+  padding: 24rpx;
 }
 
-.template-tag {
-    font-size: 20rpx;
-    color: $color-danger; // #fa2c19
-    background-color: #fff0ee; // specialized bg, keep or add var
-    padding: 4rpx 12rpx;
-    border-radius: 8rpx;
+.space-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
 }
 
-// 底部安全区占位
-.footer-spacer {
-    height: 120rpx;
+.space-card__title {
+  min-width: 0;
+  flex: 1;
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $text-main;
+  @include text-ellipsis-multi(2);
+}
+
+.space-card__tag {
+  flex-shrink: 0;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: #eff6ff;
+  font-size: $font-size-xs;
+  color: #2563eb;
+}
+
+.space-card__description {
+  display: block;
+  margin-top: 12rpx;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  color: $text-secondary;
+  @include text-ellipsis-multi(2);
+}
+
+.space-card__footer {
+  margin-top: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.space-card__meta {
+  font-size: $font-size-xs;
+  color: $text-muted;
 }
