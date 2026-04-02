@@ -44,6 +44,11 @@ const TARGETS = [
     signature: 'async function requireSalesOrder(',
     label: 'functions/lib/hono/routes/sales/orders.js: still defines requireSalesOrder',
   },
+  {
+    file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'manage', 'webhooks.js'),
+    signature: 'async function requireWebhook(',
+    label: 'functions/lib/hono/routes/manage/webhooks.js: still defines requireWebhook',
+  },
 ];
 
 describe('manage route entity thin wrappers audit', () => {
