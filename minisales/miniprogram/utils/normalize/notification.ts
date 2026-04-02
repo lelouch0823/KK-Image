@@ -33,7 +33,7 @@ function normalizeMetadata(value: unknown): Record<string, unknown> | null {
     if (!value) {
         return null;
     }
-    const parsed = safeParseObject(asRecord(value), {});
+    const parsed = safeParseObject(value, {});
     return Object.keys(parsed).length > 0 ? parsed : null;
 }
 

@@ -45,4 +45,17 @@ describe('notification normalizers', () => {
       expect.objectContaining({ id: 'n-2', unread: false }),
     ]);
   });
+
+  it('parses metadata when backend returns a JSON string payload', () => {
+    const notification = normalizeSalesNotification({
+      id: 'n-1',
+      is_read: 0,
+      metadata: '{"reason":"progress","source":"order"}',
+    });
+
+    expect(notification.metadata).toEqual({
+      reason: 'progress',
+      source: 'order',
+    });
+  });
 });

@@ -10,13 +10,19 @@ type UnknownRecord = Record<string, unknown>;
 
 export type VariantSelectPolicy = 'in_stock_only' | 'allow_out_of_stock' | 'all';
 
+export interface NormalizedSalesProductImage {
+    id: string;
+    url: string;
+    isPrimary: boolean;
+}
+
 export interface NormalizedSalesProductSummary {
     id: string;
     name: string;
     brand: string;
     series: string;
     spu: string;
-    images: unknown[];
+    images: NormalizedSalesProductImage[];
     primaryImage: string;
 }
 
@@ -30,7 +36,7 @@ export interface NormalizedSalesProductVariant {
     replenishmentQuantity: number;
     replenishmentPoCount: number;
     primaryImage: string;
-    images: unknown[];
+    images: NormalizedSalesProductImage[];
 }
 
 export interface NormalizedSalesProductDetail extends NormalizedSalesProductSummary {
@@ -48,6 +54,10 @@ function asRecord(value: unknown): UnknownRecord {
 
 function asArray(value: unknown): unknown[] {
     return Array.isArray(value) ? value : [];
+}
+
+function parseImages(value: unknown): unknown[] {
+    return safeParseArray<unknown>(value, []);
 }
 
 function normalizeOptionValues(value: unknown): Record<string, string> {
@@ -69,11 +79,59 @@ function resolvePrimaryImage(raw: UnknownRecord, fallbackImages: unknown[] = [])
             raw.primaryImage,
             raw.primary_image,
             firstImage.url,
+            firstImage.file_url,
             firstImage.image_id,
             firstImage.storage_key,
         ]),
         raw.image_id
     );
+}
+
+function getRawImages(record: UnknownRecord): unknown[] {
+    const images = parseImages(record.images);
+    if (images.length > 0) {
+        return images;
+    }
+
+    return parseImages(record.variant_images ?? record.variantImages);
+}
+
+function normalizeProductImage(
+    raw: unknown,
+    primaryImageUrl: string,
+    index: number
+): NormalizedSalesProductImage | null {
+    const record = asRecord(raw);
+    const url = resolveFilePath(
+        typeof raw === 'string'
+            ? raw
+            : pickFirstString([record.url, record.file_url, record.image_url]),
+        pickFirstString([record.image_id, record.storage_key, record.id])
+    );
+    const id = typeof raw === 'string'
+        ? pickFirstString([raw], url)
+        : pickFirstString([record.id, record.image_id, record.storage_key], url);
+
+    if (!url && !id) {
+        return null;
+    }
+
+    const explicitPrimary = Boolean(record.isPrimary ?? record.is_primary ?? record.primary);
+    return {
+        id: id || url,
+        url,
+        isPrimary: explicitPrimary || (primaryImageUrl ? url === primaryImageUrl : index === 0),
+    };
+}
+
+function normalizeProductImages(rawImages: unknown[], primaryImageUrl: string): NormalizedSalesProductImage[] {
+    return rawImages
+        .map((image, index) => normalizeProductImage(image, primaryImageUrl, index))
+        .filter((image): image is NormalizedSalesProductImage => Boolean(image))
+        .map((image, index) => ({
+            ...image,
+            isPrimary: image.isPrimary || (!primaryImageUrl && index === 0),
+        }));
 }
 
 function toVariantDisplayName(optionsValues: Record<string, string>): string {
@@ -83,7 +141,9 @@ function toVariantDisplayName(optionsValues: Record<string, string>): string {
 
 export function normalizeSalesProductSummary(raw: unknown): NormalizedSalesProductSummary {
     const record = asRecord(raw);
-    const images = safeParseArray<unknown>(record.images, []);
+    const rawImages = getRawImages(record);
+    const primaryImage = resolvePrimaryImage(record, rawImages);
+    const images = normalizeProductImages(rawImages, primaryImage);
     return {
         id: pickFirstString([record.id]),
         name: pickFirstString([record.name], '未命名商品'),
@@ -91,14 +151,16 @@ export function normalizeSalesProductSummary(raw: unknown): NormalizedSalesProdu
         series: pickFirstString([record.series]),
         spu: pickFirstString([record.spu]),
         images,
-        primaryImage: resolvePrimaryImage(record, images),
+        primaryImage: pickFirstString([primaryImage, images[0]?.url]),
     };
 }
 
 export function normalizeSalesProductVariant(raw: unknown): NormalizedSalesProductVariant {
     const record = asRecord(raw);
-    const images = safeParseArray<unknown>(record.images, []);
+    const rawImages = getRawImages(record);
     const optionsValues = normalizeOptionValues(record.options_values ?? record.optionsValues);
+    const primaryImage = resolvePrimaryImage(record, rawImages);
+    const images = normalizeProductImages(rawImages, primaryImage);
     return {
         id: pickFirstString([record.id]),
         sku: pickFirstString([record.sku]),
@@ -110,7 +172,7 @@ export function normalizeSalesProductVariant(raw: unknown): NormalizedSalesProdu
         ),
         replenishmentQuantity: toFiniteNumber(record.replenishment_quantity ?? record.replenishmentQuantity),
         replenishmentPoCount: toFiniteNumber(record.replenishment_po_count ?? record.replenishmentPoCount),
-        primaryImage: resolvePrimaryImage(record, images),
+        primaryImage: pickFirstString([primaryImage, images[0]?.url]),
         images,
     };
 }

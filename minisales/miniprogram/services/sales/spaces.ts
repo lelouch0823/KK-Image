@@ -37,7 +37,7 @@ function normalizeSpaceFile(raw: unknown) {
     return {
         id: pickFirstString([record.id]),
         name: pickFirstString([record.name], '未命名文件'),
-        url: resolveFilePath(record.url, record.storage_key),
+        url: resolveFilePath(record.url ?? record.file_url, record.storage_key ?? record.storageKey),
         mimeType: pickFirstString([record.mimeType, record.mime_type]),
         section: pickFirstString([record.section]),
         width: toFiniteNumber(record.width),
@@ -54,7 +54,10 @@ function normalizeSalesSpace(raw: unknown) {
         template: pickFirstString([record.template], 'gallery'),
         templateData: safeParseObject(record.template_data ?? record.templateData, {}),
         fileCount: toFiniteNumber(record.file_count ?? record.fileCount),
-        coverUrl: resolveFilePath(record.coverUrl, record.cover_storage_key),
+        coverUrl: resolveFilePath(
+            record.coverUrl ?? record.cover_url,
+            record.cover_storage_key ?? record.coverStorageKey
+        ),
         shareToken: pickFirstString([record.share_token, record.shareToken]),
         updatedAt: toFiniteNumber(record.updated_at ?? record.updatedAt),
         productId: pickFirstString([record.product_id, record.productId]),
@@ -66,7 +69,10 @@ function normalizeSalesSpace(raw: unknown) {
                 id: pickFirstString([subspace.id]),
                 name: pickFirstString([subspace.name], '未命名子空间'),
                 fileCount: toFiniteNumber(subspace.file_count ?? subspace.fileCount),
-                coverUrl: resolveFilePath(subspace.coverUrl, subspace.cover_storage_key),
+                coverUrl: resolveFilePath(
+                    subspace.coverUrl ?? subspace.cover_url,
+                    subspace.cover_storage_key ?? subspace.coverStorageKey
+                ),
             };
         }),
     };
