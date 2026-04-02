@@ -32,6 +32,7 @@
     <view wx:if="{{activeMethod === 'password'}}" class="form">
       <text wx:if="{{pendingWechatBind}}" class="wechat-panel__subhint">完成账号登录后将自动绑定当前微信</text>
       <t-input
+        wx:if="{{!isScopedLogin}}"
         label="账号"
         placeholder="请输入手机号或姓名"
         value="{{username}}"
@@ -39,6 +40,7 @@
         bind:change="onInput"
         clearable
       />
+      <text wx:if="{{isScopedLogin}}" class="wechat-panel__subhint">当前为链接授权登录，仅需输入密码</text>
       <t-input
         label="密码"
         type="password"

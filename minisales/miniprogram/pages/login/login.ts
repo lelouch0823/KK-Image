@@ -2,7 +2,7 @@
  * 登录页
  */
 
-import { bindWechat, getCurrentUser, getLoginMethod, usernameLogin, wxLogin } from '../../utils/auth';
+import { bindWechat, getCurrentUser, getLoginMethod, passwordLogin, usernameLogin, wxLogin } from '../../utils/auth';
 import { getAccessToken } from '../../utils/api';
 import { KEYS, store } from '../../utils/store';
 
@@ -25,6 +25,19 @@ function getAuthConfig(): AuthConfig {
   return {};
 }
 
+function persistWechatLoginEnabled(enabled: boolean) {
+  const current = (store.get(KEYS.AUTH_CONFIG) as AuthConfig | undefined)
+    || (wx.getStorageSync(KEYS.AUTH_CONFIG) as AuthConfig | undefined)
+    || {};
+  const next = { ...current, wechatLoginEnabled: enabled };
+  store.set(KEYS.AUTH_CONFIG, next);
+  wx.setStorageSync(KEYS.AUTH_CONFIG, next);
+}
+
+function isWechatNotConfigured(message?: string): boolean {
+  return !!message && message.includes('微信登录未配置');
+}
+
 Page({
   data: {
     username: '',
@@ -34,6 +47,7 @@ Page({
     error: '',
     activeMethod: 'password',
     canWechatLogin: true,
+    isScopedLogin: false,
     pendingWechatBind: false,
   },
 
@@ -45,11 +59,14 @@ Page({
 
     const config = getAuthConfig();
     const loginMethod = getLoginMethod();
-    const canWechatLogin = config.wechatLoginEnabled !== false && !!getAccessToken();
+    const scopedAccessToken = getAccessToken();
+    const isScopedLogin = !!scopedAccessToken;
+    const canWechatLogin = config.wechatLoginEnabled !== false && isScopedLogin;
     const activeMethod = loginMethod === 'wechat' && !canWechatLogin
       ? 'password'
       : (loginMethod || 'password');
     this.setData({
+      isScopedLogin,
       canWechatLogin,
       activeMethod,
     });
@@ -65,8 +82,10 @@ Page({
 
   async handleLogin() {
     const { username, password } = this.data;
+    const scopedAccessToken = getAccessToken();
+    const isScopedLogin = !!scopedAccessToken;
 
-    if (!username.trim()) {
+    if (!isScopedLogin && !username.trim()) {
       this.setData({ error: '请输入手机号或姓名' });
       return;
     }
@@ -79,14 +98,22 @@ Page({
     this.setData({ loading: true, error: '' });
 
     try {
-      const result = await usernameLogin(username.trim(), password);
+      const result = isScopedLogin
+        ? await passwordLogin(scopedAccessToken as string, password)
+        : await usernameLogin(username.trim(), password);
       if (result.success) {
         if (this.data.pendingWechatBind) {
           const accessToken = getAccessToken();
           if (accessToken) {
             const bindResult = await bindWechat(accessToken);
             if (!bindResult.success) {
+              if (isWechatNotConfigured(bindResult.message)) {
+                persistWechatLoginEnabled(false);
+                this.setData({ canWechatLogin: false, activeMethod: 'password' });
+              }
               wx.showToast({ title: bindResult.message || '微信绑定失败，可稍后重试', icon: 'none' });
+            } else {
+              persistWechatLoginEnabled(true);
             }
           }
         }
@@ -113,12 +140,22 @@ Page({
     try {
       const result = await wxLogin();
       if (result.success) {
+        persistWechatLoginEnabled(true);
         this.enterApp();
         return;
       }
 
+      if (result.needBind) {
+        persistWechatLoginEnabled(true);
+      }
+
+      if (isWechatNotConfigured(result.message)) {
+        persistWechatLoginEnabled(false);
+      }
+
       this.setData({
         pendingWechatBind: !!result.needBind,
+        canWechatLogin: isWechatNotConfigured(result.message) ? false : this.data.canWechatLogin,
         activeMethod: result.needBind ? 'password' : this.data.activeMethod,
         error: result.message || '微信登录失败',
       });
