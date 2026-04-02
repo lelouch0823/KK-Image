@@ -46,40 +46,14 @@ export class PurchaseOrderShortageClosureService {
     this.now = deps.now || (() => Date.now());
   }
 
-  async requireClosablePurchaseOrder(poId) {
-    return requirePurchaseOrder(this.db, poId, {
-      allowedStatuses: ['ordered', 'shipping'],
-      invalidStatusMessage: '仅 ordered 或 shipping 状态的采购单允许关闭待收',
-    });
-  }
-
-  async requirePurchaseOrderItemForPo(poId, purchaseOrderItemId) {
-    return requirePurchaseOrderItemForPo(this.db, poId, purchaseOrderItemId);
-  }
-
-  buildShortageClosureStatement(poId, poItem, nextCancelledQty, displayStatus, closeQty) {
-    return buildPurchaseOrderItemCancelledQtyStatement(this.db, poId, poItem, {
-      nextCancelledQty,
-      nextDisplayStatus: displayStatus,
-      requiredRemainingQty: closeQty,
-    });
-  }
-
-  buildShortageClosureRevertStatement(poId, poItem, nextCancelledQty, displayStatus) {
-    return buildPurchaseOrderItemCancelledQtyStatement(this.db, poId, poItem, {
-      nextCancelledQty: toNonNegativeInt(poItem.cancelled_qty),
-      nextDisplayStatus: projectPurchaseOrderItemStatus(poItem),
-      expectedReceivedQty: poItem.received_qty,
-      expectedCancelledQty: nextCancelledQty,
-      expectedDisplayStatus: displayStatus,
-    });
-  }
-
   async closeShortages(poId, payload = {}, options = {}) {
     const items = Array.isArray(payload.items) ? payload.items : null;
     if (!items || items.length === 0) throw new BadRequestError('items is required');
 
-    await this.requireClosablePurchaseOrder(poId);
+    await requirePurchaseOrder(this.db, poId, {
+      allowedStatuses: ['ordered', 'shipping'],
+      invalidStatusMessage: '仅 ordered 或 shipping 状态的采购单允许关闭待收',
+    });
 
     const idempotencyKey = String(options.idempotencyKey || crypto.randomUUID()).trim();
     const requestFingerprint = buildClosureRequestFingerprint(poId, payload);
@@ -114,7 +88,11 @@ export class PurchaseOrderShortageClosureService {
       }
       seenItemIds.add(purchaseOrderItemId);
 
-      const poItem = await this.requirePurchaseOrderItemForPo(poId, purchaseOrderItemId);
+      const poItem = await requirePurchaseOrderItemForPo(
+        this.db,
+        poId,
+        purchaseOrderItemId
+      );
       const remainingReceivable = computePurchaseOrderRemainingReceivable(poItem);
       if (closeQty > remainingReceivable) {
         throw new BadRequestError(`关闭数量超过剩余待收数量: ${remainingReceivable}`);
@@ -129,21 +107,20 @@ export class PurchaseOrderShortageClosureService {
       const remainingReceivableAfter = Math.max(remainingReceivable - closeQty, 0);
 
       statements.push(
-        this.buildShortageClosureStatement(
-          poId,
-          poItem,
+        buildPurchaseOrderItemCancelledQtyStatement(this.db, poId, poItem, {
           nextCancelledQty,
-          displayStatus,
-          closeQty
-        )
+          nextDisplayStatus: displayStatus,
+          requiredRemainingQty: closeQty,
+        })
       );
       revertStatements.push(
-        this.buildShortageClosureRevertStatement(
-          poId,
-          poItem,
-          nextCancelledQty,
-          displayStatus
-        )
+        buildPurchaseOrderItemCancelledQtyStatement(this.db, poId, poItem, {
+          nextCancelledQty: toNonNegativeInt(poItem.cancelled_qty),
+          nextDisplayStatus: projectPurchaseOrderItemStatus(poItem),
+          expectedReceivedQty: poItem.received_qty,
+          expectedCancelledQty: nextCancelledQty,
+          expectedDisplayStatus: displayStatus,
+        })
       );
       results.push({
         purchase_order_item_id: purchaseOrderItemId,

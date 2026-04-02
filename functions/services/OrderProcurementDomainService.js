@@ -101,17 +101,6 @@ export class OrderProcurementDomainService {
     this.now = deps.now || (() => Date.now());
   }
 
-  async requireReceivablePurchaseOrder(poId) {
-    return requirePurchaseOrder(this.db, poId, {
-      allowedStatuses: ['ordered', 'shipping'],
-      invalidStatusMessage: '仅 ordered 或 shipping 状态的采购单允许收货',
-    });
-  }
-
-  async requirePurchaseOrderItemForPo(poId, purchaseOrderItemId) {
-    return requirePurchaseOrderItemForPo(this.db, poId, purchaseOrderItemId);
-  }
-
   async queryCompatibilityOrderLines(
     orderId,
     { productId = null, variantId = null } = {},
@@ -219,39 +208,13 @@ export class OrderProcurementDomainService {
     return nextStatus;
   }
 
-  async queryInventoryBalance(variantId) {
-    return queryInventoryBalance(this.db, variantId);
-  }
-
-  buildPurchaseOrderItemReceiptStatement(poId, poItem, nextReceived, displayStatus, receivedQty) {
-    return buildPurchaseOrderItemReceivedQtyStatement(this.db, poId, poItem, {
-      nextReceivedQty: nextReceived,
-      nextDisplayStatus: displayStatus,
-      requiredRemainingQty: receivedQty,
-    });
-  }
-
-  buildOrderLineProgressStatement(orderLine, timestamp) {
-    return buildOrderLineProjectionStatement(this.db, orderLine, orderLine, timestamp);
-  }
-
-  buildCompatibilityOrderStatusStatement(orderId, procurementStatus, timestamp) {
-    return buildCompatibilityOrderProcurementStatusStatement(
-      this.db,
-      orderId,
-      procurementStatus,
-      timestamp,
-      {
-        excludeTerminalStatuses: true,
-        requireStatusChange: true,
-      }
-    );
-  }
-
   async recordPurchaseOrderReceipts(poId, payload = {}, options = {}) {
     const items = Array.isArray(payload.items) ? payload.items : null;
     if (!items || items.length === 0) throw new BadRequestError('items is required');
-    await this.requireReceivablePurchaseOrder(poId);
+    await requirePurchaseOrder(this.db, poId, {
+      allowedStatuses: ['ordered', 'shipping'],
+      invalidStatusMessage: '仅 ordered 或 shipping 状态的采购单允许收货',
+    });
 
     const idempotencyKey = String(options.idempotencyKey || crypto.randomUUID()).trim();
     const requestFingerprint = buildReceiptRequestFingerprint(poId, payload);
@@ -293,7 +256,7 @@ export class OrderProcurementDomainService {
       if (!purchaseOrderItemId) throw new BadRequestError('purchase_order_item_id is required');
       if (receivedQty <= 0) throw new BadRequestError('received_qty must be greater than 0');
 
-      const poItem = await this.requirePurchaseOrderItemForPo(poId, purchaseOrderItemId);
+      const poItem = await requirePurchaseOrderItemForPo(this.db, poId, purchaseOrderItemId);
       const remainingReceivable = computeRemainingReceivable(poItem);
       if (receivedQty > remainingReceivable) {
         throw new BadRequestError(`收货数量超过剩余可收数量: ${remainingReceivable}`);
@@ -316,12 +279,15 @@ export class OrderProcurementDomainService {
         cancelled_qty: poItem.cancelled_qty,
       });
 
-      const purchaseItemStatement = this.buildPurchaseOrderItemReceiptStatement(
+      const purchaseItemStatement = buildPurchaseOrderItemReceivedQtyStatement(
+        this.db,
         poId,
         poItem,
-        nextReceived,
-        displayStatus,
-        receivedQty
+        {
+          nextReceivedQty: nextReceived,
+          nextDisplayStatus: displayStatus,
+          requiredRemainingQty: receivedQty,
+        }
       );
       preflightReverts.push(
         this.db
@@ -464,7 +430,9 @@ export class OrderProcurementDomainService {
           };
           nextLineState.display_status = projectOrderLineStatus(nextLineState);
           orderLineStates.set(nextLineState.id, nextLineState);
-          statements.push(this.buildOrderLineProgressStatement(nextLineState, timestamp));
+          statements.push(
+            buildOrderLineProjectionStatement(this.db, nextLineState, nextLineState, timestamp)
+          );
 
           const currentAggregate =
             orderAggregateStates.get(poItem.pre_order_id) ||
@@ -482,10 +450,15 @@ export class OrderProcurementDomainService {
 
           const nextProcurementStatus = projectCompatibilityProcurementStatus(nextAggregate);
           statements.push(
-            this.buildCompatibilityOrderStatusStatement(
+            buildCompatibilityOrderProcurementStatusStatement(
+              this.db,
               poItem.pre_order_id,
               nextProcurementStatus,
-              timestamp
+              timestamp,
+              {
+                excludeTerminalStatuses: true,
+                requireStatusChange: true,
+              }
             )
           );
 
@@ -498,7 +471,7 @@ export class OrderProcurementDomainService {
         if (poItem.variant_id) {
           const currentInventory =
             inventoryStates.get(poItem.variant_id) ||
-            (await this.queryInventoryBalance(poItem.variant_id));
+            (await queryInventoryBalance(this.db, poItem.variant_id));
           const nextInventory = {
             ...currentInventory,
             on_hand: toNonNegativeInt(currentInventory?.on_hand) + receivedQty,

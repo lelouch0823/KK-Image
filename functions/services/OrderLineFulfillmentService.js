@@ -75,7 +75,7 @@ export class OrderLineFulfillmentService {
       );
     }
 
-    const inventory = await this.queryInventoryBalance(line.variant_id);
+    const inventory = await queryInventoryBalance(this.db, line.variant_id);
     const readyQuantity = getReadyLineQuantity(line);
     const reserveCapacity = Math.max(readyQuantity, toNonNegativeInt(inventory.available));
     if (quantity > reserveCapacity) {
@@ -88,7 +88,19 @@ export class OrderLineFulfillmentService {
     });
 
     const statements = [
-      this.buildOrderLineUpdateStatement(line, nextLineState, timestamp),
+      buildOrderLineProjectionStatement(
+        this.db,
+        {
+          ...nextLineState,
+          id: line.line_id,
+          order_id: line.order_id,
+        },
+        {
+          id: line.line_id,
+          order_id: line.order_id,
+        },
+        timestamp
+      ),
       this.allocationRepo.createInsertStatement({
         id: this.uuid(),
         order_line_id: lineId,
@@ -167,7 +179,19 @@ export class OrderLineFulfillmentService {
     }
 
     statements.push(
-      this.buildOrderLineUpdateStatement(line, nextLineState, timestamp),
+      buildOrderLineProjectionStatement(
+        this.db,
+        {
+          ...nextLineState,
+          id: line.line_id,
+          order_id: line.order_id,
+        },
+        {
+          id: line.line_id,
+          order_id: line.order_id,
+        },
+        timestamp
+      ),
       this.buildOrderTouchStatement(orderId, timestamp),
       ...this.buildOutboxStatements({
         order: line,
@@ -182,7 +206,7 @@ export class OrderLineFulfillmentService {
     );
 
     await this.db.batch(statements);
-    const inventory = await this.queryInventoryBalance(line.variant_id);
+    const inventory = await queryInventoryBalance(this.db, line.variant_id);
     return this.buildCommandResult({
       orderId,
       lineId,
@@ -203,7 +227,7 @@ export class OrderLineFulfillmentService {
       throw new BadRequestError(`ship quantity exceeds remaining quantity: ${remaining}`);
     }
 
-    const inventory = await this.queryInventoryBalance(line.variant_id);
+    const inventory = await queryInventoryBalance(this.db, line.variant_id);
     if (quantity > inventory.on_hand) {
       throw new BadRequestError(`ship quantity exceeds on-hand stock: ${inventory.on_hand}`);
     }
@@ -267,7 +291,19 @@ export class OrderLineFulfillmentService {
 
     statements.push(
       ...(shipment?.statements || []),
-      this.buildOrderLineUpdateStatement(line, nextLineState, timestamp),
+      buildOrderLineProjectionStatement(
+        this.db,
+        {
+          ...nextLineState,
+          id: line.line_id,
+          order_id: line.order_id,
+        },
+        {
+          id: line.line_id,
+          order_id: line.order_id,
+        },
+        timestamp
+      ),
       this.buildOrderTouchStatement(orderId, timestamp),
       ...this.buildOutboxStatements({
         order: line,
@@ -332,10 +368,6 @@ export class OrderLineFulfillmentService {
     }
   }
 
-  async queryInventoryBalance(variantId) {
-    return queryInventoryBalance(this.db, variantId);
-  }
-
   buildNextLineState(line, overrides = {}) {
     const next = {
       ordered_qty: toNonNegativeInt(line.ordered_qty),
@@ -349,22 +381,6 @@ export class OrderLineFulfillmentService {
 
     next.display_status = projectOrderLineStatus(next);
     return next;
-  }
-
-  buildOrderLineUpdateStatement(line, nextLineState, timestamp) {
-    return buildOrderLineProjectionStatement(
-      this.db,
-      {
-        ...nextLineState,
-        id: line.line_id,
-        order_id: line.order_id,
-      },
-      {
-        id: line.line_id,
-        order_id: line.order_id,
-      },
-      timestamp
-    );
   }
 
   buildOrderTouchStatement(orderId, timestamp) {

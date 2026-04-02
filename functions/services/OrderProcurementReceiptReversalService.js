@@ -54,29 +54,6 @@ export class OrderProcurementReceiptReversalService {
     this.now = deps.now || (() => Date.now());
   }
 
-  async requirePurchaseOrder(poId) {
-    return requirePurchaseOrder(this.db, poId, {
-      notFoundMessage: '采购单不存在',
-    });
-  }
-
-  async requireReversiblePurchaseOrder(poId) {
-    return requirePurchaseOrder(this.db, poId, {
-      allowedStatuses: ['ordered', 'shipping', 'arrived'],
-      invalidStatusMessage: '仅 ordered、shipping 或 arrived 状态的采购单允许冲销收货',
-    });
-  }
-
-  async requirePurchaseOrderItem(poId, poItemId) {
-    return requirePurchaseOrderItemForPo(this.db, poId, poItemId, {
-      select: 'id, po_id, quantity, received_qty, cancelled_qty',
-    });
-  }
-
-  async queryInventoryBalance(variantId) {
-    return queryInventoryBalance(this.db, variantId);
-  }
-
   async queryPurchaseOrderAggregate(poId) {
     const progress = await this.db
       .prepare(
@@ -119,40 +96,11 @@ export class OrderProcurementReceiptReversalService {
       .bind(nextStatus, timestamp, poId, currentStatus);
   }
 
-  buildPurchaseOrderItemReversalStatement(poId, poItem, nextReceivedQty, nextDisplayStatus) {
-    return buildPurchaseOrderItemReceivedQtyStatement(this.db, poId, poItem, {
-      nextReceivedQty,
-      nextDisplayStatus,
-    });
-  }
-
-  buildPurchaseOrderItemRevertStatement(poId, poItem, nextReceivedQty, nextDisplayStatus) {
-    return buildPurchaseOrderItemReceivedQtyStatement(this.db, poId, poItem, {
-      nextReceivedQty: toNonNegativeInt(poItem.received_qty),
-      nextDisplayStatus: projectPurchaseOrderItemStatus(poItem),
-      expectedReceivedQty: nextReceivedQty,
-      expectedCancelledQty: poItem.cancelled_qty,
-      expectedDisplayStatus: nextDisplayStatus,
-    });
-  }
-
-  buildOrderLineReversalStatement(orderLine, nextOrderLine, timestamp) {
-    return buildOrderLineProjectionStatement(this.db, nextOrderLine, orderLine, timestamp, {
-      writeMode: 'received_only',
-      guardProjectionState: true,
-    });
-  }
-
-  buildOrderLineRevertStatement(orderLine, nextOrderLine, timestamp) {
-    return buildOrderLineProjectionStatement(this.db, orderLine, nextOrderLine, timestamp, {
-      writeMode: 'received_only',
-      guardProjectionState: true,
-      expectedDisplayStatus: nextOrderLine.display_status,
-    });
-  }
-
   async reverseReceipt(poId, receiptId, payload = {}, options = {}) {
-    const purchaseOrder = await this.requireReversiblePurchaseOrder(poId);
+    const purchaseOrder = await requirePurchaseOrder(this.db, poId, {
+      allowedStatuses: ['ordered', 'shipping', 'arrived'],
+      invalidStatusMessage: '仅 ordered、shipping 或 arrived 状态的采购单允许冲销收货',
+    });
 
     const idempotencyKey = String(options.idempotencyKey || crypto.randomUUID()).trim();
     const requestFingerprint = buildReversalFingerprint(poId, receiptId, payload);
@@ -191,15 +139,19 @@ export class OrderProcurementReceiptReversalService {
     }
 
     const inventoryBalance = originalReceipt.variant_id
-      ? await this.queryInventoryBalance(originalReceipt.variant_id)
+      ? await queryInventoryBalance(this.db, originalReceipt.variant_id)
       : null;
     if (inventoryBalance && inventoryBalance.on_hand < reversalQty) {
       throw new BadRequestError('当前库存不足，无法执行收货冲销');
     }
 
-    const poItem = await this.requirePurchaseOrderItem(
+    const poItem = await requirePurchaseOrderItemForPo(
+      this.db,
       poId,
-      originalReceipt.purchase_order_item_id
+      originalReceipt.purchase_order_item_id,
+      {
+        select: 'id, po_id, quantity, received_qty, cancelled_qty',
+      }
     );
     const purchaseOrderAggregate = await this.queryPurchaseOrderAggregate(poId);
     const timestamp = this.now();
@@ -235,20 +187,19 @@ export class OrderProcurementReceiptReversalService {
       preflightStatements.push(reservation.insertStatement);
     }
     preflightStatements.push(
-      this.buildPurchaseOrderItemReversalStatement(
-        poId,
-        poItem,
+      buildPurchaseOrderItemReceivedQtyStatement(this.db, poId, poItem, {
         nextReceivedQty,
-        nextDisplayStatus
-      )
+        nextDisplayStatus,
+      })
     );
     preflightReverts.push(
-      this.buildPurchaseOrderItemRevertStatement(
-        poId,
-        poItem,
-        nextReceivedQty,
-        nextDisplayStatus
-      )
+      buildPurchaseOrderItemReceivedQtyStatement(this.db, poId, poItem, {
+        nextReceivedQty: toNonNegativeInt(poItem.received_qty),
+        nextDisplayStatus: projectPurchaseOrderItemStatus(poItem),
+        expectedReceivedQty: nextReceivedQty,
+        expectedCancelledQty: poItem.cancelled_qty,
+        expectedDisplayStatus: nextDisplayStatus,
+      })
     );
     if (nextPurchaseOrderStatus !== purchaseOrder.status) {
       preflightStatements.push(
@@ -286,10 +237,17 @@ export class OrderProcurementReceiptReversalService {
       };
       nextOrderLine.display_status = projectOrderLineStatus(nextOrderLine);
       preflightStatements.push(
-        this.buildOrderLineReversalStatement(orderLine, nextOrderLine, timestamp)
+        buildOrderLineProjectionStatement(this.db, nextOrderLine, orderLine, timestamp, {
+          writeMode: 'received_only',
+          guardProjectionState: true,
+        })
       );
       preflightReverts.push(
-        this.buildOrderLineRevertStatement(orderLine, nextOrderLine, timestamp)
+        buildOrderLineProjectionStatement(this.db, orderLine, nextOrderLine, timestamp, {
+          writeMode: 'received_only',
+          guardProjectionState: true,
+          expectedDisplayStatus: nextOrderLine.display_status,
+        })
       );
     }
 
