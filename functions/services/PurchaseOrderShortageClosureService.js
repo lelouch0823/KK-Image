@@ -7,6 +7,7 @@ import {
   toNonNegativeInt,
 } from './purchase-order-projection.js';
 import {
+  buildShortageClosureRequestFingerprint,
   buildPurchaseOrderItemCancelledQtyStatement,
   buildFinalizeCommandStatements,
   cleanupReservedCommand,
@@ -21,21 +22,6 @@ function normalizeClosureEntry(entry = {}) {
     purchase_order_item_id: String(entry.purchase_order_item_id || '').trim(),
     close_qty: toNonNegativeInt(entry.close_qty),
   };
-}
-
-function buildClosureRequestFingerprint(poId, payload = {}) {
-  const normalizedItems = (Array.isArray(payload.items) ? payload.items : [])
-    .map(normalizeClosureEntry)
-    .sort((left, right) => {
-      const key = left.purchase_order_item_id.localeCompare(right.purchase_order_item_id);
-      if (key !== 0) return key;
-      return left.close_qty - right.close_qty;
-    });
-
-  return JSON.stringify({
-    purchase_order_id: poId,
-    items: normalizedItems,
-  });
 }
 
 export class PurchaseOrderShortageClosureService {
@@ -56,7 +42,7 @@ export class PurchaseOrderShortageClosureService {
     });
 
     const idempotencyKey = String(options.idempotencyKey || crypto.randomUUID()).trim();
-    const requestFingerprint = buildClosureRequestFingerprint(poId, payload);
+    const requestFingerprint = buildShortageClosureRequestFingerprint(poId, payload);
     const commandReservation = await this.commandIdempotencyRepo.reserveShortageClosureCommand(
       poId,
       idempotencyKey,

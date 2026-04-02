@@ -6,6 +6,7 @@ import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 import {
+  buildReversalRequestFingerprint,
   buildCompatibilityOrderProcurementStatusStatement,
   buildOrderLineProjectionStatement,
   buildPurchaseOrderItemReceivedQtyStatement,
@@ -24,14 +25,6 @@ import {
   projectPurchaseOrderItemStatus,
   toNonNegativeInt,
 } from './purchase-order-projection.js';
-
-function buildReversalFingerprint(poId, receiptId, payload = {}) {
-  return JSON.stringify({
-    purchase_order_id: poId,
-    receipt_id: receiptId,
-    reason: payload.reason || null,
-  });
-}
 
 function isDuplicateReceiptReversalError(error) {
   const message = String(error?.message || error || '').toLowerCase();
@@ -103,7 +96,7 @@ export class OrderProcurementReceiptReversalService {
     });
 
     const idempotencyKey = String(options.idempotencyKey || crypto.randomUUID()).trim();
-    const requestFingerprint = buildReversalFingerprint(poId, receiptId, payload);
+    const requestFingerprint = buildReversalRequestFingerprint(poId, receiptId, payload);
     const reservation = await this.commandIdempotencyRepo.reserveReversalCommand(
       `${poId}:${receiptId}`,
       idempotencyKey,

@@ -7,6 +7,7 @@ import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 import {
+  buildReceiptRequestFingerprint,
   buildCompatibilityOrderProcurementStatusStatement,
   buildOrderLineProjectionStatement,
   buildPurchaseOrderItemReceivedQtyStatement,
@@ -42,23 +43,6 @@ function normalizeReceiptEntry(entry = {}) {
     received_qty: toNonNegativeInt(entry.received_qty),
     note: entry.note == null ? null : String(entry.note),
   };
-}
-
-function buildReceiptRequestFingerprint(poId, payload = {}) {
-  const normalizedItems = (Array.isArray(payload.items) ? payload.items : [])
-    .map(normalizeReceiptEntry)
-    .sort((left, right) => {
-      const key = left.purchase_order_item_id.localeCompare(right.purchase_order_item_id);
-      if (key !== 0) return key;
-      const qty = left.received_qty - right.received_qty;
-      if (qty !== 0) return qty;
-      return String(left.note || '').localeCompare(String(right.note || ''));
-    });
-
-  return JSON.stringify({
-    purchase_order_id: poId,
-    items: normalizedItems,
-  });
 }
 
 function countReceiptWriteStatements(preparedReceipts = []) {

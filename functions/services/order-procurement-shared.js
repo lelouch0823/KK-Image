@@ -6,6 +6,14 @@ export { buildOrderLineProjectionStatement, queryInventoryBalance } from './orde
 const DEFAULT_PURCHASE_ORDER_ITEM_SELECT =
   'id, po_id, product_id, variant_id, pre_order_id, quantity, received_qty, cancelled_qty';
 
+function normalizeFingerprintItemId(value) {
+  return String(value || '').trim();
+}
+
+function sortFingerprintItems(items = [], compare) {
+  return [...items].sort(compare);
+}
+
 export function parseStoredResponse(responseJson) {
   if (!responseJson) return null;
   try {
@@ -13,6 +21,55 @@ export function parseStoredResponse(responseJson) {
   } catch {
     return null;
   }
+}
+
+export function buildReceiptRequestFingerprint(poId, payload = {}) {
+  const normalizedItems = sortFingerprintItems(
+    (Array.isArray(payload.items) ? payload.items : []).map((entry = {}) => ({
+      purchase_order_item_id: normalizeFingerprintItemId(entry.purchase_order_item_id),
+      received_qty: toNonNegativeInt(entry.received_qty),
+      note: entry.note == null ? null : String(entry.note),
+    })),
+    (left, right) => {
+      const key = left.purchase_order_item_id.localeCompare(right.purchase_order_item_id);
+      if (key !== 0) return key;
+      const qty = left.received_qty - right.received_qty;
+      if (qty !== 0) return qty;
+      return String(left.note || '').localeCompare(String(right.note || ''));
+    }
+  );
+
+  return JSON.stringify({
+    purchase_order_id: poId,
+    items: normalizedItems,
+  });
+}
+
+export function buildReversalRequestFingerprint(poId, receiptId, payload = {}) {
+  return JSON.stringify({
+    purchase_order_id: poId,
+    receipt_id: receiptId,
+    reason: payload.reason || null,
+  });
+}
+
+export function buildShortageClosureRequestFingerprint(poId, payload = {}) {
+  const normalizedItems = sortFingerprintItems(
+    (Array.isArray(payload.items) ? payload.items : []).map((entry = {}) => ({
+      purchase_order_item_id: normalizeFingerprintItemId(entry.purchase_order_item_id),
+      close_qty: toNonNegativeInt(entry.close_qty),
+    })),
+    (left, right) => {
+      const key = left.purchase_order_item_id.localeCompare(right.purchase_order_item_id);
+      if (key !== 0) return key;
+      return left.close_qty - right.close_qty;
+    }
+  );
+
+  return JSON.stringify({
+    purchase_order_id: poId,
+    items: normalizedItems,
+  });
 }
 
 export function buildDeleteCommandStatement(db, commandId) {

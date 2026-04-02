@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { BadRequestError } from '../../lib/hono/errors.js';
 
 import {
+  buildReceiptRequestFingerprint,
+  buildReversalRequestFingerprint,
+  buildShortageClosureRequestFingerprint,
   buildCompatibilityOrderProcurementStatusStatement,
   buildFinalizeCommandStatements,
   buildDeleteCommandStatement,
@@ -20,6 +23,62 @@ import {
 } from '../order-procurement-shared.js';
 
 describe('order-procurement-shared', () => {
+  it('builds stable receipt request fingerprints from sorted normalized items', () => {
+    expect(
+      buildReceiptRequestFingerprint('po-1', {
+        items: [
+          { purchase_order_item_id: 'poi-2', received_qty: 2, note: 'b' },
+          { purchase_order_item_id: ' poi-1 ', received_qty: '1', note: null },
+          { purchase_order_item_id: 'poi-1', received_qty: 1, note: 'a' },
+        ],
+      })
+    ).toBe(
+      JSON.stringify({
+        purchase_order_id: 'po-1',
+        items: [
+          { purchase_order_item_id: 'poi-1', received_qty: 1, note: null },
+          { purchase_order_item_id: 'poi-1', received_qty: 1, note: 'a' },
+          { purchase_order_item_id: 'poi-2', received_qty: 2, note: 'b' },
+        ],
+      })
+    );
+  });
+
+  it('builds stable reversal request fingerprints', () => {
+    expect(
+      buildReversalRequestFingerprint('po-1', 'receipt-1', {
+        reason: 'duplicate receipt',
+      })
+    ).toBe(
+      JSON.stringify({
+        purchase_order_id: 'po-1',
+        receipt_id: 'receipt-1',
+        reason: 'duplicate receipt',
+      })
+    );
+  });
+
+  it('builds stable shortage-closure request fingerprints from sorted normalized items', () => {
+    expect(
+      buildShortageClosureRequestFingerprint('po-1', {
+        items: [
+          { purchase_order_item_id: 'poi-2', close_qty: 3 },
+          { purchase_order_item_id: ' poi-1 ', close_qty: '1' },
+          { purchase_order_item_id: 'poi-1', close_qty: 2 },
+        ],
+      })
+    ).toBe(
+      JSON.stringify({
+        purchase_order_id: 'po-1',
+        items: [
+          { purchase_order_item_id: 'poi-1', close_qty: 1 },
+          { purchase_order_item_id: 'poi-1', close_qty: 2 },
+          { purchase_order_item_id: 'poi-2', close_qty: 3 },
+        ],
+      })
+    );
+  });
+
   it('parses stored command responses defensively', () => {
     expect(parseStoredResponse('{"ok":true}')).toEqual({ ok: true });
     expect(parseStoredResponse('not-json')).toBeNull();
