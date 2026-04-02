@@ -4,10 +4,11 @@
  */
 
 import { API_BASE_URL, STORAGE_KEYS } from './constants';
+import { salesRequest } from '../services/http/request';
 
 interface RequestOptions {
     method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-    data?: object;
+    data?: unknown;
     header?: Record<string, string>;
     showLoading?: boolean;
     loadingText?: string;
@@ -62,61 +63,38 @@ export function setAccessToken(token: string): void {
 export function request<T = any>(url: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
     const { method = 'GET', data, header = {}, showLoading = false, loadingText = '加载中...' } = options;
 
-    // 获取 Token
-    const token = getToken();
-
-    // 构建请求头
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        ...header,
-    };
-
-    // 如果有 Token，添加到请求头
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
     // 显示加载提示
     if (showLoading) {
         wx.showLoading({ title: loadingText, mask: true });
     }
 
-    return new Promise((resolve, reject) => {
-        wx.request({
-            url: `${API_BASE_URL}${url}`,
-            method,
-            data,
-            header: headers,
-            success: (res) => {
-                const response = res.data as ApiResponse<T>;
+    return salesRequest<T>({
+        path: url,
+        method,
+        data: data as Record<string, unknown> | unknown[] | undefined,
+        header,
+    }).then((result) => {
+        if (result.status === 401) {
+            clearToken();
+            wx.redirectTo({ url: '/pages/login/login' });
+        }
 
-                if (res.statusCode === 401) {
-                    // Token 过期，清除并跳转登录
-                    clearToken();
-                    wx.redirectTo({ url: '/pages/login/login' });
-                    reject(new Error('登录已过期，请重新登录'));
-                    return;
-                }
+        if (!result.success && result.error) {
+            wx.showToast({ title: result.error, icon: 'none' });
+        }
 
-                if (res.statusCode >= 200 && res.statusCode < 300) {
-                    resolve(response);
-                } else {
-                    const errorMsg = response.error || response.message || '请求失败';
-                    wx.showToast({ title: errorMsg, icon: 'none' });
-                    reject(new Error(errorMsg));
-                }
-            },
-            fail: (err) => {
-                console.error('Request failed:', err);
-                wx.showToast({ title: '网络请求失败', icon: 'none' });
-                reject(new Error('网络请求失败'));
-            },
-            complete: () => {
-                if (showLoading) {
-                    wx.hideLoading();
-                }
-            },
-        });
+        return {
+            success: result.success,
+            data: result.data ?? undefined,
+            error: result.error ?? undefined,
+            message: result.error ?? undefined,
+            code: result.code ?? undefined,
+            status: result.status,
+        };
+    }).finally(() => {
+        if (showLoading) {
+            wx.hideLoading();
+        }
     });
 }
 
@@ -130,7 +108,7 @@ export function get<T = any>(url: string, options?: Omit<RequestOptions, 'method
 /**
  * POST 请求快捷方法
  */
-export function post<T = any>(url: string, data?: object, options?: Omit<RequestOptions, 'method' | 'data'>): Promise<ApiResponse<T>> {
+export function post<T = any>(url: string, data?: unknown, options?: Omit<RequestOptions, 'method' | 'data'>): Promise<ApiResponse<T>> {
     return request<T>(url, { ...options, method: 'POST', data });
 }
 

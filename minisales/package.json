@@ -2,7 +2,10 @@
   "name": "miniprogram-ts-sass-quickstart",
   "version": "1.0.0",
   "description": "",
-  "scripts": {},
+  "scripts": {
+    "test:unit": "vitest run",
+    "typecheck": "tsc --noEmit --skipLibCheck --target ES2020 --module CommonJS --lib ES2020 typings/index.d.ts miniprogram/services/http/request.ts miniprogram/utils/api.ts miniprogram/utils/constants.ts"
+  },
   "keywords": [],
   "author": "",
   "license": "",
@@ -10,6 +13,8 @@
     "tdesign-miniprogram": "^1.12.1"
   },
   "devDependencies": {
-    "miniprogram-api-typings": "^2.8.3-1"
+    "miniprogram-api-typings": "^2.8.3-1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   }
 }

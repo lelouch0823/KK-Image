@@ -7,30 +7,40 @@
 // 注意: 微信开发者工具中需要在 "详情" -> "本地设置" 勾选 "不校验合法域名"
 export const API_BASE_URL = 'http://127.0.0.1:8080';
 
-// API 端点
+export const SALES_API = {
+    login: '/api/sales/login',
+    wechatLogin: '/api/sales/wechat-login',
+    auth: (token: string) => `/api/sales/${token}/auth`,
+    bindWechat: (token: string) => `/api/sales/${token}/bind-wechat`,
+    orders: (token: string) => `/api/sales/${token}/orders`,
+    orderById: (token: string, id: string) => `/api/sales/${token}/orders/${id}`,
+    orderRead: (token: string, id: string) => `/api/sales/${token}/orders/${id}/read`,
+    orderComment: (token: string, id: string) => `/api/sales/${token}/orders/${id}/comment`,
+    upload: (token: string) => `/api/sales/${token}/upload`,
+    products: (token: string) => `/api/sales/${token}/products`,
+    productById: (token: string, id: string) => `/api/sales/${token}/products/${id}`,
+    stats: (token: string) => `/api/sales/${token}/stats`,
+    spaces: (token: string) => `/api/sales/${token}/spaces`,
+    spaceById: (token: string, id: string) => `/api/sales/${token}/spaces/${id}`,
+    notifications: (token: string) => `/api/sales/${token}/notifications`,
+    notificationRead: (token: string, id: string) => `/api/sales/${token}/notifications/${id}/read`,
+};
+
+// Backward-compatible alias for current page/utils usage.
 export const API = {
-    // 微信登录
-    WECHAT_LOGIN: '/api/sales/wechat-login',
-
-    // 用户名/密码登录 (小程序专用)
-    SALES_LOGIN: '/api/sales/login',
-
-    // 销售端 API (需要 token 参数)
-    SALES_AUTH: (token: string) => `/api/sales/${token}/auth`,
-    SALES_ORDERS: (token: string) => `/api/sales/${token}/orders`,
-    SALES_ORDER_DETAIL: (token: string, id: string) => `/api/sales/${token}/orders/${id}`,
-    SALES_ORDER_COMMENT: (token: string, id: string) => `/api/sales/${token}/orders/${id}/comment`,
-    SALES_UPLOAD: (token: string) => `/api/sales/${token}/upload`,
-    SALES_STATS: (token: string) => `/api/sales/${token}/stats`,
-    SALES_BIND_WECHAT: (token: string) => `/api/sales/${token}/bind-wechat`,
-
-    // 通知
-    SALES_NOTIFICATIONS: (token: string) => `/api/sales/${token}/notifications`,
-    SALES_NOTIFICATIONS_READ: (token: string, id: string) => `/api/sales/${token}/notifications/${id}/read`,
-
-    // 共享空间
-    SALES_SPACES: (token: string) => `/api/sales/${token}/spaces`,
-    SALES_SPACE_DETAIL: (token: string, id: string) => `/api/sales/${token}/spaces/${id}`,
+    WECHAT_LOGIN: SALES_API.wechatLogin,
+    SALES_LOGIN: SALES_API.login,
+    SALES_AUTH: SALES_API.auth,
+    SALES_ORDERS: SALES_API.orders,
+    SALES_ORDER_DETAIL: SALES_API.orderById,
+    SALES_ORDER_COMMENT: SALES_API.orderComment,
+    SALES_UPLOAD: SALES_API.upload,
+    SALES_STATS: SALES_API.stats,
+    SALES_BIND_WECHAT: SALES_API.bindWechat,
+    SALES_NOTIFICATIONS: SALES_API.notifications,
+    SALES_NOTIFICATIONS_READ: SALES_API.notificationRead,
+    SALES_SPACES: SALES_API.spaces,
+    SALES_SPACE_DETAIL: SALES_API.spaceById,
 };
 
 // 订单状态
