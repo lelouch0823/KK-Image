@@ -1,0 +1,23 @@
+<view class="timeline-card">
+  <view class="timeline-card__header">
+    <text class="timeline-card__title">订单动态</text>
+    <text class="timeline-card__subtitle">{{timeline.length}} 条</text>
+  </view>
+
+  <view wx:if="{{timeline.length === 0}}" class="timeline-card__empty">
+    暂无动态
+  </view>
+
+  <view wx:else class="timeline-card__list">
+    <view wx:for="{{timeline}}" wx:key="id" wx:for-item="entry" class="timeline-card__item">
+      <view class="timeline-card__dot"></view>
+      <view class="timeline-card__content">
+        <view class="timeline-card__head">
+          <text class="timeline-card__item-title">{{entry.title}}</text>
+          <text class="timeline-card__time">{{entry.timeText}}</text>
+        </view>
+        <text wx:if="{{entry.content}}" class="timeline-card__body">{{entry.content}}</text>
+      </view>
+    </view>
+  </view>
+</view>

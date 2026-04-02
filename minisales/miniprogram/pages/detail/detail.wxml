@@ -1,68 +1,81 @@
-<!-- pages/detail/detail.wxml -->
 <view class="page">
   <t-navbar title="订单详情" left-arrow bind:go-back="handleBack" fixed placeholder>
-    <view slot="right" bind:tap="handleDuplicate" style="padding-right: 24rpx; font-size: 28rpx;">
+    <view slot="right" class="page__duplicate" bind:tap="handleDuplicate">
       复制
     </view>
   </t-navbar>
-  <!-- 骨架屏加载 -->
-  <view wx:if="{{loading && !order}}" class="skeleton-detail">
-    <t-skeleton rowCol="{{detailRowCol}}" loading style="padding: 24rpx;"></t-skeleton>
+
+  <view wx:if="{{state === 'loading' && !viewModel}}" class="page__state">
+    <sales-state-panel loading="{{true}}" />
   </view>
-  <scroll-view wx:elif="{{order}}" class="content" scroll-y type="list">
-    <!-- 状态卡片 -->
-    <view class="status-card" style="background-color: {{statusConfig[order.status].bgColor}};">
-      <view class="status-header">
-        <t-tag size="medium" variant="light" style="color: {{statusConfig[order.status].color}}; background-color: {{statusConfig[order.status].bgColor}};">
-          {{statusConfig[order.status].label}}
-        </t-tag>
-        <text class="order-no">{{order.orderNo}}</text>
+
+  <view wx:elif="{{state === 'error' && !viewModel}}" class="page__state">
+    <sales-state-panel error="{{errorMessage}}" bind:retry="handleRetry" />
+  </view>
+
+  <scroll-view wx:elif="{{viewModel}}" class="page__scroll" scroll-y type="list">
+    <view class="page__content">
+      <sales-order-summary summary="{{viewModel.summary}}" bind:preview="onSummaryPreview" />
+
+      <sales-order-lines wx:if="{{viewModel.lines.length > 0}}" class="page__section" lines="{{viewModel.lines}}" />
+
+      <view wx:if="{{viewModel.files.length > 0}}" class="section">
+        <view class="section__header">
+          <text class="section__title">素材文件</text>
+          <text class="section__subtitle">{{viewModel.files.length}} 个</text>
+        </view>
+
+        <view class="file-grid">
+          <view
+            wx:for="{{viewModel.files}}"
+            wx:key="id"
+            class="file-card"
+            data-url="{{item.url}}"
+            data-previewable="{{item.isImage}}"
+            bind:tap="onFileTap"
+          >
+            <t-image
+              wx:if="{{item.isImage}}"
+              class="file-card__image"
+              src="{{item.url}}"
+              mode="aspectFill"
+              lazy-load
+            />
+            <view wx:else class="file-card__image file-card__image--placeholder">
+              <t-icon name="{{item.isVideo ? 'video' : 'file-copy'}}" size="40rpx" color="#64748b" />
+            </view>
+
+            <view class="file-card__copy">
+              <text class="file-card__name">{{item.name}}</text>
+              <text class="file-card__meta">{{item.typeLabel}}</text>
+            </view>
+          </view>
+        </view>
       </view>
+
+      <sales-timeline-card class="page__section" timeline="{{viewModel.timeline}}" />
+      <view class="page__footer-spacer"></view>
     </view>
-    <!-- 图片区域 -->
-    <view wx:if="{{order.files.length > 0}}" class="section">
-      <view class="section-title">产品图片</view>
-      <t-grid column="{{3}}" border="{{false}}">
-        <t-grid-item wx:for="{{order.files}}" wx:key="id">
-          <t-image src="{{item.url}}" mode="aspectFill" width="200" height="200" lazy-load bind:click="previewImage" data-url="{{item.url}}" />
-        </t-grid-item>
-      </t-grid>
-    </view>
-    <!-- 订单信息 -->
-    <view class="section">
-      <view class="section-title">订单信息</view>
-      <t-cell-group theme="card">
-        <t-cell title="客户名称" note="{{order.currentData.name || '-'}}" />
-        <t-cell title="品牌" note="{{order.currentData.brand || '-'}}" />
-        <t-cell title="系列" note="{{order.currentData.series || '-'}}" />
-        <t-cell title="尺寸" note="{{order.currentData.size || '-'}}" />
-        <t-cell title="颜色" note="{{order.currentData.color || '-'}}" />
-        <t-cell title="材质" note="{{order.currentData.material || '-'}}" />
-        <t-cell title="期望到货" note="{{order.currentData.deadline || '-'}}" />
-        <t-cell title="备注" note="{{order.currentData.remark || '-'}}" wx:if="{{order.currentData.remark}}" />
-      </t-cell-group>
-    </view>
-    <!-- 时间轴 -->
-    <view class="section">
-      <view class="section-title">订单动态</view>
-      <view class="timeline-container">
-        <t-steps layout="vertical" theme="dot" current="{{order.timeline.length - 1}}">
-          <t-step wx:for="{{order.timeline}}" wx:key="id" title="{{item.displayTitle}}" content="{{item.displayContent}}">
-            <view slot="extra" class="timeline-time">{{format.formatTime(item.createdAt)}}</view>
-          </t-step>
-        </t-steps>
-      </view>
-    </view>
-    <view class="footer-spacer"></view>
   </scroll-view>
-  <!-- 留言输入框: Using TDesign Input? Or native input fixed at bottom is fine. Let's keep native or custom for better keyboard handling -->
-  <view wx:if="{{order}}" class="comment-bar safe-area-bottom">
-    <!-- Using native input for now to avoid TDesign form behaviors -->
-    <input class="comment-input" placeholder="输入留言..." value="{{comment}}" bindinput="onCommentInput" />
-    <t-button theme="primary" size="small" bind:tap="handleSubmitComment" disabled="{{!comment.trim()}}" loading="{{submittingComment}}">
+
+  <view wx:if="{{viewModel}}" class="comment-bar safe-area-bottom">
+    <view class="comment-bar__field">
+      <input
+        class="comment-bar__input"
+        placeholder="输入留言，支持再次提交重试"
+        value="{{comment}}"
+        bindinput="onCommentInput"
+      />
+      <text wx:if="{{commentError}}" class="comment-bar__error">{{commentError}}</text>
+    </view>
+    <t-button
+      theme="primary"
+      size="small"
+      bind:tap="handleSubmitComment"
+      disabled="{{!canSubmitComment}}"
+      loading="{{submittingComment}}"
+    >
       发送
     </t-button>
   </view>
 </view>
-<!-- WXS import needed for format -->
-<wxs src="../../utils/format.wxs" module="format" />

@@ -1,4 +1,9 @@
 {
-    "usingComponents": {},
-    "navigationStyle": "custom"
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "sales-state-panel": "../../components/sales/state-panel/index",
+    "sales-order-summary": "../../components/sales/order-summary/index",
+    "sales-order-lines": "../../components/sales/order-lines/index",
+    "sales-timeline-card": "../../components/sales/timeline-card/index"
+  }
 }

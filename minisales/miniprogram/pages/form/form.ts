@@ -4,6 +4,7 @@ import { createSalesOrder } from '../../services/sales/orders';
 import { handleMissingAccessToken } from '../../services/auth/session';
 import { uploadManager } from '../../utils/upload-manager';
 import {
+  buildFormPrefillState,
   buildCreatePayload,
   canSubmitOrderForm,
   type BoundSalesProductValue,
@@ -88,26 +89,12 @@ Page({
 
     try {
       const prefill = JSON.parse(decodeURIComponent(options.prefill));
-      const nextForm = {
-        ...this.data.form,
-        ...prefill,
-        quantity: Number(prefill.quantity || this.data.form.quantity || 1),
-      };
-
-      const boundProduct = prefill.productId
-        ? {
-            productId: prefill.productId,
-            variantId: prefill.variantId || '',
-            name: prefill.name || '',
-            brand: prefill.brand || '',
-            series: prefill.series || '',
-            sku: prefill.sku || '',
-          }
-        : null;
+      const nextState = buildFormPrefillState(this.data.form, prefill);
 
       this.setData({
-        form: nextForm,
-        boundProduct,
+        form: nextState.form,
+        boundProduct: nextState.boundProduct,
+        fileList: nextState.fileList,
       });
     } catch (error) {
       console.error('Parse prefill failed:', error);

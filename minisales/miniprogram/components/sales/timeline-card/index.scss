@@ -1,0 +1,105 @@
+@import '../../../styles/variables.scss';
+
+.timeline-card {
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: $bg-card;
+  box-shadow: $shadow-sm;
+}
+
+.timeline-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.timeline-card__title {
+  font-size: $font-size-lg;
+  font-weight: 600;
+  color: $text-main;
+}
+
+.timeline-card__subtitle {
+  font-size: $font-size-xs;
+  color: $text-secondary;
+}
+
+.timeline-card__empty {
+  margin-top: 20rpx;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.timeline-card__list {
+  margin-top: 24rpx;
+}
+
+.timeline-card__item {
+  position: relative;
+  display: flex;
+  gap: 16rpx;
+  padding-bottom: 24rpx;
+}
+
+.timeline-card__item:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-card__item:last-child::after {
+  display: none;
+}
+
+.timeline-card__item::after {
+  content: '';
+  position: absolute;
+  left: 10rpx;
+  top: 20rpx;
+  bottom: 0;
+  width: 2rpx;
+  background: #e2e8f0;
+}
+
+.timeline-card__dot {
+  position: relative;
+  z-index: 1;
+  width: 20rpx;
+  height: 20rpx;
+  margin-top: 8rpx;
+  border-radius: 50%;
+  background: $color-primary;
+  box-shadow: 0 0 0 8rpx rgba(59, 130, 246, 0.12);
+  flex-shrink: 0;
+}
+
+.timeline-card__content {
+  min-width: 0;
+  flex: 1;
+}
+
+.timeline-card__head {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.timeline-card__item-title {
+  font-size: $font-size-base;
+  line-height: 1.4;
+  color: $text-main;
+  font-weight: 600;
+}
+
+.timeline-card__time {
+  font-size: $font-size-xs;
+  color: $text-muted;
+}
+
+.timeline-card__body {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  color: $text-secondary;
+  word-break: break-all;
+}

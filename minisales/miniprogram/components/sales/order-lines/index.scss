@@ -1,0 +1,108 @@
+@import '../../../styles/variables.scss';
+@import '../../../styles/mixins.scss';
+
+.lines-card {
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: $bg-card;
+  box-shadow: $shadow-sm;
+}
+
+.lines-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.lines-card__title {
+  font-size: $font-size-lg;
+  font-weight: 600;
+  color: $text-main;
+}
+
+.lines-card__subtitle {
+  font-size: $font-size-xs;
+  color: $text-secondary;
+}
+
+.line-card {
+  margin-top: 24rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid $border-color;
+}
+
+.line-card:first-of-type {
+  margin-top: 20rpx;
+}
+
+.line-card__main {
+  display: flex;
+  gap: 18rpx;
+  align-items: center;
+}
+
+.line-card__image {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+  background: $bg-hover;
+  flex-shrink: 0;
+}
+
+.line-card__image--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.line-card__copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.line-card__name {
+  font-size: $font-size-base;
+  color: $text-main;
+  font-weight: 600;
+  @include text-ellipsis-multi(2);
+}
+
+.line-card__status {
+  align-self: flex-start;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: $font-size-xs;
+  line-height: 1.2;
+}
+
+.line-card__metrics {
+  margin-top: 18rpx;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14rpx;
+}
+
+.line-card__metric {
+  padding: 16rpx;
+  border-radius: 18rpx;
+  background: #f8fafc;
+}
+
+.line-card__metric-label {
+  display: block;
+  font-size: $font-size-xs;
+  color: $text-secondary;
+}
+
+.line-card__metric-value {
+  display: block;
+  margin-top: 6rpx;
+  font-size: $font-size-base;
+  color: $text-main;
+  font-weight: 600;
+}

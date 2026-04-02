@@ -1,0 +1,38 @@
+<view class="summary-card">
+  <view class="summary-card__hero">
+    <view class="summary-card__media" bind:tap="onPreview">
+      <t-image
+        wx:if="{{summary && summary.mainImage}}"
+        class="summary-card__image"
+        src="{{summary.mainImage}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view wx:else class="summary-card__image summary-card__image--placeholder">
+        <t-icon name="image" size="54rpx" color="#94a3b8" />
+      </view>
+    </view>
+
+    <view class="summary-card__body">
+      <text class="summary-card__title">{{(summary && summary.title) || '未命名订单'}}</text>
+      <text class="summary-card__order-no">{{summary && summary.orderNo}}</text>
+
+      <view class="summary-card__meta">
+        <text class="summary-card__status" style="{{summary && summary.statusStyle}}">{{summary && summary.statusLabel}}</text>
+        <text class="summary-card__quantity">数量 {{(summary && summary.quantity) || 1}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="summary-card__rows">
+    <view
+      wx:for="{{summary && summary.infoRows}}"
+      wx:key="label"
+      wx:for-item="row"
+      class="summary-card__row {{row.multiline ? 'summary-card__row--multiline' : ''}}"
+    >
+      <text class="summary-card__label">{{row.label}}</text>
+      <text class="summary-card__value">{{row.value}}</text>
+    </view>
+  </view>
+</view>
