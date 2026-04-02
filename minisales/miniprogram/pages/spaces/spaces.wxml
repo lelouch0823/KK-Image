@@ -3,11 +3,20 @@
 <view class="page">
   <!-- 导航栏 (Auto-hide) -->
   <view class="custom-navbar {{navBarVisible ? '' : 'navbar-hidden'}}" style="height: {{navBarHeight}}px;">
-    <t-navbar title="共享资源" left-arrow="{{false}}" />
+    <sales-app-shell
+      title="共享资源"
+      subtitle="销售素材与陈列资源"
+      activeTab="spaces"
+      unreadCount="{{unreadCount}}"
+      safeTop="{{statusBarHeight}}"
+      bind:layout="onShellLayout"
+      bind:navigate="onShellNavigate"
+      bind:notifications="onShellNotifications"
+    />
   </view>
   <scroll-view class="content" scroll-y type="list" bindscroll="onScroll" scroll-with-animation="{{false}}" refresher-enabled refresher-triggered="{{loading}}" bindrefresherrefresh="onPullDownRefresh">
     <!-- Spacer for Navbar with extra buffer -->
-    <view style="height: calc({{navBarHeight}}px + 20rpx); width: 100%; flex-shrink: 0;"></view>
+    <view style="height: {{navBarHeight}}px; width: 100%; flex-shrink: 0;"></view>
     <!-- 骨架屏加载 -->
     <view wx:if="{{loading && spaces.length === 0}}" class="waterfall">
       <view class="waterfall-column">

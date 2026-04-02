@@ -32,8 +32,10 @@ Page({
         leftColumn: [] as Space[],
         rightColumn: [] as Space[],
         loading: true,
+        statusBarHeight: 20,
         navBarHeight: 88,
         navBarVisible: true,
+        unreadCount: 0,
         // Skeleton 配置
         spacesRowCol: [
             { width: '100%', height: '300rpx', borderRadius: '16rpx' },
@@ -45,8 +47,9 @@ Page({
     lastScrollTop: 0,
 
     onLoad() {
-        const { totalHeight } = calculateNavBarHeight();
+        const { totalHeight, statusBarHeight } = calculateNavBarHeight();
         this.setData({
+            statusBarHeight,
             navBarHeight: totalHeight,
         });
     },
@@ -54,6 +57,13 @@ Page({
     onShow() {
         initTabBar(this);
         this.loadSpaces();
+    },
+
+    onShellLayout(e: WechatMiniprogram.CustomEvent<{ height?: number }>) {
+        const height = Number(e.detail?.height || 0);
+        if (height > 0 && Math.abs(height - this.data.navBarHeight) > 1) {
+            this.setData({ navBarHeight: Math.ceil(height) });
+        }
     },
 
     /**
@@ -137,5 +147,21 @@ Page({
     handleViewSpace(e: WechatMiniprogram.TouchEvent) {
         const { id } = e.currentTarget.dataset;
         wx.navigateTo({ url: `/pages/spaces_detail/detail?id=${id}` });
+    },
+
+    onShellNavigate(e: WechatMiniprogram.CustomEvent<{ target: string }>) {
+        const target = String(e.detail.target || '');
+        if (target === 'orders') {
+            wx.switchTab({ url: '/pages/index/index' });
+            return;
+        }
+
+        if (target === 'stats') {
+            wx.navigateTo({ url: '/pages/stats/stats' });
+        }
+    },
+
+    onShellNotifications() {
+        wx.showToast({ title: '通知功能建设中', icon: 'none' });
     },
 });

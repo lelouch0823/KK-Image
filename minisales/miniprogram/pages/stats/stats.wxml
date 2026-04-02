@@ -1,5 +1,5 @@
 <!-- pages/stats/stats.wxml -->
-<t-navbar title="业绩统计" left-arrow="{{false}}" fixed placeholder />
+<t-navbar title="业绩统计" left-arrow fixed placeholder bind:click="handleBack" />
 <view class="page" style="padding-top: 20rpx">
     <scroll-view class="content" scroll-y type="list" refresher-enabled refresher-triggered="{{loading}}" bindrefresherrefresh="onPullDownRefresh">
         <!-- 骨架屏加载 -->

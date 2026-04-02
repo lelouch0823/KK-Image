@@ -1,4 +1,6 @@
 {
-    "usingComponents": {},
+    "usingComponents": {
+        "sales-app-shell": "/components/sales/app-shell/index"
+    },
     "navigationStyle": "custom"
 }

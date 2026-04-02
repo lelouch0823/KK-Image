@@ -77,6 +77,13 @@ Page({
     }
   },
 
+  onShellLayout(e: WechatMiniprogram.CustomEvent<{ height?: number }>) {
+    const height = Number(e.detail?.height || 0);
+    if (height > 0 && Math.abs(height - this.data.headerHeight) > 1) {
+      this.setData({ headerHeight: Math.ceil(height) });
+    }
+  },
+
   onUnload() {
     if (this.unsubUser) {
       this.unsubUser();

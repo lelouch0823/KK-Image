@@ -196,5 +196,12 @@ Page({
         const { maxCount } = this.data;
         return `${Math.max(10, (count / maxCount) * 100)}%`;
     },
-});
 
+    handleBack() {
+        wx.navigateBack({
+            fail: () => {
+                wx.switchTab({ url: '/pages/index/index' });
+            },
+        });
+    },
+});

@@ -15,6 +15,14 @@ interface RequestOptions {
     loadingText?: string;
 }
 
+function isPublicAuthEntryEndpoint(path: string, method: RequestOptions['method']): boolean {
+    if (path === '/api/sales/login' || path === '/api/sales/wechat-login') {
+        return true;
+    }
+
+    return method === 'POST' && /^\/api\/sales\/[^/]+\/auth$/.test(path);
+}
+
 export interface ApiResponse<T = any> {
     success: boolean;
     data?: T;
@@ -89,7 +97,7 @@ export function request<T = any>(url: string, options: RequestOptions = {}): Pro
             message: payloadMessage ?? payloadError ?? (result.error ?? undefined),
         };
 
-        if (result.status === 401) {
+        if (result.status === 401 && !isPublicAuthEntryEndpoint(url, method)) {
             handleSalesSessionExpired();
             throw new Error('登录已过期，请重新登录');
         }

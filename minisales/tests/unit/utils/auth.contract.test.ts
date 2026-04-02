@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { installMockWx } from '../../setup/wx';
 import { fetchCurrentSalesUser, wxLogin } from '../../../miniprogram/utils/auth';
+import { request as compatRequest } from '../../../miniprogram/utils/api';
 
 describe('auth contract', () => {
   it('fetchCurrentSalesUser requests GET /api/sales/:token/auth', async () => {
@@ -115,5 +116,48 @@ describe('auth contract', () => {
     expect(result.success).toBe(false);
     expect(result.message).toContain('缺少访问凭证');
     expect(setStorageSync).not.toHaveBeenCalledWith('sales_token', 'jwt-1');
+  });
+
+  it('does not trigger session-expired flow for 401 on public login endpoints', async () => {
+    const reLaunch = vi.fn();
+    const removeStorageSync = vi.fn();
+    installMockWx({
+      reLaunch,
+      removeStorageSync,
+      showToast: vi.fn(),
+      request: vi.fn(({ success }: { success?: (res: unknown) => void }) =>
+        success?.({
+          statusCode: 401,
+          data: { success: false, error: '账号或密码错误' },
+        })
+      ),
+    } as any);
+
+    await expect(
+      compatRequest('/api/sales/login', { method: 'POST', data: { username: 'a', password: 'b' } })
+    ).rejects.toThrow('账号或密码错误');
+
+    expect(reLaunch).not.toHaveBeenCalled();
+    expect(removeStorageSync).not.toHaveBeenCalledWith('sales_token');
+  });
+
+  it('triggers session-expired flow for 401 on protected endpoints', async () => {
+    const reLaunch = vi.fn();
+    const removeStorageSync = vi.fn();
+    installMockWx({
+      reLaunch,
+      removeStorageSync,
+      showToast: vi.fn(),
+      request: vi.fn(({ success }: { success?: (res: unknown) => void }) =>
+        success?.({
+          statusCode: 401,
+          data: { success: false, error: 'expired' },
+        })
+      ),
+    } as any);
+
+    await expect(compatRequest('/api/sales/token-1/orders')).rejects.toThrow('登录已过期，请重新登录');
+    expect(removeStorageSync).toHaveBeenCalledWith('sales_token');
+    expect(reLaunch).toHaveBeenCalledWith({ url: '/pages/login/login' });
   });
 });
