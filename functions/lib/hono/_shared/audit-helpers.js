@@ -268,10 +268,6 @@ export function setAuditFailureRecorded(c) {
   c.set('auditFailureRecorded', true);
 }
 
-export function hasAuditFailureRecorded(c) {
-  return Boolean(c.get('auditFailureRecorded'));
-}
-
 export function scheduleAuditEvent(c, params = {}) {
   if (!c?.env?.DB) return Promise.resolve(null);
   const scheduler = getAuditScheduler(c);
