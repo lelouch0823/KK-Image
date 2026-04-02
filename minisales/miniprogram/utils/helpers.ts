@@ -196,9 +196,30 @@ export function buildQueryString(params: Record<string, unknown>): string {
 export function resolveFilePath(path?: unknown, storageKey?: unknown): string {
     const direct = pickFirstString([path]);
     if (direct) {
-        return direct;
+        if (
+            direct.startsWith('/') ||
+            direct.startsWith('http://') ||
+            direct.startsWith('https://') ||
+            direct.startsWith('data:') ||
+            direct.startsWith('blob:')
+        ) {
+            return direct;
+        }
+
+        return `/file/${direct}`;
     }
 
     const key = pickFirstString([storageKey]);
-    return key ? `/file/${key}` : '';
+    if (key) {
+        if (
+            key.startsWith('/') ||
+            key.startsWith('http://') ||
+            key.startsWith('https://')
+        ) {
+            return key;
+        }
+
+        return `/file/${key}`;
+    }
+    return '';
 }

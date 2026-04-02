@@ -33,7 +33,7 @@ describe('product normalizers', () => {
         {
           id: 'v-1',
           status: 'active',
-          image_id: 'img-1',
+          primaryImage: 'img-1',
           options_values: '{"color":"黑色"}',
           available_quantity: 3,
           replenishment_quantity: 2,

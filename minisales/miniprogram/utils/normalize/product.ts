@@ -64,13 +64,16 @@ function normalizeOptionValues(value: unknown): Record<string, string> {
 
 function resolvePrimaryImage(raw: UnknownRecord, fallbackImages: unknown[] = []): string {
     const firstImage = asRecord(fallbackImages[0]);
-    return pickFirstString([
-        raw.primaryImage,
-        raw.primary_image,
-        firstImage.url,
-        firstImage.image_id,
-        firstImage.storage_key,
-    ]) || resolveFilePath(undefined, raw.image_id);
+    return resolveFilePath(
+        pickFirstString([
+            raw.primaryImage,
+            raw.primary_image,
+            firstImage.url,
+            firstImage.image_id,
+            firstImage.storage_key,
+        ]),
+        raw.image_id
+    );
 }
 
 function toVariantDisplayName(optionsValues: Record<string, string>): string {
