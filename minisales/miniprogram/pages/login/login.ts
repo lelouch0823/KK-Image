@@ -3,6 +3,7 @@
  */
 
 import { getCurrentUser, getLoginMethod, usernameLogin, wxLogin } from '../../utils/auth';
+import { getAccessToken } from '../../utils/api';
 import { KEYS, store } from '../../utils/store';
 
 interface AuthConfig {
@@ -43,7 +44,7 @@ Page({
 
     const config = getAuthConfig();
     const loginMethod = getLoginMethod();
-    const canWechatLogin = config.wechatLoginEnabled !== false;
+    const canWechatLogin = config.wechatLoginEnabled !== false && !!getAccessToken();
     const activeMethod = loginMethod === 'wechat' && !canWechatLogin
       ? 'password'
       : (loginMethod || 'password');
