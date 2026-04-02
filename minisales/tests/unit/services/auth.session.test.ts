@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  applyInboundAccessToken,
   handleMissingAccessToken,
   handleSalesSessionExpired,
   restoreSalesSession,
@@ -92,5 +93,42 @@ describe('session clear primitives', () => {
 
     expect(removeStorageSync).toHaveBeenCalledWith('access_token');
     expect(reLaunch).toHaveBeenCalledWith({ url: '/pages/login/login' });
+  });
+
+  it('clears stale session before applying a different inbound access token', () => {
+    const removeStorageSync = vi.fn();
+    const setStorageSync = vi.fn();
+    const getStorageSync = vi.fn((key: string) => (key === 'access_token' ? 'old-token' : ''));
+    (globalThis as any).wx = {
+      removeStorageSync,
+      setStorageSync,
+      getStorageSync,
+      reLaunch: vi.fn(),
+    };
+
+    const result = applyInboundAccessToken('new-token');
+
+    expect(result).toEqual({ applied: true, changed: true });
+    expect(removeStorageSync).toHaveBeenCalledWith('sales_token');
+    expect(removeStorageSync).toHaveBeenCalledWith('user_info');
+    expect(setStorageSync).toHaveBeenCalledWith('access_token', 'new-token');
+  });
+
+  it('keeps current session when inbound access token is unchanged', () => {
+    const removeStorageSync = vi.fn();
+    const setStorageSync = vi.fn();
+    const getStorageSync = vi.fn((key: string) => (key === 'access_token' ? 'same-token' : ''));
+    (globalThis as any).wx = {
+      removeStorageSync,
+      setStorageSync,
+      getStorageSync,
+      reLaunch: vi.fn(),
+    };
+
+    const result = applyInboundAccessToken('same-token');
+
+    expect(result).toEqual({ applied: false, changed: false });
+    expect(removeStorageSync).not.toHaveBeenCalled();
+    expect(setStorageSync).not.toHaveBeenCalled();
   });
 });

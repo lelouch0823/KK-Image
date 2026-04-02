@@ -1,6 +1,7 @@
-import { getToken, getAccessToken, setAccessToken } from './utils/api';
+import { getToken, getAccessToken } from './utils/api';
 import { fetchCurrentSalesUser } from './utils/auth';
-import { clearSalesSession, restoreSalesSession } from './services/auth/session';
+import { applyInboundAccessToken, clearSalesSession, restoreSalesSession } from './services/auth/session';
+import { KEYS, store } from './utils/store';
 
 interface IAppOption {
   globalData: {
@@ -23,9 +24,7 @@ App<IAppOption>({
     }
 
     const inboundToken = options?.query?.token;
-    if (typeof inboundToken === 'string' && inboundToken) {
-      setAccessToken(inboundToken);
-    }
+    applyInboundAccessToken(typeof inboundToken === 'string' ? inboundToken : null);
 
     void this.restoreSession();
   },
@@ -33,22 +32,25 @@ App<IAppOption>({
   onShow(options: WechatMiniprogram.App.LaunchShowOption) {
     // 处理场景值 (如扫码进入)
     if (options.query && options.query.token) {
-      // 从分享链接进入，保存 token
-      setAccessToken(options.query.token as string);
+      applyInboundAccessToken(options.query.token as string);
       void this.restoreSession();
     }
   },
 
   async restoreSession() {
+    store.set(KEYS.SESSION_RESTORE, 'in_progress');
+
     const token = getToken();
     const accessToken = getAccessToken();
 
     if (!accessToken) {
+      store.set(KEYS.SESSION_RESTORE, 'expired');
       clearSalesSession({ clearAccessToken: true, redirectToLogin: true });
       return;
     }
 
     if (!token) {
+      store.set(KEYS.SESSION_RESTORE, 'expired');
       clearSalesSession({ redirectToLogin: true });
       return;
     }
@@ -59,7 +61,11 @@ App<IAppOption>({
     });
 
     if (!restored.ok && restored.expired) {
+      store.set(KEYS.SESSION_RESTORE, 'expired');
       clearSalesSession({ redirectToLogin: true });
+      return;
     }
+
+    store.set(KEYS.SESSION_RESTORE, restored.ok ? 'ready' : 'transient_failed');
   },
 });

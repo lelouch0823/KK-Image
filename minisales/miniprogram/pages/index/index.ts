@@ -47,6 +47,7 @@ Page({
   lastScrollTop: 0,
   // 监听器销毁函数
   unsubUser: null as null | (() => void),
+  unsubRestore: null as null | (() => void),
 
   onLoad() {
     this.checkAuth();
@@ -56,6 +57,12 @@ Page({
       this.setData({ user });
       if (user) {
         this.loadOrders();
+      }
+    });
+
+    this.unsubRestore = store.on(KEYS.SESSION_RESTORE, (status) => {
+      if (status === 'transient_failed' && !this.data.user && this.data.loading) {
+        this.setData({ loading: false });
       }
     });
 
@@ -87,6 +94,9 @@ Page({
   onUnload() {
     if (this.unsubUser) {
       this.unsubUser();
+    }
+    if (this.unsubRestore) {
+      this.unsubRestore();
     }
   },
 

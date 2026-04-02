@@ -86,6 +86,7 @@ export const store = new Store();
 export const KEYS = {
     USER: 'user',
     TOKEN: 'token',
+    SESSION_RESTORE: 'session_restore',
     LOGIN_METHOD: 'sales_login_method',
     AUTH_CONFIG: 'sales_auth_config',
     STATS: 'stats',

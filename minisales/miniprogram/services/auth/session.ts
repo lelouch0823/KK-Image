@@ -55,6 +55,27 @@ export function clearSalesSession(options: ClearSalesSessionOptions = {}): void 
   }
 }
 
+export function applyInboundAccessToken(inboundAccessToken?: string | null): {
+  applied: boolean;
+  changed: boolean;
+} {
+  if (!inboundAccessToken) {
+    return { applied: false, changed: false };
+  }
+
+  const currentAccessToken = (wx.getStorageSync(STORAGE_KEYS.ACCESS_TOKEN) as string | undefined) || '';
+  if (currentAccessToken === inboundAccessToken) {
+    return { applied: false, changed: false };
+  }
+
+  if (currentAccessToken) {
+    clearSalesSession();
+  }
+
+  wx.setStorageSync(STORAGE_KEYS.ACCESS_TOKEN, inboundAccessToken);
+  return { applied: true, changed: Boolean(currentAccessToken) };
+}
+
 export function handleSalesSessionExpired(): void {
   clearSalesSession({ redirectToLogin: true });
 }
