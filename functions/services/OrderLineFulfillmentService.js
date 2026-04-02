@@ -5,20 +5,13 @@ import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { InventoryService } from './InventoryService.js';
 import {
   buildOrderLineProjectionStatement,
+  parsePositiveLineCommandQuantity,
   queryInventoryBalance,
 } from './order-line-shared.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 
 function toNonNegativeInt(value) {
   return Math.max(0, Number(value) || 0);
-}
-
-function normalizeQuantity(payload = {}) {
-  const quantity = Number(payload.quantity ?? payload.qty ?? payload.amount);
-  if (!Number.isFinite(quantity) || quantity <= 0) {
-    throw new BadRequestError('quantity must be a positive number');
-  }
-  return Math.floor(quantity);
 }
 
 function getRemainingLineQuantity(line) {
@@ -63,7 +56,7 @@ export class OrderLineFulfillmentService {
 
   async reserveLine(orderId, lineId, payload = {}, options = {}) {
     const line = await this.requireOrderLine(orderId, lineId);
-    const quantity = normalizeQuantity(payload);
+    const quantity = parsePositiveLineCommandQuantity(payload);
     this.assertVariantBacked(line);
 
     const remaining = getRemainingLineQuantity(line);
@@ -137,7 +130,7 @@ export class OrderLineFulfillmentService {
 
   async releaseLine(orderId, lineId, payload = {}, options = {}) {
     const line = await this.requireOrderLine(orderId, lineId);
-    const quantity = normalizeQuantity(payload);
+    const quantity = parsePositiveLineCommandQuantity(payload);
     this.assertVariantBacked(line);
 
     const currentReserved = toNonNegativeInt(line.reserved_qty);
@@ -219,7 +212,7 @@ export class OrderLineFulfillmentService {
 
   async shipLine(orderId, lineId, payload = {}, options = {}) {
     const line = await this.requireOrderLine(orderId, lineId);
-    const quantity = normalizeQuantity(payload);
+    const quantity = parsePositiveLineCommandQuantity(payload);
     this.assertVariantBacked(line);
 
     const remaining = getRemainingLineQuantity(line);

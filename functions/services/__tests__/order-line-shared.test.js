@@ -2,10 +2,30 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   buildOrderLineProjectionStatement,
+  parsePositiveLineCommandQuantity,
   queryInventoryBalance,
 } from '../order-line-shared.js';
 
 describe('order-line-shared', () => {
+  it('parses positive line command quantities from quantity, qty, or amount fields', () => {
+    expect(parsePositiveLineCommandQuantity({ quantity: 4 })).toBe(4);
+    expect(parsePositiveLineCommandQuantity({ qty: 3 })).toBe(3);
+    expect(parsePositiveLineCommandQuantity({ amount: 2 })).toBe(2);
+  });
+
+  it('floors positive decimal line command quantities', () => {
+    expect(parsePositiveLineCommandQuantity({ quantity: 3.9 })).toBe(3);
+  });
+
+  it('rejects missing or non-positive line command quantities', () => {
+    expect(() => parsePositiveLineCommandQuantity({ quantity: 0 })).toThrow(
+      'quantity must be a positive number'
+    );
+    expect(() => parsePositiveLineCommandQuantity({ amount: 'bad' })).toThrow(
+      'quantity must be a positive number'
+    );
+  });
+
   it('queries inventory balance with empty-id shortcut and normalized counters', async () => {
     const first = vi.fn(async () => ({
       variant_id: 'var-1',

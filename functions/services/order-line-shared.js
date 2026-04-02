@@ -1,4 +1,13 @@
+import { BadRequestError } from '../lib/hono/errors.js';
 import { toNonNegativeInt } from './purchase-order-projection.js';
+
+export function parsePositiveLineCommandQuantity(payload = {}) {
+  const quantity = Number(payload.quantity ?? payload.qty ?? payload.amount);
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    throw new BadRequestError('quantity must be a positive number');
+  }
+  return Math.floor(quantity);
+}
 
 export async function queryInventoryBalance(db, variantId) {
   if (!variantId) return null;
