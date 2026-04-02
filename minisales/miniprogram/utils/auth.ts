@@ -3,22 +3,37 @@
  * 处理微信登录和密码登录
  */
 
-import { post, setToken, clearToken, getAccessToken, setAccessToken } from './api';
+import { post, getAccessToken, setAccessToken, setToken } from './api';
 import { API, STORAGE_KEYS } from './constants';
-import { store, KEYS } from './store';
-
-interface UserInfo {
-    id: string;
-    name: string;
-    store?: string;
-}
+import { KEYS, store } from './store';
+import {
+  clearSalesSession,
+  persistLoginMethod,
+  persistSalesUser,
+  restoreSalesSession,
+  type SalesUser,
+} from '../services/auth/session';
 
 interface LoginResult {
-    success: boolean;
-    user?: UserInfo;
-    needBind?: boolean;
-    openid?: string;
-    message?: string;
+  success: boolean;
+  user?: SalesUser;
+  needBind?: boolean;
+  openid?: string;
+  message?: string;
+}
+
+interface AuthUserResponse {
+  id: string;
+  name: string;
+  store?: string;
+}
+
+function normalizeUser(payload: AuthUserResponse): SalesUser {
+  return {
+    id: payload.id,
+    name: payload.name,
+    store: payload.store,
+  };
 }
 
 /**
@@ -26,64 +41,63 @@ interface LoginResult {
  * 流程: wx.login -> 获取 code -> 发送到后端 -> 获取 JWT
  */
 export async function wxLogin(): Promise<LoginResult> {
-    try {
-        // 1. 获取微信 code
-        const loginRes = await new Promise<WechatMiniprogram.LoginSuccessCallbackResult>((resolve, reject) => {
-            wx.login({
-                success: resolve,
-                fail: reject,
-            });
-        });
+  try {
+    const loginRes = await new Promise<WechatMiniprogram.LoginSuccessCallbackResult>((resolve, reject) => {
+      wx.login({
+        success: resolve,
+        fail: reject,
+      });
+    });
 
-        if (!loginRes.code) {
-            return { success: false, message: '获取微信登录凭证失败' };
-        }
-
-        // 2. 发送 code 到后端
-        const response = await post<{
-            token?: string;
-            expiresIn?: number;
-            user?: UserInfo;
-            needBind?: boolean;
-            openid?: string;
-        }>(API.WECHAT_LOGIN, { code: loginRes.code });
-
-        if (!response.success || !response.data) {
-            return { success: false, message: response.error || '登录失败' };
-        }
-
-        const data = response.data;
-
-        // 3. 检查是否需要绑定
-        if (data.needBind) {
-            return {
-                success: false,
-                needBind: true,
-                openid: data.openid,
-                message: '账号未绑定微信，请使用密码登录后绑定',
-            };
-        }
-
-        // 4. 保存 Token
-        if (data.token) {
-            setToken(data.token);
-            store.set(KEYS.TOKEN, data.token);
-        }
-
-        // 5. 保存用户信息
-        if (data.user) {
-            wx.setStorageSync(STORAGE_KEYS.USER_INFO, data.user);
-            store.set(KEYS.USER, data.user);
-        }
-
-        return {
-            success: true,
-            user: data.user,
-        };
-    } catch (error: any) {
-        console.error('WeChat login error:', error);
-        return { success: false, message: error.message || '微信登录失败' };
+    if (!loginRes.code) {
+      return { success: false, message: '获取微信登录凭证失败' };
     }
+
+    const response = await post<{
+      token?: string;
+      accessToken?: string;
+      expiresIn?: number;
+      user?: SalesUser;
+      needBind?: boolean;
+      openid?: string;
+    }>(API.WECHAT_LOGIN, { code: loginRes.code });
+
+    if (!response.success || !response.data) {
+      return { success: false, message: response.error || '登录失败' };
+    }
+
+    const data = response.data;
+    if (data.needBind) {
+      return {
+        success: false,
+        needBind: true,
+        openid: data.openid,
+        message: '账号未绑定微信，请使用密码登录后绑定',
+      };
+    }
+
+    if (data.token) {
+      setToken(data.token);
+      store.set(KEYS.TOKEN, data.token);
+    }
+
+    if (data.accessToken) {
+      setAccessToken(data.accessToken);
+    }
+
+    if (data.user) {
+      persistSalesUser(data.user);
+      persistLoginMethod('wechat');
+    }
+
+    return {
+      success: true,
+      user: data.user,
+    };
+  } catch (error: any) {
+    console.error('WeChat login error:', error);
+    return { success: false, message: error.message || '微信登录失败' };
+  }
 }
 
 /**
@@ -92,40 +106,32 @@ export async function wxLogin(): Promise<LoginResult> {
  * @param password - 密码
  */
 export async function passwordLogin(accessToken: string, password: string): Promise<LoginResult> {
-    try {
-        const response = await post<{
-            id: string;
-            name: string;
-            store?: string;
-            token: string;
-            expiresIn: number;
-        }>(API.SALES_AUTH(accessToken), { password });
+  try {
+    const response = await post<{
+      id: string;
+      name: string;
+      store?: string;
+      token: string;
+      expiresIn: number;
+    }>(API.SALES_AUTH(accessToken), { password });
 
-        if (!response.success || !response.data) {
-            return { success: false, message: response.error || '登录失败' };
-        }
-
-        const data = response.data;
-
-        // 保存 Token
-        setToken(data.token);
-        setAccessToken(accessToken);
-        store.set(KEYS.TOKEN, data.token);
-
-        // 保存用户信息
-        const user: UserInfo = {
-            id: data.id,
-            name: data.name,
-            store: data.store,
-        };
-        wx.setStorageSync(STORAGE_KEYS.USER_INFO, user);
-        store.set(KEYS.USER, user);
-
-        return { success: true, user };
-    } catch (error: any) {
-        console.error('Password login error:', error);
-        return { success: false, message: error.message || '登录失败' };
+    if (!response.success || !response.data) {
+      return { success: false, message: response.error || '登录失败' };
     }
+
+    const data = response.data;
+    const user = normalizeUser(data);
+    setToken(data.token);
+    setAccessToken(accessToken);
+    store.set(KEYS.TOKEN, data.token);
+    persistSalesUser(user);
+    persistLoginMethod('password');
+
+    return { success: true, user };
+  } catch (error: any) {
+    console.error('Password login error:', error);
+    return { success: false, message: error.message || '登录失败' };
+  }
 }
 
 /**
@@ -134,89 +140,110 @@ export async function passwordLogin(accessToken: string, password: string): Prom
  * @param password - 密码
  */
 export async function usernameLogin(username: string, password: string): Promise<LoginResult> {
-    try {
-        const response = await post<{
-            id: string;
-            name: string;
-            store?: string;
-            token: string;
-            accessToken: string;
-            expiresIn: number;
-        }>(API.SALES_LOGIN, { username, password });
+  try {
+    const response = await post<{
+      id: string;
+      name: string;
+      store?: string;
+      token: string;
+      accessToken: string;
+      expiresIn: number;
+    }>(API.SALES_LOGIN, { username, password });
 
-        if (!response.success || !response.data) {
-            return { success: false, message: response.error || '登录失败' };
-        }
-
-        const data = response.data;
-
-        // 保存 Token
-        setToken(data.token);
-        setAccessToken(data.accessToken);
-        store.set(KEYS.TOKEN, data.token);
-
-        // 保存用户信息
-        const user: UserInfo = {
-            id: data.id,
-            name: data.name,
-            store: data.store,
-        };
-        wx.setStorageSync(STORAGE_KEYS.USER_INFO, user);
-        store.set(KEYS.USER, user);
-
-        return { success: true, user };
-    } catch (error: any) {
-        console.error('Username login error:', error);
-        return { success: false, message: error.message || '登录失败' };
+    if (!response.success || !response.data) {
+      return { success: false, message: response.error || '登录失败' };
     }
+
+    const data = response.data;
+    const user = normalizeUser(data);
+    setToken(data.token);
+    setAccessToken(data.accessToken);
+    store.set(KEYS.TOKEN, data.token);
+    persistSalesUser(user);
+    persistLoginMethod('password');
+
+    return { success: true, user };
+  } catch (error: any) {
+    console.error('Username login error:', error);
+    return { success: false, message: error.message || '登录失败' };
+  }
+}
+
+export async function fetchCurrentSalesUser(accessToken: string): Promise<{
+  success: boolean;
+  data?: SalesUser;
+  error?: string;
+}> {
+  try {
+    const response = await post<AuthUserResponse>(API.SALES_AUTH(accessToken), {});
+    if (response.success && response.data) {
+      return {
+        success: true,
+        data: normalizeUser(response.data),
+      };
+    }
+
+    return {
+      success: false,
+      error: response.error || response.message || 'expired',
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error?.message || 'expired',
+    };
+  }
 }
 
 /**
  * 检查登录状态
  */
-export async function checkAuth(): Promise<UserInfo | null> {
-    const accessToken = getAccessToken();
-    if (!accessToken) {
-        return null;
-    }
+export async function checkAuth(): Promise<SalesUser | null> {
+  const accessToken = getAccessToken();
+  if (!accessToken) {
+    clearSalesSession();
+    return null;
+  }
 
-    try {
-        const response = await post<UserInfo>(API.SALES_AUTH(accessToken), {});
-        if (response.success && response.data) {
-            wx.setStorageSync(STORAGE_KEYS.USER_INFO, response.data);
-            store.set(KEYS.USER, response.data);
-            return response.data;
-        }
-        store.set(KEYS.USER, null);
-        return null;
-    } catch {
-        store.set(KEYS.USER, null);
-        return null;
-    }
+  const restored = await restoreSalesSession({
+    accessToken,
+    getCurrentUser: fetchCurrentSalesUser,
+  });
+
+  if (restored.ok) {
+    return restored.user;
+  }
+
+  return null;
 }
 
 /**
  * 退出登录
  */
 export function logout(): void {
-    clearToken();
-    wx.removeStorageSync(STORAGE_KEYS.USER_INFO);
-    wx.removeStorageSync(STORAGE_KEYS.ACCESS_TOKEN);
-    store.set(KEYS.USER, null);
-    store.set(KEYS.TOKEN, null);
-    wx.redirectTo({ url: '/pages/login/login' });
+  clearSalesSession({ clearAccessToken: true, redirectToLogin: true });
 }
 
 /**
  * 获取当前用户信息
  */
-export function getCurrentUser(): UserInfo | null {
-    const user = wx.getStorageSync(STORAGE_KEYS.USER_INFO) || null;
-    // 确保 store 同步
-    if (user && !store.get(KEYS.USER)) {
-        store.set(KEYS.USER, user);
-    }
-    return user;
+export function getCurrentUser(): SalesUser | null {
+  const user = (wx.getStorageSync(STORAGE_KEYS.USER_INFO) as SalesUser | undefined) || null;
+  if (user && !store.get(KEYS.USER)) {
+    store.set(KEYS.USER, user);
+  }
+  return user;
+}
+
+/**
+ * 获取上次登录方式
+ */
+export function getLoginMethod(): 'password' | 'wechat' | null {
+  const method = (wx.getStorageSync(KEYS.LOGIN_METHOD) as 'password' | 'wechat' | undefined) || null;
+  if (method && !store.get(KEYS.LOGIN_METHOD)) {
+    store.set(KEYS.LOGIN_METHOD, method);
+  }
+  return method;
 }
 
 /**
@@ -224,27 +251,26 @@ export function getCurrentUser(): UserInfo | null {
  * @param accessToken - URL 中的 token
  */
 export async function bindWechat(accessToken: string): Promise<{ success: boolean; message?: string }> {
-    try {
-        // 获取微信 code
-        const loginRes = await new Promise<WechatMiniprogram.LoginSuccessCallbackResult>((resolve, reject) => {
-            wx.login({
-                success: resolve,
-                fail: reject,
-            });
-        });
+  try {
+    const loginRes = await new Promise<WechatMiniprogram.LoginSuccessCallbackResult>((resolve, reject) => {
+      wx.login({
+        success: resolve,
+        fail: reject,
+      });
+    });
 
-        if (!loginRes.code) {
-            return { success: false, message: '获取微信登录凭证失败' };
-        }
-
-        const response = await post(API.SALES_BIND_WECHAT(accessToken), { code: loginRes.code });
-
-        if (response.success) {
-            return { success: true };
-        }
-
-        return { success: false, message: response.error || '绑定失败' };
-    } catch (error: any) {
-        return { success: false, message: error.message || '绑定失败' };
+    if (!loginRes.code) {
+      return { success: false, message: '获取微信登录凭证失败' };
     }
+
+    const response = await post(API.SALES_BIND_WECHAT(accessToken), { code: loginRes.code });
+
+    if (response.success) {
+      return { success: true };
+    }
+
+    return { success: false, message: response.error || '绑定失败' };
+  } catch (error: any) {
+    return { success: false, message: error.message || '绑定失败' };
+  }
 }

@@ -74,12 +74,6 @@
         "text": "资源",
         "iconPath": "assets/icons/orders.png",
         "selectedIconPath": "assets/icons/orders-active.png"
-      },
-      {
-        "pagePath": "pages/stats/stats",
-        "text": "统计",
-        "iconPath": "assets/icons/stats.png",
-        "selectedIconPath": "assets/icons/stats-active.png"
       }
     ]
   },

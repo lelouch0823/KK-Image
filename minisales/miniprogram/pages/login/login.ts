@@ -2,64 +2,122 @@
  * 登录页
  */
 
-import { usernameLogin } from '../../utils/auth';
+import { getCurrentUser, getLoginMethod, usernameLogin, wxLogin } from '../../utils/auth';
+import { KEYS, store } from '../../utils/store';
+
+interface AuthConfig {
+  wechatLoginEnabled?: boolean;
+}
+
+function getAuthConfig(): AuthConfig {
+  const stateConfig = store.get(KEYS.AUTH_CONFIG) as AuthConfig | undefined;
+  if (stateConfig) {
+    return stateConfig;
+  }
+
+  const storageConfig = wx.getStorageSync(KEYS.AUTH_CONFIG) as AuthConfig | undefined;
+  if (storageConfig) {
+    store.set(KEYS.AUTH_CONFIG, storageConfig);
+    return storageConfig;
+  }
+
+  return {};
+}
 
 Page({
-    data: {
-        username: '',
-        password: '',
-        loading: false,
-        error: '',
-        showPasswordLogin: false,
-    },
+  data: {
+    username: '',
+    password: '',
+    loading: false,
+    wechatLoading: false,
+    error: '',
+    activeMethod: 'password',
+    canWechatLogin: true,
+  },
 
-    onLoad() {
-        // 直接显示登录表单
-        this.setData({ showPasswordLogin: true });
-    },
+  onLoad() {
+    if (getCurrentUser()) {
+      wx.switchTab({ url: '/pages/index/index' });
+      return;
+    }
 
-    /**
-     * 登录处理
-     */
-    async handleLogin() {
-        const { username, password } = this.data;
+    const config = getAuthConfig();
+    const loginMethod = getLoginMethod();
+    this.setData({
+      canWechatLogin: config.wechatLoginEnabled !== false,
+      activeMethod: loginMethod || 'password',
+    });
+  },
 
-        if (!username.trim()) {
-            this.setData({ error: '请输入手机号或姓名' });
-            return;
-        }
+  onSelectMethod(e: WechatMiniprogram.TouchEvent) {
+    const method = String(e.currentTarget.dataset.method || 'password');
+    this.setData({ activeMethod: method, error: '' });
+  },
 
-        if (!password.trim()) {
-            this.setData({ error: '请输入密码' });
-            return;
-        }
+  async handleLogin() {
+    const { username, password } = this.data;
 
-        this.setData({ loading: true, error: '' });
+    if (!username.trim()) {
+      this.setData({ error: '请输入手机号或姓名' });
+      return;
+    }
 
-        try {
-            const result = await usernameLogin(username.trim(), password);
+    if (!password.trim()) {
+      this.setData({ error: '请输入密码' });
+      return;
+    }
 
-            if (result.success) {
-                wx.showToast({ title: '登录成功', icon: 'success' });
-                setTimeout(() => {
-                    wx.switchTab({ url: '/pages/index/index' });
-                }, 1000);
-            } else {
-                this.setData({ error: result.message || '登录失败' });
-            }
-        } catch (error: any) {
-            this.setData({ error: error.message || '登录失败' });
-        } finally {
-            this.setData({ loading: false });
-        }
-    },
+    this.setData({ loading: true, error: '' });
 
-    /**
-     * 输入事件
-     */
-    onInput(e: WechatMiniprogram.CustomEvent) {
-        const { field } = e.currentTarget.dataset;
-        const { value } = e.detail;
-        this.setData({ [field]: value, error: '' });
-    },
+    try {
+      const result = await usernameLogin(username.trim(), password);
+      if (result.success) {
+        this.enterApp();
+        return;
+      }
+
+      this.setData({ error: result.message || '登录失败' });
+    } catch (error: any) {
+      this.setData({ error: error.message || '登录失败' });
+    } finally {
+      this.setData({ loading: false });
+    }
+  },
+
+  async handleWechatLogin() {
+    if (!this.data.canWechatLogin) {
+      return;
+    }
+
+    this.setData({ wechatLoading: true, error: '' });
+    try {
+      const result = await wxLogin();
+      if (result.success) {
+        this.enterApp();
+        return;
+      }
+
+      this.setData({
+        activeMethod: result.needBind ? 'password' : this.data.activeMethod,
+        error: result.message || '微信登录失败',
+      });
+    } catch (error: any) {
+      this.setData({ error: error.message || '微信登录失败' });
+    } finally {
+      this.setData({ wechatLoading: false });
+    }
+  },
+
+  onInput(e: WechatMiniprogram.CustomEvent) {
+    const field = String(e.currentTarget.dataset.field || '');
+    const value = String(e.detail.value || '');
+    this.setData({ [field]: value, error: '' });
+  },
+
+  enterApp() {
+    wx.showToast({ title: '登录成功', icon: 'success' });
+    setTimeout(() => {
+      wx.switchTab({ url: '/pages/index/index' });
+    }, 300);
+  },
 });

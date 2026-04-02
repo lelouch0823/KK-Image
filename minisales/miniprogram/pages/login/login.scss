@@ -1,109 +1,117 @@
 @import '../../styles/variables.scss';
 
 .login-page {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    padding: $spacing-xl;
-    box-sizing: border-box;
-    background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+  min-height: 100vh;
+  padding: 56rpx 32rpx;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 16% 20%, rgba(37, 99, 235, 0.16), transparent 45%),
+    radial-gradient(circle at 86% 0%, rgba(14, 165, 233, 0.2), transparent 42%),
+    #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-// Logo 区域
-.logo-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-top: 120rpx;
-    margin-bottom: 80rpx;
+.auth-card {
+  width: 100%;
+  max-width: 680rpx;
+  padding: 42rpx 36rpx;
+  box-sizing: border-box;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24rpx 60rpx rgba(15, 23, 42, 0.08);
 }
 
-.logo-icon {
-    width: 160rpx;
-    height: 160rpx;
-    background: linear-gradient(135deg, $color-primary 0%, lighten($color-primary, 10%) 100%);
-    border-radius: 40rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: $spacing-lg;
-    box-shadow: 0 16rpx 48rpx rgba(59, 130, 246, 0.3);
+.brand {
+  text-align: center;
 }
 
-.logo-image {
-    width: 80rpx;
-    height: 80rpx;
+.brand__icon {
+  margin: 0 auto;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48rpx;
+  color: #ffffff;
+  background: linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%);
 }
 
-.logo-title {
-    font-size: $font-size-2xl;
-    font-weight: 700;
-    color: $text-main;
-    margin-bottom: $spacing-xs;
+.brand__title {
+  display: block;
+  margin-top: 18rpx;
+  color: #0f172a;
+  font-size: 40rpx;
+  font-weight: 700;
 }
 
-.logo-subtitle {
-    font-size: $font-size-sm;
-    color: $text-secondary;
+.brand__subtitle {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #64748b;
 }
 
-// 加载状态
-.loading-section {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+.method-tabs {
+  margin-top: 28rpx;
+  display: flex;
+  gap: 14rpx;
 }
 
-// loading-spinner: 使用全局样式 (app.scss)
+.method-tab {
+  flex: 1;
+  padding: 14rpx 20rpx;
+  border-radius: 14rpx;
+  text-align: center;
+  font-size: 25rpx;
+  color: #334155;
+  background: #e2e8f0;
+}
 
-// 登录表单
-.login-form {
-    flex: 1;
-    width: 100%;
+.method-tab--active {
+  background: #2563eb;
+  color: #ffffff;
 }
 
 .error-message {
-    background-color: #fef2f2;
-    border-radius: $border-radius;
-    padding: $spacing-md;
-    margin-bottom: $spacing-lg;
-    display: flex;
-    align-items: center;
+  margin-top: 20rpx;
+  margin-bottom: 18rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 14rpx;
+  background: #fee2e2;
+  color: #b91c1c;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
 
-    text {
-        color: $color-danger;
-        font-size: $font-size-sm;
-    }
+  text {
+    font-size: 24rpx;
+  }
 }
 
-.form-item {
-    margin-bottom: 0; // TDesign handles spacing inside cells usually, but we are using standalone inputs may need wrappers
+.form {
+  margin-top: 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
 }
 
-// 底部
-.footer {
-    padding: $spacing-xl 0;
-    text-align: center;
+.wechat-panel {
+  margin-top: 28rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
 }
 
-.footer-text {
-    font-size: $font-size-xs;
-    color: $text-muted;
+.wechat-panel__hint {
+  font-size: 24rpx;
+  color: #334155;
 }
 
-// @keyframes spin: 使用全局样式 (app.scss)
-
-// 辅助类
-.icon-muted {
-    color: $text-muted !important;
-}
-
-.mt-md {
-    margin-top: $spacing-md;
-}
-
-.mt-lg {
-    margin-top: $spacing-xl;
+.wechat-panel__subhint {
+  font-size: 22rpx;
+  color: #64748b;
 }

@@ -1,0 +1,26 @@
+<view class="shell">
+  <view class="shell__header">
+    <view class="shell__titles">
+      <text class="shell__title">{{title}}</text>
+      <text wx:if="{{subtitle}}" class="shell__subtitle">{{subtitle}}</text>
+    </view>
+    <view class="shell__actions">
+      <view class="shell__action" bind:tap="onTapStats">
+        <t-icon name="chart" size="36rpx" />
+      </view>
+      <view class="shell__action shell__action--notify" bind:tap="onTapNotifications">
+        <t-icon name="notification" size="36rpx" />
+        <text wx:if="{{unreadCount > 0}}" class="shell__badge">{{unreadCount}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showTabs}}" class="shell__tabs">
+    <view class="shell__tab {{activeTab === 'orders' ? 'shell__tab--active' : ''}}" bind:tap="onTapOrders">
+      订单
+    </view>
+    <view class="shell__tab {{activeTab === 'spaces' ? 'shell__tab--active' : ''}}" bind:tap="onTapSpaces">
+      资源
+    </view>
+  </view>
+</view>

@@ -15,7 +15,8 @@ Component({
             const page = getCurrentPages().pop();
             const route = page ? page.route : '';
             const value = `/${route}`;
-            this.setData({ value });
+            const tabValue = value === '/pages/spaces/spaces' ? value : '/pages/index/index';
+            this.setData({ value: tabValue });
         },
     },
 });

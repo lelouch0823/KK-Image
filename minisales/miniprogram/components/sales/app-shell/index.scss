@@ -1,0 +1,84 @@
+.shell {
+  padding: 24rpx 32rpx 8rpx;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.shell__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.shell__titles {
+  min-width: 0;
+}
+
+.shell__title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.shell__subtitle {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #64748b;
+}
+
+.shell__actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.shell__action {
+  position: relative;
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 18rpx;
+  background: #eef2ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+}
+
+.shell__action--notify {
+  background: #f1f5f9;
+}
+
+.shell__badge {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  min-width: 30rpx;
+  height: 30rpx;
+  border-radius: 15rpx;
+  padding: 0 8rpx;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 20rpx;
+  line-height: 30rpx;
+  text-align: center;
+}
+
+.shell__tabs {
+  margin-top: 20rpx;
+  display: flex;
+  gap: 20rpx;
+}
+
+.shell__tab {
+  padding: 10rpx 28rpx;
+  border-radius: 999rpx;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 24rpx;
+}
+
+.shell__tab--active {
+  background: #2563eb;
+  color: #ffffff;
+}

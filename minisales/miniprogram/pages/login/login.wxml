@@ -1,28 +1,35 @@
-<!--pages/login/login.wxml-->
 <view class="login-page">
-  <!-- Logo 区域 -->
-  <view class="logo-section">
-    <view class="logo-icon">
-      <image src="/assets/icons/logo.png" mode="aspectFit" class="logo-image"></image>
+  <view class="auth-card">
+    <view class="brand">
+      <view class="brand__icon">S</view>
+      <text class="brand__title">销售助手</text>
+      <text class="brand__subtitle">统一登录后可访问订单与资源</text>
     </view>
-    <text class="logo-title">销售助手</text>
-    <text class="logo-subtitle">订单管理 · 便捷高效</text>
-  </view>
 
-  <!-- 加载状态 -->
-  <view wx:if="{{loading && !showPasswordLogin}}" class="loading-section">
-    <t-loading theme="circular" size="48rpx" text="检测登录状态..." />
-  </view>
+    <view class="method-tabs">
+      <view
+        class="method-tab {{activeMethod === 'password' ? 'method-tab--active' : ''}}"
+        data-method="password"
+        bind:tap="onSelectMethod"
+      >
+        账号密码
+      </view>
+      <view
+        wx:if="{{canWechatLogin}}"
+        class="method-tab {{activeMethod === 'wechat' ? 'method-tab--active' : ''}}"
+        data-method="wechat"
+        bind:tap="onSelectMethod"
+      >
+        微信登录
+      </view>
+    </view>
 
-  <!-- 登录表单 -->
-  <view wx:elif="{{showPasswordLogin}}" class="login-form">
-    <!-- 错误提示 -->
     <view wx:if="{{error}}" class="error-message">
-       <t-icon name="error-circle" size="32rpx" style="margin-right: 8rpx;" /> <text>{{error}}</text>
+      <t-icon name="error-circle" size="32rpx" />
+      <text>{{error}}</text>
     </view>
 
-    <!-- 用户名输入 (手机号或姓名) -->
-    <view class="form-item">
+    <view wx:if="{{activeMethod === 'password'}}" class="form">
       <t-input
         label="账号"
         placeholder="请输入手机号或姓名"
@@ -30,15 +37,7 @@
         data-field="username"
         bind:change="onInput"
         clearable
-      >
-        <view slot="prefix-icon">
-          <t-icon name="user" size="40rpx" class="icon-muted" />
-        </view>
-      </t-input>
-    </view>
-
-    <!-- 密码输入 -->
-    <view class="form-item mt-md">
+      />
       <t-input
         label="密码"
         type="password"
@@ -47,35 +46,24 @@
         data-field="password"
         bind:change="onInput"
         clearable
-      >
-         <view slot="prefix-icon">
-          <t-icon name="lock-on" size="40rpx" class="icon-muted" />
-        </view>
-      </t-input>
-    </view>
-
-    <!-- 登录按钮 -->
-    <view class="mt-lg">
-      <t-button
-        theme="primary"
-        size="large"
-        block
-        bind:tap="handleLogin"
-        loading="{{loading}}"
-      >
-        登录
+      />
+      <t-button theme="primary" size="large" block bind:tap="handleLogin" loading="{{loading}}">
+        登录并进入
       </t-button>
     </view>
-  </view>
 
-  <!-- 首次加载提示 -->
-  <view wx:else class="welcome-section">
-     <t-loading theme="dot" />
+    <view wx:elif="{{canWechatLogin}}" class="wechat-panel">
+      <text class="wechat-panel__hint">使用微信授权快速登录当前销售账号</text>
+      <t-button
+        theme="success"
+        size="large"
+        block
+        bind:tap="handleWechatLogin"
+        loading="{{wechatLoading}}"
+      >
+        微信一键登录
+      </t-button>
+      <text class="wechat-panel__subhint">若提示未绑定，请切换到账号密码登录</text>
+    </view>
   </view>
-
-  <!-- 底部版权 -->
-  <view class="footer">
-    <text class="footer-text">© 2026 KK-Life</text>
-  </view>
-  <t-toast id="t-toast" />
 </view>

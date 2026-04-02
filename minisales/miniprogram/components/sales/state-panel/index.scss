@@ -1,0 +1,28 @@
+.state-panel {
+  min-height: 240rpx;
+  border-radius: 20rpx;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+}
+
+.state-panel--error {
+  color: #dc2626;
+}
+
+.state-panel__text {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+}
+
+.state-panel__retry {
+  margin-top: 16rpx;
+  padding: 8rpx 22rpx;
+  border-radius: 999rpx;
+  background: #fee2e2;
+  font-size: 24rpx;
+  color: #b91c1c;
+}

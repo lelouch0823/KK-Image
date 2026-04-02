@@ -1,2 +1,7 @@
-/* custom-tab-bar/index.wxss */
-/* TDesign TabBar handles most styles. We can customize if needed */
+:host {
+  display: block;
+}
+
+t-tab-bar {
+  --td-tab-bar-border-color: #e2e8f0;
+}

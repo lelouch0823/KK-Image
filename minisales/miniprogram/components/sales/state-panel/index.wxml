@@ -1,0 +1,15 @@
+<view wx:if="{{loading}}" class="state-panel">
+  <t-loading theme="circular" size="48rpx" text="加载中..." />
+</view>
+
+<view wx:elif="{{error}}" class="state-panel state-panel--error">
+  <t-icon name="error-circle" size="42rpx" />
+  <text class="state-panel__text">{{error}}</text>
+  <view class="state-panel__retry" bind:tap="onRetry">重试</view>
+</view>
+
+<view wx:elif="{{empty}}" class="state-panel">
+  <text class="state-panel__text">{{emptyText}}</text>
+</view>
+
+<slot wx:else />

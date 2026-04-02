@@ -5,7 +5,4 @@
   <t-tab-bar-item value="/pages/spaces/spaces" icon="folder">
     资源
   </t-tab-bar-item>
-  <t-tab-bar-item value="/pages/stats/stats" icon="chart">
-    统计
-  </t-tab-bar-item>
 </t-tab-bar>
