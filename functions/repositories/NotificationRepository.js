@@ -28,10 +28,6 @@ function isUniqueConstraintError(error) {
     return message.includes('unique constraint failed') || message.includes('constraint failed');
 }
 
-function parseMetadata(metadata) {
-    return parseJsonObject(metadata, null);
-}
-
 export class NotificationRepository {
     /**
      * 构造函数
@@ -490,7 +486,7 @@ export class NotificationRepository {
             is_read: n.is_read,
             receiver: n.receiver || 'admin',
             orderId: n.order_id,
-            metadata: parseMetadata(n.metadata),
+            metadata: parseJsonObject(n.metadata, null),
             created_at: n.created_at,
         };
     }
