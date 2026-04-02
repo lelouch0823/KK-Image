@@ -2,8 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { BadRequestError } from '../../lib/hono/errors.js';
 
 import {
+  buildCompatibilityOrderProcurementStatusStatement,
   buildFinalizeCommandStatements,
   buildDeleteCommandStatement,
+  buildOrderLineProjectionStatement,
   buildPurchaseOrderItemCancelledQtyStatement,
   buildPurchaseOrderItemReceivedQtyStatement,
   cleanupReservedCommand,
@@ -302,6 +304,151 @@ describe('order-procurement-shared', () => {
     expect(result).toBe(boundStatement);
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('UPDATE purchase_order_items'));
     expect(bind).toHaveBeenCalledWith(0, 'partially_received', 'poi-1', 'po-1', 7, 3, 'received');
+  });
+
+  it('builds order-line projection statements with stable bind order', () => {
+    const boundStatement = { sql: 'bound' };
+    const bind = vi.fn(() => boundStatement);
+    const prepare = vi.fn(() => ({ bind }));
+
+    const result = buildOrderLineProjectionStatement(
+      { prepare },
+      {
+        id: 'line-1',
+        order_id: 'order-1',
+        ordered_qty: 5,
+        procured_qty: 5,
+        received_qty: 4,
+        reserved_qty: 0,
+        shipped_qty: 0,
+        cancelled_qty: 0,
+        display_status: 'partially_arrived',
+      },
+      {
+        id: 'line-1',
+        order_id: 'order-1',
+        ordered_qty: 5,
+        procured_qty: 0,
+        received_qty: 1,
+        reserved_qty: 0,
+        shipped_qty: 0,
+        cancelled_qty: 0,
+      },
+      123,
+      { guardProjectionState: true }
+    );
+
+    expect(result).toBe(boundStatement);
+    expect(prepare).toHaveBeenCalledWith(expect.stringContaining('UPDATE order_lines'));
+    expect(bind).toHaveBeenCalledWith(
+      5,
+      5,
+      4,
+      0,
+      0,
+      0,
+      'partially_arrived',
+      123,
+      'line-1',
+      'order-1',
+      1,
+      0,
+      5,
+      0,
+      0,
+      0
+    );
+  });
+
+  it('builds order-line revert statements with display-status guard when requested', () => {
+    const boundStatement = { sql: 'bound' };
+    const bind = vi.fn(() => boundStatement);
+    const prepare = vi.fn(() => ({ bind }));
+
+    const result = buildOrderLineProjectionStatement(
+      { prepare },
+      {
+        id: 'line-1',
+        order_id: 'order-1',
+        ordered_qty: 5,
+        procured_qty: 5,
+        received_qty: 1,
+        reserved_qty: 0,
+        shipped_qty: 0,
+        cancelled_qty: 0,
+        display_status: 'fully_procured',
+      },
+      {
+        id: 'line-1',
+        order_id: 'order-1',
+        ordered_qty: 5,
+        procured_qty: 5,
+        received_qty: 0,
+        reserved_qty: 0,
+        shipped_qty: 0,
+        cancelled_qty: 0,
+        display_status: 'fully_procured',
+      },
+      123,
+      {
+        writeMode: 'received_only',
+        guardProjectionState: true,
+        expectedDisplayStatus: 'open',
+      }
+    );
+
+    expect(result).toBe(boundStatement);
+    expect(prepare).toHaveBeenCalledWith(expect.stringContaining('AND display_status = ?'));
+    expect(bind).toHaveBeenCalledWith(
+      1,
+      'fully_procured',
+      123,
+      'line-1',
+      'order-1',
+      0,
+      0,
+      5,
+      5,
+      0,
+      0,
+      'open'
+    );
+  });
+
+  it('builds compatibility-order procurement-status statements with optional guards', () => {
+    const guardedStatement = { sql: 'guarded' };
+    const plainStatement = { sql: 'plain' };
+    const bind = vi
+      .fn()
+      .mockImplementationOnce(() => guardedStatement)
+      .mockImplementationOnce(() => plainStatement);
+    const prepare = vi.fn(() => ({ bind }));
+
+    const guarded = buildCompatibilityOrderProcurementStatusStatement(
+      { prepare },
+      'order-1',
+      'arrived',
+      123,
+      {
+        excludeTerminalStatuses: true,
+        requireStatusChange: true,
+      }
+    );
+    const plain = buildCompatibilityOrderProcurementStatusStatement(
+      { prepare },
+      'order-1',
+      'partially_arrived',
+      456
+    );
+
+    expect(guarded).toBe(guardedStatement);
+    expect(plain).toBe(plainStatement);
+    expect(prepare).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("status NOT IN ('delivered', 'void')")
+    );
+    expect(bind).toHaveBeenNthCalledWith(1, 'arrived', 123, 'order-1', 'arrived');
+    expect(bind).toHaveBeenNthCalledWith(2, 'partially_arrived', 456, 'order-1');
   });
 
   it('aggregates compatibility procurement counters for one order', async () => {

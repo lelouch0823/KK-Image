@@ -251,6 +251,114 @@ export function buildPurchaseOrderItemCancelledQtyStatement(
   });
 }
 
+export function buildOrderLineProjectionStatement(
+  db,
+  nextOrderLine,
+  expectedOrderLine,
+  timestamp,
+  {
+    writeMode = 'full_projection',
+    guardProjectionState = false,
+    expectedDisplayStatus = null,
+  } = {}
+) {
+  const whereClauses = ['id = ? AND order_id = ?'];
+  const setClauses =
+    writeMode === 'received_only'
+      ? ['received_qty = ?', 'display_status = ?', 'updated_at = ?']
+      : [
+          'ordered_qty = ?',
+          'procured_qty = ?',
+          'received_qty = ?',
+          'reserved_qty = ?',
+          'shipped_qty = ?',
+          'cancelled_qty = ?',
+          'display_status = ?',
+          'updated_at = ?',
+        ];
+  const params =
+    writeMode === 'received_only'
+      ? [
+          toNonNegativeInt(nextOrderLine.received_qty),
+          nextOrderLine.display_status,
+          timestamp,
+          nextOrderLine.id,
+          nextOrderLine.order_id,
+        ]
+      : [
+          toNonNegativeInt(nextOrderLine.ordered_qty),
+          toNonNegativeInt(nextOrderLine.procured_qty),
+          toNonNegativeInt(nextOrderLine.received_qty),
+          toNonNegativeInt(nextOrderLine.reserved_qty),
+          toNonNegativeInt(nextOrderLine.shipped_qty),
+          toNonNegativeInt(nextOrderLine.cancelled_qty),
+          nextOrderLine.display_status,
+          timestamp,
+          nextOrderLine.id,
+          nextOrderLine.order_id,
+        ];
+
+  if (guardProjectionState) {
+    whereClauses.push(
+      'AND received_qty = ?',
+      'AND cancelled_qty = ?',
+      'AND ordered_qty = ?',
+      'AND procured_qty = ?',
+      'AND reserved_qty = ?',
+      'AND shipped_qty = ?'
+    );
+    params.push(
+      toNonNegativeInt(expectedOrderLine.received_qty),
+      toNonNegativeInt(expectedOrderLine.cancelled_qty),
+      toNonNegativeInt(expectedOrderLine.ordered_qty),
+      toNonNegativeInt(expectedOrderLine.procured_qty),
+      toNonNegativeInt(expectedOrderLine.reserved_qty),
+      toNonNegativeInt(expectedOrderLine.shipped_qty)
+    );
+  }
+
+  if (expectedDisplayStatus != null) {
+    whereClauses.push('AND display_status = ?');
+    params.push(expectedDisplayStatus);
+  }
+
+  return db
+    .prepare(
+      `UPDATE order_lines
+       SET ${setClauses.join(',\n           ')}
+       WHERE ${whereClauses.join('\n         ')}`
+    )
+    .bind(...params);
+}
+
+export function buildCompatibilityOrderProcurementStatusStatement(
+  db,
+  orderId,
+  procurementStatus,
+  timestamp,
+  { excludeTerminalStatuses = false, requireStatusChange = false } = {}
+) {
+  const whereClauses = ['id = ?'];
+  const params = [procurementStatus, timestamp, orderId];
+
+  if (excludeTerminalStatuses) {
+    whereClauses.push("AND status NOT IN ('delivered', 'void')");
+  }
+
+  if (requireStatusChange) {
+    whereClauses.push("AND COALESCE(procurement_status, 'none') != ?");
+    params.push(procurementStatus);
+  }
+
+  return db
+    .prepare(
+      `UPDATE orders
+       SET procurement_status = ?, updated_at = ?
+       WHERE ${whereClauses.join('\n         ')}`
+    )
+    .bind(...params);
+}
+
 export async function requireOrderLine(db, orderId, orderLineId) {
   const row = await db
     .prepare(

@@ -7,6 +7,8 @@ import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 import {
+  buildCompatibilityOrderProcurementStatusStatement,
+  buildOrderLineProjectionStatement,
   buildPurchaseOrderItemReceivedQtyStatement,
   buildFinalizeCommandStatements,
   cleanupReservedCommand,
@@ -180,32 +182,7 @@ export class OrderProcurementDomainService {
     next.display_status = projectOrderLineStatus(next);
 
     const timestamp = this.now();
-    await this.db
-      .prepare(
-        `UPDATE order_lines
-         SET ordered_qty = ?,
-             procured_qty = ?,
-             received_qty = ?,
-             reserved_qty = ?,
-             shipped_qty = ?,
-             cancelled_qty = ?,
-             display_status = ?,
-             updated_at = ?
-         WHERE id = ? AND order_id = ?`
-      )
-      .bind(
-        next.ordered_qty,
-        next.procured_qty,
-        next.received_qty,
-        next.reserved_qty,
-        next.shipped_qty,
-        next.cancelled_qty,
-        next.display_status,
-        timestamp,
-        orderLine.id,
-        orderLine.order_id
-      )
-      .run();
+    await buildOrderLineProjectionStatement(this.db, next, orderLine, timestamp).run();
 
     return next;
   }
@@ -228,16 +205,16 @@ export class OrderProcurementDomainService {
 
     const nextStatus = projectCompatibilityProcurementStatus(progress || {});
     const timestamp = this.now();
-    await this.db
-      .prepare(
-        `UPDATE orders
-         SET procurement_status = ?, updated_at = ?
-         WHERE id = ?
-           AND status NOT IN ('delivered', 'void')
-           AND COALESCE(procurement_status, 'none') != ?`
-      )
-      .bind(nextStatus, timestamp, orderId, nextStatus)
-      .run();
+    await buildCompatibilityOrderProcurementStatusStatement(
+      this.db,
+      orderId,
+      nextStatus,
+      timestamp,
+      {
+        excludeTerminalStatuses: true,
+        requireStatusChange: true,
+      }
+    ).run();
 
     return nextStatus;
   }
@@ -255,43 +232,20 @@ export class OrderProcurementDomainService {
   }
 
   buildOrderLineProgressStatement(orderLine, timestamp) {
-    return this.db
-      .prepare(
-        `UPDATE order_lines
-         SET ordered_qty = ?,
-             procured_qty = ?,
-             received_qty = ?,
-             reserved_qty = ?,
-             shipped_qty = ?,
-             cancelled_qty = ?,
-             display_status = ?,
-             updated_at = ?
-         WHERE id = ? AND order_id = ?`
-      )
-      .bind(
-        orderLine.ordered_qty,
-        orderLine.procured_qty,
-        orderLine.received_qty,
-        orderLine.reserved_qty,
-        orderLine.shipped_qty,
-        orderLine.cancelled_qty,
-        orderLine.display_status,
-        timestamp,
-        orderLine.id,
-        orderLine.order_id
-      );
+    return buildOrderLineProjectionStatement(this.db, orderLine, orderLine, timestamp);
   }
 
   buildCompatibilityOrderStatusStatement(orderId, procurementStatus, timestamp) {
-    return this.db
-      .prepare(
-        `UPDATE orders
-         SET procurement_status = ?, updated_at = ?
-         WHERE id = ?
-           AND status NOT IN ('delivered', 'void')
-           AND COALESCE(procurement_status, 'none') != ?`
-      )
-      .bind(procurementStatus, timestamp, orderId, procurementStatus);
+    return buildCompatibilityOrderProcurementStatusStatement(
+      this.db,
+      orderId,
+      procurementStatus,
+      timestamp,
+      {
+        excludeTerminalStatuses: true,
+        requireStatusChange: true,
+      }
+    );
   }
 
   async recordPurchaseOrderReceipts(poId, payload = {}, options = {}) {

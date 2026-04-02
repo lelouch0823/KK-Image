@@ -6,6 +6,8 @@ import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 import {
+  buildCompatibilityOrderProcurementStatusStatement,
+  buildOrderLineProjectionStatement,
   buildPurchaseOrderItemReceivedQtyStatement,
   buildFinalizeCommandStatements,
   cleanupReservedCommand,
@@ -135,61 +137,18 @@ export class OrderProcurementReceiptReversalService {
   }
 
   buildOrderLineReversalStatement(orderLine, nextOrderLine, timestamp) {
-    return this.db
-      .prepare(
-        `UPDATE order_lines
-         SET received_qty = ?, display_status = ?, updated_at = ?
-         WHERE id = ? AND order_id = ?
-           AND received_qty = ?
-           AND cancelled_qty = ?
-           AND ordered_qty = ?
-           AND procured_qty = ?
-           AND reserved_qty = ?
-           AND shipped_qty = ?`
-      )
-      .bind(
-        nextOrderLine.received_qty,
-        nextOrderLine.display_status,
-        timestamp,
-        orderLine.id,
-        orderLine.order_id,
-        toNonNegativeInt(orderLine.received_qty),
-        toNonNegativeInt(orderLine.cancelled_qty),
-        toNonNegativeInt(orderLine.ordered_qty),
-        toNonNegativeInt(orderLine.procured_qty),
-        toNonNegativeInt(orderLine.reserved_qty),
-        toNonNegativeInt(orderLine.shipped_qty)
-      );
+    return buildOrderLineProjectionStatement(this.db, nextOrderLine, orderLine, timestamp, {
+      writeMode: 'received_only',
+      guardProjectionState: true,
+    });
   }
 
   buildOrderLineRevertStatement(orderLine, nextOrderLine, timestamp) {
-    return this.db
-      .prepare(
-        `UPDATE order_lines
-         SET received_qty = ?, display_status = ?, updated_at = ?
-         WHERE id = ? AND order_id = ?
-           AND received_qty = ?
-           AND cancelled_qty = ?
-           AND ordered_qty = ?
-           AND procured_qty = ?
-           AND reserved_qty = ?
-           AND shipped_qty = ?
-           AND display_status = ?`
-      )
-      .bind(
-        toNonNegativeInt(orderLine.received_qty),
-        projectOrderLineStatus(orderLine),
-        timestamp,
-        orderLine.id,
-        orderLine.order_id,
-        toNonNegativeInt(nextOrderLine.received_qty),
-        toNonNegativeInt(orderLine.cancelled_qty),
-        toNonNegativeInt(orderLine.ordered_qty),
-        toNonNegativeInt(orderLine.procured_qty),
-        toNonNegativeInt(orderLine.reserved_qty),
-        toNonNegativeInt(orderLine.shipped_qty),
-        nextOrderLine.display_status
-      );
+    return buildOrderLineProjectionStatement(this.db, orderLine, nextOrderLine, timestamp, {
+      writeMode: 'received_only',
+      guardProjectionState: true,
+      expectedDisplayStatus: nextOrderLine.display_status,
+    });
   }
 
   async reverseReceipt(poId, receiptId, payload = {}, options = {}) {
@@ -381,13 +340,12 @@ export class OrderProcurementReceiptReversalService {
       nextProcurementStatus = projectCompatibilityProcurementStatus(aggregate);
 
       statements.push(
-        this.db
-          .prepare(
-            `UPDATE orders
-           SET procurement_status = ?, updated_at = ?
-           WHERE id = ?`
-          )
-          .bind(nextProcurementStatus, timestamp, originalReceipt.pre_order_id)
+        buildCompatibilityOrderProcurementStatusStatement(
+          this.db,
+          originalReceipt.pre_order_id,
+          nextProcurementStatus,
+          timestamp
+        )
       );
     }
 
