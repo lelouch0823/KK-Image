@@ -30,13 +30,6 @@ app.onError((err, c) => {
     return c.json({ success: false, error, code }, statusCode);
 });
 
-async function requireSalesOrder(orderRepo, orderId, salespersonId) {
-    return requireEntity(
-        orderRepo.findByIdAndSalesperson(orderId, salespersonId),
-        () => new NotFoundError(MSG.ORDER.NOT_FOUND)
-    );
-}
-
 function scheduleOutboxProcessing(c, workerId) {
     c.executionCtx.waitUntil(runOutboxPoller({
         env: c.env,
@@ -181,7 +174,10 @@ app.get('/:id', async (c) => {
     const { env } = c;
 
     const orderRepo = new OrderRepository(env.DB);
-    const order = await requireSalesOrder(orderRepo, orderId, salesperson.id);
+    const order = await requireEntity(
+        orderRepo.findByIdAndSalesperson(orderId, salesperson.id),
+        () => new NotFoundError(MSG.ORDER.NOT_FOUND)
+    );
 
     const { OrderTimelineRepository } = await import('../../../../repositories/OrderTimelineRepository.js');
     const tplRepo = new OrderTimelineRepository(env.DB);
@@ -222,7 +218,10 @@ app.patch('/:id/read', async (c) => {
     const { env } = c;
 
     const orderRepo = new OrderRepository(env.DB);
-    await requireSalesOrder(orderRepo, orderId, salesperson.id);
+    await requireEntity(
+        orderRepo.findByIdAndSalesperson(orderId, salesperson.id),
+        () => new NotFoundError(MSG.ORDER.NOT_FOUND)
+    );
     await orderRepo.markAsRead(orderId, 'sales');
     await publishSingleDomainEventAndPoll(c, {
         event_type: 'order_read_by_sales',
@@ -257,7 +256,10 @@ app.patch('/:id', async (c) => {
     const { env } = c;
 
     const orderRepo = new OrderRepository(env.DB);
-    const order = await requireSalesOrder(orderRepo, orderId, salesperson.id);
+    const order = await requireEntity(
+        orderRepo.findByIdAndSalesperson(orderId, salesperson.id),
+        () => new NotFoundError(MSG.ORDER.NOT_FOUND)
+    );
 
     const editableStatuses = ['pending', 'rejected', 'void'];
     if (!editableStatuses.includes(order.status)) {
@@ -360,7 +362,10 @@ app.delete('/:id', async (c) => {
     const { env } = c;
 
     const orderRepo = new OrderRepository(env.DB);
-    const order = await requireSalesOrder(orderRepo, orderId, salesperson.id);
+    const order = await requireEntity(
+        orderRepo.findByIdAndSalesperson(orderId, salesperson.id),
+        () => new NotFoundError(MSG.ORDER.NOT_FOUND)
+    );
     if (order.status !== 'pending') throw new ForbiddenError(MSG.ORDER.ONLY_PENDING_CAN_VOID);
 
     await orderRepo.updateStatus(orderId, 'void', 'sales');
@@ -428,7 +433,10 @@ app.post('/:id/comment', zValidator('json', AddCommentSchema), async (c) => {
     const { env } = c;
 
     const orderRepo = new OrderRepository(env.DB);
-    const order = await requireSalesOrder(orderRepo, orderId, salesperson.id);
+    const order = await requireEntity(
+        orderRepo.findByIdAndSalesperson(orderId, salesperson.id),
+        () => new NotFoundError(MSG.ORDER.NOT_FOUND)
+    );
 
     const { OrderTimelineRepository } = await import('../../../../repositories/OrderTimelineRepository.js');
     const tplRepo = new OrderTimelineRepository(env.DB);
