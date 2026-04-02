@@ -203,67 +203,6 @@ export async function recordAuditEvent(db, params = {}) {
   return event;
 }
 
-export async function recordAuditEvents(db, events = []) {
-  if (!Array.isArray(events) || events.length === 0) return [];
-  if (!db || typeof db.prepare !== 'function' || typeof db.batch !== 'function') return events;
-  const statements = events.map((params) => {
-    const event = buildAuditEvent(params);
-    return db.prepare(
-      `INSERT INTO audit_logs (
-          id,
-          user_id,
-          actor_type,
-          actor_id,
-          actor_name,
-          actor_role,
-          source_app,
-          request_id,
-          trace_id,
-          domain,
-          action,
-          result,
-          severity,
-          target_type,
-          target_id,
-          target_label,
-          summary,
-          payload,
-          changes_json,
-          metadata_json,
-          ip_address,
-          user_agent,
-          created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      event.id,
-      event.user_id,
-      event.actor_type,
-      event.actor_id,
-      event.actor_name,
-      event.actor_role,
-      event.source_app,
-      event.request_id,
-      event.trace_id,
-      event.domain,
-      event.action,
-      event.result,
-      event.severity,
-      event.target_type,
-      event.target_id,
-      event.target_label,
-      event.summary,
-      event.payload,
-      event.changes_json,
-      event.metadata_json,
-      event.ip_address,
-      event.user_agent,
-      event.created_at,
-    );
-  });
-  await db.batch(statements);
-  return events;
-}
-
 export function setAuditFailureRecorded(c) {
   c.set('auditFailureRecorded', true);
 }
