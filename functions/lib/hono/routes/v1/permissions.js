@@ -2,11 +2,11 @@ import { Hono } from 'hono';
 import { MSG } from '../../_shared/utils.js';
 import {
   evaluateActionPermission,
+  findUnknownPolicyActions,
   getPolicyActions,
   getPolicyMetadata,
 } from '../../../authz/index.js';
 import {
-  findUnknownPermissions,
   formatUnknownPermissionsError,
 } from './_shared/permissions-validation.js';
 
@@ -95,7 +95,7 @@ app.post('/check', async (c) => {
   if (permissions.some((perm) => typeof perm !== 'string' || !perm)) {
     return c.json({ success: false, error: MSG.COMMON.INVALID_PARAMS }, 400);
   }
-  const unknownPermissions = findUnknownPermissions(permissions);
+  const unknownPermissions = findUnknownPolicyActions(permissions);
   if (unknownPermissions.length > 0) {
     return c.json(
       {
